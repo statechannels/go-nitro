@@ -14,6 +14,7 @@ func min(a big.Int, b big.Int) big.Int {
 	}
 }
 
+// ComputeTransferEffectsAndInteractions computes the effects and interactions that will be executed on-chain when "transfer" is called
 func ComputeTransferEffectsAndInteractions(initialHoldings big.Int, allocations Allocations, indices []uint) (newAllocations Allocations, exitAllocations Allocations) {
 	// TODO here we assume indices = [], so pay out all allocations
 	surplus := big.NewInt(0).Set(&initialHoldings)
