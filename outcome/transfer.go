@@ -25,22 +25,22 @@ func ComputeTransferEffectsAndInteractions(initialHoldings big.Int, allocations 
 	for i := 0; i < len(allocations); i++ {
 		// copy allocation
 		newAllocations[i] = Allocation{
-			Destination: allocations[i].Destination,
-			Amount: *big.NewInt(0).Set(&allocations[i].Amount),
+			Destination:    allocations[i].Destination,
+			Amount:         *big.NewInt(0).Set(&allocations[i].Amount),
 			AllocationType: allocations[i].AllocationType,
-			Metadata: allocations[i].Metadata,
+			Metadata:       allocations[i].Metadata,
 		}
 		// compute payout amount
 		affordsForDestination := min(allocations[i].Amount, *surplus)
-		if (len(indices)==0 || k < uint(len(indices)) && indices[k] == uint(i)) {
+		if len(indices) == 0 || k < uint(len(indices)) && indices[k] == uint(i) {
 			// decrease allocation amount
 			newAllocations[i].Amount.Sub(&newAllocations[i].Amount, &affordsForDestination)
 			// increase exit allocation amount
 			exitAllocations[i] = Allocation{
-				Destination: allocations[i].Destination,
-				Amount: *big.NewInt(0).Set(&affordsForDestination), 
-				AllocationType: allocations[i].AllocationType, 
-				Metadata: allocations[i].Metadata,
+				Destination:    allocations[i].Destination,
+				Amount:         *big.NewInt(0).Set(&affordsForDestination),
+				AllocationType: allocations[i].AllocationType,
+				Metadata:       allocations[i].Metadata,
 			}
 		}
 		// decrease surplus

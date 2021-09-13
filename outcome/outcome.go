@@ -8,10 +8,10 @@ import (
 
 // Allocation declares an Amount to be paid to a Destination.
 type Allocation struct {
-	Destination    string // Either an ethereum address or an application-specific identifier
+	Destination    string  // Either an ethereum address or an application-specific identifier
 	Amount         big.Int // An amount of a particular asset
-	AllocationType uint // Directs calling code on how to interpret the allocation
-	Metadata       string // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
+	AllocationType uint    // Directs calling code on how to interpret the allocation
+	Metadata       string  // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
 }
 
 // Allocations is an array of type Allocation
@@ -19,9 +19,9 @@ type Allocations []Allocation
 
 // SingleAssetExit declares an ordered list of Allocations for a single asset.
 type SingleAssetExit struct {
-	Asset string // Either the zero address (implying the native token) or the address of an ERC20 contract
-	Metadata string // Can be used to encode arbitrary additional information that applies to all allocations.
-	Allocations     Allocations
+	Asset       string // Either the zero address (implying the native token) or the address of an ERC20 contract
+	Metadata    string // Can be used to encode arbitrary additional information that applies to all allocations.
+	Allocations Allocations
 }
 
 // Exit is an ordered list of SingleAssetExits
