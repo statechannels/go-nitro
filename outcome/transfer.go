@@ -4,13 +4,13 @@ import (
 	"math/big"
 )
 
-// min returns the minimum of the supplied integers
-func min(a big.Int, b big.Int) big.Int {
-	switch a.Cmp(&b) {
+// min returns the minimum of the supplied integers as a new big.Int
+func min(a *big.Int, b *big.Int) big.Int {
+	switch a.Cmp(b) {
 	case -1:
-		return *big.NewInt(0).Set(&a)
+		return *big.NewInt(0).Set(a)
 	default:
-		return *big.NewInt(0).Set(&b)
+		return *big.NewInt(0).Set(b)
 	}
 }
 
@@ -31,7 +31,7 @@ func ComputeTransferEffectsAndInteractions(initialHoldings big.Int, allocations 
 			Metadata:       allocations[i].Metadata,
 		}
 		// compute payout amount
-		affordsForDestination := min(allocations[i].Amount, *surplus)
+		affordsForDestination := min(&allocations[i].Amount, surplus)
 		if len(indices) == 0 || k < uint(len(indices)) && indices[k] == uint(i) {
 			// decrease allocation amount
 			newAllocations[i].Amount.Sub(&newAllocations[i].Amount, &affordsForDestination)
