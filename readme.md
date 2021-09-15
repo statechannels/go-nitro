@@ -1,6 +1,5 @@
 <h1 align="center">
-<div><img src="https://protocol.statechannels.org/img/favicon.ico"> </div>
-
+<div><img src="https://protocol.statechannels.org/img/favicon.ico"><br>
 go-nitro
 </h1>
 Implementation of nitro protocol in golang.
