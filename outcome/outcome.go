@@ -11,7 +11,7 @@ type Allocation struct {
 	Destination    string  // Either an ethereum address or an application-specific identifier
 	Amount         big.Int // An amount of a particular asset
 	AllocationType uint    // Directs calling code on how to interpret the allocation
-	Metadata   string  // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
+	Metadata       string  // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
 }
 
 // Allocations is an array of type Allocation
