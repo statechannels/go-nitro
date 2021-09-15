@@ -11,6 +11,10 @@ To format:
 ```shell
 gofmt -w .
 ```
+To lint:
+```shell
+golangci-lint run
+```
 To build:
 ```shell
 go build ./...
@@ -18,4 +22,5 @@ go build ./...
 To run tests:
 ```shell
 go test ./...
+
 ```
