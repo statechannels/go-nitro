@@ -50,20 +50,18 @@ type Exit []SingleAssetExit
 func (e *Exit) Encode() (types.Bytes, error) {
 
 	allocations := abi.ArgumentMarshaling{
-		Name:         "Allocations",
-		Type:         "tuple[]",
-		InternalType: "struct ExitFormat.Allocation[]",
+		Name: "Allocations",
+		Type: "tuple[]",
 		Components: []abi.ArgumentMarshaling{
-			{Name: "destination", Type: "bytes32", InternalType: "bytes32"},
-			{Name: "amount", Type: "uint256", InternalType: "address"},
-			{Name: "allocationType", Type: "uint8", InternalType: "address"},
-			{Name: "metadata", Type: "bytes", InternalType: "address"},
+			{Name: "destination", Type: "bytes32"},
+			{Name: "amount", Type: "uint256"},
+			{Name: "allocationType", Type: "uint8"},
+			{Name: "metadata", Type: "bytes"},
 		},
-		Indexed: false,
 	}
 	exitTy, _ := abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []abi.ArgumentMarshaling{
-		{Name: "asset", Type: "address", InternalType: "address"},
-		{Name: "metadata", Type: "bytes", InternalType: "address"},
+		{Name: "asset", Type: "address"},
+		{Name: "metadata", Type: "bytes"},
 		allocations,
 	})
 
