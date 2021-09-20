@@ -1,8 +1,6 @@
 package outcome
 
 import (
-	"strings"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -50,66 +48,26 @@ type Exit []SingleAssetExit
 
 // Encode returns the rlp encoding of the Exit
 func (e *Exit) Encode() (types.Bytes, error) {
-	json := `[{
-		"inputs": [
-		  {
-			"components": [
-			  {
-				"internalType": "address",
-				"name": "asset",
-				"type": "address"
-			  },
-			  {
-				"internalType": "bytes",
-				"name": "metadata",
-				"type": "bytes"
-			  },
-			  {
-				"components": [
-				  {
-					"internalType": "bytes32",
-					"name": "destination",
-					"type": "bytes32"
-				  },
-				  {
-					"internalType": "uint256",
-					"name": "amount",
-					"type": "uint256"
-				  },
-				  {
-					"internalType": "uint8",
-					"name": "allocationType",
-					"type": "uint8"
-				  },
-				  {
-					"internalType": "bytes",
-					"name": "metadata",
-					"type": "bytes"
-				  }
-				],
-				"internalType": "struct ExitFormat.Allocation[]",
-				"name": "allocations",
-				"type": "tuple[]"
-			  }
-			],
-			"internalType": "struct ExitFormat.SingleAssetExit[]",
-			"name": "exit",
-			"type": "tuple[]"
-		  }
-		],
-		"name": "encodeExit",
-		"outputs": [
-		  {
-			"internalType": "bytes",
-			"name": "",
-			"type": "bytes"
-		  }
-		],
-		"stateMutability": "pure",
-		"type": "function"
-	  }]`
 
-	contractAbi, _ := abi.JSON(strings.NewReader(json))
-	args := abi.Arguments{{Type: contractAbi.Methods["encodeExit"].Inputs[0].Type}}
-	return args.Pack(e)
+	allocations := abi.ArgumentMarshaling{
+		Name:         "Allocations",
+		Type:         "tuple[]",
+		InternalType: "struct ExitFormat.Allocation[]",
+		Components: []abi.ArgumentMarshaling{
+			{Name: "destination", Type: "bytes32", InternalType: "bytes32"},
+			{Name: "amount", Type: "uint256", InternalType: "address"},
+			{Name: "allocationType", Type: "uint8", InternalType: "address"},
+			{Name: "metadata", Type: "bytes", InternalType: "address"},
+		},
+		Indexed: false,
+	}
+	exitTy, _ := abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []abi.ArgumentMarshaling{
+		{Name: "asset", Type: "address", InternalType: "address"},
+		{Name: "metadata", Type: "bytes", InternalType: "address"},
+		allocations,
+	})
+
+	args2 := abi.Arguments{{Type: exitTy}}
+
+	return args2.Pack(e)
 }
