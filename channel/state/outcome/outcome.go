@@ -47,24 +47,27 @@ type SingleAssetExit struct {
 // Exit is an ordered list of SingleAssetExits
 type Exit []SingleAssetExit
 
+// allocationsTy describes the shape of Allocations such that github.com/ethereum/go-ethereum/accounts/abi can parse it
+var allocationsTy = abi.ArgumentMarshaling{
+	Name: "Allocations",
+	Type: "tuple[]",
+	Components: []abi.ArgumentMarshaling{
+		{Name: "destination", Type: "bytes32"},
+		{Name: "amount", Type: "uint256"},
+		{Name: "allocationType", Type: "uint8"},
+		{Name: "metadata", Type: "bytes"},
+	},
+}
+
+// allocationsTy describes the shape of Exit such that github.com/ethereum/go-ethereum/accounts/abi can parse it
+var exitTy, _ = abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []abi.ArgumentMarshaling{
+	{Name: "asset", Type: "address"},
+	{Name: "metadata", Type: "bytes"},
+	allocationsTy,
+})
+
 // Encode returns the abi encoded Exit
 func (e *Exit) Encode() (types.Bytes, error) {
-
-	allocations := abi.ArgumentMarshaling{
-		Name: "Allocations",
-		Type: "tuple[]",
-		Components: []abi.ArgumentMarshaling{
-			{Name: "destination", Type: "bytes32"},
-			{Name: "amount", Type: "uint256"},
-			{Name: "allocationType", Type: "uint8"},
-			{Name: "metadata", Type: "bytes"},
-		},
-	}
-	exitTy, _ := abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []abi.ArgumentMarshaling{
-		{Name: "asset", Type: "address"},
-		{Name: "metadata", Type: "bytes"},
-		allocations,
-	})
 
 	args2 := abi.Arguments{{Type: exitTy}}
 
