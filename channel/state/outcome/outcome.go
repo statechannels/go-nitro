@@ -59,7 +59,7 @@ var allocationsTy = abi.ArgumentMarshaling{
 	},
 }
 
-// allocationsTy describes the shape of Exit such that github.com/ethereum/go-ethereum/accounts/abi can parse it
+// exitTy describes the shape of Exit such that github.com/ethereum/go-ethereum/accounts/abi can parse it
 var exitTy, _ = abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []abi.ArgumentMarshaling{
 	{Name: "asset", Type: "address"},
 	{Name: "metadata", Type: "bytes"},
