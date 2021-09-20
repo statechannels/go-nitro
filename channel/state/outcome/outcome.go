@@ -47,7 +47,7 @@ type SingleAssetExit struct {
 // Exit is an ordered list of SingleAssetExits
 type Exit []SingleAssetExit
 
-// Encode returns the rlp encoding of the Exit
+// Encode returns the abi encoded Exit
 func (e *Exit) Encode() (types.Bytes, error) {
 
 	allocations := abi.ArgumentMarshaling{
