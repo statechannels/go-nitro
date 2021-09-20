@@ -1,6 +1,7 @@
 package outcome
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
 	"testing"
@@ -52,7 +53,7 @@ func TestExitEncode(t *testing.T) {
 		t.Error(error)
 	}
 
-	if !encodedExit.Equals(want) {
+	if !bytes.Equal(encodedExit, want) {
 		t.Errorf("incorrect encoding. Got %x, wanted %x", encodedExit, want)
 	}
 

@@ -1,6 +1,8 @@
 package outcome
 
 import (
+	"bytes"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -16,8 +18,7 @@ type Allocation struct {
 // Equals returns true if the supplied Allocation matches the receiver Allocation, and false otherwise.
 // Fields are compared with ==, except for big.Ints which are compared using Cmp
 func (a Allocation) Equals(b Allocation) bool {
-	return a.Destination == b.Destination && a.AllocationType == b.AllocationType && a.Amount.Cmp(b.Amount) == 0
-	// TODO a.Metadata.Equals(b.Metadata)
+	return a.Destination == b.Destination && a.AllocationType == b.AllocationType && a.Amount.Cmp(b.Amount) == 0 && bytes.Equal(a.Metadata, b.Metadata)
 }
 
 // Allocations is an array of type Allocation
