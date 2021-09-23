@@ -68,8 +68,5 @@ var exitTy, _ = abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []
 
 // Encode returns the abi encoded Exit
 func (e *Exit) Encode() (types.Bytes, error) {
-
-	args2 := abi.Arguments{{Type: exitTy}}
-
-	return args2.Pack(e)
+	return abi.Arguments{{Type: exitTy}}.Pack(e)
 }
