@@ -26,18 +26,6 @@ type ChannelManager interface {
 	CloseVirtualChannel(ID types.Bytes32) (<-chan ChannelResult, error)
 }
 
-// CapacityOracle exposes methods to query how many assets are locked into ledger channels, both by this wallet and by hubs
-type CapacityOracle interface {
-	// funds available to me in the ledger channel (that I can use to fund a new virtual channel)
-	GetAvailableSpendCapacity(hub types.Address) (big.Int, error)
-
-	// total user funds
-	GetTotalSpendCapacity(intermediary types.Address) (big.Int, error)
-
-	// funds available to the hub in the ledger channel (that they can use to collateralize a new virtual channel)
-	GetAvailableReceiveCapacity(intermediary types.Address) (big.Int, error)
-}
-
 // CreateLedgerChannelArgs holds the data required for the CreateLedgerChannel API method
 type CreateLedgerChannelArgs struct {
 	Asset             types.Address // Either the address of an ERC20 token OR the zero address (implying the native token).
@@ -81,4 +69,18 @@ type ChannelResult struct {
 	ID                 types.Bytes32      // The channelId
 	AdjudicationStatus AdjudicationStatus // The adjudication status of this channel.
 	FundingStatus      FundingStatus      // The funding status of this channel.
+}
+
+// CapacityOracle exposes methods to query how many assets are locked into ledger channels, both by this wallet and by the hub's.
+type CapacityOracle interface {
+	// GetCapacities returns information about the current outcome of the ledger channel with the given hub, in a mapping keyed by the asset.
+	GetCapacities(hub types.Address) (map[types.Address]LedgerChannelCapacites, error)
+}
+
+type LedgerChannelCapacites struct {
+	FreeSendable   *big.Int // Funds available to me in the ledger channel (that I can use to fund a new virtual channel).
+	FreeReceivable *big.Int // Funds available to the hub in the ledger channel (that they can use to collateralize a new virtual channel).
+
+	LockedForMe  *big.Int // Funds locked in virtual channels that will return to me.
+	LockedForHub *big.Int // Funds locked in virtual channels that will not return to me.
 }
