@@ -15,11 +15,15 @@ type Wallet interface {
 
 // ChannelManager accepts requests to open and close channels
 type ChannelManager interface {
-	CreateLedgerChannel(args CreateLedgerChannelArgs) (<-chan ChannelResult, error) // Returns a channel where the result will be sent
-	CloseLedgerChannel()
+	// CreateLedgerChannel Requests a new ledger channel with a given hub and initial balances. Returns a go channel where the result will be sent.
+	CreateLedgerChannel(args CreateLedgerChannelArgs) (<-chan ChannelResult, error)
+	// CloseLedgerChannel Requests an existing ledger channel with given ID be closed and defunded on chain. Returns a go channel where the result will be sent.
+	CloseLedgerChannel(ID types.Bytes32) (<-chan ChannelResult, error)
 
-	CreateVirtualChannel()
-	CloseVirtualChannel()
+	// CreateVirtualChannel Requests a new virtual channel through a given hub and initial balances. Returns a go channel where the result will be sent.
+	CreateVirtualChannel(args CreateVirtualChannelArgs) (<-chan ChannelResult, error)
+	// CloseVirtualChannel Requests an existing virtual channel with given ID be closed and defunded off chain. Returns a go channel where the result will be sent.
+	CloseVirtualChannel(ID types.Bytes32) (<-chan ChannelResult, error)
 }
 
 // CapacityOracle exposes methods to query how many assets are locked into ledger channels, both by this wallet and by hubs
@@ -34,12 +38,22 @@ type CapacityOracle interface {
 	GetAvailableReceiveCapacity(intermediary types.Address) (big.Int, error)
 }
 
-// CreateLedgerChannelArgs holds the data required for the CreateLedgerChannel API methods
+// CreateLedgerChannelArgs holds the data required for the CreateLedgerChannel API method
 type CreateLedgerChannelArgs struct {
 	Asset             types.Address // Either the address of an ERC20 token OR the zero address (implying the native token).
 	Hub               types.Address // The address corresponding to the channel signing key of a particular Nitro hub.
 	MyBal             *big.Int      // My initial balance. Determines my spending capacity.
 	HubBal            *big.Int      // The hub's initial balance. Determines my receive capacity.
+	ChallengeDuration *big.Int      // The challenge timeout duration. Zero implies a default value will be chosen.
+}
+
+// CreateVirtualChannelArgs holds the data required for the CreateVirtualChannel API method
+type CreateVirtualChannelArgs struct {
+	Asset             types.Address // Either the address of an ERC20 token OR the zero address (implying the native token).
+	Hub               types.Address // The address corresponding to the channel signing key of a particular Nitro hub.
+	Counterparty      types.Address // The address corresponding to the channel signing key of a particular Nitro participant connected to the same hub.
+	MyBal             *big.Int      // My initial balance. Determines my spending capacity.
+	CounterpartyBal   *big.Int      // The hub's initial balance. Determines my receive capacity.
 	ChallengeDuration *big.Int      // The challenge timeout duration. Zero implies a default value will be chosen.
 }
 
