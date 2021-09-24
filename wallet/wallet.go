@@ -24,6 +24,10 @@ type ChannelManager interface {
 	CreateVirtualChannel(args CreateVirtualChannelArgs) (<-chan ChannelResult, error)
 	// CloseVirtualChannel Requests an existing virtual channel with given ID be closed and defunded off chain. Returns a go channel where the result will be sent.
 	CloseVirtualChannel(ID types.Bytes32) (<-chan ChannelResult, error)
+
+	BytecodeCacher
+
+	ApproveObjective(ID string)
 }
 
 // CreateLedgerChannelArgs holds the data required for the CreateLedgerChannel API method
