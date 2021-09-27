@@ -74,7 +74,7 @@ func (e *Exit) Encode() (types.Bytes, error) {
 
 // Hash returns the keccak256 hash of the Exit
 func (e *Exit) Hash() (types.Bytes32, error) {
-	if encoded, err := e.Encode(); err != nil {
+	if encoded, err := e.Encode(); err == nil {
 		return crypto.Keccak256Hash(encoded), nil
 	} else {
 		return types.Bytes32{}, err
