@@ -4,6 +4,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// Returns true if the destination has the 12 leading bytes as zero, false otherwise
 func IsExternalDestination(destination types.Bytes32) bool {
 
 	for i, b := range destination[0:12] {

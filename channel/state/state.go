@@ -1,6 +1,8 @@
 package state
 
 import (
+	"errors"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -61,7 +63,8 @@ func (s State) VariablePart() VariablePart {
 	return VariablePart{s.AppData, encodedOutcome}
 }
 
-// ChannelId computes and returns the id corresponding to a ChannelPart
+// ChannelId computes and returns the id corresponding to a ChannelPart,
+// and an error if the id is an external destination.
 func (c ChannelPart) ChannelId() (types.Bytes32, error) {
 	uint256, _ := abi.NewType("uint256", "uint256", nil)
 	addressArray, _ := abi.NewType("address[]", "address[]", nil)
@@ -71,9 +74,12 @@ func (c ChannelPart) ChannelId() (types.Bytes32, error) {
 		{Type: uint256},
 	}.Pack(c.ChainId, c.Participants, c.ChannelNonce)
 
-	// TODO return an error if the channelId is an external destination
+	channelId := crypto.Keccak256Hash(encodedChannelPart)
 
-	return crypto.Keccak256Hash(encodedChannelPart), error
+	if error == nil && outcome.IsExternalDestination(channelId) {
+		error = errors.New("channelId is an external destination") // This is extremely unlikely
+	}
+	return channelId, error
 
 }
 
