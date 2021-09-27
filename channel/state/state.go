@@ -16,10 +16,10 @@ type (
 		Participants      []types.Address
 		ChannelNonce      *types.Uint256 // uint48 in solidity
 		AppDefinition     types.Address
-		ChallengeDuration *uint
+		ChallengeDuration *types.Uint256
 		AppData           types.Bytes
 		Outcome           outcome.Exit
-		TurnNum           *uint
+		TurnNum           *types.Uint256
 		IsFinal           bool
 	}
 
@@ -30,6 +30,13 @@ type (
 		ChannelNonce *types.Uint256 // uint48 in solidity
 	}
 
+	// appPart contains the subset of the State data which defines the channel application
+	appPart struct {
+		ChallengeDuration *types.Uint256
+		AppDefinition     types.Address
+		AppData           types.Bytes
+	}
+
 	// FixedPart contains the subset of State data which does not change.
 	// NOTE: it is a strict superset of ChannelPart.
 	FixedPart struct {
@@ -37,7 +44,7 @@ type (
 		Participants      []types.Address
 		ChannelNonce      *types.Uint256 // uint48 in solidity
 		AppDefinition     types.Address  // This could change (infrequently) without affecting the channel id.
-		ChallengeDuration *uint          // This could change (infrequently) without affecting the channel id.
+		ChallengeDuration *types.Uint256 // This could change (infrequently) without affecting the channel id.
 	}
 
 	// VariablePart contains the subset of State data which can change with each state update.
@@ -48,8 +55,13 @@ type (
 )
 
 // ChannelPart returns the ChannelPart of the State
-func (s State) channelPart() ChannelPart {
-	return ChannelPart{s.ChainId, s.Participants, s.ChannelNonce}
+func (s State) channelPart() channelPart {
+	return channelPart{s.ChainId, s.Participants, s.ChannelNonce}
+}
+
+// ChannelPart returns the ChannelPart of the State
+func (s State) appPart() appPart {
+	return appPart{s.ChallengeDuration, s.AppDefinition, s.AppData}
 }
 
 // FixedPart returns the FixedPart of the State
@@ -63,11 +75,15 @@ func (s State) VariablePart() VariablePart {
 	return VariablePart{s.AppData, encodedOutcome}
 }
 
+var uint256, _ = abi.NewType("uint256", "uint256", nil)
+var bytesTy, _ = abi.NewType("bytes", "bytes", nil)
+var addressArray, _ = abi.NewType("address[]", "address[]", nil)
+var address, _ = abi.NewType("address", "address", nil)
+
 // ChannelId computes and returns the id corresponding to a ChannelPart,
 // and an error if the id is an external destination.
 func (c channelPart) ChannelId() (types.Bytes32, error) {
-	uint256, _ := abi.NewType("uint256", "uint256", nil)
-	addressArray, _ := abi.NewType("address[]", "address[]", nil)
+
 	encodedChannelPart, error := abi.Arguments{
 		{Type: uint256},
 		{Type: addressArray},
@@ -88,5 +104,58 @@ func (s State) ChannelId() (types.Bytes32, error) {
 	return s.channelPart().ChannelId()
 }
 
-// TODO hashAppPart
-// TODO hashState
+func (a appPart) Hash() (types.Bytes32, error) {
+	encodedAppPart, error := abi.Arguments{
+		{Type: uint256},
+		{Type: address},
+		{Type: bytesTy},
+	}.Pack(a.ChallengeDuration, a.AppDefinition, a.AppData)
+
+	return crypto.Keccak256Hash(encodedAppPart), error
+
+}
+
+// Hash returns the keccak256 hash of the State
+func (s State) Hash() (types.Bytes32, error) {
+
+	channelId, error := s.ChannelId()
+	if error != nil {
+		return types.Bytes32{}, error
+	}
+	outcomeHash, error := s.Outcome.Hash()
+	if error != nil {
+		return types.Bytes32{}, error
+	}
+	appPartHash, error := s.appPart().Hash()
+	if error != nil {
+		return types.Bytes32{}, error
+	}
+
+	stateStruct := struct {
+		turnNum     *types.Uint256
+		isFinal     bool
+		channelId   types.Bytes32
+		appPartHash types.Bytes32
+		outcomeHash types.Bytes32
+	}{s.TurnNum, s.IsFinal, channelId, appPartHash, outcomeHash}
+
+	var stateTy, _ = abi.NewType(
+		"tuple",
+		"",
+		[]abi.ArgumentMarshaling{
+			{Name: "turnNum", Type: "uint256"},
+			{Name: "isFinal", Type: "bool"},
+			{Name: "channelId", Type: "bytes32"},
+			{Name: "appPartHash", Type: "bytes32"},
+			{Name: "outcomeHash", Type: "bytes32"},
+		},
+	)
+
+	encodedState, error := abi.Arguments{{Type: stateTy}}.Pack(stateStruct)
+	if error != nil {
+		return types.Bytes32{}, error
+	}
+
+	return crypto.Keccak256Hash(encodedState), nil
+
+}
