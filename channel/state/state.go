@@ -104,7 +104,7 @@ func (s State) ChannelId() (types.Bytes32, error) {
 	return s.channelPart().ChannelId()
 }
 
-func (a appPart) Hash() (types.Bytes32, error) {
+func (a appPart) hash() (types.Bytes32, error) {
 	encodedAppPart, error := abi.Arguments{
 		{Type: uint256},
 		{Type: address},
@@ -118,36 +118,42 @@ func (a appPart) Hash() (types.Bytes32, error) {
 // Hash returns the keccak256 hash of the State
 func (s State) Hash() (types.Bytes32, error) {
 
-	channelId, error := s.ChannelId()
+	ChannelId, error := s.ChannelId()
 	if error != nil {
 		return types.Bytes32{}, error
 	}
-	outcomeHash, error := s.Outcome.Hash()
+	OutcomeHash, error := s.Outcome.Hash()
 	if error != nil {
 		return types.Bytes32{}, error
 	}
-	appPartHash, error := s.appPart().Hash()
+	AppPartHash, error := s.appPart().hash()
 	if error != nil {
 		return types.Bytes32{}, error
 	}
 
 	stateStruct := struct {
-		turnNum     *types.Uint256
-		isFinal     bool
-		channelId   types.Bytes32
-		appPartHash types.Bytes32
-		outcomeHash types.Bytes32
-	}{s.TurnNum, s.IsFinal, channelId, appPartHash, outcomeHash}
+		TurnNum     *types.Uint256
+		IsFinal     bool
+		ChannelId   types.Bytes32
+		AppPartHash types.Bytes32
+		OutcomeHash types.Bytes32
+	}{
+		TurnNum:     s.TurnNum,
+		IsFinal:     s.IsFinal,
+		ChannelId:   ChannelId,
+		AppPartHash: AppPartHash,
+		OutcomeHash: OutcomeHash,
+	}
 
 	var stateTy, _ = abi.NewType(
 		"tuple",
-		"",
+		"struct",
 		[]abi.ArgumentMarshaling{
-			{Name: "turnNum", Type: "uint256"},
-			{Name: "isFinal", Type: "bool"},
-			{Name: "channelId", Type: "bytes32"},
-			{Name: "appPartHash", Type: "bytes32"},
-			{Name: "outcomeHash", Type: "bytes32"},
+			{Name: "TurnNum", Type: "uint256"},
+			{Name: "IsFinal", Type: "bool"},
+			{Name: "ChannelId", Type: "bytes32"},
+			{Name: "AppPartHash", Type: "bytes32"},
+			{Name: "OutcomeHash", Type: "bytes32"},
 		},
 	)
 
