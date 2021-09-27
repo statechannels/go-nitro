@@ -2,19 +2,11 @@ package outcome
 
 import (
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common/math"
 )
 
-// min returns the minimum of the supplied integers as a new big.Int
-func min(a *big.Int, b *big.Int) big.Int {
-	switch a.Cmp(b) {
-	case -1:
-		return *big.NewInt(0).Set(a)
-	default:
-		return *big.NewInt(0).Set(b)
-	}
-}
-
-// ComputeTransferEffectsAndInteractions computes the effects and interactions that will be executed on-chain when "transfer" is called
+// ComputeTransferEffectsAndInteractions computes the effects and interactions that will be executed on-chain when "transfer" is called.
 func ComputeTransferEffectsAndInteractions(initialHoldings big.Int, allocations Allocations, indices []uint) (newAllocations Allocations, exitAllocations Allocations) {
 	var k uint
 	surplus := big.NewInt(0).Set(&initialHoldings)
@@ -26,25 +18,25 @@ func ComputeTransferEffectsAndInteractions(initialHoldings big.Int, allocations 
 		// copy allocation
 		newAllocations[i] = Allocation{
 			Destination:    allocations[i].Destination,
-			Amount:         *big.NewInt(0).Set(&allocations[i].Amount),
+			Amount:         big.NewInt(0).Set(allocations[i].Amount),
 			AllocationType: allocations[i].AllocationType,
 			Metadata:       allocations[i].Metadata,
 		}
 		// compute payout amount
-		affordsForDestination := min(&allocations[i].Amount, surplus)
+		affordsForDestination := math.BigMin(allocations[i].Amount, surplus)
 		if len(indices) == 0 || k < uint(len(indices)) && indices[k] == uint(i) {
 			// decrease allocation amount
-			newAllocations[i].Amount.Sub(&newAllocations[i].Amount, &affordsForDestination)
+			newAllocations[i].Amount.Sub(newAllocations[i].Amount, affordsForDestination)
 			// increase exit allocation amount
 			exitAllocations[i] = Allocation{
 				Destination:    allocations[i].Destination,
-				Amount:         *big.NewInt(0).Set(&affordsForDestination),
+				Amount:         big.NewInt(0).Set(affordsForDestination),
 				AllocationType: allocations[i].AllocationType,
 				Metadata:       allocations[i].Metadata,
 			}
 		}
 		// decrease surplus
-		surplus.Sub(surplus, &affordsForDestination)
+		surplus.Sub(surplus, affordsForDestination)
 	}
 
 	return
