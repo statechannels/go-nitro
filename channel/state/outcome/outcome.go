@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -69,4 +70,13 @@ var exitTy, _ = abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []
 // Encode returns the abi encoded Exit
 func (e *Exit) Encode() (types.Bytes, error) {
 	return abi.Arguments{{Type: exitTy}}.Pack(e)
+}
+
+// Hash returns the keccak256 hash of the Exit
+func (e *Exit) Hash() (types.Bytes32, error) {
+	if encoded, err := e.Encode(); err == nil {
+		return crypto.Keccak256Hash(encoded), nil
+	} else {
+		return types.Bytes32{}, err
+	}
 }
