@@ -23,8 +23,8 @@ type (
 		IsFinal           bool
 	}
 
-	// ChannelPart contains the subset of State data from which the channel id is derived
-	ChannelPart struct {
+	// channelPart contains the subset of State data from which the channel id is derived
+	channelPart struct {
 		ChainId      *types.Uint256
 		Participants []types.Address
 		ChannelNonce *types.Uint256 // uint48 in solidity
@@ -48,7 +48,7 @@ type (
 )
 
 // ChannelPart returns the ChannelPart of the State
-func (s State) ChannelPart() ChannelPart {
+func (s State) channelPart() ChannelPart {
 	return ChannelPart{s.ChainId, s.Participants, s.ChannelNonce}
 }
 
@@ -65,7 +65,7 @@ func (s State) VariablePart() VariablePart {
 
 // ChannelId computes and returns the id corresponding to a ChannelPart,
 // and an error if the id is an external destination.
-func (c ChannelPart) ChannelId() (types.Bytes32, error) {
+func (c channelPart) ChannelId() (types.Bytes32, error) {
 	uint256, _ := abi.NewType("uint256", "uint256", nil)
 	addressArray, _ := abi.NewType("address[]", "address[]", nil)
 	encodedChannelPart, error := abi.Arguments{
@@ -85,7 +85,7 @@ func (c ChannelPart) ChannelId() (types.Bytes32, error) {
 
 // ChannelId computes and returns the id corresponding to a State
 func (s State) ChannelId() (types.Bytes32, error) {
-	return s.ChannelPart().ChannelId()
+	return s.channelPart().ChannelId()
 }
 
 // TODO hashAppPart
