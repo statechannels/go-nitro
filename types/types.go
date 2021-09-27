@@ -18,13 +18,3 @@ type Bytes []byte
 
 // We use a big.Int to represent Solidity's uint256
 type Uint256 = big.Int
-
-// Min returns the minimum of the supplied integers as a pointer
-func Min(a *Uint256, b *Uint256) *Uint256 {
-	switch a.Cmp(b) {
-	case -1:
-		return a
-	default:
-		return b
-	}
-}

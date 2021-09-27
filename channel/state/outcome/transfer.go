@@ -3,7 +3,7 @@ package outcome
 import (
 	"math/big"
 
-	"github.com/statechannels/go-nitro/types"
+	"github.com/ethereum/go-ethereum/common/math"
 )
 
 // ComputeTransferEffectsAndInteractions computes the effects and interactions that will be executed on-chain when "transfer" is called.
@@ -23,7 +23,7 @@ func ComputeTransferEffectsAndInteractions(initialHoldings big.Int, allocations 
 			Metadata:       allocations[i].Metadata,
 		}
 		// compute payout amount
-		affordsForDestination := types.Min(allocations[i].Amount, surplus)
+		affordsForDestination := math.BigMin(allocations[i].Amount, surplus)
 		if len(indices) == 0 || k < uint(len(indices)) && indices[k] == uint(i) {
 			// decrease allocation amount
 			newAllocations[i].Amount.Sub(newAllocations[i].Amount, affordsForDestination)
