@@ -105,11 +105,12 @@ func (s State) ChannelId() (types.Bytes32, error) {
 }
 
 func (a appPart) hash() (types.Bytes32, error) {
+
 	encodedAppPart, error := abi.Arguments{
 		{Type: uint256},
 		{Type: address},
 		{Type: bytesTy},
-	}.Pack(a.ChallengeDuration, a.AppDefinition, a.AppData)
+	}.Pack(a.ChallengeDuration, a.AppDefinition, []byte(a.AppData))
 
 	return crypto.Keccak256Hash(encodedAppPart), error
 
