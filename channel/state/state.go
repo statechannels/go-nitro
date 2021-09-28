@@ -25,8 +25,8 @@ type (
 		IsFinal           bool
 	}
 
-	// FixedPart contains the subset of State data which does not change.
-	// NOTE: it is a strict superset of the fields which determin the channel id.
+	// FixedPart contains the subset of State data which does not change during a state update.
+	// NOTE: It is a strict superset of the fields which determine the channel id.
 	// It is therefore possible to change some of the fields while preserving said id.
 	FixedPart struct {
 		ChainId           *types.Uint256
@@ -54,12 +54,19 @@ func (s State) VariablePart() VariablePart {
 	return VariablePart{s.AppData, encodedOutcome}
 }
 
+// uint256 is the uint256 type for abi encoding
 var uint256, _ = abi.NewType("uint256", "uint256", nil)
+
+// bytesTy is the bytes type for abi encoding
 var bytesTy, _ = abi.NewType("bytes", "bytes", nil)
+
+// addressArray is the address[] type for abi encoding
 var addressArray, _ = abi.NewType("address[]", "address[]", nil)
+
+// address is the address type for abi encoding
 var address, _ = abi.NewType("address", "address", nil)
 
-// ChannelId computes and returns the id corresponding to a ChannelPart,
+// ChannelId computes and returns the channel id corresponding to the State,
 // and an error if the id is an external destination.
 func (s State) ChannelId() (types.Bytes32, error) {
 
@@ -78,6 +85,7 @@ func (s State) ChannelId() (types.Bytes32, error) {
 
 }
 
+// appPartHash computes the appPartHash of the State
 func (s State) appPartHash() (types.Bytes32, error) {
 
 	encodedAppPart, error := abi.Arguments{
