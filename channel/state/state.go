@@ -2,8 +2,8 @@ package state
 
 import (
 	"errors"
+	"fmt"
 
-	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
@@ -176,9 +176,8 @@ func (s State) Sign(seckey []byte) (types.Bytes, error) {
 	if error != nil {
 		return types.Bytes{}, error
 	}
-
-	modifiedHash := accounts.TextHash(hash.Bytes()) // Adds the "\x19Ethereum Signed Message:\n" prefix
-
+	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(hash), string(hash.Bytes()))
+	modifiedHash := crypto.Keccak256([]byte(msg))
 	signature, error := secp256k1.Sign(modifiedHash, seckey)
 
 	if error != nil {
