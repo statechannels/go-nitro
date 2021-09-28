@@ -142,14 +142,14 @@ func (s State) Hash() (types.Bytes32, error) {
 // Sign generates an ECDSA signature on the state using the supplied private key
 // The state hash is prepended with \x19Ethereum Signed Message:\n32 and then rehashed
 // to create a digest to sign
-func (s State) Sign(seckey []byte) (types.Bytes, error) {
+func (s State) Sign(secretKey []byte) (types.Bytes, error) {
 	hash, error := s.Hash()
 	if error != nil {
 		return types.Bytes{}, error
 	}
-	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(hash), string(hash.Bytes()))
+	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n32%s", string(hash.Bytes()))
 	modifiedHash := crypto.Keccak256([]byte(msg))
-	signature, error := secp256k1.Sign(modifiedHash, seckey)
+	signature, error := secp256k1.Sign(modifiedHash, secretKey)
 
 	if error != nil {
 		return types.Bytes{}, error
