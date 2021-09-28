@@ -25,20 +25,6 @@ type (
 		IsFinal           bool
 	}
 
-	// channelPart contains the subset of State data from which the channel id is derived
-	channelPart struct {
-		ChainId      *types.Uint256
-		Participants []types.Address
-		ChannelNonce *types.Uint256 // uint48 in solidity
-	}
-
-	// appPart contains the subset of the State data which defines the channel application
-	appPart struct {
-		ChallengeDuration *types.Uint256
-		AppDefinition     types.Address
-		AppData           types.Bytes
-	}
-
 	// FixedPart contains the subset of State data which does not change.
 	// NOTE: it is a strict superset of ChannelPart.
 	FixedPart struct {
@@ -55,16 +41,6 @@ type (
 		EncodedOutcome types.Bytes
 	}
 )
-
-// ChannelPart returns the ChannelPart of the State
-func (s State) channelPart() channelPart {
-	return channelPart{s.ChainId, s.Participants, s.ChannelNonce}
-}
-
-// ChannelPart returns the ChannelPart of the State
-func (s State) appPart() appPart {
-	return appPart{s.ChallengeDuration, s.AppDefinition, s.AppData}
-}
 
 // FixedPart returns the FixedPart of the State
 func (s State) FixedPart() FixedPart {
@@ -84,13 +60,13 @@ var address, _ = abi.NewType("address", "address", nil)
 
 // ChannelId computes and returns the id corresponding to a ChannelPart,
 // and an error if the id is an external destination.
-func (c channelPart) ChannelId() (types.Bytes32, error) {
+func (s State) ChannelId() (types.Bytes32, error) {
 
 	encodedChannelPart, error := abi.Arguments{
 		{Type: uint256},
 		{Type: addressArray},
 		{Type: uint256},
-	}.Pack(c.ChainId, c.Participants, c.ChannelNonce)
+	}.Pack(s.ChainId, s.Participants, s.ChannelNonce)
 
 	channelId := crypto.Keccak256Hash(encodedChannelPart)
 
@@ -101,18 +77,13 @@ func (c channelPart) ChannelId() (types.Bytes32, error) {
 
 }
 
-// ChannelId computes and returns the id corresponding to a State
-func (s State) ChannelId() (types.Bytes32, error) {
-	return s.channelPart().ChannelId()
-}
-
-func (a appPart) hash() (types.Bytes32, error) {
+func (s State) appPartHash() (types.Bytes32, error) {
 
 	encodedAppPart, error := abi.Arguments{
 		{Type: uint256},
 		{Type: address},
 		{Type: bytesTy},
-	}.Pack(a.ChallengeDuration, a.AppDefinition, []byte(a.AppData))
+	}.Pack(s.ChallengeDuration, s.AppDefinition, []byte(s.AppData))
 
 	return crypto.Keccak256Hash(encodedAppPart), error
 
@@ -129,7 +100,7 @@ func (s State) Hash() (types.Bytes32, error) {
 	if error != nil {
 		return types.Bytes32{}, error
 	}
-	AppPartHash, error := s.appPart().hash()
+	AppPartHash, error := s.appPartHash()
 	if error != nil {
 		return types.Bytes32{}, error
 	}
