@@ -26,7 +26,8 @@ type (
 	}
 
 	// FixedPart contains the subset of State data which does not change.
-	// NOTE: it is a strict superset of ChannelPart.
+	// NOTE: it is a strict superset of the fields which determin the channel id.
+	// It is therefore possible to change some of the fields while preserving said id.
 	FixedPart struct {
 		ChainId           *types.Uint256
 		Participants      []types.Address
