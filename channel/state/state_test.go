@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -40,36 +41,20 @@ var correctSignature = Signature{
 } // ethers "joinSignature" gives 0x59d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d932274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa1c
 
 func TestChannelId(t *testing.T) {
-
 	want := correctChannelId
 	got, error := state.ChannelId()
-
-	if error != nil {
-		t.Error(error)
-	}
-	if !bytes.Equal(want.Bytes(), got.Bytes()) {
-		t.Errorf("Incorrect channel id. Got %x, wanted %x", got, want)
-	}
+	checkErrorAndTestForEqualBytes(t, error, "channelId", got.Bytes(), want.Bytes())
 }
 
 func TestHash(t *testing.T) {
-
 	want := correctStateHash
 	got, error := state.Hash()
-
-	if error != nil {
-		t.Error(error)
-	}
-	if !bytes.Equal(want.Bytes(), got.Bytes()) {
-		t.Errorf("Incorrect state hash. Got %x, wanted %x", got, want)
-	}
+	checkErrorAndTestForEqualBytes(t, error, "state hash", got.Bytes(), want.Bytes())
 }
 
 func TestSign(t *testing.T) {
-	privateKey := signerPrivateKey
-
 	want_r, want_s, want_v := correctSignature.r, correctSignature.s, correctSignature.v
-	got, error := state.Sign(privateKey)
+	got, error := state.Sign(signerPrivateKey)
 	got_r, got_s, got_v := got.r, got.s, got.v
 
 	if error != nil {
@@ -87,15 +72,16 @@ func TestSign(t *testing.T) {
 }
 
 func TestRecoverSigner(t *testing.T) {
-
 	got, error := correctSignature.RecoverSigner(state)
-
 	want := signerAddress
+	checkErrorAndTestForEqualBytes(t, error, "signer recovered", got.Bytes(), want.Bytes())
+}
 
-	if error != nil {
-		t.Error(error)
+func checkErrorAndTestForEqualBytes(t *testing.T, err error, descriptor string, got []byte, want []byte) {
+	if err != nil {
+		t.Error(err)
 	}
-	if !bytes.Equal(want.Bytes(), got.Bytes()) {
-		t.Errorf("Incorrect signer recovered. Got %x, wanted %x", got, want)
+	if !bytes.Equal(want, got) {
+		t.Errorf(fmt.Sprintf("Incorrect %x", descriptor)+" Got %x, wanted %x", descriptor, got, want)
 	}
 }
