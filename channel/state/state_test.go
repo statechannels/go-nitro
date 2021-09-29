@@ -2,7 +2,6 @@ package state
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -82,6 +81,6 @@ func checkErrorAndTestForEqualBytes(t *testing.T, err error, descriptor string, 
 		t.Error(err)
 	}
 	if !bytes.Equal(want, got) {
-		t.Errorf(fmt.Sprintf("Incorrect %x", descriptor)+" Got %x, wanted %x", descriptor, got, want)
+		t.Errorf("Incorrect "+descriptor+". Got %x, wanted %x", got, want)
 	}
 }
