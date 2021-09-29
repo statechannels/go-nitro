@@ -78,3 +78,23 @@ func TestSign(t *testing.T) {
 		t.Errorf("Incorrect v param in signature. Got %x, wanted %x", got_v, want_v)
 	}
 }
+
+func TestRecoverSigner(t *testing.T) {
+	signature := Signature{
+		common.Hex2Bytes(`59d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
+		common.Hex2Bytes(`32274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),
+		byte(1),
+	}
+
+	got, error := signature.RecoverSigner(state)
+
+	// address corresponding to the private key 0xcaab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634 used above
+	want := common.HexToAddress(`F5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)
+
+	if error != nil {
+		t.Error(error)
+	}
+	if !bytes.Equal(want.Bytes(), got.Bytes()) {
+		t.Errorf("Incorrect signer recovered. Got %x, wanted %x", got, want)
+	}
+}
