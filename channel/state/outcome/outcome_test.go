@@ -36,7 +36,7 @@ func TestEqualAllocations(t *testing.T) {
 
 func TestExitEncode(t *testing.T) {
 
-	zeroBytes := make(types.Bytes, 0)
+	zeroBytes := []byte{}
 
 	var a = Allocations{{
 		Destination:    common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f"),
