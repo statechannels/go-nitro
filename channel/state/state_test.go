@@ -63,7 +63,7 @@ func TestSign(t *testing.T) {
 	// ethers "joinSignature" gives 0x59d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d932274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa1c
 
 	got, error := state.Sign(privateKey)
-	got_r, got_s, got_v := SplitSignature(got)
+	got_r, got_s, got_v := got.r, got.s, got.v
 
 	if error != nil {
 		t.Error(error)

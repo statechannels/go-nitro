@@ -2,11 +2,9 @@ package state
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -151,25 +149,10 @@ func (s State) Hash() (types.Bytes32, error) {
 // Sign generates an ECDSA signature on the state using the supplied private key
 // The state hash is prepended with \x19Ethereum Signed Message:\n32 and then rehashed
 // to create a digest to sign
-func (s State) Sign(secretKey []byte) (types.Bytes, error) {
+func (s State) Sign(secretKey []byte) (Signature, error) {
 	hash, error := s.Hash()
 	if error != nil {
-		return types.Bytes{}, error
+		return Signature{}, error
 	}
-	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n32%s", string(hash.Bytes()))
-	modifiedHash := crypto.Keccak256([]byte(msg))
-	signature, error := secp256k1.Sign(modifiedHash, secretKey)
-
-	if error != nil {
-		return types.Bytes{}, error
-	}
-	return signature, nil
-}
-
-// SplitSignature takes a 65 bytes signature in the [R||S||V] format and returns the individual components
-func SplitSignature(signature []byte) (r []byte, s []byte, v byte) {
-	r = signature[:32]
-	s = signature[32:64]
-	v = signature[64]
-	return
+	return SignEthereumMessage(hash.Bytes(), secretKey)
 }
