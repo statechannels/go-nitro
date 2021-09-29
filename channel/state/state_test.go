@@ -71,7 +71,7 @@ func TestSign(t *testing.T) {
 }
 
 func TestRecoverSigner(t *testing.T) {
-	got, error := correctSignature.RecoverSigner(state)
+	got, error := state.RecoverSigner(correctSignature)
 	want := signerAddress
 	checkErrorAndTestForEqualBytes(t, error, "signer recovered", got.Bytes(), want.Bytes())
 }

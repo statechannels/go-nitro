@@ -57,15 +57,6 @@ func computeEthereumSignedMessageDigest(message []byte) []byte {
 	)
 }
 
-// RecoverSigner computes the Ethereum address which generated Signature sig on State state
-func (sig Signature) RecoverSigner(state State) (types.Address, error) {
-	stateHash, error := state.Hash()
-	if error != nil {
-		return types.Address{}, error
-	}
-	return RecoverEthereumMessageSigner(stateHash[:], sig)
-}
-
 // splitSignature takes a 65 bytes signature in the [R||S||V] format and returns the individual components
 func splitSignature(concatenatedSignature []byte) (signature Signature) {
 	signature.r = concatenatedSignature[:32]

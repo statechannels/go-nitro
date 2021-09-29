@@ -156,3 +156,12 @@ func (s State) Sign(secretKey []byte) (Signature, error) {
 	}
 	return SignEthereumMessage(hash.Bytes(), secretKey)
 }
+
+// RecoverSigner computes the Ethereum address which generated Signature sig on State state
+func (s State) RecoverSigner(sig Signature) (types.Address, error) {
+	stateHash, error := s.Hash()
+	if error != nil {
+		return types.Address{}, error
+	}
+	return RecoverEthereumMessageSigner(stateHash[:], sig)
+}
