@@ -7,14 +7,15 @@ import (
 )
 
 const (
-	num_leaves               = 200
-	ledger_leaf_balance      = 1e9
-	ledger_hub_balance       = 1e9
-	virtual_proposer_balance = 1e2
-	virtual_joiner_balance   = 1e2
-	leaf_propose_period      = time.Duration(1e9) // ns
-	leaf_payment_period      = time.Duration(1e7) // ns
-	leaf_close_period        = time.Duration(3e9) // ns
+	num_leaves                     = 200
+	ledger_leaf_balance            = 1e9
+	ledger_hub_balance             = 1e9
+	virtual_proposer_balance       = 1e2
+	virtual_joiner_balance         = 1e2
+	leaf_propose_period            = time.Duration(1e9) // ns
+	leaf_payment_period            = time.Duration(1e7) // ns
+	leaf_close_period              = time.Duration(3e9) // ns
+	inter_node_channel_buffer_size = 1e3
 )
 
 // Spin up a single "hub" engine
@@ -51,7 +52,7 @@ type LedgerRequest struct {
 	sucess                                       chan bool
 }
 
-func hub(ledgerUpdatesToHub chan LedgerChannelState, ledgerUpdatesToLeaves map[uint]chan LedgerChannelState) {
+func hub(ledgerUpdatesToHub <-chan LedgerChannelState, ledgerUpdatesToLeaves map[uint]chan LedgerChannelState) {
 	const hubId = 0
 	var store = LedgerStore{make(map[uint]LedgerChannelState)}
 
@@ -69,12 +70,12 @@ func hub(ledgerUpdatesToHub chan LedgerChannelState, ledgerUpdatesToLeaves map[u
 			fmt.Printf(`ledger between hub and leaf %v updated to %v`, update.leafId, update)
 			fmt.Println()
 			// send back
-			// ledgerUpdatesToLeaves[update.leafId] <- update // this will block unless there is something receiving on this channel. it should probably be a buffered channel. they should all be, if we are simulating processes running on different machines?
+			ledgerUpdatesToLeaves[update.leafId] <- update // this will block unless there is something receiving on this channel or if the channel is buffered.
 		}
 	}
 }
 
-func leaf(id uint, ledgerUpdatesToHub chan LedgerChannelState, ledgerUpdatesToMe chan LedgerChannelState) {
+func leaf(id uint, ledgerUpdatesToHub chan<- LedgerChannelState, ledgerUpdatesToMe <-chan LedgerChannelState) {
 	const hubId = 0
 	var ledgerChannel = LedgerChannelState{hubId, ledger_hub_balance, id, ledger_leaf_balance, 1, make(map[string]uint), false, true}
 
@@ -106,10 +107,11 @@ func leaf(id uint, ledgerUpdatesToHub chan LedgerChannelState, ledgerUpdatesToMe
 
 func main() {
 	fmt.Println(`Starting hub...`)
-	ledgerUpdatesToHub := make(chan LedgerChannelState)             // the coordinator creates a channel for the leaves to communicate with the hub
-	ledgerUpdatesToLeaves := make(map[uint]chan LedgerChannelState) // the coordinator makes enough channels for the hub to communicate with each leaf
+	//  The coordinator makes buffered channels. This means engines can send or receive without blocking until the buffer is saturated. This is because we are simulating processes running on different machines? Does that make sense?
+	ledgerUpdatesToHub := make(chan LedgerChannelState, inter_node_channel_buffer_size) // the coordinator creates a channel for the leaves to communicate with the hub
+	ledgerUpdatesToLeaves := make(map[uint]chan LedgerChannelState)                     // the coordinator makes enough channels for the hub to communicate with each leaf
 	for l := uint(1); l < num_leaves+1; l++ {
-		ledgerUpdatesToLeaves[l] = make(chan LedgerChannelState)
+		ledgerUpdatesToLeaves[l] = make(chan LedgerChannelState, inter_node_channel_buffer_size)
 	}
 	// the coordinator makes enough channels for the leaves to be fully connected, and store these in a mapping keyed by proposer and joiner
 	go hub(ledgerUpdatesToHub, ledgerUpdatesToLeaves)
@@ -118,6 +120,6 @@ func main() {
 		go leaf(l, ledgerUpdatesToHub, ledgerUpdatesToLeaves[l])
 	}
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 1)
 
 }
