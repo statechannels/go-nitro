@@ -18,6 +18,7 @@ const (
 	inter_node_channel_buffer_size = 1e3
 )
 
+// Example coordination:
 // Spin up a single "hub" engine
 // Spin up N "leaf" engines
 // (skip) Each leaf creates a funded (1 gwei, 1 gwei) ledger channel with the hub
@@ -55,6 +56,7 @@ type LedgerRequest struct {
 func hub(ledgerUpdatesToHub <-chan LedgerChannelState, ledgerUpdatesToLeaves map[uint]chan LedgerChannelState) {
 	const hubId = 0
 	var store = LedgerStore{make(map[uint]LedgerChannelState)}
+	var messagesHandled = 0
 
 	// Manual setup for ledger channels
 	for id := uint(1); id < num_leaves+1; id++ {
@@ -67,10 +69,12 @@ func hub(ledgerUpdatesToHub <-chan LedgerChannelState, ledgerUpdatesToLeaves map
 		case update := <-ledgerUpdatesToHub:
 			update.signedByHub = true
 			store.ledgerChannels[update.leafId] = update
-			fmt.Printf(`ledger between hub and leaf %v updated to %v`, update.leafId, update)
-			fmt.Println()
+			fmt.Printf("ledger between hub and leaf %v updated to %v\n", update.leafId, update)
 			// send back
 			ledgerUpdatesToLeaves[update.leafId] <- update // this will block unless there is something receiving on this channel or if the channel is buffered.
+			messagesHandled++
+			fmt.Printf("%v messages handled\n", messagesHandled)
+
 		}
 	}
 }
@@ -78,12 +82,15 @@ func hub(ledgerUpdatesToHub <-chan LedgerChannelState, ledgerUpdatesToLeaves map
 func leaf(id uint, ledgerUpdatesToHub chan<- LedgerChannelState, ledgerUpdatesToMe <-chan LedgerChannelState) {
 	const hubId = 0
 	var ledgerChannel = LedgerChannelState{hubId, ledger_hub_balance, id, ledger_leaf_balance, 1, make(map[string]uint), false, true}
+	virtualChannels := make(map[uint]VirtualChannelState)
 
 	proposeAVirtualChannel := func() {
 		// TODO communicate with peer
 		randomPeer := uint(rand.Intn(num_leaves)) // TODO check we don't already have a channel open
 		cId := channelId(id, randomPeer)
-		// read: from the store
+		// write: virtual channel to store
+		virtualChannels[randomPeer] = VirtualChannelState{id, randomPeer, 5, 5, 0}
+		// read: ledger channel from the store
 		ledger := ledgerChannel
 		virtualChannelBal := ledger.virtualChannelBal
 		// modify: reallocate 10 to a virtual channel with a single peer
@@ -91,7 +98,7 @@ func leaf(id uint, ledgerUpdatesToHub chan<- LedgerChannelState, ledgerUpdatesTo
 		ledger.hubBal -= 5
 		ledger.leafBal -= 5
 		ledger.virtualChannelBal = virtualChannelBal
-		// store: in my store
+		// write: ledger channel to my store
 		ledgerChannel = ledger
 		// send: to hub for signing
 		ledgerUpdatesToHub <- ledger
@@ -99,7 +106,13 @@ func leaf(id uint, ledgerUpdatesToHub chan<- LedgerChannelState, ledgerUpdatesTo
 	// updateAVirtualChannel := func() {}
 	// closeAVirtualChannel := func() {}
 
-	proposeAVirtualChannel()
+	proposeTicker := time.NewTicker(leaf_propose_period)
+	for {
+		select {
+		case <-proposeTicker.C:
+			proposeAVirtualChannel()
+		}
+	}
 
 	// var virtualChannels = make(map[int]bool)
 
@@ -120,6 +133,6 @@ func main() {
 		go leaf(l, ledgerUpdatesToHub, ledgerUpdatesToLeaves[l])
 	}
 
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 5)
 
 }
