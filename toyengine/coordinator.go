@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 )
 
@@ -29,108 +28,21 @@ const (
 
 // following https://gobyexample.com/stateful-goroutines
 
-func channelId(joiner uint, proposer uint) string {
-	return fmt.Sprintf("%v-%v", joiner, proposer)
-}
-
-type LedgerStore struct {
-	ledgerChannels map[uint]LedgerChannelState
-}
-type LedgerChannelState struct {
-	hubId, hubBal, leafId, leafBal, turnNum uint            // hubs and leaves have integer ids
-	virtualChannelBal                       map[string]uint // channels have 2d uint ids [joiner][proposer]
-	signedByHub                             bool
-	signedByLeaf                            bool
-}
-
-type VirtualChannelState struct {
-	proposerId, joinerId, proposerBal, joinerBal, turnNum uint
-}
-
-type LedgerRequest struct {
-	virtualChannelProposer, virtualChannelJoiner uint
-	amount                                       int // note this is a *signed* quantity
-	sucess                                       chan bool
-}
-
-func hub(ledgerUpdatesToHub <-chan LedgerChannelState, ledgerUpdatesToLeaves map[uint]chan LedgerChannelState) {
-	const hubId = 0
-	var store = LedgerStore{make(map[uint]LedgerChannelState)}
-	var messagesHandled = 0
-
-	// Manual setup for ledger channels
-	for id := uint(1); id < num_leaves+1; id++ {
-		store.ledgerChannels[id] = LedgerChannelState{hubId, ledger_hub_balance, id, ledger_leaf_balance, 1, make(map[string]uint), true, true} // turnNum = 1 so channels are funded
-	}
-
-	// Listen for ledgerUpdates. Countersign blindly! TODO
-	for {
-		select {
-		case update := <-ledgerUpdatesToHub:
-			update.signedByHub = true
-			store.ledgerChannels[update.leafId] = update
-			fmt.Printf("ledger between hub and leaf %v updated to %v\n", update.leafId, update)
-			// send back
-			ledgerUpdatesToLeaves[update.leafId] <- update // this will block unless there is something receiving on this channel or if the channel is buffered.
-			messagesHandled++
-			fmt.Printf("%v messages handled\n", messagesHandled)
-
-		}
-	}
-}
-
-func leaf(id uint, ledgerUpdatesToHub chan<- LedgerChannelState, ledgerUpdatesToMe <-chan LedgerChannelState) {
-	const hubId = 0
-	var ledgerChannel = LedgerChannelState{hubId, ledger_hub_balance, id, ledger_leaf_balance, 1, make(map[string]uint), false, true}
-	virtualChannels := make(map[uint]VirtualChannelState)
-
-	proposeAVirtualChannel := func() {
-		// TODO communicate with peer
-		randomPeer := uint(rand.Intn(num_leaves)) // TODO check we don't already have a channel open
-		cId := channelId(id, randomPeer)
-		// write: virtual channel to store
-		virtualChannels[randomPeer] = VirtualChannelState{id, randomPeer, 5, 5, 0}
-		// read: ledger channel from the store
-		ledger := ledgerChannel
-		virtualChannelBal := ledger.virtualChannelBal
-		// modify: reallocate 10 to a virtual channel with a single peer
-		virtualChannelBal[cId] += 10
-		ledger.hubBal -= 5
-		ledger.leafBal -= 5
-		ledger.virtualChannelBal = virtualChannelBal
-		// write: ledger channel to my store
-		ledgerChannel = ledger
-		// send: to hub for signing
-		ledgerUpdatesToHub <- ledger
-	}
-	// updateAVirtualChannel := func() {}
-	// closeAVirtualChannel := func() {}
-
-	proposeTicker := time.NewTicker(leaf_propose_period)
-	for {
-		select {
-		case <-proposeTicker.C:
-			proposeAVirtualChannel()
-		}
-	}
-
-	// var virtualChannels = make(map[int]bool)
-
-}
-
 func main() {
-	fmt.Println(`Starting hub...`)
-	//  The coordinator makes buffered channels. This means engines can send or receive without blocking until the buffer is saturated. This is because we are simulating processes running on different machines? Does that make sense?
-	ledgerUpdatesToHub := make(chan LedgerChannelState, inter_node_channel_buffer_size) // the coordinator creates a channel for the leaves to communicate with the hub
-	ledgerUpdatesToLeaves := make(map[uint]chan LedgerChannelState)                     // the coordinator makes enough channels for the hub to communicate with each leaf
-	for l := uint(1); l < num_leaves+1; l++ {
-		ledgerUpdatesToLeaves[l] = make(chan LedgerChannelState, inter_node_channel_buffer_size)
+	fmt.Println(`Setting up communciation channels...`)
+
+	ledgerInbox := make(map[uint]chan LedgerChannelState)
+	for l := uint(0); l < num_leaves+1; l++ {
+		// anyone can send a message to anyone
+		ledgerInbox[l] = make(chan LedgerChannelState, inter_node_channel_buffer_size)
 	}
+
 	// the coordinator makes enough channels for the leaves to be fully connected, and store these in a mapping keyed by proposer and joiner
-	go hub(ledgerUpdatesToHub, ledgerUpdatesToLeaves)
-	fmt.Println(`Starting leaves...`)
+	fmt.Println(`Starting hub runner...`)
+	go HubRunner(0, &ledgerInbox)
+	fmt.Println(`Starting leaf runners...`)
 	for l := uint(1); l < num_leaves+1; l++ {
-		go leaf(l, ledgerUpdatesToHub, ledgerUpdatesToLeaves[l])
+		go LeafRunner(l, &ledgerInbox)
 	}
 
 	time.Sleep(time.Second * 5)
