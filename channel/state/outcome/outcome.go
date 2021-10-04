@@ -16,22 +16,22 @@ type Allocation struct {
 	Metadata       []byte         // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
 }
 
-// Equals returns true if the supplied Allocation matches the receiver Allocation, and false otherwise.
+// Equal returns true if the supplied Allocation matches the receiver Allocation, and false otherwise.
 // Fields are compared with ==, except for big.Ints which are compared using Cmp
-func (a Allocation) Equals(b Allocation) bool {
+func (a Allocation) Equal(b Allocation) bool {
 	return a.Destination == b.Destination && a.AllocationType == b.AllocationType && a.Amount.Cmp(b.Amount) == 0 && bytes.Equal(a.Metadata, b.Metadata)
 }
 
 // Allocations is an array of type Allocation
 type Allocations []Allocation
 
-// Equals returns true if each of the supplied Allocations matches the receiver Allocation in the same position, and false otherwise.
-func (a Allocations) Equals(b Allocations) bool {
+// Equal returns true if each of the supplied Allocations matches the receiver Allocation in the same position, and false otherwise.
+func (a Allocations) Equal(b Allocations) bool {
 	if len(a) != len(b) {
 		return false
 	}
 	for i := 0; i < len(a); i++ {
-		if !a[i].Equals(b[i]) {
+		if !a[i].Equal(b[i]) {
 			return false
 		}
 	}

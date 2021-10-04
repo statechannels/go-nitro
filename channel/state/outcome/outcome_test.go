@@ -28,7 +28,7 @@ func TestEqualAllocations(t *testing.T) {
 		t.Errorf("expected distinct pointers, but got identical pointers")
 	}
 
-	if !a1.Equals(a2) {
+	if !a1.Equal(a2) {
 		t.Errorf("expected equal Allocations, but got distinct Allocations")
 	}
 
