@@ -33,11 +33,10 @@ func main() {
 
 	ledgerInbox := make(map[uint]chan LedgerChannelState)
 	for l := uint(0); l < num_leaves+1; l++ {
-		// anyone can send a message to anyone
+		// anyone can send a message to anyone. wallets should only listen on their own channel, and never send on it
 		ledgerInbox[l] = make(chan LedgerChannelState, inter_node_channel_buffer_size)
 	}
 
-	// the coordinator makes enough channels for the leaves to be fully connected, and store these in a mapping keyed by proposer and joiner
 	fmt.Println(`Starting hub runner...`)
 	go HubRunner(0, &ledgerInbox)
 	fmt.Println(`Starting leaf runners...`)

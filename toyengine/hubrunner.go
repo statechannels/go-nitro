@@ -2,6 +2,7 @@ package main
 
 import "fmt"
 
+// TODO use the wallet class here, too
 func HubRunner(hubId uint, ledgerInbox *map[uint]chan LedgerChannelState) {
 	var store = LedgerStore{make(map[uint]LedgerChannelState)}
 	var messagesHandled = 0
