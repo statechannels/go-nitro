@@ -1,10 +1,13 @@
 package main
 
+import "fmt"
+
 type NitroWallet struct {
 	id              uint
 	ledgerChannels  map[uint]LedgerChannelState
 	virtualChannels map[uint]VirtualChannelState
 	ledgerInbox     *map[uint]chan LedgerChannelState // a channel for each peer. only listen on your own channel!
+	isHub           bool                              // when set, the wallet blindly signs updates to ledger channels
 }
 
 func (w *NitroWallet) ProposeAVirtualChannel(peer uint, hub uint) {
@@ -25,27 +28,48 @@ func (w *NitroWallet) ProposeAVirtualChannel(peer uint, hub uint) {
 	(*w.ledgerInbox)[hub] <- ledger
 }
 
+func (w *NitroWallet) ListenAndCountersignLedgerUpdates() {
+	var messagesHandled = 0
+	// Listen for ledgerUpdates. Countersign blindly! TODO
+	for {
+		select {
+		case update := <-(*w.ledgerInbox)[w.id]:
+			update.signedByHub = true
+			w.ledgerChannels[update.leafId] = update
+			fmt.Printf("ledger between hub and leaf %v updated to %v\n", update.leafId, update)
+			// send back
+			(*w.ledgerInbox)[update.leafId] <- update // this will block unless there is something receiving on this channel or if the channel is buffered.
+			messagesHandled++
+			fmt.Printf("%v messages handled\n", messagesHandled)
+
+		}
+	}
+}
+
 // updateAVirtualChannel := func() {}
 // closeAVirtualChannel := func() {}
 
-func NewNitroWallet(id uint, ledgerInbox *map[uint]chan LedgerChannelState) *NitroWallet {
+func NewNitroWallet(id uint, ledgerInbox *map[uint]chan LedgerChannelState, isHub bool) *NitroWallet {
 	w := NitroWallet{
 		id,
 		make(map[uint]LedgerChannelState),
 		make(map[uint]VirtualChannelState),
 		ledgerInbox,
+		isHub,
 	}
 
 	// manual setup for ledger channels
 	// TODO avoid hardcoding hub id?
-	if id != 0 {
-		// for hub
-		w.ledgerChannels[0] = LedgerChannelState{0, ledger_hub_balance, id, ledger_leaf_balance, 1, make(map[string]uint), true, true} // turnNum = 1 so channels are funded
-	} else {
-		// for leaves
+	if isHub {
+		// a ledger channel for each leaf
 		for id := uint(1); id < num_leaves+1; id++ {
 			w.ledgerChannels[id] = LedgerChannelState{0, ledger_hub_balance, id, ledger_leaf_balance, 1, make(map[string]uint), true, true} // turnNum = 1 so channels are funded
 		}
+		go w.ListenAndCountersignLedgerUpdates()
+	} else {
+		// a single ledger channel with the hub
+		w.ledgerChannels[0] = LedgerChannelState{0, ledger_hub_balance, id, ledger_leaf_balance, 1, make(map[string]uint), true, true} // turnNum = 1 so channels are funded
 	}
+
 	return &w
 }

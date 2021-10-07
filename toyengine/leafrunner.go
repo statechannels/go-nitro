@@ -6,7 +6,7 @@ import (
 )
 
 func LeafRunner(id uint, ledgerInbox *map[uint]chan LedgerChannelState) {
-	w := NewNitroWallet(id, ledgerInbox)
+	w := NewNitroWallet(id, ledgerInbox, false)
 
 	proposeTicker := time.NewTicker(leaf_propose_period)
 	for {
