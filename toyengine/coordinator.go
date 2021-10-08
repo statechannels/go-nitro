@@ -9,6 +9,7 @@ const (
 	num_leaves                     = 200                // The number of non-hub nodes in the state channel network
 	ledger_leaf_balance            = 1e9                // The balance of the leaf in each ledger channel
 	ledger_hub_balance             = 1e9                // The balance of the hub in each ledger channel
+	payment_amount                 = 1e5                // The amount of each payment in the virtual channel
 	virtual_proposer_balance       = 1e2                // The balance of the proposer in each virtual channel
 	virtual_joiner_balance         = 1e2                // The balance of the joiner in each virtual channel
 	leaf_propose_period            = time.Duration(1e9) // (ns) period between "ticks" that trigger a new virtual channel proposal
@@ -33,20 +34,22 @@ func main() {
 	fmt.Println(`Setting up communciation channels...`)
 
 	ledgerInbox := make(map[uint]chan LedgerChannelState)
+	paymentInbox := make(map[uint]chan VirtualChannelState)
 	for l := uint(0); l < num_leaves+1; l++ {
 		// anyone can send a message to anyone. wallets should only listen on their own channel, and never send on it
 		ledgerInbox[l] = make(chan LedgerChannelState, inter_node_channel_buffer_size)
+		paymentInbox[l] = make(chan VirtualChannelState, inter_node_channel_buffer_size)
 	}
 
 	fmt.Println(`Starting hub runner...`)
-	go HubRunner(0, &ledgerInbox)
+	go HubRunner(0, &ledgerInbox, &paymentInbox)
 
 	fmt.Println(`Starting leaf runners...`)
 	for l := uint(1); l < num_leaves+1; l++ {
-		go LeafRunner(l, &ledgerInbox)
+		go LeafRunner(l, &ledgerInbox, &paymentInbox)
 	}
 
 	fmt.Println(`Letting everything run for a bit...`)
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 10)
 
 }
