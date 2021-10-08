@@ -34,6 +34,103 @@ func TestEqualAllocations(t *testing.T) {
 
 }
 
+func TestEqualExits(t *testing.T) {
+	var e1 = Exit{SingleAssetExit{
+		Asset:    common.HexToAddress("0x00"),
+		Metadata: make(types.Bytes, 0),
+		Allocations: Allocations{{
+			Destination:    common.HexToHash("0x0a"),
+			Amount:         big.NewInt(2),
+			AllocationType: 0,
+			Metadata:       make(types.Bytes, 0)}},
+	}}
+
+	// equal to e1
+	var e2 = Exit{SingleAssetExit{
+		Asset:    common.HexToAddress("0x00"),
+		Metadata: make(types.Bytes, 0),
+		Allocations: Allocations{{
+			Destination:    common.HexToHash("0x0a"),
+			Amount:         big.NewInt(2),
+			AllocationType: 0,
+			Metadata:       make(types.Bytes, 0)}},
+	}}
+
+	if &e1 == &e2 {
+		t.Error("expected distinct pointers, but got idendical pointers")
+	}
+
+	if !e1.Equals(e2) {
+		t.Error("expected equal Exits, but got distinct Exits")
+	}
+
+	// each equal to e1 except in one aspect
+	var distinctExits []Exit = []Exit{
+		{SingleAssetExit{
+			Asset:    common.HexToAddress("0x01"), // distinct Asset
+			Metadata: make(types.Bytes, 0),
+			Allocations: Allocations{{
+				Destination:    common.HexToHash("0x0a"),
+				Amount:         big.NewInt(2),
+				AllocationType: 0,
+				Metadata:       make(types.Bytes, 0)}},
+		}},
+		{SingleAssetExit{
+			Asset:    common.HexToAddress("0x00"),
+			Metadata: []byte{1}, // distinct metadata
+			Allocations: Allocations{{
+				Destination:    common.HexToHash("0x0a"),
+				Amount:         big.NewInt(2),
+				AllocationType: 0,
+				Metadata:       make(types.Bytes, 0)}},
+		}},
+		{SingleAssetExit{
+			Asset:    common.HexToAddress("0x00"),
+			Metadata: make(types.Bytes, 0),
+			Allocations: Allocations{{
+				Destination:    common.HexToHash("0x0b"), // distinct destination
+				Amount:         big.NewInt(2),
+				AllocationType: 0,
+				Metadata:       make(types.Bytes, 0)}},
+		}},
+		{SingleAssetExit{
+			Asset:    common.HexToAddress("0x00"),
+			Metadata: make(types.Bytes, 0),
+			Allocations: Allocations{{
+				Destination:    common.HexToHash("0x0a"),
+				Amount:         big.NewInt(3), // distinct amount
+				AllocationType: 0,
+				Metadata:       make(types.Bytes, 0)}},
+		}},
+		{SingleAssetExit{
+			Asset:    common.HexToAddress("0x00"),
+			Metadata: make(types.Bytes, 0),
+			Allocations: Allocations{{
+				Destination:    common.HexToHash("0x0a"),
+				Amount:         big.NewInt(2),
+				AllocationType: 1, // distinct allocationType
+				Metadata:       make(types.Bytes, 0)}},
+		}},
+		{SingleAssetExit{
+			Asset:    common.HexToAddress("0x00"),
+			Metadata: make(types.Bytes, 0),
+			Allocations: Allocations{{
+				Destination:    common.HexToHash("0x0a"),
+				Amount:         big.NewInt(2),
+				AllocationType: 0,
+				Metadata:       []byte{1}}}, // distinct metadata
+		}},
+	}
+
+	for _, v := range distinctExits {
+		fmt.Println(e1[0].Asset)
+		if e1.Equals(v) {
+			t.Error("expected distinct Exits but found them equal")
+		}
+	}
+
+}
+
 func TestExitEncode(t *testing.T) {
 
 	zeroBytes := []byte{}
