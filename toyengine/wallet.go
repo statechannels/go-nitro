@@ -18,6 +18,14 @@ type NitroWallet struct {
 }
 
 func (w *NitroWallet) ProposeAVirtualChannel(peer uint, hub uint) error {
+
+	switch peer {
+	case w.id:
+		return errors.New(`cannot be a peer of oneself`)
+	case hub:
+		return errors.New(`no virtual channel with hub`)
+	}
+
 	cId := ChannelId(w.id, peer)
 
 	// check: if virtual channel already exists...
@@ -26,7 +34,7 @@ func (w *NitroWallet) ProposeAVirtualChannel(peer uint, hub uint) error {
 	}
 
 	// write: virtual channel to store
-	w.virtualChannels[peer] = VirtualChannelState{w.id, peer, 5, 5, 0}
+	w.virtualChannels[peer] = VirtualChannelState{w.id, peer, virtual_proposer_balance, virtual_joiner_balance, 0}
 
 	// read: ledger channel from the store
 	ledger := w.ledgerChannels[hub]
@@ -67,6 +75,10 @@ func (w *NitroWallet) ListenAndCountersignLedgerUpdates() {
 
 func (w *NitroWallet) MakePayment(peer uint) error {
 
+	if peer == w.id {
+		return errors.New(`cannot be a peer of oneself`) // possibly redundant if we never have a virtual channel with ourselves (see below)
+	}
+
 	// check: if virtual channel doesn't exist, fail
 	if w.virtualChannels[peer] == (VirtualChannelState{}) {
 		return errors.New(`no virtual channel exists with that peer`) // TODO interpolate peerId
@@ -91,6 +103,9 @@ func (w *NitroWallet) MakePayment(peer uint) error {
 			return errors.New(`insufficient funds to make payment`)
 		}
 	}
+
+	// modify: increase turnNum
+	virtualChannel.turnNum += 1
 
 	// write: virtual channel to store
 	w.virtualChannels[peer] = virtualChannel
@@ -132,8 +147,10 @@ func (w *NitroWallet) GetCapacities(hubId uint) LedgerChannelCapacites {
 	for _, v := range w.virtualChannels {
 		if w.id == v.joinerId {
 			c.LockedForMe += v.joinerBal
-		} else if w.id == v.proposerId {
 			c.LockedForHub += v.proposerBal
+		} else if w.id == v.proposerId {
+			c.LockedForMe += v.proposerBal
+			c.LockedForHub += v.joinerBal
 		}
 
 	}
