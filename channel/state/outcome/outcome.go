@@ -87,6 +87,11 @@ func (e *Exit) Encode() (types.Bytes, error) {
 	return abi.Arguments{{Type: exitTy}}.Pack(e)
 }
 
+// Decode returns an Exit from an abi encoding
+func Decode(data types.Bytes) (Exit, error) {
+	return Exit{}, nil
+}
+
 // Hash returns the keccak256 hash of the Exit
 func (e *Exit) Hash() (types.Bytes32, error) {
 	if encoded, err := e.Encode(); err == nil {
