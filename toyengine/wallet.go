@@ -2,6 +2,9 @@ package main
 
 import "fmt"
 
+// NitroWallet is a state channel wallet that runs a toy model of nitro protocol
+// It is a store of channels with a set of go channels it can use to communicate with other NitroWallets
+// It exposes a toy API to consuming applications
 type NitroWallet struct {
 	id              uint
 	ledgerChannels  map[uint]LedgerChannelState
@@ -12,18 +15,23 @@ type NitroWallet struct {
 
 func (w *NitroWallet) ProposeAVirtualChannel(peer uint, hub uint) {
 	cId := ChannelId(w.id, peer)
+
 	// write: virtual channel to store
 	w.virtualChannels[peer] = VirtualChannelState{w.id, peer, 5, 5, 0}
+
 	// read: ledger channel from the store
 	ledger := w.ledgerChannels[hub]
 	virtualChannelBal := ledger.virtualChannelBal
+
 	// modify: reallocate 10 to a virtual channel with a single peer
 	virtualChannelBal[cId] += 10
 	ledger.hubBal -= 5
 	ledger.leafBal -= 5
 	ledger.virtualChannelBal = virtualChannelBal
+
 	// write: ledger channel to my store
 	w.ledgerChannels[hub] = ledger
+
 	// send: to hub for signing
 	(*w.ledgerInbox)[hub] <- ledger
 }
@@ -49,6 +57,7 @@ func (w *NitroWallet) ListenAndCountersignLedgerUpdates() {
 // updateAVirtualChannel := func() {}
 // closeAVirtualChannel := func() {}
 
+// NewNitroWallet creates a new NitroWallet, initializes its store and listening routines, and returns it.
 func NewNitroWallet(id uint, ledgerInbox *map[uint]chan LedgerChannelState, isHub bool) *NitroWallet {
 	w := NitroWallet{
 		id,
