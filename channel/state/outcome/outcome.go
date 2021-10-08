@@ -48,6 +48,21 @@ type SingleAssetExit struct {
 // Exit is an ordered list of SingleAssetExits
 type Exit []SingleAssetExit
 
+func (a Exit) Equals(b Exit) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, saeA := range a {
+		saeB := b[i]
+		if !bytes.Equal(saeA.Metadata, saeB.Metadata) ||
+			saeA.Asset != saeB.Asset ||
+			!saeA.Allocations.Equals(saeB.Allocations) {
+			return false
+		}
+	}
+	return true
+}
+
 // allocationsTy describes the shape of Allocations such that github.com/ethereum/go-ethereum/accounts/abi can parse it
 var allocationsTy = abi.ArgumentMarshaling{
 	Name: "Allocations",
