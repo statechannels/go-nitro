@@ -22,7 +22,7 @@ func (w *NitroWallet) ProposeAVirtualChannel(peer uint, hub uint) error {
 
 	// check: if virtual channel already exists...
 	if w.virtualChannels[peer] != (VirtualChannelState{}) {
-		return errors.New(`Virtual Channel already exists with that peer`) // TODO interpolate peerId
+		return errors.New(`virtual Channel already exists with that peer`) // TODO interpolate peerId
 	}
 
 	// write: virtual channel to store
@@ -69,7 +69,7 @@ func (w *NitroWallet) MakePayment(peer uint) error {
 
 	// check: if virtual channel doesn't exist, fail
 	if w.virtualChannels[peer] == (VirtualChannelState{}) {
-		return errors.New(`No virtual channel exists with that peer`) // TODO interpolate peerId
+		return errors.New(`no virtual channel exists with that peer`) // TODO interpolate peerId
 	}
 
 	// read: virtual channel from the store
@@ -108,7 +108,7 @@ type LedgerChannelCapacites struct {
 }
 
 func (c LedgerChannelCapacites) String() string {
-	return fmt.Sprintf(" Free (Send / Receive): %v / %v. Locked (Me / Hub): %v / %v", c.FreeSendable, c.FreeReceivable, c.LockedForMe, c.LockedForHub)
+	return fmt.Sprintf("Free (Send / Receive): %v / %v. Locked (Me / Hub): %v / %v", c.FreeSendable, c.FreeReceivable, c.LockedForMe, c.LockedForHub)
 }
 
 // GetCapacities returns information about the current outcome of the ledger channel with the given hub.
