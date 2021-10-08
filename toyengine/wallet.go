@@ -99,7 +99,40 @@ func (w *NitroWallet) MakePayment(peer uint) error {
 	return nil
 }
 
-// updateAVirtualChannel := func() {}
+type LedgerChannelCapacites struct {
+	FreeSendable   uint // Funds available to me in the ledger channel (that I can use to fund a new virtual channel).
+	FreeReceivable uint // Funds available to the hub in the ledger channel (that they can use to collateralize a new virtual channel).
+
+	LockedForMe  uint // Funds locked in virtual channels that will return to me.
+	LockedForHub uint // Funds locked in virtual channels that will not return to me.
+}
+
+func (c LedgerChannelCapacites) String() string {
+	return fmt.Sprintf(" Free (Send / Receive): %v / %v. Locked (Me / Hub): %v / %v", c.FreeSendable, c.FreeReceivable, c.LockedForMe, c.LockedForHub)
+}
+
+// GetCapacities returns information about the current outcome of the ledger channel with the given hub.
+func (w *NitroWallet) GetCapacities(hubId uint) LedgerChannelCapacites {
+
+	c := LedgerChannelCapacites{
+		w.ledgerChannels[hubId].leafBal,
+		w.ledgerChannels[hubId].hubBal,
+		0,
+		0,
+	}
+
+	for _, v := range w.virtualChannels {
+		if w.id == v.joinerId {
+			c.LockedForMe += v.joinerBal
+		} else if w.id == v.proposerId {
+			c.LockedForHub += v.proposerBal
+		}
+
+	}
+
+	return c
+}
+
 // closeAVirtualChannel := func() {}
 
 // NewNitroWallet creates a new NitroWallet, initializes its store and listening routines, and returns it.

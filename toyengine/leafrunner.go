@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -27,7 +28,7 @@ func LeafRunner(
 				randomPeer := uint(rand.Intn(num_leaves))
 				error := w.MakePayment(randomPeer) // Make a payment with a random peer
 				if error != nil {
-					// update stats here
+					fmt.Println(w.GetCapacities(0))
 				}
 			}
 		}
