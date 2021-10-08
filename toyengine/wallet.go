@@ -77,11 +77,19 @@ func (w *NitroWallet) MakePayment(peer uint) error {
 
 	// modify: reallocate some money from me to my counterparty
 	if virtualChannel.proposerId == w.id {
-		virtualChannel.proposerBal -= payment_amount
-		virtualChannel.joinerBal += payment_amount
+		if virtualChannel.proposerBal >= payment_amount {
+			virtualChannel.proposerBal -= payment_amount
+			virtualChannel.joinerBal += payment_amount
+		} else {
+			return errors.New(`insufficient funds to make payment`)
+		}
 	} else if virtualChannel.joinerId == w.id {
-		virtualChannel.proposerBal += payment_amount
-		virtualChannel.joinerBal -= payment_amount
+		if virtualChannel.joinerBal >= payment_amount {
+			virtualChannel.joinerBal -= payment_amount
+			virtualChannel.proposerBal += payment_amount
+		} else {
+			return errors.New(`insufficient funds to make payment`)
+		}
 	}
 
 	// write: virtual channel to store

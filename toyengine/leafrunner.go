@@ -27,8 +27,9 @@ func LeafRunner(
 			case <-paymentTicker.C: // On each tick
 				randomPeer := uint(rand.Intn(num_leaves))
 				error := w.MakePayment(randomPeer) // Make a payment with a random peer
-				if error != nil {
-					fmt.Println(w.GetCapacities(0))
+				if error == nil {
+					fmt.Printf("node(%v): %v \n", id, w.GetCapacities(0))
+					// fmt.Println(w.GetCapacities(0))
 				}
 			}
 		}

@@ -6,10 +6,10 @@ import (
 )
 
 const (
-	num_leaves                     = 200                // The number of non-hub nodes in the state channel network
+	num_leaves                     = 2                  // The number of non-hub nodes in the state channel network
 	ledger_leaf_balance            = 1e9                // The balance of the leaf in each ledger channel
 	ledger_hub_balance             = 1e9                // The balance of the hub in each ledger channel
-	payment_amount                 = 1e5                // The amount of each payment in the virtual channel
+	payment_amount                 = 1                  // The amount of each payment in the virtual channel
 	virtual_proposer_balance       = 1e2                // The balance of the proposer in each virtual channel
 	virtual_joiner_balance         = 1e2                // The balance of the joiner in each virtual channel
 	leaf_propose_period            = time.Duration(1e9) // (ns) period between "ticks" that trigger a new virtual channel proposal
