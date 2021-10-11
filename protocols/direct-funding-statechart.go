@@ -32,10 +32,20 @@ type DirectFundingExtendedState struct {
 	PostFundSigned []bool // indexed by participant
 }
 
-// PrefunComplete returns true if all participants have signed a prefund state, as reflected by the extended state
+// PrefundComplete returns true if all participants have signed a prefund state, as reflected by the extended state
 func (s DirectFundingExtendedState) PrefundComplete() bool {
 	for _, index := range s.ParticipantIndex {
 		if !s.PreFundSigned[index] {
+			return false
+		}
+	}
+	return true
+}
+
+// PostfundComplete returns true if all participants have signed a postfund state, as reflected by the extended state
+func (s DirectFundingExtendedState) PostfundComplete() bool {
+	for _, index := range s.ParticipantIndex {
+		if !s.PostFundSigned[index] {
 			return false
 		}
 	}
@@ -54,6 +64,7 @@ type DirectFundingProtocolEventType int
 const (
 	PreFundReceived DirectFundingProtocolEventType = iota
 	FundingUpdated
+	PostFundReceived
 )
 
 // DirectFundingProtocolEvent has a type as well as other rich information (which may or may not be non nil).
@@ -85,7 +96,7 @@ func (s DirectFundingProtocolState) NextState(e DirectFundingProtocolEvent) (Dir
 	case FundingIncomplete:
 		return s.nextStateFromFundingIncomplete(e)
 	case PostFundIncomplete:
-		fallthrough // TODO
+		s.nextStateFromPostfundIncomplete(e)
 	default:
 		return s, []SideEffect{}, nil
 	}
@@ -148,4 +159,30 @@ func (s DirectFundingProtocolState) nextStateFromFundingIncomplete(e DirectFundi
 
 	return s, []SideEffect{}, nil
 
+}
+
+// nextStateFromPostfundIncomplete is a component of the overall DirectFundingProtocol reducer
+func (s DirectFundingProtocolState) nextStateFromPostfundIncomplete(e DirectFundingProtocolEvent) (DirectFundingProtocolState, []SideEffect, error) {
+	if e.Type != PostFundReceived { // There's only one way out of this state
+		return s, []SideEffect{}, nil
+	}
+	newExtendedState := s.ExtendedState // Make a copy of the extended state because we anticipate needing to return an updated version
+
+	signer, err := e.State.RecoverSigner(e.Signature)
+	if err != nil {
+		return s, []SideEffect{}, err
+	}
+
+	signerIndex, present := newExtendedState.ParticipantIndex[signer]
+	if !present {
+		return s, []SideEffect{}, errors.New(`signer is not a participant`)
+	} else {
+		newExtendedState.PostFundSigned[signerIndex] = true
+	}
+
+	if newExtendedState.PostfundComplete() {
+		return DirectFundingProtocolState{FundingIncomplete, newExtendedState}, []SideEffect{}, nil
+	} else {
+		return DirectFundingProtocolState{PostFundIncomplete, newExtendedState}, []SideEffect{}, nil
+	}
 }
