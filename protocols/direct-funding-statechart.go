@@ -16,6 +16,7 @@ const (
 	PreFundIncomplete DirectFundingEnumerableState = iota // 0
 	FundingIncomplete
 	PostFundIncomplete
+	Finished
 )
 
 // DirectFundingExtendedState contains the (potentially infinite) extended state of the Direct Funding machine.
@@ -181,7 +182,7 @@ func (s DirectFundingProtocolState) nextStateFromPostfundIncomplete(e DirectFund
 	}
 
 	if newExtendedState.PostfundComplete() {
-		return DirectFundingProtocolState{FundingIncomplete, newExtendedState}, []SideEffect{}, nil
+		return DirectFundingProtocolState{Finished, newExtendedState}, []SideEffect{}, nil
 	} else {
 		return DirectFundingProtocolState{PostFundIncomplete, newExtendedState}, []SideEffect{}, nil
 	}
