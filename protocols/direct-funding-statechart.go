@@ -82,7 +82,7 @@ type SideEffect struct {
 
 func PrepareDepositTransaction(amount *big.Int) string {
 	// TODO a proper implementation
-	return amount.String()
+	return `deposit` + amount.String()
 }
 
 // TODO can reducers be abstracted into an interface?
