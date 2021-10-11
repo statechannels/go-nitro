@@ -14,7 +14,6 @@ type DirectFundingEnumerableState int
 
 const (
 	PreFundIncomplete DirectFundingEnumerableState = iota // 0
-	NotYetMyTurnToFund
 	FundingIncomplete
 	PostFundIncomplete
 )
@@ -24,9 +23,13 @@ const (
 // This struct should be kept as shallow copyable (and this should be tested).
 type DirectFundingExtendedState struct {
 	ParticipantIndex map[types.Address]uint // the index for each participant
-	PreFundSigned    map[uint]bool          // indexed by participant
-	DepositCovered   map[uint]*big.Int      // indexed by participant
-	PostFundSigned   map[uint]bool          // indexed by participant
+	PreFundSigned    []bool                 // indexed by participant. TODO should this be initialized with my own index showing true?
+
+	MyDepositSafetyThreshold *big.Int // if the on chain holdings are equal to this amount it is safe for me to deposit
+	MyDepositTarget          *big.Int // I want to get the on chain holdings up to this much
+	FullyFundedThreshold     *big.Int // if the on chain holdings are equal
+
+	PostFundSigned []bool // indexed by participant
 }
 
 // PrefunComplete returns true if all participants have signed a prefund state, as reflected by the extended state
@@ -50,6 +53,7 @@ type DirectFundingProtocolEventType int
 
 const (
 	PreFundReceived DirectFundingProtocolEventType = iota
+	FundingUpdated
 )
 
 // DirectFundingProtocolEvent has a type as well as other rich information (which may or may not be non nil).
@@ -60,47 +64,88 @@ type DirectFundingProtocolEvent struct {
 	OnChainHolding *big.Int
 }
 
+type SideEffect struct {
+	transaction string // Blockchain transaction
+}
+
+func PrepareDepositTransaction(amount *big.Int) string {
+	// TODO a proper implementation
+	return amount.String()
+}
+
+// TODO can reducers be abstracted into an interface?
+
 // NextState is the overall reducer / state transition function for the DirectFundingProtocol
-func (s DirectFundingProtocolState) NextState(e DirectFundingProtocolEvent) (DirectFundingProtocolState, error) {
+func (s DirectFundingProtocolState) NextState(e DirectFundingProtocolEvent) (DirectFundingProtocolState, []SideEffect, error) {
 	// it is better to switch on the state than on the event
 	// https://dev.to/davidkpiano/you-don-t-need-a-library-for-state-machines-k7h
 	switch s.EnumerableState {
 	case PreFundIncomplete:
 		return s.nextStateFromPrefundIncomplete(e)
-	case NotYetMyTurnToFund:
-		fallthrough // TODO
 	case FundingIncomplete:
-		fallthrough // TODO
+		return s.nextStateFromFundingIncomplete(e)
 	case PostFundIncomplete:
 		fallthrough // TODO
 	default:
-		return s, nil
+		return s, []SideEffect{}, nil
 	}
 }
 
 // nextStateFromPrefundIncomplete is a component of the overall DirectFundingProtocol reducer
-func (s DirectFundingProtocolState) nextStateFromPrefundIncomplete(e DirectFundingProtocolEvent) (DirectFundingProtocolState, error) {
+// TODO when do we sign and send our own prefund state? When we construct the machine?
+func (s DirectFundingProtocolState) nextStateFromPrefundIncomplete(e DirectFundingProtocolEvent) (DirectFundingProtocolState, []SideEffect, error) {
 	if e.Type != PreFundReceived { // There's only one way out of this state
-		return s, nil
+		return s, []SideEffect{}, nil
 	}
-	newExtendedState := s.ExtendedState // Make a copy of the extended state
+	newExtendedState := s.ExtendedState // Make a copy of the extended state because we anticipate needing to return an updated version
 
 	signer, err := e.State.RecoverSigner(e.Signature)
 	if err != nil {
-		return s, err
+		return s, []SideEffect{}, err
 	}
 
 	signerIndex, present := newExtendedState.ParticipantIndex[signer]
 	if !present {
-		return s, errors.New(`signer is not a participant`)
+		return s, []SideEffect{}, errors.New(`signer is not a participant`)
 	} else {
 		newExtendedState.PreFundSigned[signerIndex] = true
 	}
 
 	if newExtendedState.PrefundComplete() {
-		return DirectFundingProtocolState{NotYetMyTurnToFund, newExtendedState}, nil
+		return DirectFundingProtocolState{FundingIncomplete, newExtendedState}, []SideEffect{}, nil
 	} else {
-		return DirectFundingProtocolState{PostFundIncomplete, newExtendedState}, nil
+		return DirectFundingProtocolState{PostFundIncomplete, newExtendedState}, []SideEffect{}, nil
 	}
+}
+
+// nextStateFromFundingIncomplete is a component of the overall DirectFundingProtocol reducer
+func (s DirectFundingProtocolState) nextStateFromFundingIncomplete(e DirectFundingProtocolEvent) (DirectFundingProtocolState, []SideEffect, error) {
+	if e.Type != FundingUpdated { // There's only one way out of this state
+		return s, []SideEffect{}, nil
+	}
+
+	if e.OnChainHolding.Cmp(s.ExtendedState.FullyFundedThreshold) > -1 {
+		// We make can progess to the next enumerable state
+		return DirectFundingProtocolState{PostFundIncomplete, s.ExtendedState}, []SideEffect{}, nil
+	}
+
+	// We aren't fully funded
+
+	if e.OnChainHolding.Cmp(s.ExtendedState.MyDepositTarget) > -1 {
+		// Don't need to do anything but wait.
+		return s, []SideEffect{}, nil
+	}
+
+	// We haven't yet hit my deposit target
+
+	if e.OnChainHolding.Cmp(s.ExtendedState.MyDepositSafetyThreshold) > -1 {
+		depositAmount := big.NewInt(0).Sub(s.ExtendedState.MyDepositTarget, e.OnChainHolding)
+		// TODO declare a side effect to deposit depositAmount
+		return s, []SideEffect{{PrepareDepositTransaction(depositAmount)}}, nil
+	}
+
+	// It isn't yet safe for me to fund
+
+	return s, []SideEffect{}, nil
 
 }
