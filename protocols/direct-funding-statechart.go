@@ -8,7 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// A linear state machine
+// A linear state machine with enumerated states.
 // PreFundIncomplete => NotYetMyTurnToFund => FundingIncomplete => PostFundIncomplete
 type DirectFundingEnumerableState int
 
@@ -19,7 +19,9 @@ const (
 	PostFundIncomplete
 )
 
-// This should be shallow copyable
+// DirectFundingExtendedState contains the (potentially infinite) extended state of the Direct Funding machine.
+// The extended state of this machine is a cache of a larger store of states and events stored by a Nitro wallet.
+// This struct should be kept as shallow copyable (and this should be tested).
 type DirectFundingExtendedState struct {
 	ParticipantIndex map[types.Address]uint // the index for each participant
 	PreFundSigned    map[uint]bool          // indexed by participant
@@ -27,6 +29,7 @@ type DirectFundingExtendedState struct {
 	PostFundSigned   map[uint]bool          // indexed by participant
 }
 
+// PrefunComplete returns true if all participants have signed a prefund state, as reflected by the extended state
 func (s DirectFundingExtendedState) PrefundComplete() bool {
 	for _, index := range s.ParticipantIndex {
 		if !s.PreFundSigned[index] {
@@ -36,18 +39,20 @@ func (s DirectFundingExtendedState) PrefundComplete() bool {
 	return true
 }
 
+// DirectFundingProtocol state has both enumerable and extended state components.
 type DirectFundingProtocolState struct {
 	EnumerableState DirectFundingEnumerableState
 	ExtendedState   DirectFundingExtendedState
 }
 
-// The events for the state machine
+// The event types for the state machine are enumerated.
 type DirectFundingProtocolEventType int
 
 const (
 	PreFundReceived DirectFundingProtocolEventType = iota
 )
 
+// DirectFundingProtocolEvent has a type as well as other rich information (which may or may not be non nil).
 type DirectFundingProtocolEvent struct {
 	Type           DirectFundingProtocolEventType
 	State          state.State
@@ -55,8 +60,7 @@ type DirectFundingProtocolEvent struct {
 	OnChainHolding *big.Int
 }
 
-// TODO we need to also have a context to turn this into a state chart
-
+// NextState is the overall reducer / state transition function for the DirectFundingProtocol
 func (s DirectFundingProtocolState) NextState(e DirectFundingProtocolEvent) (DirectFundingProtocolState, error) {
 	// it is better to switch on the state than on the event
 	// https://dev.to/davidkpiano/you-don-t-need-a-library-for-state-machines-k7h
@@ -74,6 +78,7 @@ func (s DirectFundingProtocolState) NextState(e DirectFundingProtocolEvent) (Dir
 	}
 }
 
+// nextStateFromPrefundIncomplete is a component of the overall DirectFundingProtocol reducer
 func (s DirectFundingProtocolState) nextStateFromPrefundIncomplete(e DirectFundingProtocolEvent) (DirectFundingProtocolState, error) {
 	if e.Type != PreFundReceived { // There's only one way out of this state
 		return s, nil
