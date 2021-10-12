@@ -1,9 +1,5 @@
 package protocols
 
-import (
-	"math/big"
-)
-
 // Pause points. By returning these, the imperative shell can detect a lack of progress after multiple cranks
 // This should be thought of less as finite state, and more as metadata about infinite state
 type WaitingFor = DirectFundingEnumerableState
@@ -29,7 +25,7 @@ func (s DirectFundingObjectiveState) Crank() (SideEffects, WaitingFor, error) {
 	// Funding
 	fundingComplete := s.FundingComplete(s.OnChainHolding) // note all information stored in state (since there are no real events)
 	// (contrast this with a FSM where we have the new on chain holding on the event)
-	amountToDeposit := big.NewInt(0).Sub(s.MyDepositTarget, s.OnChainHolding)
+	amountToDeposit := s.AmountToDeposit(s.OnChainHolding)
 	safeToDeposit := s.SafeToDeposit(s.OnChainHolding)
 
 	if !fundingComplete && !safeToDeposit {
