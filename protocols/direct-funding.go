@@ -6,14 +6,6 @@ import (
 	"github.com/statechannels/go-nitro/channel"
 )
 
-// constants
-
-var zero = big.NewInt(0)
-var noEffects = []string{}
-
-// Effects to be declared. For now these are just strings. In future they may be more complex
-type Effects []string
-
 func SignPreFundEffect(c channel.Channel) string {
 	return "sign Prefundsetup for" + c.Id()
 }
@@ -33,20 +25,20 @@ var CompleteFunding = WaitingFor("CompleteFunding")
 var CompletePostfund = WaitingFor("CompletePostfund")
 
 // Crank inspects the objective o, channel in scope c, and holdings h -- and declares a list of Effects to be executed
-func Crank(o Objective, c channel.Channel, h Holding) (Effects, WaitingFor, error) {
+func Crank(o Objective, c channel.Channel, h Holding) (SideEffects, WaitingFor, error) {
 	// TODO handle an array of Holdings
 
 	// Input validation
 	if o.Status != "approved" {
-		return noEffects, "", ErrNotApproved
+		return NoSideEffects, "", ErrNotApproved
 	}
 
 	if o.Scope[0] != c.Id() {
-		return noEffects, "", ErrNotInScope
+		return NoSideEffects, "", ErrNotInScope
 	}
 
 	if h.ChannelId() != c.Id() {
-		return noEffects, "", ErrIncorrectChannelId
+		return NoSideEffects, "", ErrIncorrectChannelId
 	}
 
 	// Prefunding
@@ -54,7 +46,7 @@ func Crank(o Objective, c channel.Channel, h Holding) (Effects, WaitingFor, erro
 		return []string{SignPreFundEffect(c)}, "", nil
 	}
 	if !c.IsPrefundComplete() {
-		return noEffects, CompletePrefund, nil
+		return NoSideEffects, CompletePrefund, nil
 	}
 
 	// Funding
@@ -75,7 +67,7 @@ func Crank(o Objective, c channel.Channel, h Holding) (Effects, WaitingFor, erro
 	}
 
 	if !fundingComplete {
-		return noEffects, CompleteFunding, nil
+		return NoSideEffects, CompleteFunding, nil
 	}
 
 	// Postfunding
@@ -84,7 +76,7 @@ func Crank(o Objective, c channel.Channel, h Holding) (Effects, WaitingFor, erro
 	}
 
 	if !c.IsPostFundComplete() {
-		return noEffects, CompletePostfund, nil
+		return NoSideEffects, CompletePostfund, nil
 	}
 
 	// Completion
