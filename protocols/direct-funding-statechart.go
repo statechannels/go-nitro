@@ -144,3 +144,20 @@ func (s DirectFundingProtocolState) nextStateFromWaitingForCompletePostFund(e Di
 		return DirectFundingProtocolState{WaitingForCompletePostFund, newExtendedState}, NoSideEffects, nil
 	}
 }
+
+// mermaid diagram
+// https://mermaid-js.github.io/mermaid-live-editor/edit#eyJjb2RlIjoic3RhdGVEaWFncmFtLXYyXG4gICAgV2FpdGluZ0ZvckNvbXBsZXRlUHJlZnVuZFxuXHRXYWl0aW5nRm9yTXlUdXJuVG9GdW5kXG5cdFdhaXRpbmdGb3JDb21wbGV0ZUZ1bmRpbmdcblx0V2FpdGluZ0ZvckNvbXBsZXRlUG9zdEZ1bmRcblxuXG4gICAgWypdIC0tPldhaXRpbmdGb3JDb21wbGV0ZVByZWZ1bmQgXG4gICAgV2FpdGluZ0ZvckNvbXBsZXRlUHJlZnVuZCAtLT4gV2FpdGluZ0Zvck15VHVyblRvRnVuZCA6IFByZUZ1bmRSZWNlaXZlZFxuICAgIFdhaXRpbmdGb3JDb21wbGV0ZVByZWZ1bmQgLS0-IFdhaXRpbmdGb3JDb21wbGV0ZVByZWZ1bmQgOiBQcmVGdW5kUmVjZWl2ZWRcbiAgICBXYWl0aW5nRm9yTXlUdXJuVG9GdW5kIC0tPiBXYWl0aW5nRm9yQ29tcGxldGVGdW5kaW5nIDogRnVuZGluZ1VwZGF0ZWRcbiAgICBXYWl0aW5nRm9yTXlUdXJuVG9GdW5kIC0tPiBXYWl0aW5nRm9yTXlUdXJuVG9GdW5kIDogRnVuZGluZ1VwZGF0ZWRcbiAgICBXYWl0aW5nRm9yQ29tcGxldGVGdW5kaW5nIC0tPiBXYWl0aW5nRm9yQ29tcGxldGVQb3N0RnVuZCA6IEZ1bmRpbmdVcGRhdGVkXG4gICAgV2FpdGluZ0ZvckNvbXBsZXRlRnVuZGluZyAtLT4gV2FpdGluZ0ZvckNvbXBsZXRlRnVuZGluZyA6IEZ1bmRpbmdVcGRhdGVkXG4gICAgV2FpdGluZ0ZvckNvbXBsZXRlUG9zdEZ1bmQgLS0-IFsqXSA6IFBvc3RGdW5kUmVjZWl2ZWRcblxuICAgICAgICAgICAgIiwibWVybWFpZCI6IntcbiAgXCJ0aGVtZVwiOiBcImRlZmF1bHRcIlxufSIsInVwZGF0ZUVkaXRvciI6ZmFsc2UsImF1dG9TeW5jIjp0cnVlLCJ1cGRhdGVEaWFncmFtIjpmYWxzZX0
+// stateDiagram-v2
+//     WaitingForCompletePrefund
+// 	WaitingForMyTurnToFund
+// 	WaitingForCompleteFunding
+// 	WaitingForCompletePostFund
+
+//     [*] -->WaitingForCompletePrefund
+//     WaitingForCompletePrefund --> WaitingForMyTurnToFund : PreFundReceived
+//     WaitingForCompletePrefund --> WaitingForCompletePrefund : PreFundReceived
+//     WaitingForMyTurnToFund --> WaitingForCompleteFunding : FundingUpdated
+//     WaitingForMyTurnToFund --> WaitingForMyTurnToFund : FundingUpdated
+//     WaitingForCompleteFunding --> WaitingForCompletePostFund : FundingUpdated
+//     WaitingForCompleteFunding --> WaitingForCompleteFunding : FundingUpdated
+//     WaitingForCompletePostFund --> [*] : PostFundReceived
