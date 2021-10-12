@@ -2,85 +2,63 @@ package protocols
 
 import (
 	"math/big"
-
-	"github.com/statechannels/go-nitro/channel"
 )
 
-func SignPreFundEffect(c channel.Channel) string {
-	return "sign Prefundsetup for" + c.Id()
-}
-func SignPostFundEffect(c channel.Channel) string {
-	return "sign Postfundsetup for" + c.Id()
-}
-func FundOnChainEffect(c channel.Channel, asset string, amount big.Int) string {
-	return "deposit" + amount.Text(64) + "into" + c.Id()
-}
+// Pause points. By returning these, the imperative shell can detect a lack of progress after multiple cranks
+// This should be thought of less as finite state, and more as metadata about infinite state
+type WaitingFor = DirectFundingEnumerableState
 
-// Pause points. By Returning these, the imperative shell can detect a lack of progress after multiple cranks
-type WaitingFor string
-
-var CompletePrefund = WaitingFor("CompletePrefund")
-var MyTurnToFund = WaitingFor("MyTurnToFund")
-var CompleteFunding = WaitingFor("CompleteFunding")
-var CompletePostfund = WaitingFor("CompletePostfund")
-
-// Crank inspects the objective o, channel in scope c, and holdings h -- and declares a list of Effects to be executed
-func Crank(o Objective, c channel.Channel, h Holding) (SideEffects, WaitingFor, error) {
-	// TODO handle an array of Holdings
+// Crank inspects the objective o, and holdings h -- and declares a list of Effects to be executed
+// It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
+// rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
+func (s DirectFundingObjectiveState) Crank() (SideEffects, WaitingFor, error) {
 
 	// Input validation
-	if o.Status != "approved" {
-		return NoSideEffects, "", ErrNotApproved
-	}
-
-	if o.Scope[0] != c.Id() {
-		return NoSideEffects, "", ErrNotInScope
-	}
-
-	if h.ChannelId() != c.Id() {
-		return NoSideEffects, "", ErrIncorrectChannelId
+	if s.Status != Approved {
+		return NoSideEffects, WaitingForNothing, ErrNotApproved
 	}
 
 	// Prefunding
-	if c.ShouldSignPreFund() {
-		return []string{SignPreFundEffect(c)}, "", nil
+	if !s.PreFundSigned[s.MyIndex] {
+		return []string{SignPreFundEffect(s.ChannelId)}, WaitingForCompletePrefund, nil
 	}
-	if !c.IsPrefundComplete() {
-		return NoSideEffects, CompletePrefund, nil
+	if !s.PrefundComplete() {
+		return NoSideEffects, WaitingForCompletePrefund, nil
 	}
 
 	// Funding
-
-	fundingComplete := c.IsFundingComplete(h.Asset(), h.Amount())
-	amountToDeposit, safeToDeposit := c.AmountToDeposit(h.Asset(), h.Amount())
+	fundingComplete := s.FundingComplete(s.OnChainHolding) // note all information stored in state (since there are no real events)
+	// (contrast this with a FSM where we have the new on chain holding on the event)
+	amountToDeposit := big.NewInt(0).Sub(s.MyDepositTarget, s.OnChainHolding)
+	safeToDeposit := s.SafeToDeposit(s.OnChainHolding)
 
 	if !fundingComplete && !safeToDeposit {
-		return []string{}, MyTurnToFund, nil
+		return []string{}, WaitingForMyTurnToFund, nil
 	}
 
-	if !fundingComplete && amountToDeposit.Cmp(zero) != 0 && safeToDeposit {
+	if !fundingComplete && gt(amountToDeposit, zero) && safeToDeposit {
 		var effects = make([]string, 0) // TODO loop over assets
-		effects = append(effects, FundOnChainEffect(c, h.Asset(), amountToDeposit))
+		effects = append(effects, FundOnChainEffect(s.ChannelId, `eth`, amountToDeposit))
 		if len(effects) > 0 {
-			return effects, "", nil
+			return effects, WaitingForCompleteFunding, nil
 		}
 	}
 
 	if !fundingComplete {
-		return NoSideEffects, CompleteFunding, nil
+		return NoSideEffects, WaitingForCompleteFunding, nil
 	}
 
 	// Postfunding
-	if c.ShouldSignPostFund() {
-		return []string{SignPostFundEffect(c)}, "", nil
+	if !s.PostFundSigned[s.MyIndex] {
+		return []string{SignPostFundEffect(s.ChannelId)}, WaitingForCompletePostFund, nil
 	}
 
-	if !c.IsPostFundComplete() {
-		return NoSideEffects, CompletePostfund, nil
+	if !s.PostfundComplete() {
+		return NoSideEffects, WaitingForCompletePostFund, nil
 	}
 
 	// Completion
-	return []string{"Objective" + o.Id + "complete"}, "", nil
+	return []string{"Objective" + s.ChannelId.String() + "complete"}, WaitingForNothing, nil
 }
 
 // mermaid diagram

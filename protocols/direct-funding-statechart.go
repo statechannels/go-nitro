@@ -7,7 +7,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
-type DirectFundingExtendedState = ObjectiveState // DirectFundingExtendedState contains the (potentially infinite) extended state of the Direct Funding machine.
+type DirectFundingExtendedState = DirectFundingObjectiveState // DirectFundingExtendedState contains the (potentially infinite) extended state of the Direct Funding machine.
 // The extended state of this machine is a cache of a larger store of states and events stored by a Nitro wallet.
 // This struct should be kept as shallow copyable (and this should be tested).
 
@@ -43,6 +43,9 @@ func PrepareDepositTransaction(amount *big.Int) string {
 
 // NextState is the overall reducer / state transition function for the DirectFundingProtocol
 func (s DirectFundingProtocolState) NextState(e DirectFundingProtocolEvent) (DirectFundingProtocolState, SideEffects, error) {
+	if s.ExtendedState.Status != Approved {
+		return s, NoSideEffects, ErrNotApproved
+	}
 	// it is better to switch on the state than on the event
 	// https://dev.to/davidkpiano/you-don-t-need-a-library-for-state-machines-k7h
 	switch s.EnumerableState {
@@ -112,7 +115,7 @@ func (s DirectFundingProtocolState) nextStateFromWaitingForCompleteFunding(e Dir
 		return s, NoSideEffects, nil
 	}
 
-	if gte(e.OnChainHolding, s.ExtendedState.FullyFundedThreshold) {
+	if s.ExtendedState.FundingComplete((e.OnChainHolding)) {
 		// We make can progess to the next enumerable state
 		return DirectFundingProtocolState{WaitingForCompletePostFund, s.ExtendedState}, SideEffects{"send postfund"}, nil
 	}
@@ -145,8 +148,4 @@ func (s DirectFundingProtocolState) nextStateFromWaitingForCompletePostFund(e Di
 	} else {
 		return DirectFundingProtocolState{WaitingForCompletePostFund, newExtendedState}, NoSideEffects, nil
 	}
-}
-
-func gte(a *big.Int, b *big.Int) bool {
-	return a.Cmp(b) > -1
 }
