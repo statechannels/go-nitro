@@ -95,6 +95,11 @@ func (s DirectFundingObjectiveState) SafeToDeposit(onChainHolding *big.Int) bool
 	return gte(onChainHolding, s.FullyFundedThreshold)
 }
 
+// AmountToDeposit computes the appropriate amount to deposit using the supplied onChainHolding
+func (s DirectFundingObjectiveState) AmountToDeposit(onChainHolding *big.Int) *big.Int {
+	return big.NewInt(0).Sub(s.MyDepositTarget, onChainHolding)
+}
+
 func gte(a *big.Int, b *big.Int) bool {
 	return a.Cmp(b) > -1
 }

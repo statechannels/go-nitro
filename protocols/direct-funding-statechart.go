@@ -100,9 +100,9 @@ func (s DirectFundingProtocolState) nextStateFromMyWaitingForMyTurnToFund(e Dire
 		return DirectFundingProtocolState{WaitingForCompleteFunding, s.ExtendedState}, NoSideEffects, nil
 	}
 
-	if gte(e.OnChainHolding, s.ExtendedState.MyDepositSafetyThreshold) {
+	if s.ExtendedState.SafeToDeposit(e.OnChainHolding) {
 		// Onlty here is it safe to deposit
-		depositAmount := big.NewInt(0).Sub(s.ExtendedState.MyDepositTarget, e.OnChainHolding)
+		depositAmount := s.ExtendedState.AmountToDeposit(e.OnChainHolding)
 		return s, SideEffects{PrepareDepositTransaction(depositAmount)}, nil
 	}
 
