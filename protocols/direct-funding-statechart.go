@@ -97,7 +97,7 @@ func (s DirectFundingProtocolState) NextState(e DirectFundingProtocolEvent) (Dir
 	case FundingIncomplete:
 		return s.nextStateFromFundingIncomplete(e)
 	case PostFundIncomplete:
-		s.nextStateFromPostfundIncomplete(e)
+		return s.nextStateFromPostfundIncomplete(e)
 	default:
 		return s, []SideEffect{}, nil
 	}
