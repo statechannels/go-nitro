@@ -34,11 +34,6 @@ type DirectFundingProtocolEvent struct {
 	OnChainHolding *big.Int
 }
 
-func PrepareDepositTransaction(amount *big.Int) string {
-	// TODO a proper implementation
-	return `deposit` + amount.String()
-}
-
 // TODO can reducers be abstracted into an interface?
 
 // NextState is the overall reducer / state transition function for the DirectFundingProtocol
@@ -85,7 +80,7 @@ func (s DirectFundingProtocolState) nextStateFromWaitingForCompletePrefund(e Dir
 	if newExtendedState.PrefundComplete() {
 		return DirectFundingProtocolState{WaitingForMyTurnToFund, newExtendedState}, NoSideEffects, nil
 	} else {
-		return DirectFundingProtocolState{WaitingForCompletePostFund, newExtendedState}, NoSideEffects, nil
+		return DirectFundingProtocolState{WaitingForCompletePrefund, newExtendedState}, NoSideEffects, nil
 	}
 }
 
@@ -103,7 +98,7 @@ func (s DirectFundingProtocolState) nextStateFromMyWaitingForMyTurnToFund(e Dire
 	if s.ExtendedState.SafeToDeposit(e.OnChainHolding) {
 		// Onlty here is it safe to deposit
 		depositAmount := s.ExtendedState.AmountToDeposit(e.OnChainHolding)
-		return s, SideEffects{PrepareDepositTransaction(depositAmount)}, nil
+		return s, SideEffects{FundOnChainEffect(s.ExtendedState.ChannelId, `ETH`, depositAmount)}, nil
 	}
 
 	return s, NoSideEffects, nil
@@ -117,7 +112,7 @@ func (s DirectFundingProtocolState) nextStateFromWaitingForCompleteFunding(e Dir
 
 	if s.ExtendedState.FundingComplete((e.OnChainHolding)) {
 		// We make can progess to the next enumerable state
-		return DirectFundingProtocolState{WaitingForCompletePostFund, s.ExtendedState}, SideEffects{"send postfund"}, nil
+		return DirectFundingProtocolState{WaitingForCompletePostFund, s.ExtendedState}, SideEffects{SignPostFundEffect(s.ExtendedState.ChannelId)}, nil
 	}
 
 	return s, NoSideEffects, nil
