@@ -6,6 +6,25 @@ Implementation of nitro protocol in golang.
 
 ---
 
+# Getting started (MacOS)
+
+Install golang
+```
+brew install golang
+```
+
+Install [golangci-lint](https://golangci-lint.run):
+```
+brew install golangci-lint
+brew upgrade golangci-lint
+```
+
+Make sure GOPATH is set:
+```
+echo $GOPATH
+```
+You should see `$HOME/go`.
+
 ### For developers
 To format:
 ```shell
