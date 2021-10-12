@@ -77,20 +77,20 @@ func (s DirectFundingProtocolState) NextState(e DirectFundingProtocolEvent) (Dir
 	// it is better to switch on the state than on the event
 	// https://dev.to/davidkpiano/you-don-t-need-a-library-for-state-machines-k7h
 	switch s.EnumerableState {
-	case PreFundIncomplete:
-		return s.nextStateFromPrefundIncomplete(e)
-	case FundingIncomplete:
+	case WaitingForCompletePrefund:
+		return s.nextStateFromWaitingForCompletePrefund(e)
+	case WaitingForCompleteFunding:
 		return s.nextStateFromFundingIncomplete(e)
-	case PostFundIncomplete:
+	case WaitingForCompletePostFund:
 		return s.nextStateFromPostfundIncomplete(e)
 	default:
 		return s, NoSideEffects, nil
 	}
 }
 
-// nextStateFromPrefundIncomplete is a component of the overall DirectFundingProtocol reducer
+// nextStateFromWaitingForCompletePrefund is a component of the overall DirectFundingProtocol reducer
 // TODO when do we sign and send our own prefund state? When we construct the machine?
-func (s DirectFundingProtocolState) nextStateFromPrefundIncomplete(e DirectFundingProtocolEvent) (DirectFundingProtocolState, SideEffects, error) {
+func (s DirectFundingProtocolState) nextStateFromWaitingForCompletePrefund(e DirectFundingProtocolEvent) (DirectFundingProtocolState, SideEffects, error) {
 	if e.Type != PreFundReceived { // There's only one way out of this state
 		return s, NoSideEffects, nil
 	}
@@ -109,9 +109,9 @@ func (s DirectFundingProtocolState) nextStateFromPrefundIncomplete(e DirectFundi
 	}
 
 	if newExtendedState.PrefundComplete() {
-		return DirectFundingProtocolState{FundingIncomplete, newExtendedState}, NoSideEffects, nil
+		return DirectFundingProtocolState{WaitingForCompleteFunding, newExtendedState}, NoSideEffects, nil
 	} else {
-		return DirectFundingProtocolState{PostFundIncomplete, newExtendedState}, NoSideEffects, nil
+		return DirectFundingProtocolState{WaitingForCompletePostFund, newExtendedState}, NoSideEffects, nil
 	}
 }
 
@@ -123,7 +123,7 @@ func (s DirectFundingProtocolState) nextStateFromFundingIncomplete(e DirectFundi
 
 	if e.OnChainHolding.Cmp(s.ExtendedState.FullyFundedThreshold) > -1 {
 		// We make can progess to the next enumerable state
-		return DirectFundingProtocolState{PostFundIncomplete, s.ExtendedState}, NoSideEffects, nil
+		return DirectFundingProtocolState{WaitingForCompletePostFund, s.ExtendedState}, NoSideEffects, nil
 	}
 
 	// We aren't fully funded
@@ -167,8 +167,8 @@ func (s DirectFundingProtocolState) nextStateFromPostfundIncomplete(e DirectFund
 	}
 
 	if newExtendedState.PostfundComplete() {
-		return DirectFundingProtocolState{Finished, newExtendedState}, NoSideEffects, nil
+		return DirectFundingProtocolState{WaitingForNothing, newExtendedState}, NoSideEffects, nil
 	} else {
-		return DirectFundingProtocolState{PostFundIncomplete, newExtendedState}, NoSideEffects, nil
+		return DirectFundingProtocolState{WaitingForCompletePostFund, newExtendedState}, NoSideEffects, nil
 	}
 }

@@ -7,10 +7,11 @@ import "math/big"
 type DirectFundingEnumerableState int
 
 const (
-	PreFundIncomplete DirectFundingEnumerableState = iota // 0
-	FundingIncomplete
-	PostFundIncomplete
-	Finished
+	WaitingForCompletePrefund DirectFundingEnumerableState = iota // 0
+	WaitingForMyTurnToFund
+	WaitingForCompleteFunding
+	WaitingForCompletePostFund
+	WaitingForNothing // Finished
 )
 
 // Effects to be declared. For now these are just strings. In future they may be more complex
