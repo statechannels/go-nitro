@@ -4,7 +4,10 @@ package protocols
 // This should be thought of less as finite state, and more as metadata about infinite state
 type WaitingFor = DirectFundingEnumerableState
 
-// Crank inspects the objective o, and holdings h -- and declares a list of Effects to be executed
+// TODO this protocol does not specify how events are handled at all
+// (it assumes that events are handled by pushing information into the store)
+
+// Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
 func (s DirectFundingObjectiveState) Crank() (SideEffects, WaitingFor, error) {
