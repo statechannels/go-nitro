@@ -126,7 +126,10 @@ func (e *Exit) Encode() (types.Bytes, error) {
 
 // Decode returns an Exit from an abi encoding
 func Decode(data types.Bytes) (Exit, error) {
-	unpacked, _ := abi.Arguments{{Type: exitTy}}.Unpack(data)
+	unpacked, err := abi.Arguments{{Type: exitTy}}.Unpack(data)
+	if err != nil {
+		return nil, err
+	}
 	return convertToExit(unpacked[0].(rawExitType)), nil
 }
 
