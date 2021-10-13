@@ -89,14 +89,14 @@ func (e *Exit) Encode() (types.Bytes, error) {
 	return abi.Arguments{{Type: exitTy}}.Pack(e)
 }
 
-type rawAllocationsType []struct {
+type rawAllocationsType = []struct {
 	Destination    [32]uint8 "json:\"destination\""
 	Amount         *big.Int  "json:\"amount\""
 	AllocationType uint8     "json:\"allocationType\""
 	Metadata       []uint8   "json:\"metadata\""
 }
 
-type rawExitType []struct {
+type rawExitType = []struct {
 	Asset       common.Address     "json:\"asset\""
 	Metadata    []uint8            "json:\"metadata\""
 	Allocations rawAllocationsType "json:\"Allocations\""
