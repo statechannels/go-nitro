@@ -2,8 +2,10 @@ package outcome
 
 import (
 	"bytes"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -87,9 +89,40 @@ func (e *Exit) Encode() (types.Bytes, error) {
 	return abi.Arguments{{Type: exitTy}}.Pack(e)
 }
 
+type rawAllocationsType []struct {
+	Destination    [32]uint8 "json:\"destination\""
+	Amount         *big.Int  "json:\"amount\""
+	AllocationType uint8     "json:\"allocationType\""
+	Metadata       []uint8   "json:\"metadata\""
+}
+
+type rawExitType []struct {
+	Asset       common.Address     "json:\"asset\""
+	Metadata    []uint8            "json:\"metadata\""
+	Allocations rawAllocationsType "json:\"Allocations\""
+}
+
+func convertToAllocations(r rawAllocationsType) Allocations {
+	allocation := make(Allocations, len(r))
+	for i, a := range r {
+		allocation[i] = Allocation{Destination: a.Destination, Amount: a.Amount, Metadata: a.Metadata, AllocationType: a.AllocationType}
+	}
+	return allocation
+}
+
+func convertToExit(r rawExitType) Exit {
+	exit := make(Exit, len(r))
+
+	for i, sae := range r {
+		exit[i] = SingleAssetExit{Asset: sae.Asset, Metadata: sae.Metadata, Allocations: convertToAllocations(sae.Allocations)}
+	}
+	return exit
+}
+
 // Decode returns an Exit from an abi encoding
 func Decode(data types.Bytes) (Exit, error) {
-	return Exit{}, nil
+	unpacked, _ := abi.Arguments{{Type: exitTy}}.Unpack(data)
+	return convertToExit(unpacked[0].(rawExitType)), nil
 }
 
 // Hash returns the keccak256 hash of the Exit
