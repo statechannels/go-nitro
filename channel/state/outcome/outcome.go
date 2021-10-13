@@ -2,6 +2,8 @@ package outcome
 
 import (
 	"bytes"
+	"encoding/json"
+	"log"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -12,7 +14,7 @@ import (
 
 // Allocation declares an Amount to be paid to a Destination.
 type Allocation struct {
-	Destination    types.Bytes32  // Either an ethereum address or an application-specific identifier
+	Destination    [32]byte       // Either an ethereum address or an application-specific identifier
 	Amount         *types.Uint256 // An amount of a particular asset
 	AllocationType uint8          // Directs calling code on how to interpret the allocation
 	Metadata       []byte         // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
@@ -102,20 +104,20 @@ type rawExitType = []struct {
 	Allocations rawAllocationsType "json:\"Allocations\""
 }
 
-func convertToAllocations(r rawAllocationsType) Allocations {
-	allocation := make(Allocations, len(r))
-	for i, a := range r {
-		allocation[i] = Allocation{Destination: a.Destination, Amount: a.Amount, Metadata: a.Metadata, AllocationType: a.AllocationType}
-	}
-	return allocation
-}
-
 func convertToExit(r rawExitType) Exit {
-	exit := make(Exit, len(r))
+	var exit Exit
+	j, err := json.Marshal(r)
 
-	for i, sae := range r {
-		exit[i] = SingleAssetExit{Asset: sae.Asset, Metadata: sae.Metadata, Allocations: convertToAllocations(sae.Allocations)}
+	if err != nil {
+		log.Fatal(`error marshalling`)
 	}
+
+	err = json.Unmarshal(j, &exit)
+
+	if err != nil {
+		log.Fatal(`error unmarshalling`, err)
+	}
+
 	return exit
 }
 
