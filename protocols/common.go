@@ -1,6 +1,7 @@
 package protocols
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/statechannels/go-nitro/types"
@@ -107,3 +108,6 @@ func gte(a *big.Int, b *big.Int) bool {
 func gt(a *big.Int, b *big.Int) bool {
 	return a.Cmp(b) > 0
 }
+
+// errors
+var ErrNotApproved = errors.New("objective not approved")
