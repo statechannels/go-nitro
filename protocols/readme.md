@@ -13,6 +13,10 @@ The first approach is a state chart approach:
 
 - the enumerable state and extended state are combined into (simply) a "state"
 - a number of discrete event types are defined, as well as a rich event structure (roughly speaking the intersection of all the data for all of the event types)
+- note that these events are not "raw events" of the wallet. The raw events are
+  _ a blockchain event
+  _ an API call \* a message received from a counterparty
+  The direct funding state chart events are transduced from the raw events (not shown)
 - a `NexState` method contains the business logic. It is a "reducer" that switches on the current enumerable state and defers to one of a number of per-state reducers. It returns a new state, some side effects and an error
 - it is accompanied by a mermaid diagram (manually constructed) in a comment
 
