@@ -79,14 +79,6 @@ var allocationsTy = abi.ArgumentMarshaling{
 	},
 }
 
-// rawAllocationsType is an alias to the type returned when using the github.com/ethereum/go-ethereum/accounts/abi Unpack method with allocationsTy
-type rawAllocationsType = []struct {
-	Destination    [32]uint8 "json:\"destination\""
-	Amount         *big.Int  "json:\"amount\""
-	AllocationType uint8     "json:\"allocationType\""
-	Metadata       []uint8   "json:\"metadata\""
-}
-
 // exitTy describes the shape of Exit such that github.com/ethereum/go-ethereum/accounts/abi can parse it
 var exitTy, _ = abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []abi.ArgumentMarshaling{
 	{Name: "asset", Type: "address"},
@@ -94,11 +86,19 @@ var exitTy, _ = abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []
 	allocationsTy,
 })
 
+// rawAllocationsType is an alias to the type returned when using the github.com/ethereum/go-ethereum/accounts/abi Unpack method with allocationsTy
+type rawAllocationsType = []struct {
+	Destination    [32]uint8 `json:"destination"`
+	Amount         *big.Int  `json:"amount"`
+	AllocationType uint8     `json:"allocationType"`
+	Metadata       []uint8   `json:"metadata"`
+}
+
 // rawExitType is an alias to the type returned when using the github.com/ethereum/go-ethereum/accounts/abi Unpack method with exitTy
 type rawExitType = []struct {
-	Asset       common.Address     "json:\"asset\""
-	Metadata    []uint8            "json:\"metadata\""
-	Allocations rawAllocationsType "json:\"Allocations\""
+	Asset       common.Address     `json:"asset"`
+	Metadata    []uint8            `json:"metadata"`
+	Allocations rawAllocationsType `json:"Allocations"`
 }
 
 // convertToExit converts a rawExitType to an Exit
