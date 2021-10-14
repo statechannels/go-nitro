@@ -1,5 +1,5 @@
-// Package wallet contains the interfaces for the components of a nitro wallet
-package wallet // import "github.com/statechannels/go-nitro/wallet"
+// Package client contains the interfaces for the components of a nitro state channel client
+package client // import "github.com/statechannels/go-nitro/client"
 
 import (
 	"math/big"

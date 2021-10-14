@@ -1,4 +1,4 @@
-package wallet
+package client
 
 import "github.com/statechannels/go-nitro/types"
 

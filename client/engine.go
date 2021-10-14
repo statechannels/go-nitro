@@ -1,4 +1,4 @@
-package wallet
+package client
 
 // Engine implements the business logic of a Nitro wallet and coordinates the other components.
 type Engine interface {
