@@ -60,6 +60,19 @@ func (s DirectFundingObjectiveState) Crank() (SideEffects, WaitingFor, error) {
 	return []string{"Objective" + s.ChannelId.String() + "complete"}, WaitingForNothing, nil
 }
 
+func (s DirectFundingObjectiveState) Approve() (DirectFundingObjectiveState, error) {
+	updated := s.Clone()
+	// todo: consider case of s.Status == Rejected
+	updated.Status = Approved
+
+	return updated, nil
+}
+
+// todo: is this sufficient? Particularly: s has pointer members (*big.Int)
+func (s DirectFundingObjectiveState) Clone() DirectFundingObjectiveState {
+	return s
+}
+
 // mermaid diagram
 // key:
 // - effect!
