@@ -88,10 +88,10 @@ var exitTy, _ = abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []
 
 // rawAllocationsType is an alias to the type returned when using the github.com/ethereum/go-ethereum/accounts/abi Unpack method with allocationsTy
 type rawAllocationsType = []struct {
-	Destination    [32]uint8 `json:"destination"`
-	Amount         *big.Int  `json:"amount"`
-	AllocationType uint8     `json:"allocationType"`
-	Metadata       []uint8   `json:"metadata"`
+	Destination    [32]byte `json:"destination"`
+	Amount         *big.Int `json:"amount"`
+	AllocationType uint8    `json:"allocationType"`
+	Metadata       []uint8  `json:"metadata"`
 }
 
 // rawExitType is an alias to the type returned when using the github.com/ethereum/go-ethereum/accounts/abi Unpack method with exitTy
