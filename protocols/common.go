@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -50,6 +51,7 @@ type DirectFundingObjectiveState struct {
 	ChannelId types.Bytes32
 
 	ParticipantIndex map[types.Address]uint // the index for each participant
+	ExpectedStates   []state.State          // indexed by turn number
 
 	MyIndex uint // my participant index
 

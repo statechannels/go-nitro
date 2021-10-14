@@ -1,5 +1,7 @@
 package protocols
 
+import "github.com/statechannels/go-nitro/channel/state"
+
 // Pause points. By returning these, the imperative shell can detect a lack of progress after multiple cranks
 // This should be thought of less as finite state, and more as metadata about infinite state
 type WaitingFor = DirectFundingEnumerableState
@@ -64,6 +66,22 @@ func (s DirectFundingObjectiveState) Approve() (DirectFundingObjectiveState, err
 	updated := s.Clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = Approved
+
+	return updated, nil
+}
+
+// SignaturesReceived updates the objective's cache of which participants have signed which states
+func (s DirectFundingObjectiveState) SignaturesRecieved(signature state.Signature, turnNum int) (DirectFundingObjectiveState, error) {
+	updated := s.Clone()
+
+	signer, err := updated.ExpectedStates[turnNum].RecoverSigner(signature)
+	index, ok := updated.ParticipantIndex[signer]
+
+	if ok && err == nil {
+		if turnNum == 0 {
+			updated.PreFundSigned[index] = true
+		}
+	}
 
 	return updated, nil
 }
