@@ -60,7 +60,7 @@ func TestEqualExits(t *testing.T) {
 		t.Error("expected distinct pointers, but got idendical pointers")
 	}
 
-	if !e1.Equals(e2) {
+	if !e1.Equal(e2) {
 		t.Error("expected equal Exits, but got distinct Exits")
 	}
 
@@ -123,7 +123,7 @@ func TestEqualExits(t *testing.T) {
 	}
 
 	for _, v := range distinctExits {
-		if e1.Equals(v) {
+		if e1.Equal(v) {
 			t.Error("expected distinct Exits but found them equal")
 		}
 	}
@@ -171,7 +171,7 @@ func TestExitDecode(t *testing.T) {
 
 	var want = Exit{{Asset: common.HexToAddress("0x00"), Metadata: zeroBytes, Allocations: a}}
 
-	if !want.Equals(decodedExit) {
+	if !want.Equal(decodedExit) {
 		t.Error("decoded exit does not match expectation")
 	}
 }

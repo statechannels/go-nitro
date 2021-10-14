@@ -52,7 +52,7 @@ type SingleAssetExit struct {
 // Exit is an ordered list of SingleAssetExits
 type Exit []SingleAssetExit
 
-func (a Exit) Equals(b Exit) bool {
+func (a Exit) Equal(b Exit) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -60,7 +60,7 @@ func (a Exit) Equals(b Exit) bool {
 		saeB := b[i]
 		if !bytes.Equal(saeA.Metadata, saeB.Metadata) ||
 			saeA.Asset != saeB.Asset ||
-			!saeA.Allocations.Equals(saeB.Allocations) {
+			!saeA.Allocations.Equal(saeB.Allocations) {
 			return false
 		}
 	}
