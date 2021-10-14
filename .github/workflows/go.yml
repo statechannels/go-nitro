@@ -26,6 +26,9 @@ jobs:
       - name: Test
         run: go test -v ./...
 
+      - name: Tidy
+        run: go mod tidy
+
       - name: check git tree is clean
         # This will fail the job if any previous step (re)generated a file
         # that doesn't match what you checked in (or forgot to check in)
