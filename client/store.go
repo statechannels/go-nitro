@@ -5,14 +5,11 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
 type Store interface {
-	GetObjectiveById(protocols.ObjectiveId) protocols.Objective
-	GetObjectiveByChannelId(types.Bytes32) protocols.Objective
-	SetObjective(protocols.Objective) error
-	ApproveObjective(protocols.ObjectiveId)
-	RejectObjective(protocols.ObjectiveId)
+	GetObjectiveById(protocols.ObjectiveId) protocols.Objective // Read an existing objective
+	GetObjectiveByChannelId(types.Bytes32) protocols.Objective  // Get the objective that currently owns the channel with the supplied ChannelId
+	SetObjective(protocols.Objective) error                     // Write an objective
 
-	EvaluateProgress(protocols.ObjectiveId, protocols.WaitingFor) // sets waitingFor, checks to see if objective has stalled
-	GetWaitingFor(protocols.ObjectiveId) protocols.WaitingFor
-	SetWaitingFor(protocols.ObjectiveId, protocols.WaitingFor)
+	EvaluateProgress(protocols.ObjectiveId, protocols.WaitingFor) // checks to see if objective has stalled
 }
