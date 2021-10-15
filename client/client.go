@@ -22,14 +22,14 @@ type APIEvent struct {
 // ChainEvent is an internal representation of a blockchain event
 type ChainEvent struct {
 	ChannelId          types.Bytes32
-	Holdings           big.Int
+	Holdings           map[types.Address]big.Int // indexed by asset
 	AdjudicationStatus protocols.AdjudicationStatus
 }
 
 // Message is an internal representation of a message from another client
 type Message struct {
 	ObjectiveId protocols.ObjectiveId
-	Sigs        map[*state.State]state.Signature // mapping from state to signature TODO consider using a hash of the state
+	Sigs        map[types.Bytes32]state.Signature // mapping from state hash to signature
 }
 
 // Response is the return type that asynchronous API calls "resolve to". Such a call returns a go channel of type Response.
