@@ -40,6 +40,7 @@ type APIEvent struct {
 	ObjectiveToReject  ObjectiveId // then this
 	ObjectiveToApprove ObjectiveId // then this
 
+	Response chan Response
 }
 type ChainEvent struct {
 	ChannelId          types.Bytes32
@@ -51,6 +52,7 @@ type Message struct {
 	Sigs        map[*state.State]state.Signature // mapping from state to signature TODO consider using a hash of the state
 }
 
+type Response struct{}
 type Store interface {
 	GetObjectiveById(ObjectiveId) Protocol
 	GetObjectiveByChannelId(types.Bytes32) Protocol
@@ -64,9 +66,14 @@ type Store interface {
 }
 
 type Engine struct {
+	// inbound go channels
 	api   chan APIEvent
 	chain chan ChainEvent
 	inbox chan Message
+
+	// outbound go channels
+	client chan Response
+
 	Store Store
 }
 
@@ -138,9 +145,13 @@ type Client struct {
 func NewClient() Client {
 	c := Client{}
 
+	// create the engine's inbound channels
 	c.engine.api = make(chan APIEvent)
 	c.engine.chain = make(chan ChainEvent)
 	c.engine.inbox = make(chan Message)
+
+	// create the engine's outbound channel
+	c.engine.client = make(chan Response)
 
 	go c.engine.Run()
 
@@ -148,9 +159,9 @@ func NewClient() Client {
 }
 
 // CreateChannel creates a channel
-func (c *Client) CreateChannel() {
-	apiEvent := APIEvent{}
+func (c *Client) CreateChannel() chan Response {
+	apiEvent := APIEvent{Response: make(chan Response)}
 	c.engine.api <- apiEvent // The API call is "converted" into an internal event sent to the engine
-	// TODO create a channel to return to the consumer (so that the client can inform the app about the channel being created)
-	// This channel will likely need to be passed down to the engine
+	return apiEvent.Response
+
 }
