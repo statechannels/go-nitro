@@ -66,9 +66,13 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
 	case apiEvent.ObjectiveToSpawn != nil:
 		e.Store.SetObjective(apiEvent.ObjectiveToSpawn)
 	case apiEvent.ObjectiveToReject != ``:
-		e.Store.ApproveObjective(apiEvent.ObjectiveToReject)
+		protocol := e.Store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		updatedProtocol := protocol.Reject()
+		e.Store.SetObjective(updatedProtocol)
 	case apiEvent.ObjectiveToApprove != ``:
-		e.Store.ApproveObjective(apiEvent.ObjectiveToApprove)
+		protocol := e.Store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		updatedProtocol := protocol.Approve()
+		e.Store.SetObjective(updatedProtocol)
 	}
 }
 
