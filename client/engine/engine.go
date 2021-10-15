@@ -16,11 +16,7 @@ type Engine struct {
 	Chain chan ChainEvent
 	Inbox chan Message
 
-	// outbound go channels
-	client chan Response
-
 	store store.Store // A Store foe persisting important data
-	// TODO to truly make this private (e.g. to prevent the client accessing the store directly), we need to put engine in its own package
 }
 
 // APIEvent is an internal representation of an API call
