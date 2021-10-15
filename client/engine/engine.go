@@ -1,29 +1,62 @@
-package client
+package engine
 
 import (
+	"math/big"
+
+	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // Engine is the imperative part of the core business logic of a go-nitro Client
 type Engine struct {
 	// inbound go channels
-	api   chan APIEvent
-	chain chan ChainEvent
-	inbox chan Message
+	API   chan APIEvent
+	Chain chan ChainEvent
+	Inbox chan Message
 
 	// outbound go channels
 	client chan Response
 
-	store Store // A Store foe persisting important data
+	store store.Store // A Store foe persisting important data
 	// TODO to truly make this private (e.g. to prevent the client accessing the store directly), we need to put engine in its own package
 }
 
+// APIEvent is an internal representation of an API call
+type APIEvent struct {
+	ObjectiveToSpawn   protocols.Objective   // try this first
+	ObjectiveToReject  protocols.ObjectiveId // then this
+	ObjectiveToApprove protocols.ObjectiveId // then this
+
+	Response chan Response
+}
+
+// ChainEvent is an internal representation of a blockchain event
+type ChainEvent struct {
+	ChannelId          types.Bytes32
+	Holdings           map[types.Address]big.Int // indexed by asset
+	AdjudicationStatus protocols.AdjudicationStatus
+}
+
+// Message is an internal representation of a message from another client
+type Message struct {
+	ObjectiveId protocols.ObjectiveId
+	Sigs        map[types.Bytes32]state.Signature // mapping from state hash to signature
+}
+
+// Response is the return type that asynchronous API calls "resolve to". Such a call returns a go channel of type Response.
+type Response struct{}
+
 // NewEngine is the constructor for an Engine
-func NewEngine() Engine {
+func New() Engine {
 	e := Engine{}
-	e.api = make(chan APIEvent)
-	e.chain = make(chan ChainEvent)
-	e.inbox = make(chan Message)
+
+	// create the engine's inbound channels
+	e.API = make(chan APIEvent)
+	e.Chain = make(chan ChainEvent)
+	e.Inbox = make(chan Message)
+
 	return e
 }
 
@@ -31,13 +64,13 @@ func NewEngine() Engine {
 func (e *Engine) Run() {
 	for {
 		select {
-		case apiEvent := <-e.api:
+		case apiEvent := <-e.API:
 			e.handleAPIEvent(apiEvent)
 
-		case chainEvent := <-e.chain:
+		case chainEvent := <-e.Chain:
 			e.handleChainEvent(chainEvent)
 
-		case message := <-e.inbox:
+		case message := <-e.Inbox:
 			e.handleMessage(message)
 
 		}

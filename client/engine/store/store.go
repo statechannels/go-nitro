@@ -1,4 +1,4 @@
-package client
+package store
 
 import (
 	"github.com/statechannels/go-nitro/protocols"

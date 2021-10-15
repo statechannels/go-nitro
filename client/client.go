@@ -2,55 +2,18 @@
 package client // import "github.com/statechannels/go-nitro/protocols"
 
 import (
-	"math/big"
-
-	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/protocols"
-
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/client/engine"
 )
-
-// APIEvent is an internal representation of an API call
-type APIEvent struct {
-	ObjectiveToSpawn   protocols.Objective   // try this first
-	ObjectiveToReject  protocols.ObjectiveId // then this
-	ObjectiveToApprove protocols.ObjectiveId // then this
-
-	Response chan Response
-}
-
-// ChainEvent is an internal representation of a blockchain event
-type ChainEvent struct {
-	ChannelId          types.Bytes32
-	Holdings           map[types.Address]big.Int // indexed by asset
-	AdjudicationStatus protocols.AdjudicationStatus
-}
-
-// Message is an internal representation of a message from another client
-type Message struct {
-	ObjectiveId protocols.ObjectiveId
-	Sigs        map[types.Bytes32]state.Signature // mapping from state hash to signature
-}
-
-// Response is the return type that asynchronous API calls "resolve to". Such a call returns a go channel of type Response.
-type Response struct{}
 
 // Client provides the interface for the consuming application
 type Client struct {
-	engine Engine // The core business logic of the client
+	engine engine.Engine // The core business logic of the client
 }
 
-// NewClient is the constructor for a Client
-func NewClient() Client {
+// New is the constructor for a Client
+func New() Client {
 	c := Client{}
-
-	// create the engine's inbound channels
-	c.engine.api = make(chan APIEvent)
-	c.engine.chain = make(chan ChainEvent)
-	c.engine.inbox = make(chan Message)
-
-	// create the engine's outbound channel
-	c.engine.client = make(chan Response)
+	c.engine = engine.New()
 
 	// Start the engine in a go routine
 	go c.engine.Run()
@@ -61,12 +24,12 @@ func NewClient() Client {
 // Begin API
 
 // CreateChannel creates a channel
-func (c *Client) CreateChannel() chan Response {
+func (c *Client) CreateChannel() chan engine.Response {
 	// Convert the API call into an internal event.
 	// Pass in a fresh, dedicated go channel to communicate the response:
-	apiEvent := APIEvent{Response: make(chan Response)}
+	apiEvent := engine.APIEvent{Response: make(chan engine.Response)}
 	// Send the event to the engine
-	c.engine.api <- apiEvent
+	c.engine.API <- apiEvent
 	// Return the go channel where the response will be sent.
 	return apiEvent.Response
 }
