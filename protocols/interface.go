@@ -65,24 +65,31 @@ type Store interface {
 }
 
 type Engine struct {
+	api   chan APIEvent
+	chain chan ChainEvent
+	inbox chan Message
 	Store Store
 }
 
+func NewEngine() Engine {
+	e := Engine{}
+	e.api = make(chan APIEvent)
+	e.chain = make(chan ChainEvent)
+	e.inbox = make(chan Message)
+	return e
+}
+
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
-func (e *Engine) Run(
-	api chan APIEvent,
-	chain chan ChainEvent,
-	inbox chan Message,
-) {
+func (e *Engine) Run() {
 	for {
 		select {
-		case apiEvent := <-api:
+		case apiEvent := <-e.api:
 			e.handleAPIEvent(apiEvent)
 
-		case chainEvent := <-chain:
+		case chainEvent := <-e.chain:
 			e.handleChainEvent(chainEvent)
 
-		case message := <-inbox:
+		case message := <-e.inbox:
 			e.handleMessage(message)
 
 		}
@@ -122,4 +129,27 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
 
 func (e *Engine) executeSideEffects(SideEffects) {
 	// TODO
+}
+
+type Client struct {
+	engine Engine
+	api    chan APIEvent
+}
+
+func NewClient() Client {
+	c := Client{}
+
+	c.engine.api = make(chan APIEvent)
+	c.engine.chain = make(chan ChainEvent)
+	c.engine.inbox = make(chan Message)
+
+	go c.engine.Run()
+
+	return c
+}
+
+// CreateChannel creates a channel
+func (c *Client) CreateChannel() {
+	apiEvent := APIEvent{}
+	c.engine.api <- apiEvent // The API call is "converted" into an internal event sent to the engine
 }
