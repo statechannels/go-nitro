@@ -31,7 +31,6 @@ type Protocol interface {
 	Update(event ProtocolEvent) Protocol // returns an updated Protocol (a copy, no mutation allowed), does not declare effects
 
 	Crank() (SideEffects, WaitingFor, error) // does *not* accept an event, but *does* declare side effects, does *not* return an updated Protocol
-
 }
 
 // TODO these are placeholders for now (they are the fundamental events the wallet reacts to)
@@ -152,4 +151,6 @@ func NewClient() Client {
 func (c *Client) CreateChannel() {
 	apiEvent := APIEvent{}
 	c.engine.api <- apiEvent // The API call is "converted" into an internal event sent to the engine
+	// TODO create a channel to return to the consumer (so that the client can inform the app about the channel being created)
+	// This channel will likely need to be passed down to the engine
 }
