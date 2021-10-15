@@ -1,4 +1,5 @@
-package engine
+// Package engine contains the types and imperative code for the business logic of a go-nitro Client.
+package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
 	"math/big"

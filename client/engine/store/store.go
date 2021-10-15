@@ -1,4 +1,5 @@
-package store
+// Package Store contains the interface for a go-nitro store.
+package store // import "github.com/statechannels/go-nitro/client/engine/store"
 
 import (
 	"github.com/statechannels/go-nitro/protocols"

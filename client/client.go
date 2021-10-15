@@ -1,5 +1,5 @@
 // Package client contains imperative library code for running a go-nitro client inside another application
-package client // import "github.com/statechannels/go-nitro/protocols"
+package client // import "github.com/statechannels/go-nitro/client"
 
 import (
 	"github.com/statechannels/go-nitro/client/engine"
