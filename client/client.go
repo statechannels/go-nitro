@@ -10,11 +10,37 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-type Client struct {
-	engine Engine
-	api    chan APIEvent
+// APIEvent is an internal representation of an API call
+type APIEvent struct {
+	ObjectiveToSpawn   protocols.Objective   // try this first
+	ObjectiveToReject  protocols.ObjectiveId // then this
+	ObjectiveToApprove protocols.ObjectiveId // then this
+
+	Response chan Response
 }
 
+// ChainEvent is an internal representation of a blockchain event
+type ChainEvent struct {
+	ChannelId          types.Bytes32
+	Holdings           big.Int
+	AdjudicationStatus protocols.AdjudicationStatus
+}
+
+// Message is an internal representation of a message from another client
+type Message struct {
+	ObjectiveId protocols.ObjectiveId
+	Sigs        map[*state.State]state.Signature // mapping from state to signature TODO consider using a hash of the state
+}
+
+// Response is the return type that asynchronous API calls "resolve to". Such a call returns a go channel of type Response.
+type Response struct{}
+
+// Client provides the interface for the consuming application
+type Client struct {
+	engine Engine // The core business logic of the client
+}
+
+// NewClient is the constructor for a Client
 func NewClient() Client {
 	c := Client{}
 
@@ -26,34 +52,21 @@ func NewClient() Client {
 	// create the engine's outbound channel
 	c.engine.client = make(chan Response)
 
+	// Start the engine in a go routine
 	go c.engine.Run()
 
 	return c
 }
 
+// Begin API
+
 // CreateChannel creates a channel
 func (c *Client) CreateChannel() chan Response {
-	apiEvent := APIEvent{Response: make(chan Response)} // Make a dedicated go channel to communicate the response
-	c.engine.api <- apiEvent                            // The API call is "converted" into an internal event sent to the engine
+	// Convert the API call into an internal event.
+	// Pass in a fresh, dedicated go channel to communicate the response:
+	apiEvent := APIEvent{Response: make(chan Response)}
+	// Send the event to the engine
+	c.engine.api <- apiEvent
+	// Return the go channel where the response will be sent.
 	return apiEvent.Response
-
 }
-
-type APIEvent struct {
-	ObjectiveToSpawn   protocols.Objective   // try this first
-	ObjectiveToReject  protocols.ObjectiveId // then this
-	ObjectiveToApprove protocols.ObjectiveId // then this
-
-	Response chan Response
-}
-type ChainEvent struct {
-	ChannelId          types.Bytes32
-	Holdings           big.Int
-	AdjudicationStatus protocols.Status
-}
-type Message struct {
-	ObjectiveId protocols.ObjectiveId
-	Sigs        map[*state.State]state.Signature // mapping from state to signature TODO consider using a hash of the state
-}
-
-type Response struct{}
