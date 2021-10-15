@@ -1,6 +1,10 @@
 package protocols
 
-import "github.com/statechannels/go-nitro/channel/state"
+import (
+	"math/big"
+
+	"github.com/statechannels/go-nitro/channel/state"
+)
 
 // Pause points. By returning these, the imperative shell can detect a lack of progress after multiple cranks
 // This should be thought of less as finite state, and more as metadata about infinite state
@@ -68,6 +72,45 @@ func (s DirectFundingObjectiveState) Approve() (DirectFundingObjectiveState, err
 	updated.Status = Approved
 
 	return updated, nil
+}
+
+func InitializeDirectFundingObjectiveState(initialState state.State) (DirectFundingObjectiveState, error) {
+	var init DirectFundingObjectiveState
+	var err error
+
+	init.Status = Unapproved
+	init.ChannelId, err = initialState.ChannelId()
+	if err != nil {
+		return init, err
+	}
+	for i, v := range initialState.Participants {
+		init.ParticipantIndex[v] = uint(i)
+	}
+
+	init.ExpectedStates[0] = initialState
+
+	fixed := initialState.FixedPart()
+	init.ExpectedStates[1].ChainId = fixed.ChainId
+	init.ExpectedStates[1].Participants = fixed.Participants
+	init.ExpectedStates[1].ChannelNonce = fixed.ChannelNonce
+	init.ExpectedStates[1].AppDefinition = fixed.AppDefinition
+	init.ExpectedStates[1].ChallengeDuration = fixed.ChallengeDuration
+
+	init.ExpectedStates[1].Outcome = initialState.Outcome
+	init.ExpectedStates[1].AppData = initialState.AppData
+	init.ExpectedStates[1].IsFinal = false
+	init.ExpectedStates[1].TurnNum = big.NewInt(1)
+
+	// init.MyIndex						// requires myAddress
+
+	// init.MyDepositSafetyThreshold	// \
+	// init.MyDepositTarget				//  -> further fcn inputs?
+	// init.FullyFundedThreshold		// /
+
+	init.PostFundSigned = make([]bool, len(initialState.Participants))
+	init.OnChainHolding = big.NewInt(0)
+
+	return init, nil
 }
 
 // SignaturesReceived updates the objective's cache of which participants have signed which states
