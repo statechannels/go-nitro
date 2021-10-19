@@ -88,7 +88,7 @@ func (e *Engine) handleMessage(message Message) {
 	e.store.SetObjective(updatedProtocol)
 	sideEffects, waitingFor, _ := updatedProtocol.Crank() // TODO handle error
 	e.executeSideEffects(sideEffects)
-	e.store.EvaluateProgress(message.ObjectiveId, waitingFor)
+	e.store.UpdateProgressLastMadeAt(message.ObjectiveId, waitingFor)
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
@@ -105,7 +105,7 @@ func (e *Engine) handleChainEvent(chainEvent ChainEvent) {
 	e.store.SetObjective(updatedProtocol)
 	sideEffects, waitingFor, _ := updatedProtocol.Crank() // TODO handle error
 	e.executeSideEffects(sideEffects)
-	e.store.EvaluateProgress(objective.Id(), waitingFor)
+	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
 
 }
 

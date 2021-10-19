@@ -12,5 +12,5 @@ type Store interface {
 	GetObjectiveByChannelId(types.Bytes32) protocols.Objective  // Get the objective that currently owns the channel with the supplied ChannelId
 	SetObjective(protocols.Objective) error                     // Write an objective
 
-	EvaluateProgress(protocols.ObjectiveId, protocols.WaitingFor) // checks to see if objective has stalled
+	UpdateProgressLastMadeAt(protocols.ObjectiveId, protocols.WaitingFor) // updates progressLastMadeAt information for an objective
 }
