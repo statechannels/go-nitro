@@ -121,12 +121,12 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
 	if apiEvent.ObjectiveToReject != `` {
 		objective := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
 		updatedProtocol := objective.Reject()
-		e.store.SetObjective(updatedProtocol)
+		_ = e.store.SetObjective(updatedProtocol) // TODO handle error
 	}
 	if apiEvent.ObjectiveToApprove != `` {
 		objective := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
 		updatedProtocol := objective.Approve()
-		e.store.SetObjective(updatedProtocol)
+		_ = e.store.SetObjective(updatedProtocol) // TODO handle error
 	}
 }
 
