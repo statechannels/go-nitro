@@ -17,7 +17,7 @@ type Engine struct {
 	Chain chan ChainEvent
 	Inbox chan Message
 
-	store store.Store // A Store foe persisting important data
+	store store.Store // A Store for persisting important data
 }
 
 // APIEvent is an internal representation of an API call
