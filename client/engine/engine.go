@@ -85,7 +85,7 @@ func (e *Engine) handleMessage(message Message) {
 	objective := e.store.GetObjectiveById(message.ObjectiveId)
 	event := protocols.ObjectiveEvent{Sigs: message.Sigs}
 	updatedProtocol := objective.Update(event)
-	e.store.SetObjective(updatedProtocol)
+	_ = e.store.SetObjective(updatedProtocol)             // TODO handle error
 	sideEffects, waitingFor, _ := updatedProtocol.Crank() // TODO handle error
 	e.executeSideEffects(sideEffects)
 	e.store.UpdateProgressLastMadeAt(message.ObjectiveId, waitingFor)
@@ -102,7 +102,7 @@ func (e *Engine) handleChainEvent(chainEvent ChainEvent) {
 	objective := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
 	updatedProtocol := objective.Update(event)
-	e.store.SetObjective(updatedProtocol)
+	_ = e.store.SetObjective(updatedProtocol)             // TODO handle error
 	sideEffects, waitingFor, _ := updatedProtocol.Crank() // TODO handle error
 	e.executeSideEffects(sideEffects)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
@@ -116,7 +116,7 @@ func (e *Engine) handleChainEvent(chainEvent ChainEvent) {
 // Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
 	if apiEvent.ObjectiveToSpawn != nil {
-		e.store.SetObjective(apiEvent.ObjectiveToSpawn)
+		_ = e.store.SetObjective(apiEvent.ObjectiveToSpawn) // TODO handle error
 	}
 	if apiEvent.ObjectiveToReject != `` {
 		objective := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
