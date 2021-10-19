@@ -17,7 +17,8 @@ type WaitingFor string
 // Everything that is stored on chain, other than holdings.
 type AdjudicationStatus struct {
 	TurnNumRecord uint
-	// TODO add other fields
+	// TODO This struct is a placeholder for the time being, until we add a chain-service
+	// TODO eventually this struct will contain the other fields stored in (or committed to by) the adjudicator
 }
 
 // ObjectiveEvent holds information used to update an Objective. Some fields may be nil.
