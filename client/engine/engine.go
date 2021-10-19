@@ -22,9 +22,9 @@ type Engine struct {
 
 // APIEvent is an internal representation of an API call
 type APIEvent struct {
-	ObjectiveToSpawn   protocols.Objective   // try this first
-	ObjectiveToReject  protocols.ObjectiveId // then this
-	ObjectiveToApprove protocols.ObjectiveId // then this
+	ObjectiveToSpawn   protocols.Objective
+	ObjectiveToReject  protocols.ObjectiveId
+	ObjectiveToApprove protocols.ObjectiveId
 
 	Response chan Response
 }
@@ -110,19 +110,20 @@ func (e *Engine) handleChainEvent(chainEvent ChainEvent) {
 }
 
 // handleAPIEvent handles an API Event (triggered by an API call)
-// It will perform one of the following, in priority order:
-// Spawn a new, approved objective
-// Reject an existing objective
-// Approve an existing objective
+// It will attempt to perform all of the following:
+// Spawn a new, approved objective (if not null)
+// Reject an existing objective (if not null)
+// Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
-	switch {
-	case apiEvent.ObjectiveToSpawn != nil:
+	if apiEvent.ObjectiveToSpawn != nil {
 		e.store.SetObjective(apiEvent.ObjectiveToSpawn)
-	case apiEvent.ObjectiveToReject != ``:
+	}
+	if apiEvent.ObjectiveToReject != `` {
 		objective := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
 		updatedProtocol := objective.Reject()
 		e.store.SetObjective(updatedProtocol)
-	case apiEvent.ObjectiveToApprove != ``:
+	}
+	if apiEvent.ObjectiveToApprove != `` {
 		objective := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
 		updatedProtocol := objective.Approve()
 		e.store.SetObjective(updatedProtocol)
