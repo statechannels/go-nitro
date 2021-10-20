@@ -8,7 +8,7 @@ import (
 )
 
 // SideEffects is an list of effects to be executed by an imperative shell
-type SideEffects []interface{}
+type SideEffects []string
 
 // WaitingFor is an enumerable "pause-point" computed from an Objective. It describes how the objective is blocked on actions by third parties (i.e. co-participants or the blockchain).
 type WaitingFor string

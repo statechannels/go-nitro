@@ -10,18 +10,15 @@ import (
 
 // A linear state machine with enumerated states.
 // PreFundIncomplete => NotYetMyTurnToFund => FundingIncomplete => PostFundIncomplete => Finished
-type DirectFundingEnumerableState int
+type DirectFundingEnumerableState string
 
 const (
-	WaitingForCompletePrefund DirectFundingEnumerableState = iota // 0
-	WaitingForMyTurnToFund
-	WaitingForCompleteFunding
-	WaitingForCompletePostFund
-	WaitingForNothing // Finished
+	WaitingForCompletePrefund  = "WaitingForCompletePrefund"
+	WaitingForMyTurnToFund     = "WaitingForMyTurnToFund"
+	WaitingForCompleteFunding  = "WaitingForCompleteFunding"
+	WaitingForCompletePostFund = "WaitingForCompletePostFund"
+	WaitingForNothing          = "WaitingForNothing"
 )
-
-// Effects to be declared. For now these are just strings. In future they may be more complex and type safe
-type SideEffects []string
 
 func SignPreFundEffect(cId types.Bytes32) string {
 	return "sign Prefundsetup for" + cId.String()

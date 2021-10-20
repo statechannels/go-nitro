@@ -6,10 +6,6 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
-// Pause points. By returning these, the imperative shell can detect a lack of progress after multiple cranks
-// This should be thought of less as finite state, and more as metadata about infinite state
-type WaitingFor = DirectFundingEnumerableState
-
 // TODO this protocol does not specify how events are handled at all
 // (it assumes that events are handled by pushing information into the store)
 
