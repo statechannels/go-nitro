@@ -84,9 +84,8 @@ func (e *Engine) Run() {
 func (e *Engine) handleMessage(message Message) {
 	objective := e.store.GetObjectiveById(message.ObjectiveId)
 	event := protocols.ObjectiveEvent{Sigs: message.Sigs}
-	updatedProtocol := objective.Update(event)
-	_ = e.store.SetObjective(updatedProtocol)             // TODO handle error
-	sideEffects, waitingFor, _ := updatedProtocol.Crank() // TODO handle error
+	updatedProtocol, sideEffects, waitingFor, _ := objective.Update(event).Crank() // TODO handle error
+	_ = e.store.SetObjective(updatedProtocol)                                      // TODO handle error
 	e.executeSideEffects(sideEffects)
 	e.store.UpdateProgressLastMadeAt(message.ObjectiveId, waitingFor)
 }
@@ -101,9 +100,8 @@ func (e *Engine) handleMessage(message Message) {
 func (e *Engine) handleChainEvent(chainEvent ChainEvent) {
 	objective := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
-	updatedProtocol := objective.Update(event)
-	_ = e.store.SetObjective(updatedProtocol)             // TODO handle error
-	sideEffects, waitingFor, _ := updatedProtocol.Crank() // TODO handle error
+	updatedProtocol, sideEffects, waitingFor, _ := objective.Update(event).Crank() // TODO handle error
+	_ = e.store.SetObjective(updatedProtocol)                                      // TODO handle error
 	e.executeSideEffects(sideEffects)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
 
