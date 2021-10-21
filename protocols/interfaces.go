@@ -7,8 +7,25 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// SideEffects is an list of effects to be executed by an imperative shell
-type SideEffects []string
+// Message is an object to be sent across the wire. It can contain a proposal and signed state hashes, and is addressed to a counterparty.
+type Message struct {
+	To          []byte
+	ObjectiveId ObjectiveId
+	Sigs        map[types.Bytes32]state.Signature // mapping from state hash to signature
+	Proposal    Objective
+}
+
+// Transaction is an object to be sent to a blockchain provider.
+type Transaction struct {
+	To   types.Address
+	Data []byte
+}
+
+// SideEffects are effects to be executed by an imperative shell
+type SideEffects struct {
+	MessagesToSend       []Message
+	TransactionsToSubmit []Transaction
+}
 
 // WaitingFor is an enumerable "pause-point" computed from an Objective. It describes how the objective is blocked on actions by third parties (i.e. co-participants or the blockchain).
 type WaitingFor string
@@ -38,13 +55,12 @@ type ObjectiveEvent struct {
 // 	* The metadata will eventually indicate that the Objective has stalled OR the Objective has completed successfully
 type Objective interface {
 	Id() ObjectiveId
-	Initialize(initialState state.State) Objective // returns the initial Objective, does not declare effects
 
 	Approve() Objective                    // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Reject() Objective                     // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Update(event ObjectiveEvent) Objective // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 
-	Crank() (SideEffects, WaitingFor, error) // does *not* accept an event, but *does* declare side effects, does *not* return an updated Protocol
+	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
 }
 
 // ObjectiveId is a unique identifier for an Objective.
