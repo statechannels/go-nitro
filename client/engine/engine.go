@@ -11,12 +11,14 @@ import (
 // Engine is the imperative part of the core business logic of a go-nitro Client
 type Engine struct {
 	// inbound go channels
-	FromAPI   chan APIEvent
+	FromAPI   chan APIEvent // This one is exported so that the Client can send API calls
 	fromChain chan chain.Event
 	fromMsg   chan protocols.Message
 
-	msg   msg.Msg     // A messaging service to communicate with peers
-	chain chain.Chain // A chain service to submit transactions to and listen for events from the blockchain
+	// outbound go channels
+	toMsg   chan protocols.Message
+	toChain chan protocols.Transaction
+
 	store store.Store // A Store for persisting and restoring important data
 }
 
@@ -33,17 +35,17 @@ type APIEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(msg msg.Msg) Engine {
+func New(msg msg.Msg, chain chain.Chain) Engine {
 	e := Engine{}
 
-	// bind the engine's services
-	e.msg = msg // The messaging service is an injected dependency
-	// TODO e.chain = chain.New() // The chain service should be constructed
-
-	// bind the engine's inbound channels
+	// bind the engine's inbound chans
 	e.FromAPI = make(chan APIEvent)
-	e.fromChain = e.chain.GetRecieveChan()
-	e.fromMsg = e.msg.GetRecieveChan()
+	e.fromChain = chain.GetRecieveChan()
+	e.fromMsg = msg.GetRecieveChan()
+
+	// bing the engine's outbound chans
+	e.toChain = chain.GetSendChan()
+	e.toMsg = msg.GetSendChan()
 
 	return e
 }
@@ -125,9 +127,9 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
 // executeSideEffects executes the SideEffects declared by cranking an Objective
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	for _, message := range sideEffects.MessagesToSend {
-		e.msg.Send(message)
+		e.toMsg <- message
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
-		e.chain.Submit(tx)
+		e.toChain <- tx
 	}
 }
