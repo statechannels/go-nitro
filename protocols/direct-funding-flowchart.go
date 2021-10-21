@@ -62,12 +62,30 @@ func (s DirectFundingObjectiveState) Crank() (SideEffects, WaitingFor, error) {
 	return []string{"Objective" + s.ChannelId.String() + "complete"}, WaitingForNothing, nil
 }
 
-func (s DirectFundingObjectiveState) Approve() (DirectFundingObjectiveState, error) {
+func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) Objective {
+	return s
+}
+
+func (s DirectFundingObjectiveState) Reject() Objective {
+	updated := s.Clone()
+	updated.Status = Rejected
+	return updated
+}
+
+func (s DirectFundingObjectiveState) Approve() Objective {
 	updated := s.Clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = Approved
 
-	return updated, nil
+	return updated
+}
+
+func (s DirectFundingObjectiveState) Id() ObjectiveId {
+	return ObjectiveId("DirectFunding-" + s.ChannelId.String())
+}
+
+func (s DirectFundingObjectiveState) Initialize(initialState state.State) Objective {
+	return s
 }
 
 func InitializeDirectFundingObjectiveState(initialState state.State) (DirectFundingObjectiveState, error) {
@@ -107,6 +125,12 @@ func InitializeDirectFundingObjectiveState(initialState state.State) (DirectFund
 	init.OnChainHolding = big.NewInt(0)
 
 	return init, nil
+}
+
+func (s DirectFundingObjectiveState) FundingUpdated(amount big.Int, finalized bool) (DirectFundingObjectiveState, error) {
+	updated := s.Clone()
+	updated.OnChainHolding.Add(updated.OnChainHolding, &amount)
+	return updated, nil
 }
 
 // SignatureReceived updates the objective's cache of which participants have signed which states
