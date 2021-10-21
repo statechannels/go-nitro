@@ -5,6 +5,8 @@ import (
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/client/engine/chain"
+	"github.com/statechannels/go-nitro/client/engine/msg"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -17,7 +19,9 @@ type Engine struct {
 	Chain chan ChainEvent
 	Inbox chan Message
 
-	store store.Store // A Store for persisting important data
+	msg   msg.Msg     // A messaging service to communicate with peers
+	chain chain.Chain // A chain service to submit transactions to and listen for events from the blockchain
+	store store.Store // A Store for persisting and restoring important data
 }
 
 // APIEvent is an internal representation of an API call
@@ -132,6 +136,11 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
 }
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective
-func (e *Engine) executeSideEffects(protocols.SideEffects) {
-	// TODO
+func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
+	for _, message := range sideEffects.MessagesToSend {
+		e.msg.Send(message)
+	}
+	for _, tx := range sideEffects.TransactionsToSubmit {
+		e.chain.Submit(tx)
+	}
 }
