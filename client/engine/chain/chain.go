@@ -17,5 +17,6 @@ type Event struct {
 
 type Chain interface {
 	GetRecieveChan() chan Event
+	GetSendChan() chan protocols.Transaction
 	Submit(tx protocols.Transaction)
 }

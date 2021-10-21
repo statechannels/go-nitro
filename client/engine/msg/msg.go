@@ -5,5 +5,6 @@ import "github.com/statechannels/go-nitro/protocols"
 
 type Msg interface {
 	GetRecieveChan() chan protocols.Message
+	GetSendChan() chan protocols.Message
 	Send(message protocols.Message)
 }
