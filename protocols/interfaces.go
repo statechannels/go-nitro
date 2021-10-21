@@ -38,7 +38,6 @@ type ObjectiveEvent struct {
 // 	* The metadata will eventually indicate that the Objective has stalled OR the Objective has completed successfully
 type Objective interface {
 	Id() ObjectiveId
-	Initialize(initialState state.State) Objective // returns the initial Objective, does not declare effects
 
 	Approve() Objective                    // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Reject() Objective                     // returns an updated Objective (a copy, no mutation allowed), does not declare effects
