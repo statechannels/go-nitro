@@ -49,3 +49,6 @@ func TestNew(t *testing.T) {
 	}
 	// TODO check all of the other fields
 }
+
+// TODO testUpdate
+// TODO testCrank
