@@ -7,8 +7,25 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// SideEffects is an list of effects to be executed by an imperative shell
-type SideEffects []interface{}
+// Message is an object to be sent across the wire. It can contain a proposal and signed state hashes, and is addressed to a counterparty.
+type Message struct {
+	To          []byte
+	ObjectiveId ObjectiveId
+	Sigs        map[types.Bytes32]state.Signature // mapping from state hash to signature
+	Proposal    Objective
+}
+
+// Transaction is an object to be sent to a blockchain provider.
+type Transaction struct {
+	To   types.Address
+	Data []byte
+}
+
+// SideEffects are effects to be executed by an imperative shell
+type SideEffects struct {
+	MessagesToSend       []Message
+	TransactionsToSubmit []Transaction
+}
 
 // WaitingFor is an enumerable "pause-point" computed from an Objective. It describes how the objective is blocked on actions by third parties (i.e. co-participants or the blockchain).
 type WaitingFor string
