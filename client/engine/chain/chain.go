@@ -1,4 +1,5 @@
-package chain
+// Package chain is a chain service responsible for submitting blockchain transactions and relaying blockchain events
+package chain // import "github.com/statechannels/go-nitro/client/chain"
 
 import (
 	"math/big"
