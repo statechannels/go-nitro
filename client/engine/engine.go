@@ -2,8 +2,8 @@
 package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
-	"github.com/statechannels/go-nitro/client/engine/chain"
-	"github.com/statechannels/go-nitro/client/engine/msg"
+	"github.com/statechannels/go-nitro/client/engine/chainservice"
+	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
 )
@@ -12,7 +12,7 @@ import (
 type Engine struct {
 	// inbound go channels
 	FromAPI   chan APIEvent // This one is exported so that the Client can send API calls
-	fromChain chan chain.Event
+	fromChain chan chainservice.Event
 	fromMsg   chan protocols.Message
 
 	// outbound go channels
@@ -35,7 +35,7 @@ type APIEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(msg msg.Msg, chain chain.Chain) Engine {
+func New(msg messageservice.MessageService, chain chainservice.ChainService) Engine {
 	e := Engine{}
 
 	// bind the engine's inbound chans
@@ -43,7 +43,7 @@ func New(msg msg.Msg, chain chain.Chain) Engine {
 	e.fromChain = chain.GetRecieveChan()
 	e.fromMsg = msg.GetRecieveChan()
 
-	// bing the engine's outbound chans
+	// bind the engine's outbound chans
 	e.toChain = chain.GetSendChan()
 	e.toMsg = msg.GetSendChan()
 
@@ -90,7 +90,7 @@ func (e *Engine) handleMessage(message protocols.Message) {
 // commits the updated objective to the store,
 // executes the side effects and
 // evaluates objecive progress.
-func (e *Engine) handleChainEvent(chainEvent chain.Event) {
+func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
 	objective := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
 	updatedProtocol, sideEffects, waitingFor, _ := objective.Update(event).Crank() // TODO handle error

@@ -1,5 +1,5 @@
-// Package chain is a chain service responsible for submitting blockchain transactions and relaying blockchain events
-package chain // import "github.com/statechannels/go-nitro/client/chain"
+// Package chainservice is a chain service responsible for submitting blockchain transactions and relaying blockchain events
+package chainservice // import "github.com/statechannels/go-nitro/client/chainservice"
 
 import (
 	"math/big"
@@ -15,7 +15,7 @@ type Event struct {
 	AdjudicationStatus protocols.AdjudicationStatus
 }
 
-type Chain interface {
+type ChainService interface {
 	GetRecieveChan() chan Event
 	GetSendChan() chan protocols.Transaction
 	Submit(tx protocols.Transaction)
