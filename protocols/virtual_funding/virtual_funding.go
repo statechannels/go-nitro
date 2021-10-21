@@ -2,6 +2,7 @@ package virtual_funding
 
 import (
 	"encoding/json"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -75,8 +76,9 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) Objective {
 	return newObjective
 }
 
-func (*Objective) Crank() (Objective, SideEffects, WaitingFor, error) {
+func (o *Objective) Crank() (Objective, protocols.SideEffects, WaitingFor, error) {
 
+	return *o, protocols.SideEffects{}, 0, nil
 }
 
 type ConstructorParams struct {
@@ -89,7 +91,7 @@ type ConstructorParams struct {
 	mySigningAddress     types.Address
 	theirSigningAddress  types.Address
 	hubSigningAddress    types.Address // TODO generalize to >1 hub
-	ChallengeDuration    *types.Uint256
+	challengeDuration    *types.Uint256
 }
 
 // New makes a new virtual_funding Objective
@@ -98,10 +100,11 @@ func New(params ConstructorParams) (Objective, error) {
 	o.jointPreFund = state.State{
 		ChainId:           params.chainId,
 		Participants:      []types.Address{params.mySigningAddress, params.theirSigningAddress, params.hubSigningAddress},
+		ChannelNonce:      big.NewInt(0), // TODO need to get this from a nonce manager
 		AppDefinition:     params.appDefinition,
 		AppData:           params.appData,
 		Outcome:           params.outcome,
-		ChallengeDuration: params.ChallengeDuration,
+		ChallengeDuration: params.challengeDuration,
 		TurnNum:           state.PrefundTurnNum,
 		IsFinal:           false,
 	}
@@ -111,5 +114,6 @@ func New(params ConstructorParams) (Objective, error) {
 	if err != nil {
 		return Objective{}, err
 	}
+	o.status = `Approved`
 	return o, nil
 }
