@@ -9,9 +9,10 @@ import (
 
 // Message is an object to be sent across the wire. It can contain a proposal and signed state hashes, and is addressed to a counterparty.
 type Message struct {
-	To       []byte
-	Sigs     map[types.Bytes32]state.Signature // mapping from state hash to signature
-	Proposal Objective
+	To          []byte
+	ObjectiveId ObjectiveId
+	Sigs        map[types.Bytes32]state.Signature // mapping from state hash to signature
+	Proposal    Objective
 }
 
 // Transaction is an object to be sent to a blockchain provider.
