@@ -61,7 +61,7 @@ type Objective interface {
 	Reject() Objective                     // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Update(event ObjectiveEvent) Objective // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 
-	Crank() (Objective, SideEffects, WaitingFor, error) // does *not* accept an event, but *does* declare side effects, and *does* return an updated Objective
+	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
 }
 
 // ObjectiveId is a unique identifier for an Objective.

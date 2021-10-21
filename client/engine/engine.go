@@ -70,6 +70,7 @@ func (e *Engine) Run() {
 // handleMessage handles a Message from a peer go-nitro Wallet.
 // It
 // reads an objective from the store,
+// gets a pointer to a channel secret key from the store,
 // generates an updated objective and declaration of side effects,
 // commits the updated objective to the store,
 // executes the side effects and
@@ -77,8 +78,9 @@ func (e *Engine) Run() {
 func (e *Engine) handleMessage(message protocols.Message) {
 	objective := e.store.GetObjectiveById(message.ObjectiveId)
 	event := protocols.ObjectiveEvent{Sigs: message.Sigs}
-	updatedProtocol, sideEffects, waitingFor, _ := objective.Update(event).Crank() // TODO handle error
-	_ = e.store.SetObjective(updatedProtocol)                                      // TODO handle error
+	secretKey := e.store.GetChannelSecretKey()
+	updatedProtocol, sideEffects, waitingFor, _ := objective.Update(event).Crank(secretKey) // TODO handle error
+	_ = e.store.SetObjective(updatedProtocol)                                               // TODO handle error
 	e.executeSideEffects(sideEffects)
 	e.store.UpdateProgressLastMadeAt(message.ObjectiveId, waitingFor)
 }
@@ -86,6 +88,7 @@ func (e *Engine) handleMessage(message protocols.Message) {
 // handleChainEvent handles a Chain Event from the blockchain.
 // It
 // reads an objective from the store,
+// gets a pointer to a channel secret key from the store,
 // generates an updated objective and declaration of side effects,
 // commits the updated objective to the store,
 // executes the side effects and
@@ -93,11 +96,11 @@ func (e *Engine) handleMessage(message protocols.Message) {
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
 	objective := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
-	updatedProtocol, sideEffects, waitingFor, _ := objective.Update(event).Crank() // TODO handle error
-	_ = e.store.SetObjective(updatedProtocol)                                      // TODO handle error
+	secretKey := e.store.GetChannelSecretKey()
+	updatedProtocol, sideEffects, waitingFor, _ := objective.Update(event).Crank(secretKey) // TODO handle error
+	_ = e.store.SetObjective(updatedProtocol)                                               // TODO handle error
 	e.executeSideEffects(sideEffects)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
-
 }
 
 // handleAPIEvent handles an API Event (triggered by an API call)
