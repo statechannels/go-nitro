@@ -1,6 +1,8 @@
 package state
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -40,6 +42,13 @@ type (
 		EncodedOutcome types.Bytes
 	}
 )
+
+func (s *State) Clone() State {
+	j, _ := json.Marshal(s)
+	var newState State
+	_ = json.Unmarshal(j, &newState)
+	return newState
+}
 
 // FixedPart returns the FixedPart of the State
 func (s State) FixedPart() FixedPart {
@@ -164,4 +173,15 @@ func (s State) RecoverSigner(sig Signature) (types.Address, error) {
 		return types.Address{}, error
 	}
 	return RecoverEthereumMessageSigner(stateHash[:], sig)
+}
+
+// IndexOf returns the first index of the supplied slice of addresses which is equal to the supplies suspect address, and -1 if it is not found.
+func IndexOf(addresses []types.Address, suspect types.Address) int {
+	for i := range addresses {
+		if bytes.Equal(suspect[:], addresses[i][:]) {
+			return i
+
+		}
+	}
+	return -1 // not found
 }
