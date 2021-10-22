@@ -2,6 +2,7 @@
 package store // import "github.com/statechannels/go-nitro/client/engine/store"
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -16,3 +17,22 @@ type Store interface {
 
 	UpdateProgressLastMadeAt(protocols.ObjectiveId, protocols.WaitingFor) // updates progressLastMadeAt information for an objective
 }
+
+type TestStore struct{}
+
+func (TestStore) GetChannelSecretKey() *[]byte {
+	k := common.Hex2Bytes(`187bb12e927c1652377405f81d93ce948a593f7d66cfba383ee761858b05921a`)
+	return &k
+}
+
+func (TestStore) GetObjectiveById(protocols.ObjectiveId) protocols.Objective {
+	return protocols.TestObjective{}
+}
+func (TestStore) GetObjectiveByChannelId(types.Bytes32) protocols.Objective {
+	return protocols.TestObjective{}
+}
+
+func (TestStore) SetObjective(protocols.Objective) error {
+	return nil
+}
+func (TestStore) UpdateProgressLastMadeAt(protocols.ObjectiveId, protocols.WaitingFor) {}
