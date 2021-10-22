@@ -12,20 +12,21 @@ import (
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
-func (s DirectFundingObjectiveState) Crank() (SideEffects, WaitingFor, error) {
+func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) {
 
 	// Input validation
 	if s.Status != Approved {
-		return NoSideEffects, WaitingForNothing, ErrNotApproved
+		return s, NoSideEffects, WaitingForNothing, ErrNotApproved
 	}
 
 	// Prefunding
 	if !s.PreFundSigned[s.MyIndex] {
-		return []string{SignPreFundEffect(s.ChannelId)}, WaitingForCompletePrefund, nil
+		// todo: {SignPreFundEffect(s.ChannelId)} as SideEffects{}
+		return s, NoSideEffects, WaitingForCompletePrefund, nil
 	}
 
 	if !s.PrefundComplete() {
-		return NoSideEffects, WaitingForCompletePrefund, nil
+		return s, NoSideEffects, WaitingForCompletePrefund, nil
 	}
 
 	// Funding
@@ -35,32 +36,35 @@ func (s DirectFundingObjectiveState) Crank() (SideEffects, WaitingFor, error) {
 	safeToDeposit := s.SafeToDeposit(s.OnChainHolding)
 
 	if !fundingComplete && !safeToDeposit {
-		return []string{}, WaitingForMyTurnToFund, nil
+		return s, NoSideEffects, WaitingForMyTurnToFund, nil
 	}
 
 	if !fundingComplete && gt(amountToDeposit, zero) && safeToDeposit {
 		var effects = make([]string, 0) // TODO loop over assets
 		effects = append(effects, FundOnChainEffect(s.ChannelId, `eth`, amountToDeposit))
 		if len(effects) > 0 {
-			return effects, WaitingForCompleteFunding, nil
+			// todo: effects as SideEffects{}
+			return s, NoSideEffects, WaitingForCompleteFunding, nil
 		}
 	}
 
 	if !fundingComplete {
-		return NoSideEffects, WaitingForCompleteFunding, nil
+		return s, NoSideEffects, WaitingForCompleteFunding, nil
 	}
 
 	// Postfunding
 	if !s.PostFundSigned[s.MyIndex] {
-		return []string{SignPostFundEffect(s.ChannelId)}, WaitingForCompletePostFund, nil
+		// todo: []string{SignPostFundEffect(s.ChannelId)} as SideEffects{}
+		return s, NoSideEffects, WaitingForCompletePostFund, nil
 	}
 
 	if !s.PostfundComplete() {
-		return NoSideEffects, WaitingForCompletePostFund, nil
+		return s, NoSideEffects, WaitingForCompletePostFund, nil
 	}
 
 	// Completion
-	return []string{"Objective" + s.ChannelId.String() + "complete"}, WaitingForNothing, nil
+	// todo: []string{"Objective" + s.ChannelId.String() + "complete"} as SideEffects{}
+	return s, NoSideEffects, WaitingForNothing, nil
 }
 
 func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) Objective {
