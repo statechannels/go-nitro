@@ -35,8 +35,11 @@ type APIEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(msg messageservice.MessageService, chain chainservice.ChainService) Engine {
+func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store) Engine {
 	e := Engine{}
+
+	// bind the store
+	e.store = store
 
 	// bind the engine's inbound chans
 	e.FromAPI = make(chan APIEvent)
