@@ -53,14 +53,15 @@ type ObjectiveEvent struct {
 // 	* It is updated with external information arriving to the client
 // 	* After each update, it is cranked. This generates side effects and other metadata
 // 	* The metadata will eventually indicate that the Objective has stalled OR the Objective has completed successfully
+// NOTE the methods are not pure, since we expect to operate on a copy of the Objective.
 type Objective interface {
 	Id() ObjectiveId
 
-	Approve() Objective                    // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Reject() Objective                     // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Update(event ObjectiveEvent) Objective // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Approve()                    // updates the Objective (mutates), does not declare effects
+	Reject()                     // updates the Objective (mutates), does not declare effects
+	Update(event ObjectiveEvent) // updates the Objective (mutates), does not declare effects
 
-	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
+	Crank(secretKey *[]byte) (SideEffects, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; updates the Objective (mutates)
 }
 
 // ObjectiveId is a unique identifier for an Objective.

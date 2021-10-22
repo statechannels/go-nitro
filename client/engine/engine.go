@@ -86,10 +86,11 @@ func (e *Engine) handleMessage(message Message) {
 	objective := e.store.GetObjectiveById(message.ObjectiveId)
 	event := protocols.ObjectiveEvent{Sigs: message.Sigs}
 	secretKey := e.store.GetChannelSecretKey()
-	updatedProtocol, sideEffects, waitingFor, _ := objective.Update(event).Crank(secretKey) // TODO handle error
-	_ = e.store.SetObjective(updatedProtocol)                                               // TODO handle error
+	objective.Update(event)
+	sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
+	_ = e.store.SetObjective(objective)                      // TODO handle error
 	e.executeSideEffects(sideEffects)
-	e.store.UpdateProgressLastMadeAt(message.ObjectiveId, waitingFor)
+	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
@@ -104,8 +105,9 @@ func (e *Engine) handleChainEvent(chainEvent ChainEvent) {
 	objective := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
 	secretKey := e.store.GetChannelSecretKey()
-	updatedProtocol, sideEffects, waitingFor, _ := objective.Update(event).Crank(secretKey) // TODO handle error
-	_ = e.store.SetObjective(updatedProtocol)                                               // TODO handle error
+	objective.Update(event)
+	sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
+	_ = e.store.SetObjective(objective)                      // TODO handle error
 	e.executeSideEffects(sideEffects)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
 }
@@ -121,13 +123,13 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
 	}
 	if apiEvent.ObjectiveToReject != `` {
 		objective := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
-		updatedProtocol := objective.Reject()
-		_ = e.store.SetObjective(updatedProtocol) // TODO handle error
+		objective.Reject()
+		_ = e.store.SetObjective(objective) // TODO handle error
 	}
 	if apiEvent.ObjectiveToApprove != `` {
 		objective := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
-		updatedProtocol := objective.Approve()
-		_ = e.store.SetObjective(updatedProtocol) // TODO handle error
+		objective.Approve()
+		_ = e.store.SetObjective(objective) // TODO handle error
 	}
 }
 
