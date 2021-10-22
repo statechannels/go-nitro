@@ -8,12 +8,3 @@ type MessageService interface {
 	GetSendChan() chan protocols.Message
 	Send(message protocols.Message)
 }
-
-var recieveChan chan protocols.Message = make(chan protocols.Message)
-var sendChan chan protocols.Message = make(chan protocols.Message)
-
-type TestMessageService struct{}
-
-func (TestMessageService) GetRecieveChan() chan protocols.Message { return recieveChan }
-func (TestMessageService) GetSendChan() chan protocols.Message    { return sendChan }
-func (TestMessageService) Send(message protocols.Message)         {}
