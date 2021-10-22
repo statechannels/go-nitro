@@ -10,6 +10,7 @@ import (
 
 // Engine is the imperative part of the core business logic of a go-nitro Client
 type Engine struct {
+
 	// inbound go channels
 	FromAPI   chan APIEvent // This one is exported so that the Client can send API calls
 	fromChain chan chainservice.Event
@@ -58,13 +59,13 @@ func (e *Engine) Run() {
 	for {
 		select {
 		case apiEvent := <-e.FromAPI:
-			e.handleAPIEvent(apiEvent)
+			go e.handleAPIEvent(apiEvent)
 
 		case chainEvent := <-e.fromChain:
-			e.handleChainEvent(chainEvent)
+			go e.handleChainEvent(chainEvent)
 
 		case message := <-e.fromMsg:
-			e.handleMessage(message)
+			go e.handleMessage(message)
 
 		}
 	}
