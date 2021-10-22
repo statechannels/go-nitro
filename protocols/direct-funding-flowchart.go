@@ -23,6 +23,7 @@ func (s DirectFundingObjectiveState) Crank() (SideEffects, WaitingFor, error) {
 	if !s.PreFundSigned[s.MyIndex] {
 		return []string{SignPreFundEffect(s.ChannelId)}, WaitingForCompletePrefund, nil
 	}
+
 	if !s.PrefundComplete() {
 		return NoSideEffects, WaitingForCompletePrefund, nil
 	}
