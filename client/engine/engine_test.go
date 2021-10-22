@@ -20,7 +20,7 @@ func TestRun(t *testing.T) {
 		ObjectiveId: `test`,
 	}
 
-	for j := 1; j <= 10000; j++ {
+	for j := 1; j <= 100_000; j++ {
 		e.fromMsg <- msg
 	}
 
