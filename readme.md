@@ -67,3 +67,7 @@ To remove unused dependencies (CI checks will fail unless this is a no-op):
 ```shell
 go mod tidy
 ```
+
+### License
+
+Dual-licensed under [MIT](https://opensource.org/licenses/MIT) + [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
