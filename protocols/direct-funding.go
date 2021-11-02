@@ -89,10 +89,6 @@ func (s DirectFundingObjectiveState) Id() ObjectiveId {
 	return ObjectiveId("DirectFunding-" + s.ChannelId.String())
 }
 
-func (s DirectFundingObjectiveState) Initialize(initialState state.State) Objective {
-	return s
-}
-
 func InitializeDirectFundingObjectiveState(initialState state.State) (DirectFundingObjectiveState, error) {
 	var init DirectFundingObjectiveState
 	var err error
