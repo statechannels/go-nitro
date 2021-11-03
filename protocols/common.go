@@ -26,8 +26,8 @@ func SignPreFundEffect(cId types.Bytes32) string {
 func SignPostFundEffect(cId types.Bytes32) string {
 	return "sign Postfundsetup for" + cId.String()
 }
-func FundOnChainEffect(cId types.Bytes32, asset string, amount *big.Int) string {
-	return "deposit" + amount.Text(64) + "into" + cId.String()
+func FundOnChainEffect(cId types.Bytes32, asset string, amount types.Holdings) string {
+	return "deposit" + amount.String() + "into" + cId.String()
 }
 
 var NoSideEffects = SideEffects{}
@@ -54,13 +54,13 @@ type DirectFundingObjectiveState struct {
 
 	PreFundSigned []bool // indexed by participant. TODO should this be initialized with my own index showing true?
 
-	MyDepositSafetyThreshold *big.Int // if the on chain holdings are equal to this amount it is safe for me to deposit
-	MyDepositTarget          *big.Int // I want to get the on chain holdings up to this much
-	FullyFundedThreshold     *big.Int // if the on chain holdings are equal
+	MyDepositSafetyThreshold types.Holdings // if the on chain holdings are equal to this amount it is safe for me to deposit
+	MyDepositTarget          types.Holdings // I want to get the on chain holdings up to this much
+	FullyFundedThreshold     types.Holdings // if the on chain holdings are equal
 
 	PostFundSigned []bool // indexed by participant
 
-	OnChainHolding *big.Int
+	OnChainHolding types.Holdings
 }
 
 // Methods on the ObjectiveState
@@ -85,19 +85,49 @@ func (s DirectFundingObjectiveState) PostfundComplete() bool {
 	return true
 }
 
-// FundingComplete returns true if the supplied onChainHolding is greater than or equal to the threshold for being fully funded.
-func (s DirectFundingObjectiveState) FundingComplete(onChainHolding *big.Int) bool {
-	return gte(onChainHolding, s.FullyFundedThreshold)
+// FundingComplete returns true if the supplied onChainHoldings are greater than or equal to the threshold for being fully funded.
+func (s DirectFundingObjectiveState) FundingComplete(onChainHoldings types.Holdings) bool {
+	for asset, threshold := range s.FullyFundedThreshold {
+		chainHolding, ok := onChainHoldings[asset]
+
+		if !ok {
+			return false
+		}
+
+		if gt(threshold, chainHolding) {
+			return false
+		}
+	}
+
+	return true
 }
 
-// SafeToDeposit returns true if the supplied onChainHolding is greater than or equal to the threshold for safety.
-func (s DirectFundingObjectiveState) SafeToDeposit(onChainHolding *big.Int) bool {
-	return gte(onChainHolding, s.FullyFundedThreshold)
+// SafeToDeposit returns true if the supplied onChainHoldings are greater than or equal to the threshold for safety.
+func (s DirectFundingObjectiveState) SafeToDeposit(onChainHoldings types.Holdings) bool {
+	for asset, safetyThreshold := range s.MyDepositSafetyThreshold {
+		chainHolding, ok := onChainHoldings[asset]
+
+		if !ok {
+			return false
+		}
+
+		if gt(safetyThreshold, chainHolding) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // AmountToDeposit computes the appropriate amount to deposit using the supplied onChainHolding
-func (s DirectFundingObjectiveState) AmountToDeposit(onChainHolding *big.Int) *big.Int {
-	return big.NewInt(0).Sub(s.MyDepositTarget, onChainHolding)
+func (s DirectFundingObjectiveState) AmountToDeposit(onChainHoldings types.Holdings) types.Holdings {
+	deposits := make(types.Holdings, len(onChainHoldings))
+
+	for asset, holding := range onChainHoldings {
+		deposits[asset] = big.NewInt(0).Sub(s.MyDepositTarget[asset], holding)
+	}
+
+	return deposits
 }
 
 func gte(a *big.Int, b *big.Int) bool {

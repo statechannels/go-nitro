@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // TODO this protocol does not specify how events are handled at all
@@ -39,7 +40,7 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 		return s, NoSideEffects, WaitingForMyTurnToFund, nil
 	}
 
-	if !fundingComplete && gt(amountToDeposit, zero) && safeToDeposit {
+	if !fundingComplete && amountToDeposit.IsNonZero() && safeToDeposit {
 		var effects = make([]string, 0) // TODO loop over assets
 		effects = append(effects, FundOnChainEffect(s.ChannelId, `eth`, amountToDeposit))
 		if len(effects) > 0 {
@@ -123,14 +124,14 @@ func InitializeDirectFundingObjectiveState(initialState state.State) (DirectFund
 	// init.FullyFundedThreshold		// /
 
 	init.PostFundSigned = make([]bool, len(initialState.Participants))
-	init.OnChainHolding = big.NewInt(0)
+	init.OnChainHolding = types.Holdings{}
 
 	return init, nil
 }
 
-func (s DirectFundingObjectiveState) FundingUpdated(amount big.Int, finalized bool) (DirectFundingObjectiveState, error) {
+func (s DirectFundingObjectiveState) FundingUpdated(amount types.Holdings, finalized bool) (DirectFundingObjectiveState, error) {
 	updated := s.Clone()
-	updated.OnChainHolding.Add(updated.OnChainHolding, &amount)
+	updated.OnChainHolding.Add(amount)
 	return updated, nil
 }
 
