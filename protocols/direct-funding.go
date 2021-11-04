@@ -13,12 +13,14 @@ import (
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
+// Crank must be a pure function -- it must NOT mutate s
 func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) {
 	t := s.Clone()
 	sideEffects, waitingFor, err := t.mutatingCrank(secretKey)
 	return t, sideEffects, waitingFor, err
 }
 
+// Is allowed to mutate s (i.e it is not pure)
 func (s DirectFundingObjectiveState) mutatingCrank(secretKey *[]byte) (SideEffects, WaitingFor, error) {
 
 	// Input validation
