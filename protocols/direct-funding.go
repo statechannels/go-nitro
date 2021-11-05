@@ -244,7 +244,7 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 	init.ExpectedStates[1].TurnNum = big.NewInt(1)
 
 	for i, v := range initialState.Participants {
-		if v == myAddress {
+		if v == myAddress { // todo: myAddress should really be something akin to myInterests, which could include internal destinations
 			init.MyIndex = uint(i)
 		}
 	}
