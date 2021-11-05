@@ -20,3 +20,29 @@ func TestIsExternalDestination(t *testing.T) {
 	}
 
 }
+
+func TestToExternalDestination(t *testing.T) {
+	areExternal := []common.Hash{
+		common.HexToHash("0x000000000000000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+		common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f"),
+	}
+
+	areNotExternal := []common.Hash{
+		common.HexToHash("0x000000000000000000000001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+		common.HexToHash("0x100000000000000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+		common.HexToHash("0x0000000000b0000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+	}
+
+	for _, extAddress := range areExternal {
+		if _, err := ToExternalDestination(extAddress); err != nil {
+			t.Errorf("expected to convert %x to an external address, but failed", extAddress)
+		}
+	}
+
+	for _, notExtAddress := range areNotExternal {
+		if _, err := ToExternalDestination(notExtAddress); err == nil {
+			t.Errorf("expected to fail when converting %x to an external address, but succeeded", notExtAddress)
+		}
+	}
+}
