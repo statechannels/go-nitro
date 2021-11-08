@@ -207,6 +207,10 @@ func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, er
 		updated, _ = updated.signatureRecieved(sig, 0) // ?: should turnNum here live on the event or be calculated / inferred
 	}
 
+	if event.Holdings != nil {
+		updated.OnChainHolding = event.Holdings
+	}
+
 	return updated, nil
 }
 
@@ -290,12 +294,6 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 	init.OnChainHolding = types.Funds{}
 
 	return init, nil
-}
-
-func (s DirectFundingObjectiveState) FundingUpdated(amount types.Funds, finalized bool) (DirectFundingObjectiveState, error) {
-	updated := s.Clone()
-	updated.OnChainHolding.Add(amount)
-	return updated, nil
 }
 
 // SignatureReceived updates the objective's cache of which participants have signed which states
