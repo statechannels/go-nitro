@@ -67,8 +67,8 @@ type DirectFundingObjectiveState struct {
 
 // Methods on the ObjectiveState
 
-// PrefundComplete returns true if all participants have signed a prefund state, as reflected by the extended state
-func (s DirectFundingObjectiveState) PrefundComplete() bool {
+// prefundComplete returns true if all participants have signed a prefund state, as reflected by the extended state
+func (s DirectFundingObjectiveState) prefundComplete() bool {
 	for _, index := range s.ParticipantIndex {
 		if !s.PreFundSigned[index] {
 			return false
@@ -77,8 +77,8 @@ func (s DirectFundingObjectiveState) PrefundComplete() bool {
 	return true
 }
 
-// PostfundComplete returns true if all participants have signed a postfund state, as reflected by the extended state
-func (s DirectFundingObjectiveState) PostfundComplete() bool {
+// postfundComplete returns true if all participants have signed a postfund state, as reflected by the extended state
+func (s DirectFundingObjectiveState) postfundComplete() bool {
 	for _, index := range s.ParticipantIndex {
 		if !s.PostFundSigned[index] {
 			return false
@@ -87,8 +87,8 @@ func (s DirectFundingObjectiveState) PostfundComplete() bool {
 	return true
 }
 
-// FundingComplete returns true if the supplied onChainHoldings are greater than or equal to the threshold for being fully funded.
-func (s DirectFundingObjectiveState) FundingComplete(onChainHoldings types.Funds) bool {
+// fundingComplete returns true if the supplied onChainHoldings are greater than or equal to the threshold for being fully funded.
+func (s DirectFundingObjectiveState) fundingComplete(onChainHoldings types.Funds) bool {
 	for asset, threshold := range s.FullyFundedThreshold {
 		chainHolding, ok := onChainHoldings[asset]
 
@@ -104,8 +104,8 @@ func (s DirectFundingObjectiveState) FundingComplete(onChainHoldings types.Funds
 	return true
 }
 
-// SafeToDeposit returns true if the supplied onChainHoldings are greater than or equal to the threshold for safety.
-func (s DirectFundingObjectiveState) SafeToDeposit(onChainHoldings types.Funds) bool {
+// safeToDeposit returns true if the supplied onChainHoldings are greater than or equal to the threshold for safety.
+func (s DirectFundingObjectiveState) safeToDeposit(onChainHoldings types.Funds) bool {
 	for asset, safetyThreshold := range s.MyDepositSafetyThreshold {
 		chainHolding, ok := onChainHoldings[asset]
 
@@ -121,8 +121,8 @@ func (s DirectFundingObjectiveState) SafeToDeposit(onChainHoldings types.Funds) 
 	return true
 }
 
-// AmountToDeposit computes the appropriate amount to deposit using the supplied onChainHolding
-func (s DirectFundingObjectiveState) AmountToDeposit(onChainHoldings types.Funds) types.Funds {
+// amountToDeposit computes the appropriate amount to deposit using the supplied onChainHolding
+func (s DirectFundingObjectiveState) amountToDeposit(onChainHoldings types.Funds) types.Funds {
 	deposits := make(types.Funds, len(onChainHoldings))
 
 	for asset, holding := range onChainHoldings {
@@ -152,15 +152,15 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 		return updated, NoSideEffects, WaitingForCompletePrefund, nil
 	}
 
-	if !updated.PrefundComplete() {
+	if !updated.prefundComplete() {
 		return updated, NoSideEffects, WaitingForCompletePrefund, nil
 	}
 
 	// Funding
-	fundingComplete := updated.FundingComplete(updated.OnChainHolding) // note all information stored in state (since there are no real events)
+	fundingComplete := updated.fundingComplete(updated.OnChainHolding) // note all information stored in state (since there are no real events)
 	// (contrast this with a FSM where we have the new on chain holding on the event)
-	amountToDeposit := updated.AmountToDeposit(updated.OnChainHolding)
-	safeToDeposit := updated.SafeToDeposit(updated.OnChainHolding)
+	amountToDeposit := updated.amountToDeposit(updated.OnChainHolding)
+	safeToDeposit := updated.safeToDeposit(updated.OnChainHolding)
 
 	if !fundingComplete && !safeToDeposit {
 		return updated, NoSideEffects, WaitingForMyTurnToFund, nil
