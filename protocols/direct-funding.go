@@ -202,6 +202,11 @@ func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, er
 	}
 
 	updated := s.Clone()
+
+	for _, sig := range event.Sigs {
+		updated, _ = updated.signatureRecieved(sig, 0) // ?: should turnNum here live on the event or be calculated / inferred
+	}
+
 	return updated, nil
 }
 
