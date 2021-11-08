@@ -194,8 +194,15 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 	return updated, NoSideEffects, WaitingForNothing, nil
 }
 
-func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) Objective {
-	return s
+// Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
+// and returns the updated state
+func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, error) {
+	if s.ChannelId != event.ChannelId {
+		return s, errors.New("event and objective channelIds do not match")
+	}
+
+	updated := s.Clone()
+	return updated, nil
 }
 
 func (s DirectFundingObjectiveState) Reject() Objective {

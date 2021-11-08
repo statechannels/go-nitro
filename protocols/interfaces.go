@@ -56,9 +56,9 @@ type ObjectiveEvent struct {
 type Objective interface {
 	Id() ObjectiveId
 
-	Approve() Objective                    // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Reject() Objective                     // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Update(event ObjectiveEvent) Objective // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Approve() Objective                             // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Reject() Objective                              // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Update(event ObjectiveEvent) (Objective, error) // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 
 	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
 }
