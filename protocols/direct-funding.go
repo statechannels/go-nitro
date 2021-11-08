@@ -297,7 +297,7 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 }
 
 // SignatureReceived updates the objective's cache of which participants have signed which states
-func (s DirectFundingObjectiveState) SignatureRecieved(signature state.Signature, turnNum int) (DirectFundingObjectiveState, error) {
+func (s DirectFundingObjectiveState) signatureRecieved(signature state.Signature, turnNum int) (DirectFundingObjectiveState, error) {
 	updated := s.Clone()
 
 	signer, err := updated.ExpectedStates[turnNum].RecoverSigner(signature)
