@@ -40,9 +40,9 @@ type AdjudicationStatus struct {
 
 // ObjectiveEvent holds information used to update an Objective. Some fields may be nil.
 type ObjectiveEvent struct {
-	ChannelId          string                            // Must be defined
+	ChannelId          types.Bytes32                     // Must be defined
 	Sigs               map[types.Bytes32]state.Signature // mapping from state hash to signature
-	Holdings           map[types.Address]big.Int         // mapping from asset identifier to amount
+	Holdings           types.Funds                       // mapping from asset identifier to amount
 	AdjudicationStatus AdjudicationStatus
 }
 
