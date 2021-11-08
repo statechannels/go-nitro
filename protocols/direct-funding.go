@@ -296,6 +296,8 @@ func (s DirectFundingObjectiveState) SignatureRecieved(signature state.Signature
 	if ok && err == nil {
 		if turnNum == 0 {
 			updated.PreFundSigned[index] = true
+		} else if turnNum == 1 {
+			updated.PostFundSigned[index] = true
 		}
 	}
 
