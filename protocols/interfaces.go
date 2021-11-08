@@ -1,8 +1,6 @@
 package protocols
 
 import (
-	"math/big"
-
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
