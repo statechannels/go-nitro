@@ -65,7 +65,174 @@ type DirectFundingObjectiveState struct {
 	OnChainHolding types.Funds
 }
 
-// Methods on the ObjectiveState
+// NewDirectFundingObjectiveState initiates a DirectFundingInitialState with data calculated from
+// the supplied initialState and client address
+func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Address) (DirectFundingObjectiveState, error) {
+	var init DirectFundingObjectiveState
+	var err error
+
+	init.Status = Unapproved
+	init.ChannelId, err = initialState.ChannelId()
+	if err != nil {
+		return init, err
+	}
+	for i, v := range initialState.Participants {
+		init.ParticipantIndex[v] = uint(i)
+	}
+
+	init.ExpectedStates[0] = initialState
+
+	fixed := initialState.FixedPart()
+	init.ExpectedStates[1].ChainId = fixed.ChainId
+	init.ExpectedStates[1].Participants = fixed.Participants
+	init.ExpectedStates[1].ChannelNonce = fixed.ChannelNonce
+	init.ExpectedStates[1].AppDefinition = fixed.AppDefinition
+	init.ExpectedStates[1].ChallengeDuration = fixed.ChallengeDuration
+
+	init.ExpectedStates[1].Outcome = initialState.Outcome
+	init.ExpectedStates[1].AppData = initialState.AppData
+	init.ExpectedStates[1].IsFinal = false
+	init.ExpectedStates[1].TurnNum = big.NewInt(1)
+
+	for i, v := range initialState.Participants {
+		if v == myAddress { // todo: myAddress should really be something akin to myInterests, which could include internal destinations
+			init.MyIndex = uint(i)
+		}
+	}
+
+	if channelOutcome, err := outcome.Decode(initialState.VariablePart().EncodedOutcome); err == nil {
+		init.FullyFundedThreshold = types.Funds{}
+
+		for _, assetExit := range channelOutcome {
+			assetAddress := assetExit.Asset
+			sum := big.NewInt(0)
+			threshold := big.NewInt(0)
+			myShare := big.NewInt(0)
+
+			for i, allocation := range assetExit.Allocations {
+				sum = sum.Add(sum, allocation.Amount)
+
+				if i < int(init.MyIndex) {
+					threshold = threshold.Add(threshold, allocation.Amount)
+				} else if i == int(init.MyIndex) {
+					myShare = myShare.Add(myShare, allocation.Amount)
+				}
+			}
+
+			init.FullyFundedThreshold[assetAddress] = sum
+			init.MyDepositSafetyThreshold[assetAddress] = threshold
+			init.MyDepositTarget[assetAddress] = myShare.Add(myShare, threshold)
+		}
+	}
+
+	init.PostFundSigned = make([]bool, len(initialState.Participants))
+	init.OnChainHolding = types.Funds{}
+
+	return init, nil
+}
+
+// Public methods on the DirectFundingObjectiveState
+
+func (s DirectFundingObjectiveState) Id() ObjectiveId {
+	return ObjectiveId("DirectFunding-" + s.ChannelId.String())
+}
+
+func (s DirectFundingObjectiveState) Approve() Objective {
+	updated := s.clone()
+	// todo: consider case of s.Status == Rejected
+	updated.Status = Approved
+
+	return updated
+}
+
+func (s DirectFundingObjectiveState) Reject() Objective {
+	updated := s.clone()
+	updated.Status = Rejected
+	return updated
+}
+
+// Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
+// and returns the updated state
+func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, error) {
+	if s.ChannelId != event.ChannelId {
+		return s, errors.New("event and objective channelIds do not match")
+	}
+
+	updated := s.clone()
+
+	for _, sig := range event.Sigs {
+		updated, _ = updated.signatureRecieved(sig, 0) // ?: should turnNum here live on the event or be calculated / inferred
+	}
+
+	if event.Holdings != nil {
+		updated.OnChainHolding = event.Holdings
+	}
+
+	return updated, nil
+}
+
+// Crank inspects the extended state and declares a list of Effects to be executed
+// It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
+// rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
+func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) {
+	updated := s.clone()
+
+	// Input validation
+	if updated.Status != Approved {
+		return updated, NoSideEffects, WaitingForNothing, ErrNotApproved
+	}
+
+	// Prefunding
+	if !updated.PreFundSigned[updated.MyIndex] {
+		// todo: {SignPreFundEffect(updated.ChannelId)} as SideEffects{}
+		return updated, NoSideEffects, WaitingForCompletePrefund, nil
+	}
+
+	if !updated.prefundComplete() {
+		return updated, NoSideEffects, WaitingForCompletePrefund, nil
+	}
+
+	// Funding
+	fundingComplete := updated.fundingComplete(updated.OnChainHolding) // note all information stored in state (since there are no real events)
+	// (contrast this with a FSM where we have the new on chain holding on the event)
+	amountToDeposit := updated.amountToDeposit(updated.OnChainHolding)
+	safeToDeposit := updated.safeToDeposit(updated.OnChainHolding)
+
+	if !fundingComplete && !safeToDeposit {
+		return updated, NoSideEffects, WaitingForMyTurnToFund, nil
+	}
+
+	if !fundingComplete && amountToDeposit.IsNonZero() && safeToDeposit {
+		var effects = make([]string, 0) // TODO loop over assets
+		effects = append(effects, FundOnChainEffect(updated.ChannelId, `eth`, amountToDeposit))
+		if len(effects) > 0 {
+			// todo: effects as SideEffects{}
+			return updated, NoSideEffects, WaitingForCompleteFunding, nil
+		}
+	}
+
+	if !fundingComplete {
+		return updated, NoSideEffects, WaitingForCompleteFunding, nil
+	}
+
+	// Postfunding
+	if !updated.PostFundSigned[updated.MyIndex] {
+		// todo: []string{SignPostFundEffect(updated.ChannelId)} as SideEffects{}
+		return updated, NoSideEffects, WaitingForCompletePostFund, nil
+	}
+
+	if !updated.postfundComplete() {
+		return updated, NoSideEffects, WaitingForCompletePostFund, nil
+	}
+
+	// Completion
+	// todo: []string{"Objective" + s.ChannelId.String() + "complete"} as SideEffects{}
+	return updated, NoSideEffects, WaitingForNothing, nil
+}
+
+/*
+ Private methods
+*/
 
 // prefundComplete returns true if all participants have signed a prefund state, as reflected by the extended state
 func (s DirectFundingObjectiveState) prefundComplete() bool {
@@ -132,170 +299,9 @@ func (s DirectFundingObjectiveState) amountToDeposit(onChainHoldings types.Funds
 	return deposits
 }
 
-// Crank inspects the extended state and declares a list of Effects to be executed
-// It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
-// rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
-func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) {
-	updated := s.Clone()
-
-	// Input validation
-	if updated.Status != Approved {
-		return updated, NoSideEffects, WaitingForNothing, ErrNotApproved
-	}
-
-	// Prefunding
-	if !updated.PreFundSigned[updated.MyIndex] {
-		// todo: {SignPreFundEffect(updated.ChannelId)} as SideEffects{}
-		return updated, NoSideEffects, WaitingForCompletePrefund, nil
-	}
-
-	if !updated.prefundComplete() {
-		return updated, NoSideEffects, WaitingForCompletePrefund, nil
-	}
-
-	// Funding
-	fundingComplete := updated.fundingComplete(updated.OnChainHolding) // note all information stored in state (since there are no real events)
-	// (contrast this with a FSM where we have the new on chain holding on the event)
-	amountToDeposit := updated.amountToDeposit(updated.OnChainHolding)
-	safeToDeposit := updated.safeToDeposit(updated.OnChainHolding)
-
-	if !fundingComplete && !safeToDeposit {
-		return updated, NoSideEffects, WaitingForMyTurnToFund, nil
-	}
-
-	if !fundingComplete && amountToDeposit.IsNonZero() && safeToDeposit {
-		var effects = make([]string, 0) // TODO loop over assets
-		effects = append(effects, FundOnChainEffect(updated.ChannelId, `eth`, amountToDeposit))
-		if len(effects) > 0 {
-			// todo: effects as SideEffects{}
-			return updated, NoSideEffects, WaitingForCompleteFunding, nil
-		}
-	}
-
-	if !fundingComplete {
-		return updated, NoSideEffects, WaitingForCompleteFunding, nil
-	}
-
-	// Postfunding
-	if !updated.PostFundSigned[updated.MyIndex] {
-		// todo: []string{SignPostFundEffect(updated.ChannelId)} as SideEffects{}
-		return updated, NoSideEffects, WaitingForCompletePostFund, nil
-	}
-
-	if !updated.PostfundComplete() {
-		return updated, NoSideEffects, WaitingForCompletePostFund, nil
-	}
-
-	// Completion
-	// todo: []string{"Objective" + s.ChannelId.String() + "complete"} as SideEffects{}
-	return updated, NoSideEffects, WaitingForNothing, nil
-}
-
-// Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
-// and returns the updated state
-func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, error) {
-	if s.ChannelId != event.ChannelId {
-		return s, errors.New("event and objective channelIds do not match")
-	}
-
-	updated := s.Clone()
-
-	for _, sig := range event.Sigs {
-		updated, _ = updated.signatureRecieved(sig, 0) // ?: should turnNum here live on the event or be calculated / inferred
-	}
-
-	if event.Holdings != nil {
-		updated.OnChainHolding = event.Holdings
-	}
-
-	return updated, nil
-}
-
-func (s DirectFundingObjectiveState) Reject() Objective {
-	updated := s.Clone()
-	updated.Status = Rejected
-	return updated
-}
-
-func (s DirectFundingObjectiveState) Approve() Objective {
-	updated := s.Clone()
-	// todo: consider case of s.Status == Rejected
-	updated.Status = Approved
-
-	return updated
-}
-
-func (s DirectFundingObjectiveState) Id() ObjectiveId {
-	return ObjectiveId("DirectFunding-" + s.ChannelId.String())
-}
-
-func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Address) (DirectFundingObjectiveState, error) {
-	var init DirectFundingObjectiveState
-	var err error
-
-	init.Status = Unapproved
-	init.ChannelId, err = initialState.ChannelId()
-	if err != nil {
-		return init, err
-	}
-	for i, v := range initialState.Participants {
-		init.ParticipantIndex[v] = uint(i)
-	}
-
-	init.ExpectedStates[0] = initialState
-
-	fixed := initialState.FixedPart()
-	init.ExpectedStates[1].ChainId = fixed.ChainId
-	init.ExpectedStates[1].Participants = fixed.Participants
-	init.ExpectedStates[1].ChannelNonce = fixed.ChannelNonce
-	init.ExpectedStates[1].AppDefinition = fixed.AppDefinition
-	init.ExpectedStates[1].ChallengeDuration = fixed.ChallengeDuration
-
-	init.ExpectedStates[1].Outcome = initialState.Outcome
-	init.ExpectedStates[1].AppData = initialState.AppData
-	init.ExpectedStates[1].IsFinal = false
-	init.ExpectedStates[1].TurnNum = big.NewInt(1)
-
-	for i, v := range initialState.Participants {
-		if v == myAddress { // todo: myAddress should really be something akin to myInterests, which could include internal destinations
-			init.MyIndex = uint(i)
-		}
-	}
-
-	if channelOutcome, err := outcome.Decode(initialState.VariablePart().EncodedOutcome); err == nil {
-		init.FullyFundedThreshold = types.Funds{}
-
-		for _, assetExit := range channelOutcome {
-			assetAddress := assetExit.Asset
-			sum := big.NewInt(0)
-			threshold := big.NewInt(0)
-			myShare := big.NewInt(0)
-
-			for i, allocation := range assetExit.Allocations {
-				sum = sum.Add(sum, allocation.Amount)
-
-				if i < int(init.MyIndex) {
-					threshold = threshold.Add(threshold, allocation.Amount)
-				} else if i == int(init.MyIndex) {
-					myShare = myShare.Add(myShare, allocation.Amount)
-				}
-			}
-
-			init.FullyFundedThreshold[assetAddress] = sum
-			init.MyDepositSafetyThreshold[assetAddress] = threshold
-			init.MyDepositTarget[assetAddress] = myShare.Add(myShare, threshold)
-		}
-	}
-
-	init.PostFundSigned = make([]bool, len(initialState.Participants))
-	init.OnChainHolding = types.Funds{}
-
-	return init, nil
-}
-
 // SignatureReceived updates the objective's cache of which participants have signed which states
 func (s DirectFundingObjectiveState) signatureRecieved(signature state.Signature, turnNum int) (DirectFundingObjectiveState, error) {
-	updated := s.Clone()
+	updated := s.clone()
 
 	signer, err := updated.ExpectedStates[turnNum].RecoverSigner(signature)
 	index, ok := updated.ParticipantIndex[signer]
@@ -312,7 +318,7 @@ func (s DirectFundingObjectiveState) signatureRecieved(signature state.Signature
 }
 
 // todo: is this sufficient? Particularly: s has pointer members (*big.Int)
-func (s DirectFundingObjectiveState) Clone() DirectFundingObjectiveState {
+func (s DirectFundingObjectiveState) clone() DirectFundingObjectiveState {
 	return s
 }
 
