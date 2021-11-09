@@ -350,7 +350,7 @@ func gt(a *big.Int, b *big.Int) bool {
 //     D1 --> |No| D2
 
 //     D2{!SafeToDeposit &<br> !FundingComplete}
-//     D2 --> |Yes| R3["my turn..."]
+//     D2 --> |Yes| R3["wait my turn..."]
 //     D2 --> |No| D3
 
 //     D3{SafeToDeposit &<br> !FundingComplete}
@@ -358,15 +358,15 @@ func gt(a *big.Int, b *big.Int) bool {
 //     D3 --> |No| D4
 
 //     D4{!FundingComplete}
-//     D4 --> |Yes| R5["complete funding..."]
+//     D4 --> |Yes| R5["wait for complete funding..."]
 //     D4 --> |No| D5
 
-//     D5{ShouldSignPreFund}
+//     D5{ShouldSignPostFund}
 //     D5 -->|Yes| R6[SignPostfund!]
 //     D5 -->|No| D6
 
 //     D6{!PostFundComplete}
-//     D6 -->|Yes| R7["complete postfund..."]
+//     D6 -->|Yes| R7["wait for complete postfund..."]
 //     D6 -->|No| R8
 
 //     R8["finish"]
