@@ -161,7 +161,13 @@ func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, er
 	updated := s.clone()
 
 	for _, sig := range event.Sigs {
-		updated, _ = updated.signatureRecieved(sig, 0) // ?: should turnNum here live on the event or be calculated / inferred
+		var turnNum int
+		if updated.prefundComplete() {
+			turnNum = 1
+		} else {
+			turnNum = 0
+		}
+		updated, _ = updated.signatureRecieved(sig, turnNum)
 	}
 
 	if event.Holdings != nil {
