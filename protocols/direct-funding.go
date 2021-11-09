@@ -230,9 +230,7 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 	return updated, NoSideEffects, WaitingForNothing, nil
 }
 
-/*
- Private methods
-*/
+//  Private methods on the DirectFundingObjectiveState
 
 // prefundComplete returns true if all participants have signed a prefund state, as reflected by the extended state
 func (s DirectFundingObjectiveState) prefundComplete() bool {
