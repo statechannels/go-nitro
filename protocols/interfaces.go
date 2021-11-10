@@ -63,3 +63,11 @@ type Objective interface {
 
 // ObjectiveId is a unique identifier for an Objective.
 type ObjectiveId string
+
+type ObjectiveStatus int8
+
+const (
+	Unapproved ObjectiveStatus = iota
+	Approved
+	Rejected
+)

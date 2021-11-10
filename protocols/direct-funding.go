@@ -26,14 +26,6 @@ var NoSideEffects = SideEffects{}
 // errors
 var ErrNotApproved = errors.New("objective not approved")
 
-type ObjectiveStatus int8
-
-const (
-	Unapproved ObjectiveStatus = iota
-	Approved
-	Rejected
-)
-
 // DirectFundingObjectiveState is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type DirectFundingObjectiveState struct {
 	Status    ObjectiveStatus
