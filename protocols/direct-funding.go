@@ -9,16 +9,12 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// A linear state machine with enumerated states.
-// PreFundIncomplete => NotYetMyTurnToFund => FundingIncomplete => PostFundIncomplete => Finished
-type DirectFundingEnumerableState int
-
 const (
-	WaitingForCompletePrefund  = "WaitingForCompletePrefund"
-	WaitingForMyTurnToFund     = "WaitingForMyTurnToFund"
-	WaitingForCompleteFunding  = "WaitingForCompleteFunding"
-	WaitingForCompletePostFund = "WaitingForCompletePostFund"
-	WaitingForNothing          = "WaitingForNothing" // Finished
+	WaitingForCompletePrefund  WaitingFor = "WaitingForCompletePrefund"
+	WaitingForMyTurnToFund     WaitingFor = "WaitingForMyTurnToFund"
+	WaitingForCompleteFunding  WaitingFor = "WaitingForCompleteFunding"
+	WaitingForCompletePostFund WaitingFor = "WaitingForCompletePostFund"
+	WaitingForNothing          WaitingFor = "WaitingForNothing" // Finished
 )
 
 func SignPreFundEffect(cId types.Bytes32) string {
