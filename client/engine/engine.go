@@ -32,7 +32,7 @@ type APIEvent struct {
 // ChainEvent is an internal representation of a blockchain event
 type ChainEvent struct {
 	ChannelId          types.Bytes32
-	Holdings           map[types.Address]big.Int // indexed by asset
+	Holdings           types.Funds // indexed by asset
 	AdjudicationStatus protocols.AdjudicationStatus
 }
 
