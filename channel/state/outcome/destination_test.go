@@ -6,22 +6,22 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-func TestIsExternalDestination(t *testing.T) {
+func TestIsExternal(t *testing.T) {
 
-	e := common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f")
+	e := common.HexToHash("0x00000000000100000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f")
 	i := common.HexToHash("0x6f7123E3A80C9813eF50213A96f7123E3A80C9813eF50213ADEd0e4511CB820f")
 
-	if !IsExternalDestination(e) {
+	if !IsExternal(e) {
 		t.Errorf("Received bytes %x was declared internal, when it is external", e)
 	}
 
-	if IsExternalDestination(i) {
+	if IsExternal(i) {
 		t.Errorf("Received bytes %x was declared external, when it is internal", i)
 	}
 
 }
 
-func TestToExternalDestination(t *testing.T) {
+func TestToAddress(t *testing.T) {
 	areExternal := []common.Hash{
 		common.HexToHash("0x000000000000000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 		common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
@@ -35,13 +35,13 @@ func TestToExternalDestination(t *testing.T) {
 	}
 
 	for _, extAddress := range areExternal {
-		if _, err := ToExternalDestination(extAddress); err != nil {
+		if _, err := ToAddress(extAddress); err != nil {
 			t.Errorf("expected to convert %x to an external address, but failed", extAddress)
 		}
 	}
 
 	for _, notExtAddress := range areNotExternal {
-		if _, err := ToExternalDestination(notExtAddress); err == nil {
+		if _, err := ToAddress(notExtAddress); err == nil {
 			t.Errorf("expected to fail when converting %x to an external address, but succeeded", notExtAddress)
 		}
 	}

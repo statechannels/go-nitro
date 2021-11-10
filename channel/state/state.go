@@ -76,7 +76,7 @@ func (s State) ChannelId() (types.Bytes32, error) {
 
 	channelId := crypto.Keccak256Hash(encodedChannelPart)
 
-	if error == nil && outcome.IsExternalDestination(channelId) {
+	if error == nil && outcome.IsExternal(channelId) {
 		error = errors.New("channelId is an external destination") // This is extremely unlikely
 	}
 	return channelId, error

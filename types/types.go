@@ -13,6 +13,9 @@ type Address = common.Address
 // An ethereum hash (32 bytes)
 type Bytes32 = common.Hash
 
+// A nitro destination - either a left-zero-padded ethereum address or an application specific identifier
+type Destination = Bytes32
+
 // An arbitrary length byte slice
 type Bytes []byte
 
