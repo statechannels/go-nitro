@@ -308,16 +308,6 @@ func (s DirectFundingObjectiveState) clone() DirectFundingObjectiveState {
 	return s
 }
 
-// utilities
-
-func gte(a *big.Int, b *big.Int) bool {
-	return a.Cmp(b) > -1
-}
-
-func gt(a *big.Int, b *big.Int) bool {
-	return a.Cmp(b) > 0
-}
-
 // mermaid diagram
 // key:
 // - effect!
