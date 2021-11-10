@@ -17,12 +17,6 @@ const (
 	WaitingForNothing          WaitingFor = "WaitingForNothing" // Finished
 )
 
-func SignPreFundEffect(cId types.Bytes32) string {
-	return "sign Prefundsetup for" + cId.String()
-}
-func SignPostFundEffect(cId types.Bytes32) string {
-	return "sign Postfundsetup for" + cId.String()
-}
 func FundOnChainEffect(cId types.Bytes32, asset string, amount types.Funds) string {
 	return "deposit" + amount.String() + "into" + cId.String()
 }
