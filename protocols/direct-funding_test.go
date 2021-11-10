@@ -23,4 +23,13 @@ func TestUpdate(t *testing.T) {
 	if err == nil {
 		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
 	}
+
+	e.ChannelId = s.ChannelId // Fix to correct channelId
+	e.Sigs = make(map[types.Bytes32]state.Signature)
+	e.Sigs[e.ChannelId] = state.Signature{} // Dummmy signature on dummy statehash
+	_, err = s.Update(e)
+	if err != nil {
+		t.Error(`Useless signature -- expected a noop but caught an error`)
+	}
+
 }
