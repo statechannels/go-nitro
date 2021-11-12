@@ -21,4 +21,4 @@ The `chain` and `message` services are responsible for communicating with the bl
 
 ---
 
-[Click here to edit the diagram](https://excalidraw.com/#json=vUHADWSbOLrvpHgLlNPra,n58q74_1xuyxabVTLnuyGg)
+[Click here to edit the diagram](https://excalidraw.com/#json=boyMvd14JkaqjD3cRSg0s,xnxQRDKynDM-h28-cWq2mA)
