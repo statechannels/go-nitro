@@ -2,6 +2,7 @@ package protocols
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state"
@@ -17,7 +18,7 @@ const (
 	WaitingForNothing          WaitingFor = "WaitingForNothing" // Finished
 )
 
-func FundOnChainEffect(cId types.Bytes32, asset string, amount types.Funds) string {
+func FundOnChainEffect(cId types.Destination, asset string, amount types.Funds) string {
 	return "deposit" + amount.String() + "into" + cId.String()
 }
 
@@ -29,7 +30,7 @@ var ErrNotApproved = errors.New("objective not approved")
 // DirectFundingObjectiveState is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type DirectFundingObjectiveState struct {
 	Status    ObjectiveStatus
-	ChannelId types.Bytes32
+	ChannelId types.Destination
 
 	ParticipantIndex map[types.Address]uint // the index for each participant
 	ExpectedStates   []state.State          // indexed by turn number
