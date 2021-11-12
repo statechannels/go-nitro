@@ -18,5 +18,5 @@ func (c Channel) GuaranteesFor(channelId types.Destination) types.Funds {
 }
 
 func (c Channel) Total() types.Funds {
-	return types.Funds{} // TODO get this infor from the Support
+	return types.Funds{} // TODO get this info from the Support
 }
