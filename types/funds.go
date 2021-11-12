@@ -29,13 +29,16 @@ func (h Funds) String() string {
 // ToFunds returns a Funds map from its string representation
 // func ToFunds(s string) Funds {}
 
-// Add sums all assets and returns the result. Does not modify the calling Holdings object
+// Add returns the sum of the receiver and the input Funds objects
 func (h Funds) Add(a ...Funds) Funds {
 	a = append(a, h)
 	return Sum(a...)
 }
 
-// Sum returns the sum of all input Funds maps
+// Sum returns a new Funds object with all of the asset keys from the supplied Funds objects,
+// each having an amount summed across that asset's amount in each input object.
+//
+// e.g. {[0x0a,0x01][0x0b,0x01]} + {[0x0a,0x02]} = {[0x0a,0x03][0x0b,0x01]}
 func Sum(a ...Funds) Funds {
 	sum := Funds{}
 
