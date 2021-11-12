@@ -93,6 +93,7 @@ func (s VirtualFundingObjectiveState) Crank(secretKey *[]byte) (protocols.Object
 		return updated, NoSideEffects, WaitingForNothing, ErrNotApproved
 	}
 
+	// TODO could perform checks on s.L (should only have 1 or 2 channels in there)
 	// Prefunding
 	if !updated.PreFundSigned[updated.MyIndex] {
 		// todo sign the prefund
