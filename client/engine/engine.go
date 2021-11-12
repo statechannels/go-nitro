@@ -3,6 +3,8 @@ package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/client/engine/chainservice"
+	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -11,11 +13,15 @@ import (
 // Engine is the imperative part of the core business logic of a go-nitro Client
 type Engine struct {
 	// inbound go channels
-	API   chan APIEvent
-	Chain chan ChainEvent
-	Inbox chan Message
+	FromAPI   chan APIEvent // This one is exported so that the Client can send API calls
+	fromChain chan chainservice.Event
+	fromMsg   chan protocols.Message
 
-	store store.Store // A Store for persisting important data
+	// outbound go channels
+	toMsg   chan protocols.Message
+	toChain chan protocols.Transaction
+
+	store store.Store // A Store for persisting and restoring important data
 }
 
 // APIEvent is an internal representation of an API call
@@ -44,13 +50,17 @@ type Message struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New() Engine {
+func New(msg messageservice.MessageService, chain chainservice.ChainService) Engine {
 	e := Engine{}
 
-	// create the engine's inbound channels
-	e.API = make(chan APIEvent)
-	e.Chain = make(chan ChainEvent)
-	e.Inbox = make(chan Message)
+	// bind the engine's inbound chans
+	e.FromAPI = make(chan APIEvent)
+	e.fromChain = chain.GetRecieveChan()
+	e.fromMsg = msg.GetRecieveChan()
+
+	// bind the engine's outbound chans
+	e.toChain = chain.GetSendChan()
+	e.toMsg = msg.GetSendChan()
 
 	return e
 }
@@ -59,13 +69,13 @@ func New() Engine {
 func (e *Engine) Run() {
 	for {
 		select {
-		case apiEvent := <-e.API:
+		case apiEvent := <-e.FromAPI:
 			e.handleAPIEvent(apiEvent)
 
-		case chainEvent := <-e.Chain:
+		case chainEvent := <-e.fromChain:
 			e.handleChainEvent(chainEvent)
 
-		case message := <-e.Inbox:
+		case message := <-e.fromMsg:
 			e.handleMessage(message)
 
 		}
@@ -80,7 +90,7 @@ func (e *Engine) Run() {
 // commits the updated objective to the store,
 // executes the side effects and
 // evaluates objecive progress.
-func (e *Engine) handleMessage(message Message) {
+func (e *Engine) handleMessage(message protocols.Message) {
 	objective := e.store.GetObjectiveById(message.ObjectiveId)
 	event := protocols.ObjectiveEvent{Sigs: message.Sigs}
 	secretKey := e.store.GetChannelSecretKey()
@@ -99,7 +109,7 @@ func (e *Engine) handleMessage(message Message) {
 // commits the updated objective to the store,
 // executes the side effects and
 // evaluates objecive progress.
-func (e *Engine) handleChainEvent(chainEvent ChainEvent) {
+func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
 	objective := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
 	secretKey := e.store.GetChannelSecretKey()
@@ -132,6 +142,11 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
 }
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective
-func (e *Engine) executeSideEffects(protocols.SideEffects) {
-	// TODO
+func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
+	for _, message := range sideEffects.MessagesToSend {
+		e.toMsg <- message
+	}
+	for _, tx := range sideEffects.TransactionsToSubmit {
+		e.toChain <- tx
+	}
 }
