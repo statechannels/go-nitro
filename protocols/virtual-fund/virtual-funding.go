@@ -24,9 +24,9 @@ var ErrNotApproved = errors.New("objective not approved")
 // VirtualFundingObjectiveState is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type VirtualFundingObjectiveState struct {
 	Status protocols.ObjectiveStatus
-	J      channel.Channel   // this is J
-	L      []channel.Channel // this is {L_i} (a vector of Ledger channels)
-	MyRole uint              // 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
+	J      channel.Channel          // this is J
+	L      map[uint]channel.Channel // this will contain 1 or 2 Ledger channels. For example L_0 if Alice (i=0). L_0 and L_1 for the first intermediary (i=1). L_n+1 for Bob (i=n+1)
+	MyRole uint                     // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
 
 	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
 
@@ -39,7 +39,7 @@ type VirtualFundingObjectiveState struct {
 
 // NewVirtualFundingObjectiveState initiates a VirtualFundingObjectiveState with data calculated from
 // the supplied initialState and client address
-func NewVirtualFundingObjectiveState(initialState state.State, myAddress types.Address) (VirtualFundingObjectiveState, error) {
+func NewVirtualFundingObjectiveState(initialStateOfJ state.State, myAddress types.Address) (VirtualFundingObjectiveState, error) {
 	var init VirtualFundingObjectiveState
 	// TODO
 	return init, nil
