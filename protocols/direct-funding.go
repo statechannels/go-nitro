@@ -149,7 +149,11 @@ func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, er
 		} else {
 			turnNum = 0
 		}
-		updated, _ = updated.signatureRecieved(sig, turnNum)
+
+		err := updated.applySignature(sig, turnNum)
+		if err != nil {
+			return s, err
+		}
 	}
 
 	if event.Holdings != nil {
@@ -285,21 +289,24 @@ func (s DirectFundingObjectiveState) amountToDeposit() types.Funds {
 }
 
 // SignatureReceived updates the objective's cache of which participants have signed which states
-func (s DirectFundingObjectiveState) signatureRecieved(signature state.Signature, turnNum int) (DirectFundingObjectiveState, error) {
-	updated := s.clone()
-
-	signer, err := updated.ExpectedStates[turnNum].RecoverSigner(signature)
-	index, ok := updated.ParticipantIndex[signer]
-
-	if ok && err == nil {
-		if turnNum == 0 {
-			updated.PreFundSigned[index] = true
-		} else if turnNum == 1 {
-			updated.PostFundSigned[index] = true
-		}
+func (s DirectFundingObjectiveState) applySignature(signature state.Signature, turnNum int) error {
+	signer, err := s.ExpectedStates[turnNum].RecoverSigner(signature)
+	if err != nil {
+		return err
 	}
 
-	return updated, nil
+	index, ok := s.ParticipantIndex[signer]
+	if !ok {
+		return fmt.Errorf("signature recieved from unrecognized participant 0x%x", signer)
+	}
+
+	if turnNum == 0 {
+		s.PreFundSigned[index] = true
+	} else if turnNum == 1 {
+		s.PostFundSigned[index] = true
+	}
+
+	return nil
 }
 
 // todo: is this sufficient? Particularly: s has pointer members (*big.Int)
