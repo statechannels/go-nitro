@@ -181,10 +181,9 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 	}
 
 	// Funding
-	fundingComplete := updated.fundingComplete(updated.OnChainHolding) // note all information stored in state (since there are no real events)
-	// (contrast this with a FSM where we have the new on chain holding on the event)
-	amountToDeposit := updated.amountToDeposit(updated.OnChainHolding)
-	safeToDeposit := updated.safeToDeposit(updated.OnChainHolding)
+	fundingComplete := updated.fundingComplete() // note all information stored in state (since there are no real events)
+	amountToDeposit := updated.amountToDeposit()
+	safeToDeposit := updated.safeToDeposit()
 
 	if !fundingComplete && !safeToDeposit {
 		return updated, NoSideEffects, WaitingForMyTurnToFund, nil
@@ -240,10 +239,10 @@ func (s DirectFundingObjectiveState) postfundComplete() bool {
 	return true
 }
 
-// fundingComplete returns true if the supplied onChainHoldings are greater than or equal to the threshold for being fully funded.
-func (s DirectFundingObjectiveState) fundingComplete(onChainHoldings types.Funds) bool {
+// fundingComplete returns true if the recorded OnChainHoldings are greater than or equal to the threshold for being fully funded.
+func (s DirectFundingObjectiveState) fundingComplete() bool {
 	for asset, threshold := range s.FullyFundedThreshold {
-		chainHolding, ok := onChainHoldings[asset]
+		chainHolding, ok := s.OnChainHolding[asset]
 
 		if !ok {
 			return false
@@ -257,10 +256,10 @@ func (s DirectFundingObjectiveState) fundingComplete(onChainHoldings types.Funds
 	return true
 }
 
-// safeToDeposit returns true if the supplied onChainHoldings are greater than or equal to the threshold for safety.
-func (s DirectFundingObjectiveState) safeToDeposit(onChainHoldings types.Funds) bool {
+// safeToDeposit returns true if the recorded OnChainHoldings are greater than or equal to the threshold for safety.
+func (s DirectFundingObjectiveState) safeToDeposit() bool {
 	for asset, safetyThreshold := range s.MyDepositSafetyThreshold {
-		chainHolding, ok := onChainHoldings[asset]
+		chainHolding, ok := s.OnChainHolding[asset]
 
 		if !ok {
 			return false
@@ -274,11 +273,11 @@ func (s DirectFundingObjectiveState) safeToDeposit(onChainHoldings types.Funds) 
 	return true
 }
 
-// amountToDeposit computes the appropriate amount to deposit using the supplied onChainHolding
-func (s DirectFundingObjectiveState) amountToDeposit(onChainHoldings types.Funds) types.Funds {
-	deposits := make(types.Funds, len(onChainHoldings))
+// amountToDeposit computes the appropriate amount to deposit given the current recorded OnChainHoldings
+func (s DirectFundingObjectiveState) amountToDeposit() types.Funds {
+	deposits := make(types.Funds, len(s.OnChainHolding))
 
-	for asset, holding := range onChainHoldings {
+	for asset, holding := range s.OnChainHolding {
 		deposits[asset] = big.NewInt(0).Sub(s.MyDepositTarget[asset], holding)
 	}
 
