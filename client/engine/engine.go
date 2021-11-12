@@ -2,8 +2,6 @@
 package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
-	"math/big"
-
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
