@@ -7,7 +7,7 @@ import (
 )
 
 // IsExternal returns true if the destination has the 12 leading bytes as zero, false otherwise
-func IsExternal(destination types.Bytes32) bool {
+func IsExternal(destination types.Destination) bool {
 	for _, b := range destination[0:12] {
 		if b != 0 {
 			return false
@@ -18,7 +18,7 @@ func IsExternal(destination types.Bytes32) bool {
 
 // ToAddress returns a types.Address encoded external destination, or an error if
 // destination is not an external address
-func ToAddress(destination types.Bytes32) (types.Address, error) {
+func ToAddress(destination types.Destination) (types.Address, error) {
 	if IsExternal(destination) {
 		address := types.Address{}
 		for i, b := range destination[12:] {
