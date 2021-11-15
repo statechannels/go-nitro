@@ -71,3 +71,22 @@ go mod tidy
 ### License
 
 Dual-licensed under [MIT](https://opensource.org/licenses/MIT) + [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+
+---
+
+## Roadmap
+
+```bash
+├── channel 🚧 # query the latest supported state of a channel
+│   └── state ✅ # sign a state
+│       ├── outcome ✅ # construct and manipulate an outcome
+├── client 🚧 # runs the off chain protocols
+│   └── engine 🚧 # coordinates the client components
+│       ├── chainservice 🚧 # watches the chain and submits transactions
+│       ├── messageservice 🚧 # sends and recieves messages from peers
+│       └── store 🚧 # stores keys and state updates
+├── protocols 🚧
+│   └── interfaces.go ✅
+    |__ direct-funder.go 🚧 # specifies how clients fund a channel on chain
+└── types 🚧
+```
