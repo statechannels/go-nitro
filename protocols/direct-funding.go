@@ -37,7 +37,7 @@ type DirectFundingObjectiveState struct {
 
 	MyIndex uint // my participant index
 
-	PreFundSigned []bool // indexed by participant. TODO should this be initialized with my own index showing true?
+	PreFundSigned []bool // indexed by participant.
 
 	MyDepositSafetyThreshold types.Funds // if the on chain holdings are equal to this amount it is safe for me to deposit
 	MyDepositTarget          types.Funds // I want to get the on chain holdings up to this much
@@ -108,7 +108,8 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 		}
 	}
 
-	init.PostFundSigned = make([]bool, len(initialState.Participants))
+	init.PreFundSigned = make([]bool, len(initialState.Participants))  // NOTE initialized to (false,false,...)
+	init.PostFundSigned = make([]bool, len(initialState.Participants)) // NOTE initialized to (false,false,...)
 	init.OnChainHolding = types.Funds{}
 
 	return init, nil
@@ -177,7 +178,7 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 
 	// Prefunding
 	if !updated.PreFundSigned[updated.MyIndex] {
-		// todo: {SignPreFundEffect(updated.ChannelId)} as SideEffects{}
+		// todo: {SignAndSendPreFundEffect(updated.ChannelId)} as SideEffects{}
 		return updated, NoSideEffects, WaitingForCompletePrefund, nil
 	}
 
