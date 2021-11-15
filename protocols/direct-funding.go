@@ -35,7 +35,7 @@ type DirectFundingObjectiveState struct {
 	ParticipantIndex map[types.Address]uint // the index for each participant
 	ExpectedStates   []state.State          // indexed by turn number
 
-	MyIndex uint // my participant index
+	MyIndex uint // my index in the Participants array of the initial state
 
 	PreFundSigned []bool // indexed by participant.
 
@@ -78,7 +78,7 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 	init.ExpectedStates[1].TurnNum = big.NewInt(1)
 
 	for i, v := range initialState.Participants {
-		if v == myAddress { // todo: myAddress should really be something akin to myInterests, which could include internal destinations
+		if v == myAddress {
 			init.MyIndex = uint(i)
 		}
 	}
@@ -97,7 +97,8 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 
 				if i < int(init.MyIndex) {
 					threshold = threshold.Add(threshold, allocation.Amount)
-				} else if i == int(init.MyIndex) {
+				} else if i == int(init.MyIndex) { // NOTE: we are requiring that participants[i] owns allocations[i] (for every asset)
+					// TODO: revisit this and consider relaixing the assumption, e.g. myAddress could be something akin to myInterests, which could include internal destinations
 					myShare = myShare.Add(myShare, allocation.Amount)
 				}
 			}
