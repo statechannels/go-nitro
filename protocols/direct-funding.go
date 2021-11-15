@@ -293,7 +293,7 @@ func (s DirectFundingObjectiveState) amountToDeposit() types.Funds {
 	return deposits
 }
 
-// SignatureReceived updates the objective's cache of which participants have signed which states
+// applySignature updates the objective's cache of which participants have signed which states
 func (s DirectFundingObjectiveState) applySignature(signature state.Signature, turnNum int) error {
 	signer, err := s.ExpectedStates[turnNum].RecoverSigner(signature)
 	if err != nil {
