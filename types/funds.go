@@ -50,3 +50,20 @@ func Sum(a ...Funds) Funds {
 
 	return sum
 }
+
+// Equal returns true if reciever `f` and input `g` are identical.
+//
+// Note that a zero-balance does NOT equal a non-balance: {[0x0a,0x00]} != {}
+func (f Funds) Equal(g Funds) bool {
+	if len(f) != len(g) {
+		return false
+	}
+
+	for asset, amount := range f {
+		if g[asset].Cmp(amount) != 0 {
+			return false
+		}
+	}
+
+	return true
+}
