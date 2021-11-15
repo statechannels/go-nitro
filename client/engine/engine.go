@@ -2,12 +2,10 @@
 package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
-	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
 )
 
 // Engine is the imperative part of the core business logic of a go-nitro Client
@@ -31,19 +29,6 @@ type APIEvent struct {
 	ObjectiveToApprove protocols.ObjectiveId
 
 	Response chan Response
-}
-
-// ChainEvent is an internal representation of a blockchain event
-type ChainEvent struct {
-	ChannelId          types.Bytes32
-	Holdings           types.Funds // indexed by asset
-	AdjudicationStatus protocols.AdjudicationStatus
-}
-
-// Message is an internal representation of a message from another client
-type Message struct {
-	ObjectiveId protocols.ObjectiveId
-	Sigs        map[types.Bytes32]state.Signature // mapping from state hash to signature
 }
 
 // Response is the return type that asynchronous API calls "resolve to". Such a call returns a go channel of type Response.
