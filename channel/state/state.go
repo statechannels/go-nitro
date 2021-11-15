@@ -66,7 +66,7 @@ var address, _ = abi.NewType("address", "address", nil)
 
 // ChannelId computes and returns the channel id corresponding to the State,
 // and an error if the id is an external destination.
-func (s State) ChannelId() (types.Bytes32, error) {
+func (s State) ChannelId() (types.Destination, error) {
 
 	encodedChannelPart, error := abi.Arguments{
 		{Type: uint256},
@@ -74,9 +74,9 @@ func (s State) ChannelId() (types.Bytes32, error) {
 		{Type: uint256},
 	}.Pack(s.ChainId, s.Participants, s.ChannelNonce)
 
-	channelId := crypto.Keccak256Hash(encodedChannelPart)
+	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
 
-	if error == nil && outcome.IsExternalDestination(channelId) {
+	if error == nil && channelId.IsExternal() {
 		error = errors.New("channelId is an external destination") // This is extremely unlikely
 	}
 	return channelId, error
@@ -115,7 +115,7 @@ func (s State) Hash() (types.Bytes32, error) {
 	stateStruct := struct {
 		TurnNum     *types.Uint256
 		IsFinal     bool
-		ChannelId   types.Bytes32
+		ChannelId   types.Destination
 		AppPartHash types.Bytes32
 		OutcomeHash types.Bytes32
 	}{

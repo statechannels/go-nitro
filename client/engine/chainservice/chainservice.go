@@ -2,8 +2,6 @@
 package chainservice // import "github.com/statechannels/go-nitro/client/chainservice"
 
 import (
-	"math/big"
-
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -11,7 +9,7 @@ import (
 // ChainEvent is an internal representation of a blockchain event
 type Event struct {
 	ChannelId          types.Bytes32
-	Holdings           map[types.Address]big.Int // indexed by asset
+	Holdings           types.Funds // indexed by asset
 	AdjudicationStatus protocols.AdjudicationStatus
 }
 

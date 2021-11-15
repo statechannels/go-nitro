@@ -14,10 +14,10 @@ import (
 
 // Allocation declares an Amount to be paid to a Destination.
 type Allocation struct {
-	Destination    [32]byte       // Either an ethereum address or an application-specific identifier
-	Amount         *types.Uint256 // An amount of a particular asset
-	AllocationType uint8          // Directs calling code on how to interpret the allocation
-	Metadata       []byte         // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
+	Destination    types.Destination // Either an ethereum address or an application-specific identifier
+	Amount         *types.Uint256    // An amount of a particular asset
+	AllocationType uint8             // Directs calling code on how to interpret the allocation
+	Metadata       []byte            // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
 }
 
 // Equal returns true if the supplied Allocation matches the receiver Allocation, and false otherwise.

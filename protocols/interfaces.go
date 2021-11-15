@@ -1,8 +1,6 @@
 package protocols
 
 import (
-	"math/big"
-
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -40,9 +38,9 @@ type AdjudicationStatus struct {
 
 // ObjectiveEvent holds information used to update an Objective. Some fields may be nil.
 type ObjectiveEvent struct {
-	ChannelId          string                            // Must be defined
+	ChannelId          types.Destination                 // Must be defined
 	Sigs               map[types.Bytes32]state.Signature // mapping from state hash to signature
-	Holdings           map[types.Address]big.Int         // mapping from asset identifier to amount
+	Holdings           types.Funds                       // mapping from asset identifier to amount
 	AdjudicationStatus AdjudicationStatus
 }
 
@@ -56,12 +54,20 @@ type ObjectiveEvent struct {
 type Objective interface {
 	Id() ObjectiveId
 
-	Approve() Objective                    // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Reject() Objective                     // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Update(event ObjectiveEvent) Objective // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Approve() Objective                             // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Reject() Objective                              // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Update(event ObjectiveEvent) (Objective, error) // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 
 	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
 }
 
 // ObjectiveId is a unique identifier for an Objective.
 type ObjectiveId string
+
+type ObjectiveStatus int8
+
+const (
+	Unapproved ObjectiveStatus = iota
+	Approved
+	Rejected
+)

@@ -79,8 +79,9 @@ func (e *Engine) handleMessage(message protocols.Message) {
 	objective := e.store.GetObjectiveById(message.ObjectiveId)
 	event := protocols.ObjectiveEvent{Sigs: message.Sigs}
 	secretKey := e.store.GetChannelSecretKey()
-	updatedProtocol, sideEffects, waitingFor, _ := objective.Update(event).Crank(secretKey) // TODO handle error
-	_ = e.store.SetObjective(updatedProtocol)                                               // TODO handle error
+	updatedObjective, _ := objective.Update(event)                                    // TODO handle error
+	crankedObjective, sideEffects, waitingFor, _ := updatedObjective.Crank(secretKey) // TODO handle error
+	_ = e.store.SetObjective(crankedObjective)                                        // TODO handle error
 	e.executeSideEffects(sideEffects)
 	e.store.UpdateProgressLastMadeAt(message.ObjectiveId, waitingFor)
 }
@@ -97,8 +98,9 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
 	objective := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
 	secretKey := e.store.GetChannelSecretKey()
-	updatedProtocol, sideEffects, waitingFor, _ := objective.Update(event).Crank(secretKey) // TODO handle error
-	_ = e.store.SetObjective(updatedProtocol)                                               // TODO handle error
+	updatedObjective, _ := objective.Update(event)                                    // TODO handle error
+	crankedObjective, sideEffects, waitingFor, _ := updatedObjective.Crank(secretKey) // TODO handle error
+	_ = e.store.SetObjective(crankedObjective)                                        // TODO handle error
 	e.executeSideEffects(sideEffects)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
 }

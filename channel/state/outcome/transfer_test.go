@@ -13,19 +13,19 @@ func TestComputeTransferEffectsAndInteractions(t *testing.T) {
 	initialHoldings := *big.NewInt(100)
 
 	var initialAllocations = Allocations{{ // [{Alice: 2}]
-		Destination:    common.HexToHash("0x0a"),
+		Destination:    types.Destination(common.HexToHash("0x0a")),
 		Amount:         big.NewInt(2),
 		AllocationType: 0,
 		Metadata:       make(types.Bytes, 0)}}
 
 	var expectedNewAllocations = Allocations{{ // [{Alice: 0}]
-		Destination:    common.HexToHash("0x0a"),
+		Destination:    types.Destination(common.HexToHash("0x0a")),
 		Amount:         big.NewInt(0),
 		AllocationType: 0,
 		Metadata:       make(types.Bytes, 0)}}
 
 	var expectedExitAllocations = Allocations{{ // [{Alice: 2}]
-		Destination:    common.HexToHash("0x0a"),
+		Destination:    types.Destination(common.HexToHash("0x0a")),
 		Amount:         big.NewInt(2),
 		AllocationType: 0,
 		Metadata:       make(types.Bytes, 0)}}
