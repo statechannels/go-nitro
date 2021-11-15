@@ -200,7 +200,7 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 		var effects = make([]string, 0) // TODO loop over assets
 		effects = append(effects, FundOnChainEffect(updated.ChannelId, `eth`, amountToDeposit))
 		if len(effects) > 0 {
-			// todo: effects as SideEffects{}
+			// todo: convert effects to SideEffects{} and return
 			return updated, NoSideEffects, WaitingForCompleteFunding, nil
 		}
 	}
@@ -211,7 +211,9 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 
 	// Postfunding
 	if !updated.PostFundSigned[updated.MyIndex] {
-		// todo: []string{SignPostFundEffect(updated.ChannelId)} as SideEffects{}
+		// TODO sign the post fund state
+		// TODO update updated.PostFundSigned[updated.MyIndex]
+		// TODO prepare a message for peers with signature, return as SideEffects{}
 		return updated, NoSideEffects, WaitingForCompletePostFund, nil
 	}
 
@@ -220,7 +222,6 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 	}
 
 	// Completion
-	// todo: []string{"Objective" + s.ChannelId.String() + "complete"} as SideEffects{}
 	return updated, NoSideEffects, WaitingForNothing, nil
 }
 
