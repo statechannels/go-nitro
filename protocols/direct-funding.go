@@ -59,10 +59,11 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 	if err != nil {
 		return init, err
 	}
+	init.ParticipantIndex = make(map[types.Address]uint)
 	for i, v := range initialState.Participants {
 		init.ParticipantIndex[v] = uint(i)
 	}
-
+	init.ExpectedStates = make([]state.State, 2)
 	init.ExpectedStates[0] = initialState
 
 	fixed := initialState.FixedPart()
