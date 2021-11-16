@@ -19,7 +19,7 @@ func (h Funds) String() string {
 	}
 	var s string = "{"
 	for asset, amount := range h {
-		s += "[" + asset.Hex() + "," + amount.Text(64) + "]"
+		s += "[" + asset.Hex() + "," + amount.Text(10) + "]"
 	}
 	s = s + "}"
 	return s
