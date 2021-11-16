@@ -12,15 +12,8 @@ import (
 type (
 	// State holds all of the data describing the state of a channel
 	State struct {
-		ChainId           *types.Uint256
-		Participants      []types.Address
-		ChannelNonce      *types.Uint256 // uint48 in solidity
-		AppDefinition     types.Address
-		ChallengeDuration *types.Uint256
-		AppData           types.Bytes
-		Outcome           outcome.Exit
-		TurnNum           *types.Uint256
-		IsFinal           bool
+		FixedPart
+		VariablePart
 	}
 
 	// FixedPart contains the subset of State data which does not change during a state update.
@@ -36,20 +29,21 @@ type (
 
 	// VariablePart contains the subset of State data which can change with each state update.
 	VariablePart struct {
-		AppData        types.Bytes
-		EncodedOutcome types.Bytes
+		AppData types.Bytes
+		Outcome outcome.Exit
+		TurnNum *types.Uint256
+		IsFinal bool
 	}
 )
 
-// FixedPart returns the FixedPart of the State
-func (s State) FixedPart() FixedPart {
+// GetFixedPart returns the FixedPart of the State
+func (s State) GetFixedPart() FixedPart {
 	return FixedPart{s.ChainId, s.Participants, s.ChannelNonce, s.AppDefinition, s.ChallengeDuration}
 }
 
-// VariablePart returns the VariablePart of the State
-func (s State) VariablePart() VariablePart {
-	encodedOutcome, _ := s.Outcome.Encode() // TODO here we are swallowing the error
-	return VariablePart{s.AppData, encodedOutcome}
+// GetVariablePart returns the VariablePart of the State
+func (s State) GetVariablePart() VariablePart {
+	return VariablePart{s.AppData, s.Outcome, s.TurnNum, s.IsFinal}
 }
 
 // uint256 is the uint256 type for abi encoding
