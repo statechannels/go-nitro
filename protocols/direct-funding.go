@@ -103,6 +103,8 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 			init.MyDepositSafetyThreshold[assetAddress] = threshold
 			init.MyDepositTarget[assetAddress] = myShare.Add(myShare, threshold)
 		}
+	} else {
+		return init, err
 	}
 
 	init.PreFundSigned = make([]bool, len(initialState.Participants))  // NOTE initialized to (false,false,...)
