@@ -2,6 +2,7 @@ package state
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -164,4 +165,25 @@ func (s State) RecoverSigner(sig Signature) (types.Address, error) {
 		return types.Address{}, error
 	}
 	return RecoverEthereumMessageSigner(stateHash[:], sig)
+}
+
+// Clone returns a clone of the state
+func (s State) Clone() State {
+	clone := State{}
+
+	// shallow clone of fixed part
+	clone.ChainId = s.ChainId
+	clone.Participants = s.Participants
+	clone.ChannelNonce = s.ChannelNonce
+	clone.AppDefinition = s.AppDefinition
+	clone.ChallengeDuration = s.ChallengeDuration
+
+	// deep clone of variable part (incomplete)
+	clone.AppData = make(types.Bytes, 0, len(s.AppData))
+	copy(clone.AppData, s.AppData)
+	clone.Outcome = s.Outcome // consider: make this deep?
+	clone.TurnNum = new(big.Int).Set(s.TurnNum)
+	clone.IsFinal = s.IsFinal
+
+	return clone
 }

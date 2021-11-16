@@ -51,6 +51,10 @@ type DirectFundingObjectiveState struct {
 // NewDirectFundingObjectiveState initiates a DirectFundingInitialState with data calculated from
 // the supplied initialState and client address
 func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Address) (DirectFundingObjectiveState, error) {
+	if initialState.IsFinal {
+		return DirectFundingObjectiveState{}, errors.New("attempted to initiate new direct-funding objective with IsFinal == true")
+	}
+
 	var init DirectFundingObjectiveState
 	var err error
 
@@ -66,16 +70,7 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 	init.ExpectedStates = make([]state.State, 2)
 	init.ExpectedStates[0] = initialState
 
-	fixed := initialState.FixedPart()
-	init.ExpectedStates[1].ChainId = fixed.ChainId
-	init.ExpectedStates[1].Participants = fixed.Participants
-	init.ExpectedStates[1].ChannelNonce = fixed.ChannelNonce
-	init.ExpectedStates[1].AppDefinition = fixed.AppDefinition
-	init.ExpectedStates[1].ChallengeDuration = fixed.ChallengeDuration
-
-	init.ExpectedStates[1].Outcome = initialState.Outcome
-	init.ExpectedStates[1].AppData = initialState.AppData
-	init.ExpectedStates[1].IsFinal = false
+	init.ExpectedStates[1] = initialState.Clone()
 	init.ExpectedStates[1].TurnNum = big.NewInt(1)
 
 	for i, v := range initialState.Participants {
