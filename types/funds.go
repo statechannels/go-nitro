@@ -51,17 +51,25 @@ func Sum(a ...Funds) Funds {
 	return sum
 }
 
-// Equal returns true if reciever `f` and input `g` are identical.
+// Equal returns true if reciever `f` and input `g` are identical in value.
 //
-// Note that a zero-balance does NOT equal a non-balance: {[0x0a,0x00]} != {}
+// Note that a zero-balance equals a non-balance: {[0x0a,0x00],[0x0b,0x01]} == {[0x0b,0x01]}
 func (f Funds) Equal(g Funds) bool {
-	if len(f) != len(g) {
-		return false
-	}
+	return f.isMatchedBy(g) && g.isMatchedBy(f)
+}
+
+// isMatchedBy returns true if each of `f`'s non-zero asset balances is matched by the
+// same asset-balance in `g`
+func (f Funds) isMatchedBy(g Funds) bool {
+	zero := big.NewInt(0)
 
 	for asset, amount := range f {
-		if g[asset].Cmp(amount) != 0 {
-			return false
+		// only check g for non-zero f balances
+		if amount.Cmp(zero) > 0 {
+			gAmount, ok := g[asset]
+			if !ok || gAmount.Cmp(amount) != 0 {
+				return false
+			}
 		}
 	}
 
