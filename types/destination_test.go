@@ -8,8 +8,8 @@ import (
 
 func TestIsExternal(t *testing.T) {
 
-	external := Destination(common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f"))
-	internal := Destination(common.HexToHash("0x6f7123E3A80C9813eF50213A96f7123E3A80C9813eF50213ADEd0e4511CB820f"))
+	external := Destination{common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f")}
+	internal := Destination{common.HexToHash("0x6f7123E3A80C9813eF50213A96f7123E3A80C9813eF50213ADEd0e4511CB820f")}
 
 	if !external.IsExternal() {
 		t.Errorf("Received bytes %x was declared internal, when it is external", external)
@@ -28,15 +28,15 @@ func TestToAddress(t *testing.T) {
 		common.HexToAddress(`0x96f7123E3A80C9813eF50213ADEd0e4511CB820f`),
 	}
 	areExternal := []Destination{
-		Destination(common.HexToHash("0x000000000000000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
-		Destination(common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000")),
-		Destination(common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f")),
+		{common.HexToHash("0x000000000000000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")},
+		{common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000")},
+		{common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f")},
 	}
 
 	areNotExternal := []Destination{
-		Destination(common.HexToHash("0x000000000000000000000001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
-		Destination(common.HexToHash("0x100000000000000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
-		Destination(common.HexToHash("0x0000000000b0000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
+		{common.HexToHash("0x000000000000000000000001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")},
+		{common.HexToHash("0x100000000000000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")},
+		{common.HexToHash("0x0000000000b0000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")},
 	}
 
 	for i, extAddress := range areExternal {

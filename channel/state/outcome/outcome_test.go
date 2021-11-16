@@ -13,13 +13,13 @@ import (
 func TestEqualAllocations(t *testing.T) {
 
 	var a1 = Allocations{{ // [{Alice: 2}]
-		Destination:    types.Destination(common.HexToHash("0x0a")),
+		Destination:    types.Destination{Bytes32: common.HexToHash("0x0a")},
 		Amount:         big.NewInt(2),
 		AllocationType: 0,
 		Metadata:       make(types.Bytes, 0)}}
 
 	var a2 = Allocations{{ // [{Alice: 2}]
-		Destination:    types.Destination(common.HexToHash("0x0a")),
+		Destination:    types.Destination{Bytes32: common.HexToHash("0x0a")},
 		Amount:         big.NewInt(2),
 		AllocationType: 0,
 		Metadata:       make(types.Bytes, 0)}}
@@ -39,7 +39,7 @@ func TestEqualExits(t *testing.T) {
 		Asset:    common.HexToAddress("0x00"),
 		Metadata: make(types.Bytes, 0),
 		Allocations: Allocations{{
-			Destination:    types.Destination(common.HexToHash("0x0a")),
+			Destination:    types.Destination{Bytes32: common.HexToHash("0x0a")},
 			Amount:         big.NewInt(2),
 			AllocationType: 0,
 			Metadata:       make(types.Bytes, 0)}},
@@ -50,7 +50,7 @@ func TestEqualExits(t *testing.T) {
 		Asset:    common.HexToAddress("0x00"),
 		Metadata: make(types.Bytes, 0),
 		Allocations: Allocations{{
-			Destination:    types.Destination(common.HexToHash("0x0a")),
+			Destination:    types.Destination{Bytes32: common.HexToHash("0x0a")},
 			Amount:         big.NewInt(2),
 			AllocationType: 0,
 			Metadata:       make(types.Bytes, 0)}},
@@ -70,7 +70,7 @@ func TestEqualExits(t *testing.T) {
 			Asset:    common.HexToAddress("0x01"), // distinct Asset
 			Metadata: make(types.Bytes, 0),
 			Allocations: Allocations{{
-				Destination:    types.Destination(common.HexToHash("0x0a")),
+				Destination:    types.Destination{Bytes32: common.HexToHash("0x0a")},
 				Amount:         big.NewInt(2),
 				AllocationType: 0,
 				Metadata:       make(types.Bytes, 0)}},
@@ -79,7 +79,7 @@ func TestEqualExits(t *testing.T) {
 			Asset:    common.HexToAddress("0x00"),
 			Metadata: []byte{1}, // distinct metadata
 			Allocations: Allocations{{
-				Destination:    types.Destination(common.HexToHash("0x0a")),
+				Destination:    types.Destination{Bytes32: common.HexToHash("0x0a")},
 				Amount:         big.NewInt(2),
 				AllocationType: 0,
 				Metadata:       make(types.Bytes, 0)}},
@@ -88,7 +88,7 @@ func TestEqualExits(t *testing.T) {
 			Asset:    common.HexToAddress("0x00"),
 			Metadata: make(types.Bytes, 0),
 			Allocations: Allocations{{
-				Destination:    types.Destination(common.HexToHash("0x0b")), // distinct destination
+				Destination:    types.Destination{Bytes32: common.HexToHash("0x0b")}, // distinct destination
 				Amount:         big.NewInt(2),
 				AllocationType: 0,
 				Metadata:       make(types.Bytes, 0)}},
@@ -97,7 +97,7 @@ func TestEqualExits(t *testing.T) {
 			Asset:    common.HexToAddress("0x00"),
 			Metadata: make(types.Bytes, 0),
 			Allocations: Allocations{{
-				Destination:    types.Destination(common.HexToHash("0x0a")),
+				Destination:    types.Destination{Bytes32: common.HexToHash("0x0a")},
 				Amount:         big.NewInt(3), // distinct amount
 				AllocationType: 0,
 				Metadata:       make(types.Bytes, 0)}},
@@ -106,7 +106,7 @@ func TestEqualExits(t *testing.T) {
 			Asset:    common.HexToAddress("0x00"),
 			Metadata: make(types.Bytes, 0),
 			Allocations: Allocations{{
-				Destination:    types.Destination(common.HexToHash("0x0a")),
+				Destination:    types.Destination{Bytes32: common.HexToHash("0x0a")},
 				Amount:         big.NewInt(2),
 				AllocationType: 1, // distinct allocationType
 				Metadata:       make(types.Bytes, 0)}},
@@ -115,7 +115,7 @@ func TestEqualExits(t *testing.T) {
 			Asset:    common.HexToAddress("0x00"),
 			Metadata: make(types.Bytes, 0),
 			Allocations: Allocations{{
-				Destination:    types.Destination(common.HexToHash("0x0a")),
+				Destination:    types.Destination{Bytes32: common.HexToHash("0x0a")},
 				Amount:         big.NewInt(2),
 				AllocationType: 0,
 				Metadata:       []byte{1}}}, // distinct metadata
@@ -131,7 +131,7 @@ func TestEqualExits(t *testing.T) {
 
 var zeroBytes = []byte{}
 var testAllocations = Allocations{{
-	Destination:    types.Destination(common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f")),
+	Destination:    types.Destination{Bytes32: common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f")},
 	Amount:         big.NewInt(1),
 	AllocationType: 0,
 	Metadata:       zeroBytes}}

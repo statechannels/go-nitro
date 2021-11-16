@@ -6,7 +6,7 @@ import (
 
 // IsExternal returns true if the destination has the 12 leading bytes as zero, false otherwise
 func (d Destination) IsExternal() bool {
-	for _, b := range d[0:12] {
+	for _, b := range d.Bytes32[0:12] {
 		if b != 0 {
 			return false
 		}
@@ -22,16 +22,8 @@ func (d Destination) ToAddress() (Address, error) {
 	}
 
 	address := Address{}
-	for i, b := range d[12:] {
+	for i, b := range d.Bytes32[12:] {
 		address[i] = b
 	}
 	return address, nil
-}
-
-func (d Destination) String() string {
-	return Bytes32(d).String()
-}
-
-func (d Destination) Bytes() []byte {
-	return Bytes32(d).Bytes()
 }

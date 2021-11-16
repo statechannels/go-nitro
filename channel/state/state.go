@@ -75,7 +75,7 @@ func (s State) ChannelId() (types.Destination, error) {
 		{Type: uint256},
 	}.Pack(s.ChainId, s.Participants, s.ChannelNonce)
 
-	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
+	channelId := types.Destination{Bytes32: crypto.Keccak256Hash(encodedChannelPart)}
 
 	if error == nil && channelId.IsExternal() {
 		error = errors.New("channelId is an external destination") // This is extremely unlikely
