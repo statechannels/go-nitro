@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -79,32 +78,28 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 		}
 	}
 
-	if channelOutcome, err := outcome.Decode(initialState.VariablePart().EncodedOutcome); err == nil {
-		init.FullyFundedThreshold = types.Funds{}
+	init.FullyFundedThreshold = types.Funds{}
 
-		for _, assetExit := range channelOutcome {
-			assetAddress := assetExit.Asset
-			sum := big.NewInt(0)
-			threshold := big.NewInt(0)
-			myShare := big.NewInt(0)
+	for _, assetExit := range initialState.Outcome {
+		assetAddress := assetExit.Asset
+		sum := big.NewInt(0)
+		threshold := big.NewInt(0)
+		myShare := big.NewInt(0)
 
-			for i, allocation := range assetExit.Allocations {
-				sum = sum.Add(sum, allocation.Amount)
+		for i, allocation := range assetExit.Allocations {
+			sum = sum.Add(sum, allocation.Amount)
 
-				if i < int(init.MyIndex) {
-					threshold = threshold.Add(threshold, allocation.Amount)
-				} else if i == int(init.MyIndex) { // NOTE: we are requiring that participants[i] owns allocations[i] (for every asset)
-					// TODO: revisit this and consider relaixing the assumption, e.g. myAddress could be something akin to myInterests, which could include internal destinations
-					myShare = myShare.Add(myShare, allocation.Amount)
-				}
+			if i < int(init.MyIndex) {
+				threshold = threshold.Add(threshold, allocation.Amount)
+			} else if i == int(init.MyIndex) { // NOTE: we are requiring that participants[i] owns allocations[i] (for every asset)
+				// TODO: revisit this and consider relaixing the assumption, e.g. myAddress could be something akin to myInterests, which could include internal destinations
+				myShare = myShare.Add(myShare, allocation.Amount)
 			}
-
-			init.FullyFundedThreshold[assetAddress] = sum
-			init.MyDepositSafetyThreshold[assetAddress] = threshold
-			init.MyDepositTarget[assetAddress] = myShare.Add(myShare, threshold)
 		}
-	} else {
-		return init, err
+
+		init.FullyFundedThreshold[assetAddress] = sum
+		init.MyDepositSafetyThreshold[assetAddress] = threshold
+		init.MyDepositTarget[assetAddress] = myShare.Add(myShare, threshold)
 	}
 
 	init.PreFundSigned = make([]bool, len(initialState.Participants))  // NOTE initialized to (false,false,...)
