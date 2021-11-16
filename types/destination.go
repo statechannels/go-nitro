@@ -17,15 +17,15 @@ func (d Destination) IsExternal() bool {
 // ToAddress returns a types.Address encoded external destination, or an error if
 // destination is not an external address
 func (d Destination) ToAddress() (Address, error) {
-	if d.IsExternal() {
-		address := Address{}
-		for i, b := range d[12:] {
-			address[i] = b
-		}
-		return address, nil
+	if !d.IsExternal() {
+		return Address{}, errors.New("destination is not an external address")
 	}
 
-	return Address{}, errors.New("destination is not external")
+	address := Address{}
+	for i, b := range d[12:] {
+		address[i] = b
+	}
+	return address, nil
 }
 
 func (d Destination) String() string {
