@@ -57,7 +57,7 @@ func TestEqual(t *testing.T) {
 		}
 	}
 
-	equalPairs := []Pair{
+	equalPairs := []fundsPair{
 		{testData["a"], testData["b"]},
 		{testData["a"], testData["e"]},
 	}
@@ -70,7 +70,7 @@ func TestEqual(t *testing.T) {
 		}
 	}
 
-	unequalPairs := []Pair{
+	unequalPairs := []fundsPair{
 		{testData["a"], testData["c"]},
 		{testData["a"], testData["d"]},
 		{testData["a"], testData["ab"]},
@@ -86,7 +86,7 @@ func TestEqual(t *testing.T) {
 
 }
 
-type Pair struct {
+type fundsPair struct {
 	a Funds
 	b Funds
 }
