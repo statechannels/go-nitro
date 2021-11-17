@@ -17,7 +17,7 @@ func TestNew(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	s, _ := NewDirectFundingObjectiveState(state.TestState, state.TestState.Participants[0])
 	e := ObjectiveEvent{
-		ChannelId: types.Bytes32{},
+		ChannelId: types.Destination{},
 	}
 	_, err := s.Update(e)
 	if err == nil {
@@ -26,7 +26,7 @@ func TestUpdate(t *testing.T) {
 
 	e.ChannelId = s.ChannelId // Fix to correct channelId
 	e.Sigs = make(map[types.Bytes32]state.Signature)
-	e.Sigs[e.ChannelId] = state.Signature{} // Dummmy signature on dummy statehash
+	e.Sigs[types.Bytes32(e.ChannelId)] = state.Signature{} // Dummmy signature on dummy statehash
 	_, err = s.Update(e)
 	if err != nil {
 		t.Error(`Useless signature -- expected a noop but caught an error`)
