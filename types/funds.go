@@ -55,19 +55,19 @@ func Sum(a ...Funds) Funds {
 //
 // Note that a zero-balance equals a non-balance: {[0x0a,0x00],[0x0b,0x01]} == {[0x0b,0x01]}
 func (f Funds) Equal(g Funds) bool {
-	return f.isMatchedBy(g) && g.isMatchedBy(f)
+	return f.canAfford(g) && g.canAfford(f)
 }
 
-// isMatchedBy returns true if each of `f`'s non-zero asset balances is matched by the
-// same asset-balance in `g`
-func (f Funds) isMatchedBy(g Funds) bool {
+// canAfford returns true if each of `g`'s non-zero asset balances is matched
+// or exceeded by the same asset-balance in `f`
+func (f Funds) canAfford(g Funds) bool {
 	zero := big.NewInt(0)
 
-	for asset, amount := range f {
-		// only check g for non-zero f balances
+	for asset, amount := range g {
+		// only check f for non-zero g balances
 		if amount.Cmp(zero) > 0 {
-			gAmount, ok := g[asset]
-			if !ok || gAmount.Cmp(amount) != 0 {
+			fAmount, ok := f[asset]
+			if !ok || fAmount.Cmp(amount) == -1 {
 				return false
 			}
 		}
