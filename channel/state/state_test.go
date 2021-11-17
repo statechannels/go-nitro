@@ -8,15 +8,15 @@ import (
 )
 
 // The following constants are generated from our ts nitro-protocol package
-var correctChannelId = common.HexToHash(`b79270eb4cf4d11dcd5cf44c6337b1c9e4730dc3c26f022567bcf2eb63557a72`)
-var correctStateHash = common.HexToHash(`3e460a311caf589f1cf80036adfd092d05a30ff72f234918c5cdbc6c4333343a`)
+var correctChannelId = common.HexToHash(`cd578811171bb0291c7dc59081b9a910960b78001dece1954c00da9d8c12a925`)
+var correctStateHash = common.HexToHash(`e77a7a870087be40371b8c9b9f50a7c0e410387ce7ea8a22c9c61ea837277420`)
 var signerPrivateKey = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
 var signerAddress = common.HexToAddress(`F5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)
 var correctSignature = Signature{
-	common.Hex2Bytes(`59d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
-	common.Hex2Bytes(`32274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),
-	byte(1), // ethers-js gives v:28, which is a legacy representation. and recoveryParam: 1 which corresponds to v here (i.e. it is the normalized version)
-} // ethers "joinSignature" gives 0x59d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d932274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa1c
+	common.Hex2Bytes(`ae94c67295f65a8de360e80aa50cba3988810239178f03d54e4dd9f95860c182`),
+	common.Hex2Bytes(`143fd9bfc0438313fbf50fcaad82be25f1a9d536bf7efe951f20ced3f721694c`),
+	byte(0),
+}
 
 func TestChannelId(t *testing.T) {
 	want := correctChannelId
