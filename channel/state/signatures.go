@@ -11,9 +11,9 @@ import (
 
 // Signature is an ECDSA signature
 type Signature struct {
-	r []byte
-	s []byte
-	v byte
+	R []byte
+	S []byte
+	V byte
 }
 
 // SignEthereumMessage accepts an arbitrary message, prepends a known message,
@@ -59,16 +59,16 @@ func computeEthereumSignedMessageDigest(message []byte) []byte {
 
 // splitSignature takes a 65 bytes signature in the [R||S||V] format and returns the individual components
 func splitSignature(concatenatedSignature []byte) (signature Signature) {
-	signature.r = concatenatedSignature[:32]
-	signature.s = concatenatedSignature[32:64]
-	signature.v = concatenatedSignature[64]
+	signature.R = concatenatedSignature[:32]
+	signature.S = concatenatedSignature[32:64]
+	signature.V = concatenatedSignature[64]
 	return
 }
 
 // joinSignature takes a Signature and returns a 65 byte concatenatedSignature in the [R||S||V] format
 func joinSignature(signature Signature) (concatenatedSignature []byte) {
-	concatenatedSignature = append(concatenatedSignature, signature.r...)
-	concatenatedSignature = append(concatenatedSignature, signature.s...)
-	concatenatedSignature = append(concatenatedSignature, signature.v)
+	concatenatedSignature = append(concatenatedSignature, signature.R...)
+	concatenatedSignature = append(concatenatedSignature, signature.S...)
+	concatenatedSignature = append(concatenatedSignature, signature.V)
 	return
 }
