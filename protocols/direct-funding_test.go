@@ -36,11 +36,30 @@ func TestUpdate(t *testing.T) {
 	e.Sigs[dummyStateHash] = dummySignature // Dummmy signature on dummy statehash
 	_, err = s.Update(e)
 	if err != nil {
-		t.Error(`Useless signature -- expected a noop but caught an error:`, err)
+		t.Error(`dummy signature -- expected a noop but caught an error:`, err)
 	}
 	e.Sigs[dummyStateHash] = state.Signature{} // Faulty Signature on dummy statehash
 	_, err = s.Update(e)
 	if err != nil {
 		t.Error(`faulty signature -- expected a noop but caught an error:`, err)
 	}
+
+	// TODO
+	// correct signature by nonparticipant on a dummy state : we want this to be ignored
+	// correct signature by participant on a dummy state : we want this to be ignored
+
+	// correct signature by a participant on a relevant state : we ideally want this to be accepted regardless of the enumerable state of the objective !
+	stateToSign := s.ExpectedStates[0]
+	stateHash, err := stateToSign.Hash()
+	correctSignatureByParticipant, err := stateToSign.Sign([]byte(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
+	e.Sigs[stateHash] = correctSignatureByParticipant
+	updated, err := s.Update(e)
+	if err != nil {
+		t.Error(err)
+	}
+	if updated.(DirectFundingObjectiveState).PreFundSigned[0] != true {
+		t.Error(err)
+
+	} // gah this is a problem
+
 }
