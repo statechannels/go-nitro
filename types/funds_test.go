@@ -8,6 +8,16 @@ import (
 )
 
 var testData map[string]Funds = map[string]Funds{
+	"blank": {},
+	"zeros": {
+		common.HexToAddress("0x00"): big.NewInt(0),
+		common.HexToAddress("0x01"): big.NewInt(0),
+		common.HexToAddress("0x02"): big.NewInt(0),
+		common.HexToAddress("0x03"): big.NewInt(0),
+		common.HexToAddress("0x0a"): big.NewInt(0),
+		common.HexToAddress("0x0b"): big.NewInt(0),
+		common.HexToAddress("0x0c"): big.NewInt(0),
+	},
 	"a": {
 		common.HexToAddress("0x00"): big.NewInt(1),
 	},
@@ -23,6 +33,9 @@ var testData map[string]Funds = map[string]Funds{
 	"e": {
 		common.HexToAddress("0x00"):  big.NewInt(1),
 		common.HexToAddress("0xabc"): big.NewInt(0),
+	},
+	"f": {
+		common.HexToAddress("0x00"): big.NewInt(2),
 	},
 	// manually calculated sums
 	"ab": {
