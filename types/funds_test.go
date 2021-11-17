@@ -60,6 +60,74 @@ func TestSum(t *testing.T) {
 
 }
 
+func TestCanAfford(t *testing.T) {
+	expectedButDidNot := "expected %s to afford %s, but it didn't"
+	expectedNotButDid := "expected %s to not afford %s, but it did"
+
+	// Check self-affordance, affordance of blank, affordance of zeros
+	for _, f := range testData {
+		canAfford := f.canAfford(f)
+
+		if !canAfford {
+			t.Errorf(expectedButDidNot, f, f)
+		}
+
+		canAffordBlank := f.canAfford(testData["blank"])
+
+		if !canAffordBlank {
+			t.Errorf(expectedButDidNot, f, testData["blank"])
+		}
+
+		canAffordZeros := f.canAfford(testData["zeros"])
+
+		if !canAffordZeros {
+			t.Errorf(expectedButDidNot, f, testData["zeros"])
+		}
+	}
+
+	canAffordPairs := []fundsPair{
+		{testData["a"], testData["b"]}, // equal funds
+		{testData["b"], testData["a"]},
+		{testData["f"], testData["a"]}, // more of single asset
+		{testData["ab"], testData["a"]},
+		{testData["ab"], testData["b"]},
+		{testData["abc"], testData["b"]}, // mixed assets, enough of "relevant asset(s)"
+		{testData["abcd"], testData["b"]},
+		{testData["abcd"], testData["ab"]},
+		{testData["abcd"], testData["abc"]},
+	}
+
+	for _, p := range canAffordPairs {
+		canAfford := p.a.canAfford(p.b)
+
+		if !canAfford {
+			t.Errorf(expectedButDidNot, p.a, p.b)
+		}
+	}
+
+	cannotAffordPairs := []fundsPair{
+		{testData["zeros"], testData["a"]}, // zero cannot afford things
+		{testData["blank"], testData["a"]}, // blank cannot afford things
+		{testData["a"], testData["c"]},     // different assets
+		{testData["c"], testData["a"]},
+		{testData["a"], testData["f"]}, // less of single asset
+		{testData["a"], testData["ab"]},
+		{testData["b"], testData["ab"]},
+		{testData["b"], testData["abc"]}, // mixed assets, less of "relevant asset(s)"
+		{testData["a"], testData["abcd"]},
+		{testData["ab"], testData["abcd"]},
+		{testData["abc"], testData["abcd"]},
+	}
+
+	for _, p := range cannotAffordPairs {
+		canAfford := p.a.canAfford(p.b)
+
+		if canAfford {
+			t.Errorf(expectedNotButDid, p.a, p.b)
+		}
+	}
+}
+
 func TestEqual(t *testing.T) {
 	// Check self-equality
 	for _, f := range testData {
