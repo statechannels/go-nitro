@@ -139,8 +139,8 @@ func TestEqual(t *testing.T) {
 	}
 
 	equalPairs := []fundsPair{
+		{testData["zeros"], testData["blank"]},
 		{testData["a"], testData["b"]},
-		{testData["a"], testData["e"]},
 	}
 
 	for _, p := range equalPairs {
@@ -155,6 +155,9 @@ func TestEqual(t *testing.T) {
 		{testData["a"], testData["c"]},
 		{testData["a"], testData["d"]},
 		{testData["a"], testData["ab"]},
+		{testData["blank"], testData["a"]},
+		{testData["zeros"], testData["a"]},
+		{testData["abc"], testData["abcd"]},
 	}
 
 	for _, p := range unequalPairs {
