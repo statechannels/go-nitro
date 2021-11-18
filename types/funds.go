@@ -42,8 +42,8 @@ func (h Funds) Add(a ...Funds) Funds {
 func Sum(a ...Funds) Funds {
 	sum := Funds{}
 
-	for _, holdings := range a {
-		for asset, amount := range holdings {
+	for _, funds := range a {
+		for asset, amount := range funds {
 			if sum[asset] == nil {
 				sum[asset] = big.NewInt(0)
 			}
