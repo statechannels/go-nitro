@@ -140,6 +140,11 @@ func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, er
 
 	for _, sig := range event.Sigs {
 		var turnNum int
+		// TODO the following code can result in a valid, relevant signature being discarded.
+		// It arguably violates the princpile that objectives should update independently of their current state.
+		// If a peer sends me a postfund signature before I have all of the prefund signatures
+		// An alternative is to try and recover the signature against *both* turn numbers (in turn, say)
+		// This would imply a bit of a performance hit in some cases.
 		if updated.prefundComplete() {
 			turnNum = 1
 		} else {
