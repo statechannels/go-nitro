@@ -90,6 +90,37 @@ func TestSum(t *testing.T) {
 	}
 }
 
+func TestAdd(t *testing.T) {
+	for _, f := range testData {
+		withZeros := f.Add(testData["zeros"])
+
+		if !withZeros.Equal(f) {
+			t.Errorf("expected %s + %s to equal %s, but it did not", f, testData["zeros"], withZeros)
+		}
+
+		withBlanks := f.Add(testData["blanks"])
+
+		if !withBlanks.Equal(f) {
+			t.Errorf("expected %s + %s to equal %s, but it did not", f, testData["zeros"], withZeros)
+		}
+	}
+
+	equalPairs := []fundsPair{
+		{testData["a"].Add(testData["b"]),
+			testData["ab"]},
+		{testData["a"].Add(testData["b"], testData["c"]),
+			testData["abc"]},
+		{testData["a"].Add(testData["b"]).Add(testData["c"]).Add(testData["d"]),
+			testData["abcd"]},
+	}
+
+	for i, p := range equalPairs {
+		if !p.a.Equal(p.b) {
+			t.Errorf("test_sum_%d: expected %s to equal %s, but it did not", i, p.a, p.b)
+		}
+	}
+}
+
 func TestCanAfford(t *testing.T) {
 	expectedButDidNot := "expected %s to afford %s, but it didn't"
 	expectedNotButDid := "expected %s to not afford %s, but it did"
