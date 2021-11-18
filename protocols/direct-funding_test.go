@@ -1,6 +1,7 @@
 package protocols
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -74,6 +75,18 @@ func TestUpdate(t *testing.T) {
 		t.Error(err)
 	}
 	if updated.(DirectFundingObjectiveState).PreFundSigned[0] != true {
+		t.Error(`Objective data not updated as expected`)
+	}
+
+	// Finally, add some Holdings information to the event
+	// Updating the objective with this event should overwrite the holdings that are stored
+	e.Holdings = make(map[common.Address]*big.Int)
+	e.Holdings[common.Address{}] = big.NewInt(3)
+	updated, err = s.Update(e)
+	if err != nil {
+		t.Error(err)
+	}
+	if updated.(DirectFundingObjectiveState).OnChainHolding[common.Address{}].Cmp(big.NewInt(3)) != 0 {
 		t.Error(`Objective data not updated as expected`)
 	}
 
