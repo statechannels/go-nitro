@@ -8,6 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
 	_, err := NewDirectFundingObjectiveState(state.TestState, state.TestState.Participants[0])
 	if err != nil {
@@ -15,6 +16,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
+// Construct various variables for use in TestUpdate
 var s, _ = NewDirectFundingObjectiveState(state.TestState, state.TestState.Participants[0])
 var dummySignature = state.Signature{
 	R: common.Hex2Bytes(`49d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
@@ -24,16 +26,18 @@ var dummySignature = state.Signature{
 var dummyStateHash = common.Hash{}
 var stateToSign state.State = s.ExpectedStates[0]
 var stateHash, _ = stateToSign.Hash()
-var correctSignatureByParticipant, _ = stateToSign.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
+var privateKeyOfParticipant0 = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
+var correctSignatureByParticipant, _ = stateToSign.Sign(privateKeyOfParticipant0)
 
 func TestUpdate(t *testing.T) {
 	// First, prepare a new objective using the constructor:
 	s, _ := NewDirectFundingObjectiveState(state.TestState, state.TestState.Participants[0])
+
 	// Next, prepare an event with a mismatched channelId
 	e := ObjectiveEvent{
 		ChannelId: types.Destination{},
 	}
-	// Assert that this should return an error
+	// Assert that Updating the objective with such an event returns an error
 	// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
 	_, err := s.Update(e)
 	if err == nil {
@@ -42,7 +46,7 @@ func TestUpdate(t *testing.T) {
 
 	// Now modify the event to give it the "correct" channelId (matching the objective),
 	// and make a new Sigs map.
-	// This prepares us for the rest of the test.
+	// This prepares us for the rest of the test. We will reuse the same event multiple times
 	e.ChannelId = s.ChannelId
 	e.Sigs = make(map[types.Bytes32]state.Signature)
 
