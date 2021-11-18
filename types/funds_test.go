@@ -57,20 +57,6 @@ var testData map[string]Funds = map[string]Funds{
 }
 
 func TestSum(t *testing.T) {
-	for _, f := range testData {
-		withZeros := Sum(f, testData["zeros"])
-
-		if !withZeros.Equal(f) {
-			t.Errorf("expected sum of %s and %s to equal %s, but it did not", f, testData["zeros"], withZeros)
-		}
-
-		withBlanks := Sum(f, testData["blanks"])
-
-		if !withBlanks.Equal(f) {
-			t.Errorf("expected sum of %s and %s to equal %s, but it did not", f, testData["zeros"], withZeros)
-		}
-	}
-
 	equalPairs := []fundsPair{
 		{Sum(testData["a"],
 			testData["b"]), testData["ab"]},
@@ -83,6 +69,12 @@ func TestSum(t *testing.T) {
 			testData["d"]), testData["abcd"]},
 	}
 
+	// f == Sum(f, zeros), f == Sum(f, blank)
+	for _, f := range testData {
+		equalPairs = append(equalPairs, fundsPair{f, Sum(f, testData["zeros"])})
+		equalPairs = append(equalPairs, fundsPair{f, Sum(f, testData["blank"])})
+	}
+
 	for i, p := range equalPairs {
 		if !p.a.Equal(p.b) {
 			t.Errorf("test_sum_%d: expected %s to equal %s, but it did not", i, p.a, p.b)
@@ -91,20 +83,6 @@ func TestSum(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	for _, f := range testData {
-		withZeros := f.Add(testData["zeros"])
-
-		if !withZeros.Equal(f) {
-			t.Errorf("expected %s + %s to equal %s, but it did not", f, testData["zeros"], withZeros)
-		}
-
-		withBlanks := f.Add(testData["blanks"])
-
-		if !withBlanks.Equal(f) {
-			t.Errorf("expected %s + %s to equal %s, but it did not", f, testData["zeros"], withZeros)
-		}
-	}
-
 	equalPairs := []fundsPair{
 		{testData["a"].Add(testData["b"]),
 			testData["ab"]},
@@ -112,6 +90,12 @@ func TestAdd(t *testing.T) {
 			testData["abc"]},
 		{testData["a"].Add(testData["b"]).Add(testData["c"]).Add(testData["d"]),
 			testData["abcd"]},
+	}
+
+	// f == f.Add(zeros), f == f.Add(blanks)
+	for _, f := range testData {
+		equalPairs = append(equalPairs, fundsPair{f, f.Add(testData["zeros"])})
+		equalPairs = append(equalPairs, fundsPair{f, f.Add(testData["blank"])})
 	}
 
 	for i, p := range equalPairs {
@@ -122,30 +106,6 @@ func TestAdd(t *testing.T) {
 }
 
 func TestCanAfford(t *testing.T) {
-	expectedButDidNot := "expected %s to afford %s, but it didn't"
-	expectedNotButDid := "expected %s to not afford %s, but it did"
-
-	// Check self-affordance, affordance of blank, affordance of zeros
-	for _, f := range testData {
-		canAfford := f.canAfford(f)
-
-		if !canAfford {
-			t.Errorf(expectedButDidNot, f, f)
-		}
-
-		canAffordBlank := f.canAfford(testData["blank"])
-
-		if !canAffordBlank {
-			t.Errorf(expectedButDidNot, f, testData["blank"])
-		}
-
-		canAffordZeros := f.canAfford(testData["zeros"])
-
-		if !canAffordZeros {
-			t.Errorf(expectedButDidNot, f, testData["zeros"])
-		}
-	}
-
 	canAffordPairs := []fundsPair{
 		{testData["a"], testData["b"]}, // equal funds
 		{testData["b"], testData["a"]},
@@ -158,11 +118,18 @@ func TestCanAfford(t *testing.T) {
 		{testData["abcd"], testData["abc"]},
 	}
 
+	// Check self-affordance, affordance of blank, affordance of zeros
+	for _, f := range testData {
+		canAffordPairs = append(canAffordPairs, fundsPair{f, f})
+		canAffordPairs = append(canAffordPairs, fundsPair{f, testData["blank"]})
+		canAffordPairs = append(canAffordPairs, fundsPair{f, testData["zeros"]})
+	}
+
 	for _, p := range canAffordPairs {
 		canAfford := p.a.canAfford(p.b)
 
 		if !canAfford {
-			t.Errorf(expectedButDidNot, p.a, p.b)
+			t.Errorf("expected %s to afford %s, but it didn't", p.a, p.b)
 		}
 	}
 
@@ -184,24 +151,20 @@ func TestCanAfford(t *testing.T) {
 		canAfford := p.a.canAfford(p.b)
 
 		if canAfford {
-			t.Errorf(expectedNotButDid, p.a, p.b)
+			t.Errorf("expected %s to not afford %s, but it did", p.a, p.b)
 		}
 	}
 }
 
 func TestEqual(t *testing.T) {
-	// Check self-equality
-	for _, f := range testData {
-		equal := f.Equal(f)
-
-		if !equal {
-			t.Errorf("expected %s to equal %s, but it didn't", f, f)
-		}
-	}
-
 	equalPairs := []fundsPair{
 		{testData["zeros"], testData["blank"]},
 		{testData["a"], testData["b"]},
+	}
+
+	// Check self-equality
+	for _, f := range testData {
+		equalPairs = append(equalPairs, fundsPair{f, f})
 	}
 
 	for _, p := range equalPairs {
