@@ -1,6 +1,7 @@
 package protocols
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -51,15 +52,22 @@ func TestUpdate(t *testing.T) {
 	// correct signature by a participant on a relevant state : we ideally want this to be accepted regardless of the enumerable state of the objective !
 	stateToSign := s.ExpectedStates[0]
 	stateHash, err := stateToSign.Hash()
-	correctSignatureByParticipant, err := stateToSign.Sign([]byte(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
+	if err != nil {
+		t.Error(err)
+	}
+	correctSignatureByParticipant, err := stateToSign.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
+	fmt.Println(correctSignatureByParticipant)
+	if err != nil {
+		t.Error(err)
+	}
 	e.Sigs[stateHash] = correctSignatureByParticipant
 	updated, err := s.Update(e)
 	if err != nil {
 		t.Error(err)
 	}
 	if updated.(DirectFundingObjectiveState).PreFundSigned[0] != true {
-		t.Error(err)
+		fmt.Printf("%+v\n", updated)
+		t.Error(`Objective data not updated as expected`)
 
-	} // gah this is a problem
-
+	}
 }
