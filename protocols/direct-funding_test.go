@@ -1,7 +1,6 @@
 package protocols
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -56,7 +55,7 @@ func TestUpdate(t *testing.T) {
 		t.Error(err)
 	}
 	correctSignatureByParticipant, err := stateToSign.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
-	fmt.Println(correctSignatureByParticipant)
+	t.Log(correctSignatureByParticipant)
 	if err != nil {
 		t.Error(err)
 	}
@@ -66,8 +65,10 @@ func TestUpdate(t *testing.T) {
 		t.Error(err)
 	}
 	if updated.(DirectFundingObjectiveState).PreFundSigned[0] != true {
-		fmt.Printf("%+v\n", updated)
+		t.Logf("%+v\n", updated)
 		t.Error(`Objective data not updated as expected`)
 
 	}
+	t.Logf("%+v\n", updated)
+
 }
