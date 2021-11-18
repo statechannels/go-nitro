@@ -57,7 +57,37 @@ var testData map[string]Funds = map[string]Funds{
 }
 
 func TestSum(t *testing.T) {
+	for _, f := range testData {
+		withZeros := Sum(f, testData["zeros"])
 
+		if !withZeros.Equal(f) {
+			t.Errorf("expected sum of %s and %s to equal %s, but it did not", f, testData["zeros"], withZeros)
+		}
+
+		withBlanks := Sum(f, testData["blanks"])
+
+		if !withBlanks.Equal(f) {
+			t.Errorf("expected sum of %s and %s to equal %s, but it did not", f, testData["zeros"], withZeros)
+		}
+	}
+
+	equalPairs := []fundsPair{
+		{Sum(testData["a"],
+			testData["b"]), testData["ab"]},
+		{Sum(testData["a"],
+			testData["b"],
+			testData["c"]), testData["abc"]},
+		{Sum(testData["a"],
+			testData["b"],
+			testData["c"],
+			testData["d"]), testData["abcd"]},
+	}
+
+	for i, p := range equalPairs {
+		if !p.a.Equal(p.b) {
+			t.Errorf("test_sum_%d: expected %s to equal %s, but it did not", i, p.a, p.b)
+		}
+	}
 }
 
 func TestCanAfford(t *testing.T) {
