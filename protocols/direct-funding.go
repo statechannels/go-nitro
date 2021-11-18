@@ -152,7 +152,6 @@ func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, er
 			// This is a conscious choice (to ignore signatures we don't expect)
 			// Examples include faulty signatures, signatures by non-participants, signatures on unexpected states, etc
 			fmt.Println(err)
-			return s, nil
 		}
 	}
 
