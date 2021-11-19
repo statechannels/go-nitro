@@ -19,7 +19,7 @@ func (h Funds) String() string {
 	}
 	var s string = "{"
 	for asset, amount := range h {
-		s += "[" + asset.Hex() + "," + amount.Text(64) + "]"
+		s += "[" + asset.Hex() + "," + amount.Text(10) + "]"
 	}
 	s = s + "}"
 	return s
@@ -42,11 +42,40 @@ func (h Funds) Add(a ...Funds) Funds {
 func Sum(a ...Funds) Funds {
 	sum := Funds{}
 
-	for _, holdings := range a {
-		for asset, amount := range holdings {
+	for _, funds := range a {
+		for asset, amount := range funds {
+			if sum[asset] == nil {
+				sum[asset] = big.NewInt(0)
+			}
+
 			sum[asset] = sum[asset].Add(sum[asset], amount)
 		}
 	}
 
 	return sum
+}
+
+// Equal returns true if reciever `f` and input `g` are identical in value.
+//
+// Note that a zero-balance equals a non-balance: {[0x0a,0x00],[0x0b,0x01]} == {[0x0b,0x01]}
+func (f Funds) Equal(g Funds) bool {
+	return f.canAfford(g) && g.canAfford(f)
+}
+
+// canAfford returns true if each of `g`'s non-zero asset balances is matched
+// or exceeded by the same asset-balance in `f`
+func (f Funds) canAfford(g Funds) bool {
+	zero := big.NewInt(0)
+
+	for asset, amount := range g {
+		// only check f for non-zero g balances
+		if amount.Cmp(zero) > 0 {
+			fAmount, ok := f[asset]
+			if !ok || fAmount.Cmp(amount) == -1 {
+				return false
+			}
+		}
+	}
+
+	return true
 }
