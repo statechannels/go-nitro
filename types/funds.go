@@ -55,7 +55,7 @@ func Sum(a ...Funds) Funds {
 	return sum
 }
 
-// Equal returns true if reciever `f` and input `g` are identical in value.
+// Equal returns true if receiver `f` and input `g` are identical in value.
 //
 // Note that a zero-balance equals a non-balance: {[0x0a,0x00],[0x0b,0x01]} == {[0x0b,0x01]}
 func (f Funds) Equal(g Funds) bool {
