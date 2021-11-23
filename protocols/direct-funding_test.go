@@ -38,8 +38,7 @@ func TestUpdate(t *testing.T) {
 	}
 	// Assert that Updating the objective with such an event returns an error
 	// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
-	_, err := s.Update(e)
-	if err == nil {
+	if _, err := s.Update(e); err == nil {
 		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
 	}
 
