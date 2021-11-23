@@ -298,16 +298,15 @@ func (s DirectFundingObjectiveState) applySignature(signature state.Signature, t
 	index, ok := s.ParticipantIndex[signer]
 	if !ok {
 		return fmt.Errorf("signature recieved from unrecognized participant 0x%x", signer)
-	} else {
-
-		if turnNum == 0 {
-			s.PreFundSigned[index] = true
-		} else if turnNum == 1 {
-			s.PostFundSigned[index] = true
-		}
-
-		return nil
 	}
+
+	if turnNum == 0 {
+		s.PreFundSigned[index] = true
+	} else if turnNum == 1 {
+		s.PostFundSigned[index] = true
+	}
+	return nil
+
 }
 
 // todo: is this sufficient? Particularly: s has pointer members (*big.Int)
