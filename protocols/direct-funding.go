@@ -294,7 +294,7 @@ func (s DirectFundingObjectiveState) applySignature(signature state.Signature, t
 
 	index, ok := s.ParticipantIndex[signer]
 	if !ok {
-		return fmt.Errorf("signature recieved from unrecognized participant 0x%x", signer)
+		return fmt.Errorf("signature received from unrecognized participant 0x%x", signer)
 	}
 
 	if turnNum == 0 {

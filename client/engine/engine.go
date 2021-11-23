@@ -40,8 +40,8 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService) Eng
 
 	// bind the engine's inbound chans
 	e.FromAPI = make(chan APIEvent)
-	e.fromChain = chain.GetRecieveChan()
-	e.fromMsg = msg.GetRecieveChan()
+	e.fromChain = chain.GetReceiveChan()
+	e.fromMsg = msg.GetReceiveChan()
 
 	// bind the engine's outbound chans
 	e.toChain = chain.GetSendChan()

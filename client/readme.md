@@ -7,7 +7,7 @@ The flow of data through the client is shown in this diagram:
 ![architecture](architecture.png)
 
 1. The `engine` runs in its own goroutine and has a select statement listening for a message from one of:
-   - the consuming application (the go-nitro `client` translates an API call into a send on a go channel, and returns a go channel where a response will later be recieved)
+   - the consuming application (the go-nitro `client` translates an API call into a send on a go channel, and returns a go channel where a response will later be received)
    - the `message` service
    - the `chain` service.
 2. The engine reads channels and objectives from the `store`, and computes updates and side effects.
