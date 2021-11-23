@@ -81,8 +81,8 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if updated.(DirectFundingObjectiveState).OnChainHolding[common.Address{}].Cmp(big.NewInt(3)) != 0 {
-		t.Error(`Objective data not updated as expected`)
+	if !updated.(DirectFundingObjectiveState).OnChainHolding.Equal(e.Holdings) {
+		t.Error(`Objective data not updated as expected`, updated.(DirectFundingObjectiveState).OnChainHolding, e.Holdings)
 	}
 
 }
