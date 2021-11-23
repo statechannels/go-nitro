@@ -31,10 +31,8 @@ var privateKeyOfParticipant0 = common.Hex2Bytes(`caab404f975b4620747174a75f08d98
 var correctSignatureByParticipant, _ = stateToSign.Sign(privateKeyOfParticipant0)
 
 func TestUpdate(t *testing.T) {
-	// First, prepare a new objective using the constructor:
-	s, _ := NewDirectFundingObjectiveState(state.TestState, state.TestState.Participants[0])
 
-	// Next, prepare an event with a mismatched channelId
+	// Prepare an event with a mismatched channelId
 	e := ObjectiveEvent{
 		ChannelId: types.Destination{},
 	}
