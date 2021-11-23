@@ -51,16 +51,14 @@ func TestUpdate(t *testing.T) {
 	// Next, attempt to update the objective with a dummy signature, keyed with a dummy statehash
 	// Assert that this results in a NOOP
 	e.Sigs[dummyStateHash] = dummySignature // Dummmy signature on dummy statehash
-	_, err = s.Update(e)
-	if err != nil {
+	if _, err := s.Update(e); err != nil {
 		t.Error(`dummy signature -- expected a noop but caught an error:`, err)
 	}
 
 	// Next, attempt to update the objective with an invalid signature, keyed with a dummy statehash
 	// Assert that this results in a NOOP
 	e.Sigs[dummyStateHash] = state.Signature{}
-	_, err = s.Update(e)
-	if err != nil {
+	if _, err := s.Update(e); err != nil {
 		t.Error(`faulty signature -- expected a noop but caught an error:`, err)
 	}
 
