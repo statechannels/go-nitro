@@ -35,3 +35,11 @@ func (d Destination) String() string {
 func (d Destination) Bytes() []byte {
 	return Bytes32(d).Bytes()
 }
+
+func AdddresstoDestination(a Address) Destination {
+	d := Destination{0}
+	for i := range d[12:] {
+		d[i+12] = a[i]
+	}
+	return d
+}
