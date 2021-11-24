@@ -11,10 +11,16 @@ import (
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
-	_, err := NewDirectFundingObjectiveState(state.TestState, state.TestState.Participants[0])
-	if err != nil {
+	if _, err := NewDirectFundingObjectiveState(state.TestState, state.TestState.Participants[0]); err != nil {
 		t.Error(err)
 	}
+	invalidState := state.TestState.Clone()
+	tooLargeChainId, _ := big.NewInt(0).SetString("49d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d949d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9", 16) // This is 128 hexits = 64 bytes = 512 bits. A chainId should be 256 bit
+	invalidState.ChainId = tooLargeChainId
+	if _, err := NewDirectFundingObjectiveState(invalidState, state.TestState.Participants[0]); err == nil {
+		t.Error("Expected an error when constructing with an invalid state, but got nil")
+	}
+
 }
 
 // Construct various variables for use in TestUpdate
