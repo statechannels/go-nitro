@@ -10,7 +10,8 @@ type Channel struct {
 	OnChainFunding types.Funds
 
 	state.FixedPart
-	Support []state.VariablePart
+	Support              []state.VariablePart
+	LatestSupportedState state.State
 }
 
 func (c Channel) GuaranteesFor(channelId types.Destination) types.Funds {
@@ -18,5 +19,9 @@ func (c Channel) GuaranteesFor(channelId types.Destination) types.Funds {
 }
 
 func (c Channel) Total() types.Funds {
-	return types.Funds{} // TODO get this info from the Support
+	funds := types.Funds{}
+	for _, sae := range c.LatestSupportedState.Outcome {
+		funds[sae.Asset] = sae.Allocations.Total()
+	}
+	return funds
 }
