@@ -162,3 +162,19 @@ func TestExitDecode(t *testing.T) {
 		t.Error("decoded exit does not match expectation")
 	}
 }
+
+func TestTotal(t *testing.T) {
+	a := Allocations{{ // [{Alice: 2, Bob: 3}]
+		Destination:    types.Destination(common.HexToHash("0x0a")),
+		Amount:         big.NewInt(2),
+		AllocationType: 0,
+		Metadata:       make(types.Bytes, 0)}, {
+		Destination:    types.Destination(common.HexToHash("0x0b")),
+		Amount:         big.NewInt(3),
+		AllocationType: 0,
+		Metadata:       make(types.Bytes, 0)}}
+	total := a.Total()
+	if total.Cmp(big.NewInt(5)) != 0 {
+		t.Errorf(`Expected total to be 5, got %v`, total)
+	}
+}
