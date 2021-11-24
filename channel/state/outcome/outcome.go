@@ -42,11 +42,25 @@ func (a Allocations) Equal(b Allocations) bool {
 	return true
 }
 
+// Total returns the toal amount allocated, summed across all destinations (regardless of AllocationType)
+func (a Allocations) Total() *big.Int {
+	total := big.NewInt(0)
+	for _, allocation := range a {
+		total.Add(total, allocation.Amount)
+	}
+	return total
+}
+
 // SingleAssetExit declares an ordered list of Allocations for a single asset.
 type SingleAssetExit struct {
 	Asset       types.Address // Either the zero address (implying the native token) or the address of an ERC20 contract
 	Metadata    []byte        // Can be used to encode arbitrary additional information that applies to all allocations.
 	Allocations Allocations
+}
+
+// TotalAllocated returns the toal amount allocated, summed across all destinations (regardless of AllocationType)
+func (sae SingleAssetExit) TotalAllocated() *big.Int {
+	return sae.Allocations.Total()
 }
 
 // Exit is an ordered list of SingleAssetExits
