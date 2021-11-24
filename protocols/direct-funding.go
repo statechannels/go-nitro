@@ -79,6 +79,8 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 	}
 
 	init.FullyFundedThreshold = types.Funds{}
+	init.MyDepositSafetyThreshold = types.Funds{}
+	init.MyDepositTarget = types.Funds{}
 
 	for _, assetExit := range initialState.Outcome {
 		assetAddress := assetExit.Asset
