@@ -20,6 +20,11 @@ func TestNew(t *testing.T) {
 	if _, err := NewDirectFundingObjectiveState(invalidState, state.TestState.Participants[0]); err == nil {
 		t.Error("Expected an error when constructing with an invalid state, but got nil")
 	}
+	finalState := state.TestState.Clone()
+	finalState.IsFinal = true
+	if _, err := NewDirectFundingObjectiveState(finalState, state.TestState.Participants[0]); err == nil {
+		t.Error("Expected an error when constructing with an invalid state, but got nil")
+	}
 
 }
 
