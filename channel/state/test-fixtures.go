@@ -21,7 +21,22 @@ var TestState = State{
 	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
 	ChallengeDuration: big.NewInt(60),
 	AppData:           []byte{},
-	Outcome:           outcome.Exit{},
-	TurnNum:           big.NewInt(5),
-	IsFinal:           false,
+	Outcome: outcome.Exit{
+		outcome.SingleAssetExit{
+			Asset: types.Address{},
+			Allocations: outcome.Allocations{
+				outcome.Allocation{
+					Destination: types.AdddresstoDestination(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)),
+					Amount:      big.NewInt(5),
+				},
+				outcome.Allocation{
+					Destination: types.AdddresstoDestination(common.HexToAddress(`0xEe18fF1575055691009aa246aE608132C57a422c`)),
+					Amount:      big.NewInt(5),
+				},
+			},
+		},
+	},
+
+	TurnNum: big.NewInt(5),
+	IsFinal: false,
 }
