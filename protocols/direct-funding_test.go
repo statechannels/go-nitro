@@ -11,10 +11,20 @@ import (
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
-	_, err := NewDirectFundingObjectiveState(state.TestState, state.TestState.Participants[0])
-	if err != nil {
+	// Assert that a valid set of constructor args does not result in an error
+	if _, err := NewDirectFundingObjectiveState(state.TestState, state.TestState.Participants[0]); err != nil {
 		t.Error(err)
 	}
+
+	// Construct a final state
+	finalState := state.TestState.Clone()
+	finalState.IsFinal = true
+
+	// Assert that constructing with a final state should return an error
+	if _, err := NewDirectFundingObjectiveState(finalState, state.TestState.Participants[0]); err == nil {
+		t.Error("Expected an error when constructing with an invalid state, but got nil")
+	}
+
 }
 
 // Construct various variables for use in TestUpdate
