@@ -38,7 +38,7 @@ func (d Destination) Bytes() []byte {
 
 func AdddresstoDestination(a Address) Destination {
 	d := Destination{0}
-	for i := range d[12:] {
+	for i := range a {
 		d[i+12] = a[i]
 	}
 	return d
