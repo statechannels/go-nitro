@@ -37,8 +37,10 @@ type (
 
 	// VariablePart contains the subset of State data which can change with each state update.
 	VariablePart struct {
-		AppData        types.Bytes
-		EncodedOutcome types.Bytes
+		AppData types.Bytes
+		Outcome outcome.Exit
+		TurnNum *types.Uint256
+		IsFinal bool
 	}
 )
 
@@ -49,8 +51,7 @@ func (s State) FixedPart() FixedPart {
 
 // VariablePart returns the VariablePart of the State
 func (s State) VariablePart() VariablePart {
-	encodedOutcome, _ := s.Outcome.Encode() // TODO here we are swallowing the error
-	return VariablePart{s.AppData, encodedOutcome}
+	return VariablePart{s.AppData, s.Outcome, s.TurnNum, s.IsFinal}
 }
 
 // uint256 is the uint256 type for abi encoding
@@ -186,4 +187,21 @@ func (s State) Clone() State {
 	clone.IsFinal = s.IsFinal
 
 	return clone
+}
+
+// StateFromFixedAndVariablePart constructs a State from a FixedPart and a VariablePart
+func StateFromFixedAndVariablePart(f FixedPart, v VariablePart) (State, error) {
+
+	return State{
+		ChainId:           f.ChainId,
+		Participants:      f.Participants,
+		ChannelNonce:      f.ChannelNonce,
+		AppDefinition:     f.AppDefinition,
+		ChallengeDuration: f.ChallengeDuration,
+		AppData:           v.AppData,
+		Outcome:           v.Outcome,
+		TurnNum:           v.TurnNum,
+		IsFinal:           v.IsFinal,
+	}, nil
+
 }
