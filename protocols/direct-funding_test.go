@@ -96,3 +96,77 @@ func TestUpdate(t *testing.T) {
 	}
 
 }
+
+func TestCrank(t *testing.T) {
+	// Assert that cranking an unapproved objective returns an error
+	if _, _, _, err := s.Crank(&privateKeyOfParticipant0); err == nil {
+		t.Error(`Expected error when cranking unapproved objective, but got nil`)
+	}
+
+	// Approve the objective, so that the rest of the test cases can run.
+	o := s.Approve()
+
+	// To test the finite state progression, we are going to progressively mutate o
+	// And then crank it to see which "pause point" (WaitingFor) we end up at.
+
+	// Initial Crank
+	_, _, waitingFor, err := o.Crank(&privateKeyOfParticipant0)
+	if err != nil {
+		t.Error(err)
+	}
+	if waitingFor != WaitingForCompletePrefund {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
+	}
+
+	// Manually progress the extended state by collecting prefund signatures
+	o.(DirectFundingObjectiveState).PreFundSigned[0] = true
+	o.(DirectFundingObjectiveState).PreFundSigned[1] = true
+	o.(DirectFundingObjectiveState).PreFundSigned[2] = true
+
+	// Cranking should move us to the next waiting point
+	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	if err != nil {
+		t.Error(err)
+	}
+	if waitingFor != WaitingForMyTurnToFund {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForMyTurnToFund, waitingFor)
+	}
+
+	// Manually make the first "deposit"
+	o.(DirectFundingObjectiveState).OnChainHolding[state.TestState.Outcome[0].Asset] = state.TestState.Outcome[0].Allocations[0].Amount
+	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	if err != nil {
+		t.Error(err)
+	}
+	if waitingFor != WaitingForCompleteFunding {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
+	}
+
+	// Manually make the second "deposit"
+	totalAmountAllocated := state.TestState.Outcome[0].TotalAllocated()
+	o.(DirectFundingObjectiveState).OnChainHolding[state.TestState.Outcome[0].Asset] = totalAmountAllocated
+	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	if err != nil {
+		t.Error(err)
+	}
+	if waitingFor != WaitingForCompletePostFund {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
+	}
+
+	// Manually progress the extended state by collecting postfund signatures
+	o.(DirectFundingObjectiveState).PostFundSigned[0] = true
+	o.(DirectFundingObjectiveState).PostFundSigned[1] = true
+	o.(DirectFundingObjectiveState).PostFundSigned[2] = true
+
+	// This should be the final crank
+	o.(DirectFundingObjectiveState).OnChainHolding[state.TestState.Outcome[0].Asset] = totalAmountAllocated
+	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	if err != nil {
+		t.Error(err)
+	}
+	if waitingFor != WaitingForNothing {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
+	}
+
+	// TODO Test the returned SideEffects
+}
