@@ -21,23 +21,18 @@ func TestIsExternal(t *testing.T) {
 
 }
 
-func TestToAddress(t *testing.T) {
-	referenceAddress := []Address{
-		common.HexToAddress(`0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`),
-		common.HexToAddress(`0x0000000000000000000000000000000000000000`),
-		common.HexToAddress(`0x96f7123E3A80C9813eF50213ADEd0e4511CB820f`),
-	}
-	areExternal := []Destination{
-		Destination(common.HexToHash("0x000000000000000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
-		Destination(common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000")),
-		Destination(common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f")),
-	}
+var referenceAddress = []Address{
+	common.HexToAddress(`0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`),
+	common.HexToAddress(`0x0000000000000000000000000000000000000000`),
+	common.HexToAddress(`0x96f7123E3A80C9813eF50213ADEd0e4511CB820f`),
+}
+var areExternal = []Destination{
+	Destination(common.HexToHash("0x000000000000000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
+	Destination(common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000")),
+	Destination(common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f")),
+}
 
-	areNotExternal := []Destination{
-		Destination(common.HexToHash("0x000000000000000000000001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
-		Destination(common.HexToHash("0x100000000000000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
-		Destination(common.HexToHash("0x0000000000b0000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
-	}
+func TestToAddress(t *testing.T) {
 
 	for i, extAddress := range areExternal {
 		convertedAddress, err := extAddress.ToAddress()
@@ -50,9 +45,27 @@ func TestToAddress(t *testing.T) {
 		}
 	}
 
+	areNotExternal := []Destination{
+		Destination(common.HexToHash("0x000000000000000000000001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
+		Destination(common.HexToHash("0x100000000000000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
+		Destination(common.HexToHash("0x0000000000b0000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
+	}
+
 	for _, notExtAddress := range areNotExternal {
 		if _, err := notExtAddress.ToAddress(); err == nil {
 			t.Errorf("expected to fail when converting %x to an external address, but succeeded", notExtAddress)
 		}
 	}
+}
+
+func TestToDestination(t *testing.T) {
+
+	for i, refAddress := range referenceAddress {
+		convertedAddress := AdddressToDestination(refAddress)
+
+		if convertedAddress != areExternal[i] {
+			t.Errorf("expected %x to convert to %x, but it did not", refAddress, areExternal[i])
+		}
+	}
+
 }
