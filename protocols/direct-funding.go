@@ -148,7 +148,10 @@ func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, er
 
 		err := updated.applySignature(sig, turnNum)
 		if err != nil {
-			return s, err
+			// If there was an error applying the signature, log it and swallow it
+			// This is a conscious choice (to ignore signatures we don't expect)
+			// Examples include faulty signatures, signatures by non-participants, signatures on unexpected states, etc
+			fmt.Println(err)
 		}
 	}
 
@@ -302,8 +305,8 @@ func (s DirectFundingObjectiveState) applySignature(signature state.Signature, t
 	} else if turnNum == 1 {
 		s.PostFundSigned[index] = true
 	}
-
 	return nil
+
 }
 
 // todo: is this sufficient? Particularly: s has pointer members (*big.Int)
