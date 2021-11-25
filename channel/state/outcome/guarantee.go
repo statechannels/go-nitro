@@ -1,7 +1,6 @@
 package outcome
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
 
@@ -25,12 +24,6 @@ var guaranteeMetadataTy, _ = abi.NewType("tuple", "struct GuaranteeMetadata", []
 // Encode returns the abi.encoded GuaranteeMetadata (suitable for packing in an Allocation.Metadata field)
 func (m GuaranteeMetadata) Encode() (types.Bytes, error) {
 	return abi.Arguments{{Type: guaranteeMetadataTy}}.Pack(m)
-}
-
-// Equal returns true if the reciever has identically valued fields to the supplied object
-func (m GuaranteeMetadata) Equal(n GuaranteeMetadata) bool {
-	return bytes.Equal(m.Left.Bytes(), n.Left.Bytes()) && bytes.Equal(m.Right.Bytes(), n.Right.Bytes())
-
 }
 
 // rawGuaranteeMetadataType is an alias to the type returned when using the github.com/ethereum/go-ethereum/accounts/abi Unpack method with guaranteeMetadataTy

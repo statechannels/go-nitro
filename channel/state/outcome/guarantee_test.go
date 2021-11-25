@@ -26,7 +26,7 @@ func TestGuaranteeMetadataDecode(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !g.Equal(guaranteeMetadata) {
+	if g != guaranteeMetadata {
 		t.Errorf("incorrect encoding. Got %x, wanted %x", g, encodedGuaranteeMetadata)
 	}
 }
