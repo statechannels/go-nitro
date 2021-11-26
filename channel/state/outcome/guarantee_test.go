@@ -6,9 +6,10 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/statechannels/go-nitro/types"
 )
 
-var guaranteeMetadata = GuaranteeMetadata{Left: common.HexToAddress("0x0a"), Right: common.HexToAddress("0x0b")}
+var guaranteeMetadata = GuaranteeMetadata{Left: types.AdddressToDestination(common.HexToAddress("0x0a")), Right: types.AdddressToDestination(common.HexToAddress("0x0b"))}
 var encodedGuaranteeMetadata, _ = hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000b")
 
 func TestGuaranteeMetadataEncode(t *testing.T) {
