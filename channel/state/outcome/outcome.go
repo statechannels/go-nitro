@@ -52,10 +52,11 @@ func (a Allocations) Total() *big.Int {
 	return total
 }
 
-// AffordsFor computes the amount that the allocations can afford for a given allocation, assuming it is funded with x coins
-func (allocations Allocations) AffordsFor(given Allocation, x *big.Int) *big.Int {
+// Affords returns true if the allocations can afford the given allocation, false otherwise.
+// To afford the given allocation, the allocations must include something equal-in-value to it, as well as having sufficient funds left over for it, after reserving funds for all allocations with higher priority.
+// Note that "equal-in-value" implies the same allocation type and metadata (if any)
+func (allocations Allocations) Affords(given Allocation, x *big.Int) bool {
 	bigZero := big.NewInt(0)
-	affordsInTotal := big.NewInt(0).Set(bigZero)
 	surplus := big.NewInt(0).Set(x)
 	for _, allocation := range allocations {
 
@@ -65,14 +66,14 @@ func (allocations Allocations) AffordsFor(given Allocation, x *big.Int) *big.Int
 
 		affords := math.BigMin(surplus, allocation.Amount)
 
-		if allocation.Equal(given) {
-			affordsInTotal = affordsInTotal.Add(affordsInTotal, affords)
+		if allocation.Equal(given) && affords.Cmp(allocation.Amount) >= 0 {
+			return true
 		}
 
 		surplus.Sub(surplus, affords)
 
 	}
-	return affordsInTotal
+	return false
 }
 
 // SingleAssetExit declares an ordered list of Allocations for a single asset.

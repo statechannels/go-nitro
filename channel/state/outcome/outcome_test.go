@@ -181,7 +181,7 @@ func TestTotal(t *testing.T) {
 	}
 }
 
-func TestAffordsFor(t *testing.T) {
+func TestAffords(t *testing.T) {
 
 	allocationsWithRepeatedEntry := append(a, a[0]) // [{Alice: 2, Bob: 3, Alice: 2}]
 
@@ -189,26 +189,26 @@ func TestAffordsFor(t *testing.T) {
 		Allocations     Allocations
 		GivenAllocation Allocation
 		X               *big.Int
-		Want            *big.Int
+		Want            bool
 	}
 
 	var testCases []testCase = []testCase{
-		{a, a[0], big.NewInt(3), big.NewInt(2)},
-		{a, a[0], big.NewInt(2), big.NewInt(2)},
-		{a, a[0], big.NewInt(1), big.NewInt(1)},
-		{a, a[1], big.NewInt(6), big.NewInt(3)},
-		{a, a[1], big.NewInt(5), big.NewInt(3)},
-		{a, a[1], big.NewInt(4), big.NewInt(2)},
-		{a, a[1], big.NewInt(2), big.NewInt(0)},
-		{allocationsWithRepeatedEntry, a[0], big.NewInt(7), big.NewInt(4)},
+		{a, a[0], big.NewInt(3), true},
+		{a, a[0], big.NewInt(2), true},
+		{a, a[0], big.NewInt(1), false},
+		{a, a[1], big.NewInt(6), true},
+		{a, a[1], big.NewInt(5), true},
+		{a, a[1], big.NewInt(4), false},
+		{a, a[1], big.NewInt(2), false},
+		{allocationsWithRepeatedEntry, a[0], big.NewInt(7), true},
 	}
 
 	for _, testcase := range testCases {
-		got := testcase.Allocations.AffordsFor(testcase.GivenAllocation, testcase.X)
-		if got.Cmp(testcase.Want) != 0 {
+		got := testcase.Allocations.Affords(testcase.GivenAllocation, testcase.X)
+		if got != testcase.Want {
 			t.Errorf(
-				`Incorrect AffordFor: expected allocation %v to afford %v, for given allocation %v, but got %v`,
-				testcase.Allocations, testcase.Want, testcase.GivenAllocation, got)
+				`Incorrect AffordFor: expected %v.Affords(%v,%v) to be %v, but got %v`,
+				testcase.Allocations, testcase.GivenAllocation, testcase.X, testcase.Want, got)
 		}
 	}
 
