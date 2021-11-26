@@ -69,7 +69,7 @@ func (allocations Allocations) AffordsFor(given Allocation, x *big.Int) *big.Int
 			affordsInTotal = affordsInTotal.Add(affordsInTotal, affords)
 		}
 
-		surplus = surplus.Sub(surplus, affords)
+		surplus.Sub(surplus, affords)
 
 	}
 	return affordsInTotal
