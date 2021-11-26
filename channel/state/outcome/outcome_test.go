@@ -183,8 +183,6 @@ func TestTotal(t *testing.T) {
 
 func TestAffords(t *testing.T) {
 
-	allocationsWithRepeatedEntry := append(a, a[0]) // [{Alice: 2, Bob: 3, Alice: 2}]
-
 	type testCase struct {
 		Allocations     Allocations
 		GivenAllocation Allocation
@@ -200,7 +198,6 @@ func TestAffords(t *testing.T) {
 		{a, a[1], big.NewInt(5), true},
 		{a, a[1], big.NewInt(4), false},
 		{a, a[1], big.NewInt(2), false},
-		{allocationsWithRepeatedEntry, a[0], big.NewInt(7), true},
 	}
 
 	for _, testcase := range testCases {
