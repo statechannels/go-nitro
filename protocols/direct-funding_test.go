@@ -35,7 +35,7 @@ var dummySignature = state.Signature{
 	V: byte(1),
 }
 var dummyStateHash = common.Hash{}
-var stateToSign state.State = s.ExpectedStates[0]
+var stateToSign state.State = s.expectedStates[0]
 var stateHash, _ = stateToSign.Hash()
 var privateKeyOfParticipant0 = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
 var correctSignatureByParticipant, _ = stateToSign.Sign(privateKeyOfParticipant0)
@@ -55,7 +55,7 @@ func TestUpdate(t *testing.T) {
 	// Now modify the event to give it the "correct" channelId (matching the objective),
 	// and make a new Sigs map.
 	// This prepares us for the rest of the test. We will reuse the same event multiple times
-	e.ChannelId = s.ChannelId
+	e.ChannelId = s.channelId
 	e.Sigs = make(map[types.Bytes32]state.Signature)
 
 	// Next, attempt to update the objective with a dummy signature, keyed with a dummy statehash
@@ -79,7 +79,7 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if updated.(DirectFundingObjectiveState).PreFundSigned[0] != true {
+	if updated.(DirectFundingObjectiveState).preFundSigned[0] != true {
 		t.Error(`Objective data not updated as expected`)
 	}
 
@@ -91,8 +91,8 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !updated.(DirectFundingObjectiveState).OnChainHolding.Equal(e.Holdings) {
-		t.Error(`Objective data not updated as expected`, updated.(DirectFundingObjectiveState).OnChainHolding, e.Holdings)
+	if !updated.(DirectFundingObjectiveState).onChainHolding.Equal(e.Holdings) {
+		t.Error(`Objective data not updated as expected`, updated.(DirectFundingObjectiveState).onChainHolding, e.Holdings)
 	}
 
 }
@@ -119,9 +119,9 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by collecting prefund signatures
-	o.(DirectFundingObjectiveState).PreFundSigned[0] = true
-	o.(DirectFundingObjectiveState).PreFundSigned[1] = true
-	o.(DirectFundingObjectiveState).PreFundSigned[2] = true
+	o.(DirectFundingObjectiveState).preFundSigned[0] = true
+	o.(DirectFundingObjectiveState).preFundSigned[1] = true
+	o.(DirectFundingObjectiveState).preFundSigned[2] = true
 
 	// Cranking should move us to the next waiting point
 	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
@@ -133,7 +133,7 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually make the first "deposit"
-	o.(DirectFundingObjectiveState).OnChainHolding[state.TestState.Outcome[0].Asset] = state.TestState.Outcome[0].Allocations[0].Amount
+	o.(DirectFundingObjectiveState).onChainHolding[state.TestState.Outcome[0].Asset] = state.TestState.Outcome[0].Allocations[0].Amount
 	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
 	if err != nil {
 		t.Error(err)
@@ -144,7 +144,7 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the second "deposit"
 	totalAmountAllocated := state.TestState.Outcome[0].TotalAllocated()
-	o.(DirectFundingObjectiveState).OnChainHolding[state.TestState.Outcome[0].Asset] = totalAmountAllocated
+	o.(DirectFundingObjectiveState).onChainHolding[state.TestState.Outcome[0].Asset] = totalAmountAllocated
 	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
 	if err != nil {
 		t.Error(err)
@@ -154,12 +154,12 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by collecting postfund signatures
-	o.(DirectFundingObjectiveState).PostFundSigned[0] = true
-	o.(DirectFundingObjectiveState).PostFundSigned[1] = true
-	o.(DirectFundingObjectiveState).PostFundSigned[2] = true
+	o.(DirectFundingObjectiveState).postFundSigned[0] = true
+	o.(DirectFundingObjectiveState).postFundSigned[1] = true
+	o.(DirectFundingObjectiveState).postFundSigned[2] = true
 
 	// This should be the final crank
-	o.(DirectFundingObjectiveState).OnChainHolding[state.TestState.Outcome[0].Asset] = totalAmountAllocated
+	o.(DirectFundingObjectiveState).onChainHolding[state.TestState.Outcome[0].Asset] = totalAmountAllocated
 	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
 	if err != nil {
 		t.Error(err)
