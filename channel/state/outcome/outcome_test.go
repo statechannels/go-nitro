@@ -163,18 +163,51 @@ func TestExitDecode(t *testing.T) {
 	}
 }
 
+var a = Allocations{{ // [{Alice: 2, Bob: 3}]
+	Destination:    types.Destination(common.HexToHash("0x0a")),
+	Amount:         big.NewInt(2),
+	AllocationType: 0,
+	Metadata:       make(types.Bytes, 0)}, {
+	Destination:    types.Destination(common.HexToHash("0x0b")),
+	Amount:         big.NewInt(3),
+	AllocationType: 0,
+	Metadata:       make(types.Bytes, 0)}}
+
 func TestTotal(t *testing.T) {
-	a := Allocations{{ // [{Alice: 2, Bob: 3}]
-		Destination:    types.Destination(common.HexToHash("0x0a")),
-		Amount:         big.NewInt(2),
-		AllocationType: 0,
-		Metadata:       make(types.Bytes, 0)}, {
-		Destination:    types.Destination(common.HexToHash("0x0b")),
-		Amount:         big.NewInt(3),
-		AllocationType: 0,
-		Metadata:       make(types.Bytes, 0)}}
+
 	total := a.Total()
 	if total.Cmp(big.NewInt(5)) != 0 {
 		t.Errorf(`Expected total to be 5, got %v`, total)
 	}
+}
+
+func TestAffordsFor(t *testing.T) {
+
+	var gots []*big.Int = []*big.Int{
+		a.AffordsFor(a[0], big.NewInt(3)),
+		a.AffordsFor(a[0], big.NewInt(2)),
+		a.AffordsFor(a[0], big.NewInt(1)),
+		a.AffordsFor(a[1], big.NewInt(6)),
+		a.AffordsFor(a[1], big.NewInt(5)),
+		a.AffordsFor(a[1], big.NewInt(4)),
+		a.AffordsFor(a[1], big.NewInt(2)),
+	}
+
+	var wants []*big.Int = []*big.Int{
+		big.NewInt(2),
+		big.NewInt(2),
+		big.NewInt(1),
+		big.NewInt(3),
+		big.NewInt(3),
+		big.NewInt(2),
+		big.NewInt(0),
+	}
+
+	for i, got := range gots {
+		want := wants[i]
+		if got.Cmp(want) != 0 {
+			t.Errorf(`Incorrect AffordFor: expected %v, got %v`, want, got)
+		}
+	}
+
 }

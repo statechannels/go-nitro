@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -49,6 +50,29 @@ func (a Allocations) Total() *big.Int {
 		total.Add(total, allocation.Amount)
 	}
 	return total
+}
+
+// AffordsFor computes the amount that the allocations can afford for a given allocation, assuming it is funded with x coins
+func (allocations Allocations) AffordsFor(given Allocation, x *big.Int) *big.Int {
+	bigZero := big.NewInt(0)
+	affordsInTotal := bigZero
+	surplus := x
+	for _, allocation := range allocations {
+
+		if surplus.Cmp(bigZero) == 0 {
+			break
+		}
+
+		affords := math.BigMin(surplus, allocation.Amount)
+
+		if allocation.Equal(given) {
+			affordsInTotal = affordsInTotal.Add(affordsInTotal, affords)
+		}
+
+		surplus = surplus.Sub(surplus, affords)
+
+	}
+	return affordsInTotal
 }
 
 // SingleAssetExit declares an ordered list of Allocations for a single asset.
