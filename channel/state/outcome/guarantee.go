@@ -12,7 +12,7 @@ import (
 // A Guarantee is an Allocation with AllocationType == GuaranteeAllocationType and Metadata = encode(GuaranteeMetaData)
 type GuaranteeMetadata struct {
 	Left  types.Address // The peer who plays the role of Alice (peer 0)
-	Right types.Address // The peer who plays the role of Bob (peer n+1, where n=len(peers))
+	Right types.Address // The peer who plays the role of Bob (peer n+1, where n=len(intermediaries))
 }
 
 // guaranteeMetadataTy describes the shape of GuaranteeMetadata, so that the abi encoder knows how to encode it
