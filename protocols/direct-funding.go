@@ -29,22 +29,22 @@ var ErrNotApproved = errors.New("objective not approved")
 // DirectFundingObjectiveState is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type DirectFundingObjectiveState struct {
 	Status    ObjectiveStatus
-	ChannelId types.Destination
+	channelId types.Destination
 
-	ParticipantIndex map[types.Address]uint // the index for each participant
-	ExpectedStates   []state.State          // indexed by turn number
+	participantIndex map[types.Address]uint // the index for each participant
+	expectedStates   []state.State          // indexed by turn number
 
-	MyIndex uint // my index in the Participants array of the initial state
+	myIndex uint // my index in the Participants array of the initial state
 
-	PreFundSigned []bool // indexed by participant.
+	preFundSigned []bool // indexed by participant.
 
-	MyDepositSafetyThreshold types.Funds // if the on chain holdings are equal to this amount it is safe for me to deposit
-	MyDepositTarget          types.Funds // I want to get the on chain holdings up to this much
-	FullyFundedThreshold     types.Funds // if the on chain holdings are equal
+	myDepositSafetyThreshold types.Funds // if the on chain holdings are equal to this amount it is safe for me to deposit
+	myDepositTarget          types.Funds // I want to get the on chain holdings up to this much
+	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
 
-	PostFundSigned []bool // indexed by participant
+	postFundSigned []bool // indexed by participant
 
-	OnChainHolding types.Funds
+	onChainHolding types.Funds
 }
 
 // NewDirectFundingObjectiveState initiates a DirectFundingInitialState with data calculated from
@@ -58,29 +58,29 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 	var err error
 
 	init.Status = Unapproved
-	init.ChannelId, err = initialState.ChannelId()
+	init.channelId, err = initialState.ChannelId()
 	if err != nil {
 		return init, err
 	}
-	init.ParticipantIndex = make(map[types.Address]uint)
+	init.participantIndex = make(map[types.Address]uint)
 	for i, v := range initialState.Participants {
-		init.ParticipantIndex[v] = uint(i)
+		init.participantIndex[v] = uint(i)
 	}
-	init.ExpectedStates = make([]state.State, 2)
-	init.ExpectedStates[0] = initialState
+	init.expectedStates = make([]state.State, 2)
+	init.expectedStates[0] = initialState
 
-	init.ExpectedStates[1] = initialState.Clone()
-	init.ExpectedStates[1].TurnNum = big.NewInt(1)
+	init.expectedStates[1] = initialState.Clone()
+	init.expectedStates[1].TurnNum = big.NewInt(1)
 
 	for i, v := range initialState.Participants {
 		if v == myAddress {
-			init.MyIndex = uint(i)
+			init.myIndex = uint(i)
 		}
 	}
 
-	init.FullyFundedThreshold = types.Funds{}
-	init.MyDepositSafetyThreshold = types.Funds{}
-	init.MyDepositTarget = types.Funds{}
+	init.fullyFundedThreshold = types.Funds{}
+	init.myDepositSafetyThreshold = types.Funds{}
+	init.myDepositTarget = types.Funds{}
 
 	for _, assetExit := range initialState.Outcome {
 		assetAddress := assetExit.Asset
@@ -91,22 +91,22 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 		for i, allocation := range assetExit.Allocations {
 			sum = sum.Add(sum, allocation.Amount)
 
-			if i < int(init.MyIndex) {
+			if i < int(init.myIndex) {
 				threshold = threshold.Add(threshold, allocation.Amount)
-			} else if i == int(init.MyIndex) { // NOTE: we are requiring that participants[i] owns allocations[i] (for every asset)
+			} else if i == int(init.myIndex) { // NOTE: we are requiring that participants[i] owns allocations[i] (for every asset)
 				// TODO: revisit this and consider relaixing the assumption, e.g. myAddress could be something akin to myInterests, which could include internal destinations
 				myShare = myShare.Add(myShare, allocation.Amount)
 			}
 		}
 
-		init.FullyFundedThreshold[assetAddress] = sum
-		init.MyDepositSafetyThreshold[assetAddress] = threshold
-		init.MyDepositTarget[assetAddress] = myShare.Add(myShare, threshold)
+		init.fullyFundedThreshold[assetAddress] = sum
+		init.myDepositSafetyThreshold[assetAddress] = threshold
+		init.myDepositTarget[assetAddress] = myShare.Add(myShare, threshold)
 	}
 
-	init.PreFundSigned = make([]bool, len(initialState.Participants))  // NOTE initialized to (false,false,...)
-	init.PostFundSigned = make([]bool, len(initialState.Participants)) // NOTE initialized to (false,false,...)
-	init.OnChainHolding = types.Funds{}
+	init.preFundSigned = make([]bool, len(initialState.Participants))  // NOTE initialized to (false,false,...)
+	init.postFundSigned = make([]bool, len(initialState.Participants)) // NOTE initialized to (false,false,...)
+	init.onChainHolding = types.Funds{}
 
 	return init, nil
 }
@@ -114,7 +114,7 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 // Public methods on the DirectFundingObjectiveState
 
 func (s DirectFundingObjectiveState) Id() ObjectiveId {
-	return ObjectiveId("DirectFunding-" + s.ChannelId.String())
+	return ObjectiveId("DirectFunding-" + s.channelId.String())
 }
 
 func (s DirectFundingObjectiveState) Approve() Objective {
@@ -134,7 +134,7 @@ func (s DirectFundingObjectiveState) Reject() Objective {
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
 // and returns the updated state
 func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, error) {
-	if s.ChannelId != event.ChannelId {
+	if s.channelId != event.ChannelId {
 		return s, errors.New("event and objective channelIds do not match")
 	}
 
@@ -158,7 +158,7 @@ func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, er
 	}
 
 	if event.Holdings != nil {
-		updated.OnChainHolding = event.Holdings
+		updated.onChainHolding = event.Holdings
 	}
 
 	return updated, nil
@@ -176,7 +176,7 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 	}
 
 	// Prefunding
-	if !updated.PreFundSigned[updated.MyIndex] {
+	if !updated.preFundSigned[updated.myIndex] {
 		// todo: {SignAndSendPreFundEffect(updated.ChannelId)} as SideEffects{}
 		return updated, NoSideEffects, WaitingForCompletePrefund, nil
 	}
@@ -196,7 +196,7 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 
 	if !fundingComplete && amountToDeposit.IsNonZero() && safeToDeposit {
 		var effects = make([]string, 0) // TODO loop over assets
-		effects = append(effects, FundOnChainEffect(updated.ChannelId, `eth`, amountToDeposit))
+		effects = append(effects, FundOnChainEffect(updated.channelId, `eth`, amountToDeposit))
 		if len(effects) > 0 {
 			// todo: convert effects to SideEffects{} and return
 			return updated, NoSideEffects, WaitingForCompleteFunding, nil
@@ -208,7 +208,7 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 	}
 
 	// Postfunding
-	if !updated.PostFundSigned[updated.MyIndex] {
+	if !updated.postFundSigned[updated.myIndex] {
 		// TODO sign the post fund state
 		// TODO update updated.PostFundSigned[updated.MyIndex]
 		// TODO prepare a message for peers with signature, return as SideEffects{}
@@ -227,8 +227,8 @@ func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEf
 
 // prefundComplete returns true if all participants have signed a prefund state, as reflected by the extended state
 func (s DirectFundingObjectiveState) prefundComplete() bool {
-	for _, index := range s.ParticipantIndex {
-		if !s.PreFundSigned[index] {
+	for _, index := range s.participantIndex {
+		if !s.preFundSigned[index] {
 			return false
 		}
 	}
@@ -237,8 +237,8 @@ func (s DirectFundingObjectiveState) prefundComplete() bool {
 
 // postfundComplete returns true if all participants have signed a postfund state, as reflected by the extended state
 func (s DirectFundingObjectiveState) postfundComplete() bool {
-	for _, index := range s.ParticipantIndex {
-		if !s.PostFundSigned[index] {
+	for _, index := range s.participantIndex {
+		if !s.postFundSigned[index] {
 			return false
 		}
 	}
@@ -247,8 +247,8 @@ func (s DirectFundingObjectiveState) postfundComplete() bool {
 
 // fundingComplete returns true if the recorded OnChainHoldings are greater than or equal to the threshold for being fully funded.
 func (s DirectFundingObjectiveState) fundingComplete() bool {
-	for asset, threshold := range s.FullyFundedThreshold {
-		chainHolding, ok := s.OnChainHolding[asset]
+	for asset, threshold := range s.fullyFundedThreshold {
+		chainHolding, ok := s.onChainHolding[asset]
 
 		if !ok {
 			return false
@@ -264,8 +264,8 @@ func (s DirectFundingObjectiveState) fundingComplete() bool {
 
 // safeToDeposit returns true if the recorded OnChainHoldings are greater than or equal to the threshold for safety.
 func (s DirectFundingObjectiveState) safeToDeposit() bool {
-	for asset, safetyThreshold := range s.MyDepositSafetyThreshold {
-		chainHolding, ok := s.OnChainHolding[asset]
+	for asset, safetyThreshold := range s.myDepositSafetyThreshold {
+		chainHolding, ok := s.onChainHolding[asset]
 
 		if !ok {
 			return false
@@ -281,10 +281,10 @@ func (s DirectFundingObjectiveState) safeToDeposit() bool {
 
 // amountToDeposit computes the appropriate amount to deposit given the current recorded OnChainHoldings
 func (s DirectFundingObjectiveState) amountToDeposit() types.Funds {
-	deposits := make(types.Funds, len(s.OnChainHolding))
+	deposits := make(types.Funds, len(s.onChainHolding))
 
-	for asset, holding := range s.OnChainHolding {
-		deposits[asset] = big.NewInt(0).Sub(s.MyDepositTarget[asset], holding)
+	for asset, holding := range s.onChainHolding {
+		deposits[asset] = big.NewInt(0).Sub(s.myDepositTarget[asset], holding)
 	}
 
 	return deposits
@@ -292,20 +292,20 @@ func (s DirectFundingObjectiveState) amountToDeposit() types.Funds {
 
 // applySignature updates the objective's cache of which participants have signed which states
 func (s DirectFundingObjectiveState) applySignature(signature state.Signature, turnNum int) error {
-	signer, err := s.ExpectedStates[turnNum].RecoverSigner(signature)
+	signer, err := s.expectedStates[turnNum].RecoverSigner(signature)
 	if err != nil {
 		return err
 	}
 
-	index, ok := s.ParticipantIndex[signer]
+	index, ok := s.participantIndex[signer]
 	if !ok {
 		return fmt.Errorf("signature received from unrecognized participant 0x%x", signer)
 	}
 
 	if turnNum == 0 {
-		s.PreFundSigned[index] = true
+		s.preFundSigned[index] = true
 	} else if turnNum == 1 {
-		s.PostFundSigned[index] = true
+		s.postFundSigned[index] = true
 	}
 	return nil
 
