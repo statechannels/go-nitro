@@ -183,6 +183,8 @@ func TestTotal(t *testing.T) {
 
 func TestAffordsFor(t *testing.T) {
 
+	allocationsWithRepeatedEntry := append(a, a[0]) // [{Alice: 2, Bob: 3, Alice: 2}]
+
 	type testCase struct {
 		Allocations     Allocations
 		GivenAllocation Allocation
@@ -198,6 +200,7 @@ func TestAffordsFor(t *testing.T) {
 		{a, a[1], big.NewInt(5), big.NewInt(3)},
 		{a, a[1], big.NewInt(4), big.NewInt(2)},
 		{a, a[1], big.NewInt(2), big.NewInt(0)},
+		{allocationsWithRepeatedEntry, a[0], big.NewInt(7), big.NewInt(4)},
 	}
 
 	for _, testcase := range testCases {
@@ -205,7 +208,7 @@ func TestAffordsFor(t *testing.T) {
 		if got.Cmp(testcase.Want) != 0 {
 			t.Errorf(
 				`Incorrect AffordFor: expected allocation %v to afford %v, for given allocation %v, but got %v`,
-				testcase.Allocations, testcase.GivenAllocation, testcase.Want, got)
+				testcase.Allocations, testcase.Want, testcase.GivenAllocation, got)
 		}
 	}
 
