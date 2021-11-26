@@ -55,8 +55,8 @@ func (a Allocations) Total() *big.Int {
 // AffordsFor computes the amount that the allocations can afford for a given allocation, assuming it is funded with x coins
 func (allocations Allocations) AffordsFor(given Allocation, x *big.Int) *big.Int {
 	bigZero := big.NewInt(0)
-	affordsInTotal := bigZero
-	surplus := x
+	affordsInTotal := big.NewInt(0).Set(bigZero)
+	surplus := big.NewInt(0).Set(x)
 	for _, allocation := range allocations {
 
 		if surplus.Cmp(bigZero) == 0 {
