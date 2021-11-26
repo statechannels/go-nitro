@@ -183,30 +183,29 @@ func TestTotal(t *testing.T) {
 
 func TestAffordsFor(t *testing.T) {
 
-	var gots []*big.Int = []*big.Int{
-		a.AffordsFor(a[0], big.NewInt(3)),
-		a.AffordsFor(a[0], big.NewInt(2)),
-		a.AffordsFor(a[0], big.NewInt(1)),
-		a.AffordsFor(a[1], big.NewInt(6)),
-		a.AffordsFor(a[1], big.NewInt(5)),
-		a.AffordsFor(a[1], big.NewInt(4)),
-		a.AffordsFor(a[1], big.NewInt(2)),
+	type testCase struct {
+		Allocations     Allocations
+		GivenAllocation Allocation
+		X               *big.Int
+		Want            *big.Int
 	}
 
-	var wants []*big.Int = []*big.Int{
-		big.NewInt(2),
-		big.NewInt(2),
-		big.NewInt(1),
-		big.NewInt(3),
-		big.NewInt(3),
-		big.NewInt(2),
-		big.NewInt(0),
+	var testCases []testCase = []testCase{
+		{a, a[0], big.NewInt(3), big.NewInt(2)},
+		{a, a[0], big.NewInt(2), big.NewInt(2)},
+		{a, a[0], big.NewInt(1), big.NewInt(1)},
+		{a, a[1], big.NewInt(6), big.NewInt(3)},
+		{a, a[1], big.NewInt(5), big.NewInt(3)},
+		{a, a[1], big.NewInt(4), big.NewInt(2)},
+		{a, a[1], big.NewInt(2), big.NewInt(0)},
 	}
 
-	for i, got := range gots {
-		want := wants[i]
-		if got.Cmp(want) != 0 {
-			t.Errorf(`Incorrect AffordFor: expected %v, got %v`, want, got)
+	for _, testcase := range testCases {
+		got := testcase.Allocations.AffordsFor(testcase.GivenAllocation, testcase.X)
+		if got.Cmp(testcase.Want) != 0 {
+			t.Errorf(
+				`Incorrect AffordFor: expected allocation %v to afford %v, for given allocation %v, but got %v`,
+				testcase.Allocations, testcase.GivenAllocation, testcase.Want, got)
 		}
 	}
 
