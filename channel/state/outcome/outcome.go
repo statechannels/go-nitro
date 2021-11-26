@@ -20,6 +20,10 @@ type Allocation struct {
 	Metadata       []byte            // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
 }
 
+// TODO AllocationType should be an enum?
+const NormalAllocationType = uint8(0)
+const GuaranteeAllocationType = uint8(1)
+
 // Equal returns true if the supplied Allocation matches the receiver Allocation, and false otherwise.
 // Fields are compared with ==, except for big.Ints which are compared using Cmp
 func (a Allocation) Equal(b Allocation) bool {
