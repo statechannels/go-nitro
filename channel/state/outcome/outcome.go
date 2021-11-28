@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -53,6 +54,32 @@ func (a Allocations) Total() *big.Int {
 		total.Add(total, allocation.Amount)
 	}
 	return total
+}
+
+// Affords returns true if the allocations can afford the given allocation given input funds of x, false otherwise.
+//
+// To afford the given allocation, the allocations must include something equal-in-value to it,
+// as well as having sufficient funds left over for it after reserving funds from x for all allocations with higher priority.
+// Note that "equal-in-value" implies the same allocation type and metadata (if any).
+func (allocations Allocations) Affords(given Allocation, x *big.Int) bool {
+	bigZero := big.NewInt(0)
+	surplus := big.NewInt(0).Set(x)
+	for _, allocation := range allocations {
+
+		if surplus.Cmp(bigZero) == 0 {
+			break
+		}
+
+		affords := math.BigMin(surplus, allocation.Amount)
+
+		if allocation.Equal(given) && affords.Cmp(allocation.Amount) >= 0 {
+			return true
+		}
+
+		surplus.Sub(surplus, affords)
+
+	}
+	return false
 }
 
 // SingleAssetExit declares an ordered list of Allocations for a single asset.
