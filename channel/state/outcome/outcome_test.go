@@ -163,18 +163,51 @@ func TestExitDecode(t *testing.T) {
 	}
 }
 
+var a = Allocations{{ // [{Alice: 2, Bob: 3}]
+	Destination:    types.Destination(common.HexToHash("0x0a")),
+	Amount:         big.NewInt(2),
+	AllocationType: 0,
+	Metadata:       make(types.Bytes, 0)}, {
+	Destination:    types.Destination(common.HexToHash("0x0b")),
+	Amount:         big.NewInt(3),
+	AllocationType: 0,
+	Metadata:       make(types.Bytes, 0)}}
+
 func TestTotal(t *testing.T) {
-	a := Allocations{{ // [{Alice: 2, Bob: 3}]
-		Destination:    types.Destination(common.HexToHash("0x0a")),
-		Amount:         big.NewInt(2),
-		AllocationType: 0,
-		Metadata:       make(types.Bytes, 0)}, {
-		Destination:    types.Destination(common.HexToHash("0x0b")),
-		Amount:         big.NewInt(3),
-		AllocationType: 0,
-		Metadata:       make(types.Bytes, 0)}}
+
 	total := a.Total()
 	if total.Cmp(big.NewInt(5)) != 0 {
 		t.Errorf(`Expected total to be 5, got %v`, total)
 	}
+}
+
+func TestAffords(t *testing.T) {
+
+	type testCase struct {
+		Allocations     Allocations
+		GivenAllocation Allocation
+		X               *big.Int
+		Want            bool
+	}
+
+	var testCases []testCase = []testCase{
+		{a, a[0], big.NewInt(3), true},
+		{a, a[0], big.NewInt(2), true},
+		{a, a[0], big.NewInt(1), false},
+		{a, a[1], big.NewInt(6), true},
+		{a, a[1], big.NewInt(5), true},
+		{a, a[1], big.NewInt(4), false},
+		{a, a[1], big.NewInt(2), false},
+		{a, Allocation{}, big.NewInt(2), false},
+	}
+
+	for _, testcase := range testCases {
+		got := testcase.Allocations.Affords(testcase.GivenAllocation, testcase.X)
+		if got != testcase.Want {
+			t.Errorf(
+				`Incorrect AffordFor: expected %v.Affords(%v,%v) to be %v, but got %v`,
+				testcase.Allocations, testcase.GivenAllocation, testcase.X, testcase.Want, got)
+		}
+	}
+
 }
