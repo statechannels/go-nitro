@@ -183,31 +183,32 @@ func TestTotal(t *testing.T) {
 
 func TestAffords(t *testing.T) {
 
-	type testCase struct {
+	testCases := map[string]struct {
 		Allocations     Allocations
 		GivenAllocation Allocation
 		X               *big.Int
 		Want            bool
+	}{
+		"case 0": {a, a[0], big.NewInt(3), true},
+		"case 1": {a, a[0], big.NewInt(2), true},
+		"case 2": {a, a[0], big.NewInt(1), false},
+		"case 3": {a, a[1], big.NewInt(6), true},
+		"case 4": {a, a[1], big.NewInt(5), true},
+		"case 5": {a, a[1], big.NewInt(4), false},
+		"case 6": {a, a[1], big.NewInt(2), false},
+		"case 7": {a, Allocation{}, big.NewInt(2), false},
 	}
 
-	var testCases []testCase = []testCase{
-		{a, a[0], big.NewInt(3), true},
-		{a, a[0], big.NewInt(2), true},
-		{a, a[0], big.NewInt(1), false},
-		{a, a[1], big.NewInt(6), true},
-		{a, a[1], big.NewInt(5), true},
-		{a, a[1], big.NewInt(4), false},
-		{a, a[1], big.NewInt(2), false},
-		{a, Allocation{}, big.NewInt(2), false},
-	}
+	for name, testcase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got := testcase.Allocations.Affords(testcase.GivenAllocation, testcase.X)
+			if got != testcase.Want {
+				t.Errorf(
+					`Incorrect AffordFor: expected %v.Affords(%v,%v) to be %v, but got %v`,
+					testcase.Allocations, testcase.GivenAllocation, testcase.X, testcase.Want, got)
+			}
+		})
 
-	for _, testcase := range testCases {
-		got := testcase.Allocations.Affords(testcase.GivenAllocation, testcase.X)
-		if got != testcase.Want {
-			t.Errorf(
-				`Incorrect AffordFor: expected %v.Affords(%v,%v) to be %v, but got %v`,
-				testcase.Allocations, testcase.GivenAllocation, testcase.X, testcase.Want, got)
-		}
 	}
 
 }
