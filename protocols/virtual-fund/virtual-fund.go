@@ -29,6 +29,9 @@ type VirtualFundObjective struct {
 	L      map[uint]channel.Channel // this will contain 1 or 2 Ledger channels. For example L_0 if Alice (i=0). L_0 and L_1 for the first intermediary (i=1). L_n+1 for Bob (i=n+1)
 	MyRole uint                     // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
 
+	a0 types.Funds // Initial balance for Alice
+	b0 types.Funds // Initial balance for Bob
+
 	ExpectedGuarantees map[uint]map[types.Address]outcome.Allocation // For each ledger channel, for each asset -- the expected guarantee that diverts funds from L_i to V,
 
 	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
@@ -42,8 +45,46 @@ type VirtualFundObjective struct {
 
 // New initiates a VirtualFundObjective with data calculated from
 // the supplied initialState and client address
-func New(initialStateOfJ state.State, myAddress types.Address) (VirtualFundObjective, error) {
+func New(initialStateOfJ state.State, myAddress types.Address, myRole uint) (VirtualFundObjective, error) {
 	var init VirtualFundObjective
+
+	n := uint(2) // TODO  uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
+
+	// Compute a0 and b0 from the initial state of J
+	for i := range initialStateOfJ.Outcome {
+		asset := initialStateOfJ.Outcome[i].Asset
+		amount0 := initialStateOfJ.Outcome[i].Allocations[0].Amount
+		amount1 := initialStateOfJ.Outcome[i].Allocations[1].Amount
+		init.a0[asset].Add(init.a0[asset], amount0)
+		init.b0[asset].Add(init.a0[asset], amount1)
+	}
+
+	init.MyRole = myRole
+	init.ExpectedGuarantees = make(map[uint]map[types.Address]outcome.Allocation)
+
+	switch {
+	case init.MyRole == 0: // Alice
+		init.ExpectedGuarantees[0] = make(map[types.Address]outcome.Allocation)
+		metadata := outcome.GuaranteeMetadata{
+			Left:  myDestination,                                // TODO
+			Right: myCounterpartyInthisLedgerChannelDestination, // TODO
+		}
+		encodedGuarantee, error := metadata.Encode()
+		for asset := range init.a0 {
+			init.ExpectedGuarantees[0][asset] = outcome.Allocation{
+				Destination:    init.J.Id,
+				Amount:         init.a0[asset],
+				AllocationType: outcome.GuaranteeAllocationType,
+				Metadata:       encodedGuarantee,
+			}
+		}
+	case init.MyRole < n+1: // Intermediary
+
+	case init.MyRole == n+1: // Bob
+	default: // Invalid
+
+	}
+
 	// TODO
 	return init, nil
 }
@@ -158,7 +199,7 @@ func (s VirtualFundObjective) postfundComplete() bool {
 func (s VirtualFundObjective) fundingComplete() bool {
 
 	// Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
-	// A = P_0 and B=P_n+1 are special cases. A only does the guarantee for L_0, and B only foes the guarantee for L_n.
+	// A = P_0 and B=P_n+1 are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
 
 	n := uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
 
