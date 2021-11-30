@@ -1,4 +1,4 @@
-package protocols
+package virtualfund
 
 import (
 	"errors"
@@ -21,8 +21,8 @@ var NoSideEffects = protocols.SideEffects{}
 // errors
 var ErrNotApproved = errors.New("objective not approved")
 
-// VirtualFundingObjectiveState is a cache of data computed by reading from the store. It stores (potentially) infinite data
-type VirtualFundingObjectiveState struct {
+// VirtualFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data
+type VirtualFundObjective struct {
 	Status protocols.ObjectiveStatus
 	J      channel.Channel          // this is J
 	L      map[uint]channel.Channel // this will contain 1 or 2 Ledger channels. For example L_0 if Alice (i=0). L_0 and L_1 for the first intermediary (i=1). L_n+1 for Bob (i=n+1)
@@ -37,23 +37,23 @@ type VirtualFundingObjectiveState struct {
 	PostFundSigned []bool // indexed by participant
 }
 
-// NewVirtualFundingObjectiveState initiates a VirtualFundingObjectiveState with data calculated from
+// New initiates a VirtualFundObjective with data calculated from
 // the supplied initialState and client address
-func NewVirtualFundingObjectiveState(initialStateOfJ state.State, myAddress types.Address) (VirtualFundingObjectiveState, error) {
-	var init VirtualFundingObjectiveState
+func New(initialStateOfJ state.State, myAddress types.Address) (VirtualFundObjective, error) {
+	var init VirtualFundObjective
 	// TODO
 	return init, nil
 }
 
-// Public methods on the VirtualFundingObjectiveState
+// Public methods on the VirtualFundObjective
 
 // Id returns the objective id
-func (s VirtualFundingObjectiveState) Id() protocols.ObjectiveId {
-	return protocols.ObjectiveId("VirtualFundingAsTerminal-" + s.J.Id.String())
+func (s VirtualFundObjective) Id() protocols.ObjectiveId {
+	return protocols.ObjectiveId("VirtualFundAsTerminal-" + s.J.Id.String())
 }
 
 // Approve returns an approved copy of the objective
-func (s VirtualFundingObjectiveState) Approve() protocols.Objective {
+func (s VirtualFundObjective) Approve() protocols.Objective {
 	updated := s.clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
@@ -61,15 +61,15 @@ func (s VirtualFundingObjectiveState) Approve() protocols.Objective {
 }
 
 // Approve returns a rejected copy of the objective
-func (s VirtualFundingObjectiveState) Reject() protocols.Objective {
+func (s VirtualFundObjective) Reject() protocols.Objective {
 	updated := s.clone()
 	updated.Status = protocols.Rejected
 	return updated
 }
 
-// Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundingObjectiveState,
+// Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
 // and returns the updated state
-func (s VirtualFundingObjectiveState) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 
 	if !s.inScope(event.ChannelId) {
 		return s, errors.New("event channelId out of scope of objective")
@@ -85,7 +85,7 @@ func (s VirtualFundingObjectiveState) Update(event protocols.ObjectiveEvent) (pr
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
-func (s VirtualFundingObjectiveState) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := s.clone()
 
 	// Input validation
@@ -129,10 +129,10 @@ func (s VirtualFundingObjectiveState) Crank(secretKey *[]byte) (protocols.Object
 	return updated, NoSideEffects, WaitingForNothing, nil
 }
 
-//  Private methods on the VirtualFundingObjectiveState
+//  Private methods on the VirtualFundObjective
 
 // prefundComplete returns true if all participants have signed a prefund state, as reflected by the extended state
-func (s VirtualFundingObjectiveState) prefundComplete() bool {
+func (s VirtualFundObjective) prefundComplete() bool {
 	for _, index := range s.ParticipantIndex {
 		if !s.PreFundSigned[index] {
 			return false
@@ -142,7 +142,7 @@ func (s VirtualFundingObjectiveState) prefundComplete() bool {
 }
 
 // postfundComplete returns true if all participants have signed a postfund state, as reflected by the extended state
-func (s VirtualFundingObjectiveState) postfundComplete() bool {
+func (s VirtualFundObjective) postfundComplete() bool {
 	for _, index := range s.ParticipantIndex {
 		if !s.PostFundSigned[index] {
 			return false
@@ -152,7 +152,7 @@ func (s VirtualFundingObjectiveState) postfundComplete() bool {
 }
 
 // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
-func (s VirtualFundingObjectiveState) fundingComplete() bool {
+func (s VirtualFundObjective) fundingComplete() bool {
 
 	n := uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
 
@@ -165,7 +165,7 @@ func (s VirtualFundingObjectiveState) fundingComplete() bool {
 }
 
 // generateLedgerRequestSideEffects generates the appropriate side effects, which (when executed and countersigned) will update 1 or 2 ledger channels to guarantee the joint channel
-func (s VirtualFundingObjectiveState) generateLedgerRequestSideEffects() protocols.SideEffects {
+func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideEffects {
 	sideEffects := protocols.SideEffects{}
 	sideEffects.LedgerRequests = make([]protocols.LedgerRequest, 2)
 	if s.MyRole > 0 { // Not Alice
@@ -191,7 +191,7 @@ func (s VirtualFundingObjectiveState) generateLedgerRequestSideEffects() protoco
 }
 
 // inScope returns true if the supplied channelId is the joint channel or one of the ledger channels. Can be used to filter out events that don't concern these channels.
-func (s VirtualFundingObjectiveState) inScope(channelId types.Bytes32) bool {
+func (s VirtualFundObjective) inScope(channelId types.Bytes32) bool {
 	if channelId == s.J.Id {
 		return true
 	}
@@ -205,6 +205,6 @@ func (s VirtualFundingObjectiveState) inScope(channelId types.Bytes32) bool {
 }
 
 // todo: is this sufficient? Particularly: s has pointer members (*big.Int)
-func (s VirtualFundingObjectiveState) clone() VirtualFundingObjectiveState {
+func (s VirtualFundObjective) clone() VirtualFundObjective {
 	return s
 }
