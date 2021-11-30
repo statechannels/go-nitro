@@ -8,7 +8,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -56,14 +55,14 @@ func (a Allocations) Total() *big.Int {
 	return total
 }
 
-// Affords returns true if the allocations can afford the given allocation given input funds of x, false otherwise.
+// Affords returns true if the allocations can afford the given allocation given the input funding, false otherwise.
 //
 // To afford the given allocation, the allocations must include something equal-in-value to it,
-// as well as having sufficient funds left over for it after reserving funds from x for all allocations with higher priority.
+// as well as having sufficient funds left over for it after reserving funds from the input funding for all allocations with higher priority.
 // Note that "equal-in-value" implies the same allocation type and metadata (if any).
-func (allocations Allocations) Affords(given Allocation, x *big.Int) bool {
+func (allocations Allocations) Affords(given Allocation, funding *big.Int) bool {
 	bigZero := big.NewInt(0)
-	surplus := big.NewInt(0).Set(x)
+	surplus := big.NewInt(0).Set(funding)
 	for _, allocation := range allocations {
 
 		if allocation.Equal(given) {

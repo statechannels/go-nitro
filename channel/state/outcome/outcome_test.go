@@ -189,7 +189,7 @@ func TestAffords(t *testing.T) {
 	testCases := map[string]struct {
 		Allocations     Allocations
 		GivenAllocation Allocation
-		X               *big.Int
+		Funding         *big.Int
 		Want            bool
 	}{
 		"case 0": {a, a[0], big.NewInt(3), true},
@@ -204,11 +204,11 @@ func TestAffords(t *testing.T) {
 
 	for name, testcase := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got := testcase.Allocations.Affords(testcase.GivenAllocation, testcase.X)
+			got := testcase.Allocations.Affords(testcase.GivenAllocation, testcase.Funding)
 			if got != testcase.Want {
 				t.Errorf(
 					`Incorrect AffordFor: expected %v.Affords(%v,%v) to be %v, but got %v`,
-					testcase.Allocations, testcase.GivenAllocation, testcase.X, testcase.Want, got)
+					testcase.Allocations, testcase.GivenAllocation, testcase.Funding, testcase.Want, got)
 			}
 		})
 
