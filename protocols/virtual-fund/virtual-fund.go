@@ -154,13 +154,25 @@ func (s VirtualFundObjective) postfundComplete() bool {
 // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
 func (s VirtualFundObjective) fundingComplete() bool {
 
+	// Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
+	// A = P_0 and B=P_n+1 are special cases. A only does the guarantee for L_0, and B only foes the guarantee for L_n.
+
 	n := uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
 
-	if s.MyRole == n+1 { // If I'm Bob, or peer n+1
-		return s.L[n].GuaranteesFor(s.J.Id).IsNonZero() // TODO a proper check on each asset (against s.J.Total)
-	} else {
-		return s.L[s.MyRole].GuaranteesFor(s.J.Id).IsNonZero() // TODO a proper check on each asset (against s.J.Total)
+	switch {
+	case s.MyRole == 0: // Alice
+		// return s.L[n].Affords()
+	case s.MyRole < n+1: // Intermediary
+	case s.MyRole == n+1: // Bob
+	case s.MyRole > n+1: // Invalid
+
 	}
+
+	// if s.MyRole == n+1 { // If I'm Bob, or peer n+1
+	// 	return s.L[n].GuaranteesFor(s.J.Id).IsNonZero() // TODO a proper check on each asset (against s.J.Total)
+	// } else {
+	// 	return s.L[s.MyRole].GuaranteesFor(s.J.Id).IsNonZero() // TODO a proper check on each asset (against s.J.Total)
+	// }
 
 }
 
