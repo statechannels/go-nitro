@@ -55,6 +55,30 @@ func (a Allocations) Total() *big.Int {
 	return total
 }
 
+// Affords returns true if the allocations can afford the given allocation given the input funding, false otherwise.
+//
+// To afford the given allocation, the allocations must include something equal-in-value to it,
+// as well as having sufficient funds left over for it after reserving funds from the input funding for all allocations with higher priority.
+// Note that "equal-in-value" implies the same allocation type and metadata (if any).
+func (allocations Allocations) Affords(given Allocation, funding *big.Int) bool {
+	bigZero := big.NewInt(0)
+	surplus := big.NewInt(0).Set(funding)
+	for _, allocation := range allocations {
+
+		if allocation.Equal(given) {
+			return surplus.Cmp(given.Amount) >= 0
+		}
+
+		surplus.Sub(surplus, allocation.Amount)
+
+		if surplus.Cmp(bigZero) != 1 {
+			break // no funds remain for further allocations
+		}
+
+	}
+	return false
+}
+
 // SingleAssetExit declares an ordered list of Allocations for a single asset.
 type SingleAssetExit struct {
 	Asset       types.Address // Either the zero address (implying the native token) or the address of an ERC20 contract
