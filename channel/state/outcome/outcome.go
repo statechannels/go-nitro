@@ -66,17 +66,15 @@ func (allocations Allocations) Affords(given Allocation, x *big.Int) bool {
 	surplus := big.NewInt(0).Set(x)
 	for _, allocation := range allocations {
 
-		if surplus.Cmp(bigZero) == 0 {
-			break
+		if allocation.Equal(given) {
+			return surplus.Cmp(given.Amount) >= 0
 		}
 
-		affords := math.BigMin(surplus, allocation.Amount)
+		surplus.Sub(surplus, allocation.Amount)
 
-		if allocation.Equal(given) && affords.Cmp(allocation.Amount) >= 0 {
-			return true
+		if surplus.Cmp(bigZero) != 1 {
+			break // no funds remain for further allocations
 		}
-
-		surplus.Sub(surplus, affords)
 
 	}
 	return false
