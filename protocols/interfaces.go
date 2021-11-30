@@ -21,8 +21,8 @@ type Transaction struct {
 
 // LedgerRequest is an object processed by the ledger cranker
 type LedgerRequest struct {
-	LedgerId    types.Bytes32
-	Destination types.Bytes32
+	LedgerId    types.Destination
+	Destination types.Destination
 	Amount      types.Funds
 	Guarantee   []types.Address // len = 0 for allocation, len = 2 for guarantee
 }

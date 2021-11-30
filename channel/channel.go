@@ -6,7 +6,7 @@ import (
 )
 
 type Channel struct {
-	Id             types.Bytes32
+	Id             types.Destination
 	OnChainFunding types.Funds
 
 	state.FixedPart

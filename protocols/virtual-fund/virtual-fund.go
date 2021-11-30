@@ -191,7 +191,7 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 }
 
 // inScope returns true if the supplied channelId is the joint channel or one of the ledger channels. Can be used to filter out events that don't concern these channels.
-func (s VirtualFundObjective) inScope(channelId types.Bytes32) bool {
+func (s VirtualFundObjective) inScope(channelId types.Destination) bool {
 	if channelId == s.J.Id {
 		return true
 	}
