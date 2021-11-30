@@ -176,6 +176,32 @@ var a = Allocations{ // [{Alice: 2, Bob: 3}]
 		Metadata:       make(types.Bytes, 0)},
 }
 
+var b = Allocations{ // [{Bob: 2, Alice: 1}]
+	{
+		Destination:    types.Destination(common.HexToHash("0x0b")),
+		Amount:         big.NewInt(2),
+		AllocationType: 0,
+		Metadata:       make(types.Bytes, 0)},
+	{
+		Destination:    types.Destination(common.HexToHash("0x0a")),
+		Amount:         big.NewInt(1),
+		AllocationType: 0,
+		Metadata:       make(types.Bytes, 0)},
+}
+
+var e Exit = Exit{
+	{
+		Asset:       types.Address{}, // eth, fil, etc.
+		Metadata:    zeroBytes,
+		Allocations: a,
+	},
+	{
+		Asset:       types.Address{123}, // some token
+		Metadata:    zeroBytes,
+		Allocations: b,
+	},
+}
+
 func TestTotal(t *testing.T) {
 
 	total := a.Total()
@@ -214,4 +240,18 @@ func TestAffords(t *testing.T) {
 
 	}
 
+}
+
+func TestTotalAllocated(t *testing.T) {
+	want := types.Funds{
+		types.Address{}:    big.NewInt(5),
+		types.Address{123}: big.NewInt(3),
+	}
+
+	got := e.TotalAllocated()
+
+	if !got.Equal(want) {
+		t.Errorf("Expected %v.TotalAllocated() to equal %v, but it was %v",
+			e, want, got)
+	}
 }
