@@ -163,15 +163,18 @@ func TestExitDecode(t *testing.T) {
 	}
 }
 
-var a = Allocations{{ // [{Alice: 2, Bob: 3}]
-	Destination:    types.Destination(common.HexToHash("0x0a")),
-	Amount:         big.NewInt(2),
-	AllocationType: 0,
-	Metadata:       make(types.Bytes, 0)}, {
-	Destination:    types.Destination(common.HexToHash("0x0b")),
-	Amount:         big.NewInt(3),
-	AllocationType: 0,
-	Metadata:       make(types.Bytes, 0)}}
+var a = Allocations{ // [{Alice: 2, Bob: 3}]
+	{
+		Destination:    types.Destination(common.HexToHash("0x0a")),
+		Amount:         big.NewInt(2),
+		AllocationType: 0,
+		Metadata:       make(types.Bytes, 0)},
+	{
+		Destination:    types.Destination(common.HexToHash("0x0b")),
+		Amount:         big.NewInt(3),
+		AllocationType: 0,
+		Metadata:       make(types.Bytes, 0)},
+}
 
 func TestTotal(t *testing.T) {
 
