@@ -13,7 +13,7 @@ import (
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
 	// Assert that a valid set of constructor args does not result in an error
-	if _, err := NewDirectFundObjective(state.TestState, state.TestState.Participants[0]); err != nil {
+	if _, err := New(state.TestState, state.TestState.Participants[0]); err != nil {
 		t.Error(err)
 	}
 
@@ -22,14 +22,14 @@ func TestNew(t *testing.T) {
 	finalState.IsFinal = true
 
 	// Assert that constructing with a final state should return an error
-	if _, err := NewDirectFundObjective(finalState, state.TestState.Participants[0]); err == nil {
+	if _, err := New(finalState, state.TestState.Participants[0]); err == nil {
 		t.Error("Expected an error when constructing with an invalid state, but got nil")
 	}
 
 }
 
 // Construct various variables for use in TestUpdate
-var s, _ = NewDirectFundObjective(state.TestState, state.TestState.Participants[0])
+var s, _ = New(state.TestState, state.TestState.Participants[0])
 var dummySignature = state.Signature{
 	R: common.Hex2Bytes(`49d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
 	S: common.Hex2Bytes(`22274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),
