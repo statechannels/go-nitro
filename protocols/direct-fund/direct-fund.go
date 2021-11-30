@@ -48,9 +48,9 @@ type DirectFundObjective struct {
 	onChainHolding types.Funds
 }
 
-// NewDirectFundObjective initiates a DirectFundingInitialState with data calculated from
+// New initiates a DirectFundingInitialState with data calculated from
 // the supplied initialState and client address
-func NewDirectFundObjective(initialState state.State, myAddress types.Address) (DirectFundObjective, error) {
+func New(initialState state.State, myAddress types.Address) (DirectFundObjective, error) {
 	if initialState.IsFinal {
 		return DirectFundObjective{}, errors.New("attempted to initiate new direct-funding objective with IsFinal == true")
 	}
