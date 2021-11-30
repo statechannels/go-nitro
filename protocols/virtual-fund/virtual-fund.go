@@ -64,29 +64,38 @@ func New(initialStateOfJ state.State, myAddress types.Address, myRole uint) (Vir
 
 	switch {
 	case init.MyRole == 0: // Alice
-		init.ExpectedGuarantees[0] = make(map[types.Address]outcome.Allocation)
-		metadata := outcome.GuaranteeMetadata{
-			Left:  myDestination,                                // TODO
-			Right: myCounterpartyInthisLedgerChannelDestination, // TODO
-		}
-		encodedGuarantee, error := metadata.Encode()
-		for asset := range init.a0 {
-			init.ExpectedGuarantees[0][asset] = outcome.Allocation{
-				Destination:    init.J.Id,
-				Amount:         init.a0[asset],
-				AllocationType: outcome.GuaranteeAllocationType,
-				Metadata:       encodedGuarantee,
-			}
-		}
+		init.insertExpectedGuaranteesForLedgerChannel(0)
 	case init.MyRole < n+1: // Intermediary
-
+		init.insertExpectedGuaranteesForLedgerChannel(init.MyRole - 1)
+		init.insertExpectedGuaranteesForLedgerChannel(init.MyRole)
 	case init.MyRole == n+1: // Bob
+		init.insertExpectedGuaranteesForLedgerChannel(n)
 	default: // Invalid
 
 	}
 
 	// TODO
 	return init, nil
+}
+
+// insertExpectedGuaranteesForLedgerChannel mutates the VirtualFundObjective
+func (init *VirtualFundObjective) insertExpectedGuaranteesForLedgerChannel(i uint) {
+	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
+	metadata := outcome.GuaranteeMetadata{
+		Left:  myDestination,                                // TODO
+		Right: myCounterpartyInthisLedgerChannelDestination, // TODO
+	}
+	encodedGuarantee, error := metadata.Encode()
+	for asset := range init.a0 {
+		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
+			Destination:    init.J.Id,
+			Amount:         init.a0[asset],
+			AllocationType: outcome.GuaranteeAllocationType,
+			Metadata:       encodedGuarantee,
+		}
+	}
+
+	init.ExpectedGuarantees[i] = expectedGuaranteesForLedgerChannel
 }
 
 // Public methods on the VirtualFundObjective
