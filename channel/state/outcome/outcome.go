@@ -109,6 +109,20 @@ func (a Exit) Equal(b Exit) bool {
 	return true
 }
 
+// TotalAllocated returns the sum of all Funds that are allocated by the outcome.
+//
+// NOTE that these Funds are potentially different from a channel's capacity to
+// pay out a given set of allocations, which is limited by the channel's holdings
+func (e Exit) TotalAllocated() types.Funds {
+	fullValue := types.Funds{}
+
+	for _, assetExit := range e {
+		fullValue[assetExit.Asset] = assetExit.TotalAllocated()
+	}
+
+	return fullValue
+}
+
 // allocationsTy describes the shape of Allocations such that github.com/ethereum/go-ethereum/accounts/abi can parse it
 var allocationsTy = abi.ArgumentMarshaling{
 	Name: "Allocations",
