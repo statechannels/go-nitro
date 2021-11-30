@@ -1,4 +1,4 @@
-package protocols
+package directfund
 
 import (
 	"math/big"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -43,7 +44,7 @@ var correctSignatureByParticipant, _ = stateToSign.Sign(privateKeyOfParticipant0
 func TestUpdate(t *testing.T) {
 
 	// Prepare an event with a mismatched channelId
-	e := ObjectiveEvent{
+	e := protocols.ObjectiveEvent{
 		ChannelId: types.Destination{},
 	}
 	// Assert that Updating the objective with such an event returns an error

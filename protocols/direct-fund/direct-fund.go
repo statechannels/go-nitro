@@ -1,4 +1,4 @@
-package protocols
+package directfund
 
 import (
 	"errors"
@@ -6,29 +6,30 @@ import (
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
 const (
-	WaitingForCompletePrefund  WaitingFor = "WaitingForCompletePrefund"
-	WaitingForMyTurnToFund     WaitingFor = "WaitingForMyTurnToFund"
-	WaitingForCompleteFunding  WaitingFor = "WaitingForCompleteFunding"
-	WaitingForCompletePostFund WaitingFor = "WaitingForCompletePostFund"
-	WaitingForNothing          WaitingFor = "WaitingForNothing" // Finished
+	WaitingForCompletePrefund  protocols.WaitingFor = "WaitingForCompletePrefund"
+	WaitingForMyTurnToFund     protocols.WaitingFor = "WaitingForMyTurnToFund"
+	WaitingForCompleteFunding  protocols.WaitingFor = "WaitingForCompleteFunding"
+	WaitingForCompletePostFund protocols.WaitingFor = "WaitingForCompletePostFund"
+	WaitingForNothing          protocols.WaitingFor = "WaitingForNothing" // Finished
 )
 
 func FundOnChainEffect(cId types.Destination, asset string, amount types.Funds) string {
 	return "deposit" + amount.String() + "into" + cId.String()
 }
 
-var NoSideEffects = SideEffects{}
+var NoSideEffects = protocols.SideEffects{}
 
 // errors
 var ErrNotApproved = errors.New("objective not approved")
 
 // DirectFundingObjectiveState is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type DirectFundingObjectiveState struct {
-	Status    ObjectiveStatus
+	Status    protocols.ObjectiveStatus
 	channelId types.Destination
 
 	participantIndex map[types.Address]uint // the index for each participant
@@ -57,7 +58,7 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 	var init DirectFundingObjectiveState
 	var err error
 
-	init.Status = Unapproved
+	init.Status = protocols.Unapproved
 	init.channelId, err = initialState.ChannelId()
 	if err != nil {
 		return init, err
@@ -97,27 +98,27 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 
 // Public methods on the DirectFundingObjectiveState
 
-func (s DirectFundingObjectiveState) Id() ObjectiveId {
-	return ObjectiveId("DirectFunding-" + s.channelId.String())
+func (s DirectFundingObjectiveState) Id() protocols.ObjectiveId {
+	return protocols.ObjectiveId("DirectFunding-" + s.channelId.String())
 }
 
-func (s DirectFundingObjectiveState) Approve() Objective {
+func (s DirectFundingObjectiveState) Approve() protocols.Objective {
 	updated := s.clone()
 	// todo: consider case of s.Status == Rejected
-	updated.Status = Approved
+	updated.Status = protocols.Approved
 
 	return updated
 }
 
-func (s DirectFundingObjectiveState) Reject() Objective {
+func (s DirectFundingObjectiveState) Reject() protocols.Objective {
 	updated := s.clone()
-	updated.Status = Rejected
+	updated.Status = protocols.Rejected
 	return updated
 }
 
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
 // and returns the updated state
-func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, error) {
+func (s DirectFundingObjectiveState) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if s.channelId != event.ChannelId {
 		return s, errors.New("event and objective channelIds do not match")
 	}
@@ -151,11 +152,11 @@ func (s DirectFundingObjectiveState) Update(event ObjectiveEvent) (Objective, er
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
-func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) {
+func (s DirectFundingObjectiveState) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := s.clone()
 
 	// Input validation
-	if updated.Status != Approved {
+	if updated.Status != protocols.Approved {
 		return updated, NoSideEffects, WaitingForNothing, ErrNotApproved
 	}
 
@@ -238,7 +239,7 @@ func (s DirectFundingObjectiveState) fundingComplete() bool {
 			return false
 		}
 
-		if gt(threshold, chainHolding) {
+		if types.Gt(threshold, chainHolding) {
 			return false
 		}
 	}
@@ -255,7 +256,7 @@ func (s DirectFundingObjectiveState) safeToDeposit() bool {
 			return false
 		}
 
-		if gt(safetyThreshold, chainHolding) {
+		if types.Gt(safetyThreshold, chainHolding) {
 			return false
 		}
 	}
