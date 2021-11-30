@@ -5,6 +5,7 @@ import (
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -27,6 +28,8 @@ type VirtualFundObjective struct {
 	J      channel.Channel          // this is J
 	L      map[uint]channel.Channel // this will contain 1 or 2 Ledger channels. For example L_0 if Alice (i=0). L_0 and L_1 for the first intermediary (i=1). L_n+1 for Bob (i=n+1)
 	MyRole uint                     // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
+
+	ExpectedGuarantees map[uint]map[types.Address]outcome.Allocation // For each ledger channel, for each asset -- the expected guarantee that diverts funds from L_i to V,
 
 	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
 
@@ -161,19 +164,20 @@ func (s VirtualFundObjective) fundingComplete() bool {
 
 	switch {
 	case s.MyRole == 0: // Alice
-		// return s.L[n].Affords()
+		return s.ledgerChannelAffordsExpectedGuarantees(0)
 	case s.MyRole < n+1: // Intermediary
+		return s.ledgerChannelAffordsExpectedGuarantees(s.MyRole-1) && s.ledgerChannelAffordsExpectedGuarantees(s.MyRole)
 	case s.MyRole == n+1: // Bob
-	case s.MyRole > n+1: // Invalid
-
+		return s.ledgerChannelAffordsExpectedGuarantees(n)
+	default: // Invalid
+		return false
 	}
 
-	// if s.MyRole == n+1 { // If I'm Bob, or peer n+1
-	// 	return s.L[n].GuaranteesFor(s.J.Id).IsNonZero() // TODO a proper check on each asset (against s.J.Total)
-	// } else {
-	// 	return s.L[s.MyRole].GuaranteesFor(s.J.Id).IsNonZero() // TODO a proper check on each asset (against s.J.Total)
-	// }
+}
 
+// ledgerChannelAffordsExpectedGuarantees returns true if the ledger channel with given index i affords the expected guarantees for V
+func (s VirtualFundObjective) ledgerChannelAffordsExpectedGuarantees(i uint) bool {
+	return s.L[i].Affords(s.ExpectedGuarantees[i], s.L[i].OnChainFunding)
 }
 
 // generateLedgerRequestSideEffects generates the appropriate side effects, which (when executed and countersigned) will update 1 or 2 ledger channels to guarantee the joint channel
