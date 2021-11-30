@@ -13,7 +13,7 @@ import (
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
 	// Assert that a valid set of constructor args does not result in an error
-	if _, err := NewDirectFundingObjectiveState(state.TestState, state.TestState.Participants[0]); err != nil {
+	if _, err := NewDirectFundObjective(state.TestState, state.TestState.Participants[0]); err != nil {
 		t.Error(err)
 	}
 
@@ -22,14 +22,14 @@ func TestNew(t *testing.T) {
 	finalState.IsFinal = true
 
 	// Assert that constructing with a final state should return an error
-	if _, err := NewDirectFundingObjectiveState(finalState, state.TestState.Participants[0]); err == nil {
+	if _, err := NewDirectFundObjective(finalState, state.TestState.Participants[0]); err == nil {
 		t.Error("Expected an error when constructing with an invalid state, but got nil")
 	}
 
 }
 
 // Construct various variables for use in TestUpdate
-var s, _ = NewDirectFundingObjectiveState(state.TestState, state.TestState.Participants[0])
+var s, _ = NewDirectFundObjective(state.TestState, state.TestState.Participants[0])
 var dummySignature = state.Signature{
 	R: common.Hex2Bytes(`49d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
 	S: common.Hex2Bytes(`22274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),
@@ -80,7 +80,7 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if updated.(DirectFundingObjectiveState).preFundSigned[0] != true {
+	if updated.(DirectFundObjective).preFundSigned[0] != true {
 		t.Error(`Objective data not updated as expected`)
 	}
 
@@ -92,8 +92,8 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !updated.(DirectFundingObjectiveState).onChainHolding.Equal(e.Holdings) {
-		t.Error(`Objective data not updated as expected`, updated.(DirectFundingObjectiveState).onChainHolding, e.Holdings)
+	if !updated.(DirectFundObjective).onChainHolding.Equal(e.Holdings) {
+		t.Error(`Objective data not updated as expected`, updated.(DirectFundObjective).onChainHolding, e.Holdings)
 	}
 
 }
@@ -120,9 +120,9 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by collecting prefund signatures
-	o.(DirectFundingObjectiveState).preFundSigned[0] = true
-	o.(DirectFundingObjectiveState).preFundSigned[1] = true
-	o.(DirectFundingObjectiveState).preFundSigned[2] = true
+	o.(DirectFundObjective).preFundSigned[0] = true
+	o.(DirectFundObjective).preFundSigned[1] = true
+	o.(DirectFundObjective).preFundSigned[2] = true
 
 	// Cranking should move us to the next waiting point
 	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
@@ -134,7 +134,7 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually make the first "deposit"
-	o.(DirectFundingObjectiveState).onChainHolding[state.TestState.Outcome[0].Asset] = state.TestState.Outcome[0].Allocations[0].Amount
+	o.(DirectFundObjective).onChainHolding[state.TestState.Outcome[0].Asset] = state.TestState.Outcome[0].Allocations[0].Amount
 	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
 	if err != nil {
 		t.Error(err)
@@ -145,7 +145,7 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the second "deposit"
 	totalAmountAllocated := state.TestState.Outcome[0].TotalAllocated()
-	o.(DirectFundingObjectiveState).onChainHolding[state.TestState.Outcome[0].Asset] = totalAmountAllocated
+	o.(DirectFundObjective).onChainHolding[state.TestState.Outcome[0].Asset] = totalAmountAllocated
 	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
 	if err != nil {
 		t.Error(err)
@@ -155,12 +155,12 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by collecting postfund signatures
-	o.(DirectFundingObjectiveState).postFundSigned[0] = true
-	o.(DirectFundingObjectiveState).postFundSigned[1] = true
-	o.(DirectFundingObjectiveState).postFundSigned[2] = true
+	o.(DirectFundObjective).postFundSigned[0] = true
+	o.(DirectFundObjective).postFundSigned[1] = true
+	o.(DirectFundObjective).postFundSigned[2] = true
 
 	// This should be the final crank
-	o.(DirectFundingObjectiveState).onChainHolding[state.TestState.Outcome[0].Asset] = totalAmountAllocated
+	o.(DirectFundObjective).onChainHolding[state.TestState.Outcome[0].Asset] = totalAmountAllocated
 	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
 	if err != nil {
 		t.Error(err)
