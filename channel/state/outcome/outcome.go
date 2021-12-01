@@ -55,6 +55,17 @@ func (a Allocations) Total() *big.Int {
 	return total
 }
 
+// TotalFor returns the total amount allocated to the given dest (regardless of AllocationType)
+func (a Allocations) TotalFor(dest types.Destination) *big.Int {
+	total := big.NewInt(0)
+	for _, allocation := range a {
+		if allocation.Destination == dest {
+			total.Add(total, allocation.Amount)
+		}
+	}
+	return total
+}
+
 // Affords returns true if the allocations can afford the given allocation given the input funding, false otherwise.
 //
 // To afford the given allocation, the allocations must include something equal-in-value to it,
@@ -112,6 +123,11 @@ func (sae SingleAssetExit) TotalAllocated() *big.Int {
 	return sae.Allocations.Total()
 }
 
+// TotalAllocatedFor returns the total amount allocated for the specific destination
+func (sae SingleAssetExit) TotalAllocatedFor(dest types.Destination) *big.Int {
+	return sae.Allocations.TotalFor(dest)
+}
+
 // Exit is an ordered list of SingleAssetExits
 type Exit []SingleAssetExit
 
@@ -142,6 +158,17 @@ func (e Exit) TotalAllocated() types.Funds {
 	}
 
 	return fullValue
+}
+
+// TotalAllocatedFor returns the total amount allocated to the given dest (regardless of AllocationType)
+func (e Exit) TotalAllocatedFor(dest types.Destination) types.Funds {
+	total := types.Funds{}
+
+	for _, assetAllocation := range e {
+		total[assetAllocation.Asset] = assetAllocation.TotalAllocatedFor(dest)
+	}
+
+	return total
 }
 
 // DepositSafetyThreshold returns the Funds that a user with the specified
