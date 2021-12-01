@@ -78,31 +78,15 @@ func NewDirectFundingObjectiveState(initialState state.State, myAddress types.Ad
 		}
 	}
 
-	init.fullyFundedThreshold = types.Funds{}
-	init.myDepositSafetyThreshold = types.Funds{}
-	init.myDepositTarget = types.Funds{}
+	myAllocatedAmount := initialState.Outcome.TotalAllocatedFor(
+		types.AdddressToDestination(myAddress),
+	)
 
-	for _, assetExit := range initialState.Outcome {
-		assetAddress := assetExit.Asset
-		sum := big.NewInt(0)
-		threshold := big.NewInt(0)
-		myShare := big.NewInt(0)
-
-		for i, allocation := range assetExit.Allocations {
-			sum = sum.Add(sum, allocation.Amount)
-
-			if i < int(init.myIndex) {
-				threshold = threshold.Add(threshold, allocation.Amount)
-			} else if i == int(init.myIndex) { // NOTE: we are requiring that participants[i] owns allocations[i] (for every asset)
-				// TODO: revisit this and consider relaixing the assumption, e.g. myAddress could be something akin to myInterests, which could include internal destinations
-				myShare = myShare.Add(myShare, allocation.Amount)
-			}
-		}
-
-		init.fullyFundedThreshold[assetAddress] = sum
-		init.myDepositSafetyThreshold[assetAddress] = threshold
-		init.myDepositTarget[assetAddress] = myShare.Add(myShare, threshold)
-	}
+	init.fullyFundedThreshold = initialState.Outcome.TotalAllocated()
+	init.myDepositSafetyThreshold = initialState.Outcome.DepositSafetyThreshold(
+		types.AdddressToDestination(myAddress),
+	)
+	init.myDepositTarget = init.myDepositSafetyThreshold.Add(myAllocatedAmount)
 
 	init.preFundSigned = make([]bool, len(initialState.Participants))  // NOTE initialized to (false,false,...)
 	init.postFundSigned = make([]bool, len(initialState.Participants)) // NOTE initialized to (false,false,...)
