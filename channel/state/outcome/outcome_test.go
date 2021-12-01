@@ -164,14 +164,17 @@ func TestExitDecode(t *testing.T) {
 	}
 }
 
+var alice = types.Destination(common.HexToHash("0x0a"))
+var bob = types.Destination(common.HexToHash("0x0b"))
+
 var allocsX = Allocations{ // [{Alice: 2, Bob: 3}]
 	{
-		Destination:    types.Destination(common.HexToHash("0x0a")),
+		Destination:    alice,
 		Amount:         big.NewInt(2),
 		AllocationType: 0,
 		Metadata:       make(types.Bytes, 0)},
 	{
-		Destination:    types.Destination(common.HexToHash("0x0b")),
+		Destination:    bob,
 		Amount:         big.NewInt(3),
 		AllocationType: 0,
 		Metadata:       make(types.Bytes, 0)},
@@ -179,12 +182,12 @@ var allocsX = Allocations{ // [{Alice: 2, Bob: 3}]
 
 var allocsY = Allocations{ // [{Bob: 2, Alice: 1}]
 	{
-		Destination:    types.Destination(common.HexToHash("0x0b")),
+		Destination:    bob,
 		Amount:         big.NewInt(2),
 		AllocationType: 0,
 		Metadata:       make(types.Bytes, 0)},
 	{
-		Destination:    types.Destination(common.HexToHash("0x0a")),
+		Destination:    alice,
 		Amount:         big.NewInt(1),
 		AllocationType: 0,
 		Metadata:       make(types.Bytes, 0)},
@@ -263,11 +266,11 @@ func TestDepositSafetyThreshold(t *testing.T) {
 		Participant types.Destination
 		Want        types.Funds
 	}{
-		{e, types.Destination(common.HexToHash("0x0a")), types.Funds{
+		{e, alice, types.Funds{
 			types.Address{}:    big.NewInt(0),
 			types.Address{123}: big.NewInt(2),
 		}},
-		{e, types.Destination(common.HexToHash("0x0b")), types.Funds{
+		{e, bob, types.Funds{
 			types.Address{}:    big.NewInt(2),
 			types.Address{123}: big.NewInt(0),
 		}},
