@@ -3,6 +3,7 @@ package outcome
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -273,7 +274,7 @@ func TestDepositSafetyThreshold(t *testing.T) {
 	}
 
 	for i, testCase := range testCases {
-		t.Run(fmt.Sprint("Case", i), func(t *testing.T) {
+		t.Run(fmt.Sprint("Case ", i), func(t *testing.T) {
 			got := testCase.Exit.DepositSafetyThreshold([]types.Destination{testCase.Participant})
 			if !got.Equal(testCase.Want) {
 				t.Errorf("Expected safetethreshold for participant %v on exit %v to be %v, but got %v",
