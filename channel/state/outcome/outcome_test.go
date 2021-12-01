@@ -275,7 +275,7 @@ func TestDepositSafetyThreshold(t *testing.T) {
 
 	for i, testCase := range testCases {
 		t.Run(fmt.Sprint("Case ", i), func(t *testing.T) {
-			got := testCase.Exit.DepositSafetyThreshold([]types.Destination{testCase.Participant})
+			got := testCase.Exit.DepositSafetyThreshold(testCase.Participant)
 			if !got.Equal(testCase.Want) {
 				t.Errorf("Expected safetethreshold for participant %v on exit %v to be %v, but got %v",
 					testCase.Participant, testCase.Exit, testCase.Want, got)

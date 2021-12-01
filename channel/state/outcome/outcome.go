@@ -147,7 +147,7 @@ func (e Exit) TotalAllocated() types.Funds {
 // DepositSafetyThreshold returns the Funds that a user with the specified
 // interests must see on-chain before the safe recoverability of their
 // deposits is guaranteed
-func (e Exit) DepositSafetyThreshold(interests []types.Destination) types.Funds {
+func (e Exit) DepositSafetyThreshold(interests ...types.Destination) types.Funds {
 	threshold := types.Funds{}
 
 	for _, assetExit := range e {
