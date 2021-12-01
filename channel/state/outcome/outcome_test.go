@@ -255,3 +255,30 @@ func TestTotalAllocated(t *testing.T) {
 			e, want, got)
 	}
 }
+
+func TestDepositSafetyThreshold(t *testing.T) {
+	testCases := []struct {
+		Exit        Exit
+		Participant types.Destination
+		Want        types.Funds
+	}{
+		{e, types.Destination(common.HexToHash("0x0a")), types.Funds{
+			types.Address{}:    big.NewInt(0),
+			types.Address{123}: big.NewInt(2),
+		}},
+		{e, types.Destination(common.HexToHash("0x0b")), types.Funds{
+			types.Address{}:    big.NewInt(2),
+			types.Address{123}: big.NewInt(0),
+		}},
+	}
+
+	for i, testCase := range testCases {
+		t.Run(fmt.Sprint("Case", i), func(t *testing.T) {
+			got := testCase.Exit.DepositSafetyThreshold([]types.Destination{testCase.Participant})
+			if !got.Equal(testCase.Want) {
+				t.Errorf("Expected safetethreshold for participant %v on exit %v to be %v, but got %v",
+					testCase.Participant, testCase.Exit, testCase.Want, got)
+			}
+		})
+	}
+}
