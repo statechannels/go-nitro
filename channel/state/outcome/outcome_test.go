@@ -286,3 +286,30 @@ func TestDepositSafetyThreshold(t *testing.T) {
 		})
 	}
 }
+
+func TestTotalFor(t *testing.T) {
+	testCases := []struct {
+		Exit        Exit
+		Participant types.Destination
+		Want        types.Funds
+	}{
+		{e, alice, types.Funds{
+			types.Address{}:    big.NewInt(2),
+			types.Address{123}: big.NewInt(1),
+		}},
+		{e, bob, types.Funds{
+			types.Address{}:    big.NewInt(3),
+			types.Address{123}: big.NewInt(2),
+		}},
+	}
+
+	for i, testCase := range testCases {
+		t.Run(fmt.Sprint("Case ", i), func(t *testing.T) {
+			got := testCase.Exit.TotalAllocatedFor(testCase.Participant)
+			if !got.Equal(testCase.Want) {
+				t.Errorf("Expected TotalAllocatedFor for participant %v on exit %v to be %v, but got %v",
+					testCase.Participant, testCase.Exit, testCase.Want, got)
+			}
+		})
+	}
+}
