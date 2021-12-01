@@ -20,10 +20,6 @@ type Channel struct {
 	TheirDestination types.Destination // must be nonzero if a two party ledger channel
 }
 
-func (c Channel) GuaranteesFor(channelId types.Destination) types.Funds {
-	return types.Funds{} // TODO get this info from the Support
-}
-
 func (c Channel) Total() types.Funds {
 	funds := types.Funds{}
 	for _, sae := range c.LatestSupportedState.Outcome {
