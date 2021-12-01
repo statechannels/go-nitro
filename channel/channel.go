@@ -20,6 +20,22 @@ type Channel struct {
 	TheirDestination types.Destination // must be nonzero if a two party ledger channel
 }
 
+// New constructs a new channel from the supplied state
+func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, theirDestination types.Destination) Channel {
+	c := Channel{}
+
+	c.OnChainFunding = make(types.Funds)
+
+	c.LatestSupportedState = s.Clone()
+	c.FixedPart = c.LatestSupportedState.FixedPart()
+
+	c.Support = make([]state.VariablePart, 0)
+	c.MyDestination = myDestination
+	c.TheirDestination = theirDestination
+	c.IsTwoPartyLedger = isTwoPartyLedger
+	return c
+}
+
 func (c Channel) Total() types.Funds {
 	funds := types.Funds{}
 	for _, sae := range c.LatestSupportedState.Outcome {
