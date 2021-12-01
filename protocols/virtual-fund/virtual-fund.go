@@ -46,6 +46,9 @@ type VirtualFundObjective struct {
 // New initiates a VirtualFundObjective with data calculated from
 // the supplied initialState and client address
 func New(initialStateOfJ state.State, myAddress types.Address, myRole uint) (VirtualFundObjective, error) {
+
+	// TODO  validate that the Ledger cannels have isTwoPartyLedger=true
+
 	var init VirtualFundObjective
 
 	n := uint(2) // TODO  uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
@@ -59,17 +62,17 @@ func New(initialStateOfJ state.State, myAddress types.Address, myRole uint) (Vir
 		init.b0[asset].Add(init.a0[asset], amount1)
 	}
 
-	init.MyRole = myRole
+	init.MyRole = myRole // this should not be modified, so no need to make a new big.Int
 	init.ExpectedGuarantees = make(map[uint]map[types.Address]outcome.Allocation)
 
 	switch {
-	case init.MyRole == 0: // Alice
-		init.insertExpectedGuaranteesForLedgerChannel(0)
-	case init.MyRole < n+1: // Intermediary
-		init.insertExpectedGuaranteesForLedgerChannel(init.MyRole - 1)
-		init.insertExpectedGuaranteesForLedgerChannel(init.MyRole)
-	case init.MyRole == n+1: // Bob
-		init.insertExpectedGuaranteesForLedgerChannel(n)
+	case myRole == 0: // Alice
+		init.insertExpectedGuaranteesForLedgerChannel(0, init.L[0].MyDestination, init.L[0].TheirDestination) // This Ledger channel is on *my right*, so I am on the *left* of it
+	case myRole < n+1: // Intermediary
+		init.insertExpectedGuaranteesForLedgerChannel(myRole, init.L[myRole].MyDestination, init.L[myRole].TheirDestination)       // This Ledger channel is on *my right*, so I am on the *left* of it
+		init.insertExpectedGuaranteesForLedgerChannel(myRole-1, init.L[myRole-1].TheirDestination, init.L[myRole-1].MyDestination) // This Ledger channel is on *my left*, so I am on the *right* of it
+	case myRole == n+1: // Bob
+		init.insertExpectedGuaranteesForLedgerChannel(n, init.L[myRole-1].TheirDestination, init.L[myRole-1].MyDestination) // This Ledger channel is on *my left*, so I am on the *right* of it
 	default: // Invalid
 
 	}
@@ -79,13 +82,13 @@ func New(initialStateOfJ state.State, myAddress types.Address, myRole uint) (Vir
 }
 
 // insertExpectedGuaranteesForLedgerChannel mutates the VirtualFundObjective
-func (init *VirtualFundObjective) insertExpectedGuaranteesForLedgerChannel(i uint) {
+func (init *VirtualFundObjective) insertExpectedGuaranteesForLedgerChannel(i uint, left types.Destination, right types.Destination) {
 	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
 	metadata := outcome.GuaranteeMetadata{
-		Left:  myDestination,                                // TODO
-		Right: myCounterpartyInthisLedgerChannelDestination, // TODO
+		Left:  left,
+		Right: right,
 	}
-	encodedGuarantee, error := metadata.Encode()
+	encodedGuarantee, _ := metadata.Encode() // TODO handle error
 	for asset := range init.a0 {
 		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
 			Destination:    init.J.Id,
