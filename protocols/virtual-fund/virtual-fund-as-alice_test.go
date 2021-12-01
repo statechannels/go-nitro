@@ -53,6 +53,9 @@ func TestCrank(t *testing.T) {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
 	}
 
+	// Manually progress the extended state by "completing funding" from this wallet's point of view
+	// In this test
+
 	// This should be the final crank...
 	// TODO manually progress the state by ...
 	// if waitingFor != WaitingForNothing {
