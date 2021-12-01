@@ -14,6 +14,10 @@ type Channel struct {
 	state.FixedPart
 	Support              []state.VariablePart
 	LatestSupportedState state.State
+
+	IsTwoPartyLedger bool
+	MyDestination    types.Destination
+	TheirDestination types.Destination // must be nonzero if a two party ledger channel
 }
 
 func (c Channel) GuaranteesFor(channelId types.Destination) types.Funds {
