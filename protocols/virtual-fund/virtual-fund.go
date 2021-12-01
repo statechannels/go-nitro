@@ -40,8 +40,8 @@ type VirtualFundObjective struct {
 	ParticipantIndex map[types.Address]uint // the index for each participant
 	MyIndex          uint                   // my participant index in J
 
-	PreFundSigned  []bool // indexed by participant. TODO should this be initialized with my own index showing true?
-	PostFundSigned []bool // indexed by participant
+	preFundSigned  []bool // indexed by participant. TODO should this be initialized with my own index showing true?
+	postFundSigned []bool // indexed by participant
 }
 
 // New initiates a VirtualFundObjective with data calculated from
@@ -85,6 +85,9 @@ func New(initialStateOfJ state.State, myAddress types.Address, myRole uint) (Vir
 	default: // Invalid
 
 	}
+
+	init.preFundSigned = make([]bool, len(initialStateOfJ.Participants))  // NOTE initialized to (false,false,...)
+	init.postFundSigned = make([]bool, len(initialStateOfJ.Participants)) // NOTE initialized to (false,false,...)
 
 	// TODO
 	return init, nil
@@ -160,7 +163,7 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 
 	// TODO could perform checks on s.L (should only have 1 or 2 channels in there)
 	// Prefunding
-	if !updated.PreFundSigned[updated.MyIndex] {
+	if !updated.preFundSigned[updated.MyIndex] {
 		// todo sign the prefund
 		return updated, NoSideEffects, WaitingForCompletePrefund, nil
 	}
@@ -181,7 +184,7 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	}
 
 	// Postfunding
-	if !updated.PostFundSigned[updated.MyIndex] {
+	if !updated.postFundSigned[updated.MyIndex] {
 		// todo: sign the postfund
 		return updated, NoSideEffects, WaitingForCompletePostFund, nil
 	}
@@ -199,7 +202,7 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 // prefundComplete returns true if all participants have signed a prefund state, as reflected by the extended state
 func (s VirtualFundObjective) prefundComplete() bool {
 	for _, index := range s.ParticipantIndex {
-		if !s.PreFundSigned[index] {
+		if !s.preFundSigned[index] {
 			return false
 		}
 	}
@@ -209,7 +212,7 @@ func (s VirtualFundObjective) prefundComplete() bool {
 // postfundComplete returns true if all participants have signed a postfund state, as reflected by the extended state
 func (s VirtualFundObjective) postfundComplete() bool {
 	for _, index := range s.ParticipantIndex {
-		if !s.PostFundSigned[index] {
+		if !s.postFundSigned[index] {
 			return false
 		}
 	}
