@@ -2,6 +2,7 @@ package virtualfund
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -53,11 +54,19 @@ func New(initialStateOfJ state.State, myAddress types.Address, myRole uint) (Vir
 
 	n := uint(2) // TODO  uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
 
+	init.a0 = make(map[types.Address]*big.Int)
+	init.b0 = make(map[types.Address]*big.Int)
 	// Compute a0 and b0 from the initial state of J
 	for i := range initialStateOfJ.Outcome {
 		asset := initialStateOfJ.Outcome[i].Asset
 		amount0 := initialStateOfJ.Outcome[i].Allocations[0].Amount
 		amount1 := initialStateOfJ.Outcome[i].Allocations[1].Amount
+		if init.a0[asset] == nil {
+			init.a0[asset] = big.NewInt(0)
+		}
+		if init.b0[asset] == nil {
+			init.b0[asset] = big.NewInt(0)
+		}
 		init.a0[asset].Add(init.a0[asset], amount0)
 		init.b0[asset].Add(init.a0[asset], amount1)
 	}
