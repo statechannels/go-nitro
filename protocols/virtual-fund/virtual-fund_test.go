@@ -39,7 +39,10 @@ func TestCrank(t *testing.T) {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
 	}
 
-	// Manually progress the extended state by ...
+	// Manually progress the extended state by collecting prefund signatures
+	o.(VirtualFundObjective).preFundSigned[0] = true
+	o.(VirtualFundObjective).preFundSigned[1] = true
+	o.(VirtualFundObjective).preFundSigned[2] = true
 
 	// Cranking should move us to the next waiting point
 	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
