@@ -55,19 +55,6 @@ func (e Exit) TotalAllocatedFor(dest types.Destination) types.Funds {
 	return total
 }
 
-// DepositSafetyThreshold returns the Funds that a user with the specified
-// interests must see on-chain before the safe recoverability of their
-// deposits is guaranteed
-func (e Exit) DepositSafetyThreshold(interests ...types.Destination) types.Funds {
-	threshold := types.Funds{}
-
-	for _, assetExit := range e {
-		threshold[assetExit.Asset] = assetExit.DepositSafetyThreshold(interests)
-	}
-
-	return threshold
-}
-
 // allocationsTy describes the shape of Allocations such that github.com/ethereum/go-ethereum/accounts/abi can parse it
 var allocationsTy = abi.ArgumentMarshaling{
 	Name: "Allocations",
