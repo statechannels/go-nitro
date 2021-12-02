@@ -1,6 +1,8 @@
 package channel
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -37,6 +39,12 @@ func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, 
 	c.MyDestination = myDestination
 	c.TheirDestination = theirDestination
 	c.IsTwoPartyLedger = isTwoPartyLedger
+
+	// if s.TurnNum != 0 return error // TODO
+
+	c.PreFund = s.Clone()
+	c.PostFund = s.Clone()
+	c.PostFund.TurnNum = big.NewInt(1)
 	return c
 }
 
