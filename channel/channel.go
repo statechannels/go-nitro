@@ -8,7 +8,11 @@ import (
 )
 
 type Channel struct {
-	Id             types.Destination
+	Id types.Destination
+
+	PreFund  state.State
+	PostFund state.State
+
 	OnChainFunding types.Funds
 
 	state.FixedPart
@@ -52,4 +56,16 @@ func (c Channel) Affords(
 	allocationMap map[common.Address]outcome.Allocation,
 	fundingMap types.Funds) bool {
 	return c.LatestSupportedState.Outcome.Affords(allocationMap, fundingMap)
+}
+
+// AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
+// Returns false and does not alter the channel if the state is "stale"
+func (c Channel) AddSignedState(s state.State, sig state.Signature) bool {
+	// TODO
+	// If the turnNum is below that of the supported state, discard / error / return false
+	// If it is greater than, keep it around in case it becomes supported in future
+	// If it is equal to ... ? probably discard / error / return false
+
+	// Check and update the latest supported state and proof
+	return true
 }

@@ -178,7 +178,9 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	// TODO could perform checks on s.L (should only have 1 or 2 channels in there)
 	// Prefunding
 	if !updated.preFundSigned[updated.MyIndex] {
-		// todo sign the prefund
+		sig, _ := updated.J.PreFund.Sign(*secretKey)     // TODO handle error
+		updated.J.AddSignedState(updated.J.PreFund, sig) // TODO handle return value (or not)
+		updated.preFundSigned[updated.MyIndex] = true
 		return updated, NoSideEffects, WaitingForCompletePrefund, nil
 	}
 
@@ -199,7 +201,9 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 
 	// Postfunding
 	if !updated.postFundSigned[updated.MyIndex] {
-		// todo: sign the postfund
+		sig, _ := updated.J.PostFund.Sign(*secretKey)     // TODO handle error
+		updated.J.AddSignedState(updated.J.PostFund, sig) // TODO handle return value (or not)
+		updated.postFundSigned[updated.MyIndex] = true
 		return updated, NoSideEffects, WaitingForCompletePostFund, nil
 	}
 
