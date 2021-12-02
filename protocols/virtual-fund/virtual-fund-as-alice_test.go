@@ -94,7 +94,7 @@ func TestCrank(t *testing.T) {
 	o.(VirtualFundObjective).L[0].OnChainFunding[types.Address{}] = UpdatedL0Outcome[0].Allocations.Total() // Make this channel fully funded
 
 	// Cranking now should not generate side effects, because we already did that
-	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	o, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -102,11 +102,18 @@ func TestCrank(t *testing.T) {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
 	}
 
-	// This should be the final crank...
-	// TODO manually progress the state by ...
-	// if waitingFor != WaitingForNothing {
-	// 	t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
-	// }
+	// Manually progress the extended state by collecting postfund signatures
+	o.(VirtualFundObjective).postFundSigned[0] = true
+	o.(VirtualFundObjective).postFundSigned[1] = true
+	o.(VirtualFundObjective).postFundSigned[2] = true
 
-	// TODO Test the returned SideEffects
+	// This should be the final crank...
+	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	if err != nil {
+		t.Error(err)
+	}
+	if waitingFor != WaitingForNothing {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
+	}
+
 }
