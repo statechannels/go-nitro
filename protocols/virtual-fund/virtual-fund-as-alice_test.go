@@ -64,13 +64,16 @@ func TestCrank(t *testing.T) {
 	o.(VirtualFundObjective).preFundSigned[1] = true
 	o.(VirtualFundObjective).preFundSigned[2] = true
 
-	// Cranking should move us to the next waiting point
-	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
+	o, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
 	if err != nil {
 		t.Error(err)
 	}
 	if waitingFor != WaitingForCompleteFunding {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
+	}
+	if o.(VirtualFundObjective).requestedLedgerUpdates != true { // TODO && sideeffects are as expected
+		t.Error(`Expected ledger updates to be requested, but they weren't`)
 	}
 
 	// Manually progress the extended state by "completing funding" from this wallet's point of view
@@ -90,10 +93,7 @@ func TestCrank(t *testing.T) {
 	o.(VirtualFundObjective).L[0] = UpdatedL0Channel
 	o.(VirtualFundObjective).L[0].OnChainFunding[types.Address{}] = UpdatedL0Outcome[0].Allocations.Total() // Make this channel fully funded
 
-	// Cranking should
-	// A) generate ledger requests as a side effect
-	// B) Move us to the next waiting point
-	// C) *not* generate side effects if we crank again
+	// Cranking now should not generate side effects, because we already did that
 	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
 	if err != nil {
 		t.Error(err)
