@@ -76,17 +76,22 @@ Dual-licensed under [MIT](https://opensource.org/licenses/MIT) + [Apache 2.0](ht
 
 ## Roadmap
 
+The following roadmap gives an idea of the various packages that compose the `go-nitro` module, and their implementation status:
+
 ```bash
-├── channel 🚧 # query the latest supported state of a channel
-│   └── state ✅ # sign a state
-│       ├── outcome ✅ # construct and manipulate an outcome
-├── client 🚧 # runs the off chain protocols
-│   └── engine 🚧 # coordinates the client components
-│       ├── chainservice 🚧 # watches the chain and submits transactions
-│       ├── messageservice 🚧 # sends and recieves messages from peers
-│       └── store 🚧 # stores keys and state updates
+├── channel 🚧                 # query the latest supported state of a channel
+│   └── state ✅               # generate and recover signatures on state updates
+│       ├── outcome ✅         # define how funds are dispersed when a channel closes
+├── client 🚧                  # exposes an API to the consuming application
+│   └── engine 🚧              # coordinate the client components, runs the protocols
+│       ├── chainservice 🚧    # watch the chain and submit transactions
+│       ├── messageservice 🚧  # send and recieves messages from peers
+│       └── store 🚧           # store keys, state updates and other critical data
 ├── protocols 🚧
-│   └── interfaces.go ✅
-    |__ direct-funder.go 🚧 # specifies how clients fund a channel on chain
-└── types 🚧
+│   ├── interfaces.go ✅       # specify the interface of our protocols
+│   ├── direct-fund ✅         # fund a channel on-chain
+│   ├── direct-defund 🚧       # defund a channel on-chain
+│   ├── virtual-fund 🚧        # fund a channel off-chain through an intermediary
+│   └── virtual-defund 🚧      # defund a channel off-chain through an intermediary
+└── types 🚧                   # basic types and utility methods
 ```
