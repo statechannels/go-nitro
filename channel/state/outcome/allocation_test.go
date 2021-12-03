@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -62,4 +63,58 @@ func TestAffords(t *testing.T) {
 
 	}
 
+}
+
+func TestDivertToGuarantee(t *testing.T) {
+
+	aliceDestination := types.Destination(common.HexToHash("0x0a"))
+	bobDestination := types.Destination(common.HexToHash("0x0b"))
+
+	targetChannel := types.Destination(common.HexToHash("0xabc"))
+
+	a := Allocations{ // [{Alice: 2, Bob: 3}]
+		{
+			Destination:    aliceDestination,
+			Amount:         big.NewInt(243),
+			AllocationType: 0,
+			Metadata:       make(types.Bytes, 0),
+		},
+		{
+			Destination:    bobDestination,
+			Amount:         big.NewInt(309),
+			AllocationType: 0,
+			Metadata:       make(types.Bytes, 0),
+		},
+	}
+
+	got, err := a.DivertToGuarantee(aliceDestination, bobDestination, big.NewInt(5), big.NewInt(5), targetChannel)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	want := Allocations{ // [{Alice: 2, Bob: 3}]
+		{
+			Destination:    aliceDestination,
+			Amount:         big.NewInt(238),
+			AllocationType: 0,
+			Metadata:       make(types.Bytes, 0),
+		},
+		{
+			Destination:    bobDestination,
+			Amount:         big.NewInt(304),
+			AllocationType: 0,
+			Metadata:       make(types.Bytes, 0),
+		},
+		{
+			Destination:    targetChannel,
+			Amount:         big.NewInt(10),
+			AllocationType: 1,
+			Metadata:       append(aliceDestination.Bytes(), bobDestination.Bytes()...),
+		},
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
+	}
 }
