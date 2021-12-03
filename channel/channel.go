@@ -45,6 +45,9 @@ func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, 
 	c.PreFund = s.Clone()
 	c.PostFund = s.Clone()
 	c.PostFund.TurnNum = big.NewInt(1)
+
+	c.Id, _ = c.PreFund.ChannelId() // TODO handle error
+
 	return c
 }
 
