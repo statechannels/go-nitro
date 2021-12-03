@@ -91,7 +91,7 @@ The following roadmap gives an idea of the various packages that compose the `go
 │   ├── interfaces.go ✅       # specify the interface of our protocols
 │   ├── direct-fund ✅         # fund a channel on-chain
 │   ├── direct-defund 🚧       # defund a channel on-chain
-│   ├── virtual-fund 🚧        # fund a channel off-chain through an intermediary
-│   └── virtual-defund 🚧      # defund a channel off-chain through an intermediary
+│   ├── virtual-fund 🚧        # fund a channel off-chain through one or more intermediaries
+│   └── virtual-defund 🚧      # defund a channel off-chain through one or more intermediaries
 └── types 🚧                   # basic types and utility methods
 ```
