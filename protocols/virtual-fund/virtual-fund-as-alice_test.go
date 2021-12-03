@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -11,28 +12,42 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// Define constants for test
 var myRole = uint(0) // In this test, we play Alice
+var VirtualChannelState = state.TestState.Clone()
+var VId, _ = VirtualChannelState.ChannelId()
 
-//
-
-var P0P1LedgerChannelState = state.TestState.Clone() // TODO is this an appropriate state?
+var P0P1LedgerChannelState = state.TestState.Clone()
 
 var ledgerChannelToMyLeft channel.Channel // this is null for Alice
 var ledgerChannelToMyRight channel.Channel = channel.New(
-	P0P1LedgerChannelState,
+	P0P1LedgerChannelState, // This should not have Bob in it
 	true,
 	P0P1LedgerChannelState.Outcome[0].Allocations[0].Destination,
 	P0P1LedgerChannelState.Outcome[0].Allocations[1].Destination,
 ) // this connects Alice to the first intermediary P_1
+var expectedEncodedGuaranteeMetadata, _ = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination}.Encode()
+var expectedGuarantee outcome.Allocation = outcome.Allocation{
+	Destination:    VId,
+	Amount:         VirtualChannelState.VariablePart().Outcome[0].TotalAllocated(),
+	AllocationType: outcome.GuaranteeAllocationType,
+	Metadata:       expectedEncodedGuaranteeMetadata,
+}
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
 	// Assert that a valid set of constructor args does not result in an error
-	if _, err := New(state.TestState, state.TestState.Participants[0], myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight); err != nil {
+	o, err := New(state.TestState, state.TestState.Participants[0], myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+	if err != nil {
 		t.Error(err)
 	}
 
-	// TODO check the expected guarantees are as expected
+	got := o.ExpectedGuarantees[0][types.Address{}] // The TestOutcome only has one (native) asset represented by the zero address
+	want := expectedGuarantee
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
+	}
 }
 
 var s, _ = New(state.TestState, state.TestState.Participants[0], myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
