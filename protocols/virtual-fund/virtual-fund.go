@@ -26,7 +26,7 @@ var ErrNotApproved = errors.New("objective not approved")
 // VirtualFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type VirtualFundObjective struct {
 	Status protocols.ObjectiveStatus
-	J      channel.Channel          // this is J
+	V      channel.Channel          // this is J
 	L      map[uint]channel.Channel // this will contain 1 or 2 Ledger channels. For example L_0 if Alice (i=0). L_0 and L_1 for the first intermediary (i=1). L_n+1 for Bob (i=n+1)
 	MyRole uint                     // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
 
@@ -47,7 +47,7 @@ type VirtualFundObjective struct {
 // New initiates a VirtualFundObjective with data calculated from
 // the supplied initialState and client address
 func New(
-	initialStateOfJ state.State,
+	initialStateOfV state.State,
 	myAddress types.Address,
 	myRole uint,
 	ledgerChannelToMyLeft channel.Channel,
@@ -59,7 +59,7 @@ func New(
 	var init VirtualFundObjective
 
 	// Initialize channels
-	init.J = channel.New(initialStateOfJ, false, types.Destination{}, types.Destination{})
+	init.V = channel.New(initialStateOfV, false, types.Destination{}, types.Destination{})
 	init.L = make(map[uint]channel.Channel)
 
 	n := uint(2) // TODO  uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
@@ -67,10 +67,10 @@ func New(
 	init.a0 = make(map[types.Address]*big.Int)
 	init.b0 = make(map[types.Address]*big.Int)
 	// Compute a0 and b0 from the initial state of J
-	for i := range initialStateOfJ.Outcome {
-		asset := initialStateOfJ.Outcome[i].Asset
-		amount0 := initialStateOfJ.Outcome[i].Allocations[0].Amount
-		amount1 := initialStateOfJ.Outcome[i].Allocations[1].Amount
+	for i := range initialStateOfV.Outcome {
+		asset := initialStateOfV.Outcome[i].Asset
+		amount0 := initialStateOfV.Outcome[i].Allocations[0].Amount
+		amount1 := initialStateOfV.Outcome[i].Allocations[1].Amount
 		if init.a0[asset] == nil {
 			init.a0[asset] = big.NewInt(0)
 		}
@@ -100,8 +100,8 @@ func New(
 
 	}
 
-	init.preFundSigned = make([]bool, len(initialStateOfJ.Participants))  // NOTE initialized to (false,false,...)
-	init.postFundSigned = make([]bool, len(initialStateOfJ.Participants)) // NOTE initialized to (false,false,...)
+	init.preFundSigned = make([]bool, len(initialStateOfV.Participants))  // NOTE initialized to (false,false,...)
+	init.postFundSigned = make([]bool, len(initialStateOfV.Participants)) // NOTE initialized to (false,false,...)
 
 	// TODO
 	return init, nil
@@ -117,7 +117,7 @@ func (init *VirtualFundObjective) insertExpectedGuaranteesForLedgerChannel(i uin
 	encodedGuarantee, _ := metadata.Encode() // TODO handle error
 	for asset := range init.a0 {
 		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
-			Destination:    init.J.Id,
+			Destination:    init.V.Id,
 			Amount:         big.NewInt(0).Add(init.a0[asset], init.b0[asset]),
 			AllocationType: outcome.GuaranteeAllocationType,
 			Metadata:       encodedGuarantee,
@@ -131,7 +131,7 @@ func (init *VirtualFundObjective) insertExpectedGuaranteesForLedgerChannel(i uin
 
 // Id returns the objective id
 func (s VirtualFundObjective) Id() protocols.ObjectiveId {
-	return protocols.ObjectiveId("VirtualFundAsTerminal-" + s.J.Id.String())
+	return protocols.ObjectiveId("VirtualFundAsTerminal-" + s.V.Id.String())
 }
 
 // Approve returns an approved copy of the objective
@@ -178,8 +178,8 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	// TODO could perform checks on s.L (should only have 1 or 2 channels in there)
 	// Prefunding
 	if !updated.preFundSigned[updated.MyIndex] {
-		sig, _ := updated.J.PreFund.Sign(*secretKey)     // TODO handle error
-		updated.J.AddSignedState(updated.J.PreFund, sig) // TODO handle return value (or not)
+		sig, _ := updated.V.PreFund.Sign(*secretKey)     // TODO handle error
+		updated.V.AddSignedState(updated.V.PreFund, sig) // TODO handle return value (or not)
 		updated.preFundSigned[updated.MyIndex] = true
 		return updated, NoSideEffects, WaitingForCompletePrefund, nil
 	}
@@ -201,8 +201,8 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 
 	// Postfunding
 	if !updated.postFundSigned[updated.MyIndex] {
-		sig, _ := updated.J.PostFund.Sign(*secretKey)     // TODO handle error
-		updated.J.AddSignedState(updated.J.PostFund, sig) // TODO handle return value (or not)
+		sig, _ := updated.V.PostFund.Sign(*secretKey)     // TODO handle error
+		updated.V.AddSignedState(updated.V.PostFund, sig) // TODO handle return value (or not)
 		updated.postFundSigned[updated.MyIndex] = true
 		return updated, NoSideEffects, WaitingForCompletePostFund, nil
 	}
@@ -271,9 +271,9 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
 			protocols.LedgerRequest{
 				LedgerId:    s.L[s.MyRole-1].Id,
-				Destination: s.J.Id,
-				Amount:      s.J.Total(),
-				Guarantee:   []types.Address{s.J.FixedPart.Participants[s.MyRole-1], s.J.FixedPart.Participants[s.MyRole]},
+				Destination: s.V.Id,
+				Amount:      s.V.Total(),
+				Guarantee:   []types.Address{s.V.FixedPart.Participants[s.MyRole-1], s.V.FixedPart.Participants[s.MyRole]},
 			})
 	}
 	n := uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
@@ -281,9 +281,9 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
 			protocols.LedgerRequest{
 				LedgerId:    s.L[s.MyRole].Id,
-				Destination: s.J.Id,
-				Amount:      s.J.Total(),
-				Guarantee:   []types.Address{s.J.FixedPart.Participants[s.MyRole], s.J.FixedPart.Participants[s.MyRole+1]},
+				Destination: s.V.Id,
+				Amount:      s.V.Total(),
+				Guarantee:   []types.Address{s.V.FixedPart.Participants[s.MyRole], s.V.FixedPart.Participants[s.MyRole+1]},
 			})
 	}
 	return sideEffects
@@ -291,7 +291,7 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 
 // inScope returns true if the supplied channelId is the joint channel or one of the ledger channels. Can be used to filter out events that don't concern these channels.
 func (s VirtualFundObjective) inScope(channelId types.Destination) bool {
-	if channelId == s.J.Id {
+	if channelId == s.V.Id {
 		return true
 	}
 	for _, channel := range s.L {

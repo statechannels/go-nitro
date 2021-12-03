@@ -117,7 +117,7 @@ var myRole = uint(0) // In this test, we play Alice
 var s, _ = New(VState, my.address, myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 var expectedEncodedGuaranteeMetadata, _ = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination}.Encode()
 var expectedGuarantee outcome.Allocation = outcome.Allocation{
-	Destination:    s.J.Id,
+	Destination:    s.V.Id,
 	Amount:         big.NewInt(0).Set(VState.VariablePart().Outcome[0].TotalAllocated()),
 	AllocationType: outcome.GuaranteeAllocationType,
 	Metadata:       expectedEncodedGuaranteeMetadata,
