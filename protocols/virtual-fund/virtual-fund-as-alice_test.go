@@ -101,14 +101,8 @@ func TestAsAlice(t *testing.T) {
 		}
 
 		// Manually progress the extended state by "completing funding" from this wallet's point of view
-		var UpdatedL0Outcome = outcome.Exit{
-			outcome.SingleAssetExit{ // TODO this is not realistic as it does not contain allocations for either Alice (P_0) nor P_1
-				Asset: types.Address{},
-				Allocations: outcome.Allocations{
-					expectedGuarantee,
-				},
-			},
-		}
+		var UpdatedL0Outcome = o.(VirtualFundObjective).L[0].LatestSupportedState.Outcome // TODO clone this?
+		UpdatedL0Outcome[0].Allocations, _ = UpdatedL0Outcome[0].Allocations.DivertToGuarantee(my.destination, P_1.destination, s.a0[types.Address{}], s.b0[types.Address{}], s.V.Id)
 		var UpdatedL0State = o.(VirtualFundObjective).L[0].LatestSupportedState
 		UpdatedL0State.Outcome = UpdatedL0Outcome
 		var UpdatedL0Channel = o.(VirtualFundObjective).L[0]
