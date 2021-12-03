@@ -78,7 +78,7 @@ func New(
 			init.b0[asset] = big.NewInt(0)
 		}
 		init.a0[asset].Add(init.a0[asset], amount0)
-		init.b0[asset].Add(init.a0[asset], amount1)
+		init.b0[asset].Add(init.b0[asset], amount1)
 	}
 
 	init.MyRole = myRole // this should not be modified, so no need to make a new big.Int
@@ -118,7 +118,7 @@ func (init *VirtualFundObjective) insertExpectedGuaranteesForLedgerChannel(i uin
 	for asset := range init.a0 {
 		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
 			Destination:    init.J.Id,
-			Amount:         init.a0[asset],
+			Amount:         big.NewInt(0).Add(init.a0[asset], init.b0[asset]),
 			AllocationType: outcome.GuaranteeAllocationType,
 			Metadata:       encodedGuarantee,
 		}
