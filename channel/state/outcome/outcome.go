@@ -55,6 +55,17 @@ func (a Allocations) Total() *big.Int {
 	return total
 }
 
+// TotalFor returns the total amount allocated to the given dest (regardless of AllocationType)
+func (a Allocations) TotalFor(dest types.Destination) *big.Int {
+	total := big.NewInt(0)
+	for _, allocation := range a {
+		if allocation.Destination == dest {
+			total.Add(total, allocation.Amount)
+		}
+	}
+	return total
+}
+
 // Affords returns true if the allocations can afford the given allocation given the input funding, false otherwise.
 //
 // To afford the given allocation, the allocations must include something equal-in-value to it,
@@ -79,6 +90,25 @@ func (allocations Allocations) Affords(given Allocation, funding *big.Int) bool 
 	return false
 }
 
+// DepositSafetyThreshold returns the amount of this asset that a user with
+// the specified interest must see on-chain before the safe recoverability of
+// their own deposits is guaranteed
+func (s SingleAssetExit) DepositSafetyThreshold(interest types.Destination) *big.Int {
+	sum := big.NewInt(0)
+
+	for _, allocation := range s.Allocations {
+
+		if allocation.Destination == interest {
+			// we have 'hit' the destination whose balances we are interested in protecting
+			return sum
+		}
+
+		sum.Add(sum, allocation.Amount)
+	}
+
+	return sum
+}
+
 // SingleAssetExit declares an ordered list of Allocations for a single asset.
 type SingleAssetExit struct {
 	Asset       types.Address // Either the zero address (implying the native token) or the address of an ERC20 contract
@@ -89,6 +119,11 @@ type SingleAssetExit struct {
 // TotalAllocated returns the toal amount allocated, summed across all destinations (regardless of AllocationType)
 func (sae SingleAssetExit) TotalAllocated() *big.Int {
 	return sae.Allocations.Total()
+}
+
+// TotalAllocatedFor returns the total amount allocated for the specific destination
+func (sae SingleAssetExit) TotalAllocatedFor(dest types.Destination) *big.Int {
+	return sae.Allocations.TotalFor(dest)
 }
 
 // Exit is an ordered list of SingleAssetExits
@@ -107,6 +142,44 @@ func (a Exit) Equal(b Exit) bool {
 		}
 	}
 	return true
+}
+
+// TotalAllocated returns the sum of all Funds that are allocated by the outcome.
+//
+// NOTE that these Funds are potentially different from a channel's capacity to
+// pay out a given set of allocations, which is limited by the channel's holdings
+func (e Exit) TotalAllocated() types.Funds {
+	fullValue := types.Funds{}
+
+	for _, assetExit := range e {
+		fullValue[assetExit.Asset] = assetExit.TotalAllocated()
+	}
+
+	return fullValue
+}
+
+// TotalAllocatedFor returns the total amount allocated to the given dest (regardless of AllocationType)
+func (e Exit) TotalAllocatedFor(dest types.Destination) types.Funds {
+	total := types.Funds{}
+
+	for _, assetAllocation := range e {
+		total[assetAllocation.Asset] = assetAllocation.TotalAllocatedFor(dest)
+	}
+
+	return total
+}
+
+// DepositSafetyThreshold returns the Funds that a user with the specified
+// interest must see on-chain before the safe recoverability of their
+// deposits is guaranteed
+func (e Exit) DepositSafetyThreshold(interest types.Destination) types.Funds {
+	threshold := types.Funds{}
+
+	for _, assetExit := range e {
+		threshold[assetExit.Asset] = assetExit.DepositSafetyThreshold(interest)
+	}
+
+	return threshold
 }
 
 // allocationsTy describes the shape of Allocations such that github.com/ethereum/go-ethereum/accounts/abi can parse it
