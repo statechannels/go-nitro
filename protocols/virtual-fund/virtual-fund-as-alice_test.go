@@ -93,7 +93,6 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by "completing funding" from this wallet's point of view
-	expectedGuarantee := o.(VirtualFundObjective).ExpectedGuarantees[0][types.Address{}] // The TestOutcome only has one (native) asset represented by the zero address
 	var UpdatedL0Outcome = outcome.Exit{
 		outcome.SingleAssetExit{ // TODO this is not realistic as it does not contain allocations for either Alice (P_0) nor P_1
 			Asset: types.Address{},
