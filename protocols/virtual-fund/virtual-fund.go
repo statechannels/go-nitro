@@ -266,14 +266,15 @@ func (s VirtualFundObjective) ledgerChannelAffordsExpectedGuarantees(i uint) boo
 // generateLedgerRequestSideEffects generates the appropriate side effects, which (when executed and countersigned) will update 1 or 2 ledger channels to guarantee the joint channel
 func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideEffects {
 	sideEffects := protocols.SideEffects{}
-	sideEffects.LedgerRequests = make([]protocols.LedgerRequest, 2)
+	sideEffects.LedgerRequests = make([]protocols.LedgerRequest, 0)
 	if s.MyRole > 0 { // Not Alice
 		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
 			protocols.LedgerRequest{
 				LedgerId:    s.L[s.MyRole-1].Id,
 				Destination: s.V.Id,
 				Amount:      s.V.Total(),
-				Guarantee:   []types.Address{s.V.FixedPart.Participants[s.MyRole-1], s.V.FixedPart.Participants[s.MyRole]},
+				Left:        s.L[s.MyRole-1].TheirDestination,
+				Right:       s.L[s.MyRole-1].MyDestination,
 			})
 	}
 	n := uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
@@ -283,7 +284,8 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 				LedgerId:    s.L[s.MyRole].Id,
 				Destination: s.V.Id,
 				Amount:      s.V.Total(),
-				Guarantee:   []types.Address{s.V.FixedPart.Participants[s.MyRole], s.V.FixedPart.Participants[s.MyRole+1]},
+				Left:        s.L[s.MyRole].MyDestination,
+				Right:       s.L[s.MyRole].TheirDestination,
 			})
 	}
 	return sideEffects

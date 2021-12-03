@@ -34,13 +34,20 @@ func TestAsAlice(t *testing.T) {
 
 	// Objective
 	var s, _ = New(VState, my.address, myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
-	var expectedEncodedGuaranteeMetadata, _ = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination}.Encode()
+	var expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination}
+	var expectedEncodedGuaranteeMetadata, _ = expectedGuaranteeMetadata.Encode()
 	var expectedGuarantee outcome.Allocation = outcome.Allocation{
 		Destination:    s.V.Id,
 		Amount:         big.NewInt(0).Set(VState.VariablePart().Outcome[0].TotalAllocated()),
 		AllocationType: outcome.GuaranteeAllocationType,
 		Metadata:       expectedEncodedGuaranteeMetadata,
 	}
+	var expectedLedgerRequests = []protocols.LedgerRequest{{
+		LedgerId:    ledgerChannelToMyRight.Id,
+		Destination: s.V.Id,
+		Amount:      types.Funds{types.Address{}: s.V.PreFund.VariablePart().Outcome[0].Allocations.Total()},
+		Left:        ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination,
+	}}
 
 	///////////////////
 	// END test data //
@@ -89,15 +96,21 @@ func TestAsAlice(t *testing.T) {
 		o.(VirtualFundObjective).preFundSigned[2] = true
 
 		// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
-		o, _, waitingFor, err = o.Crank(&my.privateKey)
+		o, sideEffects, waitingFor, err := o.Crank(&my.privateKey)
 		if err != nil {
 			t.Error(err)
 		}
 		if waitingFor != WaitingForCompleteFunding {
 			t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
 		}
-		if o.(VirtualFundObjective).requestedLedgerUpdates != true { // TODO && sideeffects are as expected
-			t.Error(`Expected ledger updates to be requested, but they weren't`)
+		if o.(VirtualFundObjective).requestedLedgerUpdates != true {
+			t.Error(`Expected ledger update idempotency flag to be raised, but it wasn't`)
+		}
+
+		got, want := sideEffects.LedgerRequests, expectedLedgerRequests
+
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
 		}
 
 		// Manually progress the extended state by "completing funding" from this wallet's point of view
