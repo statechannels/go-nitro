@@ -1,6 +1,7 @@
 package virtualfund
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -29,7 +30,7 @@ var ledgerChannelToMyRight channel.Channel = channel.New(
 var expectedEncodedGuaranteeMetadata, _ = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination}.Encode()
 var expectedGuarantee outcome.Allocation = outcome.Allocation{
 	Destination:    VId,
-	Amount:         VirtualChannelState.VariablePart().Outcome[0].TotalAllocated(),
+	Amount:         big.NewInt(0).Set(VirtualChannelState.VariablePart().Outcome[0].TotalAllocated()),
 	AllocationType: outcome.GuaranteeAllocationType,
 	Metadata:       expectedEncodedGuaranteeMetadata,
 }
