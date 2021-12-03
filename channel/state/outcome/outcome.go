@@ -92,7 +92,7 @@ func (allocations Allocations) Affords(given Allocation, funding *big.Int) bool 
 
 // DepositSafetyThreshold returns the amount of this asset that a user with
 // the specified interests must see on-chain before the safe recoverability of
-// their own deposts is guaranteed
+// their own deposits is guaranteed
 func (s SingleAssetExit) DepositSafetyThreshold(interests []types.Destination) *big.Int {
 	sum := big.NewInt(0)
 
