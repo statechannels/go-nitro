@@ -60,7 +60,7 @@ func TestAsAlice(t *testing.T) {
 			t.Error(err)
 		}
 
-		got := o.ExpectedGuarantees[0][types.Address{}] // VState only has one (native) asset represented by the zero address
+		got := o.ToMyRight.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
 		want := expectedGuarantee
 
 		if diff := cmp.Diff(want, got); diff != "" {
@@ -114,14 +114,16 @@ func TestAsAlice(t *testing.T) {
 		}
 
 		// Manually progress the extended state by "completing funding" from this wallet's point of view
-		var UpdatedL0Outcome = o.(VirtualFundObjective).L[0].LatestSupportedState.Outcome // TODO clone this?
+		var UpdatedL0Outcome = o.(VirtualFundObjective).ToMyRight.Channel.LatestSupportedState.Outcome // TODO clone this?
 		UpdatedL0Outcome[0].Allocations, _ = UpdatedL0Outcome[0].Allocations.DivertToGuarantee(my.destination, P_1.destination, s.a0[types.Address{}], s.b0[types.Address{}], s.V.Id)
-		var UpdatedL0State = o.(VirtualFundObjective).L[0].LatestSupportedState
+		var UpdatedL0State = o.(VirtualFundObjective).ToMyRight.Channel.LatestSupportedState
 		UpdatedL0State.Outcome = UpdatedL0Outcome
-		var UpdatedL0Channel = o.(VirtualFundObjective).L[0]
+		var UpdatedL0Channel = o.(VirtualFundObjective).ToMyRight.Channel
 		UpdatedL0Channel.LatestSupportedState = UpdatedL0State
-		o.(VirtualFundObjective).L[0] = UpdatedL0Channel
-		o.(VirtualFundObjective).L[0].OnChainFunding[types.Address{}] = UpdatedL0Outcome[0].Allocations.Total() // Make this channel fully funded
+		var UpdatedToMyRightConnection = *o.(VirtualFundObjective).ToMyRight
+		UpdatedToMyRightConnection.Channel = UpdatedL0Channel
+		*o.(VirtualFundObjective).ToMyRight = UpdatedToMyRightConnection
+		o.(VirtualFundObjective).ToMyRight.Channel.OnChainFunding[types.Address{}] = UpdatedL0Outcome[0].Allocations.Total() // Make this channel fully funded
 
 		// Cranking now should not generate side effects, because we already did that
 		o, _, waitingFor, err = o.Crank(&my.privateKey)

@@ -23,17 +23,24 @@ var NoSideEffects = protocols.SideEffects{}
 // errors
 var ErrNotApproved = errors.New("objective not approved")
 
+type Connection struct {
+	Channel            channel.Channel
+	ExpectedGuarantees map[types.Address]outcome.Allocation
+}
+
 // VirtualFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type VirtualFundObjective struct {
 	Status protocols.ObjectiveStatus
-	V      channel.Channel          // this is J
-	L      map[uint]channel.Channel // this will contain 1 or 2 Ledger channels. For example L_0 if Alice (i=0). L_0 and L_1 for the first intermediary (i=1). L_n+1 for Bob (i=n+1)
-	MyRole uint                     // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
+	V      channel.Channel // this is J
+
+	ToMyLeft  *Connection
+	ToMyRight *Connection
+
+	// n uint // TODO
+	MyRole uint // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
 
 	a0 types.Funds // Initial balance for Alice
 	b0 types.Funds // Initial balance for Bob
-
-	ExpectedGuarantees map[uint]map[types.Address]outcome.Allocation // For each ledger channel, for each asset -- the expected guarantee that diverts funds from L_i to V,
 
 	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
 
@@ -60,7 +67,6 @@ func New(
 
 	// Initialize channels
 	init.V = channel.New(initialStateOfV, false, types.Destination{}, types.Destination{})
-	init.L = make(map[uint]channel.Channel)
 
 	n := uint(2) // TODO  uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
 
@@ -82,20 +88,23 @@ func New(
 	}
 
 	init.MyRole = myRole // this should not be modified, so no need to make a new big.Int
-	init.ExpectedGuarantees = make(map[uint]map[types.Address]outcome.Allocation)
 
 	switch {
 	case myRole == 0: // Alice
-		init.L[0] = ledgerChannelToMyRight
-		init.insertExpectedGuaranteesForLedgerChannel(0, init.L[0].MyDestination, init.L[0].TheirDestination) // This Ledger channel is on *my right*, so I am on the *left* of it
+		init.ToMyRight = &Connection{}
+		init.ToMyRight.Channel = ledgerChannelToMyRight
+		init.ToMyRight.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.MyDestination, init.ToMyRight.Channel.TheirDestination)
 	case myRole < n+1: // Intermediary
-		init.L[myRole] = ledgerChannelToMyRight
-		init.L[myRole-1] = ledgerChannelToMyLeft
-		init.insertExpectedGuaranteesForLedgerChannel(myRole, init.L[myRole].MyDestination, init.L[myRole].TheirDestination)       // This Ledger channel is on *my right*, so I am on the *left* of it
-		init.insertExpectedGuaranteesForLedgerChannel(myRole-1, init.L[myRole-1].TheirDestination, init.L[myRole-1].MyDestination) // This Ledger channel is on *my left*, so I am on the *right* of it
+		init.ToMyRight = &Connection{}
+		init.ToMyRight.Channel = ledgerChannelToMyRight
+		init.ToMyRight.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.MyDestination, init.ToMyRight.Channel.TheirDestination)
+		init.ToMyLeft = &Connection{}
+		init.ToMyLeft.Channel = ledgerChannelToMyLeft
+		init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.TheirDestination, init.ToMyRight.Channel.MyDestination)
 	case myRole == n+1: // Bob
-		init.L[myRole-1] = ledgerChannelToMyLeft
-		init.insertExpectedGuaranteesForLedgerChannel(n, init.L[myRole-1].TheirDestination, init.L[myRole-1].MyDestination) // This Ledger channel is on *my left*, so I am on the *right* of it
+		init.ToMyLeft = &Connection{}
+		init.ToMyLeft.Channel = ledgerChannelToMyLeft
+		init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.TheirDestination, init.ToMyRight.Channel.MyDestination)
 	default: // Invalid
 
 	}
@@ -107,24 +116,24 @@ func New(
 	return init, nil
 }
 
-// insertExpectedGuaranteesForLedgerChannel mutates the VirtualFundObjective
-func (init *VirtualFundObjective) insertExpectedGuaranteesForLedgerChannel(i uint, left types.Destination, right types.Destination) {
+// insertExpectedGuaranteesForLedgerChannel mutates the reciever Connection struct
+func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) {
 	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
 	metadata := outcome.GuaranteeMetadata{
 		Left:  left,
 		Right: right,
 	}
 	encodedGuarantee, _ := metadata.Encode() // TODO handle error
-	for asset := range init.a0 {
+	for asset := range a0 {
 		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
-			Destination:    init.V.Id,
-			Amount:         big.NewInt(0).Add(init.a0[asset], init.b0[asset]),
+			Destination:    vId,
+			Amount:         big.NewInt(0).Add(a0[asset], b0[asset]),
 			AllocationType: outcome.GuaranteeAllocationType,
 			Metadata:       encodedGuarantee,
 		}
 	}
 
-	init.ExpectedGuarantees[i] = expectedGuaranteesForLedgerChannel
+	connection.ExpectedGuarantees = expectedGuaranteesForLedgerChannel
 }
 
 // Public methods on the VirtualFundObjective
@@ -243,24 +252,24 @@ func (s VirtualFundObjective) fundingComplete() bool {
 	// Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
 	// A = P_0 and B=P_n+1 are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
 
-	n := uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
+	n := uint(2) // n = numHops + 1 (the number of ledger channels)
 
 	switch {
 	case s.MyRole == 0: // Alice
-		return s.ledgerChannelAffordsExpectedGuarantees(0)
+		return s.ToMyRight.ledgerChannelAffordsExpectedGuarantees()
 	case s.MyRole < n+1: // Intermediary
-		return s.ledgerChannelAffordsExpectedGuarantees(s.MyRole-1) && s.ledgerChannelAffordsExpectedGuarantees(s.MyRole)
+		return s.ToMyRight.ledgerChannelAffordsExpectedGuarantees() && s.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
 	case s.MyRole == n+1: // Bob
-		return s.ledgerChannelAffordsExpectedGuarantees(n)
+		return s.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
 	default: // Invalid
 		return false
 	}
 
 }
 
-// ledgerChannelAffordsExpectedGuarantees returns true if the ledger channel with given index i affords the expected guarantees for V
-func (s VirtualFundObjective) ledgerChannelAffordsExpectedGuarantees(i uint) bool {
-	return s.L[i].Affords(s.ExpectedGuarantees[i], s.L[i].OnChainFunding)
+// TODO
+func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
+	return connection.Channel.Affords(connection.ExpectedGuarantees, connection.Channel.OnChainFunding)
 }
 
 // generateLedgerRequestSideEffects generates the appropriate side effects, which (when executed and countersigned) will update 1 or 2 ledger channels to guarantee the joint channel
@@ -270,22 +279,22 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 	if s.MyRole > 0 { // Not Alice
 		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
 			protocols.LedgerRequest{
-				LedgerId:    s.L[s.MyRole-1].Id,
+				LedgerId:    s.ToMyLeft.Channel.Id,
 				Destination: s.V.Id,
 				Amount:      s.V.Total(),
-				Left:        s.L[s.MyRole-1].TheirDestination,
-				Right:       s.L[s.MyRole-1].MyDestination,
+				Left:        s.ToMyLeft.Channel.TheirDestination,
+				Right:       s.ToMyLeft.Channel.MyDestination,
 			})
 	}
-	n := uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
-	if s.MyRole < n {   // Not Bob
+	n := uint(2)      // n = numHops + 1 (the number of ledger channels)
+	if s.MyRole < n { // Not Bob
 		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
 			protocols.LedgerRequest{
-				LedgerId:    s.L[s.MyRole].Id,
+				LedgerId:    s.ToMyRight.Channel.Id,
 				Destination: s.V.Id,
 				Amount:      s.V.Total(),
-				Left:        s.L[s.MyRole].MyDestination,
-				Right:       s.L[s.MyRole].TheirDestination,
+				Left:        s.ToMyRight.Channel.MyDestination,
+				Right:       s.ToMyRight.Channel.TheirDestination,
 			})
 	}
 	return sideEffects
@@ -293,13 +302,14 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 
 // inScope returns true if the supplied channelId is the joint channel or one of the ledger channels. Can be used to filter out events that don't concern these channels.
 func (s VirtualFundObjective) inScope(channelId types.Destination) bool {
-	if channelId == s.V.Id {
+
+	switch channelId {
+	case s.V.Id:
 		return true
-	}
-	for _, channel := range s.L {
-		if channelId == channel.Id {
-			return true
-		}
+	case s.ToMyLeft.Channel.Id:
+		return true
+	case s.ToMyRight.Channel.Id:
+		return true
 	}
 
 	return false
