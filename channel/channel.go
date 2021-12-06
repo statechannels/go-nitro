@@ -80,3 +80,10 @@ func (c Channel) AddSignedState(s state.State, sig state.Signature) bool {
 	// Check and update the latest supported state and proof
 	return true
 }
+
+// AddSignedStates adds each signed state in the mapping
+func (c Channel) AddSignedStates(mapping map[*state.State]state.Signature) {
+	for state, sig := range mapping {
+		c.AddSignedState(*state, sig)
+	}
+}
