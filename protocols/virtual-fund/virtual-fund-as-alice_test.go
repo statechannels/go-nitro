@@ -33,7 +33,8 @@ func TestAsAlice(t *testing.T) {
 	)
 
 	// Objective
-	var s, _ = New(VState, my.address, myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+	var n = uint(2) // number of ledger channels (num_hops + 1)
+	var s, _ = New(VState, my.address, n, myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 	var expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination}
 	var expectedEncodedGuaranteeMetadata, _ = expectedGuaranteeMetadata.Encode()
 	var expectedGuarantee outcome.Allocation = outcome.Allocation{
@@ -55,7 +56,7 @@ func TestAsAlice(t *testing.T) {
 
 	testNew := func(t *testing.T) {
 		// Assert that a valid set of constructor args does not result in an error
-		o, err := New(VState, my.address, myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+		o, err := New(VState, my.address, 2, myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 		if err != nil {
 			t.Error(err)
 		}

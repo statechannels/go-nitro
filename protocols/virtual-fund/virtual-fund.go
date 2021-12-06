@@ -36,7 +36,7 @@ type VirtualFundObjective struct {
 	ToMyLeft  *Connection
 	ToMyRight *Connection
 
-	// n uint // TODO
+	n      uint // number of ledger channels (num_hops + 1)
 	MyRole uint // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
 
 	a0 types.Funds // Initial balance for Alice
@@ -56,6 +56,7 @@ type VirtualFundObjective struct {
 func New(
 	initialStateOfV state.State,
 	myAddress types.Address,
+	n uint, // number of ledger channels (num_hops + 1)
 	myRole uint,
 	ledgerChannelToMyLeft channel.Channel,
 	ledgerChannelToMyRight channel.Channel,
@@ -68,7 +69,7 @@ func New(
 	// Initialize channels
 	init.V = channel.New(initialStateOfV, false, types.Destination{}, types.Destination{})
 
-	n := uint(2) // TODO  uint(len(s.L)) // n = numHops + 1 (the number of ledger channels)
+	init.n = n
 
 	init.a0 = make(map[types.Address]*big.Int)
 	init.b0 = make(map[types.Address]*big.Int)
@@ -252,7 +253,7 @@ func (s VirtualFundObjective) fundingComplete() bool {
 	// Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
 	// A = P_0 and B=P_n+1 are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
 
-	n := uint(2) // n = numHops + 1 (the number of ledger channels)
+	n := s.n
 
 	switch {
 	case s.MyRole == 0: // Alice
@@ -286,7 +287,7 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 				Right:       s.ToMyLeft.Channel.MyDestination,
 			})
 	}
-	n := uint(2)      // n = numHops + 1 (the number of ledger channels)
+	n := s.n
 	if s.MyRole < n { // Not Bob
 		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
 			protocols.LedgerRequest{
