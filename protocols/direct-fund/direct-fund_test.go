@@ -35,9 +35,8 @@ var dummySignature = state.Signature{
 	S: common.Hex2Bytes(`22274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),
 	V: byte(1),
 }
-var dummyStateHash = common.Hash{}
+var dummyState = state.State{}
 var stateToSign state.State = s.expectedStates[0]
-var stateHash, _ = stateToSign.Hash()
 var privateKeyOfParticipant0 = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
 var correctSignatureByParticipant, _ = stateToSign.Sign(privateKeyOfParticipant0)
 
@@ -57,25 +56,25 @@ func TestUpdate(t *testing.T) {
 	// and make a new Sigs map.
 	// This prepares us for the rest of the test. We will reuse the same event multiple times
 	e.ChannelId = s.channelId
-	e.Sigs = make(map[types.Bytes32]state.Signature)
+	e.Sigs = make(map[*state.State]state.Signature)
 
 	// Next, attempt to update the objective with a dummy signature, keyed with a dummy statehash
 	// Assert that this results in a NOOP
-	e.Sigs[dummyStateHash] = dummySignature // Dummmy signature on dummy statehash
+	e.Sigs[&dummyState] = dummySignature // Dummmy signature on dummy statehash
 	if _, err := s.Update(e); err != nil {
 		t.Error(`dummy signature -- expected a noop but caught an error:`, err)
 	}
 
 	// Next, attempt to update the objective with an invalid signature, keyed with a dummy statehash
 	// Assert that this results in a NOOP
-	e.Sigs[dummyStateHash] = state.Signature{}
+	e.Sigs[&dummyState] = state.Signature{}
 	if _, err := s.Update(e); err != nil {
 		t.Error(`faulty signature -- expected a noop but caught an error:`, err)
 	}
 
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
-	e.Sigs[stateHash] = correctSignatureByParticipant
+	e.Sigs[&stateToSign] = correctSignatureByParticipant
 	updated, err := s.Update(e)
 	if err != nil {
 		t.Error(err)

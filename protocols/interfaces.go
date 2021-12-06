@@ -9,7 +9,7 @@ import (
 type Message struct {
 	To          []byte
 	ObjectiveId ObjectiveId
-	Sigs        map[types.Bytes32]state.Signature // mapping from state hash to signature
+	Sigs        map[*state.State]state.Signature // mapping from state hash to signature
 	Proposal    Objective
 }
 
@@ -38,9 +38,9 @@ type AdjudicationStatus struct {
 
 // ObjectiveEvent holds information used to update an Objective. Some fields may be nil.
 type ObjectiveEvent struct {
-	ChannelId          types.Destination                 // Must be defined
-	Sigs               map[types.Bytes32]state.Signature // mapping from state hash to signature
-	Holdings           types.Funds                       // mapping from asset identifier to amount
+	ChannelId          types.Destination                // Must be defined
+	Sigs               map[*state.State]state.Signature // mapping from state to signature
+	Holdings           types.Funds                      // mapping from asset identifier to amount
 	AdjudicationStatus AdjudicationStatus
 }
 
