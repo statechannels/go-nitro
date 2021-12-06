@@ -163,22 +163,22 @@ func (s VirtualFundObjective) Reject() protocols.Objective {
 // and returns the updated state
 func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 
+	updated := s.clone()
+
 	switch event.ChannelId {
 	case s.V.Id:
+		s.V.AddSignedStates(event.Sigs)
 		// We expect pre and post fund state signatures
-		fallthrough
 	case s.ToMyLeft.Channel.Id:
+		s.ToMyLeft.Channel.AddSignedStates(event.Sigs)
 		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though
-		fallthrough
-
 	case s.ToMyRight.Channel.Id:
-		updated := s.clone()
-		// TODO do stuff
-		return updated, nil
+		s.ToMyRight.Channel.AddSignedStates(event.Sigs)
+		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though
 	default:
 		return s, errors.New("event channelId out of scope of objective")
-
 	}
+	return updated, nil
 
 }
 
