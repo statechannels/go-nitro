@@ -163,15 +163,23 @@ func (s VirtualFundObjective) Reject() protocols.Objective {
 // and returns the updated state
 func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 
-	if !s.inScope(event.ChannelId) {
+	switch event.ChannelId {
+	case s.V.Id:
+		// We expect pre and post fund state signatures
+		fallthrough
+	case s.ToMyLeft.Channel.Id:
+		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though
+		fallthrough
+
+	case s.ToMyRight.Channel.Id:
+		updated := s.clone()
+		// TODO do stuff
+		return updated, nil
+	default:
 		return s, errors.New("event channelId out of scope of objective")
+
 	}
 
-	updated := s.clone()
-
-	// TODO
-
-	return updated, nil
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
@@ -299,21 +307,6 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 			})
 	}
 	return sideEffects
-}
-
-// inScope returns true if the supplied channelId is the joint channel or one of the ledger channels. Can be used to filter out events that don't concern these channels.
-func (s VirtualFundObjective) inScope(channelId types.Destination) bool {
-
-	switch channelId {
-	case s.V.Id:
-		return true
-	case s.ToMyLeft.Channel.Id:
-		return true
-	case s.ToMyRight.Channel.Id:
-		return true
-	}
-
-	return false
 }
 
 // todo: is this sufficient? Particularly: s has pointer members (*big.Int)
