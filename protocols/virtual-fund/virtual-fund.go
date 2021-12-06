@@ -214,7 +214,7 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	}
 
 	if !updated.fundingComplete() {
-		return updated, NoSideEffects, protocols.WaitingForCompleteFunding, nil
+		return updated, NoSideEffects, WaitingForCompleteFunding, nil
 	}
 
 	// Postfunding

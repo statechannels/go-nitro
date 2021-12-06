@@ -131,7 +131,7 @@ func TestAsAlice(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if waitingFor != protocols.WaitingForCompletePostFund {
+		if waitingFor != WaitingForCompletePostFund {
 			t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
 		}
 
