@@ -159,13 +159,13 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 	case types.Destination{}:
 		return s, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel
 	case s.V.Id:
-		s.V.AddSignedStates(event.Sigs)
+		updated.V.AddSignedStates(event.Sigs)
 		// We expect pre and post fund state signatures
 	case s.ToMyLeft.Channel.Id:
-		s.ToMyLeft.Channel.AddSignedStates(event.Sigs)
+		updated.ToMyLeft.Channel.AddSignedStates(event.Sigs)
 		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though
 	case s.ToMyRight.Channel.Id:
-		s.ToMyRight.Channel.AddSignedStates(event.Sigs)
+		updated.ToMyRight.Channel.AddSignedStates(event.Sigs)
 		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though
 	default:
 		return s, errors.New("event channelId out of scope of objective")
