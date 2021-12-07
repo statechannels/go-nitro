@@ -9,6 +9,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// TODO bury these variables in a TestData struct?
+
 // In general
 // Alice = P_0 <=L_0=> P_1 <=L_1=> ... P_n <=L_n>= P_n+1 = Bob
 
@@ -104,7 +106,14 @@ var L_0state = state.State{
 	IsFinal: false,
 }
 
-var L_0updatedstate = state.State{ // TODO update this appropriately
+var VId, _ = VState.ChannelId()
+
+var L_0guaranteemetadataencoded, _ = outcome.GuaranteeMetadata{
+	Left:  Alice.destination,
+	Right: P_1.destination,
+}.Encode()
+
+var L_0updatedstate = state.State{
 	ChainId:           big.NewInt(9001),
 	Participants:      []types.Address{Alice.address, P_1.address},
 	ChannelNonce:      big.NewInt(0),
@@ -115,14 +124,20 @@ var L_0updatedstate = state.State{ // TODO update this appropriately
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
 				Destination: Alice.destination,
-				Amount:      big.NewInt(5),
+				Amount:      big.NewInt(0),
 			},
 			outcome.Allocation{
 				Destination: P_1.destination,
-				Amount:      big.NewInt(5),
+				Amount:      big.NewInt(0),
+			},
+			outcome.Allocation{
+				Destination:    VId,
+				Amount:         big.NewInt(0),
+				AllocationType: outcome.GuaranteeAllocationType,
+				Metadata:       L_0guaranteemetadataencoded,
 			},
 		},
 	}},
-	TurnNum: big.NewInt(1),
+	TurnNum: big.NewInt(2),
 	IsFinal: false,
 }
