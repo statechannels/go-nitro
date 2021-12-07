@@ -103,3 +103,26 @@ var L_0state = state.State{
 	TurnNum: big.NewInt(1),
 	IsFinal: false,
 }
+
+var L_0updatedstate = state.State{ // TODO update this appropriately
+	ChainId:           big.NewInt(9001),
+	Participants:      []types.Address{Alice.address, P_1.address},
+	ChannelNonce:      big.NewInt(0),
+	AppDefinition:     types.Address{},
+	ChallengeDuration: big.NewInt(45),
+	AppData:           []byte{},
+	Outcome: outcome.Exit{outcome.SingleAssetExit{
+		Allocations: outcome.Allocations{
+			outcome.Allocation{
+				Destination: Alice.destination,
+				Amount:      big.NewInt(5),
+			},
+			outcome.Allocation{
+				Destination: P_1.destination,
+				Amount:      big.NewInt(5),
+			},
+		},
+	}},
+	TurnNum: big.NewInt(1),
+	IsFinal: false,
+}

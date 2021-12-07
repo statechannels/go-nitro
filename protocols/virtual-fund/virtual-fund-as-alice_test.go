@@ -4,8 +4,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -49,6 +51,14 @@ func TestAsAlice(t *testing.T) {
 		Amount:      types.Funds{types.Address{}: s.V.PreFund.State.VariablePart().Outcome[0].Allocations.Total()},
 		Left:        ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination,
 	}}
+	var dummySignature = state.Signature{
+		R: common.Hex2Bytes(`49d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
+		S: common.Hex2Bytes(`22274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),
+		V: byte(1),
+	}
+	var dummyState = state.State{}
+	var correctSignatureByAliceOnVPreFund = state.Signature{}
+	var correctSignatureByAliceOnL_0updatedsate = state.Signature{}
 
 	///////////////////
 	// END test data //
@@ -153,7 +163,76 @@ func TestAsAlice(t *testing.T) {
 
 	}
 
+	testUpdate := func(t *testing.T) {
+
+		// Prepare an event with a mismatched channelId
+		e := protocols.ObjectiveEvent{
+			ChannelId: types.Destination{},
+		}
+		// Assert that Updating the objective with such an event returns an error
+		// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
+		if _, err := s.Update(e); err == nil {
+			t.Error(`ChannelId mismatch -- expected an error but did not get one`)
+		}
+
+		// Now modify the event to give it the "correct" channelId (matching the objective),
+		// and make a new Sigs map.
+		// This prepares us for the rest of the test. We will reuse the same event multiple times
+		e.ChannelId = s.V.Id
+		e.Sigs = make(map[*state.State]state.Signature)
+
+		// Next, attempt to update the objective with a dummy signature, keyed with a dummy statehash
+		// Assert that this results in a NOOP
+		e.Sigs[&dummyState] = dummySignature // Dummmy signature on dummy statehash
+		if _, err := s.Update(e); err != nil {
+			t.Error(`dummy signature -- expected a noop but caught an error:`, err)
+		}
+
+		// Next, attempt to update the objective with an invalid signature, keyed with a dummy statehash
+		// Assert that this results in a NOOP
+		e.Sigs[&dummyState] = state.Signature{}
+		if _, err := s.Update(e); err != nil {
+			t.Error(`faulty signature -- expected a noop but caught an error:`, err)
+		}
+
+		// Next, attempt to update the objective with correct signature by a participant on a relevant state
+		// Assert that this results in an appropriate change in the extended state of the objective
+		// Part 1: a signature on a state in channel V
+		e.Sigs[&s.V.PreFund.State] = correctSignatureByAliceOnVPreFund
+		updated, err := s.Update(e)
+		if err != nil {
+			t.Error(err)
+		}
+		if updated.(VirtualFundObjective).V.PreFund.Signed != true {
+			t.Error(`Objective data not updated as expected`)
+		}
+
+		// Part 2: a signature on Alice's ledger channel (on her right)
+		e.Sigs[&L_0updatedstate] = correctSignatureByAliceOnL_0updatedsate
+		updated, err = s.Update(e)
+		if err != nil {
+			t.Error(err)
+		}
+		if !updated.(VirtualFundObjective).ToMyRight.ledgerChannelAffordsExpectedGuarantees() != true {
+			t.Error(`Objective data not updated as expected`)
+		}
+
+		// Finally, add some Holdings information to the event
+		// Updating the objective with this event should overwrite the holdings that are stored
+		e.Holdings = types.Funds{}
+		e.Holdings[common.Address{}] = big.NewInt(3)
+		updated, err = s.Update(e)
+		if err != nil {
+			t.Error(err)
+		}
+		if !updated.(VirtualFundObjective).ToMyRight.Channel.OnChainFunding.Equal(e.Holdings) {
+			t.Error(`Objective data not updated as expected`, updated.(VirtualFundObjective).ToMyRight.Channel.OnChainFunding, e.Holdings)
+		}
+
+	}
+
 	t.Run(`New`, testNew)
+	t.Run(`Update`, testUpdate)
 	t.Run(`Crank`, testCrank)
 
 }
