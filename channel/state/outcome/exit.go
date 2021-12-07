@@ -153,6 +153,9 @@ func (e *Exit) Affords(
 	easyExit := e.toEasyExit()
 	for asset := range allocationMap {
 		x := xMap[asset]
+		if x == nil {
+			return false
+		}
 		allocation := allocationMap[asset]
 		if !easyExit[asset].Allocations.Affords(allocation, x) {
 			return false
