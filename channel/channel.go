@@ -2,7 +2,6 @@ package channel
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -158,12 +157,9 @@ func (c Channel) Affords(
 // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
 // Returns false and does not alter the channel if the state is "stale", belongs to a different channel, or is signed by a non participant
 func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
-	fmt.Println(`adding...`)
 	signer, _ := s.RecoverSigner(sig) // TODO handle error
 	signerIndex, isParticipant := indexOf(signer, c.FixedPart.Participants)
-	fmt.Println(`signer index`, signerIndex)
 	turnNum := s.TurnNum.Uint64() // https://github.com/statechannels/go-nitro/issues/95
-	fmt.Println(`turn num`, turnNum)
 
 	if cId, err := s.ChannelId(); cId != c.Id || err != nil || turnNum < c.LatestSupportedState.TurnNum.Uint64() || !isParticipant {
 		return false
