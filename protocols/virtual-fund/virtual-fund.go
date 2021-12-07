@@ -188,14 +188,14 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	// TODO could perform checks on s.L (should only have 1 or 2 channels in there)
 	// Prefunding
 
-	if !updated.V.PreFund.Signed {
-		sig, _ := updated.V.PreFund.State.Sign(*secretKey)     // TODO handle error
-		updated.V.AddSignedState(updated.V.PreFund.State, sig) // TODO handle return value (or not)
+	if !updated.V.PreFundSignedByMe() {
+		sig, _ := updated.V.PreFundState().Sign(*secretKey)     // TODO handle error
+		updated.V.AddSignedState(updated.V.PreFundState(), sig) // TODO handle return value (or not)
 		return updated, NoSideEffects, WaitingForCompletePrefund, nil
 
 	}
 
-	if !updated.V.PreFund.Complete {
+	if !updated.V.PreFundComplete() {
 		return updated, NoSideEffects, WaitingForCompletePrefund, nil
 	}
 
@@ -211,14 +211,14 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	}
 
 	// Postfunding
-	if !updated.V.PostFund.Signed {
-		sig, _ := updated.V.PostFund.State.Sign(*secretKey)     // TODO handle error
-		updated.V.AddSignedState(updated.V.PostFund.State, sig) // TODO handle return value (or not)
+	if !updated.V.PostFundSignedByMe() {
+		sig, _ := updated.V.PostFundState().Sign(*secretKey)     // TODO handle error
+		updated.V.AddSignedState(updated.V.PostFundState(), sig) // TODO handle return value (or not)
 		return updated, NoSideEffects, WaitingForCompletePostFund, nil
 
 	}
 
-	if !updated.V.PostFund.Complete {
+	if !updated.V.PostFundComplete() {
 		return updated, NoSideEffects, WaitingForCompletePostFund, nil
 	}
 
