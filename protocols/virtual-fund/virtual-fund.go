@@ -31,7 +31,7 @@ type Connection struct {
 // VirtualFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type VirtualFundObjective struct {
 	Status protocols.ObjectiveStatus
-	V      channel.Channel // this is J
+	V      *channel.Channel
 
 	ToMyLeft  *Connection
 	ToMyRight *Connection
@@ -43,12 +43,6 @@ type VirtualFundObjective struct {
 	b0 types.Funds // Initial balance for Bob
 
 	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
-
-	ParticipantIndex map[types.Address]uint // the index for each participant
-	MyIndex          uint                   // my participant index in J
-
-	preFundSigned  []bool // indexed by participant. TODO should this be initialized with my own index showing true?
-	postFundSigned []bool // indexed by participant
 }
 
 // New initiates a VirtualFundObjective with data calculated from
@@ -67,7 +61,8 @@ func New(
 	var init VirtualFundObjective
 
 	// Initialize channels
-	init.V = channel.New(initialStateOfV, false, types.Destination{}, types.Destination{})
+	v := channel.New(initialStateOfV, false, types.Destination{}, types.Destination{})
+	init.V = &v
 
 	init.n = n
 
@@ -106,14 +101,9 @@ func New(
 		init.ToMyLeft = &Connection{}
 		init.ToMyLeft.Channel = ledgerChannelToMyLeft
 		init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.TheirDestination, init.ToMyRight.Channel.MyDestination)
-	default: // Invalid
+	default: // Invalid TODO
 
 	}
-
-	init.preFundSigned = make([]bool, len(initialStateOfV.Participants))  // NOTE initialized to (false,false,...)
-	init.postFundSigned = make([]bool, len(initialStateOfV.Participants)) // NOTE initialized to (false,false,...)
-
-	// TODO
 	return init, nil
 }
 
@@ -195,14 +185,15 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 
 	// TODO could perform checks on s.L (should only have 1 or 2 channels in there)
 	// Prefunding
-	if !updated.preFundSigned[updated.MyIndex] {
-		sig, _ := updated.V.PreFund.Sign(*secretKey)     // TODO handle error
-		updated.V.AddSignedState(updated.V.PreFund, sig) // TODO handle return value (or not)
-		updated.preFundSigned[updated.MyIndex] = true
+
+	if !updated.V.PreFund.Signed {
+		sig, _ := updated.V.PreFund.State.Sign(*secretKey)     // TODO handle error
+		updated.V.AddSignedState(updated.V.PreFund.State, sig) // TODO handle return value (or not)
 		return updated, NoSideEffects, WaitingForCompletePrefund, nil
+
 	}
 
-	if !updated.prefundComplete() {
+	if !updated.V.PreFund.Complete {
 		return updated, NoSideEffects, WaitingForCompletePrefund, nil
 	}
 
@@ -218,14 +209,14 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	}
 
 	// Postfunding
-	if !updated.postFundSigned[updated.MyIndex] {
-		sig, _ := updated.V.PostFund.Sign(*secretKey)     // TODO handle error
-		updated.V.AddSignedState(updated.V.PostFund, sig) // TODO handle return value (or not)
-		updated.postFundSigned[updated.MyIndex] = true
+	if !updated.V.PostFund.Signed {
+		sig, _ := updated.V.PostFund.State.Sign(*secretKey)     // TODO handle error
+		updated.V.AddSignedState(updated.V.PostFund.State, sig) // TODO handle return value (or not)
 		return updated, NoSideEffects, WaitingForCompletePostFund, nil
+
 	}
 
-	if !updated.postfundComplete() {
+	if !updated.V.PostFund.Complete {
 		return updated, NoSideEffects, WaitingForCompletePostFund, nil
 	}
 
@@ -234,26 +225,6 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 }
 
 //  Private methods on the VirtualFundObjective
-
-// prefundComplete returns true if all participants have signed a prefund state, as reflected by the extended state
-func (s VirtualFundObjective) prefundComplete() bool {
-	for _, index := range s.ParticipantIndex {
-		if !s.preFundSigned[index] {
-			return false
-		}
-	}
-	return true
-}
-
-// postfundComplete returns true if all participants have signed a postfund state, as reflected by the extended state
-func (s VirtualFundObjective) postfundComplete() bool {
-	for _, index := range s.ParticipantIndex {
-		if !s.postFundSigned[index] {
-			return false
-		}
-	}
-	return true
-}
 
 // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
 func (s VirtualFundObjective) fundingComplete() bool {

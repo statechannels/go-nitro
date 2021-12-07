@@ -46,7 +46,7 @@ func TestAsAlice(t *testing.T) {
 	var expectedLedgerRequests = []protocols.LedgerRequest{{
 		LedgerId:    ledgerChannelToMyRight.Id,
 		Destination: s.V.Id,
-		Amount:      types.Funds{types.Address{}: s.V.PreFund.VariablePart().Outcome[0].Allocations.Total()},
+		Amount:      types.Funds{types.Address{}: s.V.PreFund.State.VariablePart().Outcome[0].Allocations.Total()},
 		Left:        ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination,
 	}}
 
@@ -92,9 +92,10 @@ func TestAsAlice(t *testing.T) {
 		}
 
 		// Manually progress the extended state by collecting prefund signatures
-		o.(VirtualFundObjective).preFundSigned[0] = true
-		o.(VirtualFundObjective).preFundSigned[1] = true
-		o.(VirtualFundObjective).preFundSigned[2] = true
+		assertedObjective := o.(VirtualFundObjective) // type assertion creates a copy
+		assertedObjective.V.PreFund.Signed = true
+		assertedObjective.V.PreFund.Complete = true
+		o = assertedObjective
 
 		// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
 		o, sideEffects, waitingFor, err := o.Crank(&my.privateKey)
@@ -136,9 +137,10 @@ func TestAsAlice(t *testing.T) {
 		}
 
 		// Manually progress the extended state by collecting postfund signatures
-		o.(VirtualFundObjective).postFundSigned[0] = true
-		o.(VirtualFundObjective).postFundSigned[1] = true
-		o.(VirtualFundObjective).postFundSigned[2] = true
+		assertedObjective = o.(VirtualFundObjective) // type assertion creates a copy
+		assertedObjective.V.PostFund.Signed = true
+		assertedObjective.V.PostFund.Complete = true
+		o = assertedObjective
 
 		// This should be the final crank...
 		_, _, waitingFor, err = o.Crank(&my.privateKey)

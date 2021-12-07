@@ -9,11 +9,17 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type SetupState struct {
+	State    state.State
+	Signed   bool
+	Complete bool // A signature from each and every peer
+}
+
 type Channel struct {
 	Id types.Destination
 
-	PreFund  state.State
-	PostFund state.State
+	PreFund  SetupState
+	PostFund SetupState
 
 	OnChainFunding types.Funds
 
@@ -42,11 +48,17 @@ func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, 
 
 	// if s.TurnNum != 0 return error // TODO
 
-	c.PreFund = s.Clone()
-	c.PostFund = s.Clone()
-	c.PostFund.TurnNum = big.NewInt(1)
+	c.PreFund = SetupState{
+		s.Clone(),
+		false, false,
+	}
+	c.PostFund = SetupState{
+		s.Clone(),
+		false, false,
+	}
+	c.PostFund.State.TurnNum = big.NewInt(1)
 
-	c.Id, _ = c.PreFund.ChannelId() // TODO handle error
+	c.Id, _ = c.PreFund.State.ChannelId() // TODO handle error
 
 	return c
 }
