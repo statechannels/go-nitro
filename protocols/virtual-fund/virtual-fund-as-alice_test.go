@@ -1,7 +1,6 @@
 package virtualfund
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -62,7 +61,7 @@ func TestAsAlice(t *testing.T) {
 	// }
 	// var dummyState = state.State{}
 	var correctSignatureByAliceOnVPreFund, _ = s.V.PreFundState().Sign(Alice.privateKey)
-	// var correctSignatureByAliceOnL_0updatedsate, _ = L_0updatedstate.Sign(Alice.privateKey)
+	var correctSignatureByAliceOnL_0updatedsate, _ = L_0updatedstate.Sign(Alice.privateKey)
 	var threeSigs = map[uint]state.Signature{
 		0: {},
 		1: {},
@@ -213,25 +212,22 @@ func TestAsAlice(t *testing.T) {
 			t.Error(err)
 		}
 		if updated.(VirtualFundObjective).V.PreFundSignedByMe() != true {
-			fmt.Println(updated.(VirtualFundObjective).V.SignedStateForTurnNum)
-			fmt.Println(updated.(VirtualFundObjective).V.PreFundSignedByMe())
 			t.Error(`Objective data not updated as expected`)
 		}
 
 		// Part 2: a signature on Alice's ledger channel (on her right)
-		// f := protocols.ObjectiveEvent{
-		// 	ChannelId: s.ToMyRight.Channel.Id,
-		// }
-		// f.Sigs = make(map[*state.State]state.Signature)
-		// f.Sigs[&L_0updatedstate] = correctSignatureByAliceOnL_0updatedsate
-		// fmt.Println(f)
-		// updated, err = s.Update(f)
-		// if err != nil {
-		// 	t.Error(err)
-		// }
-		// if !updated.(VirtualFundObjective).ToMyRight.ledgerChannelAffordsExpectedGuarantees() != true {
-		// 	t.Error(`Objective data not updated as expected`)
-		// }
+		f := protocols.ObjectiveEvent{
+			ChannelId: s.ToMyRight.Channel.Id,
+		}
+		f.Sigs = make(map[*state.State]state.Signature)
+		f.Sigs[&L_0updatedstate] = correctSignatureByAliceOnL_0updatedsate
+		updated, err = s.Update(f)
+		if err != nil {
+			t.Error(err)
+		}
+		if !updated.(VirtualFundObjective).ToMyRight.ledgerChannelAffordsExpectedGuarantees() != true {
+			t.Error(`Objective data not updated as expected`)
+		}
 
 	}
 
