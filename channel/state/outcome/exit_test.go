@@ -176,3 +176,16 @@ func TestTotalFor(t *testing.T) {
 		})
 	}
 }
+
+func TestExitAffords(t *testing.T) {
+
+	allocationMap := map[types.Address]Allocation{
+		{}: testExit[0].Allocations[0],
+	}
+
+	got := testExit.Affords(allocationMap, types.Funds{}) // This should not panic
+	want := false
+	if !(got == want) {
+		t.Error(`Affords: expected test exit to not afford the given allocation with nil funds`)
+	}
+}
