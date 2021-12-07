@@ -156,6 +156,8 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 	updated := s.clone()
 
 	switch event.ChannelId {
+	case types.Destination{}:
+		return s, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel
 	case s.V.Id:
 		s.V.AddSignedStates(event.Sigs)
 		// We expect pre and post fund state signatures
