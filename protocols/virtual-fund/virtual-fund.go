@@ -155,16 +155,26 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 
 	updated := s.clone()
 
+	var toMyLeftId types.Destination
+	var toMyRightId types.Destination
+
+	if s.MyRole != 0 {
+		toMyLeftId = s.ToMyLeft.Channel.Id // Avoid this if it is nil
+	}
+	if s.MyRole != s.n+1 {
+		toMyRightId = s.ToMyRight.Channel.Id // Avoid this if it is nil
+	}
+
 	switch event.ChannelId {
 	case types.Destination{}:
 		return s, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel
 	case s.V.Id:
 		updated.V.AddSignedStates(event.Sigs)
 		// We expect pre and post fund state signatures
-	case s.ToMyLeft.Channel.Id:
+	case toMyLeftId:
 		updated.ToMyLeft.Channel.AddSignedStates(event.Sigs)
 		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though
-	case s.ToMyRight.Channel.Id:
+	case toMyRightId:
 		updated.ToMyRight.Channel.AddSignedStates(event.Sigs)
 		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though
 	default:
