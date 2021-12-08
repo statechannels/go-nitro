@@ -190,7 +190,7 @@ func (s State) Clone() State {
 }
 
 // StateFromFixedAndVariablePart constructs a State from a FixedPart and a VariablePart
-func StateFromFixedAndVariablePart(f FixedPart, v VariablePart) (State, error) {
+func StateFromFixedAndVariablePart(f FixedPart, v VariablePart) State {
 
 	return State{
 		ChainId:           f.ChainId,
@@ -202,6 +202,6 @@ func StateFromFixedAndVariablePart(f FixedPart, v VariablePart) (State, error) {
 		Outcome:           v.Outcome,
 		TurnNum:           v.TurnNum,
 		IsFinal:           v.IsFinal,
-	}, nil
+	}
 
 }
