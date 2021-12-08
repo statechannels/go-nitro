@@ -1,6 +1,7 @@
 package virtualfund
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -38,12 +39,12 @@ func TestAsAlice(t *testing.T) {
 
 	// Objective
 	var n = uint(2) // number of ledger channels (num_hops + 1)
-	var s, _ = New(VState, my.address, n, myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+	var s, _ = New(VPreFund, my.address, n, myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 	var expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination}
 	var expectedEncodedGuaranteeMetadata, _ = expectedGuaranteeMetadata.Encode()
 	var expectedGuarantee outcome.Allocation = outcome.Allocation{
 		Destination:    s.V.Id,
-		Amount:         big.NewInt(0).Set(VState.VariablePart().Outcome[0].TotalAllocated()),
+		Amount:         big.NewInt(0).Set(VPreFund.VariablePart().Outcome[0].TotalAllocated()),
 		AllocationType: outcome.GuaranteeAllocationType,
 		Metadata:       expectedEncodedGuaranteeMetadata,
 	}
@@ -60,13 +61,17 @@ func TestAsAlice(t *testing.T) {
 	// 	V: byte(1),
 	// }
 	// var dummyState = state.State{}
+
 	var correctSignatureByAliceOnVPreFund, _ = s.V.PreFundState().Sign(Alice.privateKey)
+	var correctSignatureByP_1OnVPreFund, _ = s.V.PreFundState().Sign(P_1.privateKey)
+	var correctSignatureByBobOnVPreFund, _ = s.V.PreFundState().Sign(Bob.privateKey)
+
+	var correctSignatureByAliceOnVPostFund, _ = s.V.PostFundState().Sign(Alice.privateKey)
+	var correctSignatureByP_1OnVPostFund, _ = s.V.PostFundState().Sign(P_1.privateKey)
+	var correctSignatureByBobOnVPostFund, _ = s.V.PostFundState().Sign(Bob.privateKey)
+
 	var correctSignatureByAliceOnL_0updatedsate, _ = L_0updatedstate.Sign(Alice.privateKey)
-	var threeSigs = map[uint]state.Signature{
-		0: {},
-		1: {},
-		2: {},
-	}
+	var correctSignatureByP_1OnL_0updatedsate, _ = L_0updatedstate.Sign(P_1.privateKey)
 
 	///////////////////
 	// END test data //
@@ -74,7 +79,7 @@ func TestAsAlice(t *testing.T) {
 
 	testNew := func(t *testing.T) {
 		// Assert that a valid set of constructor args does not result in an error
-		o, err := New(VState, my.address, 2, myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+		o, err := New(VPreFund, my.address, 2, myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 		if err != nil {
 			t.Error(err)
 		}
@@ -110,9 +115,9 @@ func TestAsAlice(t *testing.T) {
 		}
 
 		// Manually progress the extended state by collecting prefund signatures
-		assertedObjective := o.(VirtualFundObjective) // type assertion creates a copy
-		assertedObjective.V.SignedStateForTurnNum[0] = channel.SignedState{State: state.VariablePart{}, Sigs: threeSigs}
-		o = assertedObjective
+		o.(VirtualFundObjective).V.AddSignedState(VPreFund, correctSignatureByAliceOnVPreFund)
+		o.(VirtualFundObjective).V.AddSignedState(VPreFund, correctSignatureByBobOnVPreFund)
+		o.(VirtualFundObjective).V.AddSignedState(VPreFund, correctSignatureByP_1OnVPreFund)
 
 		// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
 		o, sideEffects, waitingFor, err := o.Crank(&my.privateKey)
@@ -133,17 +138,11 @@ func TestAsAlice(t *testing.T) {
 		}
 
 		// Manually progress the extended state by "completing funding" from this wallet's point of view
-		var UpdatedL0Outcome = o.(VirtualFundObjective).ToMyRight.Channel.LatestSupportedState.Outcome // TODO clone this?
-		UpdatedL0Outcome[0].Allocations, _ = UpdatedL0Outcome[0].Allocations.DivertToGuarantee(my.destination, P_1.destination, s.a0[types.Address{}], s.b0[types.Address{}], s.V.Id)
-		var UpdatedL0State = o.(VirtualFundObjective).ToMyRight.Channel.LatestSupportedState
-		UpdatedL0State.Outcome = UpdatedL0Outcome
-		var UpdatedL0Channel = o.(VirtualFundObjective).ToMyRight.Channel
-		UpdatedL0Channel.LatestSupportedState = UpdatedL0State
-		var UpdatedToMyRightConnection = *o.(VirtualFundObjective).ToMyRight
-		UpdatedToMyRightConnection.Channel = UpdatedL0Channel
-		*o.(VirtualFundObjective).ToMyRight = UpdatedToMyRightConnection
-		o.(VirtualFundObjective).ToMyRight.Channel.OnChainFunding[types.Address{}] = UpdatedL0Outcome[0].Allocations.Total() // Make this channel fully funded
-
+		o.(VirtualFundObjective).ToMyRight.Channel.AddSignedState(L_0updatedstate, correctSignatureByAliceOnL_0updatedsate)
+		o.(VirtualFundObjective).ToMyRight.Channel.AddSignedState(L_0updatedstate, correctSignatureByP_1OnL_0updatedsate)
+		o.(VirtualFundObjective).ToMyRight.Channel.OnChainFunding[types.Address{}] = L_0state.Outcome[0].Allocations.Total() // Make this channel fully funded
+		fmt.Println(L_0state.Outcome[0].Allocations)
+		fmt.Println(o.(VirtualFundObjective).ToMyRight.Channel.LatestSupportedState().Outcome[0].Allocations)
 		// Cranking now should not generate side effects, because we already did that
 		o, _, waitingFor, err = o.Crank(&my.privateKey)
 		if err != nil {
@@ -154,10 +153,9 @@ func TestAsAlice(t *testing.T) {
 		}
 
 		// Manually progress the extended state by collecting postfund signatures
-		// Manually progress the extended state by collecting prefund signatures
-		assertedObjective = o.(VirtualFundObjective) // type assertion creates a copy
-		assertedObjective.V.SignedStateForTurnNum[1] = channel.SignedState{State: state.VariablePart{}, Sigs: threeSigs}
-		o = assertedObjective
+		o.(VirtualFundObjective).V.AddSignedState(o.(VirtualFundObjective).V.PostFundState(), correctSignatureByAliceOnVPostFund)
+		o.(VirtualFundObjective).V.AddSignedState(o.(VirtualFundObjective).V.PostFundState(), correctSignatureByBobOnVPostFund)
+		o.(VirtualFundObjective).V.AddSignedState(o.(VirtualFundObjective).V.PostFundState(), correctSignatureByP_1OnVPostFund)
 
 		// This should be the final crank...
 		_, _, waitingFor, err = o.Crank(&my.privateKey)

@@ -31,8 +31,9 @@ type Channel struct {
 	OnChainFunding types.Funds
 
 	state.FixedPart
-	Support              []state.VariablePart
-	LatestSupportedState state.State // TODO this should be a variable part, with a getter providing the whole state
+	Support []state.VariablePart
+
+	latestSupportedStateTurnNum uint64
 
 	IsTwoPartyLedger bool
 	MyDestination    types.Destination
@@ -50,17 +51,20 @@ func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, 
 
 	c.OnChainFunding = make(types.Funds)
 
-	c.LatestSupportedState = s.Clone()
-	c.FixedPart = c.LatestSupportedState.FixedPart()
+	c.latestSupportedStateTurnNum = s.TurnNum.Uint64()
+	c.FixedPart = s.FixedPart()
 
 	c.Support = make([]state.VariablePart, 0)
 	c.MyDestination = myDestination
 	c.TheirDestination = theirDestination
 	c.IsTwoPartyLedger = isTwoPartyLedger
 
-	// if s.TurnNum != 0 return error // TODO
+	var err error
+	c.Id, err = s.ChannelId()
 
-	c.Id, _ = s.ChannelId() // TODO handle error
+	if err != nil {
+		return c, err
+	}
 
 	// Store prefund
 	c.SignedStateForTurnNum = make(map[uint64]SignedState)
@@ -131,9 +135,15 @@ func (c Channel) PostFundComplete() bool {
 	return c.SignedStateForTurnNum[1].isSupported(len(c.FixedPart.Participants))
 }
 
+func (c Channel) LatestSupportedState() state.State {
+	return state.StateFromFixedAndVariablePart(c.FixedPart,
+		c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State)
+
+}
+
 func (c Channel) Total() types.Funds {
 	funds := types.Funds{}
-	for _, sae := range c.LatestSupportedState.Outcome {
+	for _, sae := range c.LatestSupportedState().Outcome {
 		funds[sae.Asset] = sae.Allocations.Total()
 	}
 	return funds
@@ -146,7 +156,7 @@ func (c Channel) Total() types.Funds {
 func (c Channel) Affords(
 	allocationMap map[common.Address]outcome.Allocation,
 	fundingMap types.Funds) bool {
-	return c.LatestSupportedState.Outcome.Affords(allocationMap, fundingMap)
+	return c.LatestSupportedState().Outcome.Affords(allocationMap, fundingMap)
 }
 
 // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
@@ -156,7 +166,10 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 	signerIndex, isParticipant := indexOf(signer, c.FixedPart.Participants)
 	turnNum := s.TurnNum.Uint64() // https://github.com/statechannels/go-nitro/issues/95
 
-	if cId, err := s.ChannelId(); cId != c.Id || err != nil || turnNum < c.LatestSupportedState.TurnNum.Uint64() || !isParticipant {
+	if cId, err := s.ChannelId(); cId != c.Id ||
+		err != nil ||
+		c.LatestSupportedState().TurnNum != nil && turnNum < c.LatestSupportedState().TurnNum.Uint64() ||
+		!isParticipant {
 		return false
 	}
 
@@ -170,7 +183,7 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 
 	// Update latest supported state
 	if c.SignedStateForTurnNum[turnNum].isSupported(len(c.FixedPart.Participants)) {
-		c.LatestSupportedState = s
+		c.latestSupportedStateTurnNum = turnNum
 	}
 
 	// TODO update support

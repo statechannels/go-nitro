@@ -56,7 +56,7 @@ var Bob = struct {
 /////////////////////
 
 // Virtual Channel
-var VState = state.State{
+var VPreFund = state.State{
 	ChainId:           big.NewInt(9001),
 	Participants:      []types.Address{Alice.address, P_1.address, Bob.address}, // A single hop virtual channel
 	ChannelNonce:      big.NewInt(0),
@@ -107,7 +107,7 @@ var L_0state = state.State{
 	IsFinal: false,
 }
 
-var VId, _ = VState.ChannelId()
+var VId, _ = VPreFund.ChannelId()
 
 var L_0guaranteemetadataencoded, _ = outcome.GuaranteeMetadata{
 	Left:  Alice.destination,
@@ -133,12 +133,12 @@ var L_0updatedstate = state.State{
 			},
 			outcome.Allocation{
 				Destination:    VId,
-				Amount:         big.NewInt(0),
+				Amount:         big.NewInt(10),
 				AllocationType: outcome.GuaranteeAllocationType,
 				Metadata:       L_0guaranteemetadataencoded,
 			},
 		},
 	}},
-	TurnNum: big.NewInt(2),
+	TurnNum: big.NewInt(2), // This needs to be greater than the previous state else it will be rejected by Channel.AddSignedState
 	IsFinal: false,
 }
