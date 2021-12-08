@@ -11,12 +11,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-type SetupState struct {
-	State    state.State
-	Signed   bool
-	Complete bool // A signature from each and every peer
-}
-
 type SignedState struct {
 	State state.VariablePart
 	Sigs  map[uint]state.Signature // keyed by participant index
