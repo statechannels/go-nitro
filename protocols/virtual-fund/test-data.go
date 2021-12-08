@@ -102,7 +102,8 @@ var L_0state = state.State{
 			},
 		},
 	}},
-	TurnNum: big.NewInt(1),
+	TurnNum: big.NewInt(0), // We use turnNum 0 so that we can use github.com/statechannels/go-nitro/channel.New().
+	// It would be more realistic to have a higher TurnNum, but that would involve more boilerplate code.
 	IsFinal: false,
 }
 
