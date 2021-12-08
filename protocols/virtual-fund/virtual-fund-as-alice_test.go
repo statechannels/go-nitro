@@ -26,7 +26,7 @@ func TestAsAlice(t *testing.T) {
 	var ledgerChannelToMyLeft channel.Channel
 
 	// She has a single ledger channel L_0 connecting her to P_1
-	var ledgerChannelToMyRight channel.Channel = channel.New(
+	var ledgerChannelToMyRight, _ = channel.New(
 		L_0state,
 		true,
 		my.destination,

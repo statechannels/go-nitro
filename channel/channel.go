@@ -2,6 +2,7 @@ package channel
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -47,11 +48,11 @@ type Channel struct {
 }
 
 // New constructs a new channel from the supplied state
-func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, theirDestination types.Destination) Channel {
-	if s.TurnNum.Cmp(big.NewInt(0)) != 0 {
-		// TODO return error
-	}
+func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, theirDestination types.Destination) (Channel, error) {
 	c := Channel{}
+	if s.TurnNum.Cmp(big.NewInt(0)) != 0 {
+		return c, errors.New(`Objective must be consructed with a turnNum 0 state`)
+	}
 
 	c.OnChainFunding = make(types.Funds)
 
@@ -76,7 +77,7 @@ func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, 
 	post.TurnNum = big.NewInt(1)
 	c.SignedStateForTurnNum[1] = SignedState{post.VariablePart(), make(map[uint]state.Signature)}
 
-	return c
+	return c, nil
 }
 
 func (c Channel) PreFundState() state.State {
