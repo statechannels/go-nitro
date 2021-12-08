@@ -45,7 +45,7 @@ type Channel struct {
 func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, theirDestination types.Destination) (Channel, error) {
 	c := Channel{}
 	if s.TurnNum.Cmp(big.NewInt(0)) != 0 {
-		return c, errors.New(`Objective must be constructed with a turnNum 0 state`)
+		return c, errors.New(`objective must be constructed with a turnNum 0 state`)
 	}
 
 	c.OnChainFunding = make(types.Funds)
