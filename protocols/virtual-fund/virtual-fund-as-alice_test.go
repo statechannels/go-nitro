@@ -55,6 +55,22 @@ func TestAsAlice(t *testing.T) {
 		Left:        ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination,
 	}}
 
+	var correctSignature = map[string]map[string]state.Signature{
+		`byAlice`: {
+			`onVPreFund`:      s.V.PreFundState().Sign(Alice.privateKey),
+			`onVPostFund`:     s.V.PostFundState().Sign(Alice.privateKey),
+			`onL0UpdatedStae`: L_0updatedstate.Sign(Alice.privateKey),
+		},
+		`byP1`: {
+			`onVPreFund`:      s.V.PreFundState().Sign(P_1.privateKey),
+			`onVPostFund`:     s.V.PostFundState().Sign(P_1.privateKey),
+			`onL0UpdatedStae`: L_0updatedstate.Sign(P_1.privateKey),
+		},
+		`byBob`: {
+			`onVPreFund`:  s.V.PreFundState().Sign(Bob.privateKey),
+			`onVPostFund`: s.V.PostFundState().Sign(Bob.privateKey),
+		},
+	}
 	var correctSignatureByAliceOnVPreFund, _ = s.V.PreFundState().Sign(Alice.privateKey)
 	var correctSignatureByP_1OnVPreFund, _ = s.V.PreFundState().Sign(P_1.privateKey)
 	var correctSignatureByBobOnVPreFund, _ = s.V.PreFundState().Sign(Bob.privateKey)
