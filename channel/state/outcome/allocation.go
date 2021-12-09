@@ -132,7 +132,7 @@ func (allocations Allocations) DivertToGuarantee(
 		case rightDestination:
 			newAllocations[i].Amount.Sub(newAllocations[i].Amount, rightAmount)
 		}
-		if newAllocations[i].Amount.Cmp(big.NewInt(0)) < 0 {
+		if types.Gt(big.NewInt(0), newAllocations[i].Amount) {
 			return Allocations{}, errors.New(`insufficient funds`)
 		}
 	}
