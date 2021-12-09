@@ -46,12 +46,9 @@ and executes logic from the `protocols` package. Data required for the secure cr
 More detailed information can be found in each package's respective _readme_.
 ![architecture](./client/architecture.png)
 
----
 ## Contributing
 
 See [contributing.md](./contributing.md)
 ## License
 
 Dual-licensed under [MIT](https://opensource.org/licenses/MIT) + [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
-
----
