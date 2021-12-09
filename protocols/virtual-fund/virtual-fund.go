@@ -28,7 +28,7 @@ type Connection struct {
 	ExpectedGuarantees map[types.Address]outcome.Allocation
 }
 
-// VirtualFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data
+// VirtualFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
 type VirtualFundObjective struct {
 	Status protocols.ObjectiveStatus
 	V      *channel.Channel
@@ -115,12 +115,12 @@ func New(
 	return init, nil
 }
 
-// Id returns the objective id
+// Id returns the objective id.
 func (s VirtualFundObjective) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId("VirtualFundAsTerminal-" + s.V.Id.String())
 }
 
-// Approve returns an approved copy of the objective
+// Approve returns an approved copy of the objective.
 func (s VirtualFundObjective) Approve() protocols.Objective {
 	updated := s.clone()
 	// todo: consider case of s.Status == Rejected
@@ -128,7 +128,7 @@ func (s VirtualFundObjective) Approve() protocols.Objective {
 	return updated
 }
 
-// Approve returns a rejected copy of the objective
+// Approve returns a rejected copy of the objective.
 func (s VirtualFundObjective) Reject() protocols.Objective {
 	updated := s.clone()
 	updated.Status = protocols.Rejected
@@ -136,7 +136,7 @@ func (s VirtualFundObjective) Reject() protocols.Objective {
 }
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
-// and returns the updated state
+// and returns the updated state.
 func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 
 	updated := s.clone()
@@ -153,16 +153,16 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 
 	switch event.ChannelId {
 	case types.Destination{}:
-		return s, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel
+		return s, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
 	case s.V.Id:
 		updated.V.AddSignedStates(event.Sigs)
-		// We expect pre and post fund state signatures
+		// We expect pre and post fund state signatures.
 	case toMyLeftId:
 		updated.ToMyLeft.Channel.AddSignedStates(event.Sigs)
-		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though
+		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
 	case toMyRightId:
 		updated.ToMyRight.Channel.AddSignedStates(event.Sigs)
-		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though
+		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
 	default:
 		return s, errors.New("event channelId out of scope of objective")
 	}
@@ -172,7 +172,7 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
-// rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
+// rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all.
 func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := s.clone()
 
@@ -225,7 +225,7 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 //  Private methods on the VirtualFundObjective //
 //////////////////////////////////////////////////
 
-// insertExpectedGuaranteesForLedgerChannel mutates the reciever Connection struct
+// insertExpectedGuaranteesForLedgerChannel mutates the reciever Connection struct.
 func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) {
 	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
 	metadata := outcome.GuaranteeMetadata{
@@ -273,7 +273,7 @@ func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
 	return connection.Channel.Affords(connection.ExpectedGuarantees, connection.Channel.OnChainFunding)
 }
 
-// generateLedgerRequestSideEffects generates the appropriate side effects, which (when executed and countersigned) will update 1 or 2 ledger channels to guarantee the joint channel
+// generateLedgerRequestSideEffects generates the appropriate side effects, which (when executed and countersigned) will update 1 or 2 ledger channels to guarantee the joint channel.
 func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideEffects {
 	sideEffects := protocols.SideEffects{}
 	sideEffects.LedgerRequests = make([]protocols.LedgerRequest, 0)
@@ -301,7 +301,7 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 	return sideEffects
 }
 
-// todo: is this sufficient? Particularly: s has pointer members (*big.Int)
+// todo: is this sufficient? Particularly: s has pointer members (*big.Int).
 func (s VirtualFundObjective) clone() VirtualFundObjective {
 	return s
 }
