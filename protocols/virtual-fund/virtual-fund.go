@@ -184,8 +184,14 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	// Prefunding
 
 	if !updated.V.PreFundSignedByMe() {
-		sig, _ := updated.V.PreFundState().Sign(*secretKey)     // TODO handle error
-		updated.V.AddSignedState(updated.V.PreFundState(), sig) // TODO handle return value (or not)
+		sig, err := updated.V.PreFundState().Sign(*secretKey)
+		if err != nil {
+			return s, NoSideEffects, WaitingForNothing, err
+		}
+		ok := updated.V.AddSignedState(updated.V.PreFundState(), sig)
+		if !ok {
+			return s, NoSideEffects, WaitingForNothing, errors.New(`could not add prefund state`)
+		}
 		return updated, NoSideEffects, WaitingForCompletePrefund, nil
 
 	}
@@ -207,8 +213,14 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 
 	// Postfunding
 	if !updated.V.PostFundSignedByMe() {
-		sig, _ := updated.V.PostFundState().Sign(*secretKey)     // TODO handle error
-		updated.V.AddSignedState(updated.V.PostFundState(), sig) // TODO handle return value (or not)
+		sig, err := updated.V.PostFundState().Sign(*secretKey)
+		if err != nil {
+			return s, NoSideEffects, WaitingForNothing, err
+		}
+		ok := updated.V.AddSignedState(updated.V.PostFundState(), sig)
+		if !ok {
+			return s, NoSideEffects, WaitingForNothing, errors.New(`could not add postfund state`)
+		}
 		return updated, NoSideEffects, WaitingForCompletePostFund, nil
 
 	}
