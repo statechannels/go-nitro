@@ -83,6 +83,11 @@ func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types
 	return c, nil
 }
 
+// Clone returns a deep copy of the receiver
+func (c Channel) Clone() Channel {
+	return c // no pointer members, so this is sufficient
+}
+
 // PreFundState() returns the pre fund setup state for the channel.
 func (c Channel) PreFundState() state.State {
 	return state.StateFromFixedAndVariablePart(c.FixedPart, c.SignedStateForTurnNum[0].State)
