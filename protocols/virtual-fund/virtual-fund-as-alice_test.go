@@ -19,7 +19,7 @@ func TestAsAlice(t *testing.T) {
 	// BEGIN test data //
 	/////////////////////
 
-	myRole := uint(0) // In this test, we play Alice
+	// In this test, we play Alice
 	my := Alice
 
 	// Alice plays role 0 so has no ledger channel on her left
@@ -39,7 +39,7 @@ func TestAsAlice(t *testing.T) {
 
 	// Objective
 	var n = uint(2) // number of ledger channels (num_hops + 1)
-	var s, _ = New(VPreFund, my.address, n, myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+	var s, _ = New(VPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 	var expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination}
 	var expectedEncodedGuaranteeMetadata, _ = expectedGuaranteeMetadata.Encode()
 	var expectedGuarantee outcome.Allocation = outcome.Allocation{
@@ -54,13 +54,6 @@ func TestAsAlice(t *testing.T) {
 		Amount:      types.Funds{types.Address{}: s.V.PreFundState().VariablePart().Outcome[0].Allocations.Total()},
 		Left:        ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination,
 	}}
-	// TODO Putting garbage in can result in panics -- we should handle these appropriately by doing input validation
-	// var dummySignature = state.Signature{
-	// 	R: common.Hex2Bytes(`49d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
-	// 	S: common.Hex2Bytes(`22274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),
-	// 	V: byte(1),
-	// }
-	// var dummyState = state.State{}
 
 	var correctSignatureByAliceOnVPreFund, _ = s.V.PreFundState().Sign(Alice.privateKey)
 	var correctSignatureByP_1OnVPreFund, _ = s.V.PreFundState().Sign(P_1.privateKey)
@@ -79,7 +72,7 @@ func TestAsAlice(t *testing.T) {
 
 	testNew := func(t *testing.T) {
 		// Assert that a valid set of constructor args does not result in an error
-		o, err := New(VPreFund, my.address, 2, myRole, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+		o, err := New(VPreFund, my.address, 2, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 		if err != nil {
 			t.Error(err)
 		}
@@ -183,20 +176,6 @@ func TestAsAlice(t *testing.T) {
 		// This prepares us for the rest of the test. We will reuse the same event multiple times
 		e.ChannelId = s.V.Id
 		e.Sigs = make(map[*state.State]state.Signature)
-
-		// Next, attempt to update the objective with a dummy signature, keyed with a dummy statehash
-		// Assert that this results in a NOOP
-		// e.Sigs[&dummyState] = dummySignature // Dummmy signature on dummy statehash
-		// if _, err := s.Update(e); err != nil {
-		// 	t.Error(`dummy signature -- expected a noop but caught an error:`, err)
-		// }
-
-		// Next, attempt to update the objective with an invalid signature, keyed with a dummy statehash
-		// Assert that this results in a NOOP
-		// e.Sigs[&dummyState] = state.Signature{}
-		// if _, err := s.Update(e); err != nil {
-		// 	t.Error(`faulty signature -- expected a noop but caught an error:`, err)
-		// }
 
 		// Next, attempt to update the objective with correct signature by a participant on a relevant state
 		// Assert that this results in an appropriate change in the extended state of the objective
