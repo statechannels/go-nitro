@@ -108,7 +108,9 @@ func TestChannel(t *testing.T) {
 	}
 
 	testAddSignedState := func(t *testing.T) {
+		// Begin testing the cases that are NOOPs returning false
 		want := false
+
 		got := c.AddSignedState(s, state.Signature{}) // note null signature
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
@@ -122,9 +124,7 @@ func TestChannel(t *testing.T) {
 		v := state.State{ // TODO it would be terser to clone s and modify it -- but s.Clone() is broken https://github.com/statechannels/go-nitro/issues/96
 			ChainId: s.ChainId,
 			Participants: []types.Address{
-				common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`), // private key caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634
-				common.HexToAddress(`0xEe18fF1575055691009aa246aE608132C57a422c`),
-				common.HexToAddress(`0x95125c394F39bBa29178CAf5F0614EE80CBB1702`),
+				common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`),
 			},
 			ChannelNonce:      big.NewInt(37140676581),
 			AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
@@ -146,26 +146,42 @@ func TestChannel(t *testing.T) {
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
-		c.latestSupportedStateTurnNum = 0
+		c.latestSupportedStateTurnNum = MAGICTURNNUM // Rest so there is no longer a supported state
+
+		// Now test cases which update the Channel and return true
 		want = true
-		got = c.AddSignedState(c.PostFundState(), aliceSignatureOnCorrectState) // note stale state
+
+		got = c.AddSignedState(c.PostFundState(), aliceSignatureOnCorrectState)
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be true, but it was false`)
 		}
-		got2 := c.SignedStateForTurnNum[1]
 
+		got2 := c.SignedStateForTurnNum[1]
 		if got2.State.Outcome == nil || got2.Sigs == nil {
 			t.Error(`state not added correctly`)
 		}
 
-		// TODO add Bob's signature and check we got a new supported state
+		// Add Bob's signature and check that we now have a supported state
+		bobPrivateKey := common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`)
+		bobSignatureOnCorrectState, _ := c.PostFundState().Sign(bobPrivateKey)
+		got = c.AddSignedState(c.PostFundState(), bobSignatureOnCorrectState)
+		if got != want {
+			t.Error(`expected c.AddSignedState() to be true, but it was false`)
+		}
+		got3 := c.latestSupportedStateTurnNum
+		want3 := uint64(1)
+		if got3 != want3 {
+			t.Errorf(`expected c.latestSupportedStateTurnNum to be %v, but got %v`, want, got)
+		}
+		got4, err4 := c.LatestSupportedState()
+		if err4 != nil {
+			t.Error(err4)
+		}
+		if got4.TurnNum.Uint64() != want3 {
+			t.Errorf(`expected LatestSupportedState with turnNum %v`, want3)
+		}
 
 	}
-
-	// testAddSignedStates := func(t *testing.T) {
-	// 	input := make(map[*state.State]state.Signature)
-	// 	got := c.AddSignedState()
-	// }
 
 	t.Run(`TestNew`, testNew)
 	t.Run(`TestPreFund`, testPreFund)
