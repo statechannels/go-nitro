@@ -25,7 +25,7 @@ func (ss SignedState) hasAllSignatures(numParticipants int) bool {
 	}
 }
 
-// Class containing states and metadata, and exposing convenience methods
+// Class containing states and metadata, and exposing convenience methods.
 type Channel struct {
 	Id      types.Destination
 	MyIndex uint
@@ -44,7 +44,7 @@ type Channel struct {
 	SignedStateForTurnNum map[uint64]SignedState // this stores up to 1 state per turn number.
 }
 
-// New constructs a new Channel from the supplied state
+// New constructs a new Channel from the supplied state.
 func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types.Destination, theirDestination types.Destination) (Channel, error) {
 	c := Channel{}
 	if s.TurnNum.Cmp(big.NewInt(0)) != 0 {
@@ -76,38 +76,18 @@ func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types
 	return c, nil
 }
 
-// PreFundState() returns the pre fund setup state for the channel
+// PreFundState() returns the pre fund setup state for the channel.
 func (c Channel) PreFundState() state.State {
-	state := state.State{
-		ChainId:           c.ChainId,
-		Participants:      c.Participants,
-		ChannelNonce:      c.ChannelNonce, // uint48 in solidity
-		AppDefinition:     c.AppDefinition,
-		ChallengeDuration: c.ChallengeDuration,
-		AppData:           c.SignedStateForTurnNum[0].State.AppData,
-		Outcome:           c.SignedStateForTurnNum[0].State.Outcome,
-		TurnNum:           c.SignedStateForTurnNum[0].State.TurnNum,
-		IsFinal:           c.SignedStateForTurnNum[0].State.IsFinal,
-	}
-	return state
+	return state.StateFromFixedAndVariablePart(c.FixedPart, c.SignedStateForTurnNum[0].State)
 }
 
-// PostFundState() returns the post fund setup state for the channel
+// PostFundState() returns the post fund setup state for the channel.
 func (c Channel) PostFundState() state.State {
-	state := state.State{
-		ChainId:           c.ChainId,
-		Participants:      c.Participants,
-		ChannelNonce:      c.ChannelNonce, // uint48 in solidity
-		AppDefinition:     c.AppDefinition,
-		ChallengeDuration: c.ChallengeDuration,
-		AppData:           c.SignedStateForTurnNum[1].State.AppData,
-		Outcome:           c.SignedStateForTurnNum[1].State.Outcome,
-		TurnNum:           c.SignedStateForTurnNum[1].State.TurnNum,
-		IsFinal:           c.SignedStateForTurnNum[1].State.IsFinal,
-	}
-	return state
+	return state.StateFromFixedAndVariablePart(c.FixedPart, c.SignedStateForTurnNum[1].State)
+
 }
 
+// PreFundSignedByMe() returns true if I have signed the pre fund setup state, false otherwise.
 func (c Channel) PreFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[0]; ok {
 		if _, ok := c.SignedStateForTurnNum[0].Sigs[c.MyIndex]; ok {
@@ -116,6 +96,8 @@ func (c Channel) PreFundSignedByMe() bool {
 	}
 	return false
 }
+
+// PostFundSignedByMe() returns true if I have signed the pre fund setup state, false otherwise.
 func (c Channel) PostFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[1]; ok {
 		if _, ok := c.SignedStateForTurnNum[1].Sigs[c.MyIndex]; ok {
@@ -124,21 +106,25 @@ func (c Channel) PostFundSignedByMe() bool {
 	}
 	return false
 }
+
+// PreFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
 func (c Channel) PreFundComplete() bool {
-
 	return c.SignedStateForTurnNum[0].hasAllSignatures(len(c.FixedPart.Participants))
-
 }
+
+// PostFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
 func (c Channel) PostFundComplete() bool {
 	return c.SignedStateForTurnNum[1].hasAllSignatures(len(c.FixedPart.Participants))
 }
 
+// LatestSupportedState returns the latest supported state.
 func (c Channel) LatestSupportedState() state.State {
 	return state.StateFromFixedAndVariablePart(c.FixedPart,
 		c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State)
 
 }
 
+// Total() returns the total allocated of each asset allocated by the latest supported state of the Channel.
 func (c Channel) Total() types.Funds {
 	funds := types.Funds{}
 	for _, sae := range c.LatestSupportedState().Outcome {
