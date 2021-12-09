@@ -30,6 +30,7 @@ func TestAsAlice(t *testing.T) {
 	var ledgerChannelToMyRight, _ = channel.New(
 		L_0state,
 		true,
+		0,
 		my.destination,
 		P_1.destination,
 	)

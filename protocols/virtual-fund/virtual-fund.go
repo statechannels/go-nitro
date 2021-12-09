@@ -61,7 +61,7 @@ func New(
 	var init VirtualFundObjective
 
 	// Initialize channels
-	v, err := channel.New(initialStateOfV, false, types.Destination{}, types.Destination{})
+	v, err := channel.New(initialStateOfV, false, myRole, types.Destination{}, types.Destination{})
 	if err != nil {
 		return init, err
 

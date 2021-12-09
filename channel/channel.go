@@ -27,7 +27,8 @@ func (ss SignedState) hasAllSignatures(numParticipants int) bool {
 
 // Class containing states and metadata, and exposing convenience methods
 type Channel struct {
-	Id types.Destination
+	Id      types.Destination
+	MyIndex uint
 
 	OnChainFunding types.Funds
 
@@ -44,28 +45,24 @@ type Channel struct {
 }
 
 // New constructs a new Channel from the supplied state
-func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, theirDestination types.Destination) (Channel, error) {
+func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types.Destination, theirDestination types.Destination) (Channel, error) {
 	c := Channel{}
 	if s.TurnNum.Cmp(big.NewInt(0)) != 0 {
 		return c, errors.New(`objective must be constructed with a turnNum 0 state`)
 	}
-
-	c.OnChainFunding = make(types.Funds)
-
-	c.latestSupportedStateTurnNum = s.TurnNum.Uint64()
-	c.FixedPart = s.FixedPart()
-
-	// c.Support = make([]state.VariablePart, 0) // TODO
-	c.MyDestination = myDestination
-	c.TheirDestination = theirDestination
-	c.IsTwoPartyLedger = isTwoPartyLedger
-
 	var err error
 	c.Id, err = s.ChannelId()
-
 	if err != nil {
 		return c, err
 	}
+	c.MyIndex = myIndex
+	c.OnChainFunding = make(types.Funds)
+	c.FixedPart = s.FixedPart()
+	c.latestSupportedStateTurnNum = s.TurnNum.Uint64()
+	// c.Support = make([]state.VariablePart, 0) // TODO
+	c.IsTwoPartyLedger = isTwoPartyLedger
+	c.MyDestination = myDestination
+	c.TheirDestination = theirDestination
 
 	// Store prefund
 	c.SignedStateForTurnNum = make(map[uint64]SignedState)
@@ -96,7 +93,6 @@ func (c Channel) PreFundState() state.State {
 }
 
 // PostFundState() returns the post fund setup state for the channel
-
 func (c Channel) PostFundState() state.State {
 	state := state.State{
 		ChainId:           c.ChainId,
@@ -113,18 +109,16 @@ func (c Channel) PostFundState() state.State {
 }
 
 func (c Channel) PreFundSignedByMe() bool {
-	myIndex := uint(0) // TODO get this from the channel
 	if _, ok := c.SignedStateForTurnNum[0]; ok {
-		if _, ok := c.SignedStateForTurnNum[0].Sigs[myIndex]; ok {
+		if _, ok := c.SignedStateForTurnNum[0].Sigs[c.MyIndex]; ok {
 			return true
 		}
 	}
 	return false
 }
 func (c Channel) PostFundSignedByMe() bool {
-	myIndex := uint(0) // TODO get this from the channel
 	if _, ok := c.SignedStateForTurnNum[1]; ok {
-		if _, ok := c.SignedStateForTurnNum[1].Sigs[myIndex]; ok {
+		if _, ok := c.SignedStateForTurnNum[1].Sigs[c.MyIndex]; ok {
 			return true
 		}
 	}
