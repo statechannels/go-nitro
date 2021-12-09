@@ -121,7 +121,6 @@ func TestCrank(t *testing.T) {
 	// Manually progress the extended state by collecting prefund signatures
 	o.(DirectFundObjective).preFundSigned[0] = true
 	o.(DirectFundObjective).preFundSigned[1] = true
-	o.(DirectFundObjective).preFundSigned[2] = true
 
 	// Cranking should move us to the next waiting point
 	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
@@ -156,7 +155,6 @@ func TestCrank(t *testing.T) {
 	// Manually progress the extended state by collecting postfund signatures
 	o.(DirectFundObjective).postFundSigned[0] = true
 	o.(DirectFundObjective).postFundSigned[1] = true
-	o.(DirectFundObjective).postFundSigned[2] = true
 
 	// This should be the final crank
 	o.(DirectFundObjective).onChainHolding[state.TestState.Outcome[0].Asset] = totalAmountAllocated
