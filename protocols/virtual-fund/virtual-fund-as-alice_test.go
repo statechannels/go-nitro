@@ -20,18 +20,18 @@ func TestAsAlice(t *testing.T) {
 	/////////////////////
 
 	// In this test, we play Alice
-	my := Alice
+	my := alice
 
 	// Alice plays role 0 so has no ledger channel on her left
 	var ledgerChannelToMyLeft channel.Channel
 
 	// She has a single ledger channel L_0 connecting her to P_1
 	var ledgerChannelToMyRight, _ = channel.New(
-		L_0state,
+		l0state,
 		true,
 		0,
 		my.destination,
-		P_1.destination,
+		p1.destination,
 	)
 
 	// Ensure this channel is fully funded on chain
@@ -39,12 +39,12 @@ func TestAsAlice(t *testing.T) {
 
 	// Objective
 	var n = uint(2) // number of ledger channels (num_hops + 1)
-	var s, _ = New(VPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+	var s, _ = New(vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 	var expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination}
 	var expectedEncodedGuaranteeMetadata, _ = expectedGuaranteeMetadata.Encode()
 	var expectedGuarantee outcome.Allocation = outcome.Allocation{
 		Destination:    s.V.Id,
-		Amount:         big.NewInt(0).Set(VPreFund.VariablePart().Outcome[0].TotalAllocated()),
+		Amount:         big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated()),
 		AllocationType: outcome.GuaranteeAllocationType,
 		Metadata:       expectedEncodedGuaranteeMetadata,
 	}
@@ -55,16 +55,16 @@ func TestAsAlice(t *testing.T) {
 		Left:        ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination,
 	}}
 
-	var correctSignatureByAliceOnVPreFund, _ = s.V.PreFundState().Sign(Alice.privateKey)
-	var correctSignatureByP_1OnVPreFund, _ = s.V.PreFundState().Sign(P_1.privateKey)
-	var correctSignatureByBobOnVPreFund, _ = s.V.PreFundState().Sign(Bob.privateKey)
+	var correctSignatureByAliceOnVPreFund, _ = s.V.PreFundState().Sign(alice.privateKey)
+	var correctSignatureByP_1OnVPreFund, _ = s.V.PreFundState().Sign(p1.privateKey)
+	var correctSignatureByBobOnVPreFund, _ = s.V.PreFundState().Sign(bob.privateKey)
 
-	var correctSignatureByAliceOnVPostFund, _ = s.V.PostFundState().Sign(Alice.privateKey)
-	var correctSignatureByP_1OnVPostFund, _ = s.V.PostFundState().Sign(P_1.privateKey)
-	var correctSignatureByBobOnVPostFund, _ = s.V.PostFundState().Sign(Bob.privateKey)
+	var correctSignatureByAliceOnVPostFund, _ = s.V.PostFundState().Sign(alice.privateKey)
+	var correctSignatureByP_1OnVPostFund, _ = s.V.PostFundState().Sign(p1.privateKey)
+	var correctSignatureByBobOnVPostFund, _ = s.V.PostFundState().Sign(bob.privateKey)
 
-	var correctSignatureByAliceOnL_0updatedsate, _ = L_0updatedstate.Sign(Alice.privateKey)
-	var correctSignatureByP_1OnL_0updatedsate, _ = L_0updatedstate.Sign(P_1.privateKey)
+	var correctSignatureByAliceOnL_0updatedsate, _ = l0updatedstate.Sign(alice.privateKey)
+	var correctSignatureByP_1OnL_0updatedsate, _ = l0updatedstate.Sign(p1.privateKey)
 
 	///////////////////
 	// END test data //
@@ -72,7 +72,7 @@ func TestAsAlice(t *testing.T) {
 
 	testNew := func(t *testing.T) {
 		// Assert that a valid set of constructor args does not result in an error
-		o, err := New(VPreFund, my.address, 2, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+		o, err := New(vPreFund, my.address, 2, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 		if err != nil {
 			t.Error(err)
 		}
@@ -108,9 +108,9 @@ func TestAsAlice(t *testing.T) {
 		}
 
 		// Manually progress the extended state by collecting prefund signatures
-		o.(VirtualFundObjective).V.AddSignedState(VPreFund, correctSignatureByAliceOnVPreFund)
-		o.(VirtualFundObjective).V.AddSignedState(VPreFund, correctSignatureByBobOnVPreFund)
-		o.(VirtualFundObjective).V.AddSignedState(VPreFund, correctSignatureByP_1OnVPreFund)
+		o.(VirtualFundObjective).V.AddSignedState(vPreFund, correctSignatureByAliceOnVPreFund)
+		o.(VirtualFundObjective).V.AddSignedState(vPreFund, correctSignatureByBobOnVPreFund)
+		o.(VirtualFundObjective).V.AddSignedState(vPreFund, correctSignatureByP_1OnVPreFund)
 
 		// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
 		o, sideEffects, waitingFor, err := o.Crank(&my.privateKey)
@@ -131,9 +131,9 @@ func TestAsAlice(t *testing.T) {
 		}
 
 		// Manually progress the extended state by "completing funding" from this wallet's point of view
-		o.(VirtualFundObjective).ToMyRight.Channel.AddSignedState(L_0updatedstate, correctSignatureByAliceOnL_0updatedsate)
-		o.(VirtualFundObjective).ToMyRight.Channel.AddSignedState(L_0updatedstate, correctSignatureByP_1OnL_0updatedsate)
-		o.(VirtualFundObjective).ToMyRight.Channel.OnChainFunding[types.Address{}] = L_0state.Outcome[0].Allocations.Total() // Make this channel fully funded
+		o.(VirtualFundObjective).ToMyRight.Channel.AddSignedState(l0updatedstate, correctSignatureByAliceOnL_0updatedsate)
+		o.(VirtualFundObjective).ToMyRight.Channel.AddSignedState(l0updatedstate, correctSignatureByP_1OnL_0updatedsate)
+		o.(VirtualFundObjective).ToMyRight.Channel.OnChainFunding[types.Address{}] = l0state.Outcome[0].Allocations.Total() // Make this channel fully funded
 		// Cranking now should not generate side effects, because we already did that
 		o, _, waitingFor, err = o.Crank(&my.privateKey)
 		if err != nil {
@@ -195,7 +195,7 @@ func TestAsAlice(t *testing.T) {
 			ChannelId: s.ToMyRight.Channel.Id,
 		}
 		f.Sigs = make(map[*state.State]state.Signature)
-		f.Sigs[&L_0updatedstate] = correctSignatureByAliceOnL_0updatedsate
+		f.Sigs[&l0updatedstate] = correctSignatureByAliceOnL_0updatedsate
 		updated, err = s.Update(f)
 		if err != nil {
 			t.Error(err)

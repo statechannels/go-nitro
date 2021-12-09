@@ -20,28 +20,28 @@ import (
 ////////////
 // ACTORS //
 ////////////
-type Actor struct {
+type actor struct {
 	address     types.Address
 	destination types.Destination
 	privateKey  []byte
 	role        uint
 }
 
-var Alice = Actor{
+var alice = actor{
 	address:     common.HexToAddress(`0xD9995BAE12FEe327256FFec1e3184d492bD94C31`),
 	destination: types.AdddressToDestination(common.HexToAddress(`0xD9995BAE12FEe327256FFec1e3184d492bD94C31`)),
 	privateKey:  common.Hex2Bytes(`7ab741b57e8d94dd7e1a29055646bafde7010f38a900f55bbd7647880faa6ee8`),
 	role:        0,
 }
 
-var P_1 = Actor{ // Aliases: The Hub, Irene
+var p1 = actor{ // Aliases: The Hub, Irene
 	address:     common.HexToAddress(`0xd4Fa489Eacc52BA59438993f37Be9fcC20090E39`),
 	destination: types.AdddressToDestination(common.HexToAddress(`0xd4Fa489Eacc52BA59438993f37Be9fcC20090E39`)),
 	privateKey:  common.Hex2Bytes(`2030b463177db2da82908ef90fa55ddfcef56e8183caf60db464bc398e736e6f`),
 	role:        1,
 }
 
-var Bob = Actor{
+var bob = actor{
 	address:     common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`),
 	destination: types.AdddressToDestination(common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`)),
 	privateKey:  common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`),
@@ -53,9 +53,9 @@ var Bob = Actor{
 /////////////////////
 
 // Virtual Channel
-var VPreFund = state.State{
+var vPreFund = state.State{
 	ChainId:           big.NewInt(9001),
-	Participants:      []types.Address{Alice.address, P_1.address, Bob.address}, // A single hop virtual channel
+	Participants:      []types.Address{alice.address, p1.address, bob.address}, // A single hop virtual channel
 	ChannelNonce:      big.NewInt(0),
 	AppDefinition:     types.Address{},
 	ChallengeDuration: big.NewInt(45),
@@ -63,11 +63,11 @@ var VPreFund = state.State{
 	Outcome: outcome.Exit{outcome.SingleAssetExit{
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
-				Destination: Alice.destination,
+				Destination: alice.destination,
 				Amount:      big.NewInt(5),
 			},
 			outcome.Allocation{
-				Destination: Bob.destination,
+				Destination: bob.destination,
 				Amount:      big.NewInt(5),
 			},
 		},
@@ -80,9 +80,9 @@ var VPreFund = state.State{
 // LEDGER CHANNELS //
 /////////////////////
 
-var L_0state = state.State{
+var l0state = state.State{
 	ChainId:           big.NewInt(9001),
-	Participants:      []types.Address{Alice.address, P_1.address},
+	Participants:      []types.Address{alice.address, p1.address},
 	ChannelNonce:      big.NewInt(0),
 	AppDefinition:     types.Address{},
 	ChallengeDuration: big.NewInt(45),
@@ -90,11 +90,11 @@ var L_0state = state.State{
 	Outcome: outcome.Exit{outcome.SingleAssetExit{
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
-				Destination: Alice.destination,
+				Destination: alice.destination,
 				Amount:      big.NewInt(5),
 			},
 			outcome.Allocation{
-				Destination: P_1.destination,
+				Destination: p1.destination,
 				Amount:      big.NewInt(5),
 			},
 		},
@@ -104,16 +104,16 @@ var L_0state = state.State{
 	IsFinal: false,
 }
 
-var VId, _ = VPreFund.ChannelId()
+var vId, _ = vPreFund.ChannelId()
 
-var L_0guaranteemetadataencoded, _ = outcome.GuaranteeMetadata{
-	Left:  Alice.destination,
-	Right: P_1.destination,
+var l0guaranteemetadataemcoded, _ = outcome.GuaranteeMetadata{
+	Left:  alice.destination,
+	Right: p1.destination,
 }.Encode()
 
-var L_0updatedstate = state.State{
+var l0updatedstate = state.State{
 	ChainId:           big.NewInt(9001),
-	Participants:      []types.Address{Alice.address, P_1.address},
+	Participants:      []types.Address{alice.address, p1.address},
 	ChannelNonce:      big.NewInt(0),
 	AppDefinition:     types.Address{},
 	ChallengeDuration: big.NewInt(45),
@@ -121,18 +121,18 @@ var L_0updatedstate = state.State{
 	Outcome: outcome.Exit{outcome.SingleAssetExit{
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
-				Destination: Alice.destination,
+				Destination: alice.destination,
 				Amount:      big.NewInt(0),
 			},
 			outcome.Allocation{
-				Destination: P_1.destination,
+				Destination: p1.destination,
 				Amount:      big.NewInt(0),
 			},
 			outcome.Allocation{
-				Destination:    VId,
+				Destination:    vId,
 				Amount:         big.NewInt(10),
 				AllocationType: outcome.GuaranteeAllocationType,
-				Metadata:       L_0guaranteemetadataencoded,
+				Metadata:       l0guaranteemetadataemcoded,
 			},
 		},
 	}},
