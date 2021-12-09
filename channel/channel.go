@@ -88,6 +88,19 @@ func (c Channel) Clone() Channel {
 	return c // no pointer members, so this is sufficient
 }
 
+// Equal returns true if the channel is deeply equal to the reciever, false otherwise
+func (c Channel) Equal(d Channel) bool {
+	return c.Id == d.Id &&
+		c.MyIndex == d.MyIndex &&
+		// c.OnChainFunding == d.OnChainFunding && // TODO
+		// c.FixedPart == d.FixedPart && // TODO
+		c.latestSupportedStateTurnNum == d.latestSupportedStateTurnNum &&
+		c.IsTwoPartyLedger == d.IsTwoPartyLedger &&
+		c.MyDestination == d.MyDestination
+	// c.SignedStateForTurnNum == d.SignedStateForTurnNum // TODO
+
+}
+
 // PreFundState() returns the pre fund setup state for the channel.
 func (c Channel) PreFundState() state.State {
 	return state.StateFromFixedAndVariablePart(c.FixedPart, c.SignedStateForTurnNum[0].State)
