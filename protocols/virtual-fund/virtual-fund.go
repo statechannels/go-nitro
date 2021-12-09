@@ -130,7 +130,7 @@ func New(
 
 // Id returns the objective id.
 func (s VirtualFundObjective) Id() protocols.ObjectiveId {
-	return protocols.ObjectiveId("VirtualFundAsTerminal-" + s.V.Id.String())
+	return protocols.ObjectiveId("VirtualFund-" + s.V.Id.String())
 }
 
 // Approve returns an approved copy of the objective.
