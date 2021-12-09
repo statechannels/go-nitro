@@ -33,7 +33,8 @@ type Channel struct {
 	OnChainFunding types.Funds
 
 	state.FixedPart
-	// Support []state.VariablePart // TODO
+	// Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain
+	// It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
 
 	latestSupportedStateTurnNum uint64
 
@@ -59,7 +60,7 @@ func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types
 	c.OnChainFunding = make(types.Funds)
 	c.FixedPart = s.FixedPart()
 	c.latestSupportedStateTurnNum = s.TurnNum.Uint64()
-	// c.Support = make([]state.VariablePart, 0) // TODO
+	// c.Support =  // TODO
 	c.IsTwoPartyLedger = isTwoPartyLedger
 	c.MyDestination = myDestination
 	c.TheirDestination = theirDestination
@@ -148,24 +149,24 @@ func (c Channel) Affords(
 func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 	signer, err := s.RecoverSigner(sig)
 	if err != nil {
-		// TODO log invalid signature
+		// Invalid signature
 		return false
 	}
 
 	signerIndex, isParticipant := indexOf(signer, c.FixedPart.Participants)
 	if !isParticipant {
-		// TODO log signature by non participant
+		// Signature by non participant
 		return false
 	}
 	if cId, err := s.ChannelId(); cId != c.Id || err != nil {
-		// TODO log channel mismatch
+		// Channel mismatch
 		return false
 	}
 
 	turnNum := s.TurnNum.Uint64() // https://github.com/statechannels/go-nitro/issues/95
 
 	if c.LatestSupportedState().TurnNum != nil && turnNum < c.LatestSupportedState().TurnNum.Uint64() {
-		// TODO log stale state
+		// Stale state
 		return false
 	}
 
