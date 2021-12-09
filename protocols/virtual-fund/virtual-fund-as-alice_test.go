@@ -1,7 +1,6 @@
 package virtualfund
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -142,8 +141,6 @@ func TestAsAlice(t *testing.T) {
 		o.(VirtualFundObjective).ToMyRight.Channel.AddSignedState(L_0updatedstate, correctSignatureByAliceOnL_0updatedsate)
 		o.(VirtualFundObjective).ToMyRight.Channel.AddSignedState(L_0updatedstate, correctSignatureByP_1OnL_0updatedsate)
 		o.(VirtualFundObjective).ToMyRight.Channel.OnChainFunding[types.Address{}] = L_0state.Outcome[0].Allocations.Total() // Make this channel fully funded
-		fmt.Println(L_0state.Outcome[0].Allocations)
-		fmt.Println(o.(VirtualFundObjective).ToMyRight.Channel.LatestSupportedState().Outcome[0].Allocations)
 		// Cranking now should not generate side effects, because we already did that
 		o, _, waitingFor, err = o.Crank(&my.privateKey)
 		if err != nil {
