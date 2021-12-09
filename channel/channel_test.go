@@ -25,6 +25,13 @@ func TestChannel(t *testing.T) {
 		}
 	}
 
+	testClone := func(t *testing.T) {
+		r := c.Clone()
+		if diff := cmp.Diff(r, c, cmp.Comparer(types.Equal)); diff != "" {
+			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+		}
+	}
+
 	testPreFund := func(t *testing.T) {
 		got, err1 := c.PreFundState().Hash()
 		want, err2 := s.Hash()
@@ -184,6 +191,7 @@ func TestChannel(t *testing.T) {
 	}
 
 	t.Run(`TestNew`, testNew)
+	t.Run(`TestClone`, testClone)
 	t.Run(`TestPreFund`, testPreFund)
 	t.Run(`TestPostFund`, testPostFund)
 	t.Run(`TestPreFundSignedByMe`, testPreFundSignedByMe)
