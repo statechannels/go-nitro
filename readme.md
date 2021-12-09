@@ -6,15 +6,6 @@ Implementation of nitro protocol in golang.
 
 ---
 
-### Contributing
-
-See [contributing.md](./contributing.md)
-### License
-
-Dual-licensed under [MIT](https://opensource.org/licenses/MIT) + [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
-
----
-
 ## Roadmap
 
 The following roadmap gives an idea of the various packages that compose the `go-nitro` module, and their implementation status:
@@ -36,3 +27,20 @@ The following roadmap gives an idea of the various packages that compose the `go
 │   └── virtual-defund 🚧      # defund a channel off-chain through one or more intermediaries
 └── types 🚧                   # basic types and utility methods
 ```
+
+
+## Usage
+
+Consuming applications should import the `client` package, and construct a `New()` client by passing in a chain service and message service.
+
+![architecture](./client/architecture.png)
+
+---
+## Contributing
+
+See [contributing.md](./contributing.md)
+## License
+
+Dual-licensed under [MIT](https://opensource.org/licenses/MIT) + [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+
+---
