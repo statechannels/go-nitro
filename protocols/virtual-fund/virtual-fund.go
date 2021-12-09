@@ -45,8 +45,7 @@ type VirtualFundObjective struct {
 	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
 }
 
-// New initiates a VirtualFundObjective with data calculated from
-// the supplied initialState and client address
+// New initiates a VirtualFundObjective.
 func New(
 	initialStateOfV state.State,
 	myAddress types.Address,
@@ -56,22 +55,24 @@ func New(
 	ledgerChannelToMyRight channel.Channel,
 ) (VirtualFundObjective, error) {
 
-	// TODO  validate that the Ledger cannels have isTwoPartyLedger=true
-
 	var init VirtualFundObjective
 
-	// Initialize channels
+	if ledgerChannelToMyLeft.IsTwoPartyLedger && ledgerChannelToMyRight.IsTwoPartyLedger {
+		return init, errors.New(`supplied channels are not two party ledger channels`)
+	}
+
+	// Initialize virtual channel
 	v, err := channel.New(initialStateOfV, false, myRole, types.Destination{}, types.Destination{})
 	if err != nil {
 		return init, err
 
 	}
 	init.V = &v
-
 	init.n = n
-
+	init.MyRole = myRole
 	init.a0 = make(map[types.Address]*big.Int)
 	init.b0 = make(map[types.Address]*big.Int)
+
 	// Compute a0 and b0 from the initial state of J
 	for i := range initialStateOfV.Outcome {
 		asset := initialStateOfV.Outcome[i].Asset
@@ -87,8 +88,7 @@ func New(
 		init.b0[asset].Add(init.b0[asset], amount1)
 	}
 
-	init.MyRole = myRole // this should not be modified, so no need to make a new big.Int
-
+	// Setup Ledger Channel Connections and expected guarantees
 	switch {
 	case myRole == 0: // Alice
 		init.ToMyRight = &Connection{}
@@ -105,8 +105,8 @@ func New(
 		init.ToMyLeft = &Connection{}
 		init.ToMyLeft.Channel = ledgerChannelToMyLeft
 		init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.TheirDestination, init.ToMyRight.Channel.MyDestination)
-	default: // Invalid TODO
-
+	default:
+		return VirtualFundObjective{}, errors.New(`myRole > n+1`)
 	}
 	return init, nil
 }
