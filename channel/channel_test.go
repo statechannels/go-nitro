@@ -119,7 +119,7 @@ func TestChannel(t *testing.T) {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
 		alicePrivateKey := common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
-		v := state.State{
+		v := state.State{ // TODO it would be terser to clone s and modify it -- but s.Clone() is broken https://github.com/statechannels/go-nitro/issues/96
 			ChainId: s.ChainId,
 			Participants: []types.Address{
 				common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`), // private key caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634
