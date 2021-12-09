@@ -33,6 +33,17 @@ The following roadmap gives an idea of the various packages that compose the `go
 
 Consuming applications should import the `client` package, and construct a `New()` client by passing in a chain service and message service.
 
+
+## Architecture in Brief
+
+The `engine` listens for action-triggering events from:
+- the consuming application / user via the go-nitro `client`
+- the `chain` service (watching for on-chain updates to running channels)
+- the `message` service (communicating with peers about the status of running or prospective channels)
+
+and executes logic from the `protocols` package. Data required for the secure creation, running, and closing of channels lives in the `store`.
+
+More detailed information can be found in each package's respective _readme_.
 ![architecture](./client/architecture.png)
 
 ---
