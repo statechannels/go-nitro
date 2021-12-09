@@ -11,6 +11,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// MAGICTURNNUM is a reserved value which is taken to mean "there is not yet a supported state"
+const MAGICTURNNUM = ^uint64(0)
+
 type SignedState struct {
 	State state.VariablePart
 	Sigs  map[uint]state.Signature // keyed by participant index
@@ -36,7 +39,7 @@ type Channel struct {
 	// Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain
 	// It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
 
-	latestSupportedStateTurnNum uint64
+	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
 
 	IsTwoPartyLedger bool
 	MyDestination    types.Destination
@@ -51,6 +54,9 @@ func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types
 	if s.TurnNum.Cmp(big.NewInt(0)) != 0 {
 		return c, errors.New(`objective must be constructed with a turnNum 0 state`)
 	}
+	if isTwoPartyLedger && (myDestination == types.Destination{} || theirDestination == types.Destination{}) {
+		return c, errors.New(`two party ledger channels must have non-null specify myDestination and theirDestination`)
+	}
 	var err error
 	c.Id, err = s.ChannelId()
 	if err != nil {
@@ -59,7 +65,7 @@ func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types
 	c.MyIndex = myIndex
 	c.OnChainFunding = make(types.Funds)
 	c.FixedPart = s.FixedPart()
-	c.latestSupportedStateTurnNum = s.TurnNum.Uint64()
+	c.latestSupportedStateTurnNum = MAGICTURNNUM // largest uint64 value reserved for "no supported state"
 	// c.Support =  // TODO
 	c.IsTwoPartyLedger = isTwoPartyLedger
 	c.MyDestination = myDestination
@@ -119,16 +125,19 @@ func (c Channel) PostFundComplete() bool {
 }
 
 // LatestSupportedState returns the latest supported state.
-func (c Channel) LatestSupportedState() state.State {
+func (c Channel) LatestSupportedState() (state.State, error) {
+	if c.latestSupportedStateTurnNum == MAGICTURNNUM {
+		return state.State{}, errors.New(`no state is yet supported`)
+	}
 	return state.StateFromFixedAndVariablePart(c.FixedPart,
-		c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State)
+		c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State), nil
 
 }
 
-// Total() returns the total allocated of each asset allocated by the latest supported state of the Channel.
+// Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
 func (c Channel) Total() types.Funds {
 	funds := types.Funds{}
-	for _, sae := range c.LatestSupportedState().Outcome {
+	for _, sae := range c.PreFundState().Outcome {
 		funds[sae.Asset] = sae.Allocations.Total()
 	}
 	return funds
@@ -141,11 +150,15 @@ func (c Channel) Total() types.Funds {
 func (c Channel) Affords(
 	allocationMap map[common.Address]outcome.Allocation,
 	fundingMap types.Funds) bool {
-	return c.LatestSupportedState().Outcome.Affords(allocationMap, fundingMap)
+	lss, err := c.LatestSupportedState()
+	if err != nil {
+		return false
+	}
+	return lss.Outcome.Affords(allocationMap, fundingMap)
 }
 
 // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
-// Returns false and does not alter the channel if the state is "stale", belongs to a different channel, or is signed by a non participant
+// Returns false and does not alter the channel if the state is "stale", belongs to a different channel, or is signed by a non participant.
 func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 	signer, err := s.RecoverSigner(sig)
 	if err != nil {
@@ -165,7 +178,7 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 
 	turnNum := s.TurnNum.Uint64() // https://github.com/statechannels/go-nitro/issues/95
 
-	if c.LatestSupportedState().TurnNum != nil && turnNum < c.LatestSupportedState().TurnNum.Uint64() {
+	if c.latestSupportedStateTurnNum != MAGICTURNNUM && turnNum < c.latestSupportedStateTurnNum {
 		// Stale state
 		return false
 	}
