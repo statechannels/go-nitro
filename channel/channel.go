@@ -16,8 +16,8 @@ type SignedState struct {
 	Sigs  map[uint]state.Signature // keyed by participant index
 }
 
-// isSupported currently returns true if there are numParticipants distinct signatures on the state and false otherwise.
-func (ss SignedState) isSupported(numParticipants int) bool {
+// hasAllSignatures returns true if there are numParticipants distinct signatures on the state and false otherwise.
+func (ss SignedState) hasAllSignatures(numParticipants int) bool {
 	if len(ss.Sigs) == numParticipants {
 		return true
 	} else {
@@ -25,13 +25,14 @@ func (ss SignedState) isSupported(numParticipants int) bool {
 	}
 }
 
+// Class containing states and metadata, and exposing convenience methods
 type Channel struct {
 	Id types.Destination
 
 	OnChainFunding types.Funds
 
 	state.FixedPart
-	Support []state.VariablePart
+	// Support []state.VariablePart // TODO
 
 	latestSupportedStateTurnNum uint64
 
@@ -42,7 +43,7 @@ type Channel struct {
 	SignedStateForTurnNum map[uint64]SignedState // this stores up to 1 state per turn number.
 }
 
-// New constructs a new channel from the supplied state
+// New constructs a new Channel from the supplied state
 func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, theirDestination types.Destination) (Channel, error) {
 	c := Channel{}
 	if s.TurnNum.Cmp(big.NewInt(0)) != 0 {
@@ -54,7 +55,7 @@ func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, 
 	c.latestSupportedStateTurnNum = s.TurnNum.Uint64()
 	c.FixedPart = s.FixedPart()
 
-	c.Support = make([]state.VariablePart, 0)
+	// c.Support = make([]state.VariablePart, 0) // TODO
 	c.MyDestination = myDestination
 	c.TheirDestination = theirDestination
 	c.IsTwoPartyLedger = isTwoPartyLedger
@@ -78,6 +79,7 @@ func New(s state.State, isTwoPartyLedger bool, myDestination types.Destination, 
 	return c, nil
 }
 
+// PreFundState() returns the pre fund setup state for the channel
 func (c Channel) PreFundState() state.State {
 	state := state.State{
 		ChainId:           c.ChainId,
@@ -92,6 +94,8 @@ func (c Channel) PreFundState() state.State {
 	}
 	return state
 }
+
+// PostFundState() returns the post fund setup state for the channel
 
 func (c Channel) PostFundState() state.State {
 	state := state.State{
@@ -128,11 +132,11 @@ func (c Channel) PostFundSignedByMe() bool {
 }
 func (c Channel) PreFundComplete() bool {
 
-	return c.SignedStateForTurnNum[0].isSupported(len(c.FixedPart.Participants))
+	return c.SignedStateForTurnNum[0].hasAllSignatures(len(c.FixedPart.Participants))
 
 }
 func (c Channel) PostFundComplete() bool {
-	return c.SignedStateForTurnNum[1].isSupported(len(c.FixedPart.Participants))
+	return c.SignedStateForTurnNum[1].hasAllSignatures(len(c.FixedPart.Participants))
 }
 
 func (c Channel) LatestSupportedState() state.State {
@@ -162,14 +166,26 @@ func (c Channel) Affords(
 // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
 // Returns false and does not alter the channel if the state is "stale", belongs to a different channel, or is signed by a non participant
 func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
-	signer, _ := s.RecoverSigner(sig) // TODO handle error
+	signer, err := s.RecoverSigner(sig)
+	if err != nil {
+		// TODO log invalid signature
+		return false
+	}
+
 	signerIndex, isParticipant := indexOf(signer, c.FixedPart.Participants)
+	if !isParticipant {
+		// TODO log signature by non participant
+		return false
+	}
+	if cId, err := s.ChannelId(); cId != c.Id || err != nil {
+		// TODO log channel mismatch
+		return false
+	}
+
 	turnNum := s.TurnNum.Uint64() // https://github.com/statechannels/go-nitro/issues/95
 
-	if cId, err := s.ChannelId(); cId != c.Id ||
-		err != nil ||
-		c.LatestSupportedState().TurnNum != nil && turnNum < c.LatestSupportedState().TurnNum.Uint64() ||
-		!isParticipant {
+	if c.LatestSupportedState().TurnNum != nil && turnNum < c.LatestSupportedState().TurnNum.Uint64() {
+		// TODO log stale state
 		return false
 	}
 
@@ -182,7 +198,7 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 	}
 
 	// Update latest supported state
-	if c.SignedStateForTurnNum[turnNum].isSupported(len(c.FixedPart.Participants)) {
+	if c.SignedStateForTurnNum[turnNum].hasAllSignatures(len(c.FixedPart.Participants)) {
 		c.latestSupportedStateTurnNum = turnNum
 	}
 
