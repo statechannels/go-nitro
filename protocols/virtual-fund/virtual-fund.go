@@ -97,21 +97,34 @@ func New(
 	case myRole == 0: // Alice
 		init.ToMyRight = &Connection{}
 		init.ToMyRight.Channel = ledgerChannelToMyRight
-		init.ToMyRight.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.MyDestination, init.ToMyRight.Channel.TheirDestination)
+		err = init.ToMyRight.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.MyDestination, init.ToMyRight.Channel.TheirDestination)
+		if err != nil {
+			return VirtualFundObjective{}, err
+		}
 	case myRole < n+1: // Intermediary
 		init.ToMyRight = &Connection{}
 		init.ToMyRight.Channel = ledgerChannelToMyRight
-		init.ToMyRight.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.MyDestination, init.ToMyRight.Channel.TheirDestination)
+		err = init.ToMyRight.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.MyDestination, init.ToMyRight.Channel.TheirDestination)
+		if err != nil {
+			return VirtualFundObjective{}, err
+		}
 		init.ToMyLeft = &Connection{}
 		init.ToMyLeft.Channel = ledgerChannelToMyLeft
-		init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.TheirDestination, init.ToMyRight.Channel.MyDestination)
+		err = init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.TheirDestination, init.ToMyRight.Channel.MyDestination)
+		if err != nil {
+			return VirtualFundObjective{}, err
+		}
 	case myRole == n+1: // Bob
 		init.ToMyLeft = &Connection{}
 		init.ToMyLeft.Channel = ledgerChannelToMyLeft
-		init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.TheirDestination, init.ToMyRight.Channel.MyDestination)
+		err = init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.TheirDestination, init.ToMyRight.Channel.MyDestination)
+		if err != nil {
+			return VirtualFundObjective{}, err
+		}
 	default:
 		return VirtualFundObjective{}, errors.New(`myRole > n+1`)
 	}
+
 	return init, nil
 }
 
@@ -238,13 +251,17 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 //////////////////////////////////////////////////
 
 // insertExpectedGuaranteesForLedgerChannel mutates the reciever Connection struct.
-func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) {
+func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) error {
 	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
 	metadata := outcome.GuaranteeMetadata{
 		Left:  left,
 		Right: right,
 	}
-	encodedGuarantee, _ := metadata.Encode() // TODO handle error
+	encodedGuarantee, err := metadata.Encode()
+	if err != nil {
+		return err
+	}
+
 	for asset := range a0 {
 		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
 			Destination:    vId,
@@ -254,6 +271,7 @@ func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.
 		}
 	}
 	connection.ExpectedGuarantees = expectedGuaranteesForLedgerChannel
+	return nil
 }
 
 // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
