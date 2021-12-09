@@ -2,6 +2,7 @@ package outcome
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -104,4 +105,57 @@ var allocationsTy = abi.ArgumentMarshaling{
 		{Name: "allocationType", Type: "uint8"},
 		{Name: "metadata", Type: "bytes"},
 	},
+}
+
+// DivertToGuarantee returns a new Allocations, identical to the reciever but with
+// the leftDebtee's amount reduced by leftDebit,
+// the rightDebtee's amount reduced by rightDebit,
+// and a Guarantee appended for the guaranteeDestination
+func (allocations Allocations) DivertToGuarantee(
+	leftDestination types.Destination,
+	rightDestination types.Destination,
+	leftAmount *big.Int,
+	rightAmount *big.Int,
+	guaranteeDestination types.Destination,
+) (Allocations, error) {
+
+	if leftDestination == rightDestination {
+		return Allocations{}, errors.New(`debtees must be distinct`)
+	}
+
+	newAllocations := make([]Allocation, len(allocations)+1)
+	for i, allocation := range allocations {
+		newAllocations[i] = Allocation{ // TODO clone this?
+			Destination:    allocation.Destination,
+			Amount:         allocation.Amount,
+			AllocationType: allocation.AllocationType,
+			Metadata:       allocation.Metadata,
+		}
+		switch newAllocations[i].Destination {
+		case leftDestination:
+			newAllocations[i].Amount.Sub(newAllocations[i].Amount, leftAmount)
+		case rightDestination:
+			newAllocations[i].Amount.Sub(newAllocations[i].Amount, rightAmount)
+		}
+		if newAllocations[i].Amount.Cmp(big.NewInt(0)) < 0 {
+			return Allocations{}, errors.New(`insufficient funds`)
+		}
+	}
+	encodedGuaranteeMetadata, err := GuaranteeMetadata{
+		Left:  leftDestination,
+		Right: rightDestination,
+	}.Encode()
+
+	if err != nil {
+		return Allocations{}, errors.New(`error encoding guarantee`)
+	}
+
+	newAllocations[len(allocations)] = Allocation{
+		Destination:    guaranteeDestination,
+		Amount:         big.NewInt(0).Add(leftAmount, rightAmount),
+		AllocationType: GuaranteeAllocationType,
+		Metadata:       encodedGuaranteeMetadata,
+	}
+
+	return newAllocations, nil
 }
