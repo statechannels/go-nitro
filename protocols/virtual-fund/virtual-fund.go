@@ -45,6 +45,10 @@ type VirtualFundObjective struct {
 	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
 }
 
+////////////////////////////////////////////////
+// Public methods on the VirtualFundObjective //
+////////////////////////////////////////////////
+
 // New initiates a VirtualFundObjective.
 func New(
 	initialStateOfV state.State,
@@ -110,28 +114,6 @@ func New(
 	}
 	return init, nil
 }
-
-// insertExpectedGuaranteesForLedgerChannel mutates the reciever Connection struct
-func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) {
-	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
-	metadata := outcome.GuaranteeMetadata{
-		Left:  left,
-		Right: right,
-	}
-	encodedGuarantee, _ := metadata.Encode() // TODO handle error
-	for asset := range a0 {
-		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
-			Destination:    vId,
-			Amount:         big.NewInt(0).Add(a0[asset], b0[asset]),
-			AllocationType: outcome.GuaranteeAllocationType,
-			Metadata:       encodedGuarantee,
-		}
-	}
-
-	connection.ExpectedGuarantees = expectedGuaranteesForLedgerChannel
-}
-
-// Public methods on the VirtualFundObjective
 
 // Id returns the objective id
 func (s VirtualFundObjective) Id() protocols.ObjectiveId {
@@ -199,7 +181,6 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 		return updated, NoSideEffects, WaitingForNothing, ErrNotApproved
 	}
 
-	// TODO could perform checks on s.L (should only have 1 or 2 channels in there)
 	// Prefunding
 
 	if !updated.V.PreFundSignedByMe() {
@@ -240,7 +221,28 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	return updated, NoSideEffects, WaitingForNothing, nil
 }
 
-//  Private methods on the VirtualFundObjective
+//////////////////////////////////////////////////
+//  Private methods on the VirtualFundObjective //
+//////////////////////////////////////////////////
+
+// insertExpectedGuaranteesForLedgerChannel mutates the reciever Connection struct
+func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) {
+	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
+	metadata := outcome.GuaranteeMetadata{
+		Left:  left,
+		Right: right,
+	}
+	encodedGuarantee, _ := metadata.Encode() // TODO handle error
+	for asset := range a0 {
+		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
+			Destination:    vId,
+			Amount:         big.NewInt(0).Add(a0[asset], b0[asset]),
+			AllocationType: outcome.GuaranteeAllocationType,
+			Metadata:       encodedGuarantee,
+		}
+	}
+	connection.ExpectedGuarantees = expectedGuaranteesForLedgerChannel
+}
 
 // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
 func (s VirtualFundObjective) fundingComplete() bool {
@@ -263,7 +265,10 @@ func (s VirtualFundObjective) fundingComplete() bool {
 
 }
 
-// TODO
+// ledgerChannelAffordsExpectedGuarantees returns true if, for the channel inside the connection, and for each asset keying the input variables, the channel can afford the allocation given the funding.
+// The decision is made based on the latest supported state of the channel.
+//
+// Both arguments are maps keyed by the same asset.
 func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
 	return connection.Channel.Affords(connection.ExpectedGuarantees, connection.Channel.OnChainFunding)
 }
