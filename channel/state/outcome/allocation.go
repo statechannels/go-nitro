@@ -125,12 +125,7 @@ func (allocations Allocations) DivertToGuarantee(
 
 	newAllocations := make([]Allocation, len(allocations)+1)
 	for i, allocation := range allocations {
-		newAllocations[i] = Allocation{ // TODO clone this?
-			Destination:    allocation.Destination,
-			Amount:         allocation.Amount,
-			AllocationType: allocation.AllocationType,
-			Metadata:       allocation.Metadata,
-		}
+		newAllocations[i] = allocation
 		switch newAllocations[i].Destination {
 		case leftDestination:
 			newAllocations[i].Amount.Sub(newAllocations[i].Amount, leftAmount)
