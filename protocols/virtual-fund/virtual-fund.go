@@ -331,7 +331,34 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 	return sideEffects
 }
 
-// todo: is this sufficient? Particularly: s has pointer members (*big.Int).
-func (s VirtualFundObjective) clone() VirtualFundObjective {
-	return s
+// Clone returns a deep copy of the receiver
+func (s *VirtualFundObjective) clone() VirtualFundObjective {
+	clone := VirtualFundObjective{}
+	clone.Status = s.Status
+	vClone := s.V.Clone()
+	clone.V = &vClone
+
+	if s.ToMyLeft != nil {
+		clone.ToMyLeft = &Connection{
+			Channel:            s.ToMyLeft.Channel.Clone(),
+			ExpectedGuarantees: s.ToMyLeft.ExpectedGuarantees,
+		}
+	}
+
+	if s.ToMyRight != nil {
+		clone.ToMyRight = &Connection{
+			Channel:            s.ToMyRight.Channel.Clone(),
+			ExpectedGuarantees: s.ToMyRight.ExpectedGuarantees,
+		}
+	}
+
+	clone.n = s.n
+	clone.MyRole = s.MyRole
+
+	clone.a0 = s.a0
+	clone.b0 = s.b0
+
+	clone.requestedLedgerUpdates = s.requestedLedgerUpdates
+
+	return clone
 }
