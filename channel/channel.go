@@ -187,7 +187,7 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 		return false
 	}
 
-	turnNum := s.TurnNum.Uint64() // https://github.com/statechannels/go-nitro/issues/95
+	turnNum := s.TurnNum.Uint64() // TODO https://github.com/statechannels/go-nitro/issues/95
 
 	if c.latestSupportedStateTurnNum != MAGICTURNNUM && turnNum < c.latestSupportedStateTurnNum {
 		// Stale state
