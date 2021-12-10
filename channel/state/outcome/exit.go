@@ -127,7 +127,7 @@ func (e *Exit) Hash() (types.Bytes32, error) {
 	}
 }
 
-type EasyExit map[common.Address]SingleAssetExit
+type easyExit map[common.Address]SingleAssetExit
 
 // toEasyExit() convets an Exit into a more ergonomic data type called an EasyExit
 //
@@ -136,8 +136,8 @@ type EasyExit map[common.Address]SingleAssetExit
 // The position has no semantic meaning, but does of course affect the hash of the exit.
 // Furthermore, this transformation assumes there are *no* repeated entries.
 // For these reasosn, the transformation should be considered non-invertibile and used with care.
-func (e Exit) toEasyExit() EasyExit {
-	easy := make(EasyExit)
+func (e Exit) toEasyExit() easyExit {
+	easy := make(easyExit)
 	for i := range e {
 		easy[e[i].Asset] = e[i]
 	}
