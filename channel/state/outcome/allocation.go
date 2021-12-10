@@ -123,9 +123,9 @@ func (a Allocations) DivertToGuarantee(
 		return Allocations{}, errors.New(`debtees must be distinct`)
 	}
 
-	newAllocations := make([]Allocation, len(a)+1)
+	newAllocations := make([]Allocation, 0, len(a)+1)
 	for i, allocation := range a {
-		newAllocations[i] = allocation
+		newAllocations = append(newAllocations, allocation)
 		switch newAllocations[i].Destination {
 		case leftDestination:
 			newAllocations[i].Amount.Sub(newAllocations[i].Amount, leftAmount)
@@ -145,12 +145,12 @@ func (a Allocations) DivertToGuarantee(
 		return Allocations{}, errors.New(`error encoding guarantee`)
 	}
 
-	newAllocations[len(a)] = Allocation{
+	newAllocations = append(newAllocations, Allocation{
 		Destination:    guaranteeDestination,
 		Amount:         big.NewInt(0).Add(leftAmount, rightAmount),
 		AllocationType: GuaranteeAllocationType,
 		Metadata:       encodedGuaranteeMetadata,
-	}
+	})
 
 	return newAllocations, nil
 }
