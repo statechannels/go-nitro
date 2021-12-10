@@ -144,7 +144,7 @@ func (a Allocations) DivertToGuarantee(
 
 	newAllocations := make([]Allocation, 0, len(a)+1)
 	for i, allocation := range a {
-		newAllocations = append(newAllocations, allocation)
+		newAllocations = append(newAllocations, allocation.Clone())
 		switch newAllocations[i].Destination {
 		case leftDestination:
 			newAllocations[i].Amount.Sub(newAllocations[i].Amount, leftAmount)
