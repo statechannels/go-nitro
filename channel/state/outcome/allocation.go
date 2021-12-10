@@ -68,10 +68,10 @@ func (a Allocations) TotalFor(dest types.Destination) *big.Int {
 // To afford the given allocation, the allocations must include something equal-in-value to it,
 // as well as having sufficient funds left over for it after reserving funds from the input funding for all allocations with higher priority.
 // Note that "equal-in-value" implies the same allocation type and metadata (if any).
-func (allocations Allocations) Affords(given Allocation, funding *big.Int) bool {
+func (a Allocations) Affords(given Allocation, funding *big.Int) bool {
 	bigZero := big.NewInt(0)
 	surplus := big.NewInt(0).Set(funding)
-	for _, allocation := range allocations {
+	for _, allocation := range a {
 
 		if allocation.Equal(given) {
 			return surplus.Cmp(given.Amount) >= 0
@@ -111,7 +111,7 @@ var allocationsTy = abi.ArgumentMarshaling{
 // the leftDebtee's amount reduced by leftDebit,
 // the rightDebtee's amount reduced by rightDebit,
 // and a Guarantee appended for the guaranteeDestination
-func (allocations Allocations) DivertToGuarantee(
+func (a Allocations) DivertToGuarantee(
 	leftDestination types.Destination,
 	rightDestination types.Destination,
 	leftAmount *big.Int,
@@ -123,8 +123,8 @@ func (allocations Allocations) DivertToGuarantee(
 		return Allocations{}, errors.New(`debtees must be distinct`)
 	}
 
-	newAllocations := make([]Allocation, len(allocations)+1)
-	for i, allocation := range allocations {
+	newAllocations := make([]Allocation, len(a)+1)
+	for i, allocation := range a {
 		newAllocations[i] = allocation
 		switch newAllocations[i].Destination {
 		case leftDestination:
@@ -145,7 +145,7 @@ func (allocations Allocations) DivertToGuarantee(
 		return Allocations{}, errors.New(`error encoding guarantee`)
 	}
 
-	newAllocations[len(allocations)] = Allocation{
+	newAllocations[len(a)] = Allocation{
 		Destination:    guaranteeDestination,
 		Amount:         big.NewInt(0).Add(leftAmount, rightAmount),
 		AllocationType: GuaranteeAllocationType,
