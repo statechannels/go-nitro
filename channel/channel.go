@@ -98,7 +98,7 @@ func (c Channel) PreFundSignedByMe() bool {
 	return false
 }
 
-// PostFundSignedByMe() returns true if I have signed the pre fund setup state, false otherwise.
+// PostFundSignedByMe() returns true if I have signed the post fund setup state, false otherwise.
 func (c Channel) PostFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[1]; ok {
 		if _, ok := c.SignedStateForTurnNum[1].Sigs[c.MyIndex]; ok {
