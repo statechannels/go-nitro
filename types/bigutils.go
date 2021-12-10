@@ -10,3 +10,7 @@ import "math/big"
 func Gt(a *big.Int, b *big.Int) bool {
 	return a.Cmp(b) > 0
 }
+
+func Equal(a *big.Int, b *big.Int) bool {
+	return a.Cmp(b) == 0
+}
