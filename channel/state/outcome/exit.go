@@ -147,13 +147,13 @@ func (e Exit) toEasyExit() easyExit {
 
 // Affords returns true if every allocation in the allocationMap can be afforded by the Exit, given the funds
 //
-// Both arguments are maps keyed by the same asset
+// Both arguments are maps keyed by the same assets
 func (e Exit) Affords(
 	allocationMap map[common.Address]Allocation,
-	funds types.Funds) bool {
+	funding types.Funds) bool {
 	easyExit := e.toEasyExit()
 	for asset := range allocationMap {
-		x := funds[asset]
+		x := funding[asset]
 		if x == nil {
 			return false
 		}
