@@ -72,7 +72,7 @@ func TestDivertToGuarantee(t *testing.T) {
 
 	targetChannel := types.Destination(common.HexToHash("0xabc"))
 
-	a := Allocations{ // [{Alice: 2, Bob: 3}]
+	a := Allocations{
 		{
 			Destination:    aliceDestination,
 			Amount:         big.NewInt(243),
@@ -93,7 +93,7 @@ func TestDivertToGuarantee(t *testing.T) {
 		t.Error(err)
 	}
 
-	want := Allocations{ // [{Alice: 2, Bob: 3}]
+	want := Allocations{
 		{
 			Destination:    aliceDestination,
 			Amount:         big.NewInt(238),
