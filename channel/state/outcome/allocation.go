@@ -27,6 +27,16 @@ func (a Allocation) Equal(b Allocation) bool {
 	return a.Destination == b.Destination && a.AllocationType == b.AllocationType && a.Amount.Cmp(b.Amount) == 0 && bytes.Equal(a.Metadata, b.Metadata)
 }
 
+// Clone returns a deep copy of the receiver
+func (a Allocation) Clone() Allocation {
+	return Allocation{
+		Destination:    a.Destination,
+		Amount:         big.NewInt(0).Set(a.Amount),
+		AllocationType: a.AllocationType,
+		Metadata:       a.Metadata,
+	}
+}
+
 // Allocations is an array of type Allocation
 type Allocations []Allocation
 
@@ -41,6 +51,15 @@ func (a Allocations) Equal(b Allocations) bool {
 		}
 	}
 	return true
+}
+
+// Clone returns a deep copy of the receiver
+func (a Allocations) Clone() Allocations {
+	clone := make(Allocations, len(a))
+	for i, allocation := range a {
+		clone[i] = allocation.Clone()
+	}
+	return clone
 }
 
 // Total returns the toal amount allocated, summed across all destinations (regardless of AllocationType)
