@@ -126,3 +126,42 @@ func (e *Exit) Hash() (types.Bytes32, error) {
 		return types.Bytes32{}, err
 	}
 }
+
+// easyExit is a more ergonomic data type which can be derived from an Exit
+type easyExit map[common.Address]SingleAssetExit
+
+// toEasyExit() convets an Exit into an easyExit.
+//
+// An EasyExit is a mapping from asset to SingleAssetExit, rather than an array.
+// The conversion loses some information, because the position in the original array is not recorded in the map.
+// The position has no semantic meaning, but does of course affect the hash of the exit.
+// Furthermore, this transformation assumes there are *no* repeated entries.
+// For these reasons, the transformation should be considered non-invertibile and used with care.
+func (e Exit) toEasyExit() easyExit {
+	easy := make(easyExit)
+	for i := range e {
+		easy[e[i].Asset] = e[i]
+	}
+	return easy
+}
+
+// Affords returns true if every allocation in the allocationMap can be afforded by the Exit, given the funds
+//
+// Both arguments are maps keyed by the same assets
+func (e Exit) Affords(
+	allocationMap map[common.Address]Allocation,
+	funding types.Funds) bool {
+	easyExit := e.toEasyExit()
+	for asset := range allocationMap {
+		x := funding[asset]
+		if x == nil {
+			return false
+		}
+		allocation := allocationMap[asset]
+		if !easyExit[asset].Allocations.Affords(allocation, x) {
+			return false
+		}
+	}
+	return true
+
+}
