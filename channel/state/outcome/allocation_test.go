@@ -115,6 +115,10 @@ func TestDivertToGuarantee(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
+		t.Errorf("TestDivertToGuarantee: expectedGuarantee mismatch (-want +got):\n%s", diff)
+	}
+
+	if a[0].Amount.Cmp(big.NewInt(243)) != 0 {
+		t.Errorf("TestDivertToGuarantee: input arguments mutated")
 	}
 }
