@@ -2,6 +2,7 @@ package outcome
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -26,6 +27,16 @@ func (a Allocation) Equal(b Allocation) bool {
 	return a.Destination == b.Destination && a.AllocationType == b.AllocationType && a.Amount.Cmp(b.Amount) == 0 && bytes.Equal(a.Metadata, b.Metadata)
 }
 
+// Clone returns a deep copy of the receiver
+func (a Allocation) Clone() Allocation {
+	return Allocation{
+		Destination:    a.Destination,
+		Amount:         big.NewInt(0).Set(a.Amount),
+		AllocationType: a.AllocationType,
+		Metadata:       a.Metadata,
+	}
+}
+
 // Allocations is an array of type Allocation
 type Allocations []Allocation
 
@@ -40,6 +51,15 @@ func (a Allocations) Equal(b Allocations) bool {
 		}
 	}
 	return true
+}
+
+// Clone returns a deep copy of the receiver
+func (a Allocations) Clone() Allocations {
+	clone := make(Allocations, len(a))
+	for i, allocation := range a {
+		clone[i] = allocation.Clone()
+	}
+	return clone
 }
 
 // Total returns the toal amount allocated, summed across all destinations (regardless of AllocationType)
@@ -67,10 +87,10 @@ func (a Allocations) TotalFor(dest types.Destination) *big.Int {
 // To afford the given allocation, the allocations must include something equal-in-value to it,
 // as well as having sufficient funds left over for it after reserving funds from the input funding for all allocations with higher priority.
 // Note that "equal-in-value" implies the same allocation type and metadata (if any).
-func (allocations Allocations) Affords(given Allocation, funding *big.Int) bool {
+func (a Allocations) Affords(given Allocation, funding *big.Int) bool {
 	bigZero := big.NewInt(0)
 	surplus := big.NewInt(0).Set(funding)
-	for _, allocation := range allocations {
+	for _, allocation := range a {
 
 		if allocation.Equal(given) {
 			return surplus.Cmp(given.Amount) >= 0
@@ -104,4 +124,52 @@ var allocationsTy = abi.ArgumentMarshaling{
 		{Name: "allocationType", Type: "uint8"},
 		{Name: "metadata", Type: "bytes"},
 	},
+}
+
+// DivertToGuarantee returns a new Allocations, identical to the reciever but with
+// the leftDebtee's amount reduced by leftDebit,
+// the rightDebtee's amount reduced by rightDebit,
+// and a Guarantee appended for the guaranteeDestination
+func (a Allocations) DivertToGuarantee(
+	leftDestination types.Destination,
+	rightDestination types.Destination,
+	leftAmount *big.Int,
+	rightAmount *big.Int,
+	guaranteeDestination types.Destination,
+) (Allocations, error) {
+
+	if leftDestination == rightDestination {
+		return Allocations{}, errors.New(`debtees must be distinct`)
+	}
+
+	newAllocations := make([]Allocation, 0, len(a)+1)
+	for i, allocation := range a {
+		newAllocations = append(newAllocations, allocation.Clone())
+		switch newAllocations[i].Destination {
+		case leftDestination:
+			newAllocations[i].Amount.Sub(newAllocations[i].Amount, leftAmount)
+		case rightDestination:
+			newAllocations[i].Amount.Sub(newAllocations[i].Amount, rightAmount)
+		}
+		if types.Gt(big.NewInt(0), newAllocations[i].Amount) {
+			return Allocations{}, errors.New(`insufficient funds`)
+		}
+	}
+	encodedGuaranteeMetadata, err := GuaranteeMetadata{
+		Left:  leftDestination,
+		Right: rightDestination,
+	}.Encode()
+
+	if err != nil {
+		return Allocations{}, errors.New(`error encoding guarantee`)
+	}
+
+	newAllocations = append(newAllocations, Allocation{
+		Destination:    guaranteeDestination,
+		Amount:         big.NewInt(0).Add(leftAmount, rightAmount),
+		AllocationType: GuaranteeAllocationType,
+		Metadata:       encodedGuaranteeMetadata,
+	})
+
+	return newAllocations, nil
 }
