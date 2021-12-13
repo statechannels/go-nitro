@@ -116,7 +116,7 @@ func TestClone(t *testing.T) {
 	}
 
 	if TestState.ChannelNonce.Cmp(big.NewInt(37140676580)) != 0 || TestState.Outcome[0].Allocations[0].Amount.Cmp(big.NewInt(5)) != 0 {
-		t.Errorf(`original.Clone() is modified when original is modified `)
+		t.Errorf(`State.Clone(): original is modified when clone is modified `)
 	}
 
 }
