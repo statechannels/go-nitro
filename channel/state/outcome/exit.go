@@ -19,6 +19,24 @@ type SingleAssetExit struct {
 	Allocations Allocations
 }
 
+// Equal returns true if the supplied SingleAssetExit is deeply equal to the receiver.
+func (s SingleAssetExit) Equal(r SingleAssetExit) bool {
+	return bytes.Equal(s.Metadata, r.Metadata) &&
+		s.Asset == r.Asset &&
+		s.Allocations.Equal(r.Allocations)
+
+}
+
+// Clone returns a deep clone of the reciever.
+func (s SingleAssetExit) Clone() SingleAssetExit {
+	return SingleAssetExit{
+		Asset:       s.Asset,
+		Metadata:    s.Metadata,
+		Allocations: s.Allocations.Clone(),
+	}
+
+}
+
 // TotalAllocated returns the toal amount allocated, summed across all destinations (regardless of AllocationType)
 func (sae SingleAssetExit) TotalAllocated() *big.Int {
 	return sae.Allocations.Total()
@@ -32,15 +50,13 @@ func (sae SingleAssetExit) TotalAllocatedFor(dest types.Destination) *big.Int {
 // Exit is an ordered list of SingleAssetExits
 type Exit []SingleAssetExit
 
+// Equal returns true if the supplied Exit is deeply equal to the receiver.
 func (a Exit) Equal(b Exit) bool {
 	if len(a) != len(b) {
 		return false
 	}
 	for i, saeA := range a {
-		saeB := b[i]
-		if !bytes.Equal(saeA.Metadata, saeB.Metadata) ||
-			saeA.Asset != saeB.Asset ||
-			!saeA.Allocations.Equal(saeB.Allocations) {
+		if !saeA.Equal(b[i]) {
 			return false
 		}
 	}
@@ -51,10 +67,7 @@ func (a Exit) Equal(b Exit) bool {
 func (e Exit) Clone() Exit {
 	clone := make(Exit, len(e))
 	for i, sae := range e {
-		clone[i] = SingleAssetExit{
-			Asset:       sae.Asset,
-			Allocations: sae.Allocations.Clone(),
-		}
+		clone[i] = sae.Clone()
 	}
 	return clone
 }
