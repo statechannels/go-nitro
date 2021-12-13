@@ -109,12 +109,13 @@ func TestClone(t *testing.T) {
 	}
 
 	clone.ChannelNonce.Add(clone.ChannelNonce, big.NewInt(1))
+	clone.Outcome[0].Allocations[0].Amount.Add(clone.ChannelNonce, big.NewInt(1))
 
 	if clone.Equal(TestState) {
 		t.Errorf(`expected %v to not equal %v, but it did`, clone, TestState)
 	}
 
-	if TestState.ChannelNonce.Cmp(big.NewInt(2)) == 0 {
+	if TestState.ChannelNonce.Cmp(big.NewInt(37140676580)) != 0 || TestState.Outcome[0].Allocations[0].Amount.Cmp(big.NewInt(5)) != 0 {
 		t.Errorf(`original.Clone() is modified when original is modified `)
 	}
 
