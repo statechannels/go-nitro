@@ -30,6 +30,7 @@ type Channel struct {
 	TheirDestination types.Destination // must be nonzero if a two party ledger channel
 
 	SignedStateForTurnNum map[uint64]SignedState // this stores up to 1 state per turn number.
+	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 }
 
 // New constructs a new Channel from the supplied state.
