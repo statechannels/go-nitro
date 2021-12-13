@@ -125,16 +125,11 @@ func (c Channel) LatestSupportedState() (state.State, error) {
 	}
 	return state.StateFromFixedAndVariablePart(c.FixedPart,
 		c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State), nil
-
 }
 
 // Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
 func (c Channel) Total() types.Funds {
-	funds := types.Funds{}
-	for _, sae := range c.PreFundState().Outcome {
-		funds[sae.Asset] = sae.Allocations.Total()
-	}
-	return funds
+	return c.PreFundState().Outcome.TotalAllocated()
 }
 
 // Affords returns true if, for each asset keying the input variables, the channel can afford the allocation given the funding.
