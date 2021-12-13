@@ -199,17 +199,17 @@ func (s State) Equal(r State) bool {
 func (s State) Clone() State {
 	clone := State{}
 
-	// shallow clone of fixed part
-	clone.ChainId = s.ChainId
+	// Fixed part
+	clone.ChainId = new(big.Int).Set(s.ChainId)
 	clone.Participants = s.Participants
-	clone.ChannelNonce = s.ChannelNonce
+	clone.ChannelNonce = new(big.Int).Set(s.ChannelNonce)
 	clone.AppDefinition = s.AppDefinition
-	clone.ChallengeDuration = s.ChallengeDuration
+	clone.ChallengeDuration = new(big.Int).Set(s.ChallengeDuration)
 
-	// deep clone of variable part (incomplete)
+	// Variable part
 	clone.AppData = make(types.Bytes, 0, len(s.AppData))
 	copy(clone.AppData, s.AppData)
-	clone.Outcome = s.Outcome // consider: make this deep?
+	clone.Outcome = s.Outcome.Clone()
 	clone.TurnNum = new(big.Int).Set(s.TurnNum)
 	clone.IsFinal = s.IsFinal
 
