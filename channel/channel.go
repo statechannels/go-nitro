@@ -30,6 +30,7 @@ type Channel struct {
 	TheirDestination types.Destination // must be nonzero if a two party ledger channel
 
 	SignedStateForTurnNum map[uint64]SignedState // this stores up to 1 state per turn number.
+	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 }
 
 // New constructs a new Channel from the supplied state.
@@ -98,7 +99,7 @@ func (c Channel) PreFundSignedByMe() bool {
 	return false
 }
 
-// PostFundSignedByMe() returns true if I have signed the pre fund setup state, false otherwise.
+// PostFundSignedByMe() returns true if I have signed the post fund setup state, false otherwise.
 func (c Channel) PostFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[1]; ok {
 		if _, ok := c.SignedStateForTurnNum[1].Sigs[c.MyIndex]; ok {
@@ -125,16 +126,11 @@ func (c Channel) LatestSupportedState() (state.State, error) {
 	}
 	return state.StateFromFixedAndVariablePart(c.FixedPart,
 		c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State), nil
-
 }
 
 // Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
 func (c Channel) Total() types.Funds {
-	funds := types.Funds{}
-	for _, sae := range c.PreFundState().Outcome {
-		funds[sae.Asset] = sae.Allocations.Total()
-	}
-	return funds
+	return c.PreFundState().Outcome.TotalAllocated()
 }
 
 // Affords returns true if, for each asset keying the input variables, the channel can afford the allocation given the funding.

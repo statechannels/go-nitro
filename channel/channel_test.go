@@ -47,7 +47,7 @@ func TestChannel(t *testing.T) {
 			t.Error(err2)
 		}
 		if got != want {
-			t.Errorf(`incorrect incorrect PreFundState returned, got %v wanted %v`, c.PreFundState(), s)
+			t.Errorf(`incorrect PreFundState returned, got %v wanted %v`, c.PreFundState(), s)
 		}
 	}
 
@@ -63,7 +63,7 @@ func TestChannel(t *testing.T) {
 			t.Error(err2)
 		}
 		if got != want {
-			t.Errorf(`incorrect incorrect PreFundState returned, got %v wanted %v`, c.PostFundState(), s)
+			t.Errorf(`incorrect PreFundState returned, got %v wanted %v`, c.PostFundState(), s)
 		}
 	}
 

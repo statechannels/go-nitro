@@ -6,74 +6,6 @@ Implementation of nitro protocol in golang.
 
 ---
 
-# Getting started (MacOS)
-
-Install golang
-
-```
-brew install golang
-```
-
-Install [golangci-lint](https://golangci-lint.run):
-
-```
-brew install golangci-lint
-brew upgrade golangci-lint
-```
-
-Make sure GOPATH is set:
-
-```
-echo $GOPATH
-```
-
-You should see `$HOME/go`.
-
-### For developers
-
-To format:
-
-```shell
-gofmt -w .
-```
-
-To lint:
-
-```shell
-golangci-lint run
-```
-
-To build:
-
-```shell
-go build ./...
-```
-
-To run tests:
-
-```shell
-go test ./...
-```
-
-To view docs website:
-
-```shell
-godoc --http :6060
-```
-
-and navigate to http://localhost:6060/pkg/github.com/statechannels/go-nitro/
-To remove unused dependencies (CI checks will fail unless this is a no-op):
-
-```shell
-go mod tidy
-```
-
-### License
-
-Dual-licensed under [MIT](https://opensource.org/licenses/MIT) + [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
-
----
-
 ## Roadmap
 
 The following roadmap gives an idea of the various packages that compose the `go-nitro` module, and their implementation status:
@@ -95,3 +27,28 @@ The following roadmap gives an idea of the various packages that compose the `go
 │   └── virtual-defund 🚧      # defund a channel off-chain through one or more intermediaries
 └── types 🚧                   # basic types and utility methods
 ```
+
+
+## Usage
+
+Consuming applications should import the `client` package, and construct a `New()` client by passing in a chain service and message service.
+
+
+## Architecture in Brief
+
+The `engine` listens for action-triggering events from:
+- the consuming application / user via the go-nitro `client`
+- the `chain` service (watching for on-chain updates to running channels)
+- the `message` service (communicating with peers about the status of running or prospective channels)
+
+and executes logic from the `protocols` package. Data required for the secure creation, running, and closing of channels lives in the `store`.
+
+More detailed information can be found in each package's respective _readme_.
+![architecture](./client/architecture.png)
+
+## Contributing
+
+See [contributing.md](./contributing.md)
+## License
+
+Dual-licensed under [MIT](https://opensource.org/licenses/MIT) + [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
