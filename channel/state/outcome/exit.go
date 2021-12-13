@@ -47,6 +47,18 @@ func (a Exit) Equal(b Exit) bool {
 	return true
 }
 
+// Clone returns a deep clone of the reciever.
+func (e Exit) Clone() Exit {
+	clone := make(Exit, len(e))
+	for i, sae := range e {
+		clone[i] = SingleAssetExit{
+			Asset:       sae.Asset,
+			Allocations: sae.Allocations.Clone(),
+		}
+	}
+	return clone
+}
+
 // TotalAllocated returns the sum of all Funds that are allocated by the outcome.
 //
 // NOTE that these Funds are potentially different from a channel's capacity to
