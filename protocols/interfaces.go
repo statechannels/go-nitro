@@ -19,10 +19,25 @@ type Transaction struct {
 	Data []byte
 }
 
+// LedgerRequest is an object processed by the ledger cranker
+type LedgerRequest struct {
+	LedgerId    types.Destination
+	Destination types.Destination
+	Amount      types.Funds
+	Left        types.Destination
+	Right       types.Destination
+}
+
+// Equal checks for equality between the receiver and a second LedgerRequest
+func (l LedgerRequest) Equal(m LedgerRequest) bool {
+	return l.LedgerId == m.LedgerId && l.Amount.Equal(m.Amount) && l.Left == m.Left && l.Right == m.Right
+}
+
 // SideEffects are effects to be executed by an imperative shell
 type SideEffects struct {
 	MessagesToSend       []Message
 	TransactionsToSubmit []Transaction
+	LedgerRequests       []LedgerRequest
 }
 
 // WaitingFor is an enumerable "pause-point" computed from an Objective. It describes how the objective is blocked on actions by third parties (i.e. co-participants or the blockchain).
