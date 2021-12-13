@@ -86,7 +86,7 @@ func TestEqual(t *testing.T) {
 		IsFinal:           false,
 	}
 
-	got := TestState.Clone()
+	got := TestState
 
 	if !got.Equal(want) {
 		t.Errorf(`expected %v to equal %v, but it did not`, got, want)
@@ -96,6 +96,26 @@ func TestEqual(t *testing.T) {
 
 	if got.Equal(want) {
 		t.Errorf(`expected %v to not equal %v, but it did`, got, want)
+	}
+
+}
+
+func TestClone(t *testing.T) {
+
+	clone := TestState.Clone()
+
+	if !clone.Equal(TestState) {
+		t.Errorf(`expected %v to equal %v, but it did not`, clone, TestState)
+	}
+
+	clone.ChannelNonce.Add(clone.ChannelNonce, big.NewInt(1))
+
+	if clone.Equal(TestState) {
+		t.Errorf(`expected %v to not equal %v, but it did`, clone, TestState)
+	}
+
+	if TestState.ChannelNonce.Cmp(big.NewInt(2)) == 0 {
+		t.Errorf(`original.Clone() is modified when original is modified `)
 	}
 
 }
