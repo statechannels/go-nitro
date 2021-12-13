@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // The following constants are generated from our ts nitro-protocol package
@@ -46,6 +47,25 @@ func TestSign(t *testing.T) {
 	}
 	if want_v != got_v {
 		t.Errorf("Incorrect v param in signature. Got %x, wanted %x", got_v, want_v)
+	}
+}
+
+func TestEqualParticipants(t *testing.T) {
+	sameParticipants := []types.Address{
+		common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`),
+		common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`),
+	}
+	differentParticipants := []types.Address{
+		common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`),
+		common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`),
+	}
+
+	if equalParticipants(sameParticipants, TestState.Participants) != true {
+		t.Error(`expected equal participants`)
+	}
+
+	if equalParticipants(sameParticipants, differentParticipants) == true {
+		t.Error(`expected unequal participants`)
 	}
 }
 
