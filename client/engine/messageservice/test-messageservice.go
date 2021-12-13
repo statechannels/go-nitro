@@ -6,31 +6,27 @@ for use in
 package messageservice
 
 import (
-	"github.com/ethereum/go-ethereum/common"
+	"fmt"
+
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
-type TestNetwork struct {
-	addressToPeer map[[]byte]types.Address
-}
-
-func (tn TestNetwork) Connect (alice, bob TestMessageService) {
-	ch := make(chan protocols.Message)
-
-}
-
 type TestMessageService struct {
+	address types.Address
+
 	// a map of gochans to pass messages to each speific peer
-	toPeers map[types.Address]chan protocols.Message
+	toPeers map[types.Address]chan<- protocols.Message
 	out     chan protocols.Message
 
-	// a collection of gochans to recieve messages from specific peers
-	fromPeers []chan protocols.Message
-	in      chan protocols.Message
+	in chan protocols.Message
 }
 
-func (t TestMessageService) GetReceiveChan() <-chan protocols.Message {
+func (t TestMessageService) Run() {
+	go t.routeOutgoing()
+}
+
+func (t TestMessageService) GetReceiveChan() chan protocols.Message {
 	return t.in
 }
 
@@ -39,30 +35,35 @@ func (t TestMessageService) GetSendChan() chan<- protocols.Message {
 }
 
 func (t TestMessageService) Send(message protocols.Message) {
-	t.out <- message;
+	t.out <- message
+}
 
-	
+// Connect creates a gochan for message service t to communicate with
+// the given peer.
+func (t TestMessageService) Connect(peer TestMessageService) {
+	toPeer := make(chan protocols.Message)
+
+	t.toPeers[peer.address] = toPeer
+
+	go func() {
+		for msg := range toPeer {
+			peer.in <- msg
+		}
+	}()
 }
 
 func (t TestMessageService) forward(message protocols.Message) {
 	peerChan, ok := t.toPeers[message.To]
-	if !ok {
-		t.toPeers[message.To] = make(chan<- protocols.Message)
-		t.Send(message)
+	if ok {
+		peerChan <- message
+	} else {
+		panic(fmt.Sprintf("client %v has no connection to client %v",
+			t.address, message.To))
 	}
-	peerChan <- message
-
-	addr := common.HexToAddress(string(message.To))
-	t.toPeers[addr] <- message
 }
 
-func (t TestMessageService) Run() {
-	for {
-		select {
-		case outgoing := <-t.out:
-			t.forward(outgoing)
-		case incoming :=
-		}
-
+func (t TestMessageService) routeOutgoing() {
+	for msg := range t.out {
+		t.forward(msg)
 	}
 }
