@@ -44,6 +44,7 @@ func TestConnect(t *testing.T) {
 	aliceMS.Send(aToB)
 
 	got := <-bobIn
+
 	if got.ObjectiveId != testId {
 		t.Errorf("expected bob to recieve ObjectiveId %v, but recieved %v",
 			got.ObjectiveId, testId)
