@@ -58,9 +58,9 @@ var bob = actor{
 	privateKey:  common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`),
 }
 
-var isTwoPartyLedger = false               // for the purposes of this test
-var myDestination = types.Destination{}    // only needed if isTwoPartyLedger = true
-var theirDestination = types.Destination{} // only needed if isTwoPartyLedger = true
+var isTwoPartyLedger = false           // for the purposes of this test
+var myDestination = alice.destination  // only needed if isTwoPartyLedger = true
+var theirDestination = bob.destination // only needed if isTwoPartyLedger = true
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
