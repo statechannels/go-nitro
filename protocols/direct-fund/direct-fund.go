@@ -221,7 +221,9 @@ func (s DirectFundObjective) amountToDeposit() types.Funds {
 
 // todo: is this sufficient? Particularly: s has pointer members (*big.Int)
 func (s DirectFundObjective) clone() DirectFundObjective {
-	return s
+	clone := s
+	*clone.C = s.C.Clone()
+	return clone
 }
 
 // mermaid diagram
