@@ -201,7 +201,7 @@ func (s State) Clone() State {
 
 	// Fixed part
 	clone.ChainId = new(big.Int).Set(s.ChainId)
-	clone.Participants = s.Participants
+	clone.Participants = append(clone.Participants, s.Participants...)
 	clone.ChannelNonce = new(big.Int).Set(s.ChannelNonce)
 	clone.AppDefinition = s.AppDefinition
 	clone.ChallengeDuration = new(big.Int).Set(s.ChallengeDuration)
