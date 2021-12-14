@@ -110,19 +110,21 @@ func TestUpdate(t *testing.T) {
 	e.ChannelId = s.C.Id
 	e.Sigs = make(map[*state.State]state.Signature)
 
-	// Next, attempt to update the objective with a dummy signature, keyed with a dummy statehash
-	// Assert that this results in a NOOP
-	e.Sigs[&dummyState] = dummySignature // Dummmy signature on dummy statehash
-	if _, err := s.Update(e); err != nil {
-		t.Error(`dummy signature -- expected a noop but caught an error:`, err)
-	}
+	// DISABLED
+	// // Next, attempt to update the objective with a dummy signature, keyed with a dummy statehash
+	// // Assert that this results in a NOOP
+	// e.Sigs[&dummyState] = dummySignature // Dummmy signature on dummy statehash
+	// if _, err := s.Update(e); err != nil {
+	// 	t.Error(`dummy signature -- expected a noop but caught an error:`, err)
+	// }
 
+	// DISABLED
 	// Next, attempt to update the objective with an invalid signature, keyed with a dummy statehash
 	// Assert that this results in a NOOP
-	e.Sigs[&dummyState] = state.Signature{}
-	if _, err := s.Update(e); err != nil {
-		t.Error(`faulty signature -- expected a noop but caught an error:`, err)
-	}
+	// e.Sigs[&dummyState] = state.Signature{}
+	// if _, err := s.Update(e); err != nil {
+	// 	t.Error(`faulty signature -- expected a noop but caught an error:`, err)
+	// }
 
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
