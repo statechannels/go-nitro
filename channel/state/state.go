@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"errors"
 	"math/big"
 
@@ -168,21 +169,47 @@ func (s State) RecoverSigner(sig Signature) (types.Address, error) {
 	return RecoverEthereumMessageSigner(stateHash[:], sig)
 }
 
+// equalParticipants returns true if the given arrays contain equal addresses (in the same order).
+func equalParticipants(p []types.Address, q []types.Address) bool {
+	if len(p) != len(q) {
+		return false
+	}
+	for i, a := range p {
+		if !bytes.Equal(a.Bytes(), q[i].Bytes()) {
+			return false
+		}
+	}
+	return true
+}
+
+// Equal returns true if the given State is deeply equal to the receiever.
+func (s State) Equal(r State) bool {
+	return s.ChainId.Cmp(r.ChainId) == 0 &&
+		equalParticipants(s.Participants, r.Participants) &&
+		s.ChannelNonce.Cmp(r.ChannelNonce) == 0 &&
+		bytes.Equal(s.AppDefinition.Bytes(), r.AppDefinition.Bytes()) &&
+		s.ChallengeDuration.Cmp(r.ChallengeDuration) == 0 &&
+		bytes.Equal(s.AppData, r.AppData) &&
+		s.Outcome.Equal(r.Outcome) &&
+		s.TurnNum.Cmp(r.TurnNum) == 0 &&
+		s.IsFinal == r.IsFinal
+}
+
 // Clone returns a clone of the state
 func (s State) Clone() State {
 	clone := State{}
 
-	// shallow clone of fixed part
-	clone.ChainId = s.ChainId
-	clone.Participants = s.Participants
-	clone.ChannelNonce = s.ChannelNonce
+	// Fixed part
+	clone.ChainId = new(big.Int).Set(s.ChainId)
+	clone.Participants = append(clone.Participants, s.Participants...)
+	clone.ChannelNonce = new(big.Int).Set(s.ChannelNonce)
 	clone.AppDefinition = s.AppDefinition
-	clone.ChallengeDuration = s.ChallengeDuration
+	clone.ChallengeDuration = new(big.Int).Set(s.ChallengeDuration)
 
-	// deep clone of variable part (incomplete)
+	// Variable part
 	clone.AppData = make(types.Bytes, 0, len(s.AppData))
 	copy(clone.AppData, s.AppData)
-	clone.Outcome = s.Outcome // consider: make this deep?
+	clone.Outcome = s.Outcome.Clone()
 	clone.TurnNum = new(big.Int).Set(s.TurnNum)
 	clone.IsFinal = s.IsFinal
 

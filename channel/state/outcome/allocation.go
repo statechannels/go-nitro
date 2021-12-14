@@ -27,7 +27,7 @@ func (a Allocation) Equal(b Allocation) bool {
 	return a.Destination == b.Destination && a.AllocationType == b.AllocationType && a.Amount.Cmp(b.Amount) == 0 && bytes.Equal(a.Metadata, b.Metadata)
 }
 
-// Clone returns a deep copy of the receiver
+// Clone returns a deep copy of the receiver.
 func (a Allocation) Clone() Allocation {
 	return Allocation{
 		Destination:    a.Destination,
