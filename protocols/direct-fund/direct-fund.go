@@ -30,7 +30,7 @@ var ErrNotApproved = errors.New("objective not approved")
 // DirectFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type DirectFundObjective struct {
 	Status protocols.ObjectiveStatus
-	C      channel.Channel
+	C      *channel.Channel
 
 	participantIndex map[types.Address]uint // the index for each participant
 
@@ -58,7 +58,7 @@ func New(initialState state.State, myAddress types.Address, isTwoPartyLedger boo
 		}
 	}
 
-	init.C, err = channel.New(initialState, isTwoPartyLedger, myIndex, myDestination, theirDestination)
+	*init.C, err = channel.New(initialState, isTwoPartyLedger, myIndex, myDestination, theirDestination)
 
 	if err != nil {
 		return init, err
