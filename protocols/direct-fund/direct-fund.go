@@ -32,8 +32,6 @@ type DirectFundObjective struct {
 	Status protocols.ObjectiveStatus
 	C      *channel.Channel
 
-	participantIndex map[types.Address]uint // the index for each participant
-
 	myDepositSafetyThreshold types.Funds // if the on chain holdings are equal to this amount it is safe for me to deposit
 	myDepositTarget          types.Funds // I want to get the on chain holdings up to this much
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
@@ -46,7 +44,7 @@ func New(initialState state.State, myAddress types.Address, isTwoPartyLedger boo
 		return DirectFundObjective{}, errors.New("attempted to initiate new direct-funding objective with IsFinal == true")
 	}
 
-	var init DirectFundObjective
+	var init = DirectFundObjective{}
 	var err error
 
 	init.Status = protocols.Unapproved
@@ -58,14 +56,11 @@ func New(initialState state.State, myAddress types.Address, isTwoPartyLedger boo
 		}
 	}
 
+	init.C = &channel.Channel{}
 	*init.C, err = channel.New(initialState, isTwoPartyLedger, myIndex, myDestination, theirDestination)
 
 	if err != nil {
 		return init, err
-	}
-	init.participantIndex = make(map[types.Address]uint)
-	for i, v := range initialState.Participants {
-		init.participantIndex[v] = uint(i)
 	}
 
 	myAllocatedAmount := initialState.Outcome.TotalAllocatedFor(
