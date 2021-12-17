@@ -61,7 +61,7 @@ func New(
 
 	var init VirtualFundObjective
 
-	if ledgerChannelToMyLeft.IsTwoPartyLedger && ledgerChannelToMyRight.IsTwoPartyLedger {
+	if !(ledgerChannelToMyLeft.IsTwoPartyLedger && ledgerChannelToMyRight.IsTwoPartyLedger) {
 		return init, errors.New(`supplied channels are not two party ledger channels`)
 	}
 
