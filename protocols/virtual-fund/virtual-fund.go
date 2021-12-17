@@ -58,12 +58,28 @@ func New(
 	ledgerChannelToMyLeft channel.Channel,
 	ledgerChannelToMyRight channel.Channel,
 ) (VirtualFundObjective, error) {
+	// role and ledger-channel checks
+	if myRole > n+1 {
+		return VirtualFundObjective{}, fmt.Errorf(`invalid role <%d> specified in %d-hop virtual-fund objective`,
+			myRole, n-1)
+	}
+
+	switch myRole {
+	case 0: // Alice
+		if !ledgerChannelToMyRight.IsTwoPartyLedger {
+			return VirtualFundObjective{}, errors.New(`alice's right-channel is not a two-party ledger channel`)
+		}
+	case n + 1: // Bob
+		if !ledgerChannelToMyLeft.IsTwoPartyLedger {
+			return VirtualFundObjective{}, errors.New(`bob's left-channel is not a two-party ledger channel`)
+		}
+	default: // Intermediary
+		if !(ledgerChannelToMyLeft.IsTwoPartyLedger && ledgerChannelToMyRight.IsTwoPartyLedger) {
+			return VirtualFundObjective{}, errors.New(`supplied channels are not two party ledger channels`)
+		}
+	}
 
 	var init VirtualFundObjective
-
-	if ledgerChannelToMyLeft.IsTwoPartyLedger && ledgerChannelToMyRight.IsTwoPartyLedger {
-		return init, errors.New(`supplied channels are not two party ledger channels`)
-	}
 
 	// Initialize virtual channel
 	v, err := channel.New(initialStateOfV, false, myRole, types.Destination{}, types.Destination{})
