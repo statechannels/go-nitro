@@ -58,6 +58,11 @@ func New(
 	ledgerChannelToMyLeft channel.Channel,
 	ledgerChannelToMyRight channel.Channel,
 ) (VirtualFundObjective, error) {
+	// role and ledger-channel checks
+	if myRole > n+1 {
+		return VirtualFundObjective{}, fmt.Errorf(`invalid role <%d> specified in %d-hop virtual-fund objective`,
+			myRole, n-1)
+	}
 
 	switch myRole {
 	case 0: // Alice
