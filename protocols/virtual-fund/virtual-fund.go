@@ -262,10 +262,12 @@ func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.
 		return err
 	}
 
-	for asset := range a0 {
+	channelFunds := a0.Add(b0)
+
+	for asset, amount := range channelFunds {
 		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
 			Destination:    vId,
-			Amount:         big.NewInt(0).Add(a0[asset], b0[asset]),
+			Amount:         amount,
 			AllocationType: outcome.GuaranteeAllocationType,
 			Metadata:       encodedGuarantee,
 		}
