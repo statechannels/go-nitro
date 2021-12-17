@@ -109,36 +109,22 @@ func New(
 	}
 
 	// Setup Ledger Channel Connections and expected guarantees
-	switch {
-	case myRole == 0: // Alice
+	if myRole != 0 { // everyone other than Alice has a left-channel
+		init.ToMyLeft = &Connection{}
+		init.ToMyLeft.Channel = ledgerChannelToMyLeft
+		err = init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyLeft.Channel.TheirDestination, init.ToMyLeft.Channel.MyDestination)
+		if err != nil {
+			return VirtualFundObjective{}, err
+		}
+	}
+
+	if myRole != n+1 { // everyone other than Bob has a right-channel
 		init.ToMyRight = &Connection{}
 		init.ToMyRight.Channel = ledgerChannelToMyRight
 		err = init.ToMyRight.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.MyDestination, init.ToMyRight.Channel.TheirDestination)
 		if err != nil {
 			return VirtualFundObjective{}, err
 		}
-	case myRole < n+1: // Intermediary
-		init.ToMyRight = &Connection{}
-		init.ToMyRight.Channel = ledgerChannelToMyRight
-		err = init.ToMyRight.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.MyDestination, init.ToMyRight.Channel.TheirDestination)
-		if err != nil {
-			return VirtualFundObjective{}, err
-		}
-		init.ToMyLeft = &Connection{}
-		init.ToMyLeft.Channel = ledgerChannelToMyLeft
-		err = init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.TheirDestination, init.ToMyRight.Channel.MyDestination)
-		if err != nil {
-			return VirtualFundObjective{}, err
-		}
-	case myRole == n+1: // Bob
-		init.ToMyLeft = &Connection{}
-		init.ToMyLeft.Channel = ledgerChannelToMyLeft
-		err = init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.TheirDestination, init.ToMyRight.Channel.MyDestination)
-		if err != nil {
-			return VirtualFundObjective{}, err
-		}
-	default:
-		return VirtualFundObjective{}, errors.New(`myRole > n+1`)
 	}
 
 	return init, nil
