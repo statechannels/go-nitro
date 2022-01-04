@@ -219,10 +219,18 @@ func (s DirectFundObjective) amountToDeposit() types.Funds {
 	return deposits
 }
 
-// todo: is this sufficient? Particularly: s has pointer members (*big.Int)
+// Clone returns a deep copy of the receiver
 func (s DirectFundObjective) clone() DirectFundObjective {
-	clone := s
-	*clone.C = s.C.Clone()
+	clone := DirectFundObjective{}
+	clone.Status = s.Status
+
+	cClone := s.C.Clone()
+	clone.C = &cClone
+
+	clone.myDepositSafetyThreshold = s.myDepositSafetyThreshold.Clone()
+	clone.myDepositTarget = s.myDepositTarget.Clone()
+	clone.fullyFundedThreshold = s.fullyFundedThreshold.Clone()
+
 	return clone
 }
 
