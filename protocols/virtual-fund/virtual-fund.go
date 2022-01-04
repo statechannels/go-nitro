@@ -85,9 +85,9 @@ func New(
 	// Initialize virtual channel
 	v, err := channel.New(initialStateOfV, false, myRole, types.Destination{}, types.Destination{})
 	if err != nil {
-		return init, err
-
+		return VirtualFundObjective{}, err
 	}
+
 	init.V = &v
 	init.n = n
 	init.MyRole = myRole
