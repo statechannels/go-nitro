@@ -2,6 +2,7 @@ package virtualfund
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel"
