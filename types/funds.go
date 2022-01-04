@@ -79,3 +79,8 @@ func (f Funds) canAfford(g Funds) bool {
 
 	return true
 }
+
+// Clone returns a deep copy of the receiver
+func (f Funds) Clone() Funds {
+	return Sum(f, Funds{})
+}
