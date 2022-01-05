@@ -6,6 +6,9 @@ Implementation of nitro protocol in golang.
 
 ---
 
+# Getting started
+Please see [contributing.md](./contributing.md)
+
 ## Roadmap
 
 The following roadmap gives an idea of the various packages that compose the `go-nitro` module, and their implementation status:
