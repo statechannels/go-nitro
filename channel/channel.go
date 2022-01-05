@@ -191,11 +191,14 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 	return true
 }
 
-// AddSignedStates adds each signed state in the mapping
-func (c Channel) AddSignedStates(mapping map[*state.State]state.Signature) {
+// AddSignedStates adds each signed state in the mapping. It returns true if all signed states were added successfully, false otherwise.
+// If one or more signed states fails to be added, this does not prevent other signed states from being added.
+func (c Channel) AddSignedStates(mapping map[*state.State]state.Signature) bool {
+	allOk := true
 	for state, sig := range mapping {
-		c.AddSignedState(*state, sig)
+		allOk = allOk && c.AddSignedState(*state, sig)
 	}
+	return allOk
 }
 
 // indexOf returns the index of the given suspect address in the lineup of addresses. A second return value ("ok") is true the suspect was found, false otherwise.
