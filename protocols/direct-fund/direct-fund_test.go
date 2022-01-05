@@ -11,35 +11,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-var testState = state.State{
-	ChainId: big.NewInt(9001),
-	Participants: []types.Address{
-		common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`), // private key caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634
-		common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`), // private key 62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2
-	},
-	ChannelNonce:      big.NewInt(37140676580),
-	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
-	ChallengeDuration: big.NewInt(60),
-	AppData:           []byte{},
-	Outcome: outcome.Exit{
-		outcome.SingleAssetExit{
-			Asset: types.Address{},
-			Allocations: outcome.Allocations{
-				outcome.Allocation{
-					Destination: types.AdddressToDestination(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)),
-					Amount:      big.NewInt(5),
-				},
-				outcome.Allocation{
-					Destination: types.AdddressToDestination(common.HexToAddress(`0xEe18fF1575055691009aa246aE608132C57a422c`)),
-					Amount:      big.NewInt(5),
-				},
-			},
-		},
-	},
-	TurnNum: big.NewInt(0),
-	IsFinal: false,
-}
-
 type actor struct {
 	address     types.Address
 	destination types.Destination
@@ -58,12 +29,39 @@ var bob = actor{
 	privateKey:  common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`),
 }
 
+var testState = state.State{
+	ChainId:           big.NewInt(9001),
+	Participants:      []types.Address{alice.address, bob.address},
+	ChannelNonce:      big.NewInt(37140676580),
+	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
+	ChallengeDuration: big.NewInt(60),
+	AppData:           []byte{},
+	Outcome: outcome.Exit{
+		outcome.SingleAssetExit{
+			Asset: types.Address{},
+			Allocations: outcome.Allocations{
+				outcome.Allocation{
+					Destination: alice.destination,
+					Amount:      big.NewInt(5),
+				},
+				outcome.Allocation{
+					Destination: bob.destination,
+					Amount:      big.NewInt(5),
+				},
+			},
+		},
+	},
+	TurnNum: big.NewInt(0),
+	IsFinal: false,
+}
+
 var isTwoPartyLedger = false           // for the purposes of this test
 var myDestination = alice.destination  // only needed if isTwoPartyLedger = true
 var theirDestination = bob.destination // only needed if isTwoPartyLedger = true
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
+	// fmt.Println(testState)
 	// Assert that a valid set of constructor args does not result in an error
 	if _, err := New(testState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination); err != nil {
 		t.Error(err)
@@ -89,10 +87,10 @@ var dummySignature = state.Signature{
 }
 var dummyState = state.State{}
 var stateToSign state.State = s.C.PreFundState()
-var privateKeyOfParticipant0 = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
-var correctSignatureByParticipant, _ = stateToSign.Sign(privateKeyOfParticipant0)
+var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
 
 func TestUpdate(t *testing.T) {
+	// fmt.Println(testState)
 
 	// Prepare an event with a mismatched channelId
 	e := protocols.ObjectiveEvent{
@@ -158,7 +156,7 @@ func TestCrank(t *testing.T) {
 	var correctSignatureByBobOnPostFund, _ = s.C.PostFundState().Sign(bob.privateKey)
 
 	// Assert that cranking an unapproved objective returns an error
-	if _, _, _, err := s.Crank(&privateKeyOfParticipant0); err == nil {
+	if _, _, _, err := s.Crank(&alice.privateKey); err == nil {
 		t.Error(`Expected error when cranking unapproved objective, but got nil`)
 	}
 
@@ -169,7 +167,7 @@ func TestCrank(t *testing.T) {
 	// And then crank it to see which "pause point" (WaitingFor) we end up at.
 
 	// Initial Crank
-	_, _, waitingFor, err := o.Crank(&privateKeyOfParticipant0)
+	_, _, waitingFor, err := o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -182,7 +180,7 @@ func TestCrank(t *testing.T) {
 	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PreFundState(), correctSignatureByBobOnPreFund)
 
 	// Cranking should move us to the next waiting point
-	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -192,7 +190,7 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the first "deposit"
 	o.(DirectFundObjective).C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
-	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -203,7 +201,7 @@ func TestCrank(t *testing.T) {
 	// Manually make the second "deposit"
 	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
 	o.(DirectFundObjective).C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
-	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -217,7 +215,7 @@ func TestCrank(t *testing.T) {
 
 	// This should be the final crank
 	o.(DirectFundObjective).C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
-	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
