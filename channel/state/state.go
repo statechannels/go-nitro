@@ -71,6 +71,15 @@ var address, _ = abi.NewType("address", "address", nil)
 // and an error if the id is an external destination.
 func (s State) ChannelId() (types.Destination, error) {
 
+	if s.ChainId == nil {
+		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChainId`)
+	}
+
+	if s.ChannelNonce == nil {
+		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChannelNonce`)
+
+	}
+
 	encodedChannelPart, error := abi.Arguments{
 		{Type: uint256},
 		{Type: addressArray},
