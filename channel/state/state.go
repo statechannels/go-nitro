@@ -77,7 +77,6 @@ func (s State) ChannelId() (types.Destination, error) {
 
 	if s.ChannelNonce == nil {
 		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChannelNonce`)
-
 	}
 
 	encodedChannelPart, error := abi.Arguments{
