@@ -40,7 +40,7 @@ func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types
 		return c, errors.New(`objective must be constructed with a turnNum 0 state`)
 	}
 	if isTwoPartyLedger && (myDestination == types.Destination{} || theirDestination == types.Destination{}) {
-		return c, errors.New(`two party ledger channels must have non-null specify myDestination and theirDestination`)
+		return c, errors.New(`two party ledger channels must have non-null myDestination and theirDestination`)
 	}
 	var err error
 	c.Id, err = s.ChannelId()
