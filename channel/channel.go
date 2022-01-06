@@ -196,7 +196,10 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 func (c Channel) AddSignedStates(mapping map[*state.State]state.Signature) bool {
 	allOk := true
 	for state, sig := range mapping {
-		allOk = c.AddSignedState(*state, sig) && allOk
+		ok := c.AddSignedState(*state, sig)
+		if !ok {
+			allOk = false
+		}
 	}
 	return allOk
 }
