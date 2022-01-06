@@ -70,7 +70,7 @@ func New(
 		if !ledgerChannelToMyRight.IsTwoPartyLedger {
 			return VirtualFundObjective{}, errors.New(`alice's right-channel is not a two-party ledger channel`)
 		}
-	case n + 1: // Bob
+	case 1: // Bob
 		if !ledgerChannelToMyLeft.IsTwoPartyLedger {
 			return VirtualFundObjective{}, errors.New(`bob's left-channel is not a two-party ledger channel`)
 		}
@@ -119,7 +119,7 @@ func New(
 		}
 	}
 
-	if myRole != n+1 { // everyone other than Bob has a right-channel
+	if myRole != 1 { // everyone other than Bob has a right-channel
 		init.ToMyRight = &Connection{}
 		init.ToMyRight.Channel = ledgerChannelToMyRight
 		err = init.ToMyRight.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.MyDestination, init.ToMyRight.Channel.TheirDestination)
@@ -163,7 +163,7 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 	if s.MyRole != 0 {
 		toMyLeftId = s.ToMyLeft.Channel.Id // Avoid this if it is nil
 	}
-	if s.MyRole != s.n+1 {
+	if s.MyRole != 1 {
 		toMyRightId = s.ToMyRight.Channel.Id // Avoid this if it is nil
 	}
 
@@ -285,15 +285,13 @@ func (s VirtualFundObjective) fundingComplete() bool {
 	// Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
 	// A = P_0 and B=P_n+1 are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
 
-	n := s.n
-
 	switch {
 	case s.MyRole == 0: // Alice
 		return s.ToMyRight.ledgerChannelAffordsExpectedGuarantees()
-	case s.MyRole < n+1: // Intermediary
-		return s.ToMyRight.ledgerChannelAffordsExpectedGuarantees() && s.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
-	case s.MyRole == n+1: // Bob
+	case s.MyRole == 1: // Bob
 		return s.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
+	case s.MyRole > 1: // Intermediary
+		return s.ToMyRight.ledgerChannelAffordsExpectedGuarantees() && s.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
 	default: // Invalid
 		return false
 	}
@@ -322,8 +320,7 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 				Right:       s.ToMyLeft.Channel.MyDestination,
 			})
 	}
-	n := s.n
-	if s.MyRole < n { // Not Bob
+	if s.MyRole != 1 { // Not Bob
 		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
 			protocols.LedgerRequest{
 				LedgerId:    s.ToMyRight.Channel.Id,
