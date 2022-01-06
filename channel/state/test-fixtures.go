@@ -15,11 +15,11 @@ var TestOutcome = outcome.Exit{
 		Asset: types.Address{},
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
-				Destination: types.AdddressToDestination(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)),
+				Destination: types.AddressToDestination(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)),
 				Amount:      big.NewInt(5),
 			},
 			outcome.Allocation{
-				Destination: types.AdddressToDestination(common.HexToAddress(`0xEe18fF1575055691009aa246aE608132C57a422c`)),
+				Destination: types.AddressToDestination(common.HexToAddress(`0xEe18fF1575055691009aa246aE608132C57a422c`)),
 				Amount:      big.NewInt(5),
 			},
 		},

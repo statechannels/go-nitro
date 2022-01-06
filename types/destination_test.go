@@ -61,7 +61,7 @@ func TestToAddress(t *testing.T) {
 func TestToDestination(t *testing.T) {
 
 	for i, refAddress := range referenceAddress {
-		convertedAddress := AdddressToDestination(refAddress)
+		convertedAddress := AddressToDestination(refAddress)
 
 		if convertedAddress != areExternal[i] {
 			t.Errorf("expected %x to convert to %x, but it did not", refAddress, areExternal[i])
