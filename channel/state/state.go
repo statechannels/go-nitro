@@ -69,13 +69,19 @@ var address, _ = abi.NewType("address", "address", nil)
 
 // ChannelId computes and returns the channel id corresponding to the State,
 // and an error if the id is an external destination.
+// Up to hash collisions, ChannelId distinguishes channels that have different FixedPart
+// values
 func (s State) ChannelId() (types.Destination, error) {
+	return s.FixedPart().ChannelId()
+}
 
-	if s.ChainId == nil {
+func (fp FixedPart) ChannelId() (types.Destination, error) {
+
+	if fp.ChainId == nil {
 		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChainId`)
 	}
 
-	if s.ChannelNonce == nil {
+	if fp.ChannelNonce == nil {
 		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChannelNonce`)
 	}
 
@@ -83,7 +89,7 @@ func (s State) ChannelId() (types.Destination, error) {
 		{Type: uint256},
 		{Type: addressArray},
 		{Type: uint256},
-	}.Pack(s.ChainId, s.Participants, s.ChannelNonce)
+	}.Pack(fp.ChainId, fp.Participants, fp.ChannelNonce)
 
 	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
 
