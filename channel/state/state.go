@@ -29,30 +29,30 @@ type (
 	// NOTE: It is a strict superset of the fields which determine the channel id.
 	// It is therefore possible to change some of the fields while preserving said id.
 	FixedPart struct {
-		ChainId           *types.Uint256
-		Participants      []types.Address
-		ChannelNonce      *types.Uint256 // uint48 in solidity
-		ChallengeDuration *types.Uint256 // This could change (infrequently) without affecting the channel id.
+		ChainId      *types.Uint256
+		Participants []types.Address
+		ChannelNonce *types.Uint256 // uint48 in solidity
 	}
 
 	// VariablePart contains the subset of State data which can change with each state update.
 	VariablePart struct {
-		AppData       types.Bytes
-		AppDefinition types.Address
-		Outcome       outcome.Exit
-		TurnNum       *types.Uint256
-		IsFinal       bool
+		AppData           types.Bytes
+		AppDefinition     types.Address
+		Outcome           outcome.Exit
+		TurnNum           *types.Uint256
+		IsFinal           bool
+		ChallengeDuration *types.Uint256
 	}
 )
 
 // FixedPart returns the FixedPart of the State
 func (s State) FixedPart() FixedPart {
-	return FixedPart{s.ChainId, s.Participants, s.ChannelNonce, s.ChallengeDuration}
+	return FixedPart{s.ChainId, s.Participants, s.ChannelNonce}
 }
 
 // VariablePart returns the VariablePart of the State
 func (s State) VariablePart() VariablePart {
-	return VariablePart{s.AppData, s.AppDefinition, s.Outcome, s.TurnNum, s.IsFinal}
+	return VariablePart{s.AppData, s.AppDefinition, s.Outcome, s.TurnNum, s.IsFinal, s.ChallengeDuration}
 }
 
 // uint256 is the uint256 type for abi encoding
@@ -231,7 +231,7 @@ func StateFromFixedAndVariablePart(f FixedPart, v VariablePart) State {
 		ChainId:           f.ChainId,
 		Participants:      f.Participants,
 		ChannelNonce:      f.ChannelNonce,
-		ChallengeDuration: f.ChallengeDuration,
+		ChallengeDuration: v.ChallengeDuration,
 		AppDefinition:     v.AppDefinition,
 		AppData:           v.AppData,
 		Outcome:           v.Outcome,
