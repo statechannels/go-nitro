@@ -8,7 +8,7 @@ import (
 )
 
 // TestMessageService is an implementaion of the MessageService interface
-// for use in with-peers style test environments.
+// for use in multi-engine test environments.
 //
 // It allows for individual nitro-clients / engines to:
 //  1. be instantiated together via test setup data
@@ -28,7 +28,7 @@ func (t TestMessageService) Run() {
 	go t.routeOutgoing()
 }
 
-func (t TestMessageService) GetReceiveChan() chan protocols.Message {
+func (t TestMessageService) GetReceiveChan() <-chan protocols.Message {
 	return t.in
 }
 
@@ -40,8 +40,7 @@ func (t TestMessageService) Send(message protocols.Message) {
 	t.out <- message
 }
 
-// Connect creates a gochan for message service t to communicate with
-// the given peer. This connection is one-way.
+// Connect creates a gochan for message service to send messages to the given peer.
 func (t TestMessageService) Connect(peer TestMessageService) {
 	toPeer := make(chan protocols.Message)
 
