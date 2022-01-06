@@ -29,6 +29,18 @@ type Connection struct {
 	ExpectedGuarantees map[types.Address]outcome.Allocation
 }
 
+type Role uint
+
+const (
+	Alice Role = iota
+	Bob
+	I1
+	I2
+	I3
+	I4
+	I5 // More than 5 intermediaries is essentially impossible
+)
+
 // VirtualFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
 type VirtualFundObjective struct {
 	Status protocols.ObjectiveStatus
@@ -38,7 +50,7 @@ type VirtualFundObjective struct {
 	ToMyRight *Connection
 
 	n      uint // number of ledger channels (num_hops + 1)
-	MyRole uint // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
+	MyRole Role // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
 
 	a0 types.Funds // Initial balance for Alice
 	b0 types.Funds // Initial balance for Bob
@@ -55,22 +67,22 @@ func New(
 	initialStateOfV state.State,
 	myAddress types.Address,
 	n uint, // number of ledger channels (num_hops + 1)
-	myRole uint,
+	myRole Role,
 	ledgerChannelToMyLeft channel.Channel,
 	ledgerChannelToMyRight channel.Channel,
 ) (VirtualFundObjective, error) {
 	// role and ledger-channel checks
-	if myRole > n+1 {
+	if uint(myRole) > n+1 {
 		return VirtualFundObjective{}, fmt.Errorf(`invalid role <%d> specified in %d-hop virtual-fund objective`,
 			myRole, n-1)
 	}
 
 	switch myRole {
-	case 0: // Alice
+	case Alice:
 		if !ledgerChannelToMyRight.IsTwoPartyLedger {
 			return VirtualFundObjective{}, errors.New(`alice's right-channel is not a two-party ledger channel`)
 		}
-	case 1: // Bob
+	case Bob:
 		if !ledgerChannelToMyLeft.IsTwoPartyLedger {
 			return VirtualFundObjective{}, errors.New(`bob's left-channel is not a two-party ledger channel`)
 		}
@@ -83,7 +95,7 @@ func New(
 	var init VirtualFundObjective
 
 	// Initialize virtual channel
-	v, err := channel.New(initialStateOfV, false, myRole, types.Destination{}, types.Destination{})
+	v, err := channel.New(initialStateOfV, false, uint(myRole), types.Destination{}, types.Destination{})
 	if err != nil {
 		return VirtualFundObjective{}, err
 	}
@@ -110,7 +122,7 @@ func New(
 	}
 
 	// Setup Ledger Channel Connections and expected guarantees
-	if myRole != 0 { // everyone other than Alice has a left-channel
+	if myRole != Alice { // Alice has no left-channel
 		init.ToMyLeft = &Connection{}
 		init.ToMyLeft.Channel = ledgerChannelToMyLeft
 		err = init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyLeft.Channel.TheirDestination, init.ToMyLeft.Channel.MyDestination)
@@ -119,7 +131,7 @@ func New(
 		}
 	}
 
-	if myRole != 1 { // everyone other than Bob has a right-channel
+	if myRole != Bob { // Bob has no right-channel
 		init.ToMyRight = &Connection{}
 		init.ToMyRight.Channel = ledgerChannelToMyRight
 		err = init.ToMyRight.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.MyDestination, init.ToMyRight.Channel.TheirDestination)
@@ -160,10 +172,10 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 	var toMyLeftId types.Destination
 	var toMyRightId types.Destination
 
-	if s.MyRole != 0 {
+	if s.MyRole != Alice {
 		toMyLeftId = s.ToMyLeft.Channel.Id // Avoid this if it is nil
 	}
-	if s.MyRole != 1 {
+	if s.MyRole != Bob {
 		toMyRightId = s.ToMyRight.Channel.Id // Avoid this if it is nil
 	}
 
@@ -286,13 +298,13 @@ func (s VirtualFundObjective) fundingComplete() bool {
 	// A = P_0 and B=P_n+1 are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
 
 	switch {
-	case s.MyRole == 0: // Alice
+	case s.MyRole == Alice:
 		return s.ToMyRight.ledgerChannelAffordsExpectedGuarantees()
-	case s.MyRole == 1: // Bob
+	case s.MyRole == Bob:
 		return s.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
-	case s.MyRole > 1: // Intermediary
+	case s.MyRole > I1:
 		return s.ToMyRight.ledgerChannelAffordsExpectedGuarantees() && s.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
-	default: // Invalid
+	default: // unreachable
 		return false
 	}
 

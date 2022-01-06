@@ -28,28 +28,28 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		address     types.Address
 		destination types.Destination
 		privateKey  []byte
-		role        uint
+		role        Role
 	}
 
 	var alice = actor{
 		address:     common.HexToAddress(`0xD9995BAE12FEe327256FFec1e3184d492bD94C31`),
 		destination: types.AdddressToDestination(common.HexToAddress(`0xD9995BAE12FEe327256FFec1e3184d492bD94C31`)),
 		privateKey:  common.Hex2Bytes(`7ab741b57e8d94dd7e1a29055646bafde7010f38a900f55bbd7647880faa6ee8`),
-		role:        0,
+		role:        Alice,
 	}
 
 	var p1 = actor{ // Aliases: The Hub, Irene
 		address:     common.HexToAddress(`0xd4Fa489Eacc52BA59438993f37Be9fcC20090E39`),
 		destination: types.AdddressToDestination(common.HexToAddress(`0xd4Fa489Eacc52BA59438993f37Be9fcC20090E39`)),
 		privateKey:  common.Hex2Bytes(`2030b463177db2da82908ef90fa55ddfcef56e8183caf60db464bc398e736e6f`),
-		role:        1,
+		role:        Bob,
 	}
 
 	var bob = actor{
 		address:     common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`),
 		destination: types.AdddressToDestination(common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`)),
 		privateKey:  common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`),
-		role:        2,
+		role:        I1,
 	}
 
 	/////////////////////
@@ -153,7 +153,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		// In this test, we play Alice
 		my := alice
 
-		// Alice plays role 0 so has no ledger channel on her left
+		// Alice has no ledger channel on her left
 		var ledgerChannelToMyLeft channel.Channel
 
 		// She has a single ledger channel L_0 connecting her to P_1
@@ -169,7 +169,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		ledgerChannelToMyRight.OnChainFunding = ledgerChannelToMyRight.PreFundState().Outcome.TotalAllocated()
 
 		// Objective
-		var n = uint(2) // number of ledger channels (num_hops + 1)
+		var n uint = 2 // number of ledger channels (num_hops + 1)
 		var s, _ = New(vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 		var expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination}
 		var expectedEncodedGuaranteeMetadata, _ = expectedGuaranteeMetadata.Encode()
