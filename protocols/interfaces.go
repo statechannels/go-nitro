@@ -7,7 +7,7 @@ import (
 
 // Message is an object to be sent across the wire. It can contain a proposal and signed state hashes, and is addressed to a counterparty.
 type Message struct {
-	To          []byte
+	To          types.Address
 	ObjectiveId ObjectiveId
 	Sigs        map[*state.State]state.Signature // mapping from state hash to signature
 	Proposal    Objective
