@@ -146,7 +146,7 @@ func (s State) encode() (types.Bytes, error) {
 		ChannelId,
 		s.AppDefinition,
 		s.ChallengeDuration,
-		[]byte(s.AppData),
+		[]byte(s.AppData), // Note: even though s.AppData is types.bytes, which is an alias for []byte], Pack will not accept types.bytes
 		[]byte(outcome),
 		s.TurnNum,
 		s.IsFinal,
