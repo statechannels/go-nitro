@@ -224,8 +224,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			// Approve the objective, so that the rest of the test cases can run.
-			o := s.Approve()
-
+			o := s.Approve().(VirtualFundObjective)
 			// To test the finite state progression, we are going to progressively mutate o
 			// And then crank it to see which "pause point" (WaitingFor) we end up at.
 
@@ -239,19 +238,20 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			// Manually progress the extended state by collecting prefund signatures
-			o.(VirtualFundObjective).V.AddSignedState(vPreFund, correctSignatureByAliceOnVPreFund)
-			o.(VirtualFundObjective).V.AddSignedState(vPreFund, correctSignatureByBobOnVPreFund)
-			o.(VirtualFundObjective).V.AddSignedState(vPreFund, correctSignatureByP_1OnVPreFund)
+			o.V.AddSignedState(vPreFund, correctSignatureByAliceOnVPreFund)
+			o.V.AddSignedState(vPreFund, correctSignatureByBobOnVPreFund)
+			o.V.AddSignedState(vPreFund, correctSignatureByP_1OnVPreFund)
 
 			// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
-			o, sideEffects, waitingFor, err := o.Crank(&my.privateKey)
+			oObj, sideEffects, waitingFor, err := o.Crank(&my.privateKey)
+			o = oObj.(VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
 			}
 			if waitingFor != WaitingForCompleteFunding {
 				t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
 			}
-			if o.(VirtualFundObjective).requestedLedgerUpdates != true {
+			if o.requestedLedgerUpdates != true {
 				t.Error(`Expected ledger update idempotency flag to be raised, but it wasn't`)
 			}
 
@@ -262,11 +262,12 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			// Manually progress the extended state by "completing funding" from this wallet's point of view
-			o.(VirtualFundObjective).ToMyRight.Channel.AddSignedState(l0updatedstate, correctSignatureByAliceOnL_0updatedsate)
-			o.(VirtualFundObjective).ToMyRight.Channel.AddSignedState(l0updatedstate, correctSignatureByP_1OnL_0updatedsate)
-			o.(VirtualFundObjective).ToMyRight.Channel.OnChainFunding[types.Address{}] = l0state.Outcome[0].Allocations.Total() // Make this channel fully funded
+			o.ToMyRight.Channel.AddSignedState(l0updatedstate, correctSignatureByAliceOnL_0updatedsate)
+			o.ToMyRight.Channel.AddSignedState(l0updatedstate, correctSignatureByP_1OnL_0updatedsate)
+			o.ToMyRight.Channel.OnChainFunding[types.Address{}] = l0state.Outcome[0].Allocations.Total() // Make this channel fully funded
 			// Cranking now should not generate side effects, because we already did that
-			o, _, waitingFor, err = o.Crank(&my.privateKey)
+			oObj, _, waitingFor, err = o.Crank(&my.privateKey)
+			o = oObj.(VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -275,9 +276,9 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			// Manually progress the extended state by collecting postfund signatures
-			o.(VirtualFundObjective).V.AddSignedState(o.(VirtualFundObjective).V.PostFundState(), correctSignatureByAliceOnVPostFund)
-			o.(VirtualFundObjective).V.AddSignedState(o.(VirtualFundObjective).V.PostFundState(), correctSignatureByBobOnVPostFund)
-			o.(VirtualFundObjective).V.AddSignedState(o.(VirtualFundObjective).V.PostFundState(), correctSignatureByP_1OnVPostFund)
+			o.V.AddSignedState(o.V.PostFundState(), correctSignatureByAliceOnVPostFund)
+			o.V.AddSignedState(o.V.PostFundState(), correctSignatureByBobOnVPostFund)
+			o.V.AddSignedState(o.V.PostFundState(), correctSignatureByP_1OnVPostFund)
 
 			// This should be the final crank...
 			_, _, waitingFor, err = o.Crank(&my.privateKey)
@@ -313,11 +314,12 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// Part 1: a signature on a state in channel V
 			prefundstate := s.V.PreFundState()
 			e.Sigs[&prefundstate] = correctSignatureByAliceOnVPreFund
-			updated, err := s.Update(e)
+			updatedObj, err := s.Update(e)
+			updated := updatedObj.(VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
 			}
-			if updated.(VirtualFundObjective).V.PreFundSignedByMe() != true {
+			if updated.V.PreFundSignedByMe() != true {
 				t.Error(`Objective data not updated as expected`)
 			}
 
@@ -327,11 +329,12 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 			f.Sigs = make(map[*state.State]state.Signature)
 			f.Sigs[&l0updatedstate] = correctSignatureByAliceOnL_0updatedsate
-			updated, err = s.Update(f)
+			updatedObj, err = s.Update(f)
+			updated = updatedObj.(VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
 			}
-			if !updated.(VirtualFundObjective).ToMyRight.ledgerChannelAffordsExpectedGuarantees() != true {
+			if !updated.ToMyRight.ledgerChannelAffordsExpectedGuarantees() != true {
 				t.Error(`Objective data not updated as expected`)
 			}
 
