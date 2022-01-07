@@ -56,17 +56,22 @@ func (s State) VariablePart() VariablePart {
 	return VariablePart{s.AppData, s.AppDefinition, s.Outcome, s.TurnNum, s.IsFinal, s.ChallengeDuration}
 }
 
-// uint256 is the uint256 type for abi encoding
+// uint256 type for abi encoding
 var uint256, _ = abi.NewType("uint256", "uint256", nil)
 
+// bool type for abi encoding
 var boolTy, _ = abi.NewType("bool", "bool", nil)
+
+// address type for abi encoding
 var destination, _ = abi.NewType("address", "address", nil)
+
+// bytes type for abi encoding
 var bytesTy, _ = abi.NewType("bytes", "bytes", nil)
 
-// addressArray is the address[] type for abi encoding
+// address[] type for abi encoding
 var addressArray, _ = abi.NewType("address[]", "address[]", nil)
 
-// address is the address type for abi encoding
+// address type for abi encoding
 var address, _ = abi.NewType("address", "address", nil)
 
 // ChannelId computes and returns the channel id corresponding to the State,
