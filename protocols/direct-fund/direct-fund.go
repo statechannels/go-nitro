@@ -71,12 +71,12 @@ func New(
 	}
 
 	myAllocatedAmount := initialState.Outcome.TotalAllocatedFor(
-		types.AdddressToDestination(myAddress),
+		types.AddressToDestination(myAddress),
 	)
 
 	init.fullyFundedThreshold = initialState.Outcome.TotalAllocated()
 	init.myDepositSafetyThreshold = initialState.Outcome.DepositSafetyThreshold(
-		types.AdddressToDestination(myAddress),
+		types.AddressToDestination(myAddress),
 	)
 	init.myDepositTarget = init.myDepositSafetyThreshold.Add(myAllocatedAmount)
 
