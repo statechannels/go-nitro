@@ -123,11 +123,12 @@ func TestUpdate(t *testing.T) {
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
 	e.Sigs[&stateToSign] = correctSignatureByParticipant
-	updated, err := s.Update(e)
+	updatedObjective, err := s.Update(e)
 	if err != nil {
 		t.Error(err)
 	}
-	if updated.(DirectFundObjective).C.PreFundSignedByMe() != true {
+	updated := updatedObjective.(DirectFundObjective)
+	if updated.C.PreFundSignedByMe() != true {
 		t.Error(`Objective data not updated as expected`)
 	}
 
@@ -135,12 +136,13 @@ func TestUpdate(t *testing.T) {
 	// Updating the objective with this event should overwrite the holdings that are stored
 	e.Holdings = types.Funds{}
 	e.Holdings[common.Address{}] = big.NewInt(3)
-	updated, err = s.Update(e)
+	updatedObjective, err = s.Update(e)
 	if err != nil {
 		t.Error(err)
 	}
-	if !updated.(DirectFundObjective).C.OnChainFunding.Equal(e.Holdings) {
-		t.Error(`Objective data not updated as expected`, updated.(DirectFundObjective).C.OnChainFunding, e.Holdings)
+	updated = updatedObjective.(DirectFundObjective)
+	if !updated.C.OnChainFunding.Equal(e.Holdings) {
+		t.Error(`Objective data not updated as expected`, updated.C.OnChainFunding, e.Holdings)
 	}
 
 }
