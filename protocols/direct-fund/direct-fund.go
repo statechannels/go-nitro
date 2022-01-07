@@ -39,7 +39,13 @@ type DirectFundObjective struct {
 
 // New initiates a DirectFundingInitialState with data calculated from
 // the supplied initialState and client address
-func New(initialState state.State, myAddress types.Address, isTwoPartyLedger bool, myDestination types.Destination, theirDestination types.Destination) (DirectFundObjective, error) {
+func New(
+	initialState state.State,
+	myAddress types.Address,
+	isTwoPartyLedger bool,
+	myDestination types.Destination,
+	theirDestination types.Destination,
+) (DirectFundObjective, error) {
 	if initialState.IsFinal {
 		return DirectFundObjective{}, errors.New("attempted to initiate new direct-funding objective with IsFinal == true")
 	}
@@ -60,7 +66,7 @@ func New(initialState state.State, myAddress types.Address, isTwoPartyLedger boo
 	*init.C, err = channel.New(initialState, isTwoPartyLedger, myIndex, myDestination, theirDestination)
 
 	if err != nil {
-		return init, err
+		return DirectFundObjective{}, fmt.Errorf("failed to initialize channel for direct-fund objective: %w", err)
 	}
 
 	myAllocatedAmount := initialState.Outcome.TotalAllocatedFor(

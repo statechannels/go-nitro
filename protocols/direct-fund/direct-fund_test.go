@@ -90,8 +90,6 @@ var stateToSign state.State = s.C.PreFundState()
 var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
 
 func TestUpdate(t *testing.T) {
-	// fmt.Println(testState)
-
 	// Prepare an event with a mismatched channelId
 	e := protocols.ObjectiveEvent{
 		ChannelId: types.Destination{},
