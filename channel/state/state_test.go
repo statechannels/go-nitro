@@ -11,13 +11,13 @@ import (
 
 // The following constants are generated from our ts nitro-protocol package
 var correctChannelId = common.HexToHash(`4ebd366d014a173765ba1e50f284c179ade31f20441bec41664712aac6cc461d`)
-var correctStateHash = common.HexToHash(`c8d5eae9ca84647bafc1bd26a7058a230cd45cb3bf21b37b6330053f4e3ebd0e`)
+var correctStateHash = common.HexToHash(`69c8a1304264e91cf2cbab10906dff5df8242f5df6b361c6231aace57eeeffe3`)
 var signerPrivateKey = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
 var signerAddress = common.HexToAddress(`F5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)
 var correctSignature = Signature{
-	common.Hex2Bytes(`b3b69fbfbdcb3100d6e5758c5661d0d793bc227716d16fd6235ccd588cae2849`),
-	common.Hex2Bytes(`500969f691a848245910e9ac7688bbc28198b6a6e723299751bda6234bff77f3`),
-	byte(1),
+	common.Hex2Bytes(`f8d2975d9720895344199752b92d0870554546c106af417b6092e2864c4bcb10`),
+	common.Hex2Bytes(`0d5f41f54f0da45c4d21b5b72cc87cc193f31beb096f83b8b90d535b0469015a`),
+	byte(0),
 }
 
 func TestChannelId(t *testing.T) {

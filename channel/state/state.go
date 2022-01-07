@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -58,7 +59,8 @@ func (s State) VariablePart() VariablePart {
 // uint256 is the uint256 type for abi encoding
 var uint256, _ = abi.NewType("uint256", "uint256", nil)
 
-// bytesTy is the bytes type for abi encoding
+var boolTy, _ = abi.NewType("bool", "bool", nil)
+var destination, _ = abi.NewType("address", "address", nil)
 var bytesTy, _ = abi.NewType("bytes", "bytes", nil)
 
 // addressArray is the address[] type for abi encoding
@@ -100,67 +102,46 @@ func (fp FixedPart) ChannelId() (types.Destination, error) {
 
 }
 
-// appPartHash computes the appPartHash of the State
-func (s State) appPartHash() (types.Bytes32, error) {
+// encodes the state into a []bytes value
+func (s State) encode() (types.Bytes, error) {
+	ChannelId, error := s.ChannelId()
+	if error != nil {
+		return types.Bytes{}, fmt.Errorf("failed to construct channelId: %w", error)
+	}
 
-	encodedAppPart, error := abi.Arguments{
-		{Type: uint256},
-		{Type: address},
-		{Type: bytesTy},
-	}.Pack(s.ChallengeDuration, s.AppDefinition, []byte(s.AppData))
+	outcome, error := s.Outcome.Encode()
 
-	return crypto.Keccak256Hash(encodedAppPart), error
+	if error != nil {
+		return types.Bytes{}, fmt.Errorf("failed to encode outcome: %w", error)
 
+	}
+
+	return abi.Arguments{
+		{Type: destination}, // channel id (includes ChainID, Participants, ChannelNonce)
+		{Type: address},     // app definition
+		{Type: uint256},     // challenge duration
+		{Type: bytesTy},     // app data
+		{Type: bytesTy},     // outcome
+		{Type: uint256},     // turnNum
+		{Type: boolTy},      // isFinal
+	}.Pack(
+		ChannelId,
+		s.AppDefinition,
+		s.ChallengeDuration,
+		[]byte(s.AppData),
+		[]byte(outcome),
+		s.TurnNum,
+		s.IsFinal,
+	)
 }
 
 // Hash returns the keccak256 hash of the State
 func (s State) Hash() (types.Bytes32, error) {
-
-	ChannelId, error := s.ChannelId()
-	if error != nil {
-		return types.Bytes32{}, error
+	encoded, err := s.encode()
+	if err != nil {
+		return types.Bytes32{}, fmt.Errorf("failed to encode state: %w", err)
 	}
-	OutcomeHash, error := s.Outcome.Hash()
-	if error != nil {
-		return types.Bytes32{}, error
-	}
-	AppPartHash, error := s.appPartHash()
-	if error != nil {
-		return types.Bytes32{}, error
-	}
-
-	stateStruct := struct {
-		TurnNum     *types.Uint256
-		IsFinal     bool
-		ChannelId   types.Destination
-		AppPartHash types.Bytes32
-		OutcomeHash types.Bytes32
-	}{
-		TurnNum:     s.TurnNum,
-		IsFinal:     s.IsFinal,
-		ChannelId:   ChannelId,
-		AppPartHash: AppPartHash,
-		OutcomeHash: OutcomeHash,
-	}
-
-	var stateTy, _ = abi.NewType(
-		"tuple",
-		"struct",
-		[]abi.ArgumentMarshaling{
-			{Name: "TurnNum", Type: "uint256"},
-			{Name: "IsFinal", Type: "bool"},
-			{Name: "ChannelId", Type: "bytes32"},
-			{Name: "AppPartHash", Type: "bytes32"},
-			{Name: "OutcomeHash", Type: "bytes32"},
-		},
-	)
-
-	encodedState, error := abi.Arguments{{Type: stateTy}}.Pack(stateStruct)
-	if error != nil {
-		return types.Bytes32{}, error
-	}
-
-	return crypto.Keccak256Hash(encodedState), nil
+	return crypto.Keccak256Hash(encoded), nil
 }
 
 // Sign generates an ECDSA signature on the state using the supplied private key
