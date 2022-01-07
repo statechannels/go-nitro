@@ -88,6 +88,7 @@ func (s State) VariablePart() VariablePart {
 
 // ChannelId computes and returns the channel id corresponding to the State,
 // and an error if the id is an external destination.
+//
 // Up to hash collisions, ChannelId distinguishes channels that have different FixedPart
 // values
 func (s State) ChannelId() (types.Destination, error) {
