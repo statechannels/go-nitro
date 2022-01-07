@@ -25,7 +25,7 @@ var bobMS = TestMessageService{
 	out: make(chan protocols.Message),
 }
 
-var objective, _ = directfund.New(state.TestState, aliceMS.address)
+var objective, _ = directfund.New(state.TestState, aliceMS.address, true, types.AdddressToDestination(aliceMS.address), types.AdddressToDestination(bobMS.address))
 var testId protocols.ObjectiveId = "testObjectiveID"
 
 var aToB protocols.Message = protocols.Message{

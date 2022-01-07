@@ -11,12 +11,27 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type actor struct {
+	address     types.Address
+	destination types.Destination
+	privateKey  []byte
+}
+
+var alice = actor{
+	address:     common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`),
+	destination: types.AdddressToDestination(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)),
+	privateKey:  common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`),
+}
+
+var bob = actor{
+	address:     common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`),
+	destination: types.AdddressToDestination(common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`)),
+	privateKey:  common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`),
+}
+
 var testState = state.State{
-	ChainId: big.NewInt(9001),
-	Participants: []types.Address{
-		common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`), // private key caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634
-		common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`), // private key 62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2
-	},
+	ChainId:           big.NewInt(9001),
+	Participants:      []types.Address{alice.address, bob.address},
 	ChannelNonce:      big.NewInt(37140676580),
 	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
 	ChallengeDuration: big.NewInt(60),
@@ -26,11 +41,11 @@ var testState = state.State{
 			Asset: types.Address{},
 			Allocations: outcome.Allocations{
 				outcome.Allocation{
-					Destination: types.AdddressToDestination(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)),
+					Destination: alice.destination,
 					Amount:      big.NewInt(5),
 				},
 				outcome.Allocation{
-					Destination: types.AdddressToDestination(common.HexToAddress(`0xEe18fF1575055691009aa246aE608132C57a422c`)),
+					Destination: bob.destination,
 					Amount:      big.NewInt(5),
 				},
 			},
@@ -40,10 +55,15 @@ var testState = state.State{
 	IsFinal: false,
 }
 
+var isTwoPartyLedger = false           // for the purposes of this test
+var myDestination = alice.destination  // only needed if isTwoPartyLedger = true
+var theirDestination = bob.destination // only needed if isTwoPartyLedger = true
+
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
+	// fmt.Println(testState)
 	// Assert that a valid set of constructor args does not result in an error
-	if _, err := New(testState, testState.Participants[0]); err != nil {
+	if _, err := New(testState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination); err != nil {
 		t.Error(err)
 	}
 
@@ -52,26 +72,24 @@ func TestNew(t *testing.T) {
 	finalState.IsFinal = true
 
 	// Assert that constructing with a final state should return an error
-	if _, err := New(finalState, testState.Participants[0]); err == nil {
+	if _, err := New(finalState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination); err == nil {
 		t.Error("Expected an error when constructing with an invalid state, but got nil")
 	}
 
 }
 
 // Construct various variables for use in TestUpdate
-var s, _ = New(state.TestState, state.TestState.Participants[0])
+var s, _ = New(testState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination)
 var dummySignature = state.Signature{
 	R: common.Hex2Bytes(`49d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
 	S: common.Hex2Bytes(`22274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),
 	V: byte(1),
 }
 var dummyState = state.State{}
-var stateToSign state.State = s.expectedStates[0]
-var privateKeyOfParticipant0 = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
-var correctSignatureByParticipant, _ = stateToSign.Sign(privateKeyOfParticipant0)
+var stateToSign state.State = s.C.PreFundState()
+var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
 
 func TestUpdate(t *testing.T) {
-
 	// Prepare an event with a mismatched channelId
 	e := protocols.ObjectiveEvent{
 		ChannelId: types.Destination{},
@@ -85,12 +103,12 @@ func TestUpdate(t *testing.T) {
 	// Now modify the event to give it the "correct" channelId (matching the objective),
 	// and make a new Sigs map.
 	// This prepares us for the rest of the test. We will reuse the same event multiple times
-	e.ChannelId = s.channelId
+	e.ChannelId = s.C.Id
 	e.Sigs = make(map[*state.State]state.Signature)
 
-	// Next, attempt to update the objective with a dummy signature, keyed with a dummy statehash
+	// Next, attempt to update the objective with a dummy signature, keyed with a dummy state
 	// Assert that this results in a NOOP
-	e.Sigs[&dummyState] = dummySignature // Dummmy signature on dummy statehash
+	e.Sigs[&dummyState] = dummySignature // Dummmy signature on dummy state
 	if _, err := s.Update(e); err != nil {
 		t.Error(`dummy signature -- expected a noop but caught an error:`, err)
 	}
@@ -109,7 +127,7 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if updated.(DirectFundObjective).preFundSigned[0] != true {
+	if updated.(DirectFundObjective).C.PreFundSignedByMe() != true {
 		t.Error(`Objective data not updated as expected`)
 	}
 
@@ -121,15 +139,22 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !updated.(DirectFundObjective).onChainHolding.Equal(e.Holdings) {
-		t.Error(`Objective data not updated as expected`, updated.(DirectFundObjective).onChainHolding, e.Holdings)
+	if !updated.(DirectFundObjective).C.OnChainFunding.Equal(e.Holdings) {
+		t.Error(`Objective data not updated as expected`, updated.(DirectFundObjective).C.OnChainFunding, e.Holdings)
 	}
 
 }
 
 func TestCrank(t *testing.T) {
+
+	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.privateKey)
+	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.privateKey)
+
+	var correctSignatureByAliceOnPostFund, _ = s.C.PostFundState().Sign(alice.privateKey)
+	var correctSignatureByBobOnPostFund, _ = s.C.PostFundState().Sign(bob.privateKey)
+
 	// Assert that cranking an unapproved objective returns an error
-	if _, _, _, err := s.Crank(&privateKeyOfParticipant0); err == nil {
+	if _, _, _, err := s.Crank(&alice.privateKey); err == nil {
 		t.Error(`Expected error when cranking unapproved objective, but got nil`)
 	}
 
@@ -140,7 +165,7 @@ func TestCrank(t *testing.T) {
 	// And then crank it to see which "pause point" (WaitingFor) we end up at.
 
 	// Initial Crank
-	_, _, waitingFor, err := o.Crank(&privateKeyOfParticipant0)
+	_, _, waitingFor, err := o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -149,11 +174,11 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by collecting prefund signatures
-	o.(DirectFundObjective).preFundSigned[0] = true
-	o.(DirectFundObjective).preFundSigned[1] = true
+	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PreFundState(), correctSignatureByAliceOnPreFund)
+	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PreFundState(), correctSignatureByBobOnPreFund)
 
 	// Cranking should move us to the next waiting point
-	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -162,8 +187,8 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually make the first "deposit"
-	o.(DirectFundObjective).onChainHolding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
-	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	o.(DirectFundObjective).C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
+	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -173,8 +198,8 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the second "deposit"
 	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
-	o.(DirectFundObjective).onChainHolding[testState.Outcome[0].Asset] = totalAmountAllocated
-	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	o.(DirectFundObjective).C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
+	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -183,12 +208,12 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by collecting postfund signatures
-	o.(DirectFundObjective).postFundSigned[0] = true
-	o.(DirectFundObjective).postFundSigned[1] = true
+	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PostFundState(), correctSignatureByAliceOnPostFund)
+	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PostFundState(), correctSignatureByBobOnPostFund)
 
 	// This should be the final crank
-	o.(DirectFundObjective).onChainHolding[testState.Outcome[0].Asset] = totalAmountAllocated
-	_, _, waitingFor, err = o.Crank(&privateKeyOfParticipant0)
+	o.(DirectFundObjective).C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
+	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
