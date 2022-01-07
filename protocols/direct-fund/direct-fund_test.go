@@ -159,7 +159,7 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Approve the objective, so that the rest of the test cases can run.
-	o := s.Approve()
+	o := s.Approve().(DirectFundObjective)
 
 	// To test the finite state progression, we are going to progressively mutate o
 	// And then crank it to see which "pause point" (WaitingFor) we end up at.
@@ -174,8 +174,8 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by collecting prefund signatures
-	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PreFundState(), correctSignatureByAliceOnPreFund)
-	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PreFundState(), correctSignatureByBobOnPreFund)
+	o.C.AddSignedState(o.C.PreFundState(), correctSignatureByAliceOnPreFund)
+	o.C.AddSignedState(o.C.PreFundState(), correctSignatureByBobOnPreFund)
 
 	// Cranking should move us to the next waiting point
 	_, _, waitingFor, err = o.Crank(&alice.privateKey)
@@ -187,7 +187,7 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually make the first "deposit"
-	o.(DirectFundObjective).C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
+	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
 	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
@@ -198,7 +198,7 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the second "deposit"
 	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
-	o.(DirectFundObjective).C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
+	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
 	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
@@ -208,11 +208,11 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by collecting postfund signatures
-	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PostFundState(), correctSignatureByAliceOnPostFund)
-	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PostFundState(), correctSignatureByBobOnPostFund)
+	o.C.AddSignedState(o.C.PostFundState(), correctSignatureByAliceOnPostFund)
+	o.C.AddSignedState(o.C.PostFundState(), correctSignatureByBobOnPostFund)
 
 	// This should be the final crank
-	o.(DirectFundObjective).C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
+	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
 	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
