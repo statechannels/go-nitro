@@ -46,21 +46,21 @@ type (
 	}
 )
 
-// FixedPart returns the FixedPart of the State
-func (s State) FixedPart() FixedPart {
-	return FixedPart{s.ChainId, s.Participants, s.ChannelNonce}
-}
-
-// VariablePart returns the VariablePart of the State
-func (s State) VariablePart() VariablePart {
-	return VariablePart{s.AppData, s.AppDefinition, s.Outcome, s.TurnNum, s.IsFinal, s.ChallengeDuration}
-}
+/// START: ABI ENCODING HELPERS
+// To encode objects as bytes, we need to construct an encoder, using abi.Arguments.
+// An instance of abi.Arguments implements two functions relevant to us:
+// - `Pack`, which packs go values for a given struct into bytes.
+// - `unPack`, which unpacks bytes into go values
+// To construct an abi.Arguments instance, we need to supply an array of "types", which are
+// actually go values. The following types are used when encoding a state
 
 // uint256 type for abi encoding
 var uint256, _ = abi.NewType("uint256", "uint256", nil)
 
 // bool type for abi encoding
 var boolTy, _ = abi.NewType("bool", "bool", nil)
+
+// TODO: Is this type correct? Shouldn't it be bytes32?
 
 // address type for abi encoding
 var destination, _ = abi.NewType("address", "address", nil)
@@ -73,6 +73,18 @@ var addressArray, _ = abi.NewType("address[]", "address[]", nil)
 
 // address type for abi encoding
 var address, _ = abi.NewType("address", "address", nil)
+
+/// END: ABI ENCODING HELPERS
+
+// FixedPart returns the FixedPart of the State
+func (s State) FixedPart() FixedPart {
+	return FixedPart{s.ChainId, s.Participants, s.ChannelNonce}
+}
+
+// VariablePart returns the VariablePart of the State
+func (s State) VariablePart() VariablePart {
+	return VariablePart{s.AppData, s.AppDefinition, s.Outcome, s.TurnNum, s.IsFinal, s.ChallengeDuration}
+}
 
 // ChannelId computes and returns the channel id corresponding to the State,
 // and an error if the id is an external destination.
