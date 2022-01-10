@@ -10,14 +10,14 @@ import (
 )
 
 // The following constants are generated from our ts nitro-protocol package
-var correctChannelId = common.HexToHash(`4ebd366d014a173765ba1e50f284c179ade31f20441bec41664712aac6cc461d`)
-var correctStateHash = common.HexToHash(`75a55cea83b36dbdcc35b2eb6fcd45c5d2014875cb42f70991603df433280512`)
+var correctChannelId = common.HexToHash(`252e8d12b641d8dd3cde74d299047963c99ce52bded2fbd38afa8e07b76a9306`)
+var correctStateHash = common.HexToHash(`867a304a6c24962522085dc09c09b47413897a13700e94190c4e3320af0a3779`)
 var signerPrivateKey = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
 var signerAddress = common.HexToAddress(`F5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)
 var correctSignature = Signature{
-	common.Hex2Bytes(`a4d78b18c654990334df5e996c6e09fb9b1d35f4dabd6f91bf0efa90c4f71180`),
-	common.Hex2Bytes(`1027d5aa7125c28e1734845a81bc4b1596e32f4af72691f286eaa4b236bdf512`),
-	byte(1),
+	common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
+	common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
+	byte(0),
 }
 
 func TestChannelId(t *testing.T) {
@@ -118,7 +118,6 @@ func TestClone(t *testing.T) {
 	if TestState.ChannelNonce.Cmp(big.NewInt(37140676580)) != 0 || TestState.Outcome[0].Allocations[0].Amount.Cmp(big.NewInt(5)) != 0 {
 		t.Errorf(`State.Clone(): original is modified when clone is modified `)
 	}
-
 }
 
 func TestRecoverSigner(t *testing.T) {
