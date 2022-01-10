@@ -54,24 +54,24 @@ type (
 // To construct an abi.Arguments instance, we need to supply an array of "types", which are
 // actually go values. The following types are used when encoding a state
 
-// uint256 type for abi encoding
+// uint256 is the uint256 type for abi encoding
 var uint256, _ = abi.NewType("uint256", "uint256", nil)
 
-// bool type for abi encoding
+// bool is the bool type for abi encoding
 var boolTy, _ = abi.NewType("bool", "bool", nil)
 
 // TODO: Is this type correct? Shouldn't it be bytes32?
 
-// address type for abi encoding
+// destination is the address type for abi encoding
 var destination, _ = abi.NewType("address", "address", nil)
 
-// bytes type for abi encoding
+// bytes is the bytes type for abi encoding
 var bytesTy, _ = abi.NewType("bytes", "bytes", nil)
 
-// address[] type for abi encoding
+// address is the address[] type for abi encoding
 var addressArray, _ = abi.NewType("address[]", "address[]", nil)
 
-// address type for abi encoding
+// address is the address type for abi encoding
 var address, _ = abi.NewType("address", "address", nil)
 
 /// END: ABI ENCODING HELPERS
