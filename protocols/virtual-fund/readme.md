@@ -7,3 +7,11 @@ Take three actors Alice, Bob and Irene. Given a ledger channel `L` between Alice
 ![](./virtual-fund-sequence-diagram.svg)
 
 The diagram is generated at https://sequencediagram.org/. The source code for this diagram is co-located in this folder.
+
+## Number of rounds
+
+The number of rounds shown in this diagram is currently 4. The number of rounds can be reduced via a variety of optimizations, some of which are state below:
+
+- Round 0 and round 1 can be combined into a single round if all parties already know they want to join the virtual channel (rather than one party proposing it to the others).
+
+- Round 3 can be dispensed with entirely if Bob's initial balance is zero.
