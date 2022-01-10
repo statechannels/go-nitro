@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -29,53 +30,76 @@ type (
 	// NOTE: It is a strict superset of the fields which determine the channel id.
 	// It is therefore possible to change some of the fields while preserving said id.
 	FixedPart struct {
-		ChainId           *types.Uint256
-		Participants      []types.Address
-		ChannelNonce      *types.Uint256 // uint48 in solidity
-		AppDefinition     types.Address  // This could change (infrequently) without affecting the channel id.
-		ChallengeDuration *types.Uint256 // This could change (infrequently) without affecting the channel id.
+		ChainId      *types.Uint256
+		Participants []types.Address
+		ChannelNonce *types.Uint256 // uint48 in solidity
 	}
 
 	// VariablePart contains the subset of State data which can change with each state update.
 	VariablePart struct {
-		AppData types.Bytes
-		Outcome outcome.Exit
-		TurnNum *types.Uint256
-		IsFinal bool
+		AppData           types.Bytes
+		AppDefinition     types.Address
+		Outcome           outcome.Exit
+		TurnNum           *types.Uint256
+		IsFinal           bool
+		ChallengeDuration *types.Uint256
 	}
 )
 
-// FixedPart returns the FixedPart of the State
-func (s State) FixedPart() FixedPart {
-	return FixedPart{s.ChainId, s.Participants, s.ChannelNonce, s.AppDefinition, s.ChallengeDuration}
-}
-
-// VariablePart returns the VariablePart of the State
-func (s State) VariablePart() VariablePart {
-	return VariablePart{s.AppData, s.Outcome, s.TurnNum, s.IsFinal}
-}
+/// START: ABI ENCODING HELPERS
+// To encode objects as bytes, we need to construct an encoder, using abi.Arguments.
+// An instance of abi.Arguments implements two functions relevant to us:
+// - `Pack`, which packs go values for a given struct into bytes.
+// - `unPack`, which unpacks bytes into go values
+// To construct an abi.Arguments instance, we need to supply an array of "types", which are
+// actually go values. The following types are used when encoding a state
 
 // uint256 is the uint256 type for abi encoding
 var uint256, _ = abi.NewType("uint256", "uint256", nil)
 
-// bytesTy is the bytes type for abi encoding
+// bool is the bool type for abi encoding
+var boolTy, _ = abi.NewType("bool", "bool", nil)
+
+// destination is the bytes32 type for abi encoding
+var destination, _ = abi.NewType("bytes32", "address", nil)
+
+// bytes is the bytes type for abi encoding
 var bytesTy, _ = abi.NewType("bytes", "bytes", nil)
 
-// addressArray is the address[] type for abi encoding
+// address is the address[] type for abi encoding
 var addressArray, _ = abi.NewType("address[]", "address[]", nil)
 
 // address is the address type for abi encoding
 var address, _ = abi.NewType("address", "address", nil)
 
+/// END: ABI ENCODING HELPERS
+
+// FixedPart returns the FixedPart of the State
+func (s State) FixedPart() FixedPart {
+	return FixedPart{s.ChainId, s.Participants, s.ChannelNonce}
+}
+
+// VariablePart returns the VariablePart of the State
+func (s State) VariablePart() VariablePart {
+	return VariablePart{s.AppData, s.AppDefinition, s.Outcome, s.TurnNum, s.IsFinal, s.ChallengeDuration}
+}
+
 // ChannelId computes and returns the channel id corresponding to the State,
 // and an error if the id is an external destination.
+//
+// Up to hash collisions, ChannelId distinguishes channels that have different FixedPart
+// values
 func (s State) ChannelId() (types.Destination, error) {
+	return s.FixedPart().ChannelId()
+}
 
-	if s.ChainId == nil {
+func (fp FixedPart) ChannelId() (types.Destination, error) {
+
+	if fp.ChainId == nil {
 		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChainId`)
 	}
 
-	if s.ChannelNonce == nil {
+	if fp.ChannelNonce == nil {
 		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChannelNonce`)
 	}
 
@@ -83,7 +107,7 @@ func (s State) ChannelId() (types.Destination, error) {
 		{Type: uint256},
 		{Type: addressArray},
 		{Type: uint256},
-	}.Pack(s.ChainId, s.Participants, s.ChannelNonce)
+	}.Pack(fp.ChainId, fp.Participants, fp.ChannelNonce)
 
 	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
 
@@ -94,67 +118,44 @@ func (s State) ChannelId() (types.Destination, error) {
 
 }
 
-// appPartHash computes the appPartHash of the State
-func (s State) appPartHash() (types.Bytes32, error) {
+// encodes the state into a []bytes value
+func (s State) encode() (types.Bytes, error) {
+	ChannelId, error := s.ChannelId()
+	if error != nil {
+		return types.Bytes{}, fmt.Errorf("failed to construct channelId: %w", error)
+	}
 
-	encodedAppPart, error := abi.Arguments{
-		{Type: uint256},
-		{Type: address},
-		{Type: bytesTy},
-	}.Pack(s.ChallengeDuration, s.AppDefinition, []byte(s.AppData))
+	if error != nil {
+		return types.Bytes{}, fmt.Errorf("failed to encode outcome: %w", error)
 
-	return crypto.Keccak256Hash(encodedAppPart), error
+	}
 
+	return abi.Arguments{
+		{Type: destination},    // channel id (includes ChainID, Participants, ChannelNonce)
+		{Type: address},        // app definition
+		{Type: uint256},        // challenge duration
+		{Type: bytesTy},        // app data
+		{Type: outcome.ExitTy}, // outcome
+		{Type: uint256},        // turnNum
+		{Type: boolTy},         // isFinal
+	}.Pack(
+		ChannelId,
+		s.AppDefinition,
+		s.ChallengeDuration,
+		[]byte(s.AppData), // Note: even though s.AppData is types.bytes, which is an alias for []byte], Pack will not accept types.bytes
+		s.Outcome,
+		s.TurnNum,
+		s.IsFinal,
+	)
 }
 
 // Hash returns the keccak256 hash of the State
 func (s State) Hash() (types.Bytes32, error) {
-
-	ChannelId, error := s.ChannelId()
-	if error != nil {
-		return types.Bytes32{}, error
+	encoded, err := s.encode()
+	if err != nil {
+		return types.Bytes32{}, fmt.Errorf("failed to encode state: %w", err)
 	}
-	OutcomeHash, error := s.Outcome.Hash()
-	if error != nil {
-		return types.Bytes32{}, error
-	}
-	AppPartHash, error := s.appPartHash()
-	if error != nil {
-		return types.Bytes32{}, error
-	}
-
-	stateStruct := struct {
-		TurnNum     *types.Uint256
-		IsFinal     bool
-		ChannelId   types.Destination
-		AppPartHash types.Bytes32
-		OutcomeHash types.Bytes32
-	}{
-		TurnNum:     s.TurnNum,
-		IsFinal:     s.IsFinal,
-		ChannelId:   ChannelId,
-		AppPartHash: AppPartHash,
-		OutcomeHash: OutcomeHash,
-	}
-
-	var stateTy, _ = abi.NewType(
-		"tuple",
-		"struct",
-		[]abi.ArgumentMarshaling{
-			{Name: "TurnNum", Type: "uint256"},
-			{Name: "IsFinal", Type: "bool"},
-			{Name: "ChannelId", Type: "bytes32"},
-			{Name: "AppPartHash", Type: "bytes32"},
-			{Name: "OutcomeHash", Type: "bytes32"},
-		},
-	)
-
-	encodedState, error := abi.Arguments{{Type: stateTy}}.Pack(stateStruct)
-	if error != nil {
-		return types.Bytes32{}, error
-	}
-
-	return crypto.Keccak256Hash(encodedState), nil
+	return crypto.Keccak256Hash(encoded), nil
 }
 
 // Sign generates an ECDSA signature on the state using the supplied private key
@@ -231,8 +232,8 @@ func StateFromFixedAndVariablePart(f FixedPart, v VariablePart) State {
 		ChainId:           f.ChainId,
 		Participants:      f.Participants,
 		ChannelNonce:      f.ChannelNonce,
-		AppDefinition:     f.AppDefinition,
-		ChallengeDuration: f.ChallengeDuration,
+		AppDefinition:     v.AppDefinition,
+		ChallengeDuration: v.ChallengeDuration,
 		AppData:           v.AppData,
 		Outcome:           v.Outcome,
 		TurnNum:           v.TurnNum,
