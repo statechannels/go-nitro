@@ -97,8 +97,8 @@ func (e Exit) TotalAllocatedFor(dest types.Destination) types.Funds {
 	return total
 }
 
-// exitTy describes the shape of Exit such that github.com/ethereum/go-ethereum/accounts/abi can parse it
-var exitTy, _ = abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []abi.ArgumentMarshaling{
+// ExitTy describes the shape of Exit such that github.com/ethereum/go-ethereum/accounts/abi can parse it
+var ExitTy, _ = abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []abi.ArgumentMarshaling{
 	{Name: "asset", Type: "address"},
 	{Name: "metadata", Type: "bytes"},
 	allocationsTy,
@@ -131,12 +131,12 @@ func convertToExit(r rawExitType) Exit {
 
 // Encode returns the abi encoded Exit
 func (e *Exit) Encode() (types.Bytes, error) {
-	return abi.Arguments{{Type: exitTy}}.Pack(e)
+	return abi.Arguments{{Type: ExitTy}}.Pack(e)
 }
 
 // Decode returns an Exit from an abi encoding
 func Decode(data types.Bytes) (Exit, error) {
-	unpacked, err := abi.Arguments{{Type: exitTy}}.Unpack(data)
+	unpacked, err := abi.Arguments{{Type: ExitTy}}.Unpack(data)
 	if err != nil {
 		return nil, err
 	}
