@@ -125,27 +125,25 @@ func (s State) encode() (types.Bytes, error) {
 		return types.Bytes{}, fmt.Errorf("failed to construct channelId: %w", error)
 	}
 
-	outcome, error := s.Outcome.Encode()
-
 	if error != nil {
 		return types.Bytes{}, fmt.Errorf("failed to encode outcome: %w", error)
 
 	}
 
 	return abi.Arguments{
-		{Type: destination}, // channel id (includes ChainID, Participants, ChannelNonce)
-		{Type: address},     // app definition
-		{Type: uint256},     // challenge duration
-		{Type: bytesTy},     // app data
-		{Type: bytesTy},     // outcome
-		{Type: uint256},     // turnNum
-		{Type: boolTy},      // isFinal
+		{Type: destination},    // channel id (includes ChainID, Participants, ChannelNonce)
+		{Type: address},        // app definition
+		{Type: uint256},        // challenge duration
+		{Type: bytesTy},        // app data
+		{Type: outcome.ExitTy}, // outcome
+		{Type: uint256},        // turnNum
+		{Type: boolTy},         // isFinal
 	}.Pack(
 		ChannelId,
 		s.AppDefinition,
 		s.ChallengeDuration,
 		[]byte(s.AppData), // Note: even though s.AppData is types.bytes, which is an alias for []byte], Pack will not accept types.bytes
-		[]byte(outcome),
+		s.Outcome,
 		s.TurnNum,
 		s.IsFinal,
 	)
