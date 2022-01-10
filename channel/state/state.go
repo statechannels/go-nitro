@@ -60,10 +60,8 @@ var uint256, _ = abi.NewType("uint256", "uint256", nil)
 // bool is the bool type for abi encoding
 var boolTy, _ = abi.NewType("bool", "bool", nil)
 
-// TODO: Is this type correct? Shouldn't it be bytes32?
-
-// destination is the address type for abi encoding
-var destination, _ = abi.NewType("address", "address", nil)
+// destination is the bytes32 type for abi encoding
+var destination, _ = abi.NewType("bytes32", "address", nil)
 
 // bytes is the bytes type for abi encoding
 var bytesTy, _ = abi.NewType("bytes", "bytes", nil)
