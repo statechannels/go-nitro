@@ -61,9 +61,14 @@ var theirDestination = bob.destination // only needed if isTwoPartyLedger = true
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
-	// fmt.Println(testState)
-	// Assert that a valid set of constructor args does not result in an error
-	if _, err := New(testState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination); err != nil {
+	// Assert that valid sets of constructor args do not result in errors
+	if _, err := New(testState, testState.Participants[0], true, myDestination, theirDestination); err != nil {
+		t.Error(err)
+	}
+	if _, err := New(testState, testState.Participants[0], false, myDestination, theirDestination); err != nil {
+		t.Error(err)
+	}
+	if _, err := New(testState, testState.Participants[0], false, types.Destination{}, theirDestination); err != nil {
 		t.Error(err)
 	}
 
