@@ -79,6 +79,11 @@ func TestNew(t *testing.T) {
 	if _, err := New(finalState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination); err == nil {
 		t.Error("expected an error when constructing with an intial state marked final, but got nil")
 	}
+	if _, err := New(testState, testState.Participants[0], true, myDestination, types.Destination{}); err == nil {
+		t.Error("expected an error when constructing a 2-party-ledger with a blank destination, but got nil")
+	}
+	if _, err := New(testState, testState.Participants[0], true, types.Destination{}, theirDestination); err == nil {
+		t.Error("expected an error when constructing a 2-party-ledger with a blank destination, but got nil")
 	}
 
 }
