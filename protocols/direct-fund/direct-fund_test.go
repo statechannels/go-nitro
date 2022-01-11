@@ -89,6 +89,13 @@ var dummyState = state.State{}
 var stateToSign state.State = s.C.PreFundState()
 var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
 
+func must(v interface{}, err error) interface{} {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 func TestUpdate(t *testing.T) {
 	// Prepare an event with a mismatched channelId
 	e := protocols.ObjectiveEvent{
@@ -123,11 +130,10 @@ func TestUpdate(t *testing.T) {
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
 	e.Sigs[&stateToSign] = correctSignatureByParticipant
-	updated, err := s.Update(e)
-	if err != nil {
-		t.Error(err)
-	}
-	if updated.(DirectFundObjective).C.PreFundSignedByMe() != true {
+	var updated DirectFundObjective
+	updated = must(s.Update(e)).(DirectFundObjective)
+
+	if updated.C.PreFundSignedByMe() != true {
 		t.Error(`Objective data not updated as expected`)
 	}
 
@@ -135,12 +141,9 @@ func TestUpdate(t *testing.T) {
 	// Updating the objective with this event should overwrite the holdings that are stored
 	e.Holdings = types.Funds{}
 	e.Holdings[common.Address{}] = big.NewInt(3)
-	updated, err = s.Update(e)
-	if err != nil {
-		t.Error(err)
-	}
-	if !updated.(DirectFundObjective).C.OnChainFunding.Equal(e.Holdings) {
-		t.Error(`Objective data not updated as expected`, updated.(DirectFundObjective).C.OnChainFunding, e.Holdings)
+	updated = must(s.Update(e)).(DirectFundObjective)
+	if !updated.C.OnChainFunding.Equal(e.Holdings) {
+		t.Error(`Objective data not updated as expected`, updated.C.OnChainFunding, e.Holdings)
 	}
 
 }
