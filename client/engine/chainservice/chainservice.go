@@ -8,7 +8,7 @@ import (
 
 // ChainEvent is an internal representation of a blockchain event
 type Event struct {
-	ChannelId          types.Bytes32
+	ChannelId          types.Destination
 	Holdings           types.Funds // indexed by asset
 	AdjudicationStatus protocols.AdjudicationStatus
 }
