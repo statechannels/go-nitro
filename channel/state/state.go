@@ -27,22 +27,20 @@ type (
 	}
 
 	// FixedPart contains the subset of State data which does not change during a state update.
-	// NOTE: It is a strict superset of the fields which determine the channel id.
-	// It is therefore possible to change some of the fields while preserving said id.
 	FixedPart struct {
-		ChainId      *types.Uint256
-		Participants []types.Address
-		ChannelNonce *types.Uint256 // uint48 in solidity
+		ChainId           *types.Uint256
+		Participants      []types.Address
+		ChannelNonce      *types.Uint256 // uint48 in solidity
+		AppDefinition     types.Address
+		ChallengeDuration *types.Uint256
 	}
 
 	// VariablePart contains the subset of State data which can change with each state update.
 	VariablePart struct {
-		AppData           types.Bytes
-		AppDefinition     types.Address
-		Outcome           outcome.Exit
-		TurnNum           *types.Uint256
-		IsFinal           bool
-		ChallengeDuration *types.Uint256
+		AppData types.Bytes
+		Outcome outcome.Exit
+		TurnNum *types.Uint256
+		IsFinal bool
 	}
 )
 
@@ -76,12 +74,12 @@ var address, _ = abi.NewType("address", "address", nil)
 
 // FixedPart returns the FixedPart of the State
 func (s State) FixedPart() FixedPart {
-	return FixedPart{s.ChainId, s.Participants, s.ChannelNonce}
+	return FixedPart{s.ChainId, s.Participants, s.ChannelNonce, s.AppDefinition, s.ChallengeDuration}
 }
 
 // VariablePart returns the VariablePart of the State
 func (s State) VariablePart() VariablePart {
-	return VariablePart{s.AppData, s.AppDefinition, s.Outcome, s.TurnNum, s.IsFinal, s.ChallengeDuration}
+	return VariablePart{s.AppData, s.Outcome, s.TurnNum, s.IsFinal}
 }
 
 // ChannelId computes and returns the channel id corresponding to the State,
@@ -107,7 +105,9 @@ func (fp FixedPart) ChannelId() (types.Destination, error) {
 		{Type: uint256},
 		{Type: addressArray},
 		{Type: uint256},
-	}.Pack(fp.ChainId, fp.Participants, fp.ChannelNonce)
+		{Type: address},
+		{Type: uint256},
+	}.Pack(fp.ChainId, fp.Participants, fp.ChannelNonce, fp.AppDefinition, fp.ChallengeDuration)
 
 	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
 
@@ -132,16 +132,12 @@ func (s State) encode() (types.Bytes, error) {
 
 	return abi.Arguments{
 		{Type: destination},    // channel id (includes ChainID, Participants, ChannelNonce)
-		{Type: address},        // app definition
-		{Type: uint256},        // challenge duration
 		{Type: bytesTy},        // app data
 		{Type: outcome.ExitTy}, // outcome
 		{Type: uint256},        // turnNum
 		{Type: boolTy},         // isFinal
 	}.Pack(
 		ChannelId,
-		s.AppDefinition,
-		s.ChallengeDuration,
 		[]byte(s.AppData), // Note: even though s.AppData is types.bytes, which is an alias for []byte], Pack will not accept types.bytes
 		s.Outcome,
 		s.TurnNum,
@@ -232,8 +228,8 @@ func StateFromFixedAndVariablePart(f FixedPart, v VariablePart) State {
 		ChainId:           f.ChainId,
 		Participants:      f.Participants,
 		ChannelNonce:      f.ChannelNonce,
-		AppDefinition:     v.AppDefinition,
-		ChallengeDuration: v.ChallengeDuration,
+		AppDefinition:     f.AppDefinition,
+		ChallengeDuration: f.ChallengeDuration,
 		AppData:           v.AppData,
 		Outcome:           v.Outcome,
 		TurnNum:           v.TurnNum,
