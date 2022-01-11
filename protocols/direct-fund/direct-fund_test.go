@@ -76,9 +76,9 @@ func TestNew(t *testing.T) {
 	finalState := testState.Clone()
 	finalState.IsFinal = true
 
-	// Assert that constructing with a final state should return an error
 	if _, err := New(finalState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination); err == nil {
-		t.Error("Expected an error when constructing with an invalid state, but got nil")
+		t.Error("expected an error when constructing with an intial state marked final, but got nil")
+	}
 	}
 
 }
