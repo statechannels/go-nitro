@@ -25,7 +25,7 @@ type Channel struct {
 
 	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
 
-	IsTwoPartyLedger bool
+	isTwoPartyLedger bool
 
 	SignedStateForTurnNum map[uint64]SignedState // this stores up to 1 state per turn number.
 	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
@@ -44,7 +44,7 @@ func NewTwoPartyLedger(s state.State, myIndex uint) (TwoPartyLedger, error) {
 	}
 
 	c, err := New(s, myIndex)
-	c.IsTwoPartyLedger = true
+	c.isTwoPartyLedger = true
 
 	return TwoPartyLedger{c}, err
 }
@@ -70,7 +70,7 @@ func New(s state.State, myIndex uint) (Channel, error) {
 	c.FixedPart = s.FixedPart()
 	c.latestSupportedStateTurnNum = MAGICTURNNUM // largest uint64 value reserved for "no supported state"
 	// c.Support =  // TODO
-	c.IsTwoPartyLedger = false
+	c.isTwoPartyLedger = false
 
 	// Store prefund
 	c.SignedStateForTurnNum = make(map[uint64]SignedState)
@@ -82,6 +82,10 @@ func New(s state.State, myIndex uint) (Channel, error) {
 	c.SignedStateForTurnNum[1] = SignedState{post.VariablePart(), make(map[uint]state.Signature)}
 
 	return c, nil
+}
+
+func (c Channel) IsTwoPartyLedger() bool {
+	return c.isTwoPartyLedger
 }
 
 // MyDestination returns the client's destination

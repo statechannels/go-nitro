@@ -67,15 +67,15 @@ func New(
 
 	switch myRole {
 	case 0: // Alice
-		if !ledgerChannelToMyRight.IsTwoPartyLedger {
+		if !ledgerChannelToMyRight.IsTwoPartyLedger() {
 			return VirtualFundObjective{}, errors.New(`alice's right-channel is not a two-party ledger channel`)
 		}
 	case n + 1: // Bob
-		if !ledgerChannelToMyLeft.IsTwoPartyLedger {
+		if !ledgerChannelToMyLeft.IsTwoPartyLedger() {
 			return VirtualFundObjective{}, errors.New(`bob's left-channel is not a two-party ledger channel`)
 		}
 	default: // Intermediary
-		if !(ledgerChannelToMyLeft.IsTwoPartyLedger && ledgerChannelToMyRight.IsTwoPartyLedger) {
+		if !(ledgerChannelToMyLeft.IsTwoPartyLedger() && ledgerChannelToMyRight.IsTwoPartyLedger()) {
 			return VirtualFundObjective{}, errors.New(`supplied channels are not two party ledger channels`)
 		}
 	}
