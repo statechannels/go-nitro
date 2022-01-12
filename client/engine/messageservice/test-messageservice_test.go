@@ -9,21 +9,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-var aliceMS = TestMessageService{
-	address: types.Address{'a'},
-	toPeers: make(map[types.Address]chan<- protocols.Message),
-
-	in:  make(chan protocols.Message),
-	out: make(chan protocols.Message),
-}
-
-var bobMS = TestMessageService{
-	address: types.Address{'b'},
-	toPeers: make(map[types.Address]chan<- protocols.Message),
-
-	in:  make(chan protocols.Message),
-	out: make(chan protocols.Message),
-}
+var aliceMS = NewTestMessageService(types.Address{'a'})
+var bobMS = NewTestMessageService(types.Address{'b'})
 
 var objective, _ = directfund.New(state.TestState, aliceMS.address, true, types.AddressToDestination(aliceMS.address), types.AddressToDestination(bobMS.address))
 var testId protocols.ObjectiveId = "testObjectiveID"
@@ -36,8 +23,6 @@ var aToB protocols.Message = protocols.Message{
 }
 
 func TestConnect(t *testing.T) {
-	aliceMS.Run()
-	bobMS.Run()
 	bobIn := bobMS.GetReceiveChan()
 
 	aliceMS.Connect(bobMS)

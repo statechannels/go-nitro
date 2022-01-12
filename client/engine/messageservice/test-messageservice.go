@@ -24,6 +24,18 @@ type TestMessageService struct {
 	in chan protocols.Message
 }
 
+// NewTestMessageService returns a running TestMessageService
+func NewTestMessageService(address types.Address) TestMessageService {
+	tms := TestMessageService{
+		address: address,
+		toPeers: make(map[types.Address]chan<- protocols.Message),
+		in:      make(chan protocols.Message),
+		out:     make(chan protocols.Message),
+	}
+	tms.Run()
+	return tms
+}
+
 func (t TestMessageService) Run() {
 	go t.routeOutgoing()
 }
