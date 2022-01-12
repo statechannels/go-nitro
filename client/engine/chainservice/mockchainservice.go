@@ -6,8 +6,8 @@ import (
 )
 
 type MockChainService struct {
-	recieveChan chan Event
-	sendChan    chan protocols.Transaction
+	recieveChan chan Event                 // receiveChan is the chan used to send Events to the engine
+	sendChan    chan protocols.Transaction // sendChan is the chan used to recieve Transactions from the engine
 
 	holdings map[types.Destination]types.Funds
 }
@@ -23,10 +23,12 @@ func NewMockChainService() ChainService {
 	return mcs
 }
 
-func (mcs MockChainService) GetReceiveChan() chan Event {
-	return mcs.recieveChan
+// GetReceiveChan returns the a channel that can be sent on (but it used by the MockChainService to listen on)
+func (mcs MockChainService) GetReceiveChan() <-chan Event {
+
+	return chan Event(mcs.recieveChan)
 }
-func (mcs MockChainService) GetSendChan() chan protocols.Transaction {
+func (mcs MockChainService) GetSendChan() chan<- protocols.Transaction {
 	return mcs.sendChan
 }
 func (mcs MockChainService) Submit(tx protocols.Transaction) {}

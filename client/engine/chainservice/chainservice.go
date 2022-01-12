@@ -14,7 +14,7 @@ type Event struct {
 }
 
 type ChainService interface {
-	GetReceiveChan() chan Event
-	GetSendChan() chan protocols.Transaction
+	GetReceiveChan() <-chan Event
+	GetSendChan() chan<- protocols.Transaction
 	Submit(tx protocols.Transaction)
 }
