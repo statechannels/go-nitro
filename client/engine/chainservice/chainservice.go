@@ -16,5 +16,4 @@ type Event struct {
 type ChainService interface {
 	Out() <-chan Event
 	In() chan<- protocols.Transaction
-	Submit(tx protocols.Transaction)
 }

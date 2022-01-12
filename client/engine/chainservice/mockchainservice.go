@@ -33,8 +33,6 @@ func (mcs MockChainService) In() chan<- protocols.Transaction {
 	return mcs.in
 }
 
-func (mcs MockChainService) Submit(tx protocols.Transaction) {}
-
 func (mcs MockChainService) ListenForTransactions() {
 	for tx := range mcs.in {
 		channelId := tx.ChannelId
