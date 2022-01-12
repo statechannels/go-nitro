@@ -6,16 +6,16 @@ import (
 )
 
 type MockChainService struct {
-	recieveChan chan Event                 // receiveChan is the chan used to send Events to the engine
-	sendChan    chan protocols.Transaction // sendChan is the chan used to recieve Transactions from the engine
+	out chan Event                 // out is the chan used to send Events to the engine
+	in  chan protocols.Transaction // in is the chan used to recieve Transactions from the engine
 
 	holdings map[types.Destination]types.Funds
 }
 
 func NewMockChainService() ChainService {
 	mcs := MockChainService{}
-	mcs.recieveChan = make(chan Event)
-	mcs.sendChan = make(chan protocols.Transaction)
+	mcs.out = make(chan Event)
+	mcs.in = make(chan protocols.Transaction)
 
 	mcs.holdings = make(map[types.Destination]types.Funds)
 
@@ -23,20 +23,20 @@ func NewMockChainService() ChainService {
 	return mcs
 }
 
-// GetReceiveChan returns the recieveChan but narrows the type so that consumers mays only recieve on it.
-func (mcs MockChainService) GetReceiveChan() <-chan Event {
-	return chan Event(mcs.recieveChan)
+// Out() returns the but chan but narrows the type so that external consumers mays only recieve on it.
+func (mcs MockChainService) Out() <-chan Event {
+	return chan Event(mcs.out)
 }
 
-// GetSendChan returns the rsendChan but narrows the type so that consumers mays only send on it.
-func (mcs MockChainService) GetSendChan() chan<- protocols.Transaction {
-	return mcs.sendChan
+// In returns the in chan but narrows the type so that external consumers mays only send on it.
+func (mcs MockChainService) In() chan<- protocols.Transaction {
+	return mcs.in
 }
 
 func (mcs MockChainService) Submit(tx protocols.Transaction) {}
 
 func (mcs MockChainService) ListenForTransactions() {
-	for tx := range mcs.sendChan {
+	for tx := range mcs.in {
 		channelId := tx.ChannelId
 		syntheticEvent := Event{
 			ChannelId:          channelId,
@@ -47,7 +47,7 @@ func (mcs MockChainService) ListenForTransactions() {
 			mcs.holdings[channelId] = mcs.holdings[channelId].Add(tx.Deposit)
 			syntheticEvent.Holdings = mcs.holdings[channelId]
 		}
-		mcs.recieveChan <- syntheticEvent
+		mcs.out <- syntheticEvent
 	}
 
 }

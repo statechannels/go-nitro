@@ -18,8 +18,8 @@ func TestInstantDeposit(t *testing.T) {
 
 	// Construct Mock Chain Service and get references to chans
 	mcs := NewMockChainService()
-	send := mcs.GetSendChan()
-	recieve := mcs.GetReceiveChan()
+	in := mcs.In()
+	out := mcs.Out()
 
 	// Prepare test data to trigger MockChainService
 	testDeposit := types.Funds{
@@ -31,8 +31,8 @@ func TestInstantDeposit(t *testing.T) {
 	}
 
 	// Send one transaction and recieve one event
-	send <- testTx
-	event := <-recieve
+	in <- testTx
+	event := <-out
 
 	if event.ChannelId != testTx.ChannelId {
 		t.Error(`channelId mismatch`)
@@ -42,8 +42,8 @@ func TestInstantDeposit(t *testing.T) {
 	}
 
 	// Send the transaction again and recieve another event
-	send <- testTx
-	event = <-recieve
+	in <- testTx
+	event = <-out
 
 	// The expectation is that the MockChainService remembered the previous deposit and added this one to it:
 	expectedHoldings := types.Funds{
