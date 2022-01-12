@@ -31,20 +31,35 @@ type Channel struct {
 	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 }
 
+type TwoPartyLedger struct {
+	Channel
+}
+
+func NewTwoPartyLedger(s state.State, myIndex uint) (TwoPartyLedger, error) {
+	if myIndex > 1 {
+		return TwoPartyLedger{}, errors.New("myIndex in a two party ledger channel must be 0 or 1")
+	}
+	if len(s.Participants) != 2 {
+		return TwoPartyLedger{}, errors.New("two party ledger channels must have exactly two participants")
+	}
+
+	c, err := New(s, myIndex)
+	c.IsTwoPartyLedger = true
+
+	return TwoPartyLedger{c}, err
+}
+
+func (lc TwoPartyLedger) Clone() TwoPartyLedger {
+	return lc // no pointer methods, so this is sufficient
+}
+
 // New constructs a new Channel from the supplied state.
-func New(s state.State, isTwoPartyLedger bool, myIndex uint) (Channel, error) {
+func New(s state.State, myIndex uint) (Channel, error) {
 	c := Channel{}
 	if s.TurnNum.Cmp(big.NewInt(0)) != 0 {
 		return c, errors.New(`objective must be constructed with a turnNum 0 state`)
 	}
-	if isTwoPartyLedger {
-		if myIndex > 1 {
-			return Channel{}, errors.New("myIndex in a two party ledger channel must be 0 or 1")
-		}
-		if len(s.Participants) != 2 {
-			return Channel{}, errors.New("two party ledger channels must have exactly two participants")
-		}
-	}
+
 	var err error
 	c.Id, err = s.ChannelId()
 	if err != nil {
@@ -55,7 +70,7 @@ func New(s state.State, isTwoPartyLedger bool, myIndex uint) (Channel, error) {
 	c.FixedPart = s.FixedPart()
 	c.latestSupportedStateTurnNum = MAGICTURNNUM // largest uint64 value reserved for "no supported state"
 	// c.Support =  // TODO
-	c.IsTwoPartyLedger = isTwoPartyLedger
+	c.IsTwoPartyLedger = false
 
 	// Store prefund
 	c.SignedStateForTurnNum = make(map[uint64]SignedState)
