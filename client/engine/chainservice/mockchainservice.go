@@ -23,14 +23,16 @@ func NewMockChainService() ChainService {
 	return mcs
 }
 
-// GetReceiveChan returns the a channel that can be sent on (but it used by the MockChainService to listen on)
+// GetReceiveChan returns the recieveChan but narrows the type so that consumers mays only recieve on it.
 func (mcs MockChainService) GetReceiveChan() <-chan Event {
-
 	return chan Event(mcs.recieveChan)
 }
+
+// GetSendChan returns the rsendChan but narrows the type so that consumers mays only send on it.
 func (mcs MockChainService) GetSendChan() chan<- protocols.Transaction {
 	return mcs.sendChan
 }
+
 func (mcs MockChainService) Submit(tx protocols.Transaction) {}
 
 func (mcs MockChainService) ListenForTransactions() {
