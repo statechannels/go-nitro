@@ -90,13 +90,8 @@ func (c Channel) MyDestination() types.Destination {
 }
 
 // TheirDestination returns the destination of the ledger counterparty
-// in a two-party-ledger channel, and 0x00 otherwise
-func (c Channel) TheirDestination() types.Destination {
-	if !c.IsTwoPartyLedger {
-		return types.Destination{} // todo: return an error?
-	}
-
-	return types.AddressToDestination(c.Participants[(c.MyIndex+1)%2])
+func (lc TwoPartyLedger) TheirDestination() types.Destination {
+	return types.AddressToDestination(lc.Participants[(lc.MyIndex+1)%2])
 }
 
 // Clone returns a deep copy of the receiver
