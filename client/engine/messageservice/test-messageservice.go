@@ -32,11 +32,11 @@ func NewTestMessageService(address types.Address) TestMessageService {
 		in:      make(chan protocols.Message),
 		out:     make(chan protocols.Message),
 	}
-	tms.Run()
+	tms.run()
 	return tms
 }
 
-func (t TestMessageService) Run() {
+func (t TestMessageService) run() {
 	go t.routeOutgoing()
 }
 
