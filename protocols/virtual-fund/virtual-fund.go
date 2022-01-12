@@ -25,7 +25,7 @@ var NoSideEffects = protocols.SideEffects{}
 var ErrNotApproved = errors.New("objective not approved")
 
 type Connection struct {
-	Channel            channel.Channel
+	Channel            channel.TwoPartyLedger
 	ExpectedGuarantees map[types.Address]outcome.Allocation
 }
 
@@ -56,8 +56,8 @@ func New(
 	myAddress types.Address,
 	n uint, // number of ledger channels (num_hops + 1)
 	myRole uint,
-	ledgerChannelToMyLeft channel.Channel,
-	ledgerChannelToMyRight channel.Channel,
+	ledgerChannelToMyLeft channel.TwoPartyLedger,
+	ledgerChannelToMyRight channel.TwoPartyLedger,
 ) (VirtualFundObjective, error) {
 	// role and ledger-channel checks
 	if myRole > n+1 {
@@ -83,7 +83,7 @@ func New(
 	var init VirtualFundObjective
 
 	// Initialize virtual channel
-	v, err := channel.New(initialStateOfV, false, myRole)
+	v, err := channel.New(initialStateOfV, myRole)
 	if err != nil {
 		return VirtualFundObjective{}, err
 	}

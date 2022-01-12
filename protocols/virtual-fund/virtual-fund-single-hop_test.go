@@ -154,12 +154,11 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		my := alice
 
 		// Alice plays role 0 so has no ledger channel on her left
-		var ledgerChannelToMyLeft channel.Channel
+		var ledgerChannelToMyLeft channel.TwoPartyLedger
 
 		// She has a single ledger channel L_0 connecting her to P_1
-		var ledgerChannelToMyRight, _ = channel.New(
+		var ledgerChannelToMyRight, _ = channel.NewTwoPartyLedger(
 			l0state,
-			true,
 			0,
 		)
 
