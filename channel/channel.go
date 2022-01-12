@@ -26,21 +26,24 @@ type Channel struct {
 	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
 
 	IsTwoPartyLedger bool
-	MyDestination    types.Destination
-	TheirDestination types.Destination // must be nonzero if a two party ledger channel
 
 	SignedStateForTurnNum map[uint64]SignedState // this stores up to 1 state per turn number.
 	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 }
 
 // New constructs a new Channel from the supplied state.
-func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types.Destination, theirDestination types.Destination) (Channel, error) {
+func New(s state.State, isTwoPartyLedger bool, myIndex uint) (Channel, error) {
 	c := Channel{}
 	if s.TurnNum.Cmp(big.NewInt(0)) != 0 {
 		return c, errors.New(`objective must be constructed with a turnNum 0 state`)
 	}
-	if isTwoPartyLedger && (myDestination == types.Destination{} || theirDestination == types.Destination{}) {
-		return c, errors.New(`two party ledger channels must have non-null myDestination and theirDestination`)
+	if isTwoPartyLedger {
+		if myIndex > 1 {
+			return Channel{}, errors.New("myIndex in a two party ledger channel must be 0 or 1")
+		}
+		if len(s.Participants) != 2 {
+			return Channel{}, errors.New("two party ledger channels must have exactly two participants")
+		}
 	}
 	var err error
 	c.Id, err = s.ChannelId()
@@ -53,8 +56,6 @@ func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types
 	c.latestSupportedStateTurnNum = MAGICTURNNUM // largest uint64 value reserved for "no supported state"
 	// c.Support =  // TODO
 	c.IsTwoPartyLedger = isTwoPartyLedger
-	c.MyDestination = myDestination
-	c.TheirDestination = theirDestination
 
 	// Store prefund
 	c.SignedStateForTurnNum = make(map[uint64]SignedState)
@@ -66,6 +67,21 @@ func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types
 	c.SignedStateForTurnNum[1] = SignedState{post.VariablePart(), make(map[uint]state.Signature)}
 
 	return c, nil
+}
+
+// MyDestination returns the client's destination
+func (c Channel) MyDestination() types.Destination {
+	return types.AddressToDestination(c.Participants[c.MyIndex])
+}
+
+// TheirDestination returns the destination of the ledger counterparty
+// in a two-party-ledger channel, and 0x00 otherwise
+func (c Channel) TheirDestination() types.Destination {
+	if !c.IsTwoPartyLedger {
+		return types.Destination{} // todo: return an error?
+	}
+
+	return types.AddressToDestination(c.Participants[(c.MyIndex+1)%2])
 }
 
 // Clone returns a deep copy of the receiver
