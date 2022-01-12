@@ -12,9 +12,9 @@ import (
 
 func TestChannel(t *testing.T) {
 	s := state.TestState.Clone()
-	_, err1 := New(s, true, 0, state.TestOutcome[0].Allocations[0].Destination, state.TestOutcome[0].Allocations[1].Destination)
+	_, err1 := New(s, true, 0)
 	s.TurnNum = big.NewInt(0)
-	c, err2 := New(s, true, 0, state.TestOutcome[0].Allocations[0].Destination, state.TestOutcome[0].Allocations[1].Destination)
+	c, err2 := New(s, true, 0)
 
 	testNew := func(t *testing.T) {
 		if err1 == nil {

@@ -161,8 +161,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			l0state,
 			true,
 			0,
-			my.destination,
-			p1.destination,
 		)
 
 		// Ensure this channel is fully funded on chain
@@ -171,7 +169,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		// Objective
 		var n = uint(2) // number of ledger channels (num_hops + 1)
 		var s, _ = New(vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
-		var expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination}
+		var expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination(), Right: ledgerChannelToMyRight.TheirDestination()}
 		var expectedEncodedGuaranteeMetadata, _ = expectedGuaranteeMetadata.Encode()
 		var expectedGuarantee outcome.Allocation = outcome.Allocation{
 			Destination:    s.V.Id,
@@ -183,7 +181,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			LedgerId:    ledgerChannelToMyRight.Id,
 			Destination: s.V.Id,
 			Amount:      types.Funds{types.Address{}: s.V.PreFundState().VariablePart().Outcome[0].Allocations.Total()},
-			Left:        ledgerChannelToMyRight.MyDestination, Right: ledgerChannelToMyRight.TheirDestination,
+			Left:        ledgerChannelToMyRight.MyDestination(), Right: ledgerChannelToMyRight.TheirDestination(),
 		}}
 
 		var correctSignatureByAliceOnVPreFund, _ = s.V.PreFundState().Sign(alice.privateKey)
