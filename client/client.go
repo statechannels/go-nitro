@@ -18,9 +18,6 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c := Client{}
 	c.engine = engine.New(messageService, chainservice)
 
-	// TODO go messageService.Run()
-	// TODO go chainService.Run()
-
 	// Start the engine in a go routine
 	go c.engine.Run()
 
