@@ -140,7 +140,7 @@ func (s State) encode() (types.Bytes, error) {
 		ChannelId,
 		[]byte(s.AppData), // Note: even though s.AppData is types.bytes, which is an alias for []byte], Pack will not accept types.bytes
 		s.Outcome,
-		s.TurnNum,
+		big.NewInt(int64(s.TurnNum)),
 		s.IsFinal,
 	)
 }
