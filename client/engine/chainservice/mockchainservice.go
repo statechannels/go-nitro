@@ -36,14 +36,13 @@ func (mcs MockChainService) In() chan<- protocols.Transaction {
 func (mcs MockChainService) ListenForTransactions() {
 	for tx := range mcs.in {
 		channelId := tx.ChannelId
-		syntheticEvent := Event{
-			ChannelId:          channelId,
-			Holdings:           types.Funds{},
-			AdjudicationStatus: protocols.AdjudicationStatus{TurnNumRecord: 0},
-		}
 		if tx.Deposit.IsNonZero() {
 			mcs.holdings[channelId] = mcs.holdings[channelId].Add(tx.Deposit)
-			syntheticEvent.Holdings = mcs.holdings[channelId]
+		}
+		syntheticEvent := Event{
+			ChannelId:          channelId,
+			Holdings:           mcs.holdings[channelId],
+			AdjudicationStatus: protocols.AdjudicationStatus{TurnNumRecord: 0},
 		}
 		mcs.out <- syntheticEvent
 	}
