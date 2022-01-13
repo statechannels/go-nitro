@@ -51,7 +51,7 @@ var testState = state.State{
 			},
 		},
 	},
-	TurnNum: big.NewInt(0),
+	TurnNum: 0,
 	IsFinal: false,
 }
 

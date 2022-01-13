@@ -13,7 +13,7 @@ import (
 func TestChannel(t *testing.T) {
 	s := state.TestState.Clone()
 	_, err1 := New(s, true, 0, state.TestOutcome[0].Allocations[0].Destination, state.TestOutcome[0].Allocations[1].Destination)
-	s.TurnNum = big.NewInt(0)
+	s.TurnNum = 0
 	c, err2 := New(s, true, 0, state.TestOutcome[0].Allocations[0].Destination, state.TestOutcome[0].Allocations[1].Destination)
 
 	testNew := func(t *testing.T) {
@@ -54,7 +54,7 @@ func TestChannel(t *testing.T) {
 	testPostFund := func(t *testing.T) {
 		got, err1 := c.PostFundState().Hash()
 		spf := s.Clone()
-		spf.TurnNum = big.NewInt(1)
+		spf.TurnNum = 1
 		want, err2 := spf.Hash()
 		if err1 != nil {
 			t.Error(err1)
@@ -143,7 +143,7 @@ func TestChannel(t *testing.T) {
 			ChallengeDuration: big.NewInt(60),
 			AppData:           []byte{},
 			Outcome:           state.TestOutcome,
-			TurnNum:           big.NewInt(5),
+			TurnNum:           5,
 			IsFinal:           false,
 		}
 		v.ChannelNonce.Add(v.ChannelNonce, big.NewInt(1))
@@ -189,7 +189,7 @@ func TestChannel(t *testing.T) {
 		if err4 != nil {
 			t.Error(err4)
 		}
-		if got4.TurnNum.Uint64() != want3 {
+		if got4.TurnNum != want3 {
 			t.Errorf(`expected LatestSupportedState with turnNum %v`, want3)
 		}
 

@@ -37,6 +37,6 @@ var TestState = State{
 	ChallengeDuration: big.NewInt(60),
 	AppData:           []byte{},
 	Outcome:           TestOutcome,
-	TurnNum:           big.NewInt(5),
+	TurnNum:           5,
 	IsFinal:           false,
 }

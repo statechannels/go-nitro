@@ -76,7 +76,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				},
 			},
 		}},
-		TurnNum: big.NewInt(0),
+		TurnNum: 0,
 		IsFinal: false,
 	}
 
@@ -103,7 +103,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				},
 			},
 		}},
-		TurnNum: big.NewInt(0), // We use turnNum 0 so that we can use github.com/statechannels/go-nitro/channel.New().
+		TurnNum: 0, // We use turnNum 0 so that we can use github.com/statechannels/go-nitro/channel.New().
 		// It would be more realistic to have a higher TurnNum, but that would involve more boilerplate code.
 		IsFinal: false,
 	}
@@ -140,7 +140,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				},
 			},
 		}},
-		TurnNum: big.NewInt(2), // This needs to be greater than the previous state else it will be rejected by Channel.AddSignedState
+		TurnNum: 2, // This needs to be greater than the previous state else it will be rejected by Channel.AddSignedState
 		IsFinal: false,
 	}
 
