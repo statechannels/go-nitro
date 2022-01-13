@@ -22,7 +22,7 @@ type (
 		ChallengeDuration *types.Uint256
 		AppData           types.Bytes
 		Outcome           outcome.Exit
-		TurnNum           *types.Uint256
+		TurnNum           uint64
 		IsFinal           bool
 	}
 
@@ -39,7 +39,7 @@ type (
 	VariablePart struct {
 		AppData types.Bytes
 		Outcome outcome.Exit
-		TurnNum *types.Uint256
+		TurnNum uint64
 		IsFinal bool
 	}
 )
@@ -140,7 +140,7 @@ func (s State) encode() (types.Bytes, error) {
 		ChannelId,
 		[]byte(s.AppData), // Note: even though s.AppData is types.bytes, which is an alias for []byte], Pack will not accept types.bytes
 		s.Outcome,
-		s.TurnNum,
+		big.NewInt(int64(s.TurnNum)),
 		s.IsFinal,
 	)
 }
@@ -196,7 +196,7 @@ func (s State) Equal(r State) bool {
 		s.ChallengeDuration.Cmp(r.ChallengeDuration) == 0 &&
 		bytes.Equal(s.AppData, r.AppData) &&
 		s.Outcome.Equal(r.Outcome) &&
-		s.TurnNum.Cmp(r.TurnNum) == 0 &&
+		s.TurnNum == r.TurnNum &&
 		s.IsFinal == r.IsFinal
 }
 
@@ -215,7 +215,7 @@ func (s State) Clone() State {
 	clone.AppData = make(types.Bytes, 0, len(s.AppData))
 	copy(clone.AppData, s.AppData)
 	clone.Outcome = s.Outcome.Clone()
-	clone.TurnNum = new(big.Int).Set(s.TurnNum)
+	clone.TurnNum = s.TurnNum
 	clone.IsFinal = s.IsFinal
 
 	return clone

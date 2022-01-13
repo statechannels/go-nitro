@@ -3,7 +3,6 @@ package channel
 import (
 	"bytes"
 	"errors"
-	"math/big"
 	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -36,8 +35,8 @@ type Channel struct {
 // New constructs a new Channel from the supplied state.
 func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types.Destination, theirDestination types.Destination) (Channel, error) {
 	c := Channel{}
-	if s.TurnNum.Cmp(big.NewInt(0)) != 0 {
-		return c, errors.New(`objective must be constructed with a turnNum 0 state`)
+	if s.TurnNum != 0 {
+		return c, errors.New(`objective must be constructed with TurnNum=0 state`)
 	}
 	if isTwoPartyLedger && (myDestination == types.Destination{} || theirDestination == types.Destination{}) {
 		return c, errors.New(`two party ledger channels must have non-null myDestination and theirDestination`)
@@ -62,7 +61,7 @@ func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types
 
 	// Store postfund
 	post := s.Clone()
-	post.TurnNum = big.NewInt(1)
+	post.TurnNum = 1
 	c.SignedStateForTurnNum[1] = SignedState{post.VariablePart(), make(map[uint]state.Signature)}
 
 	return c, nil
@@ -166,24 +165,22 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 		return false
 	}
 
-	turnNum := s.TurnNum.Uint64() // TODO https://github.com/statechannels/go-nitro/issues/95
-
-	if c.latestSupportedStateTurnNum != MAGICTURNNUM && turnNum < c.latestSupportedStateTurnNum {
+	if c.latestSupportedStateTurnNum != MAGICTURNNUM && s.TurnNum < c.latestSupportedStateTurnNum {
 		// Stale state
 		return false
 	}
 
 	// Store the signature. If we have no record yet, add one.
-	if signedState, ok := c.SignedStateForTurnNum[turnNum]; !ok {
-		c.SignedStateForTurnNum[turnNum] = SignedState{s.VariablePart(), make(map[uint]state.Signature)}
-		c.SignedStateForTurnNum[turnNum].Sigs[signerIndex] = sig
+	if signedState, ok := c.SignedStateForTurnNum[s.TurnNum]; !ok {
+		c.SignedStateForTurnNum[s.TurnNum] = SignedState{s.VariablePart(), make(map[uint]state.Signature)}
+		c.SignedStateForTurnNum[s.TurnNum].Sigs[signerIndex] = sig
 	} else {
 		signedState.Sigs[signerIndex] = sig
 	}
 
 	// Update latest supported state
-	if c.SignedStateForTurnNum[turnNum].hasAllSignatures(len(c.FixedPart.Participants)) {
-		c.latestSupportedStateTurnNum = turnNum
+	if c.SignedStateForTurnNum[s.TurnNum].hasAllSignatures(len(c.FixedPart.Participants)) {
+		c.latestSupportedStateTurnNum = s.TurnNum
 	}
 
 	// TODO update support
