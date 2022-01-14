@@ -63,4 +63,3 @@ func (v Voucher) recoverSigner() (types.Address, error) {
 	}
 	return nc.RecoverEthereumMessageSigner(h[:], v.signature)
 }
-
