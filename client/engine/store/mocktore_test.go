@@ -31,7 +31,10 @@ func TestSetGetObjective(t *testing.T) {
 		types.AddressToDestination(ts.Participants[1]),
 	)
 
-	ms.SetObjective(testObj)
+	if err := ms.SetObjective(testObj); err != nil {
+		t.Errorf("error setting objective %v: %s", testObj, err.Error())
+	}
+
 	got, ok = ms.GetObjectiveById(testObj.Id())
 
 	if !ok {
