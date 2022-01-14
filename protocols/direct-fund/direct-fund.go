@@ -179,6 +179,12 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 	return updated, NoSideEffects, WaitingForNothing, nil
 }
 
+func (s DirectFundObjective) Channels() []types.Destination {
+	ret := make([]types.Destination, 0, 1)
+	ret = append(ret, s.C.Id)
+	return ret
+}
+
 //  Private methods on the DirectFundingObjectiveState
 
 // fundingComplete returns true if the recorded OnChainHoldings are greater than or equal to the threshold for being fully funded.
