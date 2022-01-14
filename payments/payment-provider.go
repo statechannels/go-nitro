@@ -42,7 +42,9 @@ func NewPaymentProvider(fp state.FixedPart, pk []byte) (PaymentProvider, error) 
 		channelId: chanId,
 	}
 
-	pp.largestVoucher.sign(pk)
+	if err := pp.largestVoucher.sign(pk); err != nil {
+		panic(err)
+	}
 
 	pp.fp = fp
 
@@ -57,7 +59,9 @@ func (pp *PaymentProvider) PayBob(amount uint64) error {
 		channelId: channelId,
 		amount:    uint(amount),
 	}
-	pp.largestVoucher.sign(pp.pk)
+	if err := pp.largestVoucher.sign(pp.pk); err != nil {
+		panic(err)
+	}
 
 	pp.payments <- pp.largestVoucher
 
