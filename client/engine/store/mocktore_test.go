@@ -46,7 +46,31 @@ func TestSetGetObjective(t *testing.T) {
 }
 
 func TestGetObjectiveByChannelId(t *testing.T) {
-	// todo
+	ms := NewMockStore([]byte{})
+
+	ts := state.TestState
+	ts.TurnNum = 0
+
+	testObj, _ := directfund.New(
+		ts,
+		ts.Participants[0],
+		false,
+		types.AddressToDestination(ts.Participants[0]),
+		types.AddressToDestination(ts.Participants[1]),
+	)
+
+	if err := ms.SetObjective(testObj); err != nil {
+		t.Errorf("error setting objective %v: %s", testObj, err.Error())
+	}
+
+	got, ok := ms.GetObjectiveByChannelId(testObj.C.Id)
+
+	if !ok {
+		t.Errorf("expected to find the inserted objective, but didn't")
+	}
+	if got.Id() != testObj.Id() {
+		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
+	}
 }
 
 // BUG(geoknee)
@@ -58,9 +82,11 @@ func TestGetChannelSecretKey(t *testing.T) {
 	ms := NewMockStore(sk)
 	key := ms.GetChannelSecretKey()
 
-	signedMsg, _ := state.SignEthereumMessage([]byte("asdfasdf"), *key)
+	msg := []byte("sign this")
 
-	recoveredSigner, _ := state.RecoverEthereumMessageSigner([]byte("asdfasdf"), signedMsg)
+	signedMsg, _ := state.SignEthereumMessage(msg, *key)
+
+	recoveredSigner, _ := state.RecoverEthereumMessageSigner(msg, signedMsg)
 
 	if recoveredSigner != pk {
 		t.Errorf("expected to recover %x, but got %x", pk, recoveredSigner)
