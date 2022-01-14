@@ -61,9 +61,14 @@ var theirDestination = bob.destination // only needed if isTwoPartyLedger = true
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
-	// fmt.Println(testState)
-	// Assert that a valid set of constructor args does not result in an error
-	if _, err := New(testState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination); err != nil {
+	// Assert that valid sets of constructor args do not result in errors
+	if _, err := New(testState, testState.Participants[0], true, myDestination, theirDestination); err != nil {
+		t.Error(err)
+	}
+	if _, err := New(testState, testState.Participants[0], false, myDestination, theirDestination); err != nil {
+		t.Error(err)
+	}
+	if _, err := New(testState, testState.Participants[0], false, types.Destination{}, theirDestination); err != nil {
 		t.Error(err)
 	}
 
@@ -71,9 +76,14 @@ func TestNew(t *testing.T) {
 	finalState := testState.Clone()
 	finalState.IsFinal = true
 
-	// Assert that constructing with a final state should return an error
 	if _, err := New(finalState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination); err == nil {
-		t.Error("Expected an error when constructing with an invalid state, but got nil")
+		t.Error("expected an error when constructing with an intial state marked final, but got nil")
+	}
+	if _, err := New(testState, testState.Participants[0], true, myDestination, types.Destination{}); err == nil {
+		t.Error("expected an error when constructing a 2-party-ledger with a blank destination, but got nil")
+	}
+	if _, err := New(testState, testState.Participants[0], true, types.Destination{}, theirDestination); err == nil {
+		t.Error("expected an error when constructing a 2-party-ledger with a blank destination, but got nil")
 	}
 
 }
