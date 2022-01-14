@@ -137,7 +137,7 @@ func (s State) Sign(secretKey []byte) (Signature, error) {
 	if error != nil {
 		return Signature{}, error
 	}
-	return SignEthereumMessage(hash.Bytes(), secretKey)
+	return nc.SignEthereumMessage(hash.Bytes(), secretKey)
 }
 
 // RecoverSigner computes the Ethereum address which generated Signature sig on State state
@@ -146,7 +146,7 @@ func (s State) RecoverSigner(sig Signature) (types.Address, error) {
 	if error != nil {
 		return types.Address{}, error
 	}
-	return RecoverEthereumMessageSigner(stateHash[:], sig)
+	return nc.RecoverEthereumMessageSigner(stateHash[:], sig)
 }
 
 // equalParticipants returns true if the given arrays contain equal addresses (in the same order).
