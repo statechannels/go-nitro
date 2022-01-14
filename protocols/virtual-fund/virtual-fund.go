@@ -245,6 +245,18 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	return updated, NoSideEffects, WaitingForNothing, nil
 }
 
+func (s VirtualFundObjective) Channels() []types.Destination {
+	ret := make([]types.Destination, 0, 3)
+	ret = append(ret, s.V.Id)
+	if s.MyRole != 0 {
+		ret = append(ret, s.ToMyLeft.Channel.Id)
+	}
+	if s.MyRole != s.n+1 {
+		ret = append(ret, s.ToMyRight.Channel.Id)
+	}
+	return ret
+}
+
 //////////////////////////////////////////////////
 //  Private methods on the VirtualFundObjective //
 //////////////////////////////////////////////////
