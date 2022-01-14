@@ -9,8 +9,11 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	nc "github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
+
+type Signature = nc.Signature
 
 type (
 	// State holds all of the data describing the state of a channel
