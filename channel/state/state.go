@@ -77,11 +77,11 @@ func (fp FixedPart) ChannelId() (types.Destination, error) {
 	}
 
 	encodedChannelPart, error := abi.Arguments{
-		{Type: uint256},
-		{Type: addressArray},
-		{Type: uint256},
-		{Type: address},
-		{Type: uint256},
+		{Type: nc.Uint256},
+		{Type: nc.AddressArray},
+		{Type: nc.Uint256},
+		{Type: nc.Address},
+		{Type: nc.Uint256},
 	}.Pack(fp.ChainId, fp.Participants, fp.ChannelNonce, fp.AppDefinition, fp.ChallengeDuration)
 
 	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
@@ -106,11 +106,11 @@ func (s State) encode() (types.Bytes, error) {
 	}
 
 	return abi.Arguments{
-		{Type: destination},    // channel id (includes ChainID, Participants, ChannelNonce)
-		{Type: bytesTy},        // app data
+		{Type: nc.Destination}, // channel id (includes ChainID, Participants, ChannelNonce)
+		{Type: nc.BytesTy},     // app data
 		{Type: outcome.ExitTy}, // outcome
-		{Type: uint256},        // turnNum
-		{Type: boolTy},         // isFinal
+		{Type: nc.Uint256},     // turnNum
+		{Type: nc.BoolTy},      // isFinal
 	}.Pack(
 		ChannelId,
 		[]byte(s.AppData), // Note: even though s.AppData is types.bytes, which is an alias for []byte], Pack will not accept types.bytes

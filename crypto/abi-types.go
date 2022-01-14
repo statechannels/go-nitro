@@ -1,4 +1,4 @@
-package state
+package crypto
 
 import "github.com/ethereum/go-ethereum/accounts/abi"
 
@@ -9,20 +9,20 @@ import "github.com/ethereum/go-ethereum/accounts/abi"
 // To construct an abi.Arguments instance, we need to supply an array of "types", which are
 // actually go values. The following types are used when encoding a state
 
-// uint256 is the uint256 type for abi encoding
-var uint256, _ = abi.NewType("uint256", "uint256", nil)
+// Uint256 is the Uint256 type for abi encoding
+var Uint256, _ = abi.NewType("uint256", "uint256", nil)
 
 // bool is the bool type for abi encoding
-var boolTy, _ = abi.NewType("bool", "bool", nil)
+var BoolTy, _ = abi.NewType("bool", "bool", nil)
 
-// destination is the bytes32 type for abi encoding
-var destination, _ = abi.NewType("bytes32", "address", nil)
+// Destination is the bytes32 type for abi encoding
+var Destination, _ = abi.NewType("bytes32", "address", nil)
 
 // bytes is the bytes type for abi encoding
-var bytesTy, _ = abi.NewType("bytes", "bytes", nil)
+var BytesTy, _ = abi.NewType("bytes", "bytes", nil)
 
 // address is the address[] type for abi encoding
-var addressArray, _ = abi.NewType("address[]", "address[]", nil)
+var AddressArray, _ = abi.NewType("address[]", "address[]", nil)
 
-// address is the address type for abi encoding
-var address, _ = abi.NewType("address", "address", nil)
+// Address is the Address type for abi encoding
+var Address, _ = abi.NewType("address", "address", nil)
