@@ -35,7 +35,7 @@ type Channel struct {
 // New constructs a new Channel from the supplied state.
 func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types.Destination, theirDestination types.Destination) (Channel, error) {
 	c := Channel{}
-	if s.TurnNum != 0 {
+	if s.TurnNum != PREFUNDTURNUM {
 		return c, errors.New(`objective must be constructed with TurnNum=0 state`)
 	}
 	if isTwoPartyLedger && (myDestination == types.Destination{} || theirDestination == types.Destination{}) {
@@ -49,7 +49,7 @@ func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types
 	c.MyIndex = myIndex
 	c.OnChainFunding = make(types.Funds)
 	c.FixedPart = s.FixedPart()
-	c.latestSupportedStateTurnNum = MAGICTURNNUM // largest uint64 value reserved for "no supported state"
+	c.latestSupportedStateTurnNum = MAXTURNNUM // largest uint64 value reserved for "no supported state"
 	// c.Support =  // TODO
 	c.IsTwoPartyLedger = isTwoPartyLedger
 	c.MyDestination = myDestination
@@ -61,7 +61,7 @@ func New(s state.State, isTwoPartyLedger bool, myIndex uint, myDestination types
 
 	// Store postfund
 	post := s.Clone()
-	post.TurnNum = 1
+	post.TurnNum = POSTFUNDTURNNUM
 	c.SignedStateForTurnNum[1] = SignedState{post.VariablePart(), make(map[uint]state.Signature)}
 
 	return c, nil
@@ -120,7 +120,7 @@ func (c Channel) PostFundComplete() bool {
 
 // LatestSupportedState returns the latest supported state.
 func (c Channel) LatestSupportedState() (state.State, error) {
-	if c.latestSupportedStateTurnNum == MAGICTURNNUM {
+	if c.latestSupportedStateTurnNum == MAXTURNNUM {
 		return state.State{}, errors.New(`no state is yet supported`)
 	}
 	return state.StateFromFixedAndVariablePart(c.FixedPart,
@@ -165,7 +165,7 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 		return false
 	}
 
-	if c.latestSupportedStateTurnNum != MAGICTURNNUM && s.TurnNum < c.latestSupportedStateTurnNum {
+	if c.latestSupportedStateTurnNum != MAXTURNNUM && s.TurnNum < c.latestSupportedStateTurnNum {
 		// Stale state
 		return false
 	}
