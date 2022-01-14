@@ -10,9 +10,9 @@ import (
 type Store interface {
 	GetChannelSecretKey() *[]byte // Get a pointer to a secret key for signing channel updates
 
-	GetObjectiveById(protocols.ObjectiveId) protocols.Objective // Read an existing objective
-	GetObjectiveByChannelId(types.Bytes32) protocols.Objective  // Get the objective that currently owns the channel with the supplied ChannelId
-	SetObjective(protocols.Objective) error                     // Write an objective
+	GetObjectiveById(protocols.ObjectiveId) (obj protocols.Objective, ok bool)    // Read an existing objective
+	GetObjectiveByChannelId(types.Destination) (obj protocols.Objective, ok bool) // Get the objective that currently owns the channel with the supplied ChannelId
+	SetObjective(protocols.Objective) error                                       // Write an objective
 
 	UpdateProgressLastMadeAt(protocols.ObjectiveId, protocols.WaitingFor) // updates progressLastMadeAt information for an objective
 }
