@@ -12,16 +12,16 @@ import "github.com/ethereum/go-ethereum/accounts/abi"
 // Uint256 is the Uint256 type for abi encoding
 var Uint256, _ = abi.NewType("uint256", "uint256", nil)
 
-// bool is the bool type for abi encoding
+// Bool is the bool type for abi encoding
 var Bool, _ = abi.NewType("bool", "bool", nil)
 
 // Destination is the bytes32 type for abi encoding
 var Destination, _ = abi.NewType("bytes32", "address", nil)
 
-// bytes is the bytes type for abi encoding
+// Bytes is the bytes type for abi encoding
 var Bytes, _ = abi.NewType("bytes", "bytes", nil)
 
-// address is the address[] type for abi encoding
+// AddressArray is the address[] type for abi encoding
 var AddressArray, _ = abi.NewType("address[]", "address[]", nil)
 
 // Address is the Address type for abi encoding
