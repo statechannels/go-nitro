@@ -108,10 +108,10 @@ func (s State) encode() (types.Bytes, error) {
 
 	return ethAbi.Arguments{
 		{Type: abi.Destination}, // channel id (includes ChainID, Participants, ChannelNonce)
-		{Type: abi.BytesTy},     // app data
+		{Type: abi.Bytes},       // app data
 		{Type: outcome.ExitTy},  // outcome
 		{Type: abi.Uint256},     // turnNum
-		{Type: abi.BoolTy},      // isFinal
+		{Type: abi.Bool},        // isFinal
 	}.Pack(
 		ChannelId,
 		[]byte(s.AppData), // Note: even though s.AppData is types.bytes, which is an alias for []byte], Pack will not accept types.bytes
