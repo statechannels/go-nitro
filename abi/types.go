@@ -1,4 +1,4 @@
-package crypto
+package abi
 
 import "github.com/ethereum/go-ethereum/accounts/abi"
 

@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
+	ethAbi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/statechannels/go-nitro/abi"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	nc "github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
@@ -76,12 +77,12 @@ func (fp FixedPart) ChannelId() (types.Destination, error) {
 		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChannelNonce`)
 	}
 
-	encodedChannelPart, error := abi.Arguments{
-		{Type: nc.Uint256},
-		{Type: nc.AddressArray},
-		{Type: nc.Uint256},
-		{Type: nc.Address},
-		{Type: nc.Uint256},
+	encodedChannelPart, error := ethAbi.Arguments{
+		{Type: abi.Uint256},
+		{Type: abi.AddressArray},
+		{Type: abi.Uint256},
+		{Type: abi.Address},
+		{Type: abi.Uint256},
 	}.Pack(fp.ChainId, fp.Participants, fp.ChannelNonce, fp.AppDefinition, fp.ChallengeDuration)
 
 	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
@@ -105,12 +106,12 @@ func (s State) encode() (types.Bytes, error) {
 
 	}
 
-	return abi.Arguments{
-		{Type: nc.Destination}, // channel id (includes ChainID, Participants, ChannelNonce)
-		{Type: nc.BytesTy},     // app data
-		{Type: outcome.ExitTy}, // outcome
-		{Type: nc.Uint256},     // turnNum
-		{Type: nc.BoolTy},      // isFinal
+	return ethAbi.Arguments{
+		{Type: abi.Destination}, // channel id (includes ChainID, Participants, ChannelNonce)
+		{Type: abi.BytesTy},     // app data
+		{Type: outcome.ExitTy},  // outcome
+		{Type: abi.Uint256},     // turnNum
+		{Type: abi.BoolTy},      // isFinal
 	}.Pack(
 		ChannelId,
 		[]byte(s.AppData), // Note: even though s.AppData is types.bytes, which is an alias for []byte], Pack will not accept types.bytes
