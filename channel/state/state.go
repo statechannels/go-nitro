@@ -6,11 +6,15 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
+	ethAbi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/statechannels/go-nitro/abi"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	nc "github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
+
+type Signature = nc.Signature
 
 type (
 	// State holds all of the data describing the state of a channel
@@ -73,12 +77,12 @@ func (fp FixedPart) ChannelId() (types.Destination, error) {
 		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChannelNonce`)
 	}
 
-	encodedChannelPart, error := abi.Arguments{
-		{Type: uint256},
-		{Type: addressArray},
-		{Type: uint256},
-		{Type: address},
-		{Type: uint256},
+	encodedChannelPart, error := ethAbi.Arguments{
+		{Type: abi.Uint256},
+		{Type: abi.AddressArray},
+		{Type: abi.Uint256},
+		{Type: abi.Address},
+		{Type: abi.Uint256},
 	}.Pack(fp.ChainId, fp.Participants, fp.ChannelNonce, fp.AppDefinition, fp.ChallengeDuration)
 
 	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
@@ -102,12 +106,12 @@ func (s State) encode() (types.Bytes, error) {
 
 	}
 
-	return abi.Arguments{
-		{Type: destination},    // channel id (includes ChainID, Participants, ChannelNonce)
-		{Type: bytesTy},        // app data
-		{Type: outcome.ExitTy}, // outcome
-		{Type: uint256},        // turnNum
-		{Type: boolTy},         // isFinal
+	return ethAbi.Arguments{
+		{Type: abi.Destination}, // channel id (includes ChainID, Participants, ChannelNonce)
+		{Type: abi.Bytes},       // app data
+		{Type: outcome.ExitTy},  // outcome
+		{Type: abi.Uint256},     // turnNum
+		{Type: abi.Bool},        // isFinal
 	}.Pack(
 		ChannelId,
 		[]byte(s.AppData), // Note: even though s.AppData is types.bytes, which is an alias for []byte], Pack will not accept types.bytes
@@ -134,7 +138,7 @@ func (s State) Sign(secretKey []byte) (Signature, error) {
 	if error != nil {
 		return Signature{}, error
 	}
-	return SignEthereumMessage(hash.Bytes(), secretKey)
+	return nc.SignEthereumMessage(hash.Bytes(), secretKey)
 }
 
 // RecoverSigner computes the Ethereum address which generated Signature sig on State state
@@ -143,7 +147,7 @@ func (s State) RecoverSigner(sig Signature) (types.Address, error) {
 	if error != nil {
 		return types.Address{}, error
 	}
-	return RecoverEthereumMessageSigner(stateHash[:], sig)
+	return nc.RecoverEthereumMessageSigner(stateHash[:], sig)
 }
 
 // equalParticipants returns true if the given arrays contain equal addresses (in the same order).
