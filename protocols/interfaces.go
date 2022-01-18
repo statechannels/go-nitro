@@ -15,8 +15,9 @@ type Message struct {
 
 // Transaction is an object to be sent to a blockchain provider.
 type Transaction struct {
-	To   types.Address
-	Data []byte
+	ChannelId types.Destination
+	Deposit   types.Funds
+	// TODO support other transaction types (deposit, challenge, respond, conclude, withdraw)
 }
 
 // LedgerRequest is an object processed by the ledger cranker
