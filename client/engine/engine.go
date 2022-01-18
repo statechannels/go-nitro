@@ -12,12 +12,12 @@ import (
 type Engine struct {
 	// inbound go channels
 	FromAPI   chan APIEvent // This one is exported so that the Client can send API calls
-	fromChain chan chainservice.Event
+	fromChain <-chan chainservice.Event
 	fromMsg   chan protocols.Message
 
 	// outbound go channels
 	toMsg   chan protocols.Message
-	toChain chan protocols.Transaction
+	toChain chan<- protocols.Transaction
 
 	store store.Store // A Store for persisting and restoring important data
 }
@@ -40,11 +40,11 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService) Eng
 
 	// bind the engine's inbound chans
 	e.FromAPI = make(chan APIEvent)
-	e.fromChain = chain.GetReceiveChan()
+	e.fromChain = chain.Out()
 	e.fromMsg = msg.GetReceiveChan()
 
 	// bind the engine's outbound chans
-	e.toChain = chain.GetSendChan()
+	e.toChain = chain.In()
 	e.toMsg = msg.GetSendChan()
 
 	return e
