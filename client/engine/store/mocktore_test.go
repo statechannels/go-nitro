@@ -73,7 +73,6 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 	}
 }
 
-// BUG(geoknee)
 func TestGetChannelSecretKey(t *testing.T) {
 	// from state/test-fixtures.go
 	sk := common.Hex2Bytes("caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634")
