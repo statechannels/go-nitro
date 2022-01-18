@@ -57,13 +57,7 @@ var testState = state.State{
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
-	// Assert that valid sets of constructor args do not result in errors
-	if _, err := New(testState, testState.Participants[0]); err != nil {
-		t.Error(err)
-	}
-	if _, err := New(testState, testState.Participants[0]); err != nil {
-		t.Error(err)
-	}
+	// Assert that valid constructor args do not result in error
 	if _, err := New(testState, testState.Participants[0]); err != nil {
 		t.Error(err)
 	}
