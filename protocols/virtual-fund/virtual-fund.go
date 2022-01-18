@@ -25,7 +25,7 @@ var NoSideEffects = protocols.SideEffects{}
 var ErrNotApproved = errors.New("objective not approved")
 
 type Connection struct {
-	Channel            channel.Channel
+	Channel            channel.TwoPartyLedger
 	ExpectedGuarantees map[types.Address]outcome.Allocation
 }
 
@@ -56,8 +56,8 @@ func New(
 	myAddress types.Address,
 	n uint, // number of ledger channels (num_hops + 1)
 	myRole uint,
-	ledgerChannelToMyLeft channel.Channel,
-	ledgerChannelToMyRight channel.Channel,
+	ledgerChannelToMyLeft channel.TwoPartyLedger,
+	ledgerChannelToMyRight channel.TwoPartyLedger,
 ) (VirtualFundObjective, error) {
 	// role and ledger-channel checks
 	if myRole > n+1 {
@@ -65,25 +65,10 @@ func New(
 			myRole, n-1)
 	}
 
-	switch myRole {
-	case 0: // Alice
-		if !ledgerChannelToMyRight.IsTwoPartyLedger {
-			return VirtualFundObjective{}, errors.New(`alice's right-channel is not a two-party ledger channel`)
-		}
-	case n + 1: // Bob
-		if !ledgerChannelToMyLeft.IsTwoPartyLedger {
-			return VirtualFundObjective{}, errors.New(`bob's left-channel is not a two-party ledger channel`)
-		}
-	default: // Intermediary
-		if !(ledgerChannelToMyLeft.IsTwoPartyLedger && ledgerChannelToMyRight.IsTwoPartyLedger) {
-			return VirtualFundObjective{}, errors.New(`supplied channels are not two party ledger channels`)
-		}
-	}
-
 	var init VirtualFundObjective
 
 	// Initialize virtual channel
-	v, err := channel.New(initialStateOfV, false, myRole, types.Destination{}, types.Destination{})
+	v, err := channel.New(initialStateOfV, myRole)
 	if err != nil {
 		return VirtualFundObjective{}, err
 	}
@@ -113,7 +98,12 @@ func New(
 	if myRole != 0 { // everyone other than Alice has a left-channel
 		init.ToMyLeft = &Connection{}
 		init.ToMyLeft.Channel = ledgerChannelToMyLeft
-		err = init.ToMyLeft.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyLeft.Channel.TheirDestination, init.ToMyLeft.Channel.MyDestination)
+		err = init.ToMyLeft.insertExpectedGuarantees(
+			init.a0,
+			init.b0,
+			init.V.Id,
+			init.ToMyLeft.Channel.TheirDestination(),
+			init.ToMyLeft.Channel.MyDestination())
 		if err != nil {
 			return VirtualFundObjective{}, err
 		}
@@ -122,7 +112,13 @@ func New(
 	if myRole != n+1 { // everyone other than Bob has a right-channel
 		init.ToMyRight = &Connection{}
 		init.ToMyRight.Channel = ledgerChannelToMyRight
-		err = init.ToMyRight.insertExpectedGuarantees(init.a0, init.b0, init.V.Id, init.ToMyRight.Channel.MyDestination, init.ToMyRight.Channel.TheirDestination)
+		err = init.ToMyRight.insertExpectedGuarantees(
+			init.a0,
+			init.b0,
+			init.V.Id,
+			init.ToMyRight.Channel.MyDestination(),
+			init.ToMyRight.Channel.TheirDestination())
+
 		if err != nil {
 			return VirtualFundObjective{}, err
 		}
@@ -318,8 +314,8 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 				LedgerId:    s.ToMyLeft.Channel.Id,
 				Destination: s.V.Id,
 				Amount:      s.V.Total(),
-				Left:        s.ToMyLeft.Channel.TheirDestination,
-				Right:       s.ToMyLeft.Channel.MyDestination,
+				Left:        s.ToMyLeft.Channel.TheirDestination(),
+				Right:       s.ToMyLeft.Channel.MyDestination(),
 			})
 	}
 	n := s.n
@@ -329,8 +325,8 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 				LedgerId:    s.ToMyRight.Channel.Id,
 				Destination: s.V.Id,
 				Amount:      s.V.Total(),
-				Left:        s.ToMyRight.Channel.MyDestination,
-				Right:       s.ToMyRight.Channel.TheirDestination,
+				Left:        s.ToMyRight.Channel.MyDestination(),
+				Right:       s.ToMyRight.Channel.TheirDestination(),
 			})
 	}
 	return sideEffects

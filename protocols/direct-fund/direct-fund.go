@@ -64,7 +64,7 @@ func New(
 	}
 
 	init.C = &channel.Channel{}
-	*init.C, err = channel.New(initialState, isTwoPartyLedger, myIndex, myDestination, theirDestination)
+	*init.C, err = channel.New(initialState, myIndex)
 
 	if err != nil {
 		return DirectFundObjective{}, fmt.Errorf("failed to initialize channel for direct-fund objective: %w", err)
