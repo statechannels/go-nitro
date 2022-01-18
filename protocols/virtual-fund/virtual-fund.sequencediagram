@@ -1,0 +1,58 @@
+title Virtual Funding a channel V with Ledger Channels L, L'
+
+participant "Alice" as A
+participant "Irene" as I
+participant "Bob" as B
+
+note left of A : <background:#yellow>Alice proposes V
+A->I: 0a: V.preFS(A)
+A->B: 0b: V.preFS(A)
+note over A,B: End of Round 0
+
+
+parallel
+note left of A : <background:#yellow>Irene agrees to V
+I->A: 1a: V.preFS(I)
+I->B: 1b: V.preFS(I)
+parallel off
+
+parallel 
+note right of B : <background:#yellow>Bob agrees to V
+B->A: 1c: V.preFS(B)
+parallel off
+B->I: 1d: V.preFS(B)
+
+
+note over A,B: End of Round 1
+
+parallel
+note left of A : <background:#yellow>Irene votes to fund V with L
+I->A: 2a: L.fundV(I)
+note right of B : <background:#yellow>Irene votes to fund V with L'
+I->B: 2b: L'.fundV(I)
+parallel off
+
+parallel 
+note left of A : <background:#yellow>Alice votes to fund V with L
+A->I: 2c: L.fundV(A)
+B->I: 2d: L'.fundV(B)
+note right of B : <background:#yellow>Bob votes to fund V with L'
+parallel off
+
+note over A,B: End of Round 2
+
+parallel
+note left of A : <background:#yellow>Irene votes to activate V
+I->A: 3a: V.postFund(I) 
+I->B: 3b: V.postFund(I)
+parallel off
+
+note left of A : <background:#yellow>Alice votes to activate V
+A->I: 3c: V.postFund(A)
+A->B: 3d: V.postFund(A)
+
+note right of B : <background:#yellow>Bob votes to activate V
+B->A: 3e: V.postFund(B)
+B->I: 3f: V.postFund(B)
+
+note over A,B: End of Round 3 - Funded!

@@ -3,7 +3,6 @@ package channel
 import (
 	"bytes"
 	"errors"
-	"math/big"
 	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -53,8 +52,8 @@ func (lc TwoPartyLedger) Clone() TwoPartyLedger {
 // New constructs a new Channel from the supplied state.
 func New(s state.State, myIndex uint) (Channel, error) {
 	c := Channel{}
-	if s.TurnNum.Cmp(big.NewInt(0)) != 0 {
-		return c, errors.New(`objective must be constructed with a turnNum 0 state`)
+	if s.TurnNum != PREFUNDTURNUM {
+		return c, errors.New(`objective must be constructed with TurnNum=0 state`)
 	}
 
 	var err error
@@ -65,17 +64,17 @@ func New(s state.State, myIndex uint) (Channel, error) {
 	c.MyIndex = myIndex
 	c.OnChainFunding = make(types.Funds)
 	c.FixedPart = s.FixedPart()
-	c.latestSupportedStateTurnNum = MAGICTURNNUM // largest uint64 value reserved for "no supported state"
+	c.latestSupportedStateTurnNum = MAXTURNNUM // largest uint64 value reserved for "no supported state"
 	// c.Support =  // TODO
 
 	// Store prefund
 	c.SignedStateForTurnNum = make(map[uint64]SignedState)
-	c.SignedStateForTurnNum[0] = SignedState{s.VariablePart(), make(map[uint]state.Signature)}
+	c.SignedStateForTurnNum[PREFUNDTURNUM] = SignedState{s.VariablePart(), make(map[uint]state.Signature)}
 
 	// Store postfund
 	post := s.Clone()
-	post.TurnNum = big.NewInt(1)
-	c.SignedStateForTurnNum[1] = SignedState{post.VariablePart(), make(map[uint]state.Signature)}
+	post.TurnNum = POSTFUNDTURNNUM
+	c.SignedStateForTurnNum[POSTFUNDTURNNUM] = SignedState{post.VariablePart(), make(map[uint]state.Signature)}
 
 	return c, nil
 }
@@ -102,19 +101,19 @@ func (c Channel) Equal(d Channel) bool {
 
 // PreFundState() returns the pre fund setup state for the channel.
 func (c Channel) PreFundState() state.State {
-	return state.StateFromFixedAndVariablePart(c.FixedPart, c.SignedStateForTurnNum[0].State)
+	return state.StateFromFixedAndVariablePart(c.FixedPart, c.SignedStateForTurnNum[PREFUNDTURNUM].State)
 }
 
 // PostFundState() returns the post fund setup state for the channel.
 func (c Channel) PostFundState() state.State {
-	return state.StateFromFixedAndVariablePart(c.FixedPart, c.SignedStateForTurnNum[1].State)
+	return state.StateFromFixedAndVariablePart(c.FixedPart, c.SignedStateForTurnNum[POSTFUNDTURNNUM].State)
 
 }
 
 // PreFundSignedByMe() returns true if I have signed the pre fund setup state, false otherwise.
 func (c Channel) PreFundSignedByMe() bool {
-	if _, ok := c.SignedStateForTurnNum[0]; ok {
-		if _, ok := c.SignedStateForTurnNum[0].Sigs[c.MyIndex]; ok {
+	if _, ok := c.SignedStateForTurnNum[PREFUNDTURNUM]; ok {
+		if _, ok := c.SignedStateForTurnNum[PREFUNDTURNUM].Sigs[c.MyIndex]; ok {
 			return true
 		}
 	}
@@ -123,8 +122,8 @@ func (c Channel) PreFundSignedByMe() bool {
 
 // PostFundSignedByMe() returns true if I have signed the post fund setup state, false otherwise.
 func (c Channel) PostFundSignedByMe() bool {
-	if _, ok := c.SignedStateForTurnNum[1]; ok {
-		if _, ok := c.SignedStateForTurnNum[1].Sigs[c.MyIndex]; ok {
+	if _, ok := c.SignedStateForTurnNum[POSTFUNDTURNNUM]; ok {
+		if _, ok := c.SignedStateForTurnNum[POSTFUNDTURNNUM].Sigs[c.MyIndex]; ok {
 			return true
 		}
 	}
@@ -133,17 +132,17 @@ func (c Channel) PostFundSignedByMe() bool {
 
 // PreFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
 func (c Channel) PreFundComplete() bool {
-	return c.SignedStateForTurnNum[0].hasAllSignatures(len(c.FixedPart.Participants))
+	return c.SignedStateForTurnNum[PREFUNDTURNUM].hasAllSignatures(len(c.FixedPart.Participants))
 }
 
 // PostFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
 func (c Channel) PostFundComplete() bool {
-	return c.SignedStateForTurnNum[1].hasAllSignatures(len(c.FixedPart.Participants))
+	return c.SignedStateForTurnNum[POSTFUNDTURNNUM].hasAllSignatures(len(c.FixedPart.Participants))
 }
 
 // LatestSupportedState returns the latest supported state.
 func (c Channel) LatestSupportedState() (state.State, error) {
-	if c.latestSupportedStateTurnNum == MAGICTURNNUM {
+	if c.latestSupportedStateTurnNum == MAXTURNNUM {
 		return state.State{}, errors.New(`no state is yet supported`)
 	}
 	return state.StateFromFixedAndVariablePart(c.FixedPart,
@@ -188,24 +187,22 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 		return false
 	}
 
-	turnNum := s.TurnNum.Uint64() // TODO https://github.com/statechannels/go-nitro/issues/95
-
-	if c.latestSupportedStateTurnNum != MAGICTURNNUM && turnNum < c.latestSupportedStateTurnNum {
+	if c.latestSupportedStateTurnNum != MAXTURNNUM && s.TurnNum < c.latestSupportedStateTurnNum {
 		// Stale state
 		return false
 	}
 
 	// Store the signature. If we have no record yet, add one.
-	if signedState, ok := c.SignedStateForTurnNum[turnNum]; !ok {
-		c.SignedStateForTurnNum[turnNum] = SignedState{s.VariablePart(), make(map[uint]state.Signature)}
-		c.SignedStateForTurnNum[turnNum].Sigs[signerIndex] = sig
+	if signedState, ok := c.SignedStateForTurnNum[s.TurnNum]; !ok {
+		c.SignedStateForTurnNum[s.TurnNum] = SignedState{s.VariablePart(), make(map[uint]state.Signature)}
+		c.SignedStateForTurnNum[s.TurnNum].Sigs[signerIndex] = sig
 	} else {
 		signedState.Sigs[signerIndex] = sig
 	}
 
 	// Update latest supported state
-	if c.SignedStateForTurnNum[turnNum].hasAllSignatures(len(c.FixedPart.Participants)) {
-		c.latestSupportedStateTurnNum = turnNum
+	if c.SignedStateForTurnNum[s.TurnNum].hasAllSignatures(len(c.FixedPart.Participants)) {
+		c.latestSupportedStateTurnNum = s.TurnNum
 	}
 
 	// TODO update support

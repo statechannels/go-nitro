@@ -12,9 +12,11 @@ import (
 
 func TestChannel(t *testing.T) {
 	s := state.TestState.Clone()
+
 	_, err1 := New(s, 0)
 	s.TurnNum = big.NewInt(0)
 	c, err2 := New(s, 0)
+
 
 	testNew := func(t *testing.T) {
 		if err1 == nil {
@@ -54,7 +56,7 @@ func TestChannel(t *testing.T) {
 	testPostFund := func(t *testing.T) {
 		got, err1 := c.PostFundState().Hash()
 		spf := s.Clone()
-		spf.TurnNum = big.NewInt(1)
+		spf.TurnNum = POSTFUNDTURNNUM
 		want, err2 := spf.Hash()
 		if err1 != nil {
 			t.Error(err1)
@@ -143,7 +145,7 @@ func TestChannel(t *testing.T) {
 			ChallengeDuration: big.NewInt(60),
 			AppData:           []byte{},
 			Outcome:           state.TestOutcome,
-			TurnNum:           big.NewInt(5),
+			TurnNum:           5,
 			IsFinal:           false,
 		}
 		v.ChannelNonce.Add(v.ChannelNonce, big.NewInt(1))
@@ -158,7 +160,7 @@ func TestChannel(t *testing.T) {
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
-		c.latestSupportedStateTurnNum = MAGICTURNNUM // Rest so there is no longer a supported state
+		c.latestSupportedStateTurnNum = MAXTURNNUM // Reset so there is no longer a supported state
 
 		// Now test cases which update the Channel and return true
 		want = true
@@ -189,7 +191,7 @@ func TestChannel(t *testing.T) {
 		if err4 != nil {
 			t.Error(err4)
 		}
-		if got4.TurnNum.Uint64() != want3 {
+		if got4.TurnNum != want3 {
 			t.Errorf(`expected LatestSupportedState with turnNum %v`, want3)
 		}
 

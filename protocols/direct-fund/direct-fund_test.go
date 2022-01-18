@@ -51,7 +51,7 @@ var testState = state.State{
 			},
 		},
 	},
-	TurnNum: big.NewInt(0),
+	TurnNum: 0,
 	IsFinal: false,
 }
 
@@ -61,9 +61,14 @@ var theirDestination = bob.destination // only needed if isTwoPartyLedger = true
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
-	// fmt.Println(testState)
-	// Assert that a valid set of constructor args does not result in an error
-	if _, err := New(testState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination); err != nil {
+	// Assert that valid sets of constructor args do not result in errors
+	if _, err := New(testState, testState.Participants[0], true, myDestination, theirDestination); err != nil {
+		t.Error(err)
+	}
+	if _, err := New(testState, testState.Participants[0], false, myDestination, theirDestination); err != nil {
+		t.Error(err)
+	}
+	if _, err := New(testState, testState.Participants[0], false, types.Destination{}, theirDestination); err != nil {
 		t.Error(err)
 	}
 
@@ -71,9 +76,14 @@ func TestNew(t *testing.T) {
 	finalState := testState.Clone()
 	finalState.IsFinal = true
 
-	// Assert that constructing with a final state should return an error
 	if _, err := New(finalState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination); err == nil {
-		t.Error("Expected an error when constructing with an invalid state, but got nil")
+		t.Error("expected an error when constructing with an intial state marked final, but got nil")
+	}
+	if _, err := New(testState, testState.Participants[0], true, myDestination, types.Destination{}); err == nil {
+		t.Error("expected an error when constructing a 2-party-ledger with a blank destination, but got nil")
+	}
+	if _, err := New(testState, testState.Participants[0], true, types.Destination{}, theirDestination); err == nil {
+		t.Error("expected an error when constructing a 2-party-ledger with a blank destination, but got nil")
 	}
 
 }
@@ -123,11 +133,12 @@ func TestUpdate(t *testing.T) {
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
 	e.Sigs[&stateToSign] = correctSignatureByParticipant
-	updated, err := s.Update(e)
+	updatedObjective, err := s.Update(e)
 	if err != nil {
 		t.Error(err)
 	}
-	if updated.(DirectFundObjective).C.PreFundSignedByMe() != true {
+	updated := updatedObjective.(DirectFundObjective)
+	if updated.C.PreFundSignedByMe() != true {
 		t.Error(`Objective data not updated as expected`)
 	}
 
@@ -135,12 +146,13 @@ func TestUpdate(t *testing.T) {
 	// Updating the objective with this event should overwrite the holdings that are stored
 	e.Holdings = types.Funds{}
 	e.Holdings[common.Address{}] = big.NewInt(3)
-	updated, err = s.Update(e)
+	updatedObjective, err = s.Update(e)
 	if err != nil {
 		t.Error(err)
 	}
-	if !updated.(DirectFundObjective).C.OnChainFunding.Equal(e.Holdings) {
-		t.Error(`Objective data not updated as expected`, updated.(DirectFundObjective).C.OnChainFunding, e.Holdings)
+	updated = updatedObjective.(DirectFundObjective)
+	if !updated.C.OnChainFunding.Equal(e.Holdings) {
+		t.Error(`Objective data not updated as expected`, updated.C.OnChainFunding, e.Holdings)
 	}
 
 }
@@ -159,7 +171,7 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Approve the objective, so that the rest of the test cases can run.
-	o := s.Approve()
+	o := s.Approve().(DirectFundObjective)
 
 	// To test the finite state progression, we are going to progressively mutate o
 	// And then crank it to see which "pause point" (WaitingFor) we end up at.
@@ -174,8 +186,8 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by collecting prefund signatures
-	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PreFundState(), correctSignatureByAliceOnPreFund)
-	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PreFundState(), correctSignatureByBobOnPreFund)
+	o.C.AddSignedState(o.C.PreFundState(), correctSignatureByAliceOnPreFund)
+	o.C.AddSignedState(o.C.PreFundState(), correctSignatureByBobOnPreFund)
 
 	// Cranking should move us to the next waiting point
 	_, _, waitingFor, err = o.Crank(&alice.privateKey)
@@ -187,7 +199,7 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually make the first "deposit"
-	o.(DirectFundObjective).C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
+	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
 	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
@@ -198,7 +210,7 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the second "deposit"
 	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
-	o.(DirectFundObjective).C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
+	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
 	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
@@ -208,11 +220,11 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by collecting postfund signatures
-	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PostFundState(), correctSignatureByAliceOnPostFund)
-	o.(DirectFundObjective).C.AddSignedState(o.(DirectFundObjective).C.PostFundState(), correctSignatureByBobOnPostFund)
+	o.C.AddSignedState(o.C.PostFundState(), correctSignatureByAliceOnPostFund)
+	o.C.AddSignedState(o.C.PostFundState(), correctSignatureByBobOnPostFund)
 
 	// This should be the final crank
-	o.(DirectFundObjective).C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
+	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
 	_, _, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)

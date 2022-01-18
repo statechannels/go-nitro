@@ -6,11 +6,15 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
+	ethAbi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/statechannels/go-nitro/abi"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	nc "github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
+
+type Signature = nc.Signature
 
 type (
 	// State holds all of the data describing the state of a channel
@@ -22,7 +26,7 @@ type (
 		ChallengeDuration *types.Uint256
 		AppData           types.Bytes
 		Outcome           outcome.Exit
-		TurnNum           *types.Uint256
+		TurnNum           uint64
 		IsFinal           bool
 	}
 
@@ -39,38 +43,10 @@ type (
 	VariablePart struct {
 		AppData types.Bytes
 		Outcome outcome.Exit
-		TurnNum *types.Uint256
+		TurnNum uint64
 		IsFinal bool
 	}
 )
-
-/// START: ABI ENCODING HELPERS
-// To encode objects as bytes, we need to construct an encoder, using abi.Arguments.
-// An instance of abi.Arguments implements two functions relevant to us:
-// - `Pack`, which packs go values for a given struct into bytes.
-// - `unPack`, which unpacks bytes into go values
-// To construct an abi.Arguments instance, we need to supply an array of "types", which are
-// actually go values. The following types are used when encoding a state
-
-// uint256 is the uint256 type for abi encoding
-var uint256, _ = abi.NewType("uint256", "uint256", nil)
-
-// bool is the bool type for abi encoding
-var boolTy, _ = abi.NewType("bool", "bool", nil)
-
-// destination is the bytes32 type for abi encoding
-var destination, _ = abi.NewType("bytes32", "address", nil)
-
-// bytes is the bytes type for abi encoding
-var bytesTy, _ = abi.NewType("bytes", "bytes", nil)
-
-// address is the address[] type for abi encoding
-var addressArray, _ = abi.NewType("address[]", "address[]", nil)
-
-// address is the address type for abi encoding
-var address, _ = abi.NewType("address", "address", nil)
-
-/// END: ABI ENCODING HELPERS
 
 // FixedPart returns the FixedPart of the State
 func (s State) FixedPart() FixedPart {
@@ -101,12 +77,12 @@ func (fp FixedPart) ChannelId() (types.Destination, error) {
 		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChannelNonce`)
 	}
 
-	encodedChannelPart, error := abi.Arguments{
-		{Type: uint256},
-		{Type: addressArray},
-		{Type: uint256},
-		{Type: address},
-		{Type: uint256},
+	encodedChannelPart, error := ethAbi.Arguments{
+		{Type: abi.Uint256},
+		{Type: abi.AddressArray},
+		{Type: abi.Uint256},
+		{Type: abi.Address},
+		{Type: abi.Uint256},
 	}.Pack(fp.ChainId, fp.Participants, fp.ChannelNonce, fp.AppDefinition, fp.ChallengeDuration)
 
 	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
@@ -130,17 +106,17 @@ func (s State) encode() (types.Bytes, error) {
 
 	}
 
-	return abi.Arguments{
-		{Type: destination},    // channel id (includes ChainID, Participants, ChannelNonce)
-		{Type: bytesTy},        // app data
-		{Type: outcome.ExitTy}, // outcome
-		{Type: uint256},        // turnNum
-		{Type: boolTy},         // isFinal
+	return ethAbi.Arguments{
+		{Type: abi.Destination}, // channel id (includes ChainID, Participants, ChannelNonce)
+		{Type: abi.Bytes},       // app data
+		{Type: outcome.ExitTy},  // outcome
+		{Type: abi.Uint256},     // turnNum
+		{Type: abi.Bool},        // isFinal
 	}.Pack(
 		ChannelId,
 		[]byte(s.AppData), // Note: even though s.AppData is types.bytes, which is an alias for []byte], Pack will not accept types.bytes
 		s.Outcome,
-		s.TurnNum,
+		big.NewInt(int64(s.TurnNum)),
 		s.IsFinal,
 	)
 }
@@ -162,7 +138,7 @@ func (s State) Sign(secretKey []byte) (Signature, error) {
 	if error != nil {
 		return Signature{}, error
 	}
-	return SignEthereumMessage(hash.Bytes(), secretKey)
+	return nc.SignEthereumMessage(hash.Bytes(), secretKey)
 }
 
 // RecoverSigner computes the Ethereum address which generated Signature sig on State state
@@ -171,7 +147,7 @@ func (s State) RecoverSigner(sig Signature) (types.Address, error) {
 	if error != nil {
 		return types.Address{}, error
 	}
-	return RecoverEthereumMessageSigner(stateHash[:], sig)
+	return nc.RecoverEthereumMessageSigner(stateHash[:], sig)
 }
 
 // equalParticipants returns true if the given arrays contain equal addresses (in the same order).
@@ -196,7 +172,7 @@ func (s State) Equal(r State) bool {
 		s.ChallengeDuration.Cmp(r.ChallengeDuration) == 0 &&
 		bytes.Equal(s.AppData, r.AppData) &&
 		s.Outcome.Equal(r.Outcome) &&
-		s.TurnNum.Cmp(r.TurnNum) == 0 &&
+		s.TurnNum == r.TurnNum &&
 		s.IsFinal == r.IsFinal
 }
 
@@ -215,7 +191,7 @@ func (s State) Clone() State {
 	clone.AppData = make(types.Bytes, 0, len(s.AppData))
 	copy(clone.AppData, s.AppData)
 	clone.Outcome = s.Outcome.Clone()
-	clone.TurnNum = new(big.Int).Set(s.TurnNum)
+	clone.TurnNum = s.TurnNum
 	clone.IsFinal = s.IsFinal
 
 	return clone
