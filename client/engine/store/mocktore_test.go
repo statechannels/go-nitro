@@ -5,9 +5,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
+	nc "github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
 	directfund "github.com/statechannels/go-nitro/protocols/direct-fund"
-	"github.com/statechannels/go-nitro/types"
 )
 
 func TestNewMockStore(t *testing.T) {
@@ -29,9 +29,6 @@ func TestSetGetObjective(t *testing.T) {
 	testObj, _ := directfund.New(
 		ts,
 		ts.Participants[0],
-		false,
-		types.AddressToDestination(ts.Participants[0]),
-		types.AddressToDestination(ts.Participants[1]),
 	)
 
 	if err := ms.SetObjective(testObj); err != nil {
@@ -57,9 +54,6 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 	testObj, _ := directfund.New(
 		ts,
 		ts.Participants[0],
-		false,
-		types.AddressToDestination(ts.Participants[0]),
-		types.AddressToDestination(ts.Participants[1]),
 	)
 
 	if err := ms.SetObjective(testObj); err != nil {
@@ -86,9 +80,8 @@ func TestGetChannelSecretKey(t *testing.T) {
 
 	msg := []byte("sign this")
 
-	signedMsg, _ := state.SignEthereumMessage(msg, *key)
-
-	recoveredSigner, _ := state.RecoverEthereumMessageSigner(msg, signedMsg)
+	signedMsg, _ := nc.SignEthereumMessage(msg, *key)
+	recoveredSigner, _ := nc.RecoverEthereumMessageSigner(msg, signedMsg)
 
 	if recoveredSigner != pk {
 		t.Errorf("expected to recover %x, but got %x", pk, recoveredSigner)
