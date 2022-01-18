@@ -55,20 +55,10 @@ var testState = state.State{
 	IsFinal: false,
 }
 
-var isTwoPartyLedger = false           // for the purposes of this test
-var myDestination = alice.destination  // only needed if isTwoPartyLedger = true
-var theirDestination = bob.destination // only needed if isTwoPartyLedger = true
-
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
-	// Assert that valid sets of constructor args do not result in errors
-	if _, err := New(testState, testState.Participants[0], true, myDestination, theirDestination); err != nil {
-		t.Error(err)
-	}
-	if _, err := New(testState, testState.Participants[0], false, myDestination, theirDestination); err != nil {
-		t.Error(err)
-	}
-	if _, err := New(testState, testState.Participants[0], false, types.Destination{}, theirDestination); err != nil {
+	// Assert that valid constructor args do not result in error
+	if _, err := New(testState, testState.Participants[0]); err != nil {
 		t.Error(err)
 	}
 
@@ -76,13 +66,13 @@ func TestNew(t *testing.T) {
 	finalState := testState.Clone()
 	finalState.IsFinal = true
 
-	if _, err := New(finalState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination); err == nil {
+	if _, err := New(finalState, testState.Participants[0]); err == nil {
 		t.Error("expected an error when constructing with an intial state marked final, but got nil")
 	}
 }
 
 // Construct various variables for use in TestUpdate
-var s, _ = New(testState, testState.Participants[0], isTwoPartyLedger, myDestination, theirDestination)
+var s, _ = New(testState, testState.Participants[0])
 var dummySignature = state.Signature{
 	R: common.Hex2Bytes(`49d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
 	S: common.Hex2Bytes(`22274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),

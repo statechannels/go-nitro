@@ -43,9 +43,6 @@ type DirectFundObjective struct {
 func New(
 	initialState state.State,
 	myAddress types.Address,
-	isTwoPartyLedger bool,
-	myDestination types.Destination,
-	theirDestination types.Destination,
 ) (DirectFundObjective, error) {
 	if initialState.IsFinal {
 		return DirectFundObjective{}, errors.New("attempted to initiate new direct-funding objective with IsFinal == true")
