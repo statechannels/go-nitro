@@ -55,7 +55,7 @@ func TestChannel(t *testing.T) {
 	testPostFund := func(t *testing.T) {
 		got, err1 := c.PostFundState().Hash()
 		spf := s.Clone()
-		spf.TurnNum = POSTFUNDTURNNUM
+		spf.TurnNum = PostFundTurnNum
 		want, err2 := spf.Hash()
 		if err1 != nil {
 			t.Error(err1)
@@ -159,7 +159,7 @@ func TestChannel(t *testing.T) {
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
-		c.latestSupportedStateTurnNum = MAXTURNNUM // Reset so there is no longer a supported state
+		c.latestSupportedStateTurnNum = MaxTurnNum // Reset so there is no longer a supported state
 
 		// Now test cases which update the Channel and return true
 		want = true
