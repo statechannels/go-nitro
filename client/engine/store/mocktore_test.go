@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/protocols"
 	directfund "github.com/statechannels/go-nitro/protocols/direct-fund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -15,7 +16,8 @@ func TestNewMockStore(t *testing.T) {
 
 func TestSetGetObjective(t *testing.T) {
 	ms := NewMockStore([]byte{})
-        id := "404"
+
+	id := protocols.ObjectiveId("404")
 	got, ok := ms.GetObjectiveById(id)
 	if ok {
 		t.Errorf("expected not to find the %s objective, but found %v", id, got)
