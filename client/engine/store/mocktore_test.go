@@ -15,9 +15,10 @@ func TestNewMockStore(t *testing.T) {
 
 func TestSetGetObjective(t *testing.T) {
 	ms := NewMockStore([]byte{})
-	got, ok := ms.GetObjectiveById("404")
+        id := "404"
+	got, ok := ms.GetObjectiveById(id)
 	if ok {
-		t.Errorf("expected not to find the 404 objective, but found %v", got)
+		t.Errorf("expected not to find the %s objective, but found %v", id, got)
 	}
 
 	ts := state.TestState
