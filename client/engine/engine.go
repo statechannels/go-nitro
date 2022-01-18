@@ -76,7 +76,7 @@ func (e *Engine) Run() {
 // executes the side effects and
 // evaluates objecive progress.
 func (e *Engine) handleMessage(message protocols.Message) {
-	objective := e.store.GetObjectiveById(message.ObjectiveId)
+	objective, _ := e.store.GetObjectiveById(message.ObjectiveId)
 	event := protocols.ObjectiveEvent{Sigs: message.Sigs}
 	secretKey := e.store.GetChannelSecretKey()
 	updatedObjective, _ := objective.Update(event)                                    // TODO handle error
@@ -95,7 +95,7 @@ func (e *Engine) handleMessage(message protocols.Message) {
 // executes the side effects and
 // evaluates objecive progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
-	objective := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
+	objective, _ := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
 	secretKey := e.store.GetChannelSecretKey()
 	updatedObjective, _ := objective.Update(event)                                    // TODO handle error
@@ -115,12 +115,12 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
 		_ = e.store.SetObjective(apiEvent.ObjectiveToSpawn) // TODO handle error
 	}
 	if apiEvent.ObjectiveToReject != `` {
-		objective := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
 		updatedProtocol := objective.Reject()
 		_ = e.store.SetObjective(updatedProtocol) // TODO handle error
 	}
 	if apiEvent.ObjectiveToApprove != `` {
-		objective := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
 		updatedProtocol := objective.Approve()
 		_ = e.store.SetObjective(updatedProtocol) // TODO handle error
 	}
