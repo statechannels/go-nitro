@@ -12,7 +12,7 @@ import (
 var aliceMS = NewTestMessageService(types.Address{'a'})
 var bobMS = NewTestMessageService(types.Address{'b'})
 
-var objective, _ = directfund.New(state.TestState, aliceMS.address, true, types.AddressToDestination(aliceMS.address), types.AddressToDestination(bobMS.address))
+var objective, _ = directfund.New(state.TestState, aliceMS.address)
 var testId protocols.ObjectiveId = "testObjectiveID"
 
 var aToB protocols.Message = protocols.Message{
