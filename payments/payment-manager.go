@@ -51,8 +51,9 @@ func (pp *PaymentManager) PayBob(amount uint64) error {
 	channelId := pp.largestVoucher.channelId
 	pp.largestVoucher = Voucher{
 		channelId: channelId,
-		amount:    uint(amount),
+		amount:    uint(amount) + pp.largestVoucher.amount,
 	}
+
 	if err := pp.largestVoucher.sign(pp.pk); err != nil {
 		panic(err)
 	}
