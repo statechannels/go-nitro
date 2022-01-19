@@ -5,8 +5,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
+	nitroAbi "github.com/statechannels/go-nitro/abi"
 	"github.com/statechannels/go-nitro/channel/state"
-	nc "github.com/statechannels/go-nitro/crypto"
+	nitroCrypto "github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -29,8 +30,8 @@ type (
 
 func (v Voucher) hash() (types.Bytes32, error) {
 	encoded, err := abi.Arguments{
-		{Type: nc.Destination},
-		{Type: nc.Uint256},
+		{Type: nitroAbi.Destination},
+		{Type: nitroAbi.Uint256},
 	}.Pack(v.channelId, v.amount)
 
 	if err != nil {
@@ -45,7 +46,7 @@ func (v *Voucher) sign(pk []byte) error {
 		return err
 	}
 
-	sig, err := nc.SignEthereumMessage(hash.Bytes(), pk)
+	sig, err := nitroCrypto.SignEthereumMessage(hash.Bytes(), pk)
 
 	if err != nil {
 		return err
@@ -61,5 +62,5 @@ func (v Voucher) recoverSigner() (types.Address, error) {
 	if error != nil {
 		return types.Address{}, error
 	}
-	return nc.RecoverEthereumMessageSigner(h[:], v.signature)
+	return nitroCrypto.RecoverEthereumMessageSigner(h[:], v.signature)
 }
