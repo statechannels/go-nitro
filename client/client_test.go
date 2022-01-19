@@ -12,9 +12,8 @@ import (
 func TestNew(t *testing.T) {
 	a := types.Address(common.HexToAddress(`a`))
 	b := types.Address(common.HexToAddress(`b`))
-	chainservice := chainservice.NewMockChain([]types.Address{a, b})
-
+	chain := chainservice.NewMockChain([]types.Address{a, b})
+	chainservice := chainservice.NewSimpleChainService(chain, a)
 	messageservice := messageservice.NewTestMessageService(a)
-
-	client := New(messageservice, chainservice)
+	New(messageservice, chainservice) // TODO reinstate client:=
 }
