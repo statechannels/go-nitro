@@ -6,6 +6,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/client/engine/store"
 )
 
 // Client provides the interface for the consuming application
@@ -14,9 +15,9 @@ type Client struct {
 }
 
 // New is the constructor for a Client. It accepts a messaging service and a chain service as injected dependencies.
-func New(messageService messageservice.MessageService, chainservice chainservice.ChainService) Client {
+func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store) Client {
 	c := Client{}
-	c.engine = engine.New(messageService, chainservice)
+	c.engine = engine.New(messageService, chainservice, store)
 
 	// Start the engine in a go routine
 	go c.engine.Run()
