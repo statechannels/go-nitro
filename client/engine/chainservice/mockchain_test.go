@@ -52,9 +52,7 @@ func TestDeposit(t *testing.T) {
 	event = <-outA
 
 	// The expectation is that the MockChainService remembered the previous deposit and added this one to it:
-	expectedHoldings := types.Funds{
-		common.HexToAddress("0x00"): big.NewInt(2),
-	}
+	expectedHoldings := testTx.Deposit.Add(testTx.Deposit)
 
 	if event.ChannelId != testTx.ChannelId {
 		t.Error(`channelId mismatch`)

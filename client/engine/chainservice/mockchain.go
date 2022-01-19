@@ -7,6 +7,7 @@ import (
 
 // MockChain provides an interface which simulates a blockchain network. It is designed for use as a central service which multiple
 // ChainServices connect to with Go chans.
+//
 // It keeps a record of of holdings and adjudication status for each channel, accepts transactions and emits events.
 type MockChain struct {
 	out map[types.Address]chan Event // out is a mapping with a chan for each connected ChainService, used to send Events to that service
@@ -15,7 +16,7 @@ type MockChain struct {
 	holdings map[types.Destination]types.Funds // holdings tracks funds for each channel
 }
 
-// Out() returns the out chan for a particular ChainService, and narrows the type so that external consumers mays only recieve on it.
+// Out returns the out chan for a particular ChainService, and narrows the type so that external consumers may only receive on it.
 func (mc MockChain) Out(a types.Address) <-chan Event {
 	return mc.out[a]
 }

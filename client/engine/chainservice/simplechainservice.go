@@ -28,12 +28,12 @@ func NewSimpleChainService(mc MockChain, address types.Address) ChainService {
 	return mcs
 }
 
-// Out() returns the but chan but narrows the type so that external consumers mays only recieve on it.
+// Out returns the out chan but narrows the type so that external consumers may only receive on it.
 func (mcs SimpleChainService) Out() <-chan Event {
 	return mcs.out
 }
 
-// In returns the in chan but narrows the type so that external consumers mays only send on it.
+// In returns the in chan but narrows the type so that external consumers may only send on it.
 func (mcs SimpleChainService) In() chan<- protocols.Transaction {
 	return mcs.in
 }
@@ -45,7 +45,7 @@ func (mcs SimpleChainService) listenForTransactions() {
 	}
 }
 
-// listenForEvents peipes events from the MockChain
+// listenForEvents pipes events from the MockChain
 func (mcs SimpleChainService) listenForEvents() {
 	for event := range mcs.chain.Out(mcs.address) {
 		mcs.out <- event
