@@ -17,7 +17,7 @@ type Engine struct {
 
 	// outbound go channels
 	toMsg   chan protocols.Message
-	toChain chan<- protocols.Transaction
+	toChain chan<- protocols.ChainTransaction
 
 	store store.Store // A Store for persisting and restoring important data
 }

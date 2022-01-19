@@ -10,8 +10,8 @@ import (
 //
 // It keeps a record of of holdings and adjudication status for each channel, accepts transactions and emits events.
 type MockChain struct {
-	out map[types.Address]chan Event // out is a mapping with a chan for each connected ChainService, used to send Events to that service
-	in  chan protocols.Transaction   // in is the chan used to recieve Transactions from multiple ChainServices
+	out map[types.Address]chan Event    // out is a mapping with a chan for each connected ChainService, used to send Events to that service
+	in  chan protocols.ChainTransaction // in is the chan used to recieve Transactions from multiple ChainServices
 
 	holdings map[types.Destination]types.Funds // holdings tracks funds for each channel
 }
@@ -22,7 +22,7 @@ func (mc MockChain) Out(a types.Address) <-chan Event {
 }
 
 // In returns the in chan but narrows the type so that external consumers may only send on it.
-func (mc MockChain) In() chan<- protocols.Transaction {
+func (mc MockChain) In() chan<- protocols.ChainTransaction {
 	return mc.in
 }
 
@@ -31,7 +31,7 @@ func NewMockChain(addresses []types.Address) MockChain {
 
 	mc := MockChain{}
 	mc.out = make(map[types.Address]chan Event)
-	mc.in = make(chan protocols.Transaction)
+	mc.in = make(chan protocols.ChainTransaction)
 	mc.holdings = make(map[types.Destination]types.Funds)
 
 	for _, a := range addresses {
@@ -50,7 +50,7 @@ func (mc MockChain) Run() {
 }
 
 // handleTx responds to the given tx.
-func (mc MockChain) handleTx(tx protocols.Transaction) {
+func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 	if tx.Deposit.IsNonZero() {
 		mc.holdings[tx.ChannelId] = mc.holdings[tx.ChannelId].Add(tx.Deposit)
 	}

@@ -13,8 +13,8 @@ type Message struct {
 	Proposal    Objective
 }
 
-// Transaction is an object to be sent to a blockchain provider.
-type Transaction struct {
+// ChainTransaction is an object to be sent to a blockchain provider.
+type ChainTransaction struct {
 	ChannelId types.Destination
 	Deposit   types.Funds
 	// TODO support other transaction types (deposit, challenge, respond, conclude, withdraw)
@@ -37,7 +37,7 @@ func (l LedgerRequest) Equal(m LedgerRequest) bool {
 // SideEffects are effects to be executed by an imperative shell
 type SideEffects struct {
 	MessagesToSend       []Message
-	TransactionsToSubmit []Transaction
+	TransactionsToSubmit []ChainTransaction
 	LedgerRequests       []LedgerRequest
 }
 

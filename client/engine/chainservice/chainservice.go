@@ -15,5 +15,5 @@ type Event struct {
 
 type ChainService interface {
 	Out() <-chan Event
-	In() chan<- protocols.Transaction
+	In() chan<- protocols.ChainTransaction
 }

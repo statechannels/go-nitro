@@ -31,7 +31,7 @@ func TestDeposit(t *testing.T) {
 	testDeposit := types.Funds{
 		common.HexToAddress("0x00"): big.NewInt(1),
 	}
-	testTx := protocols.Transaction{
+	testTx := protocols.ChainTransaction{
 		ChannelId: types.Destination(common.HexToHash(`4ebd366d014a173765ba1e50f284c179ade31f20441bec41664712aac6cc461d`)),
 		Deposit:   testDeposit,
 	}
