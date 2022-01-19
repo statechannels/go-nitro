@@ -28,7 +28,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 // Begin API
 
 // CreateChannel creates a channel
-func (c *Client) CreateChannel() chan engine.Response {
+func (c *Client) CreateChannel() chan engine.Response { // TODO create a directly funded channel with a counterparty. Accept the relevant arguments.
 	// Convert the API call into an internal event.
 	// Pass in a fresh, dedicated go channel to communicate the response:
 	apiEvent := engine.APIEvent{Response: make(chan engine.Response)}
