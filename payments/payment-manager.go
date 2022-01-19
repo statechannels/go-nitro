@@ -8,8 +8,8 @@ import (
 const alice = 0
 
 type (
-	// A PaymentProvider can be used to make a payment for a given channel.
-	PaymentProvider struct {
+	// A PaymentManager can be used to make a payment for a given channel.
+	PaymentManager struct {
 		fp             state.FixedPart
 		largestVoucher Voucher
 		pk             []byte
@@ -20,7 +20,7 @@ type (
 	// A receipt provider enables the consumer to listen to incoming
 	// vouchers, validate them, and notify the consumer of a payment
 	// received
-	ReceiptProvider struct {
+	ReceiptManager struct {
 		fp             state.FixedPart
 		largestVoucher Voucher
 
@@ -30,9 +30,9 @@ type (
 )
 
 // implemented just to make use of fp ...
-func NewPaymentProvider(fp state.FixedPart, pk []byte) (PaymentProvider, error) {
+func NewPaymentManager(fp state.FixedPart, pk []byte) (PaymentManager, error) {
 	chanId, err := fp.ChannelId()
-	pp := PaymentProvider{}
+	pp := PaymentManager{}
 
 	if err != nil {
 		return pp, err
@@ -53,7 +53,7 @@ func NewPaymentProvider(fp state.FixedPart, pk []byte) (PaymentProvider, error) 
 
 // PayBob will use add amount to the biggest voucher to create
 // a new voucher. This voucher is then signed and sent to Bob.
-func (pp *PaymentProvider) PayBob(amount uint64) error {
+func (pp *PaymentManager) PayBob(amount uint64) error {
 	channelId := pp.largestVoucher.channelId
 	pp.largestVoucher = Voucher{
 		channelId: channelId,
@@ -68,7 +68,7 @@ func (pp *PaymentProvider) PayBob(amount uint64) error {
 	return nil
 }
 
-func (rp *ReceiptProvider) ValidateVouchers(listener chan uint64) {
+func (rp *ReceiptManager) ValidateVouchers(listener chan uint64) {
 	for voucher := range rp.vouchers {
 
 		signer, err := voucher.recoverSigner()
@@ -88,12 +88,12 @@ func (rp *ReceiptProvider) ValidateVouchers(listener chan uint64) {
 
 		received := voucher.amount - rp.largestVoucher.amount
 
-		// Clarification needed: What information would a receipt provider need to provide
+		// Clarification needed: What information would a receipt manager need to provide
 		// to its consumer?
 		rp.payments <- received
 	}
 }
 
-func (rp ReceiptProvider) alice() common.Address {
+func (rp ReceiptManager) alice() common.Address {
 	return rp.fp.Participants[alice]
 }
