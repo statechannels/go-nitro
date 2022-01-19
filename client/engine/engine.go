@@ -13,10 +13,10 @@ type Engine struct {
 	// inbound go channels
 	FromAPI   chan APIEvent // This one is exported so that the Client can send API calls
 	fromChain <-chan chainservice.Event
-	fromMsg   chan protocols.Message
+	fromMsg   <-chan protocols.Message
 
 	// outbound go channels
-	toMsg   chan protocols.Message
+	toMsg   chan<- protocols.Message
 	toChain chan<- protocols.ChainTransaction
 
 	store store.Store // A Store for persisting and restoring important data
