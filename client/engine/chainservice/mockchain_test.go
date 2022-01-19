@@ -41,10 +41,10 @@ func TestDeposit(t *testing.T) {
 	event := <-outA
 
 	if event.ChannelId != testTx.ChannelId {
-		t.Error(`channelId mismatch`)
+		t.Errorf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, event.ChannelId)
 	}
 	if !event.Holdings.Equal(testTx.Deposit) {
-		t.Error(`holdings mismatch`)
+		t.Errorf(`holdings mismatch: expected %v but got %v`, testTx.Deposit, event.Holdings)
 	}
 
 	// Send the transaction again and recieve another event
@@ -55,30 +55,30 @@ func TestDeposit(t *testing.T) {
 	expectedHoldings := testTx.Deposit.Add(testTx.Deposit)
 
 	if event.ChannelId != testTx.ChannelId {
-		t.Error(`channelId mismatch`)
+		t.Errorf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, event.ChannelId)
 	}
 	if !event.Holdings.Equal(expectedHoldings) {
-		t.Error(`holdings mismatch`)
+		t.Errorf(`holdings mismatch: expected %v but got %v`, expectedHoldings, event.Holdings)
 	}
 
 	// Pull an event out of the other mock chain service and check that
 	eventB := <-mcsB.Out()
 
 	if eventB.ChannelId != testTx.ChannelId {
-		t.Error(`channelId mismatch`)
+		t.Errorf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, eventB.ChannelId)
 	}
 	if !eventB.Holdings.Equal(testTx.Deposit) {
-		t.Error(`holdings mismatch`)
+		t.Errorf(`holdings mismatch: expected %v but got %v`, testTx.Deposit, eventB.Holdings)
 	}
 
 	// Pull another event out of the other mock chain service and check that
 	eventB = <-mcsB.Out()
 
 	if eventB.ChannelId != testTx.ChannelId {
-		t.Error(`channelId mismatch`)
+		t.Errorf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, eventB.ChannelId)
 	}
 	if !eventB.Holdings.Equal(expectedHoldings) {
-		t.Error(`holdings mismatch`)
+		t.Errorf(`holdings mismatch: expected %v but got %v`, expectedHoldings, eventB.Holdings)
 	}
 
 }
