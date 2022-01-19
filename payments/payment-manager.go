@@ -47,11 +47,11 @@ func NewPaymentManager(channelId types.Destination, pk []byte) (PaymentManager, 
 
 // PayBob will add `amount` to the biggest voucher to create
 // a new voucher. This voucher is then signed and sent to Bob.
-func (pp *PaymentManager) PayBob(amount uint64) error {
+func (pp *PaymentManager) PayBob(amount uint) error {
 	channelId := pp.largestVoucher.channelId
 	pp.largestVoucher = Voucher{
 		channelId: channelId,
-		amount:    uint(amount) + pp.largestVoucher.amount,
+		amount:    amount + pp.largestVoucher.amount,
 	}
 
 	if err := pp.largestVoucher.sign(pp.pk); err != nil {
