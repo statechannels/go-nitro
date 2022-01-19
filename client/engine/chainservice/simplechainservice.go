@@ -22,8 +22,8 @@ func NewSimpleChainService(mc MockChain, address types.Address) ChainService {
 	mcs.chain = mc
 	mcs.address = address
 
-	go mcs.listenForEvents()
-	go mcs.listenForTransactions()
+	go mcs.forwardEvents()
+	go mcs.forwardTransactions()
 
 	return mcs
 }
@@ -38,15 +38,15 @@ func (mcs SimpleChainService) In() chan<- protocols.Transaction {
 	return mcs.in
 }
 
-// listenForTransactions pipes transactions to the MockChain
-func (mcs SimpleChainService) listenForTransactions() {
+// forwardTransactions pipes transactions to the MockChain
+func (mcs SimpleChainService) forwardTransactions() {
 	for tx := range mcs.in {
 		mcs.chain.In() <- tx
 	}
 }
 
-// listenForEvents pipes events from the MockChain
-func (mcs SimpleChainService) listenForEvents() {
+// forwardEvents pipes events from the MockChain
+func (mcs SimpleChainService) forwardEvents() {
 	for event := range mcs.chain.Out(mcs.address) {
 		mcs.out <- event
 	}
