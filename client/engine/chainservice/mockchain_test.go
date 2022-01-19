@@ -13,8 +13,8 @@ func TestDeposit(t *testing.T) {
 	// The MockChain and SimpleChainService should work together to react to a deposit transaction for a given channel by:
 	// - sending an event with updated holdings for that channel to all SimpleChainServices which are subscribed
 
-	var a = types.Address(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`))
-	var b = types.Address(common.HexToAddress(`0xa5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`))
+	var a = types.Address(common.HexToAddress(`a`))
+	var b = types.Address(common.HexToAddress(`b`))
 
 	// Construct MockChain and tell it the addresses of the SimpleChainServices which will subscribe to it.
 	// This is not super elegant but gets around data races -- the constructor will make channels and then run a listener which will send on them.
