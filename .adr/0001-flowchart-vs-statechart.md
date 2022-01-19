@@ -1,4 +1,4 @@
-## 0000 -- Flowcharts vs Statecharts
+## 0001 -- Flowcharts vs Statecharts
 
 An objective encodes a state chart (or state machine), but in a slightly non-standard manner:
 

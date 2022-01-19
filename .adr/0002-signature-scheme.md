@@ -1,4 +1,4 @@
-## 0000 -- State Signature Scheme
+## 0002 -- State Signature Scheme
 
 Our state signing scheme involves encoding a data structure into a string of bytes, hashing those and signing the hash. Signing a hash is important because it protects against leakage of the private key -- since the hash is unpredicatble it cannot be crafted maliciously by an adversary (even if the preimage has been prepared by that adversary).
 
