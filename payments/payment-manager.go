@@ -45,7 +45,7 @@ func NewPaymentManager(channelId types.Destination, pk []byte) (PaymentManager, 
 	return pp, nil
 }
 
-// PayBob will use add amount to the biggest voucher to create
+// PayBob will add `amount` to the biggest voucher to create
 // a new voucher. This voucher is then signed and sent to Bob.
 func (pp *PaymentManager) PayBob(amount uint64) error {
 	channelId := pp.largestVoucher.channelId
