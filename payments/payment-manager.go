@@ -2,15 +2,13 @@ package payments
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/types"
 )
-
-const alice = 0
 
 type (
 	// A PaymentManager can be used to make a payment for a given channel.
 	PaymentManager struct {
-		fp             state.FixedPart
+		channelId      types.Destination
 		largestVoucher Voucher
 		pk             []byte
 
@@ -21,7 +19,8 @@ type (
 	// vouchers, validate them, and notify the consumer of a payment
 	// received
 	ReceiptManager struct {
-		fp             state.FixedPart
+		channelId      types.Destination
+		alice          common.Address
 		largestVoucher Voucher
 
 		vouchers chan Voucher // todo: should be unidirectional
@@ -30,23 +29,18 @@ type (
 )
 
 // implemented just to make use of fp ...
-func NewPaymentManager(fp state.FixedPart, pk []byte) (PaymentManager, error) {
-	chanId, err := fp.ChannelId()
+func NewPaymentManager(channelId types.Destination, pk []byte) (PaymentManager, error) {
 	pp := PaymentManager{}
 
-	if err != nil {
-		return pp, err
-	}
-
 	pp.largestVoucher = Voucher{
-		channelId: chanId,
+		channelId: channelId,
 	}
 
 	if err := pp.largestVoucher.sign(pk); err != nil {
 		panic(err)
 	}
 
-	pp.fp = fp
+	pp.channelId = channelId
 
 	return pp, nil
 }
@@ -70,6 +64,9 @@ func (pp *PaymentManager) PayBob(amount uint64) error {
 
 func (rp *ReceiptManager) ValidateVouchers(listener chan uint64) {
 	for voucher := range rp.vouchers {
+		if voucher.channelId != rp.channelId {
+			panic("wrong channel!")
+		}
 
 		signer, err := voucher.recoverSigner()
 
@@ -78,7 +75,7 @@ func (rp *ReceiptManager) ValidateVouchers(listener chan uint64) {
 			panic(err)
 		}
 
-		if signer != rp.alice() {
+		if signer != rp.alice {
 			panic("invalid signature")
 		}
 
@@ -92,8 +89,4 @@ func (rp *ReceiptManager) ValidateVouchers(listener chan uint64) {
 		// to its consumer?
 		rp.payments <- received
 	}
-}
-
-func (rp ReceiptManager) alice() common.Address {
-	return rp.fp.Participants[alice]
 }
