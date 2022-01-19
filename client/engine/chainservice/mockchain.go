@@ -34,9 +34,8 @@ func NewMockChain(addresses []types.Address) MockChain {
 	mc.in = make(chan protocols.Transaction)
 	mc.holdings = make(map[types.Destination]types.Funds)
 
-	const BUFFER_SIZE = 10
 	for _, a := range addresses {
-		mc.out[a] = make(chan Event, BUFFER_SIZE)
+		mc.out[a] = make(chan Event)
 	}
 
 	go mc.Run()
