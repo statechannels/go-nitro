@@ -11,11 +11,11 @@ import (
 )
 
 func TestNewMockStore(t *testing.T) {
-	NewMockStore([]byte{'a', 'b', 'c'})
+	NewMockStore()
 }
 
 func TestSetGetObjective(t *testing.T) {
-	ms := NewMockStore([]byte{})
+	ms := NewMockStore()
 
 	id := protocols.ObjectiveId("404")
 	got, ok := ms.GetObjectiveById(id)
@@ -46,7 +46,7 @@ func TestSetGetObjective(t *testing.T) {
 }
 
 func TestGetObjectiveByChannelId(t *testing.T) {
-	ms := NewMockStore([]byte{})
+	ms := NewMockStore()
 
 	ts := state.TestState
 	ts.TurnNum = 0
@@ -75,7 +75,8 @@ func TestGetChannelSecretKey(t *testing.T) {
 	sk := common.Hex2Bytes("caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634")
 	pk := common.HexToAddress("0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD")
 
-	ms := NewMockStore(sk)
+	ms := NewMockStore()
+	ms.SetChannelSecretKey(sk)
 	key := ms.GetChannelSecretKey()
 
 	msg := []byte("sign this")
