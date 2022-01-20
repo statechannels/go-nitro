@@ -3,8 +3,11 @@
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
+	"crypto/ecdsa"
+	"log"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
@@ -24,12 +27,26 @@ type Client struct {
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
 func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store) Client {
 	c := Client{}
+
+	// Generate and store channel secret key and associated address
+	channelSecretKey, err := crypto.GenerateKey()
+	if err != nil {
+		log.Fatal(err)
+	}
+	channelSecretKeyBytes := crypto.FromECDSA(channelSecretKey)
+	store.SetChannelSecretKey(channelSecretKeyBytes)
+	publicKey := channelSecretKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("error casting public key to ECDSA")
+	}
+	c.myAddress = crypto.PubkeyToAddress(*publicKeyECDSA)
+
+	// Construct a new Engine
 	c.engine = engine.New(messageService, chainservice, store)
 
 	// Start the engine in a go routine
 	go c.engine.Run()
-
-	// TODO generate an ephemeral key / address pair and store
 
 	return c
 }
