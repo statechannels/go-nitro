@@ -24,23 +24,35 @@ type Client struct {
 	Address types.Address // Identifier for this client
 }
 
-// New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
-func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store) Client {
-	c := Client{}
-
-	// Generate and store channel secret key and associated address
+func GeneratePrivateKeyAndAddress() (types.Bytes, types.Address) {
 	channelSecretKey, err := crypto.GenerateKey()
 	if err != nil {
 		log.Fatal(err)
 	}
 	channelSecretKeyBytes := crypto.FromECDSA(channelSecretKey)
-	store.SetChannelSecretKey(channelSecretKeyBytes)
+
 	publicKey := channelSecretKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
 		log.Fatal("error casting public key to ECDSA")
 	}
-	c.Address = crypto.PubkeyToAddress(*publicKeyECDSA)
+	address := crypto.PubkeyToAddress(*publicKeyECDSA)
+	return channelSecretKeyBytes, address
+}
+
+// New is the constructor for a Client. It accepts a messaging service, achain service and a store as injected dependencies.
+func New(
+	messageService messageservice.MessageService,
+	chainservice chainservice.ChainService,
+	store store.Store,
+	channelSecretKeyBytes types.Bytes,
+	address types.Address) Client {
+
+	c := Client{}
+
+	// Store channel secret key and associated address
+	store.SetChannelSecretKey(channelSecretKeyBytes)
+	c.Address = address
 
 	// Construct a new Engine
 	c.engine = engine.New(messageService, chainservice, store)
