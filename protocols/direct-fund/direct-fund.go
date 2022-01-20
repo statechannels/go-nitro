@@ -51,7 +51,8 @@ func New(
 	var init = DirectFundObjective{}
 	var err error
 
-	init.Status = protocols.Unapproved
+	// By *constructing* the objective, it is implicitly approved.
+	init.Status = protocols.Approved
 
 	var myIndex uint
 	for i, v := range initialState.Participants {
