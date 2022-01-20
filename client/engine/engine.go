@@ -81,11 +81,7 @@ func (e *Engine) handleMessage(message protocols.Message) {
 	event := protocols.ObjectiveEvent{Sigs: message.Sigs}
 	objective, _ := e.store.GetObjectiveById(message.ObjectiveId)
 	updatedObjective, _ := objective.Update(event) // TODO handle error
-	secretKey := e.store.GetChannelSecretKey()
-	crankedObjective, sideEffects, waitingFor, _ := updatedObjective.Crank(secretKey) // TODO handle error
-	_ = e.store.SetObjective(crankedObjective)                                        // TODO handle error
-	e.executeSideEffects(sideEffects)
-	e.store.UpdateProgressLastMadeAt(message.ObjectiveId, waitingFor)
+	e.attemptProgress(updatedObjective)
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
@@ -100,11 +96,7 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
 	objective, _ := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	updatedObjective, _ := objective.Update(event) // TODO handle error
-	secretKey := e.store.GetChannelSecretKey()
-	crankedObjective, sideEffects, waitingFor, _ := updatedObjective.Crank(secretKey) // TODO handle error
-	_ = e.store.SetObjective(crankedObjective)                                        // TODO handle error
-	e.executeSideEffects(sideEffects)
-	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
+	e.attemptProgress(updatedObjective)
 }
 
 // handleAPIEvent handles an API Event (triggered by an API call)
@@ -114,7 +106,7 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
 // Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
 	if apiEvent.ObjectiveToSpawn != nil {
-		_ = e.store.SetObjective(apiEvent.ObjectiveToSpawn) // TODO handle error
+		e.attemptProgress(apiEvent.ObjectiveToSpawn)
 	}
 	if apiEvent.ObjectiveToReject != `` {
 		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
@@ -123,8 +115,8 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
 	}
 	if apiEvent.ObjectiveToApprove != `` {
 		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
-		updatedProtocol := objective.Approve()
-		_ = e.store.SetObjective(updatedProtocol) // TODO handle error
+		updatedObjective := objective.Approve()
+		e.attemptProgress(updatedObjective)
 	}
 }
 
@@ -136,4 +128,19 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	for _, tx := range sideEffects.TransactionsToSubmit {
 		e.toChain <- tx
 	}
+}
+
+// attemptProgress takes a "live" objective in memory and performs the following actions:
+//
+// 	1. It pulls the secret key from the store
+// 	2. It cranks the objective with that key
+// 	3. It commits the cranked objective to the store
+// 	4. It executes any side effects that were declared during cranking
+// 	5. It updates progress metadata in the store
+func (e *Engine) attemptProgress(objective protocols.Objective) {
+	secretKey := e.store.GetChannelSecretKey()
+	crankedObjective, sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
+	_ = e.store.SetObjective(crankedObjective)                                 // TODO handle error
+	e.executeSideEffects(sideEffects)
+	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
 }
