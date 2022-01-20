@@ -20,8 +20,8 @@ import (
 
 // Client provides the interface for the consuming application
 type Client struct {
-	engine    engine.Engine // The core business logic of the client
-	myAddress types.Address // Identifier for this client
+	engine  engine.Engine // The core business logic of the client
+	Address types.Address // Identifier for this client
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -40,7 +40,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	if !ok {
 		log.Fatal("error casting public key to ECDSA")
 	}
-	c.myAddress = crypto.PubkeyToAddress(*publicKeyECDSA)
+	c.Address = crypto.PubkeyToAddress(*publicKeyECDSA)
 
 	// Construct a new Engine
 	c.engine = engine.New(messageService, chainservice, store)
@@ -59,7 +59,7 @@ func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition t
 	objective, _ := directfund.New(
 		state.State{
 			ChainId:           big.NewInt(0), // TODO
-			Participants:      []types.Address{c.myAddress, counterparty},
+			Participants:      []types.Address{c.Address, counterparty},
 			ChannelNonce:      big.NewInt(0), // TODO -- how do we get a fresh nonce safely without race conditions? Could we conisder a random nonce?
 			AppDefinition:     appDefinition,
 			ChallengeDuration: challengeDuration,
@@ -68,7 +68,7 @@ func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition t
 			TurnNum:           0,
 			IsFinal:           false,
 		},
-		c.myAddress,
+		c.Address,
 	)
 
 	// Pass in a fresh, dedicated go channel to communicate the response:
