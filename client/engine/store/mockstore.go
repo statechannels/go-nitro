@@ -11,12 +11,16 @@ type MockStore struct {
 	key []byte // the signing key of the store's engine
 }
 
-func NewMockStore(key []byte) Store {
+func NewMockStore() Store {
 	ms := MockStore{}
-	ms.key = key
+
 	ms.objectives = make(map[protocols.ObjectiveId]protocols.Objective)
 
-	return ms
+	return &ms
+}
+
+func (ms *MockStore) SetChannelSecretKey(key []byte) {
+	ms.key = key
 }
 
 func (ms MockStore) GetChannelSecretKey() *[]byte {
