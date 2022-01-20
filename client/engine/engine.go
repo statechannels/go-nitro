@@ -78,10 +78,10 @@ func (e *Engine) Run() {
 // executes the side effects and
 // evaluates objecive progress.
 func (e *Engine) handleMessage(message protocols.Message) {
-	objective, _ := e.store.GetObjectiveById(message.ObjectiveId)
 	event := protocols.ObjectiveEvent{Sigs: message.Sigs}
+	objective, _ := e.store.GetObjectiveById(message.ObjectiveId)
+	updatedObjective, _ := objective.Update(event) // TODO handle error
 	secretKey := e.store.GetChannelSecretKey()
-	updatedObjective, _ := objective.Update(event)                                    // TODO handle error
 	crankedObjective, sideEffects, waitingFor, _ := updatedObjective.Crank(secretKey) // TODO handle error
 	_ = e.store.SetObjective(crankedObjective)                                        // TODO handle error
 	e.executeSideEffects(sideEffects)
@@ -97,10 +97,10 @@ func (e *Engine) handleMessage(message protocols.Message) {
 // executes the side effects and
 // evaluates objecive progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
-	objective, _ := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
+	objective, _ := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
+	updatedObjective, _ := objective.Update(event) // TODO handle error
 	secretKey := e.store.GetChannelSecretKey()
-	updatedObjective, _ := objective.Update(event)                                    // TODO handle error
 	crankedObjective, sideEffects, waitingFor, _ := updatedObjective.Crank(secretKey) // TODO handle error
 	_ = e.store.SetObjective(crankedObjective)                                        // TODO handle error
 	e.executeSideEffects(sideEffects)
