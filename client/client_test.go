@@ -14,15 +14,21 @@ import (
 func TestNew(t *testing.T) {
 
 	aKey, a := GeneratePrivateKeyAndAddress()
-	_, b := GeneratePrivateKeyAndAddress()
-	chain := chainservice.MockChain{}
+	bKey, b := GeneratePrivateKeyAndAddress()
+	chain := chainservice.NewMockChain([]types.Address{a, b})
 
-	chainserv := chainservice.NewSimpleChainService(chain, a)
-	messageservice := messageservice.NewTestMessageService(a)
-	store := store.NewMockStore()
-	client := New(messageservice, chainserv, store, aKey, a)
+	chainservA := chainservice.NewSimpleChainService(chain, a)
+	messageserviceA := messageservice.NewTestMessageService(a)
+	storeA := store.NewMockStore()
+	clientA := New(messageserviceA, chainservA, storeA, aKey, a)
 
-	chain = chainservice.NewMockChain([]types.Address{a, b})
+	chainservB := chainservice.NewSimpleChainService(chain, b)
+	messageserviceB := messageservice.NewTestMessageService(a)
+	storeB := store.NewMockStore()
+	New(messageserviceB, chainservB, storeB, bKey, b)
 
-	client.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome.Exit{}, big.NewInt(0))
+	messageserviceA.Connect(messageserviceB)
+	messageserviceB.Connect(messageserviceA)
+
+	clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome.Exit{}, big.NewInt(0))
 }
