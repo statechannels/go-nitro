@@ -53,6 +53,10 @@ More detailed information can be found in each package's respective _readme_.
 
 See [contributing.md](./contributing.md)
 
+## Architectural Decision Records
+
+There is a [hidden folder](./.adr) in this directory containing architectural design records (ADRs).
+
 ## License
 
 Dual-licensed under [MIT](https://opensource.org/licenses/MIT) + [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
