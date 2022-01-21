@@ -26,5 +26,3 @@ The imperative shell will typically be responsible for:
 - "updating" objectives by passing events to their `Update(event)` function (an updated copy is returned)
 - "cranking" objectives by calling `Crank()` (side effects are returned)
 - executing side effects
-
-There is a [hidden folder](./.adr) in this directory containing architectural design records (ADRs).

@@ -7,6 +7,7 @@ Implementation of nitro protocol in golang.
 ---
 
 # Getting started
+
 Please see [contributing.md](./contributing.md)
 
 ## Roadmap
@@ -51,6 +52,10 @@ More detailed information can be found in each package's respective _readme_.
 ## Contributing
 
 See [contributing.md](./contributing.md)
+
+## Architectural Decision Records
+
+There is a [hidden folder](./.adr) in this directory containing architectural design records (ADRs).
 
 ## License
 
