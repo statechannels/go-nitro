@@ -41,6 +41,7 @@ type DirectFundObjective struct {
 // New initiates a DirectFundObjective with data calculated from
 // the supplied initialState and client address
 func New(
+	preApprove bool,
 	initialState state.State,
 	myAddress types.Address,
 ) (DirectFundObjective, error) {
@@ -51,7 +52,11 @@ func New(
 	var init = DirectFundObjective{}
 	var err error
 
-	init.Status = protocols.Unapproved
+	if preApprove {
+		init.Status = protocols.Approved
+	} else {
+		init.Status = protocols.Unapproved
+	}
 
 	var myIndex uint
 	for i, v := range initialState.Participants {
