@@ -7,6 +7,7 @@ Implementation of nitro protocol in golang.
 ---
 
 # Getting started
+
 Please see [contributing.md](./contributing.md)
 
 ## Roadmap
@@ -33,7 +34,7 @@ The following roadmap gives an idea of the various packages that compose the `go
 
 ## Usage
 
-Consuming applications should import the `client` package, and construct a `New()` client by passing in a chain service and message service.
+Consuming applications should import the `client` package, and construct a `New()` client by passing in a chain service, a message service, and a store.
 
 ## Architecture in Brief
 

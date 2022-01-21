@@ -38,7 +38,7 @@ type DirectFundObjective struct {
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
 }
 
-// New initiates a DirectFundingInitialState with data calculated from
+// New initiates a DirectFundObjective with data calculated from
 // the supplied initialState and client address
 func New(
 	initialState state.State,

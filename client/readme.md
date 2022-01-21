@@ -1,6 +1,6 @@
 ## Client architecture
 
-A nitro client may be instantiated by calling `New()` and passing in a chain service and messaging service.
+A nitro client may be instantiated by calling `New()` and passing in a chain service, a messaging service, and a store.
 
 The flow of data through the client is shown in this diagram:
 
