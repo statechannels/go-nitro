@@ -37,6 +37,6 @@ Complexity is tamed by the guiding principle of a flowchart "trying to make as m
 
 Restartability is achieved "for free", since the flowchart actually restarts every time the objective is cranked. There is no "progress data" or finite state stored, other than some metadata derived from the extended state. This metadata may be useful for logging, debugging, statistics and so on -- but is not part of the core logic of the protocol.
 
-For this reason it is imposisble for the finite state to get out of sync with the extended state -- for example you are `WaitingForCompletePrefund` when in fact you have a complete pre fund.
+For this reason it is impossible for the finite state to get out of sync with the extended state -- for example you are `WaitingForCompletePrefund` when in fact you have a complete pre fund.
 
 Unit testing is straightforward -- since `Update` and `Crank` are pure functions there is no need to spin up or mock a database, messaging service or chain service in order to get started unit testing.

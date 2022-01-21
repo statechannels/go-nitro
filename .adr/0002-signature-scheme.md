@@ -12,15 +12,15 @@ We require an algorithm for digitally signing a state. A state is typed data, so
 
 Our state signing scheme involves encoding a data structure into a string of bytes, hashing those using [`keccak256`](https://en.wikipedia.org/w/index.php?title=Keccak-256&redirect=no) and signing the hash using an ephemeral [ECDSA](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm) key.
 
-This key should not be used in any other protocol.
+**This key should not be used in any other protocol.**
 
 Nitro clients should verify the decoding from the contract where funds are locked.
 
 ## Consequences
 
-Signing a hash is important because it protects against leakage of the private key -- since the hash is unpredicatble it cannot be crafted maliciously by an adversary (even if the preimage has been prepared by that adversary).
+Signing a hash is important because it protects against leakage of the private key -- since the hash is unpredictable it cannot be crafted maliciously by an adversary (even if the preimage has been prepared by that adversary).
 
-There remains a potential issue with signatures being resued in unintended ways.
+There remains a potential issue with signatures being reused in unintended ways.
 
 Consider an encoding collision `p = encode(a,b) = encode'(a',b') = p'`. Put otherwise, the bytes `p` could be encoded / decoded in two different ways (perhaps the intended way plus another unintended way), giving rise to distinct variables `a' != a, b' != b`. If these distinct sets of variables and encoding functions result in the same preimage for the hashing and signing steps, the same signature could be "valid" for both sets.
 
