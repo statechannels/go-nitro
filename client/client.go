@@ -14,7 +14,7 @@ type Client struct {
 	engine engine.Engine // The core business logic of the client
 }
 
-// New is the constructor for a Client. It accepts a messaging service, achain service anda a store as injected dependencies.
+// New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
 func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store) Client {
 	c := Client{}
 	c.engine = engine.New(messageService, chainservice, store)
