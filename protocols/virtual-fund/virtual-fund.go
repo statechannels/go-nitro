@@ -52,6 +52,7 @@ type VirtualFundObjective struct {
 
 // New initiates a VirtualFundObjective.
 func New(
+	preApprove bool,
 	initialStateOfV state.State,
 	myAddress types.Address,
 	n uint, // number of ledger channels (num_hops + 1)
@@ -66,6 +67,12 @@ func New(
 	}
 
 	var init VirtualFundObjective
+
+	if preApprove {
+		init.Status = protocols.Approved
+	} else {
+		init.Status = protocols.Unapproved
+	}
 
 	// Initialize virtual channel
 	v, err := channel.New(initialStateOfV, myRole)
