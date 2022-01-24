@@ -3,21 +3,30 @@ package client
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
 
 func TestNew(t *testing.T) {
 
-	skA := common.Hex2Bytes("c417e8a75ebe2bfe16fe108e1e04802c324974eef6ea2cc3d55194fa38677b5e")
-	a := types.Address(common.HexToAddress(`0xaaa3D879df547333a9ac87341C92f11e5FB79CD4`))
-	b := types.Address(common.HexToAddress(`b`))
+	aKey, a := crypto.GeneratePrivateKeyAndAddress()
+	bKey, b := crypto.GeneratePrivateKeyAndAddress()
 	chain := chainservice.NewMockChain([]types.Address{a, b})
-	chainservice := chainservice.NewSimpleChainService(chain, a)
-	messageservice := messageservice.NewTestMessageService(a)
-	store := store.NewMockStore(skA)
-	New(messageservice, chainservice, store) // TODO reinstate client:=
+
+	chainservA := chainservice.NewSimpleChainService(chain, a)
+	messageserviceA := messageservice.NewTestMessageService(a)
+	storeA := store.NewMockStore(aKey)
+	New(messageserviceA, chainservA, storeA)
+
+	chainservB := chainservice.NewSimpleChainService(chain, b)
+	messageserviceB := messageservice.NewTestMessageService(a)
+	storeB := store.NewMockStore(bKey)
+	New(messageserviceB, chainservB, storeB)
+
+	messageserviceA.Connect(messageserviceB)
+	messageserviceB.Connect(messageserviceA)
+
 }
