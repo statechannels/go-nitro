@@ -1,8 +1,10 @@
 package client
 
 import (
+	"math/big"
 	"testing"
 
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -19,7 +21,7 @@ func TestNew(t *testing.T) {
 	chainservA := chainservice.NewSimpleChainService(chain, a)
 	messageserviceA := messageservice.NewTestMessageService(a)
 	storeA := store.NewMockStore(aKey)
-	New(messageserviceA, chainservA, storeA)
+	clientA := New(messageserviceA, chainservA, storeA)
 
 	chainservB := chainservice.NewSimpleChainService(chain, b)
 	messageserviceB := messageservice.NewTestMessageService(a)
@@ -28,5 +30,7 @@ func TestNew(t *testing.T) {
 
 	messageserviceA.Connect(messageserviceB)
 	messageserviceB.Connect(messageserviceA)
+
+	clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome.Exit{}, big.NewInt(0))
 
 }
