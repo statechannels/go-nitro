@@ -59,10 +59,16 @@ func New(
 	}
 
 	var myIndex uint
+	foundMyAddress := false
 	for i, v := range initialState.Participants {
 		if v == myAddress {
 			myIndex = uint(i)
+			foundMyAddress = true
+			break
 		}
+	}
+	if !foundMyAddress {
+		return DirectFundObjective{}, errors.New("my address not found in participants")
 	}
 
 	init.C = &channel.Channel{}
