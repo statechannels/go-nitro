@@ -2,6 +2,9 @@
 package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
+	"io"
+	"log"
+
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -20,6 +23,8 @@ type Engine struct {
 	toChain chan<- protocols.ChainTransaction
 
 	store store.Store // A Store for persisting and restoring important data
+
+	logger *log.Logger
 }
 
 // APIEvent is an internal representation of an API call
@@ -35,7 +40,7 @@ type APIEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store) Engine {
+func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer) Engine {
 	e := Engine{}
 
 	e.store = store
@@ -48,6 +53,11 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	// bind the engine's outbound chans
 	e.toChain = chain.In()
 	e.toMsg = msg.GetSendChan()
+
+	// initialize a Logger
+	e.logger = log.New(logDestination, e.store.GetAddress().String(), log.Ldate|log.Ltime|log.Lshortfile)
+
+	e.logger.Println("Constructed Engine ")
 
 	return e
 }
@@ -142,5 +152,6 @@ func (e *Engine) attemptProgress(objective protocols.Objective) {
 	crankedObjective, sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
 	_ = e.store.SetObjective(crankedObjective)                                 // TODO handle error
 	e.executeSideEffects(sideEffects)
+	e.logger.Printf("objective %s waiting for %s", objective.Id(), waitingFor)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
 }
