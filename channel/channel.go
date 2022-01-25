@@ -68,12 +68,12 @@ func New(s state.State, myIndex uint) (Channel, error) {
 
 	// Store prefund
 	c.SignedStateForTurnNum = make(map[uint64]SignedState)
-	c.SignedStateForTurnNum[PreFundTurnNum] = SignedState{s, make(map[uint]state.Signature)}
+	c.SignedStateForTurnNum[PreFundTurnNum] = NewSignedState(s)
 
 	// Store postfund
 	post := s.Clone()
 	post.TurnNum = PostFundTurnNum
-	c.SignedStateForTurnNum[PostFundTurnNum] = SignedState{post, make(map[uint]state.Signature)}
+	c.SignedStateForTurnNum[PostFundTurnNum] = NewSignedState(post)
 
 	return c, nil
 }
@@ -182,12 +182,14 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 
 	// Store the signature. If we have no record yet, add one.
 	if signedState, ok := c.SignedStateForTurnNum[s.TurnNum]; !ok {
-		ss, err := NewSignedState(s, []state.Signature{sig})
-		if err != nil {
-			return false
-		} else {
+		ss := NewSignedState(s)
+		err := ss.AddSignature(sig)
+		if err == nil {
 			c.SignedStateForTurnNum[s.TurnNum] = ss
+		} else {
+			return false
 		}
+
 	} else {
 		err := signedState.AddSignature(sig)
 		if err != nil {

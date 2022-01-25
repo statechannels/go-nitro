@@ -11,45 +11,39 @@ type SignedState struct {
 	sigs  map[uint]state.Signature // keyed by participant index
 }
 
-// NewSignedState creates a new SignedState from the supplied state and signatures.
-// An error returned if there is an invalid signature.
-func NewSignedState(s state.State, sigs []state.Signature) (SignedState, error) {
-	ss := SignedState{s, make(map[uint]state.Signature, len(sigs))}
-	err := ss.AddSignatures(sigs)
-	return ss, err
-}
+// NewSignedState creates a signed state for the given state with 0 signatures.
+func NewSignedState(s state.State) SignedState {
+	ss := SignedState{s, make(map[uint]state.Signature, len(s.Participants))}
 
-/// AddSignatures adds multiple participant's signature for the state.
-/// An error is thrown if any signature is invalid.
-func (ss SignedState) AddSignatures(sigs []state.Signature) (err error) {
-	for _, sig := range sigs {
-		err = ss.AddSignature(sig)
-	}
-	return
+	return ss
 }
 
 // AddSignature adds a participant's signature for the state.
 // An error is thrown if the signature is invalid.
-func (ss SignedState) AddSignature(sig state.Signature) (err error) {
-
+func (ss SignedState) AddSignature(sig state.Signature) error {
 	signer, err := ss.State.RecoverSigner(sig)
+	if err != nil {
+		return err
+	}
 
 	for i, p := range ss.State.Participants {
 		if p == signer {
 			_, found := ss.sigs[uint(i)]
 			if found {
-				err = errors.New("signature already exists for participant")
+				return errors.New("signature already exists for participant")
 			} else {
 				ss.sigs[uint(i)] = sig
+				return nil
 			}
-			return
+
 		}
 
 	}
-	return err
+	return errors.New("signature does not match any participant")
+
 }
 
-// HasSignature returns true if the participant has a valid signature.
+// HasSignature returns true if the participant (at participantIndex) has a valid signature.
 func (ss SignedState) HasSignature(participantIndex uint) bool {
 	_, found := ss.sigs[uint(participantIndex)]
 	return found
