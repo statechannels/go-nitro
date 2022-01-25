@@ -23,7 +23,7 @@ type Channel struct {
 
 	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
 
-	SignedStateForTurnNum map[uint64]SignedState // this stores up to 1 state per turn number.
+	SignedStateForTurnNum map[uint64]signedState // this stores up to 1 state per turn number.
 	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 }
 
@@ -67,13 +67,13 @@ func New(s state.State, myIndex uint) (Channel, error) {
 	// c.Support =  // TODO
 
 	// Store prefund
-	c.SignedStateForTurnNum = make(map[uint64]SignedState)
-	c.SignedStateForTurnNum[PreFundTurnNum] = NewSignedState(s)
+	c.SignedStateForTurnNum = make(map[uint64]signedState)
+	c.SignedStateForTurnNum[PreFundTurnNum] = newSignedState(s)
 
 	// Store postfund
 	post := s.Clone()
 	post.TurnNum = PostFundTurnNum
-	c.SignedStateForTurnNum[PostFundTurnNum] = NewSignedState(post)
+	c.SignedStateForTurnNum[PostFundTurnNum] = newSignedState(post)
 
 	return c, nil
 }
@@ -182,8 +182,8 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 
 	// Store the signature. If we have no record yet, add one.
 	if signedState, ok := c.SignedStateForTurnNum[s.TurnNum]; !ok {
-		ss := NewSignedState(s)
-		err := ss.AddSignature(sig)
+		ss := newSignedState(s)
+		err := ss.addSignature(sig)
 		if err == nil {
 			c.SignedStateForTurnNum[s.TurnNum] = ss
 		} else {
@@ -191,7 +191,7 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 		}
 
 	} else {
-		err := signedState.AddSignature(sig)
+		err := signedState.addSignature(sig)
 		if err != nil {
 			return false
 		}

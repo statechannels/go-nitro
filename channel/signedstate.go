@@ -6,21 +6,20 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
-type SignedState struct {
+type signedState struct {
 	State state.State
 	sigs  map[uint]state.Signature // keyed by participant index
 }
 
-// NewSignedState creates a signed state for the given state with 0 signatures.
-func NewSignedState(s state.State) SignedState {
-	ss := SignedState{s, make(map[uint]state.Signature, len(s.Participants))}
-
-	return ss
+// newSignedState initializes a SignedState struct for the given state.
+// The signedState returned will have no signatures.
+func newSignedState(s state.State) signedState {
+	return signedState{s, make(map[uint]state.Signature, len(s.Participants))}
 }
 
-// AddSignature adds a participant's signature for the state.
+// addSignature adds a participant's signature for the state.
 // An error is thrown if the signature is invalid.
-func (ss SignedState) AddSignature(sig state.Signature) error {
+func (ss signedState) addSignature(sig state.Signature) error {
 	signer, err := ss.State.RecoverSigner(sig)
 	if err != nil {
 		return err
@@ -44,13 +43,14 @@ func (ss SignedState) AddSignature(sig state.Signature) error {
 }
 
 // HasSignature returns true if the participant (at participantIndex) has a valid signature.
-func (ss SignedState) HasSignature(participantIndex uint) bool {
+func (ss signedState) HasSignature(participantIndex uint) bool {
 	_, found := ss.sigs[uint(participantIndex)]
 	return found
 }
 
 // HasAllSignatures returns true if every participant has a valid signature.
-func (ss SignedState) HasAllSignatures() bool {
+func (ss signedState) HasAllSignatures() bool {
+	// Since signatures are validated
 	if len(ss.sigs) == len(ss.State.Participants) {
 		return true
 	} else {
