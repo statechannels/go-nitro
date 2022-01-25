@@ -69,12 +69,12 @@ func New(s state.State, myIndex uint) (Channel, error) {
 
 	// Store prefund
 	c.SignedStateForTurnNum = make(map[uint64]SignedState)
-	c.SignedStateForTurnNum[PreFundTurnNum] = SignedState{s.VariablePart(), make(map[uint]state.Signature)}
+	c.SignedStateForTurnNum[PreFundTurnNum] = SignedState{s, make(map[uint]state.Signature)}
 
 	// Store postfund
 	post := s.Clone()
 	post.TurnNum = PostFundTurnNum
-	c.SignedStateForTurnNum[PostFundTurnNum] = SignedState{post.VariablePart(), make(map[uint]state.Signature)}
+	c.SignedStateForTurnNum[PostFundTurnNum] = SignedState{post, make(map[uint]state.Signature)}
 
 	return c, nil
 }
@@ -101,19 +101,19 @@ func (c Channel) Equal(d Channel) bool {
 
 // PreFundState() returns the pre fund setup state for the channel.
 func (c Channel) PreFundState() state.State {
-	return state.StateFromFixedAndVariablePart(c.FixedPart, c.SignedStateForTurnNum[PreFundTurnNum].State)
+	return c.SignedStateForTurnNum[PreFundTurnNum].State
 }
 
 // PostFundState() returns the post fund setup state for the channel.
 func (c Channel) PostFundState() state.State {
-	return state.StateFromFixedAndVariablePart(c.FixedPart, c.SignedStateForTurnNum[PostFundTurnNum].State)
+	return c.SignedStateForTurnNum[PostFundTurnNum].State
 
 }
 
 // PreFundSignedByMe() returns true if I have signed the pre fund setup state, false otherwise.
 func (c Channel) PreFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[PreFundTurnNum]; ok {
-		if _, ok := c.SignedStateForTurnNum[PreFundTurnNum].Sigs[c.MyIndex]; ok {
+		if ok := c.SignedStateForTurnNum[PreFundTurnNum].HasSignature(c.MyIndex); ok {
 			return true
 		}
 	}
@@ -123,7 +123,7 @@ func (c Channel) PreFundSignedByMe() bool {
 // PostFundSignedByMe() returns true if I have signed the post fund setup state, false otherwise.
 func (c Channel) PostFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[PostFundTurnNum]; ok {
-		if _, ok := c.SignedStateForTurnNum[PostFundTurnNum].Sigs[c.MyIndex]; ok {
+		if ok := c.SignedStateForTurnNum[PreFundTurnNum].HasSignature(c.MyIndex); ok {
 			return true
 		}
 	}
@@ -132,12 +132,12 @@ func (c Channel) PostFundSignedByMe() bool {
 
 // PreFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
 func (c Channel) PreFundComplete() bool {
-	return c.SignedStateForTurnNum[PreFundTurnNum].hasAllSignatures(len(c.FixedPart.Participants))
+	return c.SignedStateForTurnNum[PreFundTurnNum].HasAllSignatures()
 }
 
 // PostFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
 func (c Channel) PostFundComplete() bool {
-	return c.SignedStateForTurnNum[PostFundTurnNum].hasAllSignatures(len(c.FixedPart.Participants))
+	return c.SignedStateForTurnNum[PostFundTurnNum].HasAllSignatures()
 }
 
 // LatestSupportedState returns the latest supported state.
@@ -145,8 +145,7 @@ func (c Channel) LatestSupportedState() (state.State, error) {
 	if c.latestSupportedStateTurnNum == MaxTurnNum {
 		return state.State{}, errors.New(`no state is yet supported`)
 	}
-	return state.StateFromFixedAndVariablePart(c.FixedPart,
-		c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State), nil
+	return c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State, nil
 }
 
 // Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
@@ -177,7 +176,7 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 		return false
 	}
 
-	signerIndex, isParticipant := indexOf(signer, c.FixedPart.Participants)
+	_, isParticipant := indexOf(signer, c.FixedPart.Participants)
 	if !isParticipant {
 		// Signature by non participant
 		return false
@@ -194,14 +193,21 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 
 	// Store the signature. If we have no record yet, add one.
 	if signedState, ok := c.SignedStateForTurnNum[s.TurnNum]; !ok {
-		c.SignedStateForTurnNum[s.TurnNum] = SignedState{s.VariablePart(), make(map[uint]state.Signature)}
-		c.SignedStateForTurnNum[s.TurnNum].Sigs[signerIndex] = sig
+		ss, err := NewSignedState(s, []state.Signature{sig})
+		if err != nil {
+			return false
+		} else {
+			c.SignedStateForTurnNum[s.TurnNum] = ss
+		}
 	} else {
-		signedState.Sigs[signerIndex] = sig
+		err := signedState.AddSignature(sig)
+		if err != nil {
+			return false
+		}
 	}
 
 	// Update latest supported state
-	if c.SignedStateForTurnNum[s.TurnNum].hasAllSignatures(len(c.FixedPart.Participants)) {
+	if c.SignedStateForTurnNum[s.TurnNum].HasAllSignatures() {
 		c.latestSupportedStateTurnNum = s.TurnNum
 	}
 
