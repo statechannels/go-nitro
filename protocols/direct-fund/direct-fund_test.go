@@ -69,6 +69,11 @@ func TestNew(t *testing.T) {
 	if _, err := New(false, finalState, testState.Participants[0]); err == nil {
 		t.Error("expected an error when constructing with an intial state marked final, but got nil")
 	}
+
+	nonParticipant := common.HexToAddress("0x5b53f71453aeCb03D837bfe170570d40aE736CB4")
+	if _, err := New(false, testState, nonParticipant); err == nil {
+		t.Error("expected an error when constructing with a participant not in the channel, but got nil")
+	}
 }
 
 // Construct various variables for use in TestUpdate
