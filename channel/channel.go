@@ -1,7 +1,6 @@
 package channel
 
 import (
-	"bytes"
 	"errors"
 	"reflect"
 
@@ -170,17 +169,7 @@ func (c Channel) Affords(
 // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
 // Returns false and does not alter the channel if the state is "stale", belongs to a different channel, or is signed by a non participant.
 func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
-	signer, err := s.RecoverSigner(sig)
-	if err != nil {
-		// Invalid signature
-		return false
-	}
 
-	_, isParticipant := indexOf(signer, c.FixedPart.Participants)
-	if !isParticipant {
-		// Signature by non participant
-		return false
-	}
 	if cId, err := s.ChannelId(); cId != c.Id || err != nil {
 		// Channel mismatch
 		return false
@@ -227,15 +216,4 @@ func (c Channel) AddSignedStates(mapping map[*state.State]state.Signature) bool 
 		}
 	}
 	return allOk
-}
-
-// indexOf returns the index of the given suspect address in the lineup of addresses. A second return value ("ok") is true the suspect was found, false otherwise.
-func indexOf(suspect types.Address, lineup []types.Address) (index uint, ok bool) {
-
-	for index, a := range lineup {
-		if bytes.Equal(suspect.Bytes(), a.Bytes()) {
-			return uint(index), true
-		}
-	}
-	return ^uint(0), false
 }
