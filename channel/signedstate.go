@@ -7,7 +7,7 @@ import (
 )
 
 type signedState struct {
-	State state.State
+	state state.State
 	sigs  map[uint]state.Signature // keyed by participant index
 }
 
@@ -20,12 +20,12 @@ func newSignedState(s state.State) signedState {
 // addSignature adds a participant's signature for the state.
 // An error is thrown if the signature is invalid.
 func (ss signedState) addSignature(sig state.Signature) error {
-	signer, err := ss.State.RecoverSigner(sig)
+	signer, err := ss.state.RecoverSigner(sig)
 	if err != nil {
 		return err
 	}
 
-	for i, p := range ss.State.Participants {
+	for i, p := range ss.state.Participants {
 		if p == signer {
 			_, found := ss.sigs[uint(i)]
 			if found {
@@ -41,6 +41,9 @@ func (ss signedState) addSignature(sig state.Signature) error {
 	return errors.New("signature does not match any participant")
 
 }
+func (ss signedState) State() state.State {
+	return ss.state
+}
 
 // HasSignature returns true if the participant (at participantIndex) has a valid signature.
 func (ss signedState) HasSignature(participantIndex uint) bool {
@@ -51,7 +54,7 @@ func (ss signedState) HasSignature(participantIndex uint) bool {
 // HasAllSignatures returns true if every participant has a valid signature.
 func (ss signedState) HasAllSignatures() bool {
 	// Since signatures are validated
-	if len(ss.sigs) == len(ss.State.Participants) {
+	if len(ss.sigs) == len(ss.state.Participants) {
 		return true
 	} else {
 		return false

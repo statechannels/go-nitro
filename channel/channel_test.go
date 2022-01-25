@@ -170,7 +170,7 @@ func TestChannel(t *testing.T) {
 		}
 
 		got2 := c.SignedStateForTurnNum[1]
-		if got2.State.Outcome == nil || !got2.HasSignature(0) {
+		if got2.State().Outcome == nil || !got2.HasSignature(0) {
 			t.Error(`state not added correctly`)
 		}
 
