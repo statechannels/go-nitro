@@ -23,7 +23,10 @@ func TestNew(t *testing.T) {
 	}
 
 	// Reset log destination file
-	logDestination.Truncate(0)
+	err = logDestination.Truncate(0)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	aKey, a := crypto.GeneratePrivateKeyAndAddress()
 	bKey, b := crypto.GeneratePrivateKeyAndAddress()
