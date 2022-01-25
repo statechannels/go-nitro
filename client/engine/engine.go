@@ -55,9 +55,9 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.toMsg = msg.GetSendChan()
 
 	// initialize a Logger
-	e.logger = log.New(logDestination, e.store.GetAddress().String(), log.Ldate|log.Ltime|log.Lshortfile)
+	e.logger = log.New(logDestination, e.store.GetAddress().String()+": ", log.Ldate|log.Ltime|log.Lshortfile)
 
-	e.logger.Println("Constructed Engine ")
+	e.logger.Println("Constructed Engine")
 
 	return e
 }
@@ -133,9 +133,11 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
 // executeSideEffects executes the SideEffects declared by cranking an Objective
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	for _, message := range sideEffects.MessagesToSend {
+		e.logger.Printf("Sending message to %s", message.To)
 		e.toMsg <- message
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
+		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId)
 		e.toChain <- tx
 	}
 }
@@ -152,6 +154,6 @@ func (e *Engine) attemptProgress(objective protocols.Objective) {
 	crankedObjective, sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
 	_ = e.store.SetObjective(crankedObjective)                                 // TODO handle error
 	e.executeSideEffects(sideEffects)
-	e.logger.Printf("objective %s waiting for %s", objective.Id(), waitingFor)
+	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
 }
