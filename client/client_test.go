@@ -1,7 +1,9 @@
 package client
 
 import (
+	"log"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -14,6 +16,15 @@ import (
 
 func TestNew(t *testing.T) {
 
+	// Set up logging
+	logDestination, err := os.OpenFile("client_test_logs.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Reset log destination file
+	logDestination.Truncate(0)
+
 	aKey, a := crypto.GeneratePrivateKeyAndAddress()
 	bKey, b := crypto.GeneratePrivateKeyAndAddress()
 	chain := chainservice.NewMockChain([]types.Address{a, b})
@@ -21,12 +32,12 @@ func TestNew(t *testing.T) {
 	chainservA := chainservice.NewSimpleChainService(chain, a)
 	messageserviceA := messageservice.NewTestMessageService(a)
 	storeA := store.NewMockStore(aKey)
-	clientA := New(messageserviceA, chainservA, storeA)
+	clientA := New(messageserviceA, chainservA, storeA, logDestination)
 
 	chainservB := chainservice.NewSimpleChainService(chain, b)
 	messageserviceB := messageservice.NewTestMessageService(a)
 	storeB := store.NewMockStore(bKey)
-	New(messageserviceB, chainservB, storeB)
+	New(messageserviceB, chainservB, storeB, logDestination)
 
 	messageserviceA.Connect(messageserviceB)
 	messageserviceB.Connect(messageserviceA)
