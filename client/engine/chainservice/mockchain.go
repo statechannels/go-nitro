@@ -35,7 +35,8 @@ func NewMockChain(addresses []types.Address) MockChain {
 	mc.holdings = make(map[types.Destination]types.Funds)
 
 	for _, a := range addresses {
-		mc.out[a] = make(chan Event)
+		// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
+		mc.out[a] = make(chan Event, 10)
 	}
 
 	go mc.Run()
@@ -60,7 +61,7 @@ func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 		AdjudicationStatus: protocols.AdjudicationStatus{TurnNumRecord: 0},
 	}
 	for _, out := range mc.out {
-		go sendEvent(out, event) // we use a goroutine for each send to prevent being blocked by one bad listener
+		sendEvent(out, event)
 	}
 
 }
