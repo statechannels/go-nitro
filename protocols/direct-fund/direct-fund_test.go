@@ -145,6 +145,11 @@ func TestUpdate(t *testing.T) {
 
 }
 
+// TestDoubleFailure is an easy way to debug the count=2 case.
+func TestDoubleFailure(t *testing.T) {
+	TestCrank(t)
+	TestCrank(t)
+}
 func TestCrank(t *testing.T) {
 
 	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.privateKey)
