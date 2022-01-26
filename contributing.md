@@ -69,8 +69,8 @@ go mod tidy
 
 VS code is used to debug tests. To start a debugging session in VS code:
 
-- Have the test file open in the editor.
-- Open `Run and Debug` in VS code.
+- Open the test file.
+- Open the `Run and Debug` section.
 - Run the `Debug Test` configuration.
 
 The [go extension](https://marketplace.visualstudio.com/items?itemName=golang.Go) also supports debugging and can be used to start debugging session right from a test function.
