@@ -18,7 +18,7 @@ jobs:
         run: go build -v ./...
 
       - name: Test
-        run: go test -v ./... -count=2
+        run: go test -v ./... -count=2 -shuffle=on
 
       - name: Tidy
         run: go mod tidy
