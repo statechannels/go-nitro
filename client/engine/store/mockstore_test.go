@@ -11,11 +11,14 @@ import (
 )
 
 func TestNewMockStore(t *testing.T) {
-	NewMockStore([]byte{'a', 'b', 'c'})
+	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
+	NewMockStore(sk)
 }
 
 func TestSetGetObjective(t *testing.T) {
-	ms := NewMockStore([]byte{})
+	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
+
+	ms := NewMockStore(sk)
 
 	id := protocols.ObjectiveId("404")
 	got, ok := ms.GetObjectiveById(id)
@@ -46,7 +49,9 @@ func TestSetGetObjective(t *testing.T) {
 }
 
 func TestGetObjectiveByChannelId(t *testing.T) {
-	ms := NewMockStore([]byte{})
+	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
+
+	ms := NewMockStore(sk)
 
 	ts := state.TestState
 	ts.TurnNum = 0
