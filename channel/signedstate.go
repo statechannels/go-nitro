@@ -46,8 +46,8 @@ func (ss signedState) State() state.State {
 	return ss.state
 }
 
-// HasSignature returns true if the participant (at participantIndex) has a valid signature.
-func (ss signedState) HasSignature(participantIndex uint) bool {
+// HasSignatureForParticipant returns true if the participant (at participantIndex) has a valid signature.
+func (ss signedState) HasSignatureForParticipant(participantIndex uint) bool {
 	_, found := ss.sigs[uint(participantIndex)]
 	return found
 }
