@@ -2,6 +2,7 @@ package channel
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/statechannels/go-nitro/channel/state"
 )
@@ -22,7 +23,7 @@ func newSignedState(s state.State) signedState {
 func (ss signedState) addSignature(sig state.Signature) error {
 	signer, err := ss.state.RecoverSigner(sig)
 	if err != nil {
-		return err
+		return fmt.Errorf("addSignature failed to recover signer %w", err)
 	}
 
 	for i, p := range ss.state.Participants {
