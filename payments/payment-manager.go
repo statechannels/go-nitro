@@ -14,7 +14,9 @@ type (
 
 		payments chan Voucher // gochan used to send vouchers to Bob
 	}
+)
 
+type (
 	// A receipt provider enables the consumer to listen to incoming
 	// vouchers, validate them, and notify the consumer of a payment
 	// received
@@ -48,7 +50,7 @@ func NewPaymentManager(channelId types.Destination, pk []byte) (PaymentManager, 
 // PayBob will add `amount` to the biggest voucher to create
 // a new voucher. This voucher is then signed and sent to Bob.
 func (pp *PaymentManager) PayBob(amount uint) error {
-	channelId := pp.largestVoucher.channelId
+	channelId := pp.channelId
 	pp.largestVoucher = Voucher{
 		channelId: channelId,
 		amount:    amount + pp.largestVoucher.amount,
@@ -61,6 +63,11 @@ func (pp *PaymentManager) PayBob(amount uint) error {
 	pp.payments <- pp.largestVoucher
 
 	return nil
+}
+
+type BalanceUpdated struct {
+	channelId types.Destination
+	amount    uint
 }
 
 func (rp *ReceiptManager) ValidateVouchers(listener chan uint64) {
