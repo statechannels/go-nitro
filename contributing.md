@@ -64,3 +64,14 @@ golangci-lint run
 ```shell
 go mod tidy
 ```
+
+# Debugging Tests
+
+VS code is used to debug tests. To start a debugging session in VS code:
+
+- Ensure you have the [go extension](https://marketplace.visualstudio.com/items?itemName=golang.Go) installed
+- Open the test file.
+- Open the `Run and Debug` section.
+- Run the `Debug Test` configuration.
+
+With the extension it is also possible to start a debugging session right from a test function.
