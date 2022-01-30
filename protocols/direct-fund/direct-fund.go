@@ -134,6 +134,7 @@ func (s DirectFundObjective) Update(event protocols.ObjectiveEvent) (protocols.O
 func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := s.clone()
 
+	se := NoSideEffects
 	// Input validation
 	if updated.Status != protocols.Approved {
 		return updated, NoSideEffects, WaitingForNothing, ErrNotApproved
@@ -141,8 +142,34 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 
 	// Prefunding
 	if !updated.C.PreFundSignedByMe() {
-		// todo: {SignAndSendPreFundEffect(updated.ChannelId)} as SideEffects{}
-		return updated, NoSideEffects, WaitingForCompletePrefund, nil
+		pf := s.C.PreFundState()
+		sig, err := pf.Sign(*secretKey)
+		if err != nil {
+			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("failed to sign pre-fund state: %w", err)
+		}
+		ss := state.NewSignedState(pf)
+		if err := ss.AddSignature(sig); err != nil {
+			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("failed to add signature to signed state: %w", err)
+		}
+		ok := updated.C.AddSignedState(ss)
+		if !ok {
+			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("failed to add signed state")
+		}
+
+		messages := make([]protocols.Message, 0)
+		for i, participant := range ss.State().Participants {
+
+			// Do not generate a message for ourselves
+			if uint(i) == s.C.MyIndex {
+				continue
+			}
+			message := protocols.Message{To: participant, ObjectiveId: s.Id(), SignedStates: []state.SignedState{ss}, Proposal: nil}
+			messages = append(messages, message)
+		}
+
+		se.MessagesToSend = append(se.MessagesToSend, messages...)
+
+		return updated, se, WaitingForCompletePrefund, nil
 	}
 
 	if !updated.C.PreFundComplete() {

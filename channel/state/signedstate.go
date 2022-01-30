@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/statechannels/go-nitro/crypto"
 )
 
 type SignedState struct {
@@ -61,6 +63,16 @@ func (ss SignedState) HasAllSignatures() bool {
 		return true
 	} else {
 		return false
+	}
+}
+
+// GetParticipantSignature returns the signature for the participant specified by participantIndex
+func (ss SignedState) GetParticipantSignature(participantIndex uint) (crypto.Signature, error) {
+	sig, found := ss.sigs[uint(participantIndex)]
+	if !found {
+		return crypto.Signature{}, fmt.Errorf("participant %d does not have a signature", participantIndex)
+	} else {
+		return sig, nil
 	}
 }
 
