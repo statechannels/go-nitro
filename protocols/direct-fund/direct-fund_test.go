@@ -76,18 +76,17 @@ func TestNew(t *testing.T) {
 	}
 }
 
-// Construct various variables for use in TestUpdate
-var s, _ = New(false, testState, testState.Participants[0])
-var dummySignature = state.Signature{
-	R: common.Hex2Bytes(`49d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
-	S: common.Hex2Bytes(`22274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),
-	V: byte(1),
-}
-var dummyState = state.State{}
-var stateToSign state.State = s.C.PreFundState()
-var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
-
 func TestUpdate(t *testing.T) {
+	// Construct various variables for use in TestUpdate
+	var s, _ = New(false, testState, testState.Participants[0])
+	var dummySignature = state.Signature{
+		R: common.Hex2Bytes(`49d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
+		S: common.Hex2Bytes(`22274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),
+		V: byte(1),
+	}
+	var dummyState = state.State{}
+	var stateToSign state.State = s.C.PreFundState()
+	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
 	// Prepare an event with a mismatched channelId
 	e := protocols.ObjectiveEvent{
 		ChannelId: types.Destination{},
@@ -146,7 +145,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestCrank(t *testing.T) {
-
+	var s, _ = New(false, testState, testState.Participants[0])
 	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.privateKey)
 	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.privateKey)
 
