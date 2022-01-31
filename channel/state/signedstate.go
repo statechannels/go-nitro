@@ -59,3 +59,17 @@ func (ss SignedState) HasAllSignatures() bool {
 		return false
 	}
 }
+
+// Merge checks the passed SignedState's state and the reciever's state for equality, andd adds each signature from the former to the latter.
+func (ss SignedState) Merge(ss2 SignedState) error {
+	if !ss.state.Equal(ss2.state) {
+		return errors.New(`cannot merge signed states with distinct state hashes`)
+	}
+	for _, sig := range ss2.sigs {
+		err := ss.AddSignature(sig)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
