@@ -42,11 +42,11 @@ func (t TestMessageService) run() {
 	go t.routeOutgoing()
 }
 
-func (t TestMessageService) GetReceiveChan() <-chan protocols.Message {
+func (t TestMessageService) Out() <-chan protocols.Message {
 	return t.out
 }
 
-func (t TestMessageService) GetSendChan() chan<- protocols.Message {
+func (t TestMessageService) In() chan<- protocols.Message {
 	return t.in
 }
 
