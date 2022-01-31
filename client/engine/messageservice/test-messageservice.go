@@ -18,10 +18,12 @@ import (
 type TestMessageService struct {
 	address types.Address
 
+	// connection to peer message services
 	toPeers map[types.Address]chan<- protocols.Message
-	out     chan protocols.Message
 
-	in chan protocols.Message
+	// connection to Engine:
+	out chan protocols.Message // for recieving messages from engine
+	in  chan protocols.Message // for sending message to engine
 }
 
 // NewTestMessageService returns a running TestMessageService
@@ -60,7 +62,7 @@ func (t TestMessageService) Connect(peer TestMessageService) {
 
 	go func() {
 		for msg := range toPeer {
-			peer.in <- msg
+			peer.in <- msg // send messages directly to peer's engine, bypassing their message service
 		}
 	}()
 }
@@ -84,3 +86,23 @@ func (t TestMessageService) routeOutgoing() {
 		t.forward(msg)
 	}
 }
+
+// ┌──────────┐          out┌───────────┐
+// │          │  ───────────►           │
+// │  Engine  │             │  Message  │
+// │          │           in│  Service  │
+// │    A     │  ◄──────────┤    A      │
+// └──────────┘             └────┬──────┘
+// 							     │toPeers[B]
+// 							     │
+// 							     │
+// 				    ┌────────────┘
+// 				    │
+// 				    │
+// 				    │
+// ┌──────────┐     │    out┌───────────┐
+// │          │  ───┼───────►           │
+// │  Engine  │     │       │  Message  │
+// │          │     │     in│  Service  │
+// │    B     │  ◄──┴───────┤    B      │
+// └──────────┘             └───────────┘
