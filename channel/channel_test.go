@@ -123,13 +123,15 @@ func TestChannel(t *testing.T) {
 	testAddSignedState := func(t *testing.T) {
 		// Begin testing the cases that are NOOPs returning false
 		want := false
-
-		got := c.AddSignedState(s, state.Signature{}) // note null signature
+		ss := state.NewSignedState(s)
+		ss.AddSignature(state.Signature{}) // note null signature
+		got := c.AddSignedState(ss)
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
 		nonParticipantSignature, _ := s.Sign(common.Hex2Bytes(`2030b463177db2da82908ef90fa55ddfcef56e8183caf60db464bc398e736e6f`))
-		got = c.AddSignedState(s, nonParticipantSignature) // note signature by non participant
+		ss.AddSignature(nonParticipantSignature)
+		got = c.AddSignedState(ss) // note signature by non participant
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
@@ -149,13 +151,17 @@ func TestChannel(t *testing.T) {
 		}
 		v.ChannelNonce.Add(v.ChannelNonce, big.NewInt(1))
 		aliceSignatureOnWrongState, _ := v.Sign(alicePrivateKey)
-		got = c.AddSignedState(v, aliceSignatureOnWrongState) // note state from wrong channel
+		ss = state.NewSignedState(v)
+		ss.AddSignature(aliceSignatureOnWrongState)
+		got = c.AddSignedState(ss) // note state from wrong channel
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
 		c.latestSupportedStateTurnNum = uint64(3)
 		aliceSignatureOnCorrectState, _ := c.PostFundState().Sign(alicePrivateKey)
-		got = c.AddSignedState(c.PostFundState(), aliceSignatureOnCorrectState) // note stale state
+		ss = state.NewSignedState(c.PostFundState())
+		ss.AddSignature(aliceSignatureOnCorrectState)
+		got = c.AddSignedState(ss) // note stale state
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
@@ -164,7 +170,7 @@ func TestChannel(t *testing.T) {
 		// Now test cases which update the Channel and return true
 		want = true
 
-		got = c.AddSignedState(c.PostFundState(), aliceSignatureOnCorrectState)
+		got = c.AddSignedState(ss)
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be true, but it was false`)
 		}
@@ -177,7 +183,9 @@ func TestChannel(t *testing.T) {
 		// Add Bob's signature and check that we now have a supported state
 		bobPrivateKey := common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`)
 		bobSignatureOnCorrectState, _ := c.PostFundState().Sign(bobPrivateKey)
-		got = c.AddSignedState(c.PostFundState(), bobSignatureOnCorrectState)
+		ss = state.NewSignedState(c.PostFundState())
+		ss.AddSignature(bobSignatureOnCorrectState)
+		got = c.AddSignedState(ss)
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be true, but it was false`)
 		}
