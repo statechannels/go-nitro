@@ -4,7 +4,7 @@ package messageservice // import "github.com/statechannels/go-nitro/client/messa
 import "github.com/statechannels/go-nitro/protocols"
 
 type MessageService interface {
-	GetReceiveChan() <-chan protocols.Message
-	GetSendChan() chan<- protocols.Message
+	Out() <-chan protocols.Message // Returns a chan for recieving messages from the message service
+	In() chan<- protocols.Message  // Returns a chan for sending messages to the message service
 	Send(message protocols.Message)
 }
