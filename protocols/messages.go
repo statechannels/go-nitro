@@ -11,7 +11,7 @@ import (
 type Message struct {
 	To          types.Address
 	ObjectiveId ObjectiveId
-	Sigs        map[types.Bytes32]state.Signature // mapping from state hash to signature
+	Sigs        map[*state.State]state.Signature // mapping from state hash to signature
 	Proposal    Objective
 }
 
