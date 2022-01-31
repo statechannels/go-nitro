@@ -38,7 +38,7 @@ func TestNew(t *testing.T) {
 	clientA := New(messageserviceA, chainservA, storeA, logDestination)
 
 	chainservB := chainservice.NewSimpleChainService(chain, b)
-	messageserviceB := messageservice.NewTestMessageService(a)
+	messageserviceB := messageservice.NewTestMessageService(b)
 	storeB := store.NewMockStore(bKey)
 	New(messageserviceB, chainservB, storeB, logDestination)
 
