@@ -22,8 +22,8 @@ type TestMessageService struct {
 	toPeers map[types.Address]chan<- protocols.Message
 
 	// connection to Engine:
-	out chan protocols.Message // for recieving messages from engine
-	in  chan protocols.Message // for sending message to engine
+	in  chan protocols.Message // for recieving messages from engine
+	out chan protocols.Message // for sending message to engine
 }
 
 // NewTestMessageService returns a running TestMessageService
@@ -43,15 +43,15 @@ func (t TestMessageService) run() {
 }
 
 func (t TestMessageService) GetReceiveChan() <-chan protocols.Message {
-	return t.in
-}
-
-func (t TestMessageService) GetSendChan() chan<- protocols.Message {
 	return t.out
 }
 
+func (t TestMessageService) GetSendChan() chan<- protocols.Message {
+	return t.in
+}
+
 func (t TestMessageService) Send(message protocols.Message) {
-	t.out <- message
+	t.in <- message
 }
 
 // Connect creates a gochan for message service to send messages to the given peer.
@@ -62,7 +62,7 @@ func (t TestMessageService) Connect(peer TestMessageService) {
 
 	go func() {
 		for msg := range toPeer {
-			peer.in <- msg // send messages directly to peer's engine, bypassing their message service
+			peer.out <- msg // send messages directly to peer's engine, bypassing their message service
 		}
 	}()
 }
@@ -82,15 +82,15 @@ func (t TestMessageService) forward(message protocols.Message) {
 // routeOutgoing listens to the messageService's outbox and passes
 // messages to the forwarding function
 func (t TestMessageService) routeOutgoing() {
-	for msg := range t.out {
+	for msg := range t.in {
 		t.forward(msg)
 	}
 }
 
-// ┌──────────┐          out┌───────────┐
+// ┌──────────┐           in┌───────────┐
 // │          │  ───────────►           │
 // │  Engine  │             │  Message  │
-// │          │           in│  Service  │
+// │          │          out│  Service  │
 // │    A     │  ◄──────────┤    A      │
 // └──────────┘             └────┬──────┘
 // 							     │toPeers[B]
@@ -100,9 +100,9 @@ func (t TestMessageService) routeOutgoing() {
 // 				    │
 // 				    │
 // 				    │
-// ┌──────────┐     │    out┌───────────┐
+// ┌──────────┐     │     in┌───────────┐
 // │          │  ───┼───────►           │
 // │  Engine  │     │       │  Message  │
-// │          │     │     in│  Service  │
+// │          │     │    out│  Service  │
 // │    B     │  ◄──┴───────┤    B      │
 // └──────────┘             └───────────┘
