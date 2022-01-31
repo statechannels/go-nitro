@@ -166,9 +166,18 @@ func (c Channel) Affords(
 	return lss.Outcome.Affords(allocationMap, fundingMap)
 }
 
+// AddSignedStateLegacy is a legacy interface, alternative to but calling AddSignedState internally
+func (c *Channel) AddSignedStateLegacy(s state.State, sig state.Signature) bool {
+	ss := state.NewSignedState(s)
+	ss.AddSignature(sig)
+	return c.AddSignedState(ss)
+}
+
 // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
 // Returns false and does not alter the channel if the state is "stale", belongs to a different channel, or is signed by a non participant.
-func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
+func (c *Channel) AddSignedState(ss state.SignedState) bool {
+
+	s := ss.State()
 
 	if cId, err := s.ChannelId(); cId != c.Id || err != nil {
 		// Channel mismatch
@@ -180,18 +189,13 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 		return false
 	}
 
-	// Store the signature. If we have no record yet, add one.
+	// Store the signatures. If we have no record yet, add one.
 	if signedState, ok := c.SignedStateForTurnNum[s.TurnNum]; !ok {
-		ss := state.NewSignedState(s)
-		err := ss.AddSignature(sig)
-		if err == nil {
-			c.SignedStateForTurnNum[s.TurnNum] = ss
-		} else {
-			return false
-		}
-
+		newSignedState := state.NewSignedState(s)
+		newSignedState.Merge(ss)
+		c.SignedStateForTurnNum[s.TurnNum] = newSignedState
 	} else {
-		err := signedState.AddSignature(sig)
+		err := signedState.Merge(ss)
 		if err != nil {
 			return false
 		}
@@ -209,10 +213,10 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 
 // AddSignedStates adds each signed state in the mapping. It returns true if all signed states were added successfully, false otherwise.
 // If one or more signed states fails to be added, this does not prevent other signed states from being added.
-func (c Channel) AddSignedStates(mapping map[*state.State]state.Signature) bool {
+func (c Channel) AddSignedStates(sss []state.SignedState) bool {
 	allOk := true
-	for state, sig := range mapping {
-		ok := c.AddSignedState(*state, sig)
+	for _, ss := range sss {
+		ok := c.AddSignedState(ss)
 		if !ok {
 			allOk = false
 		}
