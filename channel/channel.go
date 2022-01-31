@@ -1,7 +1,6 @@
 package channel
 
 import (
-	"bytes"
 	"errors"
 	"reflect"
 
@@ -24,7 +23,7 @@ type Channel struct {
 
 	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
 
-	SignedStateForTurnNum map[uint64]SignedState // this stores up to 1 state per turn number.
+	SignedStateForTurnNum map[uint64]signedState // this stores up to 1 state per turn number.
 	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 }
 
@@ -68,13 +67,13 @@ func New(s state.State, myIndex uint) (Channel, error) {
 	// c.Support =  // TODO
 
 	// Store prefund
-	c.SignedStateForTurnNum = make(map[uint64]SignedState)
-	c.SignedStateForTurnNum[PreFundTurnNum] = SignedState{s.VariablePart(), make(map[uint]state.Signature)}
+	c.SignedStateForTurnNum = make(map[uint64]signedState)
+	c.SignedStateForTurnNum[PreFundTurnNum] = newSignedState(s)
 
 	// Store postfund
 	post := s.Clone()
 	post.TurnNum = PostFundTurnNum
-	c.SignedStateForTurnNum[PostFundTurnNum] = SignedState{post.VariablePart(), make(map[uint]state.Signature)}
+	c.SignedStateForTurnNum[PostFundTurnNum] = newSignedState(post)
 
 	return c, nil
 }
@@ -101,19 +100,19 @@ func (c Channel) Equal(d Channel) bool {
 
 // PreFundState() returns the pre fund setup state for the channel.
 func (c Channel) PreFundState() state.State {
-	return state.StateFromFixedAndVariablePart(c.FixedPart, c.SignedStateForTurnNum[PreFundTurnNum].State)
+	return c.SignedStateForTurnNum[PreFundTurnNum].State()
 }
 
 // PostFundState() returns the post fund setup state for the channel.
 func (c Channel) PostFundState() state.State {
-	return state.StateFromFixedAndVariablePart(c.FixedPart, c.SignedStateForTurnNum[PostFundTurnNum].State)
+	return c.SignedStateForTurnNum[PostFundTurnNum].State()
 
 }
 
 // PreFundSignedByMe() returns true if I have signed the pre fund setup state, false otherwise.
 func (c Channel) PreFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[PreFundTurnNum]; ok {
-		if _, ok := c.SignedStateForTurnNum[PreFundTurnNum].Sigs[c.MyIndex]; ok {
+		if c.SignedStateForTurnNum[PreFundTurnNum].HasSignatureForParticipant(c.MyIndex) {
 			return true
 		}
 	}
@@ -123,7 +122,7 @@ func (c Channel) PreFundSignedByMe() bool {
 // PostFundSignedByMe() returns true if I have signed the post fund setup state, false otherwise.
 func (c Channel) PostFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[PostFundTurnNum]; ok {
-		if _, ok := c.SignedStateForTurnNum[PostFundTurnNum].Sigs[c.MyIndex]; ok {
+		if c.SignedStateForTurnNum[PreFundTurnNum].HasSignatureForParticipant(c.MyIndex) {
 			return true
 		}
 	}
@@ -132,12 +131,12 @@ func (c Channel) PostFundSignedByMe() bool {
 
 // PreFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
 func (c Channel) PreFundComplete() bool {
-	return c.SignedStateForTurnNum[PreFundTurnNum].hasAllSignatures(len(c.FixedPart.Participants))
+	return c.SignedStateForTurnNum[PreFundTurnNum].HasAllSignatures()
 }
 
 // PostFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
 func (c Channel) PostFundComplete() bool {
-	return c.SignedStateForTurnNum[PostFundTurnNum].hasAllSignatures(len(c.FixedPart.Participants))
+	return c.SignedStateForTurnNum[PostFundTurnNum].HasAllSignatures()
 }
 
 // LatestSupportedState returns the latest supported state.
@@ -145,8 +144,7 @@ func (c Channel) LatestSupportedState() (state.State, error) {
 	if c.latestSupportedStateTurnNum == MaxTurnNum {
 		return state.State{}, errors.New(`no state is yet supported`)
 	}
-	return state.StateFromFixedAndVariablePart(c.FixedPart,
-		c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State), nil
+	return c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State(), nil
 }
 
 // Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
@@ -171,17 +169,7 @@ func (c Channel) Affords(
 // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
 // Returns false and does not alter the channel if the state is "stale", belongs to a different channel, or is signed by a non participant.
 func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
-	signer, err := s.RecoverSigner(sig)
-	if err != nil {
-		// Invalid signature
-		return false
-	}
 
-	signerIndex, isParticipant := indexOf(signer, c.FixedPart.Participants)
-	if !isParticipant {
-		// Signature by non participant
-		return false
-	}
 	if cId, err := s.ChannelId(); cId != c.Id || err != nil {
 		// Channel mismatch
 		return false
@@ -194,14 +182,23 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 
 	// Store the signature. If we have no record yet, add one.
 	if signedState, ok := c.SignedStateForTurnNum[s.TurnNum]; !ok {
-		c.SignedStateForTurnNum[s.TurnNum] = SignedState{s.VariablePart(), make(map[uint]state.Signature)}
-		c.SignedStateForTurnNum[s.TurnNum].Sigs[signerIndex] = sig
+		ss := newSignedState(s)
+		err := ss.addSignature(sig)
+		if err == nil {
+			c.SignedStateForTurnNum[s.TurnNum] = ss
+		} else {
+			return false
+		}
+
 	} else {
-		signedState.Sigs[signerIndex] = sig
+		err := signedState.addSignature(sig)
+		if err != nil {
+			return false
+		}
 	}
 
 	// Update latest supported state
-	if c.SignedStateForTurnNum[s.TurnNum].hasAllSignatures(len(c.FixedPart.Participants)) {
+	if c.SignedStateForTurnNum[s.TurnNum].HasAllSignatures() {
 		c.latestSupportedStateTurnNum = s.TurnNum
 	}
 
@@ -221,15 +218,4 @@ func (c Channel) AddSignedStates(mapping map[*state.State]state.Signature) bool 
 		}
 	}
 	return allOk
-}
-
-// indexOf returns the index of the given suspect address in the lineup of addresses. A second return value ("ok") is true the suspect was found, false otherwise.
-func indexOf(suspect types.Address, lineup []types.Address) (index uint, ok bool) {
-
-	for index, a := range lineup {
-		if bytes.Equal(suspect.Bytes(), a.Bytes()) {
-			return uint(index), true
-		}
-	}
-	return ^uint(0), false
 }
