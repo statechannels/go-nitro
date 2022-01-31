@@ -32,6 +32,6 @@ func TestConnect(t *testing.T) {
 
 	if got.ObjectiveId != testId {
 		t.Errorf("expected bob to recieve ObjectiveId %v, but recieved %v",
-			got.ObjectiveId, testId)
+			testId, got.ObjectiveId)
 	}
 }
