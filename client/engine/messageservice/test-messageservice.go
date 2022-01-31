@@ -19,7 +19,7 @@ type TestMessageService struct {
 	address types.Address
 
 	// connection to peer message services
-	toPeers map[types.Address]chan<- protocols.Message
+	toPeers map[types.Address]chan<- string
 
 	// connection to Engine:
 	in  chan protocols.Message // for recieving messages from engine
@@ -30,7 +30,7 @@ type TestMessageService struct {
 func NewTestMessageService(address types.Address) TestMessageService {
 	tms := TestMessageService{
 		address: address,
-		toPeers: make(map[types.Address]chan<- protocols.Message),
+		toPeers: make(map[types.Address]chan<- string),
 		in:      make(chan protocols.Message),
 		out:     make(chan protocols.Message),
 	}
@@ -56,13 +56,14 @@ func (t TestMessageService) Send(message protocols.Message) {
 
 // Connect creates a gochan for message service to send messages to the given peer.
 func (t TestMessageService) Connect(peer TestMessageService) {
-	toPeer := make(chan protocols.Message)
+	toPeer := make(chan string)
 
 	t.toPeers[peer.address] = toPeer
 
 	go func() {
 		for msg := range toPeer {
-			peer.out <- msg // send messages directly to peer's engine, bypassing their message service
+			protocols.DeserialiseMessage(msg)
+			peer.out <- protocols.DeserialiseMessage(msg) // send messages directly to peer's engine, bypassing their message service
 		}
 	}()
 }
@@ -72,7 +73,7 @@ func (t TestMessageService) Connect(peer TestMessageService) {
 func (t TestMessageService) forward(message protocols.Message) {
 	peerChan, ok := t.toPeers[message.To]
 	if ok {
-		peerChan <- message
+		peerChan <- message.Serialize()
 	} else {
 		panic(fmt.Sprintf("client %v has no connection to client %v",
 			t.address, message.To))
