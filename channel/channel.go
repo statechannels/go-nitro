@@ -166,7 +166,7 @@ func (c Channel) Affords(
 	return lss.Outcome.Affords(allocationMap, fundingMap)
 }
 
-// AddStateWithSignature constructs a SignedState from the passes state and signature, and calls s.AddSignedState with it.
+// AddStateWithSignature constructs a SignedState from the passed state and signature, and calls s.AddSignedState with it.
 func (c *Channel) AddStateWithSignature(s state.State, sig state.Signature) bool {
 	ss := state.NewSignedState(s)
 	if err := ss.AddSignature(sig); err != nil {

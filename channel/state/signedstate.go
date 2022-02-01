@@ -12,13 +12,13 @@ type SignedState struct {
 	sigs  map[uint]Signature // keyed by participant index
 }
 
-// newSignedState initializes a SignedState struct for the given
+// NewSignedState initializes a SignedState struct for the given
 // The signedState returned will have no signatures.
 func NewSignedState(s State) SignedState {
 	return SignedState{s, make(map[uint]Signature, len(s.Participants))}
 }
 
-// addSignature adds a participant's signature for the
+// AddSignature adds a participant's signature for the
 // An error is thrown if the signature is invalid.
 func (ss SignedState) AddSignature(sig Signature) error {
 	signer, err := ss.state.RecoverSigner(sig)
