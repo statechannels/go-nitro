@@ -22,8 +22,8 @@ func (m Message) Serialize() string {
 }
 
 // DeserialiseMessage deserializes the passed string into a protocols.Message
-func DeserialiseMessage(s string) Message {
+func DeserialiseMessage(s string) (Message, error) {
 	msg := Message{}
-	json.Unmarshal([]byte(s), msg)
-	return msg
+	err := json.Unmarshal([]byte(s), &msg)
+	return msg, err
 }
