@@ -22,7 +22,7 @@ func NewSignedState(s State) SignedState {
 func (ss SignedState) AddSignature(sig Signature) error {
 	signer, err := ss.state.RecoverSigner(sig)
 	if err != nil {
-		return fmt.Errorf("addSignature failed to recover signer %w", err)
+		return fmt.Errorf("AddSignature failed to recover signer %w", err)
 	}
 
 	for i, p := range ss.state.Participants {
@@ -77,7 +77,7 @@ func (ss SignedState) Merge(ss2 SignedState) error {
 	return nil
 }
 
-// Equal returns true if the passed SignedState is deeply equal in value to the reciever.
+// Equal returns true if the passed SignedState is deeply equal in value to the receiver.
 func (ss SignedState) Equal(ss2 SignedState) bool {
 	if !ss.state.Equal(ss2.state) {
 		return false
