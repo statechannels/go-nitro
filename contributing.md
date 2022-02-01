@@ -18,10 +18,6 @@ We include a PR template to serve as a **guideline**, not a **rule**, to communi
 
 When in doubt, defer to the [Effective Go](https://go.dev/doc/effective_go) document [CodeReviewComments](https://github.com/golang/go/wiki/CodeReviewComments) as "style guides".
 
-## Judgement
-
-You are welcome to use your judgement and ignore our PR template, Effective Go, and CodeReviewComments when appropriate.
-
 # Prerequisites (MacOS instructions)
 
 ### Install golang
