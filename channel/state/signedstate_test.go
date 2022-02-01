@@ -6,6 +6,19 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+func TestSignedStateEqual(t *testing.T) {
+	sigA, _ := TestState.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
+
+	ss1 := NewSignedState(TestState)
+	ss1.AddSignature(sigA)
+	ss2 := NewSignedState(TestState)
+	ss2.AddSignature(sigA)
+
+	if !ss1.Equal(ss2) {
+		t.Errorf(`expected %v to Equal %v, but it did not`, ss1, ss2)
+	}
+}
+
 func TestMerge(t *testing.T) {
 
 	ss1 := NewSignedState(TestState)
@@ -36,3 +49,5 @@ func TestMerge(t *testing.T) {
 	}
 
 }
+
+// func TestMarshalJSON(t *testing.T) {
