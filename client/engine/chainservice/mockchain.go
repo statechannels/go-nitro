@@ -61,12 +61,15 @@ func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 		AdjudicationStatus: protocols.AdjudicationStatus{TurnNumRecord: 0},
 	}
 	for _, out := range mc.out {
-		sendEvent(out, event)
+		attemptSend(out, event)
 	}
 
 }
 
-// sendEvent sends event to the supplied chan
-func sendEvent(out chan Event, event Event) {
-	out <- event
+// attemptSend sends event to the supplied chan, and drops it if the chan is full
+func attemptSend(out chan Event, event Event) {
+	select {
+	case out <- event:
+	default:
+	}
 }
