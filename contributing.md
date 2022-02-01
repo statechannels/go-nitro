@@ -16,7 +16,7 @@ We include a PR template to serve as a **guideline**, not a **rule**, to communi
 
 ## Style
 
-As of now, Magmo is new to the go language, and has no specific opinions about go style. As a rule of thumb, we defer to the [Effective Go](https://go.dev/doc/effective_go) document [CodeReviewComments](https://github.com/golang/go/wiki/CodeReviewComments#comment-sentences) as "style guides".
+As of now, Magmo is new to the go language, and has no specific opinions about go style. As a rule of thumb, we defer to the [Effective Go](https://go.dev/doc/effective_go) document [CodeReviewComments](https://github.com/golang/go/wiki/CodeReviewComments) as "style guides".
 
 ## Judgement
 
