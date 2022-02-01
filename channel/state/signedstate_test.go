@@ -11,9 +11,9 @@ func TestSignedStateEqual(t *testing.T) {
 	sigA, _ := TestState.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
 
 	ss1 := NewSignedState(TestState)
-	ss1.AddSignature(sigA)
+	_ = ss1.AddSignature(sigA)
 	ss2 := NewSignedState(TestState)
-	ss2.AddSignature(sigA)
+	_ = ss2.AddSignature(sigA)
 
 	if !ss1.Equal(ss2) {
 		t.Errorf(`expected %v to Equal %v, but it did not`, ss1, ss2)
@@ -24,11 +24,11 @@ func TestMerge(t *testing.T) {
 
 	ss1 := NewSignedState(TestState)
 	sigA, _ := TestState.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
-	ss1.AddSignature(sigA)
+	_ = ss1.AddSignature(sigA)
 
 	ss2 := NewSignedState(TestState)
 	sigB, _ := TestState.Sign(common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`))
-	ss2.AddSignature(sigB)
+	_ = ss2.AddSignature(sigB)
 
 	err := ss1.Merge(ss2)
 
@@ -54,7 +54,7 @@ func TestMerge(t *testing.T) {
 func TestJSON(t *testing.T) {
 	ss1 := NewSignedState(TestState)
 	sigA, _ := TestState.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
-	ss1.AddSignature(sigA)
+	_ = ss1.AddSignature(sigA)
 
 	msgString := `{"State":{"ChainId":9001,"Participants":["0xf5a1bb5607c9d079e46d1b3dc33f257d937b43bd","0x760bf27cd45036a6c486802d30b5d90cffbe31fe"],"ChannelNonce":37140676580,"AppDefinition":"0x5e29e5ab8ef33f050c7cc10b5a0456d975c5f88d","ChallengeDuration":60,"AppData":"","Outcome":[{"Asset":"0x0000000000000000000000000000000000000000","Metadata":null,"Allocations":[{"Destination":[0,0,0,0,0,0,0,0,0,0,0,0,245,161,187,86,7,201,208,121,228,109,27,61,195,63,37,125,147,123,67,189],"Amount":5,"AllocationType":0,"Metadata":null},{"Destination":[0,0,0,0,0,0,0,0,0,0,0,0,238,24,255,21,117,5,86,145,0,154,162,70,174,96,129,50,197,122,66,44],"Amount":5,"AllocationType":0,"Metadata":null}]}],"TurnNum":5,"IsFinal":false},"Sigs":{"0":{"R":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","S":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","V":0}}}`
 
