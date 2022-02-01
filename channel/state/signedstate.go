@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -89,4 +90,19 @@ func (ss SignedState) Equal(ss2 SignedState) bool {
 		}
 	}
 	return true
+}
+
+// MarshalJSON marshals the SignedState into JSON, implementing the Marshaler interface.
+func (ss SignedState) MarshalJSON() ([]byte, error) {
+
+	// Similar type but with public members:
+	type SignedState struct {
+		State State
+		Sigs  map[uint]Signature // keyed by participant index
+	}
+
+	rr := SignedState{ss.state, ss.sigs}
+
+	return json.Marshal(rr)
+
 }
