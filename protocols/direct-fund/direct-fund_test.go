@@ -98,13 +98,9 @@ func TestUpdate(t *testing.T) {
 	e.ChannelId = s.C.Id
 	e.SignedStates = make([]state.SignedState, 0)
 
-	// Next, attempt to update the objective with a dummy signature, on a test state
-	// Assert that this results in a NOOP
-	ss := state.NewSignedState(testState)
-
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
-	ss = state.NewSignedState(stateToSign)
+	ss := state.NewSignedState(stateToSign)
 	err := ss.AddSignature(correctSignatureByParticipant)
 	if err != nil {
 		t.Error(err)
