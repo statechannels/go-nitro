@@ -79,12 +79,7 @@ func TestNew(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	// Construct various variables for use in TestUpdate
 	var s, _ = New(false, testState, testState.Participants[0])
-	var dummySignature = state.Signature{
-		R: common.Hex2Bytes(`49d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
-		S: common.Hex2Bytes(`22274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),
-		V: byte(1),
-	}
-	var dummyState = state.State{}
+
 	var stateToSign state.State = s.C.PreFundState()
 	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
 	// Prepare an event with a mismatched channelId
@@ -103,34 +98,14 @@ func TestUpdate(t *testing.T) {
 	e.ChannelId = s.C.Id
 	e.SignedStates = make([]state.SignedState, 0)
 
-	// Next, attempt to update the objective with a dummy signature, on a dummy state
+	// Next, attempt to update the objective with a dummy signature, on a test state
 	// Assert that this results in a NOOP
-	ss := state.NewSignedState(dummyState)
-	err := ss.AddSignature(dummySignature)
-	if err != nil {
-		t.Error(err)
-	}
-	e.SignedStates = append(e.SignedStates, ss) // Dummmy signature on dummy state
-	if _, err := s.Update(e); err != nil {
-		t.Error(`dummy signature -- expected a noop but caught an error:`, err)
-	}
-
-	// Next, attempt to update the objective with an invalid signature on a dummy state
-	// Assert that this results in a NOOP
-	ss = state.NewSignedState(dummyState)
-	err = ss.AddSignature(state.Signature{})
-	if err != nil {
-		t.Error(err)
-	}
-	e.SignedStates = append(e.SignedStates, ss)
-	if _, err := s.Update(e); err != nil {
-		t.Error(`faulty signature -- expected a noop but caught an error:`, err)
-	}
+	ss := state.NewSignedState(testState)
 
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
 	ss = state.NewSignedState(stateToSign)
-	err = ss.AddSignature(correctSignatureByParticipant)
+	err := ss.AddSignature(correctSignatureByParticipant)
 	if err != nil {
 		t.Error(err)
 	}
