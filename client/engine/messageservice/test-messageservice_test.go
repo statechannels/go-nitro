@@ -16,10 +16,10 @@ var objective, _ = directfund.New(false, state.TestState, aliceMS.address)
 var testId protocols.ObjectiveId = "testObjectiveID"
 
 var aToB protocols.Message = protocols.Message{
-	To:          bobMS.address,
-	ObjectiveId: testId,
-	Sigs:        make(map[*state.State]state.Signature),
-	Proposal:    objective,
+	To:           bobMS.address,
+	ObjectiveId:  testId,
+	SignedStates: []state.SignedState{},
+	Proposal:     objective,
 }
 
 func TestConnect(t *testing.T) {

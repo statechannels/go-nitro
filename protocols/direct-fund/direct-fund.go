@@ -119,7 +119,7 @@ func (s DirectFundObjective) Update(event protocols.ObjectiveEvent) (protocols.O
 	}
 
 	updated := s.clone()
-	updated.C.AddSignedStates(event.Sigs)
+	updated.C.AddSignedStates(event.SignedStates)
 
 	if event.Holdings != nil {
 		updated.C.OnChainFunding = event.Holdings

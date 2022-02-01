@@ -79,12 +79,7 @@ func TestNew(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	// Construct various variables for use in TestUpdate
 	var s, _ = New(false, testState, testState.Participants[0])
-	var dummySignature = state.Signature{
-		R: common.Hex2Bytes(`49d8e91bd182fb4d489bb2d76a6735d494d5bea24e4b51dd95c9d219293312d9`),
-		S: common.Hex2Bytes(`22274a3cec23c31e0c073b3c071cf6e0c21260b0d292a10e6a04257a2d8e87fa`),
-		V: byte(1),
-	}
-	var dummyState = state.State{}
+
 	var stateToSign state.State = s.C.PreFundState()
 	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
 	// Prepare an event with a mismatched channelId
@@ -101,25 +96,16 @@ func TestUpdate(t *testing.T) {
 	// and make a new Sigs map.
 	// This prepares us for the rest of the test. We will reuse the same event multiple times
 	e.ChannelId = s.C.Id
-	e.Sigs = make(map[*state.State]state.Signature)
-
-	// Next, attempt to update the objective with a dummy signature, keyed with a dummy state
-	// Assert that this results in a NOOP
-	e.Sigs[&dummyState] = dummySignature // Dummmy signature on dummy state
-	if _, err := s.Update(e); err != nil {
-		t.Error(`dummy signature -- expected a noop but caught an error:`, err)
-	}
-
-	// Next, attempt to update the objective with an invalid signature, keyed with a dummy statehash
-	// Assert that this results in a NOOP
-	e.Sigs[&dummyState] = state.Signature{}
-	if _, err := s.Update(e); err != nil {
-		t.Error(`faulty signature -- expected a noop but caught an error:`, err)
-	}
+	e.SignedStates = make([]state.SignedState, 0)
 
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
-	e.Sigs[&stateToSign] = correctSignatureByParticipant
+	ss := state.NewSignedState(stateToSign)
+	err := ss.AddSignature(correctSignatureByParticipant)
+	if err != nil {
+		t.Error(err)
+	}
+	e.SignedStates = append(e.SignedStates, ss)
 	updatedObjective, err := s.Update(e)
 	if err != nil {
 		t.Error(err)
@@ -173,8 +159,8 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by collecting prefund signatures
-	o.C.AddSignedState(o.C.PreFundState(), correctSignatureByAliceOnPreFund)
-	o.C.AddSignedState(o.C.PreFundState(), correctSignatureByBobOnPreFund)
+	o.C.AddStateWithSignature(o.C.PreFundState(), correctSignatureByAliceOnPreFund)
+	o.C.AddStateWithSignature(o.C.PreFundState(), correctSignatureByBobOnPreFund)
 
 	// Cranking should move us to the next waiting point
 	_, _, waitingFor, err = o.Crank(&alice.privateKey)
@@ -207,8 +193,8 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually progress the extended state by collecting postfund signatures
-	o.C.AddSignedState(o.C.PostFundState(), correctSignatureByAliceOnPostFund)
-	o.C.AddSignedState(o.C.PostFundState(), correctSignatureByBobOnPostFund)
+	o.C.AddStateWithSignature(o.C.PostFundState(), correctSignatureByAliceOnPostFund)
+	o.C.AddStateWithSignature(o.C.PostFundState(), correctSignatureByBobOnPostFund)
 
 	// This should be the final crank
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated

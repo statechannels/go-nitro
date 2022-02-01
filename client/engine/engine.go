@@ -88,7 +88,7 @@ func (e *Engine) Run() {
 // executes the side effects and
 // evaluates objecive progress.
 func (e *Engine) handleMessage(message protocols.Message) {
-	event := protocols.ObjectiveEvent{Sigs: message.Sigs}
+	event := protocols.ObjectiveEvent{SignedStates: message.SignedStates}
 	objective, _ := e.store.GetObjectiveById(message.ObjectiveId)
 	updatedObjective, _ := objective.Update(event) // TODO handle error
 	e.attemptProgress(updatedObjective)

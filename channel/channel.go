@@ -23,7 +23,7 @@ type Channel struct {
 
 	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
 
-	SignedStateForTurnNum map[uint64]signedState // this stores up to 1 state per turn number.
+	SignedStateForTurnNum map[uint64]state.SignedState // this stores up to 1 state per turn number.
 	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 }
 
@@ -67,13 +67,13 @@ func New(s state.State, myIndex uint) (Channel, error) {
 	// c.Support =  // TODO
 
 	// Store prefund
-	c.SignedStateForTurnNum = make(map[uint64]signedState)
-	c.SignedStateForTurnNum[PreFundTurnNum] = newSignedState(s)
+	c.SignedStateForTurnNum = make(map[uint64]state.SignedState)
+	c.SignedStateForTurnNum[PreFundTurnNum] = state.NewSignedState(s)
 
 	// Store postfund
 	post := s.Clone()
 	post.TurnNum = PostFundTurnNum
-	c.SignedStateForTurnNum[PostFundTurnNum] = newSignedState(post)
+	c.SignedStateForTurnNum[PostFundTurnNum] = state.NewSignedState(post)
 
 	return c, nil
 }
@@ -166,9 +166,21 @@ func (c Channel) Affords(
 	return lss.Outcome.Affords(allocationMap, fundingMap)
 }
 
+// AddStateWithSignature constructs a SignedState from the passed state and signature, and calls s.AddSignedState with it.
+func (c *Channel) AddStateWithSignature(s state.State, sig state.Signature) bool {
+	ss := state.NewSignedState(s)
+	if err := ss.AddSignature(sig); err != nil {
+		return false
+	} else {
+		return c.AddSignedState(ss)
+	}
+}
+
 // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
 // Returns false and does not alter the channel if the state is "stale", belongs to a different channel, or is signed by a non participant.
-func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
+func (c *Channel) AddSignedState(ss state.SignedState) bool {
+
+	s := ss.State()
 
 	if cId, err := s.ChannelId(); cId != c.Id || err != nil {
 		// Channel mismatch
@@ -180,18 +192,11 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 		return false
 	}
 
-	// Store the signature. If we have no record yet, add one.
+	// Store the signatures. If we have no record yet, add one.
 	if signedState, ok := c.SignedStateForTurnNum[s.TurnNum]; !ok {
-		ss := newSignedState(s)
-		err := ss.addSignature(sig)
-		if err == nil {
-			c.SignedStateForTurnNum[s.TurnNum] = ss
-		} else {
-			return false
-		}
-
+		c.SignedStateForTurnNum[s.TurnNum] = ss
 	} else {
-		err := signedState.addSignature(sig)
+		err := signedState.Merge(ss)
 		if err != nil {
 			return false
 		}
@@ -207,12 +212,12 @@ func (c *Channel) AddSignedState(s state.State, sig state.Signature) bool {
 	return true
 }
 
-// AddSignedStates adds each signed state in the mapping. It returns true if all signed states were added successfully, false otherwise.
+// AddSignedStates adds each signed state in the passed slice. It returns true if all signed states were added successfully, false otherwise.
 // If one or more signed states fails to be added, this does not prevent other signed states from being added.
-func (c Channel) AddSignedStates(mapping map[*state.State]state.Signature) bool {
+func (c Channel) AddSignedStates(sss []state.SignedState) bool {
 	allOk := true
-	for state, sig := range mapping {
-		ok := c.AddSignedState(*state, sig)
+	for _, ss := range sss {
+		ok := c.AddSignedState(ss)
 		if !ok {
 			allOk = false
 		}
