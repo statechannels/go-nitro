@@ -51,8 +51,5 @@ Please explain which reason, if any, why this requires more than one approval.
 
 ### Project management
 
-- [ ] I have applied the [appropriate labels](https://www.notion.so/statechannels/Team-working-agreements-3cbcd6e85a7e481db4fe572ddf50cbd6#f959a79c3b4f41708b8506612a99ec14)
-- [ ] I have [linked to all relevant issues](https://help.zenhub.com/support/solutions/articles/43000010350-connecting-pull-requests-to-github-issues) (can be 0)
-- [ ] I have [linked to all dependent issues](https://help.zenhub.com/support/solutions/articles/43000010349-create-github-issue-dependencies) (can be 0)
 - [ ] I have assigned myself to this PR
-- [ ] I have chosen the appropriate [pipeline](https://www.notion.so/statechannels/Team-working-agreements-3cbcd6e85a7e481db4fe572ddf50cbd6#a96b6b02704d46afbcff147cf5a85566) on zenhub for the linked issue
+- [ ] I have linked the appropriate github issue
