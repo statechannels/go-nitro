@@ -45,12 +45,12 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	e.store = store
 
-	// bind the engine's inbound chans
+	// bind to inbound chans
 	e.FromAPI = make(chan APIEvent)
 	e.fromChain = chain.Out()
 	e.fromMsg = msg.Out()
 
-	// bind the engine's outbound chans
+	// bind to outbound chans
 	e.toChain = chain.In()
 	e.toMsg = msg.In()
 
