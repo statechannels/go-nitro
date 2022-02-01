@@ -108,3 +108,22 @@ func (ss SignedState) MarshalJSON() ([]byte, error) {
 	return json.Marshal(rr)
 
 }
+
+// UnmarshalJSON unmarshals the passed JSON into a SignedState, implementing the Unmarshaler interface.
+func (ss *SignedState) UnmarshalJSON(j []byte) error {
+
+	// Similar type but with public members:
+	type SignedState struct {
+		State State
+		Sigs  map[uint]Signature // keyed by participant index
+	}
+
+	rr := SignedState{}
+
+	err := json.Unmarshal(j, &rr)
+
+	ss.state = rr.State
+	ss.sigs = rr.Sigs
+	return err
+
+}
