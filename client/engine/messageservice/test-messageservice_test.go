@@ -23,12 +23,12 @@ var aToB protocols.Message = protocols.Message{
 }
 
 func TestConnect(t *testing.T) {
-	bobIn := bobMS.GetReceiveChan()
+	bobOut := bobMS.Out()
 
 	aliceMS.Connect(bobMS)
 	aliceMS.Send(aToB)
 
-	got := <-bobIn
+	got := <-bobOut
 
 	if got.ObjectiveId != testId {
 		t.Errorf("expected bob to recieve ObjectiveId %v, but recieved %v",

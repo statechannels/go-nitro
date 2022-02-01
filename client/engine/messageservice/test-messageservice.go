@@ -18,10 +18,12 @@ import (
 type TestMessageService struct {
 	address types.Address
 
+	// connection to peer message services
 	toPeers map[types.Address]chan<- protocols.Message
-	out     chan protocols.Message
 
-	in chan protocols.Message
+	// connection to Engine:
+	in  chan protocols.Message // for recieving messages from engine
+	out chan protocols.Message // for sending message to engine
 }
 
 // NewTestMessageService returns a running TestMessageService
@@ -40,16 +42,16 @@ func (t TestMessageService) run() {
 	go t.routeOutgoing()
 }
 
-func (t TestMessageService) GetReceiveChan() <-chan protocols.Message {
-	return t.in
-}
-
-func (t TestMessageService) GetSendChan() chan<- protocols.Message {
+func (t TestMessageService) Out() <-chan protocols.Message {
 	return t.out
 }
 
+func (t TestMessageService) In() chan<- protocols.Message {
+	return t.in
+}
+
 func (t TestMessageService) Send(message protocols.Message) {
-	t.out <- message
+	t.in <- message
 }
 
 // Connect creates a gochan for message service to send messages to the given peer.
@@ -60,7 +62,7 @@ func (t TestMessageService) Connect(peer TestMessageService) {
 
 	go func() {
 		for msg := range toPeer {
-			peer.in <- msg
+			peer.out <- msg // send messages directly to peer's engine, using the peer's out chan
 		}
 	}()
 }
@@ -80,7 +82,27 @@ func (t TestMessageService) forward(message protocols.Message) {
 // routeOutgoing listens to the messageService's outbox and passes
 // messages to the forwarding function
 func (t TestMessageService) routeOutgoing() {
-	for msg := range t.out {
+	for msg := range t.in {
 		t.forward(msg)
 	}
 }
+
+// ┌──────────┐toMsg       in┌───────────┐
+// │          │  ───────────►|           │
+// │  Engine  │              │  Message  │
+// │          │fromMsg    out│  Service  │
+// │    A     │  ◄───────────┤    A      │
+// └──────────┘              └────┬──────┘
+//                                │toPeers[B]
+//                                │
+//                                │
+//                     ┌──────────┘
+//                     │
+//                     │
+//                     │
+// ┌──────────┐toMsg   │   in┌───────────┐
+// │          │  ──────┼────►|           │
+// │  Engine  │        │     │  Message  │
+// │          │fromMsg │  out│  Service  │
+// │    B     │  ◄─────┴─────┤    B      │
+// └──────────┘              └───────────┘
