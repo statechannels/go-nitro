@@ -174,13 +174,13 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 	case types.Destination{}:
 		return s, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
 	case s.V.Id:
-		updated.V.AddSignedStates(event.Sigs)
+		updated.V.AddSignedStates(event.SignedStates)
 		// We expect pre and post fund state signatures.
 	case toMyLeftId:
-		updated.ToMyLeft.Channel.AddSignedStates(event.Sigs)
+		updated.ToMyLeft.Channel.AddSignedStates(event.SignedStates)
 		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
 	case toMyRightId:
-		updated.ToMyRight.Channel.AddSignedStates(event.Sigs)
+		updated.ToMyRight.Channel.AddSignedStates(event.SignedStates)
 		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
 	default:
 		return s, errors.New("event channelId out of scope of objective")
@@ -207,7 +207,12 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 		if err != nil {
 			return s, NoSideEffects, WaitingForNothing, err
 		}
-		ok := updated.V.AddSignedState(updated.V.PreFundState(), sig)
+		ss := state.NewSignedState(updated.V.PreFundState())
+		err = ss.AddSignature(sig)
+		if err != nil {
+			return s, NoSideEffects, WaitingForNothing, err
+		}
+		ok := updated.V.AddSignedState(ss)
 		if !ok {
 			return s, NoSideEffects, WaitingForNothing, errors.New(`could not add prefund state`)
 		}
@@ -236,7 +241,12 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 		if err != nil {
 			return s, NoSideEffects, WaitingForNothing, err
 		}
-		ok := updated.V.AddSignedState(updated.V.PostFundState(), sig)
+		ss := state.NewSignedState(updated.V.PostFundState())
+		err = ss.AddSignature(sig)
+		if err != nil {
+			return s, NoSideEffects, WaitingForNothing, err
+		}
+		ok := updated.V.AddSignedState(ss)
 		if !ok {
 			return s, NoSideEffects, WaitingForNothing, errors.New(`could not add postfund state`)
 		}
