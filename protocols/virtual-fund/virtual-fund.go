@@ -208,7 +208,10 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 			return s, NoSideEffects, WaitingForNothing, err
 		}
 		ss := state.NewSignedState(updated.V.PreFundState())
-		ss.AddSignature(sig)
+		err = ss.AddSignature(sig)
+		if err != nil {
+			return s, NoSideEffects, WaitingForNothing, err
+		}
 		ok := updated.V.AddSignedState(ss)
 		if !ok {
 			return s, NoSideEffects, WaitingForNothing, errors.New(`could not add prefund state`)
@@ -239,7 +242,10 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 			return s, NoSideEffects, WaitingForNothing, err
 		}
 		ss := state.NewSignedState(updated.V.PostFundState())
-		ss.AddSignature(sig)
+		err = ss.AddSignature(sig)
+		if err != nil {
+			return s, NoSideEffects, WaitingForNothing, err
+		}
 		ok := updated.V.AddSignedState(ss)
 		if !ok {
 			return s, NoSideEffects, WaitingForNothing, errors.New(`could not add postfund state`)

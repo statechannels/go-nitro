@@ -152,15 +152,22 @@ func TestChannel(t *testing.T) {
 		v.ChannelNonce.Add(v.ChannelNonce, big.NewInt(1))
 		aliceSignatureOnWrongState, _ := v.Sign(alicePrivateKey)
 		ss = state.NewSignedState(v)
-		ss.AddSignature(aliceSignatureOnWrongState)
+		err := ss.AddSignature(aliceSignatureOnWrongState)
+		if err != nil {
+			t.Error(err)
+		}
 		got = c.AddSignedState(ss) // note state from wrong channel
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
 		c.latestSupportedStateTurnNum = uint64(3)
+
 		aliceSignatureOnCorrectState, _ := c.PostFundState().Sign(alicePrivateKey)
 		ss = state.NewSignedState(c.PostFundState())
-		ss.AddSignature(aliceSignatureOnCorrectState)
+		err = ss.AddSignature(aliceSignatureOnCorrectState)
+		if err != nil {
+			t.Error(err)
+		}
 		got = c.AddSignedState(ss) // note stale state
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
@@ -184,7 +191,10 @@ func TestChannel(t *testing.T) {
 		bobPrivateKey := common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`)
 		bobSignatureOnCorrectState, _ := c.PostFundState().Sign(bobPrivateKey)
 		ss = state.NewSignedState(c.PostFundState())
-		ss.AddSignature(bobSignatureOnCorrectState)
+		err = ss.AddSignature(bobSignatureOnCorrectState)
+		if err != nil {
+			t.Error(err)
+		}
 		got = c.AddSignedState(ss)
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be true, but it was false`)

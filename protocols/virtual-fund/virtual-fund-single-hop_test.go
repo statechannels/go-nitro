@@ -310,7 +310,10 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// Assert that this results in an appropriate change in the extended state of the objective
 			// Part 1: a signature on a state in channel V
 			prefundsignedstate := state.NewSignedState(s.V.PreFundState())
-			prefundsignedstate.AddSignature(correctSignatureByAliceOnVPreFund)
+			err := prefundsignedstate.AddSignature(correctSignatureByAliceOnVPreFund)
+			if err != nil {
+				t.Error(err)
+			}
 			e.SignedStates = append(e.SignedStates, prefundsignedstate)
 
 			updatedObj, err := s.Update(e)
@@ -328,7 +331,10 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 			f.SignedStates = make([]state.SignedState, 0)
 			ss := state.NewSignedState(l0updatedstate)
-			ss.AddSignature(correctSignatureByAliceOnL_0updatedsate)
+			err = ss.AddSignature(correctSignatureByAliceOnL_0updatedsate)
+			if err != nil {
+				t.Error(err)
+			}
 			f.SignedStates = append(f.SignedStates, ss)
 
 			updatedObj, err = s.Update(f)

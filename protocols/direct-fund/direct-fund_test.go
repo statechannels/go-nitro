@@ -106,7 +106,10 @@ func TestUpdate(t *testing.T) {
 	// Next, attempt to update the objective with a dummy signature, on a dummy state
 	// Assert that this results in a NOOP
 	ss := state.NewSignedState(dummyState)
-	ss.AddSignature(dummySignature)
+	err := ss.AddSignature(dummySignature)
+	if err != nil {
+		t.Error(err)
+	}
 	e.SignedStates = append(e.SignedStates, ss) // Dummmy signature on dummy state
 	if _, err := s.Update(e); err != nil {
 		t.Error(`dummy signature -- expected a noop but caught an error:`, err)
@@ -115,7 +118,10 @@ func TestUpdate(t *testing.T) {
 	// Next, attempt to update the objective with an invalid signature on a dummy state
 	// Assert that this results in a NOOP
 	ss = state.NewSignedState(dummyState)
-	ss.AddSignature(state.Signature{})
+	err = ss.AddSignature(state.Signature{})
+	if err != nil {
+		t.Error(err)
+	}
 	e.SignedStates = append(e.SignedStates, ss)
 	if _, err := s.Update(e); err != nil {
 		t.Error(`faulty signature -- expected a noop but caught an error:`, err)
@@ -124,7 +130,10 @@ func TestUpdate(t *testing.T) {
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
 	ss = state.NewSignedState(stateToSign)
-	ss.AddSignature(correctSignatureByParticipant)
+	err = ss.AddSignature(correctSignatureByParticipant)
+	if err != nil {
+		t.Error(err)
+	}
 	e.SignedStates = append(e.SignedStates, ss)
 	updatedObjective, err := s.Update(e)
 	if err != nil {
