@@ -31,7 +31,7 @@ func DeserialiseMessage(s string) (Message, error) {
 
 // Equal returns true if the passed Message is deeply equal in value to the receiver, and false otherwise.
 func (m Message) Equal(n Message) bool {
-	if bytes.Equal(m.To.Bytes(), n.To.Bytes()) {
+	if !bytes.Equal(m.To.Bytes(), n.To.Bytes()) {
 		return false
 	}
 	if m.ObjectiveId != n.ObjectiveId {
