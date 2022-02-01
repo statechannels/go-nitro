@@ -124,13 +124,13 @@ func TestChannel(t *testing.T) {
 		// Begin testing the cases that are NOOPs returning false
 		want := false
 		ss := state.NewSignedState(s)
-		ss.AddSignature(state.Signature{}) // note null signature
+		ss.Sigs[0] = state.Signature{} // note null signature
 		got := c.AddSignedState(ss)
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
 		nonParticipantSignature, _ := s.Sign(common.Hex2Bytes(`2030b463177db2da82908ef90fa55ddfcef56e8183caf60db464bc398e736e6f`))
-		ss.AddSignature(nonParticipantSignature)
+		ss.Sigs[0] = nonParticipantSignature
 		got = c.AddSignedState(ss) // note signature by non participant
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
