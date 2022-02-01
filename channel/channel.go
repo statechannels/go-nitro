@@ -100,12 +100,12 @@ func (c Channel) Equal(d Channel) bool {
 
 // PreFundState() returns the pre fund setup state for the channel.
 func (c Channel) PreFundState() state.State {
-	return c.SignedStateForTurnNum[PreFundTurnNum].State
+	return c.SignedStateForTurnNum[PreFundTurnNum].State()
 }
 
 // PostFundState() returns the post fund setup state for the channel.
 func (c Channel) PostFundState() state.State {
-	return c.SignedStateForTurnNum[PostFundTurnNum].State
+	return c.SignedStateForTurnNum[PostFundTurnNum].State()
 
 }
 
@@ -144,7 +144,7 @@ func (c Channel) LatestSupportedState() (state.State, error) {
 	if c.latestSupportedStateTurnNum == MaxTurnNum {
 		return state.State{}, errors.New(`no state is yet supported`)
 	}
-	return c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State, nil
+	return c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State(), nil
 }
 
 // Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
@@ -180,7 +180,7 @@ func (c *Channel) AddStateWithSignature(s state.State, sig state.Signature) bool
 // Returns false and does not alter the channel if the state is "stale", belongs to a different channel, or is signed by a non participant.
 func (c *Channel) AddSignedState(ss state.SignedState) bool {
 
-	s := ss.State
+	s := ss.State()
 
 	if cId, err := s.ChannelId(); cId != c.Id || err != nil {
 		// Channel mismatch
