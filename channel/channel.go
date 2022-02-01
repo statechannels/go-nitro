@@ -169,8 +169,11 @@ func (c Channel) Affords(
 // AddSignedStateLegacy is a legacy interface, alternative to but calling AddSignedState internally
 func (c *Channel) AddSignedStateLegacy(s state.State, sig state.Signature) bool {
 	ss := state.NewSignedState(s)
-	ss.AddSignature(sig)
-	return c.AddSignedState(ss)
+	if err := ss.AddSignature(sig); err != nil {
+		return false
+	} else {
+		return c.AddSignedState(ss)
+	}
 }
 
 // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
@@ -192,7 +195,9 @@ func (c *Channel) AddSignedState(ss state.SignedState) bool {
 	// Store the signatures. If we have no record yet, add one.
 	if signedState, ok := c.SignedStateForTurnNum[s.TurnNum]; !ok {
 		newSignedState := state.NewSignedState(s)
-		newSignedState.Merge(ss)
+		if err := newSignedState.Merge(ss); err != nil {
+			return false
+		}
 		c.SignedStateForTurnNum[s.TurnNum] = newSignedState
 	} else {
 		err := signedState.Merge(ss)
