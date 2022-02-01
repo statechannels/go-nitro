@@ -62,7 +62,7 @@ func (t TestMessageService) Connect(peer TestMessageService) {
 
 	go func() {
 		for msg := range toPeer {
-			peer.out <- msg // send messages directly to peer's engine, bypassing their message service
+			peer.out <- msg // send messages directly to peer's engine, using the peer's out chan
 		}
 	}()
 }
