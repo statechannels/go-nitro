@@ -2,7 +2,7 @@
 
 Contributions to go-nitro are welcome from anyone.
 
-Magmo (at Consensys Mesh) are developing go-nitro under contract for the Filecoin Foundation. As a consequence, we are obligated to maintain a certain level of quality.
+Magmo (at Consensys Mesh) are developing go-nitro under contract for the Filecoin Foundation. As a consequence, we reserve discretionary veto rights on feature additions, architectural decisions, etc., which may hinder progress toward the specific aims of this contract.
 
 ## Contribution lifecycle
 
