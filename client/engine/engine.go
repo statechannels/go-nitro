@@ -62,10 +62,18 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	return e
 }
 
+func (e *Engine) Close() {
+	close(e.FromAPI)
+	close(e.toChain)
+	close(e.toMsg)
+}
+
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
-func (e *Engine) Run() {
+func (e *Engine) Run(abortSignal <-chan struct{}) {
 	for {
 		select {
+		case <-abortSignal:
+			return
 		case apiEvent := <-e.FromAPI:
 			e.handleAPIEvent(apiEvent)
 

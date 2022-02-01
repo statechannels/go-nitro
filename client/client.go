@@ -18,8 +18,14 @@ import (
 
 // Client provides the interface for the consuming application
 type Client struct {
-	engine  engine.Engine // The core business logic of the client
-	Address *types.Address
+	engine         engine.Engine // The core business logic of the client
+	Address        *types.Address
+	runAbortSignal chan struct{}
+}
+
+func (c *Client) Close() {
+	c.runAbortSignal <- struct{}{}
+	c.engine.Close()
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -27,9 +33,9 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c := Client{}
 	c.Address = store.GetAddress()
 	c.engine = engine.New(messageService, chainservice, store, logDestination)
-
+	c.runAbortSignal = make(chan struct{})
 	// Start the engine in a go routine
-	go c.engine.Run()
+	go c.engine.Run(c.runAbortSignal)
 
 	return c
 }
