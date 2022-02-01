@@ -5,14 +5,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// Message is an object to be sent across the wire. It can contain a proposal and signed states, and is addressed to a counterparty.
-type Message struct {
-	To           types.Address
-	ObjectiveId  ObjectiveId
-	SignedStates []state.SignedState
-	Proposal     Objective
-}
-
 // ChainTransaction is an object to be sent to a blockchain provider.
 type ChainTransaction struct {
 	ChannelId types.Destination
@@ -54,9 +46,9 @@ type AdjudicationStatus struct {
 
 // ObjectiveEvent holds information used to update an Objective. Some fields may be nil.
 type ObjectiveEvent struct {
-	ChannelId          types.Destination   // Must be defined
-	SignedStates       []state.SignedState // mapping from state to signature
-	Holdings           types.Funds         // mapping from asset identifier to amount
+	ChannelId          types.Destination // Must be defined
+	SignedStates       []state.SignedState
+	Holdings           types.Funds // mapping from asset identifier to amount
 	AdjudicationStatus AdjudicationStatus
 }
 
