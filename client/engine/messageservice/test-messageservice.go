@@ -88,10 +88,10 @@ func (t TestMessageService) routeOutgoing() {
 }
 
 // ┌──────────┐toMsg       in┌───────────┐
-// │          │─────────────►|           │
+// │          │  ───────────►|           │
 // │  Engine  │              │  Message  │
 // │          │fromMsg    out│  Service  │
-// │    A     │◄─────────────┤    A      │
+// │    A     │  ◄───────────┤    A      │
 // └──────────┘              └────┬──────┘
 //                                │toPeers[B]
 //                                │
@@ -101,8 +101,8 @@ func (t TestMessageService) routeOutgoing() {
 //                     │
 //                     │
 // ┌──────────┐toMsg   │   in┌───────────┐
-// │          │────────┼────►|           │
+// │          │  ──────┼────►|           │
 // │  Engine  │        │     │  Message  │
 // │          │fromMsg │  out│  Service  │
-// │    B     │◄───────┴─────┤    B      │
+// │    B     │  ◄─────┴─────┤    B      │
 // └──────────┘              └───────────┘
