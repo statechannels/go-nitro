@@ -7,8 +7,8 @@ import (
 )
 
 type SignedState struct {
-	state State
-	sigs  map[uint]Signature // keyed by participant index
+	State State
+	Sigs  map[uint]Signature // keyed by participant index
 }
 
 // newSignedState initializes a SignedState struct for the given
@@ -20,18 +20,18 @@ func NewSignedState(s State) SignedState {
 // addSignature adds a participant's signature for the
 // An error is thrown if the signature is invalid.
 func (ss SignedState) AddSignature(sig Signature) error {
-	signer, err := ss.state.RecoverSigner(sig)
+	signer, err := ss.State.RecoverSigner(sig)
 	if err != nil {
 		return fmt.Errorf("addSignature failed to recover signer %w", err)
 	}
 
-	for i, p := range ss.state.Participants {
+	for i, p := range ss.State.Participants {
 		if p == signer {
-			_, found := ss.sigs[uint(i)]
+			_, found := ss.Sigs[uint(i)]
 			if found {
 				return errors.New("signature already exists for participant")
 			} else {
-				ss.sigs[uint(i)] = sig
+				ss.Sigs[uint(i)] = sig
 				return nil
 			}
 
@@ -41,20 +41,17 @@ func (ss SignedState) AddSignature(sig Signature) error {
 	return errors.New("signature does not match any participant")
 
 }
-func (ss SignedState) State() State {
-	return ss.state
-}
 
 // HasSignatureForParticipant returns true if the participant (at participantIndex) has a valid signature.
 func (ss SignedState) HasSignatureForParticipant(participantIndex uint) bool {
-	_, found := ss.sigs[uint(participantIndex)]
+	_, found := ss.Sigs[uint(participantIndex)]
 	return found
 }
 
 // HasAllSignatures returns true if every participant has a valid signature.
 func (ss SignedState) HasAllSignatures() bool {
 	// Since signatures are validated
-	if len(ss.sigs) == len(ss.state.Participants) {
+	if len(ss.Sigs) == len(ss.State.Participants) {
 		return true
 	} else {
 		return false
@@ -63,10 +60,10 @@ func (ss SignedState) HasAllSignatures() bool {
 
 // Merge checks the passed SignedState's state and the reciever's state for equality, andd adds each signature from the former to the latter.
 func (ss SignedState) Merge(ss2 SignedState) error {
-	if !ss.state.Equal(ss2.state) {
+	if !ss.State.Equal(ss2.State) {
 		return errors.New(`cannot merge signed states with distinct state hashes`)
 	}
-	for _, sig := range ss2.sigs {
+	for _, sig := range ss2.Sigs {
 		err := ss.AddSignature(sig)
 		if err != nil {
 			return err
@@ -77,14 +74,14 @@ func (ss SignedState) Merge(ss2 SignedState) error {
 
 // Equal returns true if the passed SignedState is deeply equal in value to the reciever.
 func (ss SignedState) Equal(ss2 SignedState) bool {
-	if !ss.state.Equal(ss2.state) {
+	if !ss.State.Equal(ss2.State) {
 		return false
 	}
-	if len(ss.sigs) != len(ss2.sigs) {
+	if len(ss.Sigs) != len(ss2.Sigs) {
 		return false
 	}
-	for i, sig := range ss.sigs {
-		if !bytes.Equal(sig.S, ss2.sigs[i].S) || !bytes.Equal(sig.R, ss2.sigs[i].R) || sig.V != ss2.sigs[i].V {
+	for i, sig := range ss.Sigs {
+		if !bytes.Equal(sig.S, ss2.Sigs[i].S) || !bytes.Equal(sig.R, ss2.Sigs[i].R) || sig.V != ss2.Sigs[i].V {
 			return false
 		}
 	}
