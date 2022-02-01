@@ -235,9 +235,9 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			// Manually progress the extended state by collecting prefund signatures
-			o.V.AddSignedStateLegacy(vPreFund, correctSignatureByAliceOnVPreFund)
-			o.V.AddSignedStateLegacy(vPreFund, correctSignatureByBobOnVPreFund)
-			o.V.AddSignedStateLegacy(vPreFund, correctSignatureByP_1OnVPreFund)
+			o.V.AddStateWithSignature(vPreFund, correctSignatureByAliceOnVPreFund)
+			o.V.AddStateWithSignature(vPreFund, correctSignatureByBobOnVPreFund)
+			o.V.AddStateWithSignature(vPreFund, correctSignatureByP_1OnVPreFund)
 
 			// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
 			oObj, sideEffects, waitingFor, err := o.Crank(&my.privateKey)
@@ -259,8 +259,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			// Manually progress the extended state by "completing funding" from this wallet's point of view
-			o.ToMyRight.Channel.AddSignedStateLegacy(l0updatedstate, correctSignatureByAliceOnL_0updatedsate)
-			o.ToMyRight.Channel.AddSignedStateLegacy(l0updatedstate, correctSignatureByP_1OnL_0updatedsate)
+			o.ToMyRight.Channel.AddStateWithSignature(l0updatedstate, correctSignatureByAliceOnL_0updatedsate)
+			o.ToMyRight.Channel.AddStateWithSignature(l0updatedstate, correctSignatureByP_1OnL_0updatedsate)
 			o.ToMyRight.Channel.OnChainFunding[types.Address{}] = l0state.Outcome[0].Allocations.Total() // Make this channel fully funded
 			// Cranking now should not generate side effects, because we already did that
 			oObj, _, waitingFor, err = o.Crank(&my.privateKey)
@@ -273,9 +273,9 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			// Manually progress the extended state by collecting postfund signatures
-			o.V.AddSignedStateLegacy(o.V.PostFundState(), correctSignatureByAliceOnVPostFund)
-			o.V.AddSignedStateLegacy(o.V.PostFundState(), correctSignatureByBobOnVPostFund)
-			o.V.AddSignedStateLegacy(o.V.PostFundState(), correctSignatureByP_1OnVPostFund)
+			o.V.AddStateWithSignature(o.V.PostFundState(), correctSignatureByAliceOnVPostFund)
+			o.V.AddStateWithSignature(o.V.PostFundState(), correctSignatureByBobOnVPostFund)
+			o.V.AddStateWithSignature(o.V.PostFundState(), correctSignatureByP_1OnVPostFund)
 
 			// This should be the final crank...
 			_, _, waitingFor, err = o.Crank(&my.privateKey)

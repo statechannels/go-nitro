@@ -166,8 +166,8 @@ func (c Channel) Affords(
 	return lss.Outcome.Affords(allocationMap, fundingMap)
 }
 
-// AddSignedStateLegacy is a legacy interface, alternative to but calling AddSignedState internally
-func (c *Channel) AddSignedStateLegacy(s state.State, sig state.Signature) bool {
+// AddStateWithSignature constructs a SignedState from the passes state and signature, and calls s.AddSignedState with it.
+func (c *Channel) AddStateWithSignature(s state.State, sig state.Signature) bool {
 	ss := state.NewSignedState(s)
 	if err := ss.AddSignature(sig); err != nil {
 		return false
