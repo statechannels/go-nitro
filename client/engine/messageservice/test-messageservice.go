@@ -73,7 +73,11 @@ func (t TestMessageService) Connect(peer TestMessageService) {
 func (t TestMessageService) forward(message protocols.Message) {
 	peerChan, ok := t.toPeers[message.To]
 	if ok {
-		peerChan <- message.Serialize()
+		msg, err := message.Serialize()
+		if err != nil {
+			panic(`could not serialize message`)
+		}
+		peerChan <- msg
 	} else {
 		panic(fmt.Sprintf("client %v has no connection to client %v",
 			t.address, message.To))
