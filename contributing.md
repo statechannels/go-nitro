@@ -8,7 +8,7 @@ Magmo (at Consensys Mesh) are developing go-nitro under contract for the Filecoi
 
 Magmo uses [Github Projects](https://github.com/statechannels/go-nitro/projects/1) for go-nitro project management. We will aim to keep a handful of "good first issues" in [the pipeline](https://github.com/statechannels/go-nitro/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22), which are a good place to start.
 
-Before spending lots of time working on an issue, consider asking us for feedback. We would love to help make your contributions more successful!
+Before spending lots of time working on an issue, consider asking us for feedback via [Slack](https://statechannels.slack.com/archives/C02J81JFD3J), the [issue tracker](https://github.com/statechannels/go-nitro/issues), or [email](magmo@mesh.xyz). We would love to help make your contributions more successful!
 
 Pull requests (internal or external) will be reviewed by one or two members of Magmo. We aim to review most contributions within one business day.
 
