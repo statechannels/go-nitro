@@ -77,7 +77,45 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestSignPostFundSetup(t *testing.T) {
+func TestPreFundSideEffects(t *testing.T) {
+	// Construct various variables for use in TestUpdate
+	var s, _ = New(false, testState, testState.Participants[0])
+
+	// Approve the objective, so that the rest of the test cases can run.
+	o := s.Approve()
+
+	_, se, _, err := o.Crank(&alice.privateKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	signMessage := se.MessagesToSend[0]
+
+	if signMessage.To != bob.address {
+		t.Error("incorrect recipient")
+	}
+	if signMessage.ObjectiveId != o.Id() {
+		t.Error("incorrect objective id")
+	}
+	if stateLength := len(signMessage.SignedStates); stateLength != 1 {
+		t.Error("incorrect number of Signed States")
+	}
+
+	messageSig, err := signMessage.SignedStates[0].GetParticipantSignature(s.C.MyIndex)
+	if err != nil {
+		t.Error(err)
+	}
+	stateSig, err := s.C.SignedStateForTurnNum[0].GetParticipantSignature(s.C.MyIndex)
+	if err != nil {
+		t.Error(err)
+	}
+	if sigMatch := reflect.DeepEqual(messageSig, stateSig); !sigMatch {
+		t.Error("incorrect signature")
+	}
+
+}
+
+func TestPostFundSideEffects(t *testing.T) {
 	var s, _ = New(false, testState, testState.Participants[0])
 	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.privateKey)
 	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.privateKey)
@@ -117,44 +155,6 @@ func TestSignPostFundSetup(t *testing.T) {
 		t.Error(err)
 	}
 	stateSig, err := s.C.SignedStateForTurnNum[1].GetParticipantSignature(s.C.MyIndex)
-	if err != nil {
-		t.Error(err)
-	}
-	if sigMatch := reflect.DeepEqual(messageSig, stateSig); !sigMatch {
-		t.Error("incorrect signature")
-	}
-
-}
-
-func TestSignPreFundSetup(t *testing.T) {
-	// Construct various variables for use in TestUpdate
-	var s, _ = New(false, testState, testState.Participants[0])
-
-	// Approve the objective, so that the rest of the test cases can run.
-	o := s.Approve()
-
-	_, se, _, err := o.Crank(&alice.privateKey)
-	if err != nil {
-		t.Error(err)
-	}
-
-	signMessage := se.MessagesToSend[0]
-
-	if signMessage.To != bob.address {
-		t.Error("incorrect recipient")
-	}
-	if signMessage.ObjectiveId != o.Id() {
-		t.Error("incorrect objective id")
-	}
-	if stateLength := len(signMessage.SignedStates); stateLength != 1 {
-		t.Error("incorrect number of Signed States")
-	}
-
-	messageSig, err := signMessage.SignedStates[0].GetParticipantSignature(s.C.MyIndex)
-	if err != nil {
-		t.Error(err)
-	}
-	stateSig, err := s.C.SignedStateForTurnNum[0].GetParticipantSignature(s.C.MyIndex)
 	if err != nil {
 		t.Error(err)
 	}
