@@ -194,15 +194,11 @@ func (e *Engine) constructObjectiveFromProposal(message protocols.Message) (prot
 		if initialState.TurnNum != 0 {
 			return directfund.DirectFundObjective{}, errors.New("cannot construct direct fund objective without prefund state")
 		}
-		objective, err := directfund.New(
+		return directfund.New(
 			true, // TODO ensure objective in only approved if the application has given permission somehow
 			message.SignedStates[0].State(),
 			*e.store.GetAddress(),
 		)
-		if err != nil {
-			return directfund.DirectFundObjective{}, err
-		}
-		return objective, nil
 	default:
 		return directfund.DirectFundObjective{}, errors.New("cannot handle unimplemented objective type")
 	}
