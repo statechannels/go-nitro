@@ -25,6 +25,8 @@ type Engine struct {
 	toMsg   chan<- protocols.Message
 	toChain chan<- protocols.ChainTransaction
 
+	toApi chan ObjectiveChangeEvent
+
 	store store.Store // A Store for persisting and restoring important data
 
 	logger *log.Logger
@@ -35,8 +37,16 @@ type APIEvent struct {
 	ObjectiveToSpawn   protocols.Objective
 	ObjectiveToReject  protocols.ObjectiveId
 	ObjectiveToApprove protocols.ObjectiveId
+}
 
-	Response chan Response
+// ObjectiveChangeEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
+type ObjectiveChangeEvent struct {
+	// These are objectives that are now completed
+	CompletedObjectives []protocols.ObjectiveId
+}
+
+type CompletedObjectiveEvent struct {
+	Id protocols.ObjectiveId
 }
 
 // Response is the return type that asynchronous API calls "resolve to". Such a call returns a go channel of type Response.
@@ -53,6 +63,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.fromChain = chain.Out()
 	e.fromMsg = msg.Out()
 
+	e.toApi = make(chan ObjectiveChangeEvent, 100)
 	// bind to outbound chans
 	e.toChain = chain.In()
 	e.toMsg = msg.In()
@@ -65,19 +76,29 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	return e
 }
 
+func (e *Engine) ToApi() <-chan ObjectiveChangeEvent {
+	return e.toApi
+}
+
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
 func (e *Engine) Run() {
 	for {
+		var res ObjectiveChangeEvent
 		select {
 		case apiEvent := <-e.FromAPI:
-			e.handleAPIEvent(apiEvent)
+			res = e.handleAPIEvent(apiEvent)
 
 		case chainEvent := <-e.fromChain:
-			e.handleChainEvent(chainEvent)
+
+			res = e.handleChainEvent(chainEvent)
 
 		case message := <-e.fromMsg:
-			e.handleMessage(message)
+			res = e.handleMessage(message)
 
+		}
+		// Only send out an event if there are changes
+		if len(res.CompletedObjectives) > 0 {
+			e.toApi <- res
 		}
 	}
 }
@@ -88,20 +109,22 @@ func (e *Engine) Run() {
 // gets a pointer to a channel secret key from the store,
 // generates an updated objective and
 // attempts progress.
-func (e *Engine) handleMessage(message protocols.Message) {
+func (e *Engine) handleMessage(message protocols.Message) ObjectiveChangeEvent {
+
 	e.logger.Printf("Handling inbound message %v", message)
 	objective, err := e.getOrCreateObjective(message)
 	if err != nil {
 		e.logger.Print(err)
-		return
+		return ObjectiveChangeEvent{}
 	}
 	event := protocols.ObjectiveEvent{ObjectiveId: message.ObjectiveId, SignedStates: message.SignedStates}
 	updatedObjective, err := objective.Update(event)
 	if err != nil {
 		e.logger.Print(err)
-		return
+		return ObjectiveChangeEvent{}
 	}
-	e.attemptProgress(updatedObjective)
+	return e.attemptProgress(updatedObjective)
+
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
@@ -110,11 +133,12 @@ func (e *Engine) handleMessage(message protocols.Message) {
 // gets a pointer to a channel secret key from the store,
 // generates an updated objective and
 // attempts progress.
-func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
+func (e *Engine) handleChainEvent(chainEvent chainservice.Event) ObjectiveChangeEvent {
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
 	objective, _ := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	updatedObjective, _ := objective.Update(event) // TODO handle error
-	e.attemptProgress(updatedObjective)
+	return e.attemptProgress(updatedObjective)
+
 }
 
 // handleAPIEvent handles an API Event (triggered by an API call)
@@ -122,20 +146,24 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
 // Spawn a new, approved objective (if not null)
 // Reject an existing objective (if not null)
 // Approve an existing objective (if not null)
-func (e *Engine) handleAPIEvent(apiEvent APIEvent) {
+func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 	if apiEvent.ObjectiveToSpawn != nil {
-		e.attemptProgress(apiEvent.ObjectiveToSpawn)
+		return e.attemptProgress(apiEvent.ObjectiveToSpawn)
 	}
 	if apiEvent.ObjectiveToReject != `` {
 		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
 		updatedProtocol := objective.Reject()
 		_ = e.store.SetObjective(updatedProtocol) // TODO handle error
+		return ObjectiveChangeEvent{}
 	}
 	if apiEvent.ObjectiveToApprove != `` {
 		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
 		updatedObjective := objective.Approve()
-		e.attemptProgress(updatedObjective)
+		return e.attemptProgress(updatedObjective)
+
 	}
+	return ObjectiveChangeEvent{}
+
 }
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective
@@ -157,13 +185,21 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 // 	3. It commits the cranked objective to the store
 // 	4. It executes any side effects that were declared during cranking
 // 	5. It updates progress metadata in the store
-func (e *Engine) attemptProgress(objective protocols.Objective) {
+func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent) {
 	secretKey := e.store.GetChannelSecretKey()
 	crankedObjective, sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
 	_ = e.store.SetObjective(crankedObjective)                                 // TODO handle error
 	e.executeSideEffects(sideEffects)
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
+
+	// If our protocol is waiting for nothing then we know the objective is complete
+	// TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
+	// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
+	if waitingFor == "WaitingForNothing" {
+		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective.Id())
+	}
+	return
 }
 
 // getOrCreateObjective creates the objective if the supplied message is a proposal. Otherwise, it attempts to get the objective from the store.

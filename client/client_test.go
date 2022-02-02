@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -45,8 +44,11 @@ func TestNew(t *testing.T) {
 
 	messageserviceA.Connect(messageserviceB)
 	messageserviceB.Connect(messageserviceA)
-	clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome.Exit{}, big.NewInt(0))
+	id, res := clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome.Exit{}, big.NewInt(0))
 
-	<-time.After(time.Second)
+	got := <-res
 
+	if got.Id != id {
+		t.Errorf("expected completed objective with id %v, but got %v", id, got.Id)
+	}
 }
