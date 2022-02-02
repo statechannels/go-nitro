@@ -86,7 +86,7 @@ func (e *Engine) Run() {
 // generates an updated objective and
 // attempts progress.
 func (e *Engine) handleMessage(message protocols.Message) {
-	e.logger.Printf("Handling inbound message")
+	e.logger.Printf("Handling inbound message %v", message)
 	var objective protocols.Objective
 	ok := true
 	if message.Proposal != nil {
