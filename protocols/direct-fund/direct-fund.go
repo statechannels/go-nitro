@@ -151,8 +151,8 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 
 		// Special case for prefunding: we send an objective proposal along with the messages
 		if s.C.MyIndex == 0 {
-			for _, m := range se.MessagesToSend {
-				m.Proposal = true
+			for i := range se.MessagesToSend {
+				se.MessagesToSend[i].Proposal = true
 			}
 		}
 
