@@ -167,11 +167,11 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 	}
 
 	if !fundingComplete && amountToDeposit.IsNonZero() && safeToDeposit {
-		var effects = make([]string, 0) // TODO loop over assets
-		effects = append(effects, FundOnChainEffect(updated.C.Id, `eth`, amountToDeposit))
+
+		var effects = make([]protocols.ChainTransaction, 0) // TODO loop over assets
+		effects = append(effects, protocols.ChainTransaction{ChannelId: updated.C.Id, Deposit: amountToDeposit})
 		if len(effects) > 0 {
-			// todo: convert effects to SideEffects{} and return
-			return updated, NoSideEffects, WaitingForCompleteFunding, nil
+			return updated, se, WaitingForCompleteFunding, nil
 		}
 	}
 
