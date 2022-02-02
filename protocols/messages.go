@@ -13,7 +13,7 @@ type Message struct {
 	To           types.Address
 	ObjectiveId  ObjectiveId
 	SignedStates []state.SignedState
-	Proposal     Objective
+	Proposal     bool
 }
 
 // Serialize serializes the message into a string.
