@@ -86,9 +86,11 @@ func (e *Engine) Run() {
 // generates an updated objective and
 // attempts progress.
 func (e *Engine) handleMessage(message protocols.Message) {
+	e.logger.Printf("Handling inbound message")
 	var objective protocols.Objective
 	ok := true
 	if message.Proposal != nil {
+		e.logger.Printf("Recieved proposal for %s", message.Proposal.Id())
 		objective = message.Proposal
 		// TODO ensure objective in only approved if the application has given permission somehow
 	} else {
