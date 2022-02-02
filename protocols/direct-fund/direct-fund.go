@@ -113,8 +113,8 @@ func (s DirectFundObjective) Reject() protocols.Objective {
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
 // and returns the updated state
 func (s DirectFundObjective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
-	if s.C.Id != event.ChannelId {
-		return s, errors.New("event and objective channelIds do not match")
+	if s.Id() != event.ObjectiveId {
+		return s, errors.New("event and objective Ids do not match")
 	}
 
 	updated := s.clone()
