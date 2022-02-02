@@ -8,7 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// Message is an object to be sent across the wire. It can contain a proposal and signed state hashes, and is addressed to a counterparty.
+// Message is an object to be sent across the wire. It can contain a proposal and signed states, and is addressed to a counterparty.
 type Message struct {
 	To           types.Address
 	ObjectiveId  ObjectiveId
@@ -22,8 +22,8 @@ func (m Message) Serialize() (string, error) {
 	return string(bytes), err
 }
 
-// DeserialiseMessage deserializes the passed string into a protocols.Message.
-func DeserialiseMessage(s string) (Message, error) {
+// DeserializeMessage deserializes the passed string into a protocols.Message.
+func DeserializeMessage(s string) (Message, error) {
 	msg := Message{}
 	err := json.Unmarshal([]byte(s), &msg)
 	return msg, err

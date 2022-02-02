@@ -30,7 +30,7 @@ func TestMessage(t *testing.T) {
 	})
 
 	t.Run(`deserialize`, func(t *testing.T) {
-		got, err := DeserialiseMessage(msgString)
+		got, err := DeserializeMessage(msgString)
 		want := msg
 		if err != nil {
 			t.Error(err)

@@ -62,7 +62,7 @@ func (t TestMessageService) Connect(peer TestMessageService) {
 
 	go func() {
 		for msgString := range toPeer {
-			msg, _ := protocols.DeserialiseMessage(msgString)
+			msg, _ := protocols.DeserializeMessage(msgString)
 			peer.out <- msg // send messages directly to peer's engine, using the peer's out chan
 		}
 	}()
