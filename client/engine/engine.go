@@ -83,13 +83,17 @@ func (e *Engine) Run() {
 // It
 // reads an objective from the store,
 // gets a pointer to a channel secret key from the store,
-// generates an updated objective and declaration of side effects,
-// commits the updated objective to the store,
-// executes the side effects and
-// evaluates objecive progress.
+// generates an updated objective and
+// attempts progress.
 func (e *Engine) handleMessage(message protocols.Message) {
+	var objective protocols.Objective
+	if message.Proposal != nil {
+		objective = message.Proposal
+		// TODO ensure objective in only approved if the application has given permission somehow
+	} else {
+		objective, _ = e.store.GetObjectiveById(message.ObjectiveId)
+	}
 	event := protocols.ObjectiveEvent{SignedStates: message.SignedStates}
-	objective, _ := e.store.GetObjectiveById(message.ObjectiveId)
 	updatedObjective, _ := objective.Update(event) // TODO handle error
 	e.attemptProgress(updatedObjective)
 }
@@ -98,10 +102,8 @@ func (e *Engine) handleMessage(message protocols.Message) {
 // It
 // reads an objective from the store,
 // gets a pointer to a channel secret key from the store,
-// generates an updated objective and declaration of side effects,
-// commits the updated objective to the store,
-// executes the side effects and
-// evaluates objecive progress.
+// generates an updated objective and
+// attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
 	objective, _ := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
