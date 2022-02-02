@@ -143,30 +143,11 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 	// Prefunding
 	if !updated.C.PreFundSignedByMe() {
 		pf := s.C.PreFundState()
-		sig, err := pf.Sign(*secretKey)
+		ss, err := s.signAndStore(pf, secretKey)
 		if err != nil {
-			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("failed to sign pre-fund state: %w", err)
+			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("could not sign and store state %w", err)
 		}
-		ss := state.NewSignedState(pf)
-		if err := ss.AddSignature(sig); err != nil {
-			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("failed to add signature to signed state: %w", err)
-		}
-		ok := updated.C.AddSignedState(ss)
-		if !ok {
-			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("failed to add signed state")
-		}
-
-		messages := make([]protocols.Message, 0)
-		for i, participant := range ss.State().Participants {
-
-			// Do not generate a message for ourselves
-			if uint(i) == s.C.MyIndex {
-				continue
-			}
-			message := protocols.Message{To: participant, ObjectiveId: s.Id(), SignedStates: []state.SignedState{ss}, Proposal: nil}
-			messages = append(messages, message)
-		}
-
+		messages := s.createSignedStateMessages(ss)
 		se.MessagesToSend = append(se.MessagesToSend, messages...)
 
 		return updated, se, WaitingForCompletePrefund, nil
@@ -200,10 +181,16 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 
 	// Postfunding
 	if !updated.C.PostFundSignedByMe() {
-		// TODO sign the post fund state
-		// TODO update updated.PostFundSigned[updated.MyIndex]
-		// TODO prepare a message for peers with signature, return as SideEffects{}
-		return updated, NoSideEffects, WaitingForCompletePostFund, nil
+
+		pf := s.C.PostFundState()
+		ss, err := s.signAndStore(pf, secretKey)
+		if err != nil {
+			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("could not sign and store state %w", err)
+		}
+		messages := s.createSignedStateMessages(ss)
+		se.MessagesToSend = append(se.MessagesToSend, messages...)
+
+		return updated, se, WaitingForCompletePrefund, nil
 	}
 
 	if !updated.C.PostFundComplete() {
@@ -280,6 +267,37 @@ func (s DirectFundObjective) clone() DirectFundObjective {
 	clone.fullyFundedThreshold = s.fullyFundedThreshold.Clone()
 
 	return clone
+}
+func (s DirectFundObjective) createSignedStateMessages(ss state.SignedState) []protocols.Message {
+
+	messages := make([]protocols.Message, 0)
+	for i, participant := range ss.State().Participants {
+
+		// Do not generate a message for ourselves
+		if uint(i) == s.C.MyIndex {
+			continue
+		}
+		message := protocols.Message{To: participant, ObjectiveId: s.Id(), SignedStates: []state.SignedState{ss}, Proposal: nil}
+		messages = append(messages, message)
+	}
+	return messages
+}
+
+func (s DirectFundObjective) signAndStore(toSign state.State, secretKey *[]byte) (state.SignedState, error) {
+
+	sig, err := toSign.Sign(*secretKey)
+	if err != nil {
+		return state.SignedState{}, fmt.Errorf("failed to sign state: %w", err)
+	}
+	ss := state.NewSignedState(toSign)
+	if err := ss.AddSignature(sig); err != nil {
+		return state.SignedState{}, fmt.Errorf("failed to add signature to signed state: %w", err)
+	}
+	ok := s.C.AddSignedState(ss)
+	if !ok {
+		return state.SignedState{}, fmt.Errorf("failed to add signed state")
+	}
+	return ss, nil
 }
 
 // mermaid diagram
