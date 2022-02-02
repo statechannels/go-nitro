@@ -2,10 +2,10 @@ package directfund
 
 import (
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
@@ -84,66 +84,16 @@ func TestPreFundSideEffects(t *testing.T) {
 	// Approve the objective, so that the rest of the test cases can run.
 	o := s.Approve()
 
-	_, se, _, err := o.Crank(&alice.privateKey)
+	_, got, _, err := o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
 
-	signMessage := se.MessagesToSend[0]
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{s.C.SignedStateForTurnNum[0]}, Proposal: nil}
+	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
 
-	if signMessage.To != bob.address {
-		t.Error("incorrect recipient")
-	}
-	if signMessage.ObjectiveId != o.Id() {
-		t.Error("incorrect objective id")
-	}
-	if stateLength := len(signMessage.SignedStates); stateLength != 1 {
-		t.Error("incorrect number of Signed States")
-	}
-
-	messageSig, err := signMessage.SignedStates[0].GetParticipantSignature(s.C.MyIndex)
-	if err != nil {
-		t.Error(err)
-	}
-	stateSig, err := s.C.SignedStateForTurnNum[0].GetParticipantSignature(s.C.MyIndex)
-	if err != nil {
-		t.Error(err)
-	}
-	if sigMatch := reflect.DeepEqual(messageSig, stateSig); !sigMatch {
-		t.Error("incorrect signature")
-	}
-
-}
-func TestFundingSideEffects(t *testing.T) {
-	var s, _ = New(false, testState, testState.Participants[0])
-	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.privateKey)
-	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.privateKey)
-
-	// Approve the objective, so that the rest of the test cases can run.
-	o := s.Approve().(DirectFundObjective)
-
-	// Manually progress the extended state by collecting prefund signatures
-	o.C.AddStateWithSignature(o.C.PreFundState(), correctSignatureByAliceOnPreFund)
-	o.C.AddStateWithSignature(o.C.PreFundState(), correctSignatureByBobOnPreFund)
-	// Manually make the first "deposit" so it is safe for Alice to deposit
-	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
-
-	_, se, _, err := o.Crank(&alice.privateKey)
-	if err != nil {
-		t.Error(err)
-	}
-	if len(se.TransactionsToSubmit) != 1 {
-		t.Error("There should be one transaction request")
-	}
-	depositTransaction := se.TransactionsToSubmit[0]
-	if depositTransaction.ChannelId != o.C.Id {
-		t.Errorf("Expected transaction to have channel id %v, got %v instead", o.C.Id, depositTransaction.ChannelId)
-	}
-	expectedAmount := testState.Outcome[0].Allocations[0].Amount
-	actualAmount := depositTransaction.Deposit[testState.Outcome[0].Asset]
-	if expectedAmount.Cmp(actualAmount) != 0 {
-		t.Errorf("Expected a deposit of %d got %d instead", expectedAmount, actualAmount)
-
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("TestPreFundSideEffects: side effects mismatch (-want +got):\n%s", diff)
 	}
 
 }
@@ -167,32 +117,16 @@ func TestPostFundSideEffects(t *testing.T) {
 	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
 
-	_, se, _, err := o.Crank(&alice.privateKey)
+	_, got, _, err := o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
-	}
-	signMessage := se.MessagesToSend[0]
-
-	if signMessage.To != bob.address {
-		t.Error("incorrect recipient")
-	}
-	if signMessage.ObjectiveId != o.Id() {
-		t.Error("incorrect objective id")
-	}
-	if stateLength := len(signMessage.SignedStates); stateLength != 1 {
-		t.Error("incorrect number of Signed States")
 	}
 
-	messageSig, err := signMessage.SignedStates[0].GetParticipantSignature(s.C.MyIndex)
-	if err != nil {
-		t.Error(err)
-	}
-	stateSig, err := s.C.SignedStateForTurnNum[1].GetParticipantSignature(s.C.MyIndex)
-	if err != nil {
-		t.Error(err)
-	}
-	if sigMatch := reflect.DeepEqual(messageSig, stateSig); !sigMatch {
-		t.Error("incorrect signature")
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{s.C.SignedStateForTurnNum[1]}, Proposal: nil}
+	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("TestPostFundSideEffects: side effects mismatch (-want +got):\n%s", diff)
 	}
 
 }
