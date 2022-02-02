@@ -96,14 +96,12 @@ func (ss SignedState) Equal(ss2 SignedState) bool {
 
 // MarshalJSON marshals the SignedState into JSON, implementing the Marshaler interface.
 func (ss SignedState) MarshalJSON() ([]byte, error) {
-
-	// Similar type but with public members:
-	type SignedState struct {
+	rr := struct {
 		State State
 		Sigs  map[uint]Signature // keyed by participant index
+	}{
+		ss.state, ss.sigs,
 	}
-
-	rr := SignedState{ss.state, ss.sigs}
 
 	return json.Marshal(rr)
 
@@ -112,13 +110,10 @@ func (ss SignedState) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals the passed JSON into a SignedState, implementing the Unmarshaler interface.
 func (ss *SignedState) UnmarshalJSON(j []byte) error {
 
-	// Similar type but with public members:
-	type SignedState struct {
+	rr := struct {
 		State State
 		Sigs  map[uint]Signature // keyed by participant index
-	}
-
-	rr := SignedState{}
+	}{}
 
 	err := json.Unmarshal(j, &rr)
 
