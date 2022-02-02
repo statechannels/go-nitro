@@ -100,7 +100,7 @@ func (e *Engine) handleMessage(message protocols.Message) {
 		objective, ok = e.store.GetObjectiveById(message.ObjectiveId)
 	}
 	if ok && err == nil {
-		event := protocols.ObjectiveEvent{SignedStates: message.SignedStates}
+		event := protocols.ObjectiveEvent{ObjectiveId: message.ObjectiveId, SignedStates: message.SignedStates}
 		updatedObjective, err := objective.Update(event)
 		if err == nil {
 			e.attemptProgress(updatedObjective)
