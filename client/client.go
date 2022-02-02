@@ -17,11 +17,17 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type ChannelReadyEvent struct {
+	ChannelId   types.Destination
+	ObjectiveId protocols.ObjectiveId
+	Funding     types.Funds
+}
+
 // Client provides the interface for the consuming application
 type Client struct {
-	engine              engine.Engine // The core business logic of the client
-	Address             *types.Address
-	CompletedObjectives chan<- engine.CompletedObjectiveEvent // All Objective updates from the engine
+	engine       engine.Engine // The core business logic of the client
+	Address      *types.Address
+	ChannelReady chan<- ChannelReadyEvent // All Objective updates from the engine
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -29,7 +35,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c := Client{}
 	c.Address = store.GetAddress()
 	c.engine = engine.New(messageService, chainservice, store, logDestination)
-	c.CompletedObjectives = make(chan<- engine.CompletedObjectiveEvent, 100)
+	c.ChannelReady = make(chan<- ChannelReadyEvent, 100)
 	// Start the engine in a go routine
 	go c.engine.Run()
 
@@ -39,7 +45,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 // Begin API
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty
-func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) (protocols.ObjectiveId, chan engine.CompletedObjectiveEvent) {
+func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) (protocols.ObjectiveId, chan ChannelReadyEvent) {
 	// Convert the API call into an internal event.
 	objective, _ := directfund.New(true,
 		state.State{
@@ -63,7 +69,7 @@ func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition t
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	clientResponse := make(chan engine.CompletedObjectiveEvent)
+	clientResponse := make(chan ChannelReadyEvent)
 
 	// Starts a go function that listens for our objective to be completed and then dispatchs events to different client channels
 	go func() {
@@ -74,10 +80,10 @@ func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition t
 
 					// We dispatch an event to the channel that handles **all** objective updates.
 					// This provides a central place to monitor for objective updates.
-					c.CompletedObjectives <- engine.CompletedObjectiveEvent{Id: completed}
+					c.ChannelReady <- ChannelReadyEvent{ObjectiveId: completed, ChannelId: objective.C.Id, Funding: objective.C.OnChainFunding}
 					// We dispatch an event to the channel returned by this function. This channel is only used for the one objective.
 					// This allows for promise like behaviour where we can wait for the objective to be completed before continuing.
-					clientResponse <- engine.CompletedObjectiveEvent{Id: completed}
+					clientResponse <- ChannelReadyEvent{ObjectiveId: completed, ChannelId: objective.C.Id, Funding: objective.C.OnChainFunding}
 					// We can close the channel as the objective is completed so there will be no further events.
 					close(clientResponse)
 
