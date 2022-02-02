@@ -157,6 +157,9 @@ func (s VirtualFundObjective) Reject() protocols.Objective {
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
 // and returns the updated state.
 func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+	if s.Id() != event.ObjectiveId {
+		return s, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(s.Id()))
+	}
 
 	updated := s.clone()
 
@@ -170,20 +173,23 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 		toMyRightId = s.ToMyRight.Channel.Id // Avoid this if it is nil
 	}
 
-	switch event.ChannelId {
-	case types.Destination{}:
-		return s, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
-	case s.V.Id:
-		updated.V.AddSignedStates(event.SignedStates)
-		// We expect pre and post fund state signatures.
-	case toMyLeftId:
-		updated.ToMyLeft.Channel.AddSignedStates(event.SignedStates)
-		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
-	case toMyRightId:
-		updated.ToMyRight.Channel.AddSignedStates(event.SignedStates)
-		// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
-	default:
-		return s, errors.New("event channelId out of scope of objective")
+	for _, ss := range event.SignedStates {
+		channelId, _ := ss.State().ChannelId() // TODO handle error
+		switch channelId {
+		case types.Destination{}:
+			return s, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
+		case s.V.Id:
+			updated.V.AddSignedState(ss)
+			// We expect pre and post fund state signatures.
+		case toMyLeftId:
+			updated.ToMyLeft.Channel.AddSignedState(ss)
+			// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
+		case toMyRightId:
+			updated.ToMyRight.Channel.AddSignedState(ss)
+			// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
+		default:
+			return s, errors.New("event channelId out of scope of objective")
+		}
 	}
 	return updated, nil
 
