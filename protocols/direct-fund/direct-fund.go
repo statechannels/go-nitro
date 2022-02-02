@@ -182,12 +182,12 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 		pf := s.C.PostFundState()
 		ss, err := s.signAndStore(pf, secretKey)
 		if err != nil {
-			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("could not sign and store state %w", err)
+			return updated, NoSideEffects, WaitingForCompletePostFund, fmt.Errorf("could not sign and store state %w", err)
 		}
 		messages := s.createSignedStateMessages(ss)
 		se.MessagesToSend = append(se.MessagesToSend, messages...)
 
-		return updated, se, WaitingForCompletePrefund, nil
+		return updated, se, WaitingForCompletePostFund, nil
 	}
 
 	if !updated.C.PostFundComplete() {
