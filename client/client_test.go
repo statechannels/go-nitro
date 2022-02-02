@@ -44,8 +44,21 @@ func TestNew(t *testing.T) {
 
 	messageserviceA.Connect(messageserviceB)
 	messageserviceB.Connect(messageserviceA)
-	id, res := clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome.Exit{}, big.NewInt(0))
+	// Set up an outcome that requires both participants to deposit
+	outcome := outcome.Exit{outcome.SingleAssetExit{
+		Allocations: outcome.Allocations{
+			outcome.Allocation{
+				Destination: types.AddressToDestination(a),
+				Amount:      big.NewInt(5),
+			},
+			outcome.Allocation{
+				Destination: types.AddressToDestination(b),
+				Amount:      big.NewInt(5),
+			},
+		},
+	}}
 
+	id, res := clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
 	got := <-res
 
 	if got.ObjectiveId != id {
