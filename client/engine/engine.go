@@ -87,15 +87,20 @@ func (e *Engine) Run() {
 // attempts progress.
 func (e *Engine) handleMessage(message protocols.Message) {
 	var objective protocols.Objective
+	ok := true
 	if message.Proposal != nil {
 		objective = message.Proposal
 		// TODO ensure objective in only approved if the application has given permission somehow
 	} else {
-		objective, _ = e.store.GetObjectiveById(message.ObjectiveId)
+		objective, ok = e.store.GetObjectiveById(message.ObjectiveId)
 	}
-	event := protocols.ObjectiveEvent{SignedStates: message.SignedStates}
-	updatedObjective, _ := objective.Update(event) // TODO handle error
-	e.attemptProgress(updatedObjective)
+	if ok {
+		event := protocols.ObjectiveEvent{SignedStates: message.SignedStates}
+		updatedObjective, error := objective.Update(event)
+		if error == nil {
+			e.attemptProgress(updatedObjective)
+		}
+	}
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
