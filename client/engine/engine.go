@@ -3,6 +3,7 @@ package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -90,24 +91,18 @@ func (e *Engine) Run() {
 // attempts progress.
 func (e *Engine) handleMessage(message protocols.Message) {
 	e.logger.Printf("Handling inbound message %v", message)
-	var objective protocols.Objective
-	ok := true
-	var err error
-	if message.Proposal {
-		e.logger.Printf("Recieved proposal for %s", message.ObjectiveId)
-		objective, err = e.constructObjectiveFromProposal(message)
-	} else {
-		objective, ok = e.store.GetObjectiveById(message.ObjectiveId)
+	objective, err := e.getOrCreateObjective(message)
+	if err != nil {
+		e.logger.Print(err)
+		return
 	}
-	if ok && err == nil {
-		event := protocols.ObjectiveEvent{ObjectiveId: message.ObjectiveId, SignedStates: message.SignedStates}
-		updatedObjective, err := objective.Update(event)
-		if err == nil {
-			e.attemptProgress(updatedObjective)
-		} else {
-			e.logger.Print(err)
-		}
+	event := protocols.ObjectiveEvent{ObjectiveId: message.ObjectiveId, SignedStates: message.SignedStates}
+	updatedObjective, err := objective.Update(event)
+	if err != nil {
+		e.logger.Print(err)
+		return
 	}
+	e.attemptProgress(updatedObjective)
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
@@ -170,6 +165,22 @@ func (e *Engine) attemptProgress(objective protocols.Objective) {
 	e.executeSideEffects(sideEffects)
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
+}
+
+// getOrCreateObjective creates the objective if the supplied message is a proposal. Otherwise, it attempts to get the objective from the store.
+func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Objective, error) {
+	id := message.ObjectiveId
+	if message.Proposal {
+		e.logger.Printf("Recieved proposal for %s", id)
+		return e.constructObjectiveFromProposal(message)
+	}
+	objective, ok := e.store.GetObjectiveById(id)
+	if !ok {
+		err := fmt.Errorf("store has no objective with id %v", id)
+		return objective, err
+	} else {
+		return objective, nil
+	}
 }
 
 // constructObjectiveFromProposal Constructs a new objective (of the appropriate concrete type) from the supplied message.
