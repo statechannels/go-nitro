@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -91,4 +92,33 @@ func (ss SignedState) Equal(ss2 SignedState) bool {
 		}
 	}
 	return true
+}
+
+// MarshalJSON marshals the SignedState into JSON, implementing the Marshaler interface.
+func (ss SignedState) MarshalJSON() ([]byte, error) {
+	rr := struct {
+		State State
+		Sigs  map[uint]Signature // keyed by participant index
+	}{
+		ss.state, ss.sigs,
+	}
+
+	return json.Marshal(rr)
+
+}
+
+// UnmarshalJSON unmarshals the passed JSON into a SignedState, implementing the Unmarshaler interface.
+func (ss *SignedState) UnmarshalJSON(j []byte) error {
+
+	rr := struct {
+		State State
+		Sigs  map[uint]Signature // keyed by participant index
+	}{}
+
+	err := json.Unmarshal(j, &rr)
+
+	ss.state = rr.State
+	ss.sigs = rr.Sigs
+	return err
+
 }
