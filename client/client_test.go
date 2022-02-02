@@ -48,7 +48,7 @@ func TestNew(t *testing.T) {
 
 	got := <-res
 
-	if got.Id != id {
-		t.Errorf("expected completed objective with id %v, but got %v", id, got.Id)
+	if got.ObjectiveId != id {
+		t.Errorf("expected completed objective with id %v, but got %v", id, got.ObjectiveId)
 	}
 }
