@@ -2,13 +2,16 @@
 package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
+	"errors"
 	"io"
 	"log"
+	"strings"
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
+	directfund "github.com/statechannels/go-nitro/protocols/direct-fund"
 )
 
 // Engine is the imperative part of the core business logic of a go-nitro Client
@@ -89,18 +92,20 @@ func (e *Engine) handleMessage(message protocols.Message) {
 	e.logger.Printf("Handling inbound message %v", message)
 	var objective protocols.Objective
 	ok := true
-	if message.Proposal != nil {
-		e.logger.Printf("Recieved proposal for %s", message.Proposal.Id())
-		objective = message.Proposal
-		// TODO ensure objective in only approved if the application has given permission somehow
+	var err error
+	if message.Proposal {
+		e.logger.Printf("Recieved proposal for %s", message.ObjectiveId)
+		objective, err = e.constructObjectiveFromProposal(message)
 	} else {
 		objective, ok = e.store.GetObjectiveById(message.ObjectiveId)
 	}
-	if ok {
+	if ok && err == nil {
 		event := protocols.ObjectiveEvent{SignedStates: message.SignedStates}
-		updatedObjective, error := objective.Update(event)
-		if error == nil {
+		updatedObjective, err := objective.Update(event)
+		if err == nil {
 			e.attemptProgress(updatedObjective)
+		} else {
+			e.logger.Print(err)
 		}
 	}
 }
@@ -165,4 +170,30 @@ func (e *Engine) attemptProgress(objective protocols.Objective) {
 	e.executeSideEffects(sideEffects)
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
+}
+
+// constructObjectiveFromProposal Constructs a new objective (of the appropriate concrete type) from the supplied message.
+func (e *Engine) constructObjectiveFromProposal(message protocols.Message) (protocols.Objective, error) {
+	if !message.Proposal {
+		panic("Tried to construct objective from a non-proposal message")
+	}
+	switch {
+	case strings.Contains(string(message.ObjectiveId), `DirectFund`):
+		initialState := message.SignedStates[0].State()
+		if initialState.TurnNum != 0 {
+			return directfund.DirectFundObjective{}, errors.New("cannot construct direct fund objective without prefund state")
+		}
+		objective, err := directfund.New(
+			true, // TODO ensure objective in only approved if the application has given permission somehow
+			message.SignedStates[0].State(),
+			*e.store.GetAddress(),
+		)
+		if err != nil {
+			return directfund.DirectFundObjective{}, err
+		}
+		return objective, nil
+	default:
+		return directfund.DirectFundObjective{}, errors.New("cannot handle unimplemented objective type")
+	}
+
 }
