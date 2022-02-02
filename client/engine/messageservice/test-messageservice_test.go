@@ -17,7 +17,6 @@ var aToB protocols.Message = protocols.Message{
 	To:           bobMS.address,
 	ObjectiveId:  testId,
 	SignedStates: []state.SignedState{},
-	Proposal:     true,
 }
 
 func TestConnect(t *testing.T) {

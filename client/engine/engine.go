@@ -3,7 +3,6 @@ package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -170,24 +169,18 @@ func (e *Engine) attemptProgress(objective protocols.Objective) {
 // getOrCreateObjective creates the objective if the supplied message is a proposal. Otherwise, it attempts to get the objective from the store.
 func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Objective, error) {
 	id := message.ObjectiveId
-	if message.Proposal {
-		e.logger.Printf("Recieved proposal for %s", id)
-		return e.constructObjectiveFromProposal(message)
-	}
+
 	objective, ok := e.store.GetObjectiveById(id)
 	if !ok {
-		err := fmt.Errorf("store has no objective with id %v", id)
-		return objective, err
+		return e.constructObjectiveFromMessage(message)
 	} else {
 		return objective, nil
 	}
 }
 
-// constructObjectiveFromProposal Constructs a new objective (of the appropriate concrete type) from the supplied message.
-func (e *Engine) constructObjectiveFromProposal(message protocols.Message) (protocols.Objective, error) {
-	if !message.Proposal {
-		panic("Tried to construct objective from a non-proposal message")
-	}
+// constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied message.
+func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (protocols.Objective, error) {
+
 	switch {
 	case strings.Contains(string(message.ObjectiveId), `DirectFund`):
 		initialState := message.SignedStates[0].State()

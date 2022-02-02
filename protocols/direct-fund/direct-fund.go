@@ -149,13 +149,6 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 		messages := s.createSignedStateMessages(ss)
 		se.MessagesToSend = append(se.MessagesToSend, messages...)
 
-		// Special case for prefunding: we send an objective proposal along with the messages
-		if s.C.MyIndex == 0 {
-			for i := range se.MessagesToSend {
-				se.MessagesToSend[i].Proposal = true
-			}
-		}
-
 		return updated, se, WaitingForCompletePrefund, nil
 	}
 
@@ -284,7 +277,7 @@ func (s DirectFundObjective) createSignedStateMessages(ss state.SignedState) []p
 		if uint(i) == s.C.MyIndex {
 			continue
 		}
-		message := protocols.Message{To: participant, ObjectiveId: s.Id(), SignedStates: []state.SignedState{ss}, Proposal: false}
+		message := protocols.Message{To: participant, ObjectiveId: s.Id(), SignedStates: []state.SignedState{ss}}
 		messages = append(messages, message)
 	}
 	return messages

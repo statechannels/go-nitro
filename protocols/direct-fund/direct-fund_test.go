@@ -86,7 +86,7 @@ func TestPreFundSideEffects(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[0]}, Proposal: true}
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[0]}}
 	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
 
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -116,7 +116,7 @@ func TestPostFundSideEffects(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[1]}, Proposal: false}
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[1]}}
 	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
 
 	if diff := cmp.Diff(want, got); diff != "" {
