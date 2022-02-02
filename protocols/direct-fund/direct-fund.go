@@ -150,9 +150,10 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 		se.MessagesToSend = append(se.MessagesToSend, messages...)
 
 		// Special case for prefunding: we send an objective proposal along with the messages
-		// TODO loop over all messages and attach proposal to each
 		if s.C.MyIndex == 0 {
-			se.MessagesToSend[0].Proposal = true
+			for _, m := range se.MessagesToSend {
+				m.Proposal = true
+			}
 		}
 
 		return updated, se, WaitingForCompletePrefund, nil
