@@ -149,6 +149,11 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 		messages := s.createSignedStateMessages(ss)
 		se.MessagesToSend = append(se.MessagesToSend, messages...)
 
+		// Special case for prefunding: we send an objective proposal along with the messages
+		// There is redundancy in the signed states
+		// TODO loop over all messages and attach proposal to each
+		se.MessagesToSend[0].Proposal = s.clone()
+
 		return updated, se, WaitingForCompletePrefund, nil
 	}
 
