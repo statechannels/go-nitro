@@ -114,7 +114,7 @@ func (s DirectFundObjective) Reject() protocols.Objective {
 // and returns the updated state
 func (s DirectFundObjective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if s.Id() != event.ObjectiveId {
-		return s, errors.New("event and objective Ids do not match")
+		return s, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(s.Id()))
 	}
 
 	updated := s.clone()
