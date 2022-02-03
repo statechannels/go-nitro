@@ -111,10 +111,16 @@ func (e *Engine) handleMessage(message protocols.Message) {
 // generates an updated objective and
 // attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
-	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
+
 	objective, _ := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
-	updatedObjective, _ := objective.Update(event) // TODO handle error
+	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus, ObjectiveId: objective.Id()}
+	updatedObjective, err := objective.Update(event)
+	if err != nil {
+		// TODO handle error
+		panic(err)
+	}
 	e.attemptProgress(updatedObjective)
+
 }
 
 // handleAPIEvent handles an API Event (triggered by an API call)
