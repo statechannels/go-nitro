@@ -7,6 +7,30 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+func TestEquals(t *testing.T) {
+	stateOne := state.TestState.Clone()
+	stateTwo := state.TestState.Clone()
+	stateTwo.TurnNum = 1
+	msg1 := Message{
+		To:          types.Address{'a'},
+		ObjectiveId: `say-hello-to-my-little-friend`,
+		SignedStates: []state.SignedState{
+			state.NewSignedState(stateOne),
+		},
+	}
+
+	msg2 := Message{
+		To:          types.Address{'a'},
+		ObjectiveId: `say-hello-to-my-little-friend`,
+		SignedStates: []state.SignedState{
+			state.NewSignedState(stateTwo),
+		},
+	}
+	if (msg1).Equal(msg2) {
+		t.Error("Equal returned true for two different messages")
+	}
+}
+
 func TestMessage(t *testing.T) {
 	msg := Message{
 		To:          types.Address{'a'},

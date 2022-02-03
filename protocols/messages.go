@@ -41,7 +41,7 @@ func (m Message) Equal(n Message) bool {
 		return false
 	}
 	for i, ss := range m.SignedStates {
-		if !ss.Equal(m.SignedStates[i]) {
+		if !ss.Equal(n.SignedStates[i]) {
 			return false
 		}
 	}
