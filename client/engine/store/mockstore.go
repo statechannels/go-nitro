@@ -2,9 +2,11 @@ package store
 
 import (
 	"crypto/ecdsa"
+	"encoding/json"
 	"log"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -58,15 +60,21 @@ func (ms MockStore) SetObjective(obj protocols.Objective) error {
 	return nil
 }
 
-func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
-	// todo: locking
-	for _, obj := range ms.objectives {
-		for _, ch := range obj.Channels() {
-			if ch == channelId {
-				return obj, true
-			}
-		}
+func (ms MockStore) setChannel(c channel.Channel) error {
+	bytes, err := json.Marshal(c)
+	if err != nil {
+		return err
 	}
+	ms.channels[c.Id] = string(bytes)
+	return nil
+}
+
+func (ms MockStore) getChannelById(id types.Destination) (channel.Channel, error) {
+	channelJSON := ms.channels[id]
+	var channel channel.Channel
+	err := json.Unmarshal([]byte(channelJSON), &channel)
+	return channel, err
+}
 
 	return nil, false
 }
