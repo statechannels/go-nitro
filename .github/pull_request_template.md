@@ -13,7 +13,7 @@ It may include
 - links to design documents
 - dependencies required for this change
 
-The summary may omit some of these details if this PR fixes a single ticket that includes these details. It is the reviewer's discretion.
+The summary may omit some of these details if this PR fixes a single ticket that includes these details.
 
 **Changes** [Optional]
 
