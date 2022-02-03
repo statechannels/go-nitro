@@ -2,6 +2,7 @@ package channel
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -223,4 +224,39 @@ func (c Channel) AddSignedStates(sss []state.SignedState) bool {
 		}
 	}
 	return allOk
+}
+
+// SignAndAddPrefund signs and adds the prefund state for the channel, returning a state.SignedState suitable for sending to peers.
+func (c Channel) SignAndAddPrefund(sk *[]byte) (state.SignedState, error) {
+	return c.signAndAddSetupState(true, sk)
+}
+
+// SignAndAddPrefund signs and adds the postfund state for the channel, returning a state.SignedState suitable for sending to peers.
+func (c Channel) SignAndAddPostfund(sk *[]byte) (state.SignedState, error) {
+	return c.signAndAddSetupState(false, sk)
+}
+
+// signAndAddPrefund signs and adds a setup state for the channel, returning a state.SignedState suitable for sending to peers.
+// If the preFund is true, the setup state is the Prefund state, otherwise it is the Postfund state.
+func (c Channel) signAndAddSetupState(preFund bool, sk *[]byte) (state.SignedState, error) {
+	var setupState state.State
+	if preFund {
+		setupState = c.PreFundState()
+	} else {
+		setupState = c.PostFundState()
+	}
+	sig, err := setupState.Sign(*sk)
+	if err != nil {
+		return state.SignedState{}, fmt.Errorf("could not sign prefund %w", err)
+	}
+	ss := state.NewSignedState(setupState)
+	err = ss.AddSignature(sig)
+	if err != nil {
+		panic("could not add own signature")
+	}
+	ok := c.AddSignedState(ss)
+	if !ok {
+		panic("could not add signed prefund to channel")
+	}
+	return ss, nil
 }
