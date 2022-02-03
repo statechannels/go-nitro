@@ -87,7 +87,6 @@ func New(
 		types.AddressToDestination(myAddress),
 	)
 	init.myDepositTarget = init.myDepositSafetyThreshold.Add(myAllocatedAmount)
-	fmt.Println(init.myDepositTarget)
 	return init, nil
 }
 
@@ -250,7 +249,6 @@ func (s DirectFundObjective) amountToDeposit() types.Funds {
 			holding = big.NewInt(0)
 		}
 		deposits[asset] = big.NewInt(0).Sub(target, holding)
-		fmt.Printf("dep %d\n", deposits[asset])
 	}
 
 	return deposits
