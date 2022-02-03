@@ -65,25 +65,13 @@ and navigate to http://localhost:6060/pkg/github.com/statechannels/go-nitro/
 
 # Pre PR checks:
 
-Please execute the following on any branch that's ready for review or merge.
-
-### format:
+Our standards are enforced (where possible) during continuous integration, which runs
 
 ```shell
-gofmt -w .
+sh standardize.sh
 ```
 
-### lint:
-
-```shell
-golangci-lint run
-```
-
-### remove unused dependencies:
-
-```shell
-go mod tidy
-```
+This check is performed on each pull request and it is a requirement for the pull request to be merged.
 
 # Debugging Tests
 
