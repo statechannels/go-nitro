@@ -2,6 +2,7 @@
 package virtualfund // import "github.com/statechannels/go-nitro/virtualfund"
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -40,6 +41,23 @@ type AssetGuarantee struct {
 	guarantee outcome.Allocation
 }
 
+func (c Connection) MarshalJSON() ([]byte, error) {
+	guarantees := []AssetGuarantee{}
+	for asset, guarantee := range c.ExpectedGuarantees {
+		guarantees = append(guarantees, AssetGuarantee{
+			asset,
+			guarantee,
+		})
+	}
+	jsonConnection := JSONConnection{c.Channel.Id, guarantees}
+
+	bytes, err := json.Marshal(jsonConnection)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return bytes, err
+}
 
 // VirtualFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
 type VirtualFundObjective struct {
@@ -151,6 +169,13 @@ func New(
 	}
 
 	return init, nil
+}
+
+// MarshalJSON returns a JSON representation of the VirtualFundObjective
+// with channel state replaced by a channel Id
+func (s VirtualFundObjective) MarshalJSON() ([]byte, error) {
+	jsonVFO := JSONVirtualFundObjective{s, s.V.Id}
+	return json.Marshal(jsonVFO)
 }
 
 // Id returns the objective id.

@@ -2,6 +2,7 @@
 package directfund // import "github.com/statechannels/go-nitro/directfund"
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -100,6 +101,13 @@ func New(
 }
 
 // Public methods on the DirectFundingObjectiveState
+
+// MarshalJSON returns a JSON representation of the DirectFundObjective
+// with channel state replaced by a channel Id
+func (s DirectFundObjective) MarshalJSON() ([]byte, error) {
+	jsonDFO := JSONDirectFundObjective{s, s.C.Id}
+	return json.Marshal(jsonDFO)
+}
 
 func (s DirectFundObjective) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId("DirectFunding-" + s.C.Id.String())
