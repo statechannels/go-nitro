@@ -10,7 +10,8 @@ import (
 )
 
 type MockStore struct {
-	objectives map[protocols.ObjectiveId]protocols.Objective
+	objectives map[protocols.ObjectiveId]string
+	channels   map[types.Destination]string
 
 	key     []byte        // the signing key of the store's engine
 	address types.Address // the (Ethereum) address associated to the signing key
@@ -31,7 +32,8 @@ func NewMockStore(key []byte) Store {
 	}
 	ms.address = crypto.PubkeyToAddress(*publicKeyECDSA)
 
-	ms.objectives = make(map[protocols.ObjectiveId]protocols.Objective)
+	ms.objectives = make(map[protocols.ObjectiveId]string)
+	ms.channels = make(map[types.Destination]string)
 
 	return &ms
 }
