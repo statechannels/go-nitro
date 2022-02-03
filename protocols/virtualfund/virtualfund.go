@@ -29,6 +29,17 @@ type Connection struct {
 	Channel            channel.TwoPartyLedger
 	ExpectedGuarantees map[types.Address]outcome.Allocation
 }
+type JSONConnection struct {
+	Channel            types.Destination
+	ExpectedGuarantees []AssetGuarantee
+}
+type AssetGuarantee struct {
+	// alternative: the map[types.Address]outcome.Allocation may be serialized
+	// directly if types.Address is made to implement encoding.TextMarshaler
+	asset     types.Address
+	guarantee outcome.Allocation
+}
+
 
 // VirtualFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
 type VirtualFundObjective struct {
