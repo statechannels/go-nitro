@@ -25,10 +25,10 @@ type ChannelFundedEvent struct {
 
 // Client provides the interface for the consuming application
 type Client struct {
-	engine        engine.Engine // The core business logic of the client
-	Address       *types.Address
-	ChannelFunded chan ChannelFundedEvent
-	listeners     map[protocols.ObjectiveId]chan<- ChannelFundedEvent
+	engine                 engine.Engine // The core business logic of the client
+	Address                *types.Address
+	allChannelFundedEvents chan ChannelFundedEvent
+	listeners              map[protocols.ObjectiveId]chan<- ChannelFundedEvent
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -36,7 +36,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c := Client{}
 	c.Address = store.GetAddress()
 	c.engine = engine.New(messageService, chainservice, store, logDestination)
-	c.ChannelFunded = make(chan ChannelFundedEvent, 100)
+	c.allChannelFundedEvents = make(chan ChannelFundedEvent, 100)
 	c.listeners = make(map[protocols.ObjectiveId]chan<- ChannelFundedEvent)
 	// Start the engine in a go routine
 	go c.engine.Run()
@@ -72,7 +72,7 @@ func (c *Client) handleEngineEvents() {
 
 			// We dispatch an event to the channel that handles **all** objective updates.
 			// This provides a central place to monitor for objective updates.
-			c.ChannelFunded <- event
+			c.allChannelFundedEvents <- event
 
 			// Dispatch an event to any listeners that have been registered by calls to CreateDirectChannel
 			if l, ok := c.listeners[completed.Id()]; ok {
@@ -87,6 +87,11 @@ func (c *Client) handleEngineEvents() {
 }
 
 // Begin API
+
+// ChannelFunded returns a channel that receives a ChannelFundedEvent whenever a state channel has been fully funded.
+func (c *Client) ChannelFunded() <-chan ChannelFundedEvent {
+	return c.allChannelFundedEvents
+}
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty
 func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) (protocols.ObjectiveId, chan ChannelFundedEvent) {
