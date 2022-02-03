@@ -3,6 +3,7 @@ package client // import "github.com/statechannels/go-nitro/client"
 
 import (
 	"io"
+	"log"
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state"
@@ -26,7 +27,7 @@ type Client struct {
 	engine       engine.Engine // The core business logic of the client
 	Address      *types.Address
 	ChannelReady chan ChannelReadyEvent // All Objective updates from the engine
-	listeners    map[protocols.ObjectiveId][]chan<- ChannelReadyEvent
+	listeners    map[protocols.ObjectiveId]chan<- ChannelReadyEvent
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -35,33 +36,51 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.Address = store.GetAddress()
 	c.engine = engine.New(messageService, chainservice, store, logDestination)
 	c.ChannelReady = make(chan ChannelReadyEvent, 100)
-	c.listeners = make(map[protocols.ObjectiveId][]chan<- ChannelReadyEvent)
+	c.listeners = make(map[protocols.ObjectiveId]chan<- ChannelReadyEvent)
 	// Start the engine in a go routine
 	go c.engine.Run()
 
-	go func() {
-		for update := range c.engine.ToApi() {
-
-			for _, completed := range update.CompletedObjectives {
-
-				channelId := completed.Channels()[0]
-
-				event := ChannelReadyEvent{ObjectiveId: completed.Id(), ChannelId: channelId}
-				// We dispatch an event to the channel that handles **all** objective updates.
-				// This provides a central place to monitor for objective updates.
-				c.ChannelReady <- event
-
-				// Dispatch an event to any listeners that have been registered
-				if listeners, ok := c.listeners[completed.Id()]; ok {
-					for _, l := range listeners {
-						l <- event
-					}
-				}
-			}
-		}
-	}()
+	// Start the event handler in a go routine
+	go c.handleEngineEvents()
 
 	return c
+}
+
+func (c *Client) registerListener(objectiveId protocols.ObjectiveId, listener chan<- ChannelReadyEvent) {
+	c.listeners[objectiveId] = listener
+}
+func (c *Client) removeListener(objectiveId protocols.ObjectiveId) {
+	l, ok := c.listeners[objectiveId]
+	if !ok {
+		log.Fatalf("Could not find listener for objective id %s", objectiveId)
+	}
+	close(l)
+	delete(c.listeners, objectiveId)
+}
+
+// handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
+// It parses events from the ToApi channel and then dispatches events to the necessary client channels
+func (c *Client) handleEngineEvents() {
+	for update := range c.engine.ToApi() {
+
+		for _, completed := range update.CompletedObjectives {
+			channelId := completed.Channels()[0]
+			event := ChannelReadyEvent{ObjectiveId: completed.Id(), ChannelId: channelId}
+
+			// We dispatch an event to the channel that handles **all** objective updates.
+			// This provides a central place to monitor for objective updates.
+			c.ChannelReady <- event
+
+			// Dispatch an event to any listeners that have been registered by calls to CreateDirectChannel
+			if l, ok := c.listeners[completed.Id()]; ok {
+				l <- event
+				// Since the objective is completed we no longer need the listener
+				c.removeListener(completed.Id())
+			}
+
+		}
+
+	}
 }
 
 // Begin API
@@ -92,8 +111,8 @@ func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition t
 	c.engine.FromAPI <- apiEvent
 
 	clientResponse := make(chan ChannelReadyEvent)
-	// We register a listener for the objective id
-	c.listeners[objective.Id()] = append(c.listeners[objective.Id()], clientResponse)
+	// We register a listener  channelfor the objective id
+	c.registerListener(objective.Id(), clientResponse)
 
 	return objective.Id(), clientResponse
 }
