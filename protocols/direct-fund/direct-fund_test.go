@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
@@ -74,6 +75,54 @@ func TestNew(t *testing.T) {
 	if _, err := New(false, testState, nonParticipant); err == nil {
 		t.Error("expected an error when constructing with a participant not in the channel, but got nil")
 	}
+}
+
+func TestPreFundSideEffects(t *testing.T) {
+	// Construct various variables for use in the test.
+	var o, _ = New(true, testState, testState.Participants[0])
+
+	_, got, _, err := o.Crank(&alice.privateKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[0]}, Proposal: nil}
+	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("TestPreFundSideEffects: side effects mismatch (-want +got):\n%s", diff)
+	}
+
+}
+
+func TestPostFundSideEffects(t *testing.T) {
+	var o, _ = New(true, testState, testState.Participants[0])
+	var correctSignatureByAliceOnPreFund, _ = o.C.PreFundState().Sign(alice.privateKey)
+	var correctSignatureByBobOnPreFund, _ = o.C.PreFundState().Sign(bob.privateKey)
+
+	// Manually progress the extended state by collecting prefund signatures
+	o.C.AddStateWithSignature(o.C.PreFundState(), correctSignatureByAliceOnPreFund)
+	o.C.AddStateWithSignature(o.C.PreFundState(), correctSignatureByBobOnPreFund)
+
+	// Manually make the first "deposit"
+	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
+
+	// Manually make the second "deposit"
+	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
+	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
+
+	_, got, _, err := o.Crank(&alice.privateKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[1]}, Proposal: nil}
+	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("TestPostFundSideEffects: side effects mismatch (-want +got):\n%s", diff)
+	}
+
 }
 
 func TestUpdate(t *testing.T) {

@@ -87,7 +87,6 @@ func New(
 		types.AddressToDestination(myAddress),
 	)
 	init.myDepositTarget = init.myDepositSafetyThreshold.Add(myAllocatedAmount)
-
 	return init, nil
 }
 
@@ -134,6 +133,7 @@ func (s DirectFundObjective) Update(event protocols.ObjectiveEvent) (protocols.O
 func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := s.clone()
 
+	se := NoSideEffects
 	// Input validation
 	if updated.Status != protocols.Approved {
 		return updated, NoSideEffects, WaitingForNothing, ErrNotApproved
@@ -141,8 +141,15 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 
 	// Prefunding
 	if !updated.C.PreFundSignedByMe() {
-		// todo: {SignAndSendPreFundEffect(updated.ChannelId)} as SideEffects{}
-		return updated, NoSideEffects, WaitingForCompletePrefund, nil
+		pf := s.C.PreFundState()
+		ss, err := s.signAndStore(pf, secretKey)
+		if err != nil {
+			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("could not sign and store state %w", err)
+		}
+		messages := s.createSignedStateMessages(ss)
+		se.MessagesToSend = append(se.MessagesToSend, messages...)
+
+		return updated, se, WaitingForCompletePrefund, nil
 	}
 
 	if !updated.C.PreFundComplete() {
@@ -158,13 +165,10 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 		return updated, NoSideEffects, WaitingForMyTurnToFund, nil
 	}
 
-	if !fundingComplete && amountToDeposit.IsNonZero() && safeToDeposit {
-		var effects = make([]string, 0) // TODO loop over assets
-		effects = append(effects, FundOnChainEffect(updated.C.Id, `eth`, amountToDeposit))
-		if len(effects) > 0 {
-			// todo: convert effects to SideEffects{} and return
-			return updated, NoSideEffects, WaitingForCompleteFunding, nil
-		}
+	if !fundingComplete && safeToDeposit && amountToDeposit.IsNonZero() {
+		deposit := protocols.ChainTransaction{ChannelId: updated.C.Id, Deposit: s.myDepositTarget}
+		se.TransactionsToSubmit = append(se.TransactionsToSubmit, deposit)
+		return updated, se, WaitingForCompleteFunding, nil
 	}
 
 	if !fundingComplete {
@@ -173,10 +177,16 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 
 	// Postfunding
 	if !updated.C.PostFundSignedByMe() {
-		// TODO sign the post fund state
-		// TODO update updated.PostFundSigned[updated.MyIndex]
-		// TODO prepare a message for peers with signature, return as SideEffects{}
-		return updated, NoSideEffects, WaitingForCompletePostFund, nil
+
+		pf := s.C.PostFundState()
+		ss, err := s.signAndStore(pf, secretKey)
+		if err != nil {
+			return updated, NoSideEffects, WaitingForCompletePostFund, fmt.Errorf("could not sign and store state %w", err)
+		}
+		messages := s.createSignedStateMessages(ss)
+		se.MessagesToSend = append(se.MessagesToSend, messages...)
+
+		return updated, se, WaitingForCompletePostFund, nil
 	}
 
 	if !updated.C.PostFundComplete() {
@@ -233,8 +243,12 @@ func (s DirectFundObjective) safeToDeposit() bool {
 func (s DirectFundObjective) amountToDeposit() types.Funds {
 	deposits := make(types.Funds, len(s.C.OnChainFunding))
 
-	for asset, holding := range s.C.OnChainFunding {
-		deposits[asset] = big.NewInt(0).Sub(s.myDepositTarget[asset], holding)
+	for asset, target := range s.myDepositTarget {
+		holding := s.C.OnChainFunding[asset]
+		if holding == nil {
+			holding = big.NewInt(0)
+		}
+		deposits[asset] = big.NewInt(0).Sub(target, holding)
 	}
 
 	return deposits
@@ -253,6 +267,37 @@ func (s DirectFundObjective) clone() DirectFundObjective {
 	clone.fullyFundedThreshold = s.fullyFundedThreshold.Clone()
 
 	return clone
+}
+func (s DirectFundObjective) createSignedStateMessages(ss state.SignedState) []protocols.Message {
+
+	messages := make([]protocols.Message, 0)
+	for i, participant := range ss.State().Participants {
+
+		// Do not generate a message for ourselves
+		if uint(i) == s.C.MyIndex {
+			continue
+		}
+		message := protocols.Message{To: participant, ObjectiveId: s.Id(), SignedStates: []state.SignedState{ss}, Proposal: nil}
+		messages = append(messages, message)
+	}
+	return messages
+}
+
+func (s DirectFundObjective) signAndStore(toSign state.State, secretKey *[]byte) (state.SignedState, error) {
+
+	sig, err := toSign.Sign(*secretKey)
+	if err != nil {
+		return state.SignedState{}, fmt.Errorf("failed to sign state: %w", err)
+	}
+	ss := state.NewSignedState(toSign)
+	if err := ss.AddSignature(sig); err != nil {
+		return state.SignedState{}, fmt.Errorf("failed to add signature to signed state: %w", err)
+	}
+	ok := s.C.AddSignedState(ss)
+	if !ok {
+		return state.SignedState{}, fmt.Errorf("failed to add signed state")
+	}
+	return ss, nil
 }
 
 // mermaid diagram

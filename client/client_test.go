@@ -2,11 +2,9 @@ package client
 
 import (
 	"log"
-	"math/big"
 	"os"
 	"testing"
 
-	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -35,7 +33,7 @@ func TestNew(t *testing.T) {
 	chainservA := chainservice.NewSimpleChainService(chain, a)
 	messageserviceA := messageservice.NewTestMessageService(a)
 	storeA := store.NewMockStore(aKey)
-	clientA := New(messageserviceA, chainservA, storeA, logDestination)
+	New(messageserviceA, chainservA, storeA, logDestination)
 
 	chainservB := chainservice.NewSimpleChainService(chain, b)
 	messageserviceB := messageservice.NewTestMessageService(b)
@@ -44,7 +42,7 @@ func TestNew(t *testing.T) {
 
 	messageserviceA.Connect(messageserviceB)
 	messageserviceB.Connect(messageserviceA)
-
-	clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome.Exit{}, big.NewInt(0))
+	// TODO: Temporarily disabled: See https://github.com/statechannels/go-nitro/issues/201
+	// clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome.Exit{}, big.NewInt(0))
 
 }
