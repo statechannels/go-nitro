@@ -40,7 +40,7 @@ func TestNew(t *testing.T) {
 	chainservB := chainservice.NewSimpleChainService(chain, b)
 	messageserviceB := messageservice.NewTestMessageService(b)
 	storeB := store.NewMockStore(bKey)
-	New(messageserviceB, chainservB, storeB, logDestination)
+	clientB := New(messageserviceB, chainservB, storeB, logDestination)
 
 	messageserviceA.Connect(messageserviceB)
 	messageserviceB.Connect(messageserviceA)
@@ -64,4 +64,11 @@ func TestNew(t *testing.T) {
 	if got.ObjectiveId != id {
 		t.Errorf("expected completed objective with id %v, but got %v", id, got.ObjectiveId)
 	}
+
+	gotFromB := <-clientB.ChannelReady
+
+	if gotFromB.ObjectiveId != id {
+		t.Errorf("expected completed objective with id %v, but got %v", id, got.ObjectiveId)
+	}
+
 }
