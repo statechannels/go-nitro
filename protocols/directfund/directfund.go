@@ -39,6 +39,13 @@ type DirectFundObjective struct {
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
 }
 
+// JSONDirectFundObjective replaces the DirectFundObjective's channel pointer with the
+// channel's Id, making JSONVirtualFundObjective suitable for serialization
+type JSONDirectFundObjective struct {
+	DirectFundObjective
+	C types.Destination
+}
+
 // New initiates a DirectFundObjective with data calculated from
 // the supplied initialState and client address
 func New(

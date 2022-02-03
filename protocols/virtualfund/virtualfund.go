@@ -47,6 +47,13 @@ type VirtualFundObjective struct {
 	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
 }
 
+// JSONVirtualFundObjective replaces the VirtualFundObjective's channel pointer with the
+// channel's Id, making JSONVirtualFundObjective suitable for serialization
+type JSONVirtualFundObjective struct {
+	VirtualFundObjective
+	V types.Destination
+}
+
 ////////////////////////////////////////////////
 // Public methods on the VirtualFundObjective //
 ////////////////////////////////////////////////
