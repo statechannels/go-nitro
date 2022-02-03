@@ -4,10 +4,13 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"log"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/protocols"
+	directfund "github.com/statechannels/go-nitro/protocols/direct-fund"
+	virtualfund "github.com/statechannels/go-nitro/protocols/virtual-fund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -50,13 +53,48 @@ func (ms MockStore) GetChannelSecretKey() *[]byte {
 
 func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Objective, ok bool) {
 	// todo: locking
-	obj, ok = ms.objectives[id]
+	objJSON, ok := ms.objectives[id]
+
+	if strings.HasPrefix(string(id), "DirectFunding-") {
+		// unmarshal directFundObjective
+		var jsonDFO directfund.JSONDirectFundObjective
+		json.Unmarshal([]byte(objJSON), &jsonDFO)
+		channel, _ := ms.getChannelById(jsonDFO.C)
+		jsonDFO.DirectFundObjective.C = &channel
+
+		obj = jsonDFO.DirectFundObjective
+	} else if strings.HasPrefix(string(id), "VirtualFund-") {
+		// unmarshal virtalFundObj
+		var jsonVFO virtualfund.JSONVirtualFundObjective
+		json.Unmarshal([]byte(objJSON), &jsonVFO)
+		channel, _ := ms.getChannelById(jsonVFO.V)
+		jsonVFO.VirtualFundObjective.V = &channel
+
+		obj = jsonVFO.VirtualFundObjective
+	}
+
 	return obj, ok
 }
 
 func (ms MockStore) SetObjective(obj protocols.Objective) error {
 	// todo: locking
-	ms.objectives[obj.Id()] = obj
+	bytes, err := obj.MarshalJSON()
+	if err != nil {
+		return err
+	}
+	ms.objectives[obj.Id()] = string(bytes)
+
+	id := obj.Id()
+	if strings.HasPrefix(string(id), "DirectFunding-") {
+		// marshal and persist ledger chanel
+		dfo, _ := obj.(directfund.DirectFundObjective)
+		ms.setChannel(*dfo.C)
+	} else if strings.HasPrefix(string(id), "VirtualFund-") {
+		// marshal and persist virtual channel
+		vfo, _ := obj.(virtualfund.VirtualFundObjective)
+		ms.setChannel(*vfo.V)
+	}
+
 	return nil
 }
 
