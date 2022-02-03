@@ -65,7 +65,7 @@ func TestNew(t *testing.T) {
 		t.Errorf("expected completed objective with id %v, but got %v", id, got.ObjectiveId)
 	}
 
-	gotFromB := <-clientB.ChannelReady
+	gotFromB := <-clientB.ChannelFunded
 
 	if gotFromB.ObjectiveId != id {
 		t.Errorf("expected completed objective with id %v, but got %v", id, got.ObjectiveId)
