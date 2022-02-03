@@ -87,7 +87,7 @@ func New(
 		types.AddressToDestination(myAddress),
 	)
 	init.myDepositTarget = init.myDepositSafetyThreshold.Add(myAllocatedAmount)
-
+	fmt.Println(init.myDepositTarget)
 	return init, nil
 }
 
@@ -244,8 +244,13 @@ func (s DirectFundObjective) safeToDeposit() bool {
 func (s DirectFundObjective) amountToDeposit() types.Funds {
 	deposits := make(types.Funds, len(s.C.OnChainFunding))
 
-	for asset, holding := range s.C.OnChainFunding {
-		deposits[asset] = big.NewInt(0).Sub(s.myDepositTarget[asset], holding)
+	for asset, target := range s.myDepositTarget {
+		holding := s.C.OnChainFunding[asset]
+		if holding == nil {
+			holding = big.NewInt(0)
+		}
+		deposits[asset] = big.NewInt(0).Sub(target, holding)
+		fmt.Printf("dep %d\n", deposits[asset])
 	}
 
 	return deposits
