@@ -79,17 +79,14 @@ func TestNew(t *testing.T) {
 
 func TestPreFundSideEffects(t *testing.T) {
 	// Construct various variables for use in the test.
-	var s, _ = New(false, testState, testState.Participants[0])
-
-	// Approve the objective, so that the rest of the test cases can run.
-	o := s.Approve()
+	var o, _ = New(true, testState, testState.Participants[0])
 
 	_, got, _, err := o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
 
-	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{s.C.SignedStateForTurnNum[0]}, Proposal: nil}
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[0]}, Proposal: nil}
 	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
 
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -99,12 +96,9 @@ func TestPreFundSideEffects(t *testing.T) {
 }
 
 func TestPostFundSideEffects(t *testing.T) {
-	var s, _ = New(false, testState, testState.Participants[0])
-	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.privateKey)
-	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.privateKey)
-
-	// Approve the objective, so that the rest of the test cases can run.
-	o := s.Approve().(DirectFundObjective)
+	var o, _ = New(true, testState, testState.Participants[0])
+	var correctSignatureByAliceOnPreFund, _ = o.C.PreFundState().Sign(alice.privateKey)
+	var correctSignatureByBobOnPreFund, _ = o.C.PreFundState().Sign(bob.privateKey)
 
 	// Manually progress the extended state by collecting prefund signatures
 	o.C.AddStateWithSignature(o.C.PreFundState(), correctSignatureByAliceOnPreFund)
@@ -122,7 +116,7 @@ func TestPostFundSideEffects(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{s.C.SignedStateForTurnNum[1]}, Proposal: nil}
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[1]}, Proposal: nil}
 	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
 
 	if diff := cmp.Diff(want, got); diff != "" {
