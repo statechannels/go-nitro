@@ -68,6 +68,7 @@ type Objective interface {
 	Channels() []types.Destination
 
 	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
+	MarshalJSON() ([]byte, error)
 }
 
 // ObjectiveId is a unique identifier for an Objective.
