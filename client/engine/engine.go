@@ -2,13 +2,17 @@
 package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
+	directfund "github.com/statechannels/go-nitro/protocols/direct-fund"
 )
 
 // Engine is the imperative part of the core business logic of a go-nitro Client
@@ -83,14 +87,21 @@ func (e *Engine) Run() {
 // It
 // reads an objective from the store,
 // gets a pointer to a channel secret key from the store,
-// generates an updated objective and declaration of side effects,
-// commits the updated objective to the store,
-// executes the side effects and
-// evaluates objecive progress.
+// generates an updated objective and
+// attempts progress.
 func (e *Engine) handleMessage(message protocols.Message) {
-	event := protocols.ObjectiveEvent{SignedStates: message.SignedStates}
-	objective, _ := e.store.GetObjectiveById(message.ObjectiveId)
-	updatedObjective, _ := objective.Update(event) // TODO handle error
+	e.logger.Printf("Handling inbound message %v", message)
+	objective, err := e.getOrCreateObjective(message)
+	if err != nil {
+		e.logger.Print(err)
+		return
+	}
+	event := protocols.ObjectiveEvent{ObjectiveId: message.ObjectiveId, SignedStates: message.SignedStates}
+	updatedObjective, err := objective.Update(event)
+	if err != nil {
+		e.logger.Print(err)
+		return
+	}
 	e.attemptProgress(updatedObjective)
 }
 
@@ -98,10 +109,8 @@ func (e *Engine) handleMessage(message protocols.Message) {
 // It
 // reads an objective from the store,
 // gets a pointer to a channel secret key from the store,
-// generates an updated objective and declaration of side effects,
-// commits the updated objective to the store,
-// executes the side effects and
-// evaluates objecive progress.
+// generates an updated objective and
+// attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) {
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus}
 	objective, _ := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
@@ -156,4 +165,42 @@ func (e *Engine) attemptProgress(objective protocols.Objective) {
 	e.executeSideEffects(sideEffects)
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
+}
+
+// getOrCreateObjective creates the objective if the supplied message is a proposal. Otherwise, it attempts to get the objective from the store.
+func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Objective, error) {
+	id := message.ObjectiveId
+	if message.Proposal {
+		e.logger.Printf("Recieved proposal for %s", id)
+		return e.constructObjectiveFromProposal(message)
+	}
+	objective, ok := e.store.GetObjectiveById(id)
+	if !ok {
+		err := fmt.Errorf("store has no objective with id %v", id)
+		return objective, err
+	} else {
+		return objective, nil
+	}
+}
+
+// constructObjectiveFromProposal Constructs a new objective (of the appropriate concrete type) from the supplied message.
+func (e *Engine) constructObjectiveFromProposal(message protocols.Message) (protocols.Objective, error) {
+	if !message.Proposal {
+		panic("Tried to construct objective from a non-proposal message")
+	}
+	switch {
+	case strings.Contains(string(message.ObjectiveId), `DirectFund`):
+		initialState := message.SignedStates[0].State()
+		if initialState.TurnNum != 0 {
+			return directfund.DirectFundObjective{}, errors.New("cannot construct direct fund objective without prefund state")
+		}
+		return directfund.New(
+			true, // TODO ensure objective in only approved if the application has given permission somehow
+			message.SignedStates[0].State(),
+			*e.store.GetAddress(),
+		)
+	default:
+		return directfund.DirectFundObjective{}, errors.New("cannot handle unimplemented objective type")
+	}
+
 }

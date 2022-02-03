@@ -86,7 +86,7 @@ func TestPreFundSideEffects(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[0]}, Proposal: nil}
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[0]}, Proposal: true}
 	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
 
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -116,7 +116,7 @@ func TestPostFundSideEffects(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[1]}, Proposal: nil}
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[1]}, Proposal: false}
 	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
 
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -133,7 +133,7 @@ func TestUpdate(t *testing.T) {
 	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
 	// Prepare an event with a mismatched channelId
 	e := protocols.ObjectiveEvent{
-		ChannelId: types.Destination{},
+		ObjectiveId: "some-id",
 	}
 	// Assert that Updating the objective with such an event returns an error
 	// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
@@ -141,10 +141,10 @@ func TestUpdate(t *testing.T) {
 		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
 	}
 
-	// Now modify the event to give it the "correct" channelId (matching the objective),
+	// Now modify the event to give it the "correct" objective id,
 	// and make a new Sigs map.
 	// This prepares us for the rest of the test. We will reuse the same event multiple times
-	e.ChannelId = s.C.Id
+	e.ObjectiveId = s.Id()
 	e.SignedStates = make([]state.SignedState, 0)
 
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state

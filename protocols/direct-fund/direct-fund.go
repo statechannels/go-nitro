@@ -113,8 +113,8 @@ func (s DirectFundObjective) Reject() protocols.Objective {
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
 // and returns the updated state
 func (s DirectFundObjective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
-	if s.C.Id != event.ChannelId {
-		return s, errors.New("event and objective channelIds do not match")
+	if s.Id() != event.ObjectiveId {
+		return s, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(s.Id()))
 	}
 
 	updated := s.clone()
@@ -148,6 +148,13 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 		}
 		messages := s.createSignedStateMessages(ss)
 		se.MessagesToSend = append(se.MessagesToSend, messages...)
+
+		// Special case for prefunding: we send an objective proposal along with the messages
+		if s.C.MyIndex == 0 {
+			for i := range se.MessagesToSend {
+				se.MessagesToSend[i].Proposal = true
+			}
+		}
 
 		return updated, se, WaitingForCompletePrefund, nil
 	}
@@ -277,7 +284,7 @@ func (s DirectFundObjective) createSignedStateMessages(ss state.SignedState) []p
 		if uint(i) == s.C.MyIndex {
 			continue
 		}
-		message := protocols.Message{To: participant, ObjectiveId: s.Id(), SignedStates: []state.SignedState{ss}, Proposal: nil}
+		message := protocols.Message{To: participant, ObjectiveId: s.Id(), SignedStates: []state.SignedState{ss}, Proposal: false}
 		messages = append(messages, message)
 	}
 	return messages
