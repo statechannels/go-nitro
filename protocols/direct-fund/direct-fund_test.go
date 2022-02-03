@@ -78,7 +78,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestPreFundSideEffects(t *testing.T) {
-	// Construct various variables for use in TestUpdate
+	// Construct various variables for use in the test.
 	var s, _ = New(false, testState, testState.Participants[0])
 
 	// Approve the objective, so that the rest of the test cases can run.
