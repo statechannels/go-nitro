@@ -19,14 +19,14 @@ import (
 type ChannelReadyEvent struct {
 	ChannelId   types.Destination
 	ObjectiveId protocols.ObjectiveId
-	Funding     types.Funds
 }
 
 // Client provides the interface for the consuming application
 type Client struct {
 	engine       engine.Engine // The core business logic of the client
 	Address      *types.Address
-	ChannelReady chan<- ChannelReadyEvent // All Objective updates from the engine
+	ChannelReady chan ChannelReadyEvent // All Objective updates from the engine
+	listeners    map[protocols.ObjectiveId][]chan<- ChannelReadyEvent
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -34,9 +34,32 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c := Client{}
 	c.Address = store.GetAddress()
 	c.engine = engine.New(messageService, chainservice, store, logDestination)
-	c.ChannelReady = make(chan<- ChannelReadyEvent, 100)
+	c.ChannelReady = make(chan ChannelReadyEvent, 100)
+	c.listeners = make(map[protocols.ObjectiveId][]chan<- ChannelReadyEvent)
 	// Start the engine in a go routine
 	go c.engine.Run()
+
+	go func() {
+		for update := range c.engine.ToApi() {
+
+			for _, completed := range update.CompletedObjectives {
+
+				channelId := completed.Channels()[0]
+
+				event := ChannelReadyEvent{ObjectiveId: completed.Id(), ChannelId: channelId}
+				// We dispatch an event to the channel that handles **all** objective updates.
+				// This provides a central place to monitor for objective updates.
+				c.ChannelReady <- event
+
+				// Dispatch an event to any listeners that have been registered
+				if listeners, ok := c.listeners[completed.Id()]; ok {
+					for _, l := range listeners {
+						l <- event
+					}
+				}
+			}
+		}
+	}()
 
 	return c
 }
@@ -69,29 +92,8 @@ func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition t
 	c.engine.FromAPI <- apiEvent
 
 	clientResponse := make(chan ChannelReadyEvent)
-
-	// Starts a go function that listens for our objective to be completed and then dispatchs events to different client channels
-	go func() {
-		for update := range c.engine.ToApi() {
-			for _, completed := range update.CompletedObjectives {
-
-				if completed == objective.Id() {
-
-					// We dispatch an event to the channel that handles **all** objective updates.
-					// This provides a central place to monitor for objective updates.
-					c.ChannelReady <- ChannelReadyEvent{ObjectiveId: completed, ChannelId: objective.C.Id, Funding: objective.C.OnChainFunding}
-					// We dispatch an event to the channel returned by this function. This channel is only used for the one objective.
-					// This allows for promise like behaviour where we can wait for the objective to be completed before continuing.
-					clientResponse <- ChannelReadyEvent{ObjectiveId: completed, ChannelId: objective.C.Id, Funding: objective.C.OnChainFunding}
-					// We can close the channel as the objective is completed so there will be no further events.
-					close(clientResponse)
-
-					// Exit the go function now that our objective is completed.
-					return
-				}
-			}
-		}
-	}()
+	// We register a listener for the objective id
+	c.listeners[objective.Id()] = append(c.listeners[objective.Id()], clientResponse)
 
 	return objective.Id(), clientResponse
 }

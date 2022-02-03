@@ -42,7 +42,7 @@ type APIEvent struct {
 // ObjectiveChangeEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
 type ObjectiveChangeEvent struct {
 	// These are objectives that are now completed
-	CompletedObjectives []protocols.ObjectiveId
+	CompletedObjectives []protocols.Objective
 }
 
 type CompletedObjectiveEvent struct {
@@ -202,7 +202,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	// TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
 	// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
 	if waitingFor == "WaitingForNothing" {
-		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective.Id())
+		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
 	}
 	return
 }
