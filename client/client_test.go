@@ -59,16 +59,16 @@ func TestNew(t *testing.T) {
 	}}
 
 	id := clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
-	got := <-clientA.ChannelFunded()
+	got := <-clientA.CompletedObjectives()
 
-	if got.ObjectiveId != id {
-		t.Errorf("expected completed objective with id %v, but got %v", id, got.ObjectiveId)
+	if got != id {
+		t.Errorf("expected completed objective with id %v, but got %v", id, got)
 	}
 
-	gotFromB := <-clientB.ChannelFunded()
+	gotFromB := <-clientB.CompletedObjectives()
 
-	if gotFromB.ObjectiveId != id {
-		t.Errorf("expected completed objective with id %v, but got %v", id, got.ObjectiveId)
+	if gotFromB != id {
+		t.Errorf("expected completed objective with id %v, but got %v", id, gotFromB)
 	}
 
 }
