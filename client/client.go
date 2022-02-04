@@ -16,17 +16,11 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// ChannelFundedEvents is returned in a channel when a state channel has been successfly funded.
-type ChannelFundedEvent struct {
-	ChannelId   types.Destination
-	ObjectiveId protocols.ObjectiveId
-}
-
 // Client provides the interface for the consuming application
 type Client struct {
-	engine                 engine.Engine // The core business logic of the client
-	Address                *types.Address
-	allChannelFundedEvents chan ChannelFundedEvent
+	engine              engine.Engine // The core business logic of the client
+	Address             *types.Address
+	completedObjectives chan protocols.ObjectiveId
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -34,7 +28,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c := Client{}
 	c.Address = store.GetAddress()
 	c.engine = engine.New(messageService, chainservice, store, logDestination)
-	c.allChannelFundedEvents = make(chan ChannelFundedEvent, 100)
+	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 
 	// Start the engine in a go routine
 	go c.engine.Run()
@@ -52,11 +46,8 @@ func (c *Client) handleEngineEvents() {
 	for update := range c.engine.ToApi() {
 
 		for _, completed := range update.CompletedObjectives {
-			// TODO: We're assuming the first channel id is the one we're interested in.
-			channelId := completed.Channels()[0]
-			event := ChannelFundedEvent{ObjectiveId: completed.Id(), ChannelId: channelId}
 
-			c.allChannelFundedEvents <- event
+			c.completedObjectives <- completed.Id()
 
 		}
 
@@ -65,9 +56,9 @@ func (c *Client) handleEngineEvents() {
 
 // Begin API
 
-// ChannelFunded returns a channel that receives a ChannelFundedEvent whenever a state channel has been fully funded.
-func (c *Client) ChannelFunded() <-chan ChannelFundedEvent {
-	return c.allChannelFundedEvents
+// CompletedObjectives returns a chan that receives a objective id whenever that objective is completed
+func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
+	return c.completedObjectives
 }
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty
