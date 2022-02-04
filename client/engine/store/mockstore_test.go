@@ -7,7 +7,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	nc "github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
-	directfund "github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/directfund"
 )
 
 func TestNewMockStore(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
-	directfund "github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/directfund"
 )
 
 // Engine is the imperative part of the core business logic of a go-nitro Client
