@@ -1,5 +1,5 @@
 // Package types defines common types
-package types
+package types // import "github.com/statechannels/go-nitro/types"
 
 import (
 	"math/big"
