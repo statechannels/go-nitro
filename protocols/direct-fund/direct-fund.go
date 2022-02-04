@@ -246,9 +246,9 @@ func (s DirectFundObjective) amountToDeposit() types.Funds {
 	deposits := make(types.Funds, len(s.C.OnChainFunding))
 
 	for asset, target := range s.myDepositTarget {
-		holding := s.C.OnChainFunding[asset]
-		if holding == nil {
-			holding = big.NewInt(0)
+		holding, ok := s.C.OnChainFunding[asset]
+		if !ok {
+			panic("nil chainHolding for asset in myDepositTarget")
 		}
 		deposits[asset] = big.NewInt(0).Sub(target, holding)
 	}
