@@ -3,6 +3,7 @@ package channel
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -75,6 +76,11 @@ func New(s state.State, myIndex uint) (Channel, error) {
 	post := s.Clone()
 	post.TurnNum = PostFundTurnNum
 	c.SignedStateForTurnNum[PostFundTurnNum] = state.NewSignedState(post)
+
+	// Set on chain holdings to zero for each asset
+	for asset := range s.Outcome.TotalAllocated() {
+		c.OnChainFunding[asset] = big.NewInt(0)
+	}
 
 	return c, nil
 }
