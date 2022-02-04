@@ -1,6 +1,7 @@
 package directfund
 
 import (
+	"encoding/json"
 	"math/big"
 	"testing"
 
@@ -124,7 +125,7 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	updated := updatedObjective.(DirectFundObjective)
+	updated := updatedObjective.(*DirectFundObjective)
 	if updated.C.PreFundSignedByMe() != true {
 		t.Error(`Objective data not updated as expected`)
 	}
@@ -137,7 +138,7 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	updated = updatedObjective.(DirectFundObjective)
+	updated = updatedObjective.(*DirectFundObjective)
 	if !updated.C.OnChainFunding.Equal(e.Holdings) {
 		t.Error(`Objective data not updated as expected`, updated.C.OnChainFunding, e.Holdings)
 	}
@@ -158,7 +159,7 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Approve the objective, so that the rest of the test cases can run.
-	o := s.Approve().(DirectFundObjective)
+	o := s.Approve().(*DirectFundObjective)
 
 	// To test the finite state progression, we are going to progressively mutate o
 	// And then crank it to see which "pause point" (WaitingFor) we end up at.
@@ -221,4 +222,36 @@ func TestCrank(t *testing.T) {
 	}
 
 	// TODO Test the returned SideEffects
+}
+
+func TestMarshalJSON(t *testing.T) {
+	dfo, _ := New(false, testState, testState.Participants[0])
+
+	encodedDfo, err := json.Marshal(dfo)
+
+	if err != nil {
+		t.Errorf("error encoding direct-fund objective %v", dfo)
+	}
+
+	got := DirectFundObjective{}
+	got.UnmarshalJSON(encodedDfo)
+
+	if !got.myDepositSafetyThreshold.Equal(dfo.myDepositSafetyThreshold) {
+		t.Errorf("expected myDepositSafetyThreshhold %v but got %v",
+			dfo.myDepositSafetyThreshold, got.myDepositSafetyThreshold)
+	}
+	if !got.myDepositTarget.Equal(dfo.myDepositTarget) {
+		t.Errorf("expected myDepositTarget %v but got %v",
+			dfo.myDepositTarget, got.myDepositTarget)
+	}
+	if !got.fullyFundedThreshold.Equal(dfo.fullyFundedThreshold) {
+		t.Errorf("expected fullyFundedThreshold %v but got %v",
+			dfo.fullyFundedThreshold, got.fullyFundedThreshold)
+	}
+	if !(got.Status == dfo.Status) {
+		t.Errorf("expected Status %v but got %v", dfo.Status, got.Status)
+	}
+	if got.C.Id != dfo.C.Id {
+		t.Errorf("expected channel Id %s but got %s", dfo.C.Id, got.C.Id)
+	}
 }
