@@ -42,11 +42,11 @@ var testState = state.State{
 			Asset: types.Address{},
 			Allocations: outcome.Allocations{
 				outcome.Allocation{
-					Destination: alice.destination,
+					Destination: bob.destination, // Bob is first so we can easily test WaitingForMyTurnToFund
 					Amount:      big.NewInt(5),
 				},
 				outcome.Allocation{
-					Destination: bob.destination,
+					Destination: alice.destination,
 					Amount:      big.NewInt(5),
 				},
 			},
@@ -180,6 +180,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestCrank(t *testing.T) {
+
 	var s, _ = New(false, testState, testState.Participants[0])
 	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.privateKey)
 	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.privateKey)

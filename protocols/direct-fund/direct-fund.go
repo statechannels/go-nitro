@@ -227,7 +227,8 @@ func (s DirectFundObjective) safeToDeposit() bool {
 		chainHolding, ok := s.C.OnChainFunding[asset]
 
 		if !ok {
-			return false
+			// If there are no holdings on chain we use 0 for our calculations
+			chainHolding = big.NewInt(0)
 		}
 
 		if types.Gt(safetyThreshold, chainHolding) {
