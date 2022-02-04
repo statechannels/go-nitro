@@ -58,8 +58,8 @@ func TestNew(t *testing.T) {
 		},
 	}}
 
-	id, res := clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
-	got := <-res
+	id := clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
+	got := <-clientA.ChannelFunded()
 
 	if got.ObjectiveId != id {
 		t.Errorf("expected completed objective with id %v, but got %v", id, got.ObjectiveId)

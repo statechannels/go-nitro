@@ -3,7 +3,6 @@ package client // import "github.com/statechannels/go-nitro/client"
 
 import (
 	"io"
-	"log"
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state"
@@ -48,20 +47,8 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	return c
 }
 
-func (c *Client) registerListener(objectiveId protocols.ObjectiveId, listener chan<- ChannelFundedEvent) {
-	c.listeners[objectiveId] = listener
-}
-func (c *Client) removeListener(objectiveId protocols.ObjectiveId) {
-	l, ok := c.listeners[objectiveId]
-	if !ok {
-		log.Fatalf("Could not find listener for objective id %s", objectiveId)
-	}
-	close(l)
-	delete(c.listeners, objectiveId)
-}
-
 // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
-// It parses events from the ToApi channel and then dispatches events to the necessary client channels
+// It parses events from the ToApi chan and then dispatches events to the necessary client chan.
 func (c *Client) handleEngineEvents() {
 	for update := range c.engine.ToApi() {
 
@@ -70,16 +57,7 @@ func (c *Client) handleEngineEvents() {
 			channelId := completed.Channels()[0]
 			event := ChannelFundedEvent{ObjectiveId: completed.Id(), ChannelId: channelId}
 
-			// We dispatch an event to the channel that handles **all** objective updates.
-			// This provides a central place to monitor for objective updates.
 			c.allChannelFundedEvents <- event
-
-			// Dispatch an event to any listeners that have been registered by calls to CreateDirectChannel
-			if l, ok := c.listeners[completed.Id()]; ok {
-				l <- event
-				// Since the objective is completed we no longer need the listener
-				c.removeListener(completed.Id())
-			}
 
 		}
 
@@ -94,7 +72,7 @@ func (c *Client) ChannelFunded() <-chan ChannelFundedEvent {
 }
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty
-func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) (protocols.ObjectiveId, chan ChannelFundedEvent) {
+func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) protocols.ObjectiveId {
 	// Convert the API call into an internal event.
 	objective, _ := directfund.New(true,
 		state.State{
@@ -118,9 +96,5 @@ func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition t
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	clientResponse := make(chan ChannelFundedEvent)
-	// We register a listener so a ChannelFundedEvent will get sent to clientResponse when the objective completes
-	c.registerListener(objective.Id(), clientResponse)
-
-	return objective.Id(), clientResponse
+	return objective.Id()
 }
