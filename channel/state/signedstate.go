@@ -20,7 +20,7 @@ func NewSignedState(s State) SignedState {
 	return SignedState{s, make(map[uint]Signature, len(s.Participants))}
 }
 
-// AddSignature adds a participant's signature for the
+// AddSignature adds a participant's signature to the SignedState.
 // An error is thrown if the signature is invalid.
 func (ss SignedState) AddSignature(sig Signature) error {
 	signer, err := ss.state.RecoverSigner(sig)

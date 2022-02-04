@@ -141,10 +141,9 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 
 	// Prefunding
 	if !updated.C.PreFundSignedByMe() {
-		pf := s.C.PreFundState()
-		ss, err := s.signAndStore(pf, secretKey)
+		ss, err := s.C.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("could not sign and store state %w", err)
+			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("could not sign prefund %w", err)
 		}
 		messages := s.createSignedStateMessages(ss)
 		se.MessagesToSend = append(se.MessagesToSend, messages...)
@@ -178,10 +177,10 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 	// Postfunding
 	if !updated.C.PostFundSignedByMe() {
 
-		pf := s.C.PostFundState()
-		ss, err := s.signAndStore(pf, secretKey)
+		ss, err := s.C.SignAndAddPostfund(secretKey)
+
 		if err != nil {
-			return updated, NoSideEffects, WaitingForCompletePostFund, fmt.Errorf("could not sign and store state %w", err)
+			return updated, NoSideEffects, WaitingForCompletePostFund, fmt.Errorf("could not sign postfund %w", err)
 		}
 		messages := s.createSignedStateMessages(ss)
 		se.MessagesToSend = append(se.MessagesToSend, messages...)
@@ -281,23 +280,6 @@ func (s DirectFundObjective) createSignedStateMessages(ss state.SignedState) []p
 		messages = append(messages, message)
 	}
 	return messages
-}
-
-func (s DirectFundObjective) signAndStore(toSign state.State, secretKey *[]byte) (state.SignedState, error) {
-
-	sig, err := toSign.Sign(*secretKey)
-	if err != nil {
-		return state.SignedState{}, fmt.Errorf("failed to sign state: %w", err)
-	}
-	ss := state.NewSignedState(toSign)
-	if err := ss.AddSignature(sig); err != nil {
-		return state.SignedState{}, fmt.Errorf("failed to add signature to signed state: %w", err)
-	}
-	ok := s.C.AddSignedState(ss)
-	if !ok {
-		return state.SignedState{}, fmt.Errorf("failed to add signed state")
-	}
-	return ss, nil
 }
 
 // mermaid diagram
