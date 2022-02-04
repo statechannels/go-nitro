@@ -47,3 +47,18 @@ func (m Message) Equal(n Message) bool {
 	// TODO handle Proposal field :-/
 	return true
 }
+
+func CreateSignedStateMessages(id ObjectiveId, ss state.SignedState, myIndex uint) []Message {
+
+	messages := make([]Message, 0)
+	for i, participant := range ss.State().Participants {
+
+		// Do not generate a message for ourselves
+		if uint(i) == myIndex {
+			continue
+		}
+		message := Message{To: participant, ObjectiveId: id, SignedStates: []state.SignedState{ss}}
+		messages = append(messages, message)
+	}
+	return messages
+}

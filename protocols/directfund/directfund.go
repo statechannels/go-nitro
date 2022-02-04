@@ -147,7 +147,7 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 		if err != nil {
 			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("could not sign prefund %w", err)
 		}
-		messages := s.createSignedStateMessages(ss)
+		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
 		se.MessagesToSend = append(se.MessagesToSend, messages...)
 
 		return updated, se, WaitingForCompletePrefund, nil
@@ -184,7 +184,7 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 		if err != nil {
 			return updated, NoSideEffects, WaitingForCompletePostFund, fmt.Errorf("could not sign postfund %w", err)
 		}
-		messages := s.createSignedStateMessages(ss)
+		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
 		se.MessagesToSend = append(se.MessagesToSend, messages...)
 
 		return updated, se, WaitingForCompletePostFund, nil
@@ -269,20 +269,6 @@ func (s DirectFundObjective) clone() DirectFundObjective {
 	clone.fullyFundedThreshold = s.fullyFundedThreshold.Clone()
 
 	return clone
-}
-func (s DirectFundObjective) createSignedStateMessages(ss state.SignedState) []protocols.Message {
-
-	messages := make([]protocols.Message, 0)
-	for i, participant := range ss.State().Participants {
-
-		// Do not generate a message for ourselves
-		if uint(i) == s.C.MyIndex {
-			continue
-		}
-		message := protocols.Message{To: participant, ObjectiveId: s.Id(), SignedStates: []state.SignedState{ss}}
-		messages = append(messages, message)
-	}
-	return messages
 }
 
 // mermaid diagram
