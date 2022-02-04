@@ -256,7 +256,7 @@ func (c Channel) signAndAddSetupState(preFund bool, sk *[]byte) (state.SignedSta
 	}
 	ok := c.AddSignedState(ss)
 	if !ok {
-		panic("could not add signed prefund to channel")
+		panic("could not add signed state to channel")
 	}
 	return ss, nil
 }
