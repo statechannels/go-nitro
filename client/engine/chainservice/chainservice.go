@@ -1,4 +1,4 @@
-// Package chainservice is a chain service responsible for submitting blockchain transactions and relaying blockchain events
+// Package chainservice is a chain service responsible for submitting blockchain transactions and relaying blockchain events.
 package chainservice // import "github.com/statechannels/go-nitro/client/chainservice"
 
 import (

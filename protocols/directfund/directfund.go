@@ -1,4 +1,4 @@
-// Package directfund implements an off-chain protocol to directly fund a channel
+// Package directfund implements an off-chain protocol to directly fund a channel.
 package directfund // import "github.com/statechannels/go-nitro/directfund"
 
 import (

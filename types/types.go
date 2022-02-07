@@ -1,4 +1,4 @@
-// Package types defines common types
+// Package types defines common types.
 package types // import "github.com/statechannels/go-nitro/types"
 
 import (

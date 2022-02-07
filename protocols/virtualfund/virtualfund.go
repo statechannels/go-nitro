@@ -1,4 +1,4 @@
-// Package virtualfund implements an off-chain protocol to virtually fund a channel
+// Package virtualfund implements an off-chain protocol to virtually fund a channel.
 package virtualfund // import "github.com/statechannels/go-nitro/virtualfund"
 
 import (
