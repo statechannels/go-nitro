@@ -224,7 +224,6 @@ func (s DirectFundObjective) fundingComplete() bool {
 
 // safeToDeposit returns true if the recorded OnChainHoldings are greater than or equal to the threshold for safety.
 func (s DirectFundObjective) safeToDeposit() bool {
-	fmt.Println(s.myDepositSafetyThreshold, s.C.OnChainFunding)
 	for asset, safetyThreshold := range s.myDepositSafetyThreshold {
 
 		chainHolding, ok := s.C.OnChainFunding[asset]
