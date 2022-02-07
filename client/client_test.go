@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -41,12 +40,35 @@ func TestNew(t *testing.T) {
 	chainservB := chainservice.NewSimpleChainService(chain, b)
 	messageserviceB := messageservice.NewTestMessageService(b)
 	storeB := store.NewMockStore(bKey)
-	New(messageserviceB, chainservB, storeB, logDestination)
+	clientB := New(messageserviceB, chainservB, storeB, logDestination)
 
 	messageserviceA.Connect(messageserviceB)
 	messageserviceB.Connect(messageserviceA)
-	clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome.Exit{}, big.NewInt(0))
+	// Set up an outcome that requires both participants to deposit
+	outcome := outcome.Exit{outcome.SingleAssetExit{
+		Allocations: outcome.Allocations{
+			outcome.Allocation{
+				Destination: types.AddressToDestination(a),
+				Amount:      big.NewInt(5),
+			},
+			outcome.Allocation{
+				Destination: types.AddressToDestination(b),
+				Amount:      big.NewInt(5),
+			},
+		},
+	}}
 
-	<-time.After(time.Second)
+	id := clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
+	got := <-clientA.CompletedObjectives()
+
+	if got != id {
+		t.Errorf("expected completed objective with id %v, but got %v", id, got)
+	}
+
+	gotFromB := <-clientB.CompletedObjectives()
+
+	if gotFromB != id {
+		t.Errorf("expected completed objective with id %v, but got %v", id, gotFromB)
+	}
 
 }
