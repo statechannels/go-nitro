@@ -1,2 +1,2 @@
-// Package channel defines types and methods for state channels
+// Package channel defines types and methods for state channels.
 package channel // import "github.com/statechannels/go-nitro/channel"

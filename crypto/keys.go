@@ -8,19 +8,19 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// GeneratePrivateKeyAndAddress generates a pseudo-random ECDSA and its corresponding Ethereum address.
+// GeneratePrivateKeyAndAddress generates a pseudo-random ECDSA secret key and its corresponding Ethereum address.
 func GeneratePrivateKeyAndAddress() (types.Bytes, types.Address) {
-	channelSecretKey, err := crypto.GenerateKey()
+	secretKey, err := crypto.GenerateKey()
 	if err != nil {
 		log.Fatal(err)
 	}
-	channelSecretKeyBytes := crypto.FromECDSA(channelSecretKey)
+	secretKeyBytes := crypto.FromECDSA(secretKey)
 
-	publicKey := channelSecretKey.Public()
+	publicKey := secretKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
 		log.Fatal("error casting public key to ECDSA")
 	}
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
-	return channelSecretKeyBytes, address
+	return secretKeyBytes, address
 }

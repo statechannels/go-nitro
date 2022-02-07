@@ -1,5 +1,4 @@
-// Package client WILL contain imperative library code for running a go-nitro client inside another application.
-// CURRENTLY it contains demonstration code (TODO)
+// Package client contains imperative library code for running a go-nitro client inside another application.
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
@@ -12,7 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
-	directfund "github.com/statechannels/go-nitro/protocols/direct-fund"
+	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
