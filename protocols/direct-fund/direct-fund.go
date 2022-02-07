@@ -87,6 +87,7 @@ func New(
 		types.AddressToDestination(myAddress),
 	)
 	init.myDepositTarget = init.myDepositSafetyThreshold.Add(myAllocatedAmount)
+
 	return init, nil
 }
 
@@ -224,11 +225,11 @@ func (s DirectFundObjective) fundingComplete() bool {
 // safeToDeposit returns true if the recorded OnChainHoldings are greater than or equal to the threshold for safety.
 func (s DirectFundObjective) safeToDeposit() bool {
 	for asset, safetyThreshold := range s.myDepositSafetyThreshold {
+
 		chainHolding, ok := s.C.OnChainFunding[asset]
 
 		if !ok {
-			// If there are no holdings on chain we use 0 for our calculations
-			chainHolding = big.NewInt(0)
+			panic("nil chainHolding for asset in myDepositSafetyThreshold")
 		}
 
 		if types.Gt(safetyThreshold, chainHolding) {
@@ -244,9 +245,9 @@ func (s DirectFundObjective) amountToDeposit() types.Funds {
 	deposits := make(types.Funds, len(s.C.OnChainFunding))
 
 	for asset, target := range s.myDepositTarget {
-		holding := s.C.OnChainFunding[asset]
-		if holding == nil {
-			holding = big.NewInt(0)
+		holding, ok := s.C.OnChainFunding[asset]
+		if !ok {
+			panic("nil chainHolding for asset in myDepositTarget")
 		}
 		deposits[asset] = big.NewInt(0).Sub(target, holding)
 	}
