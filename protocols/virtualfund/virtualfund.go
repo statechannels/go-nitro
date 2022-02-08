@@ -30,33 +30,61 @@ type Connection struct {
 	Channel            channel.TwoPartyLedger
 	ExpectedGuarantees map[types.Address]outcome.Allocation
 }
-type JSONConnection struct {
+
+// jsonConnection is a serialization-friendly struct representation
+// of a Connection
+type jsonConnection struct {
 	Channel            types.Destination
-	ExpectedGuarantees []AssetGuarantee
+	ExpectedGuarantees []assetGuarantee
 }
-type AssetGuarantee struct {
-	// alternative: the map[types.Address]outcome.Allocation may be serialized
-	// directly if types.Address is made to implement encoding.TextMarshaler
-	asset     types.Address
-	guarantee outcome.Allocation
+
+// assetGuarantee is a serialization-friendly representation of
+// map[asset]Allocation
+type assetGuarantee struct {
+	Asset     types.Address
+	Guarantee outcome.Allocation
 }
 
 func (c Connection) MarshalJSON() ([]byte, error) {
-	guarantees := []AssetGuarantee{}
+	guarantees := []assetGuarantee{}
 	for asset, guarantee := range c.ExpectedGuarantees {
-		guarantees = append(guarantees, AssetGuarantee{
+		guarantees = append(guarantees, assetGuarantee{
 			asset,
 			guarantee,
 		})
 	}
-	jsonConnection := JSONConnection{c.Channel.Id, guarantees}
+	jsonC := jsonConnection{c.Channel.Id, guarantees}
+	bytes, err := json.Marshal(jsonC)
 
-	bytes, err := json.Marshal(jsonConnection)
 	if err != nil {
 		return []byte{}, err
 	}
 
 	return bytes, err
+}
+
+func (c *Connection) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+
+	var jsonC jsonConnection
+	err := json.Unmarshal(data, &jsonC)
+
+	if err != nil {
+		return err
+	}
+
+	c.Channel = channel.TwoPartyLedger{}
+	c.Channel.Id = jsonC.Channel
+
+	c.ExpectedGuarantees = make(map[types.Address]outcome.Allocation)
+
+	for _, eg := range jsonC.ExpectedGuarantees {
+		c.ExpectedGuarantees[eg.Asset] = eg.Guarantee
+	}
+
+	return nil
 }
 
 // VirtualFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
