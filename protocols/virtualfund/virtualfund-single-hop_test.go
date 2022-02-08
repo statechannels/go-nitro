@@ -221,7 +221,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			// Approve the objective, so that the rest of the test cases can run.
-			o := s.Approve().(VirtualFundObjective)
+			o := s.Approve().(*VirtualFundObjective)
 			// To test the finite state progression, we are going to progressively mutate o
 			// And then crank it to see which "pause point" (WaitingFor) we end up at.
 
@@ -241,7 +241,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
 			oObj, sideEffects, waitingFor, err := o.Crank(&my.privateKey)
-			o = oObj.(VirtualFundObjective)
+			o = oObj.(*VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -264,7 +264,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			o.ToMyRight.Channel.OnChainFunding[types.Address{}] = l0state.Outcome[0].Allocations.Total() // Make this channel fully funded
 			// Cranking now should not generate side effects, because we already did that
 			oObj, _, waitingFor, err = o.Crank(&my.privateKey)
-			o = oObj.(VirtualFundObjective)
+			o = oObj.(*VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -317,7 +317,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			e.SignedStates = append(e.SignedStates, prefundsignedstate)
 
 			updatedObj, err := s.Update(e)
-			updated := updatedObj.(VirtualFundObjective)
+			updated := updatedObj.(*VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -338,7 +338,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			f.SignedStates = append(f.SignedStates, ss)
 
 			updatedObj, err = s.Update(f)
-			updated = updatedObj.(VirtualFundObjective)
+			updated = updatedObj.(*VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
 			}

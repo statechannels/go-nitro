@@ -298,14 +298,14 @@ func (s VirtualFundObjective) Approve() protocols.Objective {
 	updated := s.clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
-	return updated
+	return &updated
 }
 
 // Approve returns a rejected copy of the objective.
 func (s VirtualFundObjective) Reject() protocols.Objective {
 	updated := s.clone()
 	updated.Status = protocols.Rejected
-	return updated
+	return &updated
 }
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
@@ -331,7 +331,7 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 		channelId, _ := ss.State().ChannelId() // TODO handle error
 		switch channelId {
 		case types.Destination{}:
-			return s, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
+			return &s, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
 		case s.V.Id:
 			updated.V.AddSignedState(ss)
 			// We expect pre and post fund state signatures.
@@ -342,10 +342,10 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 			updated.ToMyRight.Channel.AddSignedState(ss)
 			// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
 		default:
-			return s, errors.New("event channelId out of scope of objective")
+			return &s, errors.New("event channelId out of scope of objective")
 		}
 	}
-	return updated, nil
+	return &updated, nil
 
 }
 
@@ -357,7 +357,7 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return updated, NoSideEffects, WaitingForNothing, ErrNotApproved
+		return &updated, NoSideEffects, WaitingForNothing, ErrNotApproved
 	}
 
 	// Prefunding
@@ -365,7 +365,7 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	if !updated.V.PreFundSignedByMe() {
 		sig, err := updated.V.PreFundState().Sign(*secretKey)
 		if err != nil {
-			return s, NoSideEffects, WaitingForNothing, err
+			return &s, NoSideEffects, WaitingForNothing, err
 		}
 		ss := state.NewSignedState(updated.V.PreFundState())
 		err = ss.AddSignature(sig)
@@ -374,32 +374,32 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 		}
 		ok := updated.V.AddSignedState(ss)
 		if !ok {
-			return s, NoSideEffects, WaitingForNothing, errors.New(`could not add prefund state`)
+			return &s, NoSideEffects, WaitingForNothing, errors.New(`could not add prefund state`)
 		}
-		return updated, NoSideEffects, WaitingForCompletePrefund, nil
+		return &updated, NoSideEffects, WaitingForCompletePrefund, nil
 
 	}
 
 	if !updated.V.PreFundComplete() {
-		return updated, NoSideEffects, WaitingForCompletePrefund, nil
+		return &updated, NoSideEffects, WaitingForCompletePrefund, nil
 	}
 
 	// Funding
 
 	if !updated.requestedLedgerUpdates {
 		updated.requestedLedgerUpdates = true
-		return updated, s.generateLedgerRequestSideEffects(), WaitingForCompleteFunding, nil
+		return &updated, s.generateLedgerRequestSideEffects(), WaitingForCompleteFunding, nil
 	}
 
 	if !updated.fundingComplete() {
-		return updated, NoSideEffects, WaitingForCompleteFunding, nil
+		return &updated, NoSideEffects, WaitingForCompleteFunding, nil
 	}
 
 	// Postfunding
 	if !updated.V.PostFundSignedByMe() {
 		sig, err := updated.V.PostFundState().Sign(*secretKey)
 		if err != nil {
-			return s, NoSideEffects, WaitingForNothing, err
+			return &s, NoSideEffects, WaitingForNothing, err
 		}
 		ss := state.NewSignedState(updated.V.PostFundState())
 		err = ss.AddSignature(sig)
@@ -408,18 +408,18 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 		}
 		ok := updated.V.AddSignedState(ss)
 		if !ok {
-			return s, NoSideEffects, WaitingForNothing, errors.New(`could not add postfund state`)
+			return &s, NoSideEffects, WaitingForNothing, errors.New(`could not add postfund state`)
 		}
-		return updated, NoSideEffects, WaitingForCompletePostFund, nil
+		return &updated, NoSideEffects, WaitingForCompletePostFund, nil
 
 	}
 
 	if !updated.V.PostFundComplete() {
-		return updated, NoSideEffects, WaitingForCompletePostFund, nil
+		return &updated, NoSideEffects, WaitingForCompletePostFund, nil
 	}
 
 	// Completion
-	return updated, NoSideEffects, WaitingForNothing, nil
+	return &updated, NoSideEffects, WaitingForNothing, nil
 }
 
 func (s VirtualFundObjective) Channels() []types.Destination {
