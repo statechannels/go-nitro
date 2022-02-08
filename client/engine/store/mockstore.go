@@ -179,7 +179,6 @@ func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protoc
 		}
 	}
 
-	// todo #191
 	return nil, false
 }
 
