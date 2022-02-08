@@ -104,11 +104,22 @@ type VirtualFundObjective struct {
 	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
 }
 
-// JSONVirtualFundObjective replaces the VirtualFundObjective's channel pointer with the
-// channel's Id, making JSONVirtualFundObjective suitable for serialization
-type JSONVirtualFundObjective struct {
-	VirtualFundObjective
-	V types.Destination
+// jsonVirtualFundObjective is a replaces the VirtualFundObjective's channel pointers
+// with the channel's Id, making jsonVirtualFundObjective suitable for serialization
+type jsonVirtualFundObjective struct {
+	Status protocols.ObjectiveStatus
+	V      types.Destination
+
+	ToMyLeft  []byte
+	ToMyRight []byte
+
+	N      uint
+	MyRole uint
+
+	A0 types.Funds
+	B0 types.Funds
+
+	RequestedLedgerUpdates bool
 }
 
 ////////////////////////////////////////////////
@@ -200,10 +211,81 @@ func New(
 }
 
 // MarshalJSON returns a JSON representation of the VirtualFundObjective
-// with channel state replaced by a channel Id
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
+//       the virtual and ledger channels (other than Ids) is discarded
 func (s VirtualFundObjective) MarshalJSON() ([]byte, error) {
-	jsonVFO := JSONVirtualFundObjective{s, s.V.Id}
+	var left []byte
+	var right []byte
+	var err error
+
+	if s.ToMyLeft == nil {
+		left = []byte("null")
+	} else {
+		left, err = s.ToMyLeft.MarshalJSON()
+
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling left channel of %v: %w", s, err)
+		}
+	}
+
+	if s.ToMyRight == nil {
+		right = []byte("null")
+	} else {
+		right, err = s.ToMyRight.MarshalJSON()
+
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling right channel of %v: %w", s, err)
+		}
+	}
+
+	jsonVFO := jsonVirtualFundObjective{
+		s.Status,
+		s.V.Id,
+		left,
+		right,
+		s.n,
+		s.MyRole,
+		s.a0,
+		s.b0,
+		s.requestedLedgerUpdates,
+	}
 	return json.Marshal(jsonVFO)
+}
+
+// UnmarshalJSON populates the calling VirtualFundObjective with the
+// json-encoded data
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
+//       the virtual and ledger channels (other than Ids) is discarded
+func (vfo *VirtualFundObjective) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+
+	var jsonVFO jsonVirtualFundObjective
+	err := json.Unmarshal(data, &jsonVFO)
+
+	if err != nil {
+		return err
+	}
+
+	vfo.V = &channel.Channel{}
+	vfo.V.Id = jsonVFO.V
+
+	vfo.ToMyLeft = &Connection{}
+	vfo.ToMyRight = &Connection{}
+	vfo.ToMyLeft.UnmarshalJSON(jsonVFO.ToMyLeft)
+	vfo.ToMyRight.UnmarshalJSON(jsonVFO.ToMyRight)
+
+	vfo.Status = jsonVFO.Status
+	vfo.n = jsonVFO.N
+	vfo.MyRole = jsonVFO.MyRole
+	vfo.a0 = jsonVFO.A0
+	vfo.b0 = jsonVFO.B0
+	vfo.requestedLedgerUpdates = jsonVFO.RequestedLedgerUpdates
+
+	return nil
 }
 
 // Id returns the objective id.
