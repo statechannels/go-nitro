@@ -53,6 +53,9 @@ func TestSetGetObjective(t *testing.T) {
 		}
 	}
 
+	// todo: test channel internals - IE, did the Objective's channels return
+	//       properly saturated with data?
+	// todo: test writing / reading of a VirtualGundObjective
 }
 
 func TestGetObjectiveByChannelId(t *testing.T) {
