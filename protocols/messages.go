@@ -48,6 +48,8 @@ func (m Message) Equal(n Message) bool {
 	return true
 }
 
+// CreateSignedStateMessages creates a set of messages containing the signed state.
+// A message will be generated for each participant except for the participant at myyIndex.
 func CreateSignedStateMessages(id ObjectiveId, ss state.SignedState, myIndex uint) []Message {
 
 	messages := make([]Message, 0)
