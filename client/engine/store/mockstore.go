@@ -3,6 +3,7 @@ package store
 import (
 	"crypto/ecdsa"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 
@@ -51,29 +52,62 @@ func (ms MockStore) GetChannelSecretKey() *[]byte {
 	return &ms.key
 }
 
-func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Objective, ok bool) {
+func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Objective, error) {
 	// todo: locking
 	objJSON, ok := ms.objectives[id]
 
-	if strings.HasPrefix(string(id), "DirectFunding-") {
-		// unmarshal directFundObjective
-		var jsonDFO directfund.JSONDirectFundObjective
-		json.Unmarshal([]byte(objJSON), &jsonDFO)
-		channel, _ := ms.getChannelById(jsonDFO.C)
-		jsonDFO.DirectFundObjective.C = &channel
-
-		obj = jsonDFO.DirectFundObjective
-	} else if strings.HasPrefix(string(id), "VirtualFund-") {
-		// unmarshal virtalFundObj
-		var jsonVFO virtualfund.JSONVirtualFundObjective
-		json.Unmarshal([]byte(objJSON), &jsonVFO)
-		channel, _ := ms.getChannelById(jsonVFO.V)
-		jsonVFO.VirtualFundObjective.V = &channel
-
-		obj = jsonVFO.VirtualFundObjective
+	if !ok {
+		return nil, fmt.Errorf("no protocol with id %s found", id)
 	}
 
-	return obj, ok
+	if strings.HasPrefix(string(id), "Direct") {
+		dfo := directfund.DirectFundObjective{}
+
+		err := dfo.UnmarshalJSON([]byte(objJSON))
+
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshaling objective %s: %w", id, err)
+		}
+
+		if channel, err := ms.getChannelById(dfo.C.Id); err == nil {
+			dfo.C = &channel
+		} else {
+			return nil, fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
+		}
+
+		return &dfo, err
+
+	} else if strings.HasPrefix(string(id), "Virtual") {
+		vfo := virtualfund.VirtualFundObjective{}
+
+		err := vfo.UnmarshalJSON([]byte(objJSON))
+
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshaling objective %s: %w", id, err)
+		}
+
+		if virtualChannel, err := ms.getChannelById(vfo.V.Id); err == nil {
+			vfo.V = &virtualChannel
+		} else {
+			return nil, fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
+		}
+
+		if leftChannel, err := ms.getChannelById(vfo.ToMyLeft.Channel.Id); err == nil {
+			vfo.ToMyLeft.Channel = channel.TwoPartyLedger{Channel: leftChannel}
+		} else {
+			return nil, fmt.Errorf("error retrieving left-ledger channel data for objective %s: %w", id, err)
+		}
+
+		if rightChannel, err := ms.getChannelById(vfo.ToMyRight.Channel.Id); err == nil {
+			vfo.ToMyRight.Channel = channel.TwoPartyLedger{Channel: rightChannel}
+		} else {
+			return nil, fmt.Errorf("error retrieving right-ledger channel data for objective %s: %w", id, err)
+		}
+
+		return &vfo, nil
+	}
+
+	return nil, fmt.Errorf("objective %s not a recognised objective type", id)
 }
 
 func (ms MockStore) SetObjective(obj protocols.Objective) error {
@@ -87,12 +121,19 @@ func (ms MockStore) SetObjective(obj protocols.Objective) error {
 	id := obj.Id()
 	if strings.HasPrefix(string(id), "DirectFunding-") {
 		// marshal and persist ledger chanel
-		dfo, _ := obj.(directfund.DirectFundObjective)
+		dfo, _ := obj.(*directfund.DirectFundObjective)
 		ms.setChannel(*dfo.C)
 	} else if strings.HasPrefix(string(id), "VirtualFund-") {
 		// marshal and persist virtual channel
-		vfo, _ := obj.(virtualfund.VirtualFundObjective)
+		vfo, _ := obj.(*virtualfund.VirtualFundObjective)
 		ms.setChannel(*vfo.V)
+		// marshal and persist ledger channel(s)
+		if vfo.ToMyLeft != nil {
+			ms.setChannel(vfo.ToMyLeft.Channel.Channel)
+		}
+		if vfo.ToMyRight != nil {
+			ms.setChannel(vfo.ToMyRight.Channel.Channel)
+		}
 	}
 
 	return nil
@@ -114,6 +155,31 @@ func (ms MockStore) getChannelById(id types.Destination) (channel.Channel, error
 	return channel, err
 }
 
+func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
+	// todo: locking
+	for id, objJSON := range ms.objectives {
+		var obj protocols.Objective
+
+		if strings.HasPrefix(string(id), "Direct") {
+			var dfo directfund.DirectFundObjective
+			dfo.UnmarshalJSON([]byte(objJSON))
+			obj = &dfo
+		}
+
+		if strings.HasPrefix(string(id), "Virtual") {
+			var vfo virtualfund.VirtualFundObjective
+			vfo.UnmarshalJSON([]byte(objJSON))
+			obj = &vfo
+		}
+
+		for _, ch := range obj.Channels() {
+			if ch == channelId {
+				return obj, true
+			}
+		}
+	}
+
+	// todo #191
 	return nil, false
 }
 

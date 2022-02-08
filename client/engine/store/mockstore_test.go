@@ -21,8 +21,8 @@ func TestSetGetObjective(t *testing.T) {
 	ms := NewMockStore(sk)
 
 	id := protocols.ObjectiveId("404")
-	got, ok := ms.GetObjectiveById(id)
-	if ok {
+	got, err := ms.GetObjectiveById(id)
+	if err == nil { // we expect an error here becuase the 404 is not set
 		t.Errorf("expected not to find the %s objective, but found %v", id, got)
 	}
 
@@ -34,18 +34,25 @@ func TestSetGetObjective(t *testing.T) {
 		ts.Participants[0],
 	)
 
-	if err := ms.SetObjective(testObj); err != nil {
-		t.Errorf("error setting objective %v: %s", testObj, err.Error())
+	if err := ms.SetObjective(&testObj); err != nil {
+		t.Errorf("error setting objective %v: %s", testObj, err)
 	}
 
-	got, ok = ms.GetObjectiveById(testObj.Id())
+	got, err = ms.GetObjectiveById(testObj.Id())
 
-	if !ok {
+	if err != nil {
 		t.Errorf("expected to find the inserted objective, but didn't")
 	}
 	if got.Id() != testObj.Id() {
 		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
 	}
+	for i, ch := range got.Channels() {
+		if ch != testObj.Channels()[i] {
+			t.Errorf("expected to recover channel list %v, but recovered %v",
+				testObj.Channels(), got.Channels())
+		}
+	}
+
 }
 
 func TestGetObjectiveByChannelId(t *testing.T) {
@@ -61,7 +68,7 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 		ts.Participants[0],
 	)
 
-	if err := ms.SetObjective(testObj); err != nil {
+	if err := ms.SetObjective(&testObj); err != nil {
 		t.Errorf("error setting objective %v: %s", testObj, err.Error())
 	}
 
