@@ -226,7 +226,6 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 
 	if !updated.requestedLedgerUpdates {
 		updated.requestedLedgerUpdates = true
-		// TODO: Should
 		return updated, s.generateLedgerRequestSideEffects(), WaitingForCompleteFunding, nil
 	}
 
