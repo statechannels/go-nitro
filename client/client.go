@@ -56,7 +56,7 @@ func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition t
 
 	// Pass in a fresh, dedicated go channel to communicate the response:
 	apiEvent := engine.APIEvent{
-		ObjectiveToSpawn: objective,
+		ObjectiveToSpawn: &objective,
 		Response:         make(chan engine.Response)}
 
 	// Send the event to the engine
