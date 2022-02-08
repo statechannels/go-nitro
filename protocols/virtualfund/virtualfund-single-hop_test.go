@@ -275,7 +275,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			o.ToMyRight.Channel.AddStateWithSignature(l0updatedstate, correctSignatureByAliceOnL_0updatedsate)
 			o.ToMyRight.Channel.AddStateWithSignature(l0updatedstate, correctSignatureByP_1OnL_0updatedsate)
 			o.ToMyRight.Channel.OnChainFunding[types.Address{}] = l0state.Outcome[0].Allocations.Total() // Make this channel fully funded
-			// Cranking now should not generate side effects, because we already did that
+
+			// Cranking now should generate signed post fund messages
 			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
 			o = oObj.(VirtualFundObjective)
 			if err != nil {
