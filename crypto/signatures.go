@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -71,4 +72,8 @@ func joinSignature(signature Signature) (concatenatedSignature []byte) {
 	concatenatedSignature = append(concatenatedSignature, signature.S...)
 	concatenatedSignature = append(concatenatedSignature, signature.V)
 	return
+}
+
+func (s1 Signature) Equal(s2 Signature) bool {
+	return bytes.Equal(s1.S, s2.S) && bytes.Equal(s1.R, s2.R) && s1.V == s2.V
 }
