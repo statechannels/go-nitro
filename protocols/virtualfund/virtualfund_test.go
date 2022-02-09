@@ -39,7 +39,9 @@ func TestMarshalJSON(t *testing.T) {
 	}
 
 	got := VirtualFundObjective{}
-	got.UnmarshalJSON(encodedVfo)
+	if err := got.UnmarshalJSON(encodedVfo); err != nil {
+		t.Fatalf("the test VirtualFundObjective did not deserialize correctly: %s", err.Error())
+	}
 
 	if !(got.Status == vfo.Status) {
 		t.Errorf("expected Status %v but got %v", vfo.Status, got.Status)
