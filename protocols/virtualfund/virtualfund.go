@@ -312,7 +312,7 @@ func (s VirtualFundObjective) Reject() protocols.Objective {
 // and returns the updated state.
 func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if s.Id() != event.ObjectiveId {
-		return s, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(s.Id()))
+		return &s, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(s.Id()))
 	}
 
 	updated := s.clone()
@@ -370,7 +370,7 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 		ss := state.NewSignedState(updated.V.PreFundState())
 		err = ss.AddSignature(sig)
 		if err != nil {
-			return s, NoSideEffects, WaitingForNothing, err
+			return &s, NoSideEffects, WaitingForNothing, err
 		}
 		ok := updated.V.AddSignedState(ss)
 		if !ok {
@@ -404,7 +404,7 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 		ss := state.NewSignedState(updated.V.PostFundState())
 		err = ss.AddSignature(sig)
 		if err != nil {
-			return s, NoSideEffects, WaitingForNothing, err
+			return &s, NoSideEffects, WaitingForNothing, err
 		}
 		ok := updated.V.AddSignedState(ss)
 		if !ok {

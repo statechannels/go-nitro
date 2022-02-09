@@ -211,8 +211,8 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Objective, error) {
 	id := message.ObjectiveId
 
-	objective, ok := e.store.GetObjectiveById(id)
-	if !ok {
+	objective, err := e.store.GetObjectiveById(id)
+	if err != nil {
 		return e.constructObjectiveFromMessage(message)
 	} else {
 		return objective, nil
@@ -226,15 +226,16 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 	case strings.Contains(string(message.ObjectiveId), `DirectFund`):
 		initialState := message.SignedStates[0].State()
 		if initialState.TurnNum != 0 {
-			return directfund.DirectFundObjective{}, errors.New("cannot construct direct fund objective without prefund state")
+			return &directfund.DirectFundObjective{}, errors.New("cannot construct direct fund objective without prefund state")
 		}
-		return directfund.New(
+		dfo, err := directfund.New(
 			true, // TODO ensure objective in only approved if the application has given permission somehow
 			message.SignedStates[0].State(),
 			*e.store.GetAddress(),
 		)
+		return &dfo, err
 	default:
-		return directfund.DirectFundObjective{}, errors.New("cannot handle unimplemented objective type")
+		return &directfund.DirectFundObjective{}, errors.New("cannot handle unimplemented objective type")
 	}
 
 }

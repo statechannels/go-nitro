@@ -10,8 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/protocols"
-	directfund "github.com/statechannels/go-nitro/protocols/direct-fund"
-	virtualfund "github.com/statechannels/go-nitro/protocols/virtual-fund"
+	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
