@@ -270,7 +270,9 @@ func TestMarshalJSON(t *testing.T) {
 	}
 
 	got := DirectFundObjective{}
-	got.UnmarshalJSON(encodedDfo)
+	if err := got.UnmarshalJSON(encodedDfo); err != nil {
+		t.Errorf("error unmarshaling test direct fund objective: %s", err.Error())
+	}
 
 	if !got.myDepositSafetyThreshold.Equal(dfo.myDepositSafetyThreshold) {
 		t.Errorf("expected myDepositSafetyThreshhold %v but got %v",
