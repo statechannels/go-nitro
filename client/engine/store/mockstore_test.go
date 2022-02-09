@@ -75,12 +75,9 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 		t.Errorf("error setting objective %v: %s", testObj, err.Error())
 	}
 
-	got, ok := ms.GetObjectiveByChannelId(testObj.C.Id)
-
-	if !ok {
+	if got, err := ms.GetObjectiveByChannelId(testObj.C.Id); err != nil {
 		t.Errorf("expected to find the inserted objective, but didn't")
-	}
-	if got.Id() != testObj.Id() {
+	} else if got.Id() != testObj.Id() {
 		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
 	}
 }
