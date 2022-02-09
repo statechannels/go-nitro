@@ -264,10 +264,8 @@ func (vfo *VirtualFundObjective) UnmarshalJSON(data []byte) error {
 	}
 
 	var jsonVFO jsonVirtualFundObjective
-	err := json.Unmarshal(data, &jsonVFO)
-
-	if err != nil {
-		return err
+	if err := json.Unmarshal(data, &jsonVFO); err != nil {
+		return fmt.Errorf("failed to unmarshal the VirtualFundObjective: %w", err)
 	}
 
 	vfo.V = &channel.Channel{}
@@ -275,8 +273,12 @@ func (vfo *VirtualFundObjective) UnmarshalJSON(data []byte) error {
 
 	vfo.ToMyLeft = &Connection{}
 	vfo.ToMyRight = &Connection{}
-	vfo.ToMyLeft.UnmarshalJSON(jsonVFO.ToMyLeft)
-	vfo.ToMyRight.UnmarshalJSON(jsonVFO.ToMyRight)
+	if err := vfo.ToMyLeft.UnmarshalJSON(jsonVFO.ToMyLeft); err != nil {
+		return fmt.Errorf("failed to unmarshal left ledger channel: %w", err)
+	}
+	if err := vfo.ToMyRight.UnmarshalJSON(jsonVFO.ToMyRight); err != nil {
+		return fmt.Errorf("failed to unmarshal right ledger channel: %w", err)
+	}
 
 	vfo.Status = jsonVFO.Status
 	vfo.n = jsonVFO.N
