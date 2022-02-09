@@ -122,17 +122,25 @@ func (ms MockStore) SetObjective(obj protocols.Objective) error {
 	if strings.HasPrefix(string(id), "DirectFunding-") {
 		// marshal and persist ledger chanel
 		dfo, _ := obj.(*directfund.DirectFundObjective)
-		ms.setChannel(*dfo.C)
+		if err := ms.setChannel(*dfo.C); err != nil {
+			return fmt.Errorf("failed to write channel data for %s: %w", obj.Id(), err)
+		}
 	} else if strings.HasPrefix(string(id), "VirtualFund-") {
 		// marshal and persist virtual channel
 		vfo, _ := obj.(*virtualfund.VirtualFundObjective)
-		ms.setChannel(*vfo.V)
+		if err := ms.setChannel(*vfo.V); err != nil {
+			return fmt.Errorf("failed to write virtual-channel data for %s: %w", obj.Id(), err)
+		}
 		// marshal and persist ledger channel(s)
 		if vfo.ToMyLeft != nil {
-			ms.setChannel(vfo.ToMyLeft.Channel.Channel)
+			if err := ms.setChannel(vfo.ToMyLeft.Channel.Channel); err != nil {
+				return fmt.Errorf("failed to write left ledger-channel data for %s: %w", obj.Id(), err)
+			}
 		}
 		if vfo.ToMyRight != nil {
-			ms.setChannel(vfo.ToMyRight.Channel.Channel)
+			if err := ms.setChannel(vfo.ToMyRight.Channel.Channel); err != nil {
+				return fmt.Errorf("failed to write right ledger-channel data for %s: %w", obj.Id(), err)
+			}
 		}
 	}
 
@@ -155,31 +163,35 @@ func (ms MockStore) getChannelById(id types.Destination) (channel.Channel, error
 	return channel, err
 }
 
-func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
+func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, error) {
 	// todo: locking
 	for id, objJSON := range ms.objectives {
 		var obj protocols.Objective
 
 		if strings.HasPrefix(string(id), "Direct") {
 			var dfo directfund.DirectFundObjective
-			dfo.UnmarshalJSON([]byte(objJSON))
+			if err := dfo.UnmarshalJSON([]byte(objJSON)); err != nil {
+				continue
+			}
 			obj = &dfo
 		}
 
 		if strings.HasPrefix(string(id), "Virtual") {
 			var vfo virtualfund.VirtualFundObjective
-			vfo.UnmarshalJSON([]byte(objJSON))
+			if err := vfo.UnmarshalJSON([]byte(objJSON)); err != nil {
+				continue
+			}
 			obj = &vfo
 		}
 
 		for _, ch := range obj.Channels() {
 			if ch == channelId {
-				return obj, true
+				return obj, nil
 			}
 		}
 	}
 
-	return nil, false
+	return nil, fmt.Errorf("no objectives found for channel %s", channelId)
 }
 
 func (ms MockStore) UpdateProgressLastMadeAt(protocols.ObjectiveId, protocols.WaitingFor) {
