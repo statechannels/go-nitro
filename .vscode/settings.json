@@ -1,3 +1,5 @@
 {
-  "go.formatTool": "gofmt"
+  "go.formatTool": "gofmt",
+  "go.lintTool": "golangci-lint",
+  "go.lintOnSave": "workspace",
 }
