@@ -33,17 +33,17 @@ type TwoPartyLedger struct {
 	Channel
 }
 
-func NewTwoPartyLedger(s state.State, myIndex uint) (TwoPartyLedger, error) {
+func NewTwoPartyLedger(s state.State, myIndex uint) (*TwoPartyLedger, error) {
 	if myIndex > 1 {
-		return TwoPartyLedger{}, errors.New("myIndex in a two party ledger channel must be 0 or 1")
+		return &TwoPartyLedger{}, errors.New("myIndex in a two party ledger channel must be 0 or 1")
 	}
 	if len(s.Participants) != 2 {
-		return TwoPartyLedger{}, errors.New("two party ledger channels must have exactly two participants")
+		return &TwoPartyLedger{}, errors.New("two party ledger channels must have exactly two participants")
 	}
 
 	c, err := New(s, myIndex)
 
-	return TwoPartyLedger{c}, err
+	return &TwoPartyLedger{*c}, err
 }
 
 func (lc TwoPartyLedger) Clone() TwoPartyLedger {
@@ -51,16 +51,16 @@ func (lc TwoPartyLedger) Clone() TwoPartyLedger {
 }
 
 // New constructs a new Channel from the supplied state.
-func New(s state.State, myIndex uint) (Channel, error) {
+func New(s state.State, myIndex uint) (*Channel, error) {
 	c := Channel{}
 	if s.TurnNum != PreFundTurnNum {
-		return c, errors.New(`objective must be constructed with TurnNum=0 state`)
+		return &c, errors.New(`objective must be constructed with TurnNum=0 state`)
 	}
 
 	var err error
 	c.Id, err = s.ChannelId()
 	if err != nil {
-		return c, err
+		return &c, err
 	}
 	c.MyIndex = myIndex
 	c.OnChainFunding = make(types.Funds)
@@ -82,7 +82,7 @@ func New(s state.State, myIndex uint) (Channel, error) {
 		c.OnChainFunding[asset] = big.NewInt(0)
 	}
 
-	return c, nil
+	return &c, nil
 }
 
 // MyDestination returns the client's destination
