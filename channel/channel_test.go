@@ -28,12 +28,12 @@ func TestChannel(t *testing.T) {
 
 	testClone := func(t *testing.T) {
 		r := c.Clone()
-		if diff := cmp.Diff(r, c, cmp.Comparer(types.Equal)); diff != "" {
+		if diff := cmp.Diff(r, *c, cmp.Comparer(types.Equal)); diff != "" {
 			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
 		r.latestSupportedStateTurnNum++
-		if r.Equal(c) {
+		if r.Equal(*c) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 	}
