@@ -81,12 +81,12 @@ func TestPreFundSideEffects(t *testing.T) {
 	// Construct various variables for use in the test.
 	var o, _ = New(true, testState, testState.Participants[0])
 
-	_, got, _, err := o.Crank(&alice.privateKey)
+	updated, got, _, err := o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
-
-	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[0]}}
+	expectedState := updated.(DirectFundObjective).C.SignedStateForTurnNum[0]
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedState}}
 	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
 
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -111,12 +111,13 @@ func TestPostFundSideEffects(t *testing.T) {
 	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
 
-	_, got, _, err := o.Crank(&alice.privateKey)
+	updated, got, _, err := o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
 
-	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{o.C.SignedStateForTurnNum[1]}}
+	expectedState := updated.(DirectFundObjective).C.SignedStateForTurnNum[1]
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedState}}
 	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
 
 	if diff := cmp.Diff(want, got); diff != "" {
