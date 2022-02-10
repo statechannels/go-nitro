@@ -26,7 +26,7 @@ var NoSideEffects = protocols.SideEffects{}
 var ErrNotApproved = errors.New("objective not approved")
 
 type Connection struct {
-	Channel            channel.TwoPartyLedger
+	Channel            *channel.TwoPartyLedger
 	ExpectedGuarantees map[types.Address]outcome.Allocation
 }
 
@@ -58,8 +58,8 @@ func New(
 	myAddress types.Address,
 	n uint, // number of ledger channels (num_hops + 1)
 	myRole uint,
-	ledgerChannelToMyLeft channel.TwoPartyLedger,
-	ledgerChannelToMyRight channel.TwoPartyLedger,
+	ledgerChannelToMyLeft *channel.TwoPartyLedger,
+	ledgerChannelToMyRight *channel.TwoPartyLedger,
 ) (VirtualFundObjective, error) {
 	// role and ledger-channel checks
 	if myRole > n+1 {
@@ -81,7 +81,7 @@ func New(
 		return VirtualFundObjective{}, err
 	}
 
-	init.V = &v
+	init.V = v
 	init.n = n
 	init.MyRole = myRole
 	init.a0 = make(map[types.Address]*big.Int)
@@ -358,15 +358,17 @@ func (s *VirtualFundObjective) clone() VirtualFundObjective {
 	clone.V = &vClone
 
 	if s.ToMyLeft != nil {
+		lClone := s.ToMyLeft.Channel.Clone()
 		clone.ToMyLeft = &Connection{
-			Channel:            s.ToMyLeft.Channel.Clone(),
+			Channel:            &lClone,
 			ExpectedGuarantees: s.ToMyLeft.ExpectedGuarantees,
 		}
 	}
 
 	if s.ToMyRight != nil {
+		rClone := s.ToMyRight.Channel.Clone()
 		clone.ToMyRight = &Connection{
-			Channel:            s.ToMyRight.Channel.Clone(),
+			Channel:            &rClone,
 			ExpectedGuarantees: s.ToMyRight.ExpectedGuarantees,
 		}
 	}
