@@ -132,6 +132,7 @@ func (s DirectFundObjective) Update(event protocols.ObjectiveEvent) (protocols.O
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
+
 func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := s.clone()
 
@@ -143,7 +144,7 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 
 	// Prefunding
 	if !updated.C.PreFundSignedByMe() {
-		ss, err := s.C.SignAndAddPrefund(secretKey)
+		ss, err := updated.C.SignAndAddPrefund(secretKey)
 		if err != nil {
 			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("could not sign prefund %w", err)
 		}
@@ -179,7 +180,7 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 	// Postfunding
 	if !updated.C.PostFundSignedByMe() {
 
-		ss, err := s.C.SignAndAddPostfund(secretKey)
+		ss, err := updated.C.SignAndAddPostfund(secretKey)
 
 		if err != nil {
 			return updated, NoSideEffects, WaitingForCompletePostFund, fmt.Errorf("could not sign postfund %w", err)
