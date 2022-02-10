@@ -36,6 +36,11 @@ func TestChannel(t *testing.T) {
 		if r.Equal(c) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
+
+		r.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
+		if r.Participants[0] == c.Participants[0] {
+			t.Error("Clone: modifying the clone should not modify the original")
+		}
 	}
 
 	testPreFund := func(t *testing.T) {
