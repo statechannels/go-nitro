@@ -119,6 +119,93 @@ func TestChannel(t *testing.T) {
 			t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
 		}
 	}
+	alicePrivateKey := common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
+	bobPrivateKey := common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`)
+	testAddSignedState := func(t *testing.T) {
+		myC, _ := New(s, 0)
+		ss := state.NewSignedState(s)
+		sigA, err := ss.State().Sign(alicePrivateKey)
+		if err != nil {
+			t.Error(err)
+		}
+		sigB, err := ss.State().Sign(bobPrivateKey)
+		if err != nil {
+			t.Error(err)
+		}
+		err = ss.AddSignature(sigA)
+		if err != nil {
+			t.Error(err)
+		}
+		err = ss.AddSignature(sigB)
+		if err != nil {
+			t.Error(err)
+		}
+		if ok := myC.AddSignedState(ss); !ok {
+			t.Error("AddSignedState returned false")
+		}
+
+		// It should properly update the latestSupportedStateNum
+		if myC.latestSupportedStateTurnNum != 0 {
+			t.Errorf("Expected latestSupportedStateTurnNum of 0 but got %d", myC.latestSupportedStateTurnNum)
+
+		}
+		// verify the signatures
+		expectedSigs := []state.Signature{sigA, sigB}
+		for i := range myC.Participants {
+			gotSig, err := myC.SignedStateForTurnNum[s.TurnNum].GetParticipantSignature(uint(i))
+			if err != nil {
+				panic(err)
+			}
+			wantSig := expectedSigs[i]
+			if !gotSig.Equal(wantSig) {
+				t.Errorf("Expected to find signature %x at index 0, but got %x", wantSig, gotSig)
+			}
+		}
+	}
+	testAddSignedStates := func(t *testing.T) {
+		myC, _ := New(s, 0)
+
+		ss := state.NewSignedState(s)
+		sigA, err := ss.State().Sign(alicePrivateKey)
+		if err != nil {
+			t.Error(err)
+		}
+		sigB, err := ss.State().Sign(bobPrivateKey)
+		if err != nil {
+			t.Error(err)
+		}
+		err = ss.AddSignature(sigA)
+		if err != nil {
+			t.Error(err)
+		}
+		err = ss.AddSignature(sigB)
+		if err != nil {
+			t.Error(err)
+		}
+		if ok := myC.AddSignedStates([]state.SignedState{ss}); !ok {
+			t.Error("AddSignedStates returned false")
+		}
+
+		// It should properly update the latestSupportedStateNum
+		got := myC.latestSupportedStateTurnNum
+		if got != 0 {
+			t.Errorf("Expected latestSupportedStateTurnNum of 0 but got %d", got)
+		}
+
+		// verify the signatures
+		expectedSigs := []state.Signature{sigA, sigB}
+		for i := range myC.Participants {
+			gotSig, err := myC.SignedStateForTurnNum[s.TurnNum].GetParticipantSignature(uint(i))
+			if err != nil {
+				panic(err)
+			}
+			wantSig := expectedSigs[i]
+			if !gotSig.Equal(wantSig) {
+				t.Errorf("Expected to find signature %x at index 0, but got %x", wantSig, gotSig)
+			}
+		}
+
+	}
 
 	testAddStateWithSignature := func(t *testing.T) {
 		// Begin testing the cases that are NOOPs returning false
@@ -132,7 +219,7 @@ func TestChannel(t *testing.T) {
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
-		alicePrivateKey := common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
+
 		v := state.State{ // TODO it would be terser to clone s and modify it -- but s.Clone() is broken https://github.com/statechannels/go-nitro/issues/96
 			ChainId: s.ChainId,
 			Participants: []types.Address{
@@ -206,5 +293,7 @@ func TestChannel(t *testing.T) {
 	t.Run(`TestLatestSupportedState`, testLatestSupportedState)
 	t.Run(`TestTotal`, testTotal)
 	t.Run(`TestAddStateWithSignature`, testAddStateWithSignature)
+	t.Run(`TestAddSignedStates`, testAddSignedStates)
+	t.Run(`TestAddSignedState`, testAddSignedState)
 
 }
