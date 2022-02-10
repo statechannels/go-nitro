@@ -210,21 +210,12 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	// Prefunding
 
 	if !updated.V.PreFundSignedByMe() {
-		sig, err := updated.V.PreFundState().Sign(*secretKey)
+		ss, err := updated.V.SignAndAddPrefund(secretKey)
 		if err != nil {
 			return s, NoSideEffects, WaitingForNothing, err
 		}
-		ss := state.NewSignedState(updated.V.PreFundState())
-		err = ss.AddSignature(sig)
-		if err != nil {
-			return s, NoSideEffects, WaitingForNothing, err
-		}
-		ok := updated.V.AddSignedState(ss)
-		if !ok {
-			return s, NoSideEffects, WaitingForNothing, errors.New(`could not add prefund state`)
-		}
-		return updated, NoSideEffects, WaitingForCompletePrefund, nil
-
+		messages := protocols.CreateSignedStateMessages(s.Id(), ss, s.V.MyIndex)
+		return updated, protocols.SideEffects{MessagesToSend: messages}, WaitingForCompletePrefund, nil
 	}
 
 	if !updated.V.PreFundComplete() {
@@ -244,21 +235,12 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 
 	// Postfunding
 	if !updated.V.PostFundSignedByMe() {
-		sig, err := updated.V.PostFundState().Sign(*secretKey)
+		ss, err := updated.V.SignAndAddPostfund(secretKey)
 		if err != nil {
 			return s, NoSideEffects, WaitingForNothing, err
 		}
-		ss := state.NewSignedState(updated.V.PostFundState())
-		err = ss.AddSignature(sig)
-		if err != nil {
-			return s, NoSideEffects, WaitingForNothing, err
-		}
-		ok := updated.V.AddSignedState(ss)
-		if !ok {
-			return s, NoSideEffects, WaitingForNothing, errors.New(`could not add postfund state`)
-		}
-		return updated, NoSideEffects, WaitingForCompletePostFund, nil
-
+		messages := protocols.CreateSignedStateMessages(s.Id(), ss, s.V.MyIndex)
+		return updated, protocols.SideEffects{MessagesToSend: messages}, WaitingForCompletePostFund, nil
 	}
 
 	if !updated.V.PostFundComplete() {

@@ -226,7 +226,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// And then crank it to see which "pause point" (WaitingFor) we end up at.
 
 			// Initial Crank
-			_, _, waitingFor, err := o.Crank(&my.privateKey)
+			_, got, waitingFor, err := o.Crank(&my.privateKey)
 			if err != nil {
 				t.Error(err)
 			}
@@ -234,13 +234,26 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
 			}
 
+			expectedSignedState := state.NewSignedState(o.V.PreFundState())
+			_ = expectedSignedState.AddSignature(correctSignatureByAliceOnVPreFund)
+
+			forBob := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}}
+			forIrene := protocols.Message{To: p1.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}}
+			want := protocols.SideEffects{MessagesToSend: []protocols.Message{forIrene, forBob}}
+
+			if diff := cmp.Diff(want, got); diff != "" {
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
+				}
+
+			}
 			// Manually progress the extended state by collecting prefund signatures
-			o.V.AddStateWithSignature(vPreFund, correctSignatureByAliceOnVPreFund)
+
 			o.V.AddStateWithSignature(vPreFund, correctSignatureByBobOnVPreFund)
 			o.V.AddStateWithSignature(vPreFund, correctSignatureByP_1OnVPreFund)
 
 			// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
-			oObj, sideEffects, waitingFor, err := o.Crank(&my.privateKey)
+			oObj, got, waitingFor, err := o.Crank(&my.privateKey)
 			o = oObj.(VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
@@ -252,7 +265,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Error(`Expected ledger update idempotency flag to be raised, but it wasn't`)
 			}
 
-			got, want := sideEffects.LedgerRequests, expectedLedgerRequests
+			want = protocols.SideEffects{LedgerRequests: expectedLedgerRequests}
 
 			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
@@ -262,8 +275,9 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			o.ToMyRight.Channel.AddStateWithSignature(l0updatedstate, correctSignatureByAliceOnL_0updatedsate)
 			o.ToMyRight.Channel.AddStateWithSignature(l0updatedstate, correctSignatureByP_1OnL_0updatedsate)
 			o.ToMyRight.Channel.OnChainFunding[types.Address{}] = l0state.Outcome[0].Allocations.Total() // Make this channel fully funded
-			// Cranking now should not generate side effects, because we already did that
-			oObj, _, waitingFor, err = o.Crank(&my.privateKey)
+
+			// Cranking now should generate signed post fund messages
+			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
 			o = oObj.(VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
@@ -272,8 +286,21 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
 			}
 
+			expectedSignedState = state.NewSignedState(o.V.PostFundState())
+			_ = expectedSignedState.AddSignature(correctSignatureByAliceOnVPostFund)
+
+			forBob = protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}}
+			forIrene = protocols.Message{To: p1.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}}
+			want = protocols.SideEffects{MessagesToSend: []protocols.Message{forIrene, forBob}}
+
+			if diff := cmp.Diff(want, got); diff != "" {
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
+				}
+
+			}
 			// Manually progress the extended state by collecting postfund signatures
-			o.V.AddStateWithSignature(o.V.PostFundState(), correctSignatureByAliceOnVPostFund)
+
 			o.V.AddStateWithSignature(o.V.PostFundState(), correctSignatureByBobOnVPostFund)
 			o.V.AddStateWithSignature(o.V.PostFundState(), correctSignatureByP_1OnVPostFund)
 
@@ -310,7 +337,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// Assert that this results in an appropriate change in the extended state of the objective
 			// Part 1: a signature on a state in channel V
 			prefundsignedstate := state.NewSignedState(s.V.PreFundState())
-			err := prefundsignedstate.AddSignature(correctSignatureByAliceOnVPreFund)
+			err := prefundsignedstate.AddSignature(correctSignatureByBobOnVPreFund)
 			if err != nil {
 				t.Error(err)
 			}
@@ -321,7 +348,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if updated.V.PreFundSignedByMe() != true {
+			if updated.V.SignedStateForTurnNum[0].HasSignatureForParticipant(bob.role) != true {
 				t.Error(`Objective data not updated as expected`)
 			}
 
