@@ -57,35 +57,6 @@ func (l *LedgerCranker) CreateLedger(left outcome.Allocation, right outcome.Allo
 	return ledger
 }
 
-func (l *LedgerCranker) CompleteFunding(ledgerId types.Destination, secretKeys []*[]byte) {
-	ledger, ok := l.ledgers[ledgerId]
-	if !ok {
-		panic(fmt.Sprintf("Ledger %s not found", ledgerId))
-	}
-	for _, sk := range secretKeys {
-		_, _ = ledger.SignAndAddPrefund(sk)
-
-	}
-	for _, sk := range secretKeys {
-		_, _ = ledger.Channel.SignAndAddPostfund(sk)
-
-	}
-	l.ledgers[ledgerId] = ledger
-
-}
-
-func (l *LedgerCranker) Sign(ledgerId types.Destination, turnNum uint64, secretKeys [][]byte) {
-	ledger, ok := l.ledgers[ledgerId]
-	if !ok {
-		panic(fmt.Sprintf("Ledger %s not found", ledgerId))
-	}
-	toSign := ledger.SignedStateForTurnNum[turnNum]
-	for _, secretKey := range secretKeys {
-		_ = toSign.SignAndAdd(&secretKey)
-	}
-	ledger.Channel.AddSignedState(toSign)
-}
-
 func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId protocols.ObjectiveId, secretKey *[]byte) protocols.SideEffects {
 	ledger := l.ledgers[request.LedgerId]
 	guarantee, _ := outcome.GuaranteeMetadata{
@@ -128,4 +99,43 @@ func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId proto
 	messages := protocols.CreateSignedStateMessages(oId, ss, ledger.MyIndex)
 	return protocols.SideEffects{MessagesToSend: messages}
 
+}
+
+// TODO: These are test helpers and probably should live somewhere else
+func (l *LedgerCranker) SignPreAndPostFundingStates(ledgerId types.Destination, secretKeys []*[]byte) {
+	ledger, ok := l.ledgers[ledgerId]
+	if !ok {
+		panic(fmt.Sprintf("Ledger %s not found", ledgerId))
+	}
+	for _, sk := range secretKeys {
+		_, _ = ledger.SignAndAddPrefund(sk)
+
+	}
+	for _, sk := range secretKeys {
+		_, _ = ledger.Channel.SignAndAddPostfund(sk)
+
+	}
+	l.ledgers[ledgerId] = ledger
+
+}
+
+func (l *LedgerCranker) SignLatest(ledgerId types.Destination, secretKeys [][]byte) {
+	ledger, ok := l.ledgers[ledgerId]
+	if !ok {
+		panic(fmt.Sprintf("Ledger %s not found", ledgerId))
+	}
+
+	// Find the largest turn num and therefore the latest state
+	turnNum := uint64(0)
+	for t := range ledger.SignedStateForTurnNum {
+		if t > turnNum {
+			turnNum = t
+		}
+	}
+	// Sign it
+	toSign := ledger.SignedStateForTurnNum[turnNum]
+	for _, secretKey := range secretKeys {
+		_ = toSign.SignAndAdd(&secretKey)
+	}
+	ledger.Channel.AddSignedState(toSign)
 }

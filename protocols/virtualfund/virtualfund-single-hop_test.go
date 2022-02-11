@@ -289,9 +289,9 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			ledgerCranker.Update(o.ToMyRight.Channel)
 
-			ledgerCranker.CompleteFunding(got.LedgerRequests[0].LedgerId, []*[]byte{&alice.privateKey, &p1.privateKey})
+			ledgerCranker.SignPreAndPostFundingStates(got.LedgerRequests[0].LedgerId, []*[]byte{&alice.privateKey, &p1.privateKey})
 			ledgerCranker.HandleRequest(got.LedgerRequests[0], o.Id(), &alice.privateKey)
-			ledgerCranker.Sign(got.LedgerRequests[0].LedgerId, 2, [][]byte{p1.privateKey})
+			ledgerCranker.SignLatest(got.LedgerRequests[0].LedgerId, [][]byte{p1.privateKey})
 			// Cranking now should not generate side effects, because we already did that
 			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
 			o = oObj.(VirtualFundObjective)
