@@ -81,10 +81,17 @@ func (ss SignedState) Merge(ss2 SignedState) error {
 	if !ss.state.Equal(ss2.state) {
 		return errors.New(`cannot merge signed states with distinct state hashes`)
 	}
-	for _, sig := range ss2.sigs {
-		err := ss.AddSignature(sig)
-		if err != nil {
-			return err
+	for i, sig := range ss2.sigs {
+		existing, found := ss.sigs[uint(i)]
+		if found { // if the signature is already present, check that it is the same
+			if !existing.Equal(sig) {
+				return errors.New(`cannot merge signed states with conflicting signatures`)
+			}
+		} else { // otherwise add the signature
+			err := ss.AddSignature(sig)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
