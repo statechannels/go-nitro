@@ -100,11 +100,10 @@ func (c Channel) Clone() Channel {
 	clonedSignedStateForTurnNum := map[uint64]state.SignedState{}
 	for i, ss := range c.SignedStateForTurnNum {
 		clonedSignedStateForTurnNum[i] = ss.Clone()
-		// The fixed part contains pointer references so we update it to a cloned state
-		c.FixedPart = ss.Clone().State().FixedPart()
 	}
 	c.SignedStateForTurnNum = clonedSignedStateForTurnNum
 	c.OnChainFunding = c.OnChainFunding.Clone()
+	c.FixedPart = c.FixedPart.Clone()
 	return c
 }
 
