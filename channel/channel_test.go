@@ -1,6 +1,7 @@
 package channel
 
 import (
+	"encoding/json"
 	"math/big"
 	"testing"
 
@@ -195,6 +196,24 @@ func TestChannel(t *testing.T) {
 
 	}
 
+	testMarshalJSON := func(t *testing.T) {
+		encoded, err := json.Marshal(c)
+
+		if err != nil {
+			t.Errorf("error encoding channel: %s", err.Error())
+		}
+
+		got := Channel{}
+
+		if err := got.UnmarshalJSON(encoded); err != nil {
+			t.Errorf("error unmarshaling channel: %s", err.Error())
+		}
+
+		if !c.Equal(got) {
+			t.Errorf("decoded channel does not match original")
+		}
+	}
+
 	t.Run(`TestNew`, testNew)
 	t.Run(`TestClone`, testClone)
 	t.Run(`TestPreFund`, testPreFund)
@@ -206,5 +225,5 @@ func TestChannel(t *testing.T) {
 	t.Run(`TestLatestSupportedState`, testLatestSupportedState)
 	t.Run(`TestTotal`, testTotal)
 	t.Run(`TestAddStateWithSignature`, testAddStateWithSignature)
-
+	t.Run(`TestMarshalJSON`, testMarshalJSON)
 }

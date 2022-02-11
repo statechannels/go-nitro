@@ -1,6 +1,7 @@
 package channel
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -27,6 +28,64 @@ type Channel struct {
 
 	SignedStateForTurnNum map[uint64]state.SignedState // this stores up to 1 state per turn number.
 	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
+}
+
+// jsonChannel is a copy of the Channel struct with all
+// fields made public so that they are serialized json.Marshal
+type jsonChannel struct {
+	Id             types.Destination
+	MyIndex        uint
+	OnChainFunding types.Funds
+	state.FixedPart
+	LatestSupportedStateTurnNum uint64
+	SignedStateForTurnNum       map[uint64]state.SignedState
+}
+
+func (c Channel) MarshalJSON() ([]byte, error) {
+	jsonC := jsonChannel{}
+
+	jsonC.Id = c.Id
+	jsonC.MyIndex = c.MyIndex
+	jsonC.OnChainFunding = c.OnChainFunding
+	jsonC.LatestSupportedStateTurnNum = c.latestSupportedStateTurnNum
+	jsonC.SignedStateForTurnNum = c.SignedStateForTurnNum
+
+	// fixed part
+	jsonC.ChainId = c.ChainId
+	jsonC.Participants = c.Participants
+	jsonC.ChannelNonce = c.ChannelNonce
+	jsonC.AppDefinition = c.AppDefinition
+	jsonC.ChallengeDuration = c.ChallengeDuration
+
+	return json.Marshal(jsonC)
+}
+
+func (c *Channel) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+
+	jsonC := jsonChannel{}
+	err := json.Unmarshal(data, &jsonC)
+
+	if err != nil {
+		return err
+	}
+
+	c.Id = jsonC.Id
+	c.MyIndex = jsonC.MyIndex
+	c.OnChainFunding = jsonC.OnChainFunding
+	c.latestSupportedStateTurnNum = jsonC.LatestSupportedStateTurnNum
+	c.SignedStateForTurnNum = jsonC.SignedStateForTurnNum
+
+	// fixed part
+	c.ChainId = jsonC.ChainId
+	c.Participants = jsonC.Participants
+	c.ChannelNonce = jsonC.ChannelNonce
+	c.AppDefinition = jsonC.AppDefinition
+	c.ChallengeDuration = jsonC.ChallengeDuration
+
+	return nil
 }
 
 type TwoPartyLedger struct {
