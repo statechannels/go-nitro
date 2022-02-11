@@ -154,7 +154,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		my := alice
 
 		// Alice plays role 0 so has no ledger channel on her left
-		var ledgerChannelToMyLeft channel.TwoPartyLedger
+		var ledgerChannelToMyLeft *channel.TwoPartyLedger
 
 		// She has a single ledger channel L_0 connecting her to P_1
 		var ledgerChannelToMyRight, _ = channel.NewTwoPartyLedger(
@@ -167,7 +167,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		// Objective
 		var n = uint(2) // number of ledger channels (num_hops + 1)
-		var s, _ = New(false, vPreFund, my.address, n, my.role, &ledgerChannelToMyLeft, ledgerChannelToMyRight)
+		var s, _ = New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 		var expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination(), Right: ledgerChannelToMyRight.TheirDestination()}
 		var expectedEncodedGuaranteeMetadata, _ = expectedGuaranteeMetadata.Encode()
 		var expectedGuarantee outcome.Allocation = outcome.Allocation{
@@ -200,7 +200,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		testNew := func(t *testing.T) {
 			// Assert that a valid set of constructor args does not result in an error
-			o, err := New(false, vPreFund, my.address, 2, my.role, &ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			o, err := New(false, vPreFund, my.address, 2, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			if err != nil {
 				t.Error(err)
 			}
