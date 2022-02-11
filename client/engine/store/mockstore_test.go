@@ -46,15 +46,26 @@ func TestSetGetObjective(t *testing.T) {
 	if got.Id() != testObj.Id() {
 		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
 	}
+
+	recoveredChannel := false
+
 	for i, ch := range got.Channels() {
+		recoveredChannel = true
 		if ch != testObj.Channels()[i] {
 			t.Errorf("expected to recover channel list %v, but recovered %v",
 				testObj.Channels(), got.Channels())
 		}
+
+		channel, _ := ms.getChannelById(ch)
+		if !channel.Equal(*testObj.C) {
+			t.Errorf("recovered directly funded channel not equal to input channel")
+		}
 	}
 
-	// todo: test channel internals - IE, did the Objective's channels return
-	//       properly saturated with data?
+	if !recoveredChannel {
+		t.Errorf("no channels were persisted / discovered when writing the objective")
+	}
+
 	// todo: test writing / reading of a VirtualGundObjective
 }
 

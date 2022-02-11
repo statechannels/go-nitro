@@ -23,7 +23,7 @@ type MockStore struct {
 	address types.Address // the (Ethereum) address associated to the signing key
 }
 
-func NewMockStore(key []byte) Store {
+func NewMockStore(key []byte) MockStore {
 	ms := MockStore{}
 	ms.key = key
 
@@ -41,7 +41,7 @@ func NewMockStore(key []byte) Store {
 	ms.objectives = make(map[protocols.ObjectiveId]string)
 	ms.channels = make(map[types.Destination]string)
 
-	return &ms
+	return ms
 }
 
 func (ms MockStore) GetAddress() *types.Address {
