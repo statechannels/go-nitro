@@ -168,7 +168,7 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 	}
 
 	if !fundingComplete && safeToDeposit && amountToDeposit.IsNonZero() {
-		deposit := protocols.ChainTransaction{ChannelId: updated.C.Id, Deposit: s.myDepositTarget}
+		deposit := protocols.ChainTransaction{ChannelId: updated.C.Id, Deposit: amountToDeposit}
 		se.TransactionsToSubmit = append(se.TransactionsToSubmit, deposit)
 		return updated, se, WaitingForCompleteFunding, nil
 	}
