@@ -66,7 +66,7 @@ func TestSetGetObjective(t *testing.T) {
 		t.Errorf("no channels were persisted / discovered when writing the objective")
 	}
 
-	// todo: test writing / reading of a VirtualGundObjective
+	// todo: test writing / reading of a VirtualFundObjective
 }
 
 func TestGetObjectiveByChannelId(t *testing.T) {
