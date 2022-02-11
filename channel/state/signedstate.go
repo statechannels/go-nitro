@@ -90,6 +90,17 @@ func (ss SignedState) Merge(ss2 SignedState) error {
 	return nil
 }
 
+func (ss SignedState) Clone() SignedState {
+	clonedSigs := make(map[uint]Signature, len(ss.sigs))
+	for i, sig := range ss.sigs {
+		clonedSigs[i] = sig
+	}
+	return SignedState{
+		state: ss.state.Clone(),
+		sigs:  clonedSigs,
+	}
+}
+
 // Equal returns true if the passed SignedState is deeply equal in value to the receiver.
 func (ss SignedState) Equal(ss2 SignedState) bool {
 	if !ss.state.Equal(ss2.state) {

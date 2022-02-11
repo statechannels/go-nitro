@@ -226,7 +226,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// And then crank it to see which "pause point" (WaitingFor) we end up at.
 
 			// Initial Crank
-			_, got, waitingFor, err := o.Crank(&my.privateKey)
+			oObj, got, waitingFor, err := o.Crank(&my.privateKey)
+			o = oObj.(VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -253,7 +254,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			o.V.AddStateWithSignature(vPreFund, correctSignatureByP_1OnVPreFund)
 
 			// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
-			oObj, got, waitingFor, err := o.Crank(&my.privateKey)
+			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
 			o = oObj.(VirtualFundObjective)
 			if err != nil {
 				t.Error(err)

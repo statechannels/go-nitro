@@ -176,16 +176,26 @@ func (s State) Equal(r State) bool {
 		s.IsFinal == r.IsFinal
 }
 
+func (f FixedPart) Clone() FixedPart {
+	clone := FixedPart{}
+	clone.ChainId = new(big.Int).Set(f.ChainId)
+	clone.Participants = append(clone.Participants, f.Participants...)
+	clone.ChannelNonce = new(big.Int).Set(f.ChannelNonce)
+	clone.AppDefinition = f.AppDefinition
+	clone.ChallengeDuration = new(big.Int).Set(f.ChallengeDuration)
+	return clone
+}
+
 // Clone returns a clone of the state
 func (s State) Clone() State {
 	clone := State{}
-
 	// Fixed part
-	clone.ChainId = new(big.Int).Set(s.ChainId)
-	clone.Participants = append(clone.Participants, s.Participants...)
-	clone.ChannelNonce = new(big.Int).Set(s.ChannelNonce)
-	clone.AppDefinition = s.AppDefinition
-	clone.ChallengeDuration = new(big.Int).Set(s.ChallengeDuration)
+	cloneFixedPart := s.FixedPart().Clone()
+	clone.ChainId = cloneFixedPart.ChainId
+	clone.Participants = cloneFixedPart.Participants
+	clone.ChannelNonce = cloneFixedPart.ChannelNonce
+	clone.AppDefinition = cloneFixedPart.AppDefinition
+	clone.ChallengeDuration = cloneFixedPart.ChallengeDuration
 
 	// Variable part
 	clone.AppData = make(types.Bytes, 0, len(s.AppData))

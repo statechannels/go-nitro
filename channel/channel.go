@@ -97,7 +97,14 @@ func (lc TwoPartyLedger) TheirDestination() types.Destination {
 
 // Clone returns a deep copy of the receiver
 func (c Channel) Clone() Channel {
-	return c // no pointer members, so this is sufficient
+	clonedSignedStateForTurnNum := map[uint64]state.SignedState{}
+	for i, ss := range c.SignedStateForTurnNum {
+		clonedSignedStateForTurnNum[i] = ss.Clone()
+	}
+	c.SignedStateForTurnNum = clonedSignedStateForTurnNum
+	c.OnChainFunding = c.OnChainFunding.Clone()
+	c.FixedPart = c.FixedPart.Clone()
+	return c
 }
 
 // Equal returns true if the channel is deeply equal to the reciever, false otherwise
