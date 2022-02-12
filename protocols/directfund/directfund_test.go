@@ -183,12 +183,24 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the first "deposit"
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
-	_, _, waitingFor, err = o.Crank(&alice.privateKey)
+	_, sideEffects, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
 	if waitingFor != WaitingForCompleteFunding {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
+	}
+	want = protocols.SideEffects{
+		TransactionsToSubmit: []protocols.ChainTransaction{{
+			ChannelId: o.C.Id,
+			Deposit: types.Funds{
+				testState.Outcome[0].Asset: testState.Outcome[0].Allocations[0].Amount,
+			},
+		}},
+	}
+
+	if diff := cmp.Diff(want, sideEffects); diff != "" {
+		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// Manually make the second "deposit"
@@ -221,6 +233,4 @@ func TestCrank(t *testing.T) {
 	if waitingFor != WaitingForNothing {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
 	}
-
-	// TODO Test the returned SideEffects
 }
