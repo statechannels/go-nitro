@@ -77,55 +77,6 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestPreFundSideEffects(t *testing.T) {
-	// Construct various variables for use in the test.
-	var o, _ = New(true, testState, testState.Participants[0])
-
-	updated, got, _, err := o.Crank(&alice.privateKey)
-	if err != nil {
-		t.Error(err)
-	}
-	expectedState := updated.(DirectFundObjective).C.SignedStateForTurnNum[0]
-	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedState}}
-	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
-
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("TestPreFundSideEffects: side effects mismatch (-want +got):\n%s", diff)
-	}
-
-}
-
-func TestPostFundSideEffects(t *testing.T) {
-	var o, _ = New(true, testState, testState.Participants[0])
-	var correctSignatureByAliceOnPreFund, _ = o.C.PreFundState().Sign(alice.privateKey)
-	var correctSignatureByBobOnPreFund, _ = o.C.PreFundState().Sign(bob.privateKey)
-
-	// Manually progress the extended state by collecting prefund signatures
-	o.C.AddStateWithSignature(o.C.PreFundState(), correctSignatureByAliceOnPreFund)
-	o.C.AddStateWithSignature(o.C.PreFundState(), correctSignatureByBobOnPreFund)
-
-	// Manually make the first "deposit"
-	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
-
-	// Manually make the second "deposit"
-	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
-	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
-
-	updated, got, _, err := o.Crank(&alice.privateKey)
-	if err != nil {
-		t.Error(err)
-	}
-
-	expectedState := updated.(DirectFundObjective).C.SignedStateForTurnNum[1]
-	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedState}}
-	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
-
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("TestPostFundSideEffects: side effects mismatch (-want +got):\n%s", diff)
-	}
-
-}
-
 func TestUpdate(t *testing.T) {
 	// Construct various variables for use in TestUpdate
 	var s, _ = New(false, testState, testState.Participants[0])
@@ -198,15 +149,23 @@ func TestCrank(t *testing.T) {
 	o := s.Approve().(DirectFundObjective)
 
 	// To test the finite state progression, we are going to progressively mutate o
-	// And then crank it to see which "pause point" (WaitingFor) we end up at.
+	// And then crank it to see
+	// - which "pause point" (WaitingFor) we end up at,
+	// - what side effects are declared.
 
 	// Initial Crank
-	_, _, waitingFor, err := o.Crank(&alice.privateKey)
+	updated, sideEffects, waitingFor, err := o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
 	if waitingFor != WaitingForCompletePrefund {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
+	}
+	expectedState := updated.(DirectFundObjective).C.SignedStateForTurnNum[0]
+	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedState}}
+	want := protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
+	if diff := cmp.Diff(want, sideEffects); diff != "" {
+		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// Manually progress the extended state by collecting prefund signatures
@@ -235,12 +194,18 @@ func TestCrank(t *testing.T) {
 	// Manually make the second "deposit"
 	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
-	_, _, waitingFor, err = o.Crank(&alice.privateKey)
+	updated, sideEffects, waitingFor, err = o.Crank(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
 	if waitingFor != WaitingForCompletePostFund {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
+	}
+	expectedState = updated.(DirectFundObjective).C.SignedStateForTurnNum[1]
+	expectedMessage = protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedState}}
+	want = protocols.SideEffects{MessagesToSend: []protocols.Message{expectedMessage}}
+	if diff := cmp.Diff(want, sideEffects); diff != "" {
+		t.Errorf("TestPreFundSideEffects: side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// Manually progress the extended state by collecting postfund signatures
