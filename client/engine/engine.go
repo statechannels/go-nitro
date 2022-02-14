@@ -3,15 +3,18 @@ package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"strings"
 
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/ledger"
 )
 
 // Engine is the imperative part of the core business logic of a go-nitro Client
@@ -30,6 +33,8 @@ type Engine struct {
 	store store.Store // A Store for persisting and restoring important data
 
 	logger *log.Logger
+
+	ledgerManager *ledger.LedgerManager
 }
 
 // APIEvent is an internal representation of an API call
@@ -57,6 +62,8 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e := Engine{}
 
 	e.store = store
+
+	e.ledgerManager = ledger.NewLedgerManager()
 
 	// bind to inbound chans
 	e.FromAPI = make(chan APIEvent)
@@ -171,6 +178,29 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 
 }
 
+func (e *Engine) handleLedgerRequest(req protocols.LedgerRequest) {
+	e.logger.Printf("Handling ledger request for %s", req.LedgerId)
+	ch, ok := e.store.GetChannel(req.LedgerId)
+
+	if !ok {
+		panic(fmt.Sprintf("Could not find ledger %s", req.LedgerId))
+	}
+	ledger := &channel.TwoPartyLedger{Channel: *ch}
+	se, err := e.ledgerManager.HandleRequest(ledger, req, e.store.GetChannelSecretKey())
+	if err != nil {
+		panic(err)
+	}
+
+	// Update the store with the latest ledger channel
+	err = e.store.SetChannel(ch)
+	if err != nil {
+		panic(err)
+	}
+
+	// Send out the ledger request messages
+	e.executeSideEffects(se)
+}
+
 // executeSideEffects executes the SideEffects declared by cranking an Objective
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	for _, message := range sideEffects.MessagesToSend {
@@ -181,6 +211,10 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId)
 		e.toChain <- tx
 	}
+	for _, req := range sideEffects.LedgerRequests {
+		e.handleLedgerRequest(req)
+	}
+
 }
 
 // attemptProgress takes a "live" objective in memory and performs the following actions:
