@@ -214,10 +214,9 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
 			}
 
-			ledgerCranker.Update(o.ToMyRight.Channel)
-
 			ledger.SignPreAndPostFundingStates(o.ToMyRight.Channel, []*[]byte{&alice.privateKey, &p1.privateKey})
-			_, _ = ledgerCranker.HandleRequest(got.LedgerRequests[0], o.Id(), &alice.privateKey)
+
+			_, _ = ledgerCranker.HandleRequest(o.ToMyRight.Channel, got.LedgerRequests[0], o.Id(), &alice.privateKey)
 			ledger.SignLatest(o.ToMyRight.Channel, [][]byte{p1.privateKey})
 			// Cranking now should not generate side effects, because we already did that
 			oObj, got, waitingFor, err = o.Crank(&my.privateKey)

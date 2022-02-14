@@ -13,21 +13,13 @@ import (
 )
 
 type LedgerCranker struct {
-	ledgers map[types.Destination]*channel.TwoPartyLedger
-	nonce   *big.Int
+	nonce *big.Int
 }
 
 func NewLedgerCranker() LedgerCranker {
 	return LedgerCranker{
-		ledgers: make(map[types.Destination]*channel.TwoPartyLedger),
-		nonce:   big.NewInt(0),
+		nonce: big.NewInt(0),
 	}
-}
-
-// Update updates the ledger cranker with the given ledger channel
-// Eventually this will be deprecated in favour of using store
-func (l *LedgerCranker) Update(ledger *channel.TwoPartyLedger) {
-	l.ledgers[ledger.Id] = ledger
 }
 
 // CreateLedger creates a new  two party ledger channel based on the provided left and right outcomes.
@@ -54,7 +46,6 @@ func (l *LedgerCranker) CreateLedger(left outcome.Allocation, right outcome.Allo
 		panic(lErr)
 	}
 
-	l.ledgers[ledger.Id] = ledger
 	// Update the nonce by 1
 	l.nonce = big.NewInt(0).Add(l.nonce, big.NewInt(1))
 	return ledger
@@ -62,9 +53,8 @@ func (l *LedgerCranker) CreateLedger(left outcome.Allocation, right outcome.Allo
 
 // HandleRequest accepts a ledger request and updates the ledger channel based on the request.
 // It returns a signed state message that can be sent to other participants.
-func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId protocols.ObjectiveId, secretKey *[]byte) (protocols.SideEffects, error) {
+func (l *LedgerCranker) HandleRequest(ledger *channel.TwoPartyLedger, request protocols.LedgerRequest, oId protocols.ObjectiveId, secretKey *[]byte) (protocols.SideEffects, error) {
 
-	ledger := l.GetLedger(request.LedgerId)
 	guarantee, _ := outcome.GuaranteeMetadata{
 		Left:  request.Left,
 		Right: request.Right,
@@ -122,16 +112,6 @@ func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId proto
 	messages := protocols.CreateSignedStateMessages(oId, ss, ledger.MyIndex)
 	return protocols.SideEffects{MessagesToSend: messages}, nil
 
-}
-
-// GetLedger returns the ledger for the given id.
-// This will be deprecated in favour of using the store
-func (l *LedgerCranker) GetLedger(ledgerId types.Destination) *channel.TwoPartyLedger {
-	ledger, ok := l.ledgers[ledgerId]
-	if !ok {
-		panic(fmt.Sprintf("Ledger %s not found", ledgerId))
-	}
-	return ledger
 }
 
 func SignPreAndPostFundingStates(ledger *channel.TwoPartyLedger, secretKeys []*[]byte) {
