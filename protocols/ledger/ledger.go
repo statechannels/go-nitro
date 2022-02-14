@@ -57,10 +57,9 @@ func (l *LedgerCranker) CreateLedger(left outcome.Allocation, right outcome.Allo
 }
 
 // HandleRequest accepts a ledger request and updates the ledger channel based on the request.
-func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId protocols.ObjectiveId, secretKey *[]byte) protocols.SideEffects {
+func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId protocols.ObjectiveId, secretKey *[]byte) (protocols.SideEffects, error) {
 
-	ledger := l.ledgers[request.LedgerId]
-
+	ledger := l.GetLedger(request.LedgerId)
 	guarantee, _ := outcome.GuaranteeMetadata{
 		Left:  request.Left,
 		Right: request.Right,
@@ -71,18 +70,18 @@ func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId proto
 		panic(err)
 	}
 
-	singleAsset := types.Address{}
+	asset := types.Address{}
 	nextState := supported.Clone()
 
 	// Calculate the amounts
-	amountPerParticipant := big.NewInt(0).Div(request.Amount[singleAsset], big.NewInt(2))
-	leftAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Left)[singleAsset], amountPerParticipant)
-	rightAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Right)[singleAsset], amountPerParticipant)
+	amountPerParticipant := big.NewInt(0).Div(request.Amount[asset], big.NewInt(2))
+	leftAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Left)[asset], amountPerParticipant)
+	rightAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Right)[asset], amountPerParticipant)
 	if leftAmount.Cmp(big.NewInt(0)) < 0 {
-		panic(fmt.Sprintf("Allocation for %x cannot afford the amount %d", request.Left, amountPerParticipant))
+		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Left, amountPerParticipant)
 	}
 	if rightAmount.Cmp(big.NewInt(0)) < 0 {
-		panic(fmt.Sprintf("Allocation for %x cannot afford the amount %d", request.Right, amountPerParticipant))
+		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Right, amountPerParticipant)
 	}
 
 	nextState.Outcome = outcome.Exit{outcome.SingleAssetExit{
@@ -116,7 +115,7 @@ func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId proto
 	}
 
 	messages := protocols.CreateSignedStateMessages(oId, ss, ledger.MyIndex)
-	return protocols.SideEffects{MessagesToSend: messages}
+	return protocols.SideEffects{MessagesToSend: messages}, nil
 
 }
 
