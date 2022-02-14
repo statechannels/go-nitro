@@ -53,7 +53,7 @@ func (l *LedgerCranker) CreateLedger(left outcome.Allocation, right outcome.Allo
 
 // HandleRequest accepts a ledger request and updates the ledger channel based on the request.
 // It returns a signed state message that can be sent to other participants.
-func (l *LedgerCranker) HandleRequest(ledger *channel.TwoPartyLedger, request protocols.LedgerRequest, oId protocols.ObjectiveId, secretKey *[]byte) (protocols.SideEffects, error) {
+func (l *LedgerCranker) HandleRequest(ledger *channel.TwoPartyLedger, request protocols.LedgerRequest, secretKey *[]byte) (protocols.SideEffects, error) {
 
 	guarantee, _ := outcome.GuaranteeMetadata{
 		Left:  request.Left,
@@ -109,7 +109,7 @@ func (l *LedgerCranker) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 		return protocols.SideEffects{}, errors.New("Could not add signed state to channel")
 	}
 
-	messages := protocols.CreateSignedStateMessages(oId, ss, ledger.MyIndex)
+	messages := protocols.CreateSignedStateMessages(request.ObjectiveId, ss, ledger.MyIndex)
 	return protocols.SideEffects{MessagesToSend: messages}, nil
 
 }

@@ -74,22 +74,22 @@ func TestHandleLedgerRequest(t *testing.T) {
 	asset := types.Address{}
 	oId := protocols.ObjectiveId("Test")
 
-	validRequest := protocols.LedgerRequest{LedgerId: ledger.Id, Left: left.Destination, Right: right.Destination, Destination: destination, Amount: types.Funds{asset: big.NewInt(4)}}
-	invalidRequest := protocols.LedgerRequest{LedgerId: ledger.Id, Left: left.Destination, Right: right.Destination, Destination: destination, Amount: types.Funds{asset: big.NewInt(10)}}
+	validRequest := protocols.LedgerRequest{ObjectiveId: oId, LedgerId: ledger.Id, Left: left.Destination, Right: right.Destination, Destination: destination, Amount: types.Funds{asset: big.NewInt(4)}}
+	invalidRequest := protocols.LedgerRequest{ObjectiveId: oId, LedgerId: ledger.Id, Left: left.Destination, Right: right.Destination, Destination: destination, Amount: types.Funds{asset: big.NewInt(10)}}
 
-	_, err := cranker.HandleRequest(ledger, validRequest, oId, &alice.privateKey)
+	_, err := cranker.HandleRequest(ledger, validRequest, &alice.privateKey)
 	if err == nil {
 		t.Errorf("TestHandleLedgerRequest: expected request to be fail as there is no supported state")
 	}
 
 	SignPreAndPostFundingStates(ledger, []*[]byte{&alice.privateKey, &bob.privateKey})
 
-	_, err = cranker.HandleRequest(ledger, invalidRequest, oId, &alice.privateKey)
+	_, err = cranker.HandleRequest(ledger, invalidRequest, &alice.privateKey)
 	if err == nil {
 		t.Errorf("TestHandleLedgerRequest: expected request to  fail as the ledger does not have enough funds")
 	}
 
-	sideEffects, err := cranker.HandleRequest(ledger, validRequest, oId, &alice.privateKey)
+	sideEffects, err := cranker.HandleRequest(ledger, validRequest, &alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}

@@ -329,6 +329,7 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 	if s.MyRole > 0 { // Not Alice
 		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
 			protocols.LedgerRequest{
+				ObjectiveId: s.Id(),
 				LedgerId:    s.ToMyLeft.Channel.Id,
 				Destination: s.V.Id,
 				Amount:      s.V.Total(),
@@ -340,6 +341,7 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 	if s.MyRole < n { // Not Bob
 		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
 			protocols.LedgerRequest{
+				ObjectiveId: s.Id(),
 				LedgerId:    s.ToMyRight.Channel.Id,
 				Destination: s.V.Id,
 				Amount:      s.V.Total(),

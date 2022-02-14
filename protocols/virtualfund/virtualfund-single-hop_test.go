@@ -203,6 +203,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Error(`Expected ledger update idempotency flag to be raised, but it wasn't`)
 			}
 			var expectedLedgerRequests = []protocols.LedgerRequest{{
+				ObjectiveId: o.Id(),
 				LedgerId:    ledgerChannelToMyRight.Id,
 				Destination: s.V.Id,
 				Amount:      types.Funds{types.Address{}: s.V.PreFundState().VariablePart().Outcome[0].Allocations.Total()},
@@ -210,13 +211,13 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}}
 			want = protocols.SideEffects{LedgerRequests: expectedLedgerRequests}
 
-			if diff := cmp.Diff(want, got); diff != "" {
+			if diff := cmp.Diff(want, got, cmp.Comparer(types.Equal)); diff != "" {
 				t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
 			}
 
 			ledger.SignPreAndPostFundingStates(o.ToMyRight.Channel, []*[]byte{&alice.privateKey, &p1.privateKey})
 
-			_, _ = ledgerCranker.HandleRequest(o.ToMyRight.Channel, got.LedgerRequests[0], o.Id(), &alice.privateKey)
+			_, _ = ledgerCranker.HandleRequest(o.ToMyRight.Channel, got.LedgerRequests[0], &alice.privateKey)
 			ledger.SignLatest(o.ToMyRight.Channel, [][]byte{p1.privateKey})
 			// Cranking now should not generate side effects, because we already did that
 			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
