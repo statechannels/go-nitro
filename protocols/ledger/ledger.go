@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -67,7 +68,7 @@ func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId proto
 
 	supported, err := ledger.Channel.LatestSupportedState()
 	if err != nil {
-		panic(err)
+		return protocols.SideEffects{}, fmt.Errorf("Could not find a supported state %w", err)
 	}
 
 	asset := types.Address{}
@@ -108,10 +109,10 @@ func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId proto
 	ss := state.NewSignedState(nextState)
 	err = ss.SignAndAdd(secretKey)
 	if err != nil {
-		panic(err)
+		return protocols.SideEffects{}, fmt.Errorf("Could not sign state: %w", err)
 	}
 	if ok := ledger.Channel.AddSignedState(ss); !ok {
-		panic("could not add state")
+		return protocols.SideEffects{}, errors.New("Could not add signed state to channel")
 	}
 
 	messages := protocols.CreateSignedStateMessages(oId, ss, ledger.MyIndex)
