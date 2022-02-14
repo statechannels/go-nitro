@@ -67,15 +67,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		role:        2,
 	}
 
-	// completeLedgerFunding := func(o VirtualFundObjective, l0state state.State, l0updatedstate state.State) {
-	// 	// TODO: Update this to use signState
-	// 	// Manually progress the extended state by "completing funding" from this wallet's point of view
-	// 	correctSignatureByAliceOnL_0updatedsate, _ := l0updatedstate.Sign(alice.privateKey)
-	// 	correctSignatureByP_1OnL_0updatedsate, _ := l0updatedstate.Sign(p1.privateKey)
-	// 	o.ToMyRight.Channel.AddStateWithSignature(l0updatedstate, correctSignatureByAliceOnL_0updatedsate)
-	// 	o.ToMyRight.Channel.AddStateWithSignature(l0updatedstate, correctSignatureByP_1OnL_0updatedsate)
-	// 	o.ToMyRight.Channel.OnChainFunding[types.Address{}] = l0state.Outcome[0].Allocations.Total() // Make this channel fully funded
-
 	// }
 	/////////////////////
 	// VIRTUAL CHANNEL //
@@ -102,70 +93,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			},
 		}},
 		TurnNum: 0,
-		IsFinal: false,
-	}
-
-	/////////////////////
-	// LEDGER CHANNELS //
-	/////////////////////
-
-	// var l0state = state.State{
-	// 	ChainId:           big.NewInt(9001),
-	// 	Participants:      []types.Address{alice.address, p1.address},
-	// 	ChannelNonce:      big.NewInt(0),
-	// 	AppDefinition:     types.Address{},
-	// 	ChallengeDuration: big.NewInt(45),
-	// 	AppData:           []byte{},
-	// 	Outcome: outcome.Exit{outcome.SingleAssetExit{
-	// 		Allocations: outcome.Allocations{
-	// 			outcome.Allocation{
-	// 				Destination: alice.destination,
-	// 				Amount:      big.NewInt(5),
-	// 			},
-	// 			outcome.Allocation{
-	// 				Destination: p1.destination,
-	// 				Amount:      big.NewInt(5),
-	// 			},
-	// 		},
-	// 	}},
-	// 	TurnNum: 0, // We use turnNum 0 so that we can use github.com/statechannels/go-nitro/channel.New().
-	// 	// It would be more realistic to have a higher TurnNum, but that would involve more boilerplate code.
-	// 	IsFinal: false,
-	// }
-
-	var vId, _ = vPreFund.ChannelId()
-
-	var l0guaranteemetadataemcoded, _ = outcome.GuaranteeMetadata{
-		Left:  alice.destination,
-		Right: p1.destination,
-	}.Encode()
-
-	var l0updatedstate = state.State{
-		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{alice.address, p1.address},
-		ChannelNonce:      big.NewInt(0),
-		AppDefinition:     types.Address{},
-		ChallengeDuration: big.NewInt(45),
-		AppData:           []byte{},
-		Outcome: outcome.Exit{outcome.SingleAssetExit{
-			Allocations: outcome.Allocations{
-				outcome.Allocation{
-					Destination: alice.destination,
-					Amount:      big.NewInt(0),
-				},
-				outcome.Allocation{
-					Destination: p1.destination,
-					Amount:      big.NewInt(0),
-				},
-				outcome.Allocation{
-					Destination:    vId,
-					Amount:         big.NewInt(10),
-					AllocationType: outcome.GuaranteeAllocationType,
-					Metadata:       l0guaranteemetadataemcoded,
-				},
-			},
-		}},
-		TurnNum: 2, // This needs to be greater than the previous state else it will be rejected by Channel.AddSignedState
 		IsFinal: false,
 	}
 
@@ -290,7 +217,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			ledgerCranker.Update(o.ToMyRight.Channel)
 
 			ledger.SignPreAndPostFundingStates(o.ToMyRight.Channel, []*[]byte{&alice.privateKey, &p1.privateKey})
-			ledgerCranker.HandleRequest(got.LedgerRequests[0], o.Id(), &alice.privateKey)
+			_, _ = ledgerCranker.HandleRequest(got.LedgerRequests[0], o.Id(), &alice.privateKey)
 			ledger.SignLatest(o.ToMyRight.Channel, [][]byte{p1.privateKey})
 			// Cranking now should not generate side effects, because we already did that
 			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
@@ -368,7 +295,9 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				ObjectiveId: s.Id(),
 			}
 			f.SignedStates = make([]state.SignedState, 0)
-			ss := signState(l0updatedstate, alice)
+			cranker := ledger.NewLedgerCranker()
+			ledger := cranker.CreateLedger(left, right, &alice.privateKey, 0)
+			ss := signState(ledger.PreFundState(), alice)
 
 			f.SignedStates = append(f.SignedStates, ss)
 
