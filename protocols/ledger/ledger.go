@@ -12,18 +12,18 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-type LedgerCranker struct {
+type LedgerManager struct {
 	nonce *big.Int
 }
 
-func NewLedgerCranker() LedgerCranker {
-	return LedgerCranker{
+func NewLedgerManager() LedgerManager {
+	return LedgerManager{
 		nonce: big.NewInt(0),
 	}
 }
 
 // CreateLedger creates a new  two party ledger channel based on the provided left and right outcomes.
-func (l *LedgerCranker) CreateLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint) *channel.TwoPartyLedger {
+func (l *LedgerManager) CreateLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint) *channel.TwoPartyLedger {
 
 	leftAddress, _ := left.Destination.ToAddress()
 	rightAddress, _ := right.Destination.ToAddress()
@@ -53,7 +53,7 @@ func (l *LedgerCranker) CreateLedger(left outcome.Allocation, right outcome.Allo
 
 // HandleRequest accepts a ledger request and updates the ledger channel based on the request.
 // It returns a signed state message that can be sent to other participants.
-func (l *LedgerCranker) HandleRequest(ledger *channel.TwoPartyLedger, request protocols.LedgerRequest, secretKey *[]byte) (protocols.SideEffects, error) {
+func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request protocols.LedgerRequest, secretKey *[]byte) (protocols.SideEffects, error) {
 
 	guarantee, _ := outcome.GuaranteeMetadata{
 		Left:  request.Left,

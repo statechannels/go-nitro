@@ -108,12 +108,12 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		// Alice plays role 0 so has no ledger channel on her left
 		var ledgerChannelToMyLeft *channel.TwoPartyLedger
 
-		ledgerCranker := ledger.NewLedgerCranker()
+		ledgerManager := ledger.NewLedgerManager()
 		left := outcome.Allocation{Destination: alice.destination, Amount: big.NewInt(5)}
 		right := outcome.Allocation{Destination: p1.destination, Amount: big.NewInt(5)}
 
 		// She has a single ledger channel L_0 connecting her to P_1
-		var ledgerChannelToMyRight = ledgerCranker.CreateLedger(left, right, &alice.privateKey, alice.role)
+		var ledgerChannelToMyRight = ledgerManager.CreateLedger(left, right, &alice.privateKey, alice.role)
 		// Ensure this channel is fully funded on chain
 		ledgerChannelToMyRight.OnChainFunding = ledgerChannelToMyRight.PreFundState().Outcome.TotalAllocated()
 
@@ -217,7 +217,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			ledger.SignPreAndPostFundingStates(o.ToMyRight.Channel, []*[]byte{&alice.privateKey, &p1.privateKey})
 
-			_, _ = ledgerCranker.HandleRequest(o.ToMyRight.Channel, got.LedgerRequests[0], &alice.privateKey)
+			_, _ = ledgerManager.HandleRequest(o.ToMyRight.Channel, got.LedgerRequests[0], &alice.privateKey)
 			ledger.SignLatest(o.ToMyRight.Channel, [][]byte{p1.privateKey})
 			// Cranking now should not generate side effects, because we already did that
 			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
@@ -295,8 +295,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				ObjectiveId: s.Id(),
 			}
 			f.SignedStates = make([]state.SignedState, 0)
-			cranker := ledger.NewLedgerCranker()
-			ledger := cranker.CreateLedger(left, right, &alice.privateKey, 0)
+			manager := ledger.NewLedgerManager()
+			ledger := manager.CreateLedger(left, right, &alice.privateKey, 0)
 			ss := signState(ledger.PreFundState(), alice)
 
 			f.SignedStates = append(f.SignedStates, ss)
