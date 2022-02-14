@@ -71,17 +71,29 @@ func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId proto
 		panic(err)
 	}
 
+	singleAsset := types.Address{}
 	nextState := supported.Clone()
-	// TODO: We're currently setting the amount to 0 for participants, we should calculate the correct amount
+
+	// Calculate the amounts
+	amountPerParticipant := big.NewInt(0).Div(request.Amount[singleAsset], big.NewInt(2))
+	leftAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Left)[singleAsset], amountPerParticipant)
+	rightAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Right)[singleAsset], amountPerParticipant)
+	if leftAmount.Cmp(big.NewInt(0)) < 0 {
+		panic(fmt.Sprintf("Allocation for %x cannot afford the amount %d", request.Left, amountPerParticipant))
+	}
+	if rightAmount.Cmp(big.NewInt(0)) < 0 {
+		panic(fmt.Sprintf("Allocation for %x cannot afford the amount %d", request.Right, amountPerParticipant))
+	}
+
 	nextState.Outcome = outcome.Exit{outcome.SingleAssetExit{
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
 				Destination: request.Left,
-				Amount:      big.NewInt(0),
+				Amount:      leftAmount,
 			},
 			outcome.Allocation{
 				Destination: request.Right,
-				Amount:      big.NewInt(0),
+				Amount:      rightAmount,
 			},
 			outcome.Allocation{
 				Destination:    request.Destination,
