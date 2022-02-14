@@ -11,11 +11,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// DirectFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data
-type LedgerRequestHandler interface {
-	HandleRequest(request protocols.LedgerRequest, secretKey *[]byte) protocols.SideEffects
-}
-
 type LedgerCranker struct {
 	ledgers map[types.Destination]*channel.TwoPartyLedger
 	nonce   *big.Int
@@ -27,9 +22,13 @@ func NewLedgerCranker() LedgerCranker {
 		nonce:   big.NewInt(0),
 	}
 }
+
+// Update updates the ledger cranker with the given ledger channel
+// Eventually this will be deprecated in favour of using store
 func (l *LedgerCranker) Update(ledger *channel.TwoPartyLedger) {
 	l.ledgers[ledger.Id] = ledger
 }
+
 func (l *LedgerCranker) CreateLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint) *channel.TwoPartyLedger {
 
 	leftAddress, _ := left.Destination.ToAddress()
@@ -44,7 +43,7 @@ func (l *LedgerCranker) CreateLedger(left outcome.Allocation, right outcome.Allo
 		Outcome: outcome.Exit{outcome.SingleAssetExit{
 			Allocations: outcome.Allocations{left, right},
 		}},
-		TurnNum: 0, // Start at post fund
+		TurnNum: 0,
 		IsFinal: false,
 	}
 
@@ -57,17 +56,23 @@ func (l *LedgerCranker) CreateLedger(left outcome.Allocation, right outcome.Allo
 	return ledger
 }
 
+// HandleRequest accepts a ledger request and updates the ledger channel based on the request.
 func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId protocols.ObjectiveId, secretKey *[]byte) protocols.SideEffects {
+
 	ledger := l.ledgers[request.LedgerId]
+
 	guarantee, _ := outcome.GuaranteeMetadata{
 		Left:  request.Left,
 		Right: request.Right,
 	}.Encode()
+
 	supported, err := ledger.Channel.LatestSupportedState()
 	if err != nil {
 		panic(err)
 	}
+
 	nextState := supported.Clone()
+	// TODO: We're currently setting the amount to 0 for participants, we should calculate the correct amount
 	nextState.Outcome = outcome.Exit{outcome.SingleAssetExit{
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
@@ -86,7 +91,9 @@ func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId proto
 			},
 		},
 	}}
+
 	nextState.TurnNum = nextState.TurnNum + 1
+
 	ss := state.NewSignedState(nextState)
 	err = ss.SignAndAdd(secretKey)
 	if err != nil {
@@ -101,29 +108,26 @@ func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId proto
 
 }
 
-// TODO: These are test helpers and probably should live somewhere else
-func (l *LedgerCranker) SignPreAndPostFundingStates(ledgerId types.Destination, secretKeys []*[]byte) {
+// GetLedger returns the ledger for the given id.
+// This will be deprecated in favour of using the store
+func (l *LedgerCranker) GetLedger(ledgerId types.Destination) *channel.TwoPartyLedger {
 	ledger, ok := l.ledgers[ledgerId]
 	if !ok {
 		panic(fmt.Sprintf("Ledger %s not found", ledgerId))
 	}
+	return ledger
+}
+
+func SignPreAndPostFundingStates(ledger *channel.TwoPartyLedger, secretKeys []*[]byte) {
 	for _, sk := range secretKeys {
 		_, _ = ledger.SignAndAddPrefund(sk)
-
 	}
 	for _, sk := range secretKeys {
 		_, _ = ledger.Channel.SignAndAddPostfund(sk)
-
 	}
-	l.ledgers[ledgerId] = ledger
-
 }
 
-func (l *LedgerCranker) SignLatest(ledgerId types.Destination, secretKeys [][]byte) {
-	ledger, ok := l.ledgers[ledgerId]
-	if !ok {
-		panic(fmt.Sprintf("Ledger %s not found", ledgerId))
-	}
+func SignLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 
 	// Find the largest turn num and therefore the latest state
 	turnNum := uint64(0)
