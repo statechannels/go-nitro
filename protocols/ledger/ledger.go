@@ -16,8 +16,8 @@ type LedgerManager struct {
 	nonce *big.Int
 }
 
-func NewLedgerManager() LedgerManager {
-	return LedgerManager{
+func NewLedgerManager() *LedgerManager {
+	return &LedgerManager{
 		nonce: big.NewInt(0),
 	}
 }
