@@ -56,6 +56,11 @@ func TestCreateLedger(t *testing.T) {
 		t.Errorf("TestCreateLedger: ledger state mismatch (-want +got):\n%s", diff)
 	}
 
+	ledger2 := cranker.CreateLedger(left, right, &alice.privateKey, 0)
+	if ledger2.ChannelNonce.Cmp(big.NewInt(1)) != 0 {
+		t.Error("TestCreateLedger: ledger channel should use the next nonce")
+	}
+
 }
 
 func TestHandleLedgerRequest(t *testing.T) {

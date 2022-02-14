@@ -30,6 +30,7 @@ func (l *LedgerCranker) Update(ledger *channel.TwoPartyLedger) {
 	l.ledgers[ledger.Id] = ledger
 }
 
+// CreateLedger creates a new  two party ledger channel based on the provided left and right outcomes.
 func (l *LedgerCranker) CreateLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint) *channel.TwoPartyLedger {
 
 	leftAddress, _ := left.Destination.ToAddress()
@@ -54,10 +55,13 @@ func (l *LedgerCranker) CreateLedger(left outcome.Allocation, right outcome.Allo
 	}
 
 	l.ledgers[ledger.Id] = ledger
+	// Update the nonce by 1
+	l.nonce = big.NewInt(0).Add(l.nonce, big.NewInt(1))
 	return ledger
 }
 
 // HandleRequest accepts a ledger request and updates the ledger channel based on the request.
+// It returns a signed state message that can be sent to other participants.
 func (l *LedgerCranker) HandleRequest(request protocols.LedgerRequest, oId protocols.ObjectiveId, secretKey *[]byte) (protocols.SideEffects, error) {
 
 	ledger := l.GetLedger(request.LedgerId)
