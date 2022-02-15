@@ -113,7 +113,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		right := outcome.Allocation{Destination: p1.destination, Amount: big.NewInt(5)}
 
 		// She has a single ledger channel L_0 connecting her to P_1
-		var ledgerChannelToMyRight, _ = ledgerManager.CreateTestLedger(left, right, &alice.privateKey, alice.role)
+		var ledgerChannelToMyRight, _ = ledger.CreateTestLedger(left, right, &alice.privateKey, alice.role, big.NewInt(0))
 		// Ensure this channel is fully funded on chain
 		ledgerChannelToMyRight.OnChainFunding = ledgerChannelToMyRight.PreFundState().Outcome.TotalAllocated()
 
@@ -295,8 +295,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				ObjectiveId: s.Id(),
 			}
 			f.SignedStates = make([]state.SignedState, 0)
-			manager := ledger.NewLedgerManager()
-			ledger, _ := manager.CreateTestLedger(left, right, &alice.privateKey, 0)
+
+			ledger, _ := ledger.CreateTestLedger(left, right, &alice.privateKey, 0, big.NewInt(0))
 			ss := signState(ledger.PreFundState(), alice)
 
 			f.SignedStates = append(f.SignedStates, ss)

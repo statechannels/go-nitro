@@ -31,22 +31,17 @@ var bob = actor{
 }
 
 func TestCreateLedger(t *testing.T) {
-	ledgerManager := NewLedgerManager()
+
 	left := outcome.Allocation{Destination: alice.destination, Amount: big.NewInt(3)}
 	right := outcome.Allocation{Destination: bob.destination, Amount: big.NewInt(2)}
 
-	ledger, err := ledgerManager.CreateTestLedger(left, right, &alice.privateKey, 0)
+	ledger, err := CreateTestLedger(left, right, &alice.privateKey, 0, big.NewInt(0))
 	if err != nil {
 		t.Error(err)
 	}
 
 	if ledger.ChannelNonce.Cmp(big.NewInt(0)) != 0 {
 		t.Error("TestCreateLedger: initial ledger channel should use the 0 nonce")
-	}
-
-	ledger2, _ := ledgerManager.CreateTestLedger(left, right, &alice.privateKey, 0)
-	if ledger2.ChannelNonce.Cmp(big.NewInt(1)) != 0 {
-		t.Error("TestCreateLedger: ledger channel should use the next nonce")
 	}
 
 }
@@ -56,7 +51,7 @@ func TestHandleLedgerRequest(t *testing.T) {
 	left := outcome.Allocation{Destination: alice.destination, Amount: big.NewInt(3)}
 	right := outcome.Allocation{Destination: bob.destination, Amount: big.NewInt(2)}
 
-	ledger, _ := ledgerManager.CreateTestLedger(left, right, &alice.privateKey, 0)
+	ledger, _ := CreateTestLedger(left, right, &alice.privateKey, 0, big.NewInt(0))
 
 	destination := types.AddressToDestination(common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`))
 	asset := types.Address{}

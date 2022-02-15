@@ -13,41 +13,10 @@ import (
 )
 
 type LedgerManager struct {
-	nonce *big.Int
 }
 
 func NewLedgerManager() LedgerManager {
-	return LedgerManager{
-		nonce: big.NewInt(0),
-	}
-}
-
-// CreateTestLedger creates a new  two party ledger channel based on the provided left and right outcomes.
-func (l *LedgerManager) CreateTestLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint) (*channel.TwoPartyLedger, error) {
-
-	leftAddress, _ := left.Destination.ToAddress()
-	rightAddress, _ := right.Destination.ToAddress()
-	initialState := state.State{
-		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{leftAddress, rightAddress},
-		ChannelNonce:      l.nonce,
-		AppDefinition:     types.Address{},
-		ChallengeDuration: big.NewInt(45),
-		AppData:           []byte{},
-		Outcome: outcome.Exit{outcome.SingleAssetExit{
-			Allocations: outcome.Allocations{left, right},
-		}},
-		TurnNum: 0,
-		IsFinal: false,
-	}
-
-	ledger, lErr := channel.NewTwoPartyLedger(initialState, myIndex)
-	if lErr != nil {
-		return ledger, fmt.Errorf("error creating ledger: %w", lErr)
-	}
-	// Update the nonce by 1
-	l.nonce = big.NewInt(0).Add(l.nonce, big.NewInt(1))
-	return ledger, nil
+	return LedgerManager{}
 }
 
 // HandleRequest accepts a ledger request and updates the ledger channel based on the request.
@@ -139,4 +108,31 @@ func SignLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 		_ = toSign.SignAndAdd(&secretKey)
 	}
 	ledger.Channel.AddSignedState(toSign)
+}
+
+// CreateTestLedger creates a new  two party ledger channel based on the provided left and right outcomes.
+func CreateTestLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint, nonce *big.Int) (*channel.TwoPartyLedger, error) {
+
+	leftAddress, _ := left.Destination.ToAddress()
+	rightAddress, _ := right.Destination.ToAddress()
+	initialState := state.State{
+		ChainId:           big.NewInt(9001),
+		Participants:      []types.Address{leftAddress, rightAddress},
+		ChannelNonce:      nonce,
+		AppDefinition:     types.Address{},
+		ChallengeDuration: big.NewInt(45),
+		AppData:           []byte{},
+		Outcome: outcome.Exit{outcome.SingleAssetExit{
+			Allocations: outcome.Allocations{left, right},
+		}},
+		TurnNum: 0,
+		IsFinal: false,
+	}
+
+	ledger, lErr := channel.NewTwoPartyLedger(initialState, myIndex)
+	if lErr != nil {
+		return ledger, fmt.Errorf("error creating ledger: %w", lErr)
+	}
+
+	return ledger, nil
 }
