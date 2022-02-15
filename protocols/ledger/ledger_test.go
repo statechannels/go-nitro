@@ -40,23 +40,8 @@ func TestCreateLedger(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectedState := state.State{
-		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{alice.address, bob.address},
-		ChannelNonce:      big.NewInt(0),
-		AppDefinition:     types.Address{},
-		ChallengeDuration: big.NewInt(45),
-		AppData:           []byte{},
-		Outcome: outcome.Exit{outcome.SingleAssetExit{
-			Allocations: outcome.Allocations{left, right},
-		}},
-		TurnNum: 0,
-		IsFinal: false,
-	}
-
-	gotState := ledger.SignedStateForTurnNum[0].State()
-	if diff := cmp.Diff(expectedState, gotState); diff != "" {
-		t.Errorf("TestCreateLedger: ledger state mismatch (-want +got):\n%s", diff)
+	if ledger.ChannelNonce.Cmp(big.NewInt(0)) != 0 {
+		t.Error("TestCreateLedger: initial ledger channel should use the 0 nonce")
 	}
 
 	ledger2, _ := ledgerManager.CreateTestLedger(left, right, &alice.privateKey, 0)
