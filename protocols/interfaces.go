@@ -24,7 +24,11 @@ type LedgerRequest struct {
 
 // Equal checks for equality between the receiver and a second LedgerRequest
 func (l LedgerRequest) Equal(m LedgerRequest) bool {
-	return l.LedgerId == m.LedgerId && l.Amount.Equal(m.Amount) && l.Left == m.Left && l.Right == m.Right && l.ObjectiveId == m.ObjectiveId
+	return l.LedgerId == m.LedgerId &&
+		l.Amount.Equal(m.Amount) &&
+		l.Left == m.Left &&
+		l.Right == m.Right &&
+		l.ObjectiveId == m.ObjectiveId
 }
 
 // SideEffects are effects to be executed by an imperative shell

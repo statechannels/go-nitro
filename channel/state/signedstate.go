@@ -23,11 +23,11 @@ func NewSignedState(s State) SignedState {
 func (ss SignedState) SignAndAdd(secretKey *[]byte) error {
 	sig, err := ss.state.Sign(*secretKey)
 	if err != nil {
-		return fmt.Errorf("SignAndAdd failed to sign the state %w", err)
+		return fmt.Errorf("SignAndAdd failed to sign the state: %w", err)
 	}
 	err = ss.AddSignature(sig)
 	if err != nil {
-		return fmt.Errorf("SignAndAdd failed to sign the state %w", err)
+		return fmt.Errorf("SignAndAdd failed to sign the state: %w", err)
 	}
 	return nil
 }

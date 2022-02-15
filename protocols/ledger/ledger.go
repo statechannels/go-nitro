@@ -22,8 +22,8 @@ func NewLedgerManager() LedgerManager {
 	}
 }
 
-// CreateLedger creates a new  two party ledger channel based on the provided left and right outcomes.
-func (l *LedgerManager) CreateLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint) *channel.TwoPartyLedger {
+// CreateTestLedger creates a new  two party ledger channel based on the provided left and right outcomes.
+func (l *LedgerManager) CreateTestLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint) *channel.TwoPartyLedger {
 
 	leftAddress, _ := left.Destination.ToAddress()
 	rightAddress, _ := right.Destination.ToAddress()
