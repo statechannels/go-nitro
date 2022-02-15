@@ -23,7 +23,7 @@ func NewLedgerManager() LedgerManager {
 }
 
 // CreateTestLedger creates a new  two party ledger channel based on the provided left and right outcomes.
-func (l *LedgerManager) CreateTestLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint) *channel.TwoPartyLedger {
+func (l *LedgerManager) CreateTestLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint) (*channel.TwoPartyLedger, error) {
 
 	leftAddress, _ := left.Destination.ToAddress()
 	rightAddress, _ := right.Destination.ToAddress()
@@ -43,12 +43,11 @@ func (l *LedgerManager) CreateTestLedger(left outcome.Allocation, right outcome.
 
 	ledger, lErr := channel.NewTwoPartyLedger(initialState, myIndex)
 	if lErr != nil {
-		panic(lErr)
+		return ledger, fmt.Errorf("error creating ledger: %w", lErr)
 	}
-
 	// Update the nonce by 1
 	l.nonce = big.NewInt(0).Add(l.nonce, big.NewInt(1))
-	return ledger
+	return ledger, nil
 }
 
 // HandleRequest accepts a ledger request and updates the ledger channel based on the request.
