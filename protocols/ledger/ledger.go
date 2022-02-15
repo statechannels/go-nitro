@@ -62,10 +62,10 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 
 	supported, err := ledger.Channel.LatestSupportedState()
 	if err != nil {
-		return protocols.SideEffects{}, fmt.Errorf("Could not find a supported state %w", err)
+		return protocols.SideEffects{}, fmt.Errorf("error finding a supported state: %w", err)
 	}
 
-	asset := types.Address{}
+	asset := types.Address{} // todo: loop over request.amount's assets
 	nextState := supported.Clone()
 
 	// Calculate the amounts
@@ -91,7 +91,7 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 			},
 			outcome.Allocation{
 				Destination:    request.Destination,
-				Amount:         request.Amount[types.Address{}],
+				Amount:         request.Amount[asset],
 				AllocationType: outcome.GuaranteeAllocationType,
 				Metadata:       guarantee,
 			},
@@ -114,15 +114,17 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 
 }
 
+// SignPreAndPostFundingStates is a test utility function which applies signatures from
+// multiple participants to pre and post fund states
 func SignPreAndPostFundingStates(ledger *channel.TwoPartyLedger, secretKeys []*[]byte) {
 	for _, sk := range secretKeys {
 		_, _ = ledger.SignAndAddPrefund(sk)
-	}
-	for _, sk := range secretKeys {
-		_, _ = ledger.Channel.SignAndAddPostfund(sk)
+		_, _ = ledger.SignAndAddPostfund(sk)
 	}
 }
 
+// Signlatest is a test utility function which applies signatures from
+// multiple participants to the latest recorded state
 func SignLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 
 	// Find the largest turn num and therefore the latest state
