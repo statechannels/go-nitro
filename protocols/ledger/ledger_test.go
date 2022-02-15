@@ -74,7 +74,7 @@ func TestHandleLedgerRequest(t *testing.T) {
 
 	_, err = ledgerManager.HandleRequest(ledger, invalidRequest, &alice.privateKey)
 	if err == nil {
-		t.Errorf("TestHandleLedgerRequest: expected request to  fail as the ledger does not have enough funds")
+		t.Errorf("TestHandleLedgerRequest: expected request to fail as the ledger does not have enough funds")
 	}
 
 	sideEffects, err := ledgerManager.HandleRequest(ledger, validRequest, &alice.privateKey)
