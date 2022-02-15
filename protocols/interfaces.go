@@ -17,15 +17,17 @@ type LedgerRequest struct {
 	ObjectiveId ObjectiveId
 	LedgerId    types.Destination
 	Destination types.Destination
-	Amount      types.Funds
 	Left        types.Destination
+	LeftAmount  types.Funds
 	Right       types.Destination
+	RightAmount types.Funds
 }
 
 // Equal checks for equality between the receiver and a second LedgerRequest
 func (l LedgerRequest) Equal(m LedgerRequest) bool {
 	return l.LedgerId == m.LedgerId &&
-		l.Amount.Equal(m.Amount) &&
+		l.LeftAmount.Equal(m.LeftAmount) &&
+		l.RightAmount.Equal(m.RightAmount) &&
 		l.Left == m.Left &&
 		l.Right == m.Right &&
 		l.ObjectiveId == m.ObjectiveId

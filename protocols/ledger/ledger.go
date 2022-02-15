@@ -37,14 +37,15 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 	nextState := supported.Clone()
 
 	// Calculate the amounts
-	amountPerParticipant := big.NewInt(0).Div(request.Amount[asset], big.NewInt(2))
-	leftAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Left)[asset], amountPerParticipant)
-	rightAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Right)[asset], amountPerParticipant)
+
+	leftAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Left)[asset], request.LeftAmount[asset])
+	rightAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Right)[asset], request.RightAmount[asset])
+	total := big.NewInt(0).Add(request.LeftAmount[asset], request.RightAmount[asset])
 	if leftAmount.Cmp(big.NewInt(0)) < 0 {
-		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Left, amountPerParticipant)
+		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Left, request.LeftAmount[asset])
 	}
 	if rightAmount.Cmp(big.NewInt(0)) < 0 {
-		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Right, amountPerParticipant)
+		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Right, request.RightAmount[asset])
 	}
 
 	nextState.Outcome = outcome.Exit{outcome.SingleAssetExit{
@@ -59,7 +60,7 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 			},
 			outcome.Allocation{
 				Destination:    request.Destination,
-				Amount:         request.Amount[asset],
+				Amount:         total,
 				AllocationType: outcome.GuaranteeAllocationType,
 				Metadata:       guarantee,
 			},

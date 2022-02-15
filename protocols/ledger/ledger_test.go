@@ -63,7 +63,8 @@ func TestHandleLedgerRequest(t *testing.T) {
 		Left:        left.Destination,
 		Right:       right.Destination,
 		Destination: destination,
-		Amount:      types.Funds{asset: big.NewInt(4)},
+		LeftAmount:  types.Funds{asset: big.NewInt(2)},
+		RightAmount: types.Funds{asset: big.NewInt(2)},
 	}
 	invalidRequest := protocols.LedgerRequest{
 		ObjectiveId: oId,
@@ -71,7 +72,8 @@ func TestHandleLedgerRequest(t *testing.T) {
 		Left:        left.Destination,
 		Right:       right.Destination,
 		Destination: destination,
-		Amount:      types.Funds{asset: big.NewInt(10)},
+		LeftAmount:  types.Funds{asset: big.NewInt(5)},
+		RightAmount: types.Funds{asset: big.NewInt(5)},
 	}
 
 	_, err := ledgerManager.HandleRequest(ledger, validRequest, &alice.privateKey)

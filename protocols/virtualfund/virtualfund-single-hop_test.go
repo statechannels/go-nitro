@@ -206,8 +206,10 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				ObjectiveId: o.Id(),
 				LedgerId:    ledgerChannelToMyRight.Id,
 				Destination: s.V.Id,
-				Amount:      types.Funds{types.Address{}: s.V.PreFundState().VariablePart().Outcome[0].Allocations.Total()},
-				Left:        ledgerChannelToMyRight.MyDestination(), Right: ledgerChannelToMyRight.TheirDestination(),
+
+				Left: ledgerChannelToMyRight.MyDestination(), Right: ledgerChannelToMyRight.TheirDestination(),
+				LeftAmount:  types.Funds{types.Address{}: big.NewInt(5)},
+				RightAmount: types.Funds{types.Address{}: big.NewInt(5)},
 			}}
 			want = protocols.SideEffects{LedgerRequests: expectedLedgerRequests}
 
