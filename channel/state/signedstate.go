@@ -20,7 +20,8 @@ func NewSignedState(s State) SignedState {
 	return SignedState{s, make(map[uint]Signature, len(s.Participants))}
 }
 
-func (ss SignedState) SignAndAdd(secretKey *[]byte) error {
+// Sign generates a signature on the receiver's state with the supplied key, and adds that signature.
+func (ss SignedState) Sign(secretKey *[]byte) error {
 	sig, err := ss.state.Sign(*secretKey)
 	if err != nil {
 		return fmt.Errorf("SignAndAdd failed to sign the state: %w", err)
