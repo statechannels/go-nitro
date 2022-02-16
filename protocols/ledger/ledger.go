@@ -36,16 +36,23 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 	asset := types.Address{} // todo: loop over request.amount's assets
 	nextState := supported.Clone()
 
-	// Calculate the amounts
-	leftAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Left)[asset], request.LeftAmount[asset])
-	rightAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Right)[asset], request.RightAmount[asset])
-	total := big.NewInt(0).Add(request.LeftAmount[asset], request.RightAmount[asset])
+	// Get the current amounts from the ledger channel
+	currentLeftAmount := nextState.Outcome.TotalAllocatedFor(request.Left)[asset]
+	currentRightAmount := nextState.Outcome.TotalAllocatedFor(request.Right)[asset]
+	// Calculate the new amounts by subtracting the requested amounts from the current amounts
+	leftAmount := big.NewInt(0).Sub(currentLeftAmount, request.LeftAmount[asset])
+	rightAmount := big.NewInt(0).Sub(currentRightAmount, request.RightAmount[asset])
+
+	// If any participant cannot afford the request amount, return an error
 	if types.Lt(leftAmount, big.NewInt(0)) {
 		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Left, request.LeftAmount[asset])
 	}
 	if types.Lt(rightAmount, big.NewInt(0)) {
 		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Right, request.RightAmount[asset])
 	}
+
+	// Calculate the total amount we need to allocate to the guarantee
+	total := big.NewInt(0).Add(request.LeftAmount[asset], request.RightAmount[asset])
 
 	nextState.Outcome = outcome.Exit{outcome.SingleAssetExit{
 		Allocations: outcome.Allocations{
