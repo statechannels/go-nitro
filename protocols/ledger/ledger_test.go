@@ -125,7 +125,7 @@ func TestHandleLedgerRequest(t *testing.T) {
 		IsFinal: false}
 
 	expectedSigned := state.NewSignedState(expectedState)
-	err = expectedSigned.SignAndAdd(&alice.privateKey)
+	err = expectedSigned.Sign(&alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
