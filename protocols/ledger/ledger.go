@@ -37,7 +37,7 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 	for i, exit := range nextState.Outcome {
 		asset := exit.Asset
 		// If our request doesn't deal with this asset, skip it
-		if types.IsZero(request.LeftAmount[asset]) || types.IsZero(request.RightAmount[asset]) {
+		if types.IsZero(request.LeftAmount[asset]) && types.IsZero(request.RightAmount[asset]) {
 			continue
 		}
 		// Get the current amounts from the ledger channel
