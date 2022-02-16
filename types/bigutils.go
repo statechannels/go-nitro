@@ -11,6 +11,11 @@ func Gt(a *big.Int, b *big.Int) bool {
 	return a.Cmp(b) > 0
 }
 
+// Lt return true if a < b, false otherwise
+func Lt(a *big.Int, b *big.Int) bool {
+	return a.Cmp(b) < 0
+}
+
 func Equal(a *big.Int, b *big.Int) bool {
 	return a.Cmp(b) == 0
 }
