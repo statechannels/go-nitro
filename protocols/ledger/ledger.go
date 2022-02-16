@@ -69,7 +69,7 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 	nextState.TurnNum = nextState.TurnNum + 1
 
 	ss := state.NewSignedState(nextState)
-	err = ss.SignAndAdd(secretKey)
+	err = ss.Sign(secretKey)
 	if err != nil {
 		return protocols.SideEffects{}, fmt.Errorf("Could not sign state: %w", err)
 	}
@@ -105,7 +105,7 @@ func SignLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 	// Sign it
 	toSign := ledger.SignedStateForTurnNum[turnNum]
 	for _, secretKey := range secretKeys {
-		_ = toSign.SignAndAdd(&secretKey)
+		_ = toSign.Sign(&secretKey)
 	}
 	ledger.Channel.AddSignedState(toSign)
 }
