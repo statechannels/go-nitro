@@ -33,10 +33,13 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 		return protocols.SideEffects{}, fmt.Errorf("error finding a supported state: %w", err)
 	}
 	nextState := supported.Clone()
-	nextState.Outcome = outcome.Exit{}
-	// TODO: We should iterate over assets in RightAmount as well. For now we rely on the assumption that LeftAmount and RightAmount will have the same assets.
-	for asset := range request.LeftAmount {
 
+	for i, exit := range nextState.Outcome {
+		asset := exit.Asset
+		// If our request doesn't deal with this asset, skip it
+		if types.IsZero(request.LeftAmount[asset]) || types.IsZero(request.RightAmount[asset]) {
+			continue
+		}
 		// Get the current amounts from the ledger channel
 		currentLeftAmount := nextState.Outcome.TotalAllocatedFor(request.Left)[asset]
 		currentRightAmount := nextState.Outcome.TotalAllocatedFor(request.Right)[asset]
@@ -55,7 +58,7 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 		// Calculate the total amount we need to allocate to the guarantee
 		total := big.NewInt(0).Add(request.LeftAmount[asset], request.RightAmount[asset])
 
-		newOutcome := outcome.SingleAssetExit{
+		nextState.Outcome[i] = outcome.SingleAssetExit{
 			Allocations: outcome.Allocations{
 				outcome.Allocation{
 					Destination: request.Left,
@@ -73,7 +76,6 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 				},
 			},
 		}
-		nextState.Outcome = append(nextState.Outcome, newOutcome)
 
 	}
 

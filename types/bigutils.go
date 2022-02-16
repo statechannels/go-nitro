@@ -19,3 +19,8 @@ func Lt(a *big.Int, b *big.Int) bool {
 func Equal(a *big.Int, b *big.Int) bool {
 	return a.Cmp(b) == 0
 }
+
+// Lt return true if a==0, false otherwise
+func IsZero(a *big.Int) bool {
+	return a.Cmp(big.NewInt(0)) == 0
+}
