@@ -395,7 +395,7 @@ func (s *VirtualFundObjective) isAlice() bool {
 	return s.MyRole == 0
 }
 
-// isAlice returns true if the reciever represents participant n+1 in the virtualfund protocol.
+// isBob returns true if the reciever represents participant n+1 in the virtualfund protocol.
 func (s *VirtualFundObjective) isBob() bool {
 	return s.MyRole == s.n+1
 }
