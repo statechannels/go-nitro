@@ -36,7 +36,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		return ss
 	}
 
-	var n = uint(2) // number of ledger channels (num_hops + 1)
+	var n = uint(1) // number of intermediaries
 
 	// In general
 	// Alice = P_0 <=L_0=> P_1 <=L_1=> ... P_n <=L_n>= P_n+1 = Bob
