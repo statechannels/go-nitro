@@ -29,6 +29,60 @@ type Channel struct {
 	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 }
 
+type SingleHopVirtualChannel struct {
+	Channel
+}
+
+func NewSingleHopVirtualChannel(s state.State, myIndex uint) (*SingleHopVirtualChannel, error) {
+	if myIndex > 2 {
+		return &SingleHopVirtualChannel{}, errors.New("myIndex in a single hope virtual channel must be 0 1,or 2")
+	}
+	if len(s.Participants) != 3 {
+		return &SingleHopVirtualChannel{}, errors.New("a single hop virtual channel must have exactly three participants")
+	}
+	for _, assetExit := range s.Outcome {
+		if len(assetExit.Allocations) != 2 {
+			return &SingleHopVirtualChannel{}, errors.New("a single hop virtual channels initial state should only have two allocations")
+		}
+	}
+	c, err := New(s, myIndex)
+
+	return &SingleHopVirtualChannel{*c}, err
+}
+
+func (v SingleHopVirtualChannel) amountAtIndex(index uint) types.Funds {
+	supported, err := v.LatestSupportedState()
+
+	// If there is no supported state we just return an empty amount
+	if err != nil {
+		return types.Funds{}
+	}
+
+	amount := types.Funds{}
+
+	for _, assetExit := range supported.Outcome {
+		asset := assetExit.Asset
+		allocations := assetExit.Allocations
+
+		if uint(len(allocations)) >= index {
+			amount[asset] = allocations[index].Amount
+		}
+	}
+	return amount
+}
+
+func (v SingleHopVirtualChannel) LeftAmount() types.Funds {
+	return v.amountAtIndex(0)
+}
+
+func (v SingleHopVirtualChannel) RightAmount() types.Funds {
+	return v.amountAtIndex(1)
+}
+
+func (v SingleHopVirtualChannel) Clone() SingleHopVirtualChannel {
+	return SingleHopVirtualChannel{v.Channel.Clone()}
+}
+
 type TwoPartyLedger struct {
 	Channel
 }
