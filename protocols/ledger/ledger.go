@@ -36,16 +36,23 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 	asset := types.Address{} // todo: loop over request.amount's assets
 	nextState := supported.Clone()
 
-	// Calculate the amounts
-	amountPerParticipant := big.NewInt(0).Div(request.Amount[asset], big.NewInt(2))
-	leftAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Left)[asset], amountPerParticipant)
-	rightAmount := big.NewInt(0).Sub(nextState.Outcome.TotalAllocatedFor(request.Right)[asset], amountPerParticipant)
-	if leftAmount.Cmp(big.NewInt(0)) < 0 {
-		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Left, amountPerParticipant)
+	// Get the current amounts from the ledger channel
+	currentLeftAmount := nextState.Outcome.TotalAllocatedFor(request.Left)[asset]
+	currentRightAmount := nextState.Outcome.TotalAllocatedFor(request.Right)[asset]
+	// Calculate the new amounts by subtracting the requested amounts from the current amounts
+	leftAmount := big.NewInt(0).Sub(currentLeftAmount, request.LeftAmount[asset])
+	rightAmount := big.NewInt(0).Sub(currentRightAmount, request.RightAmount[asset])
+
+	// If any participant cannot afford the request amount, return an error
+	if types.Lt(leftAmount, big.NewInt(0)) {
+		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Left, request.LeftAmount[asset])
 	}
-	if rightAmount.Cmp(big.NewInt(0)) < 0 {
-		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Right, amountPerParticipant)
+	if types.Lt(rightAmount, big.NewInt(0)) {
+		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Right, request.RightAmount[asset])
 	}
+
+	// Calculate the total amount we need to allocate to the guarantee
+	total := big.NewInt(0).Add(request.LeftAmount[asset], request.RightAmount[asset])
 
 	nextState.Outcome = outcome.Exit{outcome.SingleAssetExit{
 		Allocations: outcome.Allocations{
@@ -59,7 +66,7 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 			},
 			outcome.Allocation{
 				Destination:    request.Destination,
-				Amount:         request.Amount[asset],
+				Amount:         total,
 				AllocationType: outcome.GuaranteeAllocationType,
 				Metadata:       guarantee,
 			},

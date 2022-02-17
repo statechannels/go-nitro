@@ -326,15 +326,24 @@ func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
 func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideEffects {
 	sideEffects := protocols.SideEffects{}
 	sideEffects.LedgerRequests = make([]protocols.LedgerRequest, 0)
+
+	leftAmount := s.V.PreFundState().Outcome.TotalAllocatedFor(s.V.MyDestination())
+	// TODO: This is hacky way of getting the second expected outcome.
+	other := s.V.PreFundState().Outcome[0].Allocations[1].Destination
+	rightAmount := s.V.PreFundState().Outcome.TotalAllocatedFor(other)
+
 	if s.MyRole > 0 { // Not Alice
+
 		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
 			protocols.LedgerRequest{
 				ObjectiveId: s.Id(),
 				LedgerId:    s.ToMyLeft.Channel.Id,
 				Destination: s.V.Id,
-				Amount:      s.V.Total(),
+
 				Left:        s.ToMyLeft.Channel.TheirDestination(),
+				LeftAmount:  leftAmount,
 				Right:       s.ToMyLeft.Channel.MyDestination(),
+				RightAmount: rightAmount,
 			})
 	}
 	n := s.n
@@ -344,9 +353,10 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 				ObjectiveId: s.Id(),
 				LedgerId:    s.ToMyRight.Channel.Id,
 				Destination: s.V.Id,
-				Amount:      s.V.Total(),
 				Left:        s.ToMyRight.Channel.MyDestination(),
+				LeftAmount:  leftAmount,
 				Right:       s.ToMyRight.Channel.TheirDestination(),
+				RightAmount: rightAmount,
 			})
 	}
 	return sideEffects
