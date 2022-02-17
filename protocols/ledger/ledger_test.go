@@ -54,6 +54,7 @@ func TestHandleLedgerRequest(t *testing.T) {
 	ledger, _ := CreateTestLedger(left, right, &alice.privateKey, 0, big.NewInt(0))
 
 	destination := types.AddressToDestination(common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`))
+
 	asset := types.Address{}
 	oId := protocols.ObjectiveId("Test")
 
@@ -135,4 +136,56 @@ func TestHandleLedgerRequest(t *testing.T) {
 	if diff := cmp.Diff(sideEffects.MessagesToSend[0], expectedMessage); diff != "" {
 		t.Errorf("TestHandleRequest: ledger message mismatch (-want +got):\n%s", diff)
 	}
+
+	// Check that we can handle a second request
+	anotherDestination := types.AddressToDestination(common.HexToAddress(`0xb22679e1864BEd55497b5d499d1216c7D7F85cc4`))
+	secondRequest := protocols.LedgerRequest{
+		ObjectiveId: oId,
+		LedgerId:    ledger.Id,
+		Left:        left.Destination,
+		Right:       right.Destination,
+		Destination: anotherDestination,
+		LeftAmount:  types.Funds{asset: big.NewInt(0)},
+		RightAmount: types.Funds{asset: big.NewInt(1)},
+	}
+	SignLatest(ledger, [][]byte{alice.privateKey, bob.privateKey})
+	sideEffects, err = ledgerManager.HandleRequest(ledger, secondRequest, &alice.privateKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// We expect the new state to have the next turn number and to have an updated outcome with our new guarantee
+	expectedState.TurnNum = 3
+	expectedState.Outcome = outcome.Exit{outcome.SingleAssetExit{
+		Allocations: outcome.Allocations{
+			outcome.Allocation{
+				Destination: alice.destination,
+				Amount:      big.NewInt(1),
+			},
+			outcome.Allocation{
+				Destination: bob.destination,
+				Amount:      big.NewInt(0),
+			},
+			outcome.Allocation{
+				Destination:    destination,
+				Amount:         big.NewInt(3),
+				AllocationType: outcome.GuaranteeAllocationType,
+				Metadata:       guarantee,
+			},
+			outcome.Allocation{
+				Destination:    anotherDestination,
+				Amount:         big.NewInt(1),
+				AllocationType: outcome.GuaranteeAllocationType,
+				Metadata:       guarantee,
+			},
+		}}}
+
+	expectedSigned = state.NewSignedState(expectedState)
+	_ = expectedSigned.Sign(&alice.privateKey)
+	expectedMessage = protocols.Message{To: bob.address, ObjectiveId: oId, SignedStates: []state.SignedState{expectedSigned}}
+
+	if diff := cmp.Diff(sideEffects.MessagesToSend[0], expectedMessage); diff != "" {
+		t.Errorf("TestHandleRequest: ledger message mismatch (-want +got):\n%s", diff)
+	}
+
 }
