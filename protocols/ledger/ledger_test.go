@@ -115,6 +115,12 @@ func TestHandleLedgerRequest(t *testing.T) {
 					Amount:      big.NewInt(1),
 				},
 				outcome.Allocation{
+					Destination:    types.AddressToDestination(common.HexToAddress("deadbeef")),
+					AllocationType: outcome.GuaranteeAllocationType,
+					Amount:         big.NewInt(2),
+					Metadata:       []byte{0},
+				},
+				outcome.Allocation{
 					Destination:    destination,
 					Amount:         big.NewInt(3),
 					AllocationType: outcome.GuaranteeAllocationType,
@@ -133,6 +139,7 @@ func TestHandleLedgerRequest(t *testing.T) {
 	expectedMessage := protocols.Message{To: bob.address, ObjectiveId: oId, SignedStates: []state.SignedState{expectedSigned}}
 
 	if diff := cmp.Diff(sideEffects.MessagesToSend[0], expectedMessage); diff != "" {
+		t.Log(cmp.Diff(sideEffects.MessagesToSend[0].SignedStates[0].State().Outcome[0], expectedState.Outcome[0]))
 		t.Errorf("TestHandleRequest: ledger message mismatch (-want +got):\n%s", diff)
 	}
 }

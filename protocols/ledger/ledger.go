@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -136,7 +137,16 @@ func CreateTestLedger(left outcome.Allocation, right outcome.Allocation, secretK
 		ChallengeDuration: big.NewInt(45),
 		AppData:           []byte{},
 		Outcome: outcome.Exit{outcome.SingleAssetExit{
-			Allocations: outcome.Allocations{left, right},
+			Allocations: outcome.Allocations{
+				left,
+				right,
+				outcome.Allocation{ // allocate to some other (dummy) virtual channels
+					Destination:    types.AddressToDestination(common.HexToAddress("deadbeef")),
+					AllocationType: outcome.GuaranteeAllocationType,
+					Amount:         big.NewInt(2),
+					Metadata:       []byte{0},
+				},
+			},
 		}},
 		TurnNum: 0,
 		IsFinal: false,
