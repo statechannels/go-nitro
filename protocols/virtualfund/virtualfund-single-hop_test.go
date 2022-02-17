@@ -14,6 +14,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// TODO move these package-level symbols inside the scope of the test
 type actor struct {
 	address     types.Address
 	destination types.Destination
@@ -355,7 +356,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			got := o.ToMyLeft.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
-			var expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyLeft.MyDestination(), Right: ledgerChannelToMyLeft.TheirDestination()}
+			var expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyLeft.TheirDestination(), Right: ledgerChannelToMyLeft.MyDestination()}
 			var expectedEncodedGuaranteeMetadata, _ = expectedGuaranteeMetadata.Encode()
 			var expectedGuarantee outcome.Allocation = outcome.Allocation{
 				Destination:    o.V.Id,
@@ -396,9 +397,10 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			bobSig, _ := o.V.PreFundState().Sign(my.privateKey)
 			_ = expectedSignedState.AddSignature(bobSig)
 
-			forAlice := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}}
+			forAlice := protocols.Message{To: alice.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}}
 			forIrene := protocols.Message{To: p1.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}}
-			want := protocols.SideEffects{MessagesToSend: []protocols.Message{forIrene, forAlice}}
+			want := protocols.SideEffects{MessagesToSend: []protocols.Message{forAlice, forIrene}}
+			// TODO ^^^ The test is currently sensitive to the order of the messages. It should not be.
 
 			if diff := cmp.Diff(want, got); diff != "" {
 				if diff := cmp.Diff(want, got); diff != "" {
@@ -407,6 +409,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			}
 			// Manually progress the extended state by collecting prefund signatures
+			aliceSig, _ := vPreFund.Sign(alice.privateKey)
+			o.V.AddStateWithSignature(vPreFund, aliceSig)
 			p1Sig, _ := vPreFund.Sign(p1.privateKey)
 			o.V.AddStateWithSignature(vPreFund, p1Sig)
 
@@ -417,7 +421,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Error(err)
 			}
 			if waitingFor != WaitingForCompleteFunding {
-				t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
+				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
 			}
 			if o.requestedLedgerUpdates != true {
 				t.Error(`Expected ledger update idempotency flag to be raised, but it wasn't`)
@@ -427,7 +431,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				LedgerId:    ledgerChannelToMyLeft.Id,
 				Destination: s.V.Id,
 				Amount:      types.Funds{types.Address{}: s.V.PreFundState().VariablePart().Outcome[0].Allocations.Total()},
-				Left:        ledgerChannelToMyLeft.MyDestination(), Right: ledgerChannelToMyLeft.TheirDestination(),
+				Left:        ledgerChannelToMyLeft.TheirDestination(), Right: ledgerChannelToMyLeft.MyDestination(),
 			}}
 			want = protocols.SideEffects{LedgerRequests: expectedLedgerRequests}
 
@@ -453,7 +457,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			forAlice = protocols.Message{To: alice.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}}
 			forIrene = protocols.Message{To: p1.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}}
-			want = protocols.SideEffects{MessagesToSend: []protocols.Message{forIrene, forAlice}}
+			want = protocols.SideEffects{MessagesToSend: []protocols.Message{forAlice, forIrene}}
+			// TODO ^^^ The test is currently sensitive to the order of the messages. It should not be.
 
 			if diff := cmp.Diff(want, got); diff != "" {
 				if diff := cmp.Diff(want, got); diff != "" {
@@ -463,9 +468,10 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			// Manually progress the extended state by collecting postfund signatures
-			bobPost := signState(o.V.PostFundState(), bob)
+			alicePost := signState(o.V.PostFundState(), alice)
 			p1Post := signState(o.V.PostFundState(), p1)
-			o.V.AddSignedStates([]state.SignedState{bobPost, p1Post})
+			o.V.AddSignedStates([]state.SignedState{alicePost, p1Post})
+
 			// This should be the final crank...
 			_, _, waitingFor, err = o.Crank(&my.privateKey)
 			if err != nil {
