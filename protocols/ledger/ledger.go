@@ -23,11 +23,6 @@ func NewLedgerManager() LedgerManager {
 // It returns a signed state message that can be sent to other participants.
 func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request protocols.LedgerRequest, secretKey *[]byte) (protocols.SideEffects, error) {
 
-	guarantee, _ := outcome.GuaranteeMetadata{
-		Left:  request.Left,
-		Right: request.Right,
-	}.Encode()
-
 	supported, err := ledger.Channel.LatestSupportedState()
 	if err != nil {
 		return protocols.SideEffects{}, fmt.Errorf("error finding a supported state: %w", err)
@@ -55,27 +50,13 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 			return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Right, request.RightAmount[asset])
 		}
 
-		// Calculate the total amount we need to allocate to the guarantee
-		total := big.NewInt(0).Add(request.LeftAmount[asset], request.RightAmount[asset])
-
-		nextState.Outcome[i] = outcome.SingleAssetExit{
-			Allocations: outcome.Allocations{
-				outcome.Allocation{
-					Destination: request.Left,
-					Amount:      leftAmount,
-				},
-				outcome.Allocation{
-					Destination: request.Right,
-					Amount:      rightAmount,
-				},
-				outcome.Allocation{
-					Destination:    request.Destination,
-					Amount:         total,
-					AllocationType: outcome.GuaranteeAllocationType,
-					Metadata:       guarantee,
-				},
-			},
+		// Get an updated allocation with the guarantee
+		newAlloc, err := nextState.Outcome[i].Allocations.DivertToGuarantee(request.Left, request.Right, request.LeftAmount[asset], request.RightAmount[asset], request.Destination)
+		if err != nil {
+			return protocols.SideEffects{}, fmt.Errorf("Could not  divert to guarantee: %w", err)
 		}
+		// Update the allocation on the new state
+		nextState.Outcome[i].Allocations = newAlloc
 
 	}
 
