@@ -14,28 +14,27 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// TODO move these package-level symbols inside the scope of the test
-type actor struct {
-	address     types.Address
-	destination types.Destination
-	privateKey  []byte
-	role        uint
-}
-
-func signState(s state.State, a actor) state.SignedState {
-	ss := state.NewSignedState(s)
-	sig, err := s.Sign(a.privateKey)
-	if err != nil {
-		panic(err)
-	}
-	err = ss.AddSignature(sig)
-	if err != nil {
-		panic(err)
-	}
-	return ss
-}
 func TestSingleHopVirtualFund(t *testing.T) {
-	var n = uint(1) // number of intermediaries
+
+	type actor struct {
+		address     types.Address
+		destination types.Destination
+		privateKey  []byte
+		role        uint
+	}
+
+	signState := func(s state.State, a actor) state.SignedState {
+		ss := state.NewSignedState(s)
+		sig, err := s.Sign(a.privateKey)
+		if err != nil {
+			panic(err)
+		}
+		err = ss.AddSignature(sig)
+		if err != nil {
+			panic(err)
+		}
+		return ss
+	}
 
 	var n = uint(2) // number of ledger channels (num_hops + 1)
 
@@ -430,7 +429,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				ObjectiveId: o.Id(),
 				LedgerId:    ledgerChannelToMyLeft.Id,
 				Destination: s.V.Id,
-				Amount:      types.Funds{types.Address{}: s.V.PreFundState().VariablePart().Outcome[0].Allocations.Total()},
+				LeftAmount:  types.Funds{types.Address{}: big.NewInt(5)},
+				RightAmount: types.Funds{types.Address{}: big.NewInt(5)},
 				Left:        ledgerChannelToMyLeft.TheirDestination(), Right: ledgerChannelToMyLeft.MyDestination(),
 			}}
 			want = protocols.SideEffects{LedgerRequests: expectedLedgerRequests}
