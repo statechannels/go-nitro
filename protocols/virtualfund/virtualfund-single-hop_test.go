@@ -33,8 +33,8 @@ func signState(s state.State, a actor) state.SignedState {
 	}
 	return ss
 }
-
 func TestSingleHopVirtualFund(t *testing.T) {
+	var n = uint(1) // number of intermediaries
 
 	// In general
 	// Alice = P_0 <=L_0=> P_1 <=L_1=> ... P_n <=L_n>= P_n+1 = Bob
@@ -117,9 +117,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		// Ensure this channel is fully funded on chain
 		ledgerChannelToMyRight.OnChainFunding = ledgerChannelToMyRight.PreFundState().Outcome.TotalAllocated()
 
-		// Objective
-		var n = uint(2) // number of ledger channels (num_hops + 1)
-
 		///////////////////
 		// END test data //
 		///////////////////
@@ -127,7 +124,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		testNew := func(t *testing.T) {
 
 			// Assert that a valid set of constructor args does not result in an error
-			o, err := New(false, vPreFund, my.address, 2, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			o, err := New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			if err != nil {
 				t.Error(err)
 			}
