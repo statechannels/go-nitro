@@ -556,12 +556,11 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		p1Alloc := outcome.Allocation{Destination: p1.destination, Amount: big.NewInt(5)}
 		aliceAlloc := outcome.Allocation{Destination: alice.destination, Amount: big.NewInt(5)}
 		bobAlloc := outcome.Allocation{Destination: bob.destination, Amount: big.NewInt(5)}
-		myIndex := uint(1) // because Bob is in the "right" slot
 
 		//  P_1 has one ledger channel connecting her to alice
-		var ledgerChannelToMyLeft, _ = ledger.CreateTestLedger(aliceAlloc, p1Alloc, &bob.privateKey, myIndex, big.NewInt(0))
+		var ledgerChannelToMyLeft, _ = ledger.CreateTestLedger(aliceAlloc, p1Alloc, &bob.privateKey, 1, big.NewInt(0))
 		//  P_1 has one ledger channel connecting her to bob
-		var ledgerChannelToMyRight, _ = ledger.CreateTestLedger(p1Alloc, bobAlloc, &bob.privateKey, myIndex, big.NewInt(0))
+		var ledgerChannelToMyRight, _ = ledger.CreateTestLedger(p1Alloc, bobAlloc, &bob.privateKey, 0, big.NewInt(0))
 		// Ensure both channels are fully funded on chain
 		ledgerChannelToMyLeft.OnChainFunding = ledgerChannelToMyLeft.PreFundState().Outcome.TotalAllocated()
 		ledgerChannelToMyRight.OnChainFunding = ledgerChannelToMyRight.PreFundState().Outcome.TotalAllocated()
