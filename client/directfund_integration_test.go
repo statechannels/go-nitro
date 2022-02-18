@@ -14,10 +14,10 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-func TestNew(t *testing.T) {
+func TestDirectFundIntegration(t *testing.T) {
 
 	// Set up logging
-	logDestination, err := os.OpenFile("client_test_logs.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	logDestination, err := os.OpenFile("directfund_integration_test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
