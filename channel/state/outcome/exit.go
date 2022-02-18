@@ -209,7 +209,9 @@ func (e Exit) DivertToGuarantee(
 
 	for i, sae := range f {
 		asset := sae.Asset
-		// If our request doesn't deal with this asset, skip it
+		// Skip this asset if:
+		// either of leftFunds or rightFunds does not have it, OR
+		// leftFunds and rightFunds have a zero amount for this asset
 		leftAmount, leftOk := leftFunds[asset]
 		rightAmount, rightOk := rightFunds[asset]
 		if !leftOk || !rightOk || types.IsZero(leftAmount) && types.IsZero(rightAmount) {
