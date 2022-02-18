@@ -35,14 +35,14 @@ type SingleHopVirtualChannel struct {
 
 func NewSingleHopVirtualChannel(s state.State, myIndex uint) (*SingleHopVirtualChannel, error) {
 	if myIndex > 2 {
-		return &SingleHopVirtualChannel{}, errors.New("myIndex in a single hope virtual channel must be 0 1,or 2")
+		return &SingleHopVirtualChannel{}, errors.New("myIndex in a single hop virtual channel must be 0, 1, or 2")
 	}
 	if len(s.Participants) != 3 {
 		return &SingleHopVirtualChannel{}, errors.New("a single hop virtual channel must have exactly three participants")
 	}
 	for _, assetExit := range s.Outcome {
 		if len(assetExit.Allocations) != 2 {
-			return &SingleHopVirtualChannel{}, errors.New("a single hop virtual channels initial state should only have two allocations")
+			return &SingleHopVirtualChannel{}, errors.New("a single hop virtual channel's initial state should only have two allocations")
 		}
 	}
 	c, err := New(s, myIndex)
