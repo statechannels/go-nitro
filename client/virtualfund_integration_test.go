@@ -56,33 +56,35 @@ func TestVirtualFundIntegration(t *testing.T) {
 
 	messageserviceA.Connect(messageserviceB)
 	messageserviceA.Connect(messageserviceI)
+
 	messageserviceB.Connect(messageserviceA)
 	messageserviceB.Connect(messageserviceI)
+
 	messageserviceI.Connect(messageserviceA)
 	messageserviceI.Connect(messageserviceB)
 
-	directlyFundALedgerChannel := func(i Client, j Client) {
+	directlyFundALedgerChannel := func(alpha Client, beta Client) {
 		// Set up an outcome that requires both participants to deposit
 		outcome := outcome.Exit{outcome.SingleAssetExit{
 			Allocations: outcome.Allocations{
 				outcome.Allocation{
-					Destination: types.AddressToDestination(*i.Address),
+					Destination: types.AddressToDestination(*alpha.Address),
 					Amount:      big.NewInt(5),
 				},
 				outcome.Allocation{
-					Destination: types.AddressToDestination(*j.Address),
+					Destination: types.AddressToDestination(*beta.Address),
 					Amount:      big.NewInt(5),
 				},
 			},
 		}}
-		id := i.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
-		got := <-i.CompletedObjectives()
+		id := alpha.CreateDirectChannel(*beta.Address, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
+		got := <-alpha.CompletedObjectives()
 
 		if got != id {
 			t.Errorf("expected completed objective with id %v, but got %v", id, got)
 		}
 
-		gotFromJ := <-j.CompletedObjectives()
+		gotFromJ := <-beta.CompletedObjectives()
 
 		if gotFromJ != id {
 			t.Errorf("expected completed objective with id %v, but got %v", id, gotFromJ)
