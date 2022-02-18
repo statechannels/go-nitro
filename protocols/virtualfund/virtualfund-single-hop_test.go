@@ -16,6 +16,79 @@ import (
 
 func TestSingleHopVirtualFund(t *testing.T) {
 
+	n := uint(1) // number of intermediaries
+
+	type actor struct {
+		address     types.Address
+		destination types.Destination
+		privateKey  []byte
+		role        uint
+	}
+
+	////////////
+	// ACTORS //
+	////////////
+
+	alice := actor{
+		address:     common.HexToAddress(`0xD9995BAE12FEe327256FFec1e3184d492bD94C31`),
+		destination: types.AddressToDestination(common.HexToAddress(`0xD9995BAE12FEe327256FFec1e3184d492bD94C31`)),
+		privateKey:  common.Hex2Bytes(`7ab741b57e8d94dd7e1a29055646bafde7010f38a900f55bbd7647880faa6ee8`),
+		role:        0,
+	}
+
+	p1 := actor{ // Aliases: The Hub, Irene
+		address:     common.HexToAddress(`0xd4Fa489Eacc52BA59438993f37Be9fcC20090E39`),
+		destination: types.AddressToDestination(common.HexToAddress(`0xd4Fa489Eacc52BA59438993f37Be9fcC20090E39`)),
+		privateKey:  common.Hex2Bytes(`2030b463177db2da82908ef90fa55ddfcef56e8183caf60db464bc398e736e6f`),
+		role:        1,
+	}
+
+	bob := actor{
+		address:     common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`),
+		destination: types.AddressToDestination(common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`)),
+		privateKey:  common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`),
+		role:        2,
+	}
+
+	/////////////////////
+	// VIRTUAL CHANNEL //
+	/////////////////////
+
+	// Virtual Channel
+	vPreFund := state.State{
+		ChainId:           big.NewInt(9001),
+		Participants:      []types.Address{alice.address, p1.address, bob.address}, // A single hop virtual channel
+		ChannelNonce:      big.NewInt(0),
+		AppDefinition:     types.Address{},
+		ChallengeDuration: big.NewInt(45),
+		AppData:           []byte{},
+		Outcome: outcome.Exit{outcome.SingleAssetExit{
+			Allocations: outcome.Allocations{
+				outcome.Allocation{
+					Destination: alice.destination,
+					Amount:      big.NewInt(5),
+				},
+				outcome.Allocation{
+					Destination: bob.destination,
+					Amount:      big.NewInt(5),
+				},
+			},
+		}},
+		TurnNum: 0,
+		IsFinal: false,
+	}
+
+	TestAs := func(my actor, t *testing.T) {
+
+	}
+
+	t.Run(`AsAlice`, func(t *testing.T) { TestAs(alice, t) })
+	t.Run(`AsBob`, func(t *testing.T) { TestAs(bob, t) })
+	t.Run(`AsP1`, func(t *testing.T) { TestAs(p1, t) })
+}
+
+func TestSingleHopVirtualFund(t *testing.T) {
+
 	type actor struct {
 		address     types.Address
 		destination types.Destination
