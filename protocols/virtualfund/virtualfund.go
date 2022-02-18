@@ -33,7 +33,7 @@ type Connection struct {
 // VirtualFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
 type VirtualFundObjective struct {
 	Status protocols.ObjectiveStatus
-	V      *channel.Channel
+	V      *channel.SingleHopVirtualChannel
 
 	ToMyLeft  *Connection
 	ToMyRight *Connection
@@ -76,7 +76,7 @@ func New(
 	}
 
 	// Initialize virtual channel
-	v, err := channel.New(initialStateOfV, myRole)
+	v, err := channel.NewSingleHopVirtualChannel(initialStateOfV, myRole)
 	if err != nil {
 		return VirtualFundObjective{}, err
 	}
@@ -323,10 +323,8 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 	sideEffects := protocols.SideEffects{}
 	sideEffects.LedgerRequests = make([]protocols.LedgerRequest, 0)
 
-	leftAmount := s.V.PreFundState().Outcome.TotalAllocatedFor(s.V.MyDestination())
-	// TODO: This is hacky way of getting the second expected outcome.
-	other := s.V.PreFundState().Outcome[0].Allocations[1].Destination
-	rightAmount := s.V.PreFundState().Outcome.TotalAllocatedFor(other)
+	leftAmount := s.V.LeftAmount()
+	rightAmount := s.V.RightAmount()
 
 	if !s.isAlice() {
 		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
