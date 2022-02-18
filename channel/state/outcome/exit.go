@@ -193,10 +193,11 @@ func (e Exit) Affords(
 }
 
 // DivertToGuarantee returns a new Exit, identical to the reciever but with
-// (for each asset of the Exit present in both leftFunds and rightFunds)
+// (for each asset of the Exit)
 // the leftDestination's amount reduced by leftFunds[asset],
 // the rightDestination's amount reduced by rightAmount[asset],
 // and a Guarantee appended for the guaranteeDestination.
+// Where an asset is missing from leftFunds or rightFunds, it is treated as if the corresponding amount is zero.
 func (e Exit) DivertToGuarantee(
 	leftDestination types.Destination,
 	rightDestination types.Destination,
@@ -213,9 +214,12 @@ func (e Exit) DivertToGuarantee(
 		// either of leftFunds or rightFunds does not have it, OR
 		// leftFunds and rightFunds have a zero amount for this asset
 		leftAmount, leftOk := leftFunds[asset]
+		if !leftOk {
+			leftAmount = big.NewInt(0)
+		}
 		rightAmount, rightOk := rightFunds[asset]
-		if !leftOk || !rightOk || types.IsZero(leftAmount) && types.IsZero(rightAmount) {
-			continue
+		if !rightOk {
+			rightAmount = big.NewInt(0)
 		}
 
 		newAllocations, err := sae.Allocations.DivertToGuarantee(leftDestination, rightDestination, leftAmount, rightAmount, guaranteeDestination)
