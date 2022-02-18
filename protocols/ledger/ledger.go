@@ -23,55 +23,42 @@ func NewLedgerManager() LedgerManager {
 // It returns a signed state message that can be sent to other participants.
 func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request protocols.LedgerRequest, secretKey *[]byte) (protocols.SideEffects, error) {
 
-	guarantee, _ := outcome.GuaranteeMetadata{
-		Left:  request.Left,
-		Right: request.Right,
-	}.Encode()
-
 	supported, err := ledger.Channel.LatestSupportedState()
 	if err != nil {
 		return protocols.SideEffects{}, fmt.Errorf("error finding a supported state: %w", err)
 	}
-
-	asset := types.Address{} // todo: loop over request.amount's assets
 	nextState := supported.Clone()
 
-	// Get the current amounts from the ledger channel
-	currentLeftAmount := nextState.Outcome.TotalAllocatedFor(request.Left)[asset]
-	currentRightAmount := nextState.Outcome.TotalAllocatedFor(request.Right)[asset]
-	// Calculate the new amounts by subtracting the requested amounts from the current amounts
-	leftAmount := big.NewInt(0).Sub(currentLeftAmount, request.LeftAmount[asset])
-	rightAmount := big.NewInt(0).Sub(currentRightAmount, request.RightAmount[asset])
+	for i, exit := range nextState.Outcome {
+		asset := exit.Asset
+		// If our request doesn't deal with this asset, skip it
+		if types.IsZero(request.LeftAmount[asset]) && types.IsZero(request.RightAmount[asset]) {
+			continue
+		}
+		// Get the current amounts from the ledger channel
+		currentLeftAmount := nextState.Outcome.TotalAllocatedFor(request.Left)[asset]
+		currentRightAmount := nextState.Outcome.TotalAllocatedFor(request.Right)[asset]
+		// Calculate the new amounts by subtracting the requested amounts from the current amounts
+		leftAmount := big.NewInt(0).Sub(currentLeftAmount, request.LeftAmount[asset])
+		rightAmount := big.NewInt(0).Sub(currentRightAmount, request.RightAmount[asset])
 
-	// If any participant cannot afford the request amount, return an error
-	if types.Lt(leftAmount, big.NewInt(0)) {
-		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Left, request.LeftAmount[asset])
+		// If any participant cannot afford the request amount, return an error
+		if types.Lt(leftAmount, big.NewInt(0)) {
+			return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Left, request.LeftAmount[asset])
+		}
+		if types.Lt(rightAmount, big.NewInt(0)) {
+			return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Right, request.RightAmount[asset])
+		}
+
+		// Get an updated allocation with the guarantee
+		newAlloc, err := nextState.Outcome[i].Allocations.DivertToGuarantee(request.Left, request.Right, request.LeftAmount[asset], request.RightAmount[asset], request.Destination)
+		if err != nil {
+			return protocols.SideEffects{}, fmt.Errorf("Could not  divert to guarantee: %w", err)
+		}
+		// Update the allocation on the new state
+		nextState.Outcome[i].Allocations = newAlloc
+
 	}
-	if types.Lt(rightAmount, big.NewInt(0)) {
-		return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Right, request.RightAmount[asset])
-	}
-
-	// Calculate the total amount we need to allocate to the guarantee
-	total := big.NewInt(0).Add(request.LeftAmount[asset], request.RightAmount[asset])
-
-	nextState.Outcome = outcome.Exit{outcome.SingleAssetExit{
-		Allocations: outcome.Allocations{
-			outcome.Allocation{
-				Destination: request.Left,
-				Amount:      leftAmount,
-			},
-			outcome.Allocation{
-				Destination: request.Right,
-				Amount:      rightAmount,
-			},
-			outcome.Allocation{
-				Destination:    request.Destination,
-				Amount:         total,
-				AllocationType: outcome.GuaranteeAllocationType,
-				Metadata:       guarantee,
-			},
-		},
-	}}
 
 	nextState.TurnNum = nextState.TurnNum + 1
 
