@@ -64,7 +64,7 @@ func (v SingleHopVirtualChannel) amountAtIndex(index uint) types.Funds {
 		asset := assetExit.Asset
 		allocations := assetExit.Allocations
 
-		if uint(len(allocations)) >= index {
+		if index < uint(len(allocations)) {
 			amount[asset] = allocations[index].Amount
 		}
 	}
