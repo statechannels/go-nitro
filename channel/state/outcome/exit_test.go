@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -188,4 +189,114 @@ func TestExitAffords(t *testing.T) {
 	if !(got == want) {
 		t.Error(`Affords: expected test exit to not afford the given allocation with nil funds`)
 	}
+}
+
+func TestExitDivertToGuarantee(t *testing.T) {
+
+	aliceDestination := types.Destination(common.HexToHash("0x0a"))
+	bobDestination := types.Destination(common.HexToHash("0x0b"))
+
+	asset0 := types.Address{0}
+
+	leftFunds := types.Funds{asset0: big.NewInt(5)}
+	rightFunds := types.Funds{asset0: big.NewInt(5)}
+
+	targetChannel := types.Destination(common.HexToHash("0xabc"))
+
+	e := Exit{
+		SingleAssetExit{
+			Asset: types.Address{0},
+			Allocations: Allocations{
+				{
+					Destination:    aliceDestination,
+					Amount:         big.NewInt(243),
+					AllocationType: 0,
+					Metadata:       make(types.Bytes, 0),
+				},
+				{
+					Destination:    bobDestination,
+					Amount:         big.NewInt(309),
+					AllocationType: 0,
+					Metadata:       make(types.Bytes, 0),
+				},
+			},
+		},
+	}
+
+	got, err := e.DivertToGuarantee(aliceDestination, bobDestination, leftFunds, rightFunds, targetChannel)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	want := Exit{
+		SingleAssetExit{
+			Asset: types.Address{0},
+			Allocations: Allocations{
+				{
+					Destination:    aliceDestination,
+					Amount:         big.NewInt(238),
+					AllocationType: 0,
+					Metadata:       make(types.Bytes, 0),
+				},
+				{
+					Destination:    bobDestination,
+					Amount:         big.NewInt(304),
+					AllocationType: 0,
+					Metadata:       make(types.Bytes, 0),
+				},
+				{
+					Destination:    targetChannel,
+					Amount:         big.NewInt(10),
+					AllocationType: 1,
+					Metadata:       append(aliceDestination.Bytes(), bobDestination.Bytes()...),
+				},
+			},
+		},
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("TestDivertToGuarantee: expectedGuarantee mismatch (-want +got):\n%s", diff)
+	}
+
+	if e[0].Allocations[0].Amount.Cmp(big.NewInt(243)) != 0 {
+		t.Errorf("TestDivertToGuarantee: input arguments mutated")
+	}
+
+	got, err = e.DivertToGuarantee(aliceDestination, bobDestination, leftFunds, types.Funds{}, targetChannel)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want = Exit{
+		SingleAssetExit{
+			Asset: types.Address{0},
+			Allocations: Allocations{
+				{
+					Destination:    aliceDestination,
+					Amount:         big.NewInt(238),
+					AllocationType: 0,
+					Metadata:       make(types.Bytes, 0),
+				},
+				{
+					Destination:    bobDestination,
+					Amount:         big.NewInt(309),
+					AllocationType: 0,
+					Metadata:       make(types.Bytes, 0),
+				},
+				{
+					Destination:    targetChannel,
+					Amount:         big.NewInt(5),
+					AllocationType: 1,
+					Metadata:       append(aliceDestination.Bytes(), bobDestination.Bytes()...),
+				},
+			},
+		},
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("TestDivertToGuarantee: expectedGuarantee mismatch (-want +got):\n%s", diff)
+	}
+
 }
