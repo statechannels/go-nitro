@@ -192,7 +192,7 @@ func (e Exit) Affords(
 
 }
 
-// DivertToGuarantee returns a new Exit, identical to the reciever but with
+// DivertToGuarantee returns a new Exit, identical to the receiver but with
 // (for each asset of the Exit)
 // the leftDestination's amount reduced by leftFunds[asset],
 // the rightDestination's amount reduced by rightAmount[asset],
