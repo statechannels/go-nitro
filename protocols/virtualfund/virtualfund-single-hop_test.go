@@ -765,7 +765,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Error(`Objective data not updated as expected`)
 			}
 
-			// Part 2: a signature on Bob's ledger channel (on his left)
+			// Part 2: a signature on P1's ledger channel (on her left)
 			f := protocols.ObjectiveEvent{
 				ObjectiveId: s.Id(),
 			}
