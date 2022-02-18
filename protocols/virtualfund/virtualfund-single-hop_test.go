@@ -576,16 +576,32 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Error(err)
 			}
 
+			// For the first expected guarantee:
 			got := o.ToMyLeft.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
-			var expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyLeft.TheirDestination(), Right: ledgerChannelToMyLeft.MyDestination()}
-			var expectedEncodedGuaranteeMetadata, _ = expectedGuaranteeMetadata.Encode()
-			var expectedGuarantee outcome.Allocation = outcome.Allocation{
+			expectedGuaranteeMetadata := outcome.GuaranteeMetadata{Left: ledgerChannelToMyLeft.TheirDestination(), Right: ledgerChannelToMyLeft.MyDestination()}
+			expectedEncodedGuaranteeMetadata, _ := expectedGuaranteeMetadata.Encode()
+			expectedGuarantee := outcome.Allocation{
 				Destination:    o.V.Id,
 				Amount:         big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated()),
 				AllocationType: outcome.GuaranteeAllocationType,
 				Metadata:       expectedEncodedGuaranteeMetadata,
 			}
 			want := expectedGuarantee
+
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
+			}
+
+			got = o.ToMyRight.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
+			expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination(), Right: ledgerChannelToMyRight.TheirDestination()}
+			expectedEncodedGuaranteeMetadata, _ = expectedGuaranteeMetadata.Encode()
+			expectedGuarantee = outcome.Allocation{
+				Destination:    o.V.Id,
+				Amount:         big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated()),
+				AllocationType: outcome.GuaranteeAllocationType,
+				Metadata:       expectedEncodedGuaranteeMetadata,
+			}
+			want = expectedGuarantee
 
 			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
