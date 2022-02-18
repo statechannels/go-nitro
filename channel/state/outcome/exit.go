@@ -210,14 +210,12 @@ func (e Exit) DivertToGuarantee(
 
 	for i, sae := range f {
 		asset := sae.Asset
-		// Skip this asset if:
-		// either of leftFunds or rightFunds does not have it, OR
-		// leftFunds and rightFunds have a zero amount for this asset
-		leftAmount, leftOk := leftFunds[asset]
+
+		leftAmount, leftOk := leftFunds.Clone()[asset]
 		if !leftOk {
 			leftAmount = big.NewInt(0)
 		}
-		rightAmount, rightOk := rightFunds[asset]
+		rightAmount, rightOk := rightFunds.Clone()[asset]
 		if !rightOk {
 			rightAmount = big.NewInt(0)
 		}
