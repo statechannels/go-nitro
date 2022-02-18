@@ -14,6 +14,12 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// TestVirtualFundIntegration is a work in progress:
+// It should:
+// [x] spin up three clients with connected test services
+// [x] directly fund a pair of ledger channels
+// [ ] call an API method such as clientA.CreateVirtualChannel
+// [ ] assert on an appropriate objective completing in all clients
 func TestVirtualFundIntegration(t *testing.T) {
 
 	// Set up logging
