@@ -28,24 +28,10 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 		return protocols.SideEffects{}, fmt.Errorf("error finding a supported state: %w", err)
 	}
 	nextState := supported.Clone()
-
-	for i, exit := range nextState.Outcome {
-		asset := exit.Asset
-		// If our request doesn't deal with this asset, skip it
-		if types.IsZero(request.LeftAmount[asset]) && types.IsZero(request.RightAmount[asset]) {
-			continue
-		}
-
-		// Get an updated allocation with the guarantee
-		newAlloc, err := nextState.Outcome[i].Allocations.DivertToGuarantee(request.Left, request.Right, request.LeftAmount[asset], request.RightAmount[asset], request.Destination)
-		if err != nil {
-			return protocols.SideEffects{}, fmt.Errorf("Could not  divert to guarantee: %w", err)
-		}
-		// Update the allocation on the new state
-		nextState.Outcome[i].Allocations = newAlloc
-
+	nextState.Outcome, err = nextState.Outcome.DivertToGuarantee(request.Left, request.Right, request.LeftAmount, request.RightAmount, request.Destination)
+	if err != nil {
+		return protocols.SideEffects{}, fmt.Errorf("error diverting to guarantee: %w", err)
 	}
-
 	nextState.TurnNum = nextState.TurnNum + 1
 
 	ss := state.NewSignedState(nextState)

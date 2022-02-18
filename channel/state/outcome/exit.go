@@ -3,6 +3,7 @@ package outcome
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/big"
 
@@ -189,4 +190,39 @@ func (e Exit) Affords(
 	}
 	return true
 
+}
+
+// DivertToGuarantee returns a new Exit, identical to the reciever but with
+// (for each asset of the Exit present in both leftFunds and rightFunds)
+// the leftDestination's amount reduced by leftFunds[asset],
+// the rightDestination's amount reduced by rightAmount[asset],
+// and a Guarantee appended for the guaranteeDestination.
+func (e Exit) DivertToGuarantee(
+	leftDestination types.Destination,
+	rightDestination types.Destination,
+	leftFunds types.Funds,
+	rightFunds types.Funds,
+	guaranteeDestination types.Destination,
+) (Exit, error) {
+
+	f := e.Clone()
+
+	for i, sae := range f {
+		asset := sae.Asset
+		// If our request doesn't deal with this asset, skip it
+		leftAmount, leftOk := leftFunds[asset]
+		rightAmount, rightOk := rightFunds[asset]
+		if !leftOk || !rightOk || types.IsZero(leftAmount) && types.IsZero(rightAmount) {
+			continue
+		}
+
+		newAllocations, err := sae.Allocations.DivertToGuarantee(leftDestination, rightDestination, leftAmount, rightAmount, guaranteeDestination)
+
+		if err != nil {
+			return Exit{}, fmt.Errorf("Could not divert to guarantee: %w", err)
+		}
+		f[i].Allocations = newAllocations
+	}
+
+	return f, nil
 }
