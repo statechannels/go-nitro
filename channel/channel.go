@@ -33,6 +33,7 @@ type SingleHopVirtualChannel struct {
 	Channel
 }
 
+// NewSingleHopVirtualChannel returns a new SingleHopVirtualChannel based on the supplied state.
 func NewSingleHopVirtualChannel(s state.State, myIndex uint) (*SingleHopVirtualChannel, error) {
 	if myIndex > 2 {
 		return &SingleHopVirtualChannel{}, errors.New("myIndex in a single hop virtual channel must be 0, 1, or 2")
@@ -50,6 +51,7 @@ func NewSingleHopVirtualChannel(s state.State, myIndex uint) (*SingleHopVirtualC
 	return &SingleHopVirtualChannel{*c}, err
 }
 
+// amountAtIndex gets allocations at the specified index and returns the amount.
 func (v SingleHopVirtualChannel) amountAtIndex(index uint) types.Funds {
 	supported, err := v.LatestSupportedState()
 
@@ -71,10 +73,12 @@ func (v SingleHopVirtualChannel) amountAtIndex(index uint) types.Funds {
 	return amount
 }
 
+// LeftAmount returns the amount of the first allocation, which allocates to the left.
 func (v SingleHopVirtualChannel) LeftAmount() types.Funds {
 	return v.amountAtIndex(0)
 }
 
+// RightAmount returns the amount of the second allocation, which allocates to the right.
 func (v SingleHopVirtualChannel) RightAmount() types.Funds {
 	return v.amountAtIndex(1)
 }
