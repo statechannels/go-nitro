@@ -631,8 +631,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			expectedSignedState := state.NewSignedState(o.V.PreFundState())
-			bobSig, _ := o.V.PreFundState().Sign(my.privateKey)
-			_ = expectedSignedState.AddSignature(bobSig)
+			mySig, _ := o.V.PreFundState().Sign(my.privateKey)
+			_ = expectedSignedState.AddSignature(mySig)
 
 			forAlice := protocols.Message{To: alice.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}}
 			forBob := protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}}
@@ -648,7 +648,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// Manually progress the extended state by collecting prefund signatures
 			aliceSig, _ := vPreFund.Sign(alice.privateKey)
 			o.V.AddStateWithSignature(vPreFund, aliceSig)
-			bobSig, _ = vPreFund.Sign(bob.privateKey)
+			bobSig, _ := vPreFund.Sign(bob.privateKey)
 			o.V.AddStateWithSignature(vPreFund, bobSig)
 
 			// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
