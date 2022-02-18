@@ -134,8 +134,12 @@ func (e *Engine) handleMessage(message protocols.Message) ObjectiveChangeEvent {
 // generates an updated objective and
 // attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) ObjectiveChangeEvent {
-
-	objective, _ := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
+	e.logger.Printf("handling chain event %v", chainEvent)
+	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
+	if !ok {
+		e.logger.Printf("handleChainEvent: No objective in store for channel with id %s", chainEvent.ChannelId)
+		return ObjectiveChangeEvent{}
+	}
 	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, AdjudicationStatus: chainEvent.AdjudicationStatus, ObjectiveId: objective.Id()}
 	updatedObjective, err := objective.Update(event)
 	if err != nil {
