@@ -592,6 +592,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
 			}
 
+			// For the second expected guarantee:
 			got = o.ToMyRight.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
 			expectedGuaranteeMetadata = outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination(), Right: ledgerChannelToMyRight.TheirDestination()}
 			expectedEncodedGuaranteeMetadata, _ = expectedGuaranteeMetadata.Encode()
