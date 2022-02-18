@@ -35,20 +35,6 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 		if types.IsZero(request.LeftAmount[asset]) && types.IsZero(request.RightAmount[asset]) {
 			continue
 		}
-		// Get the current amounts from the ledger channel
-		currentLeftAmount := nextState.Outcome.TotalAllocatedFor(request.Left)[asset]
-		currentRightAmount := nextState.Outcome.TotalAllocatedFor(request.Right)[asset]
-		// Calculate the new amounts by subtracting the requested amounts from the current amounts
-		leftAmount := big.NewInt(0).Sub(currentLeftAmount, request.LeftAmount[asset])
-		rightAmount := big.NewInt(0).Sub(currentRightAmount, request.RightAmount[asset])
-
-		// If any participant cannot afford the request amount, return an error
-		if types.Lt(leftAmount, big.NewInt(0)) {
-			return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Left, request.LeftAmount[asset])
-		}
-		if types.Lt(rightAmount, big.NewInt(0)) {
-			return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Right, request.RightAmount[asset])
-		}
 
 		// Get an updated allocation with the guarantee
 		newAlloc, err := nextState.Outcome[i].Allocations.DivertToGuarantee(request.Left, request.Right, request.LeftAmount[asset], request.RightAmount[asset], request.Destination)
