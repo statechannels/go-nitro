@@ -80,9 +80,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 	vPostFund := vPreFund.Clone()
 	vPostFund.TurnNum = 1
 
-	// TODO test some generic things that don't depend on the actor
-	// - cranking an unapproved objective
-
 	TestAs := func(my actor, t *testing.T) {
 
 		var ledgerChannelToMyLeft *channel.TwoPartyLedger
@@ -362,6 +359,134 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 		}
+
+		testUpdate := func(t *testing.T) {
+			var s, _ = New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			// Prepare an event with a mismatched objectiveId
+			e := protocols.ObjectiveEvent{
+				ObjectiveId: "some-other-id",
+			}
+			// Assert that Updating the objective with such an event returns an error
+			// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
+			if _, err := s.Update(e); err == nil {
+				t.Error(`Objective ID mismatch -- expected an error but did not get one`)
+			}
+
+			// Now modify the event to give it the "correct" channelId (matching the objective),
+			// and make a new Sigs map.
+			// This prepares us for the rest of the test. We will reuse the same event multiple times
+			e.ObjectiveId = s.Id()
+			e.SignedStates = make([]state.SignedState, 0)
+
+			// Next, attempt to update the objective with correct signature by a participant on a relevant state
+			// Assert that this results in an appropriate change in the extended state of the objective
+			// Part 1: a signature on a state in channel V
+			prefundsignedstate := state.NewSignedState(s.V.PreFundState())
+
+			switch my.role {
+			case 0:
+				{
+					_ = prefundsignedstate.Sign(&p1.privateKey)
+
+				}
+			case 1:
+				{
+					_ = prefundsignedstate.Sign(&alice.privateKey)
+
+				}
+			case 2:
+				{
+					_ = prefundsignedstate.Sign(&p1.privateKey)
+
+				}
+			}
+			e.SignedStates = append(e.SignedStates, prefundsignedstate)
+
+			updatedObj, err := s.Update(e)
+			updated := updatedObj.(VirtualFundObjective)
+			if err != nil {
+				t.Error(err)
+			}
+
+			switch my.role {
+			case 0:
+				{
+					if !updated.V.SignedStateForTurnNum[0].HasSignatureForParticipant(p1.role) {
+						t.Error(`Objective data not updated as expected`)
+					}
+				}
+			case 1:
+				{
+					if !updated.V.SignedStateForTurnNum[0].HasSignatureForParticipant(alice.role) {
+						t.Error(`Objective data not updated as expected`)
+					}
+				}
+			case 2:
+				{
+					if !updated.V.SignedStateForTurnNum[0].HasSignatureForParticipant(p1.role) {
+						t.Error(`Objective data not updated as expected`)
+					}
+				}
+			}
+
+			// Part 2: a signature on a relevant ledger channel
+			f := protocols.ObjectiveEvent{
+				ObjectiveId: s.Id(),
+			}
+			f.SignedStates = make([]state.SignedState, 0)
+
+			var ledgerprefundsignedstate state.SignedState
+			switch my.role {
+			case 0:
+				{
+					ledgerprefundsignedstate = state.NewSignedState(ledgerChannelToMyRight.PreFundState())
+					_ = ledgerprefundsignedstate.Sign(&p1.privateKey)
+
+				}
+			case 1:
+				{
+					ledgerprefundsignedstate = state.NewSignedState(ledgerChannelToMyRight.PreFundState())
+					_ = ledgerprefundsignedstate.Sign(&bob.privateKey)
+
+				}
+			case 2:
+				{
+					ledgerprefundsignedstate = state.NewSignedState(ledgerChannelToMyLeft.PreFundState())
+					_ = ledgerprefundsignedstate.Sign(&p1.privateKey)
+
+				}
+			}
+			f.SignedStates = append(f.SignedStates, ledgerprefundsignedstate)
+
+			updatedObj, err = s.Update(f)
+			updated = updatedObj.(VirtualFundObjective)
+			if err != nil {
+				t.Error(err)
+			}
+
+			switch my.role {
+			case 0:
+				{
+					if !updated.ToMyRight.Channel.SignedStateForTurnNum[0].HasSignatureForParticipant((updated.ToMyRight.Channel.MyIndex + 1) % 2) {
+						t.Error(`Objective data not updated as expected`)
+					}
+				}
+			case 1:
+				{
+					if !updated.ToMyRight.Channel.SignedStateForTurnNum[0].HasSignatureForParticipant((updated.ToMyRight.Channel.MyIndex + 1) % 2) {
+						t.Error(`Objective data not updated as expected`)
+					}
+				}
+			case 2:
+				{
+					if !updated.ToMyLeft.Channel.SignedStateForTurnNum[0].HasSignatureForParticipant((updated.ToMyLeft.Channel.MyIndex + 1) % 2) {
+						t.Error(`Objective data not updated as expected`)
+					}
+				}
+			}
+
+		}
+		t.Run(`Update`, testUpdate)
 		t.Run(`Crank`, testCrank)
 	}
 
