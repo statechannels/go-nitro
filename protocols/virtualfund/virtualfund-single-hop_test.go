@@ -85,6 +85,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		// IMPORTANT these are templates. Clone them before using to prevent sharing mutable data between tests
 		var l *channel.TwoPartyLedger
 		var r *channel.TwoPartyLedger
+
 		switch my.role {
 		case 0:
 			{
