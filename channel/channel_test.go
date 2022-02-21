@@ -28,7 +28,7 @@ func TestChannel(t *testing.T) {
 
 	testClone := func(t *testing.T) {
 		r := c.Clone()
-		if diff := cmp.Diff(r, *c, cmp.Comparer(types.Equal)); diff != "" {
+		if diff := cmp.Diff(r, c, cmp.Comparer(types.Equal)); diff != "" {
 			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
@@ -301,4 +301,57 @@ func TestChannel(t *testing.T) {
 	t.Run(`TestAddSignedStates`, testAddSignedStates)
 	t.Run(`TestAddSignedState`, testAddSignedState)
 
+}
+
+func TestTwoPartyLedger(t *testing.T) {
+	s := state.TestState.Clone()
+	s.TurnNum = 0
+	testClone := func(t *testing.T) {
+		r, err := NewTwoPartyLedger(s, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		c := r.Clone()
+		if diff := cmp.Diff(r, c, cmp.Comparer(types.Equal)); diff != "" {
+			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+		}
+
+		r.latestSupportedStateTurnNum++
+		if r.Channel.Equal(c.Channel) {
+			t.Error("Clone: modifying the clone should not modify the original")
+		}
+
+		r.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
+		if r.Participants[0] == c.Participants[0] {
+			t.Error("Clone: modifying the clone should not modify the original")
+		}
+	}
+	t.Run(`TestClone`, testClone)
+}
+
+func TestSingleHopVirtualChannel(t *testing.T) {
+	s := state.TestState.Clone()
+	s.Participants = append(s.Participants, s.Participants[0]) // ensure three participants
+	s.TurnNum = 0
+	testClone := func(t *testing.T) {
+		r, err := NewSingleHopVirtualChannel(s, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		c := r.Clone()
+		if diff := cmp.Diff(r, c, cmp.Comparer(types.Equal)); diff != "" {
+			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+		}
+
+		r.latestSupportedStateTurnNum++
+		if r.Channel.Equal(c.Channel) {
+			t.Error("Clone: modifying the clone should not modify the original")
+		}
+
+		r.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
+		if r.Participants[0] == c.Participants[0] {
+			t.Error("Clone: modifying the clone should not modify the original")
+		}
+	}
+	t.Run(`TestClone`, testClone)
 }
