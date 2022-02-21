@@ -94,7 +94,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 					outcome.Allocation{Destination: p1.destination, Amount: big.NewInt(5)},
 					&my.privateKey, 0, big.NewInt(0))
 				ledger.SignPreAndPostFundingStates(r, []*[]byte{&alice.privateKey, &p1.privateKey}) // TODO these steps could be absorbed into CreateTestLedger
-				r.OnChainFunding = r.PreFundState().Outcome.TotalAllocated()
 
 			}
 		case 1:
@@ -108,9 +107,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 					outcome.Allocation{Destination: bob.destination, Amount: big.NewInt(5)},
 					&alice.privateKey, 0, big.NewInt(0))
 				ledger.SignPreAndPostFundingStates(l, []*[]byte{&alice.privateKey, &p1.privateKey})
-				l.OnChainFunding = l.PreFundState().Outcome.TotalAllocated()
 				ledger.SignPreAndPostFundingStates(r, []*[]byte{&p1.privateKey, &bob.privateKey})
-				r.OnChainFunding = r.PreFundState().Outcome.TotalAllocated()
 			}
 		case 2:
 			{
@@ -119,8 +116,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 					outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
 					&alice.privateKey, 1, big.NewInt(0))
 				ledger.SignPreAndPostFundingStates(l, []*[]byte{&bob.privateKey, &p1.privateKey})
-				l.OnChainFunding = l.PreFundState().Outcome.TotalAllocated()
-
 			}
 		default:
 			{

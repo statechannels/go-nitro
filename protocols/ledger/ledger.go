@@ -76,7 +76,7 @@ func SignLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 	ledger.Channel.AddSignedState(toSign)
 }
 
-// CreateTestLedger creates a new  two party ledger channel based on the provided left and right outcomes.
+// CreateTestLedger creates a new two party ledger channel based on the provided left and right outcomes. The channel will appear to be fully-funded on chain.
 func CreateTestLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint, nonce *big.Int) (*channel.TwoPartyLedger, error) {
 
 	leftAddress, _ := left.Destination.ToAddress()
@@ -99,6 +99,7 @@ func CreateTestLedger(left outcome.Allocation, right outcome.Allocation, secretK
 	if lErr != nil {
 		return ledger, fmt.Errorf("error creating ledger: %w", lErr)
 	}
+	ledger.OnChainFunding = ledger.PreFundState().Outcome.TotalAllocated()
 
 	return ledger, nil
 }
