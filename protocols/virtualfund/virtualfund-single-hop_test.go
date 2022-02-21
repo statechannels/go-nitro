@@ -94,24 +94,34 @@ func TestSingleHopVirtualFund(t *testing.T) {
 					outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
 					outcome.Allocation{Destination: p1.destination, Amount: big.NewInt(5)},
 					&my.privateKey, 0, big.NewInt(0))
+				ledger.SignPreAndPostFundingStates(ledgerChannelToMyRight, []*[]byte{&alice.privateKey, &p1.privateKey}) // TODO these steps could be absorbed into CreateTestLedger
+				ledgerChannelToMyRight.OnChainFunding = ledgerChannelToMyRight.PreFundState().Outcome.TotalAllocated()
+
 			}
 		case 1:
 			{
 				ledgerChannelToMyLeft, _ = ledger.CreateTestLedger(
 					outcome.Allocation{Destination: alice.destination, Amount: big.NewInt(5)},
 					outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
-					&alice.privateKey, 0, big.NewInt(0))
+					&alice.privateKey, 1, big.NewInt(0))
 				ledgerChannelToMyRight, _ = ledger.CreateTestLedger(
 					outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
 					outcome.Allocation{Destination: bob.destination, Amount: big.NewInt(5)},
 					&alice.privateKey, 0, big.NewInt(0))
+				ledger.SignPreAndPostFundingStates(ledgerChannelToMyLeft, []*[]byte{&alice.privateKey, &p1.privateKey})
+				ledgerChannelToMyLeft.OnChainFunding = ledgerChannelToMyLeft.PreFundState().Outcome.TotalAllocated()
+				ledger.SignPreAndPostFundingStates(ledgerChannelToMyRight, []*[]byte{&p1.privateKey, &bob.privateKey})
+				ledgerChannelToMyRight.OnChainFunding = ledgerChannelToMyRight.PreFundState().Outcome.TotalAllocated()
 			}
 		case 2:
 			{
 				ledgerChannelToMyLeft, _ = ledger.CreateTestLedger(
 					outcome.Allocation{Destination: p1.destination, Amount: big.NewInt(5)},
 					outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
-					&alice.privateKey, 0, big.NewInt(0))
+					&alice.privateKey, 1, big.NewInt(0))
+				ledger.SignPreAndPostFundingStates(ledgerChannelToMyLeft, []*[]byte{&bob.privateKey, &p1.privateKey})
+				ledgerChannelToMyLeft.OnChainFunding = ledgerChannelToMyLeft.PreFundState().Outcome.TotalAllocated()
+
 			}
 		default:
 			{
@@ -150,8 +160,9 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			switch my.role {
 			case 0:
 				{
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
 					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: p1.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
+					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
+
 				}
 			case 1:
 				{
@@ -164,6 +175,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: p1.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
 				}
 			}
+			// TODO ^^^^ the test is sensitive to the order of the messages. It should not be.
 
 			if diff := cmp.Diff(want, got); diff != "" {
 				if diff := cmp.Diff(want, got); diff != "" {
@@ -256,26 +268,28 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
 			}
 
-			// ledger.SignPreAndPostFundingStates(o.ToMyRight.Channel, []*[]byte{&alice.privateKey, &p1.privateKey}) // TODO snip this out
-
 			ledgerManager := ledger.NewLedgerManager()
 			switch my.role {
 			case 0:
 				{
 					_, _ = ledgerManager.HandleRequest(o.ToMyRight.Channel, got.LedgerRequests[0], &my.privateKey)
+					ledger.SignLatest(o.ToMyRight.Channel, [][]byte{p1.privateKey})
 				}
 			case 1:
 				{
 					_, _ = ledgerManager.HandleRequest(o.ToMyLeft.Channel, got.LedgerRequests[0], &my.privateKey)
+					ledger.SignLatest(o.ToMyLeft.Channel, [][]byte{alice.privateKey})
 					_, _ = ledgerManager.HandleRequest(o.ToMyRight.Channel, got.LedgerRequests[1], &my.privateKey)
+					ledger.SignLatest(o.ToMyRight.Channel, [][]byte{bob.privateKey})
+
 				}
 			case 2:
 				{
 					_, _ = ledgerManager.HandleRequest(o.ToMyLeft.Channel, got.LedgerRequests[0], &my.privateKey)
+					ledger.SignLatest(o.ToMyLeft.Channel, [][]byte{p1.privateKey})
+
 				}
 			}
-
-			ledger.SignLatest(o.ToMyRight.Channel, [][]byte{p1.privateKey})
 
 			// Cranking now should not generate side effects, because we already did that
 			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
@@ -284,7 +298,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Error(err)
 			}
 			if waitingFor != WaitingForCompletePostFund {
-				t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
+				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
 			}
 			expectedSignedState = state.NewSignedState(o.V.PostFundState())
 			mySig, _ = o.V.PostFundState().Sign(my.privateKey)
@@ -294,8 +308,9 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			switch my.role {
 			case 0:
 				{
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
 					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: p1.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
+					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
+
 				}
 			case 1:
 				{
@@ -316,7 +331,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			}
 
-			// Manually progress the extended state by collecting postfund signatures
 			// Manually progress the extended state by collecting postfund signatures
 			aliceSig, _ = vPostFund.Sign(alice.privateKey)
 			bobSig, _ = vPostFund.Sign(bob.privateKey)
