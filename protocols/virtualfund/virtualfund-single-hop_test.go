@@ -131,7 +131,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		testCrank := func(t *testing.T) {
 			ledgerChannelToMyLeft := l.Clone()
 			ledgerChannelToMyRight := r.Clone()
-			var s, _ = New(false, vPreFund, my.address, n, my.role, &ledgerChannelToMyLeft, &ledgerChannelToMyRight)
+			var s, _ = New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			// Assert that cranking an unapproved objective returns an error
 			if _, _, _, err := s.Crank(&my.privateKey); err == nil {
 				t.Error(`Expected error when cranking unapproved objective, but got nil`)
@@ -366,7 +366,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		testUpdate := func(t *testing.T) {
 			ledgerChannelToMyLeft := l.Clone()
 			ledgerChannelToMyRight := r.Clone()
-			var s, _ = New(false, vPreFund, my.address, n, my.role, &ledgerChannelToMyLeft, &ledgerChannelToMyRight)
+			var s, _ = New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			// Prepare an event with a mismatched objectiveId
 			e := protocols.ObjectiveEvent{
 				ObjectiveId: "some-other-id",
@@ -495,8 +495,9 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 		}
-		t.Run(`Update`, testUpdate)
 		t.Run(`Crank`, testCrank)
+		t.Run(`Update`, testUpdate)
+
 	}
 
 	t.Run(`AsAlice`, func(t *testing.T) { TestAs(alice, t) })
