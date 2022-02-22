@@ -208,14 +208,17 @@ func (e Exit) DivertToGuarantee(
 
 	f := e.Clone()
 
+	leftFundsClone := leftFunds.Clone()
+	rightFundsClone := rightFunds.Clone()
+
 	for i, sae := range f {
 		asset := sae.Asset
 
-		leftAmount, leftOk := leftFunds.Clone()[asset]
+		leftAmount, leftOk := leftFundsClone[asset]
 		if !leftOk {
 			leftAmount = big.NewInt(0)
 		}
-		rightAmount, rightOk := rightFunds.Clone()[asset]
+		rightAmount, rightOk := rightFundsClone[asset]
 		if !rightOk {
 			rightAmount = big.NewInt(0)
 		}
