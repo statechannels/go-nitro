@@ -28,7 +28,7 @@ func TestChannel(t *testing.T) {
 
 	testClone := func(t *testing.T) {
 		r := c.Clone()
-		if diff := cmp.Diff(r, c, cmp.Comparer(types.Equal)); diff != "" {
+		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
 			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
@@ -312,7 +312,7 @@ func TestTwoPartyLedger(t *testing.T) {
 			t.Fatal(err)
 		}
 		c := r.Clone()
-		if diff := cmp.Diff(r, c, cmp.Comparer(types.Equal)); diff != "" {
+		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
 			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
@@ -339,7 +339,7 @@ func TestSingleHopVirtualChannel(t *testing.T) {
 			t.Fatal(err)
 		}
 		c := r.Clone()
-		if diff := cmp.Diff(r, c, cmp.Comparer(types.Equal)); diff != "" {
+		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
 			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
