@@ -83,8 +83,12 @@ func (v SingleHopVirtualChannel) RightAmount() types.Funds {
 	return v.amountAtIndex(1)
 }
 
-func (v SingleHopVirtualChannel) Clone() SingleHopVirtualChannel {
-	return SingleHopVirtualChannel{v.Channel.Clone()}
+func (v *SingleHopVirtualChannel) Clone() *SingleHopVirtualChannel {
+	if v == nil {
+		return nil
+	}
+	w := SingleHopVirtualChannel{*v.Channel.Clone()}
+	return &w
 }
 
 type TwoPartyLedger struct {
@@ -104,15 +108,19 @@ func NewTwoPartyLedger(s state.State, myIndex uint) (*TwoPartyLedger, error) {
 	return &TwoPartyLedger{*c}, err
 }
 
-func (lc TwoPartyLedger) Clone() TwoPartyLedger {
-	return lc // no pointer methods, so this is sufficient
+func (lc *TwoPartyLedger) Clone() *TwoPartyLedger {
+	if lc == nil {
+		return nil
+	}
+	w := TwoPartyLedger{*lc.Channel.Clone()}
+	return &w
 }
 
 // New constructs a new Channel from the supplied state.
 func New(s state.State, myIndex uint) (*Channel, error) {
 	c := Channel{}
 	if s.TurnNum != PreFundTurnNum {
-		return &c, errors.New(`objective must be constructed with TurnNum=0 state`)
+		return &c, errors.New(`channel must be constructed with TurnNum=0 state`)
 	}
 
 	var err error
@@ -154,15 +162,18 @@ func (lc TwoPartyLedger) TheirDestination() types.Destination {
 }
 
 // Clone returns a deep copy of the receiver
-func (c Channel) Clone() Channel {
-	clonedSignedStateForTurnNum := map[uint64]state.SignedState{}
-	for i, ss := range c.SignedStateForTurnNum {
-		clonedSignedStateForTurnNum[i] = ss.Clone()
+func (c *Channel) Clone() *Channel {
+	if c == nil {
+		return nil
 	}
-	c.SignedStateForTurnNum = clonedSignedStateForTurnNum
-	c.OnChainFunding = c.OnChainFunding.Clone()
-	c.FixedPart = c.FixedPart.Clone()
-	return c
+	d, _ := New(c.PreFundState().Clone(), c.MyIndex)
+	d.latestSupportedStateTurnNum = c.latestSupportedStateTurnNum
+	for i, ss := range c.SignedStateForTurnNum {
+		d.SignedStateForTurnNum[i] = ss.Clone()
+	}
+	d.OnChainFunding = c.OnChainFunding.Clone()
+	d.FixedPart = c.FixedPart.Clone()
+	return d
 }
 
 // Equal returns true if the channel is deeply equal to the reciever, false otherwise

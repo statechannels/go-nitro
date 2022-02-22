@@ -332,7 +332,6 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 				ObjectiveId: s.Id(),
 				LedgerId:    s.ToMyLeft.Channel.Id,
 				Destination: s.V.Id,
-
 				Left:        s.ToMyLeft.Channel.TheirDestination(),
 				LeftAmount:  leftAmount,
 				Right:       s.ToMyLeft.Channel.MyDestination(),
@@ -359,12 +358,12 @@ func (s *VirtualFundObjective) clone() VirtualFundObjective {
 	clone := VirtualFundObjective{}
 	clone.Status = s.Status
 	vClone := s.V.Clone()
-	clone.V = &vClone
+	clone.V = vClone
 
 	if s.ToMyLeft != nil {
 		lClone := s.ToMyLeft.Channel.Clone()
 		clone.ToMyLeft = &Connection{
-			Channel:            &lClone,
+			Channel:            lClone,
 			ExpectedGuarantees: s.ToMyLeft.ExpectedGuarantees,
 		}
 	}
@@ -372,7 +371,7 @@ func (s *VirtualFundObjective) clone() VirtualFundObjective {
 	if s.ToMyRight != nil {
 		rClone := s.ToMyRight.Channel.Clone()
 		clone.ToMyRight = &Connection{
-			Channel:            &rClone,
+			Channel:            rClone,
 			ExpectedGuarantees: s.ToMyRight.ExpectedGuarantees,
 		}
 	}

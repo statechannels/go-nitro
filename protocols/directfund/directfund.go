@@ -263,7 +263,7 @@ func (s DirectFundObjective) clone() DirectFundObjective {
 	clone.Status = s.Status
 
 	cClone := s.C.Clone()
-	clone.C = &cClone
+	clone.C = cClone
 
 	clone.myDepositSafetyThreshold = s.myDepositSafetyThreshold.Clone()
 	clone.myDepositTarget = s.myDepositTarget.Clone()
