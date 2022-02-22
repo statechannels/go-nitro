@@ -28,38 +28,10 @@ func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request pr
 		return protocols.SideEffects{}, fmt.Errorf("error finding a supported state: %w", err)
 	}
 	nextState := supported.Clone()
-
-	for i, exit := range nextState.Outcome {
-		asset := exit.Asset
-		// If our request doesn't deal with this asset, skip it
-		if types.IsZero(request.LeftAmount[asset]) && types.IsZero(request.RightAmount[asset]) {
-			continue
-		}
-		// Get the current amounts from the ledger channel
-		currentLeftAmount := nextState.Outcome.TotalAllocatedFor(request.Left)[asset]
-		currentRightAmount := nextState.Outcome.TotalAllocatedFor(request.Right)[asset]
-		// Calculate the new amounts by subtracting the requested amounts from the current amounts
-		leftAmount := big.NewInt(0).Sub(currentLeftAmount, request.LeftAmount[asset])
-		rightAmount := big.NewInt(0).Sub(currentRightAmount, request.RightAmount[asset])
-
-		// If any participant cannot afford the request amount, return an error
-		if types.Lt(leftAmount, big.NewInt(0)) {
-			return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Left, request.LeftAmount[asset])
-		}
-		if types.Lt(rightAmount, big.NewInt(0)) {
-			return protocols.SideEffects{}, fmt.Errorf("Allocation for %x cannot afford the amount %d", request.Right, request.RightAmount[asset])
-		}
-
-		// Get an updated allocation with the guarantee
-		newAlloc, err := nextState.Outcome[i].Allocations.DivertToGuarantee(request.Left, request.Right, request.LeftAmount[asset], request.RightAmount[asset], request.Destination)
-		if err != nil {
-			return protocols.SideEffects{}, fmt.Errorf("Could not  divert to guarantee: %w", err)
-		}
-		// Update the allocation on the new state
-		nextState.Outcome[i].Allocations = newAlloc
-
+	nextState.Outcome, err = nextState.Outcome.DivertToGuarantee(request.Left, request.Right, request.LeftAmount, request.RightAmount, request.Destination)
+	if err != nil {
+		return protocols.SideEffects{}, fmt.Errorf("error diverting to guarantee: %w", err)
 	}
-
 	nextState.TurnNum = nextState.TurnNum + 1
 
 	ss := state.NewSignedState(nextState)
