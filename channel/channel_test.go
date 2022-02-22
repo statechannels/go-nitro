@@ -325,7 +325,15 @@ func TestTwoPartyLedger(t *testing.T) {
 		if r.Participants[0] == c.Participants[0] {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
+
+		var nilTwoPartyLedger *TwoPartyLedger
+		clone := nilTwoPartyLedger.Clone()
+		if clone != nil {
+			t.Fatal("Tried to clone a TwoPartyLedger via a nil pointer, but got something not nil")
+		}
+
 	}
+
 	t.Run(`TestClone`, testClone)
 }
 
