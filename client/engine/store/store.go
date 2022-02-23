@@ -16,5 +16,6 @@ type Store interface {
 	GetObjectiveByChannelId(types.Destination) (obj protocols.Objective, ok bool) // Get the objective that currently owns the channel with the supplied ChannelId
 	SetObjective(protocols.Objective) error                                       // Write an objective
 	GetChannel(types.Destination) (channel *channel.Channel, ok bool)
+	GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (channel *channel.TwoPartyLedger, ok bool)
 	UpdateProgressLastMadeAt(protocols.ObjectiveId, protocols.WaitingFor) // updates progressLastMadeAt information for an objective
 }

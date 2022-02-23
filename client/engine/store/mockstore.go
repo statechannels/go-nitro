@@ -69,6 +69,20 @@ func (ms MockStore) GetChannel(channelId types.Destination) (*channel.Channel, b
 	return nil, false
 }
 
+func (ms MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool) {
+	for _, obj := range ms.objectives {
+		for _, ch := range obj.Channels() {
+			if len(ch.Participants) == 2 {
+				// TODO: Should order matter?
+				if ch.Participants[0] == firstParty && ch.Participants[1] == secondParty {
+					return &channel.TwoPartyLedger{Channel: *ch}, true
+				}
+			}
+		}
+	}
+	return nil, false
+}
+
 func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
 	// todo: locking
 	for _, obj := range ms.objectives {
