@@ -64,3 +64,11 @@ func CreateSignedStateMessages(id ObjectiveId, ss state.SignedState, myIndex uin
 	}
 	return messages
 }
+
+// Merge accepts a SideEffects struct that is merged into the the existing SideEffects.
+func (se *SideEffects) Merge(other SideEffects) {
+
+	se.MessagesToSend = append(se.MessagesToSend, other.MessagesToSend...)
+	se.TransactionsToSubmit = append(se.TransactionsToSubmit, other.TransactionsToSubmit...)
+
+}
