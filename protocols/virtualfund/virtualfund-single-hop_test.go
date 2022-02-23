@@ -82,51 +82,52 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 	TestAs := func(my actor, t *testing.T) {
 
-		// IMPORTANT these are templates. Clone them before using to prevent sharing mutable data between tests
-		var l *channel.TwoPartyLedger
-		var r *channel.TwoPartyLedger
+		// prepareLedgerChannels constructs and return two new ledger channels. Depending on the role, one of them may be nil.
+		prepareLedgerChannels := func(role uint) (*channel.TwoPartyLedger, *channel.TwoPartyLedger) {
+			var l *channel.TwoPartyLedger
+			var r *channel.TwoPartyLedger
+			switch my.role {
+			case 0:
+				{
+					r, _ = ledger.CreateTestLedger(
+						outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
+						outcome.Allocation{Destination: p1.destination, Amount: big.NewInt(5)},
+						&my.privateKey, 0, big.NewInt(0))
+					ledger.SignPreAndPostFundingStates(r, []*[]byte{&alice.privateKey, &p1.privateKey}) // TODO these steps could be absorbed into CreateTestLedger
 
-		switch my.role {
-		case 0:
-			{
-				r, _ = ledger.CreateTestLedger(
-					outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
-					outcome.Allocation{Destination: p1.destination, Amount: big.NewInt(5)},
-					&my.privateKey, 0, big.NewInt(0))
-				ledger.SignPreAndPostFundingStates(r, []*[]byte{&alice.privateKey, &p1.privateKey}) // TODO these steps could be absorbed into CreateTestLedger
+				}
+			case 1:
+				{
+					l, _ = ledger.CreateTestLedger(
+						outcome.Allocation{Destination: alice.destination, Amount: big.NewInt(5)},
+						outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
+						&alice.privateKey, 1, big.NewInt(0))
+					r, _ = ledger.CreateTestLedger(
+						outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
+						outcome.Allocation{Destination: bob.destination, Amount: big.NewInt(5)},
+						&alice.privateKey, 0, big.NewInt(0))
+					ledger.SignPreAndPostFundingStates(l, []*[]byte{&alice.privateKey, &p1.privateKey})
+					ledger.SignPreAndPostFundingStates(r, []*[]byte{&p1.privateKey, &bob.privateKey})
+				}
+			case 2:
+				{
+					l, _ = ledger.CreateTestLedger(
+						outcome.Allocation{Destination: p1.destination, Amount: big.NewInt(5)},
+						outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
+						&alice.privateKey, 1, big.NewInt(0))
+					ledger.SignPreAndPostFundingStates(l, []*[]byte{&bob.privateKey, &p1.privateKey})
+				}
+			default:
+				{
+					panic(`invalid role`)
+				}
 
 			}
-		case 1:
-			{
-				l, _ = ledger.CreateTestLedger(
-					outcome.Allocation{Destination: alice.destination, Amount: big.NewInt(5)},
-					outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
-					&alice.privateKey, 1, big.NewInt(0))
-				r, _ = ledger.CreateTestLedger(
-					outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
-					outcome.Allocation{Destination: bob.destination, Amount: big.NewInt(5)},
-					&alice.privateKey, 0, big.NewInt(0))
-				ledger.SignPreAndPostFundingStates(l, []*[]byte{&alice.privateKey, &p1.privateKey})
-				ledger.SignPreAndPostFundingStates(r, []*[]byte{&p1.privateKey, &bob.privateKey})
-			}
-		case 2:
-			{
-				l, _ = ledger.CreateTestLedger(
-					outcome.Allocation{Destination: p1.destination, Amount: big.NewInt(5)},
-					outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
-					&alice.privateKey, 1, big.NewInt(0))
-				ledger.SignPreAndPostFundingStates(l, []*[]byte{&bob.privateKey, &p1.privateKey})
-			}
-		default:
-			{
-				panic(`invalid role`)
-			}
-
+			return l, r
 		}
 
 		testCrank := func(t *testing.T) {
-			ledgerChannelToMyLeft := l.Clone()
-			ledgerChannelToMyRight := r.Clone()
+			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
 			var s, _ = New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			// Assert that cranking an unapproved objective returns an error
 			if _, _, _, err := s.Crank(&my.privateKey); err == nil {
@@ -360,8 +361,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		}
 
 		testUpdate := func(t *testing.T) {
-			ledgerChannelToMyLeft := l.Clone()
-			ledgerChannelToMyRight := r.Clone()
+			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
 			var s, _ = New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			// Prepare an event with a mismatched objectiveId
 			e := protocols.ObjectiveEvent{
