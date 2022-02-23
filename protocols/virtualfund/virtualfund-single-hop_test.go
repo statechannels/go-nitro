@@ -26,17 +26,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		role        uint
 	}
 
-	assertSideEffectsContainsMessageWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, to actor, t *testing.T) {
-		for _, msg := range ses.MessagesToSend {
-			for _, ss := range msg.SignedStates {
-				if ss.Equal(expectedSignedState) && bytes.Equal(msg.To[:], to.address[:]) {
-					return
-				}
-			}
-		}
-		t.Fatalf("side effects %v do not contain signed state %v for %v", ses, expectedSignedState, to)
-	}
-
 	////////////
 	// ACTORS //
 	////////////
@@ -60,6 +49,31 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		destination: types.AddressToDestination(common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`)),
 		privateKey:  common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`),
 		role:        2,
+	}
+
+	// assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
+	assertSideEffectsContainsMessageWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, to actor, t *testing.T) {
+		for _, msg := range ses.MessagesToSend {
+			for _, ss := range msg.SignedStates {
+				if ss.Equal(expectedSignedState) && bytes.Equal(msg.To[:], to.address[:]) {
+					return
+				}
+			}
+		}
+		t.Fatalf("side effects %v do not contain signed state %v for %v", ses, expectedSignedState, to)
+	}
+
+	// assertSideEffectsContainsMessageWith calls assertSideEffectsContainsMessageWith for all peers of the actor with role myRole.
+	assertSideEffectsContainsMessagesWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, myRole uint, t *testing.T) {
+		if myRole != alice.role {
+			assertSideEffectsContainsMessageWith(ses, expectedSignedState, alice, t)
+		}
+		if myRole != p1.role {
+			assertSideEffectsContainsMessageWith(ses, expectedSignedState, p1, t)
+		}
+		if myRole != bob.role {
+			assertSideEffectsContainsMessageWith(ses, expectedSignedState, bob, t)
+		}
 	}
 
 	/////////////////////
@@ -164,25 +178,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			expectedSignedState := state.NewSignedState(o.V.PreFundState())
 			mySig, _ := o.V.PreFundState().Sign(my.privateKey)
 			_ = expectedSignedState.AddSignature(mySig)
-
-			switch my.role {
-			case 0:
-				{
-					assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
-					assertSideEffectsContainsMessageWith(got, expectedSignedState, bob, t)
-
-				}
-			case 1:
-				{
-					assertSideEffectsContainsMessageWith(got, expectedSignedState, alice, t)
-					assertSideEffectsContainsMessageWith(got, expectedSignedState, bob, t)
-				}
-			case 2:
-				{
-					assertSideEffectsContainsMessageWith(got, expectedSignedState, alice, t)
-					assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
-				}
-			}
+			assertSideEffectsContainsMessagesWith(got, expectedSignedState, my.role, t)
 
 			// Manually progress the extended state by collecting prefund signatures
 			aliceSig, _ := vPreFund.Sign(alice.privateKey)
