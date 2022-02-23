@@ -196,8 +196,8 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 // 	5. It updates progress metadata in the store
 func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent) {
 	secretKey := e.store.GetChannelSecretKey()
-	crankedObjective, sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
-	_ = e.store.SetObjective(crankedObjective)                                 // TODO handle error
+	crankedObjective, sideEffects, waitingFor, _, _ := objective.Crank(secretKey) // TODO handle error
+	_ = e.store.SetObjective(crankedObjective)                                    // TODO handle error
 	e.executeSideEffects(sideEffects)
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
