@@ -15,6 +15,8 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/ledger"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // Engine is the imperative part of the core business logic of a go-nitro Client
@@ -245,8 +247,55 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 			message.SignedStates[0].State(),
 			*e.store.GetAddress(),
 		)
+	case strings.Contains(string(message.ObjectiveId), "Virtual"):
+		initialState := message.SignedStates[0].State()
+
+		if initialState.TurnNum != 0 {
+			return virtualfund.VirtualFundObjective{}, errors.New("cannot construct virtual fund objective without prefund state")
+		}
+		participants := message.SignedStates[0].State().Participants
+		if len(participants) != 3 {
+			return virtualfund.VirtualFundObjective{}, errors.New("a single hop virtual channel must have exactly 3 participants")
+		}
+
+		alice := participants[0]
+		intermediary := participants[1]
+		bob := participants[2]
+		myAddress := *e.store.GetAddress()
+
+		var left *channel.TwoPartyLedger
+		var right *channel.TwoPartyLedger
+		var ok bool
+
+		if alice != myAddress {
+			left, ok = e.store.GetTwoPartyLedger(intermediary, bob)
+			if !ok {
+				return virtualfund.VirtualFundObjective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+			}
+		}
+		if bob != myAddress {
+			right, ok = e.store.GetTwoPartyLedger(alice, intermediary)
+			if !ok {
+				return virtualfund.VirtualFundObjective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+			}
+		}
+
+		myRole, err := getMyRole(myAddress, participants)
+		if err != nil {
+			return virtualfund.VirtualFundObjective{}, errors.New("could not determine my role: %w")
+		}
+
+		return virtualfund.New(
+			true, // TODO ensure objective in only approved if the application has given permission somehow
+			message.SignedStates[0].State(),
+			*e.store.GetAddress(),
+			1, // Always a single hop virtual channel
+			myRole,
+			left,
+			right,
+		)
 	default:
-		return directfund.DirectFundObjective{}, errors.New("cannot handle unimplemented objective type")
+		return virtualfund.VirtualFundObjective{}, errors.New("cannot handle unimplemented objective type")
 	}
 
 }
@@ -271,5 +320,17 @@ func (e *Engine) handleLedgerRequests(ledgerRequests []protocols.LedgerRequest) 
 		sideEffects.Merge(se)
 	}
 	return sideEffects, nil
+}
 
+func getMyRole(myAddress types.Address, participants []types.Address) (uint, error) {
+	var myRole uint = ^uint(0)
+	for i, p := range participants {
+		if p == myAddress {
+			myRole = uint(i)
+		}
+	}
+	if myRole == ^uint(0) {
+		return myRole, fmt.Errorf("could not find address %v in participants %v", myAddress, participants)
+	}
+	return myRole, nil
 }
