@@ -132,30 +132,29 @@ func (s DirectFundObjective) Update(event protocols.ObjectiveEvent) (protocols.O
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
-
-func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.LedgerRequest, error) {
 	updated := s.clone()
 
 	se := NoSideEffects
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return updated, NoSideEffects, WaitingForNothing, ErrNotApproved
+		return updated, NoSideEffects, WaitingForNothing, []protocols.LedgerRequest{}, ErrNotApproved
 	}
 
 	// Prefunding
 	if !updated.C.PreFundSignedByMe() {
 		ss, err := updated.C.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return updated, NoSideEffects, WaitingForCompletePrefund, fmt.Errorf("could not sign prefund %w", err)
+			return updated, NoSideEffects, WaitingForCompletePrefund, []protocols.LedgerRequest{}, fmt.Errorf("could not sign prefund %w", err)
 		}
 		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
 		se.MessagesToSend = append(se.MessagesToSend, messages...)
 
-		return updated, se, WaitingForCompletePrefund, nil
+		return updated, se, WaitingForCompletePrefund, []protocols.LedgerRequest{}, nil
 	}
 
 	if !updated.C.PreFundComplete() {
-		return updated, NoSideEffects, WaitingForCompletePrefund, nil
+		return updated, NoSideEffects, WaitingForCompletePrefund, []protocols.LedgerRequest{}, nil
 	}
 
 	// Funding
@@ -164,17 +163,17 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 	safeToDeposit := updated.safeToDeposit()
 
 	if !fundingComplete && !safeToDeposit {
-		return updated, NoSideEffects, WaitingForMyTurnToFund, nil
+		return updated, NoSideEffects, WaitingForMyTurnToFund, []protocols.LedgerRequest{}, nil
 	}
 
 	if !fundingComplete && safeToDeposit && amountToDeposit.IsNonZero() {
 		deposit := protocols.ChainTransaction{ChannelId: updated.C.Id, Deposit: amountToDeposit}
 		se.TransactionsToSubmit = append(se.TransactionsToSubmit, deposit)
-		return updated, se, WaitingForCompleteFunding, nil
+		return updated, se, WaitingForCompleteFunding, []protocols.LedgerRequest{}, nil
 	}
 
 	if !fundingComplete {
-		return updated, NoSideEffects, WaitingForCompleteFunding, nil
+		return updated, NoSideEffects, WaitingForCompleteFunding, []protocols.LedgerRequest{}, nil
 	}
 
 	// Postfunding
@@ -183,20 +182,20 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 		ss, err := updated.C.SignAndAddPostfund(secretKey)
 
 		if err != nil {
-			return updated, NoSideEffects, WaitingForCompletePostFund, fmt.Errorf("could not sign postfund %w", err)
+			return updated, NoSideEffects, WaitingForCompletePostFund, []protocols.LedgerRequest{}, fmt.Errorf("could not sign postfund %w", err)
 		}
 		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
 		se.MessagesToSend = append(se.MessagesToSend, messages...)
 
-		return updated, se, WaitingForCompletePostFund, nil
+		return updated, se, WaitingForCompletePostFund, []protocols.LedgerRequest{}, nil
 	}
 
 	if !updated.C.PostFundComplete() {
-		return updated, NoSideEffects, WaitingForCompletePostFund, nil
+		return updated, NoSideEffects, WaitingForCompletePostFund, []protocols.LedgerRequest{}, nil
 	}
 
 	// Completion
-	return updated, NoSideEffects, WaitingForNothing, nil
+	return updated, NoSideEffects, WaitingForNothing, []protocols.LedgerRequest{}, nil
 }
 
 func (s DirectFundObjective) Channels() []*channel.Channel {

@@ -199,12 +199,12 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all.
-func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.LedgerRequest, error) {
 	updated := s.clone()
 
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return updated, NoSideEffects, WaitingForNothing, ErrNotApproved
+		return updated, NoSideEffects, WaitingForNothing, []protocols.LedgerRequest{}, ErrNotApproved
 	}
 
 	// Prefunding
@@ -212,43 +212,43 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	if !updated.V.PreFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return s, NoSideEffects, WaitingForNothing, err
+			return s, NoSideEffects, WaitingForNothing, []protocols.LedgerRequest{}, err
 		}
 		messages := protocols.CreateSignedStateMessages(s.Id(), ss, s.V.MyIndex)
-		return updated, protocols.SideEffects{MessagesToSend: messages}, WaitingForCompletePrefund, nil
+		return updated, protocols.SideEffects{MessagesToSend: messages}, WaitingForCompletePrefund, []protocols.LedgerRequest{}, nil
 	}
 
 	if !updated.V.PreFundComplete() {
-		return updated, NoSideEffects, WaitingForCompletePrefund, nil
+		return updated, NoSideEffects, WaitingForCompletePrefund, []protocols.LedgerRequest{}, nil
 	}
 
 	// Funding
 
 	if !updated.requestedLedgerUpdates {
 		updated.requestedLedgerUpdates = true
-		return updated, s.generateLedgerRequestSideEffects(), WaitingForCompleteFunding, nil
+		return updated, NoSideEffects, WaitingForCompleteFunding, s.generateLedgerRequestSideEffects(), nil
 	}
 
 	if !updated.fundingComplete() {
-		return updated, NoSideEffects, WaitingForCompleteFunding, nil
+		return updated, NoSideEffects, WaitingForCompleteFunding, []protocols.LedgerRequest{}, nil
 	}
 
 	// Postfunding
 	if !updated.V.PostFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPostfund(secretKey)
 		if err != nil {
-			return s, NoSideEffects, WaitingForNothing, err
+			return s, NoSideEffects, WaitingForNothing, []protocols.LedgerRequest{}, err
 		}
 		messages := protocols.CreateSignedStateMessages(s.Id(), ss, s.V.MyIndex)
-		return updated, protocols.SideEffects{MessagesToSend: messages}, WaitingForCompletePostFund, nil
+		return updated, protocols.SideEffects{MessagesToSend: messages}, WaitingForCompletePostFund, []protocols.LedgerRequest{}, nil
 	}
 
 	if !updated.V.PostFundComplete() {
-		return updated, NoSideEffects, WaitingForCompletePostFund, nil
+		return updated, NoSideEffects, WaitingForCompletePostFund, []protocols.LedgerRequest{}, nil
 	}
 
 	// Completion
-	return updated, NoSideEffects, WaitingForNothing, nil
+	return updated, NoSideEffects, WaitingForNothing, []protocols.LedgerRequest{}, nil
 }
 
 func (s VirtualFundObjective) Channels() []*channel.Channel {
@@ -319,15 +319,15 @@ func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
 }
 
 // generateLedgerRequestSideEffects generates the appropriate side effects, which (when executed and countersigned) will update 1 or 2 ledger channels to guarantee the joint channel.
-func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideEffects {
-	sideEffects := protocols.SideEffects{}
-	sideEffects.LedgerRequests = make([]protocols.LedgerRequest, 0)
+func (s VirtualFundObjective) generateLedgerRequestSideEffects() []protocols.LedgerRequest {
+
+	requests := make([]protocols.LedgerRequest, 0)
 
 	leftAmount := s.V.LeftAmount()
 	rightAmount := s.V.RightAmount()
 
 	if !s.isAlice() {
-		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
+		requests = append(requests,
 			protocols.LedgerRequest{
 				ObjectiveId: s.Id(),
 				LedgerId:    s.ToMyLeft.Channel.Id,
@@ -339,7 +339,7 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 			})
 	}
 	if !s.isBob() {
-		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests,
+		requests = append(requests,
 			protocols.LedgerRequest{
 				ObjectiveId: s.Id(),
 				LedgerId:    s.ToMyRight.Channel.Id,
@@ -350,7 +350,7 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() protocols.SideE
 				RightAmount: rightAmount,
 			})
 	}
-	return sideEffects
+	return requests
 }
 
 // Clone returns a deep copy of the receiver
