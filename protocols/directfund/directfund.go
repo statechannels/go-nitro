@@ -199,9 +199,9 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 	return updated, NoSideEffects, WaitingForNothing, nil
 }
 
-func (s DirectFundObjective) Channels() []types.Destination {
-	ret := make([]types.Destination, 0, 1)
-	ret = append(ret, s.C.Id)
+func (s DirectFundObjective) Channels() []*channel.Channel {
+	ret := make([]*channel.Channel, 0, 1)
+	ret = append(ret, s.C)
 	return ret
 }
 

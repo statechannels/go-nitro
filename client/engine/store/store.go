@@ -2,6 +2,7 @@
 package store // import "github.com/statechannels/go-nitro/client/engine/store"
 
 import (
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -14,6 +15,6 @@ type Store interface {
 	GetObjectiveById(protocols.ObjectiveId) (obj protocols.Objective, ok bool)    // Read an existing objective
 	GetObjectiveByChannelId(types.Destination) (obj protocols.Objective, ok bool) // Get the objective that currently owns the channel with the supplied ChannelId
 	SetObjective(protocols.Objective) error                                       // Write an objective
-
+	GetChannel(types.Destination) (channel *channel.Channel, ok bool)
 	UpdateProgressLastMadeAt(protocols.ObjectiveId, protocols.WaitingFor) // updates progressLastMadeAt information for an objective
 }

@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -56,11 +57,23 @@ func (ms MockStore) SetObjective(obj protocols.Objective) error {
 	return nil
 }
 
+func (ms MockStore) GetChannel(channelId types.Destination) (*channel.Channel, bool) {
+	// todo: locking
+	for _, obj := range ms.objectives {
+		for _, ch := range obj.Channels() {
+			if ch.Id == channelId {
+				return ch, true
+			}
+		}
+	}
+	return nil, false
+}
+
 func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
 	// todo: locking
 	for _, obj := range ms.objectives {
 		for _, ch := range obj.Channels() {
-			if ch == channelId {
+			if ch.Id == channelId {
 				return obj, true
 			}
 		}
