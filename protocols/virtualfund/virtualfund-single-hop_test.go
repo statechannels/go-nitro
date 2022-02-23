@@ -174,6 +174,47 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			return l, r
 		}
 
+		testNew := func(t *testing.T) {
+			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
+			// Assert that a valid set of constructor args does not result in an error
+			o, err := New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if my.role != alice.role {
+				// Check left guarantee
+				got := o.ToMyLeft.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
+				expectedGuaranteeMetadata := outcome.GuaranteeMetadata{Left: ledgerChannelToMyLeft.TheirDestination(), Right: ledgerChannelToMyLeft.MyDestination()}
+				expectedEncodedGuaranteeMetadata, _ := expectedGuaranteeMetadata.Encode()
+				want := outcome.Allocation{
+					Destination:    o.V.Id,
+					Amount:         big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated()),
+					AllocationType: outcome.GuaranteeAllocationType,
+					Metadata:       expectedEncodedGuaranteeMetadata,
+				}
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
+				}
+			}
+
+			if my.role != bob.role {
+				// Check right guarantee
+				got := o.ToMyRight.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
+				expectedGuaranteeMetadata := outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination(), Right: ledgerChannelToMyRight.TheirDestination()}
+				expectedEncodedGuaranteeMetadata, _ := expectedGuaranteeMetadata.Encode()
+				want := outcome.Allocation{
+					Destination:    o.V.Id,
+					Amount:         big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated()),
+					AllocationType: outcome.GuaranteeAllocationType,
+					Metadata:       expectedEncodedGuaranteeMetadata,
+				}
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
+				}
+			}
+		}
+
 		testCrank := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
 			var s, _ = New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
@@ -449,6 +490,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 		}
+		t.Run(`New`, testNew)
 		t.Run(`Crank`, testCrank)
 		t.Run(`Update`, testUpdate)
 
