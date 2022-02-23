@@ -64,7 +64,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 	}
 
 	// assertSideEffectsContainsMessageWith calls assertSideEffectsContainsMessageWith for all peers of the actor with role myRole.
-	assertSideEffectsContainsMessagesWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, myRole uint, t *testing.T) {
+	assertSideEffectsContainsMessagesForPeersWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, myRole uint, t *testing.T) {
 		if myRole != alice.role {
 			assertSideEffectsContainsMessageWith(ses, expectedSignedState, alice, t)
 		}
@@ -200,7 +200,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			expectedSignedState := state.NewSignedState(o.V.PreFundState())
 			mySig, _ := o.V.PreFundState().Sign(my.privateKey)
 			_ = expectedSignedState.AddSignature(mySig)
-			assertSideEffectsContainsMessagesWith(got, expectedSignedState, my.role, t)
+			assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.role, t)
 
 			// Manually progress the extended state by collecting prefund signatures
 			collectPeerSignaturesOnSetupState(o.V, my.role, true)
