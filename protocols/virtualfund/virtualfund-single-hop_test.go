@@ -302,33 +302,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			expectedSignedState = state.NewSignedState(o.V.PostFundState())
 			mySig, _ = o.V.PostFundState().Sign(my.privateKey)
 			_ = expectedSignedState.AddSignature(mySig)
-
-			want = protocols.SideEffects{MessagesToSend: []protocols.Message{}}
-			switch my.role {
-			case 0:
-				{
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: p1.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
-
-				}
-			case 1:
-				{
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: alice.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
-				}
-			case 2:
-				{
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: alice.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: p1.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
-				}
-			}
-
-			if diff := cmp.Diff(want, got); diff != "" {
-				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
-				}
-
-			}
+			assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.role, t)
 
 			// Manually progress the extended state by collecting postfund signatures
 			collectPeerSignaturesOnSetupState(o.V, my.role, false)
