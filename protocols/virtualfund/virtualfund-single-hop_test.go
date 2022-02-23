@@ -76,6 +76,28 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		}
 	}
 
+	collectPeerSignaturesOnSetupState := func(V *channel.SingleHopVirtualChannel, myRole uint, prefund bool) {
+		var state state.State
+		if prefund {
+			state = V.PreFundState()
+		} else {
+			state = V.PostFundState()
+		}
+
+		if myRole != alice.role {
+			aliceSig, _ := state.Sign(alice.privateKey)
+			V.AddStateWithSignature(state, aliceSig)
+		}
+		if myRole != p1.role {
+			p1Sig, _ := state.Sign(p1.privateKey)
+			V.AddStateWithSignature(state, p1Sig)
+		}
+		if myRole != bob.role {
+			bobSig, _ := state.Sign(bob.privateKey)
+			V.AddStateWithSignature(state, bobSig)
+		}
+	}
+
 	/////////////////////
 	// VIRTUAL CHANNEL //
 	/////////////////////
@@ -181,26 +203,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			assertSideEffectsContainsMessagesWith(got, expectedSignedState, my.role, t)
 
 			// Manually progress the extended state by collecting prefund signatures
-			aliceSig, _ := vPreFund.Sign(alice.privateKey)
-			bobSig, _ := vPreFund.Sign(bob.privateKey)
-			p1Sig, _ := vPreFund.Sign(p1.privateKey)
-			switch my.role {
-			case 0:
-				{
-					o.V.AddStateWithSignature(vPreFund, bobSig)
-					o.V.AddStateWithSignature(vPreFund, p1Sig)
-				}
-			case 1:
-				{
-					o.V.AddStateWithSignature(vPreFund, aliceSig) // TODO is this necessary?
-					o.V.AddStateWithSignature(vPreFund, bobSig)
-				}
-			case 2:
-				{
-					o.V.AddStateWithSignature(vPreFund, aliceSig) // TODO is this necessary?
-					o.V.AddStateWithSignature(vPreFund, p1Sig)
-				}
-			}
+			collectPeerSignaturesOnSetupState(o.V, my.role, true)
 
 			// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
 			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
@@ -328,26 +331,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			// Manually progress the extended state by collecting postfund signatures
-			aliceSig, _ = vPostFund.Sign(alice.privateKey)
-			bobSig, _ = vPostFund.Sign(bob.privateKey)
-			p1Sig, _ = vPostFund.Sign(p1.privateKey)
-			switch my.role {
-			case 0:
-				{
-					o.V.AddStateWithSignature(vPostFund, bobSig)
-					o.V.AddStateWithSignature(vPostFund, p1Sig)
-				}
-			case 1:
-				{
-					o.V.AddStateWithSignature(vPostFund, aliceSig)
-					o.V.AddStateWithSignature(vPostFund, bobSig)
-				}
-			case 2:
-				{
-					o.V.AddStateWithSignature(vPostFund, aliceSig)
-					o.V.AddStateWithSignature(vPostFund, p1Sig)
-				}
-			}
+			collectPeerSignaturesOnSetupState(o.V, my.role, false)
+
 			// This should be the final crank...
 			_, _, waitingFor, err = o.Crank(&my.privateKey)
 			if err != nil {
