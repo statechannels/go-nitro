@@ -1,6 +1,7 @@
 package virtualfund
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 
@@ -23,6 +24,17 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		destination types.Destination
 		privateKey  []byte
 		role        uint
+	}
+
+	assertSideEffectsContainsMessageWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, to actor, t *testing.T) {
+		for _, msg := range ses.MessagesToSend {
+			for _, ss := range msg.SignedStates {
+				if ss.Equal(expectedSignedState) && bytes.Equal(msg.To[:], to.address[:]) {
+					return
+				}
+			}
+		}
+		t.Fatalf("side effects %v do not contain signed state %v for %v", ses, expectedSignedState, to)
 	}
 
 	////////////
@@ -153,32 +165,23 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			mySig, _ := o.V.PreFundState().Sign(my.privateKey)
 			_ = expectedSignedState.AddSignature(mySig)
 
-			want := protocols.SideEffects{MessagesToSend: []protocols.Message{}}
 			switch my.role {
 			case 0:
 				{
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: p1.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
+					assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
+					assertSideEffectsContainsMessageWith(got, expectedSignedState, bob, t)
 
 				}
 			case 1:
 				{
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: alice.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: bob.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
+					assertSideEffectsContainsMessageWith(got, expectedSignedState, alice, t)
+					assertSideEffectsContainsMessageWith(got, expectedSignedState, bob, t)
 				}
 			case 2:
 				{
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: alice.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
-					want.MessagesToSend = append(want.MessagesToSend, protocols.Message{To: p1.address, ObjectiveId: o.Id(), SignedStates: []state.SignedState{expectedSignedState}})
+					assertSideEffectsContainsMessageWith(got, expectedSignedState, alice, t)
+					assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
 				}
-			}
-			// TODO ^^^^ the test is sensitive to the order of the messages. It should not be.
-
-			if diff := cmp.Diff(want, got); diff != "" {
-				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
-				}
-
 			}
 
 			// Manually progress the extended state by collecting prefund signatures
@@ -216,7 +219,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Error(`Expected ledger update idempotency flag to be raised, but it wasn't`)
 			}
 
-			want = protocols.SideEffects{LedgerRequests: []protocols.LedgerRequest{}}
+			want := protocols.SideEffects{LedgerRequests: []protocols.LedgerRequest{}}
 			switch my.role {
 			case 0:
 				{
