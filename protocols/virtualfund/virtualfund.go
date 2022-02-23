@@ -251,14 +251,14 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	return updated, sideEffects, WaitingForNothing, nil
 }
 
-func (s VirtualFundObjective) Channels() []types.Destination {
-	ret := make([]types.Destination, 0, 3)
-	ret = append(ret, s.V.Id)
+func (s VirtualFundObjective) Channels() []*channel.Channel {
+	ret := make([]*channel.Channel, 0, 3)
+	ret = append(ret, &s.V.Channel)
 	if !s.isAlice() {
-		ret = append(ret, s.ToMyLeft.Channel.Id)
+		ret = append(ret, &s.ToMyLeft.Channel.Channel)
 	}
 	if !s.isBob() {
-		ret = append(ret, s.ToMyRight.Channel.Id)
+		ret = append(ret, &s.ToMyRight.Channel.Channel)
 	}
 	return ret
 }
