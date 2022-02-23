@@ -2,9 +2,11 @@
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
+	"fmt"
 	"io"
 	"math/big"
 
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
@@ -13,6 +15,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -60,6 +63,44 @@ func (c *Client) handleEngineEvents() {
 // CompletedObjectives returns a chan that receives a objective id whenever that objective is completed
 func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 	return c.completedObjectives
+}
+
+func (c *Client) CreateVirtualChannel(counterParty types.Address, intermediary types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) protocols.ObjectiveId {
+	right, ok := (*c.store).GetTwoPartyLedger(*c.Address, intermediary)
+
+	if !ok {
+		// TODO: We need to implement proper API error handling
+		panic(fmt.Sprintf("Could not find ledger channel for participants %v,%v", *c.Address, intermediary))
+	}
+
+	var left *channel.TwoPartyLedger
+
+	// Convert the API call into an internal event.
+	objective, _ := virtualfund.New(true,
+		state.State{
+			ChainId:           big.NewInt(0), // TODO
+			Participants:      []types.Address{*c.Address, intermediary, counterParty},
+			ChannelNonce:      big.NewInt(0), // TODO -- how do we get a fresh nonce safely without race conditions? Could we conisder a random nonce?
+			AppDefinition:     appDefinition,
+			ChallengeDuration: challengeDuration,
+			AppData:           appData,
+			Outcome:           outcome,
+			TurnNum:           0,
+			IsFinal:           false,
+		},
+		*c.Address,
+		1, // We only handle a single hop for now
+		0, // We always play the role of alice if we initiate the channel
+		left, right)
+
+	// Pass in a fresh, dedicated go channel to communicate the response:
+	apiEvent := engine.APIEvent{
+		ObjectiveToSpawn: objective,
+	}
+	// Send the event to the engine
+	c.engine.FromAPI <- apiEvent
+
+	return objective.Id()
 }
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty
