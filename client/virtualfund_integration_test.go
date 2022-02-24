@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -84,17 +85,8 @@ func TestVirtualFundIntegration(t *testing.T) {
 			},
 		}}
 		id := alpha.CreateDirectChannel(*beta.Address, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
-		got := <-alpha.CompletedObjectives()
-
-		if got != id {
-			t.Errorf("expected completed objective with id %v, but got %v", id, got)
-		}
-
-		gotFromJ := <-beta.CompletedObjectives()
-
-		if gotFromJ != id {
-			t.Errorf("expected completed objective with id %v, but got %v", id, gotFromJ)
-		}
+		waitForCompletedObjectiveId(id, &alpha)
+		waitForCompletedObjectiveId(id, &beta)
 
 	}
 
@@ -114,20 +106,16 @@ func TestVirtualFundIntegration(t *testing.T) {
 		},
 	}}
 	id := clientA.CreateVirtualChannel(b, i, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
-	got := <-clientA.CompletedObjectives()
+	waitForCompletedObjectiveId(id, &clientA)
+	waitForCompletedObjectiveId(id, &clientB)
+	waitForCompletedObjectiveId(id, &clientI)
 
-	if got != id {
-		t.Errorf("expected completed objective from a with id %v, but got %v", id, got)
+}
+
+// waitForCompletedObjectiveId waits for completed objectives and returns when the completed objective id matchs the id waitForCompletedObjectiveId has been given
+func waitForCompletedObjectiveId(id protocols.ObjectiveId, client *Client) {
+	got := <-client.completedObjectives
+	for got != id {
+		got = <-client.completedObjectives
 	}
-
-	gotFromB := <-clientB.CompletedObjectives()
-	if gotFromB != id {
-		t.Errorf("expected completed objective from b with id %v, but got %v", id, gotFromB)
-	}
-
-	gotFromI := <-clientI.CompletedObjectives()
-	if gotFromI != id {
-		t.Errorf("expected completed objective from i with id %v, but got %v", id, gotFromI)
-	}
-
 }
