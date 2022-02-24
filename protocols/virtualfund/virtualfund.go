@@ -332,9 +332,9 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() []protocols.Led
 				ObjectiveId: s.Id(),
 				LedgerId:    s.ToMyLeft.Channel.Id,
 				Destination: s.V.Id,
-				Left:        s.ToMyLeft.Channel.TheirDestination(),
+				Left:        types.AddressToDestination(s.ToMyLeft.Channel.Participants[0]),
 				LeftAmount:  leftAmount,
-				Right:       s.ToMyLeft.Channel.MyDestination(),
+				Right:       types.AddressToDestination(s.ToMyLeft.Channel.Participants[1]),
 				RightAmount: rightAmount,
 			})
 	}
@@ -344,9 +344,9 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() []protocols.Led
 				ObjectiveId: s.Id(),
 				LedgerId:    s.ToMyRight.Channel.Id,
 				Destination: s.V.Id,
-				Left:        s.ToMyRight.Channel.MyDestination(),
+				Left:        types.AddressToDestination(s.ToMyRight.Channel.Participants[0]),
 				LeftAmount:  leftAmount,
-				Right:       s.ToMyRight.Channel.TheirDestination(),
+				Right:       types.AddressToDestination(s.ToMyRight.Channel.Participants[1]),
 				RightAmount: rightAmount,
 			})
 	}
