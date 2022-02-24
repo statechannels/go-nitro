@@ -117,7 +117,17 @@ func TestVirtualFundIntegration(t *testing.T) {
 	got := <-clientA.CompletedObjectives()
 
 	if got != id {
-		t.Errorf("expected completed objective with id %v, but got %v", id, got)
+		t.Errorf("expected completed objective from a with id %v, but got %v", id, got)
+	}
+
+	gotFromB := <-clientB.CompletedObjectives()
+	if gotFromB != id {
+		t.Errorf("expected completed objective from b with id %v, but got %v", id, gotFromB)
+	}
+
+	gotFromI := <-clientI.CompletedObjectives()
+	if gotFromI != id {
+		t.Errorf("expected completed objective from i with id %v, but got %v", id, gotFromI)
 	}
 
 }
