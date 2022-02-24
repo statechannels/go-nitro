@@ -219,7 +219,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
 			var s, _ = New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			// Assert that cranking an unapproved objective returns an error
-			if _, _, _, err := s.Crank(&my.privateKey); err == nil {
+			if _, _, _, _, err := s.Crank(&my.privateKey); err == nil {
 				t.Error(`Expected error when cranking unapproved objective, but got nil`)
 			}
 
@@ -229,7 +229,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// And then crank it to see which "pause point" (WaitingFor) we end up at.
 
 			// Initial Crank
-			oObj, got, waitingFor, err := o.Crank(&my.privateKey)
+			oObj, got, waitingFor, _, err := o.Crank(&my.privateKey)
 			o = oObj.(VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
@@ -247,7 +247,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			collectPeerSignaturesOnSetupState(o.V, my.role, true)
 
 			// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
-			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
+			var gotRequests []protocols.LedgerRequest
+			oObj, _, waitingFor, gotRequests, err = o.Crank(&my.privateKey)
 			o = oObj.(VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
@@ -259,11 +260,11 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Error(`Expected ledger update idempotency flag to be raised, but it wasn't`)
 			}
 
-			want := protocols.SideEffects{LedgerRequests: []protocols.LedgerRequest{}}
+			wantRequests := []protocols.LedgerRequest{}
 			switch my.role {
 			case 0:
 				{
-					want.LedgerRequests = append(want.LedgerRequests, protocols.LedgerRequest{
+					wantRequests = append(wantRequests, protocols.LedgerRequest{
 						ObjectiveId: o.Id(),
 						LedgerId:    ledgerChannelToMyRight.Id,
 						Destination: s.V.Id,
@@ -274,7 +275,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				}
 			case 1:
 				{
-					want.LedgerRequests = append(want.LedgerRequests, protocols.LedgerRequest{
+					wantRequests = append(wantRequests, protocols.LedgerRequest{
 						ObjectiveId: o.Id(),
 						LedgerId:    ledgerChannelToMyLeft.Id,
 						Destination: s.V.Id,
@@ -282,7 +283,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 						LeftAmount:  types.Funds{types.Address{}: big.NewInt(5)},
 						RightAmount: types.Funds{types.Address{}: big.NewInt(5)},
 					})
-					want.LedgerRequests = append(want.LedgerRequests, protocols.LedgerRequest{
+					wantRequests = append(wantRequests, protocols.LedgerRequest{
 						ObjectiveId: o.Id(),
 						LedgerId:    ledgerChannelToMyRight.Id,
 						Destination: s.V.Id,
@@ -293,7 +294,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				}
 			case 2:
 				{
-					want.LedgerRequests = append(want.LedgerRequests, protocols.LedgerRequest{
+					wantRequests = append(wantRequests, protocols.LedgerRequest{
 						ObjectiveId: o.Id(),
 						LedgerId:    ledgerChannelToMyLeft.Id,
 						Destination: s.V.Id,
@@ -304,35 +305,35 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				}
 			}
 
-			if diff := cmp.Diff(want, got, cmp.Comparer(types.Equal)); diff != "" {
-				t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(wantRequests, gotRequests, cmp.Comparer(types.Equal)); diff != "" {
+				t.Errorf("TestCrank: ledger requests mismatch (-want +got):\n%s", diff)
 			}
 
 			ledgerManager := ledger.NewLedgerManager()
 			switch my.role {
 			case 0:
 				{
-					_, _ = ledgerManager.HandleRequest(o.ToMyRight.Channel, got.LedgerRequests[0], &my.privateKey)
+					_, _ = ledgerManager.HandleRequest(o.ToMyRight.Channel, gotRequests[0], &my.privateKey)
 					ledger.SignLatest(o.ToMyRight.Channel, [][]byte{p1.privateKey})
 				}
 			case 1:
 				{
-					_, _ = ledgerManager.HandleRequest(o.ToMyLeft.Channel, got.LedgerRequests[0], &my.privateKey)
+					_, _ = ledgerManager.HandleRequest(o.ToMyLeft.Channel, gotRequests[0], &my.privateKey)
 					ledger.SignLatest(o.ToMyLeft.Channel, [][]byte{alice.privateKey})
-					_, _ = ledgerManager.HandleRequest(o.ToMyRight.Channel, got.LedgerRequests[1], &my.privateKey)
+					_, _ = ledgerManager.HandleRequest(o.ToMyRight.Channel, gotRequests[1], &my.privateKey)
 					ledger.SignLatest(o.ToMyRight.Channel, [][]byte{bob.privateKey})
 
 				}
 			case 2:
 				{
-					_, _ = ledgerManager.HandleRequest(o.ToMyLeft.Channel, got.LedgerRequests[0], &my.privateKey)
+					_, _ = ledgerManager.HandleRequest(o.ToMyLeft.Channel, gotRequests[0], &my.privateKey)
 					ledger.SignLatest(o.ToMyLeft.Channel, [][]byte{p1.privateKey})
 
 				}
 			}
 
 			// Cranking now should not generate side effects, because we already did that
-			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
+			oObj, got, waitingFor, _, err = o.Crank(&my.privateKey)
 			o = oObj.(VirtualFundObjective)
 			if err != nil {
 				t.Error(err)
@@ -349,7 +350,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			collectPeerSignaturesOnSetupState(o.V, my.role, false)
 
 			// This should be the final crank...
-			_, _, waitingFor, err = o.Crank(&my.privateKey)
+			_, _, waitingFor, _, err = o.Crank(&my.privateKey)
 			if err != nil {
 				t.Error(err)
 			}

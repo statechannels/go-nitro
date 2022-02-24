@@ -1,6 +1,7 @@
 package protocols
 
 import (
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -38,7 +39,6 @@ func (l LedgerRequest) Equal(m LedgerRequest) bool {
 type SideEffects struct {
 	MessagesToSend       []Message
 	TransactionsToSubmit []ChainTransaction
-	LedgerRequests       []LedgerRequest
 }
 
 // WaitingFor is an enumerable "pause-point" computed from an Objective. It describes how the objective is blocked on actions by third parties (i.e. co-participants or the blockchain).
@@ -73,9 +73,9 @@ type Objective interface {
 	Approve() Objective                             // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Reject() Objective                              // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Update(event ObjectiveEvent) (Objective, error) // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Channels() []types.Destination
+	Channels() []*channel.Channel
 
-	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
+	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, []LedgerRequest, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
 }
 
 // ObjectiveId is a unique identifier for an Objective.

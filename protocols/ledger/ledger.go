@@ -15,8 +15,8 @@ import (
 type LedgerManager struct {
 }
 
-func NewLedgerManager() LedgerManager {
-	return LedgerManager{}
+func NewLedgerManager() *LedgerManager {
+	return &LedgerManager{}
 }
 
 // HandleRequest accepts a ledger request and updates the ledger channel based on the request.
