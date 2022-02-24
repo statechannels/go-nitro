@@ -130,6 +130,11 @@ func (e *Engine) handleMessage(message protocols.Message) ObjectiveChangeEvent {
 		e.logger.Print(err)
 		return ObjectiveChangeEvent{}
 	}
+	err = e.store.SetObjective(updatedObjective)
+	if err != nil {
+		e.logger.Print(err)
+		return ObjectiveChangeEvent{}
+	}
 	return e.attemptProgress(updatedObjective)
 
 }
@@ -203,11 +208,13 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 // 	5. It updates progress metadata in the store
 func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent) {
 	secretKey := e.store.GetChannelSecretKey()
+
 	crankedObjective, sideEffects, waitingFor, ledgerRequests, _ := objective.Crank(secretKey) // TODO handle error
-	// TODO: It's possible that after handling the ledger requests that we could make more progress by calling crank again
+	_ = e.store.SetObjective(crankedObjective)                                                 // TODO handle error
+
 	ledgerSideEffects, _ := e.handleLedgerRequests(ledgerRequests) // TODO: handle error
 	sideEffects.Merge(ledgerSideEffects)
-	_ = e.store.SetObjective(crankedObjective) // TODO handle error
+
 	e.executeSideEffects(sideEffects)
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
@@ -227,7 +234,18 @@ func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Obje
 
 	objective, ok := e.store.GetObjectiveById(id)
 	if !ok {
-		return e.constructObjectiveFromMessage(message)
+
+		newObj, err := e.constructObjectiveFromMessage(message)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing objective from message: %w", err)
+		}
+		err = e.store.SetObjective(newObj)
+		if err != nil {
+			return nil, fmt.Errorf("error setting objective in store: %w", err)
+		}
+		e.logger.Printf("Created new objective from  message %s", newObj.Id())
+		return newObj, nil
+
 	} else {
 		return objective, nil
 	}
@@ -304,9 +322,8 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 func (e *Engine) handleLedgerRequests(ledgerRequests []protocols.LedgerRequest) (protocols.SideEffects, error) {
 	sideEffects := protocols.SideEffects{}
 	for _, req := range ledgerRequests {
-		e.logger.Printf("Handling ledger request for %s", req.LedgerId)
+		e.logger.Printf("Handling ledger request  %+v", req)
 		ch, ok := e.store.GetChannel(req.LedgerId)
-
 		if !ok {
 			return protocols.SideEffects{}, fmt.Errorf("Could not find ledger %s", req.LedgerId)
 
@@ -317,6 +334,12 @@ func (e *Engine) handleLedgerRequests(ledgerRequests []protocols.LedgerRequest) 
 		if err != nil {
 			return se, fmt.Errorf("could not handle ledger request: %w", err)
 		}
+		err = e.store.SetChannel(ch)
+
+		if err != nil {
+			return se, fmt.Errorf("could not set channel: %w", err)
+		}
+
 		sideEffects.Merge(se)
 	}
 	return sideEffects, nil
