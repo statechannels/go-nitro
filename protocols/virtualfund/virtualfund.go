@@ -237,7 +237,7 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	if !updated.V.PostFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPostfund(secretKey)
 		if err != nil {
-			return s, sideEffects, WaitingForNothing, err
+			return s, protocols.SideEffects{}, WaitingForNothing, err
 		}
 		messages := protocols.CreateSignedStateMessages(s.Id(), ss, s.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)

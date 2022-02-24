@@ -143,7 +143,7 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 	if !updated.C.PreFundSignedByMe() {
 		ss, err := updated.C.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return updated, sideEffects, WaitingForCompletePrefund, fmt.Errorf("could not sign prefund %w", err)
+			return updated, protocols.SideEffects{}, WaitingForCompletePrefund, fmt.Errorf("could not sign prefund %w", err)
 		}
 		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
@@ -177,7 +177,7 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 		ss, err := updated.C.SignAndAddPostfund(secretKey)
 
 		if err != nil {
-			return updated, sideEffects, WaitingForCompletePostFund, fmt.Errorf("could not sign postfund %w", err)
+			return updated, protocols.SideEffects{}, WaitingForCompletePostFund, fmt.Errorf("could not sign postfund %w", err)
 		}
 		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
