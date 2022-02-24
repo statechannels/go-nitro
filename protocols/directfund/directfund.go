@@ -132,7 +132,6 @@ func (s DirectFundObjective) Update(event protocols.ObjectiveEvent) (protocols.O
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
-
 func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := s.clone()
 
