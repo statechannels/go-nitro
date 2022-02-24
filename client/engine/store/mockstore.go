@@ -3,10 +3,13 @@ package store
 import (
 	"crypto/ecdsa"
 	"log"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -54,6 +57,52 @@ func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Ob
 func (ms MockStore) SetObjective(obj protocols.Objective) error {
 	// todo: locking
 	ms.objectives[obj.Id()] = obj
+	return nil
+}
+
+// SetChannel sets the channel in the store.
+func (ms *MockStore) SetChannel(ch *channel.Channel) error {
+	// TODO: This is a temporary implementation that is pretty clunky.
+	// This should be replaced in https://github.com/statechannels/go-nitro/pull/227
+	for _, obj := range ms.objectives {
+		if strings.HasPrefix(string(obj.Id()), "DirectFunding-") {
+			dfO := obj.(directfund.DirectFundObjective)
+			if dfO.C.Id == ch.Id {
+				dfO.C = ch
+				err := ms.SetObjective(dfO)
+				if err != nil {
+					return err
+				}
+
+			}
+		} else if strings.HasPrefix(string(obj.Id()), "VirtualFund-") {
+			vfO := obj.(virtualfund.VirtualFundObjective)
+			if vfO.V.Id == ch.Id {
+				vfO.V = &channel.SingleHopVirtualChannel{Channel: *ch}
+				err := ms.SetObjective(vfO)
+				if err != nil {
+					return err
+				}
+
+			}
+			if vfO.ToMyLeft != nil && vfO.ToMyLeft.Channel.Id == ch.Id {
+				vfO.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: *ch}
+				err := ms.SetObjective(vfO)
+				if err != nil {
+					return err
+				}
+
+			}
+			if vfO.ToMyRight != nil && vfO.ToMyRight.Channel.Id == ch.Id {
+				vfO.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: *ch}
+				err := ms.SetObjective(vfO)
+				if err != nil {
+					return err
+				}
+
+			}
+		}
+	}
 	return nil
 }
 
