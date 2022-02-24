@@ -266,7 +266,7 @@ func (e *Engine) handleLedgerRequests(ledgerRequests []protocols.LedgerRequest) 
 
 		se, err := e.ledgerManager.HandleRequest(ledger, req, e.store.GetChannelSecretKey())
 		if err != nil {
-			return se, fmt.Errorf("could not handle ledger request: %s", err)
+			return se, fmt.Errorf("could not handle ledger request: %w", err)
 		}
 		sideEffects.Merge(se)
 	}
