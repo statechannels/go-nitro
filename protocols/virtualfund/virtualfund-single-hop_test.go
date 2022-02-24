@@ -306,7 +306,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			if diff := cmp.Diff(wantRequests, gotRequests, cmp.Comparer(types.Equal)); diff != "" {
-				t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
+				t.Errorf("TestCrank: ledger requests mismatch (-want +got):\n%s", diff)
 			}
 
 			ledgerManager := ledger.NewLedgerManager()
