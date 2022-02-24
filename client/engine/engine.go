@@ -32,7 +32,7 @@ type Engine struct {
 
 	store store.Store // A Store for persisting and restoring important data
 
-	ledgerManager *ledger.LedgerManager
+	ledgerManager *ledger.LedgerManager // A LedgerManager for handling ledger requests.
 	logger        *log.Logger
 }
 
