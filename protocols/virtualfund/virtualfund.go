@@ -108,8 +108,9 @@ func New(
 			init.a0,
 			init.b0,
 			init.V.Id,
-			init.ToMyLeft.Channel.TheirDestination(),
-			init.ToMyLeft.Channel.MyDestination())
+			types.AddressToDestination(init.ToMyLeft.Channel.Participants[0]),
+			types.AddressToDestination(init.ToMyLeft.Channel.Participants[1]),
+		)
 		if err != nil {
 			return VirtualFundObjective{}, err
 		}
@@ -122,9 +123,9 @@ func New(
 			init.a0,
 			init.b0,
 			init.V.Id,
-			init.ToMyRight.Channel.MyDestination(),
-			init.ToMyRight.Channel.TheirDestination())
-
+			types.AddressToDestination(init.ToMyRight.Channel.Participants[0]),
+			types.AddressToDestination(init.ToMyRight.Channel.Participants[1]),
+		)
 		if err != nil {
 			return VirtualFundObjective{}, err
 		}
