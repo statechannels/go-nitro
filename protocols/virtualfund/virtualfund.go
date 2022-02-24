@@ -20,8 +20,6 @@ const (
 	WaitingForNothing          protocols.WaitingFor = "WaitingForNothing"          // Finished
 )
 
-var NoSideEffects = protocols.SideEffects{}
-
 // errors
 var ErrNotApproved = errors.New("objective not approved")
 
@@ -202,9 +200,11 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := s.clone()
 
+	sideEffects := protocols.SideEffects{}
+
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return updated, NoSideEffects, WaitingForNothing, ErrNotApproved
+		return updated, sideEffects, WaitingForNothing, ErrNotApproved
 	}
 
 	// Prefunding
@@ -212,43 +212,43 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	if !updated.V.PreFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return s, NoSideEffects, WaitingForNothing, err
+			return s, protocols.SideEffects{}, WaitingForNothing, err
 		}
 		messages := protocols.CreateSignedStateMessages(s.Id(), ss, s.V.MyIndex)
-		return updated, protocols.SideEffects{MessagesToSend: messages}, WaitingForCompletePrefund, nil
+		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
 	if !updated.V.PreFundComplete() {
-		return updated, NoSideEffects, WaitingForCompletePrefund, nil
+		return updated, sideEffects, WaitingForCompletePrefund, nil
 	}
 
 	// Funding
 
 	if !updated.requestedLedgerUpdates {
 		updated.requestedLedgerUpdates = true
-		return updated, s.generateLedgerRequestSideEffects(), WaitingForCompleteFunding, nil
+		sideEffects.LedgerRequests = append(sideEffects.LedgerRequests, s.generateLedgerRequestSideEffects().LedgerRequests...)
 	}
 
 	if !updated.fundingComplete() {
-		return updated, NoSideEffects, WaitingForCompleteFunding, nil
+		return updated, sideEffects, WaitingForCompleteFunding, nil
 	}
 
 	// Postfunding
 	if !updated.V.PostFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPostfund(secretKey)
 		if err != nil {
-			return s, NoSideEffects, WaitingForNothing, err
+			return s, sideEffects, WaitingForNothing, err
 		}
 		messages := protocols.CreateSignedStateMessages(s.Id(), ss, s.V.MyIndex)
-		return updated, protocols.SideEffects{MessagesToSend: messages}, WaitingForCompletePostFund, nil
+		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
 	if !updated.V.PostFundComplete() {
-		return updated, NoSideEffects, WaitingForCompletePostFund, nil
+		return updated, sideEffects, WaitingForCompletePostFund, nil
 	}
 
 	// Completion
-	return updated, NoSideEffects, WaitingForNothing, nil
+	return updated, sideEffects, WaitingForNothing, nil
 }
 
 func (s VirtualFundObjective) Channels() []types.Destination {
