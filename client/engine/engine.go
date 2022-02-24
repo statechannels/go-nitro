@@ -212,7 +212,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	crankedObjective, sideEffects, waitingFor, ledgerRequests, _ := objective.Crank(secretKey) // TODO handle error
 	_ = e.store.SetObjective(crankedObjective)                                                 // TODO handle error
 
-	ledgerSideEffects, _ := e.handleLedgerRequests(ledgerRequests) // TODO: handle error
+	ledgerSideEffects, _ := e.handleLedgerRequests(ledgerRequests, crankedObjective) // TODO: handle error
 	sideEffects.Merge(ledgerSideEffects)
 
 	e.executeSideEffects(sideEffects)
@@ -319,22 +319,29 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 }
 
 // handleLedgerRequests handles a collection of ledger requests by submitting them to the ledger manager.
-func (e *Engine) handleLedgerRequests(ledgerRequests []protocols.LedgerRequest) (protocols.SideEffects, error) {
+func (e *Engine) handleLedgerRequests(ledgerRequests []protocols.LedgerRequest, objective protocols.Objective) (protocols.SideEffects, error) {
 	sideEffects := protocols.SideEffects{}
 	for _, req := range ledgerRequests {
 		e.logger.Printf("Handling ledger request  %+v", req)
-		ch, ok := e.store.GetChannel(req.LedgerId)
-		if !ok {
+
+		var ledger *channel.TwoPartyLedger
+		found := false
+		for _, ch := range objective.Channels() {
+			if ch.Id == req.LedgerId {
+				ledger = &channel.TwoPartyLedger{Channel: *ch}
+				found = true
+			}
+		}
+		if !found {
 			return protocols.SideEffects{}, fmt.Errorf("Could not find ledger %s", req.LedgerId)
 
 		}
-		ledger := &channel.TwoPartyLedger{Channel: *ch}
 
 		se, err := e.ledgerManager.HandleRequest(ledger, req, e.store.GetChannelSecretKey())
 		if err != nil {
 			return se, fmt.Errorf("could not handle ledger request: %w", err)
 		}
-		err = e.store.SetChannel(ch)
+		err = e.store.SetObjective(objective)
 
 		if err != nil {
 			return se, fmt.Errorf("could not set channel: %w", err)

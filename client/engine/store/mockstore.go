@@ -106,18 +106,6 @@ func (ms *MockStore) SetChannel(ch *channel.Channel) error {
 	return nil
 }
 
-func (ms MockStore) GetChannel(channelId types.Destination) (*channel.Channel, bool) {
-	// todo: locking
-	for _, obj := range ms.objectives {
-		for _, ch := range obj.Channels() {
-			if ch.Id == channelId {
-				return ch, true
-			}
-		}
-	}
-	return nil, false
-}
-
 func (ms MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool) {
 	for _, obj := range ms.objectives {
 		for _, ch := range obj.Channels() {
