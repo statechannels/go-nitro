@@ -300,3 +300,90 @@ func TestExitDivertToGuarantee(t *testing.T) {
 	}
 
 }
+
+func TestSingleAssetExitClone(t *testing.T) {
+
+	aliceDestination := types.Destination(common.HexToHash("0x0a"))
+	bobDestination := types.Destination(common.HexToHash("0x0b"))
+	targetChannel := types.Destination(common.HexToHash("0xabc"))
+
+	var sae = SingleAssetExit{
+		Asset: types.Address{0},
+		Allocations: Allocations{
+			{
+				Destination:    aliceDestination,
+				Amount:         big.NewInt(238),
+				AllocationType: 0,
+				Metadata:       make(types.Bytes, 0),
+			},
+			{
+				Destination:    bobDestination,
+				Amount:         big.NewInt(309),
+				AllocationType: 0,
+				Metadata:       make(types.Bytes, 0),
+			},
+			{
+				Destination:    targetChannel,
+				Amount:         big.NewInt(5),
+				AllocationType: 1,
+				Metadata:       append(aliceDestination.Bytes(), bobDestination.Bytes()...),
+			},
+		},
+	}
+
+	clone := sae.Clone()
+
+	if diff := cmp.Diff(sae, clone); diff != "" {
+		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestClone(t *testing.T) {
+
+	aliceDestination := types.Destination(common.HexToHash("0x0a"))
+	bobDestination := types.Destination(common.HexToHash("0x0b"))
+	targetChannel := types.Destination(common.HexToHash("0xabc"))
+
+	var e = Exit{
+		SingleAssetExit{
+			Asset: types.Address{0},
+			Allocations: Allocations{
+				{
+					Destination:    aliceDestination,
+					Amount:         big.NewInt(238),
+					AllocationType: 0,
+					Metadata:       make(types.Bytes, 0),
+				},
+				{
+					Destination:    bobDestination,
+					Amount:         big.NewInt(309),
+					AllocationType: 0,
+					Metadata:       make(types.Bytes, 0),
+				},
+				{
+					Destination:    targetChannel,
+					Amount:         big.NewInt(5),
+					AllocationType: 1,
+					Metadata:       append(aliceDestination.Bytes(), bobDestination.Bytes()...),
+				},
+			},
+		},
+		SingleAssetExit{
+			Asset: types.Address{0},
+			Allocations: Allocations{
+				{
+					Destination:    aliceDestination,
+					Amount:         big.NewInt(438),
+					AllocationType: 0,
+					Metadata:       make(types.Bytes, 0),
+				},
+			},
+		},
+	}
+
+	clone := e.Clone()
+
+	if diff := cmp.Diff(e, clone); diff != "" {
+		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+	}
+}
