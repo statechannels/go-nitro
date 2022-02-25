@@ -15,6 +15,8 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/ledger"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // Engine is the imperative part of the core business logic of a go-nitro Client
@@ -128,6 +130,7 @@ func (e *Engine) handleMessage(message protocols.Message) ObjectiveChangeEvent {
 		e.logger.Print(err)
 		return ObjectiveChangeEvent{}
 	}
+
 	return e.attemptProgress(updatedObjective)
 
 }
@@ -201,11 +204,13 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 // 	5. It updates progress metadata in the store
 func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent) {
 	secretKey := e.store.GetChannelSecretKey()
+
 	crankedObjective, sideEffects, waitingFor, ledgerRequests, _ := objective.Crank(secretKey) // TODO handle error
-	// TODO: It's possible that after handling the ledger requests that we could make more progress by calling crank again
-	ledgerSideEffects, _ := e.handleLedgerRequests(ledgerRequests) // TODO: handle error
+	_ = e.store.SetObjective(crankedObjective)                                                 // TODO handle error
+
+	ledgerSideEffects, _ := e.handleLedgerRequests(ledgerRequests, crankedObjective) // TODO: handle error
 	sideEffects.Merge(ledgerSideEffects)
-	_ = e.store.SetObjective(crankedObjective) // TODO handle error
+
 	e.executeSideEffects(sideEffects)
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
@@ -225,7 +230,18 @@ func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Obje
 
 	objective, ok := e.store.GetObjectiveById(id)
 	if !ok {
-		return e.constructObjectiveFromMessage(message)
+
+		newObj, err := e.constructObjectiveFromMessage(message)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing objective from message: %w", err)
+		}
+		err = e.store.SetObjective(newObj)
+		if err != nil {
+			return nil, fmt.Errorf("error setting objective in store: %w", err)
+		}
+		e.logger.Printf("Created new objective from  message %s", newObj.Id())
+		return newObj, nil
+
 	} else {
 		return objective, nil
 	}
@@ -233,43 +249,107 @@ func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Obje
 
 // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied message.
 func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (protocols.Objective, error) {
+	initialState := message.SignedStates[0].State()
 
 	switch {
 	case strings.Contains(string(message.ObjectiveId), `DirectFund`):
-		initialState := message.SignedStates[0].State()
+
 		if initialState.TurnNum != 0 {
 			return directfund.DirectFundObjective{}, errors.New("cannot construct direct fund objective without prefund state")
 		}
 		return directfund.New(
 			true, // TODO ensure objective in only approved if the application has given permission somehow
-			message.SignedStates[0].State(),
+			initialState,
 			*e.store.GetAddress(),
 		)
+	case strings.Contains(string(message.ObjectiveId), "Virtual"):
+
+		participants := message.SignedStates[0].State().Participants
+		alice := participants[0]
+		intermediary := participants[1]
+		bob := participants[2]
+		myAddress := *e.store.GetAddress()
+
+		var left *channel.TwoPartyLedger
+		var right *channel.TwoPartyLedger
+		var ok bool
+
+		if alice != myAddress {
+			left, ok = e.store.GetTwoPartyLedger(intermediary, bob)
+			if !ok {
+				return virtualfund.VirtualFundObjective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+			}
+		}
+		if bob != myAddress {
+			right, ok = e.store.GetTwoPartyLedger(alice, intermediary)
+			if !ok {
+				return virtualfund.VirtualFundObjective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+			}
+		}
+
+		myRole, err := getMyRole(myAddress, participants)
+		if err != nil {
+			return virtualfund.VirtualFundObjective{}, errors.New("could not determine my role: %w")
+		}
+
+		return virtualfund.New(
+			true, // TODO ensure objective in only approved if the application has given permission somehow
+			initialState,
+			*e.store.GetAddress(),
+			1, // Always a single hop virtual channel
+			myRole,
+			left,
+			right,
+		)
 	default:
-		return directfund.DirectFundObjective{}, errors.New("cannot handle unimplemented objective type")
+		return virtualfund.VirtualFundObjective{}, errors.New("cannot handle unimplemented objective type")
 	}
 
 }
 
 // handleLedgerRequests handles a collection of ledger requests by submitting them to the ledger manager.
-func (e *Engine) handleLedgerRequests(ledgerRequests []protocols.LedgerRequest) (protocols.SideEffects, error) {
+func (e *Engine) handleLedgerRequests(ledgerRequests []protocols.LedgerRequest, objective protocols.Objective) (protocols.SideEffects, error) {
 	sideEffects := protocols.SideEffects{}
 	for _, req := range ledgerRequests {
-		e.logger.Printf("Handling ledger request for %s", req.LedgerId)
-		ch, ok := e.store.GetChannel(req.LedgerId)
+		e.logger.Printf("Handling ledger request  %+v", req)
 
-		if !ok {
+		var ledger *channel.TwoPartyLedger
+		found := false
+		for _, ch := range objective.Channels() {
+			if ch.Id == req.LedgerId {
+				ledger = &channel.TwoPartyLedger{Channel: *ch}
+				found = true
+			}
+		}
+		if !found {
 			return protocols.SideEffects{}, fmt.Errorf("Could not find ledger %s", req.LedgerId)
 
 		}
-		ledger := &channel.TwoPartyLedger{Channel: *ch}
 
 		se, err := e.ledgerManager.HandleRequest(ledger, req, e.store.GetChannelSecretKey())
 		if err != nil {
 			return se, fmt.Errorf("could not handle ledger request: %w", err)
 		}
+		err = e.store.SetChannel(&ledger.Channel)
+
+		if err != nil {
+			return se, fmt.Errorf("could not set channel: %w", err)
+		}
+
 		sideEffects.Merge(se)
 	}
 	return sideEffects, nil
+}
 
+func getMyRole(myAddress types.Address, participants []types.Address) (uint, error) {
+	var myRole uint = ^uint(0)
+	for i, p := range participants {
+		if p == myAddress {
+			myRole = uint(i)
+		}
+	}
+	if myRole == ^uint(0) {
+		return myRole, fmt.Errorf("could not find address %v in participants %v", myAddress, participants)
+	}
+	return myRole, nil
 }
