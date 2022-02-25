@@ -93,7 +93,6 @@ func (c *Client) CreateVirtualChannel(counterParty types.Address, intermediary t
 		0, // We always play the role of alice if we initiate the channel
 		left, right)
 
-	// Pass in a fresh, dedicated go channel to communicate the response:
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objective,
 	}
@@ -121,7 +120,6 @@ func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition t
 		*c.Address,
 	)
 
-	// Pass in a fresh, dedicated go channel to communicate the response:
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objective,
 	}
