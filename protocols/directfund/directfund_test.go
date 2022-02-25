@@ -258,3 +258,13 @@ func TestCrank(t *testing.T) {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
 	}
 }
+
+func TestClone(t *testing.T) {
+	var s, _ = New(false, testState, testState.Participants[0])
+
+	clone := s.clone()
+
+	if diff := cmp.Diff(s, clone); diff != "" {
+		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+	}
+}
