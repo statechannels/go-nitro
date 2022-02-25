@@ -32,6 +32,16 @@ The following roadmap gives an idea of the various packages that compose the `go
 └── types ✅                   # basic types and utility methods
 ```
 
+Milestones that we hope to hit in the coming weeks:
+| Integration Test | Engine components |Status |
+| --------------------------------------|--- | --------|
+| Directly Fund an (Alice, Bob) Channel | mock | ✅ |
+| Virtually Fund an (Alice, Bob) Channel through a single Intermediary | mock | 🟡 |
+| Virtually Fund an (Alice, Bob) and an (Alice, Brian) Channel through a single Intermediary | mock |🚧 |
+| Virtually Fund an (Alice, Bob) Channel through a single Intermediary | mock | |
+| Stream micropayments fron Alice to Bob | mock | |
+| Directly Fund an (Alice, Bob) Channel | production | |
+
 ## Usage
 
 Consuming applications should import the `client` package, and construct a `New()` client by passing in a chain service, a message service, and a store.
