@@ -341,7 +341,7 @@ func (e *Engine) handleLedgerRequests(ledgerRequests []protocols.LedgerRequest, 
 		if err != nil {
 			return se, fmt.Errorf("could not handle ledger request: %w", err)
 		}
-		err = e.store.SetObjective(objective)
+		err = e.store.SetChannel(&ledger.Channel)
 
 		if err != nil {
 			return se, fmt.Errorf("could not set channel: %w", err)
