@@ -59,7 +59,7 @@ var testState = state.State{
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
 	// Assert that valid constructor args do not result in error
-	if _, err := New(false, testState, testState.Participants[0]); err != nil {
+	if _, err := NewObjective(false, testState, testState.Participants[0]); err != nil {
 		t.Error(err)
 	}
 
@@ -67,19 +67,19 @@ func TestNew(t *testing.T) {
 	finalState := testState.Clone()
 	finalState.IsFinal = true
 
-	if _, err := New(false, finalState, testState.Participants[0]); err == nil {
+	if _, err := NewObjective(false, finalState, testState.Participants[0]); err == nil {
 		t.Error("expected an error when constructing with an intial state marked final, but got nil")
 	}
 
 	nonParticipant := common.HexToAddress("0x5b53f71453aeCb03D837bfe170570d40aE736CB4")
-	if _, err := New(false, testState, nonParticipant); err == nil {
+	if _, err := NewObjective(false, testState, nonParticipant); err == nil {
 		t.Error("expected an error when constructing with a participant not in the channel, but got nil")
 	}
 }
 
 func TestUpdate(t *testing.T) {
 	// Construct various variables for use in TestUpdate
-	var s, _ = New(false, testState, testState.Participants[0])
+	var s, _ = NewObjective(false, testState, testState.Participants[0])
 
 	var stateToSign state.State = s.C.PreFundState()
 	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
@@ -111,7 +111,7 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	updated := updatedObjective.(DirectFundObjective)
+	updated := updatedObjective.(Objective)
 	if updated.C.PreFundSignedByMe() != true {
 		t.Error(`Objective data not updated as expected`)
 	}
@@ -124,7 +124,7 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	updated = updatedObjective.(DirectFundObjective)
+	updated = updatedObjective.(Objective)
 	if !updated.C.OnChainFunding.Equal(e.Holdings) {
 		t.Error(`Objective data not updated as expected`, updated.C.OnChainFunding, e.Holdings)
 	}
@@ -134,7 +134,7 @@ func TestUpdate(t *testing.T) {
 func TestCrank(t *testing.T) {
 
 	// BEGIN test data preparation
-	var s, _ = New(false, testState, testState.Participants[0])
+	var s, _ = NewObjective(false, testState, testState.Participants[0])
 	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.privateKey)
 	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.privateKey)
 
@@ -183,7 +183,7 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Approve the objective, so that the rest of the test cases can run.
-	o := s.Approve().(DirectFundObjective)
+	o := s.Approve().(Objective)
 
 	// To test the finite state progression, we are going to progressively mutate o
 	// And then crank it to see

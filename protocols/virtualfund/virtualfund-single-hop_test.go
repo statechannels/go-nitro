@@ -175,7 +175,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		testNew := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
 			// Assert that a valid set of constructor args does not result in an error
-			o, err := New(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			o, err := NewObjective(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			if err != nil {
 				t.Error(err)
 			}
@@ -228,20 +228,20 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		testCrank := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
-			var s, _ = New(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			var s, _ = NewObjective(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			// Assert that cranking an unapproved objective returns an error
 			if _, _, _, _, err := s.Crank(&my.privateKey); err == nil {
 				t.Error(`Expected error when cranking unapproved objective, but got nil`)
 			}
 
 			// Approve the objective, so that the rest of the test cases can run.
-			o := s.Approve().(VirtualFundObjective)
+			o := s.Approve().(Objective)
 			// To test the finite state progression, we are going to progressively mutate o
 			// And then crank it to see which "pause point" (WaitingFor) we end up at.
 
 			// Initial Crank
 			oObj, got, waitingFor, _, err := o.Crank(&my.privateKey)
-			o = oObj.(VirtualFundObjective)
+			o = oObj.(Objective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -260,7 +260,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
 			var gotRequests []protocols.LedgerRequest
 			oObj, _, waitingFor, gotRequests, err = o.Crank(&my.privateKey)
-			o = oObj.(VirtualFundObjective)
+			o = oObj.(Objective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -345,7 +345,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			// Cranking now should not generate side effects, because we already did that
 			oObj, got, waitingFor, _, err = o.Crank(&my.privateKey)
-			o = oObj.(VirtualFundObjective)
+			o = oObj.(Objective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -373,7 +373,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		testUpdate := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
-			var s, _ = New(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			var s, _ = NewObjective(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			// Prepare an event with a mismatched objectiveId
 			e := protocols.ObjectiveEvent{
 				ObjectiveId: "some-other-id",
@@ -417,7 +417,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			e.SignedStates = append(e.SignedStates, ss)
 
 			updatedObj, err := s.Update(e)
-			updated := updatedObj.(VirtualFundObjective)
+			updated := updatedObj.(Objective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -475,7 +475,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			f.SignedStates = append(f.SignedStates, ss)
 
 			updatedObj, err = s.Update(f)
-			updated = updatedObj.(VirtualFundObjective)
+			updated = updatedObj.(Objective)
 			if err != nil {
 				t.Error(err)
 			}

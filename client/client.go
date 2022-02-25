@@ -77,7 +77,7 @@ func (c *Client) CreateVirtualChannel(counterParty types.Address, intermediary t
 	var left *channel.TwoPartyLedger
 
 	// Convert the API call into an internal event.
-	objective, _ := virtualfund.New(true,
+	objective, _ := virtualfund.NewObjective(true,
 		state.State{
 			ChainId:           big.NewInt(0), // TODO
 			Participants:      []types.Address{*c.Address, intermediary, counterParty},
@@ -104,7 +104,7 @@ func (c *Client) CreateVirtualChannel(counterParty types.Address, intermediary t
 // CreateDirectChannel creates a directly funded channel with the given counterparty
 func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) protocols.ObjectiveId {
 	// Convert the API call into an internal event.
-	objective, _ := directfund.New(true,
+	objective, _ := directfund.NewObjective(true,
 		state.State{
 			ChainId:           big.NewInt(0), // TODO
 			Participants:      []types.Address{*c.Address, counterparty},

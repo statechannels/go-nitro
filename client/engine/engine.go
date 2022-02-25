@@ -254,9 +254,9 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 	case strings.Contains(string(message.ObjectiveId), `DirectFund`):
 
 		if initialState.TurnNum != 0 {
-			return directfund.DirectFundObjective{}, errors.New("cannot construct direct fund objective without prefund state")
+			return directfund.Objective{}, errors.New("cannot construct direct fund objective without prefund state")
 		}
-		return directfund.New(
+		return directfund.NewObjective(
 			true, // TODO ensure objective in only approved if the application has given permission somehow
 			initialState,
 			*e.store.GetAddress(),
@@ -276,26 +276,26 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 		if alice == myAddress {
 			right, ok = e.store.GetTwoPartyLedger(intermediary, bob)
 			if !ok {
-				return virtualfund.VirtualFundObjective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+				return virtualfund.Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
 			}
 		} else if bob == myAddress {
 			left, ok = e.store.GetTwoPartyLedger(intermediary, bob)
 			if !ok {
-				return virtualfund.VirtualFundObjective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+				return virtualfund.Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
 			}
 		}
 		if intermediary == myAddress {
 			left, ok = e.store.GetTwoPartyLedger(alice, intermediary)
 			if !ok {
-				return virtualfund.VirtualFundObjective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+				return virtualfund.Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
 			}
 			right, ok = e.store.GetTwoPartyLedger(intermediary, bob)
 			if !ok {
-				return virtualfund.VirtualFundObjective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+				return virtualfund.Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
 			}
 		}
 
-		return virtualfund.New(
+		return virtualfund.NewObjective(
 			true, // TODO ensure objective in only approved if the application has given permission somehow
 			initialState,
 			*e.store.GetAddress(),
@@ -303,7 +303,7 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 			right,
 		)
 	default:
-		return virtualfund.VirtualFundObjective{}, errors.New("cannot handle unimplemented objective type")
+		return directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
 	}
 
 }

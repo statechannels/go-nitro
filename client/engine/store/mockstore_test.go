@@ -29,7 +29,7 @@ func TestSetGetObjective(t *testing.T) {
 	ts := state.TestState
 	ts.TurnNum = 0
 
-	testObj, _ := directfund.New(false,
+	testObj, _ := directfund.NewObjective(false,
 		ts,
 		ts.Participants[0],
 	)
@@ -56,7 +56,7 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 	ts := state.TestState
 	ts.TurnNum = 0
 
-	testObj, _ := directfund.New(false,
+	testObj, _ := directfund.NewObjective(false,
 		ts,
 		ts.Participants[0],
 	)
