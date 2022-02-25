@@ -180,37 +180,50 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Error(err)
 			}
 
-			if my.role != alice.role {
-				// Check left guarantee
-				got := o.ToMyLeft.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
-				expectedGuaranteeMetadata := outcome.GuaranteeMetadata{Left: ledgerChannelToMyLeft.TheirDestination(), Right: ledgerChannelToMyLeft.MyDestination()}
-				expectedEncodedGuaranteeMetadata, _ := expectedGuaranteeMetadata.Encode()
-				want := outcome.Allocation{
+			var expectedGuaranteeMetadataLeft outcome.GuaranteeMetadata
+			var expectedGuaranteeMetadataRight outcome.GuaranteeMetadata
+			switch my.role {
+			case alice.role:
+				{
+					expectedGuaranteeMetadataRight = outcome.GuaranteeMetadata{Left: alice.destination, Right: p1.destination}
+				}
+			case p1.role:
+				{
+					expectedGuaranteeMetadataLeft = outcome.GuaranteeMetadata{Left: alice.destination, Right: p1.destination}
+					expectedGuaranteeMetadataRight = outcome.GuaranteeMetadata{Left: p1.destination, Right: bob.destination}
+				}
+			case bob.role:
+				{
+					expectedGuaranteeMetadataLeft = outcome.GuaranteeMetadata{Left: p1.destination, Right: bob.destination}
+				}
+			}
+			if (expectedGuaranteeMetadataLeft != outcome.GuaranteeMetadata{}) {
+				gotLeft := o.ToMyLeft.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
+				expectedEncodedGuaranteeMetadataLeft, _ := expectedGuaranteeMetadataLeft.Encode()
+				wantLeft := outcome.Allocation{
 					Destination:    o.V.Id,
 					Amount:         big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated()),
 					AllocationType: outcome.GuaranteeAllocationType,
-					Metadata:       expectedEncodedGuaranteeMetadata,
+					Metadata:       expectedEncodedGuaranteeMetadataLeft,
 				}
-				if diff := cmp.Diff(want, got); diff != "" {
+				if diff := cmp.Diff(wantLeft, gotLeft); diff != "" {
+					t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
+				}
+			}
+			if (expectedGuaranteeMetadataRight != outcome.GuaranteeMetadata{}) {
+				gotRight := o.ToMyRight.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
+				expectedEncodedGuaranteeMetadataRight, _ := expectedGuaranteeMetadataRight.Encode()
+				wantRight := outcome.Allocation{
+					Destination:    o.V.Id,
+					Amount:         big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated()),
+					AllocationType: outcome.GuaranteeAllocationType,
+					Metadata:       expectedEncodedGuaranteeMetadataRight,
+				}
+				if diff := cmp.Diff(wantRight, gotRight); diff != "" {
 					t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
 				}
 			}
 
-			if my.role != bob.role {
-				// Check right guarantee
-				got := o.ToMyRight.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
-				expectedGuaranteeMetadata := outcome.GuaranteeMetadata{Left: ledgerChannelToMyRight.MyDestination(), Right: ledgerChannelToMyRight.TheirDestination()}
-				expectedEncodedGuaranteeMetadata, _ := expectedGuaranteeMetadata.Encode()
-				want := outcome.Allocation{
-					Destination:    o.V.Id,
-					Amount:         big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated()),
-					AllocationType: outcome.GuaranteeAllocationType,
-					Metadata:       expectedEncodedGuaranteeMetadata,
-				}
-				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
-				}
-			}
 		}
 
 		testCrank := func(t *testing.T) {
