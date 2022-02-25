@@ -37,7 +37,7 @@ type Objective struct {
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
 }
 
-// NewObjective initiates a DirectFundObjective with data calculated from
+// NewObjective initiates a Objective with data calculated from
 // the supplied initialState and client address
 func NewObjective(
 	preApprove bool,
@@ -249,7 +249,16 @@ func (s Objective) amountToDeposit() types.Funds {
 	return deposits
 }
 
-// Clone returns a deep copy of the receiver
+// Equal returns true if the supplied Objective is deeply equal to the receiver.
+func (s Objective) Equal(r Objective) bool {
+	return s.Status == r.Status &&
+		s.C.Equal(*r.C) &&
+		s.myDepositSafetyThreshold.Equal(r.myDepositSafetyThreshold) &&
+		s.myDepositTarget.Equal((r.myDepositTarget)) &&
+		s.fullyFundedThreshold.Equal(r.fullyFundedThreshold)
+}
+
+// clone returns a deep copy of the receiver.
 func (s Objective) clone() Objective {
 	clone := Objective{}
 	clone.Status = s.Status
