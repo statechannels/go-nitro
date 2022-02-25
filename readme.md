@@ -23,13 +23,13 @@ The following roadmap gives an idea of the various packages that compose the `go
 │       ├── chainservice 🚧    # watch the chain and submit transactions
 │       ├── messageservice 🚧  # send and recieves messages from peers
 │       └── store 🚧           # store keys, state updates and other critical data
-├── protocols 🚧
+├── protocols ✅
 │   ├── interfaces.go ✅       # specify the interface of our protocols
 │   ├── direct-fund ✅         # fund a channel on-chain
 │   ├── direct-defund 🚧       # defund a channel on-chain
 │   ├── virtual-fund ✅        # fund a channel off-chain through one or more intermediaries
 │   └── virtual-defund 🚧      # defund a channel off-chain through one or more intermediaries
-└── types 🚧                   # basic types and utility methods
+└── types ✅                   # basic types and utility methods
 ```
 
 ## Usage
