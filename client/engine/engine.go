@@ -130,11 +130,7 @@ func (e *Engine) handleMessage(message protocols.Message) ObjectiveChangeEvent {
 		e.logger.Print(err)
 		return ObjectiveChangeEvent{}
 	}
-	err = e.store.SetObjective(updatedObjective)
-	if err != nil {
-		e.logger.Print(err)
-		return ObjectiveChangeEvent{}
-	}
+
 	return e.attemptProgress(updatedObjective)
 
 }
