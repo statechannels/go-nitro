@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -62,4 +63,39 @@ func TestAffords(t *testing.T) {
 
 	}
 
+}
+
+func TestAllocationClone(t *testing.T) {
+
+	var a = Allocation{ // [{Alice: 2}]
+		Destination:    types.Destination(common.HexToHash("0x0a")),
+		Amount:         big.NewInt(2),
+		AllocationType: 0,
+		Metadata:       make(types.Bytes, 0)}
+
+	clone := a.Clone()
+
+	if diff := cmp.Diff(a, clone); diff != "" {
+		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestAllocationsClone(t *testing.T) {
+
+	var as = Allocations{{ // [{Alice: 2}]
+		Destination:    types.Destination(common.HexToHash("0x0a")),
+		Amount:         big.NewInt(2),
+		AllocationType: 0,
+		Metadata:       make(types.Bytes, 0)},
+		{ // [{Bob: 3}]
+			Destination:    types.Destination(common.HexToHash("0x0b")),
+			Amount:         big.NewInt(3),
+			AllocationType: 0,
+			Metadata:       make(types.Bytes, 0)}}
+
+	clone := as.Clone()
+
+	if diff := cmp.Diff(as, clone); diff != "" {
+		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+	}
 }
