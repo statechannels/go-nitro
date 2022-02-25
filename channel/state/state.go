@@ -176,6 +176,7 @@ func (s State) Equal(r State) bool {
 		s.IsFinal == r.IsFinal
 }
 
+// Clone returns a deep copy of the receiver.
 func (f FixedPart) Clone() FixedPart {
 	clone := FixedPart{}
 	clone.ChainId = new(big.Int).Set(f.ChainId)
@@ -186,7 +187,7 @@ func (f FixedPart) Clone() FixedPart {
 	return clone
 }
 
-// Clone returns a clone of the state
+// Clone returns a deep copy of the receiver.
 func (s State) Clone() State {
 	clone := State{}
 	// Fixed part
