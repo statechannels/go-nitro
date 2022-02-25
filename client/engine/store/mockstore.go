@@ -106,6 +106,7 @@ func (ms *MockStore) SetChannel(ch *channel.Channel) error {
 	return nil
 }
 
+// GetTwoPartyLedger returns a ledger channel between the two parties if it exists.
 func (ms MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool) {
 	for _, obj := range ms.objectives {
 		for _, ch := range obj.Channels() {
