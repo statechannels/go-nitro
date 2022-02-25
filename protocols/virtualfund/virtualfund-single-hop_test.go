@@ -17,8 +17,6 @@ import (
 
 func TestSingleHopVirtualFund(t *testing.T) {
 
-	n := uint(1) // number of intermediaries
-
 	type actor struct {
 		address     types.Address
 		destination types.Destination
@@ -177,7 +175,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		testNew := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
 			// Assert that a valid set of constructor args does not result in an error
-			o, err := New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			o, err := New(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			if err != nil {
 				t.Error(err)
 			}
@@ -217,7 +215,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		testCrank := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
-			var s, _ = New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			var s, _ = New(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			// Assert that cranking an unapproved objective returns an error
 			if _, _, _, _, err := s.Crank(&my.privateKey); err == nil {
 				t.Error(`Expected error when cranking unapproved objective, but got nil`)
@@ -362,7 +360,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		testUpdate := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
-			var s, _ = New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			var s, _ = New(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			// Prepare an event with a mismatched objectiveId
 			e := protocols.ObjectiveEvent{
 				ObjectiveId: "some-other-id",

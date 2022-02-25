@@ -16,7 +16,6 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/ledger"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
-	"github.com/statechannels/go-nitro/types"
 )
 
 // Engine is the imperative part of the core business logic of a go-nitro Client
@@ -287,17 +286,10 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 			}
 		}
 
-		myRole, err := getMyRole(myAddress, participants)
-		if err != nil {
-			return virtualfund.VirtualFundObjective{}, errors.New("could not determine my role: %w")
-		}
-
 		return virtualfund.New(
 			true, // TODO ensure objective in only approved if the application has given permission somehow
 			initialState,
 			*e.store.GetAddress(),
-			1, // Always a single hop virtual channel
-			myRole,
 			left,
 			right,
 		)
@@ -339,17 +331,4 @@ func (e *Engine) handleLedgerRequests(ledgerRequests []protocols.LedgerRequest, 
 		sideEffects.Merge(se)
 	}
 	return sideEffects, nil
-}
-
-func getMyRole(myAddress types.Address, participants []types.Address) (uint, error) {
-	var myRole uint = ^uint(0)
-	for i, p := range participants {
-		if p == myAddress {
-			myRole = uint(i)
-		}
-	}
-	if myRole == ^uint(0) {
-		return myRole, fmt.Errorf("could not find address %v in participants %v", myAddress, participants)
-	}
-	return myRole, nil
 }

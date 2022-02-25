@@ -2,6 +2,7 @@
 package virtualfund // import "github.com/statechannels/go-nitro/virtualfund"
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -54,16 +55,9 @@ func New(
 	preApprove bool,
 	initialStateOfV state.State,
 	myAddress types.Address,
-	n uint, // number of intermediaries
-	myRole uint,
 	ledgerChannelToMyLeft *channel.TwoPartyLedger,
 	ledgerChannelToMyRight *channel.TwoPartyLedger,
 ) (VirtualFundObjective, error) {
-	// role and ledger-channel checks
-	if myRole > n+1 {
-		return VirtualFundObjective{}, fmt.Errorf(`invalid role <%d> specified in %d-hop virtual-fund objective`,
-			myRole, n)
-	}
 
 	var init VirtualFundObjective
 
@@ -73,15 +67,29 @@ func New(
 		init.Status = protocols.Unapproved
 	}
 
+	// Infer MyRole
+	found := false
+	for i, addr := range initialStateOfV.Participants {
+		if bytes.Equal(addr[:], myAddress[:]) {
+			init.MyRole = uint(i)
+			found = true
+			continue
+		}
+	}
+	if !found {
+		return VirtualFundObjective{}, errors.New("not a participant in V")
+	}
+
 	// Initialize virtual channel
-	v, err := channel.NewSingleHopVirtualChannel(initialStateOfV, myRole)
+	v, err := channel.NewSingleHopVirtualChannel(initialStateOfV, init.MyRole)
 	if err != nil {
 		return VirtualFundObjective{}, err
 	}
 
 	init.V = v
-	init.n = n
-	init.MyRole = myRole
+
+	init.n = uint(len(initialStateOfV.Participants)) - 2 // NewSingleHopVirtualChannel will error unless there are at least 3 participants
+
 	init.a0 = make(map[types.Address]*big.Int)
 	init.b0 = make(map[types.Address]*big.Int)
 
