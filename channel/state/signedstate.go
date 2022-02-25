@@ -110,6 +110,7 @@ func (ss SignedState) Merge(ss2 SignedState) error {
 	return nil
 }
 
+// Clone returns a deep copy of the receiver.
 func (ss SignedState) Clone() SignedState {
 	clonedSigs := make(map[uint]Signature, len(ss.sigs))
 	for i, sig := range ss.sigs {
