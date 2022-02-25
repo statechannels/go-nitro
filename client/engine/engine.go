@@ -249,29 +249,22 @@ func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Obje
 
 // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied message.
 func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (protocols.Objective, error) {
+	initialState := message.SignedStates[0].State()
 
 	switch {
 	case strings.Contains(string(message.ObjectiveId), `DirectFund`):
-		initialState := message.SignedStates[0].State()
+
 		if initialState.TurnNum != 0 {
 			return directfund.DirectFundObjective{}, errors.New("cannot construct direct fund objective without prefund state")
 		}
 		return directfund.New(
 			true, // TODO ensure objective in only approved if the application has given permission somehow
-			message.SignedStates[0].State(),
+			initialState,
 			*e.store.GetAddress(),
 		)
 	case strings.Contains(string(message.ObjectiveId), "Virtual"):
-		initialState := message.SignedStates[0].State()
 
-		if initialState.TurnNum != 0 {
-			return virtualfund.VirtualFundObjective{}, errors.New("cannot construct virtual fund objective without prefund state")
-		}
 		participants := message.SignedStates[0].State().Participants
-		if len(participants) != 3 {
-			return virtualfund.VirtualFundObjective{}, errors.New("a single hop virtual channel must have exactly 3 participants")
-		}
-
 		alice := participants[0]
 		intermediary := participants[1]
 		bob := participants[2]
@@ -301,7 +294,7 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 
 		return virtualfund.New(
 			true, // TODO ensure objective in only approved if the application has given permission somehow
-			message.SignedStates[0].State(),
+			initialState,
 			*e.store.GetAddress(),
 			1, // Always a single hop virtual channel
 			myRole,
