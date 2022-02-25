@@ -100,7 +100,7 @@ func TestVirtualFundIntegration(t *testing.T) {
 				Amount:      big.NewInt(5),
 			},
 			outcome.Allocation{
-				Destination: types.AddressToDestination(i),
+				Destination: types.AddressToDestination(b),
 				Amount:      big.NewInt(5),
 			},
 		},
