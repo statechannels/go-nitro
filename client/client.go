@@ -65,6 +65,7 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 	return c.completedObjectives
 }
 
+// CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
 func (c *Client) CreateVirtualChannel(counterParty types.Address, intermediary types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) protocols.ObjectiveId {
 	right, ok := (*c.store).GetTwoPartyLedger(*c.Address, intermediary)
 
