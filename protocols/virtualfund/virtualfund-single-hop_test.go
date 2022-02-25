@@ -278,7 +278,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			collectPeerSignaturesOnSetupState(o.V, my.role, true)
 
 			// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
-			var gotRequests []protocols.LedgerRequest
+			var gotRequests []protocols.GuaranteeRequest
 			oObj, _, waitingFor, gotRequests, err = o.Crank(&my.privateKey)
 			o = oObj.(Objective)
 			if err != nil {
@@ -291,11 +291,11 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Error(`Expected ledger update idempotency flag to be raised, but it wasn't`)
 			}
 
-			wantRequests := []protocols.LedgerRequest{}
+			wantRequests := []protocols.GuaranteeRequest{}
 			switch my.role {
 			case 0:
 				{
-					wantRequests = append(wantRequests, protocols.LedgerRequest{
+					wantRequests = append(wantRequests, protocols.GuaranteeRequest{
 						ObjectiveId: o.Id(),
 						LedgerId:    ledgerChannelToMyRight.Id,
 						Destination: s.V.Id,
@@ -306,7 +306,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				}
 			case 1:
 				{
-					wantRequests = append(wantRequests, protocols.LedgerRequest{
+					wantRequests = append(wantRequests, protocols.GuaranteeRequest{
 						ObjectiveId: o.Id(),
 						LedgerId:    ledgerChannelToMyLeft.Id,
 						Destination: s.V.Id,
@@ -314,7 +314,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 						LeftAmount:  types.Funds{types.Address{}: big.NewInt(5)},
 						RightAmount: types.Funds{types.Address{}: big.NewInt(5)},
 					})
-					wantRequests = append(wantRequests, protocols.LedgerRequest{
+					wantRequests = append(wantRequests, protocols.GuaranteeRequest{
 						ObjectiveId: o.Id(),
 						LedgerId:    ledgerChannelToMyRight.Id,
 						Destination: s.V.Id,
@@ -325,7 +325,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				}
 			case 2:
 				{
-					wantRequests = append(wantRequests, protocols.LedgerRequest{
+					wantRequests = append(wantRequests, protocols.GuaranteeRequest{
 						ObjectiveId: o.Id(),
 						LedgerId:    ledgerChannelToMyLeft.Id,
 						Destination: s.V.Id,

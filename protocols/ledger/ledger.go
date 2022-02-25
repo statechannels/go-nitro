@@ -21,7 +21,7 @@ func NewLedgerManager() *LedgerManager {
 
 // HandleRequest accepts a ledger request and updates the ledger channel based on the request.
 // It returns a signed state message that can be sent to other participants.
-func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request protocols.LedgerRequest, secretKey *[]byte) (protocols.SideEffects, error) {
+func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request protocols.GuaranteeRequest, secretKey *[]byte) (protocols.SideEffects, error) {
 
 	supported, err := ledger.Channel.LatestSupportedState()
 	if err != nil {

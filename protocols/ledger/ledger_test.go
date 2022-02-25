@@ -54,7 +54,7 @@ func TestHandleLedgerRequest(t *testing.T) {
 	asset := types.Address{}
 	oId := protocols.ObjectiveId("Test")
 
-	validRequest := protocols.LedgerRequest{
+	validRequest := protocols.GuaranteeRequest{
 		ObjectiveId: oId,
 		LedgerId:    ledger.Id,
 		Left:        allocs[0].Destination,
@@ -63,7 +63,7 @@ func TestHandleLedgerRequest(t *testing.T) {
 		LeftAmount:  types.Funds{asset: big.NewInt(2)},
 		RightAmount: types.Funds{asset: big.NewInt(1)},
 	}
-	invalidRequest := protocols.LedgerRequest{
+	invalidRequest := protocols.GuaranteeRequest{
 		ObjectiveId: oId,
 		LedgerId:    ledger.Id,
 		Left:        allocs[0].Destination,
@@ -135,7 +135,7 @@ func TestHandleLedgerRequest(t *testing.T) {
 
 	// Check that we can handle a second request
 	anotherDestination := types.AddressToDestination(common.HexToAddress(`0xb22679e1864BEd55497b5d499d1216c7D7F85cc4`))
-	secondRequest := protocols.LedgerRequest{
+	secondRequest := protocols.GuaranteeRequest{
 		ObjectiveId: oId,
 		LedgerId:    ledger.Id,
 		Left:        allocs[0].Destination,
