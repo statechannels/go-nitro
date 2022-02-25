@@ -19,6 +19,7 @@ jobs:
 
       - name: Test
         run: go test -v ./... -count=2 -shuffle=on
+        timeout-minutes: 1
 
       - name: Archive logs
         if: always()
