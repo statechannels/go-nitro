@@ -90,8 +90,6 @@ func (c *Client) CreateVirtualChannel(counterParty types.Address, intermediary t
 			IsFinal:           false,
 		},
 		*c.Address,
-		1, // We only handle a single hop for now
-		0, // We always play the role of alice if we initiate the channel
 		left, right)
 
 	apiEvent := engine.APIEvent{
