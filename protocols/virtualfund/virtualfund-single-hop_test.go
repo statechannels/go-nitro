@@ -135,7 +135,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			switch my.role {
 			case 0:
 				{
-					r, _ = ledger.CreateTestLedger(
+					r, _ = ledger.NewTestTwoPartyLedger(
 						outcome.Allocations{
 							{Destination: my.destination, Amount: big.NewInt(5)},
 							{Destination: p1.destination, Amount: big.NewInt(5)},
@@ -146,13 +146,13 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				}
 			case 1:
 				{
-					l, _ = ledger.CreateTestLedger(
+					l, _ = ledger.NewTestTwoPartyLedger(
 						outcome.Allocations{
 							{Destination: alice.destination, Amount: big.NewInt(5)},
 							{Destination: my.destination, Amount: big.NewInt(5)},
 						},
 						&alice.privateKey, 1, big.NewInt(0))
-					r, _ = ledger.CreateTestLedger(
+					r, _ = ledger.NewTestTwoPartyLedger(
 						outcome.Allocations{
 							{Destination: my.destination, Amount: big.NewInt(5)},
 							{Destination: bob.destination, Amount: big.NewInt(5)},
@@ -163,7 +163,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				}
 			case 2:
 				{
-					l, _ = ledger.CreateTestLedger(
+					l, _ = ledger.NewTestTwoPartyLedger(
 						outcome.Allocations{
 							{Destination: p1.destination, Amount: big.NewInt(5)},
 							{Destination: my.destination, Amount: big.NewInt(5)},
