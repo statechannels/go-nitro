@@ -136,8 +136,10 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			case 0:
 				{
 					r, _ = ledger.CreateTestLedger(
-						outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
-						outcome.Allocation{Destination: p1.destination, Amount: big.NewInt(5)},
+						outcome.Allocations{
+							{Destination: my.destination, Amount: big.NewInt(5)},
+							{Destination: p1.destination, Amount: big.NewInt(5)},
+						},
 						&my.privateKey, 0, big.NewInt(0))
 					ledger.SignPreAndPostFundingStates(r, []*[]byte{&alice.privateKey, &p1.privateKey}) // TODO these steps could be absorbed into CreateTestLedger
 
@@ -145,12 +147,16 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			case 1:
 				{
 					l, _ = ledger.CreateTestLedger(
-						outcome.Allocation{Destination: alice.destination, Amount: big.NewInt(5)},
-						outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
+						outcome.Allocations{
+							{Destination: alice.destination, Amount: big.NewInt(5)},
+							{Destination: my.destination, Amount: big.NewInt(5)},
+						},
 						&alice.privateKey, 1, big.NewInt(0))
 					r, _ = ledger.CreateTestLedger(
-						outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
-						outcome.Allocation{Destination: bob.destination, Amount: big.NewInt(5)},
+						outcome.Allocations{
+							{Destination: my.destination, Amount: big.NewInt(5)},
+							{Destination: bob.destination, Amount: big.NewInt(5)},
+						},
 						&alice.privateKey, 0, big.NewInt(0))
 					ledger.SignPreAndPostFundingStates(l, []*[]byte{&alice.privateKey, &p1.privateKey})
 					ledger.SignPreAndPostFundingStates(r, []*[]byte{&p1.privateKey, &bob.privateKey})
@@ -158,8 +164,10 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			case 2:
 				{
 					l, _ = ledger.CreateTestLedger(
-						outcome.Allocation{Destination: p1.destination, Amount: big.NewInt(5)},
-						outcome.Allocation{Destination: my.destination, Amount: big.NewInt(5)},
+						outcome.Allocations{
+							{Destination: p1.destination, Amount: big.NewInt(5)},
+							{Destination: my.destination, Amount: big.NewInt(5)},
+						},
 						&alice.privateKey, 1, big.NewInt(0))
 					ledger.SignPreAndPostFundingStates(l, []*[]byte{&bob.privateKey, &p1.privateKey})
 				}

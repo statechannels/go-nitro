@@ -77,22 +77,29 @@ func SignLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 }
 
 // CreateTestLedger creates a new two party ledger channel based on the provided left and right outcomes. The channel will appear to be fully-funded on chain.
-func CreateTestLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint, nonce *big.Int) (*channel.TwoPartyLedger, error) {
+func CreateTestLedger(allocations []outcome.Allocation, secretKey *[]byte, myIndex uint, nonce *big.Int) (*channel.TwoPartyLedger, error) {
 
-	leftAddress, _ := left.Destination.ToAddress()
-	rightAddress, _ := right.Destination.ToAddress()
 	initialState := state.State{
 		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{leftAddress, rightAddress},
+		Participants:      []types.Address{},
 		ChannelNonce:      nonce,
 		AppDefinition:     types.Address{},
 		ChallengeDuration: big.NewInt(45),
 		AppData:           []byte{},
 		Outcome: outcome.Exit{outcome.SingleAssetExit{
-			Allocations: outcome.Allocations{left, right},
+			Allocations: outcome.Allocations{},
 		}},
 		TurnNum: 0,
 		IsFinal: false,
+	}
+	for _, alloc := range allocations {
+		a, err := alloc.Destination.ToAddress()
+		if err != nil {
+			ntpl := channel.TwoPartyLedger{}
+			return &ntpl, fmt.Errorf("could not extract address: %w", err)
+		}
+		initialState.Participants = append(initialState.Participants, a)
+		initialState.Outcome[0].Allocations = append(initialState.Outcome[0].Allocations, alloc)
 	}
 
 	ledger, lErr := channel.NewTwoPartyLedger(initialState, myIndex)

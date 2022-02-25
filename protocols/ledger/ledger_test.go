@@ -31,11 +31,8 @@ var bob = actor{
 }
 
 func TestCreateLedger(t *testing.T) {
-
-	left := outcome.Allocation{Destination: alice.destination, Amount: big.NewInt(3)}
-	right := outcome.Allocation{Destination: bob.destination, Amount: big.NewInt(2)}
-
-	ledger, err := CreateTestLedger(left, right, &alice.privateKey, 0, big.NewInt(0))
+	allocs := outcome.Allocations{{Destination: alice.destination, Amount: big.NewInt(3)}, {Destination: bob.destination, Amount: big.NewInt(2)}}
+	ledger, err := CreateTestLedger(allocs, &alice.privateKey, 0, big.NewInt(0))
 	if err != nil {
 		t.Error(err)
 	}
@@ -48,10 +45,9 @@ func TestCreateLedger(t *testing.T) {
 
 func TestHandleLedgerRequest(t *testing.T) {
 	ledgerManager := NewLedgerManager()
-	left := outcome.Allocation{Destination: alice.destination, Amount: big.NewInt(3)}
-	right := outcome.Allocation{Destination: bob.destination, Amount: big.NewInt(2)}
+	allocs := outcome.Allocations{{Destination: alice.destination, Amount: big.NewInt(3)}, {Destination: bob.destination, Amount: big.NewInt(2)}}
 
-	ledger, _ := CreateTestLedger(left, right, &alice.privateKey, 0, big.NewInt(0))
+	ledger, _ := CreateTestLedger(allocs, &alice.privateKey, 0, big.NewInt(0))
 
 	destination := types.AddressToDestination(common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`))
 
@@ -61,8 +57,8 @@ func TestHandleLedgerRequest(t *testing.T) {
 	validRequest := protocols.LedgerRequest{
 		ObjectiveId: oId,
 		LedgerId:    ledger.Id,
-		Left:        left.Destination,
-		Right:       right.Destination,
+		Left:        allocs[0].Destination,
+		Right:       allocs[1].Destination,
 		Destination: destination,
 		LeftAmount:  types.Funds{asset: big.NewInt(2)},
 		RightAmount: types.Funds{asset: big.NewInt(1)},
@@ -70,8 +66,8 @@ func TestHandleLedgerRequest(t *testing.T) {
 	invalidRequest := protocols.LedgerRequest{
 		ObjectiveId: oId,
 		LedgerId:    ledger.Id,
-		Left:        left.Destination,
-		Right:       right.Destination,
+		Left:        allocs[0].Destination,
+		Right:       allocs[1].Destination,
 		Destination: destination,
 		LeftAmount:  types.Funds{asset: big.NewInt(1000)},
 		RightAmount: types.Funds{asset: big.NewInt(1000)},
@@ -142,8 +138,8 @@ func TestHandleLedgerRequest(t *testing.T) {
 	secondRequest := protocols.LedgerRequest{
 		ObjectiveId: oId,
 		LedgerId:    ledger.Id,
-		Left:        left.Destination,
-		Right:       right.Destination,
+		Left:        allocs[0].Destination,
+		Right:       allocs[1].Destination,
 		Destination: anotherDestination,
 		LeftAmount:  types.Funds{asset: big.NewInt(0)},
 		RightAmount: types.Funds{asset: big.NewInt(1)},
