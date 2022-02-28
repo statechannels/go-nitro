@@ -27,8 +27,8 @@ func FundOnChainEffect(cId types.Destination, asset string, amount types.Funds) 
 // errors
 var ErrNotApproved = errors.New("objective not approved")
 
-// DirectFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data
-type DirectFundObjective struct {
+// Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
+type Objective struct {
 	Status protocols.ObjectiveStatus
 	C      *channel.Channel
 
@@ -37,18 +37,18 @@ type DirectFundObjective struct {
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
 }
 
-// New initiates a DirectFundObjective with data calculated from
+// NewObjective initiates a DirectFundObjective with data calculated from
 // the supplied initialState and client address
-func New(
+func NewObjective(
 	preApprove bool,
 	initialState state.State,
 	myAddress types.Address,
-) (DirectFundObjective, error) {
+) (Objective, error) {
 	if initialState.IsFinal {
-		return DirectFundObjective{}, errors.New("attempted to initiate new direct-funding objective with IsFinal == true")
+		return Objective{}, errors.New("attempted to initiate new direct-funding objective with IsFinal == true")
 	}
 
-	var init = DirectFundObjective{}
+	var init = Objective{}
 	var err error
 
 	if preApprove {
@@ -67,14 +67,14 @@ func New(
 		}
 	}
 	if !foundMyAddress {
-		return DirectFundObjective{}, errors.New("my address not found in participants")
+		return Objective{}, errors.New("my address not found in participants")
 	}
 
 	init.C = &channel.Channel{}
 	init.C, err = channel.New(initialState, myIndex)
 
 	if err != nil {
-		return DirectFundObjective{}, fmt.Errorf("failed to initialize channel for direct-fund objective: %w", err)
+		return Objective{}, fmt.Errorf("failed to initialize channel for direct-fund objective: %w", err)
 	}
 
 	myAllocatedAmount := initialState.Outcome.TotalAllocatedFor(
@@ -92,11 +92,11 @@ func New(
 
 // Public methods on the DirectFundingObjectiveState
 
-func (s DirectFundObjective) Id() protocols.ObjectiveId {
+func (s Objective) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId("DirectFunding-" + s.C.Id.String())
 }
 
-func (s DirectFundObjective) Approve() protocols.Objective {
+func (s Objective) Approve() protocols.Objective {
 	updated := s.clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
@@ -104,7 +104,7 @@ func (s DirectFundObjective) Approve() protocols.Objective {
 	return updated
 }
 
-func (s DirectFundObjective) Reject() protocols.Objective {
+func (s Objective) Reject() protocols.Objective {
 	updated := s.clone()
 	updated.Status = protocols.Rejected
 	return updated
@@ -112,7 +112,7 @@ func (s DirectFundObjective) Reject() protocols.Objective {
 
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
 // and returns the updated state
-func (s DirectFundObjective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+func (s Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if s.Id() != event.ObjectiveId {
 		return s, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(s.Id()))
 	}
@@ -130,7 +130,7 @@ func (s DirectFundObjective) Update(event protocols.ObjectiveEvent) (protocols.O
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
-func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.LedgerRequest, error) {
+func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.LedgerRequest, error) {
 	updated := s.clone()
 
 	sideEffects := protocols.SideEffects{}
@@ -191,7 +191,7 @@ func (s DirectFundObjective) Crank(secretKey *[]byte) (protocols.Objective, prot
 	return updated, sideEffects, WaitingForNothing, []protocols.LedgerRequest{}, nil
 }
 
-func (s DirectFundObjective) Channels() []*channel.Channel {
+func (s Objective) Channels() []*channel.Channel {
 	ret := make([]*channel.Channel, 0, 1)
 	ret = append(ret, s.C)
 	return ret
@@ -200,7 +200,7 @@ func (s DirectFundObjective) Channels() []*channel.Channel {
 //  Private methods on the DirectFundingObjectiveState
 
 // fundingComplete returns true if the recorded OnChainHoldings are greater than or equal to the threshold for being fully funded.
-func (s DirectFundObjective) fundingComplete() bool {
+func (s Objective) fundingComplete() bool {
 	for asset, threshold := range s.fullyFundedThreshold {
 		chainHolding, ok := s.C.OnChainFunding[asset]
 
@@ -217,7 +217,7 @@ func (s DirectFundObjective) fundingComplete() bool {
 }
 
 // safeToDeposit returns true if the recorded OnChainHoldings are greater than or equal to the threshold for safety.
-func (s DirectFundObjective) safeToDeposit() bool {
+func (s Objective) safeToDeposit() bool {
 	for asset, safetyThreshold := range s.myDepositSafetyThreshold {
 
 		chainHolding, ok := s.C.OnChainFunding[asset]
@@ -235,7 +235,7 @@ func (s DirectFundObjective) safeToDeposit() bool {
 }
 
 // amountToDeposit computes the appropriate amount to deposit given the current recorded OnChainHoldings
-func (s DirectFundObjective) amountToDeposit() types.Funds {
+func (s Objective) amountToDeposit() types.Funds {
 	deposits := make(types.Funds, len(s.C.OnChainFunding))
 
 	for asset, target := range s.myDepositTarget {
@@ -250,8 +250,8 @@ func (s DirectFundObjective) amountToDeposit() types.Funds {
 }
 
 // Clone returns a deep copy of the receiver
-func (s DirectFundObjective) clone() DirectFundObjective {
-	clone := DirectFundObjective{}
+func (s Objective) clone() Objective {
+	clone := Objective{}
 	clone.Status = s.Status
 
 	cClone := s.C.Clone()

@@ -29,8 +29,8 @@ type Connection struct {
 	ExpectedGuarantees map[types.Address]outcome.Allocation
 }
 
-// VirtualFundObjective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
-type VirtualFundObjective struct {
+// Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
+type Objective struct {
 	Status protocols.ObjectiveStatus
 	V      *channel.SingleHopVirtualChannel
 
@@ -46,20 +46,16 @@ type VirtualFundObjective struct {
 	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
 }
 
-////////////////////////////////////////////////
-// Public methods on the VirtualFundObjective //
-////////////////////////////////////////////////
-
-// New initiates a VirtualFundObjective.
-func New(
+// NewObjective initiates an Objective.
+func NewObjective(
 	preApprove bool,
 	initialStateOfV state.State,
 	myAddress types.Address,
 	ledgerChannelToMyLeft *channel.TwoPartyLedger,
 	ledgerChannelToMyRight *channel.TwoPartyLedger,
-) (VirtualFundObjective, error) {
+) (Objective, error) {
 
-	var init VirtualFundObjective
+	var init Objective
 
 	if preApprove {
 		init.Status = protocols.Approved
@@ -77,13 +73,13 @@ func New(
 		}
 	}
 	if !found {
-		return VirtualFundObjective{}, errors.New("not a participant in V")
+		return Objective{}, errors.New("not a participant in V")
 	}
 
 	// Initialize virtual channel
 	v, err := channel.NewSingleHopVirtualChannel(initialStateOfV, init.MyRole)
 	if err != nil {
-		return VirtualFundObjective{}, err
+		return Objective{}, err
 	}
 
 	init.V = v
@@ -120,7 +116,7 @@ func New(
 			types.AddressToDestination(init.V.Participants[init.MyRole]),
 		)
 		if err != nil {
-			return VirtualFundObjective{}, err
+			return Objective{}, err
 		}
 	}
 
@@ -135,7 +131,7 @@ func New(
 			types.AddressToDestination(init.V.Participants[init.MyRole+1]),
 		)
 		if err != nil {
-			return VirtualFundObjective{}, err
+			return Objective{}, err
 		}
 	}
 
@@ -143,12 +139,12 @@ func New(
 }
 
 // Id returns the objective id.
-func (s VirtualFundObjective) Id() protocols.ObjectiveId {
+func (s Objective) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId("VirtualFund-" + s.V.Id.String())
 }
 
 // Approve returns an approved copy of the objective.
-func (s VirtualFundObjective) Approve() protocols.Objective {
+func (s Objective) Approve() protocols.Objective {
 	updated := s.clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
@@ -156,7 +152,7 @@ func (s VirtualFundObjective) Approve() protocols.Objective {
 }
 
 // Approve returns a rejected copy of the objective.
-func (s VirtualFundObjective) Reject() protocols.Objective {
+func (s Objective) Reject() protocols.Objective {
 	updated := s.clone()
 	updated.Status = protocols.Rejected
 	return updated
@@ -164,7 +160,7 @@ func (s VirtualFundObjective) Reject() protocols.Objective {
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
 // and returns the updated state.
-func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+func (s Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if s.Id() != event.ObjectiveId {
 		return s, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(s.Id()))
 	}
@@ -206,7 +202,7 @@ func (s VirtualFundObjective) Update(event protocols.ObjectiveEvent) (protocols.
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all.
-func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.LedgerRequest, error) {
+func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.LedgerRequest, error) {
 	updated := s.clone()
 
 	sideEffects := protocols.SideEffects{}
@@ -260,7 +256,7 @@ func (s VirtualFundObjective) Crank(secretKey *[]byte) (protocols.Objective, pro
 	return updated, sideEffects, WaitingForNothing, ledgerRequests, nil
 }
 
-func (s VirtualFundObjective) Channels() []*channel.Channel {
+func (s Objective) Channels() []*channel.Channel {
 	ret := make([]*channel.Channel, 0, 3)
 	ret = append(ret, &s.V.Channel)
 	if !s.isAlice() {
@@ -303,7 +299,7 @@ func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.
 }
 
 // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
-func (s VirtualFundObjective) fundingComplete() bool {
+func (s Objective) fundingComplete() bool {
 
 	// Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
 	// A = P_0 and B=P_n are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
@@ -328,7 +324,7 @@ func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
 }
 
 // generateLedgerRequestSideEffects generates the appropriate side effects, which (when executed and countersigned) will update 1 or 2 ledger channels to guarantee the joint channel.
-func (s VirtualFundObjective) generateLedgerRequestSideEffects() []protocols.LedgerRequest {
+func (s Objective) generateLedgerRequestSideEffects() []protocols.LedgerRequest {
 
 	requests := make([]protocols.LedgerRequest, 0)
 
@@ -363,8 +359,8 @@ func (s VirtualFundObjective) generateLedgerRequestSideEffects() []protocols.Led
 }
 
 // Clone returns a deep copy of the receiver
-func (s *VirtualFundObjective) clone() VirtualFundObjective {
-	clone := VirtualFundObjective{}
+func (s *Objective) clone() Objective {
+	clone := Objective{}
 	clone.Status = s.Status
 	vClone := s.V.Clone()
 	clone.V = vClone
@@ -397,11 +393,11 @@ func (s *VirtualFundObjective) clone() VirtualFundObjective {
 }
 
 // isAlice returns true if the reciever represents participant 0 in the virtualfund protocol.
-func (s *VirtualFundObjective) isAlice() bool {
+func (s *Objective) isAlice() bool {
 	return s.MyRole == 0
 }
 
 // isBob returns true if the reciever represents participant n+1 in the virtualfund protocol.
-func (s *VirtualFundObjective) isBob() bool {
+func (s *Objective) isBob() bool {
 	return s.MyRole == s.n+1
 }
