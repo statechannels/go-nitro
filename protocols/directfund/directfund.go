@@ -92,32 +92,32 @@ func NewObjective(
 
 // Public methods on the DirectFundingObjectiveState
 
-func (s Objective) Id() protocols.ObjectiveId {
-	return protocols.ObjectiveId("DirectFunding-" + s.C.Id.String())
+func (o Objective) Id() protocols.ObjectiveId {
+	return protocols.ObjectiveId("DirectFunding-" + o.C.Id.String())
 }
 
-func (s Objective) Approve() protocols.Objective {
-	updated := s.clone()
+func (o Objective) Approve() protocols.Objective {
+	updated := o.clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
 
 	return updated
 }
 
-func (s Objective) Reject() protocols.Objective {
-	updated := s.clone()
+func (o Objective) Reject() protocols.Objective {
+	updated := o.clone()
 	updated.Status = protocols.Rejected
 	return updated
 }
 
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
 // and returns the updated state
-func (s Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
-	if s.Id() != event.ObjectiveId {
-		return s, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(s.Id()))
+func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+	if o.Id() != event.ObjectiveId {
+		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
-	updated := s.clone()
+	updated := o.clone()
 	updated.C.AddSignedStates(event.SignedStates)
 
 	if event.Holdings != nil {
@@ -130,8 +130,8 @@ func (s Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
-func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.GuaranteeRequest, error) {
-	updated := s.clone()
+func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.GuaranteeRequest, error) {
+	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
 	// Input validation
@@ -191,18 +191,18 @@ func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	return updated, sideEffects, WaitingForNothing, []protocols.GuaranteeRequest{}, nil
 }
 
-func (s Objective) Channels() []*channel.Channel {
+func (o Objective) Channels() []*channel.Channel {
 	ret := make([]*channel.Channel, 0, 1)
-	ret = append(ret, s.C)
+	ret = append(ret, o.C)
 	return ret
 }
 
 //  Private methods on the DirectFundingObjectiveState
 
 // fundingComplete returns true if the recorded OnChainHoldings are greater than or equal to the threshold for being fully funded.
-func (s Objective) fundingComplete() bool {
-	for asset, threshold := range s.fullyFundedThreshold {
-		chainHolding, ok := s.C.OnChainFunding[asset]
+func (o Objective) fundingComplete() bool {
+	for asset, threshold := range o.fullyFundedThreshold {
+		chainHolding, ok := o.C.OnChainFunding[asset]
 
 		if !ok {
 			return false
@@ -217,10 +217,10 @@ func (s Objective) fundingComplete() bool {
 }
 
 // safeToDeposit returns true if the recorded OnChainHoldings are greater than or equal to the threshold for safety.
-func (s Objective) safeToDeposit() bool {
-	for asset, safetyThreshold := range s.myDepositSafetyThreshold {
+func (o Objective) safeToDeposit() bool {
+	for asset, safetyThreshold := range o.myDepositSafetyThreshold {
 
-		chainHolding, ok := s.C.OnChainFunding[asset]
+		chainHolding, ok := o.C.OnChainFunding[asset]
 
 		if !ok {
 			panic("nil chainHolding for asset in myDepositSafetyThreshold")
@@ -235,11 +235,11 @@ func (s Objective) safeToDeposit() bool {
 }
 
 // amountToDeposit computes the appropriate amount to deposit given the current recorded OnChainHoldings
-func (s Objective) amountToDeposit() types.Funds {
-	deposits := make(types.Funds, len(s.C.OnChainFunding))
+func (o Objective) amountToDeposit() types.Funds {
+	deposits := make(types.Funds, len(o.C.OnChainFunding))
 
-	for asset, target := range s.myDepositTarget {
-		holding, ok := s.C.OnChainFunding[asset]
+	for asset, target := range o.myDepositTarget {
+		holding, ok := o.C.OnChainFunding[asset]
 		if !ok {
 			panic("nil chainHolding for asset in myDepositTarget")
 		}
@@ -250,25 +250,25 @@ func (s Objective) amountToDeposit() types.Funds {
 }
 
 // Equal returns true if the supplied Objective is deeply equal to the receiver.
-func (s Objective) Equal(r Objective) bool {
-	return s.Status == r.Status &&
-		s.C.Equal(*r.C) &&
-		s.myDepositSafetyThreshold.Equal(r.myDepositSafetyThreshold) &&
-		s.myDepositTarget.Equal((r.myDepositTarget)) &&
-		s.fullyFundedThreshold.Equal(r.fullyFundedThreshold)
+func (o Objective) Equal(r Objective) bool {
+	return o.Status == r.Status &&
+		o.C.Equal(*r.C) &&
+		o.myDepositSafetyThreshold.Equal(r.myDepositSafetyThreshold) &&
+		o.myDepositTarget.Equal((r.myDepositTarget)) &&
+		o.fullyFundedThreshold.Equal(r.fullyFundedThreshold)
 }
 
 // clone returns a deep copy of the receiver.
-func (s Objective) clone() Objective {
+func (o Objective) clone() Objective {
 	clone := Objective{}
-	clone.Status = s.Status
+	clone.Status = o.Status
 
-	cClone := s.C.Clone()
+	cClone := o.C.Clone()
 	clone.C = cClone
 
-	clone.myDepositSafetyThreshold = s.myDepositSafetyThreshold.Clone()
-	clone.myDepositTarget = s.myDepositTarget.Clone()
-	clone.fullyFundedThreshold = s.fullyFundedThreshold.Clone()
+	clone.myDepositSafetyThreshold = o.myDepositSafetyThreshold.Clone()
+	clone.myDepositTarget = o.myDepositTarget.Clone()
+	clone.fullyFundedThreshold = o.fullyFundedThreshold.Clone()
 
 	return clone
 }
