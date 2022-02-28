@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -22,6 +23,8 @@ const (
 	WaitingForCompletePostFund protocols.WaitingFor = "WaitingForCompletePostFund" // Round 3
 	WaitingForNothing          protocols.WaitingFor = "WaitingForNothing"          // Finished
 )
+
+const ObjectivePrefix = "VirtualFund-"
 
 // errors
 var ErrNotApproved = errors.New("objective not approved")
@@ -157,7 +160,7 @@ func NewObjective(
 
 // Id returns the objective id.
 func (o Objective) Id() protocols.ObjectiveId {
-	return protocols.ObjectiveId("VirtualFund-" + o.V.Id.String())
+	return protocols.ObjectiveId(ObjectivePrefix + o.V.Id.String())
 }
 
 // Approve returns an approved copy of the objective.
@@ -482,4 +485,9 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 		left,
 		right,
 	)
+}
+
+// IsVirtualFundObjective inspects a objective id and returns true if the objective id is for a virtual fund objective.
+func IsVirtualFundObjective(id protocols.ObjectiveId) bool {
+	return strings.HasPrefix(string(id), ObjectivePrefix)
 }

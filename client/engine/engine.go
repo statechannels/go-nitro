@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -251,14 +250,14 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 	initialState := message.SignedStates[0].State()
 
 	switch {
-	case strings.Contains(string(message.ObjectiveId), `DirectFund`):
+	case directfund.IsDirectFundObjective(message.ObjectiveId):
 
 		return directfund.NewObjective(
 			true, // TODO ensure objective in only approved if the application has given permission somehow
 			initialState,
 			*e.store.GetAddress(),
 		)
-	case strings.Contains(string(message.ObjectiveId), "Virtual"):
+	case virtualfund.IsVirtualFundObjective(message.ObjectiveId):
 		vfo, err := virtualfund.ConstructObjectiveFromMessage(message, *e.store.GetAddress(), e.store.GetTwoPartyLedger)
 		if err != nil {
 			return virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)

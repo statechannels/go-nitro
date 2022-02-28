@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -19,6 +20,8 @@ const (
 	WaitingForCompletePostFund protocols.WaitingFor = "WaitingForCompletePostFund"
 	WaitingForNothing          protocols.WaitingFor = "WaitingForNothing" // Finished
 )
+
+const ObjectivePrefix = "DirectFunding-"
 
 func FundOnChainEffect(cId types.Destination, asset string, amount types.Funds) string {
 	return "deposit" + amount.String() + "into" + cId.String()
@@ -96,7 +99,7 @@ func NewObjective(
 // Public methods on the DirectFundingObjectiveState
 
 func (o Objective) Id() protocols.ObjectiveId {
-	return protocols.ObjectiveId("DirectFunding-" + o.C.Id.String())
+	return protocols.ObjectiveId(ObjectivePrefix + o.C.Id.String())
 }
 
 func (o Objective) Approve() protocols.Objective {
@@ -274,6 +277,11 @@ func (o Objective) clone() Objective {
 	clone.fullyFundedThreshold = o.fullyFundedThreshold.Clone()
 
 	return clone
+}
+
+// IsDirectFundObjective inspects a objective id and returns true if the objective id is for a direct fund objective.
+func IsDirectFundObjective(id protocols.ObjectiveId) bool {
+	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
 
 // mermaid diagram
