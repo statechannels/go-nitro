@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -429,4 +430,56 @@ func (o *Objective) isAlice() bool {
 // isBob returns true if the reciever represents participant n+1 in the virtualfund protocol.
 func (o *Objective) isBob() bool {
 	return o.MyRole == o.n+1
+}
+
+// GetTwoPartyLedgerFunction specifies a function that can be used to retreive ledgers from a store.
+type GetTwoPartyLedgerFunction func(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool)
+
+// ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
+// It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
+func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address, getTwoPartyLedger GetTwoPartyLedgerFunction) (Objective, error) {
+	if len(m.SignedStates) == 0 {
+		return Objective{}, errors.New("expected at least one signed state in the message")
+	}
+	initialState := m.SignedStates[0].State()
+	participants := initialState.Participants
+
+	// This logic assumes a single hop virtual channel.
+	// Currently this is the only type of virtual channel supported.
+	alice := participants[0]
+	intermediary := participants[1]
+	bob := participants[2]
+
+	var left *channel.TwoPartyLedger
+	var right *channel.TwoPartyLedger
+	var ok bool
+	if alice == myAddress {
+		right, ok = getTwoPartyLedger(intermediary, bob)
+		if !ok {
+			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+		}
+	} else if bob == myAddress {
+		left, ok = getTwoPartyLedger(intermediary, bob)
+		if !ok {
+			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+		}
+	}
+	if intermediary == myAddress {
+		left, ok = getTwoPartyLedger(alice, intermediary)
+		if !ok {
+			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+		}
+		right, ok = getTwoPartyLedger(intermediary, bob)
+		if !ok {
+			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+		}
+	}
+
+	return NewObjective(
+		true, // TODO ensure objective in only approved if the application has given permission somehow
+		initialState,
+		myAddress,
+		left,
+		right,
+	)
 }

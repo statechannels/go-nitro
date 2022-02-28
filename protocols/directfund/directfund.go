@@ -44,6 +44,9 @@ func NewObjective(
 	initialState state.State,
 	myAddress types.Address,
 ) (Objective, error) {
+	if initialState.TurnNum != 0 {
+		return Objective{}, errors.New("cannot construct direct fund objective without prefund state")
+	}
 	if initialState.IsFinal {
 		return Objective{}, errors.New("attempted to initiate new direct-funding objective with IsFinal == true")
 	}
