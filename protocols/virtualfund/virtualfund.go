@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -27,6 +28,21 @@ var ErrNotApproved = errors.New("objective not approved")
 type Connection struct {
 	Channel            *channel.TwoPartyLedger
 	ExpectedGuarantees map[types.Address]outcome.Allocation
+}
+
+// Equal returns true if the Connection pointed to by the supplied pointer is deeply equal to the receiver.
+func (c *Connection) Equal(d *Connection) bool {
+	if c == nil && d == nil {
+		return true
+	}
+	if !c.Channel.Equal(d.Channel) {
+		return false
+	}
+	if !reflect.DeepEqual(c.ExpectedGuarantees, d.ExpectedGuarantees) {
+		return false
+	}
+	return true
+
 }
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
@@ -358,7 +374,20 @@ func (s Objective) generateLedgerRequestSideEffects() []protocols.LedgerRequest 
 	return requests
 }
 
-// Clone returns a deep copy of the receiver
+// Equal returns true if the supplied DirectFundObjective is deeply equal to the receiver.
+func (s Objective) Equal(r Objective) bool {
+	return s.Status == r.Status &&
+		s.V.Equal(r.V) &&
+		s.ToMyLeft.Equal(r.ToMyLeft) &&
+		s.ToMyRight.Equal(r.ToMyRight) &&
+		s.n == r.n &&
+		s.MyRole == r.MyRole &&
+		s.a0.Equal(r.a0) &&
+		s.b0.Equal(r.b0) &&
+		s.requestedLedgerUpdates == r.requestedLedgerUpdates
+}
+
+// Clone returns a deep copy of the receiver.
 func (s *Objective) clone() Objective {
 	clone := Objective{}
 	clone.Status = s.Status

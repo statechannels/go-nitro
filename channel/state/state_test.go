@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -104,8 +105,8 @@ func TestClone(t *testing.T) {
 
 	clone := TestState.Clone()
 
-	if !clone.Equal(TestState) {
-		t.Errorf(`expected %v to equal %v, but it did not`, clone, TestState)
+	if diff := cmp.Diff(TestState, clone); diff != "" {
+		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 
 	clone.ChannelNonce.Add(clone.ChannelNonce, big.NewInt(1))

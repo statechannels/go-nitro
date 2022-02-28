@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestSignedStateEqual(t *testing.T) {
@@ -112,5 +113,18 @@ func TestJSON(t *testing.T) {
 			t.Errorf(`incorrect UnmarshalJSON, got %v, wanted %v`, got, want)
 		}
 	})
+
+}
+
+func TestSignedStateClone(t *testing.T) {
+	ss1 := NewSignedState(TestState)
+	sigA, _ := TestState.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
+	_ = ss1.AddSignature(sigA)
+
+	clone := ss1.Clone()
+
+	if diff := cmp.Diff(ss1, clone); diff != "" {
+		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+	}
 
 }

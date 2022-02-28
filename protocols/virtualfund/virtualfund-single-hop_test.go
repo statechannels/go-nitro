@@ -226,6 +226,18 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		}
 
+		testclone := func(t *testing.T) {
+			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
+
+			o, _ := NewObjective(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+
+			clone := o.clone()
+
+			if diff := cmp.Diff(o, clone); diff != "" {
+				t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+			}
+		}
+
 		testCrank := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
 			var s, _ = NewObjective(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
@@ -503,6 +515,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		}
 		t.Run(`New`, testNew)
+		t.Run(`clone`, testclone)
 		t.Run(`Crank`, testCrank)
 		t.Run(`Update`, testUpdate)
 

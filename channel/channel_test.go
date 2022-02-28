@@ -41,6 +41,12 @@ func TestChannel(t *testing.T) {
 		if r.Participants[0] == c.Participants[0] {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
+
+		var nilChannel *Channel
+		clone := nilChannel.Clone()
+		if clone != nil {
+			t.Fatal("Tried to clone a Channel via a nil pointer, but got something not nil")
+		}
 	}
 
 	testPreFund := func(t *testing.T) {
@@ -360,6 +366,13 @@ func TestSingleHopVirtualChannel(t *testing.T) {
 		if r.Participants[0] == c.Participants[0] {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
+
+		var nilChannel *SingleHopVirtualChannel
+		clone := nilChannel.Clone()
+		if clone != nil {
+			t.Fatal("Tried to clone a Channel via a nil pointer, but got something not nil")
+		}
+
 	}
 	t.Run(`TestClone`, testClone)
 }

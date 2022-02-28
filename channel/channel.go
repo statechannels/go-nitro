@@ -83,6 +83,12 @@ func (v SingleHopVirtualChannel) RightAmount() types.Funds {
 	return v.amountAtIndex(1)
 }
 
+// Equal returns true if the supplied SingleHopVirtualChannel is deeply equal to the receiver, false otherwise.
+func (v *SingleHopVirtualChannel) Equal(w *SingleHopVirtualChannel) bool {
+	return v.Channel.Equal(w.Channel)
+}
+
+// Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.
 func (v *SingleHopVirtualChannel) Clone() *SingleHopVirtualChannel {
 	if v == nil {
 		return nil
@@ -108,6 +114,12 @@ func NewTwoPartyLedger(s state.State, myIndex uint) (*TwoPartyLedger, error) {
 	return &TwoPartyLedger{*c}, err
 }
 
+// Equal returns true if the supplied TwoPartyLedger is deeply equal to the receiver, false otherwise.
+func (lc *TwoPartyLedger) Equal(lc2 *TwoPartyLedger) bool {
+	return lc.Channel.Equal(lc2.Channel)
+}
+
+// Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.
 func (lc *TwoPartyLedger) Clone() *TwoPartyLedger {
 	if lc == nil {
 		return nil
@@ -161,7 +173,7 @@ func (lc TwoPartyLedger) TheirDestination() types.Destination {
 	return types.AddressToDestination(lc.Participants[(lc.MyIndex+1)%2])
 }
 
-// Clone returns a deep copy of the receiver
+// Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.
 func (c *Channel) Clone() *Channel {
 	if c == nil {
 		return nil

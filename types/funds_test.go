@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 )
 
 var testData map[string]Funds = map[string]Funds{
@@ -197,4 +198,14 @@ func TestEqual(t *testing.T) {
 type fundsPair struct {
 	a Funds
 	b Funds
+}
+
+func TestFundsClone(t *testing.T) {
+	f := testData["a"]
+	clone := f.Clone()
+
+	if diff := cmp.Diff(f, clone); diff != "" {
+		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+	}
+
 }
