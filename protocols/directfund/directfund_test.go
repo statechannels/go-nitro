@@ -260,7 +260,7 @@ func TestCrank(t *testing.T) {
 }
 
 func TestClone(t *testing.T) {
-	var s, _ = New(false, testState, testState.Participants[0])
+	var s, _ = NewObjective(false, testState, testState.Participants[0])
 
 	clone := s.clone()
 

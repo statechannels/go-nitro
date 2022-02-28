@@ -229,7 +229,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		testclone := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
 
-			o, _ := New(false, vPreFund, my.address, n, my.role, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			o, _ := NewObjective(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 
 			clone := o.clone()
 
