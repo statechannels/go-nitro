@@ -83,7 +83,7 @@ func (v SingleHopVirtualChannel) RightAmount() types.Funds {
 	return v.amountAtIndex(1)
 }
 
-// Equal returns true if the supplied TwoPartyLedger is deeply equal to the receiver, false otherwise.
+// Equal returns true if the supplied SingleHopVirtualChannel is deeply equal to the receiver, false otherwise.
 func (v *SingleHopVirtualChannel) Equal(w *SingleHopVirtualChannel) bool {
 	return v.Channel.Equal(w.Channel)
 }
