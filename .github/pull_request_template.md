@@ -44,8 +44,11 @@ Please explain which reason, if any, why this requires more than one approval.
 - [ ] I have separated logic changes from refactor changes (formatting, renames, etc.)
 - [ ] I have commented my code wherever necessary (can be 0)
 - [ ] I have added tests that prove my fix is effective or that my feature works, if necessary
+- [ ] I have added comprehensive [godoc](https://go.dev/blog/godoc) comments 
 
 #### Project management
 
 - [ ] I have assigned myself to this PR
 - [ ] I have linked the appropriate github issue
+- [ ] I have assigned this PR to the appropriate GitHub project
+- [ ] I have assigned this PR to the appropriate GitHub Milestone
