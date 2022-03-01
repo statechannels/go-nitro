@@ -78,7 +78,7 @@ func SignLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 
 // NewTestTwoPartyLedger creates a new two party ledger channel based on the provided allocations. The channel will appear to be fully-funded on chain.
 // ONLY FOR TESTING PURPOSES
-func NewTestTwoPartyLedger(allocations []outcome.Allocation, secretKey *[]byte, myIndex uint, nonce *big.Int) (*channel.TwoPartyLedger, error) {
+func NewTestTwoPartyLedger(allocations []outcome.Allocation, myAddress types.Address, nonce *big.Int) (*channel.TwoPartyLedger, error) {
 
 	initialState := state.State{
 		ChainId:           big.NewInt(9001),
@@ -93,7 +93,9 @@ func NewTestTwoPartyLedger(allocations []outcome.Allocation, secretKey *[]byte, 
 		TurnNum: 0,
 		IsFinal: false,
 	}
-	for _, alloc := range allocations {
+	foundMyAddress := false
+	var myIndex uint
+	for i, alloc := range allocations {
 		a, err := alloc.Destination.ToAddress()
 		if err != nil {
 			ntpl := channel.TwoPartyLedger{}
@@ -101,6 +103,14 @@ func NewTestTwoPartyLedger(allocations []outcome.Allocation, secretKey *[]byte, 
 		}
 		initialState.Participants = append(initialState.Participants, a)
 		initialState.Outcome[0].Allocations = append(initialState.Outcome[0].Allocations, alloc)
+		if a == myAddress {
+			foundMyAddress = true
+			myIndex = uint(i)
+		}
+	}
+
+	if !foundMyAddress {
+		panic("Destination corresponding to myAddress not found in outcome")
 	}
 
 	ledger, lErr := channel.NewTwoPartyLedger(initialState, myIndex)

@@ -140,7 +140,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 							{Destination: my.destination, Amount: big.NewInt(5)},
 							{Destination: p1.destination, Amount: big.NewInt(5)},
 						},
-						&my.privateKey, 0, big.NewInt(0))
+						my.address, big.NewInt(0))
 					ledger.SignPreAndPostFundingStates(r, []*[]byte{&alice.privateKey, &p1.privateKey}) // TODO these steps could be absorbed into CreateTestLedger
 
 				}
@@ -151,13 +151,13 @@ func TestSingleHopVirtualFund(t *testing.T) {
 							{Destination: alice.destination, Amount: big.NewInt(5)},
 							{Destination: my.destination, Amount: big.NewInt(5)},
 						},
-						&alice.privateKey, 1, big.NewInt(0))
+						my.address, big.NewInt(0))
 					r, _ = ledger.NewTestTwoPartyLedger(
 						outcome.Allocations{
 							{Destination: my.destination, Amount: big.NewInt(5)},
 							{Destination: bob.destination, Amount: big.NewInt(5)},
 						},
-						&alice.privateKey, 0, big.NewInt(0))
+						my.address, big.NewInt(0))
 					ledger.SignPreAndPostFundingStates(l, []*[]byte{&alice.privateKey, &p1.privateKey})
 					ledger.SignPreAndPostFundingStates(r, []*[]byte{&p1.privateKey, &bob.privateKey})
 				}
@@ -168,7 +168,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 							{Destination: p1.destination, Amount: big.NewInt(5)},
 							{Destination: my.destination, Amount: big.NewInt(5)},
 						},
-						&alice.privateKey, 1, big.NewInt(0))
+						my.address, big.NewInt(0))
 					ledger.SignPreAndPostFundingStates(l, []*[]byte{&bob.privateKey, &p1.privateKey})
 				}
 			default:
