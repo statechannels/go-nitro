@@ -14,13 +14,24 @@ func GeneratePrivateKeyAndAddress() (types.Bytes, types.Address) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	secretKeyBytes := crypto.FromECDSA(secretKey)
+	return crypto.FromECDSA(secretKey), getAddressFromSecretKey(*secretKey)
+}
 
+// GetAddressFromSecretKeyBytes computes the Ethereum address corresponding to the supplied private key.
+func GetAddressFromSecretKeyBytes(secretKeyBytes []byte) types.Address {
+	secretKey, err := crypto.ToECDSA(secretKeyBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return getAddressFromSecretKey(*secretKey)
+}
+
+// GetAddressFromSecretKey computes the Ethereum address corresponding to the supplied private key.
+func getAddressFromSecretKey(secretKey ecdsa.PrivateKey) types.Address {
 	publicKey := secretKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
 		log.Fatal("error casting public key to ECDSA")
 	}
-	address := crypto.PubkeyToAddress(*publicKeyECDSA)
-	return secretKeyBytes, address
+	return crypto.PubkeyToAddress(*publicKeyECDSA)
 }
