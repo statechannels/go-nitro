@@ -13,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -113,13 +114,36 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 		},
 	}}
 	id := clientAlice.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
+	id2 := clientAmy.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
+
 	waitForCompletedObjectiveId(id, &clientAlice)
 	waitForCompletedObjectiveId(id, &clientBob)
-	waitForCompletedObjectiveId(id, &clientIrene)
-
-	id2 := clientAmy.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
 	waitForCompletedObjectiveId(id2, &clientAmy)
 	waitForCompletedObjectiveId(id2, &clientBrian)
-	waitForCompletedObjectiveId(id2, &clientIrene)
 
+	waitForCompletedObjectiveIds([]protocols.ObjectiveId{id, id2}, &clientIrene)
+
+}
+
+// waitForCompletedObjectiveIds waits for completed objectives and returns when the all objective ids provided have been completed.
+func waitForCompletedObjectiveIds(ids []protocols.ObjectiveId, client *Client) {
+	// Create a map of all objective ids to wait for and set to false
+	completed := make(map[protocols.ObjectiveId]bool)
+	for _, id := range ids {
+		completed[id] = false
+	}
+	// We continue to consume completed objective ids from the chan until all have been completed
+	for got := range client.completedObjectives {
+		// Mark the objective as completed
+		completed[got] = true
+
+		// If all objectives are completed we can return
+		isDone := true
+		for _, objectiveCompleted := range completed {
+			isDone = isDone && objectiveCompleted
+		}
+		if isDone {
+			return
+		}
+	}
 }
