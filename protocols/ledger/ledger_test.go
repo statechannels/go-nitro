@@ -63,7 +63,7 @@ func TestHandleLedgerRequest(t *testing.T) {
 		LeftAmount:  types.Funds{asset: big.NewInt(2)},
 		RightAmount: types.Funds{asset: big.NewInt(1)},
 	}
-	invalidRequest := protocols.GuaranteeRequest{
+	unaffordableRequest := protocols.GuaranteeRequest{
 		ObjectiveId: oId,
 		LedgerId:    ledger.Id,
 		Left:        allocs[0].Destination,
@@ -80,7 +80,7 @@ func TestHandleLedgerRequest(t *testing.T) {
 
 	SignPreAndPostFundingStates(ledger, []*[]byte{&alice.privateKey, &bob.privateKey})
 
-	_, err = ledgerManager.HandleRequest(ledger, invalidRequest, &alice.privateKey)
+	_, err = ledgerManager.HandleRequest(ledger, unaffordableRequest, &alice.privateKey)
 	if err == nil {
 		t.Errorf("TestHandleLedgerRequest: expected request to fail as the ledger does not have enough funds")
 	}
