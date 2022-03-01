@@ -178,7 +178,12 @@ func (c *Channel) Clone() *Channel {
 	if c == nil {
 		return nil
 	}
-	d, _ := New(c.PreFundState().Clone(), c.MyIndex)
+	d, err := New(c.PreFundState().Clone(), c.MyIndex)
+	if err != nil {
+		// The constructor shouldn't error unless we have made a programming error
+		// (e.g. passed in a turnNum =/= 0 state)
+		panic(err)
+	}
 	d.latestSupportedStateTurnNum = c.latestSupportedStateTurnNum
 	for i, ss := range c.SignedStateForTurnNum {
 		d.SignedStateForTurnNum[i] = ss.Clone()
