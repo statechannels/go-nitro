@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -250,57 +249,20 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 	initialState := message.SignedStates[0].State()
 
 	switch {
-	case strings.Contains(string(message.ObjectiveId), `DirectFund`):
+	case directfund.IsDirectFundObjective(message.ObjectiveId):
 
-		if initialState.TurnNum != 0 {
-			return directfund.Objective{}, errors.New("cannot construct direct fund objective without prefund state")
-		}
 		return directfund.NewObjective(
 			true, // TODO ensure objective in only approved if the application has given permission somehow
 			initialState,
 			*e.store.GetAddress(),
 		)
-	case strings.Contains(string(message.ObjectiveId), "Virtual"):
-		// TODO: This logic belongs in the virtual fund protocol
-		// Once it is moved there it can be cleaned up to use myRole and isAlice/isBob
-		participants := message.SignedStates[0].State().Participants
-		alice := participants[0]
-		intermediary := participants[1]
-		bob := participants[2]
-		myAddress := *e.store.GetAddress()
-
-		var left *channel.TwoPartyLedger
-		var right *channel.TwoPartyLedger
-		var ok bool
-		if alice == myAddress {
-			right, ok = e.store.GetTwoPartyLedger(intermediary, bob)
-			if !ok {
-				return virtualfund.Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
-			}
-		} else if bob == myAddress {
-			left, ok = e.store.GetTwoPartyLedger(intermediary, bob)
-			if !ok {
-				return virtualfund.Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
-			}
+	case virtualfund.IsVirtualFundObjective(message.ObjectiveId):
+		vfo, err := virtualfund.ConstructObjectiveFromMessage(message, *e.store.GetAddress(), e.store.GetTwoPartyLedger)
+		if err != nil {
+			return virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
-		if intermediary == myAddress {
-			left, ok = e.store.GetTwoPartyLedger(alice, intermediary)
-			if !ok {
-				return virtualfund.Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
-			}
-			right, ok = e.store.GetTwoPartyLedger(intermediary, bob)
-			if !ok {
-				return virtualfund.Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
-			}
-		}
+		return vfo, nil
 
-		return virtualfund.NewObjective(
-			true, // TODO ensure objective in only approved if the application has given permission somehow
-			initialState,
-			*e.store.GetAddress(),
-			left,
-			right,
-		)
 	default:
 		return directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
 	}

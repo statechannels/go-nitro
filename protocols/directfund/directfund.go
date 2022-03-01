@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -19,6 +20,8 @@ const (
 	WaitingForCompletePostFund protocols.WaitingFor = "WaitingForCompletePostFund"
 	WaitingForNothing          protocols.WaitingFor = "WaitingForNothing" // Finished
 )
+
+const ObjectivePrefix = "DirectFunding-"
 
 func FundOnChainEffect(cId types.Destination, asset string, amount types.Funds) string {
 	return "deposit" + amount.String() + "into" + cId.String()
@@ -44,6 +47,9 @@ func NewObjective(
 	initialState state.State,
 	myAddress types.Address,
 ) (Objective, error) {
+	if initialState.TurnNum != 0 {
+		return Objective{}, errors.New("cannot construct direct fund objective without prefund state")
+	}
 	if initialState.IsFinal {
 		return Objective{}, errors.New("attempted to initiate new direct-funding objective with IsFinal == true")
 	}
@@ -93,7 +99,7 @@ func NewObjective(
 // Public methods on the DirectFundingObjectiveState
 
 func (o Objective) Id() protocols.ObjectiveId {
-	return protocols.ObjectiveId("DirectFunding-" + o.C.Id.String())
+	return protocols.ObjectiveId(ObjectivePrefix + o.C.Id.String())
 }
 
 func (o Objective) Approve() protocols.Objective {
@@ -271,6 +277,30 @@ func (o Objective) clone() Objective {
 	clone.fullyFundedThreshold = o.fullyFundedThreshold.Clone()
 
 	return clone
+}
+
+// IsDirectFundObjective inspects a objective id and returns true if the objective id is for a direct fund objective.
+func IsDirectFundObjective(id protocols.ObjectiveId) bool {
+	return strings.HasPrefix(string(id), ObjectivePrefix)
+}
+
+// ConstructObjectiveFromMessage takes in a message and constructs a direct funding objective from it.
+func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address) (Objective, error) {
+
+	if len(m.SignedStates) == 0 {
+		return Objective{}, errors.New("expected at least one signed state in the message")
+	}
+	initialState := m.SignedStates[0].State()
+
+	objective, err := NewObjective(
+		true, // TODO ensure objective in only approved if the application has given permission somehow
+		initialState,
+		myAddress,
+	)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not create new objective: %w", err)
+	}
+	return objective, nil
 }
 
 // mermaid diagram

@@ -128,6 +128,24 @@ func (lc *TwoPartyLedger) Clone() *TwoPartyLedger {
 	return &w
 }
 
+// Proposed returns the
+func (lc *TwoPartyLedger) Proposed() (state.State, bool) {
+
+	highestSignedByProposer := uint64(0)
+
+	for turnNum, signedState := range lc.SignedStateForTurnNum {
+		if signedByProposer := signedState.HasSignatureForParticipant(0); signedByProposer && turnNum > highestSignedByProposer {
+			highestSignedByProposer = turnNum
+		}
+	}
+
+	if highestSignedByProposer == lc.latestSupportedStateTurnNum {
+		return state.State{}, false
+	} else {
+		return lc.SignedStateForTurnNum[highestSignedByProposer].State(), true
+	}
+}
+
 // New constructs a new Channel from the supplied state.
 func New(s state.State, myIndex uint) (*Channel, error) {
 	c := Channel{}
