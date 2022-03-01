@@ -218,14 +218,14 @@ func (s Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all.
-func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.LedgerRequest, error) {
+func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.GuaranteeRequest, error) {
 	updated := s.clone()
 
 	sideEffects := protocols.SideEffects{}
-	ledgerRequests := []protocols.LedgerRequest{}
+	ledgerRequests := []protocols.GuaranteeRequest{}
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return updated, sideEffects, WaitingForNothing, []protocols.LedgerRequest{}, ErrNotApproved
+		return updated, sideEffects, WaitingForNothing, []protocols.GuaranteeRequest{}, ErrNotApproved
 	}
 
 	// Prefunding
@@ -233,7 +233,7 @@ func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.V.PreFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return s, protocols.SideEffects{}, WaitingForNothing, []protocols.LedgerRequest{}, err
+			return s, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
 		}
 		messages := protocols.CreateSignedStateMessages(s.Id(), ss, s.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
@@ -247,7 +247,7 @@ func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 
 	if !updated.requestedLedgerUpdates {
 		updated.requestedLedgerUpdates = true
-		ledgerRequests = append(ledgerRequests, s.generateLedgerRequestSideEffects()...)
+		ledgerRequests = append(ledgerRequests, s.generateGuaranteeRequestSideEffects()...)
 	}
 
 	if !updated.fundingComplete() {
@@ -258,7 +258,7 @@ func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.V.PostFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPostfund(secretKey)
 		if err != nil {
-			return s, protocols.SideEffects{}, WaitingForNothing, []protocols.LedgerRequest{}, err
+			return s, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
 		}
 		messages := protocols.CreateSignedStateMessages(s.Id(), ss, s.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
@@ -339,17 +339,17 @@ func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
 	return connection.Channel.Affords(connection.ExpectedGuarantees, connection.Channel.OnChainFunding)
 }
 
-// generateLedgerRequestSideEffects generates the appropriate side effects, which (when executed and countersigned) will update 1 or 2 ledger channels to guarantee the joint channel.
-func (s Objective) generateLedgerRequestSideEffects() []protocols.LedgerRequest {
+// generateGuaranteeRequestSideEffects generates the appropriate side effects, which (when executed and countersigned) will update 1 or 2 ledger channels to guarantee the joint channel.
+func (s Objective) generateGuaranteeRequestSideEffects() []protocols.GuaranteeRequest {
 
-	requests := make([]protocols.LedgerRequest, 0)
+	requests := make([]protocols.GuaranteeRequest, 0)
 
 	leftAmount := s.V.LeftAmount()
 	rightAmount := s.V.RightAmount()
 
 	if !s.isAlice() {
 		requests = append(requests,
-			protocols.LedgerRequest{
+			protocols.GuaranteeRequest{
 				ObjectiveId: s.Id(),
 				LedgerId:    s.ToMyLeft.Channel.Id,
 				Destination: s.V.Id,
@@ -361,7 +361,7 @@ func (s Objective) generateLedgerRequestSideEffects() []protocols.LedgerRequest 
 	}
 	if !s.isBob() {
 		requests = append(requests,
-			protocols.LedgerRequest{
+			protocols.GuaranteeRequest{
 				ObjectiveId: s.Id(),
 				LedgerId:    s.ToMyRight.Channel.Id,
 				Destination: s.V.Id,

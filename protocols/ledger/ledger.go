@@ -21,7 +21,7 @@ func NewLedgerManager() *LedgerManager {
 
 // HandleRequest accepts a ledger request and updates the ledger channel based on the request.
 // It returns a signed state message that can be sent to other participants.
-func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request protocols.LedgerRequest, secretKey *[]byte) (protocols.SideEffects, error) {
+func (l *LedgerManager) HandleRequest(ledger *channel.TwoPartyLedger, request protocols.GuaranteeRequest, secretKey *[]byte) (protocols.SideEffects, error) {
 
 	supported, err := ledger.Channel.LatestSupportedState()
 	if err != nil {
@@ -76,23 +76,31 @@ func SignLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 	ledger.Channel.AddSignedState(toSign)
 }
 
-// CreateTestLedger creates a new two party ledger channel based on the provided left and right outcomes. The channel will appear to be fully-funded on chain.
-func CreateTestLedger(left outcome.Allocation, right outcome.Allocation, secretKey *[]byte, myIndex uint, nonce *big.Int) (*channel.TwoPartyLedger, error) {
+// NewTestTwoPartyLedger creates a new two party ledger channel based on the provided allocations. The channel will appear to be fully-funded on chain.
+// ONLY FOR TESTING PURPOSES
+func NewTestTwoPartyLedger(allocations []outcome.Allocation, secretKey *[]byte, myIndex uint, nonce *big.Int) (*channel.TwoPartyLedger, error) {
 
-	leftAddress, _ := left.Destination.ToAddress()
-	rightAddress, _ := right.Destination.ToAddress()
 	initialState := state.State{
 		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{leftAddress, rightAddress},
+		Participants:      []types.Address{},
 		ChannelNonce:      nonce,
 		AppDefinition:     types.Address{},
 		ChallengeDuration: big.NewInt(45),
 		AppData:           []byte{},
 		Outcome: outcome.Exit{outcome.SingleAssetExit{
-			Allocations: outcome.Allocations{left, right},
+			Allocations: outcome.Allocations{},
 		}},
 		TurnNum: 0,
 		IsFinal: false,
+	}
+	for _, alloc := range allocations {
+		a, err := alloc.Destination.ToAddress()
+		if err != nil {
+			ntpl := channel.TwoPartyLedger{}
+			return &ntpl, fmt.Errorf("could not extract address: %w", err)
+		}
+		initialState.Participants = append(initialState.Participants, a)
+		initialState.Outcome[0].Allocations = append(initialState.Outcome[0].Allocations, alloc)
 	}
 
 	ledger, lErr := channel.NewTwoPartyLedger(initialState, myIndex)

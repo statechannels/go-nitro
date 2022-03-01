@@ -13,8 +13,8 @@ type ChainTransaction struct {
 	// TODO support other transaction types (deposit, challenge, respond, conclude, withdraw)
 }
 
-// LedgerRequest is an object processed by the ledger cranker
-type LedgerRequest struct {
+// GuaranteeRequest is an object processed by the ledger cranker
+type GuaranteeRequest struct {
 	ObjectiveId ObjectiveId
 	LedgerId    types.Destination
 	Destination types.Destination
@@ -24,8 +24,8 @@ type LedgerRequest struct {
 	RightAmount types.Funds
 }
 
-// Equal checks for equality between the receiver and a second LedgerRequest
-func (l LedgerRequest) Equal(m LedgerRequest) bool {
+// Equal checks for equality between the receiver and a second GuaranteeRequest
+func (l GuaranteeRequest) Equal(m GuaranteeRequest) bool {
 	return l.ObjectiveId == m.ObjectiveId &&
 		l.LedgerId == m.LedgerId &&
 		l.Destination == m.Destination &&
@@ -75,7 +75,7 @@ type Objective interface {
 	Update(event ObjectiveEvent) (Objective, error) // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Channels() []*channel.Channel
 
-	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, []LedgerRequest, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
+	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, []GuaranteeRequest, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
 }
 
 // ObjectiveId is a unique identifier for an Objective.
