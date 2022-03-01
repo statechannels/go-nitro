@@ -17,40 +17,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-func connectMessageServices(services []messageservice.TestMessageService) {
-	for i, ms := range services {
-		for j, ms2 := range services {
-			if i != j {
-				ms.Connect(ms2)
-			}
-		}
-	}
-}
-
-func setupClient(pk []byte, chain chainservice.MockChain, logDestination io.Writer) (Client, messageservice.TestMessageService) {
-	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
-	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
-	messageservice := messageservice.NewTestMessageService(myAddress)
-	storeA := store.NewMockStore(pk)
-	return New(messageservice, chainservice, storeA, logDestination), messageservice
-}
-
-func createOutcome(first types.Address, second types.Address) outcome.Exit {
-
-	return outcome.Exit{outcome.SingleAssetExit{
-		Allocations: outcome.Allocations{
-			outcome.Allocation{
-				Destination: types.AddressToDestination(first),
-				Amount:      big.NewInt(5),
-			},
-			outcome.Allocation{
-				Destination: types.AddressToDestination(second),
-				Amount:      big.NewInt(5),
-			},
-		},
-	}}
-}
-
+// TestMultiPartyVirtualFundIntegration tests the scenario where Alice creates virtual channels with Bob and Brian using Irene as the intermediary.
 func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 
 	// Set up logging
@@ -111,8 +78,8 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	directlyFundALedgerChannel(clientIrene, clientBob)
 	directlyFundALedgerChannel(clientIrene, clientBrian)
 
-	id := clientAlice.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, createOutcome(alice, bob), big.NewInt(0))
-	id2 := clientAlice.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, createOutcome(alice, brian), big.NewInt(0))
+	id := clientAlice.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, bob), big.NewInt(0))
+	id2 := clientAlice.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, brian), big.NewInt(0))
 
 	waitForCompletedObjectiveId(id, &clientBob)
 	waitForCompletedObjectiveId(id2, &clientBrian)
@@ -143,4 +110,41 @@ func waitForCompletedObjectiveIds(ids []protocols.ObjectiveId, client *Client) {
 			return
 		}
 	}
+}
+
+// connectMessageServices connects the message services together so any message service can communicate with another.
+func connectMessageServices(services []messageservice.TestMessageService) {
+	for i, ms := range services {
+		for j, ms2 := range services {
+			if i != j {
+				ms.Connect(ms2)
+			}
+		}
+	}
+}
+
+// setupClient is a helper function that contructs a client and returns the new client and message service.
+func setupClient(pk []byte, chain chainservice.MockChain, logDestination io.Writer) (Client, messageservice.TestMessageService) {
+	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
+	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
+	messageservice := messageservice.NewTestMessageService(myAddress)
+	storeA := store.NewMockStore(pk)
+	return New(messageservice, chainservice, storeA, logDestination), messageservice
+}
+
+// createVirtualOutcome is a helper function to create the outcome for two participants for a virtual channel.
+func createVirtualOutcome(first types.Address, second types.Address) outcome.Exit {
+
+	return outcome.Exit{outcome.SingleAssetExit{
+		Allocations: outcome.Allocations{
+			outcome.Allocation{
+				Destination: types.AddressToDestination(first),
+				Amount:      big.NewInt(5),
+			},
+			outcome.Allocation{
+				Destination: types.AddressToDestination(second),
+				Amount:      big.NewInt(5),
+			},
+		},
+	}}
 }
