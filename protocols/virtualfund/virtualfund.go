@@ -155,50 +155,50 @@ func NewObjective(
 }
 
 // Id returns the objective id.
-func (s Objective) Id() protocols.ObjectiveId {
-	return protocols.ObjectiveId("VirtualFund-" + s.V.Id.String())
+func (o Objective) Id() protocols.ObjectiveId {
+	return protocols.ObjectiveId("VirtualFund-" + o.V.Id.String())
 }
 
 // Approve returns an approved copy of the objective.
-func (s Objective) Approve() protocols.Objective {
-	updated := s.clone()
+func (o Objective) Approve() protocols.Objective {
+	updated := o.clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
 	return updated
 }
 
 // Approve returns a rejected copy of the objective.
-func (s Objective) Reject() protocols.Objective {
-	updated := s.clone()
+func (o Objective) Reject() protocols.Objective {
+	updated := o.clone()
 	updated.Status = protocols.Rejected
 	return updated
 }
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
 // and returns the updated state.
-func (s Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
-	if s.Id() != event.ObjectiveId {
-		return s, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(s.Id()))
+func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+	if o.Id() != event.ObjectiveId {
+		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
-	updated := s.clone()
+	updated := o.clone()
 
 	var toMyLeftId types.Destination
 	var toMyRightId types.Destination
 
-	if !s.isAlice() {
-		toMyLeftId = s.ToMyLeft.Channel.Id // Avoid this if it is nil
+	if !o.isAlice() {
+		toMyLeftId = o.ToMyLeft.Channel.Id // Avoid this if it is nil
 	}
-	if !s.isBob() {
-		toMyRightId = s.ToMyRight.Channel.Id // Avoid this if it is nil
+	if !o.isBob() {
+		toMyRightId = o.ToMyRight.Channel.Id // Avoid this if it is nil
 	}
 
 	for _, ss := range event.SignedStates {
 		channelId, _ := ss.State().ChannelId() // TODO handle error
 		switch channelId {
 		case types.Destination{}:
-			return s, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
-		case s.V.Id:
+			return o, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
+		case o.V.Id:
 			updated.V.AddSignedState(ss)
 			// We expect pre and post fund state signatures.
 		case toMyLeftId:
@@ -208,7 +208,7 @@ func (s Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 			updated.ToMyRight.Channel.AddSignedState(ss)
 			// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
 		default:
-			return s, errors.New("event channelId out of scope of objective")
+			return o, errors.New("event channelId out of scope of objective")
 		}
 	}
 	return updated, nil
@@ -218,8 +218,8 @@ func (s Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all.
-func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.GuaranteeRequest, error) {
-	updated := s.clone()
+func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.GuaranteeRequest, error) {
+	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
 	ledgerRequests := []protocols.GuaranteeRequest{}
@@ -233,9 +233,9 @@ func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.V.PreFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return s, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
+			return o, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
 		}
-		messages := protocols.CreateSignedStateMessages(s.Id(), ss, s.V.MyIndex)
+		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
@@ -247,7 +247,7 @@ func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 
 	if !updated.requestedLedgerUpdates {
 		updated.requestedLedgerUpdates = true
-		ledgerRequests = append(ledgerRequests, s.generateGuaranteeRequestSideEffects()...)
+		ledgerRequests = append(ledgerRequests, o.generateGuaranteeRequestSideEffects()...)
 	}
 
 	if !updated.fundingComplete() {
@@ -258,9 +258,9 @@ func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.V.PostFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPostfund(secretKey)
 		if err != nil {
-			return s, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
+			return o, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
 		}
-		messages := protocols.CreateSignedStateMessages(s.Id(), ss, s.V.MyIndex)
+		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
@@ -272,14 +272,14 @@ func (s Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	return updated, sideEffects, WaitingForNothing, ledgerRequests, nil
 }
 
-func (s Objective) Channels() []*channel.Channel {
+func (o Objective) Channels() []*channel.Channel {
 	ret := make([]*channel.Channel, 0, 3)
-	ret = append(ret, &s.V.Channel)
-	if !s.isAlice() {
-		ret = append(ret, &s.ToMyLeft.Channel.Channel)
+	ret = append(ret, &o.V.Channel)
+	if !o.isAlice() {
+		ret = append(ret, &o.ToMyLeft.Channel.Channel)
 	}
-	if !s.isBob() {
-		ret = append(ret, &s.ToMyRight.Channel.Channel)
+	if !o.isBob() {
+		ret = append(ret, &o.ToMyRight.Channel.Channel)
 	}
 	return ret
 }
@@ -315,18 +315,18 @@ func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.
 }
 
 // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
-func (s Objective) fundingComplete() bool {
+func (o Objective) fundingComplete() bool {
 
 	// Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
 	// A = P_0 and B=P_n are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
 
 	switch {
-	case s.isAlice(): // Alice
-		return s.ToMyRight.ledgerChannelAffordsExpectedGuarantees()
+	case o.isAlice(): // Alice
+		return o.ToMyRight.ledgerChannelAffordsExpectedGuarantees()
 	default: // Intermediary
-		return s.ToMyRight.ledgerChannelAffordsExpectedGuarantees() && s.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
-	case s.isBob(): // Bob
-		return s.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
+		return o.ToMyRight.ledgerChannelAffordsExpectedGuarantees() && o.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
+	case o.isBob(): // Bob
+		return o.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
 	}
 
 }
@@ -340,34 +340,34 @@ func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
 }
 
 // generateGuaranteeRequestSideEffects generates the appropriate side effects, which (when executed and countersigned) will update 1 or 2 ledger channels to guarantee the joint channel.
-func (s Objective) generateGuaranteeRequestSideEffects() []protocols.GuaranteeRequest {
+func (o Objective) generateGuaranteeRequestSideEffects() []protocols.GuaranteeRequest {
 
 	requests := make([]protocols.GuaranteeRequest, 0)
 
-	leftAmount := s.V.LeftAmount()
-	rightAmount := s.V.RightAmount()
+	leftAmount := o.V.LeftAmount()
+	rightAmount := o.V.RightAmount()
 
-	if !s.isAlice() {
+	if !o.isAlice() {
 		requests = append(requests,
 			protocols.GuaranteeRequest{
-				ObjectiveId: s.Id(),
-				LedgerId:    s.ToMyLeft.Channel.Id,
-				Destination: s.V.Id,
-				Left:        types.AddressToDestination(s.V.Participants[s.MyRole-1]),
+				ObjectiveId: o.Id(),
+				LedgerId:    o.ToMyLeft.Channel.Id,
+				Destination: o.V.Id,
+				Left:        types.AddressToDestination(o.V.Participants[o.MyRole-1]),
 				LeftAmount:  leftAmount,
-				Right:       types.AddressToDestination(s.V.Participants[s.MyRole]),
+				Right:       types.AddressToDestination(o.V.Participants[o.MyRole]),
 				RightAmount: rightAmount,
 			})
 	}
-	if !s.isBob() {
+	if !o.isBob() {
 		requests = append(requests,
 			protocols.GuaranteeRequest{
-				ObjectiveId: s.Id(),
-				LedgerId:    s.ToMyRight.Channel.Id,
-				Destination: s.V.Id,
-				Left:        types.AddressToDestination(s.V.Participants[s.MyRole]),
+				ObjectiveId: o.Id(),
+				LedgerId:    o.ToMyRight.Channel.Id,
+				Destination: o.V.Id,
+				Left:        types.AddressToDestination(o.V.Participants[o.MyRole]),
 				LeftAmount:  leftAmount,
-				Right:       types.AddressToDestination(s.V.Participants[s.MyRole+1]),
+				Right:       types.AddressToDestination(o.V.Participants[o.MyRole+1]),
 				RightAmount: rightAmount,
 			})
 	}
@@ -375,58 +375,58 @@ func (s Objective) generateGuaranteeRequestSideEffects() []protocols.GuaranteeRe
 }
 
 // Equal returns true if the supplied DirectFundObjective is deeply equal to the receiver.
-func (s Objective) Equal(r Objective) bool {
-	return s.Status == r.Status &&
-		s.V.Equal(r.V) &&
-		s.ToMyLeft.Equal(r.ToMyLeft) &&
-		s.ToMyRight.Equal(r.ToMyRight) &&
-		s.n == r.n &&
-		s.MyRole == r.MyRole &&
-		s.a0.Equal(r.a0) &&
-		s.b0.Equal(r.b0) &&
-		s.requestedLedgerUpdates == r.requestedLedgerUpdates
+func (o Objective) Equal(r Objective) bool {
+	return o.Status == r.Status &&
+		o.V.Equal(r.V) &&
+		o.ToMyLeft.Equal(r.ToMyLeft) &&
+		o.ToMyRight.Equal(r.ToMyRight) &&
+		o.n == r.n &&
+		o.MyRole == r.MyRole &&
+		o.a0.Equal(r.a0) &&
+		o.b0.Equal(r.b0) &&
+		o.requestedLedgerUpdates == r.requestedLedgerUpdates
 }
 
 // Clone returns a deep copy of the receiver.
-func (s *Objective) clone() Objective {
+func (o *Objective) clone() Objective {
 	clone := Objective{}
-	clone.Status = s.Status
-	vClone := s.V.Clone()
+	clone.Status = o.Status
+	vClone := o.V.Clone()
 	clone.V = vClone
 
-	if s.ToMyLeft != nil {
-		lClone := s.ToMyLeft.Channel.Clone()
+	if o.ToMyLeft != nil {
+		lClone := o.ToMyLeft.Channel.Clone()
 		clone.ToMyLeft = &Connection{
 			Channel:            lClone,
-			ExpectedGuarantees: s.ToMyLeft.ExpectedGuarantees,
+			ExpectedGuarantees: o.ToMyLeft.ExpectedGuarantees,
 		}
 	}
 
-	if s.ToMyRight != nil {
-		rClone := s.ToMyRight.Channel.Clone()
+	if o.ToMyRight != nil {
+		rClone := o.ToMyRight.Channel.Clone()
 		clone.ToMyRight = &Connection{
 			Channel:            rClone,
-			ExpectedGuarantees: s.ToMyRight.ExpectedGuarantees,
+			ExpectedGuarantees: o.ToMyRight.ExpectedGuarantees,
 		}
 	}
 
-	clone.n = s.n
-	clone.MyRole = s.MyRole
+	clone.n = o.n
+	clone.MyRole = o.MyRole
 
-	clone.a0 = s.a0
-	clone.b0 = s.b0
+	clone.a0 = o.a0
+	clone.b0 = o.b0
 
-	clone.requestedLedgerUpdates = s.requestedLedgerUpdates
+	clone.requestedLedgerUpdates = o.requestedLedgerUpdates
 
 	return clone
 }
 
 // isAlice returns true if the reciever represents participant 0 in the virtualfund protocol.
-func (s *Objective) isAlice() bool {
-	return s.MyRole == 0
+func (o *Objective) isAlice() bool {
+	return o.MyRole == 0
 }
 
 // isBob returns true if the reciever represents participant n+1 in the virtualfund protocol.
-func (s *Objective) isBob() bool {
-	return s.MyRole == s.n+1
+func (o *Objective) isBob() bool {
+	return o.MyRole == o.n+1
 }
