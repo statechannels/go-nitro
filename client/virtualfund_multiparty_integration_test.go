@@ -35,6 +35,22 @@ func setupClient(pk []byte, chain chainservice.MockChain, logDestination io.Writ
 	return New(messageservice, chainservice, storeA, logDestination), messageservice
 }
 
+func createOutcome(first types.Address, second types.Address) outcome.Exit {
+
+	return outcome.Exit{outcome.SingleAssetExit{
+		Allocations: outcome.Allocations{
+			outcome.Allocation{
+				Destination: types.AddressToDestination(first),
+				Amount:      big.NewInt(5),
+			},
+			outcome.Allocation{
+				Destination: types.AddressToDestination(second),
+				Amount:      big.NewInt(5),
+			},
+		},
+	}}
+}
+
 func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 
 	// Set up logging
@@ -101,20 +117,8 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	directlyFundALedgerChannel(clientAmy, clientIrene)
 	directlyFundALedgerChannel(clientIrene, clientBrian)
 
-	outcome := outcome.Exit{outcome.SingleAssetExit{
-		Allocations: outcome.Allocations{
-			outcome.Allocation{
-				Destination: types.AddressToDestination(alice),
-				Amount:      big.NewInt(5),
-			},
-			outcome.Allocation{
-				Destination: types.AddressToDestination(bob),
-				Amount:      big.NewInt(5),
-			},
-		},
-	}}
-	id := clientAlice.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
-	id2 := clientAmy.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
+	id := clientAlice.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, createOutcome(alice, bob), big.NewInt(0))
+	id2 := clientAmy.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, createOutcome(amy, brian), big.NewInt(0))
 
 	waitForCompletedObjectiveId(id, &clientAlice)
 	waitForCompletedObjectiveId(id, &clientBob)
