@@ -30,9 +30,9 @@ var bob = actor{
 	privateKey:  common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`),
 }
 
-func TestCreateLedger(t *testing.T) {
+func TestNewTestTwoPartyLedger(t *testing.T) {
 	allocs := outcome.Allocations{{Destination: alice.destination, Amount: big.NewInt(3)}, {Destination: bob.destination, Amount: big.NewInt(2)}}
-	ledger, err := NewTestTwoPartyLedger(allocs, &alice.privateKey, 0, big.NewInt(0))
+	ledger, err := NewTestTwoPartyLedger(allocs, alice.address, big.NewInt(0))
 	if err != nil {
 		t.Error(err)
 	}
@@ -47,7 +47,7 @@ func TestHandleLedgerRequest(t *testing.T) {
 	ledgerManager := NewLedgerManager()
 	allocs := outcome.Allocations{{Destination: alice.destination, Amount: big.NewInt(3)}, {Destination: bob.destination, Amount: big.NewInt(2)}}
 
-	ledger, _ := NewTestTwoPartyLedger(allocs, &alice.privateKey, 0, big.NewInt(0))
+	ledger, _ := NewTestTwoPartyLedger(allocs, alice.address, big.NewInt(0))
 
 	destination := types.AddressToDestination(common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`))
 
