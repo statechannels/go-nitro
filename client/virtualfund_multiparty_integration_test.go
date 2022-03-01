@@ -65,9 +65,6 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	amyKey := common.Hex2Bytes("ae1e8dc688f74ffedf8f4a67f511a060b97e1e32119e2e92fb5563405481a4df")
-	amy := common.HexToAddress("0xA2A2D4f2E6FA19F62fC14d970C881AbF265E88fF")
-
 	brianKey := common.Hex2Bytes("0aca28ba64679f63d71e671ab4dbb32aaa212d4789988e6ca47da47601c18fe2")
 	brian := common.HexToAddress("0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01")
 
@@ -80,16 +77,15 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	ireneKey := common.Hex2Bytes(`febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781`)
 	irene := common.HexToAddress(`0x111A00868581f73AB42FEEF67D235Ca09ca1E8db`)
 
-	chain := chainservice.NewMockChain([]types.Address{alice, bob, irene, amy, brian})
+	chain := chainservice.NewMockChain([]types.Address{alice, bob, irene, brian})
 
 	clientAlice, aliceMS := setupClient(aliceKey, chain, logDestination)
 	clientBob, bobMS := setupClient(bobKey, chain, logDestination)
 
-	clientAmy, amyMS := setupClient(amyKey, chain, logDestination)
 	clientBrian, brianMS := setupClient(brianKey, chain, logDestination)
 
 	clientIrene, ireneMS := setupClient(ireneKey, chain, logDestination)
-	connectMessageServices([]messageservice.TestMessageService{aliceMS, bobMS, ireneMS, amyMS, brianMS})
+	connectMessageServices([]messageservice.TestMessageService{aliceMS, bobMS, ireneMS, brianMS})
 
 	directlyFundALedgerChannel := func(alpha Client, beta Client) {
 		// Set up an outcome that requires both participants to deposit
@@ -97,11 +93,11 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 			Allocations: outcome.Allocations{
 				outcome.Allocation{
 					Destination: types.AddressToDestination(*alpha.Address),
-					Amount:      big.NewInt(5),
+					Amount:      big.NewInt(10),
 				},
 				outcome.Allocation{
 					Destination: types.AddressToDestination(*beta.Address),
-					Amount:      big.NewInt(5),
+					Amount:      big.NewInt(10),
 				},
 			},
 		}}
@@ -113,18 +109,15 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 
 	directlyFundALedgerChannel(clientAlice, clientIrene)
 	directlyFundALedgerChannel(clientIrene, clientBob)
-
-	directlyFundALedgerChannel(clientAmy, clientIrene)
 	directlyFundALedgerChannel(clientIrene, clientBrian)
 
 	id := clientAlice.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, createOutcome(alice, bob), big.NewInt(0))
-	id2 := clientAmy.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, createOutcome(amy, brian), big.NewInt(0))
+	id2 := clientAlice.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, createOutcome(alice, brian), big.NewInt(0))
 
-	waitForCompletedObjectiveId(id, &clientAlice)
 	waitForCompletedObjectiveId(id, &clientBob)
-	waitForCompletedObjectiveId(id2, &clientAmy)
 	waitForCompletedObjectiveId(id2, &clientBrian)
 
+	waitForCompletedObjectiveIds([]protocols.ObjectiveId{id, id2}, &clientAlice)
 	waitForCompletedObjectiveIds([]protocols.ObjectiveId{id, id2}, &clientIrene)
 
 }
