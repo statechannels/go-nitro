@@ -212,7 +212,6 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 
 	e.executeSideEffects(sideEffects)
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
-	e.store.UpdateProgressLastMadeAt(objective.Id(), waitingFor)
 
 	// If our protocol is waiting for nothing then we know the objective is complete
 	// TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
