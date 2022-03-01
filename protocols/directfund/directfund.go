@@ -284,6 +284,25 @@ func IsDirectFundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
 
+// ConstructObjectiveFromMessage takes in a message and constructs a direct funding objective from it.
+func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address) (Objective, error) {
+
+	if len(m.SignedStates) == 0 {
+		return Objective{}, errors.New("expected at least one signed state in the message")
+	}
+	initialState := m.SignedStates[0].State()
+
+	objective, err := NewObjective(
+		true, // TODO ensure objective in only approved if the application has given permission somehow
+		initialState,
+		myAddress,
+	)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not create new objective: %w", err)
+	}
+	return objective, nil
+}
+
 // mermaid diagram
 // key:
 // - effect!
