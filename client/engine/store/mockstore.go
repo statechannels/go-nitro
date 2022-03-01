@@ -1,12 +1,10 @@
 package store
 
 import (
-	"crypto/ecdsa"
-	"log"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
@@ -23,17 +21,7 @@ type MockStore struct {
 func NewMockStore(key []byte) Store {
 	ms := MockStore{}
 	ms.key = key
-
-	channelSecretKey, err := crypto.ToECDSA(ms.key)
-	if err != nil {
-		log.Fatal("error casting public key to ECDSA")
-	}
-	publicKey := channelSecretKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		log.Fatal("error casting public key to ECDSA")
-	}
-	ms.address = crypto.PubkeyToAddress(*publicKeyECDSA)
+	ms.address = crypto.GetAddressFromSecretKeyBytes(key)
 
 	ms.objectives = make(map[protocols.ObjectiveId]protocols.Objective)
 
