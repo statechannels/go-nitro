@@ -133,7 +133,3 @@ func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protoc
 
 	return nil, false
 }
-
-func (ms MockStore) UpdateProgressLastMadeAt(protocols.ObjectiveId, protocols.WaitingFor) {
-	// todo
-}

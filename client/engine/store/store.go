@@ -17,5 +17,4 @@ type Store interface {
 	SetObjective(protocols.Objective) error                                       // Write an objective
 	GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (channel *channel.TwoPartyLedger, ok bool)
 	SetChannel(*channel.Channel) error
-	UpdateProgressLastMadeAt(protocols.ObjectiveId, protocols.WaitingFor) // updates progressLastMadeAt information for an objective
 }
