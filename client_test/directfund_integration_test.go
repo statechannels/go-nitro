@@ -62,8 +62,7 @@ func TestDirectFundIntegration(t *testing.T) {
 	storeB := store.NewMockStore(bKey)
 	clientB := client.New(messageserviceB, chainservB, storeB, logDestination)
 
-	messageserviceA.Connect(messageserviceB)
-	messageserviceB.Connect(messageserviceA)
+	connectMessageServices(messageserviceA, messageserviceB)
 
 	directlyFundALedgerChannel(clientA, clientB)
 

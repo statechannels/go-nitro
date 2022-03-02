@@ -61,14 +61,7 @@ func TestVirtualFundIntegration(t *testing.T) {
 	storeI := store.NewMockStore(iKey)
 	clientI := client.New(messageserviceI, chainservI, storeI, logDestination)
 
-	messageserviceA.Connect(messageserviceB)
-	messageserviceA.Connect(messageserviceI)
-
-	messageserviceB.Connect(messageserviceA)
-	messageserviceB.Connect(messageserviceI)
-
-	messageserviceI.Connect(messageserviceA)
-	messageserviceI.Connect(messageserviceB)
+	connectMessageServices(messageserviceA, messageserviceB, messageserviceI)
 
 	directlyFundALedgerChannel(clientA, clientI)
 	directlyFundALedgerChannel(clientI, clientB)

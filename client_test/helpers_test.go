@@ -46,7 +46,7 @@ func waitForCompletedObjectiveIds(ids []protocols.ObjectiveId, client *client.Cl
 }
 
 // connectMessageServices connects the message services together so any message service can communicate with another.
-func connectMessageServices(services []messageservice.TestMessageService) { //nolint:golint,unused
+func connectMessageServices(services ...messageservice.TestMessageService) { //nolint:golint,unused
 	for i, ms := range services {
 		for j, ms2 := range services {
 			if i != j {

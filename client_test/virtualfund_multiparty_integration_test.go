@@ -8,7 +8,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
-	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -49,7 +48,7 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	clientBrian, brianMS := setupClient(brianKey, chain, logDestination)
 
 	clientIrene, ireneMS := setupClient(ireneKey, chain, logDestination)
-	connectMessageServices([]messageservice.TestMessageService{aliceMS, bobMS, ireneMS, brianMS})
+	connectMessageServices(aliceMS, bobMS, ireneMS, brianMS)
 
 	directlyFundALedgerChannel(clientAlice, clientIrene)
 	directlyFundALedgerChannel(clientIrene, clientBob)
