@@ -57,7 +57,7 @@ func connectMessageServices(services ...messageservice.TestMessageService) {
 }
 
 // setupClient is a helper function that contructs a client and returns the new client and message service.
-func setupClient(pk []byte, chain chainservice.MockChain, logDestination io.Writer) (client.Client, messageservice.TestMessageService) { //nolint:golint,unused
+func setupClient(pk []byte, chain chainservice.MockChain, logDestination io.Writer) (client.Client, messageservice.TestMessageService) {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := messageservice.NewTestMessageService(myAddress)
