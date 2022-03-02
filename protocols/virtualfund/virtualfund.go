@@ -664,19 +664,19 @@ func (o *Objective) updateLedgerFunding(ledgerConnection Connection, left types.
 		}
 
 		// Add a message with the signed state
-		messages := protocols.CreateSignedStateMessages(o.Id(), ss, ledgerConnection.Channel.MyIndex)
+		messages := protocols.CreateSignedStateMessages(o.Id(), ss, ledger.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	} else {
-		proposed, ok := o.ToMyLeft.Channel.Proposed()
+		proposed, ok := ledger.Proposed()
 		if ok {
 			// TODO: Check that my funds haven't been decreased
-			if proposed.Outcome.Affords(ledgerConnection.ExpectedGuarantees, ledgerConnection.Channel.OnChainFunding) {
-				ss, err := o.ToMyLeft.Channel.SignAndAddState(proposed, sk)
+			if proposed.Outcome.Affords(ledgerConnection.ExpectedGuarantees, ledger.OnChainFunding) {
+				ss, err := ledger.SignAndAddState(proposed, sk)
 				if err != nil {
 					return protocols.SideEffects{}, fmt.Errorf("error adding signed state: %w", err)
 				}
 
-				messages := protocols.CreateSignedStateMessages(o.Id(), ss, ledgerConnection.Channel.MyIndex)
+				messages := protocols.CreateSignedStateMessages(o.Id(), ss, ledger.MyIndex)
 				sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 			}
 		}
