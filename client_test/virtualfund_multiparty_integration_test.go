@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
-	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -43,10 +42,10 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	id := clientAlice.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, bob), big.NewInt(0))
 	id2 := clientAlice.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, brian), big.NewInt(0))
 
-	waitForCompletedObjectiveId(id, &clientBob)
-	waitForCompletedObjectiveId(id2, &clientBrian)
+	waitForCompletedObjectiveIds(&clientBob, id)
+	waitForCompletedObjectiveIds(&clientBrian, id)
 
-	waitForCompletedObjectiveIds([]protocols.ObjectiveId{id, id2}, &clientAlice)
-	waitForCompletedObjectiveIds([]protocols.ObjectiveId{id, id2}, &clientIrene)
+	waitForCompletedObjectiveIds(&clientAlice, id, id2)
+	waitForCompletedObjectiveIds(&clientIrene, id, id2)
 
 }

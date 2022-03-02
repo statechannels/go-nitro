@@ -39,8 +39,8 @@ func TestVirtualFundIntegration(t *testing.T) {
 
 	id := clientA.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
 
-	waitForCompletedObjectiveId(id, &clientA)
-	waitForCompletedObjectiveId(id, &clientB)
-	waitForCompletedObjectiveId(id, &clientI)
+	waitForCompletedObjectiveIds(&clientA, id)
+	waitForCompletedObjectiveIds(&clientB, id)
+	waitForCompletedObjectiveIds(&clientI, id)
 
 }

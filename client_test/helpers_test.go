@@ -14,16 +14,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// waitForCompletedObjectiveId waits for completed objectives and returns when the completed objective id matchs the id waitForCompletedObjectiveId has been given
-func waitForCompletedObjectiveId(id protocols.ObjectiveId, client *client.Client) {
-	got := <-client.CompletedObjectives()
-	for got != id {
-		got = <-client.CompletedObjectives()
-	}
-}
-
 // waitForCompletedObjectiveIds waits for completed objectives and returns when the all objective ids provided have been completed.
-func waitForCompletedObjectiveIds(ids []protocols.ObjectiveId, client *client.Client) { //nolint:golint,unused
+func waitForCompletedObjectiveIds(client *client.Client, ids ...protocols.ObjectiveId) {
 	// Create a map of all objective ids to wait for and set to false
 	completed := make(map[protocols.ObjectiveId]bool)
 	for _, id := range ids {
