@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/types"
@@ -32,20 +31,11 @@ func TestVirtualFundIntegration(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	aKey := common.Hex2Bytes(`2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d`)
-	a := common.HexToAddress(`0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE`)
+	chain := chainservice.NewMockChain([]types.Address{alice, bob, irene})
 
-	bKey := common.Hex2Bytes(`0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4`)
-	b := common.HexToAddress(`0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94`)
-
-	iKey := common.Hex2Bytes(`febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781`)
-	i := common.HexToAddress(`0x111A00868581f73AB42FEEF67D235Ca09ca1E8db`)
-
-	chain := chainservice.NewMockChain([]types.Address{a, b, i})
-
-	clientA, messageserviceA := setupClient(aKey, chain, logDestination)
-	clientB, messageserviceB := setupClient(bKey, chain, logDestination)
-	clientI, messageserviceI := setupClient(iKey, chain, logDestination)
+	clientA, messageserviceA := setupClient(aliceKey, chain, logDestination)
+	clientB, messageserviceB := setupClient(bobKey, chain, logDestination)
+	clientI, messageserviceI := setupClient(ireneKey, chain, logDestination)
 
 	connectMessageServices(messageserviceA, messageserviceB, messageserviceI)
 
@@ -55,16 +45,16 @@ func TestVirtualFundIntegration(t *testing.T) {
 	outcome := outcome.Exit{outcome.SingleAssetExit{
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
-				Destination: types.AddressToDestination(a),
+				Destination: types.AddressToDestination(alice),
 				Amount:      big.NewInt(5),
 			},
 			outcome.Allocation{
-				Destination: types.AddressToDestination(b),
+				Destination: types.AddressToDestination(bob),
 				Amount:      big.NewInt(5),
 			},
 		},
 	}}
-	id := clientA.CreateVirtualChannel(b, i, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
+	id := clientA.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
 	waitForCompletedObjectiveId(id, &clientA)
 	waitForCompletedObjectiveId(id, &clientB)
 	waitForCompletedObjectiveId(id, &clientI)

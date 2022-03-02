@@ -46,12 +46,12 @@ func TestDirectFundIntegration(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	aKey, a := crypto.GeneratePrivateKeyAndAddress()
-	bKey, b := crypto.GeneratePrivateKeyAndAddress()
-	chain := chainservice.NewMockChain([]types.Address{a, b})
+	aliceKey, alice := crypto.GeneratePrivateKeyAndAddress()
+	bobKey, bob := crypto.GeneratePrivateKeyAndAddress()
+	chain := chainservice.NewMockChain([]types.Address{alice, bob})
 
-	clientA, messageserviceA := setupClient(aKey, chain, logDestination)
-	clientB, messageserviceB := setupClient(bKey, chain, logDestination)
+	clientA, messageserviceA := setupClient(aliceKey, chain, logDestination)
+	clientB, messageserviceB := setupClient(bobKey, chain, logDestination)
 
 	connectMessageServices(messageserviceA, messageserviceB)
 
