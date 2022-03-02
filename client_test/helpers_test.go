@@ -66,7 +66,7 @@ func setupClient(pk []byte, chain chainservice.MockChain, logDestination io.Writ
 }
 
 // createVirtualOutcome is a helper function to create the outcome for two participants for a virtual channel.
-func createVirtualOutcome(first types.Address, second types.Address) outcome.Exit { //nolint:golint,unused
+func createVirtualOutcome(first types.Address, second types.Address) outcome.Exit {
 
 	return outcome.Exit{outcome.SingleAssetExit{
 		Allocations: outcome.Allocations{

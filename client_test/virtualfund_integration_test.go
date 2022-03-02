@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -42,19 +41,10 @@ func TestVirtualFundIntegration(t *testing.T) {
 	directlyFundALedgerChannel(clientA, clientI)
 	directlyFundALedgerChannel(clientI, clientB)
 
-	outcome := outcome.Exit{outcome.SingleAssetExit{
-		Allocations: outcome.Allocations{
-			outcome.Allocation{
-				Destination: types.AddressToDestination(alice),
-				Amount:      big.NewInt(5),
-			},
-			outcome.Allocation{
-				Destination: types.AddressToDestination(bob),
-				Amount:      big.NewInt(5),
-			},
-		},
-	}}
+	outcome := createVirtualOutcome(alice, bob)
+
 	id := clientA.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
+
 	waitForCompletedObjectiveId(id, &clientA)
 	waitForCompletedObjectiveId(id, &clientB)
 	waitForCompletedObjectiveId(id, &clientI)
