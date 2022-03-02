@@ -146,6 +146,16 @@ func (lc *TwoPartyLedger) Proposed() (state.State, bool) {
 	}
 }
 
+// IamLeader() returns true if and only if I should coordinate state updates in the receiver TwoPartyLedger channel.
+func (lc *TwoPartyLedger) IamLeader() bool {
+	return lc.Channel.MyIndex == 0
+}
+
+// IamLeader() returns true if and only if I should verify and countersign state updates proposed by the leader of the TwoPartyLedger channel.
+func (lc *TwoPartyLedger) IAmFollower() bool {
+	return !lc.IamLeader()
+}
+
 // New constructs a new Channel from the supplied state.
 func New(s state.State, myIndex uint) (*Channel, error) {
 	c := Channel{}
