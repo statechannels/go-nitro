@@ -372,15 +372,35 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			// Cranking should move us to the next waiting point, updating the ledger channel, and alter the extended state to reflect that
 			// TODO: Check that ledger channel is updated as expected
-			oObj, _, waitingFor, _ = o.Crank(&my.privateKey)
+			oObj, got, waitingFor, _ = o.Crank(&my.privateKey)
 
-			// TODO: Check that messages include the updated ledger channel
+			// Check that the messsages contain the expected ledger proposals
+			switch my.role {
+			case 0:
+				{
+					supported, _ := o.ToMyRight.Channel.LatestSupportedState()
+					expectedSignedState := state.NewSignedState(getLedgerProposal(supported, types.AddressToDestination(alice.address), types.AddressToDestination(p1.address), o.V.Id))
+					_ = expectedSignedState.Sign(&my.privateKey)
 
+					assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
+
+				}
+			case 1:
+				{
+					supported, _ := o.ToMyRight.Channel.LatestSupportedState()
+					expectedSignedState := state.NewSignedState(getLedgerProposal(supported, types.AddressToDestination(p1.address), types.AddressToDestination(bob.address), o.V.Id))
+					_ = expectedSignedState.Sign(&my.privateKey)
+
+					assertSideEffectsContainsMessageWith(got, expectedSignedState, bob, t)
+				}
+			}
 			if waitingFor != WaitingForCompleteFunding {
 				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
 			}
 
 			o = oObj.(Objective)
+
+			//Update the ledger funding by mimicing other participants either proposing an update or accepting our update
 			switch my.role {
 			case 0:
 				{
@@ -411,6 +431,28 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			if waitingFor != WaitingForCompletePostFund {
 				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
 			}
+
+			// Check that the messsages contain the expected ledger acceptances
+			switch my.role {
+			case 1:
+				{
+					supported, _ := o.ToMyLeft.Channel.LatestSupportedState()
+					expectedSignedState := state.NewSignedState(supported)
+					_ = expectedSignedState.Sign(&my.privateKey)
+
+					assertSideEffectsContainsMessageWith(got, expectedSignedState, alice, t)
+
+				}
+			case 2:
+				{
+					supported, _ := o.ToMyLeft.Channel.LatestSupportedState()
+					expectedSignedState := state.NewSignedState(supported)
+					_ = expectedSignedState.Sign(&my.privateKey)
+
+					assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
+				}
+			}
+
 			expectedSignedState = state.NewSignedState(o.V.PostFundState())
 			mySig, _ = o.V.PostFundState().Sign(my.privateKey)
 			_ = expectedSignedState.AddSignature(mySig)
