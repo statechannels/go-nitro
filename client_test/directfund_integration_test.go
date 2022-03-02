@@ -10,7 +10,6 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
-	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -46,8 +45,6 @@ func TestDirectFundIntegration(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	aliceKey, alice := crypto.GeneratePrivateKeyAndAddress()
-	bobKey, bob := crypto.GeneratePrivateKeyAndAddress()
 	chain := chainservice.NewMockChain([]types.Address{alice, bob})
 
 	clientA, messageserviceA := setupClient(aliceKey, chain, logDestination)
