@@ -63,7 +63,6 @@ type Objective struct {
 	a0 types.Funds // Initial balance for Alice
 	b0 types.Funds // Initial balance for Bob
 
-	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
 }
 
 // NewObjective initiates an Objective.
@@ -249,9 +248,83 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 
 	// Funding
 
-	if !updated.requestedLedgerUpdates {
-		updated.requestedLedgerUpdates = true
-		ledgerRequests = append(ledgerRequests, o.generateGuaranteeRequestSideEffects()...)
+	if o.ToMyLeft != nil && o.ToMyLeft.Channel.IamLeader() {
+		ledger := o.ToMyLeft.Channel
+		supported, err := ledger.Channel.LatestSupportedState()
+		if err != nil {
+			// TODO
+			// return protocols.SideEffects{}, fmt.Errorf("error finding a supported state: %w", err)
+		}
+		nextState := supported.Clone()
+		nextState.Outcome, err = nextState.Outcome.DivertToGuarantee(
+			types.AddressToDestination(o.V.Participants[o.MyRole-1]),
+			types.AddressToDestination(o.V.Participants[o.MyRole]),
+			o.V.LeftAmount(),
+			o.V.RightAmount(),
+			o.V.Id)
+		if err != nil {
+			// TODO
+			// return protocols.SideEffects{}, fmt.Errorf("error diverting to guarantee: %w", err)
+		}
+		nextState.TurnNum = nextState.TurnNum + 1
+
+		ss := state.NewSignedState(nextState)
+		err = ss.Sign(secretKey)
+		if err != nil {
+			// TODO
+			// return protocols.SideEffects{}, fmt.Errorf("Could not sign state: %w", err)
+		}
+		if ok := ledger.Channel.AddSignedState(ss); !ok {
+			// TODO
+			// return protocols.SideEffects{}, errors.New("Could not add signed state to channel")
+		}
+
+		messages := protocols.CreateSignedStateMessages(o.Id(), ss, ledger.MyIndex)
+		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+	}
+
+	if o.ToMyRight != nil && o.ToMyRight.Channel.IamLeader() {
+		ledger := o.ToMyRight.Channel
+		supported, err := ledger.Channel.LatestSupportedState()
+		if err != nil {
+			// TODO
+			// return protocols.SideEffects{}, fmt.Errorf("error finding a supported state: %w", err)
+		}
+		nextState := supported.Clone()
+		// TODO this could be encapsulated into ledger.ProposeGuaranteeUpdate
+		nextState.Outcome, err = nextState.Outcome.DivertToGuarantee(
+			types.AddressToDestination(o.V.Participants[o.MyRole]),
+			types.AddressToDestination(o.V.Participants[o.MyRole+1]),
+			o.V.LeftAmount(),
+			o.V.RightAmount(),
+			o.V.Id)
+		if err != nil {
+			// TODO
+			// return protocols.SideEffects{}, fmt.Errorf("error diverting to guarantee: %w", err)
+		}
+		nextState.TurnNum = nextState.TurnNum + 1
+
+		ss := state.NewSignedState(nextState)
+		err = ss.Sign(secretKey)
+		if err != nil {
+			// TODO
+			// return protocols.SideEffects{}, fmt.Errorf("Could not sign state: %w", err)
+		}
+		if ok := ledger.Channel.AddSignedState(ss); !ok {
+			// TODO
+			// return protocols.SideEffects{}, errors.New("Could not add signed state to channel")
+		}
+
+		messages := protocols.CreateSignedStateMessages(o.Id(), ss, ledger.MyIndex)
+		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+	}
+	if o.ToMyLeft != nil && o.ToMyLeft.Channel.IAmFollower() {
+		// TODO this could be encapsulated into proposal := ledger.CheckForProposal
+		// followed by a conditional ledger.countersign(propoasl)
+if o.ToMyLeft.Channel.LatestSupportedState()
+	}
+	if o.ToMyRight != nil && o.ToMyRight.Channel.IAmFollower() {
+
 	}
 
 	if !updated.fundingComplete() {
