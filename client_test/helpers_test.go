@@ -19,7 +19,7 @@ import (
 const defaultTimeout = time.Second
 
 // waitWithTimeoutForCompletedObjectiveIds waits up to the given timeout for completed objectives and returns when the all objective ids provided have been completed.
-// If the timeout lapses adnd the objectives have not all completed, the parent test will be failed.
+// If the timeout lapses and the objectives have not all completed, the parent test will be failed.
 func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeout time.Duration, ids ...protocols.ObjectiveId) {
 	waitAndSendOn := func(allDone chan interface{}) {
 		waitForCompletedObjectiveIds(client, ids...)

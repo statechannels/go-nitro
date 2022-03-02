@@ -29,7 +29,7 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 	}}
 	id := alpha.CreateDirectChannel(*beta.Address, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
 	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, id)
-	waitForCompletedObjectiveIds(&beta, id)
+	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, id)
 }
 func TestDirectFundIntegration(t *testing.T) {
 
