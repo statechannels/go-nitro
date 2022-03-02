@@ -1,3 +1,4 @@
+// Deprecated: we are moving away from having a separate ledger protocol (to handling all ledger updates inside other protocols)
 package ledger
 
 import (
