@@ -32,15 +32,15 @@ func TestVirtualFundIntegration(t *testing.T) {
 
 	connectMessageServices(messageserviceA, messageserviceB, messageserviceI)
 
-	directlyFundALedgerChannel(clientA, clientI)
-	directlyFundALedgerChannel(clientI, clientB)
+	directlyFundALedgerChannel(t, clientA, clientI)
+	directlyFundALedgerChannel(t, clientI, clientB)
 
 	outcome := createVirtualOutcome(alice, bob)
 
 	id := clientA.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
 
-	waitForCompletedObjectiveIds(&clientA, id)
-	waitForCompletedObjectiveIds(&clientB, id)
-	waitForCompletedObjectiveIds(&clientI, id)
+	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, id)
+	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, id)
+	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, id)
 
 }

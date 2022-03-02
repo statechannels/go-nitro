@@ -3,6 +3,8 @@ package client_test
 import (
 	"io"
 	"math/big"
+	"testing"
+	"time"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
@@ -13,6 +15,27 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
+
+const defaultTimeout = time.Second
+
+// waitWithTimeoutForCompletedObjectiveIds waits up to the given timeout for completed objectives and returns when the all objective ids provided have been completed.
+// If the timeout lapses and the objectives have not all completed, the parent test will be failed.
+func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeout time.Duration, ids ...protocols.ObjectiveId) {
+	waitAndSendOn := func(allDone chan interface{}) {
+		waitForCompletedObjectiveIds(client, ids...)
+		allDone <- struct{}{}
+	}
+	allDone := make(chan interface{})
+	go waitAndSendOn(allDone)
+
+	select {
+	case <-time.After(timeout):
+		t.Fatalf("Objective ids %s failed to complete in one second on client %s", ids, client.Address)
+	case <-allDone:
+		return
+	}
+
+}
 
 // waitForCompletedObjectiveIds waits for completed objectives and returns when the all objective ids provided have been completed.
 func waitForCompletedObjectiveIds(client *client.Client, ids ...protocols.ObjectiveId) {

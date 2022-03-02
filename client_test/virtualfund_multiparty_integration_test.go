@@ -35,17 +35,17 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 
 	connectMessageServices(aliceMS, bobMS, ireneMS, brianMS)
 
-	directlyFundALedgerChannel(clientAlice, clientIrene)
-	directlyFundALedgerChannel(clientIrene, clientBob)
-	directlyFundALedgerChannel(clientIrene, clientBrian)
+	directlyFundALedgerChannel(t, clientAlice, clientIrene)
+	directlyFundALedgerChannel(t, clientIrene, clientBob)
+	directlyFundALedgerChannel(t, clientIrene, clientBrian)
 
 	id := clientAlice.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, bob), big.NewInt(0))
 	id2 := clientAlice.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, brian), big.NewInt(0))
 
-	waitForCompletedObjectiveIds(&clientBob, id)
-	waitForCompletedObjectiveIds(&clientBrian, id)
+	waitTimeForCompletedObjectiveIds(t, &clientBob, defaultTimeout, id)
+	waitTimeForCompletedObjectiveIds(t, &clientBrian, defaultTimeout, id)
 
-	waitForCompletedObjectiveIds(&clientAlice, id, id2)
-	waitForCompletedObjectiveIds(&clientIrene, id, id2)
+	waitTimeForCompletedObjectiveIds(t, &clientAlice, defaultTimeout, id, id2)
+	waitTimeForCompletedObjectiveIds(t, &clientIrene, defaultTimeout, id, id2)
 
 }
