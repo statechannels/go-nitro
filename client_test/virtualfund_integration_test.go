@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"log"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -24,7 +25,7 @@ import (
 func TestVirtualFundIntegration(t *testing.T) {
 
 	// Set up logging
-	logDestination, err := os.OpenFile("virtualfund_integration_test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	logDestination, err := os.OpenFile("virtualfund_client_test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,17 +50,17 @@ func TestVirtualFundIntegration(t *testing.T) {
 	chainservA := chainservice.NewSimpleChainService(chain, a)
 	messageserviceA := messageservice.NewTestMessageService(a)
 	storeA := store.NewMockStore(aKey)
-	clientA := New(messageserviceA, chainservA, storeA, logDestination)
+	clientA := client.New(messageserviceA, chainservA, storeA, logDestination)
 
 	chainservB := chainservice.NewSimpleChainService(chain, b)
 	messageserviceB := messageservice.NewTestMessageService(b)
 	storeB := store.NewMockStore(bKey)
-	clientB := New(messageserviceB, chainservB, storeB, logDestination)
+	clientB := client.New(messageserviceB, chainservB, storeB, logDestination)
 
 	chainservI := chainservice.NewSimpleChainService(chain, i)
 	messageserviceI := messageservice.NewTestMessageService(i)
 	storeI := store.NewMockStore(iKey)
-	clientI := New(messageserviceI, chainservI, storeI, logDestination)
+	clientI := client.New(messageserviceI, chainservI, storeI, logDestination)
 
 	messageserviceA.Connect(messageserviceB)
 	messageserviceA.Connect(messageserviceI)
@@ -70,7 +71,7 @@ func TestVirtualFundIntegration(t *testing.T) {
 	messageserviceI.Connect(messageserviceA)
 	messageserviceI.Connect(messageserviceB)
 
-	directlyFundALedgerChannel := func(alpha Client, beta Client) {
+	directlyFundALedgerChannel := func(alpha client.Client, beta client.Client) {
 		// Set up an outcome that requires both participants to deposit
 		outcome := outcome.Exit{outcome.SingleAssetExit{
 			Allocations: outcome.Allocations{
@@ -113,9 +114,9 @@ func TestVirtualFundIntegration(t *testing.T) {
 }
 
 // waitForCompletedObjectiveId waits for completed objectives and returns when the completed objective id matchs the id waitForCompletedObjectiveId has been given
-func waitForCompletedObjectiveId(id protocols.ObjectiveId, client *Client) {
-	got := <-client.completedObjectives
+func waitForCompletedObjectiveId(id protocols.ObjectiveId, client *client.Client) {
+	got := <-client.CompletedObjectives()
 	for got != id {
-		got = <-client.completedObjectives
+		got = <-client.CompletedObjectives()
 	}
 }

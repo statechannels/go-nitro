@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"io"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -21,7 +22,7 @@ import (
 func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 
 	// Set up logging
-	logDestination, err := os.OpenFile("virtualfund_multiparty_integration_test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	logDestination, err := os.OpenFile("virtualfund_multiparty_client_test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,7 +55,7 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	clientIrene, ireneMS := setupClient(ireneKey, chain, logDestination)
 	connectMessageServices([]messageservice.TestMessageService{aliceMS, bobMS, ireneMS, brianMS})
 
-	directlyFundALedgerChannel := func(alpha Client, beta Client) {
+	directlyFundALedgerChannel := func(alpha client.Client, beta client.Client) {
 		// Set up an outcome that requires both participants to deposit
 		outcome := outcome.Exit{outcome.SingleAssetExit{
 			Allocations: outcome.Allocations{
@@ -90,14 +91,14 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 }
 
 // waitForCompletedObjectiveIds waits for completed objectives and returns when the all objective ids provided have been completed.
-func waitForCompletedObjectiveIds(ids []protocols.ObjectiveId, client *Client) {
+func waitForCompletedObjectiveIds(ids []protocols.ObjectiveId, client *client.Client) {
 	// Create a map of all objective ids to wait for and set to false
 	completed := make(map[protocols.ObjectiveId]bool)
 	for _, id := range ids {
 		completed[id] = false
 	}
 	// We continue to consume completed objective ids from the chan until all have been completed
-	for got := range client.completedObjectives {
+	for got := range client.CompletedObjectives() {
 		// Mark the objective as completed
 		completed[got] = true
 
@@ -124,12 +125,12 @@ func connectMessageServices(services []messageservice.TestMessageService) {
 }
 
 // setupClient is a helper function that contructs a client and returns the new client and message service.
-func setupClient(pk []byte, chain chainservice.MockChain, logDestination io.Writer) (Client, messageservice.TestMessageService) {
+func setupClient(pk []byte, chain chainservice.MockChain, logDestination io.Writer) (client.Client, messageservice.TestMessageService) {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := messageservice.NewTestMessageService(myAddress)
 	storeA := store.NewMockStore(pk)
-	return New(messageservice, chainservice, storeA, logDestination), messageservice
+	return client.New(messageservice, chainservice, storeA, logDestination), messageservice
 }
 
 // createVirtualOutcome is a helper function to create the outcome for two participants for a virtual channel.

@@ -1,4 +1,5 @@
-package client
+// Package client_test contains helpers and integration tests for go-nitro clients
+package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
 	"log"
@@ -7,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -17,7 +19,7 @@ import (
 func TestDirectFundIntegration(t *testing.T) {
 
 	// Set up logging
-	logDestination, err := os.OpenFile("directfund_integration_test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	logDestination, err := os.OpenFile("directfund_client_test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -35,12 +37,12 @@ func TestDirectFundIntegration(t *testing.T) {
 	chainservA := chainservice.NewSimpleChainService(chain, a)
 	messageserviceA := messageservice.NewTestMessageService(a)
 	storeA := store.NewMockStore(aKey)
-	clientA := New(messageserviceA, chainservA, storeA, logDestination)
+	clientA := client.New(messageserviceA, chainservA, storeA, logDestination)
 
 	chainservB := chainservice.NewSimpleChainService(chain, b)
 	messageserviceB := messageservice.NewTestMessageService(b)
 	storeB := store.NewMockStore(bKey)
-	clientB := New(messageserviceB, chainservB, storeB, logDestination)
+	clientB := client.New(messageserviceB, chainservB, storeB, logDestination)
 
 	messageserviceA.Connect(messageserviceB)
 	messageserviceB.Connect(messageserviceA)
