@@ -28,7 +28,6 @@ func signPreAndPostFundingStates(ledger *channel.TwoPartyLedger, secretKeys []*[
 
 // signLatest is a test utility function which applies signatures from
 // multiple participants to the latest recorded state
-//nolint TODO: This will eventually be used in the test.
 func signLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 
 	// Find the largest turn num and therefore the latest state
@@ -44,6 +43,23 @@ func signLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 		_ = toSign.Sign(&secretKey)
 	}
 	ledger.Channel.AddSignedState(toSign)
+}
+
+func addLedgerProposal(ledger *channel.TwoPartyLedger, left types.Destination, right types.Destination, guaranteeDestination types.Destination, secretKey *[]byte) {
+
+	supported, _ := ledger.LatestSupportedState()
+	nextState := getLedgerProposal(supported, left, right, guaranteeDestination)
+	_, _ = ledger.SignAndAddState(nextState, secretKey)
+}
+
+func getLedgerProposal(supported state.State, left types.Destination, right types.Destination, guaranteeDestination types.Destination) state.State {
+	leftAmount := types.Funds{types.Address{}: big.NewInt(5)}
+	rightAmount := types.Funds{types.Address{}: big.NewInt(5)}
+	nextState := supported.Clone()
+
+	nextState.TurnNum = nextState.TurnNum + 1
+	nextState.Outcome, _ = nextState.Outcome.DivertToGuarantee(left, right, leftAmount, rightAmount, guaranteeDestination)
+	return nextState
 }
 
 // newTestTwoPartyLedger creates a new two party ledger channel based on the provided allocations. The channel will appear to be fully-funded on chain.
@@ -356,8 +372,35 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			// Cranking should move us to the next waiting point, updating the ledger channel, and alter the extended state to reflect that
 			// TODO: Check that ledger channel is updated as expected
+			oObj, _, waitingFor, _ = o.Crank(&my.privateKey)
 
-			// TODO: Sign latest ledger state
+			// TODO: Check that messages include the updated ledger channel
+
+			if waitingFor != WaitingForCompleteFunding {
+				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
+			}
+
+			o = oObj.(Objective)
+			switch my.role {
+			case 0:
+				{
+					signLatest(o.ToMyRight.Channel, [][]byte{p1.privateKey})
+				}
+			case 1:
+				{
+					// If we are P1 we mimic Alice proposing the update to the ledger channel
+					addLedgerProposal(o.ToMyLeft.Channel, types.AddressToDestination(alice.address), types.AddressToDestination(p1.address), o.V.Id, &alice.privateKey)
+					// We mimic Bob accepting the proposal on the right
+					signLatest(o.ToMyRight.Channel, [][]byte{bob.privateKey})
+
+				}
+			case 2:
+				{
+					// If we are Bob we mimic P1 proposing the update to the ledger channel
+					addLedgerProposal(o.ToMyLeft.Channel, types.AddressToDestination(p1.address), types.AddressToDestination(bob.address), o.V.Id, &p1.privateKey)
+
+				}
+			}
 
 			// Cranking now should not generate side effects, because we already did that
 			oObj, got, waitingFor, err = o.Crank(&my.privateKey)

@@ -134,6 +134,7 @@ func (lc *TwoPartyLedger) Proposed() (state.State, bool) {
 	highestSignedByProposer := uint64(0)
 
 	for turnNum, signedState := range lc.SignedStateForTurnNum {
+		// TODO: Shouldn't assume that the proposer is the first participant
 		if signedByProposer := signedState.HasSignatureForParticipant(0); signedByProposer && turnNum > highestSignedByProposer {
 			highestSignedByProposer = turnNum
 		}
@@ -144,6 +145,14 @@ func (lc *TwoPartyLedger) Proposed() (state.State, bool) {
 	} else {
 		return lc.SignedStateForTurnNum[highestSignedByProposer].State(), true
 	}
+}
+
+func (lc *TwoPartyLedger) IsProposer() bool {
+	return lc.MyIndex == 0
+}
+
+func (lc *TwoPartyLedger) Proposer() types.Address {
+	return lc.FixedPart.Participants[0]
 }
 
 // New constructs a new Channel from the supplied state.
@@ -196,12 +205,7 @@ func (c *Channel) Clone() *Channel {
 	if c == nil {
 		return nil
 	}
-	d, err := New(c.PreFundState().Clone(), c.MyIndex)
-	if err != nil {
-		// The constructor shouldn't error unless we have made a programming error
-		// (e.g. passed in a turnNum =/= 0 state)
-		panic(err)
-	}
+	d, _ := New(c.PreFundState().Clone(), c.MyIndex)
 	d.latestSupportedStateTurnNum = c.latestSupportedStateTurnNum
 	for i, ss := range c.SignedStateForTurnNum {
 		d.SignedStateForTurnNum[i] = ss.Clone()
@@ -345,16 +349,16 @@ func (c *Channel) AddSignedStates(sss []state.SignedState) bool {
 
 // SignAndAddPrefund signs and adds the prefund state for the channel, returning a state.SignedState suitable for sending to peers.
 func (c *Channel) SignAndAddPrefund(sk *[]byte) (state.SignedState, error) {
-	return c.signAndAddState(c.PreFundState(), sk)
+	return c.SignAndAddState(c.PreFundState(), sk)
 }
 
 // SignAndAddPrefund signs and adds the postfund state for the channel, returning a state.SignedState suitable for sending to peers.
 func (c *Channel) SignAndAddPostfund(sk *[]byte) (state.SignedState, error) {
-	return c.signAndAddState(c.PostFundState(), sk)
+	return c.SignAndAddState(c.PostFundState(), sk)
 }
 
-// signAndAddState signs and adds the state to the channel, returning a state.SignedState suitable for sending to peers.
-func (c *Channel) signAndAddState(s state.State, sk *[]byte) (state.SignedState, error) {
+// SignAndAddState signs and adds the state to the channel, returning a state.SignedState suitable for sending to peers.
+func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState, error) {
 
 	sig, err := s.Sign(*sk)
 	if err != nil {
