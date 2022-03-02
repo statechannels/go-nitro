@@ -12,7 +12,6 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
-	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -71,26 +70,6 @@ func TestVirtualFundIntegration(t *testing.T) {
 	messageserviceI.Connect(messageserviceA)
 	messageserviceI.Connect(messageserviceB)
 
-	directlyFundALedgerChannel := func(alpha client.Client, beta client.Client) {
-		// Set up an outcome that requires both participants to deposit
-		outcome := outcome.Exit{outcome.SingleAssetExit{
-			Allocations: outcome.Allocations{
-				outcome.Allocation{
-					Destination: types.AddressToDestination(*alpha.Address),
-					Amount:      big.NewInt(5),
-				},
-				outcome.Allocation{
-					Destination: types.AddressToDestination(*beta.Address),
-					Amount:      big.NewInt(5),
-				},
-			},
-		}}
-		id := alpha.CreateDirectChannel(*beta.Address, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
-		waitForCompletedObjectiveId(id, &alpha)
-		waitForCompletedObjectiveId(id, &beta)
-
-	}
-
 	directlyFundALedgerChannel(clientA, clientI)
 	directlyFundALedgerChannel(clientI, clientB)
 
@@ -111,12 +90,4 @@ func TestVirtualFundIntegration(t *testing.T) {
 	waitForCompletedObjectiveId(id, &clientB)
 	waitForCompletedObjectiveId(id, &clientI)
 
-}
-
-// waitForCompletedObjectiveId waits for completed objectives and returns when the completed objective id matchs the id waitForCompletedObjectiveId has been given
-func waitForCompletedObjectiveId(id protocols.ObjectiveId, client *client.Client) {
-	got := <-client.CompletedObjectives()
-	for got != id {
-		got = <-client.CompletedObjectives()
-	}
 }

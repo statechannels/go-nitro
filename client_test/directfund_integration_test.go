@@ -16,6 +16,24 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+func directlyFundALedgerChannel(alpha client.Client, beta client.Client) {
+	// Set up an outcome that requires both participants to deposit
+	outcome := outcome.Exit{outcome.SingleAssetExit{
+		Allocations: outcome.Allocations{
+			outcome.Allocation{
+				Destination: types.AddressToDestination(*alpha.Address),
+				Amount:      big.NewInt(5),
+			},
+			outcome.Allocation{
+				Destination: types.AddressToDestination(*beta.Address),
+				Amount:      big.NewInt(5),
+			},
+		},
+	}}
+	id := alpha.CreateDirectChannel(*beta.Address, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
+	waitForCompletedObjectiveId(id, &alpha)
+	waitForCompletedObjectiveId(id, &beta)
+}
 func TestDirectFundIntegration(t *testing.T) {
 
 	// Set up logging
@@ -46,31 +64,7 @@ func TestDirectFundIntegration(t *testing.T) {
 
 	messageserviceA.Connect(messageserviceB)
 	messageserviceB.Connect(messageserviceA)
-	// Set up an outcome that requires both participants to deposit
-	outcome := outcome.Exit{outcome.SingleAssetExit{
-		Allocations: outcome.Allocations{
-			outcome.Allocation{
-				Destination: types.AddressToDestination(a),
-				Amount:      big.NewInt(5),
-			},
-			outcome.Allocation{
-				Destination: types.AddressToDestination(b),
-				Amount:      big.NewInt(5),
-			},
-		},
-	}}
 
-	id := clientA.CreateDirectChannel(b, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
-	got := <-clientA.CompletedObjectives()
-
-	if got != id {
-		t.Errorf("expected completed objective with id %v, but got %v", id, got)
-	}
-
-	gotFromB := <-clientB.CompletedObjectives()
-
-	if gotFromB != id {
-		t.Errorf("expected completed objective with id %v, but got %v", id, gotFromB)
-	}
+	directlyFundALedgerChannel(clientA, clientB)
 
 }
