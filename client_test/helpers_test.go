@@ -23,7 +23,7 @@ func waitForCompletedObjectiveId(id protocols.ObjectiveId, client *client.Client
 }
 
 // waitForCompletedObjectiveIds waits for completed objectives and returns when the all objective ids provided have been completed.
-func waitForCompletedObjectiveIds(ids []protocols.ObjectiveId, client *client.Client) {
+func waitForCompletedObjectiveIds(ids []protocols.ObjectiveId, client *client.Client) { //nolint:golint,unused
 	// Create a map of all objective ids to wait for and set to false
 	completed := make(map[protocols.ObjectiveId]bool)
 	for _, id := range ids {
@@ -46,7 +46,7 @@ func waitForCompletedObjectiveIds(ids []protocols.ObjectiveId, client *client.Cl
 }
 
 // connectMessageServices connects the message services together so any message service can communicate with another.
-func connectMessageServices(services []messageservice.TestMessageService) {
+func connectMessageServices(services []messageservice.TestMessageService) { //nolint:golint,unused
 	for i, ms := range services {
 		for j, ms2 := range services {
 			if i != j {
@@ -57,7 +57,7 @@ func connectMessageServices(services []messageservice.TestMessageService) {
 }
 
 // setupClient is a helper function that contructs a client and returns the new client and message service.
-func setupClient(pk []byte, chain chainservice.MockChain, logDestination io.Writer) (client.Client, messageservice.TestMessageService) {
+func setupClient(pk []byte, chain chainservice.MockChain, logDestination io.Writer) (client.Client, messageservice.TestMessageService) { //nolint:golint,unused
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := messageservice.NewTestMessageService(myAddress)
@@ -66,7 +66,7 @@ func setupClient(pk []byte, chain chainservice.MockChain, logDestination io.Writ
 }
 
 // createVirtualOutcome is a helper function to create the outcome for two participants for a virtual channel.
-func createVirtualOutcome(first types.Address, second types.Address) outcome.Exit {
+func createVirtualOutcome(first types.Address, second types.Address) outcome.Exit { //nolint:golint,unused
 
 	return outcome.Exit{outcome.SingleAssetExit{
 		Allocations: outcome.Allocations{
