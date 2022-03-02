@@ -8,10 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
-	"github.com/statechannels/go-nitro/client/engine/messageservice"
-	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -46,20 +43,9 @@ func TestVirtualFundIntegration(t *testing.T) {
 
 	chain := chainservice.NewMockChain([]types.Address{a, b, i})
 
-	chainservA := chainservice.NewSimpleChainService(chain, a)
-	messageserviceA := messageservice.NewTestMessageService(a)
-	storeA := store.NewMockStore(aKey)
-	clientA := client.New(messageserviceA, chainservA, storeA, logDestination)
-
-	chainservB := chainservice.NewSimpleChainService(chain, b)
-	messageserviceB := messageservice.NewTestMessageService(b)
-	storeB := store.NewMockStore(bKey)
-	clientB := client.New(messageserviceB, chainservB, storeB, logDestination)
-
-	chainservI := chainservice.NewSimpleChainService(chain, i)
-	messageserviceI := messageservice.NewTestMessageService(i)
-	storeI := store.NewMockStore(iKey)
-	clientI := client.New(messageserviceI, chainservI, storeI, logDestination)
+	clientA, messageserviceA := setupClient(aKey, chain, logDestination)
+	clientB, messageserviceB := setupClient(bKey, chain, logDestination)
+	clientI, messageserviceI := setupClient(iKey, chain, logDestination)
 
 	connectMessageServices(messageserviceA, messageserviceB, messageserviceI)
 
