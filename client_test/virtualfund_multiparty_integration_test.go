@@ -31,10 +31,9 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 
 	clientAlice, aliceMS := setupClient(aliceKey, chain, logDestination)
 	clientBob, bobMS := setupClient(bobKey, chain, logDestination)
-
 	clientBrian, brianMS := setupClient(brianKey, chain, logDestination)
-
 	clientIrene, ireneMS := setupClient(ireneKey, chain, logDestination)
+
 	connectMessageServices(aliceMS, bobMS, ireneMS, brianMS)
 
 	directlyFundALedgerChannel(clientAlice, clientIrene)
