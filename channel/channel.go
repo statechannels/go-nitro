@@ -103,6 +103,7 @@ type TwoPartyLedger struct {
 	Channel
 }
 
+// NewTwoPartyLedger constructs a new two party ledger channel from the supplied state.
 func NewTwoPartyLedger(s state.State, myIndex uint) (*TwoPartyLedger, error) {
 	if myIndex > 1 {
 		return &TwoPartyLedger{}, errors.New("myIndex in a two party ledger channel must be 0 or 1")
@@ -149,6 +150,7 @@ func (lc *TwoPartyLedger) Proposed() (state.State, bool) {
 	}
 }
 
+// IsProposer returns true if the we are responsible for proposing ledger updates, false otherwise
 func (lc *TwoPartyLedger) IsProposer() bool {
 	return lc.MyIndex == proposerIndex
 }
