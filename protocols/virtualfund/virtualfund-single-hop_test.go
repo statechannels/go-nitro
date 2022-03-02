@@ -15,8 +15,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// TODO: These are ledger helpers from the old ledger package.
-
 // signPreAndPostFundingStates is a test utility function which applies signatures from
 // multiple participants to pre and post fund states
 func signPreAndPostFundingStates(ledger *channel.TwoPartyLedger, secretKeys []*[]byte) {
@@ -45,14 +43,16 @@ func signLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 	ledger.Channel.AddSignedState(toSign)
 }
 
+// addLedgerProposal calculates the ledger proposal state, signs it an adds it to the ledger.
 func addLedgerProposal(ledger *channel.TwoPartyLedger, left types.Destination, right types.Destination, guaranteeDestination types.Destination, secretKey *[]byte) {
 
 	supported, _ := ledger.LatestSupportedState()
-	nextState := getLedgerProposal(supported, left, right, guaranteeDestination)
+	nextState := constructLedgerProposal(supported, left, right, guaranteeDestination)
 	_, _ = ledger.SignAndAddState(nextState, secretKey)
 }
 
-func getLedgerProposal(supported state.State, left types.Destination, right types.Destination, guaranteeDestination types.Destination) state.State {
+// constructLedgerProposal returns a new ledger state with an updated outcome that includes the proposal
+func constructLedgerProposal(supported state.State, left types.Destination, right types.Destination, guaranteeDestination types.Destination) state.State {
 	leftAmount := types.Funds{types.Address{}: big.NewInt(5)}
 	rightAmount := types.Funds{types.Address{}: big.NewInt(5)}
 	nextState := supported.Clone()
@@ -63,7 +63,6 @@ func getLedgerProposal(supported state.State, left types.Destination, right type
 }
 
 // newTestTwoPartyLedger creates a new two party ledger channel based on the provided allocations. The channel will appear to be fully-funded on chain.
-// ONLY FOR TESTING PURPOSES
 func newTestTwoPartyLedger(allocations []outcome.Allocation, myAddress types.Address, nonce *big.Int) (*channel.TwoPartyLedger, error) {
 
 	initialState := state.State{
@@ -379,7 +378,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			case 0:
 				{
 					supported, _ := o.ToMyRight.Channel.LatestSupportedState()
-					expectedSignedState := state.NewSignedState(getLedgerProposal(supported, types.AddressToDestination(alice.address), types.AddressToDestination(p1.address), o.V.Id))
+					expectedSignedState := state.NewSignedState(constructLedgerProposal(supported, types.AddressToDestination(alice.address), types.AddressToDestination(p1.address), o.V.Id))
 					_ = expectedSignedState.Sign(&my.privateKey)
 
 					assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
@@ -388,7 +387,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			case 1:
 				{
 					supported, _ := o.ToMyRight.Channel.LatestSupportedState()
-					expectedSignedState := state.NewSignedState(getLedgerProposal(supported, types.AddressToDestination(p1.address), types.AddressToDestination(bob.address), o.V.Id))
+					expectedSignedState := state.NewSignedState(constructLedgerProposal(supported, types.AddressToDestination(p1.address), types.AddressToDestination(bob.address), o.V.Id))
 					_ = expectedSignedState.Sign(&my.privateKey)
 
 					assertSideEffectsContainsMessageWith(got, expectedSignedState, bob, t)
