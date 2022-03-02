@@ -630,6 +630,9 @@ func IsVirtualFundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
 
+// updateLedgerFunding updates the ledger channel funding for the connection.
+// If the user is the proposer a new ledger state proposal will be generated.
+// If the user is the follower then they will sign a ledger state proposal if it satisfies their expected guarantees.
 func (o *Objective) updateLedgerFunding(ledgerConnection Connection, left types.Destination, right types.Destination, sk *[]byte) (protocols.SideEffects, error) {
 	sideEffects := protocols.SideEffects{}
 
