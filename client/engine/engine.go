@@ -7,13 +7,11 @@ import (
 	"io"
 	"log"
 
-	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
-	"github.com/statechannels/go-nitro/protocols/ledger"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
 
@@ -32,8 +30,7 @@ type Engine struct {
 
 	store store.Store // A Store for persisting and restoring important data
 
-	ledgerManager *ledger.LedgerManager // A LedgerManager for handling ledger requests.
-	logger        *log.Logger
+	logger *log.Logger
 }
 
 // APIEvent is an internal representation of an API call
@@ -75,7 +72,6 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	// initialize a Logger
 	e.logger = log.New(logDestination, e.store.GetAddress().String()+": ", log.Ldate|log.Ltime|log.Lshortfile)
 
-	e.ledgerManager = ledger.NewLedgerManager()
 	e.logger.Println("Constructed Engine")
 
 	return e
@@ -203,11 +199,8 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent) {
 	secretKey := e.store.GetChannelSecretKey()
 
-	crankedObjective, sideEffects, waitingFor, ledgerRequests, _ := objective.Crank(secretKey) // TODO handle error
-	_ = e.store.SetObjective(crankedObjective)                                                 // TODO handle error
-
-	ledgerSideEffects, _ := e.handleGuaranteeRequests(ledgerRequests, crankedObjective) // TODO: handle error
-	sideEffects.Merge(ledgerSideEffects)
+	crankedObjective, sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
+	_ = e.store.SetObjective(crankedObjective)                                 // TODO handle error
 
 	e.executeSideEffects(sideEffects)
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
@@ -267,38 +260,4 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 		return &directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
 	}
 
-}
-
-// handleGuaranteeRequests handles a collection of ledger requests by submitting them to the ledger manager.
-func (e *Engine) handleGuaranteeRequests(ledgerRequests []protocols.GuaranteeRequest, objective protocols.Objective) (protocols.SideEffects, error) {
-	sideEffects := protocols.SideEffects{}
-	for _, req := range ledgerRequests {
-		e.logger.Printf("Handling ledger request  %+v", req)
-
-		var ledger *channel.TwoPartyLedger
-		found := false
-		for _, ch := range objective.Channels() {
-			if ch.Id == req.LedgerId {
-				ledger = &channel.TwoPartyLedger{Channel: *ch}
-				found = true
-			}
-		}
-		if !found {
-			return protocols.SideEffects{}, fmt.Errorf("Could not find ledger %s", req.LedgerId)
-
-		}
-
-		se, err := e.ledgerManager.HandleRequest(ledger, req, e.store.GetChannelSecretKey())
-		if err != nil {
-			return se, fmt.Errorf("could not handle ledger request: %w", err)
-		}
-		err = e.store.SetChannel(&ledger.Channel)
-
-		if err != nil {
-			return se, fmt.Errorf("could not set channel: %w", err)
-		}
-
-		sideEffects.Merge(se)
-	}
-	return sideEffects, nil
 }

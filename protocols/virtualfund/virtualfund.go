@@ -131,7 +131,6 @@ type Objective struct {
 	a0 types.Funds // Initial balance for Alice
 	b0 types.Funds // Initial balance for Bob
 
-	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
 }
 
 // jsonObjective replaces the virtualfund Objective's channel pointers
@@ -148,8 +147,6 @@ type jsonObjective struct {
 
 	A0 types.Funds
 	B0 types.Funds
-
-	RequestedLedgerUpdates bool
 }
 
 // NewObjective initiates an Objective.
@@ -308,14 +305,13 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all.
-func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.GuaranteeRequest, error) {
+func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
-	ledgerRequests := []protocols.GuaranteeRequest{}
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return &updated, sideEffects, WaitingForNothing, []protocols.GuaranteeRequest{}, ErrNotApproved
+		return &updated, sideEffects, WaitingForNothing, ErrNotApproved
 	}
 
 	// Prefunding
@@ -323,43 +319,40 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.V.PreFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return &o, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
+			return &o, protocols.SideEffects{}, WaitingForNothing, err
 		}
 		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
 	if !updated.V.PreFundComplete() {
-		return &updated, sideEffects, WaitingForCompletePrefund, ledgerRequests, nil
+		return &updated, sideEffects, WaitingForCompletePrefund, nil
 	}
 
 	// Funding
 
-	if !updated.requestedLedgerUpdates {
-		updated.requestedLedgerUpdates = true
-		ledgerRequests = append(ledgerRequests, o.generateGuaranteeRequestSideEffects()...)
-	}
+	// TODO: Update ledger channel funding here based on leader/follower pattern.
 
 	if !updated.fundingComplete() {
-		return &updated, sideEffects, WaitingForCompleteFunding, ledgerRequests, nil
+		return &updated, sideEffects, WaitingForCompleteFunding, nil
 	}
 
 	// Postfunding
 	if !updated.V.PostFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPostfund(secretKey)
 		if err != nil {
-			return &o, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
+			return &o, protocols.SideEffects{}, WaitingForNothing, err
 		}
 		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
 	if !updated.V.PostFundComplete() {
-		return &updated, sideEffects, WaitingForCompletePostFund, ledgerRequests, nil
+		return &updated, sideEffects, WaitingForCompletePostFund, nil
 	}
 
 	// Completion
-	return &updated, sideEffects, WaitingForNothing, ledgerRequests, nil
+	return &updated, sideEffects, WaitingForNothing, nil
 }
 
 func (o Objective) Channels() []*channel.Channel {
@@ -412,7 +405,6 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 		o.MyRole,
 		o.a0,
 		o.b0,
-		o.requestedLedgerUpdates,
 	}
 	return json.Marshal(jsonVFO)
 }
@@ -449,7 +441,6 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.MyRole = jsonVFO.MyRole
 	o.a0 = jsonVFO.A0
 	o.b0 = jsonVFO.B0
-	o.requestedLedgerUpdates = jsonVFO.RequestedLedgerUpdates
 
 	return nil
 }
@@ -509,41 +500,6 @@ func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
 	return connection.Channel.Affords(connection.ExpectedGuarantees, connection.Channel.OnChainFunding)
 }
 
-// generateGuaranteeRequestSideEffects generates the appropriate side effects, which (when executed and countersigned) will update 1 or 2 ledger channels to guarantee the joint channel.
-func (o Objective) generateGuaranteeRequestSideEffects() []protocols.GuaranteeRequest {
-
-	requests := make([]protocols.GuaranteeRequest, 0)
-
-	leftAmount := o.V.LeftAmount()
-	rightAmount := o.V.RightAmount()
-
-	if !o.isAlice() {
-		requests = append(requests,
-			protocols.GuaranteeRequest{
-				ObjectiveId: o.Id(),
-				LedgerId:    o.ToMyLeft.Channel.Id,
-				Destination: o.V.Id,
-				Left:        types.AddressToDestination(o.V.Participants[o.MyRole-1]),
-				LeftAmount:  leftAmount,
-				Right:       types.AddressToDestination(o.V.Participants[o.MyRole]),
-				RightAmount: rightAmount,
-			})
-	}
-	if !o.isBob() {
-		requests = append(requests,
-			protocols.GuaranteeRequest{
-				ObjectiveId: o.Id(),
-				LedgerId:    o.ToMyRight.Channel.Id,
-				Destination: o.V.Id,
-				Left:        types.AddressToDestination(o.V.Participants[o.MyRole]),
-				LeftAmount:  leftAmount,
-				Right:       types.AddressToDestination(o.V.Participants[o.MyRole+1]),
-				RightAmount: rightAmount,
-			})
-	}
-	return requests
-}
-
 // Equal returns true if the supplied DirectFundObjective is deeply equal to the receiver.
 func (o Objective) Equal(r Objective) bool {
 	return o.Status == r.Status &&
@@ -553,8 +509,8 @@ func (o Objective) Equal(r Objective) bool {
 		o.n == r.n &&
 		o.MyRole == r.MyRole &&
 		o.a0.Equal(r.a0) &&
-		o.b0.Equal(r.b0) &&
-		o.requestedLedgerUpdates == r.requestedLedgerUpdates
+		o.b0.Equal(r.b0)
+
 }
 
 // Clone returns a deep copy of the receiver.
@@ -585,9 +541,6 @@ func (o *Objective) clone() Objective {
 
 	clone.a0 = o.a0
 	clone.b0 = o.b0
-
-	clone.requestedLedgerUpdates = o.requestedLedgerUpdates
-
 	return clone
 }
 

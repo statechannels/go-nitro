@@ -143,8 +143,5 @@ func TestMarshalJSON(t *testing.T) {
 	if !got.b0.Equal(vfo.b0) {
 		t.Errorf("expected bob initial balance of %v but found %v", vfo.b0, got.a0)
 	}
-	if got.requestedLedgerUpdates != vfo.requestedLedgerUpdates {
-		t.Errorf("expected requestedLedgerUpdates == %t, but found %t",
-			vfo.requestedLedgerUpdates, got.requestedLedgerUpdates)
-	}
+
 }
