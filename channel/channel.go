@@ -97,6 +97,8 @@ func (v *SingleHopVirtualChannel) Clone() *SingleHopVirtualChannel {
 	return &w
 }
 
+const proposerIndex = uint(0)
+
 type TwoPartyLedger struct {
 	Channel
 }
@@ -128,14 +130,14 @@ func (lc *TwoPartyLedger) Clone() *TwoPartyLedger {
 	return &w
 }
 
-// Proposed returns the
+// Proposed returns the latest proposed ledger state that is only signed by the proposer.
+// If the latest state signed by the proposer is the supported state then Proposed returns a nil state and false.
 func (lc *TwoPartyLedger) Proposed() (state.State, bool) {
 
 	highestSignedByProposer := uint64(0)
 
 	for turnNum, signedState := range lc.SignedStateForTurnNum {
-		// TODO: Shouldn't assume that the proposer is the first participant
-		if signedByProposer := signedState.HasSignatureForParticipant(0); signedByProposer && turnNum > highestSignedByProposer {
+		if signedByProposer := signedState.HasSignatureForParticipant(proposerIndex); signedByProposer && turnNum > highestSignedByProposer {
 			highestSignedByProposer = turnNum
 		}
 	}
@@ -148,11 +150,7 @@ func (lc *TwoPartyLedger) Proposed() (state.State, bool) {
 }
 
 func (lc *TwoPartyLedger) IsProposer() bool {
-	return lc.MyIndex == 0
-}
-
-func (lc *TwoPartyLedger) Proposer() types.Address {
-	return lc.FixedPart.Participants[0]
+	return lc.MyIndex == proposerIndex
 }
 
 // New constructs a new Channel from the supplied state.
