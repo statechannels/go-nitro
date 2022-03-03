@@ -335,7 +335,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 		left := types.AddressToDestination(o.V.Participants[o.MyRole-1])
 		right := types.AddressToDestination(o.V.Participants[o.MyRole])
 
-		ledgerSideEffects, err := updated.updateLedgerFunding(*updated.ToMyLeft, left, right, secretKey)
+		ledgerSideEffects, err := updated.updateLedgerWithGuarantee(*updated.ToMyLeft, left, right, secretKey)
 		if err != nil {
 			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
@@ -345,7 +345,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.isBob() && !updated.ToMyRight.ledgerChannelAffordsExpectedGuarantees() {
 		left := types.AddressToDestination(o.V.Participants[o.MyRole])
 		right := types.AddressToDestination(o.V.Participants[o.MyRole+1])
-		ledgerSideEffects, err := updated.updateLedgerFunding(*updated.ToMyRight, left, right, secretKey)
+		ledgerSideEffects, err := updated.updateLedgerWithGuarantee(*updated.ToMyRight, left, right, secretKey)
 		if err != nil {
 			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
@@ -630,56 +630,97 @@ func IsVirtualFundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
 
-// updateLedgerFunding updates the ledger channel funding for the connection.
-// If the user is the proposer a new ledger state proposal will be generated.
-// If the user is the follower then they will sign a ledger state proposal if it satisfies their expected guarantees.
-func (o *Objective) updateLedgerFunding(ledgerConnection Connection, left types.Destination, right types.Destination, sk *[]byte) (protocols.SideEffects, error) {
-	sideEffects := protocols.SideEffects{}
+// proposeLedgerUpdate will propose a ledger update to the channel by crafting an new state
+func (o *Objective) proposeLedgerUpdate(connection Connection, left types.Destination, right types.Destination, sk *[]byte) (protocols.SideEffects, error) {
+	ledger := connection.Channel
+	if !ledger.IsProposer() {
+		return protocols.SideEffects{}, errors.New("only the proposer can propose a ledger update")
+	}
 
 	leftAmount := o.V.LeftAmount()
 	rightAmount := o.V.RightAmount()
+
+	sideEffects := protocols.SideEffects{}
+
+	supported, err := ledger.LatestSupportedState()
+	if err != nil {
+		return protocols.SideEffects{}, fmt.Errorf("error finding a supported state: %w", err)
+	}
+
+	// Clone the state and update the turn to the next turn.
+	nextState := supported.Clone()
+	nextState.TurnNum = nextState.TurnNum + 1
+	// Update the outcome with the guarantee.
+	nextState.Outcome, err = nextState.Outcome.DivertToGuarantee(left, right, leftAmount, rightAmount, o.V.Id)
+	if err != nil {
+		return protocols.SideEffects{}, fmt.Errorf("error updating ledger channel outcome: %w", err)
+	}
+
+	// Sign the state and add it to the ledger.
+	ss, err := ledger.SignAndAddState(nextState, sk)
+	if err != nil {
+		return protocols.SideEffects{}, fmt.Errorf("error adding signed state: %w", err)
+	}
+
+	// Add a message with the signed state
+	messages := protocols.CreateSignedStateMessages(o.Id(), ss, ledger.MyIndex)
+	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+
+	return sideEffects, nil
+}
+
+// acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
+func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, left types.Destination, right types.Destination, sk *[]byte) (protocols.SideEffects, error) {
+	ledger := ledgerConnection.Channel
+	proposed, ok := ledger.Proposed()
+
+	if !ok {
+		return protocols.SideEffects{}, fmt.Errorf("no proposed state found for ledger channel %s", ledger.Id)
+	}
+
+	sideEffects := protocols.SideEffects{}
+	// TODO: We need to check that the new ledger proposal:
+	// - Includes the guarrantee
+	// - Only decrements our funds by the amount for the guarantee
+	if proposed.Outcome.Affords(ledgerConnection.ExpectedGuarantees, ledger.OnChainFunding) {
+
+		ss, err := ledger.SignAndAddState(proposed, sk)
+		if err != nil {
+			return protocols.SideEffects{}, fmt.Errorf("error adding signed state: %w", err)
+		}
+
+		messages := protocols.CreateSignedStateMessages(o.Id(), ss, ledger.MyIndex)
+		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+	}
+
+	return sideEffects, nil
+
+}
+
+// updateLedgerWithGuarantee updates the ledger channel funding by updating the ledger channel to inlcude the guarantee.
+// If the user is the proposer a new ledger state proposal will be generated.
+// If the user is the follower then they will sign a ledger state proposal if it satisfies their expected guarantees.
+func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, left types.Destination, right types.Destination, sk *[]byte) (protocols.SideEffects, error) {
 
 	ledger := ledgerConnection.Channel
 
 	// If the user is the proposer they must craft a new state with a outcome that affords the expected guarantees.
 	if ledger.IsProposer() {
-		supported, err := ledger.LatestSupportedState()
+		sideEffects, err := o.proposeLedgerUpdate(ledgerConnection, left, right, sk)
 		if err != nil {
-			return protocols.SideEffects{}, fmt.Errorf("error finding a supported state: %w", err)
+			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
+		} else {
+			return sideEffects, nil
 		}
-
-		// Clone the state and update the turn to the next turn.
-		nextState := supported.Clone()
-		nextState.TurnNum = nextState.TurnNum + 1
-		// Update the outcome with the guarantee.
-		nextState.Outcome, err = nextState.Outcome.DivertToGuarantee(left, right, leftAmount, rightAmount, o.V.Id)
+	} else if _, ok := ledger.Proposed(); ok {
+		sideEffects, err := o.acceptLedgerUpdate(ledgerConnection, left, right, sk)
 		if err != nil {
-			return protocols.SideEffects{}, fmt.Errorf("error updating ledger channel outcome: %w", err)
+			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
+		} else {
+			return sideEffects, nil
 		}
-
-		// Sign the state and add it to the ledger.
-		ss, err := ledgerConnection.Channel.SignAndAddState(nextState, sk)
-		if err != nil {
-			return protocols.SideEffects{}, fmt.Errorf("error adding signed state: %w", err)
-		}
-
-		// Add a message with the signed state
-		messages := protocols.CreateSignedStateMessages(o.Id(), ss, ledger.MyIndex)
-		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	} else {
-		proposed, ok := ledger.Proposed()
-		if ok {
-			// TODO: Check that my funds haven't been decreased
-			if proposed.Outcome.Affords(ledgerConnection.ExpectedGuarantees, ledger.OnChainFunding) {
-				ss, err := ledger.SignAndAddState(proposed, sk)
-				if err != nil {
-					return protocols.SideEffects{}, fmt.Errorf("error adding signed state: %w", err)
-				}
-
-				messages := protocols.CreateSignedStateMessages(o.Id(), ss, ledger.MyIndex)
-				sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-			}
-		}
+		return protocols.SideEffects{}, nil
 	}
-	return sideEffects, nil
+
 }
