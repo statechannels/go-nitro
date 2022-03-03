@@ -111,7 +111,7 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	updated := updatedObjective.(Objective)
+	updated := updatedObjective.(*Objective)
 	if updated.C.PreFundSignedByMe() != true {
 		t.Error(`Objective data not updated as expected`)
 	}
@@ -124,7 +124,7 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	updated = updatedObjective.(Objective)
+	updated = updatedObjective.(*Objective)
 	if !updated.C.OnChainFunding.Equal(e.Holdings) {
 		t.Error(`Objective data not updated as expected`, updated.C.OnChainFunding, e.Holdings)
 	}
@@ -183,7 +183,7 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Approve the objective, so that the rest of the test cases can run.
-	o := s.Approve().(Objective)
+	o := s.Approve().(*Objective)
 
 	// To test the finite state progression, we are going to progressively mutate o
 	// And then crank it to see

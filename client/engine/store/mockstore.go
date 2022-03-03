@@ -54,7 +54,7 @@ func (ms *MockStore) SetChannel(ch *channel.Channel) error {
 	// This should be replaced in https://github.com/statechannels/go-nitro/pull/227
 	for _, obj := range ms.objectives {
 		if strings.HasPrefix(string(obj.Id()), "DirectFunding-") {
-			dfO := obj.(directfund.Objective)
+			dfO := obj.(*directfund.Objective)
 			if dfO.C.Id == ch.Id {
 				dfO.C = ch
 				err := ms.SetObjective(dfO)
@@ -64,7 +64,7 @@ func (ms *MockStore) SetChannel(ch *channel.Channel) error {
 
 			}
 		} else if strings.HasPrefix(string(obj.Id()), "VirtualFund-") {
-			vfO := obj.(virtualfund.Objective)
+			vfO := obj.(*virtualfund.Objective)
 			if vfO.V.Id == ch.Id {
 				vfO.V = &channel.SingleHopVirtualChannel{Channel: *ch}
 				err := ms.SetObjective(vfO)

@@ -93,7 +93,7 @@ func (c *Client) CreateVirtualChannel(counterParty types.Address, intermediary t
 		left, right)
 
 	apiEvent := engine.APIEvent{
-		ObjectiveToSpawn: objective,
+		ObjectiveToSpawn: &objective,
 	}
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
@@ -120,7 +120,7 @@ func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition t
 	)
 
 	apiEvent := engine.APIEvent{
-		ObjectiveToSpawn: objective,
+		ObjectiveToSpawn: &objective,
 	}
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent

@@ -243,21 +243,21 @@ func (o Objective) Approve() protocols.Objective {
 	updated := o.clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
-	return updated
+	return &updated
 }
 
 // Approve returns a rejected copy of the objective.
 func (o Objective) Reject() protocols.Objective {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
-	return updated
+	return &updated
 }
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
 // and returns the updated state.
 func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if o.Id() != event.ObjectiveId {
-		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
 	updated := o.clone()
@@ -276,7 +276,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		channelId, _ := ss.State().ChannelId() // TODO handle error
 		switch channelId {
 		case types.Destination{}:
-			return o, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
+			return &o, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
 		case o.V.Id:
 			updated.V.AddSignedState(ss)
 			// We expect pre and post fund state signatures.
@@ -287,10 +287,10 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 			updated.ToMyRight.Channel.AddSignedState(ss)
 			// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
 		default:
-			return o, errors.New("event channelId out of scope of objective")
+			return &o, errors.New("event channelId out of scope of objective")
 		}
 	}
-	return updated, nil
+	return &updated, nil
 
 }
 
@@ -304,7 +304,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	ledgerRequests := []protocols.GuaranteeRequest{}
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return updated, sideEffects, WaitingForNothing, []protocols.GuaranteeRequest{}, ErrNotApproved
+		return &updated, sideEffects, WaitingForNothing, []protocols.GuaranteeRequest{}, ErrNotApproved
 	}
 
 	// Prefunding
@@ -312,14 +312,14 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.V.PreFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return o, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
+			return &o, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
 		}
 		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
 	if !updated.V.PreFundComplete() {
-		return updated, sideEffects, WaitingForCompletePrefund, ledgerRequests, nil
+		return &updated, sideEffects, WaitingForCompletePrefund, ledgerRequests, nil
 	}
 
 	// Funding
@@ -330,25 +330,25 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	}
 
 	if !updated.fundingComplete() {
-		return updated, sideEffects, WaitingForCompleteFunding, ledgerRequests, nil
+		return &updated, sideEffects, WaitingForCompleteFunding, ledgerRequests, nil
 	}
 
 	// Postfunding
 	if !updated.V.PostFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPostfund(secretKey)
 		if err != nil {
-			return o, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
+			return &o, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
 		}
 		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
 	if !updated.V.PostFundComplete() {
-		return updated, sideEffects, WaitingForCompletePostFund, ledgerRequests, nil
+		return &updated, sideEffects, WaitingForCompletePostFund, ledgerRequests, nil
 	}
 
 	// Completion
-	return updated, sideEffects, WaitingForNothing, ledgerRequests, nil
+	return &updated, sideEffects, WaitingForNothing, ledgerRequests, nil
 }
 
 func (o Objective) Channels() []*channel.Channel {

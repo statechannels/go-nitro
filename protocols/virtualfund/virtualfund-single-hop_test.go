@@ -255,13 +255,13 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			// Approve the objective, so that the rest of the test cases can run.
-			o := s.Approve().(Objective)
+			o := s.Approve().(*Objective)
 			// To test the finite state progression, we are going to progressively mutate o
 			// And then crank it to see which "pause point" (WaitingFor) we end up at.
 
 			// Initial Crank
 			oObj, got, waitingFor, _, err := o.Crank(&my.privateKey)
-			o = oObj.(Objective)
+			o = oObj.(*Objective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -280,7 +280,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// Cranking should move us to the next waiting point, generate ledger requests as a side effect, and alter the extended state to reflect that
 			var gotRequests []protocols.GuaranteeRequest
 			oObj, _, waitingFor, gotRequests, err = o.Crank(&my.privateKey)
-			o = oObj.(Objective)
+			o = oObj.(*Objective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -365,7 +365,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			// Cranking now should not generate side effects, because we already did that
 			oObj, got, waitingFor, _, err = o.Crank(&my.privateKey)
-			o = oObj.(Objective)
+			o = oObj.(*Objective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -437,7 +437,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			e.SignedStates = append(e.SignedStates, ss)
 
 			updatedObj, err := s.Update(e)
-			updated := updatedObj.(Objective)
+			updated := updatedObj.(*Objective)
 			if err != nil {
 				t.Error(err)
 			}
@@ -495,7 +495,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			f.SignedStates = append(f.SignedStates, ss)
 
 			updatedObj, err = s.Update(f)
-			updated = updatedObj.(Objective)
+			updated = updatedObj.(*Objective)
 			if err != nil {
 				t.Error(err)
 			}

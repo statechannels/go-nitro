@@ -34,7 +34,7 @@ func TestSetGetObjective(t *testing.T) {
 		ts.Participants[0],
 	)
 
-	if err := ms.SetObjective(testObj); err != nil {
+	if err := ms.SetObjective(&testObj); err != nil {
 		t.Errorf("error setting objective %v: %s", testObj, err.Error())
 	}
 
@@ -61,7 +61,7 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 		ts.Participants[0],
 	)
 
-	if err := ms.SetObjective(testObj); err != nil {
+	if err := ms.SetObjective(&testObj); err != nil {
 		t.Errorf("error setting objective %v: %s", testObj, err.Error())
 	}
 

@@ -250,21 +250,21 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 
 	switch {
 	case directfund.IsDirectFundObjective(message.ObjectiveId):
-
-		return directfund.NewObjective(
+		dfo, err := directfund.NewObjective(
 			true, // TODO ensure objective in only approved if the application has given permission somehow
 			initialState,
 			*e.store.GetAddress(),
 		)
+		return &dfo, err
 	case virtualfund.IsVirtualFundObjective(message.ObjectiveId):
 		vfo, err := virtualfund.ConstructObjectiveFromMessage(message, *e.store.GetAddress(), e.store.GetTwoPartyLedger)
 		if err != nil {
-			return virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
+			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
-		return vfo, nil
+		return &vfo, nil
 
 	default:
-		return directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
+		return &directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
 	}
 
 }
