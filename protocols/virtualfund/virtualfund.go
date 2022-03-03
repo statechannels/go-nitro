@@ -76,7 +76,12 @@ func (c Connection) MarshalJSON() ([]byte, error) {
 }
 
 func (c *Connection) UnmarshalJSON(data []byte) error {
+	c.Channel = &channel.TwoPartyLedger{}
+	c.ExpectedGuarantees = make(map[types.Address]outcome.Allocation)
+
 	if string(data) == "null" {
+		// populate a well-formed but blank-addressed Connection
+		c.Channel.Id = types.Destination{}
 		return nil
 	}
 
@@ -87,10 +92,7 @@ func (c *Connection) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	c.Channel = &channel.TwoPartyLedger{}
 	c.Channel.Id = jsonC.Channel
-
-	c.ExpectedGuarantees = make(map[types.Address]outcome.Allocation)
 
 	for _, eg := range jsonC.ExpectedGuarantees {
 		c.ExpectedGuarantees[eg.Asset] = eg.Guarantee
