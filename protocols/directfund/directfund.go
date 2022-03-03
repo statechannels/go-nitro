@@ -40,6 +40,17 @@ type Objective struct {
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
 }
 
+// jsonObjective replaces the directfund.Objective's channel pointer with the
+// channel's ID, making jsonObjective suitable for serialization
+type jsonObjective struct {
+	Status protocols.ObjectiveStatus
+	C      types.Destination
+
+	MyDepositSafetyThreshold types.Funds
+	MyDepositTarget          types.Funds
+	FullyFundedThreshold     types.Funds
+}
+
 // NewObjective initiates a Objective with data calculated from
 // the supplied initialState and client address
 func NewObjective(

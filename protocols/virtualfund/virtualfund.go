@@ -49,6 +49,20 @@ func (c *Connection) Equal(d *Connection) bool {
 
 }
 
+// jsonConnection is a serialization-friendly struct representation
+// of a Connection
+type jsonConnection struct {
+	Channel            types.Destination
+	ExpectedGuarantees []assetGuarantee
+}
+
+// assetGuarantee is a serialization-friendly representation of
+// map[asset]Allocation
+type assetGuarantee struct {
+	Asset     types.Address
+	Guarantee outcome.Allocation
+}
+
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
 type Objective struct {
 	Status protocols.ObjectiveStatus
@@ -64,6 +78,24 @@ type Objective struct {
 	b0 types.Funds // Initial balance for Bob
 
 	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
+}
+
+// jsonObjective replaces the virtualfund Objective's channel pointers
+// with the channel's respective IDs, making jsonObjective suitable for serialization
+type jsonObjective struct {
+	Status protocols.ObjectiveStatus
+	V      types.Destination
+
+	ToMyLeft  []byte
+	ToMyRight []byte
+
+	N      uint
+	MyRole uint
+
+	A0 types.Funds
+	B0 types.Funds
+
+	RequestedLedgerUpdates bool
 }
 
 // NewObjective initiates an Objective.
