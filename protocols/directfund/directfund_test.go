@@ -1,6 +1,7 @@
 package directfund
 
 import (
+	"encoding/json"
 	"math/big"
 	"testing"
 
@@ -266,5 +267,39 @@ func TestClone(t *testing.T) {
 
 	if diff := cmp.Diff(s, clone); diff != "" {
 		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestMarshalJSON(t *testing.T) {
+	dfo, _ := NewObjective(false, testState, testState.Participants[0])
+
+	encodedDfo, err := json.Marshal(dfo)
+
+	if err != nil {
+		t.Errorf("error encoding direct-fund objective %v", dfo)
+	}
+
+	got := Objective{}
+	if err := got.UnmarshalJSON(encodedDfo); err != nil {
+		t.Errorf("error unmarshaling test direct fund objective: %s", err.Error())
+	}
+
+	if !got.myDepositSafetyThreshold.Equal(dfo.myDepositSafetyThreshold) {
+		t.Errorf("expected myDepositSafetyThreshhold %v but got %v",
+			dfo.myDepositSafetyThreshold, got.myDepositSafetyThreshold)
+	}
+	if !got.myDepositTarget.Equal(dfo.myDepositTarget) {
+		t.Errorf("expected myDepositTarget %v but got %v",
+			dfo.myDepositTarget, got.myDepositTarget)
+	}
+	if !got.fullyFundedThreshold.Equal(dfo.fullyFundedThreshold) {
+		t.Errorf("expected fullyFundedThreshold %v but got %v",
+			dfo.fullyFundedThreshold, got.fullyFundedThreshold)
+	}
+	if !(got.Status == dfo.Status) {
+		t.Errorf("expected Status %v but got %v", dfo.Status, got.Status)
+	}
+	if got.C.Id != dfo.C.Id {
+		t.Errorf("expected channel Id %s but got %s", dfo.C.Id, got.C.Id)
 	}
 }
