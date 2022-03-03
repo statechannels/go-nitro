@@ -735,22 +735,21 @@ func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, sk *[]byte) 
 
 }
 
-// updateLedgerWithGuarantee updates the ledger channel funding by updating the ledger channel to inlcude the guarantee.
-// If the user is the proposer a new ledger state proposal will be generated.
+// updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
+// If the user is the proposer a new ledger state will be created and signed.
 // If the user is the follower then they will sign a ledger state proposal if it satisfies their expected guarantees.
 func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[]byte) (protocols.SideEffects, error) {
 
 	ledger := ledgerConnection.Channel
 
-	// If the user is the proposer they must craft a new state with a outcome that affords the expected guarantees.
-	if ledger.IsProposer() {
+	if ledger.IsProposer() { // If the user is the proposer craft a new proposal
 		sideEffects, err := o.proposeLedgerUpdate(ledgerConnection, sk)
 		if err != nil {
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
 		} else {
 			return sideEffects, nil
 		}
-	} else if _, ok := ledger.Proposed(); ok {
+	} else if _, ok := ledger.Proposed(); ok { // Otherwise if there is a proposal accept it if it satisfies the guarantee
 		sideEffects, err := o.acceptLedgerUpdate(ledgerConnection, sk)
 		if err != nil {
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
