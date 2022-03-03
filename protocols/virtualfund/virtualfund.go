@@ -30,9 +30,18 @@ const ObjectivePrefix = "VirtualFund-"
 // errors
 var ErrNotApproved = errors.New("objective not approved")
 
+// GuaranteeInfo contains the information used to generate the expected guarantees.
+type GuaranteeInfo struct {
+	Left                 types.Destination
+	Right                types.Destination
+	LeftAmount           types.Funds
+	RightAmount          types.Funds
+	GuaranteeDestination types.Destination
+}
 type Connection struct {
 	Channel            *channel.TwoPartyLedger
 	ExpectedGuarantees map[types.Address]outcome.Allocation
+	GuaranteeInfo      GuaranteeInfo
 }
 
 // Equal returns true if the Connection pointed to by the supplied pointer is deeply equal to the receiver.
@@ -44,6 +53,9 @@ func (c *Connection) Equal(d *Connection) bool {
 		return false
 	}
 	if !reflect.DeepEqual(c.ExpectedGuarantees, d.ExpectedGuarantees) {
+		return false
+	}
+	if !reflect.DeepEqual(c.GuaranteeInfo, d.GuaranteeInfo) {
 		return false
 	}
 	return true
@@ -332,10 +344,8 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	// Funding
 
 	if !updated.isAlice() && !updated.ToMyLeft.ledgerChannelAffordsExpectedGuarantees() {
-		left := types.AddressToDestination(o.V.Participants[o.MyRole-1])
-		right := types.AddressToDestination(o.V.Participants[o.MyRole])
 
-		ledgerSideEffects, err := updated.updateLedgerWithGuarantee(*updated.ToMyLeft, left, right, secretKey)
+		ledgerSideEffects, err := updated.updateLedgerWithGuarantee(*updated.ToMyLeft, secretKey)
 		if err != nil {
 			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
@@ -343,9 +353,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	}
 
 	if !updated.isBob() && !updated.ToMyRight.ledgerChannelAffordsExpectedGuarantees() {
-		left := types.AddressToDestination(o.V.Participants[o.MyRole])
-		right := types.AddressToDestination(o.V.Participants[o.MyRole+1])
-		ledgerSideEffects, err := updated.updateLedgerWithGuarantee(*updated.ToMyRight, left, right, secretKey)
+		ledgerSideEffects, err := updated.updateLedgerWithGuarantee(*updated.ToMyRight, secretKey)
 		if err != nil {
 			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
@@ -491,6 +499,15 @@ func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.
 		}
 	}
 	connection.ExpectedGuarantees = expectedGuaranteesForLedgerChannel
+
+	connection.GuaranteeInfo = GuaranteeInfo{
+		Left:                 left,
+		Right:                right,
+		LeftAmount:           a0,
+		RightAmount:          b0,
+		GuaranteeDestination: vId,
+	}
+
 	return nil
 }
 
@@ -544,6 +561,7 @@ func (o *Objective) clone() Objective {
 		clone.ToMyLeft = &Connection{
 			Channel:            lClone,
 			ExpectedGuarantees: o.ToMyLeft.ExpectedGuarantees,
+			GuaranteeInfo:      o.ToMyLeft.GuaranteeInfo,
 		}
 	}
 
@@ -552,6 +570,7 @@ func (o *Objective) clone() Objective {
 		clone.ToMyRight = &Connection{
 			Channel:            rClone,
 			ExpectedGuarantees: o.ToMyRight.ExpectedGuarantees,
+			GuaranteeInfo:      o.ToMyRight.GuaranteeInfo,
 		}
 	}
 
@@ -631,14 +650,16 @@ func IsVirtualFundObjective(id protocols.ObjectiveId) bool {
 }
 
 // proposeLedgerUpdate will propose a ledger update to the channel by crafting an new state
-func (o *Objective) proposeLedgerUpdate(connection Connection, left types.Destination, right types.Destination, sk *[]byte) (protocols.SideEffects, error) {
+func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (protocols.SideEffects, error) {
 	ledger := connection.Channel
+	left := connection.GuaranteeInfo.Left
+	right := connection.GuaranteeInfo.Right
+	leftAmount := connection.GuaranteeInfo.LeftAmount
+	rightAmount := connection.GuaranteeInfo.RightAmount
+
 	if !ledger.IsProposer() {
 		return protocols.SideEffects{}, errors.New("only the proposer can propose a ledger update")
 	}
-
-	leftAmount := o.V.LeftAmount()
-	rightAmount := o.V.RightAmount()
 
 	sideEffects := protocols.SideEffects{}
 
@@ -670,7 +691,7 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, left types.Destin
 }
 
 // acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
-func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, left types.Destination, right types.Destination, sk *[]byte) (protocols.SideEffects, error) {
+func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, sk *[]byte) (protocols.SideEffects, error) {
 	ledger := ledgerConnection.Channel
 	proposed, ok := ledger.Proposed()
 
@@ -700,20 +721,20 @@ func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, left types.D
 // updateLedgerWithGuarantee updates the ledger channel funding by updating the ledger channel to inlcude the guarantee.
 // If the user is the proposer a new ledger state proposal will be generated.
 // If the user is the follower then they will sign a ledger state proposal if it satisfies their expected guarantees.
-func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, left types.Destination, right types.Destination, sk *[]byte) (protocols.SideEffects, error) {
+func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[]byte) (protocols.SideEffects, error) {
 
 	ledger := ledgerConnection.Channel
 
 	// If the user is the proposer they must craft a new state with a outcome that affords the expected guarantees.
 	if ledger.IsProposer() {
-		sideEffects, err := o.proposeLedgerUpdate(ledgerConnection, left, right, sk)
+		sideEffects, err := o.proposeLedgerUpdate(ledgerConnection, sk)
 		if err != nil {
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
 		} else {
 			return sideEffects, nil
 		}
 	} else if _, ok := ledger.Proposed(); ok {
-		sideEffects, err := o.acceptLedgerUpdate(ledgerConnection, left, right, sk)
+		sideEffects, err := o.acceptLedgerUpdate(ledgerConnection, sk)
 		if err != nil {
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
 		} else {
