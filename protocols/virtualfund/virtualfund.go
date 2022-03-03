@@ -699,22 +699,39 @@ func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, sk *[]byte) 
 		return protocols.SideEffects{}, fmt.Errorf("no proposed state found for ledger channel %s", ledger.Id)
 	}
 
-	sideEffects := protocols.SideEffects{}
-	// TODO: We need to check that the new ledger proposal:
-	// - Includes the guarrantee
-	// - Only decrements our funds by the amount for the guarantee
-	if proposed.Outcome.Affords(ledgerConnection.ExpectedGuarantees, ledger.OnChainFunding) {
+	supported, err := ledger.LatestSupportedState()
+	if err != nil {
+		return protocols.SideEffects{}, fmt.Errorf("no supported state found for ledger channel: %w", err)
+	}
+
+	// Determine if we are left or right in the guarantee and determine our amounts.
+	ourAddress := types.AddressToDestination(ledger.Participants[ledger.MyIndex])
+	ourDeposit := ledgerConnection.GuaranteeInfo.LeftAmount
+	if ledger.MyIndex == 1 {
+		ourDeposit = ledgerConnection.GuaranteeInfo.RightAmount
+	}
+
+	ourPreviousTotal := supported.Outcome.TotalAllocatedFor(ourAddress)
+	ourNewTotal := proposed.Outcome.TotalAllocatedFor(ourAddress)
+
+	// Our new total should just be our previous total minus our deposit.
+	proposedMaintainsOurFunds := ourNewTotal.Add(ourDeposit).Equal(ourPreviousTotal)
+
+	proposedAffordsGuarantee := proposed.Outcome.Affords(ledgerConnection.ExpectedGuarantees, ledger.OnChainFunding)
+
+	if proposedMaintainsOurFunds && proposedAffordsGuarantee {
 
 		ss, err := ledger.SignAndAddState(proposed, sk)
 		if err != nil {
 			return protocols.SideEffects{}, fmt.Errorf("error adding signed state: %w", err)
 		}
-
+		sideEffects := protocols.SideEffects{}
 		messages := protocols.CreateSignedStateMessages(o.Id(), ss, ledger.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+		return sideEffects, nil
 	}
 
-	return sideEffects, nil
+	return protocols.SideEffects{}, nil
 
 }
 
