@@ -2,6 +2,7 @@
 package directfund // import "github.com/statechannels/go-nitro/directfund"
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -212,6 +213,49 @@ func (o Objective) Channels() []*channel.Channel {
 	ret := make([]*channel.Channel, 0, 1)
 	ret = append(ret, o.C)
 	return ret
+}
+
+// MarshalJSON returns a JSON representation of the DirectFundObjective
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+//       (other than Id) from the field C is discarded
+func (o Objective) MarshalJSON() ([]byte, error) {
+	jsonDFO := jsonObjective{
+		o.Status,
+		o.C.Id,
+		o.myDepositSafetyThreshold,
+		o.myDepositTarget,
+		o.fullyFundedThreshold,
+	}
+	return json.Marshal(jsonDFO)
+}
+
+// UnmarshalJSON populates the calling DirectFundObjective with the
+// json-encoded data
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+//       (other than Id) from the field C is discarded
+func (o *Objective) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+
+	var jsonDFO jsonObjective
+	err := json.Unmarshal(data, &jsonDFO)
+
+	if err != nil {
+		return err
+	}
+
+	o.C = &channel.Channel{}
+	o.C.Id = jsonDFO.C
+
+	o.Status = jsonDFO.Status
+	o.fullyFundedThreshold = jsonDFO.FullyFundedThreshold
+	o.myDepositTarget = jsonDFO.MyDepositTarget
+	o.myDepositSafetyThreshold = jsonDFO.MyDepositSafetyThreshold
+
+	return nil
 }
 
 //  Private methods on the DirectFundingObjectiveState
