@@ -57,6 +57,10 @@ type jsonConnection struct {
 	ExpectedGuarantees []assetGuarantee
 }
 
+// MarshalJSON returns a JSON representation of the Connection
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+//       other than the ID is dropped
 func (c Connection) MarshalJSON() ([]byte, error) {
 	guarantees := []assetGuarantee{}
 	for asset, guarantee := range c.ExpectedGuarantees {
@@ -75,6 +79,11 @@ func (c Connection) MarshalJSON() ([]byte, error) {
 	return bytes, err
 }
 
+// UnmarshalJSON populates the calling Connection with the
+// json-encoded data
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
+//       (other than Id) is discarded
 func (c *Connection) UnmarshalJSON(data []byte) error {
 	c.Channel = &channel.TwoPartyLedger{}
 	c.ExpectedGuarantees = make(map[types.Address]outcome.Allocation)
