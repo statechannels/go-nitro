@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -141,6 +142,17 @@ func (c Channel) LatestSupportedState() (state.State, error) {
 		return state.State{}, errors.New(`no state is yet supported`)
 	}
 	return c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State(), nil
+}
+
+func (c Channel) LatestSignedState() state.SignedState {
+	numStates := len(c.SignedStateForTurnNum)
+	keys := make([]uint64, 0, len(c.SignedStateForTurnNum))
+	for k := range c.SignedStateForTurnNum {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	latestTurn := keys[numStates-1]
+	return c.SignedStateForTurnNum[latestTurn]
 }
 
 // Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
