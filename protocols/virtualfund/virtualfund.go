@@ -3,6 +3,7 @@ package virtualfund // import "github.com/statechannels/go-nitro/virtualfund"
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -49,6 +50,73 @@ func (c *Connection) Equal(d *Connection) bool {
 
 }
 
+// jsonConnection is a serialization-friendly struct representation
+// of a Connection
+type jsonConnection struct {
+	Channel            types.Destination
+	ExpectedGuarantees []assetGuarantee
+}
+
+// MarshalJSON returns a JSON representation of the Connection
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+//       other than the ID is dropped
+func (c Connection) MarshalJSON() ([]byte, error) {
+	guarantees := []assetGuarantee{}
+	for asset, guarantee := range c.ExpectedGuarantees {
+		guarantees = append(guarantees, assetGuarantee{
+			asset,
+			guarantee,
+		})
+	}
+	jsonC := jsonConnection{c.Channel.Id, guarantees}
+	bytes, err := json.Marshal(jsonC)
+
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return bytes, err
+}
+
+// UnmarshalJSON populates the calling Connection with the
+// json-encoded data
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
+//       (other than Id) is discarded
+func (c *Connection) UnmarshalJSON(data []byte) error {
+	c.Channel = &channel.TwoPartyLedger{}
+	c.ExpectedGuarantees = make(map[types.Address]outcome.Allocation)
+
+	if string(data) == "null" {
+		// populate a well-formed but blank-addressed Connection
+		c.Channel.Id = types.Destination{}
+		return nil
+	}
+
+	var jsonC jsonConnection
+	err := json.Unmarshal(data, &jsonC)
+
+	if err != nil {
+		return err
+	}
+
+	c.Channel.Id = jsonC.Channel
+
+	for _, eg := range jsonC.ExpectedGuarantees {
+		c.ExpectedGuarantees[eg.Asset] = eg.Guarantee
+	}
+
+	return nil
+}
+
+// assetGuarantee is a serialization-friendly representation of
+// map[asset]Allocation
+type assetGuarantee struct {
+	Asset     types.Address
+	Guarantee outcome.Allocation
+}
+
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
 type Objective struct {
 	Status protocols.ObjectiveStatus
@@ -64,6 +132,24 @@ type Objective struct {
 	b0 types.Funds // Initial balance for Bob
 
 	requestedLedgerUpdates bool // records that the ledger update side effects were previously generated (they may not have been executed yet)
+}
+
+// jsonObjective replaces the virtualfund Objective's channel pointers
+// with the channel's respective IDs, making jsonObjective suitable for serialization
+type jsonObjective struct {
+	Status protocols.ObjectiveStatus
+	V      types.Destination
+
+	ToMyLeft  []byte
+	ToMyRight []byte
+
+	N      uint
+	MyRole uint
+
+	A0 types.Funds
+	B0 types.Funds
+
+	RequestedLedgerUpdates bool
 }
 
 // NewObjective initiates an Objective.
@@ -168,21 +254,21 @@ func (o Objective) Approve() protocols.Objective {
 	updated := o.clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
-	return updated
+	return &updated
 }
 
 // Approve returns a rejected copy of the objective.
 func (o Objective) Reject() protocols.Objective {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
-	return updated
+	return &updated
 }
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
 // and returns the updated state.
 func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if o.Id() != event.ObjectiveId {
-		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
 	updated := o.clone()
@@ -201,7 +287,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		channelId, _ := ss.State().ChannelId() // TODO handle error
 		switch channelId {
 		case types.Destination{}:
-			return o, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
+			return &o, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
 		case o.V.Id:
 			updated.V.AddSignedState(ss)
 			// We expect pre and post fund state signatures.
@@ -212,10 +298,10 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 			updated.ToMyRight.Channel.AddSignedState(ss)
 			// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
 		default:
-			return o, errors.New("event channelId out of scope of objective")
+			return &o, errors.New("event channelId out of scope of objective")
 		}
 	}
-	return updated, nil
+	return &updated, nil
 
 }
 
@@ -229,7 +315,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	ledgerRequests := []protocols.GuaranteeRequest{}
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return updated, sideEffects, WaitingForNothing, []protocols.GuaranteeRequest{}, ErrNotApproved
+		return &updated, sideEffects, WaitingForNothing, []protocols.GuaranteeRequest{}, ErrNotApproved
 	}
 
 	// Prefunding
@@ -237,14 +323,14 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.V.PreFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return o, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
+			return &o, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
 		}
 		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
 	if !updated.V.PreFundComplete() {
-		return updated, sideEffects, WaitingForCompletePrefund, ledgerRequests, nil
+		return &updated, sideEffects, WaitingForCompletePrefund, ledgerRequests, nil
 	}
 
 	// Funding
@@ -255,25 +341,25 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	}
 
 	if !updated.fundingComplete() {
-		return updated, sideEffects, WaitingForCompleteFunding, ledgerRequests, nil
+		return &updated, sideEffects, WaitingForCompleteFunding, ledgerRequests, nil
 	}
 
 	// Postfunding
 	if !updated.V.PostFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPostfund(secretKey)
 		if err != nil {
-			return o, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
+			return &o, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, err
 		}
 		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
 	if !updated.V.PostFundComplete() {
-		return updated, sideEffects, WaitingForCompletePostFund, ledgerRequests, nil
+		return &updated, sideEffects, WaitingForCompletePostFund, ledgerRequests, nil
 	}
 
 	// Completion
-	return updated, sideEffects, WaitingForNothing, ledgerRequests, nil
+	return &updated, sideEffects, WaitingForNothing, ledgerRequests, nil
 }
 
 func (o Objective) Channels() []*channel.Channel {
@@ -286,6 +372,86 @@ func (o Objective) Channels() []*channel.Channel {
 		ret = append(ret, &o.ToMyRight.Channel.Channel)
 	}
 	return ret
+}
+
+// MarshalJSON returns a JSON representation of the VirtualFundObjective
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
+//       the virtual and ledger channels (other than Ids) is discarded
+func (o Objective) MarshalJSON() ([]byte, error) {
+	var left []byte
+	var right []byte
+	var err error
+
+	if o.ToMyLeft == nil {
+		left = []byte("null")
+	} else {
+		left, err = o.ToMyLeft.MarshalJSON()
+
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling left channel of %v: %w", o, err)
+		}
+	}
+
+	if o.ToMyRight == nil {
+		right = []byte("null")
+	} else {
+		right, err = o.ToMyRight.MarshalJSON()
+
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling right channel of %v: %w", o, err)
+		}
+	}
+
+	jsonVFO := jsonObjective{
+		o.Status,
+		o.V.Id,
+		left,
+		right,
+		o.n,
+		o.MyRole,
+		o.a0,
+		o.b0,
+		o.requestedLedgerUpdates,
+	}
+	return json.Marshal(jsonVFO)
+}
+
+// UnmarshalJSON populates the calling VirtualFundObjective with the
+// json-encoded data
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
+//       the virtual and ledger channels (other than Ids) is discarded
+func (o *Objective) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+
+	var jsonVFO jsonObjective
+	if err := json.Unmarshal(data, &jsonVFO); err != nil {
+		return fmt.Errorf("failed to unmarshal the VirtualFundObjective: %w", err)
+	}
+
+	o.V = &channel.SingleHopVirtualChannel{}
+	o.V.Id = jsonVFO.V
+
+	o.ToMyLeft = &Connection{}
+	o.ToMyRight = &Connection{}
+	if err := o.ToMyLeft.UnmarshalJSON(jsonVFO.ToMyLeft); err != nil {
+		return fmt.Errorf("failed to unmarshal left ledger channel: %w", err)
+	}
+	if err := o.ToMyRight.UnmarshalJSON(jsonVFO.ToMyRight); err != nil {
+		return fmt.Errorf("failed to unmarshal right ledger channel: %w", err)
+	}
+
+	o.Status = jsonVFO.Status
+	o.n = jsonVFO.N
+	o.MyRole = jsonVFO.MyRole
+	o.a0 = jsonVFO.A0
+	o.b0 = jsonVFO.B0
+	o.requestedLedgerUpdates = jsonVFO.RequestedLedgerUpdates
+
+	return nil
 }
 
 //////////////////////////////////////////////////

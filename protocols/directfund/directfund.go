@@ -2,6 +2,7 @@
 package directfund // import "github.com/statechannels/go-nitro/directfund"
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -38,6 +39,17 @@ type Objective struct {
 	myDepositSafetyThreshold types.Funds // if the on chain holdings are equal to this amount it is safe for me to deposit
 	myDepositTarget          types.Funds // I want to get the on chain holdings up to this much
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
+}
+
+// jsonObjective replaces the directfund.Objective's channel pointer with the
+// channel's ID, making jsonObjective suitable for serialization
+type jsonObjective struct {
+	Status protocols.ObjectiveStatus
+	C      types.Destination
+
+	MyDepositSafetyThreshold types.Funds
+	MyDepositTarget          types.Funds
+	FullyFundedThreshold     types.Funds
 }
 
 // NewObjective initiates a Objective with data calculated from
@@ -107,20 +119,20 @@ func (o Objective) Approve() protocols.Objective {
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
 
-	return updated
+	return &updated
 }
 
 func (o Objective) Reject() protocols.Objective {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
-	return updated
+	return &updated
 }
 
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
 // and returns the updated state
 func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if o.Id() != event.ObjectiveId {
-		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
 	updated := o.clone()
@@ -130,7 +142,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		updated.C.OnChainFunding = event.Holdings
 	}
 
-	return updated, nil
+	return &updated, nil
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
@@ -142,21 +154,21 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	sideEffects := protocols.SideEffects{}
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return updated, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, ErrNotApproved
+		return &updated, protocols.SideEffects{}, WaitingForNothing, []protocols.GuaranteeRequest{}, ErrNotApproved
 	}
 
 	// Prefunding
 	if !updated.C.PreFundSignedByMe() {
 		ss, err := updated.C.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return updated, protocols.SideEffects{}, WaitingForCompletePrefund, []protocols.GuaranteeRequest{}, fmt.Errorf("could not sign prefund %w", err)
+			return &updated, protocols.SideEffects{}, WaitingForCompletePrefund, []protocols.GuaranteeRequest{}, fmt.Errorf("could not sign prefund %w", err)
 		}
 		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
 	if !updated.C.PreFundComplete() {
-		return updated, sideEffects, WaitingForCompletePrefund, []protocols.GuaranteeRequest{}, nil
+		return &updated, sideEffects, WaitingForCompletePrefund, []protocols.GuaranteeRequest{}, nil
 	}
 
 	// Funding
@@ -165,7 +177,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	safeToDeposit := updated.safeToDeposit()
 
 	if !fundingComplete && !safeToDeposit {
-		return updated, sideEffects, WaitingForMyTurnToFund, []protocols.GuaranteeRequest{}, nil
+		return &updated, sideEffects, WaitingForMyTurnToFund, []protocols.GuaranteeRequest{}, nil
 	}
 
 	if !fundingComplete && safeToDeposit && amountToDeposit.IsNonZero() {
@@ -174,7 +186,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	}
 
 	if !fundingComplete {
-		return updated, sideEffects, WaitingForCompleteFunding, []protocols.GuaranteeRequest{}, nil
+		return &updated, sideEffects, WaitingForCompleteFunding, []protocols.GuaranteeRequest{}, nil
 	}
 
 	// Postfunding
@@ -183,24 +195,67 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 		ss, err := updated.C.SignAndAddPostfund(secretKey)
 
 		if err != nil {
-			return updated, protocols.SideEffects{}, WaitingForCompletePostFund, []protocols.GuaranteeRequest{}, fmt.Errorf("could not sign postfund %w", err)
+			return &updated, protocols.SideEffects{}, WaitingForCompletePostFund, []protocols.GuaranteeRequest{}, fmt.Errorf("could not sign postfund %w", err)
 		}
 		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
 	if !updated.C.PostFundComplete() {
-		return updated, sideEffects, WaitingForCompletePostFund, []protocols.GuaranteeRequest{}, nil
+		return &updated, sideEffects, WaitingForCompletePostFund, []protocols.GuaranteeRequest{}, nil
 	}
 
 	// Completion
-	return updated, sideEffects, WaitingForNothing, []protocols.GuaranteeRequest{}, nil
+	return &updated, sideEffects, WaitingForNothing, []protocols.GuaranteeRequest{}, nil
 }
 
 func (o Objective) Channels() []*channel.Channel {
 	ret := make([]*channel.Channel, 0, 1)
 	ret = append(ret, o.C)
 	return ret
+}
+
+// MarshalJSON returns a JSON representation of the DirectFundObjective
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+//       (other than Id) from the field C is discarded
+func (o Objective) MarshalJSON() ([]byte, error) {
+	jsonDFO := jsonObjective{
+		o.Status,
+		o.C.Id,
+		o.myDepositSafetyThreshold,
+		o.myDepositTarget,
+		o.fullyFundedThreshold,
+	}
+	return json.Marshal(jsonDFO)
+}
+
+// UnmarshalJSON populates the calling DirectFundObjective with the
+// json-encoded data
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+//       (other than Id) from the field C is discarded
+func (o *Objective) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+
+	var jsonDFO jsonObjective
+	err := json.Unmarshal(data, &jsonDFO)
+
+	if err != nil {
+		return err
+	}
+
+	o.C = &channel.Channel{}
+	o.C.Id = jsonDFO.C
+
+	o.Status = jsonDFO.Status
+	o.fullyFundedThreshold = jsonDFO.FullyFundedThreshold
+	o.myDepositTarget = jsonDFO.MyDepositTarget
+	o.myDepositSafetyThreshold = jsonDFO.MyDepositSafetyThreshold
+
+	return nil
 }
 
 //  Private methods on the DirectFundingObjectiveState
