@@ -67,7 +67,6 @@ func TestMarshalJSON(t *testing.T) {
 		IsFinal: false,
 	}
 
-	// left, _ :=
 	ts := state.TestState
 	ts.TurnNum = channel.PreFundTurnNum
 
