@@ -347,7 +347,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 
 		ledgerSideEffects, err := updated.updateLedgerWithGuarantee(*updated.ToMyLeft, secretKey)
 		if err != nil {
-			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
+			return &o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
 		sideEffects.Merge(ledgerSideEffects)
 	}
@@ -355,7 +355,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.isBob() && !updated.ToMyRight.ledgerChannelAffordsExpectedGuarantees() {
 		ledgerSideEffects, err := updated.updateLedgerWithGuarantee(*updated.ToMyRight, secretKey)
 		if err != nil {
-			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
+			return &o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
 		sideEffects.Merge(ledgerSideEffects)
 	}

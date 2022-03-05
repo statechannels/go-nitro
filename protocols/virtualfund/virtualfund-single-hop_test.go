@@ -397,7 +397,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
 			}
 
-			o = oObj.(Objective)
+			o = oObj.(*Objective)
 
 			//Update the ledger funding by mimicing other participants either proposing an update or accepting our update
 			switch my.role {
