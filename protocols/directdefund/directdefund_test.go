@@ -137,7 +137,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestUpdateAndCrank(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	o, _ := newTestObjective(true)
 
 	// Prepare an event with a mismatched channelId
@@ -158,12 +158,12 @@ func TestUpdateAndCrank(t *testing.T) {
 	if _, err := o.Update(e); err == nil {
 		t.Error("expected an error when updating with a non-final state")
 	}
+}
 
-	s.IsFinal = true
-	ss, _ = signedTestState(s, 1)
-	e.SignedStates = []state.SignedState{ss}
+func TestCrankAlice(t *testing.T) {
+	o, _ := newTestObjective(true)
 
-	updated, _, wf, _, err := o.Crank(&alicePK)
+	updated, se, wf, _, err := o.Crank(&alicePK)
 
 	if err != nil {
 		t.Error(err)
@@ -173,12 +173,42 @@ func TestUpdateAndCrank(t *testing.T) {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
 	}
 
+	if len(se.MessagesToSend) != 1 {
+		t.Errorf(`expected 1 message to send, but got %d`, len(se.MessagesToSend))
+	}
+	messageSSS := se.MessagesToSend[0].SignedStates
+	if len(messageSSS) != 1 {
+		t.Errorf(`expected 1 state in the message but got %d`, len(se.MessagesToSend[1].SignedStates))
+	}
+
+	s := testState.Clone()
+	s.TurnNum = 3
+	s.IsFinal = true
+	ss, _ := signedTestState(s, 1)
+	messageSSS[0].Equal(ss)
+
 	ss, _ = signedTestState(s, 2)
-	e.SignedStates = []state.SignedState{ss}
+	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{ss}}
+
 	updated, err = updated.Update(e)
-	updated, _, wf, _, err = updated.Crank(&alicePK)
+	if err != nil {
+		t.Error(err)
+	}
+	_, _, wf, _, err = updated.Crank(&alicePK)
+	if err != nil {
+		t.Error(err)
+	}
 
 	if wf != WaitingForWithdraw {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
+	}
+
+	updated.C.OnChainFunding = types.Funds{}
+	_, _, wf, _, err = updated.Crank(&alicePK)
+	if err != nil {
+		t.Error(err)
+	}
+	if wf != WaitingForNothing {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
 	}
 }

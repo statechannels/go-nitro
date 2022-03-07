@@ -67,7 +67,7 @@ func (o Objective) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + o.C.Id.String())
 }
 
-func (o Objective) Approve() protocols.Objective {
+func (o Objective) Approve() Objective {
 	updated := o.clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
@@ -75,7 +75,7 @@ func (o Objective) Approve() protocols.Objective {
 	return updated
 }
 
-func (o Objective) Reject() protocols.Objective {
+func (o Objective) Reject() Objective {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
 	return updated
@@ -83,7 +83,7 @@ func (o Objective) Reject() protocols.Objective {
 
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectDefundingObjectiveState,
 // and returns the updated state
-func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+func (o Objective) Update(event protocols.ObjectiveEvent) (Objective, error) {
 	if o.Id() != event.ObjectiveId {
 		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
@@ -105,7 +105,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
-func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.GuaranteeRequest, error) {
+func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.GuaranteeRequest, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
