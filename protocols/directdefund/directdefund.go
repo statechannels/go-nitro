@@ -56,6 +56,7 @@ func NewObjective(
 	} else {
 		init.Status = protocols.Unapproved
 	}
+	init.C = c.Clone()
 
 	return init, nil
 }
@@ -87,6 +88,14 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
+	if len(event.SignedStates) > 0 {
+		for _, ss := range event.SignedStates {
+			if !ss.State().IsFinal {
+				return o, errors.New("direct defund objective can only be updated with final states")
+			}
+		}
+	}
+
 	updated := o.clone()
 	updated.C.AddSignedStates(event.SignedStates)
 
@@ -105,11 +114,6 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	// Input validation
 	if updated.Status != protocols.Approved {
 		return updated, sideEffects, WaitingForNothing, guaranteeRequests, ErrNotApproved
-	}
-
-	// We are chosing to disallow creating an objective if the channel has an in-progress update
-	if isUpdateInProgress(updated.C) {
-		return updated, sideEffects, WaitingForNothing, guaranteeRequests, ErrChannelUpdateInProgress
 	}
 
 	latestSignedState := updated.C.LatestSignedState()

@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -59,6 +60,25 @@ var testState = state.State{
 	IsFinal: false,
 }
 
+func signedTestState(s state.State, numSigs int) (state.SignedState, error) {
+	ss := state.NewSignedState(s)
+	pks := [2][]byte{alicePK, bobPK}
+	for i, pk := range pks {
+		if i >= numSigs {
+			break
+		}
+		sig, err := ss.State().Sign(pk)
+		if err != nil {
+			return ss, err
+		}
+		err = ss.AddSignature(sig)
+		if err != nil {
+			return ss, err
+		}
+	}
+	return ss, nil
+}
+
 // NewFromSignedState constructs a new Channel from the signed state.
 func newChannelFromSignedState(ss state.SignedState, myIndex uint) (*channel.Channel, error) {
 	s := ss.State()
@@ -75,30 +95,20 @@ func newChannelFromSignedState(ss state.SignedState, myIndex uint) (*channel.Cha
 	if !allOk {
 		return c, errors.New("Unable to add a state to channel")
 	}
+	c.OnChainFunding = map[common.Address]*big.Int{common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`): big.NewInt(1)}
 	return c, nil
 }
 
 func newTestObjective(signByBob bool) (Objective, error) {
-	ss := state.NewSignedState(testState)
 	o := Objective{}
-	sigA, err := ss.State().Sign(alicePK)
-	if err != nil {
-		return o, err
-	}
-	sigB, err := ss.State().Sign(bobPK)
-	if err != nil {
-		return o, err
-	}
-	err = ss.AddSignature(sigA)
-	if err != nil {
-		return o, err
-	}
 
-	if signByBob {
-		err = ss.AddSignature(sigB)
-		if err != nil {
-			return o, err
-		}
+	numSigs := 2
+	if !signByBob {
+		numSigs = 1
+	}
+	ss, err := signedTestState(testState, numSigs)
+	if err != nil {
+		return o, err
 	}
 
 	testChannel, err := newChannelFromSignedState(ss, 0)
@@ -107,7 +117,7 @@ func newTestObjective(signByBob bool) (Objective, error) {
 	}
 
 	// Assert that valid constructor args do not result in error
-	o, err = NewObjective(false, testChannel)
+	o, err = NewObjective(true, testChannel)
 	if err != nil {
 		return o, err
 	}
@@ -124,5 +134,51 @@ func TestNew(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
+	}
+}
+
+func TestUpdateAndCrank(t *testing.T) {
+	o, _ := newTestObjective(true)
+
+	// Prepare an event with a mismatched channelId
+	e := protocols.ObjectiveEvent{
+		ObjectiveId: "some-id",
+	}
+	// Assert that Updating the objective with such an event returns an error
+	if _, err := o.Update(e); err == nil {
+		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
+	}
+
+	s := testState.Clone()
+	s.TurnNum = 3
+	e.ObjectiveId = o.Id()
+	ss, _ := signedTestState(s, 1)
+	e.SignedStates = []state.SignedState{ss}
+
+	if _, err := o.Update(e); err == nil {
+		t.Error("expected an error when updating with a non-final state")
+	}
+
+	s.IsFinal = true
+	ss, _ = signedTestState(s, 1)
+	e.SignedStates = []state.SignedState{ss}
+
+	updated, _, wf, _, err := o.Crank(&alicePK)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if wf != WaitingForFinalization {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
+	}
+
+	ss, _ = signedTestState(s, 2)
+	e.SignedStates = []state.SignedState{ss}
+	updated, err = updated.Update(e)
+	updated, _, wf, _, err = updated.Crank(&alicePK)
+
+	if wf != WaitingForWithdraw {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
 	}
 }
