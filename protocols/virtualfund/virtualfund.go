@@ -705,8 +705,10 @@ func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, sk *[]byte) 
 
 	// Determine if we are left or right in the guarantee and determine our amounts.
 	ourAddress := types.AddressToDestination(ledger.Participants[ledger.MyIndex])
-	ourDeposit := ledgerConnection.GuaranteeInfo.LeftAmount
-	if ledger.MyIndex == 1 {
+	var ourDeposit types.Funds
+	if ledger.MyIndex == 0 {
+		ourDeposit = ledgerConnection.GuaranteeInfo.LeftAmount
+	} else if ledger.MyIndex == 1 {
 		ourDeposit = ledgerConnection.GuaranteeInfo.RightAmount
 	}
 
