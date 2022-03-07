@@ -40,8 +40,9 @@ func (lc *TwoPartyLedger) Clone() *TwoPartyLedger {
 	return &w
 }
 
-// Proposed returns the latest proposed ledger state that is only signed by the proposer.
-// If the latest state signed by the proposer is the supported state then Proposed returns a nil state and false.
+// Proposed returns the latest unsupported ledger state signed by the proposer.
+//
+// If the latest state signed by the proposer is supported Proposed returns a nil state and false.
 func (lc *TwoPartyLedger) Proposed() (state.State, bool) {
 
 	highestSignedByProposer := uint64(0)
@@ -59,7 +60,7 @@ func (lc *TwoPartyLedger) Proposed() (state.State, bool) {
 	}
 }
 
-// IsProposer returns true if the we are responsible for proposing ledger updates, false otherwise
+// IsProposer returns true if we are responsible for proposing ledger updates, false otherwise
 func (lc *TwoPartyLedger) IsProposer() bool {
 	return lc.MyIndex == proposerIndex
 }

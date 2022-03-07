@@ -546,7 +546,6 @@ func (o Objective) Equal(r Objective) bool {
 		o.MyRole == r.MyRole &&
 		o.a0.Equal(r.a0) &&
 		o.b0.Equal(r.b0)
-
 }
 
 // Clone returns a deep copy of the receiver.
@@ -649,7 +648,7 @@ func IsVirtualFundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
 
-// proposeLedgerUpdate will propose a ledger update to the channel by crafting an new state
+// proposeLedgerUpdate will propose a ledger update to the channel by crafting a new state
 func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (protocols.SideEffects, error) {
 	ledger := connection.Channel
 	left := connection.GuaranteeInfo.Left
@@ -701,7 +700,7 @@ func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, sk *[]byte) 
 
 	supported, err := ledger.LatestSupportedState()
 	if err != nil {
-		return protocols.SideEffects{}, fmt.Errorf("no supported state found for ledger channel: %w", err)
+		return protocols.SideEffects{}, fmt.Errorf("no supported state found for ledger channel %s: %w", ledger.Id, err)
 	}
 
 	// Determine if we are left or right in the guarantee and determine our amounts.
