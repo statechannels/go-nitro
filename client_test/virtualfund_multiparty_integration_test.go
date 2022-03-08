@@ -43,7 +43,7 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	id2 := clientAlice.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, brian), big.NewInt(0))
 
 	waitTimeForCompletedObjectiveIds(t, &clientBob, defaultTimeout, id)
-	waitTimeForCompletedObjectiveIds(t, &clientBrian, defaultTimeout, id)
+	waitTimeForCompletedObjectiveIds(t, &clientBrian, defaultTimeout, id2)
 
 	waitTimeForCompletedObjectiveIds(t, &clientAlice, defaultTimeout, id, id2)
 	waitTimeForCompletedObjectiveIds(t, &clientIrene, defaultTimeout, id, id2)
