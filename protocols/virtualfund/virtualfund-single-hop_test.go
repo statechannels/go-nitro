@@ -43,8 +43,14 @@ func signLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 	ledger.Channel.AddSignedState(toSign)
 }
 
-// addLedgerProposal calculates the ledger proposal state, signs it an adds it to the ledger.
-func addLedgerProposal(ledger *channel.TwoPartyLedger, left types.Destination, right types.Destination, guaranteeDestination types.Destination, secretKey *[]byte) {
+// addLedgerProposal calculates the ledger proposal state, signs it and adds it to the ledger.
+func addLedgerProposal(
+	ledger *channel.TwoPartyLedger,
+	left types.Destination,
+	right types.Destination,
+	guaranteeDestination types.Destination,
+	secretKey *[]byte,
+) {
 
 	supported, _ := ledger.LatestSupportedState()
 	nextState := constructLedgerProposal(supported, left, right, guaranteeDestination)
@@ -52,7 +58,12 @@ func addLedgerProposal(ledger *channel.TwoPartyLedger, left types.Destination, r
 }
 
 // constructLedgerProposal returns a new ledger state with an updated outcome that includes the proposal
-func constructLedgerProposal(supported state.State, left types.Destination, right types.Destination, guaranteeDestination types.Destination) state.State {
+func constructLedgerProposal(
+	supported state.State,
+	left types.Destination,
+	right types.Destination,
+	guaranteeDestination types.Destination,
+) state.State {
 	leftAmount := types.Funds{types.Address{}: big.NewInt(5)}
 	rightAmount := types.Funds{types.Address{}: big.NewInt(5)}
 	nextState := supported.Clone()
@@ -369,7 +380,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// Manually progress the extended state by collecting prefund signatures
 			collectPeerSignaturesOnSetupState(o.V, my.role, true)
 
-			// Cranking should move us to the next waiting point, updating the ledger channel, and alter the extended state to reflect that
+			// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 			// TODO: Check that ledger channel is updated as expected
 			oObj, got, waitingFor, _ = o.Crank(&my.privateKey)
 

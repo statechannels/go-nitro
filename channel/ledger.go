@@ -48,6 +48,7 @@ func (lc *TwoPartyLedger) Proposed() (state.State, bool) {
 	highestSignedByProposer := uint64(0)
 
 	for turnNum, signedState := range lc.SignedStateForTurnNum {
+		// todo: consider performance (https://github.com/statechannels/go-nitro/issues/307)
 		if signedByProposer := signedState.HasSignatureForParticipant(proposerIndex); signedByProposer && turnNum > highestSignedByProposer {
 			highestSignedByProposer = turnNum
 		}
