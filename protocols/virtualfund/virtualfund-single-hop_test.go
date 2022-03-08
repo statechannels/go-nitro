@@ -385,6 +385,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			oObj, got, waitingFor, _ = o.Crank(&my.privateKey)
 
 			// Check that the messsages contain the expected ledger proposals
+			// We only expect a proposal in the right ledger channel, as we will be the leader in that ledger channel
 			switch my.role {
 			case 0:
 				{
@@ -443,6 +444,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			// Check that the messsages contain the expected ledger acceptances
+			// We only expect an acceptance in the left ledger channel as we will be the follower in that ledger channel
 			switch my.role {
 			case 1:
 				{
