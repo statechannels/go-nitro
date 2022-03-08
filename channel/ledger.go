@@ -12,6 +12,8 @@ type TwoPartyLedger struct {
 	Channel
 }
 
+// Arbitrary change
+
 // NewTwoPartyLedger constructs a new two party ledger channel from the supplied state.
 func NewTwoPartyLedger(s state.State, myIndex uint) (*TwoPartyLedger, error) {
 	if myIndex > 1 {
