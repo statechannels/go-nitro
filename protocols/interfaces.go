@@ -13,28 +13,6 @@ type ChainTransaction struct {
 	// TODO support other transaction types (deposit, challenge, respond, conclude, withdraw)
 }
 
-// GuaranteeRequest is an object processed by the ledger cranker
-type GuaranteeRequest struct {
-	ObjectiveId ObjectiveId
-	LedgerId    types.Destination
-	Destination types.Destination
-	Left        types.Destination
-	LeftAmount  types.Funds
-	Right       types.Destination
-	RightAmount types.Funds
-}
-
-// Equal checks for equality between the receiver and a second GuaranteeRequest
-func (l GuaranteeRequest) Equal(m GuaranteeRequest) bool {
-	return l.ObjectiveId == m.ObjectiveId &&
-		l.LedgerId == m.LedgerId &&
-		l.Destination == m.Destination &&
-		l.LeftAmount.Equal(m.LeftAmount) &&
-		l.RightAmount.Equal(m.RightAmount) &&
-		l.Left == m.Left &&
-		l.Right == m.Right
-}
-
 // SideEffects are effects to be executed by an imperative shell
 type SideEffects struct {
 	MessagesToSend       []Message
@@ -74,8 +52,7 @@ type Objective interface {
 	Reject() Objective                              // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Update(event ObjectiveEvent) (Objective, error) // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Channels() []*channel.Channel
-
-	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, []GuaranteeRequest, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
+	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
 
 	MarshalJSON() ([]byte, error)
 	UnmarshalJSON([]byte) error
