@@ -64,8 +64,8 @@ func constructLedgerProposal(
 	right types.Destination,
 	guaranteeDestination types.Destination,
 ) state.State {
-	leftAmount := types.Funds{types.Address{}: big.NewInt(5)}
-	rightAmount := types.Funds{types.Address{}: big.NewInt(5)}
+	leftAmount := types.Funds{types.Address{}: big.NewInt(6)}
+	rightAmount := types.Funds{types.Address{}: big.NewInt(4)}
 	nextState := supported.Clone()
 
 	nextState.TurnNum = nextState.TurnNum + 1
@@ -215,11 +215,11 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			Allocations: outcome.Allocations{
 				outcome.Allocation{
 					Destination: alice.destination,
-					Amount:      big.NewInt(5),
+					Amount:      big.NewInt(6),
 				},
 				outcome.Allocation{
 					Destination: bob.destination,
-					Amount:      big.NewInt(5),
+					Amount:      big.NewInt(4),
 				},
 			},
 		}},
@@ -240,8 +240,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				{
 					r, _ = newTestTwoPartyLedger(
 						outcome.Allocations{
-							{Destination: my.destination, Amount: big.NewInt(5)},
-							{Destination: p1.destination, Amount: big.NewInt(5)},
+							{Destination: my.destination, Amount: big.NewInt(6)},
+							{Destination: p1.destination, Amount: big.NewInt(4)},
 						},
 						my.address, big.NewInt(0))
 					signPreAndPostFundingStates(r, []*[]byte{&alice.privateKey, &p1.privateKey}) // TODO these steps could be absorbed into CreateTestLedger
@@ -251,14 +251,14 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				{
 					l, _ = newTestTwoPartyLedger(
 						outcome.Allocations{
-							{Destination: alice.destination, Amount: big.NewInt(5)},
-							{Destination: my.destination, Amount: big.NewInt(5)},
+							{Destination: alice.destination, Amount: big.NewInt(6)},
+							{Destination: my.destination, Amount: big.NewInt(4)},
 						},
 						my.address, big.NewInt(0))
 					r, _ = newTestTwoPartyLedger(
 						outcome.Allocations{
-							{Destination: my.destination, Amount: big.NewInt(5)},
-							{Destination: bob.destination, Amount: big.NewInt(5)},
+							{Destination: my.destination, Amount: big.NewInt(6)},
+							{Destination: bob.destination, Amount: big.NewInt(4)},
 						},
 						my.address, big.NewInt(0))
 					signPreAndPostFundingStates(l, []*[]byte{&alice.privateKey, &p1.privateKey})
@@ -268,8 +268,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				{
 					l, _ = newTestTwoPartyLedger(
 						outcome.Allocations{
-							{Destination: p1.destination, Amount: big.NewInt(5)},
-							{Destination: my.destination, Amount: big.NewInt(5)},
+							{Destination: p1.destination, Amount: big.NewInt(6)},
+							{Destination: my.destination, Amount: big.NewInt(4)},
 						},
 						my.address, big.NewInt(0))
 					signPreAndPostFundingStates(l, []*[]byte{&bob.privateKey, &p1.privateKey})
