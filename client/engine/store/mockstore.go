@@ -42,7 +42,7 @@ func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Ob
 	// todo: locking
 	obj, ok = ms.objectives[id]
 
-	// return immediately if no
+	// return immediately if no such objective exists
 	if !ok {
 		return nil, ok
 	}
