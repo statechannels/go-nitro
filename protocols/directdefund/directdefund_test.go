@@ -213,6 +213,7 @@ func TestCrankAlice(t *testing.T) {
 	}
 
 	expectedSE = protocols.SideEffects{TransactionsToSubmit: []protocols.ChainTransaction{{
+		Type:      protocols.WithdrawAllTransactionType,
 		ChannelId: o.C.Id,
 		Deposit:   types.Funds{},
 	}}}
