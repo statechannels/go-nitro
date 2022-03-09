@@ -1,13 +1,11 @@
 package store
 
 import (
-	"strings"
+	"fmt"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/protocols/directfund"
-	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -46,7 +44,16 @@ func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Ob
 
 func (ms MockStore) SetObjective(obj protocols.Objective) error {
 	// todo: locking
+	// todo: strip channel data from stored objective (avoid duplicate data-storage) (on serde PR)
 	ms.objectives[obj.Id()] = obj
+
+	for _, ch := range obj.Channels() {
+		err := ms.SetChannel(ch)
+		if err != nil {
+			return fmt.Errorf("error setting channel %s from objective %s: %w", ch.Id, obj.Id(), err)
+		}
+	}
+
 	return nil
 }
 
