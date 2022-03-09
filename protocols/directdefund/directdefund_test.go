@@ -61,13 +61,14 @@ var testState = state.State{
 	IsFinal: false,
 }
 
-func signedTestState(s state.State, numSigs int) (state.SignedState, error) {
+func signedTestState(s state.State, toSign []bool) (state.SignedState, error) {
 	ss := state.NewSignedState(s)
 	pks := [2][]byte{alicePK, bobPK}
 	for i, pk := range pks {
-		if i >= numSigs {
-			break
+		if !toSign[i] {
+			continue
 		}
+
 		sig, err := ss.State().Sign(pk)
 		if err != nil {
 			return ss, err
@@ -103,11 +104,11 @@ func newChannelFromSignedState(ss state.SignedState, myIndex uint) (*channel.Cha
 func newTestObjective(signByBob bool) (Objective, error) {
 	o := Objective{}
 
-	numSigs := 2
+	toSign := []bool{true, true}
 	if !signByBob {
-		numSigs = 1
+		toSign = []bool{true, false}
 	}
-	ss, err := signedTestState(testState, numSigs)
+	ss, err := signedTestState(testState, toSign)
 	if err != nil {
 		return o, err
 	}
@@ -153,7 +154,7 @@ func TestUpdate(t *testing.T) {
 	s := testState.Clone()
 	s.TurnNum = 3
 	e.ObjectiveId = o.Id()
-	ss, _ := signedTestState(s, 1)
+	ss, _ := signedTestState(s, []bool{true, false})
 	e.SignedStates = []state.SignedState{ss}
 
 	if _, err := o.Update(e); err == nil {
@@ -175,11 +176,11 @@ func TestCrankAlice(t *testing.T) {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
 	}
 
-	// Create expected state
+	// Create the state we expect Alice to send
 	finalState := testState.Clone()
 	finalState.TurnNum = 3
 	finalState.IsFinal = true
-	finalStateSignedByAlice, _ := signedTestState(finalState, 1)
+	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
 
 	expectedSE := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{{
@@ -196,7 +197,7 @@ func TestCrankAlice(t *testing.T) {
 	}
 
 	// The second update and crank. Alice is expected to create a withdrawAll transaction
-	finalStateSignedByAliceBob, _ := signedTestState(finalState, 2)
+	finalStateSignedByAliceBob, _ := signedTestState(finalState, []bool{true, true})
 	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{finalStateSignedByAliceBob}}
 
 	updated, err = updated.Update(e)
@@ -217,6 +218,80 @@ func TestCrankAlice(t *testing.T) {
 		ChannelId: o.C.Id,
 		Deposit:   types.Funds{},
 	}}}
+
+	if diff := cmp.Diff(expectedSE, se); diff != "" {
+		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+	}
+
+	// The third crank. Alice is expected to enter the terminal state of the defunding protocol.
+	updated.C.OnChainFunding = types.Funds{}
+	_, se, wf, _, err = updated.Crank(&alicePK)
+	if err != nil {
+		t.Error(err)
+	}
+	if wf != WaitingForNothing {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
+	}
+
+	expectedSE = protocols.SideEffects{}
+	if diff := cmp.Diff(expectedSE, se); diff != "" {
+		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestCrankBob(t *testing.T) {
+	o, _ := newTestObjective(true)
+	o.C.MyIndex = 1
+
+	// The first crank. Bob is expected to create and sign a final state
+	updated, se, wf, _, err := o.Crank(&bobPK)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if wf != WaitingForFinalization {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
+	}
+
+	// Create the state we expect Alice to send
+	finalState := testState.Clone()
+	finalState.TurnNum = 3
+	finalState.IsFinal = true
+	finalStateSignedByBob, _ := signedTestState(finalState, []bool{false, true})
+
+	expectedSE := protocols.SideEffects{
+		MessagesToSend: []protocols.Message{{
+			To:          alice.address,
+			ObjectiveId: o.Id(),
+			SignedStates: []state.SignedState{
+				finalStateSignedByBob,
+			},
+		},
+		}}
+
+	if diff := cmp.Diff(expectedSE, se); diff != "" {
+		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+	}
+
+	// The second update and crank. Alice is expected to create a withdrawAll transaction
+	finalStateSignedByAliceBob, _ := signedTestState(finalState, []bool{true, true})
+	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{finalStateSignedByAliceBob}}
+
+	updated, err = updated.Update(e)
+	if err != nil {
+		t.Error(err)
+	}
+	_, se, wf, _, err = updated.Crank(&alicePK)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if wf != WaitingForWithdraw {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
+	}
+
+	expectedSE = protocols.SideEffects{}
 
 	if diff := cmp.Diff(expectedSE, se); diff != "" {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
