@@ -33,8 +33,7 @@ func isUpdateInProgress(c *channel.Channel) bool {
 	return !c.LatestSignedState().HasAllSignatures() && !c.LatestSignedState().State().IsFinal
 }
 
-// NewObjective initiates a Objective with data calculated from
-// the supplied initialState and client address
+// NewObjective initiates an Objective with the supplied channel
 func NewObjective(
 	preApprove bool,
 	c *channel.Channel,
@@ -56,15 +55,14 @@ func NewObjective(
 	return init, nil
 }
 
-// Public methods on the DirectDefundingObjectiveState
-
+// Public methods on the DirectDefundingObjective
 func (o Objective) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + o.C.Id.String())
 }
 
 func (o Objective) Approve() Objective {
 	updated := o.clone()
-	// todo: consider case of s.Status == Rejected
+	// todo: consider case of o.Status == Rejected
 	updated.Status = protocols.Approved
 
 	return updated
@@ -76,8 +74,8 @@ func (o Objective) Reject() Objective {
 	return updated
 }
 
-// Update receives an ObjectiveEvent, applies all applicable event data to the DirectDefundingObjectiveState,
-// and returns the updated state
+// Update receives an ObjectiveEvent, applies all applicable event data to the DirectDefundingObjective,
+// and returns the updated objective
 func (o Objective) Update(event protocols.ObjectiveEvent) (Objective, error) {
 	if o.Id() != event.ObjectiveId {
 		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
@@ -98,8 +96,6 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (Objective, error) {
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
-// It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
-// rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
 func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.GuaranteeRequest, error) {
 	updated := o.clone()
 
@@ -122,7 +118,7 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 		}
 		ss, err := updated.C.SignAndAddState(stateToSign, secretKey)
 		if err != nil {
-			return updated, protocols.SideEffects{}, WaitingForFinalization, []protocols.GuaranteeRequest{}, fmt.Errorf("could not sign final %w", err)
+			return updated, protocols.SideEffects{}, WaitingForFinalization, []protocols.GuaranteeRequest{}, fmt.Errorf("could not sign final state %w", err)
 		}
 		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
@@ -136,9 +132,9 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 		return updated, sideEffects, WaitingForFinalization, guaranteeRequests, nil
 	}
 
-	// Withdrawal
+	// Withdrawal of funds
 	if !updated.fullyWithdrawn() {
-		// TODO need to check if a withdrawal transaction has been submitted
+		// TODO before submiting a withdrawal transaction, we should check if a withdrawal transaction has already been submitted
 		// The first participant in the channel submits the withdrawAll transaction
 		if o.C.MyIndex == 0 {
 			withdrawAll := protocols.ChainTransaction{Type: protocols.WithdrawAllTransactionType, ChannelId: updated.C.Id}
@@ -151,10 +147,15 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 	return updated, sideEffects, WaitingForNothing, guaranteeRequests, nil
 }
 
-func (o Objective) Channels() []*channel.Channel {
-	ret := make([]*channel.Channel, 0, 1)
-	ret = append(ret, o.C)
-	return ret
+// Equal returns true if the supplied Objective is deeply equal to the receiver.
+func (o Objective) Equal(r Objective) bool {
+	return o.Status == r.Status &&
+		o.C.Equal(*r.C)
+}
+
+// IsDirectDefundObjective inspects a objective id and returns true if the objective id is for a direct defund objective.
+func IsDirectDefundObjective(id protocols.ObjectiveId) bool {
+	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
 
 //  Private methods on the DirectDefundingObjective
@@ -169,12 +170,6 @@ func (o Objective) fullyWithdrawn() bool {
 	return true
 }
 
-// Equal returns true if the supplied Objective is deeply equal to the receiver.
-func (o Objective) Equal(r Objective) bool {
-	return o.Status == r.Status &&
-		o.C.Equal(*r.C)
-}
-
 // clone returns a deep copy of the receiver.
 func (o Objective) clone() Objective {
 	clone := Objective{}
@@ -184,9 +179,4 @@ func (o Objective) clone() Objective {
 	clone.C = cClone
 
 	return clone
-}
-
-// IsDirectDefundObjective inspects a objective id and returns true if the objective id is for a direct defund objective.
-func IsDirectDefundObjective(id protocols.ObjectiveId) bool {
-	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
