@@ -6,6 +6,8 @@ import (
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -39,6 +41,57 @@ func (ms MockStore) GetChannelSecretKey() *[]byte {
 func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Objective, ok bool) {
 	// todo: locking
 	obj, ok = ms.objectives[id]
+
+	// return immediately if no
+	if !ok {
+		return nil, ok
+	}
+
+	// populate channel data
+	if directfund.IsDirectFundObjective(id) {
+		dfo := obj.(*directfund.Objective)
+		ch, err := ms.getChannelById(dfo.C.Id)
+
+		if err != nil {
+			return nil, false
+		}
+
+		dfo.C = &ch
+
+		obj = dfo
+	} else if virtualfund.IsVirtualFundObjective(id) {
+		vfo := obj.(*virtualfund.Objective)
+
+		v, err := ms.getChannelById(vfo.V.Id)
+		if err != nil {
+			return nil, false
+		}
+		vfo.V = &channel.SingleHopVirtualChannel{Channel: v}
+
+		// todo: clean these checks
+		if vfo.ToMyLeft != nil {
+			if vfo.ToMyLeft.Channel != nil {
+				left, err := ms.getChannelById(vfo.ToMyLeft.Channel.Id)
+				if err != nil {
+					return nil, false
+				}
+				vfo.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: left}
+			}
+		}
+
+		if vfo.ToMyRight != nil {
+			if vfo.ToMyRight.Channel != nil {
+				right, err := ms.getChannelById(vfo.ToMyRight.Channel.Id)
+				if err != nil {
+					return nil, false
+				}
+				vfo.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: right}
+			}
+		}
+
+		obj = vfo
+	}
+
 	return obj, ok
 }
 
