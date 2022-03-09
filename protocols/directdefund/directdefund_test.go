@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -163,6 +164,7 @@ func TestUpdate(t *testing.T) {
 func TestCrankAlice(t *testing.T) {
 	o, _ := newTestObjective(true)
 
+	// The first crank. Alice is expected to create and sign a final state
 	updated, se, wf, _, err := o.Crank(&alicePK)
 
 	if err != nil {
@@ -173,28 +175,35 @@ func TestCrankAlice(t *testing.T) {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
 	}
 
-	if len(se.MessagesToSend) != 1 {
-		t.Errorf(`expected 1 message to send, but got %d`, len(se.MessagesToSend))
-	}
-	messageSSS := se.MessagesToSend[0].SignedStates
-	if len(messageSSS) != 1 {
-		t.Errorf(`expected 1 state in the message but got %d`, len(se.MessagesToSend[1].SignedStates))
+	// Create expected state
+	finalState := testState.Clone()
+	finalState.TurnNum = 3
+	finalState.IsFinal = true
+	finalStateSignedByAlice, _ := signedTestState(finalState, 1)
+
+	expectedSE := protocols.SideEffects{
+		MessagesToSend: []protocols.Message{{
+			To:          bob.address,
+			ObjectiveId: o.Id(),
+			SignedStates: []state.SignedState{
+				finalStateSignedByAlice,
+			},
+		},
+		}}
+
+	if diff := cmp.Diff(expectedSE, se); diff != "" {
+		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
-	s := testState.Clone()
-	s.TurnNum = 3
-	s.IsFinal = true
-	ss, _ := signedTestState(s, 1)
-	messageSSS[0].Equal(ss)
-
-	ss, _ = signedTestState(s, 2)
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{ss}}
+	// The second update and crank. Alice is expected to create a withdrawAll transaction
+	finalStateSignedByAliceBob, _ := signedTestState(finalState, 2)
+	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{finalStateSignedByAliceBob}}
 
 	updated, err = updated.Update(e)
 	if err != nil {
 		t.Error(err)
 	}
-	_, _, wf, _, err = updated.Crank(&alicePK)
+	_, se, wf, _, err = updated.Crank(&alicePK)
 	if err != nil {
 		t.Error(err)
 	}
@@ -203,12 +212,27 @@ func TestCrankAlice(t *testing.T) {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
 	}
 
+	expectedSE = protocols.SideEffects{TransactionsToSubmit: []protocols.ChainTransaction{{
+		ChannelId: o.C.Id,
+		Deposit:   types.Funds{},
+	}}}
+
+	if diff := cmp.Diff(expectedSE, se); diff != "" {
+		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+	}
+
+	// The third crank. Alice is expected to enter the terminal state of the defunding protocol.
 	updated.C.OnChainFunding = types.Funds{}
-	_, _, wf, _, err = updated.Crank(&alicePK)
+	_, se, wf, _, err = updated.Crank(&alicePK)
 	if err != nil {
 		t.Error(err)
 	}
 	if wf != WaitingForNothing {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
+	}
+
+	expectedSE = protocols.SideEffects{}
+	if diff := cmp.Diff(expectedSE, se); diff != "" {
+		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 }
