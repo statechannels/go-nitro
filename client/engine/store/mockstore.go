@@ -52,48 +52,9 @@ func (ms MockStore) SetObjective(obj protocols.Objective) error {
 
 // SetChannel sets the channel in the store.
 func (ms *MockStore) SetChannel(ch *channel.Channel) error {
-	// TODO: This is a temporary implementation that is pretty clunky.
-	// This should be replaced in https://github.com/statechannels/go-nitro/pull/227
-	for _, obj := range ms.objectives {
-		if strings.HasPrefix(string(obj.Id()), "DirectFunding-") {
-			dfO := obj.(*directfund.Objective)
-			if dfO.C.Id == ch.Id {
-				dfO.C = ch
-				err := ms.SetObjective(dfO)
-				if err != nil {
-					return err
-				}
+	ms.channels[ch.Id] = *ch
 
-			}
-		} else if strings.HasPrefix(string(obj.Id()), "VirtualFund-") {
-			vfO := obj.(*virtualfund.Objective)
-			if vfO.V.Id == ch.Id {
-				vfO.V = &channel.SingleHopVirtualChannel{Channel: *ch}
-				err := ms.SetObjective(vfO)
-				if err != nil {
-					return err
-				}
-
-			}
-			if vfO.ToMyLeft != nil && vfO.ToMyLeft.Channel.Id == ch.Id {
-				vfO.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: *ch}
-				err := ms.SetObjective(vfO)
-				if err != nil {
-					return err
-				}
-
-			}
-			if vfO.ToMyRight != nil && vfO.ToMyRight.Channel.Id == ch.Id {
-				vfO.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: *ch}
-				err := ms.SetObjective(vfO)
-				if err != nil {
-					return err
-				}
-
-			}
-		}
-	}
-	return nil
+	return nil // temp - errors can exist / be reported when serde reintroduced
 }
 
 // GetTwoPartyLedger returns a ledger channel between the two parties if it exists.
