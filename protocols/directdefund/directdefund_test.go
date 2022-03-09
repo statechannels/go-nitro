@@ -61,6 +61,7 @@ var testState = state.State{
 	IsFinal: false,
 }
 
+// signedTestState returns a signed state with signatures requested in toSign
 func signedTestState(s state.State, toSign []bool) (state.SignedState, error) {
 	ss := state.NewSignedState(s)
 	pks := [2][]byte{alicePK, bobPK}
@@ -81,7 +82,7 @@ func signedTestState(s state.State, toSign []bool) (state.SignedState, error) {
 	return ss, nil
 }
 
-// NewFromSignedState constructs a new Channel from the signed state.
+// newChannelFromSignedState constructs a new Channel from the signed state.
 func newChannelFromSignedState(ss state.SignedState, myIndex uint) (*channel.Channel, error) {
 	s := ss.State()
 	prefund := s.Clone()
@@ -254,7 +255,7 @@ func TestCrankBob(t *testing.T) {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
 	}
 
-	// Create the state we expect Alice to send
+	// Create the state we expect Bob to send
 	finalState := testState.Clone()
 	finalState.TurnNum = 3
 	finalState.IsFinal = true
@@ -274,7 +275,7 @@ func TestCrankBob(t *testing.T) {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
-	// The second update and crank. Alice is expected to create a withdrawAll transaction
+	// The second update and crank. Bob is expected to NOT create any transactions
 	finalStateSignedByAliceBob, _ := signedTestState(finalState, []bool{true, true})
 	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{finalStateSignedByAliceBob}}
 
@@ -297,7 +298,7 @@ func TestCrankBob(t *testing.T) {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
-	// The third crank. Alice is expected to enter the terminal state of the defunding protocol.
+	// The third crank. Bob is expected to enter the terminal state of the defunding protocol.
 	updated.C.OnChainFunding = types.Funds{}
 	_, se, wf, _, err = updated.Crank(&alicePK)
 	if err != nil {
