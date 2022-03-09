@@ -64,6 +64,16 @@ func (ms *MockStore) SetChannel(ch *channel.Channel) error {
 	return nil // temp - errors can exist / be reported when serde reintroduced
 }
 
+// getChannelById returns the stored channel
+func (ms *MockStore) getChannelById(id types.Destination) (channel.Channel, error) {
+	ch, ok := ms.channels[id]
+	if ok {
+		return ch, nil
+	} else {
+		return channel.Channel{}, fmt.Errorf("channel %s not found", id)
+	}
+}
+
 // GetTwoPartyLedger returns a ledger channel between the two parties if it exists.
 func (ms MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool) {
 	for _, obj := range ms.objectives {
