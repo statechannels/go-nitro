@@ -677,7 +677,9 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 	} else {
 		nextState = supported.Clone()
 	}
-
+	if nextState.Outcome.Affords(connection.ExpectedGuarantees, ledger.OnChainFunding) {
+		return protocols.SideEffects{}, nil
+	}
 	nextState.TurnNum = nextState.TurnNum + 1
 	// Update the outcome with the guarantee.
 	nextState.Outcome, err = nextState.Outcome.DivertToGuarantee(left, right, leftAmount, rightAmount, o.V.Id)
