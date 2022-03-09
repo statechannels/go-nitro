@@ -164,6 +164,9 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestCrankAlice(t *testing.T) {
+	// The starting channel state is:
+	// - Channel has a non-final consensus state
+	// - Channel has funds
 	o, _ := newTestObjective(true)
 
 	// The first crank. Alice is expected to create and sign a final state
@@ -241,26 +244,37 @@ func TestCrankAlice(t *testing.T) {
 }
 
 func TestCrankBob(t *testing.T) {
+	// The starting channel state is:
+	// - Channel has a non-final non-consensus state
+	// - Channel has funds
+
 	o, _ := newTestObjective(true)
 	o.C.MyIndex = 1
 
+	// Update the objective with Alice's final state
+	finalState := testState.Clone()
+	finalState.TurnNum = 3
+	finalState.IsFinal = true
+	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
+	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{finalStateSignedByAlice}}
+	o, err := o.Update(e)
+	if err != nil {
+		t.Error(err)
+	}
+
 	// The first crank. Bob is expected to create and sign a final state
-	updated, se, wf, _, err := o.Crank(&bobPK)
+	o, se, wf, _, err := o.Crank(&bobPK)
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	if wf != WaitingForFinalization {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
+	if wf != WaitingForWithdraw {
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
 	}
 
 	// Create the state we expect Bob to send
-	finalState := testState.Clone()
-	finalState.TurnNum = 3
-	finalState.IsFinal = true
 	finalStateSignedByBob, _ := signedTestState(finalState, []bool{false, true})
-
 	expectedSE := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{{
 			To:          alice.address,
@@ -275,15 +289,12 @@ func TestCrankBob(t *testing.T) {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
-	// The second update and crank. Bob is expected to NOT create any transactions
-	finalStateSignedByAliceBob, _ := signedTestState(finalState, []bool{true, true})
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{finalStateSignedByAliceBob}}
-
-	updated, err = updated.Update(e)
+	// The second update and crank. Bob is expected to NOT create any transactions or side effects
+	o, err = o.Update(e)
 	if err != nil {
 		t.Error(err)
 	}
-	_, se, wf, _, err = updated.Crank(&alicePK)
+	_, se, wf, _, err = o.Crank(&bobPK)
 	if err != nil {
 		t.Error(err)
 	}
@@ -299,8 +310,8 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The third crank. Bob is expected to enter the terminal state of the defunding protocol.
-	updated.C.OnChainFunding = types.Funds{}
-	_, se, wf, _, err = updated.Crank(&alicePK)
+	o.C.OnChainFunding = types.Funds{}
+	_, se, wf, _, err = o.Crank(&bobPK)
 	if err != nil {
 		t.Error(err)
 	}
