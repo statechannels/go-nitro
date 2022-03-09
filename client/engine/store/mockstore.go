@@ -13,6 +13,7 @@ import (
 
 type MockStore struct {
 	objectives map[protocols.ObjectiveId]protocols.Objective
+	channels   map[types.Destination]channel.Channel
 
 	key     []byte        // the signing key of the store's engine
 	address types.Address // the (Ethereum) address associated to the signing key
@@ -24,6 +25,7 @@ func NewMockStore(key []byte) Store {
 	ms.address = crypto.GetAddressFromSecretKeyBytes(key)
 
 	ms.objectives = make(map[protocols.ObjectiveId]protocols.Objective)
+	ms.channels = make(map[types.Destination]channel.Channel)
 
 	return &ms
 }
