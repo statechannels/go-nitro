@@ -9,7 +9,6 @@ import (
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
 )
 
 const (
@@ -19,10 +18,6 @@ const (
 )
 
 const ObjectivePrefix = "DirectDefunding-"
-
-func WithdrawOnChainEffect(cId types.Destination) string {
-	return "withdrawAll from " + cId.String()
-}
 
 // errors
 var ErrNotApproved = errors.New("objective not approved")
