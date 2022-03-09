@@ -147,7 +147,7 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 		// The first participant in the channel submits the withdrawAll transaction
 		if o.C.MyIndex == 0 {
 			// TODO create a valid transaction
-			withdrawAll := protocols.ChainTransaction{ChannelId: updated.C.Id}
+			withdrawAll := protocols.ChainTransaction{Type: protocols.WithdrawAllTransactionType, ChannelId: updated.C.Id}
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
 		}
 		return updated, sideEffects, WaitingForWithdraw, guaranteeRequests, nil
