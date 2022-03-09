@@ -112,7 +112,7 @@ func (e *Engine) Run() {
 // attempts progress.
 func (e *Engine) handleMessage(message protocols.Message) ObjectiveChangeEvent {
 
-	e.logger.Printf("Handling inbound message %v", message)
+	e.logger.Printf("Handling inbound message %+v", summarizeMessage(message))
 	objective, err := e.getOrCreateObjective(message)
 	if err != nil {
 		e.logger.Print(err)
@@ -180,7 +180,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 // executeSideEffects executes the SideEffects declared by cranking an Objective
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	for _, message := range sideEffects.MessagesToSend {
-		e.logger.Printf("Sending message to %s", message.To)
+		e.logger.Printf("Sending message %+v", summarizeMessage(message))
 		e.toMsg <- message
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
@@ -271,4 +271,27 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 		return &directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
 	}
 
+}
+
+type messageSummary struct {
+	to           string
+	objectiveId  protocols.ObjectiveId
+	signedStates []signedStateSummary
+}
+type signedStateSummary struct {
+	turnNum   uint64
+	channelId string
+}
+
+// summarizeMessage returns a basic summary of a message suitable for logging
+func summarizeMessage(message protocols.Message) messageSummary {
+	summary := messageSummary{to: message.To.String(), objectiveId: message.ObjectiveId, signedStates: []signedStateSummary{}}
+	for _, signedState := range message.SignedStates {
+		channelId, err := signedState.State().ChannelId()
+		if err != nil {
+			panic(err)
+		}
+		summary.signedStates = append(summary.signedStates, signedStateSummary{turnNum: signedState.State().TurnNum, channelId: channelId.String()})
+	}
+	return summary
 }
