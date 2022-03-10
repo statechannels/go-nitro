@@ -170,7 +170,7 @@ func TestCrankAlice(t *testing.T) {
 	o, _ := newTestObjective(true)
 
 	// The first crank. Alice is expected to create and sign a final state
-	updated, se, wf, _, err := o.Crank(&alicePK)
+	updated, se, wf, err := o.Crank(&alicePK)
 
 	if err != nil {
 		t.Error(err)
@@ -208,7 +208,7 @@ func TestCrankAlice(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, se, wf, _, err = updated.Crank(&alicePK)
+	_, se, wf, err = updated.Crank(&alicePK)
 	if err != nil {
 		t.Error(err)
 	}
@@ -229,7 +229,7 @@ func TestCrankAlice(t *testing.T) {
 
 	// The third crank. Alice is expected to enter the terminal state of the defunding protocol.
 	updated.C.OnChainFunding = types.Funds{}
-	_, se, wf, _, err = updated.Crank(&alicePK)
+	_, se, wf, err = updated.Crank(&alicePK)
 	if err != nil {
 		t.Error(err)
 	}
@@ -263,7 +263,7 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The first crank. Bob is expected to create and sign a final state
-	o, se, wf, _, err := o.Crank(&bobPK)
+	o, se, wf, err := o.Crank(&bobPK)
 
 	if err != nil {
 		t.Error(err)
@@ -294,7 +294,7 @@ func TestCrankBob(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, se, wf, _, err = o.Crank(&bobPK)
+	_, se, wf, err = o.Crank(&bobPK)
 	if err != nil {
 		t.Error(err)
 	}
@@ -311,7 +311,7 @@ func TestCrankBob(t *testing.T) {
 
 	// The third crank. Bob is expected to enter the terminal state of the defunding protocol.
 	o.C.OnChainFunding = types.Funds{}
-	_, se, wf, _, err = o.Crank(&bobPK)
+	_, se, wf, err = o.Crank(&bobPK)
 	if err != nil {
 		t.Error(err)
 	}
