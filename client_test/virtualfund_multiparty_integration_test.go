@@ -12,7 +12,6 @@ import (
 
 // TestMultiPartyVirtualFundIntegration tests the scenario where Alice creates virtual channels with Bob and Brian using Irene as the intermediary.
 func TestMultiPartyVirtualFundIntegration(t *testing.T) {
-	t.Skip()
 
 	// Set up logging
 	logDestination, err := os.OpenFile("virtualfund_multiparty_client_test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
@@ -43,7 +42,7 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	id2 := clientAlice.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, brian), big.NewInt(0))
 
 	waitTimeForCompletedObjectiveIds(t, &clientBob, defaultTimeout, id)
-	waitTimeForCompletedObjectiveIds(t, &clientBrian, defaultTimeout, id)
+	waitTimeForCompletedObjectiveIds(t, &clientBrian, defaultTimeout, id2)
 
 	waitTimeForCompletedObjectiveIds(t, &clientAlice, defaultTimeout, id, id2)
 	waitTimeForCompletedObjectiveIds(t, &clientIrene, defaultTimeout, id, id2)

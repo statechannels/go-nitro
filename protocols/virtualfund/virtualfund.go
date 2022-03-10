@@ -667,8 +667,19 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 		return protocols.SideEffects{}, fmt.Errorf("error finding a supported state: %w", err)
 	}
 
+	proposed, proposedFound := ledger.Proposed()
+
 	// Clone the state and update the turn to the next turn.
-	nextState := supported.Clone()
+	// We want to use the most recent proposal if it exists, otherwise we use the support.
+	var nextState state.State
+	if proposedFound {
+		nextState = proposed.Clone()
+	} else {
+		nextState = supported.Clone()
+	}
+	if nextState.Outcome.Affords(connection.ExpectedGuarantees, ledger.OnChainFunding) {
+		return protocols.SideEffects{}, nil
+	}
 	nextState.TurnNum = nextState.TurnNum + 1
 	// Update the outcome with the guarantee.
 	nextState.Outcome, err = nextState.Outcome.DivertToGuarantee(left, right, leftAmount, rightAmount, o.V.Id)

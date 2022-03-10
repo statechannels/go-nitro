@@ -87,11 +87,11 @@ func createVirtualOutcome(first types.Address, second types.Address) outcome.Exi
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
 				Destination: types.AddressToDestination(first),
-				Amount:      big.NewInt(5),
+				Amount:      big.NewInt(1),
 			},
 			outcome.Allocation{
 				Destination: types.AddressToDestination(second),
-				Amount:      big.NewInt(5),
+				Amount:      big.NewInt(1),
 			},
 		},
 	}}

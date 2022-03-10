@@ -31,8 +31,8 @@ func NewTestMessageService(address types.Address) TestMessageService {
 	tms := TestMessageService{
 		address: address,
 		toPeers: make(map[types.Address]chan<- string),
-		in:      make(chan protocols.Message),
-		out:     make(chan protocols.Message),
+		in:      make(chan protocols.Message, 5),
+		out:     make(chan protocols.Message, 5),
 	}
 	tms.run()
 	return tms
