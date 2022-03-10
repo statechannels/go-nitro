@@ -96,15 +96,14 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (Objective, error) {
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
-func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, protocols.WaitingFor, []protocols.GuaranteeRequest, error) {
+func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
-	guaranteeRequests := []protocols.GuaranteeRequest{}
 
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return updated, sideEffects, WaitingForNothing, guaranteeRequests, ErrNotApproved
+		return updated, sideEffects, WaitingForNothing, ErrNotApproved
 	}
 
 	latestSignedState := updated.C.LatestSignedState()
@@ -118,7 +117,7 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 		}
 		ss, err := updated.C.SignAndAddState(stateToSign, secretKey)
 		if err != nil {
-			return updated, protocols.SideEffects{}, WaitingForFinalization, []protocols.GuaranteeRequest{}, fmt.Errorf("could not sign final state %w", err)
+			return updated, protocols.SideEffects{}, WaitingForFinalization, fmt.Errorf("could not sign final state %w", err)
 		}
 		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
@@ -126,10 +125,10 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 
 	latestSupportedState, err := updated.C.LatestSupportedState()
 	if err != nil {
-		return updated, sideEffects, WaitingForFinalization, guaranteeRequests, fmt.Errorf("error finding a supported state: %w", err)
+		return updated, sideEffects, WaitingForFinalization, fmt.Errorf("error finding a supported state: %w", err)
 	}
 	if !latestSupportedState.IsFinal {
-		return updated, sideEffects, WaitingForFinalization, guaranteeRequests, nil
+		return updated, sideEffects, WaitingForFinalization, nil
 	}
 
 	// Withdrawal of funds
@@ -141,10 +140,10 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
 		}
 		// Every participant waits for all channel funds to be distributed, even if the participant has no funds in the channel
-		return updated, sideEffects, WaitingForWithdraw, guaranteeRequests, nil
+		return updated, sideEffects, WaitingForWithdraw, nil
 	}
 
-	return updated, sideEffects, WaitingForNothing, guaranteeRequests, nil
+	return updated, sideEffects, WaitingForNothing, nil
 }
 
 // Equal returns true if the supplied Objective is deeply equal to the receiver.
