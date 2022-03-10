@@ -144,6 +144,7 @@ func (c Channel) LatestSupportedState() (state.State, error) {
 	return c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State(), nil
 }
 
+// LatestSignedState fetches the state with the largest turn number signed by any participant
 func (c Channel) LatestSignedState() state.SignedState {
 	numStates := len(c.SignedStateForTurnNum)
 	keys := make([]uint64, 0, len(c.SignedStateForTurnNum))
