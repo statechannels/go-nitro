@@ -65,25 +65,21 @@ func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Ob
 		}
 		vfo.V = &channel.SingleHopVirtualChannel{Channel: v}
 
-		// todo: clean these checks
-		if vfo.ToMyLeft != nil {
-			if vfo.ToMyLeft.Channel != nil {
-				left, err := ms.getChannelById(vfo.ToMyLeft.Channel.Id)
-				if err != nil {
-					return nil, false
-				}
-				vfo.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: left}
+		if vfo.ToMyLeft != nil && vfo.ToMyLeft.Channel != nil {
+			left, err := ms.getChannelById(vfo.ToMyLeft.Channel.Id)
+			if err != nil {
+				return nil, false
 			}
+			vfo.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: left}
 		}
 
-		if vfo.ToMyRight != nil {
-			if vfo.ToMyRight.Channel != nil {
-				right, err := ms.getChannelById(vfo.ToMyRight.Channel.Id)
-				if err != nil {
-					return nil, false
-				}
-				vfo.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: right}
+		if vfo.ToMyRight != nil && vfo.ToMyRight.Channel != nil {
+			right, err := ms.getChannelById(vfo.ToMyRight.Channel.Id)
+			if err != nil {
+				return nil, false
 			}
+			vfo.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: right}
+
 		}
 
 		obj = vfo
