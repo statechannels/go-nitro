@@ -48,8 +48,7 @@ func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Ob
 	}
 
 	// populate channel data
-	if directfund.IsDirectFundObjective(id) {
-		dfo := obj.(*directfund.Objective)
+	if dfo, isDirectFund := obj.(*directfund.Objective); isDirectFund {
 		ch, err := ms.getChannelById(dfo.C.Id)
 
 		if err != nil {
@@ -59,9 +58,7 @@ func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Ob
 		dfo.C = &ch
 
 		obj = dfo
-	} else if virtualfund.IsVirtualFundObjective(id) {
-		vfo := obj.(*virtualfund.Objective)
-
+	} else if vfo, isVirtualFund := obj.(*virtualfund.Objective); isVirtualFund {
 		v, err := ms.getChannelById(vfo.V.Id)
 		if err != nil {
 			return nil, false
