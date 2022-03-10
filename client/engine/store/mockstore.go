@@ -1,7 +1,7 @@
 package store
 
 import (
-	"strings"
+	"fmt"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/crypto"
@@ -13,6 +13,7 @@ import (
 
 type MockStore struct {
 	objectives map[protocols.ObjectiveId]protocols.Objective
+	channels   map[types.Destination]channel.Channel
 
 	key     []byte        // the signing key of the store's engine
 	address types.Address // the (Ethereum) address associated to the signing key
@@ -24,6 +25,7 @@ func NewMockStore(key []byte) Store {
 	ms.address = crypto.GetAddressFromSecretKeyBytes(key)
 
 	ms.objectives = make(map[protocols.ObjectiveId]protocols.Objective)
+	ms.channels = make(map[types.Destination]channel.Channel)
 
 	return &ms
 }
@@ -39,59 +41,83 @@ func (ms MockStore) GetChannelSecretKey() *[]byte {
 func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Objective, ok bool) {
 	// todo: locking
 	obj, ok = ms.objectives[id]
+
+	// return immediately if no such objective exists
+	if !ok {
+		return nil, ok
+	}
+
+	// populate channel data
+	if dfo, isDirectFund := obj.(*directfund.Objective); isDirectFund {
+		ch, err := ms.getChannelById(dfo.C.Id)
+
+		if err != nil {
+			return nil, false
+		}
+
+		dfo.C = &ch
+
+		obj = dfo
+	} else if vfo, isVirtualFund := obj.(*virtualfund.Objective); isVirtualFund {
+		v, err := ms.getChannelById(vfo.V.Id)
+		if err != nil {
+			return nil, false
+		}
+		vfo.V = &channel.SingleHopVirtualChannel{Channel: v}
+
+		if vfo.ToMyLeft != nil && vfo.ToMyLeft.Channel != nil {
+			left, err := ms.getChannelById(vfo.ToMyLeft.Channel.Id)
+			if err != nil {
+				return nil, false
+			}
+			vfo.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: left}
+		}
+
+		if vfo.ToMyRight != nil && vfo.ToMyRight.Channel != nil {
+			right, err := ms.getChannelById(vfo.ToMyRight.Channel.Id)
+			if err != nil {
+				return nil, false
+			}
+			vfo.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: right}
+
+		}
+
+		obj = vfo
+	}
+
 	return obj, ok
 }
 
 func (ms MockStore) SetObjective(obj protocols.Objective) error {
 	// todo: locking
+	// todo: strip channel data from stored objective (avoid duplicate data-storage) (on serde PR)
 	ms.objectives[obj.Id()] = obj
+
+	for _, ch := range obj.Channels() {
+		err := ms.SetChannel(ch)
+		if err != nil {
+			return fmt.Errorf("error setting channel %s from objective %s: %w", ch.Id, obj.Id(), err)
+		}
+	}
+
 	return nil
 }
 
 // SetChannel sets the channel in the store.
 func (ms *MockStore) SetChannel(ch *channel.Channel) error {
-	// TODO: This is a temporary implementation that is pretty clunky.
-	// This should be replaced in https://github.com/statechannels/go-nitro/pull/227
-	for _, obj := range ms.objectives {
-		if strings.HasPrefix(string(obj.Id()), "DirectFunding-") {
-			dfO := obj.(*directfund.Objective)
-			if dfO.C.Id == ch.Id {
-				dfO.C = ch
-				err := ms.SetObjective(dfO)
-				if err != nil {
-					return err
-				}
+	ms.channels[ch.Id] = *ch
 
-			}
-		} else if strings.HasPrefix(string(obj.Id()), "VirtualFund-") {
-			vfO := obj.(*virtualfund.Objective)
-			if vfO.V.Id == ch.Id {
-				vfO.V = &channel.SingleHopVirtualChannel{Channel: *ch}
-				err := ms.SetObjective(vfO)
-				if err != nil {
-					return err
-				}
+	return nil // temp - errors can exist / be reported when serde reintroduced
+}
 
-			}
-			if vfO.ToMyLeft != nil && vfO.ToMyLeft.Channel.Id == ch.Id {
-				vfO.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: *ch}
-				err := ms.SetObjective(vfO)
-				if err != nil {
-					return err
-				}
-
-			}
-			if vfO.ToMyRight != nil && vfO.ToMyRight.Channel.Id == ch.Id {
-				vfO.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: *ch}
-				err := ms.SetObjective(vfO)
-				if err != nil {
-					return err
-				}
-
-			}
-		}
+// getChannelById returns the stored channel
+func (ms *MockStore) getChannelById(id types.Destination) (channel.Channel, error) {
+	ch, ok := ms.channels[id]
+	if ok {
+		return ch, nil
+	} else {
+		return channel.Channel{}, fmt.Errorf("channel %s not found", id)
 	}
-	return nil
 }
 
 // GetTwoPartyLedger returns a ledger channel between the two parties if it exists.
