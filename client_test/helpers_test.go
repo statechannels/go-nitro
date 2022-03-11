@@ -1,8 +1,10 @@
 package client_test
 
 import (
-	"io"
+	"log"
 	"math/big"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -34,7 +36,6 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 	case <-allDone:
 		return
 	}
-
 }
 
 // waitForCompletedObjectiveIds waits for completed objectives and returns when the all objective ids provided have been completed.
@@ -72,11 +73,12 @@ func connectMessageServices(services ...messageservice.TestMessageService) {
 }
 
 // setupClient is a helper function that contructs a client and returns the new client and message service.
-func setupClient(pk []byte, chain chainservice.MockChain, logDestination io.Writer) (client.Client, messageservice.TestMessageService) {
+func setupClient(pk []byte, chain chainservice.MockChain, logFilename string) (client.Client, messageservice.TestMessageService) {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := messageservice.NewTestMessageService(myAddress)
 	storeA := store.NewMockStore(pk)
+	logDestination := newLogWriter(logFilename)
 	return client.New(messageservice, chainservice, storeA, logDestination), messageservice
 }
 
@@ -95,4 +97,29 @@ func createVirtualOutcome(first types.Address, second types.Address) outcome.Exi
 			},
 		},
 	}}
+}
+
+func truncateLog(logFile string) {
+	logDestination := newLogWriter(logFile)
+
+	err := logDestination.Truncate(0)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func newLogWriter(logFile string) *os.File {
+	err := os.MkdirAll("../artifacts", os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	filename := filepath.Join("../artifacts", logFile)
+	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return logDestination
 }

@@ -2,9 +2,7 @@
 package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
-	"log"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -32,23 +30,13 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, id)
 }
 func TestDirectFundIntegration(t *testing.T) {
-
-	// Set up logging
-	logDestination, err := os.OpenFile("directfund_client_test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Reset log destination file
-	err = logDestination.Truncate(0)
-	if err != nil {
-		log.Fatal(err)
-	}
+	logFile := "directfund_client_test.log"
+	truncateLog(logFile)
 
 	chain := chainservice.NewMockChain([]types.Address{alice, bob})
 
-	clientA, messageserviceA := setupClient(aliceKey, chain, logDestination)
-	clientB, messageserviceB := setupClient(bobKey, chain, logDestination)
+	clientA, messageserviceA := setupClient(aliceKey, chain, logFile)
+	clientB, messageserviceB := setupClient(bobKey, chain, logFile)
 
 	connectMessageServices(messageserviceA, messageserviceB)
 
