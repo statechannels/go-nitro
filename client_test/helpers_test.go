@@ -4,6 +4,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -108,7 +109,13 @@ func truncateLog(logFile string) {
 }
 
 func newLogWriter(logFile string) *os.File {
-	logDestination, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	err := os.MkdirAll("../artifacts", os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	filename := filepath.Join("../artifacts", logFile)
+	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 
 	if err != nil {
 		log.Fatal(err)
