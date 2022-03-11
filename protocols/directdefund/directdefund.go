@@ -143,7 +143,7 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 	if !updated.fullyWithdrawn() {
 		// TODO before submiting a withdrawal transaction, we should check if a withdrawal transaction has already been submitted
 		// The first participant in the channel submits the withdrawAll transaction
-		if o.C.MyIndex == 0 {
+		if updated.C.MyIndex == 0 {
 			withdrawAll := protocols.ChainTransaction{Type: protocols.WithdrawAllTransactionType, ChannelId: updated.C.Id}
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
 		}
