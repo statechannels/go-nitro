@@ -21,8 +21,8 @@ func TestSetGetObjective(t *testing.T) {
 	ms := NewMockStore(sk)
 
 	id := protocols.ObjectiveId("404")
-	got, ok := ms.GetObjectiveById(id)
-	if ok {
+	got, err := ms.GetObjectiveById(id)
+	if err == nil {
 		t.Errorf("expected not to find the %s objective, but found %v", id, got)
 	}
 
@@ -38,11 +38,12 @@ func TestSetGetObjective(t *testing.T) {
 		t.Errorf("error setting objective %v: %s", testObj, err.Error())
 	}
 
-	got, ok = ms.GetObjectiveById(testObj.Id())
+	got, err = ms.GetObjectiveById(testObj.Id())
 
-	if !ok {
-		t.Errorf("expected to find the inserted objective, but didn't")
+	if err != nil {
+		t.Errorf("expected to find the inserted objective, but didn't: %w", err)
 	}
+
 	if got.Id() != testObj.Id() {
 		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
 	}
