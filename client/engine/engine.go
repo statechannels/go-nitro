@@ -229,8 +229,8 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Objective, error) {
 	id := message.ObjectiveId
 
-	objective, ok := e.store.GetObjectiveById(id)
-	if !ok {
+	objective, err := e.store.GetObjectiveById(id)
+	if err != nil { // todo: assert non-existence more specifically ?
 
 		newObj, err := e.constructObjectiveFromMessage(message)
 		if err != nil {
