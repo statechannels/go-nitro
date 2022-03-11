@@ -30,7 +30,12 @@ type Objective struct {
 }
 
 func isUpdateInProgress(c *channel.Channel) bool {
-	return !c.LatestSignedState().HasAllSignatures() && !c.LatestSignedState().State().IsFinal
+	latestSS, err := c.LatestSignedState()
+	// There are no signed states
+	if err != nil {
+		return false
+	}
+	return !latestSS.HasAllSignatures() && !latestSS.State().IsFinal
 }
 
 // NewObjective initiates an Objective with the supplied channel
@@ -106,7 +111,10 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 		return updated, sideEffects, WaitingForNothing, ErrNotApproved
 	}
 
-	latestSignedState := updated.C.LatestSignedState()
+	latestSignedState, err := updated.C.LatestSignedState()
+	if err != nil {
+		return updated, sideEffects, WaitingForNothing, errors.New("The channel must contain at least one signed state to crank the defund objective")
+	}
 
 	// Sign a final state if it has not been signed
 	if !latestSignedState.State().IsFinal || !latestSignedState.HasSignatureForParticipant(updated.C.MyIndex) {
