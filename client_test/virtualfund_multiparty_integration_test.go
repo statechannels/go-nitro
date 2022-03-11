@@ -14,7 +14,7 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	logFile := "virtualfund_multiparty_client_test.log"
 	truncateLog(logFile)
 
-	chain := chainservice.NewMockChain([]types.Address{alice, bob, irene, brian})
+	chain := chainservice.NewMockChain()
 
 	clientAlice, aliceMS := setupClient(aliceKey, chain, logFile)
 	clientBob, bobMS := setupClient(bobKey, chain, logFile)

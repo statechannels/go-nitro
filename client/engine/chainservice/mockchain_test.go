@@ -18,7 +18,9 @@ func TestDeposit(t *testing.T) {
 
 	// Construct MockChain and tell it the addresses of the SimpleChainServices which will subscribe to it.
 	// This is not super elegant but gets around data races -- the constructor will make channels and then run a listener which will send on them.
-	var chain = NewMockChain([]types.Address{a, b})
+	var chain = NewMockChain()
+	chain.Subscribe(a)
+	chain.Subscribe(b)
 
 	// Construct SimpleChainServices
 	mcsA := NewSimpleChainService(chain, a)
