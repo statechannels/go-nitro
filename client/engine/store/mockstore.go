@@ -12,7 +12,7 @@ import (
 )
 
 type MockStore struct {
-	objectives map[protocols.ObjectiveId]protocols.Objective
+	objectives map[protocols.ObjectiveId][]byte
 	channels   map[types.Destination]channel.Channel
 
 	key     []byte        // the signing key of the store's engine
@@ -24,7 +24,7 @@ func NewMockStore(key []byte) Store {
 	ms.key = key
 	ms.address = crypto.GetAddressFromSecretKeyBytes(key)
 
-	ms.objectives = make(map[protocols.ObjectiveId]protocols.Objective)
+	ms.objectives = make(map[protocols.ObjectiveId][]byte)
 	ms.channels = make(map[types.Destination]channel.Channel)
 
 	return &ms
@@ -38,21 +38,25 @@ func (ms MockStore) GetChannelSecretKey() *[]byte {
 	return &ms.key
 }
 
-func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Objective, ok bool) {
+func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Objective, error) {
 	// todo: locking
-	obj, ok = ms.objectives[id]
+	objJSON, ok := ms.objectives[id]
 
 	// return immediately if no such objective exists
 	if !ok {
-		return nil, ok
+		return nil, fmt.Errorf("no objective with id %s exists in storage", id)
 	}
 
+	obj, err := decodeObjective(id, objJSON)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding objective %s: %w", id, err)
+	}
 	// populate channel data
 	if dfo, isDirectFund := obj.(*directfund.Objective); isDirectFund {
 		ch, err := ms.getChannelById(dfo.C.Id)
 
 		if err != nil {
-			return nil, false
+			return nil, fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
 		}
 
 		dfo.C = &ch
@@ -61,14 +65,14 @@ func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Ob
 	} else if vfo, isVirtualFund := obj.(*virtualfund.Objective); isVirtualFund {
 		v, err := ms.getChannelById(vfo.V.Id)
 		if err != nil {
-			return nil, false
+			return nil, fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
 		}
 		vfo.V = &channel.SingleHopVirtualChannel{Channel: v}
 
 		if vfo.ToMyLeft != nil && vfo.ToMyLeft.Channel != nil {
 			left, err := ms.getChannelById(vfo.ToMyLeft.Channel.Id)
 			if err != nil {
-				return nil, false
+				return nil, fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
 			}
 			vfo.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: left}
 		}
@@ -76,7 +80,7 @@ func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Ob
 		if vfo.ToMyRight != nil && vfo.ToMyRight.Channel != nil {
 			right, err := ms.getChannelById(vfo.ToMyRight.Channel.Id)
 			if err != nil {
-				return nil, false
+				return nil, fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
 			}
 			vfo.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: right}
 
@@ -85,13 +89,18 @@ func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Ob
 		obj = vfo
 	}
 
-	return obj, ok
+	return obj, nil
 }
 
 func (ms MockStore) SetObjective(obj protocols.Objective) error {
 	// todo: locking
-	// todo: strip channel data from stored objective (avoid duplicate data-storage) (on serde PR)
-	ms.objectives[obj.Id()] = obj
+	objJSON, err := obj.MarshalJSON()
+
+	if err != nil {
+		return fmt.Errorf("error setting objective %s: %w", obj.Id(), err)
+	}
+
+	ms.objectives[obj.Id()] = objJSON
 
 	for _, ch := range obj.Channels() {
 		err := ms.SetChannel(ch)
@@ -137,7 +146,13 @@ func (ms MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty type
 
 func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
 	// todo: locking
-	for _, obj := range ms.objectives {
+	for id, objJSON := range ms.objectives {
+		obj, err := decodeObjective(id, objJSON)
+
+		if err != nil {
+			return nil, false
+		}
+
 		for _, ch := range obj.Channels() {
 			if ch.Id == channelId {
 				return obj, true
