@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
-	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -193,13 +192,15 @@ func (c Channel) LatestSupportedState() (state.State, error) {
 
 // LatestSignedState fetches the state with the largest turn number signed by any participant
 func (c Channel) LatestSignedState() state.SignedState {
-	numStates := len(c.SignedStateForTurnNum)
-	keys := make([]uint64, 0, len(c.SignedStateForTurnNum))
-	for k := range c.SignedStateForTurnNum {
-		keys = append(keys, k)
+	if len(c.SignedStateForTurnNum) == 0 {
+		return state.SignedState{}
 	}
-	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
-	latestTurn := keys[numStates-1]
+	latestTurn := uint64(0)
+	for k := range c.SignedStateForTurnNum {
+		if k > latestTurn {
+			latestTurn = k
+		}
+	}
 	return c.SignedStateForTurnNum[latestTurn]
 }
 
