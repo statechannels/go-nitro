@@ -147,3 +147,21 @@ func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protoc
 
 	return nil, false
 }
+
+// decodeObjective is a helper which encapsulates the deserialization
+// of Objective JSON data.
+func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective, error) {
+	if directfund.IsDirectFundObjective(id) {
+		dfo := directfund.Objective{}
+		err := dfo.UnmarshalJSON(data)
+
+		return &dfo, err
+	} else if virtualfund.IsVirtualFundObjective(id) {
+		vfo := directfund.Objective{}
+		err := vfo.UnmarshalJSON(data)
+
+		return &vfo, err
+	} else {
+		return nil, fmt.Errorf("objective id %s does not correspond to a known Objective type", id)
+	}
+}
