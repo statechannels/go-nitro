@@ -50,10 +50,6 @@ func (t TestMessageService) In() chan<- protocols.Message {
 	return t.in
 }
 
-func (t TestMessageService) Send(message protocols.Message) {
-	t.in <- message
-}
-
 // Connect creates a gochan for message service to send messages to the given peer.
 func (t TestMessageService) Connect(peer TestMessageService) {
 	toPeer := make(chan string)

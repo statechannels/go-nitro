@@ -23,7 +23,7 @@ func TestConnect(t *testing.T) {
 	bobOut := bobMS.Out()
 
 	aliceMS.Connect(bobMS)
-	aliceMS.Send(aToB)
+	aliceMS.in <- aToB
 
 	got := <-bobOut
 
