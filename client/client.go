@@ -2,12 +2,9 @@
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
-	"fmt"
 	"io"
-	"math/big"
+	"math/rand"
 
-	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -67,63 +64,43 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
 func (c *Client) CreateVirtualChannel(counterParty types.Address, intermediary types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) protocols.ObjectiveId {
-	right, ok := (*c.store).GetTwoPartyLedger(*c.Address, intermediary)
-
-	if !ok {
-		// TODO: We need to implement proper API error handling
-		panic(fmt.Sprintf("Could not find ledger channel for participants %v,%v", *c.Address, intermediary))
+	objectiveRequest := virtualfund.ObjectiveRequest{
+		MyAddress:         *c.Address,
+		CounterParty:      counterParty,
+		Intermediary:      intermediary,
+		AppDefinition:     appDefinition,
+		AppData:           appData,
+		Outcome:           outcome,
+		ChallengeDuration: challengeDuration,
+		Nonce:             rand.Int63(), // TODO: Proper nonce management!
 	}
-
-	var left *channel.TwoPartyLedger
-
-	// Convert the API call into an internal event.
-	objective, _ := virtualfund.NewObjective(true,
-		state.State{
-			ChainId:           big.NewInt(0), // TODO
-			Participants:      []types.Address{*c.Address, intermediary, counterParty},
-			ChannelNonce:      big.NewInt(0), // TODO -- how do we get a fresh nonce safely without race conditions? Could we conisder a random nonce?
-			AppDefinition:     appDefinition,
-			ChallengeDuration: challengeDuration,
-			AppData:           appData,
-			Outcome:           outcome,
-			TurnNum:           0,
-			IsFinal:           false,
-		},
-		*c.Address,
-		left, right)
-
 	apiEvent := engine.APIEvent{
-		ObjectiveToSpawn: &objective,
+		ObjectiveToSpawn: objectiveRequest,
 	}
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objective.Id()
+	return objectiveRequest.Id()
 }
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty
 func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) protocols.ObjectiveId {
 	// Convert the API call into an internal event.
-	objective, _ := directfund.NewObjective(true,
-		state.State{
-			ChainId:           big.NewInt(0), // TODO
-			Participants:      []types.Address{*c.Address, counterparty},
-			ChannelNonce:      big.NewInt(0), // TODO -- how do we get a fresh nonce safely without race conditions? Could we conisder a random nonce?
-			AppDefinition:     appDefinition,
-			ChallengeDuration: challengeDuration,
-			AppData:           appData,
-			Outcome:           outcome,
-			TurnNum:           0,
-			IsFinal:           false,
-		},
-		*c.Address,
-	)
-
+	objectiveRequest := directfund.ObjectiveRequest{
+		MyAddress:         *c.Address,
+		CounterParty:      counterparty,
+		AppDefinition:     appDefinition,
+		AppData:           appData,
+		Outcome:           outcome,
+		ChallengeDuration: challengeDuration,
+		Nonce:             rand.Int63(), // TODO: Proper nonce management!
+	}
 	apiEvent := engine.APIEvent{
-		ObjectiveToSpawn: &objective,
+		ObjectiveToSpawn: objectiveRequest,
 	}
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objective.Id()
+	return objectiveRequest.Id()
+
 }

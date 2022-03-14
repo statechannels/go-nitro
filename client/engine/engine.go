@@ -35,7 +35,7 @@ type Engine struct {
 
 // APIEvent is an internal representation of an API call
 type APIEvent struct {
-	ObjectiveToSpawn   protocols.Objective
+	ObjectiveToSpawn   protocols.ObjectiveRequest
 	ObjectiveToReject  protocols.ObjectiveId
 	ObjectiveToApprove protocols.ObjectiveId
 }
@@ -160,8 +160,29 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) ObjectiveChange
 // Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 	if apiEvent.ObjectiveToSpawn != nil {
-		return e.attemptProgress(apiEvent.ObjectiveToSpawn)
+
+		switch request := (apiEvent.ObjectiveToSpawn).(type) {
+
+		case virtualfund.ObjectiveRequest:
+			vfo, err := virtualfund.SpawnObjective(request, e.store.GetTwoPartyLedger)
+			if err != nil {
+				panic(err)
+			}
+			return e.attemptProgress(&vfo)
+
+		case directfund.ObjectiveRequest:
+			dfo, err := directfund.SpawnObjective(request)
+			if err != nil {
+				panic(err)
+			}
+			return e.attemptProgress(&dfo)
+
+		default:
+			panic(fmt.Errorf("Unknown objective type %T", request))
+		}
+
 	}
+
 	if apiEvent.ObjectiveToReject != `` {
 		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
 		updatedProtocol := objective.Reject()

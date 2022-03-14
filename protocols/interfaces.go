@@ -68,3 +68,8 @@ const (
 	Approved
 	Rejected
 )
+
+// ObjectiveRequest is a request to create a new objective.
+type ObjectiveRequest interface {
+	Id() ObjectiveId
+}

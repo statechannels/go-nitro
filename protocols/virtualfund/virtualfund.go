@@ -786,3 +786,56 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 	}
 
 }
+
+// ObjectiveRequest represents a request to create a new virtual funding objective.
+type ObjectiveRequest struct {
+	MyAddress         types.Address
+	CounterParty      types.Address
+	Intermediary      types.Address
+	AppDefinition     types.Address
+	AppData           types.Bytes
+	ChallengeDuration *types.Uint256
+	Outcome           outcome.Exit
+	Nonce             int64
+}
+
+// Id returns the objective id for the request.
+func (r ObjectiveRequest) Id() protocols.ObjectiveId {
+	fixedPart := state.FixedPart{ChainId: big.NewInt(0), // TODO
+		Participants:      []types.Address{r.MyAddress, r.Intermediary, r.CounterParty},
+		ChannelNonce:      big.NewInt(r.Nonce),
+		ChallengeDuration: r.ChallengeDuration}
+
+	channelId, _ := fixedPart.ChannelId()
+	return protocols.ObjectiveId(ObjectivePrefix + channelId.String())
+}
+
+// SpawnObjective creates a new virtual funding objective from a given request.
+func SpawnObjective(request ObjectiveRequest, getTwoPartyLedger GetTwoPartyLedgerFunction) (Objective, error) {
+	right, ok := getTwoPartyLedger(request.MyAddress, request.Intermediary)
+
+	if !ok {
+		return Objective{}, fmt.Errorf("could not find ledger for %s and %s", request.MyAddress, request.Intermediary)
+
+	}
+	var left *channel.TwoPartyLedger
+
+	objective, err := NewObjective(true,
+		state.State{
+			ChainId:           big.NewInt(0), // TODO
+			Participants:      []types.Address{request.MyAddress, request.Intermediary, request.CounterParty},
+			ChannelNonce:      big.NewInt(request.Nonce),
+			ChallengeDuration: request.ChallengeDuration,
+			AppData:           request.AppData,
+			Outcome:           request.Outcome,
+			TurnNum:           0,
+			IsFinal:           false,
+		},
+		request.MyAddress,
+		left, right)
+	if err != nil {
+		return Objective{}, fmt.Errorf("error creating objective: %w", err)
+	}
+	return objective, nil
+
+}
