@@ -81,11 +81,11 @@ func TestGetChannelSecretKey(t *testing.T) {
 	pk := common.HexToAddress("0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD")
 
 	ms := NewMockStore(sk)
-	key := ms.GetChannelSecretKey()
+	key := ms.GetChannelSecretKey
 
 	msg := []byte("sign this")
 
-	signedMsg, _ := nc.SignEthereumMessage(msg, *key)
+	signedMsg, _ := nc.SignEthereumMessage(msg, key)
 	recoveredSigner, _ := nc.RecoverEthereumMessageSigner(msg, signedMsg)
 
 	if recoveredSigner != pk {

@@ -10,6 +10,10 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+func kf(key []byte) types.KeyFunc {
+	return func() []byte { return key }
+}
+
 func TestChannel(t *testing.T) {
 	s := state.TestState.Clone()
 
@@ -130,8 +134,8 @@ func TestChannel(t *testing.T) {
 			t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
 		}
 	}
-	alicePrivateKey := common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
-	bobPrivateKey := common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`)
+	alicePrivateKey := kf(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
+	bobPrivateKey := kf(common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`))
 	testAddSignedState := func(t *testing.T) {
 		myC, _ := New(s, 0)
 		ss := state.NewSignedState(s)
@@ -225,7 +229,7 @@ func TestChannel(t *testing.T) {
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
-		nonParticipantSignature, _ := s.Sign(common.Hex2Bytes(`2030b463177db2da82908ef90fa55ddfcef56e8183caf60db464bc398e736e6f`))
+		nonParticipantSignature, _ := s.Sign(kf(common.Hex2Bytes(`2030b463177db2da82908ef90fa55ddfcef56e8183caf60db464bc398e736e6f`)))
 		got = c.AddStateWithSignature(s, nonParticipantSignature) // note signature by non participant
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
@@ -272,7 +276,7 @@ func TestChannel(t *testing.T) {
 		}
 
 		// Add Bob's signature and check that we now have a supported state
-		bobPrivateKey := common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`)
+		bobPrivateKey := kf(common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`))
 		bobSignatureOnCorrectState, _ := c.PostFundState().Sign(bobPrivateKey)
 		got = c.AddStateWithSignature(c.PostFundState(), bobSignatureOnCorrectState)
 		if got != want {

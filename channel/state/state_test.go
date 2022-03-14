@@ -35,7 +35,7 @@ func TestHash(t *testing.T) {
 
 func TestSign(t *testing.T) {
 	want_r, want_s, want_v := correctSignature.R, correctSignature.S, correctSignature.V
-	got, error := TestState.Sign(signerPrivateKey)
+	got, error := TestState.Sign(kf(signerPrivateKey))
 	got_r, got_s, got_v := got.R, got.S, got.V
 
 	if error != nil {

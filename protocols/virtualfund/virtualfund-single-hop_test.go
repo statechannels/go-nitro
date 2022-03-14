@@ -15,9 +15,13 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+func kf(key []byte) types.KeyFunc {
+	return func() []byte { return key }
+}
+
 // signPreAndPostFundingStates is a test utility function which applies signatures from
 // multiple participants to pre and post fund states
-func signPreAndPostFundingStates(ledger *channel.TwoPartyLedger, secretKeys []*[]byte) {
+func signPreAndPostFundingStates(ledger *channel.TwoPartyLedger, secretKeys []types.KeyFunc) {
 	for _, sk := range secretKeys {
 		_, _ = ledger.SignAndAddPrefund(sk)
 		_, _ = ledger.SignAndAddPostfund(sk)
@@ -26,7 +30,7 @@ func signPreAndPostFundingStates(ledger *channel.TwoPartyLedger, secretKeys []*[
 
 // signLatest is a test utility function which applies signatures from
 // multiple participants to the latest recorded state
-func signLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
+func signLatest(ledger *channel.TwoPartyLedger, secretKeys []types.KeyFunc) {
 
 	// Find the largest turn num and therefore the latest state
 	turnNum := uint64(0)
@@ -38,7 +42,7 @@ func signLatest(ledger *channel.TwoPartyLedger, secretKeys [][]byte) {
 	// Sign it
 	toSign := ledger.SignedStateForTurnNum[turnNum]
 	for _, secretKey := range secretKeys {
-		_ = toSign.Sign(&secretKey)
+		_ = toSign.Sign(secretKey)
 	}
 	ledger.Channel.AddSignedState(toSign)
 }
@@ -49,7 +53,7 @@ func addLedgerProposal(
 	left types.Destination,
 	right types.Destination,
 	guaranteeDestination types.Destination,
-	secretKey *[]byte,
+	secretKey types.KeyFunc,
 ) {
 
 	supported, _ := ledger.LatestSupportedState()
@@ -123,7 +127,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 	type actor struct {
 		address     types.Address
 		destination types.Destination
-		privateKey  []byte
+		privateKey  types.KeyFunc
 		role        uint
 	}
 
@@ -134,21 +138,21 @@ func TestSingleHopVirtualFund(t *testing.T) {
 	alice := actor{
 		address:     common.HexToAddress(`0xD9995BAE12FEe327256FFec1e3184d492bD94C31`),
 		destination: types.AddressToDestination(common.HexToAddress(`0xD9995BAE12FEe327256FFec1e3184d492bD94C31`)),
-		privateKey:  common.Hex2Bytes(`7ab741b57e8d94dd7e1a29055646bafde7010f38a900f55bbd7647880faa6ee8`),
+		privateKey:  kf(common.Hex2Bytes(`7ab741b57e8d94dd7e1a29055646bafde7010f38a900f55bbd7647880faa6ee8`)),
 		role:        0,
 	}
 
 	p1 := actor{ // Aliases: The Hub, Irene
 		address:     common.HexToAddress(`0xd4Fa489Eacc52BA59438993f37Be9fcC20090E39`),
 		destination: types.AddressToDestination(common.HexToAddress(`0xd4Fa489Eacc52BA59438993f37Be9fcC20090E39`)),
-		privateKey:  common.Hex2Bytes(`2030b463177db2da82908ef90fa55ddfcef56e8183caf60db464bc398e736e6f`),
+		privateKey:  kf(common.Hex2Bytes(`2030b463177db2da82908ef90fa55ddfcef56e8183caf60db464bc398e736e6f`)),
 		role:        1,
 	}
 
 	bob := actor{
 		address:     common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`),
 		destination: types.AddressToDestination(common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`)),
-		privateKey:  common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`),
+		privateKey:  kf(common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`)),
 		role:        2,
 	}
 
@@ -244,7 +248,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 							{Destination: p1.destination, Amount: big.NewInt(4)},
 						},
 						my.address, big.NewInt(0))
-					signPreAndPostFundingStates(r, []*[]byte{&alice.privateKey, &p1.privateKey}) // TODO these steps could be absorbed into CreateTestLedger
+					signPreAndPostFundingStates(r, []types.KeyFunc{alice.privateKey, p1.privateKey}) // TODO these steps could be absorbed into CreateTestLedger
 
 				}
 			case 1:
@@ -261,8 +265,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 							{Destination: bob.destination, Amount: big.NewInt(4)},
 						},
 						my.address, big.NewInt(0))
-					signPreAndPostFundingStates(l, []*[]byte{&alice.privateKey, &p1.privateKey})
-					signPreAndPostFundingStates(r, []*[]byte{&p1.privateKey, &bob.privateKey})
+					signPreAndPostFundingStates(l, []types.KeyFunc{alice.privateKey, p1.privateKey})
+					signPreAndPostFundingStates(r, []types.KeyFunc{p1.privateKey, bob.privateKey})
 				}
 			case 2:
 				{
@@ -272,7 +276,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 							{Destination: my.destination, Amount: big.NewInt(4)},
 						},
 						my.address, big.NewInt(0))
-					signPreAndPostFundingStates(l, []*[]byte{&bob.privateKey, &p1.privateKey})
+					signPreAndPostFundingStates(l, []types.KeyFunc{bob.privateKey, p1.privateKey})
 				}
 			default:
 				{
@@ -353,7 +357,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
 			var s, _ = NewObjective(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			// Assert that cranking an unapproved objective returns an error
-			if _, _, _, err := s.Crank(&my.privateKey); err == nil {
+			if _, _, _, err := s.Crank(my.privateKey); err == nil {
 				t.Error(`Expected error when cranking unapproved objective, but got nil`)
 			}
 
@@ -363,7 +367,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// And then crank it to see which "pause point" (WaitingFor) we end up at.
 
 			// Initial Crank
-			oObj, got, waitingFor, err := o.Crank(&my.privateKey)
+			oObj, got, waitingFor, err := o.Crank(my.privateKey)
 			o = oObj.(*Objective)
 			if err != nil {
 				t.Error(err)
@@ -382,7 +386,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 			// TODO: Check that ledger channel is updated as expected
-			oObj, got, waitingFor, _ = o.Crank(&my.privateKey)
+			oObj, got, waitingFor, _ = o.Crank(my.privateKey)
 
 			// Check that the messsages contain the expected ledger proposals
 			// We only expect a proposal in the right ledger channel, as we will be the leader in that ledger channel
@@ -391,7 +395,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				{
 					supported, _ := o.ToMyRight.Channel.LatestSupportedState()
 					expectedSignedState := state.NewSignedState(constructLedgerProposal(supported, types.AddressToDestination(alice.address), types.AddressToDestination(p1.address), o.V.Id))
-					_ = expectedSignedState.Sign(&my.privateKey)
+					_ = expectedSignedState.Sign(my.privateKey)
 
 					assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
 
@@ -400,7 +404,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				{
 					supported, _ := o.ToMyRight.Channel.LatestSupportedState()
 					expectedSignedState := state.NewSignedState(constructLedgerProposal(supported, types.AddressToDestination(p1.address), types.AddressToDestination(bob.address), o.V.Id))
-					_ = expectedSignedState.Sign(&my.privateKey)
+					_ = expectedSignedState.Sign(my.privateKey)
 
 					assertSideEffectsContainsMessageWith(got, expectedSignedState, bob, t)
 				}
@@ -415,26 +419,26 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			switch my.role {
 			case 0:
 				{
-					signLatest(o.ToMyRight.Channel, [][]byte{p1.privateKey})
+					signLatest(o.ToMyRight.Channel, []types.KeyFunc{p1.privateKey})
 				}
 			case 1:
 				{
 					// If we are P1 we mimic Alice proposing the update to the ledger channel
-					addLedgerProposal(o.ToMyLeft.Channel, types.AddressToDestination(alice.address), types.AddressToDestination(p1.address), o.V.Id, &alice.privateKey)
+					addLedgerProposal(o.ToMyLeft.Channel, types.AddressToDestination(alice.address), types.AddressToDestination(p1.address), o.V.Id, alice.privateKey)
 					// We mimic Bob accepting the proposal on the right
-					signLatest(o.ToMyRight.Channel, [][]byte{bob.privateKey})
+					signLatest(o.ToMyRight.Channel, []types.KeyFunc{bob.privateKey})
 
 				}
 			case 2:
 				{
 					// If we are Bob we mimic P1 proposing the update to the ledger channel
-					addLedgerProposal(o.ToMyLeft.Channel, types.AddressToDestination(p1.address), types.AddressToDestination(bob.address), o.V.Id, &p1.privateKey)
+					addLedgerProposal(o.ToMyLeft.Channel, types.AddressToDestination(p1.address), types.AddressToDestination(bob.address), o.V.Id, p1.privateKey)
 
 				}
 			}
 
 			// Cranking now should not generate side effects, because we already did that
-			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
+			oObj, got, waitingFor, err = o.Crank(my.privateKey)
 			o = oObj.(*Objective)
 			if err != nil {
 				t.Error(err)
@@ -450,7 +454,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				{
 					supported, _ := o.ToMyLeft.Channel.LatestSupportedState()
 					expectedSignedState := state.NewSignedState(supported)
-					_ = expectedSignedState.Sign(&my.privateKey)
+					_ = expectedSignedState.Sign(my.privateKey)
 
 					assertSideEffectsContainsMessageWith(got, expectedSignedState, alice, t)
 
@@ -459,7 +463,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				{
 					supported, _ := o.ToMyLeft.Channel.LatestSupportedState()
 					expectedSignedState := state.NewSignedState(supported)
-					_ = expectedSignedState.Sign(&my.privateKey)
+					_ = expectedSignedState.Sign(my.privateKey)
 
 					assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
 				}
@@ -474,7 +478,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			collectPeerSignaturesOnSetupState(o.V, my.role, false)
 
 			// This should be the final crank...
-			_, _, waitingFor, err = o.Crank(&my.privateKey)
+			_, _, waitingFor, err = o.Crank(my.privateKey)
 			if err != nil {
 				t.Error(err)
 			}
@@ -513,17 +517,17 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			switch my.role {
 			case 0:
 				{
-					_ = ss.Sign(&p1.privateKey)
+					_ = ss.Sign(p1.privateKey)
 
 				}
 			case 1:
 				{
-					_ = ss.Sign(&alice.privateKey)
+					_ = ss.Sign(alice.privateKey)
 
 				}
 			case 2:
 				{
-					_ = ss.Sign(&p1.privateKey)
+					_ = ss.Sign(p1.privateKey)
 
 				}
 			}
@@ -568,21 +572,21 @@ func TestSingleHopVirtualFund(t *testing.T) {
 					s := ledgerChannelToMyRight.PreFundState().Clone()
 					s.TurnNum = someTurnNum
 					ss = state.NewSignedState(s)
-					_ = ss.Sign(&p1.privateKey)
+					_ = ss.Sign(p1.privateKey)
 				}
 			case 1:
 				{
 					s := ledgerChannelToMyRight.PreFundState().Clone()
 					s.TurnNum = someTurnNum
 					ss = state.NewSignedState(s)
-					_ = ss.Sign(&bob.privateKey)
+					_ = ss.Sign(bob.privateKey)
 				}
 			case 2:
 				{
 					s := ledgerChannelToMyLeft.PreFundState().Clone()
 					s.TurnNum = someTurnNum
 					ss = state.NewSignedState(s)
-					_ = ss.Sign(&p1.privateKey)
+					_ = ss.Sign(p1.privateKey)
 				}
 			}
 			f.SignedStates = append(f.SignedStates, ss)

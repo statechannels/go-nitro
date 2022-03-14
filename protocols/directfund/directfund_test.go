@@ -13,22 +13,28 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+func kf(key []byte) types.KeyFunc {
+	return func() []byte {
+		return key
+	}
+}
+
 type actor struct {
 	address     types.Address
 	destination types.Destination
-	privateKey  []byte
+	privateKey  types.KeyFunc
 }
 
 var alice = actor{
 	address:     common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`),
 	destination: types.AddressToDestination(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)),
-	privateKey:  common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`),
+	privateKey:  kf(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)),
 }
 
 var bob = actor{
 	address:     common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`),
 	destination: types.AddressToDestination(common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`)),
-	privateKey:  common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`),
+	privateKey:  kf(common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`)),
 }
 
 var testState = state.State{
@@ -179,7 +185,7 @@ func TestCrank(t *testing.T) {
 	// END test data preparation
 
 	// Assert that cranking an unapproved objective returns an error
-	if _, _, _, err := s.Crank(&alice.privateKey); err == nil {
+	if _, _, _, err := s.Crank(alice.privateKey); err == nil {
 		t.Error(`Expected error when cranking unapproved objective, but got nil`)
 	}
 
@@ -192,7 +198,7 @@ func TestCrank(t *testing.T) {
 	// - what side effects are declared.
 
 	// Initial Crank
-	_, sideEffects, waitingFor, err := o.Crank(&alice.privateKey)
+	_, sideEffects, waitingFor, err := o.Crank(alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -209,7 +215,7 @@ func TestCrank(t *testing.T) {
 	o.C.AddStateWithSignature(o.C.PreFundState(), correctSignatureByBobOnPreFund)
 
 	// Cranking should move us to the next waiting point
-	_, _, waitingFor, err = o.Crank(&alice.privateKey)
+	_, _, waitingFor, err = o.Crank(alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -219,7 +225,7 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the first "deposit"
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
-	_, sideEffects, waitingFor, err = o.Crank(&alice.privateKey)
+	_, sideEffects, waitingFor, err = o.Crank(alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -234,7 +240,7 @@ func TestCrank(t *testing.T) {
 	// Manually make the second "deposit"
 	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
-	_, sideEffects, waitingFor, err = o.Crank(&alice.privateKey)
+	_, sideEffects, waitingFor, err = o.Crank(alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -251,7 +257,7 @@ func TestCrank(t *testing.T) {
 
 	// This should be the final crank
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
-	_, _, waitingFor, err = o.Crank(&alice.privateKey)
+	_, _, waitingFor, err = o.Crank(alice.privateKey)
 	if err != nil {
 		t.Error(err)
 	}
