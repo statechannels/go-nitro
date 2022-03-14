@@ -29,8 +29,8 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	directlyFundALedgerChannel(t, clientIrene, clientBob)
 	directlyFundALedgerChannel(t, clientIrene, clientBrian)
 
-	bobIds := createVirtualChannels(&clientAlice, bob, irene, 3)
-	brianIds := createVirtualChannels(&clientAlice, brian, irene, 3)
+	bobIds := createVirtualChannels(&clientAlice, bob, irene, 25)
+	brianIds := createVirtualChannels(&clientAlice, brian, irene, 25)
 	allIds := append(bobIds, brianIds...)
 	waitTimeForCompletedObjectiveIds(t, &clientBob, defaultTimeout, bobIds...)
 	waitTimeForCompletedObjectiveIds(t, &clientBrian, defaultTimeout, brianIds...)
