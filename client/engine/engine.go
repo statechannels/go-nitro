@@ -59,14 +59,18 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	e.store = store
 
-	// bind to inbound chans
+	// FromAPI allows the engine to read API events from the application
 	e.FromAPI = make(chan APIEvent)
+	// fromChain allows the engine to read events from the chain service
 	e.fromChain = chain.Out()
+	// fromMsg allows the engine to read messages from the message service
 	e.fromMsg = msg.Out()
 
+	// toApi allows the engine to send ObjectiveChangeEvent to the application
 	e.toApi = make(chan ObjectiveChangeEvent, 100)
-	// bind to outbound chans
+	// toChain allows the engine to send events to the chain servicce
 	e.toChain = chain.In()
+	// toMsg allows the engine to send messages to the message service
 	e.toMsg = msg.In()
 
 	// initialize a Logger

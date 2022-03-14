@@ -14,6 +14,8 @@ type Event struct {
 }
 
 type ChainService interface {
+	// Out is a channel for sending events out of the ChainService
 	Out() <-chan Event
+	// In is a channel for receiving transactions into the ChainService
 	In() chan<- protocols.ChainTransaction
 }
