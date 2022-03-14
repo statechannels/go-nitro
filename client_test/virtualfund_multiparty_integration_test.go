@@ -4,7 +4,9 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -27,13 +29,24 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	directlyFundALedgerChannel(t, clientIrene, clientBob)
 	directlyFundALedgerChannel(t, clientIrene, clientBrian)
 
-	id := clientAlice.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, bob), big.NewInt(0))
-	id2 := clientAlice.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, brian), big.NewInt(0))
+	bobIds := createVirtualChannels(&clientAlice, bob, irene, 3)
+	brianIds := createVirtualChannels(&clientAlice, brian, irene, 3)
+	allIds := append(bobIds, brianIds...)
+	waitTimeForCompletedObjectiveIds(t, &clientBob, defaultTimeout, bobIds...)
+	waitTimeForCompletedObjectiveIds(t, &clientBrian, defaultTimeout, brianIds...)
 
-	waitTimeForCompletedObjectiveIds(t, &clientBob, defaultTimeout, id)
-	waitTimeForCompletedObjectiveIds(t, &clientBrian, defaultTimeout, id2)
+	waitTimeForCompletedObjectiveIds(t, &clientAlice, defaultTimeout, allIds...)
+	waitTimeForCompletedObjectiveIds(t, &clientIrene, defaultTimeout, allIds...)
+}
 
-	waitTimeForCompletedObjectiveIds(t, &clientAlice, defaultTimeout, id, id2)
-	waitTimeForCompletedObjectiveIds(t, &clientIrene, defaultTimeout, id, id2)
+// createVirtualChannels is a helper function to create virtual channels in bulk
+func createVirtualChannels(client *client.Client, counterParty types.Address, intermediary types.Address, amount uint) []protocols.ObjectiveId {
+	ids := []protocols.ObjectiveId{}
+	for i := 0; i < int(amount); i++ {
+		id := client.CreateVirtualChannel(counterParty, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, bob), big.NewInt(0))
+		ids = append(ids, id)
+
+	}
+	return ids
 
 }
