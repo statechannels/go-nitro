@@ -3,6 +3,7 @@ package messageservice
 import (
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -18,28 +19,33 @@ import (
 type TestMessageService struct {
 	address types.Address
 
-	// connection to peer message services
-	toPeers map[types.Address]chan<- string
-
 	// connection to Engine:
 	in  chan protocols.Message // for recieving messages from engine
 	out chan protocols.Message // for sending message to engine
 }
 
+type Broker struct {
+	services map[types.Address]TestMessageService
+}
+
+func NewBroker() Broker {
+	b := Broker{
+		services: make(map[common.Address]TestMessageService),
+	}
+
+	return b
+}
+
 // NewTestMessageService returns a running TestMessageService
-func NewTestMessageService(address types.Address) TestMessageService {
+func NewTestMessageService(address types.Address, broker Broker) TestMessageService {
 	tms := TestMessageService{
 		address: address,
-		toPeers: make(map[types.Address]chan<- string),
 		in:      make(chan protocols.Message, 5),
 		out:     make(chan protocols.Message, 5),
 	}
-	tms.run()
-	return tms
-}
 
-func (t TestMessageService) run() {
-	go t.routeOutgoing()
+	tms.Connect(broker)
+	return tms
 }
 
 func (t TestMessageService) Out() <-chan protocols.Message {
@@ -51,41 +57,29 @@ func (t TestMessageService) In() chan<- protocols.Message {
 }
 
 // Connect creates a gochan for message service to send messages to the given peer.
-func (t TestMessageService) Connect(peer TestMessageService) {
-	toPeer := make(chan string)
-
-	t.toPeers[peer.address] = toPeer
-
+func (t TestMessageService) Connect(b Broker) {
 	go func() {
-		for msgString := range toPeer {
-			msg, _ := protocols.DeserializeMessage(msgString)
-			peer.out <- msg // send messages directly to peer's engine, using the peer's out chan
+		for message := range t.in {
+			peerChan, ok := b.services[message.To]
+			if ok {
+				msg, err := message.Serialize()
+				if err != nil {
+					panic(`could not serialize message`)
+				}
+				m, err := protocols.DeserializeMessage(msg)
+				if err != nil {
+					panic(`could not deserialize message`)
+				}
+				peerChan.out <- m
+			} else {
+				panic(fmt.Sprintf("client %v has no connection to client %v",
+					t.address, message.To))
+			}
 		}
+
 	}()
-}
 
-// forward finds the appropriate gochan for the message recipient,
-// and sends the message. It panics if no such channel exists.
-func (t TestMessageService) forward(message protocols.Message) {
-	peerChan, ok := t.toPeers[message.To]
-	if ok {
-		msg, err := message.Serialize()
-		if err != nil {
-			panic(`could not serialize message`)
-		}
-		peerChan <- msg
-	} else {
-		panic(fmt.Sprintf("client %v has no connection to client %v",
-			t.address, message.To))
-	}
-}
-
-// routeOutgoing listens to the messageService's outbox and passes
-// messages to the forwarding function
-func (t TestMessageService) routeOutgoing() {
-	for msg := range t.in {
-		t.forward(msg)
-	}
+	b.services[t.address] = t
 }
 
 // ┌──────────┐toMsg       in┌───────────┐

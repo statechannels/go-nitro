@@ -8,6 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
+	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -34,11 +35,10 @@ func TestDirectFundIntegration(t *testing.T) {
 	truncateLog(logFile)
 
 	chain := chainservice.NewMockChain()
+	broker := messageservice.NewBroker()
 
-	clientA, messageserviceA := setupClient(aliceKey, chain, logFile)
-	clientB, messageserviceB := setupClient(bobKey, chain, logFile)
-
-	connectMessageServices(messageserviceA, messageserviceB)
+	clientA := setupClient(aliceKey, chain, broker, logFile)
+	clientB := setupClient(bobKey, chain, broker, logFile)
 
 	directlyFundALedgerChannel(t, clientA, clientB)
 

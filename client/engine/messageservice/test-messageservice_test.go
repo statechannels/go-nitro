@@ -8,8 +8,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-var aliceMS = NewTestMessageService(types.Address{'a'})
-var bobMS = NewTestMessageService(types.Address{'b'})
+var broker = NewBroker()
+var aliceMS = NewTestMessageService(types.Address{'a'}, broker)
+var bobMS = NewTestMessageService(types.Address{'b'}, broker)
 
 var testId protocols.ObjectiveId = "testObjectiveID"
 
@@ -22,7 +23,6 @@ var aToB protocols.Message = protocols.Message{
 func TestConnect(t *testing.T) {
 	bobOut := bobMS.Out()
 
-	aliceMS.Connect(bobMS)
 	aliceMS.in <- aToB
 
 	got := <-bobOut
