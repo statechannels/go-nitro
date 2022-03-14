@@ -249,3 +249,17 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 	}
 	return ss, nil
 }
+
+// SignedByMe returns the most recent state signed by me.
+func (c *Channel) SignedByMe() state.State {
+
+	highestSigned := uint64(0)
+
+	for turnNum, signedState := range c.SignedStateForTurnNum {
+		if signedByMe := signedState.HasSignatureForParticipant(c.MyIndex); signedByMe && turnNum > highestSigned {
+			highestSigned = turnNum
+		}
+	}
+	return c.SignedStateForTurnNum[highestSigned].State()
+
+}

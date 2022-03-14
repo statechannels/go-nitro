@@ -159,6 +159,7 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) ObjectiveChange
 // Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 	if apiEvent.ObjectiveToSpawn != nil {
+		e.logger.Printf("Handling API event to spawn objective %+v", summarizeObjective(apiEvent.ObjectiveToSpawn))
 		return e.attemptProgress(apiEvent.ObjectiveToSpawn)
 	}
 	if apiEvent.ObjectiveToReject != `` {
@@ -294,4 +295,43 @@ func summarizeMessage(message protocols.Message) messageSummary {
 		summary.signedStates = append(summary.signedStates, signedStateSummary{turnNum: signedState.State().TurnNum, channelId: channelId.String()})
 	}
 	return summary
+}
+
+type virtualSummary struct {
+	V            string
+	VTurnNum     uint64
+	left         string
+	leftTurnNum  uint64
+	right        string
+	rightTurnNum uint64
+}
+
+type directSummary struct {
+	C        string
+	CTurnNum uint64
+}
+
+func summarizeObjective(objective protocols.Objective) interface{} {
+	vfo, isVirtual := objective.(*virtualfund.Objective)
+	if isVirtual {
+
+		left, right := "", ""
+		leftTurnNum, rightTurnNum := uint64(0), uint64(0)
+		if vfo.ToMyLeft != nil {
+			left = vfo.ToMyLeft.Channel.Id.String()
+			leftTurnNum = vfo.ToMyLeft.Channel.SignedByMe().TurnNum
+
+		}
+		if vfo.ToMyRight != nil {
+			right = vfo.ToMyRight.Channel.Id.String()
+			rightTurnNum = vfo.ToMyRight.Channel.SignedByMe().TurnNum
+		}
+		vId := vfo.V.Id.String()
+		vTurn := vfo.V.SignedByMe().TurnNum
+		return virtualSummary{V: vId, VTurnNum: vTurn, left: left, right: right, leftTurnNum: leftTurnNum, rightTurnNum: rightTurnNum}
+
+	} else {
+		dfo := objective.(*directfund.Objective)
+		return directSummary{C: dfo.C.Id.String(), CTurnNum: dfo.C.SignedByMe().TurnNum}
+	}
 }
