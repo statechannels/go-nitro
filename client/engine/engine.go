@@ -197,10 +197,9 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 // 	4. It executes any side effects that were declared during cranking
 // 	5. It updates progress metadata in the store
 func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent) {
-	secretKey := e.store.GetChannelSecretKey()
 
-	crankedObjective, sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
-	_ = e.store.SetObjective(crankedObjective)                                 // TODO handle error
+	crankedObjective, sideEffects, waitingFor, _ := objective.Crank(e.store.GetChannelSecretKey) // TODO handle error
+	_ = e.store.SetObjective(crankedObjective)                                                   // TODO handle error
 
 	// TODO: This is hack to get around the fact that currently each objective in the store has it's own set of channels.
 	vfo, isVirtual := crankedObjective.(*virtualfund.Objective)

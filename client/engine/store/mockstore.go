@@ -34,8 +34,8 @@ func (ms MockStore) GetAddress() *types.Address {
 	return &ms.address
 }
 
-func (ms MockStore) GetChannelSecretKey() *[]byte {
-	return &ms.key
+func (ms MockStore) GetChannelSecretKey() []byte {
+	return ms.key
 }
 
 func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Objective, ok bool) {

@@ -222,19 +222,19 @@ func (c *Channel) AddSignedStates(sss []state.SignedState) bool {
 }
 
 // SignAndAddPrefund signs and adds the prefund state for the channel, returning a state.SignedState suitable for sending to peers.
-func (c *Channel) SignAndAddPrefund(sk *[]byte) (state.SignedState, error) {
+func (c *Channel) SignAndAddPrefund(sk func() []byte) (state.SignedState, error) {
 	return c.SignAndAddState(c.PreFundState(), sk)
 }
 
 // SignAndAddPrefund signs and adds the postfund state for the channel, returning a state.SignedState suitable for sending to peers.
-func (c *Channel) SignAndAddPostfund(sk *[]byte) (state.SignedState, error) {
+func (c *Channel) SignAndAddPostfund(sk func() []byte) (state.SignedState, error) {
 	return c.SignAndAddState(c.PostFundState(), sk)
 }
 
 // SignAndAddState signs and adds the state to the channel, returning a state.SignedState suitable for sending to peers.
-func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState, error) {
+func (c *Channel) SignAndAddState(s state.State, sk func() []byte) (state.SignedState, error) {
 
-	sig, err := s.Sign(*sk)
+	sig, err := s.Sign(sk)
 	if err != nil {
 		return state.SignedState{}, fmt.Errorf("could not sign prefund %w", err)
 	}
