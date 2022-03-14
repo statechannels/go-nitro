@@ -26,7 +26,7 @@ func SignEthereumMessage(message []byte, secretKey types.KeyFunc) (Signature, er
 	digest := computeEthereumSignedMessageDigest(message)
 	key := secretKey()
 	concatenatedSignature, error := secp256k1.Sign(digest, key)
-	for i, _ := range key {
+	for i := range key {
 		key[i] = 0
 	}
 	if error != nil {
