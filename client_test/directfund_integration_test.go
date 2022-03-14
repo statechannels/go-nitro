@@ -17,11 +17,11 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
 				Destination: types.AddressToDestination(*alpha.Address),
-				Amount:      big.NewInt(5),
+				Amount:      big.NewInt(100),
 			},
 			outcome.Allocation{
 				Destination: types.AddressToDestination(*beta.Address),
-				Amount:      big.NewInt(5),
+				Amount:      big.NewInt(100),
 			},
 		},
 	}}
