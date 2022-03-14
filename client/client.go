@@ -21,7 +21,6 @@ type Client struct {
 	engine              engine.Engine // The core business logic of the client
 	Address             *types.Address
 	completedObjectives chan protocols.ObjectiveId
-	store               *store.Store
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -30,7 +29,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.Address = store.GetAddress()
 	c.engine = engine.New(messageService, chainservice, store, logDestination)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
-	c.store = &store
+
 	// Start the engine in a go routine
 	go c.engine.Run()
 
