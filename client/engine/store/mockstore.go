@@ -122,6 +122,12 @@ func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protoc
 
 		for _, ch := range obj.Channels() {
 			if ch.Id == channelId {
+				obj, err = ms.populateChannelData(obj)
+
+				if err != nil {
+					return nil, false // todo: enrich w/ err return
+				}
+
 				return obj, true
 			}
 		}
