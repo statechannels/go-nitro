@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/types"
 )
 
 type SignedState struct {
@@ -21,7 +22,7 @@ func NewSignedState(s State) SignedState {
 }
 
 // Sign generates a signature on the receiver's state with the supplied key, and adds that signature.
-func (ss SignedState) Sign(secretKey func() []byte) error {
+func (ss SignedState) Sign(secretKey types.KeyFunc) error {
 	sig, err := ss.state.Sign(secretKey)
 	if err != nil {
 		return fmt.Errorf("SignAndAdd failed to sign the state: %w", err)

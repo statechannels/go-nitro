@@ -133,7 +133,7 @@ func (s State) Hash() (types.Bytes32, error) {
 // Sign generates an ECDSA signature on the state using the supplied private key
 // The state hash is prepended with \x19Ethereum Signed Message:\n32 and then rehashed
 // to create a digest to sign
-func (s State) Sign(secretKey func() []byte) (Signature, error) {
+func (s State) Sign(secretKey types.KeyFunc) (Signature, error) {
 	hash, error := s.Hash()
 	if error != nil {
 		return Signature{}, error

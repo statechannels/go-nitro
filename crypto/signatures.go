@@ -22,7 +22,7 @@ type Signature struct {
 // of the hash using the provided secret key. The known message added to the input before hashing is
 // "\x19Ethereum Signed Message:\n" + len(message).
 // See https://github.com/ethereum/go-ethereum/pull/2940 and EIPs 191, 721.
-func SignEthereumMessage(message []byte, secretKey func() []byte) (Signature, error) {
+func SignEthereumMessage(message []byte, secretKey types.KeyFunc) (Signature, error) {
 	digest := computeEthereumSignedMessageDigest(message)
 	key := secretKey()
 	concatenatedSignature, error := secp256k1.Sign(digest, key)

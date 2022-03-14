@@ -317,7 +317,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all.
-func (o Objective) Crank(secretKey func() []byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+func (o Objective) Crank(secretKey types.KeyFunc) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
@@ -649,7 +649,7 @@ func IsVirtualFundObjective(id protocols.ObjectiveId) bool {
 }
 
 // proposeLedgerUpdate will propose a ledger update to the channel by crafting a new state
-func (o *Objective) proposeLedgerUpdate(connection Connection, sk func() []byte) (protocols.SideEffects, error) {
+func (o *Objective) proposeLedgerUpdate(connection Connection, sk types.KeyFunc) (protocols.SideEffects, error) {
 	ledger := connection.Channel
 	left := connection.GuaranteeInfo.Left
 	right := connection.GuaranteeInfo.Right
@@ -701,7 +701,7 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk func() []byte)
 }
 
 // acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
-func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, sk func() []byte) (protocols.SideEffects, error) {
+func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, sk types.KeyFunc) (protocols.SideEffects, error) {
 	ledger := ledgerConnection.Channel
 	proposed, ok := ledger.Proposed()
 
@@ -750,7 +750,7 @@ func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, sk func() []
 // updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
 // If the user is the proposer a new ledger state will be created and signed.
 // If the user is the follower then they will sign a ledger state proposal if it satisfies their expected guarantees.
-func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk func() []byte) (protocols.SideEffects, error) {
+func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk types.KeyFunc) (protocols.SideEffects, error) {
 
 	ledger := ledgerConnection.Channel
 

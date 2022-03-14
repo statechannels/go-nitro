@@ -24,3 +24,6 @@ type Uint256 = big.Int
 
 // A {tokenAddress: amount} map. Address 0 represents a chain's native token (ETH, FIL, etc)
 type Funds map[common.Address]*big.Int
+
+// KeyFunc is a function that returns a signing key
+type KeyFunc func() []byte
