@@ -62,12 +62,12 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	// bind to inbound chans
 	e.FromAPI = make(chan APIEvent)
 	e.fromChain = chain.Out()
-	e.fromMsg = msg.Out()
+	e.fromMsg = msg.Inbox()
 
 	e.toApi = make(chan ObjectiveChangeEvent, 100)
 	// bind to outbound chans
 	e.toChain = chain.In()
-	e.toMsg = msg.In()
+	e.toMsg = msg.Outbox()
 
 	// initialize a Logger
 	logPrefix := e.store.GetAddress().String()[0:8] + ": "
