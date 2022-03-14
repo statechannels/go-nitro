@@ -241,7 +241,7 @@ func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Obje
 		if err != nil {
 			return nil, fmt.Errorf("error setting objective in store: %w", err)
 		}
-		e.logger.Printf("Created new objective from  message %s", newObj.Id())
+		e.logger.Printf("Created new objective from  message %+v", summarizeObjective(newObj))
 		return newObj, nil
 
 	} else {
