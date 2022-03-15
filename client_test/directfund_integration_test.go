@@ -33,7 +33,7 @@ func TestDirectFundIntegration(t *testing.T) {
 	logFile := "directfund_client_test.log"
 	truncateLog(logFile)
 
-	chain := chainservice.NewMockChain([]types.Address{alice, bob})
+	chain := chainservice.NewMockChain()
 
 	clientA, messageserviceA := setupClient(aliceKey, chain, logFile)
 	clientB, messageserviceB := setupClient(bobKey, chain, logFile)

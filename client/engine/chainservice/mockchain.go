@@ -27,20 +27,20 @@ func (mc MockChain) In() chan<- protocols.ChainTransaction {
 }
 
 // NewMockChain returns a new MockChain with an out chan initialized for each of the addresses passed in.
-func NewMockChain(addresses []types.Address) MockChain {
+func NewMockChain() MockChain {
 
 	mc := MockChain{}
 	mc.out = make(map[types.Address]chan Event)
 	mc.in = make(chan protocols.ChainTransaction)
 	mc.holdings = make(map[types.Destination]types.Funds)
 
-	for _, a := range addresses {
-		// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-		mc.out[a] = make(chan Event, 10)
-	}
-
 	go mc.Run()
 	return mc
+}
+
+func (mc *MockChain) Subscribe(a types.Address) {
+	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
+	mc.out[a] = make(chan Event, 10)
 }
 
 // Run starts a listener for transactions on the MockChain's in chan.
