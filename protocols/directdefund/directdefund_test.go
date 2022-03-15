@@ -319,7 +319,12 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The third crank. Bob is expected to enter the terminal state of the defunding protocol.
-	o.C.OnChainFunding = types.Funds{}
+	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), Holdings: types.Funds{}}
+	o, err = o.Update(e)
+	if err != nil {
+		t.Error(err)
+	}
+
 	_, se, wf, err = o.Crank(&bobPK)
 	if err != nil {
 		t.Error(err)

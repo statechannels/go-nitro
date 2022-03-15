@@ -131,6 +131,9 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (Objective, error) {
 
 	updated := o.clone()
 	updated.C.AddSignedStates(event.SignedStates)
+	if event.Holdings != nil {
+		updated.C.OnChainFunding = event.Holdings
+	}
 
 	return updated, nil
 }
