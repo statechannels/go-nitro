@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/protocols"
 )
@@ -21,7 +22,7 @@ const ObjectivePrefix = "DirectDefunding-"
 
 // errors
 var ErrNotApproved = errors.New("objective not approved")
-var ErrChannelUpdateInProgress = errors.New("cannot defund channel with unsupported, non-final latest state")
+var ErrChannelUpdateInProgress = errors.New("can only defund a channel when the latest state is supported or when the channel has a final state")
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
@@ -30,13 +31,23 @@ type Objective struct {
 	finalTurnNum uint64
 }
 
-func isUpdateInProgress(c *channel.Channel) bool {
+// isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
+func isInConsensusOrFinalState(c *channel.Channel) (bool, error) {
 	latestSS, err := c.LatestSignedState()
-	// There are no signed states
-	if err != nil {
-		return false
+	// There are no signed states. We consider this as consensus
+	if err != nil && err.Error() == "No states are signed" {
+		return true, nil
 	}
-	return !latestSS.HasAllSignatures() && !latestSS.State().IsFinal
+	if latestSS.State().IsFinal {
+		return true, nil
+	}
+
+	latestSupportedState, err := c.LatestSupportedState()
+	if err != nil {
+		return false, err
+	}
+
+	return cmp.Equal(latestSS.State(), latestSupportedState), nil
 }
 
 // NewObjective initiates an Objective with the supplied channel
@@ -47,7 +58,11 @@ func NewObjective(
 	// We choose to disallow creating an objective if the channel has an in-progress update.
 	// We allow the creation of of an objective if the channel has some final states.
 	// In the future, we can add a restriction that only defund objectives can add final states to the channel.
-	if isUpdateInProgress(c) {
+	canCreateObjective, err := isInConsensusOrFinalState(c)
+	if err != nil {
+		return Objective{}, err
+	}
+	if !canCreateObjective {
 		return Objective{}, ErrChannelUpdateInProgress
 	}
 
