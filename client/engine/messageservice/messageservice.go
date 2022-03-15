@@ -8,5 +8,4 @@ type MessageService interface {
 	Out() <-chan protocols.Message
 	// In returns a chan for sending messages to the message service
 	In() chan<- protocols.Message
-	Send(message protocols.Message)
 }

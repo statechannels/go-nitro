@@ -61,26 +61,15 @@ func waitForCompletedObjectiveIds(client *client.Client, ids ...protocols.Object
 	}
 }
 
-// connectMessageServices connects the message services together so any message service can communicate with another.
-func connectMessageServices(services ...messageservice.TestMessageService) {
-	for i, ms := range services {
-		for j, ms2 := range services {
-			if i != j {
-				ms.Connect(ms2)
-			}
-		}
-	}
-}
-
 // setupClient is a helper function that contructs a client and returns the new client and message service.
-func setupClient(pk []byte, chain chainservice.MockChain, logFilename string) (client.Client, messageservice.TestMessageService) {
+func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservice.Broker, logFilename string) client.Client {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	chain.Subscribe(myAddress)
 	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
-	messageservice := messageservice.NewTestMessageService(myAddress)
+	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker)
 	storeA := store.NewMockStore(pk)
 	logDestination := newLogWriter(logFilename)
-	return client.New(messageservice, chainservice, storeA, logDestination), messageservice
+	return client.New(messageservice, chainservice, storeA, logDestination)
 }
 
 // createVirtualOutcome is a helper function to create the outcome for two participants for a virtual channel.
