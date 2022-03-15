@@ -21,15 +21,20 @@ type Client struct {
 	completedObjectives chan protocols.ObjectiveId
 }
 
-// New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
-func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer) Client {
+// New is the constructor for a Client.
+// It accepts a messaging service, a chain service, and a store as injected dependencies.
+// It accepts a destination for the log file to write to.
+// It accepts the amount of concurrent run loops that the client should run.
+func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, concurrentRunLoops uint) Client {
 	c := Client{}
 	c.Address = store.GetAddress()
 	c.engine = engine.New(messageService, chainservice, store, logDestination)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 
-	// Start the engine in a go routine
-	go c.engine.Run()
+	for i := uint(0); i < concurrentRunLoops; i++ {
+		// TODO  provide an abort channel so the run loop can be aborted
+		go c.engine.Run()
+	}
 
 	// Start the event handler in a go routine
 	// It will listen for events from the engine and dispatch events to client channels
