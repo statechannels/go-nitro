@@ -25,8 +25,9 @@ var ErrChannelUpdateInProgress = errors.New("cannot defund channel with unsuppor
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
-	Status protocols.ObjectiveStatus
-	C      *channel.Channel
+	Status       protocols.ObjectiveStatus
+	C            *channel.Channel
+	finalTurnNum uint64
 }
 
 func isUpdateInProgress(c *channel.Channel) bool {
@@ -43,7 +44,9 @@ func NewObjective(
 	preApprove bool,
 	c *channel.Channel,
 ) (Objective, error) {
-	// We are chosing to disallow creating an objective if the channel has an in-progress update
+	// We choose to disallow creating an objective if the channel has an in-progress update.
+	// We allow the creation of of an objective if the channel has some final states.
+	// In the future, we can add a restriction that only defund objectives can add final states to the channel.
 	if isUpdateInProgress(c) {
 		return Objective{}, ErrChannelUpdateInProgress
 	}
@@ -56,6 +59,18 @@ func NewObjective(
 		init.Status = protocols.Unapproved
 	}
 	init.C = c.Clone()
+
+	latestSS, err := c.LatestSupportedState()
+	if err != nil {
+		return init, err
+	}
+
+	if !latestSS.IsFinal {
+		init.finalTurnNum = latestSS.TurnNum + 1
+
+	} else {
+		init.finalTurnNum = latestSS.TurnNum
+	}
 
 	return init, nil
 }
@@ -90,6 +105,9 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (Objective, error) {
 		for _, ss := range event.SignedStates {
 			if !ss.State().IsFinal {
 				return o, errors.New("direct defund objective can only be updated with final states")
+			}
+			if o.finalTurnNum != ss.State().TurnNum {
+				return o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, ss.State().TurnNum)
 			}
 		}
 	}
@@ -184,6 +202,7 @@ func (o Objective) clone() Objective {
 
 	cClone := o.C.Clone()
 	clone.C = cClone
+	clone.finalTurnNum = o.finalTurnNum
 
 	return clone
 }

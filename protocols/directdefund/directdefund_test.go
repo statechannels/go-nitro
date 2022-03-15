@@ -152,14 +152,25 @@ func TestUpdate(t *testing.T) {
 		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
 	}
 
+	// Try updating the objective with a non-final state. An error is expected.
 	s := testState.Clone()
 	s.TurnNum = 3
 	e.ObjectiveId = o.Id()
 	ss, _ := signedTestState(s, []bool{true, false})
 	e.SignedStates = []state.SignedState{ss}
 
-	if _, err := o.Update(e); err == nil {
-		t.Error("expected an error when updating with a non-final state")
+	if _, err := o.Update(e); err.Error() != "direct defund objective can only be updated with final states" {
+		t.Error(err)
+	}
+
+	// Try updating the objective with a final state with the wrong turn number. An error is expected.
+	s.TurnNum = 4
+	s.IsFinal = true
+	ss, _ = signedTestState(s, []bool{true, false})
+	e.SignedStates = []state.SignedState{ss}
+
+	if _, err := o.Update(e); err.Error() != "expected state with turn number 3, received turn number 4" {
+		t.Error(err)
 	}
 }
 
