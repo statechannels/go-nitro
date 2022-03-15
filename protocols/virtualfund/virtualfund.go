@@ -67,6 +67,7 @@ func (c *Connection) Equal(d *Connection) bool {
 type jsonConnection struct {
 	Channel            types.Destination
 	ExpectedGuarantees []assetGuarantee
+	GuarnateeInfo      GuaranteeInfo
 }
 
 // MarshalJSON returns a JSON representation of the Connection
@@ -81,7 +82,7 @@ func (c Connection) MarshalJSON() ([]byte, error) {
 			guarantee,
 		})
 	}
-	jsonC := jsonConnection{c.Channel.Id, guarantees}
+	jsonC := jsonConnection{c.Channel.Id, guarantees, c.GuaranteeInfo}
 	bytes, err := json.Marshal(jsonC)
 
 	if err != nil {
@@ -114,6 +115,7 @@ func (c *Connection) UnmarshalJSON(data []byte) error {
 	}
 
 	c.Channel.Id = jsonC.Channel
+	c.GuaranteeInfo = jsonC.GuarnateeInfo
 
 	for _, eg := range jsonC.ExpectedGuarantees {
 		c.ExpectedGuarantees[eg.Asset] = eg.Guarantee
