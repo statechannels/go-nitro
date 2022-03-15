@@ -134,9 +134,7 @@ func TestNew(t *testing.T) {
 	}
 
 	if _, err := newTestObjective(true); err != nil {
-		if err != nil {
-			t.Error(err)
-		}
+		t.Error(err)
 	}
 }
 
