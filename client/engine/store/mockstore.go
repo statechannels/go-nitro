@@ -44,7 +44,7 @@ func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Object
 
 	// return immediately if no such objective exists
 	if !ok {
-		return nil, fmt.Errorf("no objective with id %s exists in storage", id)
+		return nil, ErrNoSuchObjective
 	}
 
 	obj, err := decodeObjective(id, objJSON)
@@ -184,6 +184,13 @@ func (ms MockStore) populateChannelData(obj protocols.Objective) (protocols.Obje
 			vfo.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: right}
 
 		}
+
+		// if vfo.ToMyLeft.Channel.Id == zeroAddress {
+		// 	vfo.ToMyLeft = nil
+		// }
+		// if vfo.ToMyRight.Channel.Id == zeroAddress {
+		// 	vfo.ToMyRight = nil
+		// }
 
 		return vfo, nil
 

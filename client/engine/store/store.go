@@ -2,10 +2,14 @@
 package store // import "github.com/statechannels/go-nitro/client/engine/store"
 
 import (
+	"errors"
+
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
+
+var ErrNoSuchObjective error = errors.New("store: no such objective")
 
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
 type Store interface {
