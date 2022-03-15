@@ -11,6 +11,7 @@ type Event struct {
 	ChannelId          types.Destination
 	Holdings           types.Funds // indexed by asset
 	AdjudicationStatus protocols.AdjudicationStatus
+	BlockNum           uint64
 }
 
 type ChainService interface {

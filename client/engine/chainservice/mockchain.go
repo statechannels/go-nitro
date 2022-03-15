@@ -45,13 +45,15 @@ func (mc *MockChain) Subscribe(a types.Address) {
 
 // Run starts a listener for transactions on the MockChain's in chan.
 func (mc MockChain) Run() {
+	blockNum := uint64(1)
 	for tx := range mc.in {
-		mc.handleTx(tx)
+		mc.handleTx(tx, blockNum)
+		blockNum++
 	}
 }
 
 // handleTx responds to the given tx.
-func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
+func (mc MockChain) handleTx(tx protocols.ChainTransaction, blockNum uint64) {
 	if tx.Deposit.IsNonZero() {
 		mc.holdings[tx.ChannelId] = mc.holdings[tx.ChannelId].Add(tx.Deposit)
 	}
@@ -59,6 +61,7 @@ func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 		ChannelId:          tx.ChannelId,
 		Holdings:           mc.holdings[tx.ChannelId],
 		AdjudicationStatus: protocols.AdjudicationStatus{TurnNumRecord: 0},
+		BlockNum:           blockNum,
 	}
 	for _, out := range mc.out {
 		attemptSend(out, event)

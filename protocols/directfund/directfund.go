@@ -39,6 +39,7 @@ type Objective struct {
 	myDepositSafetyThreshold types.Funds // if the on chain holdings are equal to this amount it is safe for me to deposit
 	myDepositTarget          types.Funds // I want to get the on chain holdings up to this much
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
+	latestBlockNumber        uint64      //the latest block number we've seen
 }
 
 // jsonObjective replaces the directfund.Objective's channel pointer with the
@@ -138,8 +139,9 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	updated := o.clone()
 	updated.C.AddSignedStates(event.SignedStates)
 
-	if event.Holdings != nil {
-		updated.C.OnChainFunding = event.Holdings
+	if event.Holdings != nil && event.BlockNum > updated.latestBlockNumber {
+		updated.C.OnChainFunding = event.Holdings.Clone()
+		updated.latestBlockNumber = event.BlockNum
 	}
 
 	return &updated, nil
@@ -330,7 +332,7 @@ func (o Objective) clone() Objective {
 	clone.myDepositSafetyThreshold = o.myDepositSafetyThreshold.Clone()
 	clone.myDepositTarget = o.myDepositTarget.Clone()
 	clone.fullyFundedThreshold = o.fullyFundedThreshold.Clone()
-
+	clone.latestBlockNumber = o.latestBlockNumber
 	return clone
 }
 
