@@ -330,7 +330,7 @@ func TestCrankBob(t *testing.T) {
 		t.Error(err)
 	}
 	if wf != WaitingForNothing {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
+		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForNothing, wf)
 	}
 
 	expectedSE = protocols.SideEffects{}
