@@ -161,7 +161,12 @@ func (ms MockStore) populateChannelData(obj protocols.Objective) (protocols.Obje
 		}
 		vfo.V = &channel.SingleHopVirtualChannel{Channel: v}
 
-		if vfo.ToMyLeft != nil && vfo.ToMyLeft.Channel != nil {
+		zeroAddress := types.Destination{}
+
+		if vfo.ToMyLeft != nil &&
+			vfo.ToMyLeft.Channel != nil &&
+			vfo.ToMyLeft.Channel.Id != zeroAddress {
+
 			left, err := ms.getChannelById(vfo.ToMyLeft.Channel.Id)
 			if err != nil {
 				return nil, fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
@@ -169,7 +174,9 @@ func (ms MockStore) populateChannelData(obj protocols.Objective) (protocols.Obje
 			vfo.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: left}
 		}
 
-		if vfo.ToMyRight != nil && vfo.ToMyRight.Channel != nil {
+		if vfo.ToMyRight != nil &&
+			vfo.ToMyRight.Channel != nil &&
+			vfo.ToMyRight.Channel.Id != zeroAddress {
 			right, err := ms.getChannelById(vfo.ToMyRight.Channel.Id)
 			if err != nil {
 				return nil, fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
