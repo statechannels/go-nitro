@@ -141,7 +141,6 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 
 	sideEffects := protocols.SideEffects{}
 
-	// Input validation
 	if updated.Status != protocols.Approved {
 		return updated, sideEffects, WaitingForNothing, ErrNotApproved
 	}
