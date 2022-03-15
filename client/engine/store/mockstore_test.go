@@ -74,6 +74,9 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 	if got.Id() != testObj.Id() {
 		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
 	}
+	if diff := cmp.Diff(got, &testObj); diff != "" {
+		t.Errorf("expected no diff between set and retrieved objective, but found:\n%s", diff)
+	}
 }
 
 func TestGetChannelSecretKey(t *testing.T) {
