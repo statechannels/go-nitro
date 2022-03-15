@@ -91,6 +91,8 @@ func NewObjective(
 }
 
 // Public methods on the DirectDefundingObjective
+
+// Id returns the unique id of the objective
 func (o Objective) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + o.C.Id.String())
 }
