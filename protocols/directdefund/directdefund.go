@@ -153,7 +153,7 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 		return updated, sideEffects, WaitingForNothing, errors.New("The channel must contain at least one signed state to crank the defund objective")
 	}
 
-	// Sign a final state if it has not been signed
+	// Finalize and sign a state if no supported, finalized state exists
 	if !latestSignedState.State().IsFinal || !latestSignedState.HasSignatureForParticipant(updated.C.MyIndex) {
 		stateToSign := latestSignedState.State().Clone()
 		if !stateToSign.IsFinal {
