@@ -462,6 +462,13 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	if err := o.ToMyRight.UnmarshalJSON(jsonVFO.ToMyRight); err != nil {
 		return fmt.Errorf("failed to unmarshal right ledger channel: %w", err)
 	}
+	zeroAddress := types.Destination{}
+	if o.ToMyLeft.Channel.Id == zeroAddress {
+		o.ToMyLeft = nil
+	}
+	if o.ToMyRight.Channel.Id == zeroAddress {
+		o.ToMyRight = nil
+	}
 
 	o.Status = jsonVFO.Status
 	o.n = jsonVFO.N
