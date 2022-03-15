@@ -116,14 +116,15 @@ func (e *Engine) handleMessage(message protocols.Message) ObjectiveChangeEvent {
 	e.logger.Printf("Handling inbound message %+v", summarizeMessage(message))
 	objective, err := e.getOrCreateObjective(message)
 	if err != nil {
-		e.logger.Print(err)
-		return ObjectiveChangeEvent{}
+		// TODO handle error
+		e.logger.Panic(err)
 	}
 	event := protocols.ObjectiveEvent{ObjectiveId: message.ObjectiveId, SignedStates: message.SignedStates}
 	updatedObjective, err := objective.Update(event)
 	if err != nil {
-		e.logger.Print(err)
-		return ObjectiveChangeEvent{}
+		// TODO handle error
+		e.logger.Panic(err)
+
 	}
 
 	return e.attemptProgress(updatedObjective)
@@ -147,7 +148,7 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) ObjectiveChange
 	updatedObjective, err := objective.Update(event)
 	if err != nil {
 		// TODO handle error
-		panic(err)
+		e.logger.Panic(err)
 	}
 	return e.attemptProgress(updatedObjective)
 
@@ -163,13 +164,25 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 		return e.attemptProgress(apiEvent.ObjectiveToSpawn)
 	}
 	if apiEvent.ObjectiveToReject != `` {
-		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		objective, ok := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		if !ok {
+			// TODO handle error
+			e.logger.Panic(fmt.Errorf("could not find objective with id %s", apiEvent.ObjectiveToReject))
+		}
 		updatedProtocol := objective.Reject()
-		_ = e.store.SetObjective(updatedProtocol) // TODO handle error
+		err := e.store.SetObjective(updatedProtocol)
+		if err != nil {
+			// TODO handle error
+			e.logger.Panic(err)
+		}
 		return ObjectiveChangeEvent{}
 	}
 	if apiEvent.ObjectiveToApprove != `` {
-		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		objective, ok := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		if !ok {
+			// TODO handle error
+			e.logger.Panic(fmt.Errorf("could not find objective with id %s", apiEvent.ObjectiveToReject))
+		}
 		updatedObjective := objective.Approve()
 		return e.attemptProgress(updatedObjective)
 
@@ -200,17 +213,36 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent) {
 	secretKey := e.store.GetChannelSecretKey()
 
-	crankedObjective, sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
-	_ = e.store.SetObjective(crankedObjective)                                 // TODO handle error
+	crankedObjective, sideEffects, waitingFor, err := objective.Crank(secretKey)
+	if err != nil {
+		// TODO handle error
+		e.logger.Panic(err)
+	}
+	err = e.store.SetObjective(crankedObjective)
+	if err != nil {
+		// TODO handle error
+		e.logger.Panic(err)
+	}
 
 	// TODO: This is hack to get around the fact that currently each objective in the store has it's own set of channels.
 	vfo, isVirtual := crankedObjective.(*virtualfund.Objective)
 	if isVirtual {
 		if vfo.ToMyLeft != nil {
-			_ = e.store.SetChannel(&vfo.ToMyLeft.Channel.Channel)
+			err = e.store.SetChannel(&vfo.ToMyLeft.Channel.Channel)
+			if err != nil {
+				// TODO handle error
+				e.logger.Panic(err)
+			}
+
 		}
+
 		if vfo.ToMyRight != nil {
-			_ = e.store.SetChannel(&vfo.ToMyRight.Channel.Channel)
+			err = e.store.SetChannel(&vfo.ToMyRight.Channel.Channel)
+			if err != nil {
+				// TODO handle error
+				e.logger.Panic(err)
+			}
+
 		}
 	}
 
@@ -290,6 +322,7 @@ func summarizeMessage(message protocols.Message) messageSummary {
 	for _, signedState := range message.SignedStates {
 		channelId, err := signedState.State().ChannelId()
 		if err != nil {
+			// TODO handle error
 			panic(err)
 		}
 		summary.signedStates = append(summary.signedStates, signedStateSummary{turnNum: signedState.State().TurnNum, channelId: channelId.String()})
