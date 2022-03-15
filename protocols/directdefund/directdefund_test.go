@@ -98,7 +98,7 @@ func newChannelFromSignedState(ss state.SignedState, myIndex uint) (*channel.Cha
 	if !allOk {
 		return c, errors.New("Unable to add a state to channel")
 	}
-	c.OnChainFunding = map[common.Address]*big.Int{common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`): big.NewInt(1)}
+	c.OnChainFunding = map[common.Address]*big.Int{types.Address{}: big.NewInt(1)}
 	return c, nil
 }
 
