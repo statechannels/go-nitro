@@ -1,6 +1,7 @@
 package channel
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -62,6 +63,52 @@ func New(s state.State, myIndex uint) (*Channel, error) {
 	}
 
 	return &c, nil
+}
+
+// jsonChannel replaces Channel's private fields with public ones,
+// making it suitable for serialization
+type jsonChannel struct {
+	Id             types.Destination
+	MyIndex        uint
+	OnChainFunding types.Funds
+	state.FixedPart
+	SignedStateForTurnNum map[uint64]state.SignedState
+
+	LatestSupportedStateTurnNum uint64
+}
+
+// MarshalJSON returns a JSON representation of the Channel
+func (c Channel) MarshalJSON() ([]byte, error) {
+	jsonCh := jsonChannel{
+		Id:                    c.Id,
+		MyIndex:               c.MyIndex,
+		OnChainFunding:        c.OnChainFunding,
+		FixedPart:             c.FixedPart,
+		SignedStateForTurnNum: c.SignedStateForTurnNum,
+
+		LatestSupportedStateTurnNum: c.latestSupportedStateTurnNum,
+	}
+	return json.Marshal(jsonCh)
+}
+
+// UnmarshalJSON populates the calling Channel with the
+// json-encoded data
+func (c *Channel) UnmarshalJSON(data []byte) error {
+	var jsonCh jsonChannel
+	err := json.Unmarshal(data, &jsonCh)
+	if err != nil {
+		return fmt.Errorf("error unmarshaling channel data")
+	}
+
+	c.Id = jsonCh.Id
+	c.MyIndex = jsonCh.MyIndex
+	c.OnChainFunding = jsonCh.OnChainFunding
+	c.latestSupportedStateTurnNum = jsonCh.LatestSupportedStateTurnNum
+	c.SignedStateForTurnNum = jsonCh.SignedStateForTurnNum
+
+	c.FixedPart = jsonCh.FixedPart
+
+	return nil
 }
 
 // MyDestination returns the client's destination
