@@ -43,8 +43,8 @@ func NewBroker() Broker {
 func NewTestMessageService(address types.Address, broker Broker) TestMessageService {
 	tms := TestMessageService{
 		address: address,
-		in:      make(chan protocols.Message, 5),
-		out:     make(chan protocols.Message, 5),
+		in:      make(chan protocols.Message, 100),
+		out:     make(chan protocols.Message, 100),
 	}
 
 	tms.Connect(broker)
