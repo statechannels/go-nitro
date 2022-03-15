@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
 	nc "github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
@@ -41,7 +42,7 @@ func TestSetGetObjective(t *testing.T) {
 	got, err = ms.GetObjectiveById(testObj.Id())
 
 	if err != nil {
-		t.Errorf("expected to find the inserted objective, but didn't: %w", err)
+		t.Errorf("expected to find the inserted objective, but didn't: %s", err)
 	}
 
 	if got.Id() != testObj.Id() {
