@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
+	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -15,12 +16,11 @@ func TestVirtualFundIntegration(t *testing.T) {
 	truncateLog(logFile)
 
 	chain := chainservice.NewMockChain()
+	broker := messageservice.NewBroker()
 
-	clientA, messageserviceA := setupClient(aliceKey, chain, logFile)
-	clientB, messageserviceB := setupClient(bobKey, chain, logFile)
-	clientI, messageserviceI := setupClient(ireneKey, chain, logFile)
-
-	connectMessageServices(messageserviceA, messageserviceB, messageserviceI)
+	clientA := setupClient(aliceKey, chain, broker, logFile)
+	clientB := setupClient(bobKey, chain, broker, logFile)
+	clientI := setupClient(ireneKey, chain, broker, logFile)
 
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)
