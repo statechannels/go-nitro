@@ -194,7 +194,7 @@ func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective
 
 		return &dfo, err
 	} else if virtualfund.IsVirtualFundObjective(id) {
-		vfo := directfund.Objective{}
+		vfo := virtualfund.Objective{}
 		err := vfo.UnmarshalJSON(data)
 
 		return &vfo, err
