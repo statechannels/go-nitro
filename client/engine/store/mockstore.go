@@ -44,7 +44,7 @@ func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Object
 
 	// return immediately if no such objective exists
 	if !ok {
-		return nil, ErrNoSuchObjective
+		return nil, fmt.Errorf("%w: %s", ErrNoSuchObjective, id)
 	}
 
 	obj, err := decodeObjective(id, objJSON)
