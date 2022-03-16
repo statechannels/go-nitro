@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/statechannels/go-nitro/channel"
@@ -13,7 +14,7 @@ import (
 
 type MockStore struct {
 	objectives map[protocols.ObjectiveId][]byte
-	channels   map[types.Destination]channel.Channel
+	channels   map[types.Destination][]byte
 
 	key     []byte        // the signing key of the store's engine
 	address types.Address // the (Ethereum) address associated to the signing key
@@ -25,7 +26,7 @@ func NewMockStore(key []byte) Store {
 	ms.address = crypto.GetAddressFromSecretKeyBytes(key)
 
 	ms.objectives = make(map[protocols.ObjectiveId][]byte)
-	ms.channels = make(map[types.Destination]channel.Channel)
+	ms.channels = make(map[types.Destination][]byte)
 
 	return &ms
 }
@@ -83,24 +84,45 @@ func (ms MockStore) SetObjective(obj protocols.Objective) error {
 
 // SetChannel sets the channel in the store.
 func (ms *MockStore) SetChannel(ch *channel.Channel) error {
-	ms.channels[ch.Id] = *ch
+	chJSON, err := ch.MarshalJSON()
 
-	return nil // temp - errors can exist / be reported when serde reintroduced
+	if err != nil {
+		return err
+	}
+
+	ms.channels[ch.Id] = chJSON
+	return nil
 }
 
 // getChannelById returns the stored channel
 func (ms *MockStore) getChannelById(id types.Destination) (channel.Channel, error) {
-	ch, ok := ms.channels[id]
-	if ok {
-		return ch, nil
-	} else {
-		return channel.Channel{}, fmt.Errorf("channel %s not found", id)
+	chJSON, ok := ms.channels[id]
+
+	if !ok {
+		return channel.Channel{}, ErrNoSuchChannel
 	}
+
+	var ch channel.Channel
+	err := ch.UnmarshalJSON(chJSON)
+
+	if err != nil {
+		return channel.Channel{}, fmt.Errorf("error unmarshaling channel %s", ch.Id)
+	}
+
+	return ch, nil
 }
 
 // GetTwoPartyLedger returns a ledger channel between the two parties if it exists.
 func (ms MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool) {
-	for _, ch := range ms.channels {
+	for _, chJSON := range ms.channels {
+
+		var ch channel.Channel
+		err := json.Unmarshal(chJSON, &ch)
+
+		if err != nil {
+			return &channel.TwoPartyLedger{}, false
+		}
+
 		if len(ch.Participants) == 2 {
 			// TODO: Should order matter?
 			if ch.Participants[0] == firstParty && ch.Participants[1] == secondParty {
