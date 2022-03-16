@@ -53,7 +53,7 @@ func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Object
 		return nil, fmt.Errorf("error decoding objective %s: %w", id, err)
 	}
 
-	obj, err = ms.populateChannelData(obj)
+	err = ms.populateChannelData(obj)
 	if err != nil {
 		// return existing objective data along with error
 		return obj, fmt.Errorf("error populating channel data for objective %s: %w", id, err)
@@ -146,7 +146,7 @@ func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protoc
 
 		for _, ch := range obj.Channels() {
 			if ch.Id == channelId {
-				obj, err = ms.populateChannelData(obj)
+				err = ms.populateChannelData(obj)
 
 				if err != nil {
 					return nil, false // todo: enrich w/ err return
@@ -161,8 +161,9 @@ func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protoc
 }
 
 // populateChannelData fetches stored Channel data relevent to the given
-// objective, attaches it to the objective, and returns the objective
-func (ms MockStore) populateChannelData(obj protocols.Objective) (protocols.Objective, error) {
+// objective and attaches it to the objective. The channel data is attached
+// in-place of the objectives existing channel pointers.
+func (ms MockStore) populateChannelData(obj protocols.Objective) error {
 	id := obj.Id()
 
 	if dfo, isDirectFund := obj.(*directfund.Objective); isDirectFund {
@@ -170,18 +171,18 @@ func (ms MockStore) populateChannelData(obj protocols.Objective) (protocols.Obje
 		ch, err := ms.getChannelById(dfo.C.Id)
 
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
+			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
 		}
 
 		dfo.C = &ch
 
-		return dfo, nil
+		return nil
 
 	} else if vfo, isVirtualFund := obj.(*virtualfund.Objective); isVirtualFund {
 
 		v, err := ms.getChannelById(vfo.V.Id)
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
+			return fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
 		}
 		vfo.V = &channel.SingleHopVirtualChannel{Channel: v}
 
@@ -193,7 +194,7 @@ func (ms MockStore) populateChannelData(obj protocols.Objective) (protocols.Obje
 
 			left, err := ms.getChannelById(vfo.ToMyLeft.Channel.Id)
 			if err != nil {
-				return nil, fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
+				return fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
 			}
 			vfo.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: left}
 		}
@@ -203,16 +204,15 @@ func (ms MockStore) populateChannelData(obj protocols.Objective) (protocols.Obje
 			vfo.ToMyRight.Channel.Id != zeroAddress {
 			right, err := ms.getChannelById(vfo.ToMyRight.Channel.Id)
 			if err != nil {
-				return nil, fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
+				return fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
 			}
 			vfo.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: right}
-
 		}
 
-		return vfo, nil
+		return nil
 
 	} else {
-		return nil, fmt.Errorf("objective %s did not correctly represent a known Objective type", id)
+		return fmt.Errorf("objective %s did not correctly represent a known Objective type", id)
 	}
 }
 
