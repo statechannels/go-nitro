@@ -217,7 +217,8 @@ func (ms MockStore) populateChannelData(obj protocols.Objective) (protocols.Obje
 }
 
 // decodeObjective is a helper which encapsulates the deserialization
-// of Objective JSON data.
+// of Objective JSON data. The decoded objectives will not have any
+// channel data other than the channel Id.
 func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective, error) {
 	if directfund.IsDirectFundObjective(id) {
 		dfo := directfund.Objective{}
