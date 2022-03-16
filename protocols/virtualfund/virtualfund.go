@@ -464,6 +464,10 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	if err := o.ToMyRight.UnmarshalJSON(jsonVFO.ToMyRight); err != nil {
 		return fmt.Errorf("failed to unmarshal right ledger channel: %w", err)
 	}
+
+	// connection.Unmarshal cannot populate a nil connection, so instead returns
+	// a non-connection to a channel with the zero-Id. virtualfund.objective expects
+	// these connection objects to be nil.
 	zeroAddress := types.Destination{}
 	if o.ToMyLeft.Channel.Id == zeroAddress {
 		o.ToMyLeft = nil
