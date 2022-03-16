@@ -2,10 +2,12 @@ package client_test
 
 import (
 	"math/big"
+	"math/rand"
 	"testing"
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -26,9 +28,28 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	directlyFundALedgerChannel(t, clientAlice, clientIrene)
 	directlyFundALedgerChannel(t, clientIrene, clientBob)
 	directlyFundALedgerChannel(t, clientIrene, clientBrian)
-
-	id := clientAlice.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, bob), big.NewInt(0))
-	id2 := clientAlice.CreateVirtualChannel(brian, irene, types.Address{}, types.Bytes{}, createVirtualOutcome(alice, brian), big.NewInt(0))
+	withBobRequest := virtualfund.ObjectiveRequest{
+		MyAddress:         alice,
+		CounterParty:      bob,
+		Intermediary:      irene,
+		Outcome:           createVirtualOutcome(alice, bob),
+		AppDefinition:     types.Address{},
+		AppData:           types.Bytes{},
+		ChallengeDuration: big.NewInt(0),
+		Nonce:             rand.Int63(),
+	}
+	withBrianRequest := virtualfund.ObjectiveRequest{
+		MyAddress:         alice,
+		CounterParty:      brian,
+		Intermediary:      irene,
+		Outcome:           createVirtualOutcome(alice, bob),
+		AppDefinition:     types.Address{},
+		AppData:           types.Bytes{},
+		ChallengeDuration: big.NewInt(0),
+		Nonce:             rand.Int63(),
+	}
+	id := clientAlice.CreateVirtualChannel(withBobRequest)
+	id2 := clientAlice.CreateVirtualChannel(withBrianRequest)
 
 	waitTimeForCompletedObjectiveIds(t, &clientBob, defaultTimeout, id)
 	waitTimeForCompletedObjectiveIds(t, &clientBrian, defaultTimeout, id2)
