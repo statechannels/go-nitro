@@ -164,7 +164,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 		switch request := (apiEvent.ObjectiveToSpawn).(type) {
 
 		case virtualfund.ObjectiveRequest:
-			vfo, err := virtualfund.SpawnObjective(request, e.store.GetTwoPartyLedger)
+			vfo, err := virtualfund.NewObjective(request, e.store.GetTwoPartyLedger)
 			if err != nil {
 				e.logger.Printf("handleAPIEvent: Could not create objective for  %+v", request)
 				return ObjectiveChangeEvent{}
@@ -172,7 +172,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 			return e.attemptProgress(&vfo)
 
 		case directfund.ObjectiveRequest:
-			dfo, err := directfund.SpawnObjective(request)
+			dfo, err := directfund.NewObjective(request, true)
 			if err != nil {
 				e.logger.Printf("handleAPIEvent: Could not create objective for  %+v", request)
 				return ObjectiveChangeEvent{}
@@ -280,15 +280,12 @@ func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Obje
 
 // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied message.
 func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (protocols.Objective, error) {
-	initialState := message.SignedStates[0].State()
 
 	switch {
 	case directfund.IsDirectFundObjective(message.ObjectiveId):
-		dfo, err := directfund.NewObjective(
-			true, // TODO ensure objective in only approved if the application has given permission somehow
-			initialState,
-			*e.store.GetAddress(),
-		)
+		dfo, err := directfund.ConstructObjectiveFromMessage(
+			message, *e.store.GetAddress())
+
 		return &dfo, err
 	case virtualfund.IsVirtualFundObjective(message.ObjectiveId):
 		vfo, err := virtualfund.ConstructObjectiveFromMessage(message, *e.store.GetAddress(), e.store.GetTwoPartyLedger)
