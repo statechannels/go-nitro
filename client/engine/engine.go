@@ -166,19 +166,24 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 		case virtualfund.ObjectiveRequest:
 			vfo, err := virtualfund.SpawnObjective(request, e.store.GetTwoPartyLedger)
 			if err != nil {
-				panic(err)
+				e.logger.Printf("handleAPIEvent: Could not create objective for  %+v", request)
+				return ObjectiveChangeEvent{}
 			}
 			return e.attemptProgress(&vfo)
 
 		case directfund.ObjectiveRequest:
 			dfo, err := directfund.SpawnObjective(request)
 			if err != nil {
-				panic(err)
+				e.logger.Printf("handleAPIEvent: Could not create objective for  %+v", request)
+				return ObjectiveChangeEvent{}
 			}
 			return e.attemptProgress(&dfo)
 
 		default:
-			panic(fmt.Errorf("Unknown objective type %T", request))
+
+			e.logger.Printf("handleAPIEvent: Unknown objective type %T", request)
+			return ObjectiveChangeEvent{}
+
 		}
 
 	}
