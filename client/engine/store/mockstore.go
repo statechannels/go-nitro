@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/statechannels/go-nitro/channel"
@@ -12,8 +13,8 @@ import (
 )
 
 type MockStore struct {
-	objectives map[protocols.ObjectiveId]protocols.Objective
-	channels   map[types.Destination]channel.Channel
+	objectives map[protocols.ObjectiveId][]byte
+	channels   map[types.Destination][]byte
 
 	key     []byte        // the signing key of the store's engine
 	address types.Address // the (Ethereum) address associated to the signing key
@@ -24,8 +25,8 @@ func NewMockStore(key []byte) Store {
 	ms.key = key
 	ms.address = crypto.GetAddressFromSecretKeyBytes(key)
 
-	ms.objectives = make(map[protocols.ObjectiveId]protocols.Objective)
-	ms.channels = make(map[types.Destination]channel.Channel)
+	ms.objectives = make(map[protocols.ObjectiveId][]byte)
+	ms.channels = make(map[types.Destination][]byte)
 
 	return &ms
 }
@@ -38,60 +39,38 @@ func (ms MockStore) GetChannelSecretKey() *[]byte {
 	return &ms.key
 }
 
-func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (obj protocols.Objective, ok bool) {
+func (ms MockStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Objective, error) {
 	// todo: locking
-	obj, ok = ms.objectives[id]
+	objJSON, ok := ms.objectives[id]
 
 	// return immediately if no such objective exists
 	if !ok {
-		return nil, ok
+		return nil, fmt.Errorf("%w: %s", ErrNoSuchObjective, id)
 	}
 
-	// populate channel data
-	if dfo, isDirectFund := obj.(*directfund.Objective); isDirectFund {
-		ch, err := ms.getChannelById(dfo.C.Id)
-
-		if err != nil {
-			return nil, false
-		}
-
-		dfo.C = &ch
-
-		obj = dfo
-	} else if vfo, isVirtualFund := obj.(*virtualfund.Objective); isVirtualFund {
-		v, err := ms.getChannelById(vfo.V.Id)
-		if err != nil {
-			return nil, false
-		}
-		vfo.V = &channel.SingleHopVirtualChannel{Channel: v}
-
-		if vfo.ToMyLeft != nil && vfo.ToMyLeft.Channel != nil {
-			left, err := ms.getChannelById(vfo.ToMyLeft.Channel.Id)
-			if err != nil {
-				return nil, false
-			}
-			vfo.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: left}
-		}
-
-		if vfo.ToMyRight != nil && vfo.ToMyRight.Channel != nil {
-			right, err := ms.getChannelById(vfo.ToMyRight.Channel.Id)
-			if err != nil {
-				return nil, false
-			}
-			vfo.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: right}
-
-		}
-
-		obj = vfo
+	obj, err := decodeObjective(id, objJSON)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding objective %s: %w", id, err)
 	}
 
-	return obj, ok
+	err = ms.populateChannelData(obj)
+	if err != nil {
+		// return existing objective data along with error
+		return obj, fmt.Errorf("error populating channel data for objective %s: %w", id, err)
+	}
+
+	return obj, nil
 }
 
 func (ms MockStore) SetObjective(obj protocols.Objective) error {
 	// todo: locking
-	// todo: strip channel data from stored objective (avoid duplicate data-storage) (on serde PR)
-	ms.objectives[obj.Id()] = obj
+	objJSON, err := obj.MarshalJSON()
+
+	if err != nil {
+		return fmt.Errorf("error setting objective %s: %w", obj.Id(), err)
+	}
+
+	ms.objectives[obj.Id()] = objJSON
 
 	for _, ch := range obj.Channels() {
 		err := ms.SetChannel(ch)
@@ -105,24 +84,46 @@ func (ms MockStore) SetObjective(obj protocols.Objective) error {
 
 // SetChannel sets the channel in the store.
 func (ms *MockStore) SetChannel(ch *channel.Channel) error {
-	ms.channels[ch.Id] = *ch
+	chJSON, err := ch.MarshalJSON()
 
-	return nil // temp - errors can exist / be reported when serde reintroduced
+	if err != nil {
+		return err
+	}
+
+	ms.channels[ch.Id] = chJSON
+	return nil
 }
 
 // getChannelById returns the stored channel
 func (ms *MockStore) getChannelById(id types.Destination) (channel.Channel, error) {
-	ch, ok := ms.channels[id]
-	if ok {
-		return ch, nil
-	} else {
-		return channel.Channel{}, fmt.Errorf("channel %s not found", id)
+	chJSON, ok := ms.channels[id]
+
+	if !ok {
+		return channel.Channel{}, ErrNoSuchChannel
 	}
+
+	var ch channel.Channel
+	err := ch.UnmarshalJSON(chJSON)
+
+	if err != nil {
+		return channel.Channel{}, fmt.Errorf("error unmarshaling channel %s", ch.Id)
+	}
+
+	return ch, nil
 }
 
 // GetTwoPartyLedger returns a ledger channel between the two parties if it exists.
 func (ms MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool) {
-	for _, ch := range ms.channels {
+
+	for _, chJSON := range ms.channels {
+
+		var ch channel.Channel
+		err := json.Unmarshal(chJSON, &ch)
+
+		if err != nil {
+			return &channel.TwoPartyLedger{}, false
+		}
+
 		if len(ch.Participants) == 2 {
 			// TODO: Should order matter?
 			if ch.Participants[0] == firstParty && ch.Participants[1] == secondParty {
@@ -136,13 +137,100 @@ func (ms MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty type
 
 func (ms MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
 	// todo: locking
-	for _, obj := range ms.objectives {
+	for id, objJSON := range ms.objectives {
+		obj, err := decodeObjective(id, objJSON)
+
+		if err != nil {
+			return nil, false
+		}
+
 		for _, ch := range obj.Channels() {
 			if ch.Id == channelId {
+				err = ms.populateChannelData(obj)
+
+				if err != nil {
+					return nil, false // todo: enrich w/ err return
+				}
+
 				return obj, true
 			}
 		}
 	}
 
 	return nil, false
+}
+
+// populateChannelData fetches stored Channel data relevent to the given
+// objective and attaches it to the objective. The channel data is attached
+// in-place of the objectives existing channel pointers.
+func (ms MockStore) populateChannelData(obj protocols.Objective) error {
+	id := obj.Id()
+
+	if dfo, isDirectFund := obj.(*directfund.Objective); isDirectFund {
+
+		ch, err := ms.getChannelById(dfo.C.Id)
+
+		if err != nil {
+			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
+		}
+
+		dfo.C = &ch
+
+		return nil
+
+	} else if vfo, isVirtualFund := obj.(*virtualfund.Objective); isVirtualFund {
+
+		v, err := ms.getChannelById(vfo.V.Id)
+		if err != nil {
+			return fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
+		}
+		vfo.V = &channel.SingleHopVirtualChannel{Channel: v}
+
+		zeroAddress := types.Destination{}
+
+		if vfo.ToMyLeft != nil &&
+			vfo.ToMyLeft.Channel != nil &&
+			vfo.ToMyLeft.Channel.Id != zeroAddress {
+
+			left, err := ms.getChannelById(vfo.ToMyLeft.Channel.Id)
+			if err != nil {
+				return fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
+			}
+			vfo.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: left}
+		}
+
+		if vfo.ToMyRight != nil &&
+			vfo.ToMyRight.Channel != nil &&
+			vfo.ToMyRight.Channel.Id != zeroAddress {
+			right, err := ms.getChannelById(vfo.ToMyRight.Channel.Id)
+			if err != nil {
+				return fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
+			}
+			vfo.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: right}
+		}
+
+		return nil
+
+	} else {
+		return fmt.Errorf("objective %s did not correctly represent a known Objective type", id)
+	}
+}
+
+// decodeObjective is a helper which encapsulates the deserialization
+// of Objective JSON data. The decoded objectives will not have any
+// channel data other than the channel Id.
+func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective, error) {
+	if directfund.IsDirectFundObjective(id) {
+		dfo := directfund.Objective{}
+		err := dfo.UnmarshalJSON(data)
+
+		return &dfo, err
+	} else if virtualfund.IsVirtualFundObjective(id) {
+		vfo := virtualfund.Objective{}
+		err := vfo.UnmarshalJSON(data)
+
+		return &vfo, err
+	} else {
+		return nil, fmt.Errorf("objective id %s does not correspond to a known Objective type", id)
+	}
 }

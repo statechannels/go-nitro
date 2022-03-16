@@ -230,8 +230,11 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Objective, error) {
 	id := message.ObjectiveId
 
-	objective, ok := e.store.GetObjectiveById(id)
-	if !ok {
+	objective, err := e.store.GetObjectiveById(id)
+
+	if err == nil {
+		return objective, nil
+	} else if errors.Is(err, store.ErrNoSuchObjective) {
 
 		newObj, err := e.constructObjectiveFromMessage(message)
 		if err != nil {
@@ -245,7 +248,7 @@ func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Obje
 		return newObj, nil
 
 	} else {
-		return objective, nil
+		return nil, fmt.Errorf("unexpected error getting/creating objective %s: %w", message.ObjectiveId, err)
 	}
 }
 

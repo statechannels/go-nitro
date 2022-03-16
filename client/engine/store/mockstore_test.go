@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
 	nc "github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
@@ -21,8 +22,8 @@ func TestSetGetObjective(t *testing.T) {
 	ms := NewMockStore(sk)
 
 	id := protocols.ObjectiveId("404")
-	got, ok := ms.GetObjectiveById(id)
-	if ok {
+	got, err := ms.GetObjectiveById(id)
+	if err == nil {
 		t.Errorf("expected not to find the %s objective, but found %v", id, got)
 	}
 
@@ -38,11 +39,12 @@ func TestSetGetObjective(t *testing.T) {
 		t.Errorf("error setting objective %v: %s", testObj, err.Error())
 	}
 
-	got, ok = ms.GetObjectiveById(testObj.Id())
+	got, err = ms.GetObjectiveById(testObj.Id())
 
-	if !ok {
-		t.Errorf("expected to find the inserted objective, but didn't")
+	if err != nil {
+		t.Errorf("expected to find the inserted objective, but didn't: %s", err)
 	}
+
 	if got.Id() != testObj.Id() {
 		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
 	}
@@ -72,6 +74,9 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 	}
 	if got.Id() != testObj.Id() {
 		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
+	}
+	if diff := cmp.Diff(got, &testObj); diff != "" {
+		t.Errorf("expected no diff between set and retrieved objective, but found:\n%s", diff)
 	}
 }
 
