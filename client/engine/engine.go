@@ -30,6 +30,8 @@ type Engine struct {
 
 	store store.Store // A Store for persisting and restoring important data
 
+	channelLocker *ChannelLocker
+
 	logger *log.Logger
 }
 
@@ -54,11 +56,11 @@ type CompletedObjectiveEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer) Engine {
+func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, channelLocker *ChannelLocker) Engine {
 	e := Engine{}
 
 	e.store = store
-
+	e.channelLocker = channelLocker
 	// bind to inbound chans
 	e.FromAPI = make(chan APIEvent)
 	e.fromChain = chain.Out()
@@ -118,6 +120,11 @@ func (e *Engine) handleMessage(message protocols.Message) ObjectiveChangeEvent {
 
 	e.logger.Printf("Handling inbound message %+v", summarizeMessage(message))
 	objective, err := e.getOrCreateObjective(message)
+	// Acquire a lock for the channels and then refetch the objective with the latest version
+	e.channelLocker.Lock(GetChannelIds(objective.Channels()))
+	objective, _ = e.getOrCreateObjective(message)
+	defer e.channelLocker.Unlock(GetChannelIds(objective.Channels()))
+
 	if err != nil {
 		e.logger.Print(err)
 		return ObjectiveChangeEvent{}
@@ -140,18 +147,22 @@ func (e *Engine) handleMessage(message protocols.Message) ObjectiveChangeEvent {
 // generates an updated objective and
 // attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) ObjectiveChangeEvent {
-	e.logger.Printf("handling chain event %v", chainEvent)
+	e.logger.Printf("preparing to lock for  chain event %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	if !ok {
 		e.logger.Printf("handleChainEvent: No objective in store for channel with id %s", chainEvent.ChannelId)
 		return ObjectiveChangeEvent{}
 	}
+	// Acquire a lock for the channels and then refetch the objective to get the latest version
+	e.channelLocker.Lock(GetChannelIds(objective.Channels()))
+	defer e.channelLocker.Unlock(GetChannelIds(objective.Channels()))
+	objective, _ = e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
+	e.logger.Printf("handling chain event %v", chainEvent)
 	event := protocols.ObjectiveEvent{
 		Holdings:           chainEvent.Holdings,
 		BlockNum:           chainEvent.BlockNum,
 		AdjudicationStatus: chainEvent.AdjudicationStatus,
-		ObjectiveId:        objective.Id(),
-	}
+		ObjectiveId:        objective.Id()}
 	updatedObjective, err := objective.Update(event)
 	if err != nil {
 		// TODO handle error
@@ -177,6 +188,11 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 				e.logger.Printf("handleAPIEvent: Could not create objective for  %+v", request)
 				return ObjectiveChangeEvent{}
 			}
+			// Acquire a lock for the channels and then generate the objective with the latest data
+			e.channelLocker.Lock(GetChannelIds(vfo.Channels()))
+			defer e.channelLocker.Unlock(GetChannelIds(vfo.Channels()))
+			vfo, _ = virtualfund.NewObjective(request, e.store.GetTwoPartyLedger)
+
 			return e.attemptProgress(&vfo)
 
 		case directfund.ObjectiveRequest:
@@ -185,6 +201,12 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 				e.logger.Printf("handleAPIEvent: Could not create objective for  %+v", request)
 				return ObjectiveChangeEvent{}
 			}
+
+			// Acquire a lock for the channels and then generate the objective with the latest data
+			e.channelLocker.Lock(GetChannelIds(dfo.Channels()))
+			defer e.channelLocker.Unlock(GetChannelIds(dfo.Channels()))
+			dfo, _ = directfund.NewObjective(request, true)
+
 			return e.attemptProgress(&dfo)
 
 		default:
