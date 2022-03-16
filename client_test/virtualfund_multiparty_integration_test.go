@@ -1,38 +1,27 @@
 package client_test
 
 import (
-	"log"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
+	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/types"
 )
 
 // TestMultiPartyVirtualFundIntegration tests the scenario where Alice creates virtual channels with Bob and Brian using Irene as the intermediary.
 func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 
-	// Set up logging
-	logDestination, err := os.OpenFile("virtualfund_multiparty_client_test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
+	logFile := "virtualfund_multiparty_client_test.log"
+	truncateLog(logFile)
 
-	// Reset log destination file
-	err = logDestination.Truncate(0)
-	if err != nil {
-		log.Fatal(err)
-	}
+	chain := chainservice.NewMockChain()
+	broker := messageservice.NewBroker()
 
-	chain := chainservice.NewMockChain([]types.Address{alice, bob, irene, brian})
-
-	clientAlice, aliceMS := setupClient(aliceKey, chain, logDestination)
-	clientBob, bobMS := setupClient(bobKey, chain, logDestination)
-	clientBrian, brianMS := setupClient(brianKey, chain, logDestination)
-	clientIrene, ireneMS := setupClient(ireneKey, chain, logDestination)
-
-	connectMessageServices(aliceMS, bobMS, ireneMS, brianMS)
+	clientAlice := setupClient(aliceKey, chain, broker, logFile)
+	clientBob := setupClient(bobKey, chain, broker, logFile)
+	clientBrian := setupClient(brianKey, chain, broker, logFile)
+	clientIrene := setupClient(ireneKey, chain, broker, logFile)
 
 	directlyFundALedgerChannel(t, clientAlice, clientIrene)
 	directlyFundALedgerChannel(t, clientIrene, clientBob)

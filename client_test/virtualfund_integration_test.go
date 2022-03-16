@@ -1,36 +1,26 @@
 package client_test
 
 import (
-	"log"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
+	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/types"
 )
 
 func TestVirtualFundIntegration(t *testing.T) {
 
 	// Set up logging
-	logDestination, err := os.OpenFile("virtualfund_client_test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
+	logFile := "virtualfund_client_test.log"
+	truncateLog(logFile)
 
-	// Reset log destination file
-	err = logDestination.Truncate(0)
-	if err != nil {
-		log.Fatal(err)
-	}
+	chain := chainservice.NewMockChain()
+	broker := messageservice.NewBroker()
 
-	chain := chainservice.NewMockChain([]types.Address{alice, bob, irene})
-
-	clientA, messageserviceA := setupClient(aliceKey, chain, logDestination)
-	clientB, messageserviceB := setupClient(bobKey, chain, logDestination)
-	clientI, messageserviceI := setupClient(ireneKey, chain, logDestination)
-
-	connectMessageServices(messageserviceA, messageserviceB, messageserviceI)
+	clientA := setupClient(aliceKey, chain, broker, logFile)
+	clientB := setupClient(bobKey, chain, broker, logFile)
+	clientI := setupClient(ireneKey, chain, broker, logFile)
 
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)

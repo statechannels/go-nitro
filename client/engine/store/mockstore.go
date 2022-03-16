@@ -114,6 +114,7 @@ func (ms *MockStore) getChannelById(id types.Destination) (channel.Channel, erro
 
 // GetTwoPartyLedger returns a ledger channel between the two parties if it exists.
 func (ms MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool) {
+
 	for _, chJSON := range ms.channels {
 
 		var ch channel.Channel
@@ -129,6 +130,7 @@ func (ms MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty type
 				return &channel.TwoPartyLedger{Channel: ch}, true
 			}
 		}
+
 	}
 	return nil, false
 }
