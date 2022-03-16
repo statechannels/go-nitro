@@ -209,13 +209,6 @@ func (ms MockStore) populateChannelData(obj protocols.Objective) (protocols.Obje
 
 		}
 
-		// if vfo.ToMyLeft.Channel.Id == zeroAddress {
-		// 	vfo.ToMyLeft = nil
-		// }
-		// if vfo.ToMyRight.Channel.Id == zeroAddress {
-		// 	vfo.ToMyRight = nil
-		// }
-
 		return vfo, nil
 
 	} else {
