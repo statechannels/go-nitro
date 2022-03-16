@@ -613,14 +613,14 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 	var right *channel.TwoPartyLedger
 	var ok bool
 	if alice == myAddress {
-		right, ok = getTwoPartyLedger(intermediary, bob)
+		right, ok = getTwoPartyLedger(alice, intermediary)
 		if !ok {
-			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", alice, intermediary)
 		}
 	} else if bob == myAddress {
 		left, ok = getTwoPartyLedger(intermediary, bob)
 		if !ok {
-			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
 		}
 	}
 	if intermediary == myAddress {
