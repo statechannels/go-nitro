@@ -3,9 +3,7 @@ package client // import "github.com/statechannels/go-nitro/client"
 
 import (
 	"io"
-	"math/rand"
 
-	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -62,17 +60,8 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
-func (c *Client) CreateVirtualChannel(counterParty types.Address, intermediary types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) protocols.ObjectiveId {
-	objectiveRequest := virtualfund.ObjectiveRequest{
-		MyAddress:         *c.Address,
-		CounterParty:      counterParty,
-		Intermediary:      intermediary,
-		AppDefinition:     appDefinition,
-		AppData:           appData,
-		Outcome:           outcome,
-		ChallengeDuration: challengeDuration,
-		Nonce:             rand.Int63(), // TODO: Proper nonce management!
-	}
+func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequest) protocols.ObjectiveId {
+
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objectiveRequest,
 	}
@@ -83,17 +72,8 @@ func (c *Client) CreateVirtualChannel(counterParty types.Address, intermediary t
 }
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty
-func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) protocols.ObjectiveId {
-	// Convert the API call into an internal event.
-	objectiveRequest := directfund.ObjectiveRequest{
-		MyAddress:         *c.Address,
-		CounterParty:      counterparty,
-		AppDefinition:     appDefinition,
-		AppData:           appData,
-		Outcome:           outcome,
-		ChallengeDuration: challengeDuration,
-		Nonce:             rand.Int63(), // TODO: Proper nonce management!
-	}
+func (c *Client) CreateDirectChannel(objectiveRequest directfund.ObjectiveRequest) protocols.ObjectiveId {
+
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objectiveRequest,
 	}
