@@ -2,6 +2,7 @@
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
+	"context"
 	"io"
 
 	"github.com/statechannels/go-nitro/client/engine"
@@ -35,7 +36,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 
 	for i := uint(0); i < concurrentRunLoops; i++ {
 		// TODO  provide an abort channel so the run loop can be aborted
-		go c.engine.Run()
+		go c.engine.Run(context.Background())
 	}
 
 	// Start the event handler in a go routine

@@ -2,6 +2,7 @@
 package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -85,10 +86,13 @@ func (e *Engine) ToApi() <-chan ObjectiveChangeEvent {
 }
 
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
-func (e *Engine) Run() {
+// It accepts a context that can be used to cancel the loop.
+func (e *Engine) Run(ctx context.Context) {
 	for {
 		var res ObjectiveChangeEvent
 		select {
+		case <-ctx.Done():
+			return
 		case apiEvent := <-e.FromAPI:
 			res = e.handleAPIEvent(apiEvent)
 
