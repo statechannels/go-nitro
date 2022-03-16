@@ -19,6 +19,7 @@ type Client struct {
 	engine              engine.Engine // The core business logic of the client
 	Address             *types.Address
 	completedObjectives chan protocols.ObjectiveId
+	channelLocker       *engine.ChannelLocker
 }
 
 // New is the constructor for a Client.
@@ -28,7 +29,8 @@ type Client struct {
 func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, concurrentRunLoops uint) Client {
 	c := Client{}
 	c.Address = store.GetAddress()
-	c.engine = engine.New(messageService, chainservice, store, logDestination)
+	c.channelLocker = engine.NewChannelLocker()
+	c.engine = engine.New(messageService, chainservice, store, logDestination, c.channelLocker)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 
 	for i := uint(0); i < concurrentRunLoops; i++ {
