@@ -13,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/crypto"
 
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -134,7 +135,10 @@ type assetGuarantee struct {
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
 type Objective struct {
 	Status protocols.ObjectiveStatus
-	V      *channel.SingleHopVirtualChannel
+	StartingState state.SignedState
+	postFundSigs  map[uint]state.Signature // keyed by participant index
+	targetId types.Destination
+	// V      *channel.SingleHopVirtualChannel
 
 	ToMyLeft  *Connection
 	ToMyRight *Connection
@@ -151,7 +155,7 @@ type Objective struct {
 // with the channel's respective IDs, making jsonObjective suitable for serialization
 type jsonObjective struct {
 	Status protocols.ObjectiveStatus
-	V      types.Destination
+	// V      types.Destination
 
 	ToMyLeft  []byte
 	ToMyRight []byte
@@ -211,6 +215,12 @@ func constructFromState(
 	}
 
 	// Infer MyRole
+
+	err := validateInitialState(initialStateOfV)
+	if err != nil {
+		return Objective{}, err
+	}
+
 	found := false
 	for i, addr := range initialStateOfV.Participants {
 		if bytes.Equal(addr[:], myAddress[:]) {
@@ -223,13 +233,23 @@ func constructFromState(
 		return Objective{}, errors.New("not a participant in V")
 	}
 
-	// Initialize virtual channel
-	v, err := channel.NewSingleHopVirtualChannel(initialStateOfV, init.MyRole)
+	participants := initialStateOfV.Participants
+	leftOfMe, rightOfMe := types.Destination{}, types.Destination{}
+	if !init.isAlice() {
+		leftOfMe = types.AddressToDestination(participants[init.MyRole-1])
+	}
+	me := types.AddressToDestination(participants[init.MyRole])
+	if !init.isBob() {
+		rightOfMe = types.AddressToDestination(participants[init.MyRole+1])
+	}
+	vId, err := initialStateOfV.ChannelId()
 	if err != nil {
 		return Objective{}, err
 	}
+	init.targetId = vId
 
-	init.V = v
+	init.StartingState = state.NewSignedState(initialStateOfV)
+	init.postFundSigs = make(map[uint]crypto.Signature)
 
 	init.n = uint(len(initialStateOfV.Participants)) - 2 // NewSingleHopVirtualChannel will error unless there are at least 3 participants
 
@@ -255,13 +275,7 @@ func constructFromState(
 	if !init.isAlice() { // everyone other than Alice has a left-channel
 		init.ToMyLeft = &Connection{}
 		init.ToMyLeft.Channel = ledgerChannelToMyLeft
-		err = init.ToMyLeft.insertExpectedGuarantees(
-			init.a0,
-			init.b0,
-			init.V.Id,
-			types.AddressToDestination(init.V.Participants[init.MyRole-1]),
-			types.AddressToDestination(init.V.Participants[init.MyRole]),
-		)
+		err := init.ToMyLeft.insertExpectedGuarantees( init.a0, init.b0, init.targetId, leftOfMe, me,)
 		if err != nil {
 			return Objective{}, err
 		}
@@ -270,13 +284,7 @@ func constructFromState(
 	if !init.isBob() { // everyone other than Bob has a right-channel
 		init.ToMyRight = &Connection{}
 		init.ToMyRight.Channel = ledgerChannelToMyRight
-		err = init.ToMyRight.insertExpectedGuarantees(
-			init.a0,
-			init.b0,
-			init.V.Id,
-			types.AddressToDestination(init.V.Participants[init.MyRole]),
-			types.AddressToDestination(init.V.Participants[init.MyRole+1]),
-		)
+		err := init.ToMyRight.insertExpectedGuarantees( init.a0, init.b0, init.targetId, me, rightOfMe)
 		if err != nil {
 			return Objective{}, err
 		}
@@ -287,7 +295,7 @@ func constructFromState(
 
 // Id returns the objective id.
 func (o Objective) Id() protocols.ObjectiveId {
-	return protocols.ObjectiveId(ObjectivePrefix + o.V.Id.String())
+	return protocols.ObjectiveId(ObjectivePrefix + o.targetId.String())
 }
 
 // Approve returns an approved copy of the objective.
@@ -308,6 +316,8 @@ func (o Objective) Reject() protocols.Objective {
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
 // and returns the updated state.
 func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+	err := error(nil)
+
 	if o.Id() != event.ObjectiveId {
 		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
@@ -329,9 +339,21 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		switch channelId {
 		case types.Destination{}:
 			return &o, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
-		case o.V.Id:
-			updated.V.AddSignedState(ss)
-			// We expect pre and post fund state signatures.
+		case o.targetId:
+			if ss.State().TurnNum == 0 {
+				err = updated.StartingState.Merge(ss)
+			} else if ss.State().TurnNum == 1 {
+				postFS := updated.PostFundSetup()
+				err = postFS.Merge(ss)
+				updated.postFundSigs = postFS.Signatures()
+			} else {
+				err = fmt.Errorf("unexpected state received")
+			}
+
+			if err != nil {
+				return &Objective{}, nil
+			}
+
 		case toMyLeftId:
 			updated.ToMyLeft.Channel.AddSignedState(ss)
 			// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
@@ -360,16 +382,18 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 
 	// Prefunding
 
-	if !updated.V.PreFundSignedByMe() {
-		ss, err := updated.V.SignAndAddPrefund(secretKey)
+	preFundSignedByMe := updated.StartingState.HasSignatureForParticipant(updated.MyRole)
+	if !preFundSignedByMe {
+		err := updated.StartingState.Sign(secretKey)
 		if err != nil {
 			return &o, protocols.SideEffects{}, WaitingForNothing, err
 		}
-		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
+		messages := protocols.CreateSignedStateMessages(o.Id(), updated.StartingState, o.MyRole)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
-	if !updated.V.PreFundComplete() {
+	preFundComplete := updated.StartingState.HasAllSignatures()
+	if !preFundComplete {
 		return &updated, sideEffects, WaitingForCompletePrefund, nil
 	}
 
@@ -397,16 +421,20 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	}
 
 	// Postfunding
-	if !updated.V.PostFundSignedByMe() {
-		ss, err := updated.V.SignAndAddPostfund(secretKey)
+	_, postFundSignedByMe := updated.postFundSigs[updated.MyRole]
+	
+	if !postFundSignedByMe {
+		s := updated.PostFundSetup()
+		err := s.Sign(secretKey)
 		if err != nil {
 			return &o, protocols.SideEffects{}, WaitingForNothing, err
 		}
-		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
+		messages := protocols.CreateSignedStateMessages(o.Id(), s, o.MyRole)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
-	if !updated.V.PostFundComplete() {
+	postFundComplete := updated.PostFundSetup().HasAllSignatures()
+	if !postFundComplete {
 		return &updated, sideEffects, WaitingForCompletePostFund, nil
 	}
 
@@ -414,9 +442,14 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	return &updated, sideEffects, WaitingForNothing, nil
 }
 
+func (o Objective) PostFundSetup() state.SignedState {
+	s := o.StartingState.Clone().State()
+	sigs := o.postFundSigs
+	return state.NewSignedStateWithSigs(s, sigs)
+}
+
 func (o Objective) Channels() []*channel.Channel {
 	ret := make([]*channel.Channel, 0, 3)
-	ret = append(ret, &o.V.Channel)
 	if !o.isAlice() {
 		ret = append(ret, &o.ToMyLeft.Channel.Channel)
 	}
@@ -457,7 +490,7 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 
 	jsonVFO := jsonObjective{
 		o.Status,
-		o.V.Id,
+		// o.V.Id,
 		left,
 		right,
 		o.n,
@@ -483,8 +516,8 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("failed to unmarshal the VirtualFundObjective: %w", err)
 	}
 
-	o.V = &channel.SingleHopVirtualChannel{}
-	o.V.Id = jsonVFO.V
+	// o.V = &channel.SingleHopVirtualChannel{}
+	// o.V.Id = jsonVFO.V
 
 	o.ToMyLeft = &Connection{}
 	o.ToMyRight = &Connection{}
@@ -582,7 +615,7 @@ func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
 // Equal returns true if the supplied DirectFundObjective is deeply equal to the receiver.
 func (o Objective) Equal(r Objective) bool {
 	return o.Status == r.Status &&
-		o.V.Equal(r.V) &&
+		// o.V.Equal(r.V) &&
 		o.ToMyLeft.Equal(r.ToMyLeft) &&
 		o.ToMyRight.Equal(r.ToMyRight) &&
 		o.n == r.n &&
@@ -595,8 +628,8 @@ func (o Objective) Equal(r Objective) bool {
 func (o *Objective) clone() Objective {
 	clone := Objective{}
 	clone.Status = o.Status
-	vClone := o.V.Clone()
-	clone.V = vClone
+	// vClone := o.V.Clone()
+	// clone.V = vClone
 
 	if o.ToMyLeft != nil {
 		lClone := o.ToMyLeft.Channel.Clone()
@@ -725,7 +758,7 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 	}
 	nextState.TurnNum = nextState.TurnNum + 1
 	// Update the outcome with the guarantee.
-	nextState.Outcome, err = nextState.Outcome.DivertToGuarantee(left, right, leftAmount, rightAmount, o.V.Id)
+	nextState.Outcome, err = nextState.Outcome.DivertToGuarantee(left, right, leftAmount, rightAmount, o.targetId)
 	if err != nil {
 		return protocols.SideEffects{}, fmt.Errorf("error updating ledger channel outcome: %w", err)
 	}
@@ -838,4 +871,21 @@ func (r ObjectiveRequest) Id() protocols.ObjectiveId {
 
 	channelId, _ := fixedPart.ChannelId()
 	return protocols.ObjectiveId(ObjectivePrefix + channelId.String())
+}
+
+
+// validateInitialState checks that
+// - the channel has three participants
+// - the outcome is the expected shape for a virtual channel
+func validateInitialState(s state.State) error {
+	if len(s.Participants) != 3 {
+		return errors.New("a single hop virtual channel must have exactly three participants")
+	}
+	for _, assetExit := range s.Outcome {
+		if len(assetExit.Allocations) != 2 {
+			return errors.New("a single hop virtual channel's initial state should only have two allocations")
+		}
+	}
+
+	return nil
 }

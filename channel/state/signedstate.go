@@ -20,6 +20,10 @@ func NewSignedState(s State) SignedState {
 	return SignedState{s, make(map[uint]Signature, len(s.Participants))}
 }
 
+func NewSignedStateWithSigs(s State, sigs map[uint]Signature) SignedState {
+	return SignedState{s, sigs}
+}
+
 // Sign generates a signature on the receiver's state with the supplied key, and adds that signature.
 func (ss SignedState) Sign(secretKey *[]byte) error {
 	sig, err := ss.state.Sign(*secretKey)
@@ -61,6 +65,10 @@ func (ss SignedState) AddSignature(sig Signature) error {
 // State returns the State part of the SignedState.
 func (ss SignedState) State() State {
 	return ss.state
+}
+
+func (ss SignedState) Signatures() map[uint]Signature {
+	return ss.sigs
 }
 
 // HasSignatureForParticipant returns true if the participant (at participantIndex) has a valid signature.
