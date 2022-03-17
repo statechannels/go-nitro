@@ -653,6 +653,10 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 	intermediary := participants[1]
 	bob := participants[2]
 
+	if myAddress == alice {
+		return Objective{}, errors.New("participant[0] should not construct objectives from peer messages")
+	}
+
 	var left *channel.TwoPartyLedger
 	var right *channel.TwoPartyLedger
 	var ok bool
