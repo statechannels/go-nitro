@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"fmt"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -57,7 +56,7 @@ func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, ire
 	}
 	id := alice.CreateVirtualChannel(request)
 
-	defer elapsed(string(id))()
+	defer elapsed(t, string(id))()
 	waitTimeForCompletedObjectiveIds(t, &alice, defaultTimeout, id)
 	done <- true
 }
@@ -83,9 +82,9 @@ func expect(t *testing.T, done chan bool, num int, timeout time.Duration) {
 	}
 }
 
-func elapsed(what string) func() {
+func elapsed(t *testing.T, what string) func() {
 	start := time.Now()
 	return func() {
-		fmt.Printf("%s took %v\n", what, time.Since(start))
+		t.Logf("%s took %v\n", what, time.Since(start))
 	}
 }
