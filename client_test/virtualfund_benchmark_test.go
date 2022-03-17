@@ -32,7 +32,7 @@ func TestBenchmark(t *testing.T) {
 
 	done := make(chan bool)
 
-	n := 1
+	n := 3
 	for i := 0; i < n; i++ {
 		go benchmarkVirtualChannelCreation(t, clientAlice, clientBob, irene, done)
 	}
@@ -55,8 +55,13 @@ func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, ire
 	id := alice.CreateVirtualChannel(request)
 
 	defer elapsed(t, string(id))()
-	waitTimeForCompletedObjectiveIds(t, &alice, defaultTimeout, id)
-	done <- true
+
+	for got := range bob.CompletedObjectives() {
+		if got == id {
+			done <- true
+			return
+		}
+	}
 }
 
 // Returns after `done` has received `num` messages.
