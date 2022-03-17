@@ -32,14 +32,12 @@ func TestBenchmark(t *testing.T) {
 
 	done := make(chan bool)
 
-	go benchmarkVirtualChannelCreation(t, clientAlice, clientBob, irene, done)
-	// Once the wallet can safely handle multiple virtual channel creations, we
-	// can do things like the following:
-	// go benchmarkVirtualChannelCreation(t, clientAlice, clientBob, irene, done)
-	// go benchmarkVirtualChannelCreation(t, clientAlice, clientBob, irene, done)
-	// expect(t, done, 3)
+	n := 3
+	for i := 0; i < n; i++ {
+		go benchmarkVirtualChannelCreation(t, clientAlice, clientBob, irene, done)
+	}
 
-	expect(t, done, 1, time.Millisecond*1000)
+	expect(t, done, n, time.Millisecond*1000)
 }
 
 func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, irene types.Address, done chan bool) {
