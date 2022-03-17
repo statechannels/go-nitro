@@ -23,8 +23,13 @@ const defaultTimeout = time.Second
 // waitWithTimeoutForCompletedObjectiveIds waits up to the given timeout for completed objectives and returns when the all objective ids provided have been completed.
 // If the timeout lapses and the objectives have not all completed, the parent test will be failed.
 func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeout time.Duration, ids ...protocols.ObjectiveId) {
+	completed := make(map[protocols.ObjectiveId]bool)
+	for _, id := range ids {
+		completed[id] = false
+	}
 	waitAndSendOn := func(allDone chan interface{}) {
-		waitForCompletedObjectiveIds(client, ids...)
+
+		waitForCompletedObjectiveIds(client, completed)
 		allDone <- struct{}{}
 	}
 	allDone := make(chan interface{})
@@ -32,19 +37,22 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 
 	select {
 	case <-time.After(timeout):
-		t.Fatalf("Objective ids %s failed to complete in one second on client %s", ids, client.Address)
+		incompleteIds := make([]protocols.ObjectiveId, 0)
+		for id, completed := range completed {
+			if !completed {
+				incompleteIds = append(incompleteIds, id)
+			}
+		}
+		t.Fatalf("Objective ids %s failed to complete in one second on client %s", incompleteIds, client.Address)
 	case <-allDone:
 		return
 	}
 }
 
 // waitForCompletedObjectiveIds waits for completed objectives and returns when the all objective ids provided have been completed.
-func waitForCompletedObjectiveIds(client *client.Client, ids ...protocols.ObjectiveId) {
+func waitForCompletedObjectiveIds(client *client.Client, completed map[protocols.ObjectiveId]bool) {
 	// Create a map of all objective ids to wait for and set to false
-	completed := make(map[protocols.ObjectiveId]bool)
-	for _, id := range ids {
-		completed[id] = false
-	}
+
 	// We continue to consume completed objective ids from the chan until all have been completed
 	for got := range client.CompletedObjectives() {
 		// Mark the objective as completed
