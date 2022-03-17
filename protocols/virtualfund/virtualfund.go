@@ -675,6 +675,8 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
 		}
+	} else {
+		return Objective{}, fmt.Errorf("client address not found in an expected participant index")
 	}
 
 	return constructFromState(
