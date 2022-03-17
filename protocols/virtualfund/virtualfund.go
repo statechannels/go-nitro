@@ -640,9 +640,10 @@ type GetTwoPartyLedgerFunction func(firstParty types.Address, secondParty types.
 // ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
 func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address, getTwoPartyLedger GetTwoPartyLedgerFunction) (Objective, error) {
-	if len(m.SignedStates) == 0 {
-		return Objective{}, errors.New("expected at least one signed state in the message")
+	if len(m.SignedStates) != 1 {
+		return Objective{}, errors.New("expected exactly one signed state in the message")
 	}
+
 	initialState := m.SignedStates[0].State()
 	participants := initialState.Participants
 
@@ -655,18 +656,15 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 	var left *channel.TwoPartyLedger
 	var right *channel.TwoPartyLedger
 	var ok bool
-	if alice == myAddress {
-		right, ok = getTwoPartyLedger(intermediary, bob)
-		if !ok {
-			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
-		}
-	} else if bob == myAddress {
+
+	if myAddress == alice {
+		return Objective{}, errors.New("participant[0] should not construct objectives from peer messages")
+	} else if myAddress == bob {
 		left, ok = getTwoPartyLedger(intermediary, bob)
 		if !ok {
-			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
 		}
-	}
-	if intermediary == myAddress {
+	} else if myAddress == intermediary {
 		left, ok = getTwoPartyLedger(alice, intermediary)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
@@ -675,6 +673,8 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
 		}
+	} else {
+		return Objective{}, fmt.Errorf("client address not found in an expected participant index")
 	}
 
 	return constructFromState(
