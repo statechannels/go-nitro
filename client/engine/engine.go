@@ -100,6 +100,9 @@ func (e *Engine) Run() {
 		}
 		// Only send out an event if there are changes
 		if len(res.CompletedObjectives) > 0 {
+			for _, obj := range res.CompletedObjectives {
+				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
+			}
 			e.toApi <- res
 		}
 	}
