@@ -39,7 +39,7 @@ func TestBenchmark(t *testing.T) {
 	// go benchmarkVirtualChannelCreation(t, clientAlice, clientBob, irene, done)
 	// expect(t, done, 3)
 
-	expect(t, done, 1, time.Millisecond*10)
+	expect(t, done, 1, time.Millisecond*1000)
 }
 
 func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, irene types.Address, done chan bool) {
