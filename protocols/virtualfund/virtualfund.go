@@ -666,8 +666,7 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
 		}
-	}
-	if intermediary == myAddress {
+	} else if myAddress == intermediary {
 		left, ok = getTwoPartyLedger(alice, intermediary)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
