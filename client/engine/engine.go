@@ -71,7 +71,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	// initialize a Logger
 	logPrefix := e.store.GetAddress().String()[0:8] + ": "
-	e.logger = log.New(logDestination, logPrefix, log.Ldate|log.Ltime|log.Lshortfile)
+	e.logger = log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
 
 	e.logger.Println("Constructed Engine")
 
