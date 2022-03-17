@@ -146,7 +146,12 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) ObjectiveChange
 		e.logger.Printf("handleChainEvent: No objective in store for channel with id %s", chainEvent.ChannelId)
 		return ObjectiveChangeEvent{}
 	}
-	event := protocols.ObjectiveEvent{Holdings: chainEvent.Holdings, BlockNum: chainEvent.BlockNum, AdjudicationStatus: chainEvent.AdjudicationStatus, ObjectiveId: objective.Id()}
+	event := protocols.ObjectiveEvent{
+		Holdings:           chainEvent.Holdings,
+		BlockNum:           chainEvent.BlockNum,
+		AdjudicationStatus: chainEvent.AdjudicationStatus,
+		ObjectiveId:        objective.Id(),
+	}
 	updatedObjective, err := objective.Update(event)
 	if err != nil {
 		// TODO handle error

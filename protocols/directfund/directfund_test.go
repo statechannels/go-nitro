@@ -138,8 +138,9 @@ func TestUpdate(t *testing.T) {
 
 	// Finally, add some Holdings information to the event
 	// Updating the objective with this event should overwrite the holdings that are stored
-	newFunding := types.Funds{}
-	newFunding[common.Address{}] = big.NewInt(3)
+	newFunding := types.Funds{
+		common.Address{}: big.NewInt(3),
+	}
 	highBlockNum := uint64(200)
 	updatedObjective, err = s.Update(protocols.ObjectiveEvent{ObjectiveId: s.Id(), Holdings: newFunding, BlockNum: highBlockNum})
 	if err != nil {

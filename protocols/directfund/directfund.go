@@ -40,7 +40,7 @@ type Objective struct {
 	myDepositSafetyThreshold types.Funds // if the on chain holdings are equal to this amount it is safe for me to deposit
 	myDepositTarget          types.Funds // I want to get the on chain holdings up to this much
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
-	latestBlockNumber        uint64      //the latest block number we've seen
+	latestBlockNumber        uint64      // the latest block number we've seen
 }
 
 // jsonObjective replaces the directfund.Objective's channel pointer with the
