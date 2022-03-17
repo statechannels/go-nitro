@@ -296,10 +296,7 @@ func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Obje
 		if err != nil {
 			return nil, fmt.Errorf("error constructing objective from message: %w", err)
 		}
-		err = e.store.SetObjective(newObj)
-		if err != nil {
-			return nil, fmt.Errorf("error setting objective in store: %w", err)
-		}
+
 		e.logger.Printf("Created new objective from  message %s", newObj.Id())
 		return newObj, nil
 
