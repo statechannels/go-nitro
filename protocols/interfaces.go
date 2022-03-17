@@ -45,6 +45,7 @@ type ObjectiveEvent struct {
 	SignedStates       []state.SignedState
 	Holdings           types.Funds // mapping from asset identifier to amount
 	AdjudicationStatus AdjudicationStatus
+	BlockNum           uint64
 }
 
 // Objective is the interface for off-chain protocols.

@@ -14,6 +14,7 @@ type MockChain struct {
 	in  chan protocols.ChainTransaction // in is the chan used to recieve Transactions from multiple ChainServices
 
 	holdings map[types.Destination]types.Funds // holdings tracks funds for each channel
+	blockNum uint64
 }
 
 // Out returns the out chan for a particular ChainService, and narrows the type so that external consumers may only receive on it.
@@ -33,6 +34,7 @@ func NewMockChain() MockChain {
 	mc.out = make(map[types.Address]chan Event)
 	mc.in = make(chan protocols.ChainTransaction)
 	mc.holdings = make(map[types.Destination]types.Funds)
+	mc.blockNum = 1
 
 	go mc.Run()
 	return mc
@@ -46,6 +48,7 @@ func (mc *MockChain) Subscribe(a types.Address) {
 // Run starts a listener for transactions on the MockChain's in chan.
 func (mc MockChain) Run() {
 	for tx := range mc.in {
+		mc.blockNum++
 		mc.handleTx(tx)
 	}
 }
@@ -59,6 +62,7 @@ func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 		ChannelId:          tx.ChannelId,
 		Holdings:           mc.holdings[tx.ChannelId],
 		AdjudicationStatus: protocols.AdjudicationStatus{TurnNumRecord: 0},
+		BlockNum:           mc.blockNum,
 	}
 	for _, out := range mc.out {
 		attemptSend(out, event)

@@ -138,15 +138,35 @@ func TestUpdate(t *testing.T) {
 
 	// Finally, add some Holdings information to the event
 	// Updating the objective with this event should overwrite the holdings that are stored
-	e.Holdings = types.Funds{}
-	e.Holdings[common.Address{}] = big.NewInt(3)
-	updatedObjective, err = s.Update(e)
+	newFunding := types.Funds{
+		common.Address{}: big.NewInt(3),
+	}
+	highBlockNum := uint64(200)
+	updatedObjective, err = s.Update(protocols.ObjectiveEvent{ObjectiveId: s.Id(), Holdings: newFunding, BlockNum: highBlockNum})
 	if err != nil {
 		t.Error(err)
 	}
 	updated = updatedObjective.(*Objective)
-	if !updated.C.OnChainFunding.Equal(e.Holdings) {
+	if !updated.C.OnChainFunding.Equal(newFunding) {
 		t.Error(`Objective data not updated as expected`, updated.C.OnChainFunding, e.Holdings)
+	}
+	if updated.latestBlockNumber != uint64(highBlockNum) {
+		t.Error("Latest block number not updated as expected", updated.latestBlockNumber, highBlockNum)
+	}
+
+	// Update with stale funding information should be ignored
+	staleFunding := types.Funds{}
+	staleFunding[common.Address{}] = big.NewInt(2)
+	lowBlockNum := uint64(100)
+
+	updatedObjective, _ = updated.Update(protocols.ObjectiveEvent{ObjectiveId: s.Id(), Holdings: staleFunding, BlockNum: uint64(lowBlockNum)})
+	updated = updatedObjective.(*Objective)
+
+	if updated.C.OnChainFunding.Equal(staleFunding) {
+		t.Error("OnChainFunding was updated to stale funding information", updated.C.OnChainFunding, staleFunding)
+	}
+	if updated.latestBlockNumber == uint64(lowBlockNum) {
+		t.Error("latestBlockNumber was updated to stale block number", updated.latestBlockNumber, lowBlockNum)
 	}
 
 }
