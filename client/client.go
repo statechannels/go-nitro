@@ -2,13 +2,8 @@
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
-	"fmt"
 	"io"
-	"math/big"
 
-	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -24,7 +19,6 @@ type Client struct {
 	engine              engine.Engine // The core business logic of the client
 	Address             *types.Address
 	completedObjectives chan protocols.ObjectiveId
-	store               *store.Store
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -33,7 +27,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.Address = store.GetAddress()
 	c.engine = engine.New(messageService, chainservice, store, logDestination)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
-	c.store = &store
+
 	// Start the engine in a go routine
 	go c.engine.Run()
 
@@ -66,64 +60,26 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
-func (c *Client) CreateVirtualChannel(counterParty types.Address, intermediary types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) protocols.ObjectiveId {
-	right, ok := (*c.store).GetTwoPartyLedger(*c.Address, intermediary)
-
-	if !ok {
-		// TODO: We need to implement proper API error handling
-		panic(fmt.Sprintf("Could not find ledger channel for participants %v,%v", *c.Address, intermediary))
-	}
-
-	var left *channel.TwoPartyLedger
-
-	// Convert the API call into an internal event.
-	objective, _ := virtualfund.NewObjective(true,
-		state.State{
-			ChainId:           big.NewInt(0), // TODO
-			Participants:      []types.Address{*c.Address, intermediary, counterParty},
-			ChannelNonce:      big.NewInt(0), // TODO -- how do we get a fresh nonce safely without race conditions? Could we conisder a random nonce?
-			AppDefinition:     appDefinition,
-			ChallengeDuration: challengeDuration,
-			AppData:           appData,
-			Outcome:           outcome,
-			TurnNum:           0,
-			IsFinal:           false,
-		},
-		*c.Address,
-		left, right)
+func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequest) protocols.ObjectiveId {
 
 	apiEvent := engine.APIEvent{
-		ObjectiveToSpawn: &objective,
+		ObjectiveToSpawn: objectiveRequest,
 	}
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objective.Id()
+	return objectiveRequest.Id()
 }
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty
-func (c *Client) CreateDirectChannel(counterparty types.Address, appDefinition types.Address, appData types.Bytes, outcome outcome.Exit, challengeDuration *types.Uint256) protocols.ObjectiveId {
-	// Convert the API call into an internal event.
-	objective, _ := directfund.NewObjective(true,
-		state.State{
-			ChainId:           big.NewInt(0), // TODO
-			Participants:      []types.Address{*c.Address, counterparty},
-			ChannelNonce:      big.NewInt(0), // TODO -- how do we get a fresh nonce safely without race conditions? Could we conisder a random nonce?
-			AppDefinition:     appDefinition,
-			ChallengeDuration: challengeDuration,
-			AppData:           appData,
-			Outcome:           outcome,
-			TurnNum:           0,
-			IsFinal:           false,
-		},
-		*c.Address,
-	)
+func (c *Client) CreateDirectChannel(objectiveRequest directfund.ObjectiveRequest) protocols.ObjectiveId {
 
 	apiEvent := engine.APIEvent{
-		ObjectiveToSpawn: &objective,
+		ObjectiveToSpawn: objectiveRequest,
 	}
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objective.Id()
+	return objectiveRequest.Id()
+
 }

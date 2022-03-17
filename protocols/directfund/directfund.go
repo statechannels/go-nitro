@@ -10,6 +10,7 @@ import (
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -51,11 +52,35 @@ type jsonObjective struct {
 	MyDepositSafetyThreshold types.Funds
 	MyDepositTarget          types.Funds
 	FullyFundedThreshold     types.Funds
+	latestBlockNumber        uint64
 }
 
-// NewObjective initiates a Objective with data calculated from
+// NewObjective creates a new direct funding objective from a given request.
+func NewObjective(request ObjectiveRequest, preApprove bool) (Objective, error) {
+
+	objective, err := constructFromState(preApprove,
+		state.State{
+			ChainId:           big.NewInt(0), // TODO
+			Participants:      []types.Address{request.MyAddress, request.CounterParty},
+			ChannelNonce:      big.NewInt(request.Nonce),
+			AppDefinition:     request.AppDefinition,
+			ChallengeDuration: request.ChallengeDuration,
+			AppData:           request.AppData,
+			Outcome:           request.Outcome,
+			TurnNum:           0,
+			IsFinal:           false,
+		},
+		request.MyAddress,
+	)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not create new objective: %w", err)
+	}
+	return objective, nil
+}
+
+// constructFromState initiates a Objective with data calculated from
 // the supplied initialState and client address
-func NewObjective(
+func constructFromState(
 	preApprove bool,
 	initialState state.State,
 	myAddress types.Address,
@@ -228,6 +253,7 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 		o.myDepositSafetyThreshold,
 		o.myDepositTarget,
 		o.fullyFundedThreshold,
+		o.latestBlockNumber,
 	}
 	return json.Marshal(jsonDFO)
 }
@@ -256,6 +282,7 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.fullyFundedThreshold = jsonDFO.FullyFundedThreshold
 	o.myDepositTarget = jsonDFO.MyDepositTarget
 	o.myDepositSafetyThreshold = jsonDFO.MyDepositSafetyThreshold
+	o.latestBlockNumber = jsonDFO.latestBlockNumber
 
 	return nil
 }
@@ -349,7 +376,7 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address)
 	}
 	initialState := m.SignedStates[0].State()
 
-	objective, err := NewObjective(
+	objective, err := constructFromState(
 		true, // TODO ensure objective in only approved if the application has given permission somehow
 		initialState,
 		myAddress,
@@ -358,6 +385,28 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address)
 		return Objective{}, fmt.Errorf("could not create new objective: %w", err)
 	}
 	return objective, nil
+}
+
+// ObjectiveRequest represents a request to create a new direct funding objective.
+type ObjectiveRequest struct {
+	MyAddress         types.Address
+	CounterParty      types.Address
+	AppDefinition     types.Address
+	AppData           types.Bytes
+	ChallengeDuration *types.Uint256
+	Outcome           outcome.Exit
+	Nonce             int64
+}
+
+// Id returns the objective id for the request.
+func (r ObjectiveRequest) Id() protocols.ObjectiveId {
+	fixedPart := state.FixedPart{ChainId: big.NewInt(0), // TODO
+		Participants:      []types.Address{r.MyAddress, r.CounterParty},
+		ChannelNonce:      big.NewInt(r.Nonce),
+		ChallengeDuration: r.ChallengeDuration}
+
+	channelId, _ := fixedPart.ChannelId()
+	return protocols.ObjectiveId(ObjectivePrefix + channelId.String())
 }
 
 // mermaid diagram

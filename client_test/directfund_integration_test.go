@@ -3,12 +3,14 @@ package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
 	"math/big"
+	"math/rand"
 	"testing"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -26,7 +28,16 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 			},
 		},
 	}}
-	id := alpha.CreateDirectChannel(*beta.Address, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
+	request := directfund.ObjectiveRequest{
+		MyAddress:         *alpha.Address,
+		CounterParty:      *beta.Address,
+		Outcome:           outcome,
+		AppDefinition:     types.Address{},
+		AppData:           types.Bytes{},
+		ChallengeDuration: big.NewInt(0),
+		Nonce:             rand.Int63(),
+	}
+	id := alpha.CreateDirectChannel(request)
 	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, id)
 	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, id)
 }

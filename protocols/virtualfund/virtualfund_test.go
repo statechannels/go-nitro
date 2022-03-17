@@ -71,7 +71,7 @@ func TestMarshalJSON(t *testing.T) {
 	ts.TurnNum = channel.PreFundTurnNum
 
 	right, _ := channel.NewTwoPartyLedger(ts, 0)
-	vfo, err := NewObjective(
+	vfo, err := constructFromState(
 		false,
 		vPreFund,
 		alice.address,
@@ -114,8 +114,6 @@ func TestMarshalJSON(t *testing.T) {
 			t.Errorf("expected left channel Id %s but got %s",
 				vfo.ToMyLeft.Channel.Id, got.ToMyLeft.Channel.Id)
 		}
-	} else if (got.ToMyLeft.Channel.Id != types.Destination{}) {
-		t.Errorf("recieved a non-blank channel Id where the connection was null")
 	}
 
 	if vfo.ToMyRight != nil {
@@ -127,8 +125,6 @@ func TestMarshalJSON(t *testing.T) {
 			t.Errorf("expected left channel Id %s but got %s",
 				vfo.ToMyRight.Channel.Id, got.ToMyRight.Channel.Id)
 		}
-	} else if (got.ToMyRight.Channel.Id != types.Destination{}) {
-		t.Errorf("recieved a non-blank channel Id where the connection was null")
 	}
 
 	if got.n != vfo.n {

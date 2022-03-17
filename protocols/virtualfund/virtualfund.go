@@ -67,6 +67,7 @@ func (c *Connection) Equal(d *Connection) bool {
 type jsonConnection struct {
 	Channel            types.Destination
 	ExpectedGuarantees []assetGuarantee
+	GuarnateeInfo      GuaranteeInfo
 }
 
 // MarshalJSON returns a JSON representation of the Connection
@@ -81,7 +82,7 @@ func (c Connection) MarshalJSON() ([]byte, error) {
 			guarantee,
 		})
 	}
-	jsonC := jsonConnection{c.Channel.Id, guarantees}
+	jsonC := jsonConnection{c.Channel.Id, guarantees, c.GuaranteeInfo}
 	bytes, err := json.Marshal(jsonC)
 
 	if err != nil {
@@ -114,6 +115,7 @@ func (c *Connection) UnmarshalJSON(data []byte) error {
 	}
 
 	c.Channel.Id = jsonC.Channel
+	c.GuaranteeInfo = jsonC.GuarnateeInfo
 
 	for _, eg := range jsonC.ExpectedGuarantees {
 		c.ExpectedGuarantees[eg.Asset] = eg.Guarantee
@@ -161,8 +163,38 @@ type jsonObjective struct {
 	B0 types.Funds
 }
 
-// NewObjective initiates an Objective.
-func NewObjective(
+// NewObjective creates a new virtual funding objective from a given request.
+func NewObjective(request ObjectiveRequest, getTwoPartyLedger GetTwoPartyLedgerFunction) (Objective, error) {
+	right, ok := getTwoPartyLedger(request.MyAddress, request.Intermediary)
+
+	if !ok {
+		return Objective{}, fmt.Errorf("could not find ledger for %s and %s", request.MyAddress, request.Intermediary)
+
+	}
+	var left *channel.TwoPartyLedger
+
+	objective, err := constructFromState(true,
+		state.State{
+			ChainId:           big.NewInt(0), // TODO
+			Participants:      []types.Address{request.MyAddress, request.Intermediary, request.CounterParty},
+			ChannelNonce:      big.NewInt(request.Nonce),
+			ChallengeDuration: request.ChallengeDuration,
+			AppData:           request.AppData,
+			Outcome:           request.Outcome,
+			TurnNum:           0,
+			IsFinal:           false,
+		},
+		request.MyAddress,
+		left, right)
+	if err != nil {
+		return Objective{}, fmt.Errorf("error creating objective: %w", err)
+	}
+	return objective, nil
+
+}
+
+// constructFromState initiates an Objective from an initial state and set of ledgers.
+func constructFromState(
 	preApprove bool,
 	initialStateOfV state.State,
 	myAddress types.Address,
@@ -463,6 +495,17 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("failed to unmarshal right ledger channel: %w", err)
 	}
 
+	// connection.Unmarshal cannot populate a nil connection, so instead returns
+	// a non-connection to a channel with the zero-Id. virtualfund.objective expects
+	// these connection objects to be nil.
+	zeroAddress := types.Destination{}
+	if o.ToMyLeft.Channel.Id == zeroAddress {
+		o.ToMyLeft = nil
+	}
+	if o.ToMyRight.Channel.Id == zeroAddress {
+		o.ToMyRight = nil
+	}
+
 	o.Status = jsonVFO.Status
 	o.n = jsonVFO.N
 	o.MyRole = jsonVFO.MyRole
@@ -597,9 +640,10 @@ type GetTwoPartyLedgerFunction func(firstParty types.Address, secondParty types.
 // ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
 func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address, getTwoPartyLedger GetTwoPartyLedgerFunction) (Objective, error) {
-	if len(m.SignedStates) == 0 {
-		return Objective{}, errors.New("expected at least one signed state in the message")
+	if len(m.SignedStates) != 1 {
+		return Objective{}, errors.New("expected exactly one signed state in the message")
 	}
+
 	initialState := m.SignedStates[0].State()
 	participants := initialState.Participants
 
@@ -612,18 +656,15 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 	var left *channel.TwoPartyLedger
 	var right *channel.TwoPartyLedger
 	var ok bool
-	if alice == myAddress {
-		right, ok = getTwoPartyLedger(intermediary, bob)
-		if !ok {
-			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
-		}
-	} else if bob == myAddress {
+
+	if myAddress == alice {
+		return Objective{}, errors.New("participant[0] should not construct objectives from peer messages")
+	} else if myAddress == bob {
 		left, ok = getTwoPartyLedger(intermediary, bob)
 		if !ok {
-			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
 		}
-	}
-	if intermediary == myAddress {
+	} else if myAddress == intermediary {
 		left, ok = getTwoPartyLedger(alice, intermediary)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
@@ -632,9 +673,11 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
 		}
+	} else {
+		return Objective{}, fmt.Errorf("client address not found in an expected participant index")
 	}
 
-	return NewObjective(
+	return constructFromState(
 		true, // TODO ensure objective in only approved if the application has given permission somehow
 		initialState,
 		myAddress,
@@ -772,4 +815,27 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 		return protocols.SideEffects{}, nil
 	}
 
+}
+
+// ObjectiveRequest represents a request to create a new virtual funding objective.
+type ObjectiveRequest struct {
+	MyAddress         types.Address
+	CounterParty      types.Address
+	Intermediary      types.Address
+	AppDefinition     types.Address
+	AppData           types.Bytes
+	ChallengeDuration *types.Uint256
+	Outcome           outcome.Exit
+	Nonce             int64
+}
+
+// Id returns the objective id for the request.
+func (r ObjectiveRequest) Id() protocols.ObjectiveId {
+	fixedPart := state.FixedPart{ChainId: big.NewInt(0), // TODO
+		Participants:      []types.Address{r.MyAddress, r.Intermediary, r.CounterParty},
+		ChannelNonce:      big.NewInt(r.Nonce),
+		ChallengeDuration: r.ChallengeDuration}
+
+	channelId, _ := fixedPart.ChannelId()
+	return protocols.ObjectiveId(ObjectivePrefix + channelId.String())
 }

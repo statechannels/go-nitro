@@ -60,7 +60,7 @@ var testState = state.State{
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
 	// Assert that valid constructor args do not result in error
-	if _, err := NewObjective(false, testState, testState.Participants[0]); err != nil {
+	if _, err := constructFromState(false, testState, testState.Participants[0]); err != nil {
 		t.Error(err)
 	}
 
@@ -68,19 +68,38 @@ func TestNew(t *testing.T) {
 	finalState := testState.Clone()
 	finalState.IsFinal = true
 
-	if _, err := NewObjective(false, finalState, testState.Participants[0]); err == nil {
+	if _, err := constructFromState(false, finalState, testState.Participants[0]); err == nil {
 		t.Error("expected an error when constructing with an intial state marked final, but got nil")
 	}
 
 	nonParticipant := common.HexToAddress("0x5b53f71453aeCb03D837bfe170570d40aE736CB4")
-	if _, err := NewObjective(false, testState, nonParticipant); err == nil {
+	if _, err := constructFromState(false, testState, nonParticipant); err == nil {
 		t.Error("expected an error when constructing with a participant not in the channel, but got nil")
 	}
 }
 
+func TestConstructFromState(t *testing.T) {
+	// Assert that valid constructor args do not result in error
+	if _, err := constructFromState(false, testState, testState.Participants[0]); err != nil {
+		t.Error(err)
+	}
+
+	// Construct a final state
+	finalState := testState.Clone()
+	finalState.IsFinal = true
+
+	if _, err := constructFromState(false, finalState, testState.Participants[0]); err == nil {
+		t.Error("expected an error when constructing with an intial state marked final, but got nil")
+	}
+
+	nonParticipant := common.HexToAddress("0x5b53f71453aeCb03D837bfe170570d40aE736CB4")
+	if _, err := constructFromState(false, testState, nonParticipant); err == nil {
+		t.Error("expected an error when constructing with a participant not in the channel, but got nil")
+	}
+}
 func TestUpdate(t *testing.T) {
 	// Construct various variables for use in TestUpdate
-	var s, _ = NewObjective(false, testState, testState.Participants[0])
+	var s, _ = constructFromState(false, testState, testState.Participants[0])
 
 	var stateToSign state.State = s.C.PreFundState()
 	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
@@ -154,7 +173,7 @@ func TestUpdate(t *testing.T) {
 func TestCrank(t *testing.T) {
 
 	// BEGIN test data preparation
-	var s, _ = NewObjective(false, testState, testState.Participants[0])
+	var s, _ = constructFromState(false, testState, testState.Participants[0])
 	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.privateKey)
 	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.privateKey)
 
@@ -280,7 +299,7 @@ func TestCrank(t *testing.T) {
 }
 
 func TestClone(t *testing.T) {
-	var s, _ = NewObjective(false, testState, testState.Participants[0])
+	var s, _ = constructFromState(false, testState, testState.Participants[0])
 
 	clone := s.clone()
 
@@ -290,7 +309,7 @@ func TestClone(t *testing.T) {
 }
 
 func TestMarshalJSON(t *testing.T) {
-	dfo, _ := NewObjective(false, testState, testState.Participants[0])
+	dfo, _ := constructFromState(false, testState, testState.Participants[0])
 
 	encodedDfo, err := json.Marshal(dfo)
 
