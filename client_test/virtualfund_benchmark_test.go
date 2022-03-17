@@ -3,12 +3,14 @@ package client_test
 import (
 	"fmt"
 	"math/big"
+	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -43,7 +45,17 @@ func TestBenchmark(t *testing.T) {
 
 func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, irene types.Address, done chan bool) {
 	outcome := createVirtualOutcome(*alice.Address, *bob.Address)
-	id := alice.CreateVirtualChannel(*bob.Address, irene, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
+	request := virtualfund.ObjectiveRequest{
+		MyAddress:         *alice.Address,
+		CounterParty:      *bob.Address,
+		Intermediary:      irene,
+		Outcome:           outcome,
+		AppDefinition:     types.Address{},
+		AppData:           types.Bytes{},
+		ChallengeDuration: big.NewInt(0),
+		Nonce:             rand.Int63(),
+	}
+	id := alice.CreateVirtualChannel(request)
 
 	defer elapsed(string(id))()
 	waitTimeForCompletedObjectiveIds(t, &alice, defaultTimeout, id)
