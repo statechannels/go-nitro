@@ -6,11 +6,20 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// TransactionType is an enumeration of possible chain transactions
+type TransactionType string
+
+const (
+	DepositTransactionType     TransactionType = "Deposit"
+	WithdrawAllTransactionType TransactionType = "Withdraw"
+)
+
 // ChainTransaction is an object to be sent to a blockchain provider.
 type ChainTransaction struct {
+	// TODO support other transaction types (deposit, challenge, respond, conclude)
+	Type      TransactionType
 	ChannelId types.Destination
 	Deposit   types.Funds
-	// TODO support other transaction types (deposit, challenge, respond, conclude, withdraw)
 }
 
 // SideEffects are effects to be executed by an imperative shell
@@ -68,3 +77,8 @@ const (
 	Approved
 	Rejected
 )
+
+// ObjectiveRequest is a request to create a new objective.
+type ObjectiveRequest interface {
+	Id() ObjectiveId
+}

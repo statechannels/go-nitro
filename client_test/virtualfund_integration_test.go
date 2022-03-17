@@ -2,10 +2,12 @@ package client_test
 
 import (
 	"math/big"
+	"math/rand"
 	"testing"
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -26,8 +28,17 @@ func TestVirtualFundIntegration(t *testing.T) {
 	directlyFundALedgerChannel(t, clientI, clientB)
 
 	outcome := createVirtualOutcome(alice, bob)
-
-	id := clientA.CreateVirtualChannel(bob, irene, types.Address{}, types.Bytes{}, outcome, big.NewInt(0))
+	request := virtualfund.ObjectiveRequest{
+		MyAddress:         alice,
+		CounterParty:      bob,
+		Intermediary:      irene,
+		Outcome:           outcome,
+		AppDefinition:     types.Address{},
+		AppData:           types.Bytes{},
+		ChallengeDuration: big.NewInt(0),
+		Nonce:             rand.Int63(),
+	}
+	id := clientA.CreateVirtualChannel(request)
 
 	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, id)
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, id)

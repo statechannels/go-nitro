@@ -35,7 +35,7 @@ type Engine struct {
 
 // APIEvent is an internal representation of an API call
 type APIEvent struct {
-	ObjectiveToSpawn   protocols.Objective
+	ObjectiveToSpawn   protocols.ObjectiveRequest
 	ObjectiveToReject  protocols.ObjectiveId
 	ObjectiveToApprove protocols.ObjectiveId
 }
@@ -71,7 +71,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	// initialize a Logger
 	logPrefix := e.store.GetAddress().String()[0:8] + ": "
-	e.logger = log.New(logDestination, logPrefix, log.Ldate|log.Ltime|log.Lshortfile)
+	e.logger = log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
 
 	e.logger.Println("Constructed Engine")
 
@@ -100,6 +100,9 @@ func (e *Engine) Run() {
 		}
 		// Only send out an event if there are changes
 		if len(res.CompletedObjectives) > 0 {
+			for _, obj := range res.CompletedObjectives {
+				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
+			}
 			e.toApi <- res
 		}
 	}
@@ -160,8 +163,34 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) ObjectiveChange
 // Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 	if apiEvent.ObjectiveToSpawn != nil {
-		return e.attemptProgress(apiEvent.ObjectiveToSpawn)
+
+		switch request := (apiEvent.ObjectiveToSpawn).(type) {
+
+		case virtualfund.ObjectiveRequest:
+			vfo, err := virtualfund.NewObjective(request, e.store.GetTwoPartyLedger)
+			if err != nil {
+				e.logger.Printf("handleAPIEvent: Could not create objective for  %+v", request)
+				return ObjectiveChangeEvent{}
+			}
+			return e.attemptProgress(&vfo)
+
+		case directfund.ObjectiveRequest:
+			dfo, err := directfund.NewObjective(request, true)
+			if err != nil {
+				e.logger.Printf("handleAPIEvent: Could not create objective for  %+v", request)
+				return ObjectiveChangeEvent{}
+			}
+			return e.attemptProgress(&dfo)
+
+		default:
+
+			e.logger.Printf("handleAPIEvent: Unknown objective type %T", request)
+			return ObjectiveChangeEvent{}
+
+		}
+
 	}
+
 	if apiEvent.ObjectiveToReject != `` {
 		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
 		updatedProtocol := objective.Reject()
@@ -254,15 +283,12 @@ func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Obje
 
 // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied message.
 func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (protocols.Objective, error) {
-	initialState := message.SignedStates[0].State()
 
 	switch {
 	case directfund.IsDirectFundObjective(message.ObjectiveId):
-		dfo, err := directfund.NewObjective(
-			true, // TODO ensure objective in only approved if the application has given permission somehow
-			initialState,
-			*e.store.GetAddress(),
-		)
+		dfo, err := directfund.ConstructObjectiveFromMessage(
+			message, *e.store.GetAddress())
+
 		return &dfo, err
 	case virtualfund.IsVirtualFundObjective(message.ObjectiveId):
 		vfo, err := virtualfund.ConstructObjectiveFromMessage(message, *e.store.GetAddress(), e.store.GetTwoPartyLedger)

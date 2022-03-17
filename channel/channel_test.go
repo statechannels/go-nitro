@@ -1,6 +1,7 @@
 package channel
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 
@@ -121,6 +122,13 @@ func TestChannel(t *testing.T) {
 		}
 	}
 
+	testLatestSignedState := func(t *testing.T) {
+		_, err := c.LatestSignedState()
+		if errors.Is(err, errors.New("No states are signed")) {
+			t.Error(`c.LatestSignedState(): expected an empty SingedState since no state is yet signed`)
+		}
+	}
+
 	testTotal := func(t *testing.T) {
 		got := c.Total()
 		want := types.Funds{
@@ -130,6 +138,7 @@ func TestChannel(t *testing.T) {
 			t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
 		}
 	}
+
 	alicePrivateKey := common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
 	bobPrivateKey := common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`)
 	testAddSignedState := func(t *testing.T) {
@@ -173,6 +182,7 @@ func TestChannel(t *testing.T) {
 			}
 		}
 	}
+
 	testAddSignedStates := func(t *testing.T) {
 		myC, _ := New(s, 0)
 
@@ -266,6 +276,20 @@ func TestChannel(t *testing.T) {
 			t.Error(`expected c.AddSignedState() to be true, but it was false`)
 		}
 
+		// Check whether latestSignedState is correct
+		latestSignedState, err := c.LatestSignedState()
+		if err != nil {
+			t.Error(err)
+		}
+		expectedSignedState := state.NewSignedState(c.PostFundState())
+		err = expectedSignedState.Sign(&alicePrivateKey)
+		if err != nil {
+			t.Error(err)
+		}
+		if diff := cmp.Diff(expectedSignedState, latestSignedState, cmp.Comparer(types.Equal)); diff != "" {
+			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
+		}
+
 		got2 := c.SignedStateForTurnNum[1]
 		if got2.State().Outcome == nil || !got2.HasSignatureForParticipant(0) {
 			t.Error(`state not added correctly`)
@@ -291,6 +315,19 @@ func TestChannel(t *testing.T) {
 			t.Errorf(`expected LatestSupportedState with turnNum %v`, want3)
 		}
 
+		// Check whether latestSignedState is correct
+		latestSignedState, err = c.LatestSignedState()
+		if err != nil {
+			t.Error(err)
+		}
+		err = expectedSignedState.Sign(&bobPrivateKey)
+		if err != nil {
+			t.Error(err)
+		}
+		if diff := cmp.Diff(latestSignedState, expectedSignedState, cmp.Comparer(types.Equal)); diff != "" {
+			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
+		}
+
 	}
 
 	t.Run(`TestNew`, testNew)
@@ -302,6 +339,7 @@ func TestChannel(t *testing.T) {
 	t.Run(`TestPreFundComplete`, testPreFundComplete)
 	t.Run(`TestPostFundComplete`, testPostFundComplete)
 	t.Run(`TestLatestSupportedState`, testLatestSupportedState)
+	t.Run(`TestLatestSignedState`, testLatestSignedState)
 	t.Run(`TestTotal`, testTotal)
 	t.Run(`TestAddStateWithSignature`, testAddStateWithSignature)
 	t.Run(`TestAddSignedStates`, testAddSignedStates)

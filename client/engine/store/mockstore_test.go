@@ -29,11 +29,16 @@ func TestSetGetObjective(t *testing.T) {
 
 	ts := state.TestState
 	ts.TurnNum = 0
-
-	testObj, _ := directfund.NewObjective(false,
-		ts,
-		ts.Participants[0],
-	)
+	request := directfund.ObjectiveRequest{
+		MyAddress:         ts.Participants[0],
+		CounterParty:      ts.Participants[1],
+		AppData:           ts.AppData,
+		AppDefinition:     ts.AppDefinition,
+		ChallengeDuration: ts.ChallengeDuration,
+		Nonce:             ts.ChannelNonce.Int64(),
+		Outcome:           ts.Outcome,
+	}
+	testObj, _ := directfund.NewObjective(request, false)
 
 	if err := ms.SetObjective(&testObj); err != nil {
 		t.Errorf("error setting objective %v: %s", testObj, err.Error())
@@ -57,11 +62,16 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 
 	ts := state.TestState
 	ts.TurnNum = 0
-
-	testObj, _ := directfund.NewObjective(false,
-		ts,
-		ts.Participants[0],
-	)
+	request := directfund.ObjectiveRequest{
+		MyAddress:         ts.Participants[0],
+		CounterParty:      ts.Participants[1],
+		AppData:           ts.AppData,
+		AppDefinition:     ts.AppDefinition,
+		ChallengeDuration: ts.ChallengeDuration,
+		Nonce:             ts.ChannelNonce.Int64(),
+		Outcome:           ts.Outcome,
+	}
+	testObj, _ := directfund.NewObjective(request, false)
 
 	if err := ms.SetObjective(&testObj); err != nil {
 		t.Errorf("error setting objective %v: %s", testObj, err.Error())

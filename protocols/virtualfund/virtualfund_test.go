@@ -71,7 +71,7 @@ func TestMarshalJSON(t *testing.T) {
 	ts.TurnNum = channel.PreFundTurnNum
 
 	right, _ := channel.NewTwoPartyLedger(ts, 0)
-	vfo, err := NewObjective(
+	vfo, err := constructFromState(
 		false,
 		vPreFund,
 		alice.address,

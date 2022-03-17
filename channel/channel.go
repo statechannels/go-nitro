@@ -190,6 +190,20 @@ func (c Channel) LatestSupportedState() (state.State, error) {
 	return c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State(), nil
 }
 
+// LatestSignedState fetches the state with the largest turn number signed by any participant
+func (c Channel) LatestSignedState() (state.SignedState, error) {
+	if len(c.SignedStateForTurnNum) == 0 {
+		return state.SignedState{}, errors.New("No states are signed")
+	}
+	latestTurn := uint64(0)
+	for k := range c.SignedStateForTurnNum {
+		if k > latestTurn {
+			latestTurn = k
+		}
+	}
+	return c.SignedStateForTurnNum[latestTurn], nil
+}
+
 // Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
 func (c Channel) Total() types.Funds {
 	return c.PreFundState().Outcome.TotalAllocated()
