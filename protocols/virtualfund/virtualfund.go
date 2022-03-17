@@ -640,9 +640,10 @@ type GetTwoPartyLedgerFunction func(firstParty types.Address, secondParty types.
 // ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
 func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address, getTwoPartyLedger GetTwoPartyLedgerFunction) (Objective, error) {
-	if len(m.SignedStates) == 0 {
-		return Objective{}, errors.New("expected at least one signed state in the message")
+	if len(m.SignedStates) != 1 {
+		return Objective{}, errors.New("expected exactly one signed state in the message")
 	}
+
 	initialState := m.SignedStates[0].State()
 	participants := initialState.Participants
 
