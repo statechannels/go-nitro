@@ -40,6 +40,9 @@ func TestBenchmark(t *testing.T) {
 	expect(t, done, n, time.Second*1)
 }
 
+// benchmarkVirtualChannelCreation creates a new virtual channel with the given actors, and
+// times how long it takes for the objective to complete (from Bob's point of view)
+// The resulting time is printed to the test runner's output
 func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, irene types.Address, done chan interface{}) {
 	outcome := createVirtualOutcome(*alice.Address, *bob.Address)
 	request := virtualfund.ObjectiveRequest{
