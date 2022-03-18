@@ -1,4 +1,4 @@
-package directfund
+package directdefund
 
 import (
 	"errors"

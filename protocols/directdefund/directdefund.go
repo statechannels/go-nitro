@@ -1,5 +1,5 @@
-// Package directfund implements an off-chain protocol to defund a directly-funded channel.
-package directfund // import "github.com/statechannels/go-nitro/directfund"
+// Package directdefund implements an off-chain protocol to defund a directly-funded channel.
+package directdefund // import "github.com/statechannels/go-nitro/directfund"
 
 import (
 	"errors"
