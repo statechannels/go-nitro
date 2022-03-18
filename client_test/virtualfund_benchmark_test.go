@@ -30,7 +30,7 @@ func TestBenchmark(t *testing.T) {
 	directlyFundALedgerChannel(t, clientAlice, clientIrene)
 	directlyFundALedgerChannel(t, clientIrene, clientBob)
 
-	done := make(chan bool)
+	done := make(chan interface{})
 
 	n := 3
 	for i := 0; i < n; i++ {
@@ -40,7 +40,7 @@ func TestBenchmark(t *testing.T) {
 	expect(t, done, n,  time.Second*1)
 }
 
-func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, irene types.Address, done chan bool) {
+func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, irene types.Address, done chan interface{}) {
 	outcome := createVirtualOutcome(*alice.Address, *bob.Address)
 	request := virtualfund.ObjectiveRequest{
 		MyAddress:         *alice.Address,
@@ -58,7 +58,7 @@ func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, ire
 
 	for got := range bob.CompletedObjectives() {
 		if got == id {
-			done <- true
+			done <- nil
 			return
 		}
 	}
@@ -69,7 +69,7 @@ func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, ire
 // To ensure it eventually returns, it will error after a timeout, which resets
 // whenever `done` receives a message. So, it will return after at most
 // `num * defaultTimeout` time has elapsed.
-func expect(t *testing.T, done chan bool, num int, timeout time.Duration) {
+func expect(t *testing.T, done chan interface{}, num int, timeout time.Duration) {
 	count := 0
 	for {
 		select {
