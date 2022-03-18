@@ -1,6 +1,7 @@
 package directdefund
 
 import (
+	"encoding/json"
 	"errors"
 	"math/big"
 	"testing"
@@ -336,5 +337,31 @@ func TestCrankBob(t *testing.T) {
 	expectedSE = protocols.SideEffects{}
 	if diff := cmp.Diff(expectedSE, se); diff != "" {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestMarshalJSON(t *testing.T) {
+	ddfo, _ := newTestObjective(true)
+
+	encodedDdfo, err := json.Marshal(ddfo)
+
+	if err != nil {
+		t.Errorf("error encoding directdefund objective %v", ddfo)
+	}
+
+	got := Objective{}
+	if err := got.UnmarshalJSON(encodedDdfo); err != nil {
+		t.Errorf("error unmarshaling test directdefund objective: %s", err.Error())
+	}
+
+	if got.finalTurnNum != ddfo.finalTurnNum {
+		t.Errorf("expected finalTurnNum %d but got %d",
+			ddfo.finalTurnNum, got.finalTurnNum)
+	}
+	if !(got.Status == ddfo.Status) {
+		t.Errorf("expected Status %v but got %v", ddfo.Status, got.Status)
+	}
+	if got.C.Id != ddfo.C.Id {
+		t.Errorf("expected channel Id %s but got %s", ddfo.C.Id, got.C.Id)
 	}
 }
