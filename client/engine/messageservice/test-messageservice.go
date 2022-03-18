@@ -47,7 +47,7 @@ func NewTestMessageService(address types.Address, broker Broker) TestMessageServ
 		out:     make(chan protocols.Message, 5),
 	}
 
-	tms.Connect(broker)
+	tms.connect(broker)
 	return tms
 }
 
@@ -59,8 +59,8 @@ func (t TestMessageService) In() chan<- protocols.Message {
 	return t.in
 }
 
-// Connect creates a gochan for message service to send messages to the given peer.
-func (t TestMessageService) Connect(b Broker) {
+// connect creates a gochan for message service to send messages to the given peer.
+func (t TestMessageService) connect(b Broker) {
 	go func() {
 		for message := range t.in {
 			peerChan, ok := b.services[message.To]
