@@ -5,42 +5,38 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/types"
 )
 
 var alice = types.Destination(common.HexToHash("0x0a"))
 var bob = types.Destination(common.HexToHash("0x0b"))
 
-func allocation(d types.Destination, a uint64) outcome.Allocation {
-	return outcome.Allocation{
-		Destination: d,
-		Amount:      big.NewInt(int64(a)),
+func allocation(d types.Destination, a uint64) Balance {
+	return Balance{destination: d, amount: *big.NewInt(int64(a))}
+}
+
+func guarantee(amount uint64, target, left, right types.Destination) Guarantee {
+	return Guarantee{
+		target: target,
+		amount: *big.NewInt(int64(amount)),
+		left:   left,
+		right:  right,
 	}
 }
 
-func guarantee(amount uint64, target, left, right types.Destination) outcome.Allocation {
-	return outcome.Allocation{
-		Destination:    target,
-		Amount:         big.NewInt(int64(amount)),
-		AllocationType: 1,
-		Metadata:       append(left.Bytes(), right.Bytes()...),
-	}
-}
-
-func makeOutcome(items ...outcome.Allocation) outcome.Exit {
-	return outcome.Exit{
-		outcome.SingleAssetExit{Asset: types.Address{0}, Allocations: items},
-	}
+func makeOutcome(left, right Balance, guarantees ...Guarantee) LedgerOutcome {
+	return LedgerOutcome{left: left, right: right, guarantees: guarantees}
 }
 
 func add(turnNum, amount uint64, vId, left, right types.Destination) Add {
 	return Add{
 		turnNum: turnNum,
-		amount:  types.Funds{types.Address{}: big.NewInt(int64(amount))},
-		vId:     vId,
-		left:    left,
-		right:   right,
+		Guarantee: Guarantee{
+			amount: *big.NewInt(int64(amount)),
+			target: vId,
+			left:   left,
+			right:  right,
+		},
 	}
 }
 
