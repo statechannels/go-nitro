@@ -2,6 +2,8 @@ package ledger
 
 import (
 	"fmt"
+	"math/big"
+	"sort"
 
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -47,18 +49,32 @@ type LedgerOutcome struct {
 	assetAddress types.Address
 	left         Balance
 	right        Balance
-	guarantees   []Guarantee
+	guarantees   map[types.Destination]Guarantee
 }
 
 func (o LedgerOutcome) Equal(other LedgerOutcome) bool {
 	return o.AsOutcome().Equal(other.AsOutcome())
 }
 
+// AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
+// - the "left" balance is first
+// - the "right" balance is second
+// - following [left, right] comes the guarantees in sorted order
 func (o LedgerOutcome) AsOutcome() outcome.Exit {
-
+	// The first items are [left, right] balances
 	allocations := outcome.Allocations{o.left.AsAllocation(), o.right.AsAllocation()}
-	for _, g := range o.guarantees {
-		allocations = append(allocations, g.AsAllocation())
+
+	// Followed by guarantees, _sorted by the
+	keys := make([]types.Destination, 0, len(o.guarantees))
+	for k := range o.guarantees {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].String() < keys[j].String()
+	})
+
+	for _, target := range keys {
+		allocations = append(allocations, o.guarantees[target].AsAllocation())
 
 	}
 
@@ -78,10 +94,11 @@ func (o LedgerOutcome) DivertToGuarantee(g Guarantee) (LedgerOutcome, error) {
 
 	o.left.amount.Sub(&o.left.amount, &g.amount)
 
-	// TODO:
-	// - ensure sorted
-	// - check for duplication
-	o.guarantees = append(o.guarantees, g)
+	_, found := o.guarantees[g.target]
+	if found {
+		return LedgerOutcome{}, fmt.Errorf("duplicate guarantee detected")
+	}
+	o.guarantees[g.target] = g
 
 	return o, nil
 }

@@ -25,7 +25,11 @@ func guarantee(amount uint64, target, left, right types.Destination) Guarantee {
 }
 
 func makeOutcome(left, right Balance, guarantees ...Guarantee) LedgerOutcome {
-	return LedgerOutcome{left: left, right: right, guarantees: guarantees}
+	mappedGuarantees := make(map[types.Destination]Guarantee)
+	for _, g := range guarantees {
+		mappedGuarantees[g.target] = g
+	}
+	return LedgerOutcome{left: left, right: right, guarantees: mappedGuarantees}
 }
 
 func add(turnNum, amount uint64, vId, left, right types.Destination) Add {
