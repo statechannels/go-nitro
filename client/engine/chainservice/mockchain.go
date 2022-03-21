@@ -5,6 +5,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// Using a buffer prevents  clients waiting on the mock chain being ready to read/write to chans.
+const BUFFER_SIZE = 100
+
 // MockChain provides an interface which simulates a blockchain network. It is designed for use as a central service which multiple
 // ChainServices connect to with Go chans.
 //
@@ -32,7 +35,7 @@ func NewMockChain() MockChain {
 
 	mc := MockChain{}
 	mc.out = make(map[types.Address]chan Event)
-	mc.in = make(chan protocols.ChainTransaction)
+	mc.in = make(chan protocols.ChainTransaction, BUFFER_SIZE)
 	mc.holdings = make(map[types.Destination]types.Funds)
 	mc.blockNum = 1
 
@@ -42,7 +45,7 @@ func NewMockChain() MockChain {
 
 func (mc *MockChain) Subscribe(a types.Address) {
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	mc.out[a] = make(chan Event, 10)
+	mc.out[a] = make(chan Event, BUFFER_SIZE)
 }
 
 // Run starts a listener for transactions on the MockChain's in chan.
