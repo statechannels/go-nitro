@@ -86,17 +86,20 @@ func (o LedgerOutcome) AsOutcome() outcome.Exit {
 	}
 }
 
+var ErrInsufficientFunds = fmt.Errorf("unable to divert to guarantee: insufficient funds")
+var ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
+
 func (o LedgerOutcome) DivertToGuarantee(g Guarantee) (LedgerOutcome, error) {
 
 	if g.amount.Cmp(&o.left.amount) == 1 {
-		return LedgerOutcome{}, fmt.Errorf("unable to divert to guarantee: insufficient funds")
+		return LedgerOutcome{}, ErrInsufficientFunds
 	}
 
 	o.left.amount.Sub(&o.left.amount, &g.amount)
 
 	_, found := o.guarantees[g.target]
 	if found {
-		return LedgerOutcome{}, fmt.Errorf("duplicate guarantee detected")
+		return LedgerOutcome{}, ErrDuplicateGuarantee
 	}
 	o.guarantees[g.target] = g
 
@@ -127,10 +130,12 @@ type Remove struct {
 	paid    types.Funds
 }
 
+var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
+
 // Add updates Vars by adding a guarantee
 func (vars Vars) Add(p Add) (Vars, error) {
 	if p.turnNum != vars.TurnNum+1 {
-		return Vars{}, fmt.Errorf("incorrect turn number")
+		return Vars{}, ErrIncorrectTurnNum
 	}
 
 	vars.TurnNum += 1

@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 
@@ -58,7 +59,6 @@ func TestProposals(t *testing.T) {
 		allocation(bob, bBal),
 		guarantee(vAmount, existingChannel, alice, bob),
 	)
-	// guarantee(targetChannel, vAmount, alice, bob)) // TODO: this should fail
 
 	before := Vars{TurnNum: 9, Outcome: outcome}
 
@@ -85,10 +85,22 @@ func TestProposals(t *testing.T) {
 		t.Error("incorrect outcome", err)
 	}
 
-	proposal.turnNum += 1
-	_, err = after.Add(proposal)
+	largeProposal := proposal
+	leftAmount := before.Outcome.left.amount
+	largeProposal.amount = *leftAmount.Add(&leftAmount, big.NewInt(1))
 
-	if err == nil {
+	_, err = before.Add(largeProposal)
+	if !errors.Is(err, ErrInsufficientFunds) {
+		t.Error("expected error when adding too large a guarantee")
+	}
+
+	duplicateProposal := proposal
+	duplicateProposal.turnNum += 1
+	_, err = after.Add(duplicateProposal)
+
+	if !errors.Is(err, ErrDuplicateGuarantee) {
+		t.Log(err)
 		t.Error("expected error when adding duplicate guarantee")
 	}
+
 }
