@@ -10,7 +10,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-type LedgerChannel struct {
+// ConsensusChannel is used to manage states in a running ledger channel
+type ConsensusChannel struct {
 	Id      types.Destination
 	MyIndex uint
 
@@ -18,6 +19,8 @@ type LedgerChannel struct {
 
 	state.FixedPart
 
+	current     SignedVars
+	proposalQue []SignedProposal
 }
 
 type Balance struct {
@@ -112,6 +115,15 @@ type Vars struct {
 	Outcome LedgerOutcome
 }
 
+// SignedVars stores 0-2 signatures for some vars in a consensus channel
+type SignedVars struct {
+	Vars
+	Signatures [2]*state.Signature
+}
+
+type SignedProposal struct {
+	state.Signature
+	Proposal interface{}
 }
 
 // Add is a proposal to add a guarantee for the given virtual channel
@@ -154,5 +166,60 @@ func (vars Vars) Remove(p Remove) (Vars, error) {
 	panic("UNIMPLEMENTED")
 }
 
+func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
+	vars := c.current.Vars
+	var err error
+
+	for _, p := range c.proposalQue {
+		vars, err = vars.Add(p.Proposal.(Add))
+		if err != nil {
+			return SignedProposal{}, err
+		}
+	}
+
+	latest := c.proposalQue[len(c.proposalQue)-1].Proposal.(Add)
+
+	vars, err = vars.Add(Add{Guarantee: g, turnNum: latest.turnNum + 1})
+	if err != nil {
+		return SignedProposal{}, err
+	}
+
+	add := Add{
+		turnNum: latest.turnNum + 1,
+	}
+
+	signature, err := c.Sign(vars, sk)
+	if err != nil {
+		return SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
+	}
+
+	signed := SignedProposal{Proposal: add, Signature: signature}
+
+	c.proposalQue = append(c.proposalQue, signed)
+	return signed, nil
+}
+
+func (c *ConsensusChannel) Sign(vars Vars, pk []byte) (state.Signature, error) {
+	fp := c.FixedPart
+	state := state.State{
+		// Variable
+		TurnNum: vars.TurnNum,
+		Outcome: vars.Outcome.AsOutcome(),
+
+		// Constant
+		ChainId:           fp.ChainId,
+		Participants:      fp.Participants,
+		ChannelNonce:      fp.ChannelNonce,
+		ChallengeDuration: fp.ChallengeDuration,
+		AppData:           types.Bytes{},
+		AppDefinition:     types.Address{},
+		IsFinal:           false,
+	}
+
+	return state.Sign(pk)
+}
+
+func (c *ConsensusChannel) Accept(p SignedProposal) error {
+	panic("UNIMPLEMENTED")
 }
 
