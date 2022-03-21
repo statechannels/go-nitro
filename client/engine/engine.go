@@ -125,9 +125,9 @@ func (e *Engine) handleMessage(message protocols.Message) ObjectiveChangeEvent {
 	e.logger.Printf("Handling inbound message %+v", summarizeMessage(message))
 	objective, err := e.getOrCreateObjective(message)
 	// Acquire a lock for the channels and then refetch the objective with the latest version
-	e.channelLocker.Lock(GetChannelIds(objective.Channels()))
+	e.channelLocker.Lock(objective)
 	objective, _ = e.getOrCreateObjective(message)
-	defer e.channelLocker.Unlock(GetChannelIds(objective.Channels()))
+	defer e.channelLocker.Unlock(objective)
 
 	if err != nil {
 		e.logger.Print(err)
@@ -158,8 +158,8 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) ObjectiveChange
 		return ObjectiveChangeEvent{}
 	}
 	// Acquire a lock for the channels and then refetch the objective to get the latest version
-	e.channelLocker.Lock(GetChannelIds(objective.Channels()))
-	defer e.channelLocker.Unlock(GetChannelIds(objective.Channels()))
+	e.channelLocker.Lock(objective)
+	defer e.channelLocker.Unlock(objective)
 	objective, _ = e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	e.logger.Printf("handling chain event %v", chainEvent)
 	event := protocols.ObjectiveEvent{
@@ -193,8 +193,8 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 				return ObjectiveChangeEvent{}
 			}
 			// Acquire a lock for the channels and then generate the objective with the latest data
-			e.channelLocker.Lock(GetChannelIds(vfo.Channels()))
-			defer e.channelLocker.Unlock(GetChannelIds(vfo.Channels()))
+			e.channelLocker.Lock(&vfo)
+			defer e.channelLocker.Unlock(&vfo)
 			vfo, _ = virtualfund.NewObjective(request, e.store.GetTwoPartyLedger)
 
 			return e.attemptProgress(&vfo)
@@ -207,8 +207,8 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 			}
 
 			// Acquire a lock for the channels and then generate the objective with the latest data
-			e.channelLocker.Lock(GetChannelIds(dfo.Channels()))
-			defer e.channelLocker.Unlock(GetChannelIds(dfo.Channels()))
+			e.channelLocker.Lock(&dfo)
+			defer e.channelLocker.Unlock(&dfo)
 			dfo, _ = directfund.NewObjective(request, true)
 
 			return e.attemptProgress(&dfo)

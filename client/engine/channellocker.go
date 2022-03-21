@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -22,11 +23,11 @@ func NewChannelLocker() *ChannelLocker {
 	}
 }
 
-// Lock acquires a locks on the given set of channels. This will block until a lock on all channels is acquired.
-func (l *ChannelLocker) Lock(channelIds []types.Destination) {
+// Lock acquires a locks on all relevant channels for an objective. This will block until a lock on all channels is acquired.
+func (l *ChannelLocker) Lock(objective protocols.Objective) {
 
+	channelIds := getChannelIds(objective.Channels())
 	// We sort the channel ids to ensure that we always acquire locks in the same order to prevent deadlocks
-
 	sorted := sortChannelIds(channelIds)
 
 	for _, channelId := range sorted {
@@ -36,9 +37,9 @@ func (l *ChannelLocker) Lock(channelIds []types.Destination) {
 	}
 }
 
-// Unlock releases the lock on the given channels.
-func (l *ChannelLocker) Unlock(channelIds []types.Destination) {
-
+// Unlock releases the lock on the given channels for an objective.
+func (l *ChannelLocker) Unlock(objective protocols.Objective) {
+	channelIds := getChannelIds(objective.Channels())
 	sorted := sortChannelIds(channelIds)
 
 	for _, channelId := range sorted {
@@ -58,8 +59,8 @@ func sortChannelIds(channelIds []types.Destination) []types.Destination {
 	return sorted
 }
 
-// GetChannelIds is a helper function to get the channel ids from a collection of channels.
-func GetChannelIds(channels []*channel.Channel) []types.Destination {
+// getChannelIds is a helper function to get the channel ids from a collection of channels.
+func getChannelIds(channels []*channel.Channel) []types.Destination {
 	channelIds := make([]types.Destination, len(channels))
 	for i, channel := range channels {
 		channelIds[i] = channel.Id
