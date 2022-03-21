@@ -16,7 +16,7 @@ type jsonObjective struct {
 	FinalTurnNum uint64
 }
 
-// MarshalJSON returns a JSON representation of the DirectDeundObjective
+// MarshalJSON returns a JSON representation of the DirectDefundObjective
 //
 // NOTE: Marshal -> Unmarshal is a lossy process. All channel data
 //       (other than Id) from the field C is discarded
