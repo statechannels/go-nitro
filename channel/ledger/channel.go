@@ -242,4 +242,3 @@ func (c *ConsensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
 func (c *ConsensusChannel) Accept(p SignedProposal) error {
 	panic("UNIMPLEMENTED")
 }
-
