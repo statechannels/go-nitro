@@ -10,6 +10,7 @@ import (
 )
 
 // ChannelLocker is a utility class that allows for locking of channels to prevent concurrent updates to the same channels.
+// It avoids deadlocks by always acquiring channel locks in the same order.
 type ChannelLocker struct {
 	channelLocks sync.Map
 }
@@ -21,8 +22,10 @@ func NewChannelLocker() *ChannelLocker {
 	}
 }
 
-// Lock acquires a locks on the given channels.
+// Lock acquires a locks on the given set of channels. This will block until a lock on all channels is acquired.
 func (l *ChannelLocker) Lock(channelIds []types.Destination) {
+
+	// We sort the channel ids to ensure that we always acquire locks in the same order to prevent deadlocks
 
 	sorted := sortChannelIds(channelIds)
 
