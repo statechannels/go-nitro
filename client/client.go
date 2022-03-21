@@ -35,7 +35,6 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 
 	for i := uint(0); i < concurrentRunLoops; i++ {
-		// TODO  provide an abort channel so the run loop can be aborted
 		go c.engine.Run(context.Background())
 	}
 
