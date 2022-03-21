@@ -69,7 +69,7 @@ func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservi
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker)
 	storeA := store.NewMockStore(pk)
 	logDestination := newLogWriter(logFilename)
-	return client.New(messageservice, chainservice, storeA, logDestination)
+	return client.New(messageservice, chainservice, storeA, logDestination, 1)
 }
 
 // createVirtualOutcome is a helper function to create the outcome for two participants for a virtual channel.
