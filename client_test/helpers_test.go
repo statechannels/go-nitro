@@ -62,14 +62,14 @@ func waitForCompletedObjectiveIds(client *client.Client, ids ...protocols.Object
 }
 
 // setupClient is a helper function that contructs a client and returns the new client and message service.
-func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservice.Broker, logFilename string) client.Client {
+func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservice.Broker, logFilename string, concurrency uint) client.Client {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	chain.Subscribe(myAddress)
 	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker)
 	storeA := store.NewMockStore(pk)
 	logDestination := newLogWriter(logFilename)
-	return client.New(messageservice, chainservice, storeA, logDestination, 1)
+	return client.New(messageservice, chainservice, storeA, logDestination, concurrency)
 }
 
 // createVirtualOutcome is a helper function to create the outcome for two participants for a virtual channel.
