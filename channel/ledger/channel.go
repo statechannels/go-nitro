@@ -12,26 +12,29 @@ import (
 
 // ConsensusChannel is used to manage states in a running ledger channel
 type ConsensusChannel struct {
-	Id      types.Destination
-	MyIndex uint
-
+	// constants
+	Id             types.Destination
+	MyIndex        uint
 	OnChainFunding types.Funds
-
 	state.FixedPart
 
-	current     SignedVars
-	proposalQue []SignedProposal
+	// variables
+	current     SignedVars       // The "consensus state", signed by both parties
+	proposalQue []SignedProposal // A queue of proposed changes, starting from the consensus state
 }
 
+// Balance represents an Allocation of type 0, ie. a simple allocation.
 type Balance struct {
 	destination types.Destination
 	amount      big.Int
 }
 
+// AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
 func (b Balance) AsAllocation() outcome.Allocation {
 	return outcome.Allocation{Destination: b.destination, Amount: &b.amount, AllocationType: 0}
 }
 
+// Guarantee represents an Allocation of type 1, ie. a guarantee.
 type Guarantee struct {
 	amount big.Int
 	target types.Destination
@@ -39,6 +42,7 @@ type Guarantee struct {
 	right  types.Destination
 }
 
+// AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
 func (g Guarantee) AsAllocation() outcome.Allocation {
 	return outcome.Allocation{
 		Destination:    g.target,
@@ -48,13 +52,16 @@ func (g Guarantee) AsAllocation() outcome.Allocation {
 	}
 }
 
+// LedgerOutcome encodes the outcome of a ledger channel involving a "left" and "right"
+// participant.
 type LedgerOutcome struct {
-	assetAddress types.Address
-	left         Balance
-	right        Balance
-	guarantees   map[types.Destination]Guarantee
+	assetAddress types.Address                   // Address of the asset type
+	left         Balance                         // First item in the outcome
+	right        Balance                         // Second item in the outcome
+	guarantees   map[types.Destination]Guarantee // Guarantees follow left & right, sorted by the target destination
 }
 
+// Equal compares two LedgerOutcome instances by comparing their representation as on-chain outcome.Allocation values
 func (o LedgerOutcome) Equal(other LedgerOutcome) bool {
 	return o.AsOutcome().Equal(other.AsOutcome())
 }
@@ -92,6 +99,8 @@ func (o LedgerOutcome) AsOutcome() outcome.Exit {
 var ErrInsufficientFunds = fmt.Errorf("unable to divert to guarantee: insufficient funds")
 var ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
 
+// DivertToGuarantee deducts g.amount from o.left's balance, and
+// adds g to o.guarantees
 func (o LedgerOutcome) DivertToGuarantee(g Guarantee) (LedgerOutcome, error) {
 
 	if g.amount.Cmp(&o.left.amount) == 1 {
@@ -121,6 +130,7 @@ type SignedVars struct {
 	Signatures [2]*state.Signature
 }
 
+// SignedProposal is a proposal with a signature on it
 type SignedProposal struct {
 	state.Signature
 	Proposal interface{}
@@ -144,7 +154,7 @@ type Remove struct {
 
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 
-// Add updates Vars by adding a guarantee
+// Add updates Vars by including a guarantee, updating balances accordingly
 func (vars Vars) Add(p Add) (Vars, error) {
 	if p.turnNum != vars.TurnNum+1 {
 		return Vars{}, ErrIncorrectTurnNum
@@ -166,6 +176,8 @@ func (vars Vars) Remove(p Remove) (Vars, error) {
 	panic("UNIMPLEMENTED")
 }
 
+// Add receives a Guarantee, and generates and stores a SignedProposal in
+// the queue, returning the resulting SignedProposal
 func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
 	vars := c.current.Vars
 	var err error
@@ -199,6 +211,8 @@ func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
 	return signed, nil
 }
 
+// Sign constructs a state.State from the given vars, using the ConsensusChannel's constant
+// values. It signs the resulting state using pk.
 func (c *ConsensusChannel) Sign(vars Vars, pk []byte) (state.Signature, error) {
 	fp := c.FixedPart
 	state := state.State{
