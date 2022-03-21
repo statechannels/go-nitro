@@ -10,6 +10,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+const proposerIndex = uint(0)
+
 // ConsensusChannel is used to manage states in a running ledger channel
 type ConsensusChannel struct {
 	// constants
@@ -179,6 +181,10 @@ func (vars Vars) Remove(p Remove) (Vars, error) {
 // Add receives a Guarantee, and generates and stores a SignedProposal in
 // the queue, returning the resulting SignedProposal
 func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
+	if c.MyIndex != proposerIndex {
+		return SignedProposal{}, fmt.Errorf("only proposer can call Add")
+	}
+
 	vars := c.current.Vars
 	var err error
 
