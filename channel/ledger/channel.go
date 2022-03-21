@@ -149,9 +149,9 @@ type Add struct {
 // - `paid` funds are added to the right participant's balance
 // - the remainder are returned to the left participant's balance
 type Remove struct {
-	turnNum uint64
-	vId     types.Destination
-	paid    types.Funds
+	TurnNum uint64
+	VId     types.Destination
+	Paid    types.Funds
 }
 
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
@@ -206,7 +206,7 @@ func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
 		turnNum: latest.turnNum + 1,
 	}
 
-	signature, err := c.Sign(vars, sk)
+	signature, err := c.sign(vars, sk)
 	if err != nil {
 		return SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
 	}
@@ -219,7 +219,7 @@ func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
 
 // Sign constructs a state.State from the given vars, using the ConsensusChannel's constant
 // values. It signs the resulting state using pk.
-func (c *ConsensusChannel) Sign(vars Vars, pk []byte) (state.Signature, error) {
+func (c *ConsensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
 	fp := c.FixedPart
 	state := state.State{
 		// Variable
