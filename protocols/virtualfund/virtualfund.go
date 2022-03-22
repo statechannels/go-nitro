@@ -38,9 +38,8 @@ type GuaranteeInfo struct {
 	GuaranteeDestination types.Destination
 }
 type Connection struct {
-	Channel            *channel.TwoPartyLedger
-	ExpectedGuarantees map[types.Address]outcome.Allocation
-	GuaranteeInfo      GuaranteeInfo
+	Channel       *channel.TwoPartyLedger
+	GuaranteeInfo GuaranteeInfo
 }
 
 // Equal returns true if the Connection pointed to by the supplied pointer is deeply equal to the receiver.
@@ -49,9 +48,6 @@ func (c *Connection) Equal(d *Connection) bool {
 		return true
 	}
 	if !c.Channel.Equal(d.Channel) {
-		return false
-	}
-	if !reflect.DeepEqual(c.ExpectedGuarantees, d.ExpectedGuarantees) {
 		return false
 	}
 	if !reflect.DeepEqual(c.GuaranteeInfo, d.GuaranteeInfo) {
@@ -418,7 +414,7 @@ func (o Objective) fundingComplete() bool {
 //
 // Both arguments are maps keyed by the same asset.
 func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
-	return connection.Channel.Affords(connection.ExpectedGuarantees, connection.Channel.OnChainFunding)
+	return connection.Channel.Affords(connection.getExpectedGuarantees(), connection.Channel.OnChainFunding)
 }
 
 // Equal returns true if the supplied DirectFundObjective is deeply equal to the receiver.
@@ -443,18 +439,16 @@ func (o *Objective) clone() Objective {
 	if o.ToMyLeft != nil {
 		lClone := o.ToMyLeft.Channel.Clone()
 		clone.ToMyLeft = &Connection{
-			Channel:            lClone,
-			ExpectedGuarantees: o.ToMyLeft.ExpectedGuarantees,
-			GuaranteeInfo:      o.ToMyLeft.GuaranteeInfo,
+			Channel:       lClone,
+			GuaranteeInfo: o.ToMyLeft.GuaranteeInfo,
 		}
 	}
 
 	if o.ToMyRight != nil {
 		rClone := o.ToMyRight.Channel.Clone()
 		clone.ToMyRight = &Connection{
-			Channel:            rClone,
-			ExpectedGuarantees: o.ToMyRight.ExpectedGuarantees,
-			GuaranteeInfo:      o.ToMyRight.GuaranteeInfo,
+			Channel:       rClone,
+			GuaranteeInfo: o.ToMyRight.GuaranteeInfo,
 		}
 	}
 
@@ -562,7 +556,7 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 	} else {
 		nextState = supported.Clone()
 	}
-	if nextState.Outcome.Affords(connection.ExpectedGuarantees, ledger.OnChainFunding) {
+	if nextState.Outcome.Affords(connection.getExpectedGuarantees(), ledger.OnChainFunding) {
 		return protocols.SideEffects{}, nil
 	}
 	nextState.TurnNum = nextState.TurnNum + 1
@@ -614,7 +608,7 @@ func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, sk *[]byte) 
 	// Our new total should just be our previous total minus our deposit.
 	proposedMaintainsOurFunds := ourNewTotal.Add(ourDeposit).Equal(ourPreviousTotal)
 
-	proposedAffordsGuarantee := proposed.Outcome.Affords(ledgerConnection.ExpectedGuarantees, ledger.OnChainFunding)
+	proposedAffordsGuarantee := proposed.Outcome.Affords(ledgerConnection.getExpectedGuarantees(), ledger.OnChainFunding)
 
 	if proposedMaintainsOurFunds && proposedAffordsGuarantee {
 

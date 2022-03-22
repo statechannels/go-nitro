@@ -309,7 +309,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				}
 			}
 			if (expectedGuaranteeMetadataLeft != outcome.GuaranteeMetadata{}) {
-				gotLeft := o.ToMyLeft.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
+				gotLeft := o.ToMyLeft.getExpectedGuarantees()[types.Address{}] // VState only has one (native) asset represented by the zero address
 				expectedEncodedGuaranteeMetadataLeft, _ := expectedGuaranteeMetadataLeft.Encode()
 				wantLeft := outcome.Allocation{
 					Destination:    o.V.Id,
@@ -322,7 +322,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				}
 			}
 			if (expectedGuaranteeMetadataRight != outcome.GuaranteeMetadata{}) {
-				gotRight := o.ToMyRight.ExpectedGuarantees[types.Address{}] // VState only has one (native) asset represented by the zero address
+				gotRight := o.ToMyRight.getExpectedGuarantees()[types.Address{}] // VState only has one (native) asset represented by the zero address
 				expectedEncodedGuaranteeMetadataRight, _ := expectedGuaranteeMetadataRight.Encode()
 				wantRight := outcome.Allocation{
 					Destination:    o.V.Id,
