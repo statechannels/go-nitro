@@ -29,14 +29,16 @@ type bytesSyncMap struct {
 // Load returns the value stored in the map for a key, or nil if no
 // value is present.
 // The ok result indicates whether value was found in the map.
-func (o *bytesSyncMap) Load(id string) ([]byte, bool) {
-	obj, ok := o.m.Load(id)
+func (o *bytesSyncMap) Load(id string) (bytes []byte, ok bool) {
+	data, ok := o.m.Load(id)
 
 	if !ok {
 		return nil, false
 	}
 
-	return obj.([]byte), ok
+	bytes = data.([]byte)
+
+	return bytes, ok
 }
 
 // Store sets the value for a key.
