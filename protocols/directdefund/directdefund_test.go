@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -206,7 +207,7 @@ func TestCrankAlice(t *testing.T) {
 		},
 		}}
 
-	if diff := cmp.Diff(expectedSE, se); diff != "" {
+	if diff := deep.Equal(expectedSE, se); diff != nil {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
@@ -295,7 +296,7 @@ func TestCrankBob(t *testing.T) {
 		},
 		}}
 
-	if diff := cmp.Diff(expectedSE, se); diff != "" {
+	if diff := deep.Equal(expectedSE, se); diff != nil {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 

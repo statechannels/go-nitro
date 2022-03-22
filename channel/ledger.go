@@ -26,11 +26,6 @@ func NewTwoPartyLedger(s state.State, myIndex uint) (*TwoPartyLedger, error) {
 	return &TwoPartyLedger{*c}, err
 }
 
-// Equal returns true if the supplied TwoPartyLedger is deeply equal to the receiver, false otherwise.
-func (lc *TwoPartyLedger) Equal(lc2 *TwoPartyLedger) bool {
-	return lc.Channel.Equal(lc2.Channel)
-}
-
 // Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.
 func (lc *TwoPartyLedger) Clone() *TwoPartyLedger {
 	if lc == nil {

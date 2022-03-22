@@ -28,11 +28,6 @@ func NewSingleHopVirtualChannel(s state.State, myIndex uint) (*SingleHopVirtualC
 	return &SingleHopVirtualChannel{*c}, err
 }
 
-// Equal returns true if the supplied SingleHopVirtualChannel is deeply equal to the receiver, false otherwise.
-func (v *SingleHopVirtualChannel) Equal(w *SingleHopVirtualChannel) bool {
-	return v.Channel.Equal(w.Channel)
-}
-
 // Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.
 func (v *SingleHopVirtualChannel) Clone() *SingleHopVirtualChannel {
 	if v == nil {

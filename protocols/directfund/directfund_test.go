@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -239,7 +240,7 @@ func TestCrank(t *testing.T) {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
 	}
 
-	if diff := cmp.Diff(expectedPreFundSideEffects, sideEffects); diff != "" {
+	if diff := deep.Equal(expectedPreFundSideEffects, sideEffects); diff != nil {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
@@ -280,7 +281,7 @@ func TestCrank(t *testing.T) {
 	if waitingFor != WaitingForCompletePostFund {
 		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
 	}
-	if diff := cmp.Diff(expectedPostFundSideEffects, sideEffects); diff != "" {
+	if diff := deep.Equal(expectedPostFundSideEffects, sideEffects); diff != nil {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
@@ -304,7 +305,7 @@ func TestClone(t *testing.T) {
 
 	clone := s.clone()
 
-	if diff := cmp.Diff(s, clone); diff != "" {
+	if diff := deep.Equal(s, clone); diff != nil {
 		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
@@ -41,24 +40,6 @@ type Connection struct {
 	Channel            *channel.TwoPartyLedger
 	ExpectedGuarantees map[types.Address]outcome.Allocation
 	GuaranteeInfo      GuaranteeInfo
-}
-
-// Equal returns true if the Connection pointed to by the supplied pointer is deeply equal to the receiver.
-func (c *Connection) Equal(d *Connection) bool {
-	if c == nil && d == nil {
-		return true
-	}
-	if !c.Channel.Equal(d.Channel) {
-		return false
-	}
-	if !reflect.DeepEqual(c.ExpectedGuarantees, d.ExpectedGuarantees) {
-		return false
-	}
-	if !reflect.DeepEqual(c.GuaranteeInfo, d.GuaranteeInfo) {
-		return false
-	}
-	return true
-
 }
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
@@ -402,18 +383,6 @@ func (o Objective) fundingComplete() bool {
 // Both arguments are maps keyed by the same asset.
 func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
 	return connection.Channel.Affords(connection.ExpectedGuarantees, connection.Channel.OnChainFunding)
-}
-
-// Equal returns true if the supplied DirectFundObjective is deeply equal to the receiver.
-func (o Objective) Equal(r Objective) bool {
-	return o.Status == r.Status &&
-		o.V.Equal(r.V) &&
-		o.ToMyLeft.Equal(r.ToMyLeft) &&
-		o.ToMyRight.Equal(r.ToMyRight) &&
-		o.n == r.n &&
-		o.MyRole == r.MyRole &&
-		o.a0.Equal(r.a0) &&
-		o.b0.Equal(r.b0)
 }
 
 // Clone returns a deep copy of the receiver.

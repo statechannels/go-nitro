@@ -2,10 +2,11 @@ package state
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/google/go-cmp/cmp"
+	"github.com/go-test/deep"
 )
 
 func TestSignedStateEqual(t *testing.T) {
@@ -16,7 +17,7 @@ func TestSignedStateEqual(t *testing.T) {
 	ss2 := NewSignedState(TestState)
 	_ = ss2.AddSignature(sigA)
 
-	if !ss1.Equal(ss2) {
+	if !reflect.DeepEqual(ss1, ss2) {
 		t.Errorf(`expected %v to Equal %v, but it did not`, ss1, ss2)
 	}
 }
@@ -47,7 +48,7 @@ func TestMergeWithDuplicateSignatures(t *testing.T) {
 		},
 	}
 
-	if !got.Equal(want) {
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf(`incorrect merge, got %v, wanted %v`, got, want)
 	}
 
@@ -77,7 +78,7 @@ func TestMerge(t *testing.T) {
 		},
 	}
 
-	if !got.Equal(want) {
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf(`incorrect merge, got %v, wanted %v`, got, want)
 	}
 
@@ -109,7 +110,7 @@ func TestJSON(t *testing.T) {
 		}
 		want := ss1
 
-		if !got.Equal(ss1) {
+		if !reflect.DeepEqual(got, ss1) {
 			t.Errorf(`incorrect UnmarshalJSON, got %v, wanted %v`, got, want)
 		}
 	})
@@ -123,7 +124,7 @@ func TestSignedStateClone(t *testing.T) {
 
 	clone := ss1.Clone()
 
-	if diff := cmp.Diff(ss1, clone); diff != "" {
+	if diff := deep.Equal(ss1, clone); diff != nil {
 		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 

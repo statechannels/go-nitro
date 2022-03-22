@@ -3,9 +3,11 @@ package channel
 import (
 	"errors"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
@@ -29,12 +31,12 @@ func TestChannel(t *testing.T) {
 
 	testClone := func(t *testing.T) {
 		r := c.Clone()
-		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
+		if diff := deep.Equal(*r, *c); diff != nil {
 			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
 		r.latestSupportedStateTurnNum++
-		if r.Equal(*c) {
+		if reflect.DeepEqual(r, *c) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
@@ -286,7 +288,7 @@ func TestChannel(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if diff := cmp.Diff(expectedSignedState, latestSignedState, cmp.Comparer(types.Equal)); diff != "" {
+		if diff := deep.Equal(expectedSignedState, latestSignedState); diff != nil {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
 		}
 
@@ -324,7 +326,7 @@ func TestChannel(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if diff := cmp.Diff(latestSignedState, expectedSignedState, cmp.Comparer(types.Equal)); diff != "" {
+		if diff := deep.Equal(latestSignedState, expectedSignedState); diff != nil {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
 		}
 
@@ -356,12 +358,12 @@ func TestTwoPartyLedger(t *testing.T) {
 			t.Fatal(err)
 		}
 		c := r.Clone()
-		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
+		if diff := deep.Equal(*r, *c); diff != nil {
 			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
 		r.latestSupportedStateTurnNum++
-		if r.Channel.Equal(c.Channel) {
+		if reflect.DeepEqual(r.Channel, c.Channel) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
@@ -391,12 +393,12 @@ func TestSingleHopVirtualChannel(t *testing.T) {
 			t.Fatal(err)
 		}
 		c := r.Clone()
-		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
+		if diff := deep.Equal(*r, *c); diff != nil {
 			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
 		r.latestSupportedStateTurnNum++
-		if r.Channel.Equal(c.Channel) {
+		if reflect.DeepEqual(r.Channel, c.Channel) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 

@@ -191,12 +191,6 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 	return updated, sideEffects, WaitingForNothing, nil
 }
 
-// Equal returns true if the supplied Objective is deeply equal to the receiver.
-func (o Objective) Equal(r Objective) bool {
-	return o.Status == r.Status &&
-		o.C.Equal(*r.C)
-}
-
 // IsDirectDefundObjective inspects a objective id and returns true if the objective id is for a direct defund objective.
 func IsDirectDefundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)

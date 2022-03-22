@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/google/go-cmp/cmp"
+	"github.com/go-test/deep"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	nc "github.com/statechannels/go-nitro/crypto"
 	td "github.com/statechannels/go-nitro/internal/testdata"
@@ -63,7 +63,7 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 	if got.Id() != want.Id() {
 		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
 	}
-	if diff := cmp.Diff(got, &want); diff != "" {
+	if diff := deep.Equal(got, &want); diff != nil {
 		t.Errorf("expected no diff between set and retrieved objective, but found:\n%s", diff)
 	}
 }
