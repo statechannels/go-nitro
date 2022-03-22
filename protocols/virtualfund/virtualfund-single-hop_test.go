@@ -345,7 +345,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			clone := o.clone()
 
-
 			if !reflect.DeepEqual(o, clone) {
 				t.Errorf("Clone: mismatch")
 			}
