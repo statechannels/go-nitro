@@ -17,8 +17,10 @@ type SimpleChainService struct {
 // NewSimpleChainService returns a SimpleChainService which is listening for transactions and events.
 func NewSimpleChainService(mc MockChain, address types.Address) ChainService {
 	mcs := SimpleChainService{}
-	mcs.out = make(chan Event)
-	mcs.in = make(chan protocols.ChainTransaction)
+	// We use buffered channels fo receiving transactions and emitting chain events.
+	// This prevents the client from getting blocked sending transactions or receiving events.
+	mcs.out = make(chan Event, CHAIN_BUFFER_SIZE)
+	mcs.in = make(chan protocols.ChainTransaction, CHAIN_BUFFER_SIZE)
 	mcs.chain = mc
 	mcs.address = address
 

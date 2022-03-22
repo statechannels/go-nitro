@@ -8,6 +8,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// We use buffers on our message chans so a client doesn't get blocked trying to read or write messages to the message service
+const MESSAGE_BUFFER_SIZE = 10
+
 // TestMessageService is an implementaion of the MessageService interface
 // for use in multi-engine test environments.
 //
@@ -43,8 +46,8 @@ func NewBroker() Broker {
 func NewTestMessageService(address types.Address, broker Broker) TestMessageService {
 	tms := TestMessageService{
 		address: address,
-		in:      make(chan protocols.Message, 5),
-		out:     make(chan protocols.Message, 5),
+		in:      make(chan protocols.Message, MESSAGE_BUFFER_SIZE),
+		out:     make(chan protocols.Message, MESSAGE_BUFFER_SIZE),
 	}
 
 	tms.connect(broker)

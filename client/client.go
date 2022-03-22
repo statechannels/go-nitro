@@ -15,6 +15,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// We use a buffer so we can send to the completedObjectives without blocking on the receiver reading from the chan
+const COMPLETED_OBJECTIVES_BUFFER_SIZE = 10
+
 // Client provides the interface for the consuming application
 type Client struct {
 	engine              engine.Engine // The core business logic of the client
@@ -32,7 +35,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.Address = store.GetAddress()
 	c.channelLocker = engine.NewChannelLocker()
 	c.engine = engine.New(messageService, chainservice, store, logDestination, c.channelLocker)
-	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
+	c.completedObjectives = make(chan protocols.ObjectiveId, COMPLETED_OBJECTIVES_BUFFER_SIZE)
 
 	for i := uint(0); i < concurrentRunLoops; i++ {
 		go c.engine.Run(context.Background())

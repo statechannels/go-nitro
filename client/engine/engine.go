@@ -16,6 +16,11 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
 
+// We use buffered channels for communication between the Engine and the API
+// This prevents the engine from getting blocked writing to toApi
+// This also prevents the client from getting blocked writing to FromAPI
+const API_BUFFER_SIZE = 10
+
 // Engine is the imperative part of the core business logic of a go-nitro Client
 type Engine struct {
 	// inbound go channels
@@ -63,11 +68,11 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.store = store
 	e.channelLocker = channelLocker
 	// bind to inbound chans
-	e.FromAPI = make(chan APIEvent)
+	e.FromAPI = make(chan APIEvent, API_BUFFER_SIZE)
 	e.fromChain = chain.Out()
 	e.fromMsg = msg.Out()
 
-	e.toApi = make(chan ObjectiveChangeEvent, 100)
+	e.toApi = make(chan ObjectiveChangeEvent, API_BUFFER_SIZE)
 	// bind to outbound chans
 	e.toChain = chain.In()
 	e.toMsg = msg.In()
