@@ -22,11 +22,11 @@ func TestClientConcurrency(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientA := setupClient(aliceKey, chain, broker, logFile, 5)
-	clientB := setupClient(bobKey, chain, broker, logFile, 5)
+	clientA := setupClient(aliceKey, chain, broker, logFile, 4)
+	clientB := setupClient(bobKey, chain, broker, logFile, 4)
 	// TODO: Only directly funded channels can be handled concurrently
 	// Due to this ledger issue: https://github.com/statechannels/go-nitro/issues/366
-	ids := createDirectlyFundedChannels(t, clientA, clientB, 100)
+	ids := createDirectlyFundedChannels(t, clientA, clientB, 20)
 	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, ids...)
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, ids...)
 
