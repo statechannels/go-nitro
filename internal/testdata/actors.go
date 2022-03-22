@@ -18,8 +18,8 @@ func (a actor) Destination() types.Destination {
 type actors struct {
 	Alice actor
 	Bob   actor
-	Brian actor
-	Irene actor
+	// Brian actor
+	// Irene actor
 }
 
 // Actors is the endpoint for tests to consume constructed statechannel
