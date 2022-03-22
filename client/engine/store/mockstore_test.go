@@ -1,25 +1,25 @@
-package store
+package store_test
 
 import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
-	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/client/engine/store"
 	nc "github.com/statechannels/go-nitro/crypto"
+	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/protocols/directfund"
 )
 
 func TestNewMockStore(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
-	NewMockStore(sk)
+	store.NewMockStore(sk)
 }
 
 func TestSetGetObjective(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
-	ms := NewMockStore(sk)
+	ms := store.NewMockStore(sk)
 
 	id := protocols.ObjectiveId("404")
 	got, err := ms.GetObjectiveById(id)
@@ -27,30 +27,19 @@ func TestSetGetObjective(t *testing.T) {
 		t.Errorf("expected not to find the %s objective, but found %v", id, got)
 	}
 
-	ts := state.TestState
-	ts.TurnNum = 0
-	request := directfund.ObjectiveRequest{
-		MyAddress:         ts.Participants[0],
-		CounterParty:      ts.Participants[1],
-		AppData:           ts.AppData,
-		AppDefinition:     ts.AppDefinition,
-		ChallengeDuration: ts.ChallengeDuration,
-		Nonce:             ts.ChannelNonce.Int64(),
-		Outcome:           ts.Outcome,
-	}
-	testObj, _ := directfund.NewObjective(request, false)
+	want := td.Objectives.Directfund.GenericDFO()
 
-	if err := ms.SetObjective(&testObj); err != nil {
-		t.Errorf("error setting objective %v: %s", testObj, err.Error())
+	if err := ms.SetObjective(&want); err != nil {
+		t.Errorf("error setting objective %v: %s", want, err.Error())
 	}
 
-	got, err = ms.GetObjectiveById(testObj.Id())
+	got, err = ms.GetObjectiveById(want.Id())
 
 	if err != nil {
 		t.Errorf("expected to find the inserted objective, but didn't: %s", err)
 	}
 
-	if got.Id() != testObj.Id() {
+	if got.Id() != want.Id() {
 		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
 	}
 }
@@ -58,34 +47,23 @@ func TestSetGetObjective(t *testing.T) {
 func TestGetObjectiveByChannelId(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
-	ms := NewMockStore(sk)
+	ms := store.NewMockStore(sk)
 
-	ts := state.TestState
-	ts.TurnNum = 0
-	request := directfund.ObjectiveRequest{
-		MyAddress:         ts.Participants[0],
-		CounterParty:      ts.Participants[1],
-		AppData:           ts.AppData,
-		AppDefinition:     ts.AppDefinition,
-		ChallengeDuration: ts.ChallengeDuration,
-		Nonce:             ts.ChannelNonce.Int64(),
-		Outcome:           ts.Outcome,
-	}
-	testObj, _ := directfund.NewObjective(request, false)
+	want := td.Objectives.Directfund.GenericDFO()
 
-	if err := ms.SetObjective(&testObj); err != nil {
-		t.Errorf("error setting objective %v: %s", testObj, err.Error())
+	if err := ms.SetObjective(&want); err != nil {
+		t.Errorf("error setting objective %v: %s", want, err.Error())
 	}
 
-	got, ok := ms.GetObjectiveByChannelId(testObj.C.Id)
+	got, ok := ms.GetObjectiveByChannelId(want.C.Id)
 
 	if !ok {
 		t.Errorf("expected to find the inserted objective, but didn't")
 	}
-	if got.Id() != testObj.Id() {
+	if got.Id() != want.Id() {
 		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
 	}
-	if diff := cmp.Diff(got, &testObj); diff != "" {
+	if diff := cmp.Diff(got, &want); diff != "" {
 		t.Errorf("expected no diff between set and retrieved objective, but found:\n%s", diff)
 	}
 }
@@ -95,7 +73,7 @@ func TestGetChannelSecretKey(t *testing.T) {
 	sk := common.Hex2Bytes("caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634")
 	pk := common.HexToAddress("0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD")
 
-	ms := NewMockStore(sk)
+	ms := store.NewMockStore(sk)
 	key := ms.GetChannelSecretKey()
 
 	msg := []byte("sign this")
