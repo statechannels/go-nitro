@@ -2,6 +2,8 @@ package messageservice
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/protocols"
@@ -20,8 +22,9 @@ type TestMessageService struct {
 	address types.Address
 
 	// connection to Engine:
-	in  chan protocols.Message // for recieving messages from engine
-	out chan protocols.Message // for sending message to engine
+	in        chan protocols.Message // for recieving messages from engine
+	out       chan protocols.Message // for sending message to engine
+	meanDelay time.Duration          // average delay for messages
 }
 
 // A Broker manages a mapping from identifying address to a TestMessageService,
@@ -40,11 +43,12 @@ func NewBroker() Broker {
 }
 
 // NewTestMessageService returns a running TestMessageService
-func NewTestMessageService(address types.Address, broker Broker) TestMessageService {
+func NewTestMessageService(address types.Address, broker Broker, meanDelay time.Duration) TestMessageService {
 	tms := TestMessageService{
-		address: address,
-		in:      make(chan protocols.Message, 5),
-		out:     make(chan protocols.Message, 5),
+		address:   address,
+		in:        make(chan protocols.Message, 5),
+		out:       make(chan protocols.Message, 5),
+		meanDelay: meanDelay,
 	}
 
 	tms.connect(broker)
@@ -59,28 +63,39 @@ func (t TestMessageService) In() chan<- protocols.Message {
 	return t.in
 }
 
+func (t TestMessageService) handleMessage(message protocols.Message, b Broker) {
+
+	if t.meanDelay > 0 {
+		randomDelay := time.Duration(rand.Int63n(t.meanDelay.Nanoseconds()))
+		delayAmount := t.meanDelay/2 + randomDelay
+		time.Sleep(delayAmount)
+	}
+	peerChan, ok := b.services[message.To]
+	if ok {
+		// To mimic a proper message service, we serialize and then
+		// deserialize the message
+
+		serializedMsg, err := message.Serialize()
+		if err != nil {
+			panic(`could not serialize message`)
+		}
+		deserializedMsg, err := protocols.DeserializeMessage(serializedMsg)
+		if err != nil {
+			panic(`could not deserialize message`)
+		}
+		peerChan.out <- deserializedMsg
+	} else {
+		panic(fmt.Sprintf("client %v has no connection to client %v",
+			t.address, message.To))
+	}
+}
+
 // connect creates a gochan for message service to send messages to the given peer.
 func (t TestMessageService) connect(b Broker) {
 	go func() {
 		for message := range t.in {
-			peerChan, ok := b.services[message.To]
-			if ok {
-				// To mimic a proper message service, we serialize and then
-				// deserialize the message
 
-				serializedMsg, err := message.Serialize()
-				if err != nil {
-					panic(`could not serialize message`)
-				}
-				deserializedMsg, err := protocols.DeserializeMessage(serializedMsg)
-				if err != nil {
-					panic(`could not deserialize message`)
-				}
-				peerChan.out <- deserializedMsg
-			} else {
-				panic(fmt.Sprintf("client %v has no connection to client %v",
-					t.address, message.To))
-			}
+			go t.handleMessage(message, b)
 		}
 
 	}()
