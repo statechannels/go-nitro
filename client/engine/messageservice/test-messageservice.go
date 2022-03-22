@@ -63,7 +63,10 @@ func (t TestMessageService) In() chan<- protocols.Message {
 	return t.in
 }
 
-func (t TestMessageService) handleMessage(message protocols.Message, b Broker) {
+// dispatchMessage is responsible for dispatching a message to the appropriate peer message service.
+// If there is a mean delay it will wait a random amount of time(based on meanDelay) before sending the message.
+// It serializes and deserializes a message to mimic a real message service.
+func (t TestMessageService) dispatchMessage(message protocols.Message, b Broker) {
 
 	if t.meanDelay > 0 {
 		randomDelay := time.Duration(rand.Int63n(t.meanDelay.Nanoseconds()))
@@ -95,7 +98,7 @@ func (t TestMessageService) connect(b Broker) {
 	go func() {
 		for message := range t.in {
 
-			go t.handleMessage(message, b)
+			go t.dispatchMessage(message, b)
 		}
 
 	}()
