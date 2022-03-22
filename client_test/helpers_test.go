@@ -61,7 +61,7 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 				incompleteIds = append(incompleteIds, id)
 			}
 		}
-		t.Fatalf("Objective ids %s failed to complete in one second on client %s", incompleteIds, client.Address)
+		t.Fatalf("Objective ids %s failed to complete on client %s within %s", incompleteIds, client.Address, timeout)
 	case <-allDone:
 		return
 	}
