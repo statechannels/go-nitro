@@ -27,8 +27,8 @@ func TestClientConcurrency(t *testing.T) {
 	// TODO: Only directly funded channels can be handled concurrently
 	// Due to this ledger issue: https://github.com/statechannels/go-nitro/issues/366
 	ids := createDirectlyFundedChannels(t, clientA, clientB, 100)
-	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout*5, ids...)
-	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout*5, ids...)
+	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, ids...)
+	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, ids...)
 
 }
 
