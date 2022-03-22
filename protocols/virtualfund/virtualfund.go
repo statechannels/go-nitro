@@ -169,7 +169,7 @@ func constructFromState(
 	if !init.isAlice() { // everyone other than Alice has a left-channel
 		init.ToMyLeft = &Connection{}
 		init.ToMyLeft.Channel = ledgerChannelToMyLeft
-		err = init.ToMyLeft.insertExpectedGuarantees(
+		err = init.ToMyLeft.insertGuaranteeInfo(
 			init.a0,
 			init.b0,
 			init.V.Id,
@@ -184,7 +184,7 @@ func constructFromState(
 	if !init.isBob() { // everyone other than Bob has a right-channel
 		init.ToMyRight = &Connection{}
 		init.ToMyRight.Channel = ledgerChannelToMyRight
-		err = init.ToMyRight.insertExpectedGuarantees(
+		err = init.ToMyRight.insertGuaranteeInfo(
 			init.a0,
 			init.b0,
 			init.V.Id,
@@ -344,29 +344,8 @@ func (o Objective) Channels() []*channel.Channel {
 //  Private methods on the VirtualFundObjective //
 //////////////////////////////////////////////////
 
-// insertExpectedGuaranteesForLedgerChannel mutates the reciever Connection struct.
-func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) error {
-	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
-	metadata := outcome.GuaranteeMetadata{
-		Left:  left,
-		Right: right,
-	}
-	encodedGuarantee, err := metadata.Encode()
-	if err != nil {
-		return err
-	}
-
-	channelFunds := a0.Add(b0)
-
-	for asset, amount := range channelFunds {
-		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
-			Destination:    vId,
-			Amount:         amount,
-			AllocationType: outcome.GuaranteeAllocationType,
-			Metadata:       encodedGuarantee,
-		}
-	}
-	connection.ExpectedGuarantees = expectedGuaranteesForLedgerChannel
+// insertGuaranteeInfo mutates the reciever Connection struct.
+func (connection *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) error {
 
 	connection.GuaranteeInfo = GuaranteeInfo{
 		Left:                 left,
@@ -376,7 +355,45 @@ func (connection *Connection) insertExpectedGuarantees(a0 types.Funds, b0 types.
 		GuaranteeDestination: vId,
 	}
 
+	// Check that the guarantee metadata can be encoded. This allows us to avoid clunky error-return-chains for getExpectedGuarantees
+	metadata := outcome.GuaranteeMetadata{
+		Left:  connection.GuaranteeInfo.Left,
+		Right: connection.GuaranteeInfo.Right,
+	}
+	_, err := metadata.Encode()
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// insertExpectedGuaranteesForLedgerChannel mutates the reciever Connection struct.
+func (connection *Connection) getExpectedGuarantees() map[types.Address]outcome.Allocation {
+	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
+	metadata := outcome.GuaranteeMetadata{
+		Left:  connection.GuaranteeInfo.Left,
+		Right: connection.GuaranteeInfo.Right,
+	}
+	encodedGuarantee, err := metadata.Encode()
+	// This error is unexpected. insertGuaranteeInfo checks that the guarantee metadata can be encoded.
+	// If this panic is triggered, GuranteeInfo has been modified after creation
+	if err != nil {
+		panic(err)
+	}
+
+	channelFunds := connection.GuaranteeInfo.LeftAmount.Add(connection.GuaranteeInfo.RightAmount)
+
+	for asset, amount := range channelFunds {
+		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
+			Destination:    connection.GuaranteeInfo.GuaranteeDestination,
+			Amount:         amount,
+			AllocationType: outcome.GuaranteeAllocationType,
+			Metadata:       encodedGuarantee,
+		}
+	}
+
+	return expectedGuaranteesForLedgerChannel
 }
 
 // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
