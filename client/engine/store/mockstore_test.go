@@ -27,7 +27,7 @@ func TestSetGetObjective(t *testing.T) {
 		t.Errorf("expected not to find the %s objective, but found %v", id, got)
 	}
 
-	want := td.Objectives.Directfund.GenericDFO
+	want := td.Objectives.Directfund.GenericDFO()
 
 	if err := ms.SetObjective(&want); err != nil {
 		t.Errorf("error setting objective %v: %s", want, err.Error())
@@ -49,7 +49,7 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 
 	ms := store.NewMockStore(sk)
 
-	want := td.Objectives.Directfund.GenericDFO
+	want := td.Objectives.Directfund.GenericDFO()
 
 	if err := ms.SetObjective(&want); err != nil {
 		t.Errorf("error setting objective %v: %s", want, err.Error())

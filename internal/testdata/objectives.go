@@ -13,7 +13,8 @@ type objectiveCollection struct {
 }
 
 type dfoCollection struct {
-	GenericDFO directfund.Objective
+	// GenericDFO returns a non-specific directfund.Objective with nonzero data.
+	GenericDFO func() directfund.Objective
 }
 
 // Objectives is the endpoint for tests to consume constructed objectives or
@@ -23,11 +24,10 @@ type dfoCollection struct {
 //     testdata.Objectives.twopartyledgers.irene_ivan
 var Objectives objectiveCollection = objectiveCollection{
 	Directfund: dfoCollection{
-		GenericDFO: genericDFO(),
+		GenericDFO: genericDFO,
 	},
 }
 
-// genericDFO returns a non-specific directfund.Objective with nonzero data.
 func genericDFO() directfund.Objective {
 	ts := testState
 	request := directfund.ObjectiveRequest{
