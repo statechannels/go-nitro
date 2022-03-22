@@ -1,4 +1,4 @@
-package td
+package testdata
 
 import (
 	"math/big"

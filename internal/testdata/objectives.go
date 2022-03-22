@@ -1,4 +1,4 @@
-package td
+package testdata
 
 import "github.com/statechannels/go-nitro/protocols/directfund"
 

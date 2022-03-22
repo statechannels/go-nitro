@@ -1,4 +1,4 @@
-package td
+package testdata
 
 import (
 	"github.com/ethereum/go-ethereum/common"
