@@ -23,9 +23,9 @@ func TestBenchmark(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientAlice := setupClient(aliceKey, chain, broker, logFile)
-	clientBob := setupClient(bobKey, chain, broker, logFile)
-	clientIrene := setupClient(ireneKey, chain, broker, logFile)
+	clientAlice := setupClient(alice.PrivateKey, chain, broker, logFile)
+	clientBob := setupClient(bob.PrivateKey, chain, broker, logFile)
+	clientIrene := setupClient(irene.PrivateKey, chain, broker, logFile)
 
 	directlyFundALedgerChannel(t, clientAlice, clientIrene)
 	directlyFundALedgerChannel(t, clientIrene, clientBob)
@@ -34,7 +34,7 @@ func TestBenchmark(t *testing.T) {
 
 	n := 1
 	for i := 0; i < n; i++ {
-		go benchmarkVirtualChannelCreation(t, clientAlice, clientBob, irene, done)
+		go benchmarkVirtualChannelCreation(t, clientAlice, clientBob, irene.Address, done)
 	}
 
 	expect(t, done, n, time.Second*1)

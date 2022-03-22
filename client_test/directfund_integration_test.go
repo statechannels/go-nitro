@@ -48,8 +48,8 @@ func TestDirectFundIntegration(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientA := setupClient(aliceKey, chain, broker, logFile)
-	clientB := setupClient(bobKey, chain, broker, logFile)
+	clientA := setupClient(alice.PrivateKey, chain, broker, logFile)
+	clientB := setupClient(bob.PrivateKey, chain, broker, logFile)
 
 	directlyFundALedgerChannel(t, clientA, clientB)
 
