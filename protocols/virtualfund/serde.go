@@ -5,17 +5,9 @@ import (
 	"fmt"
 
 	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
-
-// assetGuarantee is a serialization-friendly representation of
-// map[asset]Allocation
-type assetGuarantee struct {
-	Asset     types.Address
-	Guarantee outcome.Allocation
-}
 
 // jsonConnection is a serialization-friendly struct representation
 // of a Connection
