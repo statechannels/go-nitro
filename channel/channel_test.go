@@ -3,6 +3,7 @@ package channel
 import (
 	"errors"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -34,7 +35,7 @@ func TestChannel(t *testing.T) {
 		}
 
 		r.latestSupportedStateTurnNum++
-		if r.Equal(*c) {
+		if reflect.DeepEqual(r, *c) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
@@ -361,7 +362,7 @@ func TestTwoPartyLedger(t *testing.T) {
 		}
 
 		r.latestSupportedStateTurnNum++
-		if r.Channel.Equal(c.Channel) {
+		if reflect.DeepEqual(r.Channel, c.Channel) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
@@ -396,7 +397,7 @@ func TestSingleHopVirtualChannel(t *testing.T) {
 		}
 
 		r.latestSupportedStateTurnNum++
-		if r.Channel.Equal(c.Channel) {
+		if reflect.DeepEqual(r.Channel, c.Channel) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 

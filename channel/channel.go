@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -134,11 +133,6 @@ func (c *Channel) Clone() *Channel {
 	d.OnChainFunding = c.OnChainFunding.Clone()
 	d.FixedPart = c.FixedPart.Clone()
 	return d
-}
-
-// Equal returns true if the channel is deeply equal to the reciever, false otherwise
-func (c Channel) Equal(d Channel) bool {
-	return reflect.DeepEqual(c, d)
 }
 
 // PreFundState() returns the pre fund setup state for the channel.

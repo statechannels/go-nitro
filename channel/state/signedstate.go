@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -123,22 +122,6 @@ func (ss SignedState) Clone() SignedState {
 		state: ss.state.Clone(),
 		sigs:  clonedSigs,
 	}
-}
-
-// Equal returns true if the passed SignedState is deeply equal in value to the receiver.
-func (ss SignedState) Equal(ss2 SignedState) bool {
-	if !ss.state.Equal(ss2.state) {
-		return false
-	}
-	if len(ss.sigs) != len(ss2.sigs) {
-		return false
-	}
-	for i, sig := range ss.sigs {
-		if !bytes.Equal(sig.S, ss2.sigs[i].S) || !bytes.Equal(sig.R, ss2.sigs[i].R) || sig.V != ss2.sigs[i].V {
-			return false
-		}
-	}
-	return true
 }
 
 // MarshalJSON marshals the SignedState into JSON, implementing the Marshaler interface.

@@ -323,15 +323,6 @@ func (o Objective) amountToDeposit() types.Funds {
 	return deposits
 }
 
-// Equal returns true if the supplied Objective is deeply equal to the receiver.
-func (o Objective) Equal(r Objective) bool {
-	return o.Status == r.Status &&
-		o.C.Equal(*r.C) &&
-		o.myDepositSafetyThreshold.Equal(r.myDepositSafetyThreshold) &&
-		o.myDepositTarget.Equal((r.myDepositTarget)) &&
-		o.fullyFundedThreshold.Equal(r.fullyFundedThreshold)
-}
-
 // clone returns a deep copy of the receiver.
 func (o Objective) clone() Objective {
 	clone := Objective{}

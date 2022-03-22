@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -16,8 +17,8 @@ func TestSignedStateEqual(t *testing.T) {
 	ss2 := NewSignedState(TestState)
 	_ = ss2.AddSignature(sigA)
 
-	if !ss1.Equal(ss2) {
-		t.Fatalf(`expected %v to Equal %v, but it did not`, ss1, ss2)
+	if !reflect.DeepEqual(ss1, ss2) {
+		t.Errorf(`expected %v to Equal %v, but it did not`, ss1, ss2)
 	}
 }
 func TestMergeWithDuplicateSignatures(t *testing.T) {
@@ -47,8 +48,8 @@ func TestMergeWithDuplicateSignatures(t *testing.T) {
 		},
 	}
 
-	if !got.Equal(want) {
-		t.Fatalf(`incorrect merge, got %v, wanted %v`, got, want)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf(`incorrect merge, got %v, wanted %v`, got, want)
 	}
 
 }
@@ -77,8 +78,8 @@ func TestMerge(t *testing.T) {
 		},
 	}
 
-	if !got.Equal(want) {
-		t.Fatalf(`incorrect merge, got %v, wanted %v`, got, want)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf(`incorrect merge, got %v, wanted %v`, got, want)
 	}
 
 }
@@ -109,8 +110,8 @@ func TestJSON(t *testing.T) {
 		}
 		want := ss1
 
-		if !got.Equal(ss1) {
-			t.Fatalf(`incorrect UnmarshalJSON, got %v, wanted %v`, got, want)
+		if !reflect.DeepEqual(got, ss1) {
+			t.Errorf(`incorrect UnmarshalJSON, got %v, wanted %v`, got, want)
 		}
 	})
 

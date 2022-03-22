@@ -1,35 +1,12 @@
 package protocols
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
-
-func TestEquals(t *testing.T) {
-	stateOne := state.TestState.Clone()
-	stateTwo := state.TestState.Clone()
-	stateTwo.TurnNum = 1
-	msg1 := Message{
-		To:          types.Address{'a'},
-		ObjectiveId: `say-hello-to-my-little-friend`,
-		SignedStates: []state.SignedState{
-			state.NewSignedState(stateOne),
-		},
-	}
-
-	msg2 := Message{
-		To:          types.Address{'a'},
-		ObjectiveId: `say-hello-to-my-little-friend`,
-		SignedStates: []state.SignedState{
-			state.NewSignedState(stateTwo),
-		},
-	}
-	if (msg1).Equal(msg2) {
-		t.Error("Equal returned true for two different messages")
-	}
-}
 
 func TestMessage(t *testing.T) {
 
@@ -60,8 +37,8 @@ func TestMessage(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if !got.Equal(want) {
-			t.Fatalf(`incorrect deserialization: got %v wanted %v`, got, want)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf(`incorrect deserialization: got %v wanted %v`, got, want)
 		}
 	})
 

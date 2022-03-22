@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -156,7 +157,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 	assertSideEffectsContainsMessageWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, to actor, t *testing.T) {
 		for _, msg := range ses.MessagesToSend {
 			for _, ss := range msg.SignedStates {
-				if ss.Equal(expectedSignedState) && bytes.Equal(msg.To[:], to.address[:]) {
+				if reflect.DeepEqual(ss, expectedSignedState) && bytes.Equal(msg.To[:], to.address[:]) {
 					return
 				}
 			}
