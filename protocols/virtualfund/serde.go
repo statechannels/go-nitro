@@ -20,9 +20,8 @@ type assetGuarantee struct {
 // jsonConnection is a serialization-friendly struct representation
 // of a Connection
 type jsonConnection struct {
-	Channel            types.Destination
-	ExpectedGuarantees []assetGuarantee
-	GuarnateeInfo      GuaranteeInfo
+	Channel       types.Destination
+	GuarnateeInfo GuaranteeInfo
 }
 
 // MarshalJSON returns a JSON representation of the Connection
@@ -30,14 +29,7 @@ type jsonConnection struct {
 // NOTE: Marshal -> Unmarshal is a lossy process. All channel data
 //       other than the ID is dropped
 func (c Connection) MarshalJSON() ([]byte, error) {
-	guarantees := []assetGuarantee{}
-	for asset, guarantee := range c.ExpectedGuarantees {
-		guarantees = append(guarantees, assetGuarantee{
-			asset,
-			guarantee,
-		})
-	}
-	jsonC := jsonConnection{c.Channel.Id, guarantees, c.GuaranteeInfo}
+	jsonC := jsonConnection{c.Channel.Id, c.GuaranteeInfo}
 	bytes, err := json.Marshal(jsonC)
 
 	if err != nil {
@@ -54,7 +46,6 @@ func (c Connection) MarshalJSON() ([]byte, error) {
 //       (other than Id) is discarded
 func (c *Connection) UnmarshalJSON(data []byte) error {
 	c.Channel = &channel.TwoPartyLedger{}
-	c.ExpectedGuarantees = make(map[types.Address]outcome.Allocation)
 
 	if string(data) == "null" {
 		// populate a well-formed but blank-addressed Connection
@@ -71,10 +62,6 @@ func (c *Connection) UnmarshalJSON(data []byte) error {
 
 	c.Channel.Id = jsonC.Channel
 	c.GuaranteeInfo = jsonC.GuarnateeInfo
-
-	for _, eg := range jsonC.ExpectedGuarantees {
-		c.ExpectedGuarantees[eg.Asset] = eg.Guarantee
-	}
 
 	return nil
 }
