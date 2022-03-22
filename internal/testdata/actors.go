@@ -14,6 +14,7 @@ func (a actor) Destination() types.Destination {
 	return types.AddressToDestination(a.Address)
 }
 
+// actors namespaces the actors exported for test consumption
 type actors struct {
 	Alice actor
 	Bob   actor
@@ -21,6 +22,8 @@ type actors struct {
 	Irene actor
 }
 
+// Actors is the endpoint for tests to consume constructed statechannel
+// network participants (public-key secret-key pairs)
 var Actors actors = actors{
 	Alice: actor{
 		common.HexToAddress(`0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE`),
