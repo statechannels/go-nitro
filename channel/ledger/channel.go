@@ -66,11 +66,6 @@ type LedgerOutcome struct {
 	guarantees   map[types.Destination]Guarantee 
 }
 
-// Equal compares two LedgerOutcome instances by comparing their representation as on-chain outcome.Allocation values
-func (o LedgerOutcome) Equal(other LedgerOutcome) bool {
-	return o.AsOutcome().Equal(other.AsOutcome())
-}
-
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
 // - the "left" balance is first
 // - the "right" balance is second

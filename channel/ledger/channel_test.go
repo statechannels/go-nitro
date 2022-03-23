@@ -3,6 +3,7 @@ package ledger
 import (
 	"errors"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -79,7 +80,7 @@ func TestProposals(t *testing.T) {
 		guarantee(vAmount, targetChannel, alice, bob),
 	)
 
-	if !after.Outcome.Equal(expected) {
+	if !reflect.DeepEqual(after.Outcome, expected) {
 		t.Log(after.Outcome)
 		t.Log(expected)
 		t.Error("incorrect outcome", err)
