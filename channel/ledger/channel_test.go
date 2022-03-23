@@ -10,43 +10,43 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-var alice = types.Destination(common.HexToHash("0x0a"))
-var bob = types.Destination(common.HexToHash("0x0b"))
+func TestProposals(t *testing.T) {
+	var alice = types.Destination(common.HexToHash("0x0a"))
+	var bob = types.Destination(common.HexToHash("0x0b"))
 
-func allocation(d types.Destination, a uint64) Balance {
-	return Balance{destination: d, amount: *big.NewInt(int64(a))}
-}
-
-func guarantee(amount uint64, target, left, right types.Destination) Guarantee {
-	return Guarantee{
-		target: target,
-		amount: *big.NewInt(int64(amount)),
-		left:   left,
-		right:  right,
+	allocation := func(d types.Destination, a uint64) Balance {
+		return Balance{destination: d, amount: *big.NewInt(int64(a))}
 	}
-}
 
-func makeOutcome(left, right Balance, guarantees ...Guarantee) LedgerOutcome {
-	mappedGuarantees := make(map[types.Destination]Guarantee)
-	for _, g := range guarantees {
-		mappedGuarantees[g.target] = g
-	}
-	return LedgerOutcome{left: left, right: right, guarantees: mappedGuarantees}
-}
-
-func add(turnNum, amount uint64, vId, left, right types.Destination) Add {
-	return Add{
-		turnNum: turnNum,
-		Guarantee: Guarantee{
+	guarantee := func(amount uint64, target, left, right types.Destination) Guarantee {
+		return Guarantee{
+			target: target,
 			amount: *big.NewInt(int64(amount)),
-			target: vId,
 			left:   left,
 			right:  right,
-		},
+		}
 	}
-}
 
-func TestProposals(t *testing.T) {
+	makeOutcome := func(left, right Balance, guarantees ...Guarantee) LedgerOutcome {
+		mappedGuarantees := make(map[types.Destination]Guarantee)
+		for _, g := range guarantees {
+			mappedGuarantees[g.target] = g
+		}
+		return LedgerOutcome{left: left, right: right, guarantees: mappedGuarantees}
+	}
+
+	add := func(turnNum, amount uint64, vId, left, right types.Destination) Add {
+		return Add{
+			turnNum: turnNum,
+			Guarantee: Guarantee{
+				amount: *big.NewInt(int64(amount)),
+				target: vId,
+				left:   left,
+				right:  right,
+			},
+		}
+	}
+
 	existingChannel := types.Destination{1}
 	targetChannel := types.Destination{2}
 	aBal := uint64(200)
