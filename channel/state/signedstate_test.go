@@ -10,18 +10,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestSignedStateEqual(t *testing.T) {
-	sigA, _ := TestState.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
-
-	ss1 := NewSignedState(TestState)
-	_ = ss1.AddSignature(sigA)
-	ss2 := NewSignedState(TestState)
-	_ = ss2.AddSignature(sigA)
-
-	if !reflect.DeepEqual(ss1, ss2) {
-		t.Errorf(`expected %v to Equal %v, but it did not`, ss1, ss2)
-	}
-}
 func TestMergeWithDuplicateSignatures(t *testing.T) {
 	// ss1 has only alice's signature
 	ss1 := NewSignedState(TestState)
