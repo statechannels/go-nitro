@@ -54,7 +54,8 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 	select {
 	case <-time.After(timeout):
 		incompleteIds := make([]protocols.ObjectiveId, 0)
-		for id, isObjectiveDone := range completed {
+		for _, id := range ids {
+			isObjectiveDone := completed[id]
 			if !isObjectiveDone {
 				incompleteIds = append(incompleteIds, id)
 			}
