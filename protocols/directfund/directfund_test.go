@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
@@ -171,6 +172,10 @@ func TestUpdate(t *testing.T) {
 
 }
 
+func compareSideEffect(a, b protocols.SideEffects) string {
+	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}))
+}
+
 func TestCrank(t *testing.T) {
 
 	// BEGIN test data preparation
@@ -239,8 +244,8 @@ func TestCrank(t *testing.T) {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
 	}
 
-	if diff := cmp.Diff(expectedPreFundSideEffects, sideEffects); diff != "" {
-		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
+	if diff := compareSideEffect(expectedPreFundSideEffects, sideEffects); diff != "" {
+		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// Manually progress the extended state by collecting prefund signatures
@@ -280,8 +285,8 @@ func TestCrank(t *testing.T) {
 	if waitingFor != WaitingForCompletePostFund {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
 	}
-	if diff := cmp.Diff(expectedPostFundSideEffects, sideEffects); diff != "" {
-		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
+	if diff := compareSideEffect(expectedPostFundSideEffects, sideEffects); diff != "" {
+		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// Manually progress the extended state by collecting postfund signatures
@@ -300,12 +305,16 @@ func TestCrank(t *testing.T) {
 }
 
 func TestClone(t *testing.T) {
+	compareObjectives := func(a, b protocols.Objective) string {
+		return cmp.Diff(&a, &b, cmp.AllowUnexported(Objective{}, channel.Channel{}, big.Int{}, state.SignedState{}))
+	}
+
 	var s, _ = constructFromState(false, testState, testState.Participants[0])
 
 	clone := s.clone()
 
-	if diff := cmp.Diff(s, clone); diff != "" {
-		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
+	if diff := compareObjectives(&s, &clone); diff != "" {
+		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 }
 

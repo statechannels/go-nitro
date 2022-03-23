@@ -13,6 +13,14 @@ import (
 )
 
 func TestChannel(t *testing.T) {
+	compareChannels := func(a, b *Channel) string {
+		return cmp.Diff(*a, *b, cmp.AllowUnexported(*a, big.Int{}, state.SignedState{}))
+	}
+
+	compareStates := func(a, b state.SignedState) string {
+		return cmp.Diff(a, b, cmp.AllowUnexported(a, big.Int{}))
+	}
+
 	s := state.TestState.Clone()
 
 	_, err1 := New(s, 0)
@@ -30,8 +38,9 @@ func TestChannel(t *testing.T) {
 
 	testClone := func(t *testing.T) {
 		r := c.Clone()
-		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
-			t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
+
+		if diff := compareChannels(c, r); diff != "" {
+			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
 		r.latestSupportedStateTurnNum++
@@ -287,8 +296,8 @@ func TestChannel(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if diff := cmp.Diff(expectedSignedState, latestSignedState, cmp.Comparer(types.Equal)); diff != "" {
-			t.Fatalf("LatestSignedState: mismatch (-want +got):\n%s", diff)
+		if diff := cmp.Diff(expectedSignedState, latestSignedState, cmp.AllowUnexported(expectedSignedState)); diff != "" {
+			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
 		}
 
 		got2 := c.SignedStateForTurnNum[1]
@@ -325,8 +334,9 @@ func TestChannel(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if diff := cmp.Diff(latestSignedState, expectedSignedState, cmp.Comparer(types.Equal)); diff != "" {
-			t.Fatalf("LatestSignedState: mismatch (-want +got):\n%s", diff)
+
+		if diff := compareStates(latestSignedState, expectedSignedState); diff != "" {
+			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
 		}
 
 	}
@@ -349,6 +359,10 @@ func TestChannel(t *testing.T) {
 }
 
 func TestTwoPartyLedger(t *testing.T) {
+	compareChannels := func(a, b *TwoPartyLedger) string {
+		return cmp.Diff(*a, *b, cmp.AllowUnexported(*a, big.Int{}, state.SignedState{}, Channel{}))
+	}
+
 	s := state.TestState.Clone()
 	s.TurnNum = 0
 	testClone := func(t *testing.T) {
@@ -357,8 +371,8 @@ func TestTwoPartyLedger(t *testing.T) {
 			t.Fatal(err)
 		}
 		c := r.Clone()
-		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
-			t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
+		if diff := compareChannels(r, c); diff != "" {
+			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
 		r.latestSupportedStateTurnNum++
@@ -383,6 +397,10 @@ func TestTwoPartyLedger(t *testing.T) {
 }
 
 func TestSingleHopVirtualChannel(t *testing.T) {
+	compareChannels := func(a, b *SingleHopVirtualChannel) string {
+		return cmp.Diff(*a, *b, cmp.AllowUnexported(*a, big.Int{}, state.SignedState{}, Channel{}))
+	}
+
 	s := state.TestState.Clone()
 	s.Participants = append(s.Participants, s.Participants[0]) // ensure three participants
 	s.TurnNum = 0
@@ -392,8 +410,8 @@ func TestSingleHopVirtualChannel(t *testing.T) {
 			t.Fatal(err)
 		}
 		c := r.Clone()
-		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
-			t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
+		if diff := compareChannels(r, c); diff != "" {
+			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
 		r.latestSupportedStateTurnNum++

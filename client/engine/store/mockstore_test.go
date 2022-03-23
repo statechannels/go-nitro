@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	cc "github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -13,6 +14,7 @@ import (
 	nc "github.com/statechannels/go-nitro/crypto"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -61,6 +63,10 @@ func TestSetGetObjective(t *testing.T) {
 }
 
 func TestGetObjectiveByChannelId(t *testing.T) {
+	compareObjectives := func(a, b protocols.Objective) string {
+		return cmp.Diff(&a, &b, cmp.AllowUnexported(directfund.Objective{}, channel.Channel{}, big.Int{}, state.SignedState{}))
+	}
+
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
 	ms := store.NewMockStore(sk)
@@ -87,7 +93,7 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 			if got.Id() != want.Id() {
 				t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
 			}
-			if diff := cmp.Diff(got, want); diff != "" {
+			if diff := compareObjectives(got, want); diff != "" {
 				t.Errorf("expected no diff between set and retrieved objective, but found:\n%s", diff)
 			}
 		}

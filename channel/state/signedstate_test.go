@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+	"math/big"
 	"reflect"
 	"testing"
 
@@ -118,14 +119,18 @@ func TestJSON(t *testing.T) {
 }
 
 func TestSignedStateClone(t *testing.T) {
+	compareStates := func(a, b SignedState) string {
+		return cmp.Diff(a, b, cmp.AllowUnexported(a, big.Int{}))
+	}
+
 	ss1 := NewSignedState(TestState)
 	sigA, _ := TestState.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
 	_ = ss1.AddSignature(sigA)
 
 	clone := ss1.Clone()
 
-	if diff := cmp.Diff(ss1, clone); diff != "" {
-		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
+	if diff := compareStates(ss1, clone); diff != "" {
+		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 
 }

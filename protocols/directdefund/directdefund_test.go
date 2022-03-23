@@ -173,6 +173,10 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
+func compareSideEffect(a, b protocols.SideEffects) string {
+	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}))
+}
+
 func TestCrankAlice(t *testing.T) {
 	// The starting channel state is:
 	// - Channel has a non-final consensus state
@@ -206,8 +210,8 @@ func TestCrankAlice(t *testing.T) {
 		},
 		}}
 
-	if diff := cmp.Diff(expectedSE, se); diff != "" {
-		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
+	if diff := compareSideEffect(expectedSE, se); diff != "" {
+		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// The second update and crank. Alice is expected to create a withdrawAll transaction
@@ -295,8 +299,8 @@ func TestCrankBob(t *testing.T) {
 		},
 		}}
 
-	if diff := cmp.Diff(expectedSE, se); diff != "" {
-		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
+	if diff := compareSideEffect(expectedSE, se); diff != "" {
+		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// The second update and crank. Bob is expected to NOT create any transactions or side effects
