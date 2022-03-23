@@ -22,7 +22,7 @@ type ConsensusChannel struct {
 
 	// variables
 	current     SignedVars       // The "consensus state", signed by both parties
-	proposalQue []SignedProposal // A queue of proposed changes, starting from the consensus state
+	proposalQueue []SignedProposal // A queue of proposed changes, starting from the consensus state
 }
 
 // Balance represents an Allocation of type 0, ie. a simple allocation.
@@ -188,14 +188,14 @@ func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
 	vars := c.current.Vars
 	var err error
 
-	for _, p := range c.proposalQue {
+	for _, p := range c.proposalQueue {
 		vars, err = vars.Add(p.Proposal.(Add))
 		if err != nil {
 			return SignedProposal{}, err
 		}
 	}
 
-	latest := c.proposalQue[len(c.proposalQue)-1].Proposal.(Add)
+	latest := c.proposalQueue[len(c.proposalQueue)-1].Proposal.(Add)
 
 	vars, err = vars.Add(Add{Guarantee: g, turnNum: latest.turnNum + 1})
 	if err != nil {
@@ -213,7 +213,7 @@ func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
 
 	signed := SignedProposal{Proposal: add, Signature: signature}
 
-	c.proposalQue = append(c.proposalQue, signed)
+	c.proposalQueue = append(c.proposalQueue, signed)
 	return signed, nil
 }
 
