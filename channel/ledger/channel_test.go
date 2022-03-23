@@ -3,10 +3,10 @@ package ledger
 import (
 	"errors"
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -36,14 +36,16 @@ func TestProposals(t *testing.T) {
 	}
 
 	add := func(turnNum, amount uint64, vId, left, right types.Destination) Add {
+		bigAmount := *big.NewInt(int64(amount))
 		return Add{
 			turnNum: turnNum,
 			Guarantee: Guarantee{
-				amount: *big.NewInt(int64(amount)),
+				amount: bigAmount,
 				target: vId,
 				left:   left,
 				right:  right,
 			},
+			LeftDeposit: bigAmount,
 		}
 	}
 
@@ -80,10 +82,8 @@ func TestProposals(t *testing.T) {
 		guarantee(vAmount, targetChannel, alice, bob),
 	)
 
-	if !reflect.DeepEqual(after.Outcome, expected) {
-		t.Log(after.Outcome)
-		t.Log(expected)
-		t.Error("incorrect outcome", err)
+	if diff := cmp.Diff(after.Outcome, expected, cmp.AllowUnexported(expected, Balance{}, big.Int{}, Guarantee{})); diff != "" {
+		t.Errorf("incorrect outcome: %v", diff)
 	}
 
 	largeProposal := proposal

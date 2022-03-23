@@ -96,18 +96,26 @@ func (o LedgerOutcome) AsOutcome() outcome.Exit {
 	}
 }
 
+var ErrInvalidDeposit = fmt.Errorf("unable to divert to guarantee: invalid deposit")
 var ErrInsufficientFunds = fmt.Errorf("unable to divert to guarantee: insufficient funds")
 var ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
 
 // DivertToGuarantee deducts g.amount from o.left's balance, and
 // adds g to o.guarantees
-func (o LedgerOutcome) DivertToGuarantee(g Guarantee) (LedgerOutcome, error) {
+func (o LedgerOutcome) DivertToGuarantee(p Add) (LedgerOutcome, error) {
+	g := p.Guarantee
+
+	if types.Gt(&p.LeftDeposit, &g.amount) {
+		return LedgerOutcome{}, ErrInvalidDeposit
+	}
 
 	if types.Gt(&g.amount, &o.left.amount) {
 		return LedgerOutcome{}, ErrInsufficientFunds
 	}
 
-	o.left.amount.Sub(&o.left.amount, &g.amount)
+	o.left.amount.Sub(&o.left.amount, &p.LeftDeposit)
+	rightDeposit := p.RightDeposit()
+	o.right.amount.Sub(&o.right.amount, &rightDeposit)
 
 	_, found := o.guarantees[g.target]
 	if found {
@@ -141,6 +149,14 @@ type SignedProposal struct {
 type Add struct {
 	turnNum uint64
 	Guarantee
+	LeftDeposit big.Int
+}
+
+func (a Add) RightDeposit() big.Int {
+	result := big.Int{}
+	result.Sub(&a.amount, &a.LeftDeposit)
+
+	return result
 }
 
 // Remove is a proposal to remove a guarantee from the ledger channel
@@ -162,7 +178,7 @@ func (vars Vars) Add(p Add) (Vars, error) {
 
 	vars.TurnNum += 1
 
-	o, err := vars.Outcome.DivertToGuarantee(p.Guarantee)
+	o, err := vars.Outcome.DivertToGuarantee(p)
 
 	if err != nil {
 		return Vars{}, err
