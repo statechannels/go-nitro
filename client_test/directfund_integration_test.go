@@ -6,28 +6,18 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
 func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client) {
 	// Set up an outcome that requires both participants to deposit
-	outcome := outcome.Exit{outcome.SingleAssetExit{
-		Allocations: outcome.Allocations{
-			outcome.Allocation{
-				Destination: types.AddressToDestination(*alpha.Address),
-				Amount:      big.NewInt(5),
-			},
-			outcome.Allocation{
-				Destination: types.AddressToDestination(*beta.Address),
-				Amount:      big.NewInt(5),
-			},
-		},
-	}}
+	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, 5, 5)
+
 	request := directfund.ObjectiveRequest{
 		MyAddress:         *alpha.Address,
 		CounterParty:      *beta.Address,
