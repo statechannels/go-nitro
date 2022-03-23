@@ -30,7 +30,7 @@ func TestChannel(t *testing.T) {
 	testClone := func(t *testing.T) {
 		r := c.Clone()
 		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
-			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+			t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
 		r.latestSupportedStateTurnNum++
@@ -60,7 +60,7 @@ func TestChannel(t *testing.T) {
 			t.Error(err2)
 		}
 		if got != want {
-			t.Errorf(`incorrect PreFundState returned, got %v wanted %v`, c.PreFundState(), s)
+			t.Fatalf(`incorrect PreFundState returned, got %v wanted %v`, c.PreFundState(), s)
 		}
 	}
 
@@ -76,7 +76,7 @@ func TestChannel(t *testing.T) {
 			t.Error(err2)
 		}
 		if got != want {
-			t.Errorf(`incorrect PreFundState returned, got %v wanted %v`, c.PostFundState(), s)
+			t.Fatalf(`incorrect PreFundState returned, got %v wanted %v`, c.PostFundState(), s)
 		}
 	}
 
@@ -135,7 +135,7 @@ func TestChannel(t *testing.T) {
 			common.Address{}: big.NewInt(10),
 		}
 		if diff := cmp.Diff(want, got); diff != "" {
-			t.Errorf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
+			t.Fatalf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
 		}
 	}
 
@@ -166,7 +166,7 @@ func TestChannel(t *testing.T) {
 
 		// It should properly update the latestSupportedStateNum
 		if myC.latestSupportedStateTurnNum != 0 {
-			t.Errorf("Expected latestSupportedStateTurnNum of 0 but got %d", myC.latestSupportedStateTurnNum)
+			t.Fatalf("Expected latestSupportedStateTurnNum of 0 but got %d", myC.latestSupportedStateTurnNum)
 
 		}
 		// verify the signatures
@@ -178,7 +178,7 @@ func TestChannel(t *testing.T) {
 			}
 			wantSig := expectedSigs[i]
 			if !gotSig.Equal(wantSig) {
-				t.Errorf("Expected to find signature %x at index 0, but got %x", wantSig, gotSig)
+				t.Fatalf("Expected to find signature %x at index 0, but got %x", wantSig, gotSig)
 			}
 		}
 	}
@@ -210,7 +210,7 @@ func TestChannel(t *testing.T) {
 		// It should properly update the latestSupportedStateNum
 		got := myC.latestSupportedStateTurnNum
 		if got != 0 {
-			t.Errorf("Expected latestSupportedStateTurnNum of 0 but got %d", got)
+			t.Fatalf("Expected latestSupportedStateTurnNum of 0 but got %d", got)
 		}
 
 		// verify the signatures
@@ -222,7 +222,7 @@ func TestChannel(t *testing.T) {
 			}
 			wantSig := expectedSigs[i]
 			if !gotSig.Equal(wantSig) {
-				t.Errorf("Expected to find signature %x at index 0, but got %x", wantSig, gotSig)
+				t.Fatalf("Expected to find signature %x at index 0, but got %x", wantSig, gotSig)
 			}
 		}
 
@@ -287,7 +287,7 @@ func TestChannel(t *testing.T) {
 			t.Error(err)
 		}
 		if diff := cmp.Diff(expectedSignedState, latestSignedState, cmp.Comparer(types.Equal)); diff != "" {
-			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
+			t.Fatalf("LatestSignedState: mismatch (-want +got):\n%s", diff)
 		}
 
 		got2 := c.SignedStateForTurnNum[1]
@@ -305,14 +305,14 @@ func TestChannel(t *testing.T) {
 		got3 := c.latestSupportedStateTurnNum
 		want3 := uint64(1)
 		if got3 != want3 {
-			t.Errorf(`expected c.latestSupportedStateTurnNum to be %v, but got %v`, want, got)
+			t.Fatalf(`expected c.latestSupportedStateTurnNum to be %v, but got %v`, want, got)
 		}
 		got4, err4 := c.LatestSupportedState()
 		if err4 != nil {
 			t.Error(err4)
 		}
 		if got4.TurnNum != want3 {
-			t.Errorf(`expected LatestSupportedState with turnNum %v`, want3)
+			t.Fatalf(`expected LatestSupportedState with turnNum %v`, want3)
 		}
 
 		// Check whether latestSignedState is correct
@@ -325,7 +325,7 @@ func TestChannel(t *testing.T) {
 			t.Error(err)
 		}
 		if diff := cmp.Diff(latestSignedState, expectedSignedState, cmp.Comparer(types.Equal)); diff != "" {
-			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
+			t.Fatalf("LatestSignedState: mismatch (-want +got):\n%s", diff)
 		}
 
 	}
@@ -357,7 +357,7 @@ func TestTwoPartyLedger(t *testing.T) {
 		}
 		c := r.Clone()
 		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
-			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+			t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
 		r.latestSupportedStateTurnNum++
@@ -392,7 +392,7 @@ func TestSingleHopVirtualChannel(t *testing.T) {
 		}
 		c := r.Clone()
 		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
-			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+			t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
 		r.latestSupportedStateTurnNum++

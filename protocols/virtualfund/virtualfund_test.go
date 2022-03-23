@@ -87,7 +87,7 @@ func TestMarshalJSON(t *testing.T) {
 	encodedVfo, err := json.Marshal(vfo)
 
 	if err != nil {
-		t.Errorf("error encoding direct-fund objective %v", vfo)
+		t.Fatalf("error encoding direct-fund objective %v", vfo)
 	}
 
 	got := Objective{}
@@ -96,48 +96,48 @@ func TestMarshalJSON(t *testing.T) {
 	}
 
 	if !(got.Status == vfo.Status) {
-		t.Errorf("expected Status %v but got %v", vfo.Status, got.Status)
+		t.Fatalf("expected Status %v but got %v", vfo.Status, got.Status)
 	}
 
 	// only checking channel ID rather than whole channel because
 	// marshal / unmarshal loses channel data
 	if got.V.Id != vfo.V.Id {
-		t.Errorf("expected channel Id %s but got %s", vfo.V.Id, got.V.Id)
+		t.Fatalf("expected channel Id %s but got %s", vfo.V.Id, got.V.Id)
 	}
 
 	if vfo.ToMyLeft != nil {
 		if !reflect.DeepEqual(vfo.ToMyLeft.getExpectedGuarantees(), got.ToMyLeft.getExpectedGuarantees()) {
-			t.Errorf("expected left-channel guarantees %v, but found %v", vfo.ToMyLeft, got.ToMyLeft)
+			t.Fatalf("expected left-channel guarantees %v, but found %v", vfo.ToMyLeft, got.ToMyLeft)
 		}
 
 		if got.ToMyLeft.Channel.Id != vfo.ToMyLeft.Channel.Id {
-			t.Errorf("expected left channel Id %s but got %s",
+			t.Fatalf("expected left channel Id %s but got %s",
 				vfo.ToMyLeft.Channel.Id, got.ToMyLeft.Channel.Id)
 		}
 	}
 
 	if vfo.ToMyRight != nil {
 		if !reflect.DeepEqual(vfo.ToMyRight.getExpectedGuarantees(), got.ToMyRight.getExpectedGuarantees()) {
-			t.Errorf("expected right-channel %v, but found %v", vfo.ToMyRight, got.ToMyRight)
+			t.Fatalf("expected right-channel %v, but found %v", vfo.ToMyRight, got.ToMyRight)
 		}
 
 		if got.ToMyRight.Channel.Id != vfo.ToMyRight.Channel.Id {
-			t.Errorf("expected left channel Id %s but got %s",
+			t.Fatalf("expected left channel Id %s but got %s",
 				vfo.ToMyRight.Channel.Id, got.ToMyRight.Channel.Id)
 		}
 	}
 
 	if got.n != vfo.n {
-		t.Errorf("expected %d channel participants but found %d", vfo.n, got.n)
+		t.Fatalf("expected %d channel participants but found %d", vfo.n, got.n)
 	}
 	if got.MyRole != vfo.MyRole {
-		t.Errorf("expected MyRole %d but found %d", vfo.MyRole, got.MyRole)
+		t.Fatalf("expected MyRole %d but found %d", vfo.MyRole, got.MyRole)
 	}
 	if !got.a0.Equal(vfo.a0) {
-		t.Errorf("expected alice initial balance of %v but found %v", vfo.a0, got.a0)
+		t.Fatalf("expected alice initial balance of %v but found %v", vfo.a0, got.a0)
 	}
 	if !got.b0.Equal(vfo.b0) {
-		t.Errorf("expected bob initial balance of %v but found %v", vfo.b0, got.a0)
+		t.Fatalf("expected bob initial balance of %v but found %v", vfo.b0, got.a0)
 	}
 
 }

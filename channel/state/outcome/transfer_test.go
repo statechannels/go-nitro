@@ -35,11 +35,11 @@ func TestComputeTransferEffectsAndInteractions(t *testing.T) {
 	want2 := expectedExitAllocations
 
 	if !got1.Equal(want1) {
-		t.Errorf("got %+v, wanted %+v", got1, want1)
+		t.Fatalf("got %+v, wanted %+v", got1, want1)
 	}
 
 	if !got2.Equal(want2) {
-		t.Errorf("got %+v, wanted %+v", got2, want2)
+		t.Fatalf("got %+v, wanted %+v", got2, want2)
 	}
 
 }
