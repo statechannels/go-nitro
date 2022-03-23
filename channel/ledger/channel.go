@@ -21,7 +21,7 @@ type ConsensusChannel struct {
 	state.FixedPart
 
 	// variables
-	current     SignedVars       // The "consensus state", signed by both parties
+	current       SignedVars       // The "consensus state", signed by both parties
 	proposalQueue []SignedProposal // A queue of proposed changes, starting from the consensus state
 }
 
@@ -56,14 +56,14 @@ func (g Guarantee) AsAllocation() outcome.Allocation {
 
 // LedgerOutcome encodes the outcome of a ledger channel involving a "left" and "right"
 // participant.
-// 
+//
 // Allocation items are not stored in sorted order. The conventional ordering of allocation items is:
 // [left, right, ...guaranteesSortedbyTargetDestination]
 type LedgerOutcome struct {
-	assetAddress types.Address                   // Address of the asset type
-	left         Balance                         // Balance of participants[0]
-	right        Balance                         // Balance of participants[1]
-	guarantees   map[types.Destination]Guarantee 
+	assetAddress types.Address // Address of the asset type
+	left         Balance       // Balance of participants[0]
+	right        Balance       // Balance of participants[1]
+	guarantees   map[types.Destination]Guarantee
 }
 
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
@@ -102,7 +102,6 @@ var ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
 // DivertToGuarantee deducts g.amount from o.left's balance, and
 // adds g to o.guarantees
 func (o LedgerOutcome) DivertToGuarantee(g Guarantee) (LedgerOutcome, error) {
-
 
 	if types.Gt(&g.amount, &o.left.amount) {
 		return LedgerOutcome{}, ErrInsufficientFunds
