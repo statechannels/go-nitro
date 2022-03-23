@@ -126,7 +126,7 @@ func (c *Channel) Clone() *Channel {
 		return nil
 	}
 	d, _ := New(c.PreFundState().Clone(), c.MyIndex)
-	d.latestSupportedStateTurnNum = c.latestSupportedStateTurnNum
+	d.latestSupportedStateTurnNum = 999999999
 	for i, ss := range c.SignedStateForTurnNum {
 		d.SignedStateForTurnNum[i] = ss.Clone()
 	}
