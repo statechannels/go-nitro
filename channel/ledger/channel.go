@@ -74,7 +74,7 @@ func (o LedgerOutcome) AsOutcome() outcome.Exit {
 	// The first items are [left, right] balances
 	allocations := outcome.Allocations{o.left.AsAllocation(), o.right.AsAllocation()}
 
-	// Followed by guarantees, _sorted by the
+	// Followed by guarantees, _sorted by the target destination_
 	keys := make([]types.Destination, 0, len(o.guarantees))
 	for k := range o.guarantees {
 		keys = append(keys, k)
