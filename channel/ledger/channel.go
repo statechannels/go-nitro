@@ -103,7 +103,8 @@ var ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
 // adds g to o.guarantees
 func (o LedgerOutcome) DivertToGuarantee(g Guarantee) (LedgerOutcome, error) {
 
-	if g.amount.Cmp(&o.left.amount) == 1 {
+
+	if types.Gt(&g.amount, &o.left.amount) {
 		return LedgerOutcome{}, ErrInsufficientFunds
 	}
 
