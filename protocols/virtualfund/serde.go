@@ -13,7 +13,7 @@ import (
 // of a Connection
 type jsonConnection struct {
 	Channel       types.Destination
-	GuarnateeInfo GuaranteeInfo
+	GuaranteeInfo GuaranteeInfo
 }
 
 // MarshalJSON returns a JSON representation of the Connection
@@ -53,7 +53,7 @@ func (c *Connection) UnmarshalJSON(data []byte) error {
 	}
 
 	c.Channel.Id = jsonC.Channel
-	c.GuaranteeInfo = jsonC.GuarnateeInfo
+	c.GuaranteeInfo = jsonC.GuaranteeInfo
 
 	return nil
 }
