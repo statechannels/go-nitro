@@ -48,9 +48,7 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 	allDone := make(chan interface{})
 	// Create a map to keep track of completed objectives
 	completed := make(map[protocols.ObjectiveId]bool)
-	for _, id := range ids {
-		completed[id] = false
-	}
+
 	go waitAndSendOn(completed, allDone)
 
 	select {
