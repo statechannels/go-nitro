@@ -23,41 +23,45 @@ const defaultTimeout = time.Second
 // waitWithTimeoutForCompletedObjectiveIds waits up to the given timeout for completed objectives and returns when the all objective ids provided have been completed.
 // If the timeout lapses and the objectives have not all completed, the parent test will be failed.
 func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeout time.Duration, ids ...protocols.ObjectiveId) {
-	waitAndSendOn := func(allDone chan interface{}) {
-		waitForCompletedObjectiveIds(client, ids...)
-		allDone <- struct{}{}
+
+	waitAndSendOn := func(completed map[protocols.ObjectiveId]bool, allDone chan interface{}) {
+
+		// We continue to consume completed objective ids from the chan until all have been completed
+		for got := range client.CompletedObjectives() {
+			// Mark the objective as completed
+			completed[got] = true
+
+			// If all objectives are completed we can send the all done signal and return
+			isDone := true
+			for _, objectiveCompleted := range completed {
+				isDone = isDone && objectiveCompleted
+			}
+			if isDone {
+				allDone <- struct{}{}
+				return
+
+			}
+		}
+
 	}
+
 	allDone := make(chan interface{})
-	go waitAndSendOn(allDone)
+	// Create a map to keep track of completed objectives
+	completed := make(map[protocols.ObjectiveId]bool)
+
+	go waitAndSendOn(completed, allDone)
 
 	select {
 	case <-time.After(timeout):
-		t.Fatalf("Objective ids %s failed to complete in one second on client %s", ids, client.Address)
+		incompleteIds := make([]protocols.ObjectiveId, 0)
+		for id, isObjectiveDone := range completed {
+			if !isObjectiveDone {
+				incompleteIds = append(incompleteIds, id)
+			}
+		}
+		t.Fatalf("Objective ids %s failed to complete on client %s within %s", incompleteIds, client.Address, timeout)
 	case <-allDone:
 		return
-	}
-}
-
-// waitForCompletedObjectiveIds waits for completed objectives and returns when the all objective ids provided have been completed.
-func waitForCompletedObjectiveIds(client *client.Client, ids ...protocols.ObjectiveId) {
-	// Create a map of all objective ids to wait for and set to false
-	completed := make(map[protocols.ObjectiveId]bool)
-	for _, id := range ids {
-		completed[id] = false
-	}
-	// We continue to consume completed objective ids from the chan until all have been completed
-	for got := range client.CompletedObjectives() {
-		// Mark the objective as completed
-		completed[got] = true
-
-		// If all objectives are completed we can return
-		isDone := true
-		for _, objectiveCompleted := range completed {
-			isDone = isDone && objectiveCompleted
-		}
-		if isDone {
-			return
-		}
 	}
 }
 
