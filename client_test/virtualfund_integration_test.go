@@ -7,6 +7,7 @@ import (
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -27,7 +28,7 @@ func TestVirtualFundIntegration(t *testing.T) {
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)
 
-	outcome := createVirtualOutcome(alice.Address, bob.Address)
+	outcome := td.Outcomes.Create(alice.Address, bob.Address, 1, 1)
 	request := virtualfund.ObjectiveRequest{
 		MyAddress:         alice.Address,
 		CounterParty:      bob.Address,
