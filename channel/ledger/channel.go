@@ -56,11 +56,14 @@ func (g Guarantee) AsAllocation() outcome.Allocation {
 
 // LedgerOutcome encodes the outcome of a ledger channel involving a "left" and "right"
 // participant.
+// 
+// Allocation items are not stored in sorted order. The conventional ordering of allocation items is:
+// [left, right, ...guaranteesSortedbyTargetDestination]
 type LedgerOutcome struct {
 	assetAddress types.Address                   // Address of the asset type
-	left         Balance                         // First item in the outcome
-	right        Balance                         // Second item in the outcome
-	guarantees   map[types.Destination]Guarantee // Guarantees follow left & right, sorted by the target destination
+	left         Balance                         // Balance of participants[0]
+	right        Balance                         // Balance of participants[1]
+	guarantees   map[types.Destination]Guarantee 
 }
 
 // Equal compares two LedgerOutcome instances by comparing their representation as on-chain outcome.Allocation values
