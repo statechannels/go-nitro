@@ -364,7 +364,7 @@ func (connection *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds
 	return nil
 }
 
-// insertExpectedGuaranteesForLedgerChannel mutates the reciever Connection struct.
+// getExpectedGuarantees returns a map of asset addresses to guarantees for a Connection.
 func (connection *Connection) getExpectedGuarantees() map[types.Address]outcome.Allocation {
 	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
 	metadata := outcome.GuaranteeMetadata{
