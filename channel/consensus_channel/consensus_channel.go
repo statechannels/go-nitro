@@ -7,6 +7,7 @@ import (
 
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -248,6 +249,11 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
 // values. It signs the resulting state using pk.
 func (c *ConsensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
+	signer := crypto.GetAddressFromSecretKeyBytes(pk)
+	if c.Participants[c.MyIndex] != signer {
+		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
+	}
+
 	fp := c.FixedPart
 	state := vars.asState(fp)
 	return state.Sign(pk)
