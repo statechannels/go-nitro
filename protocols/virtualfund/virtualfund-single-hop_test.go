@@ -288,7 +288,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// Assert that a valid set of constructor args does not result in an error
 			o, err := constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			if err != nil {
-				t.Error(err)
+				t.Fatal(err)
 			}
 
 			var expectedGuaranteeMetadataLeft outcome.GuaranteeMetadata
@@ -354,7 +354,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			var s, _ = constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			// Assert that cranking an unapproved objective returns an error
 			if _, _, _, err := s.Crank(&my.privateKey); err == nil {
-				t.Error(`Expected error when cranking unapproved objective, but got nil`)
+				t.Fatal(`Expected error when cranking unapproved objective, but got nil`)
 			}
 
 			// Approve the objective, so that the rest of the test cases can run.
@@ -366,7 +366,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			oObj, got, waitingFor, err := o.Crank(&my.privateKey)
 			o = oObj.(*Objective)
 			if err != nil {
-				t.Error(err)
+				t.Fatal(err)
 			}
 			if waitingFor != WaitingForCompletePrefund {
 				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
@@ -437,7 +437,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
 			o = oObj.(*Objective)
 			if err != nil {
-				t.Error(err)
+				t.Fatal(err)
 			}
 			if waitingFor != WaitingForCompletePostFund {
 				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
@@ -476,7 +476,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// This should be the final crank...
 			_, _, waitingFor, err = o.Crank(&my.privateKey)
 			if err != nil {
-				t.Error(err)
+				t.Fatal(err)
 			}
 			if waitingFor != WaitingForNothing {
 				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
@@ -494,7 +494,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// Assert that Updating the objective with such an event returns an error
 			// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
 			if _, err := s.Update(e); err == nil {
-				t.Error(`Objective ID mismatch -- expected an error but did not get one`)
+				t.Fatal(`Objective ID mismatch -- expected an error but did not get one`)
 			}
 
 			// Now modify the event to give it the "correct" channelId (matching the objective),
@@ -532,26 +532,26 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			updatedObj, err := s.Update(e)
 			updated := updatedObj.(*Objective)
 			if err != nil {
-				t.Error(err)
+				t.Fatal(err)
 			}
 
 			switch my.role {
 			case 0:
 				{
 					if !updated.V.SignedStateForTurnNum[1].HasSignatureForParticipant(p1.role) {
-						t.Error(`Objective data not updated as expected`)
+						t.Fatal(`Objective data not updated as expected`)
 					}
 				}
 			case 1:
 				{
 					if !updated.V.SignedStateForTurnNum[1].HasSignatureForParticipant(alice.role) {
-						t.Error(`Objective data not updated as expected`)
+						t.Fatal(`Objective data not updated as expected`)
 					}
 				}
 			case 2:
 				{
 					if !updated.V.SignedStateForTurnNum[1].HasSignatureForParticipant(p1.role) {
-						t.Error(`Objective data not updated as expected`)
+						t.Fatal(`Objective data not updated as expected`)
 					}
 				}
 			}
@@ -590,26 +590,26 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			updatedObj, err = s.Update(f)
 			updated = updatedObj.(*Objective)
 			if err != nil {
-				t.Error(err)
+				t.Fatal(err)
 			}
 
 			switch my.role {
 			case 0:
 				{
 					if !updated.ToMyRight.Channel.SignedStateForTurnNum[someTurnNum].HasSignatureForParticipant((updated.ToMyRight.Channel.MyIndex + 1) % 2) {
-						t.Error(`Objective data not updated as expected`)
+						t.Fatal(`Objective data not updated as expected`)
 					}
 				}
 			case 1:
 				{
 					if !updated.ToMyRight.Channel.SignedStateForTurnNum[someTurnNum].HasSignatureForParticipant((updated.ToMyRight.Channel.MyIndex + 1) % 2) {
-						t.Error(`Objective data not updated as expected`)
+						t.Fatal(`Objective data not updated as expected`)
 					}
 				}
 			case 2:
 				{
 					if !updated.ToMyLeft.Channel.SignedStateForTurnNum[someTurnNum].HasSignatureForParticipant((updated.ToMyLeft.Channel.MyIndex + 1) % 2) {
-						t.Error(`Objective data not updated as expected`)
+						t.Fatal(`Objective data not updated as expected`)
 					}
 				}
 			}
