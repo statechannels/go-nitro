@@ -15,12 +15,13 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-const MAX_MESSAGE_DELAY = time.Millisecond * 100
-
-// Since we are delaying messages we allow for enough time to complete the objective
-const OBJECTIVE_TIMEOUT = time.Second * 2
-
 func TestVirtualFundWithMessageDelays(t *testing.T) {
+
+	const MAX_MESSAGE_DELAY = time.Millisecond * 100
+
+	// Since we are delaying messages we allow for enough time to complete the objective
+	const OBJECTIVE_TIMEOUT = time.Second * 2
+
 	// This test fails due to https://github.com/statechannels/go-nitro/issues/366
 	t.Skip()
 	// Set up logging
