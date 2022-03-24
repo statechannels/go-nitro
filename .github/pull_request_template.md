@@ -32,7 +32,7 @@ Please explain which reason, if any, why this requires more than one approval.
 
 - [ ] Is it security related?
 - [ ] Is it a significant process change?
-- [ ] Is it a significant change to architectural, design?
+- [ ] Is it a significant change to architecture or design?
 
 ---
 
