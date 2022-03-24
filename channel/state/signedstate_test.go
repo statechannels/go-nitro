@@ -17,7 +17,7 @@ func TestSignedStateEqual(t *testing.T) {
 	_ = ss2.AddSignature(sigA)
 
 	if !ss1.Equal(ss2) {
-		t.Errorf(`expected %v to Equal %v, but it did not`, ss1, ss2)
+		t.Fatalf(`expected %v to Equal %v, but it did not`, ss1, ss2)
 	}
 }
 func TestMergeWithDuplicateSignatures(t *testing.T) {
@@ -48,7 +48,7 @@ func TestMergeWithDuplicateSignatures(t *testing.T) {
 	}
 
 	if !got.Equal(want) {
-		t.Errorf(`incorrect merge, got %v, wanted %v`, got, want)
+		t.Fatalf(`incorrect merge, got %v, wanted %v`, got, want)
 	}
 
 }
@@ -78,7 +78,7 @@ func TestMerge(t *testing.T) {
 	}
 
 	if !got.Equal(want) {
-		t.Errorf(`incorrect merge, got %v, wanted %v`, got, want)
+		t.Fatalf(`incorrect merge, got %v, wanted %v`, got, want)
 	}
 
 }
@@ -97,7 +97,7 @@ func TestJSON(t *testing.T) {
 		}
 		want := msgString
 		if string(got) != want {
-			t.Errorf(`incorrect MarshalJSON, got %v, wanted %v`, string(got), want)
+			t.Fatalf(`incorrect MarshalJSON, got %v, wanted %v`, string(got), want)
 		}
 	})
 
@@ -110,7 +110,7 @@ func TestJSON(t *testing.T) {
 		want := ss1
 
 		if !got.Equal(ss1) {
-			t.Errorf(`incorrect UnmarshalJSON, got %v, wanted %v`, got, want)
+			t.Fatalf(`incorrect UnmarshalJSON, got %v, wanted %v`, got, want)
 		}
 	})
 
@@ -124,7 +124,7 @@ func TestSignedStateClone(t *testing.T) {
 	clone := ss1.Clone()
 
 	if diff := cmp.Diff(ss1, clone); diff != "" {
-		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 
 }

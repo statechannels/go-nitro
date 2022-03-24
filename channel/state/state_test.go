@@ -42,13 +42,13 @@ func TestSign(t *testing.T) {
 		t.Error(error)
 	}
 	if !bytes.Equal(want_r, got_r) {
-		t.Errorf("Incorrect r param in signature. Got %x, wanted %x", got_r, want_r)
+		t.Fatalf("Incorrect r param in signature. Got %x, wanted %x", got_r, want_r)
 	}
 	if !bytes.Equal(want_s, got_s) {
-		t.Errorf("Incorrect s param in signature. Got %x, wanted %x", got_s, want_s)
+		t.Fatalf("Incorrect s param in signature. Got %x, wanted %x", got_s, want_s)
 	}
 	if want_v != got_v {
-		t.Errorf("Incorrect v param in signature. Got %x, wanted %x", got_v, want_v)
+		t.Fatalf("Incorrect v param in signature. Got %x, wanted %x", got_v, want_v)
 	}
 }
 
@@ -90,13 +90,13 @@ func TestEqual(t *testing.T) {
 	got := TestState
 
 	if !got.Equal(want) {
-		t.Errorf(`expected %v to equal %v, but it did not`, got, want)
+		t.Fatalf(`expected %v to equal %v, but it did not`, got, want)
 	}
 
 	want.IsFinal = true
 
 	if got.Equal(want) {
-		t.Errorf(`expected %v to not equal %v, but it did`, got, want)
+		t.Fatalf(`expected %v to not equal %v, but it did`, got, want)
 	}
 
 }
@@ -106,18 +106,18 @@ func TestClone(t *testing.T) {
 	clone := TestState.Clone()
 
 	if diff := cmp.Diff(TestState, clone); diff != "" {
-		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 
 	clone.ChannelNonce.Add(clone.ChannelNonce, big.NewInt(1))
 	clone.Outcome[0].Allocations[0].Amount.Add(clone.ChannelNonce, big.NewInt(1))
 
 	if clone.Equal(TestState) {
-		t.Errorf(`expected %v to not equal %v, but it did`, clone, TestState)
+		t.Fatalf(`expected %v to not equal %v, but it did`, clone, TestState)
 	}
 
 	if TestState.ChannelNonce.Cmp(big.NewInt(37140676580)) != 0 || TestState.Outcome[0].Allocations[0].Amount.Cmp(big.NewInt(5)) != 0 {
-		t.Errorf(`State.Clone(): original is modified when clone is modified `)
+		t.Fatalf(`State.Clone(): original is modified when clone is modified `)
 	}
 }
 
@@ -132,6 +132,6 @@ func checkErrorAndTestForEqualBytes(t *testing.T, err error, descriptor string, 
 		t.Error(err)
 	}
 	if !bytes.Equal(want, got) {
-		t.Errorf("Incorrect "+descriptor+". Got %x, wanted %x", got, want)
+		t.Fatalf("Incorrect "+descriptor+". Got %x, wanted %x", got, want)
 	}
 }

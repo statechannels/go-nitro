@@ -114,7 +114,7 @@ func TestExitEncode(t *testing.T) {
 	}
 
 	if !bytes.Equal(encodedExit, encodedExitReference) {
-		t.Errorf("incorrect encoding. Got %x, wanted %x", encodedExit, encodedExitReference)
+		t.Fatalf("incorrect encoding. Got %x, wanted %x", encodedExit, encodedExitReference)
 	}
 }
 
@@ -133,7 +133,7 @@ func TestTotal(t *testing.T) {
 
 	total := allocsX.Total()
 	if total.Cmp(big.NewInt(5)) != 0 {
-		t.Errorf(`Expected total to be 5, got %v`, total)
+		t.Fatalf(`Expected total to be 5, got %v`, total)
 	}
 }
 
@@ -146,7 +146,7 @@ func TestTotalAllocated(t *testing.T) {
 	got := e.TotalAllocated()
 
 	if !got.Equal(want) {
-		t.Errorf("Expected %v.TotalAllocated() to equal %v, but it was %v",
+		t.Fatalf("Expected %v.TotalAllocated() to equal %v, but it was %v",
 			e, want, got)
 	}
 }
@@ -171,7 +171,7 @@ func TestTotalFor(t *testing.T) {
 		t.Run(fmt.Sprint("Case ", i), func(t *testing.T) {
 			got := testCase.Exit.TotalAllocatedFor(testCase.Participant)
 			if !got.Equal(testCase.Want) {
-				t.Errorf("Expected TotalAllocatedFor for participant %v on exit %v to be %v, but got %v",
+				t.Fatalf("Expected TotalAllocatedFor for participant %v on exit %v to be %v, but got %v",
 					testCase.Participant, testCase.Exit, testCase.Want, got)
 			}
 		})
@@ -256,11 +256,11 @@ func TestExitDivertToGuarantee(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("TestDivertToGuarantee: expectedGuarantee mismatch (-want +got):\n%s", diff)
+		t.Fatalf("TestDivertToGuarantee: expectedGuarantee mismatch (-want +got):\n%s", diff)
 	}
 
 	if e[0].Allocations[0].Amount.Cmp(big.NewInt(243)) != 0 {
-		t.Errorf("TestDivertToGuarantee: input arguments mutated")
+		t.Fatalf("TestDivertToGuarantee: input arguments mutated")
 	}
 
 	got, err = e.DivertToGuarantee(aliceDestination, bobDestination, leftFunds, types.Funds{}, targetChannel)
@@ -296,7 +296,7 @@ func TestExitDivertToGuarantee(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("TestDivertToGuarantee: expectedGuarantee mismatch (-want +got):\n%s", diff)
+		t.Fatalf("TestDivertToGuarantee: expectedGuarantee mismatch (-want +got):\n%s", diff)
 	}
 
 }
@@ -334,7 +334,7 @@ func TestSingleAssetExitClone(t *testing.T) {
 	clone := sae.Clone()
 
 	if diff := cmp.Diff(sae, clone); diff != "" {
-		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -384,6 +384,6 @@ func TestClone(t *testing.T) {
 	clone := e.Clone()
 
 	if diff := cmp.Diff(e, clone); diff != "" {
-		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 }

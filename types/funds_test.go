@@ -78,7 +78,7 @@ func TestSum(t *testing.T) {
 
 	for i, p := range equalPairs {
 		if !p.a.Equal(p.b) {
-			t.Errorf("test_sum_%d: expected %s to equal %s, but it did not", i, p.a, p.b)
+			t.Fatalf("test_sum_%d: expected %s to equal %s, but it did not", i, p.a, p.b)
 		}
 	}
 }
@@ -101,7 +101,7 @@ func TestAdd(t *testing.T) {
 
 	for i, p := range equalPairs {
 		if !p.a.Equal(p.b) {
-			t.Errorf("test_sum_%d: expected %s to equal %s, but it did not", i, p.a, p.b)
+			t.Fatalf("test_sum_%d: expected %s to equal %s, but it did not", i, p.a, p.b)
 		}
 	}
 }
@@ -130,7 +130,7 @@ func TestCanAfford(t *testing.T) {
 		canAfford := p.a.canAfford(p.b)
 
 		if !canAfford {
-			t.Errorf("expected %s to afford %s, but it didn't", p.a, p.b)
+			t.Fatalf("expected %s to afford %s, but it didn't", p.a, p.b)
 		}
 	}
 
@@ -152,7 +152,7 @@ func TestCanAfford(t *testing.T) {
 		canAfford := p.a.canAfford(p.b)
 
 		if canAfford {
-			t.Errorf("expected %s to not afford %s, but it did", p.a, p.b)
+			t.Fatalf("expected %s to not afford %s, but it did", p.a, p.b)
 		}
 	}
 }
@@ -172,7 +172,7 @@ func TestEqual(t *testing.T) {
 		equal := p.a.Equal(p.b) && p.b.Equal(p.a)
 
 		if !equal {
-			t.Errorf("expected %s to equal %s, but it didn't", p.a, p.b)
+			t.Fatalf("expected %s to equal %s, but it didn't", p.a, p.b)
 		}
 	}
 
@@ -189,7 +189,7 @@ func TestEqual(t *testing.T) {
 		equal := p.a.Equal(p.b)
 
 		if equal {
-			t.Errorf("expected %s to not equal %s, but it did", p.a, p.b)
+			t.Fatalf("expected %s to not equal %s, but it did", p.a, p.b)
 		}
 	}
 
@@ -205,7 +205,7 @@ func TestFundsClone(t *testing.T) {
 	clone := f.Clone()
 
 	if diff := cmp.Diff(f, clone); diff != "" {
-		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 
 }

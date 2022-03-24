@@ -24,11 +24,11 @@ func TestEqualAllocations(t *testing.T) {
 		Metadata:       make(types.Bytes, 0)}}
 
 	if &a1 == &a2 {
-		t.Errorf("expected distinct pointers, but got identical pointers")
+		t.Fatalf("expected distinct pointers, but got identical pointers")
 	}
 
 	if !a1.Equal(a2) {
-		t.Errorf("expected equal Allocations, but got distinct Allocations")
+		t.Fatalf("expected equal Allocations, but got distinct Allocations")
 	}
 
 }
@@ -55,7 +55,7 @@ func TestAffords(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			got := testcase.Allocations.Affords(testcase.GivenAllocation, testcase.Funding)
 			if got != testcase.Want {
-				t.Errorf(
+				t.Fatalf(
 					`Incorrect AffordFor: expected %v.Affords(%v,%v) to be %v, but got %v`,
 					testcase.Allocations, testcase.GivenAllocation, testcase.Funding, testcase.Want, got)
 			}
@@ -76,7 +76,7 @@ func TestAllocationClone(t *testing.T) {
 	clone := a.Clone()
 
 	if diff := cmp.Diff(a, clone); diff != "" {
-		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -96,6 +96,6 @@ func TestAllocationsClone(t *testing.T) {
 	clone := as.Clone()
 
 	if diff := cmp.Diff(as, clone); diff != "" {
-		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 }

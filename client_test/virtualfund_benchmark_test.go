@@ -82,7 +82,7 @@ func expect(t *testing.T, done chan interface{}, num int, timeout time.Duration)
 				return
 			}
 		case <-time.After(timeout):
-			t.Errorf("Ran out of time. %v out of %v completed", count, num)
+			t.Fatalf("Ran out of time. %v out of %v completed", count, num)
 			t.FailNow()
 		}
 	}

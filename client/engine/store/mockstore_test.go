@@ -24,23 +24,23 @@ func TestSetGetObjective(t *testing.T) {
 	id := protocols.ObjectiveId("404")
 	got, err := ms.GetObjectiveById(id)
 	if err == nil {
-		t.Errorf("expected not to find the %s objective, but found %v", id, got)
+		t.Fatalf("expected not to find the %s objective, but found %v", id, got)
 	}
 
 	want := td.Objectives.Directfund.GenericDFO()
 
 	if err := ms.SetObjective(&want); err != nil {
-		t.Errorf("error setting objective %v: %s", want, err.Error())
+		t.Fatalf("error setting objective %v: %s", want, err.Error())
 	}
 
 	got, err = ms.GetObjectiveById(want.Id())
 
 	if err != nil {
-		t.Errorf("expected to find the inserted objective, but didn't: %s", err)
+		t.Fatalf("expected to find the inserted objective, but didn't: %s", err)
 	}
 
 	if got.Id() != want.Id() {
-		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
+		t.Fatalf("expected to retrieve same objective Id as was passed in, but didn't")
 	}
 }
 
@@ -52,19 +52,19 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 	want := td.Objectives.Directfund.GenericDFO()
 
 	if err := ms.SetObjective(&want); err != nil {
-		t.Errorf("error setting objective %v: %s", want, err.Error())
+		t.Fatalf("error setting objective %v: %s", want, err.Error())
 	}
 
 	got, ok := ms.GetObjectiveByChannelId(want.C.Id)
 
 	if !ok {
-		t.Errorf("expected to find the inserted objective, but didn't")
+		t.Fatalf("expected to find the inserted objective, but didn't")
 	}
 	if got.Id() != want.Id() {
-		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
+		t.Fatalf("expected to retrieve same objective Id as was passed in, but didn't")
 	}
 	if diff := cmp.Diff(got, &want); diff != "" {
-		t.Errorf("expected no diff between set and retrieved objective, but found:\n%s", diff)
+		t.Fatalf("expected no diff between set and retrieved objective, but found:\n%s", diff)
 	}
 }
 
@@ -82,6 +82,6 @@ func TestGetChannelSecretKey(t *testing.T) {
 	recoveredSigner, _ := nc.RecoverEthereumMessageSigner(msg, signedMsg)
 
 	if recoveredSigner != pk {
-		t.Errorf("expected to recover %x, but got %x", pk, recoveredSigner)
+		t.Fatalf("expected to recover %x, but got %x", pk, recoveredSigner)
 	}
 }

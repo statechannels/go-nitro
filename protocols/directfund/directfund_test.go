@@ -236,11 +236,11 @@ func TestCrank(t *testing.T) {
 		t.Error(err)
 	}
 	if waitingFor != WaitingForCompletePrefund {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
 	}
 
 	if diff := cmp.Diff(expectedPreFundSideEffects, sideEffects); diff != "" {
-		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// Manually progress the extended state by collecting prefund signatures
@@ -253,7 +253,7 @@ func TestCrank(t *testing.T) {
 		t.Error(err)
 	}
 	if waitingFor != WaitingForMyTurnToFund {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForMyTurnToFund, waitingFor)
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForMyTurnToFund, waitingFor)
 	}
 
 	// Manually make the first "deposit"
@@ -263,11 +263,11 @@ func TestCrank(t *testing.T) {
 		t.Error(err)
 	}
 	if waitingFor != WaitingForCompleteFunding {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
 	}
 
 	if diff := cmp.Diff(expectedFundingSideEffects, sideEffects); diff != "" {
-		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// Manually make the second "deposit"
@@ -278,10 +278,10 @@ func TestCrank(t *testing.T) {
 		t.Error(err)
 	}
 	if waitingFor != WaitingForCompletePostFund {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
 	}
 	if diff := cmp.Diff(expectedPostFundSideEffects, sideEffects); diff != "" {
-		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// Manually progress the extended state by collecting postfund signatures
@@ -295,7 +295,7 @@ func TestCrank(t *testing.T) {
 		t.Error(err)
 	}
 	if waitingFor != WaitingForNothing {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
 	}
 }
 
@@ -305,7 +305,7 @@ func TestClone(t *testing.T) {
 	clone := s.clone()
 
 	if diff := cmp.Diff(s, clone); diff != "" {
-		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -315,30 +315,30 @@ func TestMarshalJSON(t *testing.T) {
 	encodedDfo, err := json.Marshal(dfo)
 
 	if err != nil {
-		t.Errorf("error encoding direct-fund objective %v", dfo)
+		t.Fatalf("error encoding direct-fund objective %v", dfo)
 	}
 
 	got := Objective{}
 	if err := got.UnmarshalJSON(encodedDfo); err != nil {
-		t.Errorf("error unmarshaling test direct fund objective: %s", err.Error())
+		t.Fatalf("error unmarshaling test direct fund objective: %s", err.Error())
 	}
 
 	if !got.myDepositSafetyThreshold.Equal(dfo.myDepositSafetyThreshold) {
-		t.Errorf("expected myDepositSafetyThreshhold %v but got %v",
+		t.Fatalf("expected myDepositSafetyThreshhold %v but got %v",
 			dfo.myDepositSafetyThreshold, got.myDepositSafetyThreshold)
 	}
 	if !got.myDepositTarget.Equal(dfo.myDepositTarget) {
-		t.Errorf("expected myDepositTarget %v but got %v",
+		t.Fatalf("expected myDepositTarget %v but got %v",
 			dfo.myDepositTarget, got.myDepositTarget)
 	}
 	if !got.fullyFundedThreshold.Equal(dfo.fullyFundedThreshold) {
-		t.Errorf("expected fullyFundedThreshold %v but got %v",
+		t.Fatalf("expected fullyFundedThreshold %v but got %v",
 			dfo.fullyFundedThreshold, got.fullyFundedThreshold)
 	}
 	if !(got.Status == dfo.Status) {
-		t.Errorf("expected Status %v but got %v", dfo.Status, got.Status)
+		t.Fatalf("expected Status %v but got %v", dfo.Status, got.Status)
 	}
 	if got.C.Id != dfo.C.Id {
-		t.Errorf("expected channel Id %s but got %s", dfo.C.Id, got.C.Id)
+		t.Fatalf("expected channel Id %s but got %s", dfo.C.Id, got.C.Id)
 	}
 }

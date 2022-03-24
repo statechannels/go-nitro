@@ -18,7 +18,7 @@ func TestGuaranteeMetadataEncode(t *testing.T) {
 		t.Error(err)
 	}
 	if !bytes.Equal(encodedG, encodedGuaranteeMetadata) {
-		t.Errorf("incorrect encoding. Got %x, wanted %x", encodedG, encodedGuaranteeMetadata)
+		t.Fatalf("incorrect encoding. Got %x, wanted %x", encodedG, encodedGuaranteeMetadata)
 	}
 }
 
@@ -28,6 +28,6 @@ func TestGuaranteeMetadataDecode(t *testing.T) {
 		t.Error(err)
 	}
 	if g != guaranteeMetadata {
-		t.Errorf("incorrect encoding. Got %x, wanted %x", g, encodedGuaranteeMetadata)
+		t.Fatalf("incorrect encoding. Got %x, wanted %x", g, encodedGuaranteeMetadata)
 	}
 }

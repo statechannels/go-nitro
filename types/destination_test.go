@@ -12,11 +12,11 @@ func TestIsExternal(t *testing.T) {
 	internal := Destination(common.HexToHash("0x6f7123E3A80C9813eF50213A96f7123E3A80C9813eF50213ADEd0e4511CB820f"))
 
 	if !external.IsExternal() {
-		t.Errorf("Received bytes %x was declared internal, when it is external", external)
+		t.Fatalf("Received bytes %x was declared internal, when it is external", external)
 	}
 
 	if internal.IsExternal() {
-		t.Errorf("Received bytes %x was declared external, when it is internal", internal)
+		t.Fatalf("Received bytes %x was declared external, when it is internal", internal)
 	}
 
 }
@@ -37,11 +37,11 @@ func TestToAddress(t *testing.T) {
 	for i, extAddress := range areExternal {
 		convertedAddress, err := extAddress.ToAddress()
 		if err != nil {
-			t.Errorf("expected to convert %x to an external address, but failed", extAddress)
+			t.Fatalf("expected to convert %x to an external address, but failed", extAddress)
 		}
 
 		if convertedAddress != referenceAddress[i] {
-			t.Errorf("expected %x to convert to %x, but it did not", extAddress, referenceAddress[i])
+			t.Fatalf("expected %x to convert to %x, but it did not", extAddress, referenceAddress[i])
 		}
 	}
 
@@ -53,7 +53,7 @@ func TestToAddress(t *testing.T) {
 
 	for _, notExtAddress := range areNotExternal {
 		if _, err := notExtAddress.ToAddress(); err == nil {
-			t.Errorf("expected to fail when converting %x to an external address, but succeeded", notExtAddress)
+			t.Fatalf("expected to fail when converting %x to an external address, but succeeded", notExtAddress)
 		}
 	}
 }
@@ -64,7 +64,7 @@ func TestToDestination(t *testing.T) {
 		convertedAddress := AddressToDestination(refAddress)
 
 		if convertedAddress != areExternal[i] {
-			t.Errorf("expected %x to convert to %x, but it did not", refAddress, areExternal[i])
+			t.Fatalf("expected %x to convert to %x, but it did not", refAddress, areExternal[i])
 		}
 	}
 

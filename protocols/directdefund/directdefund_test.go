@@ -187,7 +187,7 @@ func TestCrankAlice(t *testing.T) {
 	}
 
 	if wf != WaitingForFinalization {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
 	}
 
 	// Create the state we expect Alice to send
@@ -207,7 +207,7 @@ func TestCrankAlice(t *testing.T) {
 		}}
 
 	if diff := cmp.Diff(expectedSE, se); diff != "" {
-		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// The second update and crank. Alice is expected to create a withdrawAll transaction
@@ -224,7 +224,7 @@ func TestCrankAlice(t *testing.T) {
 	}
 
 	if wf != WaitingForWithdraw {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
 	}
 
 	expectedSE = protocols.SideEffects{TransactionsToSubmit: []protocols.ChainTransaction{{
@@ -234,7 +234,7 @@ func TestCrankAlice(t *testing.T) {
 	}}}
 
 	if diff := cmp.Diff(expectedSE, se); diff != "" {
-		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// The third crank. Alice is expected to enter the terminal state of the defunding protocol.
@@ -244,12 +244,12 @@ func TestCrankAlice(t *testing.T) {
 		t.Error(err)
 	}
 	if wf != WaitingForNothing {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForNothing, wf)
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForNothing, wf)
 	}
 
 	expectedSE = protocols.SideEffects{}
 	if diff := cmp.Diff(expectedSE, se); diff != "" {
-		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -280,7 +280,7 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	if wf != WaitingForWithdraw {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
 	}
 
 	// Create the state we expect Bob to send
@@ -296,7 +296,7 @@ func TestCrankBob(t *testing.T) {
 		}}
 
 	if diff := cmp.Diff(expectedSE, se); diff != "" {
-		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// The second update and crank. Bob is expected to NOT create any transactions or side effects
@@ -310,13 +310,13 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	if wf != WaitingForWithdraw {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
 	}
 
 	expectedSE = protocols.SideEffects{}
 
 	if diff := cmp.Diff(expectedSE, se); diff != "" {
-		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
 	// The third crank. Bob is expected to enter the terminal state of the defunding protocol.
@@ -331,12 +331,12 @@ func TestCrankBob(t *testing.T) {
 		t.Error(err)
 	}
 	if wf != WaitingForNothing {
-		t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForNothing, wf)
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForNothing, wf)
 	}
 
 	expectedSE = protocols.SideEffects{}
 	if diff := cmp.Diff(expectedSE, se); diff != "" {
-		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -346,22 +346,22 @@ func TestMarshalJSON(t *testing.T) {
 	encodedDdfo, err := json.Marshal(ddfo)
 
 	if err != nil {
-		t.Errorf("error encoding directdefund objective %v", ddfo)
+		t.Fatalf("error encoding directdefund objective %v", ddfo)
 	}
 
 	got := Objective{}
 	if err := got.UnmarshalJSON(encodedDdfo); err != nil {
-		t.Errorf("error unmarshaling test directdefund objective: %s", err.Error())
+		t.Fatalf("error unmarshaling test directdefund objective: %s", err.Error())
 	}
 
 	if got.finalTurnNum != ddfo.finalTurnNum {
-		t.Errorf("expected finalTurnNum %d but got %d",
+		t.Fatalf("expected finalTurnNum %d but got %d",
 			ddfo.finalTurnNum, got.finalTurnNum)
 	}
 	if !(got.Status == ddfo.Status) {
-		t.Errorf("expected Status %v but got %v", ddfo.Status, got.Status)
+		t.Fatalf("expected Status %v but got %v", ddfo.Status, got.Status)
 	}
 	if got.C.Id != ddfo.C.Id {
-		t.Errorf("expected channel Id %s but got %s", ddfo.C.Id, got.C.Id)
+		t.Fatalf("expected channel Id %s but got %s", ddfo.C.Id, got.C.Id)
 	}
 }

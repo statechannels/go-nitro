@@ -318,7 +318,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 					Metadata:       expectedEncodedGuaranteeMetadataLeft,
 				}
 				if diff := cmp.Diff(wantLeft, gotLeft); diff != "" {
-					t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
+					t.Fatalf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
 				}
 			}
 			if (expectedGuaranteeMetadataRight != outcome.GuaranteeMetadata{}) {
@@ -331,7 +331,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 					Metadata:       expectedEncodedGuaranteeMetadataRight,
 				}
 				if diff := cmp.Diff(wantRight, gotRight); diff != "" {
-					t.Errorf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
+					t.Fatalf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
 				}
 			}
 
@@ -345,7 +345,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			clone := o.clone()
 
 			if diff := cmp.Diff(o, clone); diff != "" {
-				t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
+				t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 			}
 		}
 
@@ -369,7 +369,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Error(err)
 			}
 			if waitingFor != WaitingForCompletePrefund {
-				t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
+				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
 			}
 
 			expectedSignedState := state.NewSignedState(o.V.PreFundState())
@@ -479,7 +479,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Error(err)
 			}
 			if waitingFor != WaitingForNothing {
-				t.Errorf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
+				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
 			}
 
 		}
