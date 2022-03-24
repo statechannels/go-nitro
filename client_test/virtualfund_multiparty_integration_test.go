@@ -50,7 +50,7 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 		Intermediary: irene.Address,
 		Outcome: td.Outcomes.Create(
 			alice.Address,
-			bob.Address, // BUG: brian.Address? (likely not a matierial difference, or, Brian is just a generous guy)
+			brian.Address,
 			1,
 			1,
 		),
