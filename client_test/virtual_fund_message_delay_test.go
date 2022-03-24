@@ -17,7 +17,7 @@ import (
 
 const MAX_MESSAGE_DELAY = time.Millisecond * 100
 
-// Since we are delaying messages we allow for slightly more time to complete the objective
+// Since we are delaying messages we allow for enough time to complete the objective
 const OBJECTIVE_TIMEOUT = time.Second * 2
 
 func TestVirtualFundWithMessageDelays(t *testing.T) {
