@@ -210,7 +210,6 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 		return SignedProposal{}, fmt.Errorf("propose could not add new state vars: %w", err)
 	}
 
-
 	signature, err := c.sign(vars, sk)
 	if err != nil {
 		return SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
