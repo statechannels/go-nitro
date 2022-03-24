@@ -9,8 +9,8 @@ import (
 )
 
 var broker = NewBroker()
-var aliceMS = NewTestMessageService(types.Address{'a'}, broker)
-var bobMS = NewTestMessageService(types.Address{'b'}, broker)
+var aliceMS = NewTestMessageService(types.Address{'a'}, broker, 0)
+var bobMS = NewTestMessageService(types.Address{'b'}, broker, 0)
 
 var testId protocols.ObjectiveId = "testObjectiveID"
 
