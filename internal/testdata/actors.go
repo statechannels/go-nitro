@@ -34,8 +34,8 @@ var Actors actors = actors{
 		common.Hex2Bytes(`0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4`),
 	},
 	Brian: actor{
-		common.HexToAddress("0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01"),                    //nolint:unused
-		common.Hex2Bytes("0aca28ba64679f63d71e671ab4dbb32aaa212d4789988e6ca47da47601c18fe2"), //nolint:unused
+		common.HexToAddress("0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01"),
+		common.Hex2Bytes("0aca28ba64679f63d71e671ab4dbb32aaa212d4789988e6ca47da47601c18fe2"),
 	},
 	Irene: actor{
 		common.HexToAddress(`0x111A00868581f73AB42FEEF67D235Ca09ca1E8db`),
