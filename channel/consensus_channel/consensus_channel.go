@@ -249,10 +249,15 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 // values. It signs the resulting state using pk.
 func (c *ConsensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
 	fp := c.FixedPart
-	state := state.State{
+	state := vars.asState(fp)
+	return state.Sign(pk)
+}
+
+func (v Vars) asState(fp state.FixedPart) state.State {
+	return state.State{
 		// Variable
-		TurnNum: vars.TurnNum,
-		Outcome: vars.Outcome.AsOutcome(),
+		TurnNum: v.TurnNum,
+		Outcome: v.Outcome.AsOutcome(),
 
 		// Constant
 		ChainId:           fp.ChainId,
@@ -263,8 +268,6 @@ func (c *ConsensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
 		AppDefinition:     types.Address{},
 		IsFinal:           false,
 	}
-
-	return state.Sign(pk)
 }
 
 func (c *ConsensusChannel) Accept(p SignedProposal) error {
