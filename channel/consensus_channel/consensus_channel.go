@@ -28,6 +28,27 @@ type ConsensusChannel struct {
 	proposalQueue []SignedProposal // A queue of proposed changes, starting from the consensus state
 }
 
+func NewConsensusChannel(
+	fp state.FixedPart,
+	myIndex ledgerIndex,
+	outcome LedgerOutcome,
+	signatures [2]state.Signature,
+) (ConsensusChannel, error) {
+
+	current := SignedVars{
+		Vars{TurnNum: 0, Outcome: outcome},
+		signatures,
+	}
+
+	return ConsensusChannel{
+		FixedPart:     fp,
+		MyIndex:       myIndex,
+		proposalQueue: make([]SignedProposal, 0),
+		current:       current,
+	}, nil
+
+}
+
 // Balance represents an Allocation of type 0, ie. a simple allocation.
 type Balance struct {
 	destination types.Destination
@@ -138,7 +159,7 @@ type Vars struct {
 // SignedVars stores 0-2 signatures for some vars in a consensus channel
 type SignedVars struct {
 	Vars
-	Signatures [2]*state.Signature
+	Signatures [2]state.Signature
 }
 
 // SignedProposal is a proposal with a signature on it
