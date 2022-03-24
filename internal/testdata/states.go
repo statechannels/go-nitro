@@ -9,6 +9,16 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type outcomes struct {
+	// Create returns a simple outcome {a: aBalance, b: bBalance} in the
+	// zero-asset (chain-native token)
+	Create func(a, b types.Address, aBalance, bBalance uint) outcome.Exit
+}
+
+var Outcomes outcomes = outcomes{
+	Create: createOutcome,
+}
+
 var chainId, _ = big.NewInt(0).SetString("9001", 10)
 
 var testOutcome = outcome.Exit{
@@ -40,4 +50,21 @@ var testState = state.State{
 	Outcome:           testOutcome,
 	TurnNum:           5,
 	IsFinal:           false,
+}
+
+// createOutcome is a helper function to create a two-actor outcome
+func createOutcome(first types.Address, second types.Address, x, y uint) outcome.Exit {
+
+	return outcome.Exit{outcome.SingleAssetExit{
+		Allocations: outcome.Allocations{
+			outcome.Allocation{
+				Destination: types.AddressToDestination(first),
+				Amount:      big.NewInt(int64(x)),
+			},
+			outcome.Allocation{
+				Destination: types.AddressToDestination(second),
+				Amount:      big.NewInt(int64(y)),
+			},
+		},
+	}}
 }

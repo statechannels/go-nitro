@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -23,9 +24,9 @@ func TestBenchmark(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientAlice := setupClient(aliceKey, chain, broker, logFile)
-	clientBob := setupClient(bobKey, chain, broker, logFile)
-	clientIrene := setupClient(ireneKey, chain, broker, logFile)
+	clientAlice := setupClient(alice.PrivateKey, chain, broker, logFile)
+	clientBob := setupClient(bob.PrivateKey, chain, broker, logFile)
+	clientIrene := setupClient(irene.PrivateKey, chain, broker, logFile)
 
 	directlyFundALedgerChannel(t, clientAlice, clientIrene)
 	directlyFundALedgerChannel(t, clientIrene, clientBob)
@@ -34,7 +35,7 @@ func TestBenchmark(t *testing.T) {
 
 	n := 1
 	for i := 0; i < n; i++ {
-		go benchmarkVirtualChannelCreation(t, clientAlice, clientBob, irene, done)
+		go benchmarkVirtualChannelCreation(t, clientAlice, clientBob, irene.Address, done)
 	}
 
 	expect(t, done, n, time.Second*1)
@@ -44,7 +45,7 @@ func TestBenchmark(t *testing.T) {
 // times how long it takes for the objective to complete (from Bob's point of view)
 // The resulting time is printed to the test runner's output
 func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, irene types.Address, done chan interface{}) {
-	outcome := createVirtualOutcome(*alice.Address, *bob.Address)
+	outcome := testdata.Outcomes.Create(*alice.Address, *bob.Address, 1, 1)
 	request := virtualfund.ObjectiveRequest{
 		MyAddress:         *alice.Address,
 		CounterParty:      *bob.Address,

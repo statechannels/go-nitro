@@ -7,6 +7,7 @@ import (
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -20,29 +21,39 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientAlice := setupClient(aliceKey, chain, broker, logFile)
-	clientBob := setupClient(bobKey, chain, broker, logFile)
-	clientBrian := setupClient(brianKey, chain, broker, logFile)
-	clientIrene := setupClient(ireneKey, chain, broker, logFile)
+	clientAlice := setupClient(alice.PrivateKey, chain, broker, logFile)
+	clientBob := setupClient(bob.PrivateKey, chain, broker, logFile)
+	clientBrian := setupClient(brian.PrivateKey, chain, broker, logFile)
+	clientIrene := setupClient(irene.PrivateKey, chain, broker, logFile)
 
 	directlyFundALedgerChannel(t, clientAlice, clientIrene)
 	directlyFundALedgerChannel(t, clientIrene, clientBob)
 	directlyFundALedgerChannel(t, clientIrene, clientBrian)
 	withBobRequest := virtualfund.ObjectiveRequest{
-		MyAddress:         alice,
-		CounterParty:      bob,
-		Intermediary:      irene,
-		Outcome:           createVirtualOutcome(alice, bob),
+		MyAddress:    alice.Address,
+		CounterParty: bob.Address,
+		Intermediary: irene.Address,
+		Outcome: td.Outcomes.Create(
+			alice.Address,
+			bob.Address,
+			1,
+			1,
+		),
 		AppDefinition:     types.Address{},
 		AppData:           types.Bytes{},
 		ChallengeDuration: big.NewInt(0),
 		Nonce:             rand.Int63(),
 	}
 	withBrianRequest := virtualfund.ObjectiveRequest{
-		MyAddress:         alice,
-		CounterParty:      brian,
-		Intermediary:      irene,
-		Outcome:           createVirtualOutcome(alice, bob),
+		MyAddress:    alice.Address,
+		CounterParty: brian.Address,
+		Intermediary: irene.Address,
+		Outcome: td.Outcomes.Create(
+			alice.Address,
+			bob.Address, // BUG: brian.Address? (likely not a matierial difference, or, Brian is just a generous guy)
+			1,
+			1,
+		),
 		AppDefinition:     types.Address{},
 		AppData:           types.Bytes{},
 		ChallengeDuration: big.NewInt(0),

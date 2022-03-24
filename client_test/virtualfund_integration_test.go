@@ -7,6 +7,7 @@ import (
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -20,18 +21,18 @@ func TestVirtualFundIntegration(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientA := setupClient(aliceKey, chain, broker, logFile)
-	clientB := setupClient(bobKey, chain, broker, logFile)
-	clientI := setupClient(ireneKey, chain, broker, logFile)
+	clientA := setupClient(alice.PrivateKey, chain, broker, logFile)
+	clientB := setupClient(bob.PrivateKey, chain, broker, logFile)
+	clientI := setupClient(irene.PrivateKey, chain, broker, logFile)
 
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)
 
-	outcome := createVirtualOutcome(alice, bob)
+	outcome := td.Outcomes.Create(alice.Address, bob.Address, 1, 1)
 	request := virtualfund.ObjectiveRequest{
-		MyAddress:         alice,
-		CounterParty:      bob,
-		Intermediary:      irene,
+		MyAddress:         alice.Address,
+		CounterParty:      bob.Address,
+		Intermediary:      irene.Address,
 		Outcome:           outcome,
 		AppDefinition:     types.Address{},
 		AppData:           types.Bytes{},

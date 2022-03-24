@@ -2,20 +2,17 @@ package client_test
 
 import (
 	"log"
-	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
 )
 
 const defaultTimeout = time.Second
@@ -74,23 +71,6 @@ func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservi
 	storeA := store.NewMockStore(pk)
 	logDestination := newLogWriter(logFilename)
 	return client.New(messageservice, chainservice, storeA, logDestination)
-}
-
-// createVirtualOutcome is a helper function to create the outcome for two participants for a virtual channel.
-func createVirtualOutcome(first types.Address, second types.Address) outcome.Exit {
-
-	return outcome.Exit{outcome.SingleAssetExit{
-		Allocations: outcome.Allocations{
-			outcome.Allocation{
-				Destination: types.AddressToDestination(first),
-				Amount:      big.NewInt(1),
-			},
-			outcome.Allocation{
-				Destination: types.AddressToDestination(second),
-				Amount:      big.NewInt(1),
-			},
-		},
-	}}
 }
 
 func truncateLog(logFile string) {
