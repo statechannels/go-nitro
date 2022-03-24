@@ -59,14 +59,16 @@ func TestConsensusChannel(t *testing.T) {
 
 	proposal := add(10, vAmount, targetChannel, alice, bob)
 
-	outcome := makeOutcome(
+	outcome := func() LedgerOutcome {
+		return makeOutcome(
 		allocation(alice, aBal),
 		allocation(bob, bBal),
 		guarantee(vAmount, existingChannel, alice, bob),
 	)
 
+	}
 	testApplyingAddProposalToVars := func(t *testing.T) {
-		before := Vars{TurnNum: 9, Outcome: outcome}
+		before := Vars{TurnNum: 9, Outcome: outcome()}
 
 		after, err := before.Add(proposal)
 
@@ -108,27 +110,31 @@ func TestConsensusChannel(t *testing.T) {
 		}
 	}
 
+	fp := func() state.FixedPart {
 	participants := [2]types.Address{
 		testdata.Actors.Alice.Address, testdata.Actors.Bob.Address,
 	}
-	fp := state.FixedPart{
-		Participants: participants[:],
+		return state.FixedPart{
+			Participants:      participants[:],
+			ChainId:           big.NewInt(0),
+			ChannelNonce:      big.NewInt(9001),
+			ChallengeDuration: big.NewInt(100),
+		}
 	}
 
-	testConsensusChannelFunctionality := func(t *testing.T) {
-
-		vars := Vars{Outcome: outcome}
-		aliceSig, _ := vars.asState(fp).Sign(testdata.Actors.Alice.PrivateKey)
-		bobsSig, _ := vars.asState(fp).Sign(testdata.Actors.Bob.PrivateKey)
+	initialVars := Vars{Outcome: outcome(), TurnNum: 0}
+	aliceSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
+	bobsSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
 		sigs := [2]state.Signature{aliceSig, bobsSig}
 
-		channel, err := NewConsensusChannel(fp, leader, outcome, sigs)
+	testConsensusChannelFunctionality := func(t *testing.T) {
+		channel, err := NewConsensusChannel(fp(), leader, outcome(), sigs)
 
 		if err != nil {
-			t.Errorf("unable to construct a new consensus channel")
+			t.Fatalf("unable to construct a new consensus channel: %v", err)
 		}
 
-		_, err = channel.sign(vars, testdata.Actors.Bob.PrivateKey)
+		_, err = channel.sign(initialVars, testdata.Actors.Bob.PrivateKey)
 		if err == nil {
 			t.Errorf("channel should check that signer is participant")
 		}
