@@ -52,7 +52,7 @@ var testState = state.State{
 	IsFinal:           false,
 }
 
-// createOutcome is a helper function to create the outcome for two participants for a virtual channel.
+// createOutcome is a helper function to create a two-actor outcome
 func createOutcome(first types.Address, second types.Address, x, y uint) outcome.Exit {
 
 	return outcome.Exit{outcome.SingleAssetExit{
