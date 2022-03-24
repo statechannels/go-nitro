@@ -159,15 +159,6 @@ func (a Add) RightDeposit() big.Int {
 	return result
 }
 
-// Remove is a proposal to remove a guarantee from the ledger channel
-// - `paid` funds are added to the right participant's balance
-// - the remainder are returned to the left participant's balance
-type Remove struct {
-	TurnNum uint64
-	VId     types.Destination
-	Paid    types.Funds
-}
-
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 
 // Add updates Vars by including a guarantee, updating balances accordingly
@@ -186,10 +177,6 @@ func (vars Vars) Add(p Add) (Vars, error) {
 
 	vars.Outcome = o
 	return vars, nil
-}
-
-func (vars Vars) Remove(p Remove) (Vars, error) {
-	panic("UNIMPLEMENTED")
 }
 
 // Add receives a Guarantee, and generates and stores a SignedProposal in
