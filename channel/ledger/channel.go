@@ -179,9 +179,10 @@ func (vars Vars) Add(p Add) (Vars, error) {
 	return vars, nil
 }
 
-// Add receives a Guarantee, and generates and stores a SignedProposal in
+// Propose receives a proposal to add a guarantee, and generates and stores a SignedProposal in
 // the queue, returning the resulting SignedProposal
-func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
+// Note: the TurnNum on add is ignored; the correct turn number is computed by c
+func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 	if c.MyIndex != proposerIndex {
 		return SignedProposal{}, fmt.Errorf("only proposer can call Add")
 	}
@@ -197,19 +198,18 @@ func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
 	}
 
 	latestSignedProposal := c.proposalQueue[len(c.proposalQueue)-1]
-	latest, ok := latestSignedProposal.Proposal.(Add)
+	latestProposal, ok := latestSignedProposal.Proposal.(Add)
 	if !ok {
 		return SignedProposal{}, fmt.Errorf("latest proposal is not an Add")
 	}
 
-	vars, err = vars.Add(Add{Guarantee: g, turnNum: latest.turnNum + 1})
+	add.turnNum = latestProposal.turnNum + 1
+
+	vars, err = vars.Add(add)
 	if err != nil {
 		return SignedProposal{}, fmt.Errorf("propose could not add new state vars: %w", err)
 	}
 
-	add := Add{
-		turnNum: latest.turnNum + 1,
-	}
 
 	signature, err := c.sign(vars, sk)
 	if err != nil {
