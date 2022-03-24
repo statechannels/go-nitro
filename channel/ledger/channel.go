@@ -213,7 +213,7 @@ func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
 
 	vars, err = vars.Add(Add{Guarantee: g, turnNum: latest.turnNum + 1})
 	if err != nil {
-		return SignedProposal{}, err
+		return SignedProposal{}, fmt.Errorf("propose could not add new state vars: %w", err)
 	}
 
 	add := Add{
