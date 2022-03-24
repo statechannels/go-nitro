@@ -44,6 +44,7 @@ type APIEvent struct {
 type ObjectiveChangeEvent struct {
 	// These are objectives that are now completed
 	CompletedObjectives []protocols.Objective
+	InvalidObjectiveIds []protocols.ObjectiveId
 }
 
 type CompletedObjectiveEvent struct {
@@ -174,18 +175,22 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 		case virtualfund.ObjectiveRequest:
 			vfo, err := virtualfund.NewObjective(request, e.store.GetTwoPartyLedger)
 			if err != nil {
-				e.logger.Printf("handleAPIEvent: Could not create objective for %+v", request)
-				e.logger.Print(err)
-				return ObjectiveChangeEvent{}
+				e.logger.Printf("ERROR handleAPIEvent: Could not create objective for %+v", request)
+				e.logger.Print("ERROR ", err)
+				return ObjectiveChangeEvent{
+					InvalidObjectiveIds: []protocols.ObjectiveId{request.Id()},
+				}
 			}
 			return e.attemptProgress(&vfo)
 
 		case directfund.ObjectiveRequest:
 			dfo, err := directfund.NewObjective(request, true)
 			if err != nil {
-				e.logger.Printf("handleAPIEvent: Could not create objective for  %+v", request)
-				e.logger.Print(err)
-				return ObjectiveChangeEvent{}
+				e.logger.Printf("ERROR handleAPIEvent: Could not create objective for  %+v", request)
+				e.logger.Print("ERROR ", err)
+				return ObjectiveChangeEvent{
+					InvalidObjectiveIds: []protocols.ObjectiveId{request.Id()},
+				}
 			}
 			return e.attemptProgress(&dfo)
 
@@ -233,6 +238,7 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 // 	4. It executes any side effects that were declared during cranking
 // 	5. It updates progress metadata in the store
 func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent) {
+
 	secretKey := e.store.GetChannelSecretKey()
 
 	crankedObjective, sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
