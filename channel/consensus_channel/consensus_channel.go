@@ -10,13 +10,18 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-const proposerIndex = uint(0)
+type ledgerIndex uint
+
+const (
+	leader ledgerIndex = 0
+	// follower ledgerIndex = 1 // TODO: uncomment when used
+)
 
 // ConsensusChannel is used to manage states in a running ledger channel
 type ConsensusChannel struct {
 	// constants
 	Id             types.Destination
-	MyIndex        uint
+	MyIndex        ledgerIndex
 	OnChainFunding types.Funds
 	state.FixedPart
 
@@ -183,7 +188,7 @@ func (vars Vars) Add(p Add) (Vars, error) {
 // the queue, returning the resulting SignedProposal
 // Note: the TurnNum on add is ignored; the correct turn number is computed by c
 func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
-	if c.MyIndex != proposerIndex {
+	if c.MyIndex != leader {
 		return SignedProposal{}, fmt.Errorf("only proposer can call Add")
 	}
 
