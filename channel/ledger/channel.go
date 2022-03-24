@@ -231,7 +231,7 @@ func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
 	return signed, nil
 }
 
-// Sign constructs a state.State from the given vars, using the ConsensusChannel's constant
+// sign constructs a state.State from the given vars, using the ConsensusChannel's constant
 // values. It signs the resulting state using pk.
 func (c *ConsensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
 	fp := c.FixedPart
