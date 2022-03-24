@@ -61,10 +61,10 @@ func TestConsensusChannel(t *testing.T) {
 
 	outcome := func() LedgerOutcome {
 		return makeOutcome(
-		allocation(alice, aBal),
-		allocation(bob, bBal),
-		guarantee(vAmount, existingChannel, alice, bob),
-	)
+			allocation(alice, aBal),
+			allocation(bob, bBal),
+			guarantee(vAmount, existingChannel, alice, bob),
+		)
 
 	}
 	testApplyingAddProposalToVars := func(t *testing.T) {
@@ -111,9 +111,9 @@ func TestConsensusChannel(t *testing.T) {
 	}
 
 	fp := func() state.FixedPart {
-	participants := [2]types.Address{
-		testdata.Actors.Alice.Address, testdata.Actors.Bob.Address,
-	}
+		participants := [2]types.Address{
+			testdata.Actors.Alice.Address, testdata.Actors.Bob.Address,
+		}
 		return state.FixedPart{
 			Participants:      participants[:],
 			ChainId:           big.NewInt(0),
@@ -125,7 +125,7 @@ func TestConsensusChannel(t *testing.T) {
 	initialVars := Vars{Outcome: outcome(), TurnNum: 0}
 	aliceSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
 	bobsSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
-		sigs := [2]state.Signature{aliceSig, bobsSig}
+	sigs := [2]state.Signature{aliceSig, bobsSig}
 
 	testConsensusChannelFunctionality := func(t *testing.T) {
 		channel, err := NewConsensusChannel(fp(), leader, outcome(), sigs)
@@ -138,8 +138,15 @@ func TestConsensusChannel(t *testing.T) {
 		if err == nil {
 			t.Errorf("channel should check that signer is participant")
 		}
+
+		briansSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Brian.PrivateKey)
+		sigs[1] = briansSig
+		_, err = NewConsensusChannel(fp(), leader, outcome(), sigs)
+		if err == nil {
+			t.Errorf("channel should check that signers are participants")
+		}
 	}
 
-	t.Run(`TestConsensusChannelFunctionality`, testConsensusChannelFunctionality)
 	t.Run(`TestApplyingAddProposalToVars`, testApplyingAddProposalToVars)
+	t.Run(`TestConsensusChannelFunctionality`, testConsensusChannelFunctionality)
 }

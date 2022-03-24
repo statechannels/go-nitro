@@ -14,8 +14,8 @@ import (
 type ledgerIndex uint
 
 const (
-	leader ledgerIndex = 0
-	// follower ledgerIndex = 1 // TODO: uncomment when used
+	leader   ledgerIndex = 0
+	follower ledgerIndex = 1
 )
 
 // ConsensusChannel is used to manage states in a running ledger channel
@@ -35,9 +35,26 @@ func NewConsensusChannel(
 	outcome LedgerOutcome,
 	signatures [2]state.Signature,
 ) (ConsensusChannel, error) {
+	vars := Vars{TurnNum: 0, Outcome: outcome}
+
+	leaderAddr, err := vars.asState(fp).RecoverSigner(signatures[leader])
+	if err != nil {
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %v", err)
+	}
+	if leaderAddr != fp.Participants[leader] {
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[leader])
+	}
+
+	followerAddr, err := vars.asState(fp).RecoverSigner(signatures[follower])
+	if err != nil {
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %v", err)
+	}
+	if followerAddr != fp.Participants[follower] {
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", followerAddr, fp.Participants[leader])
+	}
 
 	current := SignedVars{
-		Vars{TurnNum: 0, Outcome: outcome},
+		vars,
 		signatures,
 	}
 
