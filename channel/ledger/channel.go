@@ -209,7 +209,11 @@ func (c *ConsensusChannel) Add(g Guarantee, sk []byte) (SignedProposal, error) {
 		}
 	}
 
-	latest := c.proposalQueue[len(c.proposalQueue)-1].Proposal.(Add)
+	latestSignedProposal := c.proposalQueue[len(c.proposalQueue)-1]
+	latest, ok := latestSignedProposal.Proposal.(Add)
+	if !ok {
+		return SignedProposal{}, fmt.Errorf("latest proposal is not an Add")
+	}
 
 	vars, err = vars.Add(Add{Guarantee: g, turnNum: latest.turnNum + 1})
 	if err != nil {
