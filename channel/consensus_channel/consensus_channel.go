@@ -20,9 +20,7 @@ const (
 // ConsensusChannel is used to manage states in a running ledger channel
 type ConsensusChannel struct {
 	// constants
-	Id             types.Destination
-	MyIndex        ledgerIndex
-	OnChainFunding types.Funds
+	MyIndex ledgerIndex
 	state.FixedPart
 
 	// variables
