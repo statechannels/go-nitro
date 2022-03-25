@@ -37,6 +37,7 @@ func NewConsensusChannel(
 	signatures [2]state.Signature,
 ) (ConsensusChannel, error) {
 	vars := Vars{TurnNum: 0, Outcome: outcome}
+	vars = vars.clone()
 
 	leaderAddr, err := vars.asState(fp).RecoverSigner(signatures[leader])
 	if err != nil {
