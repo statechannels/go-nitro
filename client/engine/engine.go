@@ -44,7 +44,6 @@ type APIEvent struct {
 type ObjectiveChangeEvent struct {
 	// These are objectives that are now completed
 	CompletedObjectives []protocols.Objective
-	InvalidObjectiveIds []protocols.ObjectiveId
 }
 
 type CompletedObjectiveEvent struct {
@@ -177,9 +176,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 			if err != nil {
 				e.logger.Printf("ERROR handleAPIEvent: Could not create objective for %+v", request)
 				e.logger.Print("ERROR ", err)
-				return ObjectiveChangeEvent{
-					InvalidObjectiveIds: []protocols.ObjectiveId{request.Id()},
-				}
+				return ObjectiveChangeEvent{}
 			}
 			return e.attemptProgress(&vfo)
 
@@ -188,9 +185,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 			if err != nil {
 				e.logger.Printf("ERROR handleAPIEvent: Could not create objective for  %+v", request)
 				e.logger.Print("ERROR ", err)
-				return ObjectiveChangeEvent{
-					InvalidObjectiveIds: []protocols.ObjectiveId{request.Id()},
-				}
+				return ObjectiveChangeEvent{}
 			}
 			return e.attemptProgress(&dfo)
 
