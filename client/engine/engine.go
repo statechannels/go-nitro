@@ -164,8 +164,7 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 	}
 	updatedObjective, err := objective.Update(event)
 	if err != nil {
-		// TODO handle error
-		panic(err)
+		return ObjectiveChangeEvent{}, err
 	}
 	return e.attemptProgress(updatedObjective)
 
@@ -202,16 +201,21 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 	}
 
 	if apiEvent.ObjectiveToReject != `` {
-		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		objective, err := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
 		updatedProtocol := objective.Reject()
-		err := e.store.SetObjective(updatedProtocol)
+		err = e.store.SetObjective(updatedProtocol)
 		return ObjectiveChangeEvent{}, err
 	}
 	if apiEvent.ObjectiveToApprove != `` {
-		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		objective, err := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
 		updatedObjective := objective.Approve()
 		return e.attemptProgress(updatedObjective)
-
 	}
 	return ObjectiveChangeEvent{}, nil
 
@@ -240,17 +244,32 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 
 	secretKey := e.store.GetChannelSecretKey()
 
-	crankedObjective, sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
-	_ = e.store.SetObjective(crankedObjective)                                 // TODO handle error
+	crankedObjective, sideEffects, waitingFor, err := objective.Crank(secretKey)
+
+	if err != nil {
+		return
+	}
+
+	err = e.store.SetObjective(crankedObjective)
+
+	if err != nil {
+		return
+	}
 
 	// TODO: This is hack to get around the fact that currently each objective in the store has it's own set of channels.
 	vfo, isVirtual := crankedObjective.(*virtualfund.Objective)
 	if isVirtual {
 		if vfo.ToMyLeft != nil {
-			_ = e.store.SetChannel(&vfo.ToMyLeft.Channel.Channel)
+			err = e.store.SetChannel(&vfo.ToMyLeft.Channel.Channel)
+			if err != nil {
+				return
+			}
 		}
 		if vfo.ToMyRight != nil {
-			_ = e.store.SetChannel(&vfo.ToMyRight.Channel.Channel)
+			err = e.store.SetChannel(&vfo.ToMyRight.Channel.Channel)
+			if err != nil {
+				return
+			}
 		}
 	}
 
