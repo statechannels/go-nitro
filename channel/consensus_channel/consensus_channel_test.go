@@ -67,6 +67,42 @@ func TestConsensusChannel(t *testing.T) {
 		)
 
 	}
+
+	fingerprint := func(v Vars) string {
+		h, err := v.asState(state.TestState.FixedPart()).Hash()
+
+		if err != nil {
+			panic(err)
+		}
+		return h.String()
+	}
+
+	vars := Vars{TurnNum: 9, Outcome: outcome()}
+
+	f1 := fingerprint(vars)
+	clone1 := vars.clone()
+
+	if fingerprint(clone1) != f1 {
+		t.Fatal("vars incorrectly cloned: ", f1, fingerprint(clone1))
+	}
+
+	clone1.Outcome.guarantees[targetChannel] = guarantee(999, bob, bob, bob)
+	if f1 != fingerprint(vars) {
+		t.Fatal("vars shares data with clone")
+	}
+
+	clone2 := vars.clone()
+	clone2.Outcome.left = allocation(bob, 111)
+	if vars.Outcome.left.destination == bob {
+		t.Fatal("vars shares data with clone")
+	}
+
+	clone3 := vars.clone()
+	clone3.Outcome.right = allocation(alice, 111)
+	if f1 != fingerprint(vars) {
+		t.Fatal("vars shares data with clone")
+	}
+
 	testApplyingAddProposalToVars := func(t *testing.T) {
 		before := Vars{TurnNum: 9, Outcome: outcome()}
 
@@ -136,6 +172,18 @@ func TestConsensusChannel(t *testing.T) {
 		_, err = channel.sign(initialVars, testdata.Actors.Bob.PrivateKey)
 		if err == nil {
 			t.Fatalf("channel should check that signer is participant")
+		}
+
+		f := fingerprint(channel.current.Vars)
+
+		latest, err := channel.latestProposedVars()
+		if err != nil {
+			t.Fatalf("latest proposed vars returned err: %v", err)
+		}
+
+		latest.Outcome.guarantees[targetChannel] = guarantee(10, targetChannel, alice, bob)
+		if f != fingerprint(channel.current.Vars) {
+			t.Fatalf("latestProposedVars did not return a copy")
 		}
 
 		briansSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Brian.PrivateKey)

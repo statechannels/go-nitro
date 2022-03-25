@@ -175,6 +175,20 @@ type Vars struct {
 	Outcome LedgerOutcome
 }
 
+// clone returns a deep clone of v
+func (v Vars) clone() Vars {
+	v.Outcome.left.amount = *new(big.Int).Set(&v.Outcome.left.amount)
+	v.Outcome.right.amount = *new(big.Int).Set(&v.Outcome.right.amount)
+
+	guarantees := make(map[types.Destination]Guarantee)
+	for d, g := range v.Outcome.guarantees {
+		guarantees[d] = g
+	}
+	v.Outcome.guarantees = guarantees
+
+	return v
+}
+
 // SignedVars stores 0-2 signatures for some vars in a consensus channel
 type SignedVars struct {
 	Vars
@@ -259,10 +273,12 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 	return signed, nil
 }
 
+// latestProposedVars returns the latest proposed vars in a consensus channel
+// by cloning its current vars and applying each proposal in the queue
 func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
-	vars := c.current.Vars
-	var err error
+	vars := c.current.Vars.clone()
 
+	var err error
 	for _, p := range c.proposalQueue {
 		vars, err = vars.Add(p.Proposal.(Add))
 		if err != nil {
