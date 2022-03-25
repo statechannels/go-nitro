@@ -150,7 +150,11 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 	e.logger.Printf("handling chain event %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	if !ok {
-		return ObjectiveChangeEvent{}, fmt.Errorf("handleChainEvent: No objective in store for channel with id %s", chainEvent.ChannelId)
+		// Because the MockChain and SimpleChainService broadcast all events to all subscribers,
+		// it is likely that a client receives an irrelevant event. So we log and continue without
+		// returning an error.
+		e.logger.Printf("handleChainEvent: No objective in store for channel with id %s", chainEvent.ChannelId)
+		return ObjectiveChangeEvent{}, nil
 	}
 	event := protocols.ObjectiveEvent{
 		Holdings:           chainEvent.Holdings,
