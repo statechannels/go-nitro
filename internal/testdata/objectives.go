@@ -1,13 +1,17 @@
 package testdata
 
-import "github.com/statechannels/go-nitro/protocols/directfund"
+import (
+	"fmt"
+
+	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
+)
 
 // objectiveCollection namespaces literal objectives, precomputed objectives, and
 // procedural objective generators for consumption
 type objectiveCollection struct {
-	Directfund dfoCollection
-	// todo
-	// virtualfund  vfoCollection
+	Directfund  dfoCollection
+	Virtualfund vfoCollection
 	// todo
 	// directdefund ddfoCollection
 }
@@ -15,6 +19,11 @@ type objectiveCollection struct {
 type dfoCollection struct {
 	// GenericDFO returns a non-specific directfund.Objective with nonzero data.
 	GenericDFO func() directfund.Objective
+}
+
+type vfoCollection struct {
+	// GenericVFO returns a non-specific virtualfund.Objective with nonzero data.
+	GenericVFO func() virtualfund.Objective
 }
 
 // Objectives is the endpoint for tests to consume constructed objectives or
@@ -25,6 +34,9 @@ type dfoCollection struct {
 var Objectives objectiveCollection = objectiveCollection{
 	Directfund: dfoCollection{
 		GenericDFO: genericDFO,
+	},
+	Virtualfund: vfoCollection{
+		GenericVFO: genericVFO,
 	},
 }
 
@@ -41,4 +53,23 @@ func genericDFO() directfund.Objective {
 	}
 	testObj, _ := directfund.NewObjective(request, false)
 	return testObj
+}
+
+func genericVFO() virtualfund.Objective {
+	ts := testVirtualState.Clone()
+	request := virtualfund.ObjectiveRequest{
+		ts.Participants[0],
+		ts.Participants[2],
+		ts.Participants[1],
+		ts.AppDefinition,
+		ts.AppData,
+		ts.ChallengeDuration,
+		ts.Outcome,
+		ts.ChannelNonce.Int64(),
+	}
+	testVFO, err := virtualfund.NewObjective(request, Channels.MockTwoPartyLedger)
+	if err != nil {
+		panic(fmt.Errorf("error constructing genericVFO: %w", err))
+	}
+	return testVFO
 }
