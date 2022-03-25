@@ -36,13 +36,7 @@ func TestDirectFundIntegration(t *testing.T) {
 
 	// Setup logging
 	logDestination := &bytes.Buffer{}
-	t.Cleanup(func() {
-		logFile := "directfund_client_test.log"
-		truncateLog(logFile)
-		ld := newLogWriter(logFile)
-		_, _ = ld.ReadFrom(logDestination)
-		ld.Close()
-	})
+	t.Cleanup(flushToFileCleanupFn(logDestination, "directfund_client_test.log"))
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()

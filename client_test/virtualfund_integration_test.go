@@ -17,12 +17,7 @@ func TestVirtualFundIntegration(t *testing.T) {
 
 	// Setup logging
 	logDestination := &bytes.Buffer{}
-	t.Cleanup(func() {
-		logFile := "virtualfund_client_test.log"
-		truncateLog(logFile)
-		ld := newLogWriter(logFile)
-		_, _ = ld.ReadFrom(logDestination)
-	})
+	t.Cleanup(flushToFileCleanupFn(logDestination, "virtualfund_client_test.log"))
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()

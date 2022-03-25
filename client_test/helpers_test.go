@@ -74,6 +74,13 @@ func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservi
 	return client.New(messageservice, chainservice, storeA, logDestination)
 }
 
+func flushToFileCleanupFn(w io.Reader, fileName string) func() {
+	return func() {
+		truncateLog(fileName)
+		ld := newLogWriter(fileName)
+		_, _ = ld.ReadFrom(w)
+	}
+}
 func truncateLog(logFile string) {
 	logDestination := newLogWriter(logFile)
 

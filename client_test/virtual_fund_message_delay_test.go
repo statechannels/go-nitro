@@ -28,12 +28,7 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 
 	// Setup logging
 	logDestination := &bytes.Buffer{}
-	t.Cleanup(func() {
-		logFile := "virtual_fund_message_delay_test.log"
-		truncateLog(logFile)
-		ld := newLogWriter(logFile)
-		_, _ = ld.ReadFrom(logDestination)
-	})
+	t.Cleanup(flushToFileCleanupFn(logDestination, "virtual_fund_message_delay_test.log"))
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
