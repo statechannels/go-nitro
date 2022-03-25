@@ -74,6 +74,11 @@ type Balance struct {
 	amount      big.Int
 }
 
+func (b *Balance) ensureCloned() {
+	b.amount = *new(big.Int).Set(&b.amount)
+}
+
+
 // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
 func (b Balance) AsAllocation() outcome.Allocation {
 	return outcome.Allocation{Destination: b.destination, Amount: &b.amount, AllocationType: 0}
@@ -85,6 +90,10 @@ type Guarantee struct {
 	target types.Destination
 	left   types.Destination
 	right  types.Destination
+}
+
+func (g *Guarantee) ensureCloned() {
+	g.amount = *new(big.Int).Set(&g.amount)
 }
 
 // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
@@ -107,6 +116,18 @@ type LedgerOutcome struct {
 	left         Balance       // Balance of participants[0]
 	right        Balance       // Balance of participants[1]
 	guarantees   map[types.Destination]Guarantee
+}
+
+func (o *LedgerOutcome) ensureCloned()  {
+	o.left.ensureCloned()
+	o.right.ensureCloned()
+
+	guarantees := make(map[types.Destination]Guarantee)
+	for d, g := range(o.guarantees) {
+		g.ensureCloned()
+		guarantees[d] = g
+	}
+	o.guarantees = guarantees
 }
 
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
@@ -204,22 +225,32 @@ func (a Add) RightDeposit() big.Int {
 
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 
-// Add updates Vars by including a guarantee, updating balances accordingly
-func (vars Vars) Add(p Add) (Vars, error) {
-	if p.turnNum != vars.TurnNum+1 {
+// Add returns Vars computed by including a guarantee in v and updating balances accordingly
+// 
+// Error cases:
+// - the turn number provided is incorrect
+// - the outcome already includes a guarantee with the same target
+func (v Vars) Add(p Add) (Vars, error) {
+	v.ensureCloned()
+
+	if p.turnNum != v.TurnNum+1 {
 		return Vars{}, ErrIncorrectTurnNum
 	}
 
-	vars.TurnNum += 1
+	v.TurnNum += 1
 
-	o, err := vars.Outcome.DivertToGuarantee(p)
+	o, err := v.Outcome.DivertToGuarantee(p)
 
 	if err != nil {
 		return Vars{}, err
 	}
 
-	vars.Outcome = o
-	return vars, nil
+	v.Outcome = o
+	return v, nil
+}
+
+func (v *Vars) ensureCloned() {
+	v.Outcome.ensureCloned()
 }
 
 // Propose receives a proposal to add a guarantee, and generates and stores a SignedProposal in

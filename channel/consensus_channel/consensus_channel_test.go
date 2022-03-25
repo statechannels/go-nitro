@@ -68,9 +68,25 @@ func TestConsensusChannel(t *testing.T) {
 
 	}
 	testApplyingAddProposalToVars := func(t *testing.T) {
+		fingerprint := func(v Vars) string {
+			h, err := v.asState(state.TestState.FixedPart()).Hash()
+
+			if err != nil {
+				panic(err)
+			}
+
+			return h.String()
+		}
+
 		before := Vars{TurnNum: 9, Outcome: outcome()}
 
+		h1 := fingerprint(before)
+
 		after, err := before.Add(proposal)
+
+		if h1 != fingerprint(before) {
+			t.Fatal("before was modified")
+		}
 
 		if err != nil {
 			t.Fatalf("unable to compute next state: %v", err)
