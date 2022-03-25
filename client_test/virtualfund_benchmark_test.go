@@ -20,13 +20,14 @@ func TestBenchmark(t *testing.T) {
 
 	logFile := "virtualfund_benchmark_test.log"
 	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientAlice := setupClient(alice.PrivateKey, chain, broker, logFile, 0)
-	clientBob := setupClient(bob.PrivateKey, chain, broker, logFile, 0)
-	clientIrene := setupClient(irene.PrivateKey, chain, broker, logFile, 0)
+	clientAlice := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
+	clientBob := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	clientIrene := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
 
 	directlyFundALedgerChannel(t, clientAlice, clientIrene)
 	directlyFundALedgerChannel(t, clientIrene, clientBob)

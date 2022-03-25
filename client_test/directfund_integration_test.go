@@ -34,12 +34,13 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 func TestDirectFundIntegration(t *testing.T) {
 	logFile := "directfund_client_test.log"
 	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientA := setupClient(alice.PrivateKey, chain, broker, logFile, 0)
-	clientB := setupClient(bob.PrivateKey, chain, broker, logFile, 0)
+	clientA := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
+	clientB := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
 
 	directlyFundALedgerChannel(t, clientA, clientB)
 
