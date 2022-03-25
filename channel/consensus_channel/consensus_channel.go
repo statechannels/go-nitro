@@ -244,13 +244,7 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 		return SignedProposal{}, fmt.Errorf("unable to construct latest proposed vars: %w", err)
 	}
 
-	latestSignedProposal := c.proposalQueue[len(c.proposalQueue)-1]
-	latestProposal, ok := latestSignedProposal.Proposal.(Add)
-	if !ok {
-		return SignedProposal{}, fmt.Errorf("latest proposal is not an Add")
-	}
-
-	add.turnNum = latestProposal.turnNum + 1
+	add.turnNum = vars.TurnNum + 1
 
 	err = vars.Add(add)
 	if err != nil {
