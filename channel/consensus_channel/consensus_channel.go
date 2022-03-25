@@ -74,6 +74,16 @@ type Balance struct {
 	amount      big.Int
 }
 
+func (b *Balance) clone() (b2 *Balance) {
+	b2 = &Balance{}
+
+	b2.destination = b.destination
+	b2.amount = *new(big.Int).Set(&b.amount)
+
+	return
+}
+
+
 // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
 func (b Balance) AsAllocation() outcome.Allocation {
 	return outcome.Allocation{Destination: b.destination, Amount: &b.amount, AllocationType: 0}
@@ -85,6 +95,10 @@ type Guarantee struct {
 	target types.Destination
 	left   types.Destination
 	right  types.Destination
+}
+
+func (g *Guarantee) ensureCloned() {
+	g.amount = *new(big.Int).Set(&g.amount)
 }
 
 // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
@@ -107,6 +121,22 @@ type LedgerOutcome struct {
 	left         Balance       // Balance of participants[0]
 	right        Balance       // Balance of participants[1]
 	guarantees   map[types.Destination]Guarantee
+}
+
+func (o *LedgerOutcome) clone() (o2 *LedgerOutcome)  {
+	o2 = &LedgerOutcome{}
+
+	o2.left = *o.left.clone()
+	o2.right = *o.right.clone()
+
+	guarantees := make(map[types.Destination]Guarantee)
+	for d, g := range(o.guarantees) {
+		g.ensureCloned()
+		guarantees[d] = g
+	}
+	o2.guarantees = guarantees
+
+	return
 }
 
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
@@ -204,22 +234,37 @@ func (a Add) RightDeposit() big.Int {
 
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 
-// Add updates Vars by including a guarantee, updating balances accordingly
-func (vars Vars) Add(p Add) (Vars, error) {
-	if p.turnNum != vars.TurnNum+1 {
-		return Vars{}, ErrIncorrectTurnNum
+// Add returns Vars computed by including a guarantee in v and updating balances accordingly
+// Does not modify v
+// 
+// Error cases:
+// - the turn number provided is incorrect
+// - the outcome already includes a guarantee with the same target
+func (v *Vars) Add(p Add) (*Vars, error) {
+	result := v.clone()
+
+	if p.turnNum != result.TurnNum+1 {
+		return &Vars{}, ErrIncorrectTurnNum
 	}
 
-	vars.TurnNum += 1
+	result.TurnNum += 1
 
-	o, err := vars.Outcome.DivertToGuarantee(p)
+	o, err := result.Outcome.DivertToGuarantee(p)
 
 	if err != nil {
-		return Vars{}, err
+		return &Vars{}, err
 	}
 
-	vars.Outcome = o
-	return vars, nil
+	result.Outcome = o
+	return result, nil
+}
+
+func (v *Vars) clone() (v2 *Vars) {
+	v2 = &Vars{}
+	v2.TurnNum = v.TurnNum
+	v2.Outcome = *v.Outcome.clone()
+
+	return v2
 }
 
 // Propose receives a proposal to add a guarantee, and generates and stores a SignedProposal in
@@ -230,7 +275,7 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 		return SignedProposal{}, fmt.Errorf("only proposer can call Add")
 	}
 
-	vars := c.current.Vars
+	vars := &c.current.Vars
 	var err error
 
 	for _, p := range c.proposalQueue {
@@ -266,7 +311,7 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
 // values. It signs the resulting state using pk.
-func (c *ConsensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
+func (c *ConsensusChannel) sign(vars *Vars, pk []byte) (state.Signature, error) {
 	signer := crypto.GetAddressFromSecretKeyBytes(pk)
 	if c.Participants[c.MyIndex] != signer {
 		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
