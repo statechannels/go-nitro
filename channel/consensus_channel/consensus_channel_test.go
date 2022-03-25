@@ -73,11 +73,11 @@ func TestConsensusChannel(t *testing.T) {
 		after, err := before.Add(proposal)
 
 		if err != nil {
-			t.Error("unable to compute next state: ", err)
+			t.Fatalf("unable to compute next state: %v", err)
 		}
 
 		if after.TurnNum != before.TurnNum+1 {
-			t.Error("incorrect state calculation", err)
+			t.Fatalf("incorrect state calculation: %v", err)
 		}
 
 		expected := makeOutcome(
@@ -88,7 +88,7 @@ func TestConsensusChannel(t *testing.T) {
 		)
 
 		if diff := cmp.Diff(after.Outcome, expected, cmp.AllowUnexported(expected, Balance{}, big.Int{}, Guarantee{})); diff != "" {
-			t.Errorf("incorrect outcome: %v", diff)
+			t.Fatalf("incorrect outcome: %v", diff)
 		}
 
 		largeProposal := proposal
@@ -97,7 +97,7 @@ func TestConsensusChannel(t *testing.T) {
 
 		_, err = before.Add(largeProposal)
 		if !errors.Is(err, ErrInsufficientFunds) {
-			t.Error("expected error when adding too large a guarantee")
+			t.Fatal("expected error when adding too large a guarantee")
 		}
 
 		duplicateProposal := proposal
@@ -105,8 +105,7 @@ func TestConsensusChannel(t *testing.T) {
 		_, err = after.Add(duplicateProposal)
 
 		if !errors.Is(err, ErrDuplicateGuarantee) {
-			t.Log(err)
-			t.Error("expected error when adding duplicate guarantee")
+			t.Fatalf("expected error when adding duplicate guarantee: %v", err)
 		}
 	}
 
@@ -136,14 +135,14 @@ func TestConsensusChannel(t *testing.T) {
 
 		_, err = channel.sign(initialVars, testdata.Actors.Bob.PrivateKey)
 		if err == nil {
-			t.Errorf("channel should check that signer is participant")
+			t.Fatalf("channel should check that signer is participant")
 		}
 
 		briansSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Brian.PrivateKey)
 		sigs[1] = briansSig
 		_, err = NewConsensusChannel(fp(), leader, outcome(), sigs)
 		if err == nil {
-			t.Errorf("channel should check that signers are participants")
+			t.Fatalf("channel should check that signers are participants")
 		}
 	}
 
