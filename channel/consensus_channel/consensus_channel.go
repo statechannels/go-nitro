@@ -7,22 +7,65 @@ import (
 
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
 
-const proposerIndex = uint(0)
+type ledgerIndex uint
+
+const (
+	leader   ledgerIndex = 0
+	follower ledgerIndex = 1
+)
 
 // ConsensusChannel is used to manage states in a running ledger channel
 type ConsensusChannel struct {
 	// constants
-	Id             types.Destination
-	MyIndex        uint
-	OnChainFunding types.Funds
+	MyIndex ledgerIndex
 	state.FixedPart
 
 	// variables
 	current       SignedVars       // The "consensus state", signed by both parties
 	proposalQueue []SignedProposal // A queue of proposed changes, starting from the consensus state
+}
+
+// NewConsensusChannel constructs a new consensus channel, validating its input by checking that the signatures are as expected on a prefund setup state
+func NewConsensusChannel(
+	fp state.FixedPart,
+	myIndex ledgerIndex,
+	outcome LedgerOutcome,
+	signatures [2]state.Signature,
+) (ConsensusChannel, error) {
+	vars := Vars{TurnNum: 0, Outcome: outcome}
+
+	leaderAddr, err := vars.asState(fp).RecoverSigner(signatures[leader])
+	if err != nil {
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+	}
+	if leaderAddr != fp.Participants[leader] {
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[leader])
+	}
+
+	followerAddr, err := vars.asState(fp).RecoverSigner(signatures[follower])
+	if err != nil {
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+	}
+	if followerAddr != fp.Participants[follower] {
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", followerAddr, fp.Participants[leader])
+	}
+
+	current := SignedVars{
+		vars,
+		signatures,
+	}
+
+	return ConsensusChannel{
+		FixedPart:     fp,
+		MyIndex:       myIndex,
+		proposalQueue: make([]SignedProposal, 0),
+		current:       current,
+	}, nil
+
 }
 
 // Balance represents an Allocation of type 0, ie. a simple allocation.
@@ -135,7 +178,7 @@ type Vars struct {
 // SignedVars stores 0-2 signatures for some vars in a consensus channel
 type SignedVars struct {
 	Vars
-	Signatures [2]*state.Signature
+	Signatures [2]state.Signature
 }
 
 // SignedProposal is a proposal with a signature on it
@@ -183,7 +226,7 @@ func (vars Vars) Add(p Add) (Vars, error) {
 // the queue, returning the resulting SignedProposal
 // Note: the TurnNum on add is ignored; the correct turn number is computed by c
 func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
-	if c.MyIndex != proposerIndex {
+	if c.MyIndex != leader {
 		return SignedProposal{}, fmt.Errorf("only proposer can call Add")
 	}
 
@@ -224,11 +267,21 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
 // values. It signs the resulting state using pk.
 func (c *ConsensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
+	signer := crypto.GetAddressFromSecretKeyBytes(pk)
+	if c.Participants[c.MyIndex] != signer {
+		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
+	}
+
 	fp := c.FixedPart
-	state := state.State{
+	state := vars.asState(fp)
+	return state.Sign(pk)
+}
+
+func (v Vars) asState(fp state.FixedPart) state.State {
+	return state.State{
 		// Variable
-		TurnNum: vars.TurnNum,
-		Outcome: vars.Outcome.AsOutcome(),
+		TurnNum: v.TurnNum,
+		Outcome: v.Outcome.AsOutcome(),
 
 		// Constant
 		ChainId:           fp.ChainId,
@@ -239,8 +292,6 @@ func (c *ConsensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
 		AppDefinition:     types.Address{},
 		IsFinal:           false,
 	}
-
-	return state.Sign(pk)
 }
 
 func (c *ConsensusChannel) Accept(p SignedProposal) error {
