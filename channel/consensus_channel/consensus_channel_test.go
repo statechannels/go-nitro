@@ -104,15 +104,16 @@ func TestConsensusChannel(t *testing.T) {
 	}
 
 	testApplyingAddProposalToVars := func(t *testing.T) {
-		before := Vars{TurnNum: 9, Outcome: outcome()}
+		startingTurnNum := uint64(9)
+		vars := Vars{TurnNum: startingTurnNum, Outcome: outcome()}
 
-		after, err := before.Add(proposal)
+		err := vars.Add(proposal)
 
 		if err != nil {
 			t.Fatalf("unable to compute next state: %v", err)
 		}
 
-		if after.TurnNum != before.TurnNum+1 {
+		if vars.TurnNum != startingTurnNum+1 {
 			t.Fatalf("incorrect state calculation: %v", err)
 		}
 
@@ -123,25 +124,27 @@ func TestConsensusChannel(t *testing.T) {
 			guarantee(vAmount, targetChannel, alice, bob),
 		)
 
-		if diff := cmp.Diff(after.Outcome, expected, cmp.AllowUnexported(expected, Balance{}, big.Int{}, Guarantee{})); diff != "" {
+		if diff := cmp.Diff(vars.Outcome, expected, cmp.AllowUnexported(expected, Balance{}, big.Int{}, Guarantee{})); diff != "" {
 			t.Fatalf("incorrect outcome: %v", diff)
 		}
 
-		largeProposal := proposal
-		leftAmount := before.Outcome.left.amount
-		largeProposal.amount = *leftAmount.Add(&leftAmount, big.NewInt(1))
-
-		_, err = before.Add(largeProposal)
-		if !errors.Is(err, ErrInsufficientFunds) {
-			t.Fatal("expected error when adding too large a guarantee")
-		}
-
+		// Proposing the same change again should fail
 		duplicateProposal := proposal
 		duplicateProposal.turnNum += 1
-		_, err = after.Add(duplicateProposal)
+		err = vars.Add(duplicateProposal)
 
 		if !errors.Is(err, ErrDuplicateGuarantee) {
 			t.Fatalf("expected error when adding duplicate guarantee: %v", err)
+		}
+
+		// Proposing a change that depletes a balance should fail
+		vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
+		largeProposal := proposal
+		leftAmount := vars.Outcome.left.amount
+		largeProposal.amount = *leftAmount.Add(&leftAmount, big.NewInt(1))
+		err = vars.Add(largeProposal)
+		if !errors.Is(err, ErrInsufficientFunds) {
+			t.Fatalf("expected error when adding too large a guarantee: %v", err)
 		}
 	}
 
