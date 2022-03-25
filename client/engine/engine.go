@@ -97,20 +97,21 @@ func (e *Engine) Run() {
 
 		case message := <-e.fromMsg:
 			res, err = e.handleMessage(message)
-
 		}
+
+		// Handle errors
+		if err != nil {
+			panic(err)
+			// TODO do not panic if in production.
+			// TODO report errors back to the consuming application
+		}
+
 		// Only send out an event if there are changes
 		if len(res.CompletedObjectives) > 0 {
 			for _, obj := range res.CompletedObjectives {
 				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
 			}
 			e.toApi <- res
-		}
-		// Handle errors
-		if err != nil {
-			panic(err)
-			// TODO do not panic if in production.
-			// TODO report errors back to the consuming application
 		}
 
 	}
