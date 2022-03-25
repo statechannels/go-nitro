@@ -111,7 +111,6 @@ func (e *Engine) Run() {
 			panic(err)
 			// TODO do not panic if in production.
 			// TODO report errors back to the consuming application
-
 		}
 
 	}
