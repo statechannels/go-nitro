@@ -230,14 +230,9 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 		return SignedProposal{}, fmt.Errorf("only proposer can call Add")
 	}
 
-	vars := c.current.Vars
-	var err error
-
-	for _, p := range c.proposalQueue {
-		vars, err = vars.Add(p.Proposal.(Add))
-		if err != nil {
-			return SignedProposal{}, err
-		}
+	vars, err := c.latestProposedVars()
+	if err != nil {
+		return SignedProposal{}, fmt.Errorf("unable to construct latest proposed vars: %w", err)
 	}
 
 	latestSignedProposal := c.proposalQueue[len(c.proposalQueue)-1]
@@ -262,6 +257,20 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 
 	c.proposalQueue = append(c.proposalQueue, signed)
 	return signed, nil
+}
+
+func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
+	vars := c.current.Vars
+	var err error
+
+	for _, p := range c.proposalQueue {
+		vars, err = vars.Add(p.Proposal.(Add))
+		if err != nil {
+			return Vars{}, err
+		}
+	}
+
+	return vars, nil
 }
 
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
