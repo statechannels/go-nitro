@@ -3,7 +3,6 @@ package consensus_channel
 import (
 	"errors"
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -198,59 +197,6 @@ func TestConsensusChannel(t *testing.T) {
 		}
 	}
 
-	testAsLeader := func(t *testing.T) {
-		channel, err := NewConsensusChannel(fp(), leader, outcome(), sigs)
-		if err != nil {
-			t.Fatal("unable to construct channel")
-		}
-
-		amountAdded := uint64(10)
-
-		latest, _ := channel.latestProposedVars()
-		if initialVars.TurnNum != 0 {
-			t.Fatal("initialized with non-zero turn number")
-		}
-
-		p := add(1, amountAdded, targetChannel, alice, bob)
-		sp, err := channel.Propose(p, testdata.Actors.Alice.PrivateKey)
-		if err != nil {
-			t.Fatalf("failed to add proposal: %v", err)
-		}
-
-		latest, _ = channel.latestProposedVars()
-		if latest.TurnNum != 1 {
-			t.Fatal("incorrect latest proposed vars")
-		}
-
-		outcomeSigned := makeOutcome(
-			allocation(alice, aBal-amountAdded),
-			allocation(bob, bBal),
-			guarantee(vAmount, existingChannel, alice, bob),
-			guarantee(amountAdded, targetChannel, alice, bob),
-		)
-		stateSigned := Vars{TurnNum: 1, Outcome: outcomeSigned}
-		sig, _ := stateSigned.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
-		expected := SignedProposal{Proposal: p, Signature: sig}
-
-		if !reflect.DeepEqual(sp, expected) {
-			t.Fatalf("propose failed")
-		}
-
-		thirdChannel := types.Destination{3}
-		p2 := p
-		p2.target = thirdChannel
-		_, err = channel.Propose(p2, testdata.Actors.Alice.PrivateKey)
-		if err != nil {
-			t.Fatalf("failed to add another proposal: %v", err)
-		}
-
-		latest, _ = channel.latestProposedVars()
-		if latest.TurnNum != 2 {
-			t.Fatal("incorrect latest proposed vars")
-		}
-	}
-
 	t.Run(`TestApplyingAddProposalToVars`, testApplyingAddProposalToVars)
 	t.Run(`TestConsensusChannelFunctionality`, testConsensusChannelFunctionality)
-	t.Run(`TestAsLeader`, testAsLeader)
 }

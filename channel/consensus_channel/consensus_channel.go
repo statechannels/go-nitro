@@ -231,37 +231,6 @@ func (vars *Vars) Add(p Add) error {
 	return nil
 }
 
-// Propose receives a proposal to add a guarantee, and generates and stores a SignedProposal in
-// the queue, returning the resulting SignedProposal
-// Note: the TurnNum on add is ignored; the correct turn number is computed by c
-func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
-	if c.MyIndex != leader {
-		return SignedProposal{}, fmt.Errorf("only proposer can call Add")
-	}
-
-	vars, err := c.latestProposedVars()
-	if err != nil {
-		return SignedProposal{}, fmt.Errorf("unable to construct latest proposed vars: %w", err)
-	}
-
-	add.turnNum = vars.TurnNum + 1
-
-	err = vars.Add(add)
-	if err != nil {
-		return SignedProposal{}, fmt.Errorf("propose could not add new state vars: %w", err)
-	}
-
-	signature, err := c.sign(vars, sk)
-	if err != nil {
-		return SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
-	}
-
-	signed := SignedProposal{Proposal: add, Signature: signature}
-
-	c.proposalQueue = append(c.proposalQueue, signed)
-	return signed, nil
-}
-
 // latestProposedVars returns the latest proposed vars in a consensus channel
 // by cloning its current vars and applying each proposal in the queue
 func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
