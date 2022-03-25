@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -24,10 +25,15 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 
 	// This test fails due to https://github.com/statechannels/go-nitro/issues/366
 	t.Skip()
-	// Set up logging
-	logFile := "virtual_fund_message_delay_test.log"
-	truncateLog(logFile)
-	logDestination := newLogWriter(logFile)
+
+	// Setup logging
+	logDestination := &bytes.Buffer{}
+	t.Cleanup(func() {
+		logFile := "virtual_fund_message_delay_test.log"
+		truncateLog(logFile)
+		ld := newLogWriter(logFile)
+		_, _ = ld.ReadFrom(logDestination)
+	})
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
