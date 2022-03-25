@@ -41,7 +41,7 @@ var Objectives objectiveCollection = objectiveCollection{
 }
 
 func genericDFO() directfund.Objective {
-	ts := testState
+	ts := testState.Clone()
 	request := directfund.ObjectiveRequest{
 		MyAddress:         ts.Participants[0],
 		CounterParty:      ts.Participants[1],
@@ -51,7 +51,10 @@ func genericDFO() directfund.Objective {
 		Nonce:             ts.ChannelNonce.Int64(),
 		Outcome:           ts.Outcome,
 	}
-	testObj, _ := directfund.NewObjective(request, false)
+	testObj, err := directfund.NewObjective(request, false)
+	if err != nil {
+		panic(fmt.Errorf("error constructing genericDFO: %w", err))
+	}
 	return testObj
 }
 
