@@ -56,6 +56,19 @@ var testState = state.State{
 	IsFinal:           false,
 }
 
+func createLedgerState(client, hub types.Address, clientBalance, hubBalance uint) state.State {
+	state := testState.Clone()
+	state.Participants = []types.Address{
+		client,
+		hub,
+	}
+	state.Outcome = Outcomes.Create(client, hub, clientBalance, hubBalance)
+	state.AppDefinition = types.Address{} // ledger channel running the consensus app
+	state.TurnNum = 0                     // a requirement for channel.NewTwoPartyLedger
+
+	return state
+}
+
 // createOutcome is a helper function to create a two-actor outcome
 func createOutcome(first types.Address, second types.Address, x, y uint) outcome.Exit {
 
