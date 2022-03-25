@@ -13,10 +13,14 @@ type outcomes struct {
 	// Create returns a simple outcome {a: aBalance, b: bBalance} in the
 	// zero-asset (chain-native token)
 	Create func(a, b types.Address, aBalance, bBalance uint) outcome.Exit
+	// CreateFromMap returns a simple outcome {addressOne: balanceOne ...} in the
+	// zero-asset (chain-native token)
+	CreateFromMap func(map[types.Address]uint) outcome.Exit
 }
 
 var Outcomes outcomes = outcomes{
-	Create: createOutcome,
+	Create:        createOutcome,
+	CreateFromMap: createOutcomeFromMap,
 }
 
 var chainId, _ = big.NewInt(0).SetString("9001", 10)
@@ -66,5 +70,20 @@ func createOutcome(first types.Address, second types.Address, x, y uint) outcome
 				Amount:      big.NewInt(int64(y)),
 			},
 		},
+	}}
+}
+
+func createOutcomeFromMap(amounts map[types.Address]uint) outcome.Exit {
+
+	var allocations []outcome.Allocation
+
+	for address, balance := range amounts {
+		allocations = append(allocations, outcome.Allocation{
+			Destination: types.AddressToDestination(address),
+			Amount:      big.NewInt(int64(balance)),
+		})
+	}
+	return outcome.Exit{outcome.SingleAssetExit{
+		Allocations: allocations,
 	}}
 }
