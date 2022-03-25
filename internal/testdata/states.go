@@ -24,6 +24,7 @@ var Outcomes outcomes = outcomes{
 }
 
 var chainId, _ = big.NewInt(0).SetString("9001", 10)
+var someAppDefinition = common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`)
 
 var testOutcome = outcome.Exit{
 	outcome.SingleAssetExit{
@@ -41,6 +42,25 @@ var testOutcome = outcome.Exit{
 	},
 }
 
+var testVirtualState = state.State{
+	ChainId: chainId,
+	Participants: []types.Address{
+		Actors.Alice.Address,
+		Actors.Irene.Address,
+		Actors.Bob.Address,
+	},
+	ChannelNonce:      big.NewInt(1234789),
+	AppDefinition:     someAppDefinition,
+	ChallengeDuration: big.NewInt(60),
+	AppData:           []byte{},
+	Outcome: Outcomes.CreateFromMap(map[types.Address]uint{
+		Actors.Alice.Address: 6,
+		Actors.Bob.Address:   4,
+	}),
+	TurnNum: 0,
+	IsFinal: false,
+}
+
 var testState = state.State{
 	ChainId: chainId,
 	Participants: []types.Address{
@@ -48,7 +68,7 @@ var testState = state.State{
 		Actors.Bob.Address,
 	},
 	ChannelNonce:      big.NewInt(37140676580),
-	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
+	AppDefinition:     someAppDefinition,
 	ChallengeDuration: big.NewInt(60),
 	AppData:           []byte{},
 	Outcome:           testOutcome,
