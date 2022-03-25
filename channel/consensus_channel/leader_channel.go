@@ -6,26 +6,23 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
+// LeaderChannel is used by a leader's virtualfund objective to make and receive ledger updates
 type LeaderChannel struct {
-	LeaderInterface
-	ConsensusChannel
+	consensusChannel
 }
 
+// NewLeaderChannel constructs a new LeaderChannel
 func NewLeaderChannel(fp state.FixedPart, outcome LedgerOutcome, signatures [2]state.Signature) (LeaderChannel, error) {
-	channel, err := NewConsensusChannel(fp, leader, outcome, signatures)
+	channel, err := newConsensusChannel(fp, leader, outcome, signatures)
 
-	return LeaderChannel{ConsensusChannel: channel}, err
-}
-
-type LeaderInterface interface {
-	Propose(add Add, sk []byte) (SignedProposal, error)
+	return LeaderChannel{consensusChannel: channel}, err
 }
 
 // Propose receives a proposal to add a guarantee, and generates and stores a SignedProposal in
 // the queue, returning the resulting SignedProposal
 // Note: the TurnNum on add is ignored; the correct turn number is computed by c
 func (c *LeaderChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
-	if c.MyIndex != leader {
+	if c.myIndex != leader {
 		return SignedProposal{}, fmt.Errorf("only proposer can call Add")
 	}
 
