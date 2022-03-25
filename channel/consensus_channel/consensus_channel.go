@@ -40,7 +40,7 @@ func NewConsensusChannel(
 
 	leaderAddr, err := vars.asState(fp).RecoverSigner(signatures[leader])
 	if err != nil {
-		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %v", err)
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
 	if leaderAddr != fp.Participants[leader] {
 		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[leader])
@@ -48,7 +48,7 @@ func NewConsensusChannel(
 
 	followerAddr, err := vars.asState(fp).RecoverSigner(signatures[follower])
 	if err != nil {
-		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %v", err)
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
 	if followerAddr != fp.Participants[follower] {
 		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", followerAddr, fp.Participants[leader])
