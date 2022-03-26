@@ -89,7 +89,7 @@ func TestLeaderChannel(t *testing.T) {
 
 	amountAdded := uint64(10)
 
-	latest, _ := channel.latestProposedVars()
+	// latest, _ := channel.latestProposedVars()
 	if initialVars.TurnNum != 0 {
 		t.Fatal("initialized with non-zero turn number")
 	}
@@ -100,11 +100,11 @@ func TestLeaderChannel(t *testing.T) {
 		t.Fatalf("failed to add proposal: %v", err)
 	}
 
-	latest, _ = channel.latestProposedVars()
-	if latest.TurnNum != 1 {
+	success, _ := channel.IsProposed(p.Guarantee)
+	if !success {
 		t.Fatal("incorrect latest proposed vars")
 	}
-	if channel.ConsensusTurnNum() != 0 {
+	if channel.ConsensusTurnNum() != 0 || channel.Includes(p.Guarantee) {
 		t.Fatal("consensus incorrectly updated")
 	}
 
@@ -130,8 +130,8 @@ func TestLeaderChannel(t *testing.T) {
 		t.Fatalf("failed to add another proposal: %v", err)
 	}
 
-	latest, _ = channel.latestProposedVars()
-	if latest.TurnNum != 2 {
+	success, _ = channel.IsProposed(p2.Guarantee)
+	if !success {
 		t.Fatal("incorrect latest proposed vars")
 	}
 	if channel.ConsensusTurnNum() != 0 {

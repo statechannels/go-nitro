@@ -110,6 +110,19 @@ type LedgerOutcome struct {
 	guarantees   map[types.Destination]Guarantee
 }
 
+func (o *LedgerOutcome) includes(g Guarantee) bool {
+	existing, found := o.guarantees[g.target]
+	if !found {
+		return false
+	}
+
+	return g.left == existing.left &&
+		g.right == existing.right &&
+		g.target == existing.target &&
+		types.Equal(&existing.amount, &g.amount)
+}
+
+
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
 // - the "left" balance is first
 // - the "right" balance is second
