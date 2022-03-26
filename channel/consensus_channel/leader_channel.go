@@ -18,6 +18,11 @@ func NewLeaderChannel(fp state.FixedPart, outcome LedgerOutcome, signatures [2]s
 	return LeaderChannel{consensusChannel: channel}, err
 }
 
+// ConsensusTurnNum returns the turn number of the current consensus state
+func (c *LeaderChannel) ConsensusTurnNum() uint64 {
+	return c.current.TurnNum
+}
+
 // Propose receives a proposal to add a guarantee, and generates and stores a SignedProposal in
 // the queue, returning the resulting SignedProposal
 // Note: the TurnNum on add is ignored; the correct turn number is computed by c

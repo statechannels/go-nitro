@@ -104,6 +104,9 @@ func TestLeaderChannel(t *testing.T) {
 	if latest.TurnNum != 1 {
 		t.Fatal("incorrect latest proposed vars")
 	}
+	if channel.ConsensusTurnNum() != 0 {
+		t.Fatal("consensus incorrectly updated")
+	}
 
 	outcomeSigned := makeOutcome(
 		allocation(alice, aBal-amountAdded),
@@ -130,6 +133,9 @@ func TestLeaderChannel(t *testing.T) {
 	latest, _ = channel.latestProposedVars()
 	if latest.TurnNum != 2 {
 		t.Fatal("incorrect latest proposed vars")
+	}
+	if channel.ConsensusTurnNum() != 0 {
+		t.Fatal("consensus incorrectly updated")
 	}
 
 }
