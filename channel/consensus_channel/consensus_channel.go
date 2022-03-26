@@ -163,13 +163,13 @@ type Vars struct {
 
 // clone returns a deep clone of v
 func (o LedgerOutcome) clone() LedgerOutcome {
-	o.left.amount = *new(big.Int).Set(&o.left.amount)
-	o.right.amount = *new(big.Int).Set(&o.right.amount)
+	o.left.amount = *big.NewInt(0).Set(&o.left.amount)
+	o.right.amount = *big.NewInt(0).Set(&o.right.amount)
 
 	guarantees := make(map[types.Destination]Guarantee)
 	for d, g := range o.guarantees {
 		g2 := g
-		g2.amount = *new(big.Int).Set(&g.amount)
+		g2.amount = *big.NewInt(0).Set(&g.amount)
 		guarantees[d] = g2
 	}
 	o.guarantees = guarantees
