@@ -36,8 +36,7 @@ func newConsensusChannel(
 	outcome LedgerOutcome,
 	signatures [2]state.Signature,
 ) (consensusChannel, error) {
-	vars := Vars{TurnNum: 0, Outcome: outcome}
-	vars = vars.clone()
+	vars := Vars{TurnNum: 0, Outcome: outcome.clone()}
 
 	leaderAddr, err := vars.asState(fp).RecoverSigner(signatures[leader])
 	if err != nil {
@@ -163,19 +162,19 @@ type Vars struct {
 }
 
 // clone returns a deep clone of v
-func (v Vars) clone() Vars {
-	v.Outcome.left.amount = *new(big.Int).Set(&v.Outcome.left.amount)
-	v.Outcome.right.amount = *new(big.Int).Set(&v.Outcome.right.amount)
+func (o LedgerOutcome) clone() LedgerOutcome {
+	o.left.amount = *new(big.Int).Set(&o.left.amount)
+	o.right.amount = *new(big.Int).Set(&o.right.amount)
 
 	guarantees := make(map[types.Destination]Guarantee)
-	for d, g := range v.Outcome.guarantees {
+	for d, g := range o.guarantees {
 		g2 := g
 		g2.amount = *new(big.Int).Set(&g.amount)
 		guarantees[d] = g2
 	}
-	v.Outcome.guarantees = guarantees
+	o.guarantees = guarantees
 
-	return v
+	return o
 }
 
 // SignedVars stores 0-2 signatures for some vars in a consensus channel
@@ -248,7 +247,7 @@ func (vars *Vars) Add(p Add) error {
 // latestProposedVars returns the latest proposed vars in a consensus channel
 // by cloning its current vars and applying each proposal in the queue
 func (c *consensusChannel) latestProposedVars() (Vars, error) {
-	vars := c.current.Vars.clone()
+	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
 
 	var err error
 	for _, p := range c.proposalQueue {

@@ -78,7 +78,10 @@ func (c *LeaderChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 // If their proposal is stale (ie. theirP.TurnNum <= c.current.TurnNum) then
 // their proposal is ignored
 func (c *LeaderChannel) UpdateConsensus(theirP SignedProposal) error {
-	vars := c.current.clone()
+	vars := Vars{
+		TurnNum: c.current.TurnNum,
+		Outcome: c.current.Outcome.clone(),
+	}
 
 	received, ok := theirP.Proposal.(Add)
 	if !ok {

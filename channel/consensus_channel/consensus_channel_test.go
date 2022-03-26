@@ -80,26 +80,26 @@ func TestConsensusChannel(t *testing.T) {
 	vars := Vars{TurnNum: 9, Outcome: outcome()}
 
 	f1 := fingerprint(vars)
-	clone1 := vars.clone()
+	clone1 := vars.Outcome.clone()
 
-	if fingerprint(clone1) != f1 {
-		t.Fatal("vars incorrectly cloned: ", f1, fingerprint(clone1))
+	if fingerprint(Vars{TurnNum: vars.TurnNum, Outcome: clone1}) != f1 {
+		t.Fatal("vars incorrectly cloned")
 	}
 
-	mutatedG := clone1.Outcome.guarantees[existingChannel]
+	mutatedG := clone1.guarantees[existingChannel]
 	mutatedG.amount.SetInt64(111)
 	if f1 != fingerprint(vars) {
 		t.Fatal("vars shares data with clone")
 	}
 
-	clone2 := vars.clone()
-	clone2.Outcome.left.amount.SetInt64(111)
+	clone2 := vars.Outcome.clone()
+	clone2.left.amount.SetInt64(111)
 	if f1 != fingerprint(vars) {
 		t.Fatal("vars shares data with clone")
 	}
 
-	clone3 := vars.clone()
-	clone3.Outcome.right.amount.SetInt64(111)
+	clone3 := vars.Outcome.clone()
+	clone3.right.amount.SetInt64(111)
 	if f1 != fingerprint(vars) {
 		t.Fatal("vars shares data with clone")
 	}
