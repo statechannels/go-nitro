@@ -86,19 +86,20 @@ func TestConsensusChannel(t *testing.T) {
 		t.Fatal("vars incorrectly cloned: ", f1, fingerprint(clone1))
 	}
 
-	clone1.Outcome.guarantees[targetChannel] = guarantee(999, bob, bob, bob)
+	mutatedG := clone1.Outcome.guarantees[existingChannel]
+	mutatedG.amount.SetInt64(111)
 	if f1 != fingerprint(vars) {
 		t.Fatal("vars shares data with clone")
 	}
 
 	clone2 := vars.clone()
-	clone2.Outcome.left = allocation(bob, 111)
-	if vars.Outcome.left.destination == bob {
+	clone2.Outcome.left.amount.SetInt64(111)
+	if f1 != fingerprint(vars) {
 		t.Fatal("vars shares data with clone")
 	}
 
 	clone3 := vars.clone()
-	clone3.Outcome.right = allocation(alice, 111)
+	clone3.Outcome.right.amount.SetInt64(111)
 	if f1 != fingerprint(vars) {
 		t.Fatal("vars shares data with clone")
 	}
