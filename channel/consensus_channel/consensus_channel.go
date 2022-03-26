@@ -219,21 +219,20 @@ func (vars *Vars) Add(p Add) error {
 	vars.TurnNum += 1
 
 	o := vars.Outcome
-	g := p.Guarantee
 
 	// Include the guarantee
-	_, found := o.guarantees[g.target]
+	_, found := o.guarantees[p.target]
 	if found {
 		return ErrDuplicateGuarantee
 	}
-	o.guarantees[g.target] = g
+	o.guarantees[p.target] = p.Guarantee
 
 	// Adjust balances
-	if types.Gt(&p.LeftDeposit, &g.amount) {
+	if types.Gt(&p.LeftDeposit, &p.amount) {
 		return ErrInvalidDeposit
 	}
 
-	if types.Gt(&g.amount, &o.left.amount) {
+	if types.Gt(&p.amount, &o.left.amount) {
 		return ErrInsufficientFunds
 	}
 
