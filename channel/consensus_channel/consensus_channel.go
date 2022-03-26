@@ -210,24 +210,26 @@ var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 // - increasing the turn number by 1
 // - including the guarantee
 // - adjusting balances accordingly
+//
+// An error is returned if:
+// - the turn number is not incremented
+// - the balances are incorrectly adjusted, or the deposits are too large
+// - the guarantee is already included in vars.Outcome
+//
+// If an error is returned, the original vars is not mutated
 func (vars *Vars) Add(p Add) error {
+	// CHECKS
 	if p.turnNum != vars.TurnNum+1 {
 		return ErrIncorrectTurnNum
 	}
 
-	// Increase the turn number
-	vars.TurnNum += 1
-
 	o := vars.Outcome
 
-	// Include the guarantee
 	_, found := o.guarantees[p.target]
 	if found {
 		return ErrDuplicateGuarantee
 	}
-	o.guarantees[p.target] = p.Guarantee
 
-	// Adjust balances
 	if types.Gt(&p.LeftDeposit, &p.amount) {
 		return ErrInvalidDeposit
 	}
@@ -236,9 +238,18 @@ func (vars *Vars) Add(p Add) error {
 		return ErrInsufficientFunds
 	}
 
+	// EFFECTS
+
+	// Increase the turn number
+	vars.TurnNum += 1
+
+	// Adjust balances
 	o.left.amount.Sub(&o.left.amount, &p.LeftDeposit)
 	rightDeposit := p.RightDeposit()
 	o.right.amount.Sub(&o.right.amount, &rightDeposit)
+
+	// Include guarantee
+	o.guarantees[p.target] = p.Guarantee
 
 	return nil
 }
