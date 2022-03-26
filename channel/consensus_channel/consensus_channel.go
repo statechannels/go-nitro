@@ -169,7 +169,9 @@ func (v Vars) clone() Vars {
 
 	guarantees := make(map[types.Destination]Guarantee)
 	for d, g := range v.Outcome.guarantees {
-		guarantees[d] = g
+		g2 := g
+		g2.amount = *new(big.Int).Set(&g.amount)
+		guarantees[d] = g2
 	}
 	v.Outcome.guarantees = guarantees
 
