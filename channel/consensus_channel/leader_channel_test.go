@@ -90,7 +90,6 @@ func TestLeaderChannel(t *testing.T) {
 
 	amountAdded := uint64(10)
 
-	// latest, _ := channel.latestProposedVars()
 	if initialVars.TurnNum != 0 {
 		t.Fatal("initialized with non-zero turn number")
 	}

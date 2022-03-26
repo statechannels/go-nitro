@@ -122,7 +122,6 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 		types.Equal(&existing.amount, &g.amount)
 }
 
-
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
 // - the "left" balance is first
 // - the "right" balance is second
