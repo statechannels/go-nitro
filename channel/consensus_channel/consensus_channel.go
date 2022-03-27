@@ -143,36 +143,24 @@ var ErrInvalidDeposit = fmt.Errorf("unable to divert to guarantee: invalid depos
 var ErrInsufficientFunds = fmt.Errorf("unable to divert to guarantee: insufficient funds")
 var ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
 
-// DivertToGuarantee deducts g.amount from o.left's balance, and
-// adds g to o.guarantees
-func (o LedgerOutcome) DivertToGuarantee(p Add) (LedgerOutcome, error) {
-	g := p.Guarantee
-
-	if types.Gt(&p.LeftDeposit, &g.amount) {
-		return LedgerOutcome{}, ErrInvalidDeposit
-	}
-
-	if types.Gt(&g.amount, &o.left.amount) {
-		return LedgerOutcome{}, ErrInsufficientFunds
-	}
-
-	o.left.amount.Sub(&o.left.amount, &p.LeftDeposit)
-	rightDeposit := p.RightDeposit()
-	o.right.amount.Sub(&o.right.amount, &rightDeposit)
-
-	_, found := o.guarantees[g.target]
-	if found {
-		return LedgerOutcome{}, ErrDuplicateGuarantee
-	}
-	o.guarantees[g.target] = g
-
-	return o, nil
-}
-
 // Vars stores the turn number and outcome for a state in a consensus channel
 type Vars struct {
 	TurnNum uint64
 	Outcome LedgerOutcome
+}
+
+// clone returns a deep clone of v
+func (v Vars) clone() Vars {
+	v.Outcome.left.amount = *new(big.Int).Set(&v.Outcome.left.amount)
+	v.Outcome.right.amount = *new(big.Int).Set(&v.Outcome.right.amount)
+
+	guarantees := make(map[types.Destination]Guarantee)
+	for d, g := range v.Outcome.guarantees {
+		guarantees[d] = g
+	}
+	v.Outcome.guarantees = guarantees
+
+	return v
 }
 
 // SignedVars stores 0-2 signatures for some vars in a consensus channel
@@ -204,22 +192,42 @@ func (a Add) RightDeposit() big.Int {
 
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 
-// Add updates Vars by including a guarantee, updating balances accordingly
-func (vars Vars) Add(p Add) (Vars, error) {
+// Add mutates Vars by
+// - increasing the turn number by 1
+// - including the guarantee
+// - adjusting balances accordingly
+func (vars *Vars) Add(p Add) error {
 	if p.turnNum != vars.TurnNum+1 {
-		return Vars{}, ErrIncorrectTurnNum
+		return ErrIncorrectTurnNum
 	}
 
+	// Increase the turn number
 	vars.TurnNum += 1
 
-	o, err := vars.Outcome.DivertToGuarantee(p)
+	o := vars.Outcome
+	g := p.Guarantee
 
-	if err != nil {
-		return Vars{}, err
+	// Include the guarantee
+	_, found := o.guarantees[g.target]
+	if found {
+		return ErrDuplicateGuarantee
+	}
+	o.guarantees[g.target] = g
+
+	// Adjust balances
+	if types.Gt(&p.LeftDeposit, &g.amount) {
+		return ErrInvalidDeposit
 	}
 
-	vars.Outcome = o
-	return vars, nil
+	if types.Gt(&g.amount, &o.left.amount) {
+		return ErrInsufficientFunds
+	}
+
+	o.left.amount.Sub(&o.left.amount, &p.LeftDeposit)
+	rightDeposit := p.RightDeposit()
+	o.right.amount.Sub(&o.right.amount, &rightDeposit)
+
+	return nil
 }
 
 // Propose receives a proposal to add a guarantee, and generates and stores a SignedProposal in
@@ -230,14 +238,9 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 		return SignedProposal{}, fmt.Errorf("only proposer can call Add")
 	}
 
-	vars := c.current.Vars
-	var err error
-
-	for _, p := range c.proposalQueue {
-		vars, err = vars.Add(p.Proposal.(Add))
-		if err != nil {
-			return SignedProposal{}, err
-		}
+	vars, err := c.latestProposedVars()
+	if err != nil {
+		return SignedProposal{}, fmt.Errorf("unable to construct latest proposed vars: %w", err)
 	}
 
 	latestSignedProposal := c.proposalQueue[len(c.proposalQueue)-1]
@@ -248,7 +251,7 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 
 	add.turnNum = latestProposal.turnNum + 1
 
-	vars, err = vars.Add(add)
+	err = vars.Add(add)
 	if err != nil {
 		return SignedProposal{}, fmt.Errorf("propose could not add new state vars: %w", err)
 	}
@@ -262,6 +265,22 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 
 	c.proposalQueue = append(c.proposalQueue, signed)
 	return signed, nil
+}
+
+// latestProposedVars returns the latest proposed vars in a consensus channel
+// by cloning its current vars and applying each proposal in the queue
+func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
+	vars := c.current.Vars.clone()
+
+	var err error
+	for _, p := range c.proposalQueue {
+		err = vars.Add(p.Proposal.(Add))
+		if err != nil {
+			return Vars{}, err
+		}
+	}
+
+	return vars, nil
 }
 
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant

@@ -67,16 +67,53 @@ func TestConsensusChannel(t *testing.T) {
 		)
 
 	}
-	testApplyingAddProposalToVars := func(t *testing.T) {
-		before := Vars{TurnNum: 9, Outcome: outcome()}
 
-		after, err := before.Add(proposal)
+	fingerprint := func(v Vars) string {
+		h, err := v.asState(state.TestState.FixedPart()).Hash()
+
+		if err != nil {
+			panic(err)
+		}
+		return h.String()
+	}
+
+	vars := Vars{TurnNum: 9, Outcome: outcome()}
+
+	f1 := fingerprint(vars)
+	clone1 := vars.clone()
+
+	if fingerprint(clone1) != f1 {
+		t.Fatal("vars incorrectly cloned: ", f1, fingerprint(clone1))
+	}
+
+	clone1.Outcome.guarantees[targetChannel] = guarantee(999, bob, bob, bob)
+	if f1 != fingerprint(vars) {
+		t.Fatal("vars shares data with clone")
+	}
+
+	clone2 := vars.clone()
+	clone2.Outcome.left = allocation(bob, 111)
+	if vars.Outcome.left.destination == bob {
+		t.Fatal("vars shares data with clone")
+	}
+
+	clone3 := vars.clone()
+	clone3.Outcome.right = allocation(alice, 111)
+	if f1 != fingerprint(vars) {
+		t.Fatal("vars shares data with clone")
+	}
+
+	testApplyingAddProposalToVars := func(t *testing.T) {
+		startingTurnNum := uint64(9)
+		vars := Vars{TurnNum: startingTurnNum, Outcome: outcome()}
+
+		err := vars.Add(proposal)
 
 		if err != nil {
 			t.Fatalf("unable to compute next state: %v", err)
 		}
 
-		if after.TurnNum != before.TurnNum+1 {
+		if vars.TurnNum != startingTurnNum+1 {
 			t.Fatalf("incorrect state calculation: %v", err)
 		}
 
@@ -87,25 +124,27 @@ func TestConsensusChannel(t *testing.T) {
 			guarantee(vAmount, targetChannel, alice, bob),
 		)
 
-		if diff := cmp.Diff(after.Outcome, expected, cmp.AllowUnexported(expected, Balance{}, big.Int{}, Guarantee{})); diff != "" {
+		if diff := cmp.Diff(vars.Outcome, expected, cmp.AllowUnexported(expected, Balance{}, big.Int{}, Guarantee{})); diff != "" {
 			t.Fatalf("incorrect outcome: %v", diff)
 		}
 
-		largeProposal := proposal
-		leftAmount := before.Outcome.left.amount
-		largeProposal.amount = *leftAmount.Add(&leftAmount, big.NewInt(1))
-
-		_, err = before.Add(largeProposal)
-		if !errors.Is(err, ErrInsufficientFunds) {
-			t.Fatal("expected error when adding too large a guarantee")
-		}
-
+		// Proposing the same change again should fail
 		duplicateProposal := proposal
 		duplicateProposal.turnNum += 1
-		_, err = after.Add(duplicateProposal)
+		err = vars.Add(duplicateProposal)
 
 		if !errors.Is(err, ErrDuplicateGuarantee) {
 			t.Fatalf("expected error when adding duplicate guarantee: %v", err)
+		}
+
+		// Proposing a change that depletes a balance should fail
+		vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
+		largeProposal := proposal
+		leftAmount := vars.Outcome.left.amount
+		largeProposal.amount = *leftAmount.Add(&leftAmount, big.NewInt(1))
+		err = vars.Add(largeProposal)
+		if !errors.Is(err, ErrInsufficientFunds) {
+			t.Fatalf("expected error when adding too large a guarantee: %v", err)
 		}
 	}
 
@@ -136,6 +175,18 @@ func TestConsensusChannel(t *testing.T) {
 		_, err = channel.sign(initialVars, testdata.Actors.Bob.PrivateKey)
 		if err == nil {
 			t.Fatalf("channel should check that signer is participant")
+		}
+
+		f := fingerprint(channel.current.Vars)
+
+		latest, err := channel.latestProposedVars()
+		if err != nil {
+			t.Fatalf("latest proposed vars returned err: %v", err)
+		}
+
+		latest.Outcome.guarantees[targetChannel] = guarantee(10, targetChannel, alice, bob)
+		if f != fingerprint(channel.current.Vars) {
+			t.Fatalf("latestProposedVars did not return a copy")
 		}
 
 		briansSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Brian.PrivateKey)
