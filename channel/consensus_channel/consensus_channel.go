@@ -18,40 +18,41 @@ const (
 	follower ledgerIndex = 1
 )
 
-// ConsensusChannel is used to manage states in a running ledger channel
-type ConsensusChannel struct {
+// consensusChannel is used to manage states in a running ledger channel
+type consensusChannel struct {
 	// constants
-	MyIndex ledgerIndex
-	state.FixedPart
+	myIndex ledgerIndex
+	fp      state.FixedPart
 
 	// variables
 	current       SignedVars       // The "consensus state", signed by both parties
 	proposalQueue []SignedProposal // A queue of proposed changes, starting from the consensus state
 }
 
-// NewConsensusChannel constructs a new consensus channel, validating its input by checking that the signatures are as expected on a prefund setup state
-func NewConsensusChannel(
+// newConsensusChannel constructs a new consensus channel, validating its input by checking that the signatures are as expected on a prefund setup state
+func newConsensusChannel(
 	fp state.FixedPart,
 	myIndex ledgerIndex,
 	outcome LedgerOutcome,
 	signatures [2]state.Signature,
-) (ConsensusChannel, error) {
+) (consensusChannel, error) {
 	vars := Vars{TurnNum: 0, Outcome: outcome}
+	vars = vars.clone()
 
 	leaderAddr, err := vars.asState(fp).RecoverSigner(signatures[leader])
 	if err != nil {
-		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+		return consensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
 	if leaderAddr != fp.Participants[leader] {
-		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[leader])
+		return consensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[leader])
 	}
 
 	followerAddr, err := vars.asState(fp).RecoverSigner(signatures[follower])
 	if err != nil {
-		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+		return consensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
 	if followerAddr != fp.Participants[follower] {
-		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", followerAddr, fp.Participants[leader])
+		return consensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", followerAddr, fp.Participants[leader])
 	}
 
 	current := SignedVars{
@@ -59,9 +60,9 @@ func NewConsensusChannel(
 		signatures,
 	}
 
-	return ConsensusChannel{
-		FixedPart:     fp,
-		MyIndex:       myIndex,
+	return consensusChannel{
+		fp:            fp,
+		myIndex:       myIndex,
 		proposalQueue: make([]SignedProposal, 0),
 		current:       current,
 	}, nil
@@ -230,46 +231,9 @@ func (vars *Vars) Add(p Add) error {
 	return nil
 }
 
-// Propose receives a proposal to add a guarantee, and generates and stores a SignedProposal in
-// the queue, returning the resulting SignedProposal
-// Note: the TurnNum on add is ignored; the correct turn number is computed by c
-func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
-	if c.MyIndex != leader {
-		return SignedProposal{}, fmt.Errorf("only proposer can call Add")
-	}
-
-	vars, err := c.latestProposedVars()
-	if err != nil {
-		return SignedProposal{}, fmt.Errorf("unable to construct latest proposed vars: %w", err)
-	}
-
-	latestSignedProposal := c.proposalQueue[len(c.proposalQueue)-1]
-	latestProposal, ok := latestSignedProposal.Proposal.(Add)
-	if !ok {
-		return SignedProposal{}, fmt.Errorf("latest proposal is not an Add")
-	}
-
-	add.turnNum = latestProposal.turnNum + 1
-
-	err = vars.Add(add)
-	if err != nil {
-		return SignedProposal{}, fmt.Errorf("propose could not add new state vars: %w", err)
-	}
-
-	signature, err := c.sign(vars, sk)
-	if err != nil {
-		return SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
-	}
-
-	signed := SignedProposal{Proposal: add, Signature: signature}
-
-	c.proposalQueue = append(c.proposalQueue, signed)
-	return signed, nil
-}
-
 // latestProposedVars returns the latest proposed vars in a consensus channel
 // by cloning its current vars and applying each proposal in the queue
-func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
+func (c *consensusChannel) latestProposedVars() (Vars, error) {
 	vars := c.current.Vars.clone()
 
 	var err error
@@ -285,14 +249,13 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
 // values. It signs the resulting state using pk.
-func (c *ConsensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
+func (c *consensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
 	signer := crypto.GetAddressFromSecretKeyBytes(pk)
-	if c.Participants[c.MyIndex] != signer {
+	if c.fp.Participants[c.myIndex] != signer {
 		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
 	}
 
-	fp := c.FixedPart
-	state := vars.asState(fp)
+	state := vars.asState(c.fp)
 	return state.Sign(pk)
 }
 
@@ -313,6 +276,6 @@ func (v Vars) asState(fp state.FixedPart) state.State {
 	}
 }
 
-func (c *ConsensusChannel) Accept(p SignedProposal) error {
+func (c *consensusChannel) Accept(p SignedProposal) error {
 	panic("UNIMPLEMENTED")
 }

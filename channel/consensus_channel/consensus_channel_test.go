@@ -166,7 +166,7 @@ func TestConsensusChannel(t *testing.T) {
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
 	testConsensusChannelFunctionality := func(t *testing.T) {
-		channel, err := NewConsensusChannel(fp(), leader, outcome(), sigs)
+		channel, err := newConsensusChannel(fp(), leader, outcome(), sigs)
 
 		if err != nil {
 			t.Fatalf("unable to construct a new consensus channel: %v", err)
@@ -190,8 +190,8 @@ func TestConsensusChannel(t *testing.T) {
 		}
 
 		briansSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Brian.PrivateKey)
-		sigs[1] = briansSig
-		_, err = NewConsensusChannel(fp(), leader, outcome(), sigs)
+		wrongSigs := [2]state.Signature{sigs[1], briansSig}
+		_, err = newConsensusChannel(fp(), leader, outcome(), wrongSigs)
 		if err == nil {
 			t.Fatalf("channel should check that signers are participants")
 		}
