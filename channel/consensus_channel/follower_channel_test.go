@@ -112,7 +112,13 @@ func TestFollowerChannel(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if channel.ConsensusTurnNum() != 0 || channel.Includes(proposal.Guarantee) {
-		t.Fatal("consensus incorrectly updated")
+	if channel.ConsensusTurnNum() != 1 {
+		t.Fatalf("incorrect turn number: expected 1, got %d", channel.ConsensusTurnNum())
+	}
+	if !channel.Includes(proposal.Guarantee) {
+		t.Fatal("expected the channel to not include the guarantee")
+	}
+	if len(channel.proposalQueue) != 0 {
+		t.Fatal("expected the proposal queue to be empty")
 	}
 }
