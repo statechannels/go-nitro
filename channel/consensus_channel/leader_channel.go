@@ -8,14 +8,14 @@ import (
 
 // LeaderChannel is used by a leader's virtualfund objective to make and receive ledger updates
 type LeaderChannel struct {
-	consensusChannel
+	ConsensusChannel
 }
 
 // NewLeaderChannel constructs a new LeaderChannel
 func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (LeaderChannel, error) {
 	channel, err := newConsensusChannel(fp, leader, turnNum, outcome, signatures)
 
-	return LeaderChannel{consensusChannel: channel}, err
+	return LeaderChannel{ConsensusChannel: channel}, err
 }
 
 // IsProposed returns whether or not the consensus state or any proposed state

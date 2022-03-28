@@ -19,8 +19,8 @@ const (
 	follower ledgerIndex = 1
 )
 
-// consensusChannel is used to manage states in a running ledger channel
-type consensusChannel struct {
+// ConsensusChannel is used to manage states in a running ledger channel
+type ConsensusChannel struct {
 	// constants
 	myIndex ledgerIndex
 	fp      state.FixedPart
@@ -37,23 +37,23 @@ func newConsensusChannel(
 	initialTurnNum uint64,
 	outcome LedgerOutcome,
 	signatures [2]state.Signature,
-) (consensusChannel, error) {
+) (ConsensusChannel, error) {
 	vars := Vars{TurnNum: initialTurnNum, Outcome: outcome.clone()}
 
 	leaderAddr, err := vars.asState(fp).RecoverSigner(signatures[leader])
 	if err != nil {
-		return consensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
 	if leaderAddr != fp.Participants[leader] {
-		return consensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[leader])
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[leader])
 	}
 
 	followerAddr, err := vars.asState(fp).RecoverSigner(signatures[follower])
 	if err != nil {
-		return consensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
 	if followerAddr != fp.Participants[follower] {
-		return consensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", followerAddr, fp.Participants[leader])
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", followerAddr, fp.Participants[leader])
 	}
 
 	current := SignedVars{
@@ -61,7 +61,7 @@ func newConsensusChannel(
 		signatures,
 	}
 
-	return consensusChannel{
+	return ConsensusChannel{
 		fp:            fp,
 		myIndex:       myIndex,
 		proposalQueue: make([]SignedProposal, 0),
@@ -71,26 +71,26 @@ func newConsensusChannel(
 }
 
 // ConsensusTurnNum returns the turn number of the current consensus state
-func (c *consensusChannel) ConsensusTurnNum() uint64 {
+func (c *ConsensusChannel) ConsensusTurnNum() uint64 {
 	return c.current.TurnNum
 }
 
 // Includes returns whether or not the consensus state includes the given guarantee
-func (c *consensusChannel) Includes(g Guarantee) bool {
+func (c *ConsensusChannel) Includes(g Guarantee) bool {
 	return c.current.Outcome.includes(g)
 }
 
 // Leader returns the address of the participant responsible for proposing
-func (c *consensusChannel) Leader() common.Address {
+func (c *ConsensusChannel) Leader() common.Address {
 	return c.fp.Participants[leader]
 }
-func (c *consensusChannel) Accept(p SignedProposal) error {
+func (c *ConsensusChannel) Accept(p SignedProposal) error {
 	panic("UNIMPLEMENTED")
 }
 
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
 // values. It signs the resulting state using sk.
-func (c *consensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
+func (c *ConsensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
 	signer := crypto.GetAddressFromSecretKeyBytes(sk)
 	if c.fp.Participants[c.myIndex] != signer {
 		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
@@ -101,14 +101,14 @@ func (c *consensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
 }
 
 // recoverSigner returns the signer of the vars using the given signature
-func (c *consensusChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
+func (c *ConsensusChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
 	state := vars.asState(c.fp)
 	return state.RecoverSigner(sig)
 }
 
 // latestProposedVars returns the latest proposed vars in a consensus channel
 // by cloning its current vars and applying each proposal in the queue
-func (c *consensusChannel) latestProposedVars() (Vars, error) {
+func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
 
 	var err error
