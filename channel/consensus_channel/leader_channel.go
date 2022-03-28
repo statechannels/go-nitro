@@ -67,15 +67,15 @@ func (c *LeaderChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 
 // UpdateConsensus iterates through the proposal queue until it finds the countersigned proposal.
 // If this proposal was signed by the Follower:
-// - the consensus state is updated with the supplied proposal
-// - the proposal queue is trimmed
+//  - the consensus state is updated with the supplied proposal
+//  - the proposal queue is trimmed
 //
 // If the countersupplied is stale (ie. proposal.TurnNum <= c.current.TurnNum) then
 // their proposal is ignored.
 //
 // An error is returned if:
-// - the countersupplied proposal is not found
-// - or if it is found but not correctly by the Follower
+//  - the countersupplied proposal is not found
+//  - or if it is found but not correctly by the Follower
 func (c *LeaderChannel) UpdateConsensus(countersigned SignedProposal) error {
 	consensusCandidate := Vars{
 		TurnNum: c.current.TurnNum,

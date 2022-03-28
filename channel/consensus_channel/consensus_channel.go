@@ -114,7 +114,7 @@ type LedgerOutcome struct {
 	guarantees   map[types.Destination]Guarantee
 }
 
-// includes returns true when o includes g in its list of guarantees.
+// includes returns true when the receiver includes g in its list of guarantees.
 func (o *LedgerOutcome) includes(g Guarantee) bool {
 	existing, found := o.guarantees[g.target]
 	if !found {
