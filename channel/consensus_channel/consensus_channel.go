@@ -306,39 +306,6 @@ func (c *consensusChannel) Leader() common.Address {
 	return c.fp.Participants[leader]
 }
 
-// Receive is called by the follower to validate a proposal from the leader and add it to the proposal queue
-func (c *consensusChannel) Receive(p SignedProposal) error {
-	// Get the latest proposal vars we have
-	vars, err := c.latestProposedVars()
-	if err != nil {
-		return fmt.Errorf("could not generate the current proposal: %w", err)
-	}
-
-	// Add the incoming proposal to the vars
-	add, isAdd := p.Proposal.(Add)
-	if !isAdd {
-		return fmt.Errorf("received proposal is not an add: %v", p.Proposal)
-	}
-	err = vars.Add(add)
-	if err != nil {
-		return fmt.Errorf("receive could not add new state vars: %w", err)
-	}
-
-	// Validate the signature
-	signer, err := c.recoverSigner(vars, p.Signature)
-	if err != nil {
-		return fmt.Errorf("receive could not recover signature: %w", err)
-	}
-	if signer != c.Leader() {
-		return fmt.Errorf("expected signature for the proposer %s, received a signature for %s", c.Leader(), signer)
-	}
-
-	// Update the proposal queue
-	c.proposalQueue = append(c.proposalQueue, p)
-
-	return nil
-}
-
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
 // values. It signs the resulting state using pk.
 func (c *consensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
