@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/types"
@@ -76,6 +77,60 @@ func add(turnNum, amount uint64, vId, left, right types.Destination) Add {
 	}
 }
 
+func TestReceive(t *testing.T) {
+	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
+	aliceSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
+	bobsSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
+	sigs := [2]state.Signature{aliceSig, bobsSig}
+
+	channel, err := NewFollowerChannel(fp(), ledgerOutcome(), sigs)
+	if err != nil {
+		t.Fatal("unable to construct channel")
+	}
+
+	proposalVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
+	proposal := add(1, vAmount, targetChannel, alice, bob)
+	err = proposalVars.Add(proposal)
+	if err != nil {
+		t.Fatal("unable to add proposal")
+	}
+
+	// Create a proposal with an incorrect signature
+	badSigProposal := SignedProposal{bobsSig, proposal}
+	err = channel.Receive(badSigProposal)
+	if !errors.Is(ErrInvalidProposalSignature, err) {
+		t.Fatalf("expected %v, but got %v", ErrInvalidProposalSignature, err)
+	}
+
+	signature, err := channel.sign(proposalVars, testdata.Actors.Alice.PrivateKey)
+	if err != nil {
+		t.Fatalf("unable to sign proposal: %v", err)
+	}
+	signedProposal := SignedProposal{
+		Proposal:  proposal,
+		Signature: signature,
+	}
+
+	err = channel.Receive(signedProposal)
+	if err != nil {
+		t.Fatalf("unable to receive proposal: %v", err)
+	}
+	// Check that the proposal was queued up properly
+	if len(channel.proposalQueue) != 1 {
+		t.Fatalf("Expected only one proposal in queue")
+	}
+	queued := channel.proposalQueue[0]
+	if !cmp.Equal(queued.Proposal, proposal) {
+		t.Fatalf("Expected proposal to be queued")
+	}
+
+	// If we call receive again, it should fail due to the turn num already being used
+	err = channel.Receive(signedProposal)
+	if !errors.Is(ErrInvalidTurnNum, err) {
+		t.Fatalf("expected %v, but got %v", ErrInvalidTurnNum, err)
+	}
+
+}
 func TestFollowerChannel(t *testing.T) {
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
 	aliceSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
