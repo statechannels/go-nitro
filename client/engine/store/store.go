@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -22,4 +23,11 @@ type Store interface {
 	SetObjective(protocols.Objective) error                                       // Write an objective
 	GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (channel *channel.TwoPartyLedger, ok bool)
 	SetChannel(*channel.Channel) error
+
+	ConsensusChannelStore
+}
+
+type ConsensusChannelStore interface {
+	GetConsensusChannel(firstParty types.Address, secondParty types.Address) (channel consensus_channel.ConsensusChannel, ok bool)
+	SetConsensusChannel(*consensus_channel.ConsensusChannel)
 }
