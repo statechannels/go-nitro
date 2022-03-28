@@ -118,7 +118,7 @@ func (c *LeaderChannel) UpdateConsensus(countersigned SignedProposal) error {
 				return fmt.Errorf("unable to recover signer: %w", err)
 			}
 
-			if signer != c.fp.Participants[1-c.myIndex] { // todo refactor
+			if signer != c.fp.Participants[follower] {
 				return ErrWrongSigner
 			}
 
