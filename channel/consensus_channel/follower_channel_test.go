@@ -3,6 +3,7 @@ package consensus_channel
 import (
 	"errors"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -76,6 +77,91 @@ func add(turnNum, amount uint64, vId, left, right types.Destination) Add {
 	}
 }
 
+// createSignedProposal generates a signed proposal given the vars, proposal fixed parts and private key
+// The vars passed in are NOT mutated!
+func createSignedProposal(vars Vars, proposal Add, fp state.FixedPart, pk []byte) SignedProposal {
+	proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
+	_ = proposalVars.Add(proposal)
+
+	state := proposalVars.asState(fp)
+	sig, _ := state.Sign(pk)
+
+	signedProposal := SignedProposal{
+		Proposal:  proposal,
+		Signature: sig,
+	}
+
+	return signedProposal
+
+}
+
+func TestReceive(t *testing.T) {
+	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
+	aliceSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
+	bobsSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
+	sigs := [2]state.Signature{aliceSig, bobsSig}
+
+	channel, err := NewFollowerChannel(fp(), ledgerOutcome(), sigs)
+	if err != nil {
+		t.Fatal("unable to construct channel")
+	}
+
+	proposal := add(1, vAmount, targetChannel, alice, bob)
+
+	// Create a proposal with an incorrect signature
+	badSigProposal := SignedProposal{bobsSig, proposal}
+	err = channel.Receive(badSigProposal)
+	if !errors.Is(ErrInvalidProposalSignature, err) {
+		t.Fatalf("expected %v, but got %v", ErrInvalidProposalSignature, err)
+	}
+
+	valid := createSignedProposal(initialVars, proposal, fp(), testdata.Actors.Alice.PrivateKey)
+
+	err = channel.Receive(valid)
+	if err != nil {
+		t.Fatalf("unable to receive proposal: %v", err)
+	}
+	// Check that the proposal was queued up properly
+	if len(channel.proposalQueue) != 1 {
+		t.Fatalf("Expected only one proposal in queue")
+	}
+	queued := channel.proposalQueue[0]
+	if !reflect.DeepEqual(queued.Proposal, proposal) {
+		t.Fatalf("Expected proposal to be queued")
+	}
+
+	// Generate a second proposal
+	latestProposed, _ := channel.latestProposedVars()
+	secondProposal := add(2, vAmount, types.Destination{3}, alice, bob)
+	anotherValid := createSignedProposal(latestProposed, secondProposal, fp(), testdata.Actors.Alice.PrivateKey)
+	err = channel.Receive(anotherValid)
+	if err != nil {
+		t.Fatalf("unable to receive proposal: %v", err)
+	}
+
+	if len(channel.proposalQueue) != 2 {
+		t.Fatalf("Expected both proposals in the queue")
+	}
+	queued = channel.proposalQueue[1]
+	if !reflect.DeepEqual(queued.Proposal, secondProposal) {
+		t.Fatalf("Expect the latest proposal to be the last in the queue")
+	}
+
+	// Check that receive rejects a stale proposal
+	stale := createSignedProposal(Vars{TurnNum: 0, Outcome: ledgerOutcome()}, proposal, fp(), testdata.Actors.Alice.PrivateKey)
+	err = channel.Receive(stale)
+	if !errors.Is(ErrInvalidTurnNum, err) {
+		t.Fatalf("expected %v, but got %v", ErrInvalidTurnNum, err)
+	}
+
+	// Check that  receive rejects a proposal too far in the future
+	tooFar := createSignedProposal(Vars{TurnNum: 10, Outcome: ledgerOutcome()}, proposal, fp(), testdata.Actors.Alice.PrivateKey)
+	err = channel.Receive(tooFar)
+	if !errors.Is(ErrInvalidTurnNum, err) {
+		t.Fatalf("expected %v, but got %v", ErrInvalidTurnNum, err)
+	}
+
+}
 func TestFollowerChannel(t *testing.T) {
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
 	aliceSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)

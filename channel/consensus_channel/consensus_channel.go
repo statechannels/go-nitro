@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/crypto"
@@ -300,6 +301,11 @@ func (c *consensusChannel) latestProposedVars() (Vars, error) {
 	return vars, nil
 }
 
+// Leader returns the address of the participant responsible for proposing
+func (c *consensusChannel) Leader() common.Address {
+	return c.fp.Participants[leader]
+}
+
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
 // values. It signs the resulting state using pk.
 func (c *consensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
@@ -329,6 +335,11 @@ func (v Vars) asState(fp state.FixedPart) state.State {
 	}
 }
 
+// recoverSigner returns the signer of the vars using the given signature
+func (c *consensusChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
+	state := vars.asState(c.fp)
+	return state.RecoverSigner(sig)
+}
 func (c *consensusChannel) Accept(p SignedProposal) error {
 	panic("UNIMPLEMENTED")
 }
