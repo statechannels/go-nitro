@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/helpers"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -29,6 +30,9 @@ func TestChannel(t *testing.T) {
 
 	testClone := func(t *testing.T) {
 		r := c.Clone()
+		if helpers.HasShallowCopy(r, c) {
+			t.Fatal("Clone has shallow copy")
+		}
 		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
 			t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 		}
