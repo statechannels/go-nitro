@@ -29,5 +29,5 @@ type Store interface {
 
 type ConsensusChannelStore interface {
 	GetConsensusChannel(firstParty types.Address, secondParty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool)
-	SetConsensusChannel(*consensus_channel.ConsensusChannel)
+	SetConsensusChannel(*consensus_channel.ConsensusChannel) error
 }
