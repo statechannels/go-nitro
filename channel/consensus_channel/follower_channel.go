@@ -10,6 +10,8 @@ var ErrNoProposals = fmt.Errorf("no proposals in the queue")
 var ErrUnsupportedQueuedProposal = fmt.Errorf("only Add proposal is supported for queued proposals")
 var ErrUnsupportedExpectedProposal = fmt.Errorf("only Add proposal is supported for expected update")
 var ErrNonMatchingProposals = fmt.Errorf("expected proposal does not match first proposal in the queue")
+var ErrInvalidProposalSignature = fmt.Errorf("invalid signature for proposal")
+var ErrInvalidTurnNum = fmt.Errorf("the proposal turn number is not the next turn number")
 
 type FollowerChannel struct {
 	consensusChannel
@@ -83,11 +85,15 @@ func (c *FollowerChannel) Receive(p SignedProposal) error {
 		return fmt.Errorf("could not generate the current proposal: %w", err)
 	}
 
-	// Add the incoming proposal to the vars
 	add, isAdd := p.Proposal.(Add)
 	if !isAdd {
 		return fmt.Errorf("received proposal is not an add: %v", p.Proposal)
 	}
+
+	if add.turnNum != vars.TurnNum+1 {
+		return ErrInvalidTurnNum
+	}
+	// Add the incoming proposal to the vars
 	err = vars.Add(add)
 	if err != nil {
 		return fmt.Errorf("receive could not add new state vars: %w", err)
@@ -99,7 +105,7 @@ func (c *FollowerChannel) Receive(p SignedProposal) error {
 		return fmt.Errorf("receive could not recover signature: %w", err)
 	}
 	if signer != c.Leader() {
-		return fmt.Errorf("expected signature for the proposer %s, received a signature for %s", c.Leader(), signer)
+		return ErrInvalidProposalSignature
 	}
 
 	// Update the proposal queue
