@@ -87,7 +87,7 @@ type Guarantee struct {
 	right  types.Destination
 }
 
-func (g Guarantee) Equal(g2 Guarantee) bool {
+func (g Guarantee) equal(g2 Guarantee) bool {
 	if !types.Equal(&g.amount, &g2.amount) {
 		return false
 	}
@@ -215,7 +215,7 @@ func (a Add) Equal(a2 Add) bool {
 	if a.turnNum != a2.turnNum {
 		return false
 	}
-	if !a.Guarantee.Equal(a2.Guarantee) {
+	if !a.Guarantee.equal(a2.Guarantee) {
 		return false
 	}
 	return types.Equal(&a.LeftDeposit, &a2.LeftDeposit)
