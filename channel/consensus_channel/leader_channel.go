@@ -18,11 +18,6 @@ func NewLeaderChannel(fp state.FixedPart, outcome LedgerOutcome, signatures [2]s
 	return LeaderChannel{consensusChannel: channel}, err
 }
 
-// ConsensusTurnNum returns the turn number of the current consensus state
-func (c *LeaderChannel) ConsensusTurnNum() uint64 {
-	return c.current.TurnNum
-}
-
 // IsProposed returns whether or not the consensus state or any proposed state
 // includes the given guarantee.
 func (c *LeaderChannel) IsProposed(g Guarantee) (bool, error) {

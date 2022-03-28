@@ -68,6 +68,11 @@ func newConsensusChannel(
 
 }
 
+// ConsensusTurnNum returns the turn number of the current consensus state
+func (c *consensusChannel) ConsensusTurnNum() uint64 {
+	return c.current.TurnNum
+}
+
 // Balance represents an Allocation of type 0, ie. a simple allocation.
 type Balance struct {
 	destination types.Destination
