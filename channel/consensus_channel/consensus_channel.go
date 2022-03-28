@@ -36,8 +36,7 @@ func newConsensusChannel(
 	outcome LedgerOutcome,
 	signatures [2]state.Signature,
 ) (consensusChannel, error) {
-	vars := Vars{TurnNum: 0, Outcome: outcome}
-	vars = vars.clone()
+	vars := Vars{TurnNum: 0, Outcome: outcome.clone()}
 
 	leaderAddr, err := vars.asState(fp).RecoverSigner(signatures[leader])
 	if err != nil {
@@ -163,17 +162,19 @@ type Vars struct {
 }
 
 // clone returns a deep clone of v
-func (v Vars) clone() Vars {
-	v.Outcome.left.amount = *new(big.Int).Set(&v.Outcome.left.amount)
-	v.Outcome.right.amount = *new(big.Int).Set(&v.Outcome.right.amount)
+func (o LedgerOutcome) clone() LedgerOutcome {
+	o.left.amount = *big.NewInt(0).Set(&o.left.amount)
+	o.right.amount = *big.NewInt(0).Set(&o.right.amount)
 
 	guarantees := make(map[types.Destination]Guarantee)
-	for d, g := range v.Outcome.guarantees {
-		guarantees[d] = g
+	for d, g := range o.guarantees {
+		g2 := g
+		g2.amount = *big.NewInt(0).Set(&g.amount)
+		guarantees[d] = g2
 	}
-	v.Outcome.guarantees = guarantees
+	o.guarantees = guarantees
 
-	return v
+	return o
 }
 
 // SignedVars stores 0-2 signatures for some vars in a consensus channel
@@ -209,36 +210,46 @@ var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 // - increasing the turn number by 1
 // - including the guarantee
 // - adjusting balances accordingly
+//
+// An error is returned if:
+// - the turn number is not incremented
+// - the balances are incorrectly adjusted, or the deposits are too large
+// - the guarantee is already included in vars.Outcome
+//
+// If an error is returned, the original vars is not mutated
 func (vars *Vars) Add(p Add) error {
+	// CHECKS
 	if p.turnNum != vars.TurnNum+1 {
 		return ErrIncorrectTurnNum
 	}
 
-	// Increase the turn number
-	vars.TurnNum += 1
-
 	o := vars.Outcome
-	g := p.Guarantee
 
-	// Include the guarantee
-	_, found := o.guarantees[g.target]
+	_, found := o.guarantees[p.target]
 	if found {
 		return ErrDuplicateGuarantee
 	}
-	o.guarantees[g.target] = g
 
-	// Adjust balances
-	if types.Gt(&p.LeftDeposit, &g.amount) {
+	if types.Gt(&p.LeftDeposit, &p.amount) {
 		return ErrInvalidDeposit
 	}
 
-	if types.Gt(&g.amount, &o.left.amount) {
+	if types.Gt(&p.amount, &o.left.amount) {
 		return ErrInsufficientFunds
 	}
 
+	// EFFECTS
+
+	// Increase the turn number
+	vars.TurnNum += 1
+
+	// Adjust balances
 	o.left.amount.Sub(&o.left.amount, &p.LeftDeposit)
 	rightDeposit := p.RightDeposit()
 	o.right.amount.Sub(&o.right.amount, &rightDeposit)
+
+	// Include guarantee
+	o.guarantees[p.target] = p.Guarantee
 
 	return nil
 }
@@ -246,7 +257,7 @@ func (vars *Vars) Add(p Add) error {
 // latestProposedVars returns the latest proposed vars in a consensus channel
 // by cloning its current vars and applying each proposal in the queue
 func (c *consensusChannel) latestProposedVars() (Vars, error) {
-	vars := c.current.Vars.clone()
+	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
 
 	var err error
 	for _, p := range c.proposalQueue {
