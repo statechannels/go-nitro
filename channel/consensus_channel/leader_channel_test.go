@@ -2,54 +2,17 @@ package consensus_channel
 
 import (
 	"errors"
-	"math/big"
 	"reflect"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/types"
 )
 
 func TestLeaderChannel(t *testing.T) {
-	var alice = types.Destination(common.HexToHash("0x0a"))
-	var bob = types.Destination(common.HexToHash("0x0b"))
-
-	allocation := func(d types.Destination, a uint64) Balance {
-		return Balance{destination: d, amount: *big.NewInt(int64(a))}
-	}
-
-	guarantee := func(amount uint64, target, left, right types.Destination) Guarantee {
-		return Guarantee{
-			target: target,
-			amount: *big.NewInt(int64(amount)),
-			left:   left,
-			right:  right,
-		}
-	}
-
-	makeOutcome := func(left, right Balance, guarantees ...Guarantee) LedgerOutcome {
-		mappedGuarantees := make(map[types.Destination]Guarantee)
-		for _, g := range guarantees {
-			mappedGuarantees[g.target] = g
-		}
-		return LedgerOutcome{left: left, right: right, guarantees: mappedGuarantees}
-	}
-
-	add := func(turnNum, amount uint64, vId, left, right types.Destination) Add {
-		bigAmount := *big.NewInt(int64(amount))
-		return Add{
-			turnNum: turnNum,
-			Guarantee: Guarantee{
-				amount: bigAmount,
-				target: vId,
-				left:   left,
-				right:  right,
-			},
-			LeftDeposit: bigAmount,
-		}
-	}
+	var alice = testdata.Actors.Alice.Destination()
+	var bob = testdata.Actors.Bob.Destination()
 
 	existingChannel := types.Destination{1}
 	targetChannel := types.Destination{2}
@@ -57,33 +20,12 @@ func TestLeaderChannel(t *testing.T) {
 	bBal := uint64(300)
 	vAmount := uint64(5)
 
-	outcome := func() LedgerOutcome {
-		return makeOutcome(
-			allocation(alice, aBal),
-			allocation(bob, bBal),
-			guarantee(vAmount, existingChannel, alice, bob),
-		)
-
-	}
-
-	fp := func() state.FixedPart {
-		participants := [2]types.Address{
-			testdata.Actors.Alice.Address, testdata.Actors.Bob.Address,
-		}
-		return state.FixedPart{
-			Participants:      participants[:],
-			ChainId:           big.NewInt(0),
-			ChannelNonce:      big.NewInt(9001),
-			ChallengeDuration: big.NewInt(100),
-		}
-	}
-
-	initialVars := Vars{Outcome: outcome(), TurnNum: 0}
+	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
 	aliceSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
 	bobsSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
-	channel, err := NewLeaderChannel(fp(), outcome(), sigs)
+	channel, err := NewLeaderChannel(fp(), ledgerOutcome(), sigs)
 	if err != nil {
 		t.Fatal("unable to construct channel")
 	}
