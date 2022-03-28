@@ -24,7 +24,7 @@ func (c *LeaderChannel) ConsensusTurnNum() uint64 {
 }
 
 // IsProposed returns whether or not the consensus state or any proposed state
-// includes the given guarantee
+// includes the given guarantee.
 func (c *LeaderChannel) IsProposed(g Guarantee) (bool, error) {
 	latest, err := c.latestProposedVars()
 	if err != nil {
@@ -70,13 +70,13 @@ func (c *LeaderChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 	return signed, nil
 }
 
-// UpdateConsensus iterates through the leader's proposal queue until it finds a proposal
-// matching their proposal. If their signature was the follower:
-// - the consensus state is updated
+// UpdateConsensus iterates through the proposal queue until it finds the supplied proposal.
+// If the proposal was signed by the Follower:
+// - the consensus state is updated with the supplied proposal
 // - the proposal queue is trimmed
 //
-// If their proposal is stale (ie. theirP.TurnNum <= c.current.TurnNum) then
-// their proposal is ignored
+// If their proposal is stale (ie. proposal.TurnNum <= c.current.TurnNum) then
+// their proposal is ignored.
 func (c *LeaderChannel) UpdateConsensus(theirP SignedProposal) error {
 	vars := Vars{
 		TurnNum: c.current.TurnNum,
