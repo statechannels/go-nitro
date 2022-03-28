@@ -224,7 +224,7 @@ func (a Add) RightDeposit() big.Int {
 	return result
 }
 
-func (a Add) Equal(a2 Add) bool {
+func (a Add) equal(a2 Add) bool {
 	if a.turnNum != a2.turnNum {
 		return false
 	}
