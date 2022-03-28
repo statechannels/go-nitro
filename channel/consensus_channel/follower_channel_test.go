@@ -2,7 +2,6 @@ package consensus_channel
 
 import (
 	"errors"
-	"math/big"
 	"reflect"
 	"testing"
 
@@ -11,71 +10,6 @@ import (
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/types"
 )
-
-var alice = types.Destination(common.HexToHash("0x0a"))
-var bob = types.Destination(common.HexToHash("0x0b"))
-var aBal = uint64(200)
-var bBal = uint64(300)
-var vAmount = uint64(5)
-var existingChannel = types.Destination{1}
-var targetChannel = types.Destination{2}
-
-// TODO these helpers and the helpers in leader_channel should be shared.
-func fp() state.FixedPart {
-	participants := [2]types.Address{
-		testdata.Actors.Alice.Address, testdata.Actors.Bob.Address,
-	}
-	return state.FixedPart{
-		Participants:      participants[:],
-		ChainId:           big.NewInt(0),
-		ChannelNonce:      big.NewInt(9001),
-		ChallengeDuration: big.NewInt(100),
-	}
-}
-
-func allocation(d types.Destination, a uint64) Balance {
-	return Balance{destination: d, amount: *big.NewInt(int64(a))}
-}
-
-func guarantee(amount uint64, target, left, right types.Destination) Guarantee {
-	return Guarantee{
-		target: target,
-		amount: *big.NewInt(int64(amount)),
-		left:   left,
-		right:  right,
-	}
-}
-
-func makeOutcome(left, right Balance, guarantees ...Guarantee) LedgerOutcome {
-	mappedGuarantees := make(map[types.Destination]Guarantee)
-	for _, g := range guarantees {
-		mappedGuarantees[g.target] = g
-	}
-	return LedgerOutcome{left: left, right: right, guarantees: mappedGuarantees}
-}
-
-func ledgerOutcome() LedgerOutcome {
-	return makeOutcome(
-		allocation(alice, aBal),
-		allocation(bob, bBal),
-		guarantee(vAmount, existingChannel, alice, bob),
-	)
-
-}
-
-func add(turnNum, amount uint64, vId, left, right types.Destination) Add {
-	bigAmount := *big.NewInt(int64(amount))
-	return Add{
-		turnNum: turnNum,
-		Guarantee: Guarantee{
-			amount: bigAmount,
-			target: vId,
-			left:   left,
-			right:  right,
-		},
-		LeftDeposit: bigAmount,
-	}
-}
 
 // createSignedProposal generates a signed proposal given the vars, proposal fixed parts and private key
 // The vars passed in are NOT mutated!
@@ -96,6 +30,11 @@ func createSignedProposal(vars Vars, proposal Add, fp state.FixedPart, pk []byte
 }
 
 func TestReceive(t *testing.T) {
+	alice := types.Destination(common.HexToHash("0x0a"))
+	bob := types.Destination(common.HexToHash("0x0b"))
+	targetChannel := types.Destination{2}
+
+	var vAmount = uint64(5)
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
 	aliceSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
 	bobsSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
@@ -163,6 +102,10 @@ func TestReceive(t *testing.T) {
 
 }
 func TestFollowerChannel(t *testing.T) {
+	alice := testdata.Actors.Alice.Destination()
+	bob := testdata.Actors.Bob.Destination()
+	targetChannel := types.Destination{2}
+
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
 	aliceSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
 	bobsSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
@@ -173,7 +116,7 @@ func TestFollowerChannel(t *testing.T) {
 		t.Fatal("unable to construct channel")
 	}
 
-	proposal := add(1, vAmount, targetChannel, alice, bob)
+	proposal := add(1, uint64(5), targetChannel, alice, bob)
 
 	err = channel.SignNextProposal(proposal, testdata.Actors.Bob.PrivateKey)
 	if !errors.Is(ErrNoProposals, err) {
