@@ -82,7 +82,7 @@ func (c *LeaderChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 // - the countersupplied proposal is not found
 // - or if it is found but not correctly by the Follower
 func (c *LeaderChannel) UpdateConsensus(countersigned SignedProposal) error {
-	vars := Vars{
+	consensusCandidate := Vars{
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),
 	}
@@ -94,7 +94,7 @@ func (c *LeaderChannel) UpdateConsensus(countersigned SignedProposal) error {
 	}
 	consensusTurnNum := received.turnNum
 
-	if consensusTurnNum <= vars.TurnNum {
+	if consensusTurnNum <= consensusCandidate.TurnNum {
 		// We've already seen this proposal; return early
 		return nil
 	}
@@ -106,13 +106,13 @@ func (c *LeaderChannel) UpdateConsensus(countersigned SignedProposal) error {
 			return fmt.Errorf("unexpected proposal")
 		}
 
-		err := vars.Add(existing)
+		err := consensusCandidate.Add(existing)
 		if err != nil {
 			return err
 		}
 
-		if existing.turnNum == consensusTurnNum {
-			signer, err := vars.asState(c.fp).RecoverSigner(countersigned.Signature)
+		if consensusCandidate.TurnNum == consensusTurnNum {
+			signer, err := consensusCandidate.asState(c.fp).RecoverSigner(countersigned.Signature)
 
 			if err != nil {
 				return fmt.Errorf("unable to recover signer: %w", err)
@@ -124,7 +124,7 @@ func (c *LeaderChannel) UpdateConsensus(countersigned SignedProposal) error {
 
 			mySig := ourP.Signature
 			c.current = SignedVars{
-				Vars:       vars,
+				Vars:       consensusCandidate,
 				Signatures: [2]state.Signature{mySig, countersigned.Signature},
 			}
 
