@@ -355,3 +355,8 @@ func (v Vars) asState(fp state.FixedPart) state.State {
 		IsFinal:           false,
 	}
 }
+
+// Participants returns the channel participants.
+func (c *ConsensusChannel) Participants() []types.Address {
+	return c.fp.Participants
+}
