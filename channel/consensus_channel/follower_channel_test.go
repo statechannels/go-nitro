@@ -19,6 +19,7 @@ var vAmount = uint64(5)
 var existingChannel = types.Destination{1}
 var targetChannel = types.Destination{2}
 
+// TODO these helpers and the helpers in leader_channel should be shared.
 func fp() state.FixedPart {
 	participants := [2]types.Address{
 		testdata.Actors.Alice.Address, testdata.Actors.Bob.Address,
@@ -93,14 +94,13 @@ func TestFollowerChannel(t *testing.T) {
 		t.Fatalf("expected %v, but got %v", ErrNoProposals, err)
 	}
 
-	latest, _ := channel.latestProposedVars()
-	sig, _ := latest.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
-	proposal2 := add(1, uint64(6), targetChannel, alice, bob)
 	signedProposal := SignedProposal{
-		Proposal:  proposal,
-		Signature: sig,
+		Proposal: proposal,
+		// Note that this signature is never checked in SignNextProposal
+		Signature: state.Signature{},
 	}
 	channel.proposalQueue = []SignedProposal{signedProposal}
+	proposal2 := add(1, uint64(6), targetChannel, alice, bob)
 
 	err = channel.SignNextProposal(proposal2, testdata.Actors.Bob.PrivateKey)
 	if !errors.Is(ErrNonMatchingProposals, err) {
