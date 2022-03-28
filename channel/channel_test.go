@@ -33,6 +33,7 @@ func TestChannel(t *testing.T) {
 		if helpers.HasShallowCopy(r, c) {
 			t.Fatal("Clone has shallow copy")
 		}
+
 		if diff := cmp.Diff(*r, *c, cmp.Comparer(types.Equal)); diff != "" {
 			t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 		}
@@ -52,6 +53,15 @@ func TestChannel(t *testing.T) {
 		if clone != nil {
 			t.Fatal("Tried to clone a Channel via a nil pointer, but got something not nil")
 		}
+
+		// TODO This is just testing hasShallowCopy so it should be moved to the helpers package
+		r = c.Clone()
+		// Modify our clone so it is a shallow copy refering to the same map values
+		c.SignedStateForTurnNum = r.SignedStateForTurnNum
+		if isShallow := helpers.HasShallowCopy(r, c); !isShallow {
+			t.Fatal("Expected isShallowCopy to return true")
+		}
+
 	}
 
 	testPreFund := func(t *testing.T) {
