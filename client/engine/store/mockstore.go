@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -14,8 +15,9 @@ import (
 )
 
 type MockStore struct {
-	objectives bytesSyncMap
-	channels   bytesSyncMap
+	objectives        bytesSyncMap
+	channels          bytesSyncMap
+	consensusChannels bytesSyncMap
 
 	key     []byte        // the signing key of the store's engine
 	address types.Address // the (Ethereum) address associated to the signing key
@@ -70,6 +72,7 @@ func NewMockStore(key []byte) Store {
 
 	ms.objectives = bytesSyncMap{}
 	ms.channels = bytesSyncMap{}
+	ms.consensusChannels = bytesSyncMap{}
 
 	return &ms
 }
@@ -182,6 +185,34 @@ func (ms *MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty typ
 	})
 
 	return ledger, ok
+}
+
+// GetTwoPartyLedger returns a ledger channel between the two parties if it exists.
+func (ms *MockStore) GetConsensusChannel(firstParty types.Address, secondParty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
+
+	ms.consensusChannels.Range(func(key string, chJSON []byte) bool {
+
+		var ch consensus_channel.ConsensusChannel
+		err := json.Unmarshal(chJSON, &ch)
+
+		if err != nil {
+			return true // channel not found, continue looking
+		}
+
+		participants := ch.Participants()
+		if len(participants) == 2 {
+			// TODO: Should order matter?
+			if participants[0] == firstParty && participants[1] == secondParty {
+				channel = &ch
+				ok = true
+				return false // we have found the target channel: break the Range loop
+			}
+		}
+
+		return true // channel not found: continue looking
+	})
+
+	return
 }
 
 func (ms *MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
