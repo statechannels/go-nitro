@@ -87,6 +87,13 @@ type Guarantee struct {
 	right  types.Destination
 }
 
+func (g Guarantee) Equal(g2 Guarantee) bool {
+	if !types.Equal(&g.amount, &g2.amount) {
+		return false
+	}
+	return g.target == g2.target && g.left == g2.left && g.right == g2.right
+}
+
 // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
 func (g Guarantee) AsAllocation() outcome.Allocation {
 	return outcome.Allocation{
@@ -215,6 +222,16 @@ func (a Add) RightDeposit() big.Int {
 	result.Sub(&a.amount, &a.LeftDeposit)
 
 	return result
+}
+
+func (a Add) Equal(a2 Add) bool {
+	if a.turnNum != a2.turnNum {
+		return false
+	}
+	if !a.Guarantee.Equal(a2.Guarantee) {
+		return false
+	}
+	return types.Equal(&a.LeftDeposit, &a2.LeftDeposit)
 }
 
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
