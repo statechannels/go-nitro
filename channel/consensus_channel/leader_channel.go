@@ -70,26 +70,31 @@ func (c *LeaderChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 	return signed, nil
 }
 
-// UpdateConsensus iterates through the proposal queue until it finds the supplied proposal.
-// If the proposal was signed by the Follower:
+// UpdateConsensus iterates through the proposal queue until it finds the countersigned proposal.
+// If this proposal was signed by the Follower:
 // - the consensus state is updated with the supplied proposal
 // - the proposal queue is trimmed
 //
-// If their proposal is stale (ie. proposal.TurnNum <= c.current.TurnNum) then
+// If the countersupplied is stale (ie. proposal.TurnNum <= c.current.TurnNum) then
 // their proposal is ignored.
-func (c *LeaderChannel) UpdateConsensus(theirP SignedProposal) error {
+//
+// An error is returned if:
+// - the countersupplied proposal is not found
+// - or if it is found but not correctly by the Follower
+func (c *LeaderChannel) UpdateConsensus(countersigned SignedProposal) error {
 	vars := Vars{
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),
 	}
 
-	received, ok := theirP.Proposal.(Add)
+	received, ok := countersigned.Proposal.(Add)
 	if !ok {
 		// TODO: We'll need to expect other proposals in the future!
 		return fmt.Errorf("unexpected proposal")
 	}
+	consensusTurnNum := received.turnNum
 
-	if received.turnNum <= vars.TurnNum {
+	if consensusTurnNum <= vars.TurnNum {
 		// We've already seen this proposal; return early
 		return nil
 	}
@@ -106,8 +111,8 @@ func (c *LeaderChannel) UpdateConsensus(theirP SignedProposal) error {
 			return err
 		}
 
-		if existing.turnNum == received.turnNum {
-			signer, err := vars.asState(c.fp).RecoverSigner(theirP.Signature)
+		if existing.turnNum == consensusTurnNum {
+			signer, err := vars.asState(c.fp).RecoverSigner(countersigned.Signature)
 
 			if err != nil {
 				return fmt.Errorf("unable to recover signer: %w", err)
@@ -118,10 +123,9 @@ func (c *LeaderChannel) UpdateConsensus(theirP SignedProposal) error {
 			}
 
 			mySig := ourP.Signature
-			theirSig := theirP.Signature
 			c.current = SignedVars{
 				Vars:       vars,
-				Signatures: [2]state.Signature{mySig, theirSig},
+				Signatures: [2]state.Signature{mySig, countersigned.Signature},
 			}
 
 			c.proposalQueue = c.proposalQueue[i+1:]
