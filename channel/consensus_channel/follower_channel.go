@@ -47,7 +47,7 @@ func (c *FollowerChannel) SignNextProposal(expectedProposal interface{}, pk []by
 		return ErrUnsupportedExpectedProposal
 	}
 
-	if !p.Equal(expectedP) {
+	if !p.equal(expectedP) {
 		return ErrNonMatchingProposals
 	}
 
