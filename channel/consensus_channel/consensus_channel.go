@@ -125,7 +125,7 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 // - the "left" balance is first
 // - the "right" balance is second
 // - following [left, right] comes the guarantees in sorted order
-func (o LedgerOutcome) AsOutcome() outcome.Exit {
+func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 	// The first items are [left, right] balances
 	allocations := outcome.Allocations{o.left.AsAllocation(), o.right.AsAllocation()}
 
