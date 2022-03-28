@@ -162,9 +162,18 @@ type Vars struct {
 }
 
 // clone returns a deep clone of v
-func (o LedgerOutcome) clone() LedgerOutcome {
-	o.left.amount = *big.NewInt(0).Set(&o.left.amount)
-	o.right.amount = *big.NewInt(0).Set(&o.right.amount)
+func (o *LedgerOutcome) clone() LedgerOutcome {
+	assetAddress := o.assetAddress
+
+	left := Balance{
+		destination: o.left.destination,
+		amount:      *big.NewInt(0).Set(&o.left.amount),
+	}
+
+	right := Balance{
+		destination: o.right.destination,
+		amount:      *big.NewInt(0).Set(&o.right.amount),
+	}
 
 	guarantees := make(map[types.Destination]Guarantee)
 	for d, g := range o.guarantees {
@@ -172,9 +181,13 @@ func (o LedgerOutcome) clone() LedgerOutcome {
 		g2.amount = *big.NewInt(0).Set(&g.amount)
 		guarantees[d] = g2
 	}
-	o.guarantees = guarantees
 
-	return o
+	return LedgerOutcome{
+		assetAddress: assetAddress,
+		left:         left,
+		right:        right,
+		guarantees:   guarantees,
+	}
 }
 
 // SignedVars stores 0-2 signatures for some vars in a consensus channel
