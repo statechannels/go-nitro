@@ -8,7 +8,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// TODO these helpers and the helpers in leader_channel should be shared.
 func fp() state.FixedPart {
 	participants := [2]types.Address{
 		testdata.Actors.Alice.Address, testdata.Actors.Bob.Address,
