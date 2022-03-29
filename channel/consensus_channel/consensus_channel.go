@@ -30,7 +30,7 @@ type consensusChannel struct {
 	proposalQueue []SignedProposal // A queue of proposed changes, starting from the consensus state
 }
 
-// newConsensusChannel constructs a new consensus channel, validating its input by checking that the signatures are as expected on a prefund setup state
+// newConsensusChannel constructs a new consensus channel, validating its input by checking that the signatures are as expected for the given fp, initialTurnNum and outcome]
 func newConsensusChannel(
 	fp state.FixedPart,
 	myIndex ledgerIndex,
