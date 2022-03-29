@@ -27,20 +27,31 @@ func TestSetGetObjective(t *testing.T) {
 		t.Fatalf("expected not to find the %s objective, but found %v", id, got)
 	}
 
-	want := td.Objectives.Directfund.GenericDFO()
+	wants := []protocols.Objective{}
+	dfo := td.Objectives.Directfund.GenericDFO()
+	vfo := td.Objectives.Virtualfund.GenericVFO()
+	wants = append(wants, &dfo)
+	wants = append(wants, &vfo)
 
-	if err := ms.SetObjective(&want); err != nil {
-		t.Fatalf("error setting objective %v: %s", want, err.Error())
-	}
+	for _, want := range wants {
 
-	got, err = ms.GetObjectiveById(want.Id())
+		if err := ms.SetObjective(want); err != nil {
+			t.Errorf("error setting objective %v: %s", want, err.Error())
+		}
 
-	if err != nil {
-		t.Fatalf("expected to find the inserted objective, but didn't: %s", err)
-	}
+		got, err = ms.GetObjectiveById(want.Id())
 
-	if got.Id() != want.Id() {
-		t.Fatalf("expected to retrieve same objective Id as was passed in, but didn't")
+		if err != nil {
+			t.Errorf("expected to find the inserted objective, but didn't: %s", err)
+		}
+
+		if got.Id() != want.Id() {
+			t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
+		}
+
+		if diff := cmp.Diff(got, want); diff != "" {
+			t.Errorf("expected no diff between set and retrieved objective, but found:\n%s", diff)
+		}
 	}
 }
 
@@ -49,22 +60,33 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 
 	ms := store.NewMockStore(sk)
 
-	want := td.Objectives.Directfund.GenericDFO()
+	wants := []protocols.Objective{}
+	dfo := td.Objectives.Directfund.GenericDFO()
+	vfo := td.Objectives.Virtualfund.GenericVFO()
+	wants = append(wants, &dfo)
+	wants = append(wants, &vfo)
 
-	if err := ms.SetObjective(&want); err != nil {
-		t.Fatalf("error setting objective %v: %s", want, err.Error())
-	}
+	for _, want := range wants {
 
-	got, ok := ms.GetObjectiveByChannelId(want.C.Id)
+		if err := ms.SetObjective(want); err != nil {
+			t.Errorf("error setting objective %v: %s", want, err.Error())
+		}
 
-	if !ok {
-		t.Fatalf("expected to find the inserted objective, but didn't")
-	}
-	if got.Id() != want.Id() {
-		t.Fatalf("expected to retrieve same objective Id as was passed in, but didn't")
-	}
-	if diff := cmp.Diff(got, &want); diff != "" {
-		t.Fatalf("expected no diff between set and retrieved objective, but found:\n%s", diff)
+		for _, ch := range want.Channels() { // test target objective retrieval for each associated channel
+
+			got, ok := ms.GetObjectiveByChannelId(ch.Id)
+
+			if !ok {
+				t.Errorf("expected to find the inserted objective, but didn't")
+			}
+			if got.Id() != want.Id() {
+				t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
+			}
+			if diff := cmp.Diff(got, want); diff != "" {
+				t.Errorf("expected no diff between set and retrieved objective, but found:\n%s", diff)
+			}
+		}
+
 	}
 }
 

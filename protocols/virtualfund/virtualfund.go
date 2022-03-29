@@ -662,8 +662,8 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 // ObjectiveRequest represents a request to create a new virtual funding objective.
 type ObjectiveRequest struct {
 	MyAddress         types.Address
-	CounterParty      types.Address
 	Intermediary      types.Address
+	CounterParty      types.Address
 	AppDefinition     types.Address
 	AppData           types.Bytes
 	ChallengeDuration *types.Uint256
