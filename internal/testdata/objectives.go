@@ -62,8 +62,8 @@ func genericVFO() virtualfund.Objective {
 	ts := testVirtualState.Clone()
 	request := virtualfund.ObjectiveRequest{
 		ts.Participants[0],
-		ts.Participants[2],
 		ts.Participants[1],
+		ts.Participants[2],
 		ts.AppDefinition,
 		ts.AppData,
 		ts.ChallengeDuration,
