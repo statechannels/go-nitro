@@ -26,7 +26,7 @@ func NewFollowerChannel(fp state.FixedPart, outcome LedgerOutcome, signatures [2
 
 // SignNextProposal inspects whether the expected proposal matches the first proposal in
 // the queue. If so, the proposal is removed from the queue and integrated into the channel state
-func (c *FollowerChannel) SignNextProposal(expectedProposal interface{}, pk []byte) error {
+func (c *FollowerChannel) SignNextProposal(expectedProposal interface{}, sk []byte) error {
 	if len(c.proposalQueue) == 0 {
 		return ErrNoProposals
 	}
@@ -53,7 +53,7 @@ func (c *FollowerChannel) SignNextProposal(expectedProposal interface{}, pk []by
 		return err
 	}
 
-	signature, err := c.sign(vars, pk)
+	signature, err := c.sign(vars, sk)
 	if err != nil {
 		return fmt.Errorf("unable to sign state update: %f", err)
 	}

@@ -88,15 +88,15 @@ func (c *consensusChannel) Accept(p SignedProposal) error {
 }
 
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
-// values. It signs the resulting state using pk.
-func (c *consensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
-	signer := crypto.GetAddressFromSecretKeyBytes(pk)
+// values. It signs the resulting state using sk.
+func (c *consensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
+	signer := crypto.GetAddressFromSecretKeyBytes(sk)
 	if c.fp.Participants[c.myIndex] != signer {
 		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
 	}
 
 	state := vars.asState(c.fp)
-	return state.Sign(pk)
+	return state.Sign(sk)
 }
 
 // recoverSigner returns the signer of the vars using the given signature
