@@ -31,6 +31,7 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 	id := alpha.CreateDirectChannel(request)
 	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, id)
 	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, id)
+
 }
 func TestDirectFundIntegration(t *testing.T) {
 
@@ -41,8 +42,8 @@ func TestDirectFundIntegration(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientA := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
-	clientB := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	clientA, _ := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
+	clientB, _ := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
 
 	directlyFundALedgerChannel(t, clientA, clientB)
 

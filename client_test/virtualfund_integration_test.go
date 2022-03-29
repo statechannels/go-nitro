@@ -22,9 +22,9 @@ func TestVirtualFundIntegration(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientA := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
-	clientB := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
-	clientI := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
+	clientA, _ := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
+	clientB, _ := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	clientI, _ := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
 
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)
