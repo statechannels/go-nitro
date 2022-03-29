@@ -69,6 +69,11 @@ func newConsensusChannel(
 
 }
 
+// ConsensusTurnNum returns the turn number of the current consensus state
+func (c *consensusChannel) ConsensusTurnNum() uint64 {
+	return c.current.TurnNum
+}
+
 // Balance represents an Allocation of type 0, ie. a simple allocation.
 type Balance struct {
 	destination types.Destination
@@ -117,6 +122,7 @@ type LedgerOutcome struct {
 	guarantees   map[types.Destination]Guarantee
 }
 
+// includes returns true when the receiver includes g in its list of guarantees.
 func (o *LedgerOutcome) includes(g Guarantee) bool {
 	existing, found := o.guarantees[g.target]
 	if !found {

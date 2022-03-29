@@ -18,13 +18,8 @@ func NewLeaderChannel(fp state.FixedPart, outcome LedgerOutcome, signatures [2]s
 	return LeaderChannel{consensusChannel: channel}, err
 }
 
-// ConsensusTurnNum returns the turn number of the current consensus state
-func (c *LeaderChannel) ConsensusTurnNum() uint64 {
-	return c.current.TurnNum
-}
-
 // IsProposed returns whether or not the consensus state or any proposed state
-// includes the given guarantee
+// includes the given guarantee.
 func (c *LeaderChannel) IsProposed(g Guarantee) (bool, error) {
 	latest, err := c.latestProposedVars()
 	if err != nil {
@@ -70,26 +65,31 @@ func (c *LeaderChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 	return signed, nil
 }
 
-// UpdateConsensus iterates through the leader's proposal queue until it finds a proposal
-// matching their proposal. If their signature was the follower:
-// - the consensus state is updated
-// - the proposal queue is trimmed
+// UpdateConsensus iterates through the proposal queue until it finds the countersigned proposal.
+// If this proposal was signed by the Follower:
+//  - the consensus state is updated with the supplied proposal
+//  - the proposal queue is trimmed
 //
-// If their proposal is stale (ie. theirP.TurnNum <= c.current.TurnNum) then
-// their proposal is ignored
-func (c *LeaderChannel) UpdateConsensus(theirP SignedProposal) error {
-	vars := Vars{
+// If the countersupplied is stale (ie. proposal.TurnNum <= c.current.TurnNum) then
+// their proposal is ignored.
+//
+// An error is returned if:
+//  - the countersupplied proposal is not found
+//  - or if it is found but not correctly by the Follower
+func (c *LeaderChannel) UpdateConsensus(countersigned SignedProposal) error {
+	consensusCandidate := Vars{
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),
 	}
 
-	received, ok := theirP.Proposal.(Add)
+	received, ok := countersigned.Proposal.(Add)
 	if !ok {
 		// TODO: We'll need to expect other proposals in the future!
 		return fmt.Errorf("unexpected proposal")
 	}
+	consensusTurnNum := received.turnNum
 
-	if received.turnNum <= vars.TurnNum {
+	if consensusTurnNum <= consensusCandidate.TurnNum {
 		// We've already seen this proposal; return early
 		return nil
 	}
@@ -101,27 +101,26 @@ func (c *LeaderChannel) UpdateConsensus(theirP SignedProposal) error {
 			return fmt.Errorf("unexpected proposal")
 		}
 
-		err := vars.Add(existing)
+		err := consensusCandidate.Add(existing)
 		if err != nil {
 			return err
 		}
 
-		if existing.turnNum == received.turnNum {
-			signer, err := vars.asState(c.fp).RecoverSigner(theirP.Signature)
+		if consensusCandidate.TurnNum == consensusTurnNum {
+			signer, err := consensusCandidate.asState(c.fp).RecoverSigner(countersigned.Signature)
 
 			if err != nil {
 				return fmt.Errorf("unable to recover signer: %w", err)
 			}
 
-			if signer != c.fp.Participants[1-c.myIndex] { // todo refactor
+			if signer != c.fp.Participants[follower] {
 				return ErrWrongSigner
 			}
 
 			mySig := ourP.Signature
-			theirSig := theirP.Signature
 			c.current = SignedVars{
-				Vars:       vars,
-				Signatures: [2]state.Signature{mySig, theirSig},
+				Vars:       consensusCandidate,
+				Signatures: [2]state.Signature{mySig, countersigned.Signature},
 			}
 
 			c.proposalQueue = c.proposalQueue[i+1:]
