@@ -74,6 +74,11 @@ func (c *consensusChannel) ConsensusTurnNum() uint64 {
 	return c.current.TurnNum
 }
 
+// Includes returns whether or not the consensus state includes the given guarantee
+func (c *consensusChannel) Includes(g Guarantee) bool {
+	return c.current.Outcome.includes(g)
+}
+
 // Balance represents an Allocation of type 0, ie. a simple allocation.
 type Balance struct {
 	destination types.Destination
