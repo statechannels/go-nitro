@@ -10,6 +10,7 @@ import (
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/types"
@@ -42,9 +43,18 @@ func TestDirectFundIntegration(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientA, _ := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
-	clientB, _ := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
+	clientB, storeB := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
 
 	directlyFundALedgerChannel(t, clientA, clientB)
+
+	// Ensure that we create a consensus channel in the store
+	for _, store := range []store.Store{storeA, storeB} {
+		_, ok := store.GetConsensusChannel(*clientA.Address, *clientB.Address)
+		if !ok {
+			t.Fatalf("expected a consensus channel to have been created")
+		}
+
+	}
 
 }
