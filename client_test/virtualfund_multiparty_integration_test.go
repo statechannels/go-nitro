@@ -14,7 +14,9 @@ import (
 
 // TestMultiPartyVirtualFundIntegration tests the scenario where Alice creates virtual channels with Bob and Brian using Irene as the intermediary.
 func TestMultiPartyVirtualFundIntegration(t *testing.T) {
-
+	// TODO: This test can occasionally fail due to https://github.com/statechannels/go-nitro/issues/366
+	// It should be re-enabled when this issue is fixed.
+	t.Skip()
 	logFile := "virtualfund_multiparty_client_test.log"
 	truncateLog(logFile)
 
