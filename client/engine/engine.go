@@ -256,23 +256,6 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 		return
 	}
 
-	// TODO: This is hack to get around the fact that currently each objective in the store has it's own set of channels.
-	vfo, isVirtual := crankedObjective.(*virtualfund.Objective)
-	if isVirtual {
-		if vfo.ToMyLeft != nil {
-			err = e.store.SetChannel(&vfo.ToMyLeft.Channel.Channel)
-			if err != nil {
-				return
-			}
-		}
-		if vfo.ToMyRight != nil {
-			err = e.store.SetChannel(&vfo.ToMyRight.Channel.Channel)
-			if err != nil {
-				return
-			}
-		}
-	}
-
 	e.executeSideEffects(sideEffects)
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 
