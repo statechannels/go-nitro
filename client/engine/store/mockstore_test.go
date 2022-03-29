@@ -106,6 +106,7 @@ func TestGetChannelSecretKey(t *testing.T) {
 	signedMsg, _ := nc.SignEthereumMessage(msg, *key)
 	recoveredSigner, _ := nc.RecoverEthereumMessageSigner(msg, signedMsg)
 
+	\
 	if recoveredSigner != pk {
 		t.Fatalf("expected to recover %x, but got %x", pk, recoveredSigner)
 	}
@@ -121,7 +122,7 @@ func TestConsensusChannelStore(t *testing.T) {
 		t.Fatalf("expected not to find the a consensus channel, but found %v", got)
 	}
 
-	fp := td.Objectives.Directfund.GenericDFO().C.FixedPart
+	fp := td.Objectives.Directfund.GenericDFO().C.FixedPart // TODO replace with testdata not nested under GenericDFO
 	fp.Participants[0] = td.Actors.Alice.Address
 	fp.Participants[1] = td.Actors.Bob.Address
 	initialVars := consensus_channel.Vars{Outcome: cc.LedgerOutcome{}, TurnNum: 0}
