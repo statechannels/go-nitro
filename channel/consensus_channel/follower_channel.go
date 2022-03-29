@@ -18,8 +18,8 @@ type FollowerChannel struct {
 }
 
 // NewFollowerChannel constructs a new FollowerChannel
-func NewFollowerChannel(fp state.FixedPart, outcome LedgerOutcome, signatures [2]state.Signature) (FollowerChannel, error) {
-	channel, err := newConsensusChannel(fp, follower, outcome, signatures)
+func NewFollowerChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (FollowerChannel, error) {
+	channel, err := newConsensusChannel(fp, follower, turnNum, outcome, signatures)
 
 	return FollowerChannel{consensusChannel: channel}, err
 }

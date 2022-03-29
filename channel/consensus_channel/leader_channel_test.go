@@ -25,7 +25,7 @@ func TestLeaderChannel(t *testing.T) {
 	bobsSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
-	channel, err := NewLeaderChannel(fp(), ledgerOutcome(), sigs)
+	channel, err := NewLeaderChannel(fp(), 0, ledgerOutcome(), sigs)
 	if err != nil {
 		t.Fatal("unable to construct channel")
 	}
