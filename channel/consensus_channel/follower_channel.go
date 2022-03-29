@@ -24,11 +24,6 @@ func NewFollowerChannel(fp state.FixedPart, outcome LedgerOutcome, signatures [2
 	return FollowerChannel{consensusChannel: channel}, err
 }
 
-// ConsensusTurnNum returns the turn number of the current consensus state
-func (c *FollowerChannel) ConsensusTurnNum() uint64 {
-	return c.current.TurnNum
-}
-
 // SignNextProposal inspects whether the expected proposal matches the first proposal in
 // the queue. If so, the proposal is removed from the queue and integrated into the channel state
 func (c *FollowerChannel) SignNextProposal(expectedProposal interface{}, pk []byte) error {
