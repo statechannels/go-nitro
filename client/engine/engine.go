@@ -86,18 +86,26 @@ func (e *Engine) ToApi() <-chan ObjectiveChangeEvent {
 func (e *Engine) Run() {
 	for {
 		var res ObjectiveChangeEvent
+		var err error
 		select {
 		case apiEvent := <-e.FromAPI:
-			res = e.handleAPIEvent(apiEvent)
+			res, err = e.handleAPIEvent(apiEvent)
 
 		case chainEvent := <-e.fromChain:
 
-			res = e.handleChainEvent(chainEvent)
+			res, err = e.handleChainEvent(chainEvent)
 
 		case message := <-e.fromMsg:
-			res = e.handleMessage(message)
-
+			res, err = e.handleMessage(message)
 		}
+
+		// Handle errors
+		if err != nil {
+			e.logger.Panic()
+			// TODO do not panic if in production.
+			// TODO report errors back to the consuming application
+		}
+
 		// Only send out an event if there are changes
 		if len(res.CompletedObjectives) > 0 {
 			for _, obj := range res.CompletedObjectives {
@@ -105,6 +113,7 @@ func (e *Engine) Run() {
 			}
 			e.toApi <- res
 		}
+
 	}
 }
 
@@ -114,19 +123,17 @@ func (e *Engine) Run() {
 // gets a pointer to a channel secret key from the store,
 // generates an updated objective and
 // attempts progress.
-func (e *Engine) handleMessage(message protocols.Message) ObjectiveChangeEvent {
+func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent, error) {
 
 	e.logger.Printf("Handling inbound message %+v", summarizeMessage(message))
 	objective, err := e.getOrCreateObjective(message)
 	if err != nil {
-		e.logger.Print(err)
-		return ObjectiveChangeEvent{}
+		return ObjectiveChangeEvent{}, err
 	}
 	event := protocols.ObjectiveEvent{ObjectiveId: message.ObjectiveId, SignedStates: message.SignedStates}
 	updatedObjective, err := objective.Update(event)
 	if err != nil {
-		e.logger.Print(err)
-		return ObjectiveChangeEvent{}
+		return ObjectiveChangeEvent{}, err
 	}
 
 	return e.attemptProgress(updatedObjective)
@@ -139,12 +146,15 @@ func (e *Engine) handleMessage(message protocols.Message) ObjectiveChangeEvent {
 // gets a pointer to a channel secret key from the store,
 // generates an updated objective and
 // attempts progress.
-func (e *Engine) handleChainEvent(chainEvent chainservice.Event) ObjectiveChangeEvent {
+func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChangeEvent, error) {
 	e.logger.Printf("handling chain event %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
 	if !ok {
+		// Because the MockChain and SimpleChainService broadcast all events to all subscribers,
+		// it is likely that a client receives an irrelevant event. So we log and continue without
+		// returning an error.
 		e.logger.Printf("handleChainEvent: No objective in store for channel with id %s", chainEvent.ChannelId)
-		return ObjectiveChangeEvent{}
+		return ObjectiveChangeEvent{}, nil
 	}
 	event := protocols.ObjectiveEvent{
 		Holdings:           chainEvent.Holdings,
@@ -154,8 +164,7 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) ObjectiveChange
 	}
 	updatedObjective, err := objective.Update(event)
 	if err != nil {
-		// TODO handle error
-		panic(err)
+		return ObjectiveChangeEvent{}, err
 	}
 	return e.attemptProgress(updatedObjective)
 
@@ -166,7 +175,7 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) ObjectiveChange
 // Spawn a new, approved objective (if not null)
 // Reject an existing objective (if not null)
 // Approve an existing objective (if not null)
-func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
+func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error) {
 	if apiEvent.ObjectiveToSpawn != nil {
 
 		switch request := (apiEvent.ObjectiveToSpawn).(type) {
@@ -174,42 +183,41 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) ObjectiveChangeEvent {
 		case virtualfund.ObjectiveRequest:
 			vfo, err := virtualfund.NewObjective(request, e.store.GetTwoPartyLedger)
 			if err != nil {
-				e.logger.Printf("ERROR handleAPIEvent: Could not create objective for %+v", request)
-				e.logger.Print("ERROR ", err)
-				return ObjectiveChangeEvent{}
+				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 			return e.attemptProgress(&vfo)
 
 		case directfund.ObjectiveRequest:
 			dfo, err := directfund.NewObjective(request, true)
 			if err != nil {
-				e.logger.Printf("ERROR handleAPIEvent: Could not create objective for  %+v", request)
-				e.logger.Print("ERROR ", err)
-				return ObjectiveChangeEvent{}
+				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 			return e.attemptProgress(&dfo)
 
 		default:
-			e.logger.Printf("handleAPIEvent: Unknown objective type %T", request)
-			return ObjectiveChangeEvent{}
-
+			return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)
 		}
 
 	}
 
 	if apiEvent.ObjectiveToReject != `` {
-		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		objective, err := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
 		updatedProtocol := objective.Reject()
-		_ = e.store.SetObjective(updatedProtocol) // TODO handle error
-		return ObjectiveChangeEvent{}
+		err = e.store.SetObjective(updatedProtocol)
+		return ObjectiveChangeEvent{}, err
 	}
 	if apiEvent.ObjectiveToApprove != `` {
-		objective, _ := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		objective, err := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
 		updatedObjective := objective.Approve()
 		return e.attemptProgress(updatedObjective)
-
 	}
-	return ObjectiveChangeEvent{}
+	return ObjectiveChangeEvent{}, nil
 
 }
 
@@ -232,21 +240,36 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 // 	3. It commits the cranked objective to the store
 // 	4. It executes any side effects that were declared during cranking
 // 	5. It updates progress metadata in the store
-func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent) {
+func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent, err error) {
 
 	secretKey := e.store.GetChannelSecretKey()
 
-	crankedObjective, sideEffects, waitingFor, _ := objective.Crank(secretKey) // TODO handle error
-	_ = e.store.SetObjective(crankedObjective)                                 // TODO handle error
+	crankedObjective, sideEffects, waitingFor, err := objective.Crank(secretKey)
+
+	if err != nil {
+		return
+	}
+
+	err = e.store.SetObjective(crankedObjective)
+
+	if err != nil {
+		return
+	}
 
 	// TODO: This is hack to get around the fact that currently each objective in the store has it's own set of channels.
 	vfo, isVirtual := crankedObjective.(*virtualfund.Objective)
 	if isVirtual {
 		if vfo.ToMyLeft != nil {
-			_ = e.store.SetChannel(&vfo.ToMyLeft.Channel.Channel)
+			err = e.store.SetChannel(&vfo.ToMyLeft.Channel.Channel)
+			if err != nil {
+				return
+			}
 		}
 		if vfo.ToMyRight != nil {
-			_ = e.store.SetChannel(&vfo.ToMyRight.Channel.Channel)
+			err = e.store.SetChannel(&vfo.ToMyRight.Channel.Channel)
+			if err != nil {
+				return
+			}
 		}
 	}
 
