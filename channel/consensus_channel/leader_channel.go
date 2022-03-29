@@ -12,8 +12,8 @@ type LeaderChannel struct {
 }
 
 // NewLeaderChannel constructs a new LeaderChannel
-func NewLeaderChannel(fp state.FixedPart, outcome LedgerOutcome, signatures [2]state.Signature) (LeaderChannel, error) {
-	channel, err := newConsensusChannel(fp, leader, outcome, signatures)
+func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (LeaderChannel, error) {
+	channel, err := newConsensusChannel(fp, leader, turnNum, outcome, signatures)
 
 	return LeaderChannel{consensusChannel: channel}, err
 }

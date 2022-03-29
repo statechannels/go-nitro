@@ -34,10 +34,11 @@ type consensusChannel struct {
 func newConsensusChannel(
 	fp state.FixedPart,
 	myIndex ledgerIndex,
+	turnNum uint64,
 	outcome LedgerOutcome,
 	signatures [2]state.Signature,
 ) (consensusChannel, error) {
-	vars := Vars{TurnNum: 0, Outcome: outcome.clone()}
+	vars := Vars{TurnNum: turnNum, Outcome: outcome.clone()}
 
 	leaderAddr, err := vars.asState(fp).RecoverSigner(signatures[leader])
 	if err != nil {
