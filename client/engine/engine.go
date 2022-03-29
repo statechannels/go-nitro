@@ -101,7 +101,7 @@ func (e *Engine) Run() {
 
 		// Handle errors
 		if err != nil {
-			panic(err)
+			e.logger.Panic()
 			// TODO do not panic if in production.
 			// TODO report errors back to the consuming application
 		}
