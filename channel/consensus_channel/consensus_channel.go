@@ -49,7 +49,7 @@ func newConsensusChannel(
 
 	vars := Vars{TurnNum: initialTurnNum, Outcome: outcome.clone()}
 
-	leaderAddr, err := vars.asState(fp).RecoverSigner(signatures[leader])
+	leaderAddr, err := vars.AsState(fp).RecoverSigner(signatures[leader])
 	if err != nil {
 		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
@@ -57,7 +57,7 @@ func newConsensusChannel(
 		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[leader])
 	}
 
-	followerAddr, err := vars.asState(fp).RecoverSigner(signatures[follower])
+	followerAddr, err := vars.AsState(fp).RecoverSigner(signatures[follower])
 	if err != nil {
 		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
@@ -106,13 +106,13 @@ func (c *ConsensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
 		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
 	}
 
-	state := vars.asState(c.fp)
+	state := vars.AsState(c.fp)
 	return state.Sign(sk)
 }
 
 // recoverSigner returns the signer of the vars using the given signature
 func (c *ConsensusChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
-	state := vars.asState(c.fp)
+	state := vars.AsState(c.fp)
 	return state.RecoverSigner(sig)
 }
 
@@ -349,7 +349,7 @@ func (vars *Vars) Add(p Add) error {
 	return nil
 }
 
-func (v Vars) asState(fp state.FixedPart) state.State {
+func (v Vars) AsState(fp state.FixedPart) state.State {
 	return state.State{
 		// Variable
 		TurnNum: v.TurnNum,

@@ -17,7 +17,7 @@ func createSignedProposal(vars Vars, proposal Add, fp state.FixedPart, pk []byte
 	proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
 	_ = proposalVars.Add(proposal)
 
-	state := proposalVars.asState(fp)
+	state := proposalVars.AsState(fp)
 	sig, _ := state.Sign(pk)
 
 	signedProposal := SignedProposal{
@@ -36,8 +36,8 @@ func TestReceive(t *testing.T) {
 
 	var vAmount = uint64(5)
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
-	aliceSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
-	bobsSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
+	aliceSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
 	channel, err := NewFollowerChannel(fp(), 0, ledgerOutcome(), sigs)
@@ -107,8 +107,8 @@ func TestFollowerChannel(t *testing.T) {
 	targetChannel := types.Destination{2}
 
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
-	aliceSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
-	bobsSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
+	aliceSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
 	channel, err := NewFollowerChannel(fp(), 0, ledgerOutcome(), sigs)
