@@ -106,7 +106,6 @@ func TestGetChannelSecretKey(t *testing.T) {
 	signedMsg, _ := nc.SignEthereumMessage(msg, *key)
 	recoveredSigner, _ := nc.RecoverEthereumMessageSigner(msg, signedMsg)
 
-	\
 	if recoveredSigner != pk {
 		t.Fatalf("expected to recover %x, but got %x", pk, recoveredSigner)
 	}
