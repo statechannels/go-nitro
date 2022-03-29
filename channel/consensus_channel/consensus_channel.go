@@ -223,6 +223,32 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 		types.Equal(existing.amount, g.amount)
 }
 
+// FromExit creates a new LedgerOutcome from the given SingleAssetExit.
+// It makes some assumptions about the exit:
+// - The first alloction entry is for left
+// - The second alloction entry is for right
+// - We ignore guarantee metadata and just assume that it is [left,right]
+func FromExit(sae outcome.SingleAssetExit) *LedgerOutcome {
+
+	left := Balance{destination: sae.Allocations[0].Destination, amount: *sae.Allocations[0].Amount}
+	right := Balance{destination: sae.Allocations[1].Destination, amount: *sae.Allocations[1].Amount}
+	guarantees := make(map[types.Destination]Guarantee)
+	for _, a := range sae.Allocations {
+
+		if a.AllocationType == outcome.GuaranteeAllocationType {
+			g := Guarantee{amount: *a.Amount,
+				target: a.Destination,
+				// Instead of decoding the metadata we make an assumption that the metadata has the left/right we expect
+				left:  left.destination,
+				right: right.destination}
+			guarantees[a.Destination] = g
+		}
+
+	}
+	return &LedgerOutcome{left: left, right: right, guarantees: guarantees, assetAddress: sae.Asset}
+
+}
+
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
 // - the "left" balance is first
 // - the "right" balance is second
