@@ -79,6 +79,7 @@ func flushToFileCleanupFn(w io.Reader, fileName string) func() {
 		truncateLog(fileName)
 		ld := newLogWriter(fileName)
 		_, _ = ld.ReadFrom(w)
+		ld.Close()
 	}
 }
 func truncateLog(logFile string) {
