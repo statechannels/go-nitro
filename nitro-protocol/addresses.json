@@ -1,44 +1,13 @@
 {
-  "1": {
-    "mainnet": {
-      "name": "mainnet",
-      "chainId": "1",
+  "1337": [
+    {
+      "name": "localhost",
+      "chainId": "1337",
       "contracts": {
-        "ETHAssetHolder": {
-          "address": "0x8504FcA6e1e73947850D66D032435AC931892116"
-        },
         "NitroAdjudicator": {
-          "address": "0x7917b6f2C5deC4021Ed5D0ff3e5bb27A69B2eaCf"
+          "address": "0xB88334AE1bEbA89dA2f886daC6C4D5C6dC658143"
         }
       }
     }
-  },
-  "4": {
-    "rinkeby": {
-      "name": "rinkeby",
-      "chainId": "4",
-      "contracts": {
-        "ETHAssetHolder": {
-          "address": "0x8504FcA6e1e73947850D66D032435AC931892116"
-        },
-        "NitroAdjudicator": {
-          "address": "0x7917b6f2C5deC4021Ed5D0ff3e5bb27A69B2eaCf"
-        }
-      }
-    }
-  },
-  "212984383488152": {
-    "arbitrum_testnet_v4": {
-      "name": "arbitrum_testnet_v4",
-      "chainId": "212984383488152",
-      "contracts": {
-        "NitroAdjudicator": {
-          "address": "0x35d4c6CE4BB623b9B9C05E3DCfA688D80b616858"
-        },
-        "ETHAssetHolder": {
-          "address": "0xFf6C92ceA1eFB9542498dC74cb591F8CF431d202"
-        }
-      }
-    }
-  }
+  ]
 }

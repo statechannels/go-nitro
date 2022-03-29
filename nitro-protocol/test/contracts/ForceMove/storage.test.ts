@@ -1,5 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, ethers} from 'ethers';
+import {it} from '@jest/globals'
 
 import ForceMoveArtifact from '../../../artifacts/contracts//test/TESTForceMove.sol/TESTForceMove.json';
 import {channelDataToStatus, parseStatus} from '../../../src/contract/channel-storage';
@@ -45,7 +46,7 @@ describe('storage', () => {
 });
 
 describe('_requireChannelOpen', () => {
-  let channelId;
+  let channelId: string;
   beforeEach(() => {
     channelId = randomChannelId();
   });

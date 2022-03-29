@@ -1,6 +1,7 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 import {Contract, ethers, utils} from 'ethers';
+import {it} from '@jest/globals'
 
 const {HashZero} = ethers.constants;
 import HashLockedSwapArtifact from '../../../../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
@@ -13,6 +14,7 @@ import {
   randomExternalDestination,
   replaceAddressesAndBigNumberify,
   setupContract,
+  AssetOutcomeShortHand,
 } from '../../../test-helpers';
 
 // Utilities
@@ -75,19 +77,19 @@ describe('validTransition', () => {
       dataB,
       balancesB,
     }: {
-      isValid;
-      dataA;
-      balancesA;
-      turnNumB;
-      dataB;
-      balancesB;
+      isValid: boolean;
+      dataA: HashLockedSwapData;
+      balancesA: AssetOutcomeShortHand;
+      turnNumB: number;
+      dataB: HashLockedSwapData;
+      balancesB: AssetOutcomeShortHand;
     }) => {
-      balancesA = replaceAddressesAndBigNumberify(balancesA, addresses);
+      balancesA = replaceAddressesAndBigNumberify(balancesA, addresses) as AssetOutcomeShortHand;
       const allocationsA: Allocation[] = [];
       Object.keys(balancesA).forEach(key =>
         allocationsA.push({
           destination: key,
-          amount: balancesA[key],
+          amount: balancesA[key].toString(),
           allocationType: AllocationType.simple,
           metadata: '0x',
         })
@@ -103,12 +105,12 @@ describe('validTransition', () => {
         outcome: encodeOutcome(outcomeA),
         appData: encodeHashLockedSwapData(dataA),
       };
-      balancesB = replaceAddressesAndBigNumberify(balancesB, addresses);
+      balancesB = replaceAddressesAndBigNumberify(balancesB, addresses) as AssetOutcomeShortHand;
       const allocationsB: Allocation[] = [];
       Object.keys(balancesB).forEach(key =>
         allocationsB.push({
           destination: key,
-          amount: balancesB[key],
+          amount: balancesB[key].toString(),
           allocationType: AllocationType.simple,
           metadata: '0x',
         })

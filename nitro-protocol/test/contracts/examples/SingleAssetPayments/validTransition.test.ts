@@ -1,6 +1,7 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 import {Contract, ethers} from 'ethers';
+import {it} from '@jest/globals'
 
 const {HashZero} = ethers.constants;
 import SingleAssetPaymentsArtifact from '../../../../artifacts/contracts/examples/SingleAssetPayments.sol/SingleAssetPayments.json';

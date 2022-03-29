@@ -3,7 +3,7 @@ import shuffle from 'lodash.shuffle';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 
 import {getTestProvider, randomExternalDestination, setupContract} from '../../test-helpers';
-import {TESTNitroAdjudicator} from '../../../typechain/TESTNitroAdjudicator';
+import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 

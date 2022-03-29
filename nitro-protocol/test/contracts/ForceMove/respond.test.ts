@@ -1,5 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers} from 'ethers';
+import {it} from '@jest/globals'
 
 import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
 import {Channel, getChannelId} from '../../../src/contract/channel';
@@ -28,7 +29,7 @@ const wallets = new Array(3);
 const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
 const outcome: Outcome = [{asset, metadata: '0x', allocations: []}];
-let appDefinition;
+let appDefinition: string;
 
 // Populate wallets and participants array
 for (let i = 0; i < 3; i++) {
@@ -82,7 +83,7 @@ describe('respond', () => {
       reasonString,
     }) => {
       const channel: Channel = {chainId, channelNonce, participants};
-      const channelId = getChannelId(channel);
+      const channelId = getChannelId({...channel, appDefinition, challengeDuration});
 
       const challengeState: State = {
         turnNum: turnNumRecord,

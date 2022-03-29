@@ -14,7 +14,7 @@ import {
 } from '../../../../src/contract/embedded-application';
 import {getTestProvider, setupContract} from '../../../test-helpers';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../../src/transactions';
-import {Outcome} from '../../../../lib/src';
+import {Outcome} from '../../../../src/contract/outcome';
 
 type RevertReason =
   // each reason represents a distinct code path that we should check in this test
@@ -178,7 +178,7 @@ const NoneVariablePartForJ: VariablePart = {
   outcome: encodeOutcome(absorbOutcomeOfXIntoJ(stateForX.outcome as Outcome)), // TOOD we should have a different outcome here
   appData: encodeEmbeddedApplicationData({
     alreadyMoved: AlreadyMoved.None,
-    channelIdForX: getChannelId(stateForX.channel),
+    channelIdForX: getChannelId(getFixedPart(stateForX)),
     supportProofForX: supportProofForX(stateForX), // TODO this is awkward. We would like to use a null value here
   }),
 };
@@ -187,7 +187,7 @@ const AvariablePartForJ: VariablePart = {
   outcome: encodeOutcome(absorbOutcomeOfXIntoJ(stateForX.outcome as Outcome)),
   appData: encodeEmbeddedApplicationData({
     alreadyMoved: AlreadyMoved.A,
-    channelIdForX: getChannelId(stateForX.channel),
+    channelIdForX: getChannelId(getFixedPart(stateForX)),
     supportProofForX: supportProofForX(stateForX),
   }),
 };
@@ -196,7 +196,7 @@ const BvariablePartForJ: VariablePart = {
   outcome: encodeOutcome(absorbOutcomeOfXIntoJ(stateForX.outcome as Outcome)),
   appData: encodeEmbeddedApplicationData({
     alreadyMoved: AlreadyMoved.B,
-    channelIdForX: getChannelId(stateForX.channel),
+    channelIdForX: getChannelId(getFixedPart(stateForX)),
     supportProofForX: supportProofForX(stateForX),
   }),
 };
@@ -205,7 +205,7 @@ const ABvariablePartForJ: VariablePart = {
   outcome: encodeOutcome(absorbOutcomeOfXIntoJ(greaterStateForX.outcome as Outcome)),
   appData: encodeEmbeddedApplicationData({
     alreadyMoved: AlreadyMoved.AB,
-    channelIdForX: getChannelId(stateForX.channel),
+    channelIdForX: getChannelId(getFixedPart(stateForX)),
     supportProofForX: supportProofForX(greaterStateForX),
   }),
 };
@@ -322,7 +322,7 @@ describe('EmbeddedApplication: named state transitions', () => {
       ...ABvariablePartForJ,
       appData: encodeEmbeddedApplicationData({
         alreadyMoved: AlreadyMoved.A,
-        channelIdForX: getChannelId(stateForX.channel),
+        channelIdForX: getChannelId(getFixedPart(stateForX)),
         supportProofForX: supportProofForX({...greaterStateForX, turnNum: 99}),
       }),
     };
@@ -394,7 +394,7 @@ describe('EmbeddedApplication: reversions', () => {
     const inferiorSupportProof = {...ABvariablePartForJ};
     (inferiorSupportProof.appData = encodeEmbeddedApplicationData({
       alreadyMoved: AlreadyMoved.AB,
-      channelIdForX: getChannelId(stateForX.channel),
+      channelIdForX: getChannelId(getFixedPart(stateForX)),
       supportProofForX: supportProofForX(stateForX),
     })),
       await expectRevert(
@@ -430,7 +430,7 @@ describe('EmbeddedApplication: reversions', () => {
     const appDefinitionChanged = {...AvariablePartForJ};
     appDefinitionChanged.appData = encodeEmbeddedApplicationData({
       alreadyMoved: AlreadyMoved.A,
-      channelIdForX: getChannelId(stateForX.channel),
+      channelIdForX: getChannelId(getFixedPart(stateForX)),
       supportProofForX: supportProofForX({...stateForX, appDefinition: Alice.address}),
     });
     await expectRevert(
@@ -450,7 +450,7 @@ describe('EmbeddedApplication: reversions', () => {
     const challengeDurationChanged = {...AvariablePartForJ};
     challengeDurationChanged.appData = encodeEmbeddedApplicationData({
       alreadyMoved: AlreadyMoved.A,
-      channelIdForX: getChannelId(stateForX.channel),
+      channelIdForX: getChannelId(getFixedPart(stateForX)),
       supportProofForX: supportProofForX({...stateForX, challengeDuration: 7}),
     });
     await expectRevert(
@@ -470,7 +470,7 @@ describe('EmbeddedApplication: reversions', () => {
     const malicious = {...AvariablePartForJ};
     malicious.appData = encodeEmbeddedApplicationData({
       alreadyMoved: AlreadyMoved.A,
-      channelIdForX: getChannelId(stateForX.channel),
+      channelIdForX: getChannelId(getFixedPart(stateForX)),
       supportProofForX: {...supportProofForX(stateForX), variableParts: [] as any}, // type system is trying to stop us hacking
     });
     await expectRevert(
@@ -490,7 +490,7 @@ describe('EmbeddedApplication: reversions', () => {
     const malicious = {...AvariablePartForJ};
     malicious.appData = encodeEmbeddedApplicationData({
       alreadyMoved: AlreadyMoved.A,
-      channelIdForX: getChannelId(stateForX.channel),
+      channelIdForX: getChannelId(getFixedPart(stateForX)),
       supportProofForX: {...supportProofForX(stateForX), whoSignedWhat: [9, 9]}, // type system is trying to stop us hacking
     });
     await expectRevert(
@@ -510,7 +510,7 @@ describe('EmbeddedApplication: reversions', () => {
     const malicious = {...AvariablePartForJ};
     malicious.appData = encodeEmbeddedApplicationData({
       alreadyMoved: AlreadyMoved.A,
-      channelIdForX: getChannelId(stateForX.channel),
+      channelIdForX: getChannelId(getFixedPart(stateForX)),
       supportProofForX: {
         ...supportProofForX(stateForX),
         sigs: [supportProofForX(stateForX).sigs[1], supportProofForX(stateForX).sigs[1]],
@@ -533,7 +533,7 @@ describe('EmbeddedApplication: reversions', () => {
     const malicious = {...AvariablePartForJ};
     malicious.appData = encodeEmbeddedApplicationData({
       alreadyMoved: AlreadyMoved.A,
-      channelIdForX: getChannelId(stateForX.channel),
+      channelIdForX: getChannelId(getFixedPart(stateForX)),
       supportProofForX: {
         ...supportProofForX(stateForX),
         sigs: [supportProofForX(stateForX).sigs[0], supportProofForX(stateForX).sigs[0]],

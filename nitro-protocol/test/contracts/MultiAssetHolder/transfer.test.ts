@@ -1,5 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {BigNumber, constants, Contract} from 'ethers';
+import {it} from '@jest/globals'
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 
 import {
@@ -10,7 +11,7 @@ import {
   setupContract,
 } from '../../test-helpers';
 import {encodeOutcome, hashOutcome, Outcome} from '../../../src/contract/outcome';
-import {TESTNitroAdjudicator} from '../../../typechain/TESTNitroAdjudicator';
+import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 import {channelDataToStatus} from '../../../src';
@@ -24,7 +25,7 @@ const testNitroAdjudicator = (setupContract(
 
 const addresses = {
   // Channels
-  c: undefined,
+  c: undefined as string | undefined,
   C: randomChannelId(),
   X: randomChannelId(),
   // Externals

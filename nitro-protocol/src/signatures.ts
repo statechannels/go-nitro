@@ -2,7 +2,7 @@ import {Wallet, utils, Signature} from 'ethers';
 
 import {hashChallengeMessage} from './contract/challenge';
 import {getChannelId} from './contract/channel';
-import {hashState, State} from './contract/state';
+import {getFixedPart, hashState, State} from './contract/state';
 
 /**
  * A {@link State} along with a {@link Signature} on it
@@ -21,7 +21,7 @@ export function getStateSignerAddress(signedState: SignedState): string {
   if (participants.indexOf(recoveredAddress) < 0) {
     throw new Error(
       `Recovered address ${recoveredAddress} is not a participant in channel ${getChannelId(
-        channel
+        getFixedPart(signedState.state)
       )}`
     );
   }

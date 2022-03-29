@@ -15,7 +15,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
      * @dev Finalizes a channel by providing a finalization proof, and liquidates all assets for the channel.
      * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param appPartHash The keccak256 of the abi.encode of `(challengeDuration, appDefinition, appData)`. Applies to all states in the finalization proof.
+     * @param appData Application specific data.
      * @param outcomeBytes abi.encode of an array of Outcome.OutcomeItem structs.
      * @param numStates The number of states in the finalization proof.
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
@@ -24,18 +24,17 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
     function concludeAndTransferAllAssets(
         uint48 largestTurnNum,
         FixedPart memory fixedPart,
-        bytes32 appPartHash,
+        bytes memory appData,
         bytes memory outcomeBytes,
         uint8 numStates,
         uint8[] memory whoSignedWhat,
         Signature[] memory sigs
     ) public {
-        bytes32 outcomeHash = keccak256(outcomeBytes);
         bytes32 channelId = _conclude(
             largestTurnNum,
             fixedPart,
-            appPartHash,
-            outcomeHash,
+            appData,
+            outcomeBytes,
             numStates,
             whoSignedWhat,
             sigs

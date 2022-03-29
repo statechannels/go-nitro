@@ -1,5 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, constants, BigNumber} from 'ethers';
+import {it} from '@jest/globals'
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 
 import {
@@ -10,7 +11,7 @@ import {
   setupContract,
   AssetOutcomeShortHand,
 } from '../../test-helpers';
-import {TESTNitroAdjudicator} from '../../../typechain/TESTNitroAdjudicator';
+import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 import {
@@ -28,11 +29,11 @@ const testNitroAdjudicator: TESTNitroAdjudicator & Contract = (setupContract(
   TESTNitroAdjudicatorArtifact,
   process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
 ) as unknown) as TESTNitroAdjudicator & Contract;
-const addresses = {
+const addresses: {[index: string]: any} = {
   // Channels
-  t: undefined, // Target
-  g: undefined, // Guarantor
-  x: undefined, // Application
+  t: undefined as string | undefined, // Target
+  g: undefined as string | undefined, // Guarantor
+  x: undefined as string | undefined, // Application
   // Externals
   I: randomExternalDestination(),
   A: randomExternalDestination(),
@@ -104,13 +105,13 @@ describe('claim', () => {
       reason,
     }: {
       heldBefore: AssetOutcomeShortHand;
-      guaranteeDestinations;
+      guaranteeDestinations: string[];
       tOutcomeBefore: AssetOutcomeShortHand;
       indices: number[];
       tOutcomeAfter: AssetOutcomeShortHand;
       heldAfter: AssetOutcomeShortHand;
       payouts: AssetOutcomeShortHand;
-      reason;
+      reason: string | undefined;
     }) => {
       // Compute channelIds
       const targetId = randomChannelId();
@@ -213,7 +214,7 @@ describe('claim', () => {
       }
 
       // record eth balances before the transaction so we can check payouts later
-      const ethBalancesBefore = {};
+      const ethBalancesBefore: {[index: string]: BigNumber} = {};
       await Promise.all(
         Object.keys(payouts).map(async destination => {
           const address = convertBytes32ToAddress(destination);

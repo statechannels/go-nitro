@@ -1,7 +1,7 @@
 import {Wallet} from 'ethers';
 
 import {getTestProvider, setupContract} from '../../test-helpers';
-import {TESTNitroAdjudicator} from '../../../typechain/TESTNitroAdjudicator';
+import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 
 const testNitroAdjudicator = (setupContract(

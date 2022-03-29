@@ -20,8 +20,8 @@ beforeAll(async () => {
 });
 
 describe('_isAddressInArray', () => {
-  let suspect;
-  let addresses;
+  let suspect : string;
+  let addresses : string[];
 
   beforeAll(() => {
     suspect = Wallet.createRandom().address;

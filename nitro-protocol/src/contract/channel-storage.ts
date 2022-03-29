@@ -78,7 +78,7 @@ export function encodeFingerprintPreimage(data: ChannelData): Bytes {
   return utils.defaultAbiCoder.encode([FINGERPRINT_PREIMAGE_TYPE], [getFingerprintPreimage(data)]);
 }
 
-function validateHexString(hexString) {
+function validateHexString(hexString: string) {
   if (!utils.isHexString(hexString)) {
     throw new Error(`Not a hex string: ${hexString}`);
   }

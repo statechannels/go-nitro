@@ -1,5 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers} from 'ethers';
+import {it} from '@jest/globals'
 
 const {HashZero} = ethers.constants;
 
@@ -9,7 +10,7 @@ import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.s
 import {Channel, getChannelId} from '../../../src/contract/channel';
 import {channelDataToStatus} from '../../../src/contract/channel-storage';
 import {Outcome} from '../../../src/contract/outcome';
-import {State} from '../../../src/contract/state';
+import {FixedPart, State} from '../../../src/contract/state';
 import {checkpointArgs} from '../../../src/contract/transaction-creators/force-move';
 import {
   CHANNEL_FINALIZED,
@@ -24,6 +25,7 @@ import {
   setupContract,
 } from '../../test-helpers';
 import {signStates} from '../../../src';
+import { testParams } from './types';
 
 const provider = getTestProvider();
 let ForceMove: Contract;
@@ -33,7 +35,7 @@ const wallets = new Array(3);
 const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
 const defaultOutcome: Outcome = [{asset, allocations: [], metadata: '0x'}];
-let appDefinition;
+let appDefinition: string;
 
 // Populate wallets and participants array
 for (let i = 0; i < 3; i++) {
@@ -58,7 +60,7 @@ const unsupported = {
   appDatas: [0, 1, 2],
 };
 
-const itOpensTheChannelIf = 'It accepts valid input, and clears any existing challenge, if';
+const itOpensTheChannelIf = 'It accepts valid input, and clears any existing challenge, if ';
 const accepts1 = itOpensTheChannelIf + 'the slot is empty';
 const accepts2 =
   itOpensTheChannelIf + 'there is a challenge and the existing turnNumRecord is increased';
@@ -97,10 +99,11 @@ describe('checkpoint', () => {
     ${reverts5} | ${turnNumRecord + 1} | ${invalidTransition} | ${future}    | ${COUNTING_APP_INVALID_TRANSITION}
     ${reverts6} | ${turnNumRecord + 1} | ${unsupported}       | ${future}    | ${UNACCEPTABLE_WHO_SIGNED_WHAT}
     ${reverts7} | ${turnNumRecord + 1} | ${valid}             | ${past}      | ${CHANNEL_FINALIZED}
-  `('$description', async ({largestTurnNum, support, finalizesAt, reason}) => {
+  `('$description', async ({largestTurnNum, support, finalizesAt, reason}: testParams) => {
     const {appDatas, whoSignedWhat} = support;
     const channel: Channel = {chainId, channelNonce, participants};
-    const channelId = getChannelId(channel);
+    const fixedPart: FixedPart = {chainId, channelNonce, participants, appDefinition, challengeDuration};
+    const channelId = getChannelId(fixedPart);
 
     const states = appDatas.map((data, idx) => ({
       turnNum: largestTurnNum - appDatas.length + 1 + idx,
@@ -113,8 +116,9 @@ describe('checkpoint', () => {
     }));
 
     const isOpen = !!finalizesAt;
-    const outcome = isOpen ? undefined : defaultOutcome;
-    const challengeState: State = isOpen
+    const outcome = isOpen ? [] : defaultOutcome;
+
+    const challengeState: State | undefined = isOpen
       ? undefined
       : {
           turnNum: turnNumRecord,
@@ -138,7 +142,7 @@ describe('checkpoint', () => {
     // Call public wrapper to set state (only works on test contract)
     await (await ForceMove.setStatus(channelId, fingerprint)).wait();
     expect(await ForceMove.statusOf(channelId)).toEqual(fingerprint);
-
+    
     const signatures = await signStates(states, wallets, whoSignedWhat);
 
     const tx = ForceMove.checkpoint(...checkpointArgs({states, signatures, whoSignedWhat}));

@@ -2,8 +2,8 @@ import {Signature, ethers} from 'ethers';
 
 import ForceMoveArtifact from '../../../artifacts/contracts/ForceMove.sol/ForceMove.json';
 import {signChallengeMessage} from '../../signatures';
-import {hashOutcome} from '../outcome';
-import {getFixedPart, getVariablePart, hashAppPart, State} from '../state';
+import {encodeOutcome, hashOutcome} from '../outcome';
+import {encodeAppData, getFixedPart, getVariablePart, State} from '../state';
 
 // https://github.com/ethers-io/ethers.js/issues/602#issuecomment-574671078
 export const ForceMoveContractInterface = new ethers.utils.Interface(ForceMoveArtifact.abi);
@@ -134,17 +134,16 @@ export function concludeArgs(
   const lastState = states.reduce((s1, s2) => (s1.turnNum >= s2.turnNum ? s1 : s2), states[0]);
   const largestTurnNum = lastState.turnNum;
   const fixedPart = getFixedPart(lastState);
-  const appPartHash = hashAppPart(lastState);
-
-  const outcomeHash = hashOutcome(lastState.outcome);
+  const appDataBytes = encodeAppData(lastState.appData);
+  const outcomeBytes = encodeOutcome(lastState.outcome);
 
   const numStates = states.length;
 
   return [
     largestTurnNum,
     fixedPart,
-    appPartHash,
-    outcomeHash,
+    appDataBytes,
+    outcomeBytes,
     numStates,
     whoSignedWhat,
     signatures,

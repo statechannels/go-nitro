@@ -66,6 +66,17 @@ import FULLTestNitroAdjudicatorArtifact from '../artifacts/contracts/test/TESTNi
 import FULLCountingAppArtifact from '../artifacts/contracts/CountingApp.sol/CountingApp.json';
 import FULLHashLockedSwapArtifact from '../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
 
+interface ArtifactT {
+  _format: string,
+  contractName: string,
+  sourceName: string,
+  abi: object,
+  bytecode: string,
+  deployedBytecode: string,
+  linkReferences: object,
+  deployedLinkReferences: object,
+}
+
 // https://hardhat.org/guides/compile-contracts.html#artifacts
 const fields = [
   'contractName',
@@ -85,7 +96,7 @@ interface MinimalArtifact {
   deployedLinkReferences: any;
 }
 
-const minimize = artifact => pick(artifact, fields) as MinimalArtifact;
+const minimize = (artifact: ArtifactT) => pick(artifact, fields) as MinimalArtifact;
 
 export const ContractArtifacts = {
   NitroAdjudicatorArtifact: minimize(FULLNitroAdjudicatorArtifact),
@@ -136,7 +147,6 @@ export {
   VariablePart,
   getVariablePart,
   getFixedPart,
-  hashAppPart,
   hashState,
 } from './contract/state';
 

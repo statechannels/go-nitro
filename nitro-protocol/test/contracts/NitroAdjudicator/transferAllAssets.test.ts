@@ -1,10 +1,12 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, constants} from 'ethers';
+import {it} from '@jest/globals'
 
 import {Channel, getChannelId} from '../../../src/contract/channel';
 import {encodeOutcome, hashOutcome, Outcome} from '../../../src/contract/outcome';
 import {
   computeOutcome,
+  getPlaceHolderContractAddress,
   getRandomNonce,
   getTestProvider,
   OutcomeShortHand,
@@ -13,8 +15,8 @@ import {
   replaceAddressesAndBigNumberify,
   setupContract,
 } from '../../test-helpers';
-import {TESTNitroAdjudicator} from '../../../typechain/TESTNitroAdjudicator';
-import {Token} from '../../../typechain/Token';
+import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
+import {Token} from '../../../typechain-types/Token';
 import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
@@ -35,7 +37,7 @@ const token = (setupContract(
 
 const addresses = {
   // Channels
-  c: undefined,
+  c: undefined as string | undefined,
   C: randomChannelId(),
   X: randomChannelId(),
   // Externals
@@ -50,12 +52,18 @@ const addresses = {
 const chainId = process.env.CHAIN_NETWORK_ID;
 const participants = ['', '', ''];
 const wallets = new Array(3);
+const challengeDuration = 0x1000;
+let appDefinition: string;
 
 // Populate wallets and participants array
 for (let i = 0; i < 3; i++) {
   wallets[i] = Wallet.createRandom();
   participants[i] = wallets[i].address;
 }
+
+beforeAll(async () => {
+  appDefinition = getPlaceHolderContractAddress();
+});
 
 const description =
   'testNitroAdjudicator accepts a transferAllAssets tx for a finalized channel, and 2x Asset types transferred';
@@ -83,7 +91,7 @@ describe('transferAllAssets', () => {
       reasonString: string;
     }) => {
       const channel: Channel = {chainId, channelNonce, participants};
-      const channelId = getChannelId(channel);
+      const channelId = getChannelId({...channel, appDefinition, challengeDuration});
       addresses.c = channelId;
 
       // Transform input data (unpack addresses and BigNumberify amounts)
@@ -147,6 +155,11 @@ describe('transferAllAssets', () => {
         await expectRevert(() => tx1, regex);
       } else {
         const {events: eventsFromTx} = await (await tx1).wait();
+
+        expect(eventsFromTx).not.toBe(undefined);
+        if (eventsFromTx === undefined) {
+          return;
+        }
 
         // expect an event per asset
         expect(eventsFromTx[0].event).toEqual('AllocationUpdated');

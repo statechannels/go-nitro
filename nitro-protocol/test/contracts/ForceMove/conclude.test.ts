@@ -1,6 +1,7 @@
 import {expectRevert} from '@statechannels/devtools';
 import {ethers, Contract, Wallet} from 'ethers';
 const {HashZero} = ethers.constants;
+import {it} from '@jest/globals'
 
 import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
 import {Channel, getChannelId} from '../../../src/contract/channel';
@@ -31,7 +32,7 @@ const wallets = new Array(3);
 const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
 const outcome: Outcome = [{asset, allocations: [], metadata: '0x'}];
-let appDefinition;
+let appDefinition: string;
 
 const nParticipants = 3;
 // Populate wallets and participants array
@@ -100,7 +101,7 @@ describe('conclude', () => {
     '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, largestTurnNum, support, reasonString}) => {
       const channel: Channel = {chainId, participants, channelNonce};
-      const channelId = getChannelId(channel);
+      const channelId = getChannelId({...channel, appDefinition, challengeDuration});
       const {appData, whoSignedWhat} = support;
       const numStates = appData.length;
 
@@ -120,7 +121,7 @@ describe('conclude', () => {
       // Call public wrapper to set state (only works on test contract)
       await (await ForceMove.setStatus(channelId, initialFingerprint)).wait();
       expect(await ForceMove.statusOf(channelId)).toEqual(initialFingerprint);
-
+      
       // Sign the states
       const sigs = await signStates(states, wallets, whoSignedWhat);
 

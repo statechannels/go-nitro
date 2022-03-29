@@ -1,4 +1,5 @@
 import {ethers, Wallet} from 'ethers';
+import {it} from '@jest/globals'
 
 import {SignedState, State} from '../../src';
 import {Channel} from '../../src/contract/channel';
@@ -148,7 +149,7 @@ describe('transaction-generators', () => {
 
     it('throws an error when there is no challenge state', async () => {
       expect(() => {
-        createRespondTransaction(null as State, signedStateA);
+        createRespondTransaction(null as unknown as State, signedStateA);
       }).toThrow();
     });
   });

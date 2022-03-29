@@ -24,17 +24,11 @@ interface IForceMove {
 
     struct State {
         // participants sign the hash of this
+        bytes32 channelId; // keccack(chainId,participants,channelNonce,appDefinition,challengeDuration)
+        bytes appData;
+        bytes outcome;
         uint48 turnNum;
         bool isFinal;
-        bytes32 channelId; // keccack(chainId,participants,channelNonce)
-        bytes32 appPartHash;
-        //     keccak256(abi.encode(
-        //         fixedPart.challengeDuration,
-        //         fixedPart.appDefinition,
-        //         variablePart.appData
-        //     )
-        // )
-        bytes32 outcomeHash;
     }
 
     /**
@@ -99,8 +93,8 @@ interface IForceMove {
      * @dev Finalizes a channel by providing a finalization proof.
      * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param appPartHash The keccak256 of the abi.encode of `(challengeDuration, appDefinition, appData)`. Applies to all states in the finalization proof.
-     * @param outcomeHash The keccak256 of the abi.encode of the `outcome`. Applies to all stats in the finalization proof.
+     * @param appData The keccak256 of the abi.encode of `(challengeDuration, appDefinition, appData)`. Applies to all states in the finalization proof.
+     * @param outcome An outcome structure bytes.
      * @param numStates The number of states in the finalization proof.
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
      * @param sigs An array of signatures that support the state with the `largestTurnNum`:: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
@@ -108,8 +102,8 @@ interface IForceMove {
     function conclude(
         uint48 largestTurnNum,
         FixedPart calldata fixedPart,
-        bytes32 appPartHash,
-        bytes32 outcomeHash,
+        bytes memory appData,
+        bytes memory outcome,
         uint8 numStates,
         uint8[] calldata whoSignedWhat,
         Signature[] calldata sigs

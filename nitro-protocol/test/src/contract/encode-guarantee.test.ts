@@ -1,4 +1,5 @@
 import {encodeGuaranteeData, decodeGuaranteeData} from '../../../src/contract/outcome';
+import {it} from '@jest/globals'
 
 const destination = '0x14bcc435f49d130d189737f9762feb25c44ef5b886bef833e31a702af6be4748';
 

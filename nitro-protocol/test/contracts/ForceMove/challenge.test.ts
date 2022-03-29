@@ -1,5 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers, Signature, BigNumber} from 'ethers';
+import {it} from '@jest/globals'
 
 const {HashZero} = ethers.constants;
 const {defaultAbiCoder} = ethers.utils;
@@ -33,6 +34,7 @@ import {
 import {createChallengeTransaction, NITRO_MAX_GAS} from '../../../src/transactions';
 import {hashChallengeMessage} from '../../../src/contract/challenge';
 import {MAX_OUTCOME_ITEMS} from '../../../src/contract/outcome';
+import { transitionType } from './types';
 
 const provider = getTestProvider();
 
@@ -148,14 +150,13 @@ describe('challenge', () => {
   `(
     '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, stateData, challengeSignatureType, reasonString}) => {
-      const {appDatas, whoSignedWhat} = stateData;
+      const {appDatas, whoSignedWhat} : transitionType = stateData;
       const channel: Channel = {
         chainId,
         participants,
         channelNonce,
       };
-      const channelId = getChannelId(channel);
-
+      
       const states: State[] = appDatas.map((data, idx) => ({
         turnNum: largestTurnNum - appDatas.length + 1 + idx,
         isFinal: idx > appDatas.length - isFinalCount,
@@ -167,7 +168,8 @@ describe('challenge', () => {
       }));
       const variableParts = states.map(state => getVariablePart(state));
       const fixedPart = getFixedPart(states[0]);
-
+      const channelId = getChannelId(fixedPart);
+      
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
       const challengeState: SignedState = {
@@ -255,14 +257,17 @@ describe('challenge', () => {
 });
 
 describe('challenge with transaction generator', () => {
+  const twoPartyFixedPart = {...twoPartyChannel, appDefinition, challengeDuration};
+  
   beforeEach(async () => {
-    await (await ForceMove.setStatus(getChannelId(twoPartyChannel), HashZero)).wait();
+    await (await ForceMove.setStatus(getChannelId(twoPartyFixedPart), HashZero)).wait();
   });
+  // FIX: even if dropping channel status before each test, turn nums from prev tests are saved and can cause reverts
   it.each`
     description                                     | appData   | outcome                            | turnNums  | challenger
     ${'challenge(0,1) accepted'}                    | ${[0, 0]} | ${[]}                              | ${[0, 1]} | ${1}
     ${'challenge(1,2) accepted'}                    | ${[0, 0]} | ${[]}                              | ${[1, 2]} | ${0}
-    ${'challenge(1,2) accepted, MAX_OUTCOME_ITEMS'} | ${[0, 0]} | ${largeOutcome(MAX_OUTCOME_ITEMS)} | ${[1, 2]} | ${0}
+    ${'challenge(3,4) accepted, MAX_OUTCOME_ITEMS'} | ${[0, 1]} | ${largeOutcome(MAX_OUTCOME_ITEMS)} | ${[3, 4]} | ${0}
   `('$description', async ({appData, turnNums, challenger}) => {
     const transactionRequest: ethers.providers.TransactionRequest = createChallengeTransaction(
       [
@@ -271,6 +276,7 @@ describe('challenge with transaction generator', () => {
       ],
       wallets[challenger].privateKey
     );
+
     const signer = provider.getSigner();
     const response = await signer.sendTransaction({
       to: ForceMove.address,

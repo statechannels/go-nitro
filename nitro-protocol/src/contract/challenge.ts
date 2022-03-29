@@ -29,8 +29,8 @@ export interface ChallengeRegisteredStruct {
   finalizesAt: Uint48;
   challenger: Address;
   isFinal: boolean;
-  fixedPart: FixedPart;
-  variableParts: VariablePart[];
+  fixedPart: Array<any>;
+  variableParts: Array<any>;
   sigs: Signature[];
   whoSignedWhat: Uint8[];
 }
@@ -53,7 +53,7 @@ export function getChallengeRegisteredEvent(eventResult: any[]): ChallengeRegist
 
   // Fixed part
   const chainId = BigNumber.from(fixedPart[0]).toHexString();
-  const participants = fixedPart[1].map(p => BigNumber.from(p).toHexString());
+  const participants = fixedPart[1].map((p: string) => BigNumber.from(p).toHexString());
   const channelNonce = fixedPart[2];
   const appDefinition = fixedPart[3];
   const challengeDuration = BigNumber.from(fixedPart[4]).toNumber();

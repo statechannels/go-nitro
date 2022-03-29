@@ -25,7 +25,7 @@ const multiAssetReplaced = {
   '0xTOK': {'0xANOTHERCHANNEL': BigNumber.from(4)},
 };
 
-describe('replaceAddressesAndBigNumberify', () => {
+describe.only('replaceAddressesAndBigNumberify', () => {
   it('replaces without recursion', () => {
     expect(replaceAddressesAndBigNumberify(singleAsset, addresses)).toStrictEqual(
       singleAssetReplaced

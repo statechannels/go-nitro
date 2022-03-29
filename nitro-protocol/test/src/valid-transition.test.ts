@@ -1,4 +1,5 @@
 import {ethers, Wallet} from 'ethers';
+import {it} from '@jest/globals'
 
 import {Channel, State} from '../../src';
 import {requireValidProtocolTransition, ValidTransitionStatus} from '../../src/valid-transition';
@@ -39,7 +40,7 @@ const incorrectTurnNumCases: TestCaseWithError[] = [
 //prettier-ignore
 const changedAConstantCases: TestCaseWithError[] = [
   [/chainId must not change/, {}, { channel: {...baseToState.channel, chainId: '0x2'}}],
-  [/participants must not change/, {}, { channel: {...baseToState.channel, participants: [baseToState.channel[0]]}}],
+  [/participants must not change/, {}, { channel: {...baseToState.channel, participants: baseToState.channel.participants}}],
   [/channelNonce must not change/, {}, { channel: {... baseToState.channel, channelNonce: baseToState.channel.channelNonce + 1}} ],
   [/appDefinition must not change/, {}, { appDefinition: channel.participants[0]} ],
   [/challengeDuration must not change/, {}, { challengeDuration: baseToState.challengeDuration + 1}],

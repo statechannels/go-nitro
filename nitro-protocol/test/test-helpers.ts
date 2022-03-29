@@ -5,6 +5,7 @@ import {ChallengeClearedEvent, ChallengeRegisteredStruct} from '../src/contract/
 import {channelDataToStatus} from '../src/contract/channel-storage';
 import {Outcome} from '../src/contract/outcome';
 import {Bytes32} from '../src';
+import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 
 // Interfaces
 
@@ -159,7 +160,7 @@ export const newDepositedEvent = (
 };
 
 // Copied from https://stackoverflow.com/questions/58325771/how-to-generate-random-hex-string-in-javascript
-const genRanHex = size =>
+const genRanHex = (size: number) =>
   [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
 
 export const randomChannelId = (): Bytes32 => '0x' + genRanHex(64);
@@ -185,17 +186,21 @@ export async function sendTransaction(
  * @returns suitably modified copy of object
  */
 export function replaceAddressesAndBigNumberify(
-  object: AssetOutcomeShortHand | OutcomeShortHand | string,
+  object: AssetOutcomeShortHand | OutcomeShortHand | BigNumberish,
   addresses: AddressesLookup
-): AssetOutcomeShortHand | OutcomeShortHand | string {
-  const newObject = {};
+): AssetOutcomeShortHand | OutcomeShortHand | BigNumberish {
+  if (isBigNumberish(object)) {
+    return BigNumber.from(object);
+  }
+  const newObject: AssetOutcomeShortHand | OutcomeShortHand = {};
   Object.keys(object).forEach(key => {
-    if (typeof object[key] === 'object') {
+    if (isBigNumberish(object[key])) {
+      newObject[addresses[key]!] = BigNumber.from(object[key]);
+    } else if (typeof object[key] === 'object') {
       // Recurse
-      newObject[addresses[key]] = replaceAddressesAndBigNumberify(object[key], addresses);
-    }
-    if (typeof object[key] === 'number') {
-      newObject[addresses[key]] = BigNumber.from(object[key]);
+      newObject[addresses[key]!] =
+        replaceAddressesAndBigNumberify(object[key], addresses) as
+        AssetOutcomeShortHand | BigNumberish;
     }
   });
   return newObject;
@@ -256,8 +261,8 @@ export function computeOutcome(outcomeShortHand: OutcomeShortHand): Outcome {
   return outcome;
 }
 
-export function compileEventsFromLogs(logs: any[], contractsArray: Contract[]): Event[] {
-  const events = [];
+export function compileEventsFromLogs(logs: any[], contractsArray: Contract[]): Object[] {
+  const events: Object[] = [];
   logs.forEach(log => {
     contractsArray.forEach(contract => {
       if (log.address === contract.address) {

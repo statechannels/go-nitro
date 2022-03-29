@@ -3,7 +3,7 @@ import {utils, providers, Signature, constants} from 'ethers';
 import NitroAdjudicatorArtifact from '../../../artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
 import {getChannelId, hashState} from '../../';
 import {encodeOutcome} from '../outcome';
-import {getFixedPart, hashAppPart, State} from '../state';
+import {encodeAppData, getFixedPart, State} from '../state';
 
 // https://github.com/ethers-io/ethers.js/issues/602#issuecomment-574671078
 const NitroAdjudicatorContractInterface = new utils.Interface(NitroAdjudicatorArtifact.abi);
@@ -27,16 +27,16 @@ export function concludeAndTransferAllAssetsArgs(
   const lastState = states.reduce((s1, s2) => (s1.turnNum >= s2.turnNum ? s1 : s2), states[0]);
   const largestTurnNum = lastState.turnNum;
   const fixedPart = getFixedPart(lastState);
-  const appPartHash = hashAppPart(lastState);
 
   const outcomeBytes = encodeOutcome(lastState.outcome);
+  const appDataBytes = encodeAppData(lastState.appData);
 
   const numStates = states.length;
 
   return [
     largestTurnNum,
     fixedPart,
-    appPartHash,
+    appDataBytes,
     outcomeBytes,
     numStates,
     whoSignedWhat,
@@ -61,7 +61,7 @@ function transferAllAssetsArgs(
   state: State,
   overrideStateHash = false // set to true if channel concluded happily
 ): any[] {
-  const channelId = getChannelId(state.channel);
+  const channelId = getChannelId(getFixedPart(state));
   const outcomeBytes = encodeOutcome(state.outcome);
   const stateHash = overrideStateHash ? constants.HashZero : hashState(state);
   return [channelId, outcomeBytes, stateHash];

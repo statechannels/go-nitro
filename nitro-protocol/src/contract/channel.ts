@@ -1,4 +1,5 @@
 import {utils} from 'ethers';
+import { FixedPart } from './state';
 
 import {Address, Bytes32, Uint256, Uint48} from './types';
 
@@ -25,12 +26,12 @@ export function isExternalDestination(bytes32: Bytes32): boolean {
  * @param channel Parameters which determine the id
  * @returns a 32 byte hex string representing the id
  */
-export function getChannelId(channel: Channel): Bytes32 {
-  const {chainId, participants, channelNonce} = channel;
+export function getChannelId(fixedPart: FixedPart): Bytes32 {
+  const {chainId, participants, channelNonce, appDefinition, challengeDuration} = fixedPart;
   const channelId = utils.keccak256(
     utils.defaultAbiCoder.encode(
-      ['uint256', 'address[]', 'uint256'],
-      [chainId, participants, channelNonce]
+      ['uint256', 'address[]', 'uint256', 'address', 'uint48'],
+      [chainId, participants, channelNonce, appDefinition, challengeDuration]
     )
   );
   if (isExternalDestination(channelId))

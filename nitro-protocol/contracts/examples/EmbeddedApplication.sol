@@ -263,14 +263,6 @@ contract EmbeddedApplication is
             '1 or 2 states required'
         );
 
-        bytes32 appPartHash = keccak256(
-            abi.encode(
-                toAppData.supportProofForX.fixedPart.challengeDuration,
-                toAppData.supportProofForX.fixedPart.appDefinition,
-                toAppData.supportProofForX.variableParts[0].appData
-            )
-        );
-
         // hash the greatest state first (either the later of a pair, or the only state provided)
 
         uint256 finalIndex = toAppData.supportProofForX.variableParts.length - 1;
@@ -278,16 +270,12 @@ contract EmbeddedApplication is
         bytes memory greaterStateOutcome = toAppData.supportProofForX.variableParts[finalIndex]
             .outcome;
 
-        bytes32 greaterStateHash = keccak256(
-            abi.encode(
-                IForceMove.State(
-                    toAppData.supportProofForX.turnNumTo,
-                    false, // Assume isFinal is false
-                    toAppData.channelIdForX,
-                    appPartHash,
-                    keccak256(greaterStateOutcome)
-                )
-            )
+        bytes32 greaterStateHash = _hashState(
+            toAppData.channelIdForX,
+            toAppData.supportProofForX.variableParts[0].appData,
+            greaterStateOutcome,
+            toAppData.supportProofForX.turnNumTo,
+            false
         );
 
         if (
@@ -309,18 +297,14 @@ contract EmbeddedApplication is
                 'sig1 !by participant1'
             );
         } else {
-            bytes32 lesserStateHash = keccak256(
-                abi.encode(
-                    IForceMove.State(
-                        toAppData.supportProofForX.turnNumTo - 1,
-                        false, // Assume isFinal is false
-                        toAppData.channelIdForX,
-                        appPartHash,
-                        keccak256(toAppData.supportProofForX.variableParts[0].outcome)
-                    )
-                )
+            bytes32 lesserStateHash = _hashState(
+                toAppData.channelIdForX,
+                toAppData.supportProofForX.variableParts[0].appData,
+                toAppData.supportProofForX.variableParts[0].outcome,
+                toAppData.supportProofForX.turnNumTo - 1,
+                false // Assume isFinal is false
             );
-
+            
             if (
                 (toAppData.supportProofForX.whoSignedWhat[0] == 0) &&
                 (toAppData.supportProofForX.whoSignedWhat[1] == 1)
@@ -414,5 +398,35 @@ contract EmbeddedApplication is
 
         // Throws unless there are exactly 3 allocations
         require(allocations.length == 2, 'allocation.length != 3');
+    }
+
+    /**
+     * @notice Computes the hash of the state corresponding to the input data.
+     * @dev Computes the hash of the state corresponding to the input data.
+     * @param turnNum Turn number
+     * @param isFinal Is the state final?
+     * @param channelId Unique identifier for the channel
+     * @param appData Application specific date
+     * @param outcome Outcome bytes. Will be decoded to hash State properly
+     * @return The stateHash
+     */
+    function _hashState(
+        bytes32 channelId,
+        bytes memory appData,
+        bytes memory outcome,
+        uint48 turnNum,
+        bool isFinal
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    channelId,
+                    appData,
+                    // Decoding to get an Outcome struct, since it is the one used in go-nitro State hashing
+                    Outcome.decodeExit(outcome),
+                    turnNum,
+                    isFinal
+                )
+            );
     }
 }
