@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -100,6 +101,9 @@ func TestConstructFromState(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	// Construct various variables for use in TestUpdate
 	var s, _ = constructFromState(false, testState, testState.Participants[0])
+	s = td.Objectives.Directfund.GenericDFO()
+
+
 
 	var stateToSign state.State = s.C.PreFundState()
 	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
