@@ -9,6 +9,8 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/protocols/directfund"
+
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -228,15 +230,15 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 // - The first alloction entry is for left
 // - The second alloction entry is for right
 // - We ignore guarantee metadata and just assume that it is [left,right]
-func FromExit(sae outcome.SingleAssetExit) *LedgerOutcome {
+func FromExit(sae outcome.SingleAssetExit) LedgerOutcome {
 
-	left := Balance{destination: sae.Allocations[0].Destination, amount: *sae.Allocations[0].Amount}
-	right := Balance{destination: sae.Allocations[1].Destination, amount: *sae.Allocations[1].Amount}
+	left := Balance{destination: sae.Allocations[0].Destination, amount: sae.Allocations[0].Amount}
+	right := Balance{destination: sae.Allocations[1].Destination, amount: sae.Allocations[1].Amount}
 	guarantees := make(map[types.Destination]Guarantee)
 	for _, a := range sae.Allocations {
 
 		if a.AllocationType == outcome.GuaranteeAllocationType {
-			g := Guarantee{amount: *a.Amount,
+			g := Guarantee{amount: a.Amount,
 				target: a.Destination,
 				// Instead of decoding the metadata we make an assumption that the metadata has the left/right we expect
 				left:  left.destination,
@@ -245,7 +247,7 @@ func FromExit(sae outcome.SingleAssetExit) *LedgerOutcome {
 		}
 
 	}
-	return &LedgerOutcome{left: left, right: right, guarantees: guarantees, assetAddress: sae.Asset}
+	return LedgerOutcome{left: left, right: right, guarantees: guarantees, assetAddress: sae.Asset}
 
 }
 
@@ -453,4 +455,48 @@ func (v Vars) AsState(fp state.FixedPart) state.State {
 // Participants returns the channel participants.
 func (c *ConsensusChannel) Participants() []types.Address {
 	return c.fp.Participants
+}
+
+// CreateFromDirectFundingObjective accepts an objective and generates a new consensus channel from it.
+// It assumes that EVERY DirectFundingObjective is for a ledger channel.
+func CreateFromDirectFundingObjective(dfo directfund.Objective) (*ConsensusChannel, error) {
+	// The current assumption is that ANY direct funding objective is for a ledger channel
+	ledger := dfo.C
+
+	if !ledger.PostFundComplete() {
+		return nil, fmt.Errorf("expected funding for channel %s to be complete", dfo.C.Id)
+	}
+	signedPostFund := ledger.SignedPostFundState()
+	leaderSig, err := signedPostFund.GetParticipantSignature(uint(leader))
+	if err != nil {
+		return nil, fmt.Errorf("could not get leader signature: %w", err)
+	}
+	followerSig, err := signedPostFund.GetParticipantSignature(uint(follower))
+	if err != nil {
+		return nil, fmt.Errorf("could not get follower signature: %w", err)
+	}
+	signatures := [2]state.Signature{leaderSig, followerSig}
+
+	if len(signedPostFund.State().Outcome) != 1 {
+		return nil, fmt.Errorf("a consensus channel only supports a single asset")
+	}
+	assetExit := signedPostFund.State().Outcome[0]
+	turnNum := signedPostFund.State().TurnNum
+	outcome := FromExit(assetExit)
+
+	if ledger.MyIndex == uint(leader) {
+		con, err := NewLeaderChannel(ledger.FixedPart, turnNum, outcome, signatures)
+		if err != nil {
+			return nil, fmt.Errorf("could not create consensus channel as leader: %w", err)
+		}
+		return &con.ConsensusChannel, nil
+
+	} else {
+		con, err := NewLeaderChannel(ledger.FixedPart, turnNum, outcome, signatures)
+		if err != nil {
+			return nil, fmt.Errorf("could not create consensus channel as follower: %w", err)
+		}
+		return &con.ConsensusChannel, nil
+	}
+
 }
