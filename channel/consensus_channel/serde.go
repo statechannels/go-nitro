@@ -19,7 +19,7 @@ type jsonGuarantee struct {
 }
 
 // MarshalJSON returns a JSON representation of the Guarantee
-func (g *Guarantee) MarshalJSON() ([]byte, error) {
+func (g Guarantee) MarshalJSON() ([]byte, error) {
 	jsonG := jsonGuarantee{
 		g.amount, g.target, g.left, g.right,
 	}
@@ -53,7 +53,7 @@ type jsonLedgerOutcome struct {
 }
 
 // MarshalJSON returns a JSON representation of the LedgerOutcome
-func (l *LedgerOutcome) MarshalJSON() ([]byte, error) {
+func (l LedgerOutcome) MarshalJSON() ([]byte, error) {
 	jsonLo := jsonLedgerOutcome{
 		AssetAddress: l.assetAddress,
 		Left:         l.left,
@@ -91,7 +91,7 @@ type jsonConsensusChannel struct {
 }
 
 // MarshalJSON returns a JSON representation of the ConsensusChannel
-func (c *ConsensusChannel) MarshalJSON() ([]byte, error) {
+func (c ConsensusChannel) MarshalJSON() ([]byte, error) {
 	jsonCh := jsonConsensusChannel{
 		Id:            c.Id,
 		MyIndex:       c.myIndex,
