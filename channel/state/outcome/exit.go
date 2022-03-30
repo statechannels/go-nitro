@@ -2,9 +2,7 @@ package outcome
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -114,20 +112,31 @@ type rawExitType = []struct {
 
 // convertToExit converts a rawExitType to an Exit
 func convertToExit(r rawExitType) Exit {
-	var exit Exit
-	j, err := json.Marshal(r)
-
-	if err != nil {
-		log.Fatal(`error marshalling`)
-	}
-
-	err = json.Unmarshal(j, &exit)
-
-	if err != nil {
-		log.Fatal(`error unmarshalling`, err)
+	exit := make(Exit, len(r))
+	for i, raw := range r {
+		exit[i] = SingleAssetExit{
+			Asset:       raw.Asset,
+			Metadata:    raw.Metadata,
+			Allocations: convertToAllocations(raw.Allocations),
+		}
 	}
 
 	return exit
+}
+
+// convertToAllocations converts a rawAllocationsType to an Allocations
+func convertToAllocations(r rawAllocationsType) Allocations {
+	allocations := make(Allocations, len(r))
+	for i, raw := range r {
+		allocations[i] = Allocation{
+			Destination:    raw.Destination,
+			AllocationType: raw.AllocationType,
+			Amount:         raw.Amount,
+			Metadata:       raw.Metadata,
+		}
+	}
+
+	return allocations
 }
 
 // Encode returns the abi encoded Exit

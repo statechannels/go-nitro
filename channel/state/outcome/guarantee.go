@@ -1,9 +1,6 @@
 package outcome
 
 import (
-	"encoding/json"
-	"log"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -33,19 +30,8 @@ type rawGuaranteeMetadataType = struct {
 
 // convertToGuaranteeMetadata converts a rawGuaranteeMetadataType to a GuaranteeMetadata
 func convertToGuaranteeMetadata(r rawGuaranteeMetadataType) GuaranteeMetadata {
-	var guaranteeMetadata GuaranteeMetadata
-	j, err := json.Marshal(r)
 
-	if err != nil {
-		log.Fatal(`error marshalling`)
-	}
-
-	err = json.Unmarshal(j, &guaranteeMetadata)
-
-	if err != nil {
-		log.Fatal(`error unmarshalling`, err)
-	}
-
+	guaranteeMetadata := GuaranteeMetadata{Left: types.Destination(r.Left), Right: types.Destination(r.Right)}
 	return guaranteeMetadata
 }
 
