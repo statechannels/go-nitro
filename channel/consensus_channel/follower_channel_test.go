@@ -28,8 +28,6 @@ func createSignedProposal(vars Vars, proposal Add, fp state.FixedPart, pk []byte
 }
 
 func TestReceive(t *testing.T) {
-	targetChannel := types.Destination{2}
-
 	var vAmount = uint64(5)
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
 	aliceSig, _ := initialVars.AsState(fp()).Sign(Actors.Alice.PrivateKey)
@@ -98,8 +96,6 @@ func TestReceive(t *testing.T) {
 
 }
 func TestFollowerChannel(t *testing.T) {
-	targetChannel := types.Destination{2}
-
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
 	aliceSig, _ := initialVars.AsState(fp()).Sign(Actors.Alice.PrivateKey)
 	bobsSig, _ := initialVars.AsState(fp()).Sign(Actors.Bob.PrivateKey)

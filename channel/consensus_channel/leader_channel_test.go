@@ -11,7 +11,6 @@ import (
 
 func TestLeaderChannel(t *testing.T) {
 	existingChannel := types.Destination{1}
-	targetChannel := types.Destination{2}
 	aBal := uint64(200)
 	bBal := uint64(300)
 	vAmount := uint64(5)
