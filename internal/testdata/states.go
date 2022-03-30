@@ -21,6 +21,7 @@ type outcomes struct {
 	Create func(a, b types.Address, aBalance, bBalance uint) outcome.Exit
 	// CreateLongOutcome returns a simple outcome {addressOne: balanceOne ...} in the
 	// zero-asset (chain-native token)
+	// The outcome can be of arbitrary length, and is formed in order that the SimpleItems are provided
 	CreateLongOutcome func(items ...SimpleItem) outcome.Exit
 }
 
@@ -101,6 +102,7 @@ func createOutcome(first types.Address, second types.Address, x, y uint) outcome
 	}}
 }
 
+// createLongOutcome creates an outcome of arbitrary length, in the order of the provided SimpleItems
 func createLongOutcome(items ...SimpleItem) outcome.Exit {
 	sae := outcome.SingleAssetExit{}
 	for _, i := range items {
