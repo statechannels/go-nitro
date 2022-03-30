@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 
@@ -38,8 +39,9 @@ type GuaranteeInfo struct {
 	GuaranteeDestination types.Destination
 }
 type Connection struct {
-	Channel       *channel.TwoPartyLedger // todo: #420 deprecate in favor of consensus_channel.ConsensusChannel
-	GuaranteeInfo GuaranteeInfo
+	Channel          *channel.TwoPartyLedger // todo: #420 deprecate in favor of
+	ConsensusChannel *consensus_channel.ConsensusChannel
+	GuaranteeInfo    GuaranteeInfo
 }
 
 // Equal returns true if the Connection pointed to by the supplied pointer is deeply equal to the receiver.
@@ -50,6 +52,10 @@ func (c *Connection) Equal(d *Connection) bool {
 	if !c.Channel.Equal(d.Channel) {
 		return false
 	}
+	//
+	// if c.ConsensusChannel.Id != d.ConsensusChannel.Id {
+	// 	return false
+	// }
 	if !reflect.DeepEqual(c.GuaranteeInfo, d.GuaranteeInfo) {
 		return false
 	}
@@ -95,7 +101,7 @@ func NewObjective(request ObjectiveRequest, getTwoPartyLedger GetTwoPartyLedgerF
 			IsFinal:           false,
 		},
 		request.MyAddress,
-		left, right)
+		left, nil, right, nil) // todo: replace nil consensusChannels
 	if err != nil {
 		return Objective{}, fmt.Errorf("error creating objective: %w", err)
 	}
@@ -109,7 +115,9 @@ func constructFromState(
 	initialStateOfV state.State,
 	myAddress types.Address,
 	ledgerChannelToMyLeft *channel.TwoPartyLedger,
+	consensusChannelToMyLeft *consensus_channel.ConsensusChannel,
 	ledgerChannelToMyRight *channel.TwoPartyLedger,
+	consensusChannelToMyRight *consensus_channel.ConsensusChannel,
 ) (Objective, error) {
 
 	var init Objective
@@ -171,6 +179,7 @@ func constructFromState(
 	if !init.isAlice() { // everyone other than Alice has a left-channel
 		init.ToMyLeft = &Connection{}
 		init.ToMyLeft.Channel = ledgerChannelToMyLeft
+		init.ToMyLeft.ConsensusChannel = consensusChannelToMyLeft
 		err = init.ToMyLeft.insertGuaranteeInfo(
 			init.a0,
 			init.b0,
@@ -186,6 +195,7 @@ func constructFromState(
 	if !init.isBob() { // everyone other than Bob has a right-channel
 		init.ToMyRight = &Connection{}
 		init.ToMyRight.Channel = ledgerChannelToMyRight
+		init.ToMyRight.ConsensusChannel = consensusChannelToMyRight
 		err = init.ToMyRight.insertGuaranteeInfo(
 			init.a0,
 			init.b0,
@@ -235,9 +245,11 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 
 	if !o.isAlice() {
 		toMyLeftId = o.ToMyLeft.Channel.Id // Avoid this if it is nil // todo: #420 deprecate
+		// toMyLeftId = o.ToMyLeft.ConsensusChannel.Id
 	}
 	if !o.isBob() {
 		toMyRightId = o.ToMyRight.Channel.Id // Avoid this if it is nil // todo: #420 deprecate
+		// toMyRightId = o.ToMyRight.ConsensusChannel.Id
 	}
 
 	// todo: range over event.Proposals (or similar)
@@ -528,8 +540,8 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 		true, // TODO ensure objective in only approved if the application has given permission somehow
 		initialState,
 		myAddress,
-		left,
-		right,
+		left, nil, // todo: replace nil consensusChannels
+		right, nil,
 	)
 }
 

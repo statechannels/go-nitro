@@ -286,7 +286,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		testNew := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
 			// Assert that a valid set of constructor args does not result in an error
-			o, err := constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			o, err := constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, nil, ledgerChannelToMyRight, nil) // todo: #420 deprecate TwoPartyLedgers
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -340,7 +340,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		testclone := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
 
-			o, _ := constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			o, _ := constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, nil, ledgerChannelToMyRight, nil) // todo: #420 deprecate TwoPartyLedgers
 
 			clone := o.clone()
 
@@ -351,7 +351,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		testCrank := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
-			var s, _ = constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			var s, _ = constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, nil, ledgerChannelToMyRight, nil) // todo: #420 deprecate TwoPartyLedgers
 			// Assert that cranking an unapproved objective returns an error
 			if _, _, _, err := s.Crank(&my.privateKey); err == nil {
 				t.Fatal(`Expected error when cranking unapproved objective, but got nil`)
@@ -486,7 +486,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		testUpdate := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
-			var s, _ = constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
+			var s, _ = constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, nil, ledgerChannelToMyRight, nil) // todo: #420 deprecate TwoPartyLedgers
 			// Prepare an event with a mismatched objectiveId
 			e := protocols.ObjectiveEvent{
 				ObjectiveId: "some-other-id",
