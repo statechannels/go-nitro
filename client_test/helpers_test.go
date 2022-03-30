@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -64,16 +65,23 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 }
 
 // setupClient is a helper function that contructs a client and returns the new client and message service.
-func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservice.Broker, logFilename string, meanMessageDelay time.Duration) client.Client {
+func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservice.Broker, logDestination io.Writer, meanMessageDelay time.Duration) client.Client {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	chain.Subscribe(myAddress)
 	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
 	storeA := store.NewMockStore(pk)
-	logDestination := newLogWriter(logFilename)
 	return client.New(messageservice, chainservice, storeA, logDestination)
 }
 
+func flushToFileCleanupFn(w io.Reader, fileName string) func() {
+	return func() {
+		truncateLog(fileName)
+		ld := newLogWriter(fileName)
+		_, _ = ld.ReadFrom(w)
+		ld.Close()
+	}
+}
 func truncateLog(logFile string) {
 	logDestination := newLogWriter(logFile)
 

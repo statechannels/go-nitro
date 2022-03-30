@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -24,16 +25,17 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 
 	// This test fails due to https://github.com/statechannels/go-nitro/issues/366
 	t.Skip()
-	// Set up logging
-	logFile := "virtual_fund_message_delay_test.log"
-	truncateLog(logFile)
+
+	// Setup logging
+	logDestination := &bytes.Buffer{}
+	t.Cleanup(flushToFileCleanupFn(logDestination, "virtual_fund_message_delay_test.log"))
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientA := setupClient(alice.PrivateKey, chain, broker, logFile, MAX_MESSAGE_DELAY)
-	clientB := setupClient(bob.PrivateKey, chain, broker, logFile, MAX_MESSAGE_DELAY)
-	clientI := setupClient(irene.PrivateKey, chain, broker, logFile, MAX_MESSAGE_DELAY)
+	clientA := setupClient(alice.PrivateKey, chain, broker, logDestination, MAX_MESSAGE_DELAY)
+	clientB := setupClient(bob.PrivateKey, chain, broker, logDestination, MAX_MESSAGE_DELAY)
+	clientI := setupClient(irene.PrivateKey, chain, broker, logDestination, MAX_MESSAGE_DELAY)
 
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)

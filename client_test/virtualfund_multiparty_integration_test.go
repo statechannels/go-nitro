@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -14,19 +15,17 @@ import (
 
 // TestMultiPartyVirtualFundIntegration tests the scenario where Alice creates virtual channels with Bob and Brian using Irene as the intermediary.
 func TestMultiPartyVirtualFundIntegration(t *testing.T) {
-	// TODO: This test can occasionally fail due to https://github.com/statechannels/go-nitro/issues/366
-	// It should be re-enabled when this issue is fixed.
 	t.Skip()
-	logFile := "virtualfund_multiparty_client_test.log"
-	truncateLog(logFile)
+	logDestination := &bytes.Buffer{}
+	t.Cleanup(flushToFileCleanupFn(logDestination, "virtualfund_multiparty_client_test.log"))
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientAlice := setupClient(alice.PrivateKey, chain, broker, logFile, 0)
-	clientBob := setupClient(bob.PrivateKey, chain, broker, logFile, 0)
-	clientBrian := setupClient(brian.PrivateKey, chain, broker, logFile, 0)
-	clientIrene := setupClient(irene.PrivateKey, chain, broker, logFile, 0)
+	clientAlice := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
+	clientBob := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	clientBrian := setupClient(brian.PrivateKey, chain, broker, logDestination, 0)
+	clientIrene := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
 
 	directlyFundALedgerChannel(t, clientAlice, clientIrene)
 	directlyFundALedgerChannel(t, clientIrene, clientBob)

@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -18,15 +19,16 @@ import (
 // to the screen.
 func TestBenchmark(t *testing.T) {
 
-	logFile := "virtualfund_benchmark_test.log"
-	truncateLog(logFile)
+	// Setup logging
+	logDestination := &bytes.Buffer{}
+	t.Cleanup(flushToFileCleanupFn(logDestination, "virtualfund_benchmark_test.log"))
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientAlice := setupClient(alice.PrivateKey, chain, broker, logFile, 0)
-	clientBob := setupClient(bob.PrivateKey, chain, broker, logFile, 0)
-	clientIrene := setupClient(irene.PrivateKey, chain, broker, logFile, 0)
+	clientAlice := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
+	clientBob := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	clientIrene := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
 
 	directlyFundALedgerChannel(t, clientAlice, clientIrene)
 	directlyFundALedgerChannel(t, clientIrene, clientBob)
