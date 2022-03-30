@@ -312,7 +312,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		// toMyRightId = o.ToMyRight.ConsensusChannel.Id
 	}
 
-	// todo: range over event.Proposals (or similar)
+	// todo: #420 range over event.Proposals (or similar)
 
 	for _, ss := range event.SignedStates {
 		channelId, _ := ss.State().ChannelId() // TODO handle error
