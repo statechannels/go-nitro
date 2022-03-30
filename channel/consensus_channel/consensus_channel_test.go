@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/statechannels/go-nitro/channel/state"
@@ -13,8 +12,6 @@ import (
 )
 
 func TestConsensusChannel(t *testing.T) {
-	var alice = types.Destination(common.HexToHash("0x0a"))
-	var bob = types.Destination(common.HexToHash("0x0b"))
 
 	allocation := func(d types.Destination, a uint64) Balance {
 		return Balance{destination: d, amount: big.NewInt(int64(a))}

@@ -10,9 +10,6 @@ import (
 )
 
 func TestLeaderChannel(t *testing.T) {
-	var alice = Actors.Alice.Destination()
-	var bob = Actors.Bob.Destination()
-
 	existingChannel := types.Destination{1}
 	targetChannel := types.Destination{2}
 	aBal := uint64(200)
