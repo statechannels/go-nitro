@@ -347,9 +347,9 @@ func (o Objective) Channels() []*channel.Channel {
 //////////////////////////////////////////////////
 
 // insertGuaranteeInfo mutates the reciever Connection struct.
-func (connection *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) error {
+func (c *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) error {
 
-	connection.GuaranteeInfo = GuaranteeInfo{
+	c.GuaranteeInfo = GuaranteeInfo{
 		Left:                 left,
 		Right:                right,
 		LeftAmount:           a0,
@@ -359,8 +359,8 @@ func (connection *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds
 
 	// Check that the guarantee metadata can be encoded. This allows us to avoid clunky error-return-chains for getExpectedGuarantees
 	metadata := outcome.GuaranteeMetadata{
-		Left:  connection.GuaranteeInfo.Left,
-		Right: connection.GuaranteeInfo.Right,
+		Left:  c.GuaranteeInfo.Left,
+		Right: c.GuaranteeInfo.Right,
 	}
 	_, err := metadata.Encode()
 	if err != nil {
@@ -371,11 +371,11 @@ func (connection *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds
 }
 
 // getExpectedGuarantees returns a map of asset addresses to guarantees for a Connection.
-func (connection *Connection) getExpectedGuarantees() map[types.Address]outcome.Allocation {
+func (c *Connection) getExpectedGuarantees() map[types.Address]outcome.Allocation {
 	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
 	metadata := outcome.GuaranteeMetadata{
-		Left:  connection.GuaranteeInfo.Left,
-		Right: connection.GuaranteeInfo.Right,
+		Left:  c.GuaranteeInfo.Left,
+		Right: c.GuaranteeInfo.Right,
 	}
 	encodedGuarantee, err := metadata.Encode()
 	// This error is unexpected. insertGuaranteeInfo checks that the guarantee metadata can be encoded.
@@ -384,11 +384,11 @@ func (connection *Connection) getExpectedGuarantees() map[types.Address]outcome.
 		panic(err)
 	}
 
-	channelFunds := connection.GuaranteeInfo.LeftAmount.Add(connection.GuaranteeInfo.RightAmount)
+	channelFunds := c.GuaranteeInfo.LeftAmount.Add(c.GuaranteeInfo.RightAmount)
 
 	for asset, amount := range channelFunds {
 		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
-			Destination:    connection.GuaranteeInfo.GuaranteeDestination,
+			Destination:    c.GuaranteeInfo.GuaranteeDestination,
 			Amount:         amount,
 			AllocationType: outcome.GuaranteeAllocationType,
 			Metadata:       encodedGuarantee,
@@ -419,8 +419,8 @@ func (o Objective) fundingComplete() bool {
 // The decision is made based on the latest supported state of the channel.
 //
 // Both arguments are maps keyed by the same asset.
-func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
-	return connection.Channel.Affords(connection.getExpectedGuarantees(), connection.Channel.OnChainFunding)
+func (c *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
+	return c.Channel.Affords(c.getExpectedGuarantees(), c.Channel.OnChainFunding)
 }
 
 // Equal returns true if the supplied DirectFundObjective is deeply equal to the receiver.
