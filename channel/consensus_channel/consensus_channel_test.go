@@ -69,7 +69,7 @@ func TestConsensusChannel(t *testing.T) {
 	}
 
 	fingerprint := func(v Vars) string {
-		h, err := v.asState(state.TestState.FixedPart()).Hash()
+		h, err := v.AsState(state.TestState.FixedPart()).Hash()
 
 		if err != nil {
 			panic(err)
@@ -162,8 +162,8 @@ func TestConsensusChannel(t *testing.T) {
 	}
 
 	initialVars := Vars{Outcome: outcome(), TurnNum: 0}
-	aliceSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
-	bobsSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
+	aliceSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
 	testConsensusChannelFunctionality := func(t *testing.T) {
@@ -190,7 +190,7 @@ func TestConsensusChannel(t *testing.T) {
 			t.Fatalf("latestProposedVars did not return a copy")
 		}
 
-		briansSig, _ := initialVars.asState(fp()).Sign(testdata.Actors.Brian.PrivateKey)
+		briansSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Brian.PrivateKey)
 		wrongSigs := [2]state.Signature{sigs[1], briansSig}
 		_, err = newConsensusChannel(fp(), leader, 0, outcome(), wrongSigs)
 		if err == nil {

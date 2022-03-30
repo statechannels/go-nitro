@@ -1,6 +1,7 @@
 package consensus_channel
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"sort"
@@ -19,11 +20,13 @@ const (
 	follower ledgerIndex = 1
 )
 
-// consensusChannel is used to manage states in a running ledger channel
-type consensusChannel struct {
+// ConsensusChannel is used to manage states in a running ledger channel
+type ConsensusChannel struct {
 	// constants
 	myIndex ledgerIndex
 	fp      state.FixedPart
+
+	Id types.Destination
 
 	// variables
 	current       SignedVars       // The "consensus state", signed by both parties
@@ -37,23 +40,29 @@ func newConsensusChannel(
 	initialTurnNum uint64,
 	outcome LedgerOutcome,
 	signatures [2]state.Signature,
-) (consensusChannel, error) {
+) (ConsensusChannel, error) {
+
+	cId, err := fp.ChannelId()
+	if err != nil {
+		return ConsensusChannel{}, err
+	}
+
 	vars := Vars{TurnNum: initialTurnNum, Outcome: outcome.clone()}
 
-	leaderAddr, err := vars.asState(fp).RecoverSigner(signatures[leader])
+	leaderAddr, err := vars.AsState(fp).RecoverSigner(signatures[leader])
 	if err != nil {
-		return consensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
 	if leaderAddr != fp.Participants[leader] {
-		return consensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[leader])
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[leader])
 	}
 
-	followerAddr, err := vars.asState(fp).RecoverSigner(signatures[follower])
+	followerAddr, err := vars.AsState(fp).RecoverSigner(signatures[follower])
 	if err != nil {
-		return consensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
 	if followerAddr != fp.Participants[follower] {
-		return consensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", followerAddr, fp.Participants[leader])
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", followerAddr, fp.Participants[leader])
 	}
 
 	current := SignedVars{
@@ -61,8 +70,9 @@ func newConsensusChannel(
 		signatures,
 	}
 
-	return consensusChannel{
+	return ConsensusChannel{
 		fp:            fp,
+		Id:            cId,
 		myIndex:       myIndex,
 		proposalQueue: make([]SignedProposal, 0),
 		current:       current,
@@ -71,44 +81,44 @@ func newConsensusChannel(
 }
 
 // ConsensusTurnNum returns the turn number of the current consensus state
-func (c *consensusChannel) ConsensusTurnNum() uint64 {
+func (c *ConsensusChannel) ConsensusTurnNum() uint64 {
 	return c.current.TurnNum
 }
 
 // Includes returns whether or not the consensus state includes the given guarantee
-func (c *consensusChannel) Includes(g Guarantee) bool {
+func (c *ConsensusChannel) Includes(g Guarantee) bool {
 	return c.current.Outcome.includes(g)
 }
 
 // Leader returns the address of the participant responsible for proposing
-func (c *consensusChannel) Leader() common.Address {
+func (c *ConsensusChannel) Leader() common.Address {
 	return c.fp.Participants[leader]
 }
-func (c *consensusChannel) Accept(p SignedProposal) error {
+func (c *ConsensusChannel) Accept(p SignedProposal) error {
 	panic("UNIMPLEMENTED")
 }
 
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
 // values. It signs the resulting state using sk.
-func (c *consensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
+func (c *ConsensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
 	signer := crypto.GetAddressFromSecretKeyBytes(sk)
 	if c.fp.Participants[c.myIndex] != signer {
 		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
 	}
 
-	state := vars.asState(c.fp)
+	state := vars.AsState(c.fp)
 	return state.Sign(sk)
 }
 
 // recoverSigner returns the signer of the vars using the given signature
-func (c *consensusChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
-	state := vars.asState(c.fp)
+func (c *ConsensusChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
+	state := vars.AsState(c.fp)
 	return state.RecoverSigner(sig)
 }
 
 // latestProposedVars returns the latest proposed vars in a consensus channel
 // by cloning its current vars and applying each proposal in the queue
-func (c *consensusChannel) latestProposedVars() (Vars, error) {
+func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
 
 	var err error
@@ -339,7 +349,7 @@ func (vars *Vars) Add(p Add) error {
 	return nil
 }
 
-func (v Vars) asState(fp state.FixedPart) state.State {
+func (v Vars) AsState(fp state.FixedPart) state.State {
 	return state.State{
 		// Variable
 		TurnNum: v.TurnNum,
@@ -354,4 +364,49 @@ func (v Vars) asState(fp state.FixedPart) state.State {
 		AppDefinition:     types.Address{},
 		IsFinal:           false,
 	}
+}
+
+// Participants returns the channel participants.
+func (c *ConsensusChannel) Participants() []types.Address {
+	return c.fp.Participants
+}
+
+// jsonConsensusChannel replaces ConsensusChannel's private fields with public ones,
+// making it suitable for serialization
+type jsonConsensusChannel struct {
+	Id            types.Destination
+	MyIndex       ledgerIndex
+	FP            state.FixedPart
+	Current       SignedVars
+	ProposalQueue []SignedProposal
+}
+
+// MarshalJSON returns a JSON representation of the ConsensusChannel
+func (c ConsensusChannel) MarshalJSON() ([]byte, error) {
+	jsonCh := jsonConsensusChannel{
+		Id:            c.Id,
+		MyIndex:       c.myIndex,
+		FP:            c.fp,
+		Current:       c.current,
+		ProposalQueue: c.proposalQueue,
+	}
+	return json.Marshal(jsonCh)
+}
+
+// UnmarshalJSON populates the receiver with the
+// json-encoded data
+func (c *ConsensusChannel) UnmarshalJSON(data []byte) error {
+	var jsonCh jsonConsensusChannel
+	err := json.Unmarshal(data, &jsonCh)
+	if err != nil {
+		return fmt.Errorf("error unmarshaling channel data")
+	}
+
+	c.Id = jsonCh.Id
+	c.myIndex = jsonCh.MyIndex
+	c.fp = jsonCh.FP
+	c.current = jsonCh.Current
+	c.proposalQueue = jsonCh.ProposalQueue
+
+	return nil
 }

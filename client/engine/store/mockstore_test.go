@@ -5,6 +5,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	cc "github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	nc "github.com/statechannels/go-nitro/crypto"
 	td "github.com/statechannels/go-nitro/internal/testdata"
@@ -106,4 +109,47 @@ func TestGetChannelSecretKey(t *testing.T) {
 	if recoveredSigner != pk {
 		t.Fatalf("expected to recover %x, but got %x", pk, recoveredSigner)
 	}
+}
+
+func TestConsensusChannelStore(t *testing.T) {
+	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
+
+	ms := store.NewMockStore(sk)
+
+	got, ok := ms.GetConsensusChannel(td.Actors.Alice.Address, td.Actors.Bob.Address)
+	if ok {
+		t.Fatalf("expected not to find the a consensus channel, but found %v", got)
+	}
+
+	fp := td.Objectives.Directfund.GenericDFO().C.FixedPart // TODO replace with testdata not nested under GenericDFO
+	fp.Participants[0] = td.Actors.Alice.Address
+	fp.Participants[1] = td.Actors.Bob.Address
+	initialVars := consensus_channel.Vars{Outcome: cc.LedgerOutcome{}, TurnNum: 0}
+	aliceSig, _ := initialVars.AsState(fp).Sign(td.Actors.Alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp).Sign(td.Actors.Bob.PrivateKey)
+
+	want, err := consensus_channel.NewLeaderChannel(
+		fp,
+		0,
+		consensus_channel.LedgerOutcome{},
+		[2]state.Signature{aliceSig, bobsSig})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ms.SetConsensusChannel(&want.ConsensusChannel); err != nil {
+		t.Fatalf("error setting consensus channel %v: %s", want, err.Error())
+	}
+
+	got, ok = ms.GetConsensusChannel(fp.Participants[0], fp.Participants[1])
+
+	if !ok {
+		t.Fatalf("expected to find the inserted consensus channel, but didn't")
+	}
+
+	if got.Id != want.Id {
+		t.Fatalf("expected to retrieve same channel Id as was passed in, but didn't")
+	}
+	// TODO check that got and want are deeply equal
 }
