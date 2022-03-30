@@ -135,24 +135,25 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 // Balance represents an Allocation of type 0, ie. a simple allocation.
 type Balance struct {
 	destination types.Destination
-	amount      big.Int
+	amount      *big.Int
 }
 
 // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
 func (b Balance) AsAllocation() outcome.Allocation {
-	return outcome.Allocation{Destination: b.destination, Amount: &b.amount, AllocationType: 0}
+	amount := big.NewInt(0).Set(b.amount)
+	return outcome.Allocation{Destination: b.destination, Amount: amount, AllocationType: 0}
 }
 
 // Guarantee represents an Allocation of type 1, ie. a guarantee.
 type Guarantee struct {
-	amount big.Int
+	amount *big.Int
 	target types.Destination
 	left   types.Destination
 	right  types.Destination
 }
 
 func (g Guarantee) equal(g2 Guarantee) bool {
-	if !types.Equal(&g.amount, &g2.amount) {
+	if !types.Equal(g.amount, g2.amount) {
 		return false
 	}
 	return g.target == g2.target && g.left == g2.left && g.right == g2.right
@@ -160,9 +161,10 @@ func (g Guarantee) equal(g2 Guarantee) bool {
 
 // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
 func (g Guarantee) AsAllocation() outcome.Allocation {
+	amount := big.NewInt(0).Set(g.amount)
 	return outcome.Allocation{
 		Destination:    g.target,
-		Amount:         &g.amount,
+		Amount:         amount,
 		AllocationType: 1,
 		Metadata:       append(g.left.Bytes(), g.right.Bytes()...),
 	}
@@ -190,7 +192,7 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 	return g.left == existing.left &&
 		g.right == existing.right &&
 		g.target == existing.target &&
-		types.Equal(&existing.amount, &g.amount)
+		types.Equal(existing.amount, g.amount)
 }
 
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
@@ -239,18 +241,18 @@ func (o *LedgerOutcome) clone() LedgerOutcome {
 
 	left := Balance{
 		destination: o.left.destination,
-		amount:      *big.NewInt(0).Set(&o.left.amount),
+		amount:      big.NewInt(0).Set(o.left.amount),
 	}
 
 	right := Balance{
 		destination: o.right.destination,
-		amount:      *big.NewInt(0).Set(&o.right.amount),
+		amount:      big.NewInt(0).Set(o.right.amount),
 	}
 
 	guarantees := make(map[types.Destination]Guarantee)
 	for d, g := range o.guarantees {
 		g2 := g
-		g2.amount = *big.NewInt(0).Set(&g.amount)
+		g2.amount = big.NewInt(0).Set(g.amount)
 		guarantees[d] = g2
 	}
 
@@ -279,12 +281,12 @@ type SignedProposal struct {
 type Add struct {
 	turnNum uint64
 	Guarantee
-	LeftDeposit big.Int
+	LeftDeposit *big.Int
 }
 
-func (a Add) RightDeposit() big.Int {
-	result := big.Int{}
-	result.Sub(&a.amount, &a.LeftDeposit)
+func (a Add) RightDeposit() *big.Int {
+	result := big.NewInt(0)
+	result.Sub(a.amount, a.LeftDeposit)
 
 	return result
 }
@@ -296,7 +298,7 @@ func (a Add) equal(a2 Add) bool {
 	if !a.Guarantee.equal(a2.Guarantee) {
 		return false
 	}
-	return types.Equal(&a.LeftDeposit, &a2.LeftDeposit)
+	return types.Equal(a.LeftDeposit, a2.LeftDeposit)
 }
 
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
@@ -325,11 +327,11 @@ func (vars *Vars) Add(p Add) error {
 		return ErrDuplicateGuarantee
 	}
 
-	if types.Gt(&p.LeftDeposit, &p.amount) {
+	if types.Gt(p.LeftDeposit, p.amount) {
 		return ErrInvalidDeposit
 	}
 
-	if types.Gt(&p.amount, &o.left.amount) {
+	if types.Gt(p.amount, o.left.amount) {
 		return ErrInsufficientFunds
 	}
 
@@ -339,9 +341,9 @@ func (vars *Vars) Add(p Add) error {
 	vars.TurnNum += 1
 
 	// Adjust balances
-	o.left.amount.Sub(&o.left.amount, &p.LeftDeposit)
+	o.left.amount.Sub(o.left.amount, p.LeftDeposit)
 	rightDeposit := p.RightDeposit()
-	o.right.amount.Sub(&o.right.amount, &rightDeposit)
+	o.right.amount.Sub(o.right.amount, rightDeposit)
 
 	// Include guarantee
 	o.guarantees[p.target] = p.Guarantee
@@ -350,10 +352,11 @@ func (vars *Vars) Add(p Add) error {
 }
 
 func (v Vars) AsState(fp state.FixedPart) state.State {
+	outcome := v.Outcome.AsOutcome()
 	return state.State{
 		// Variable
 		TurnNum: v.TurnNum,
-		Outcome: v.Outcome.AsOutcome(),
+		Outcome: outcome,
 
 		// Constant
 		ChainId:           fp.ChainId,

@@ -21,13 +21,13 @@ func fp() state.FixedPart {
 }
 
 func allocation(d types.Destination, a uint64) Balance {
-	return Balance{destination: d, amount: *big.NewInt(int64(a))}
+	return Balance{destination: d, amount: big.NewInt(int64(a))}
 }
 
 func guarantee(amount uint64, target, left, right types.Destination) Guarantee {
 	return Guarantee{
 		target: target,
-		amount: *big.NewInt(int64(amount)),
+		amount: big.NewInt(int64(amount)),
 		left:   left,
 		right:  right,
 	}
@@ -51,7 +51,7 @@ func ledgerOutcome() LedgerOutcome {
 }
 
 func add(turnNum, amount uint64, vId, left, right types.Destination) Add {
-	bigAmount := *big.NewInt(int64(amount))
+	bigAmount := big.NewInt(int64(amount))
 	return Add{
 		turnNum: turnNum,
 		Guarantee: Guarantee{

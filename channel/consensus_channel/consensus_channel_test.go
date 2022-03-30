@@ -17,13 +17,13 @@ func TestConsensusChannel(t *testing.T) {
 	var bob = types.Destination(common.HexToHash("0x0b"))
 
 	allocation := func(d types.Destination, a uint64) Balance {
-		return Balance{destination: d, amount: *big.NewInt(int64(a))}
+		return Balance{destination: d, amount: big.NewInt(int64(a))}
 	}
 
 	guarantee := func(amount uint64, target, left, right types.Destination) Guarantee {
 		return Guarantee{
 			target: target,
-			amount: *big.NewInt(int64(amount)),
+			amount: big.NewInt(int64(amount)),
 			left:   left,
 			right:  right,
 		}
@@ -38,7 +38,7 @@ func TestConsensusChannel(t *testing.T) {
 	}
 
 	add := func(turnNum, amount uint64, vId, left, right types.Destination) Add {
-		bigAmount := *big.NewInt(int64(amount))
+		bigAmount := big.NewInt(int64(amount))
 		return Add{
 			turnNum: turnNum,
 			Guarantee: Guarantee{
@@ -141,8 +141,8 @@ func TestConsensusChannel(t *testing.T) {
 		// Proposing a change that depletes a balance should fail
 		vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
 		largeProposal := proposal
-		leftAmount := vars.Outcome.left.amount
-		largeProposal.amount = *leftAmount.Add(&leftAmount, big.NewInt(1))
+		leftAmount := big.NewInt(0).Set(vars.Outcome.left.amount)
+		largeProposal.amount = leftAmount.Add(leftAmount, big.NewInt(1))
 		err = vars.Add(largeProposal)
 		if !errors.Is(err, ErrInsufficientFunds) {
 			t.Fatalf("expected error when adding too large a guarantee: %v", err)
