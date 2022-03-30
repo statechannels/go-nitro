@@ -30,7 +30,7 @@ func (b *Balance) UnmarshalJSON(data []byte) error {
 	var jsonB jsonBalance
 	err := json.Unmarshal(data, &jsonB)
 	if err != nil {
-		return fmt.Errorf("error unmarshaling guarantee data")
+		return fmt.Errorf("error unmarshaling guarantee data: %w", err)
 	}
 
 	b.destination = jsonB.Destination
@@ -62,7 +62,7 @@ func (g *Guarantee) UnmarshalJSON(data []byte) error {
 	var jsonG jsonGuarantee
 	err := json.Unmarshal(data, &jsonG)
 	if err != nil {
-		return fmt.Errorf("error unmarshaling guarantee data")
+		return fmt.Errorf("error unmarshaling guarantee data: %w", err)
 	}
 
 	g.amount = jsonG.Amount
@@ -99,7 +99,7 @@ func (l *LedgerOutcome) UnmarshalJSON(data []byte) error {
 	var jsonLo jsonLedgerOutcome
 	err := json.Unmarshal(data, &jsonLo)
 	if err != nil {
-		return fmt.Errorf("error unmarshaling ledger outcome data")
+		return fmt.Errorf("error unmarshaling ledger outcome data: %w", err)
 	}
 
 	l.assetAddress = jsonLo.AssetAddress
@@ -138,7 +138,7 @@ func (c *ConsensusChannel) UnmarshalJSON(data []byte) error {
 	var jsonCh jsonConsensusChannel
 	err := json.Unmarshal(data, &jsonCh)
 	if err != nil {
-		return fmt.Errorf("error unmarshaling channel data")
+		return fmt.Errorf("error unmarshaling channel data: %w", err)
 	}
 
 	c.Id = jsonCh.Id
