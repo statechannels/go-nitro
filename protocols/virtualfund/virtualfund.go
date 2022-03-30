@@ -38,8 +38,7 @@ type GuaranteeInfo struct {
 	GuaranteeDestination types.Destination
 }
 type Connection struct {
-	Channel *channel.TwoPartyLedger
-	// LedgerChannel
+	Channel       *channel.TwoPartyLedger
 	GuaranteeInfo GuaranteeInfo
 }
 
