@@ -1,9 +1,7 @@
 package testdata
 
 import (
-	"bytes"
 	"math/big"
-	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -11,18 +9,25 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// a simpleItem is an ergonomic way to create a simple allocation item, without having to create a big.Int
+// This is more ergonomic for creating test data
+type simpleItem struct {
+	Dest   types.Destination
+	Amount int64
+}
+
 type outcomes struct {
 	// Create returns a simple outcome {a: aBalance, b: bBalance} in the
 	// zero-asset (chain-native token)
 	Create func(a, b types.Address, aBalance, bBalance uint) outcome.Exit
-	// CreateFromMap returns a simple outcome {addressOne: balanceOne ...} in the
+	// CreateLongOutcome returns a simple outcome {addressOne: balanceOne ...} in the
 	// zero-asset (chain-native token)
-	CreateFromMap func(map[types.Address]uint) outcome.Exit
+	CreateLongOutcome func(items ...simpleItem) outcome.Exit
 }
 
 var Outcomes outcomes = outcomes{
-	Create:        createOutcome,
-	CreateFromMap: createOutcomeFromMap,
+	Create:            createOutcome,
+	CreateLongOutcome: createLongOutcome,
 }
 
 var chainId, _ = big.NewInt(0).SetString("9001", 10)
@@ -55,10 +60,10 @@ var testVirtualState = state.State{
 	AppDefinition:     someAppDefinition,
 	ChallengeDuration: big.NewInt(60),
 	AppData:           []byte{},
-	Outcome: Outcomes.CreateFromMap(map[types.Address]uint{
-		Actors.Alice.Address: 6,
-		Actors.Bob.Address:   4,
-	}),
+	Outcome: Outcomes.CreateLongOutcome(
+		simpleItem{Actors.Alice.Destination(), 6},
+		simpleItem{Actors.Bob.Destination(), 4},
+	),
 	TurnNum: 0,
 	IsFinal: false,
 }
@@ -108,28 +113,15 @@ func createOutcome(first types.Address, second types.Address, x, y uint) outcome
 	}}
 }
 
-func createOutcomeFromMap(amounts map[types.Address]uint) outcome.Exit {
-	var allocations []outcome.Allocation
-
-	// Generate a list of addresses from the map
-	addresses := make([]types.Address, 0, len(amounts))
-	for address, _ := range amounts {
-		addresses = append(addresses, address)
+func createLongOutcome(items ...simpleItem) outcome.Exit {
+	sae := outcome.SingleAssetExit{}
+	for _, i := range items {
+		a := outcome.Allocation{
+			Destination: i.Dest,
+			Amount:      big.NewInt(i.Amount),
+		}
+		sae.Allocations = append(sae.Allocations, a)
 	}
 
-	// Sort the addresses to ensure the order is deterministic
-	sort.Slice(addresses, func(i, j int) bool {
-		return bytes.Compare(addresses[i].Bytes(), addresses[j].Bytes()) < 0
-	})
-
-	// Create the allocations
-	for _, address := range addresses {
-		allocations = append(allocations, outcome.Allocation{
-			Destination: types.AddressToDestination(address),
-			Amount:      big.NewInt(int64((amounts[address]))),
-		})
-	}
-	return outcome.Exit{outcome.SingleAssetExit{
-		Allocations: allocations,
-	}}
+	return outcome.Exit{sae}
 }
