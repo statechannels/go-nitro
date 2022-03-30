@@ -13,7 +13,7 @@ import (
 // making it suitable for serialization
 type jsonBalance struct {
 	Destination types.Destination
-	Amount      big.Int
+	Amount      *big.Int
 }
 
 // MarshalJSON returns a JSON representation of the Balance
@@ -42,7 +42,7 @@ func (b *Balance) UnmarshalJSON(data []byte) error {
 // jsonGuarantee replaces Guarantee's private fields with public ones,
 // making it suitable for serialization
 type jsonGuarantee struct {
-	Amount big.Int
+	Amount *big.Int
 	Target types.Destination
 	Left   types.Destination
 	Right  types.Destination
