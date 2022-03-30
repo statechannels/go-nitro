@@ -5,6 +5,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+var alice = Actors.Alice.Destination()
+var bob = Actors.Bob.Destination()
+
 type actor struct {
 	Address    types.Address
 	PrivateKey []byte

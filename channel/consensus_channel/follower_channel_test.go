@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -29,8 +28,6 @@ func createSignedProposal(vars Vars, proposal Add, fp state.FixedPart, pk []byte
 }
 
 func TestReceive(t *testing.T) {
-	alice := types.Destination(common.HexToHash("0x0a"))
-	bob := types.Destination(common.HexToHash("0x0b"))
 	targetChannel := types.Destination{2}
 
 	var vAmount = uint64(5)
@@ -101,8 +98,6 @@ func TestReceive(t *testing.T) {
 
 }
 func TestFollowerChannel(t *testing.T) {
-	alice := Actors.Alice.Destination()
-	bob := Actors.Bob.Destination()
 	targetChannel := types.Destination{2}
 
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
