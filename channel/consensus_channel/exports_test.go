@@ -7,6 +7,7 @@ import (
 
 var alice = Actors.Alice.Destination()
 var bob = Actors.Bob.Destination()
+var targetChannel = types.Destination{2}
 
 type actor struct {
 	Address    types.Address
