@@ -200,7 +200,7 @@ func (ms *MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty typ
 }
 
 // GetConsensusChannel returns a ConsensusChannel between the two parties if it exists.
-func (ms *MockStore) GetConsensusChannel(firstParty types.Address, secondParty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
+func (ms *MockStore) GetConsensusChannel(leader, follower types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
 
 	ms.consensusChannels.Range(func(key string, chJSON []byte) bool {
 
@@ -214,7 +214,7 @@ func (ms *MockStore) GetConsensusChannel(firstParty types.Address, secondParty t
 		participants := ch.Participants()
 		if len(participants) == 2 {
 			// TODO: Should order matter?
-			if participants[0] == firstParty && participants[1] == secondParty {
+			if participants[0] == leader && participants[1] == follower {
 				channel = &ch
 				ok = true
 				return false // we have found the target channel: break the Range loop
