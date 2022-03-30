@@ -16,8 +16,8 @@ func TestLeaderChannel(t *testing.T) {
 	vAmount := uint64(5)
 
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
-	aliceSig, _ := initialVars.AsState(fp()).Sign(Actors.Alice.PrivateKey)
-	bobsSig, _ := initialVars.AsState(fp()).Sign(Actors.Bob.PrivateKey)
+	aliceSig, _ := initialVars.AsState(fp()).Sign(alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
 	channel, err := NewLeaderChannel(fp(), 0, ledgerOutcome(), sigs)
@@ -32,7 +32,7 @@ func TestLeaderChannel(t *testing.T) {
 	}
 
 	p := add(1, amountAdded, targetChannel, alice, bob)
-	sp, err := channel.Propose(p, Actors.Alice.PrivateKey)
+	sp, err := channel.Propose(p, alice.PrivateKey)
 	if err != nil {
 		t.Fatalf("failed to add proposal: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestLeaderChannel(t *testing.T) {
 		guarantee(amountAdded, targetChannel, alice, bob),
 	)
 	stateSigned := Vars{TurnNum: 1, Outcome: outcomeSigned}
-	sig, _ := stateSigned.AsState(fp()).Sign(Actors.Alice.PrivateKey)
+	sig, _ := stateSigned.AsState(fp()).Sign(alice.PrivateKey)
 	expected := SignedProposal{Proposal: p, Signature: sig}
 
 	if !reflect.DeepEqual(sp, expected) {
@@ -63,7 +63,7 @@ func TestLeaderChannel(t *testing.T) {
 	p2 := p
 	p2.target = thirdChannel
 	g2 := p2.Guarantee
-	secondSigned, err := channel.Propose(p2, Actors.Alice.PrivateKey)
+	secondSigned, err := channel.Propose(p2, alice.PrivateKey)
 	if err != nil {
 		t.Fatalf("failed to add another proposal: %v", err)
 	}
@@ -83,12 +83,12 @@ func TestLeaderChannel(t *testing.T) {
 	}
 
 	latest, _ := channel.latestProposedVars()
-	counterSig2, _ := latest.AsState(fp()).Sign(Actors.Bob.PrivateKey)
+	counterSig2, _ := latest.AsState(fp()).Sign(bob.PrivateKey)
 
 	p3 := p
 	p3.target = types.Destination{4}
 	g3 := p3.Guarantee
-	thirdSigned, _ := channel.Propose(p3, Actors.Alice.PrivateKey)
+	thirdSigned, _ := channel.Propose(p3, alice.PrivateKey)
 
 	p2Returned := SignedProposal{
 		Proposal:  secondSigned.Proposal,
@@ -118,7 +118,7 @@ func TestLeaderChannel(t *testing.T) {
 
 	// The incorrect counter signature is received on the latest proposal
 	latest, _ = channel.latestProposedVars()
-	wrongCounterSig3, _ := latest.AsState(fp()).Sign(Actors.Brian.PrivateKey)
+	wrongCounterSig3, _ := latest.AsState(fp()).Sign(brian.PrivateKey)
 	wrongP3Returned := SignedProposal{
 		Proposal:  thirdSigned.Proposal,
 		Signature: wrongCounterSig3,
@@ -134,7 +134,7 @@ func TestLeaderChannel(t *testing.T) {
 
 	// The correct counter signature is received on the latest proposal
 	latest, _ = channel.latestProposedVars()
-	counterSig3, _ := latest.AsState(fp()).Sign(Actors.Bob.PrivateKey)
+	counterSig3, _ := latest.AsState(fp()).Sign(bob.PrivateKey)
 	p3Returned := SignedProposal{
 		Proposal:  thirdSigned.Proposal,
 		Signature: counterSig3,

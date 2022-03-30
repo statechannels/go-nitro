@@ -9,7 +9,7 @@ import (
 
 func fp() state.FixedPart {
 	participants := [2]types.Address{
-		Actors.Alice.Address, Actors.Bob.Address,
+		alice.Address, bob.Address,
 	}
 	return state.FixedPart{
 		Participants:      participants[:],
@@ -19,16 +19,16 @@ func fp() state.FixedPart {
 	}
 }
 
-func allocation(d types.Destination, a uint64) Balance {
-	return Balance{destination: d, amount: big.NewInt(int64(a))}
+func allocation(d actor, a uint64) Balance {
+	return Balance{destination: d.Destination(), amount: big.NewInt(int64(a))}
 }
 
-func guarantee(amount uint64, target, left, right types.Destination) Guarantee {
+func guarantee(amount uint64, target types.Destination, left, right actor) Guarantee {
 	return Guarantee{
 		target: target,
 		amount: big.NewInt(int64(amount)),
-		left:   left,
-		right:  right,
+		left:   left.Destination(),
+		right:  right.Destination(),
 	}
 }
 
@@ -42,22 +42,22 @@ func makeOutcome(left, right Balance, guarantees ...Guarantee) LedgerOutcome {
 
 func ledgerOutcome() LedgerOutcome {
 	return makeOutcome(
-		allocation(Actors.Alice.Destination(), uint64(200)),
-		allocation(Actors.Bob.Destination(), uint64(300)),
-		guarantee(uint64(5), types.Destination{1}, Actors.Alice.Destination(), Actors.Bob.Destination()),
+		allocation(alice, uint64(200)),
+		allocation(bob, uint64(300)),
+		guarantee(uint64(5), types.Destination{1}, alice, bob),
 	)
 
 }
 
-func add(turnNum, amount uint64, vId, left, right types.Destination) Add {
+func add(turnNum, amount uint64, vId types.Destination, left, right actor) Add {
 	bigAmount := big.NewInt(int64(amount))
 	return Add{
 		turnNum: turnNum,
 		Guarantee: Guarantee{
 			amount: bigAmount,
 			target: vId,
-			left:   left,
-			right:  right,
+			left:   left.Destination(),
+			right:  right.Destination(),
 		},
 		LeftDeposit: bigAmount,
 	}

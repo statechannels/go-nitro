@@ -110,8 +110,8 @@ func TestConsensusChannel(t *testing.T) {
 	}
 
 	initialVars := Vars{Outcome: outcome(), TurnNum: 0}
-	aliceSig, _ := initialVars.AsState(fp()).Sign(Actors.Alice.PrivateKey)
-	bobsSig, _ := initialVars.AsState(fp()).Sign(Actors.Bob.PrivateKey)
+	aliceSig, _ := initialVars.AsState(fp()).Sign(alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
 	testConsensusChannelFunctionality := func(t *testing.T) {
@@ -121,7 +121,7 @@ func TestConsensusChannel(t *testing.T) {
 			t.Fatalf("unable to construct a new consensus channel: %v", err)
 		}
 
-		_, err = channel.sign(initialVars, Actors.Bob.PrivateKey)
+		_, err = channel.sign(initialVars, bob.PrivateKey)
 		if err == nil {
 			t.Fatalf("channel should check that signer is participant")
 		}
@@ -138,7 +138,7 @@ func TestConsensusChannel(t *testing.T) {
 			t.Fatalf("latestProposedVars did not return a copy")
 		}
 
-		briansSig, _ := initialVars.AsState(fp()).Sign(Actors.Brian.PrivateKey)
+		briansSig, _ := initialVars.AsState(fp()).Sign(brian.PrivateKey)
 		wrongSigs := [2]state.Signature{sigs[1], briansSig}
 		_, err = newConsensusChannel(fp(), leader, 0, outcome(), wrongSigs)
 		if err == nil {
