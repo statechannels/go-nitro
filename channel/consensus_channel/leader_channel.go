@@ -29,11 +29,6 @@ func (c *LeaderChannel) IsProposed(g Guarantee) (bool, error) {
 	return latest.Outcome.includes(g), nil
 }
 
-// Includes returns whether or not the consensus state includes the given guarantee
-func (c *LeaderChannel) Includes(g Guarantee) bool {
-	return c.current.Outcome.includes(g)
-}
-
 // Propose receives a proposal to add a guarantee, and generates and stores a SignedProposal in
 // the queue, returning the resulting SignedProposal
 // Note: the TurnNum on add is ignored; the correct turn number is computed by c

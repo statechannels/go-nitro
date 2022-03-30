@@ -75,6 +75,53 @@ func (c *consensusChannel) ConsensusTurnNum() uint64 {
 	return c.current.TurnNum
 }
 
+// Includes returns whether or not the consensus state includes the given guarantee
+func (c *consensusChannel) Includes(g Guarantee) bool {
+	return c.current.Outcome.includes(g)
+}
+
+// Leader returns the address of the participant responsible for proposing
+func (c *consensusChannel) Leader() common.Address {
+	return c.fp.Participants[leader]
+}
+func (c *consensusChannel) Accept(p SignedProposal) error {
+	panic("UNIMPLEMENTED")
+}
+
+// sign constructs a state.State from the given vars, using the ConsensusChannel's constant
+// values. It signs the resulting state using sk.
+func (c *consensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
+	signer := crypto.GetAddressFromSecretKeyBytes(sk)
+	if c.fp.Participants[c.myIndex] != signer {
+		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
+	}
+
+	state := vars.asState(c.fp)
+	return state.Sign(sk)
+}
+
+// recoverSigner returns the signer of the vars using the given signature
+func (c *consensusChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
+	state := vars.asState(c.fp)
+	return state.RecoverSigner(sig)
+}
+
+// latestProposedVars returns the latest proposed vars in a consensus channel
+// by cloning its current vars and applying each proposal in the queue
+func (c *consensusChannel) latestProposedVars() (Vars, error) {
+	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
+
+	var err error
+	for _, p := range c.proposalQueue {
+		err = vars.Add(p.Proposal.(Add))
+		if err != nil {
+			return Vars{}, err
+		}
+	}
+
+	return vars, nil
+}
+
 // Balance represents an Allocation of type 0, ie. a simple allocation.
 type Balance struct {
 	destination types.Destination
@@ -292,39 +339,6 @@ func (vars *Vars) Add(p Add) error {
 	return nil
 }
 
-// latestProposedVars returns the latest proposed vars in a consensus channel
-// by cloning its current vars and applying each proposal in the queue
-func (c *consensusChannel) latestProposedVars() (Vars, error) {
-	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
-
-	var err error
-	for _, p := range c.proposalQueue {
-		err = vars.Add(p.Proposal.(Add))
-		if err != nil {
-			return Vars{}, err
-		}
-	}
-
-	return vars, nil
-}
-
-// Leader returns the address of the participant responsible for proposing
-func (c *consensusChannel) Leader() common.Address {
-	return c.fp.Participants[leader]
-}
-
-// sign constructs a state.State from the given vars, using the ConsensusChannel's constant
-// values. It signs the resulting state using pk.
-func (c *consensusChannel) sign(vars Vars, pk []byte) (state.Signature, error) {
-	signer := crypto.GetAddressFromSecretKeyBytes(pk)
-	if c.fp.Participants[c.myIndex] != signer {
-		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
-	}
-
-	state := vars.asState(c.fp)
-	return state.Sign(pk)
-}
-
 func (v Vars) asState(fp state.FixedPart) state.State {
 	return state.State{
 		// Variable
@@ -340,13 +354,4 @@ func (v Vars) asState(fp state.FixedPart) state.State {
 		AppDefinition:     types.Address{},
 		IsFinal:           false,
 	}
-}
-
-// recoverSigner returns the signer of the vars using the given signature
-func (c *consensusChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
-	state := vars.asState(c.fp)
-	return state.RecoverSigner(sig)
-}
-func (c *consensusChannel) Accept(p SignedProposal) error {
-	panic("UNIMPLEMENTED")
 }
