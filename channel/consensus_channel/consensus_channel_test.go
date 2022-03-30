@@ -12,42 +12,6 @@ import (
 )
 
 func TestConsensusChannel(t *testing.T) {
-
-	allocation := func(d types.Destination, a uint64) Balance {
-		return Balance{destination: d, amount: big.NewInt(int64(a))}
-	}
-
-	guarantee := func(amount uint64, target, left, right types.Destination) Guarantee {
-		return Guarantee{
-			target: target,
-			amount: big.NewInt(int64(amount)),
-			left:   left,
-			right:  right,
-		}
-	}
-
-	makeOutcome := func(left, right Balance, guarantees ...Guarantee) LedgerOutcome {
-		mappedGuarantees := make(map[types.Destination]Guarantee)
-		for _, g := range guarantees {
-			mappedGuarantees[g.target] = g
-		}
-		return LedgerOutcome{left: left, right: right, guarantees: mappedGuarantees}
-	}
-
-	add := func(turnNum, amount uint64, vId, left, right types.Destination) Add {
-		bigAmount := big.NewInt(int64(amount))
-		return Add{
-			turnNum: turnNum,
-			Guarantee: Guarantee{
-				amount: bigAmount,
-				target: vId,
-				left:   left,
-				right:  right,
-			},
-			LeftDeposit: bigAmount,
-		}
-	}
-
 	existingChannel := types.Destination{1}
 	targetChannel := types.Destination{2}
 	aBal := uint64(200)
@@ -143,18 +107,6 @@ func TestConsensusChannel(t *testing.T) {
 		err = vars.Add(largeProposal)
 		if !errors.Is(err, ErrInsufficientFunds) {
 			t.Fatalf("expected error when adding too large a guarantee: %v", err)
-		}
-	}
-
-	fp := func() state.FixedPart {
-		participants := [2]types.Address{
-			Actors.Alice.Address, Actors.Bob.Address,
-		}
-		return state.FixedPart{
-			Participants:      participants[:],
-			ChainId:           big.NewInt(0),
-			ChannelNonce:      big.NewInt(9001),
-			ChallengeDuration: big.NewInt(100),
 		}
 	}
 
