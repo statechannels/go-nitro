@@ -1,7 +1,9 @@
 package testdata
 
 import (
+	"bytes"
 	"math/big"
+	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -107,13 +109,24 @@ func createOutcome(first types.Address, second types.Address, x, y uint) outcome
 }
 
 func createOutcomeFromMap(amounts map[types.Address]uint) outcome.Exit {
-
 	var allocations []outcome.Allocation
 
-	for address, balance := range amounts {
+	// Generate a list of addresses from the map
+	addresses := make([]types.Address, 0, len(amounts))
+	for address, _ := range amounts {
+		addresses = append(addresses, address)
+	}
+
+	// Sort the addresses to ensure the order is deterministic
+	sort.Slice(addresses, func(i, j int) bool {
+		return bytes.Compare(addresses[i].Bytes(), addresses[j].Bytes()) < 0
+	})
+
+	// Create the allocations
+	for _, address := range addresses {
 		allocations = append(allocations, outcome.Allocation{
 			Destination: types.AddressToDestination(address),
-			Amount:      big.NewInt(int64(balance)),
+			Amount:      big.NewInt(int64((amounts[address]))),
 		})
 	}
 	return outcome.Exit{outcome.SingleAssetExit{
