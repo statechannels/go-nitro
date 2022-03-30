@@ -4,13 +4,12 @@ import (
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/types"
 )
 
 func fp() state.FixedPart {
 	participants := [2]types.Address{
-		testdata.Actors.Alice.Address, testdata.Actors.Bob.Address,
+		Actors.Alice.Address, Actors.Bob.Address,
 	}
 	return state.FixedPart{
 		Participants:      participants[:],
@@ -43,9 +42,9 @@ func makeOutcome(left, right Balance, guarantees ...Guarantee) LedgerOutcome {
 
 func ledgerOutcome() LedgerOutcome {
 	return makeOutcome(
-		allocation(testdata.Actors.Alice.Destination(), uint64(200)),
-		allocation(testdata.Actors.Bob.Destination(), uint64(300)),
-		guarantee(uint64(5), types.Destination{1}, testdata.Actors.Alice.Destination(), testdata.Actors.Bob.Destination()),
+		allocation(Actors.Alice.Destination(), uint64(200)),
+		allocation(Actors.Bob.Destination(), uint64(300)),
+		guarantee(uint64(5), types.Destination{1}, Actors.Alice.Destination(), Actors.Bob.Destination()),
 	)
 
 }
