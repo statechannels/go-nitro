@@ -213,7 +213,6 @@ func (ms *MockStore) GetConsensusChannel(leader, follower types.Address) (channe
 
 		participants := ch.Participants()
 		if len(participants) == 2 {
-			// TODO: Should order matter?
 			if participants[0] == leader && participants[1] == follower {
 				channel = &ch
 				ok = true
