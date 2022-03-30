@@ -18,29 +18,29 @@ type jsonLedgerOutcome struct {
 }
 
 // MarshalJSON returns a JSON representation of the LedgerOutcome
-func (o *LedgerOutcome) MarshalJSON() ([]byte, error) {
+func (l *LedgerOutcome) MarshalJSON() ([]byte, error) {
 	jsonLo := jsonLedgerOutcome{
-		AssetAddress: o.assetAddress,
-		Left:         o.left,
-		Right:        o.right,
-		Guarantees:   o.guarantees,
+		AssetAddress: l.assetAddress,
+		Left:         l.left,
+		Right:        l.right,
+		Guarantees:   l.guarantees,
 	}
 	return json.Marshal(jsonLo)
 }
 
 // UnmarshalJSON populates the receiver with the
 // json-encoded data
-func (o *LedgerOutcome) UnmarshalJSON(data []byte) error {
+func (l *LedgerOutcome) UnmarshalJSON(data []byte) error {
 	var jsonLo jsonLedgerOutcome
 	err := json.Unmarshal(data, &jsonLo)
 	if err != nil {
 		return fmt.Errorf("error unmarshaling ledger outcome data")
 	}
 
-	o.assetAddress = jsonLo.AssetAddress
-	o.left = jsonLo.Left
-	o.right = jsonLo.Right
-	o.guarantees = jsonLo.Guarantees
+	l.assetAddress = jsonLo.AssetAddress
+	l.left = jsonLo.Left
+	l.right = jsonLo.Right
+	l.guarantees = jsonLo.Guarantees
 
 	return nil
 }
