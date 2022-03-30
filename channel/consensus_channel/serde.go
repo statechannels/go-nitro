@@ -9,6 +9,36 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// jsonBalance replaces Balance's private fields with public ones,
+// making it suitable for serialization
+type jsonBalance struct {
+	Destination types.Destination
+	Amount      big.Int
+}
+
+// MarshalJSON returns a JSON representation of the Balance
+func (b Balance) MarshalJSON() ([]byte, error) {
+	jsonB := jsonBalance{
+		b.destination, b.amount,
+	}
+	return json.Marshal(jsonB)
+}
+
+// UnmarshalJSON populates the receiver with the
+// json-encoded data
+func (b *Balance) UnmarshalJSON(data []byte) error {
+	var jsonB jsonBalance
+	err := json.Unmarshal(data, &jsonB)
+	if err != nil {
+		return fmt.Errorf("error unmarshaling guarantee data")
+	}
+
+	b.destination = jsonB.Destination
+	b.amount = jsonB.Amount
+
+	return nil
+}
+
 // jsonGuarantee replaces Guarantee's private fields with public ones,
 // making it suitable for serialization
 type jsonGuarantee struct {
