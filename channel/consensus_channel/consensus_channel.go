@@ -285,6 +285,43 @@ func (o *LedgerOutcome) clone() LedgerOutcome {
 	}
 }
 
+// jsonLedgerOutcome replaces LedgerOutcome's private fields with public ones,
+// making it suitable for serialization
+type jsonLedgerOutcome struct {
+	AssetAddress types.Address // Address of the asset type
+	Left         Balance       // Balance of participants[0]
+	Right        Balance       // Balance of participants[1]
+	Guarantees   map[types.Destination]Guarantee
+}
+
+// MarshalJSON returns a JSON representation of the LedgerOutcome
+func (o *LedgerOutcome) MarshalJSON() ([]byte, error) {
+	jsonLo := jsonLedgerOutcome{
+		AssetAddress: o.assetAddress,
+		Left:         o.left,
+		Right:        o.right,
+		Guarantees:   o.guarantees,
+	}
+	return json.Marshal(jsonLo)
+}
+
+// UnmarshalJSON populates the receiver with the
+// json-encoded data
+func (o *LedgerOutcome) UnmarshalJSON(data []byte) error {
+	var jsonLo jsonLedgerOutcome
+	err := json.Unmarshal(data, &jsonLo)
+	if err != nil {
+		return fmt.Errorf("error unmarshaling ledger outcome data")
+	}
+
+	o.assetAddress = jsonLo.AssetAddress
+	o.left = jsonLo.Left
+	o.right = jsonLo.Right
+	o.guarantees = jsonLo.Guarantees
+
+	return nil
+}
+
 // SignedVars stores 0-2 signatures for some vars in a consensus channel
 type SignedVars struct {
 	Vars
