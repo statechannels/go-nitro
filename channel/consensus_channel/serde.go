@@ -3,10 +3,45 @@ package consensus_channel
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
+
+// jsonGuarantee replaces Guarantee's private fields with public ones,
+// making it suitable for serialization
+type jsonGuarantee struct {
+	Amount big.Int
+	Target types.Destination
+	Left   types.Destination
+	Right  types.Destination
+}
+
+// MarshalJSON returns a JSON representation of the Guarantee
+func (g *Guarantee) MarshalJSON() ([]byte, error) {
+	jsonG := jsonGuarantee{
+		g.amount, g.target, g.left, g.right,
+	}
+	return json.Marshal(jsonG)
+}
+
+// UnmarshalJSON populates the receiver with the
+// json-encoded data
+func (g *Guarantee) UnmarshalJSON(data []byte) error {
+	var jsonG jsonGuarantee
+	err := json.Unmarshal(data, &jsonG)
+	if err != nil {
+		return fmt.Errorf("error unmarshaling guarantee data")
+	}
+
+	g.amount = jsonG.Amount
+	g.target = jsonG.Target
+	g.left = jsonG.Left
+	g.right = jsonG.Right
+
+	return nil
+}
 
 // jsonLedgerOutcome replaces LedgerOutcome's private fields with public ones,
 // making it suitable for serialization
@@ -56,7 +91,7 @@ type jsonConsensusChannel struct {
 }
 
 // MarshalJSON returns a JSON representation of the ConsensusChannel
-func (c ConsensusChannel) MarshalJSON() ([]byte, error) {
+func (c *ConsensusChannel) MarshalJSON() ([]byte, error) {
 	jsonCh := jsonConsensusChannel{
 		Id:            c.Id,
 		MyIndex:       c.myIndex,
