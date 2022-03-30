@@ -132,6 +132,16 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 	return vars, nil
 }
 
+// NewBalance returns a new Balance struct with the given amount and destination
+func NewBalance(destination types.Destination, amount *big.Int) Balance {
+	balanceAmount := big.NewInt(0).Set(amount)
+	return Balance{
+		destination: destination,
+		amount:      balanceAmount,
+	}
+
+}
+
 // Balance represents an Allocation of type 0, ie. a simple allocation.
 type Balance struct {
 	destination types.Destination
@@ -180,6 +190,17 @@ type LedgerOutcome struct {
 	left         Balance       // Balance of participants[0]
 	right        Balance       // Balance of participants[1]
 	guarantees   map[types.Destination]Guarantee
+}
+
+// NewLedgerOutcome creates a new ledger outcome with the given asset address and balances.
+// The outcome will contain no guarantees
+func NewLedgerOutcome(assetAddress types.Address, left, right Balance) *LedgerOutcome {
+	return &LedgerOutcome{
+		assetAddress: assetAddress,
+		left:         left,
+		right:        right,
+		guarantees:   make(map[types.Destination]Guarantee),
+	}
 }
 
 // includes returns true when the receiver includes g in its list of guarantees.

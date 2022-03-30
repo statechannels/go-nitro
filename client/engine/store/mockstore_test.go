@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -12,6 +13,7 @@ import (
 	nc "github.com/statechannels/go-nitro/crypto"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 func TestNewMockStore(t *testing.T) {
@@ -124,14 +126,19 @@ func TestConsensusChannelStore(t *testing.T) {
 	fp := td.Objectives.Directfund.GenericDFO().C.FixedPart // TODO replace with testdata not nested under GenericDFO
 	fp.Participants[0] = td.Actors.Alice.Address
 	fp.Participants[1] = td.Actors.Bob.Address
-	initialVars := consensus_channel.Vars{Outcome: cc.LedgerOutcome{}, TurnNum: 0}
+	asset := types.Address{}
+	left := cc.NewBalance(td.Actors.Alice.Destination(), big.NewInt(6))
+	right := cc.NewBalance(td.Actors.Bob.Destination(), big.NewInt(4))
+	outcome := cc.NewLedgerOutcome(asset, left, right)
+	initialVars := consensus_channel.Vars{Outcome: *outcome, TurnNum: 0}
+
 	aliceSig, _ := initialVars.AsState(fp).Sign(td.Actors.Alice.PrivateKey)
 	bobsSig, _ := initialVars.AsState(fp).Sign(td.Actors.Bob.PrivateKey)
 
 	want, err := consensus_channel.NewLeaderChannel(
 		fp,
 		0,
-		consensus_channel.LedgerOutcome{},
+		*outcome,
 		[2]state.Signature{aliceSig, bobsSig})
 
 	if err != nil {
