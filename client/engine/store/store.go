@@ -28,6 +28,6 @@ type Store interface {
 }
 
 type ConsensusChannelStore interface {
-	GetConsensusChannel(leader, follower types.Address) (channel *consensus_channel.ConsensusChannel, ok bool)
+	GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool)
 	SetConsensusChannel(*consensus_channel.ConsensusChannel) error
 }
