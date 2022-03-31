@@ -9,6 +9,36 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// jsonProposal replaces Proposal's private fields with public ones,
+// making it suitable for serialization
+type jsonProposal struct {
+	ToAdd    Add
+	ToRemove struct{}
+}
+
+// MarshalJSON returns a JSON representation of the Proposal
+func (p Proposal) MarshalJSON() ([]byte, error) {
+	jsonP := jsonProposal{
+		p.toAdd, p.toRemove,
+	}
+	return json.Marshal(jsonP)
+}
+
+// UnmarshalJSON populates the receiver with the
+// json-encoded data
+func (p *Proposal) UnmarshalJSON(data []byte) error {
+	var jsonP jsonProposal
+	err := json.Unmarshal(data, &jsonP)
+	if err != nil {
+		return fmt.Errorf("error unmarshaling guarantee data: %w", err)
+	}
+
+	p.toAdd = jsonP.ToAdd
+	p.toRemove = jsonP.ToRemove
+
+	return nil
+}
+
 // jsonBalance replaces Balance's private fields with public ones,
 // making it suitable for serialization
 type jsonBalance struct {
