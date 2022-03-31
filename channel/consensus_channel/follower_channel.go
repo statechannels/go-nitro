@@ -19,8 +19,9 @@ func NewFollowerChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcom
 	return newConsensusChannel(fp, follower, turnNum, outcome, signatures)
 }
 
-// SignNextProposal inspects whether the expected proposal matches the first proposal in
-// the queue. If so, the proposal is removed from the queue and integrated into the channel state
+// SignNextProposal is called by the follower and inspects whether the
+// expected proposal matches the first proposal in the queue. If so,
+// the proposal is removed from the queue and integrated into the channel state.
 func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte) error {
 	if c.myIndex != follower {
 		return ErrNotFollower

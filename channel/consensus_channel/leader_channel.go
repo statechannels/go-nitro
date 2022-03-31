@@ -27,12 +27,15 @@ func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
 	return latest.Outcome.includes(g), nil
 }
 
-// Propose receives a proposal to add a guarantee, and generates and stores a SignedProposal in
-// the queue, returning the resulting SignedProposal
-// Note: the TurnNum on add is ignored; the correct turn number is computed by c
+// Propose is called by the leader and receives a proposal to add a guarantee,
+// and generates and stores a SignedProposal in the queue, returning the
+// resulting SignedProposal
+//
+// Note: the TurnNum on add is ignored; the correct turn number is computed
+// and applied by c
 func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 	if c.myIndex != leader {
-		return SignedProposal{}, fmt.Errorf("only proposer can call Add")
+		return SignedProposal{}, ErrNotLeader
 	}
 
 	vars, err := c.latestProposedVars()
@@ -58,7 +61,9 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 	return signed, nil
 }
 
-// UpdateConsensus iterates through the proposal queue until it finds the countersigned proposal.
+// UpdateConsensus is called by the leader and iterates through
+// the proposal queue until it finds the countersigned proposal.
+//
 // If this proposal was signed by the Follower:
 //  - the consensus state is updated with the supplied proposal
 //  - the proposal queue is trimmed
