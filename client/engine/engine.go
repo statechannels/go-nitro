@@ -323,7 +323,7 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 
 		return &dfo, err
 	case virtualfund.IsVirtualFundObjective(message.ObjectiveId):
-		vfo, err := virtualfund.ConstructObjectiveFromMessage(message, *e.store.GetAddress(), e.store.GetTwoPartyLedger)
+		vfo, err := virtualfund.ConstructObjectiveFromMessage(message, *e.store.GetAddress(), e.store.GetTwoPartyLedger, e.store.GetConsensusChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}

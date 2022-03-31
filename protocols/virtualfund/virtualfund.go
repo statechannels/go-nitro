@@ -496,9 +496,16 @@ func (o *Objective) isBob() bool {
 // GetTwoPartyLedgerFunction specifies a function that can be used to retreive ledgers from a store.
 type GetTwoPartyLedgerFunction func(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool)
 
+type GetTwoPartyConsensusLedgerFunction func(leader, follower types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
+
 // ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
-func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address, getTwoPartyLedger GetTwoPartyLedgerFunction) (Objective, error) {
+func ConstructObjectiveFromMessage(
+	m protocols.Message,
+	myAddress types.Address,
+	getTwoPartyLedger GetTwoPartyLedgerFunction,
+	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
+) (Objective, error) {
 	if len(m.SignedStates) != 1 {
 		return Objective{}, errors.New("expected exactly one signed state in the message")
 	}
@@ -514,6 +521,8 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 
 	var left *channel.TwoPartyLedger
 	var right *channel.TwoPartyLedger
+	var leftC *consensus_channel.ConsensusChannel
+	var rightC *consensus_channel.ConsensusChannel
 	var ok bool
 
 	if myAddress == alice {
@@ -523,15 +532,36 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
 		}
+
+		leftC, _ = getTwoPartyConsensusLedger(intermediary, bob)
+		// if !ok {
+		// 	// todo: #420 handle, after consensus_channel lifecycle is defined & channels present
+		// 	return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
+		// }
+
 	} else if myAddress == intermediary {
 		left, ok = getTwoPartyLedger(alice, intermediary)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
 		}
+
+		leftC, _ = getTwoPartyConsensusLedger(alice, intermediary)
+		// if !ok {
+		// 	// todo: #420 handle, after consensus_channel lifecycle is defined & channels present
+		// 	return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+		// }
+
 		right, ok = getTwoPartyLedger(intermediary, bob)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
 		}
+
+		rightC, _ = getTwoPartyConsensusLedger(intermediary, bob)
+		// if !ok {
+		// 	// todo: #420 handle, after consensus_channel lifecycle is defined & channels present
+		// 	return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+		// }
+
 	} else {
 		return Objective{}, fmt.Errorf("client address not found in an expected participant index")
 	}
@@ -540,8 +570,8 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 		true, // TODO ensure objective in only approved if the application has given permission somehow
 		initialState,
 		myAddress,
-		left, nil, // todo: replace nil consensusChannels
-		right, nil,
+		left, leftC, // todo: replace nil consensusChannels
+		right, rightC,
 	)
 }
 
