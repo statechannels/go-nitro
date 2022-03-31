@@ -11,9 +11,10 @@ import (
 
 // jsonAdd replaces Add's private fields with public ones,
 // making it suitable for serialization
+// embedded structs are moved to name fields for easier serialization
 type jsonAdd struct {
-	TurnNum uint64
-	Guarantee
+	TurnNum     uint64
+	Guarantee   Guarantee
 	LeftDeposit *big.Int
 }
 
