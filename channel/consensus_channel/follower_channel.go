@@ -26,20 +26,16 @@ func NewFollowerChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcom
 
 // SignNextProposal inspects whether the expected proposal matches the first proposal in
 // the queue. If so, the proposal is removed from the queue and integrated into the channel state
-func (c *FollowerChannel) SignNextProposal(expectedProposal interface{}, sk []byte) error {
+func (c *FollowerChannel) SignNextProposal(expectedProposal Proposal, sk []byte) error {
 	if len(c.proposalQueue) == 0 {
 		return ErrNoProposals
 	}
-	p, ok := c.proposalQueue[0].Proposal.(Add)
-	if !ok {
+	if !c.proposalQueue[0].Proposal.isAddProposal() {
 		return ErrUnsupportedQueuedProposal
 	}
-	expectedP, ok := expectedProposal.(Add)
-	if !ok {
-		return ErrUnsupportedExpectedProposal
-	}
+	p := c.proposalQueue[0].Proposal
 
-	if !p.equal(expectedP) {
+	if !p.equal(&expectedProposal) {
 		return ErrNonMatchingProposals
 	}
 
@@ -48,7 +44,7 @@ func (c *FollowerChannel) SignNextProposal(expectedProposal interface{}, sk []by
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),
 	}
-	err := vars.Add(p)
+	err := vars.Add(p.toAdd)
 	if err != nil {
 		return err
 	}
@@ -74,11 +70,10 @@ func (c *FollowerChannel) Receive(p SignedProposal) error {
 	if err != nil {
 		return fmt.Errorf("could not generate the current proposal: %w", err)
 	}
-
-	add, isAdd := p.Proposal.(Add)
-	if !isAdd {
+	if !p.Proposal.isAddProposal() {
 		return fmt.Errorf("received proposal is not an add: %v", p.Proposal)
 	}
+	add := p.Proposal.toAdd
 
 	if add.turnNum != vars.TurnNum+1 {
 		return ErrInvalidTurnNum

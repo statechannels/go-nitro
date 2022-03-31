@@ -122,7 +122,7 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 
 	var err error
 	for _, p := range c.proposalQueue {
-		err = vars.Add(p.Proposal.(Add))
+		err = vars.Add(p.Proposal.toAdd)
 		if err != nil {
 			return Vars{}, err
 		}
@@ -290,10 +290,28 @@ type SignedVars struct {
 	Signatures [2]state.Signature
 }
 
-// SignedProposal is a proposal with a signature on it
+// Proposal is a proposal either to add or to remove a guarantee.
+//
+// Exactly one of {toAdd, toRemove} should be non nil
+type Proposal struct {
+	toAdd    Add
+	toRemove struct{} // TODO
+}
+
+// equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
+func (p *Proposal) equal(q *Proposal) bool {
+	return p.toAdd.equal(q.toAdd) && p.toRemove == q.toRemove
+}
+
+// isAddProposal returns true if the proposal contains a non-nil toAdd and a nil toRemove.
+func (p *Proposal) isAddProposal() bool {
+	return p.toAdd != Add{} && p.toRemove == struct{}{}
+}
+
+// SignedProposal is a Proposall with a signature on it
 type SignedProposal struct {
 	state.Signature
-	Proposal interface{}
+	Proposal Proposal
 }
 
 // Add is a proposal to add a guarantee for the given virtual channel
