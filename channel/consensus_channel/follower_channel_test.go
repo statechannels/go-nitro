@@ -7,7 +7,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -36,8 +35,8 @@ func TestReceive(t *testing.T) {
 
 	var vAmount = uint64(5)
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
-	aliceSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
-	bobsSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
+	aliceSig, _ := initialVars.AsState(fp()).Sign(Actors.Alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(Actors.Bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
 	channel, err := NewFollowerChannel(fp(), 0, ledgerOutcome(), sigs)
@@ -54,7 +53,7 @@ func TestReceive(t *testing.T) {
 		t.Fatalf("expected %v, but got %v", ErrInvalidProposalSignature, err)
 	}
 
-	valid := createSignedProposal(initialVars, proposal, fp(), testdata.Actors.Alice.PrivateKey)
+	valid := createSignedProposal(initialVars, proposal, fp(), Actors.Alice.PrivateKey)
 
 	err = channel.Receive(valid)
 	if err != nil {
@@ -72,7 +71,7 @@ func TestReceive(t *testing.T) {
 	// Generate a second proposal
 	latestProposed, _ := channel.latestProposedVars()
 	secondProposal := add(2, vAmount, types.Destination{3}, alice, bob)
-	anotherValid := createSignedProposal(latestProposed, secondProposal, fp(), testdata.Actors.Alice.PrivateKey)
+	anotherValid := createSignedProposal(latestProposed, secondProposal, fp(), Actors.Alice.PrivateKey)
 	err = channel.Receive(anotherValid)
 	if err != nil {
 		t.Fatalf("unable to receive proposal: %v", err)
@@ -87,14 +86,14 @@ func TestReceive(t *testing.T) {
 	}
 
 	// Check that receive rejects a stale proposal
-	stale := createSignedProposal(Vars{TurnNum: 0, Outcome: ledgerOutcome()}, proposal, fp(), testdata.Actors.Alice.PrivateKey)
+	stale := createSignedProposal(Vars{TurnNum: 0, Outcome: ledgerOutcome()}, proposal, fp(), Actors.Alice.PrivateKey)
 	err = channel.Receive(stale)
 	if !errors.Is(ErrInvalidTurnNum, err) {
 		t.Fatalf("expected %v, but got %v", ErrInvalidTurnNum, err)
 	}
 
 	// Check that  receive rejects a proposal too far in the future
-	tooFar := createSignedProposal(Vars{TurnNum: 10, Outcome: ledgerOutcome()}, proposal, fp(), testdata.Actors.Alice.PrivateKey)
+	tooFar := createSignedProposal(Vars{TurnNum: 10, Outcome: ledgerOutcome()}, proposal, fp(), Actors.Alice.PrivateKey)
 	err = channel.Receive(tooFar)
 	if !errors.Is(ErrInvalidTurnNum, err) {
 		t.Fatalf("expected %v, but got %v", ErrInvalidTurnNum, err)
@@ -102,13 +101,13 @@ func TestReceive(t *testing.T) {
 
 }
 func TestFollowerChannel(t *testing.T) {
-	alice := testdata.Actors.Alice.Destination()
-	bob := testdata.Actors.Bob.Destination()
+	alice := Actors.Alice.Destination()
+	bob := Actors.Bob.Destination()
 	targetChannel := types.Destination{2}
 
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
-	aliceSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
-	bobsSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
+	aliceSig, _ := initialVars.AsState(fp()).Sign(Actors.Alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(Actors.Bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
 	channel, err := NewFollowerChannel(fp(), 0, ledgerOutcome(), sigs)
@@ -118,7 +117,7 @@ func TestFollowerChannel(t *testing.T) {
 
 	proposal := add(1, uint64(5), targetChannel, alice, bob)
 
-	err = channel.SignNextProposal(proposal, testdata.Actors.Bob.PrivateKey)
+	err = channel.SignNextProposal(proposal, Actors.Bob.PrivateKey)
 	if !errors.Is(ErrNoProposals, err) {
 		t.Fatalf("expected %v, but got %v", ErrNoProposals, err)
 	}
@@ -131,12 +130,12 @@ func TestFollowerChannel(t *testing.T) {
 	channel.proposalQueue = []SignedProposal{signedProposal}
 	proposal2 := add(1, uint64(6), targetChannel, alice, bob)
 
-	err = channel.SignNextProposal(proposal2, testdata.Actors.Bob.PrivateKey)
+	err = channel.SignNextProposal(proposal2, Actors.Bob.PrivateKey)
 	if !errors.Is(ErrNonMatchingProposals, err) {
 		t.Fatalf("expected %v, but got %v", ErrNonMatchingProposals, err)
 	}
 
-	err = channel.SignNextProposal(proposal, testdata.Actors.Bob.PrivateKey)
+	err = channel.SignNextProposal(proposal, Actors.Bob.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}

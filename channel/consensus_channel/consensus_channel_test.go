@@ -7,10 +7,48 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
+
 	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/types"
 )
+
+type actor struct {
+	Address    types.Address
+	PrivateKey []byte
+}
+
+func (a actor) Destination() types.Destination {
+	return types.AddressToDestination(a.Address)
+}
+
+// actors namespaces the actors exported for test consumption
+type actors struct {
+	Alice actor
+	Bob   actor
+	Brian actor
+	Irene actor
+}
+
+// Actors is the endpoint for tests to consume constructed statechannel
+// network participants (public-key secret-key pairs)
+var Actors actors = actors{
+	Alice: actor{
+		common.HexToAddress(`0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE`),
+		common.Hex2Bytes(`2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d`),
+	},
+	Bob: actor{
+		common.HexToAddress(`0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94`),
+		common.Hex2Bytes(`0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4`),
+	},
+	Brian: actor{
+		common.HexToAddress("0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01"),
+		common.Hex2Bytes("0aca28ba64679f63d71e671ab4dbb32aaa212d4789988e6ca47da47601c18fe2"),
+	},
+	Irene: actor{
+		common.HexToAddress(`0x111A00868581f73AB42FEEF67D235Ca09ca1E8db`),
+		common.Hex2Bytes(`febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781`),
+	},
+}
 
 func TestConsensusChannel(t *testing.T) {
 	var alice = types.Destination(common.HexToHash("0x0a"))
@@ -151,7 +189,7 @@ func TestConsensusChannel(t *testing.T) {
 
 	fp := func() state.FixedPart {
 		participants := [2]types.Address{
-			testdata.Actors.Alice.Address, testdata.Actors.Bob.Address,
+			Actors.Alice.Address, Actors.Bob.Address,
 		}
 		return state.FixedPart{
 			Participants:      participants[:],
@@ -162,8 +200,8 @@ func TestConsensusChannel(t *testing.T) {
 	}
 
 	initialVars := Vars{Outcome: outcome(), TurnNum: 0}
-	aliceSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Alice.PrivateKey)
-	bobsSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Bob.PrivateKey)
+	aliceSig, _ := initialVars.AsState(fp()).Sign(Actors.Alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(Actors.Bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
 	testConsensusChannelFunctionality := func(t *testing.T) {
@@ -173,7 +211,7 @@ func TestConsensusChannel(t *testing.T) {
 			t.Fatalf("unable to construct a new consensus channel: %v", err)
 		}
 
-		_, err = channel.sign(initialVars, testdata.Actors.Bob.PrivateKey)
+		_, err = channel.sign(initialVars, Actors.Bob.PrivateKey)
 		if err == nil {
 			t.Fatalf("channel should check that signer is participant")
 		}
@@ -190,7 +228,7 @@ func TestConsensusChannel(t *testing.T) {
 			t.Fatalf("latestProposedVars did not return a copy")
 		}
 
-		briansSig, _ := initialVars.AsState(fp()).Sign(testdata.Actors.Brian.PrivateKey)
+		briansSig, _ := initialVars.AsState(fp()).Sign(Actors.Brian.PrivateKey)
 		wrongSigs := [2]state.Signature{sigs[1], briansSig}
 		_, err = newConsensusChannel(fp(), leader, 0, outcome(), wrongSigs)
 		if err == nil {
