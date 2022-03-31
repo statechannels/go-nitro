@@ -180,3 +180,20 @@ func TestLeaderChannel(t *testing.T) {
 		t.Fatal("consensus incorrectly updated")
 	}
 }
+
+func TestRestrictedFollowerMethods(t *testing.T) {
+	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
+	aliceSig, _ := initialVars.AsState(fp()).Sign(alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
+	sigs := [2]state.Signature{aliceSig, bobsSig}
+
+	channel, _ := NewLeaderChannel(fp(), 0, ledgerOutcome(), sigs)
+
+	if err := channel.SignNextProposal(Proposal{}, alice.PrivateKey); err != ErrNotFollower {
+		t.Errorf("Expected error when calling SignNextProposal as a leader, but found none")
+	}
+
+	if err := channel.Receive(SignedProposal{}); err != ErrNotFollower {
+		t.Errorf("Expected error when calling Receive as a leader, but found none")
+	}
+}
