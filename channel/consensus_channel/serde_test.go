@@ -26,7 +26,7 @@ func TestSerde(t *testing.T) {
 		Guarantee:   someGuarantee,
 		LeftDeposit: big.NewInt(77),
 	}
-	someAddJSON := `{}`
+	someAddJSON := `{"TurnNum":4096,"Guarantee":{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"},"LeftDeposit":77}`
 
 	someOutcome := makeOutcome(
 		Balance{alice.Destination(), big.NewInt(2)},
