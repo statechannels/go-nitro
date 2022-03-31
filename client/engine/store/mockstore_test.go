@@ -145,7 +145,7 @@ func TestConsensusChannelStore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := ms.SetConsensusChannel(&want.ConsensusChannel); err != nil {
+	if err := ms.SetConsensusChannel(&want); err != nil {
 		t.Fatalf("error setting consensus channel %v: %s", want, err.Error())
 	}
 
