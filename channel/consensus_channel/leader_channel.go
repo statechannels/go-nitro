@@ -8,10 +8,8 @@ import (
 
 
 // NewLeaderChannel constructs a new LeaderChannel
-func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (LeaderChannel, error) {
-	channel, err := newConsensusChannel(fp, leader, turnNum, outcome, signatures)
-
-	return LeaderChannel{ConsensusChannel: channel}, err
+func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
+	return newConsensusChannel(fp, leader, turnNum, outcome, signatures)
 }
 
 // IsProposed returns whether or not the consensus state or any proposed state
