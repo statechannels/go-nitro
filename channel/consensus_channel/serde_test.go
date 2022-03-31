@@ -3,6 +3,7 @@ package consensus_channel
 import (
 	"encoding/json"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -55,40 +56,55 @@ func TestSerde(t *testing.T) {
 		}},
 	}
 	someConsensusChannelJSON := `{"Id":"0x0100000000000000000000000000000000000000000000000000000000000000","MyIndex":0,"FP":{"ChainId":0,"Participants":["0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce","0xbbb676f9cff8d242e9eac39d063848807d3d1d94"],"ChannelNonce":9001,"AppDefinition":"0x0000000000000000000000000000000000000000","ChallengeDuration":100},"Current":{"TurnNum":0,"Outcome":{"AssetAddress":"0x0000000000000000000000000000000000000000","Left":{"Destination":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Amount":2},"Right":{"Destination":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94","Amount":7},"Guarantees":{"0x6300000000000000000000000000000000000000000000000000000000000000":{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}}},"Signatures":[{"R":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","S":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","V":0},{"R":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","S":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","V":0}]},"ProposalQueue":[{"R":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","S":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","V":0,"Proposal":{"Amount":2,"Target":"0x0300000000000000000000000000000000000000000000000000000000000000","Left":"0x0400000000000000000000000000000000000000000000000000000000000000","Right":"0x0500000000000000000000000000000000000000000000000000000000000000"}}]}`
-	t.Run("Marshaling", func(t *testing.T) {
-		t.Run("Guarantee", func(t *testing.T) {
-			got, err := json.Marshal(someGuarantee)
+
+	type testCase struct {
+		name string
+		rich interface{}
+		json string
+	}
+
+	testCases := []testCase{
+		{
+			"Guarantee",
+			someGuarantee,
+			someGuaranteeJSON,
+		},
+		{
+			"LedgerOutcome",
+			someOutcome,
+			someOutcomeJSON,
+		},
+		{
+			"ConsensusChannel",
+			someConsensusChannel,
+			someConsensusChannelJSON,
+		},
+	}
+
+	for _, c := range testCases {
+
+		t.Run("Marshaling "+c.name, func(t *testing.T) {
+			got, err := json.Marshal(c.rich)
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := someGuaranteeJSON
+			want := c.json
 			if string(got) != want {
-				t.Fatalf("incorrect json marshalling, expected %v got \n%v", want, string(got))
+				t.Fatalf("incorrect json marshaling, expected %v got \n%v", want, string(got))
 			}
 		})
 
-		t.Run("LedgerOutcome", func(t *testing.T) {
-			got, err := json.Marshal(someOutcome)
+		t.Run("Unmarshaling "+c.name, func(t *testing.T) {
+			t.Skip()
+			got := reflect.New(reflect.TypeOf(c.rich))
+			err := json.Unmarshal([]byte(c.json), &got)
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := someOutcomeJSON
-			if string(got) != want {
-				t.Fatalf("incorrect json marshalling, expected %v\n got %v", want, string(got))
+			want := c.rich
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("incorrect json unmarshaling, expected %+v got \n%+v", want, got)
 			}
 		})
-
-		t.Run("ConsensusChannel", func(t *testing.T) {
-			got, err := json.Marshal(someConsensusChannel)
-			if err != nil {
-				t.Fatal(err)
-			}
-			want := someConsensusChannelJSON
-			if string(got) != want {
-
-				t.Fatalf("incorrect json marshalling, expected %v got \n%v", want, string(got))
-			}
-		})
-	})
-
+	}
 }
