@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -48,11 +49,22 @@ func TestDirectFundIntegration(t *testing.T) {
 
 	directlyFundALedgerChannel(t, clientA, clientB)
 
+	want := testdata.Outcomes.Create(*clientA.Address, *clientB.Address, 5, 5)
 	// Ensure that we create a consensus channel in the store
 	for _, store := range []store.Store{storeA, storeB} {
-		_, ok := store.GetConsensusChannel(*clientA.Address, *clientB.Address)
+		con, ok := store.GetConsensusChannel(*clientA.Address, *clientB.Address)
+
 		if !ok {
 			t.Fatalf("expected a consensus channel to have been created")
+		}
+		vars := con.ConsensusVars()
+		got := vars.Outcome.AsOutcome()
+
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Fatalf("expected outcome to be %v, got %v:\n %v", want, got, diff)
+		}
+		if vars.TurnNum != 1 {
+			t.Fatal("expected consensus turn number to be the post fund setup 1, received #$v", vars.TurnNum)
 		}
 
 	}

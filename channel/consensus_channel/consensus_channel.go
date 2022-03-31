@@ -117,6 +117,12 @@ func (c *ConsensusChannel) recoverSigner(vars Vars, sig state.Signature) (common
 	return state.RecoverSigner(sig)
 }
 
+// ConsensusVars returns the vars of the consensus state
+// The consensus state is the latest state that has been signed by both parties
+func (c *ConsensusChannel) ConsensusVars() Vars {
+	return c.current.Vars
+}
+
 // latestProposedVars returns the latest proposed vars in a consensus channel
 // by cloning its current vars and applying each proposal in the queue
 func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
