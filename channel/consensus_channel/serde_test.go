@@ -95,13 +95,27 @@ func TestSerde(t *testing.T) {
 		})
 
 		t.Run("Unmarshaling "+c.name, func(t *testing.T) {
-			t.Skip()
-			got := reflect.New(reflect.TypeOf(c.rich))
-			err := json.Unmarshal([]byte(c.json), &got)
+			want := c.rich
+			var got interface{}
+			var err error
+			switch c.rich.(type) {
+			case Guarantee:
+				g := Guarantee{}
+				err = json.Unmarshal([]byte(c.json), &g)
+				got = g
+			case LedgerOutcome:
+				lo := LedgerOutcome{}
+				err = json.Unmarshal([]byte(c.json), &lo)
+				got = lo
+			case ConsensusChannel:
+				cc := ConsensusChannel{}
+				err = json.Unmarshal([]byte(c.json), &cc)
+				got = cc
+			}
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := c.rich
+
 			if !reflect.DeepEqual(got, want) {
 				t.Fatalf("incorrect json unmarshaling, expected %+v got \n%+v", want, got)
 			}
