@@ -185,9 +185,9 @@ type jsonConsensusChannel struct {
 // MarshalJSON returns a JSON representation of the ConsensusChannel
 func (c ConsensusChannel) MarshalJSON() ([]byte, error) {
 	jsonCh := jsonConsensusChannel{
-		Id:            c.Id,
 		MyIndex:       c.myIndex,
 		FP:            c.fp,
+		Id:            c.Id,
 		Current:       c.current,
 		ProposalQueue: c.proposalQueue,
 	}
