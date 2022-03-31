@@ -135,7 +135,7 @@ func TestConsensusChannelStore(t *testing.T) {
 	aliceSig, _ := initialVars.AsState(fp).Sign(td.Actors.Alice.PrivateKey)
 	bobsSig, _ := initialVars.AsState(fp).Sign(td.Actors.Bob.PrivateKey)
 
-	want, err := consensus_channel.NewLeaderChannel(
+	leader, err := consensus_channel.NewLeaderChannel(
 		fp,
 		0,
 		*outcome,
@@ -145,7 +145,9 @@ func TestConsensusChannelStore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := ms.SetConsensusChannel(&want.ConsensusChannel); err != nil {
+	// The store only deals with ConsensusChannels
+	want := leader.ConsensusChannel
+	if err := ms.SetConsensusChannel(&want); err != nil {
 		t.Fatalf("error setting consensus channel %v: %s", want, err.Error())
 	}
 
@@ -158,5 +160,8 @@ func TestConsensusChannelStore(t *testing.T) {
 	if got.Id != want.Id {
 		t.Fatalf("expected to retrieve same channel Id as was passed in, but didn't")
 	}
-	// TODO check that got and want are deeply equal
+
+	if diff := cmp.Diff(*got, want, cmp.AllowUnexported(cc.ConsensusChannel{}, big.Int{}, cc.LedgerOutcome{}, cc.Balance{})); diff != "" {
+		t.Fatalf("fetched result different than expected %s", diff)
+	}
 }
