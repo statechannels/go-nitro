@@ -496,6 +496,7 @@ func (o *Objective) isBob() bool {
 // GetTwoPartyLedgerFunction specifies a function that can be used to retreive ledgers from a store.
 type GetTwoPartyLedgerFunction func(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool)
 
+// todo: #420 assume name and godoc from GetTwoPartyLedgerFunction
 type GetTwoPartyConsensusLedgerFunction func(leader, follower types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
 // ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
