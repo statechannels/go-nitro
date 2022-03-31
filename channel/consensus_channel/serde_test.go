@@ -21,6 +21,13 @@ func TestSerde(t *testing.T) {
 	}
 	someGuaranteeJSON := `{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}`
 
+	someAdd := Add{
+		turnNum:     4096,
+		Guarantee:   someGuarantee,
+		LeftDeposit: big.NewInt(77),
+	}
+	someAddJSON := `{}`
+
 	someOutcome := makeOutcome(
 		Balance{alice.Destination(), big.NewInt(2)},
 		Balance{bob.Destination(), big.NewInt(7)},
@@ -70,6 +77,11 @@ func TestSerde(t *testing.T) {
 			someGuaranteeJSON,
 		},
 		{
+			"Add",
+			someAdd,
+			someAddJSON,
+		},
+		{
 			"LedgerOutcome",
 			someOutcome,
 			someOutcomeJSON,
@@ -111,6 +123,12 @@ func TestSerde(t *testing.T) {
 				cc := ConsensusChannel{}
 				err = json.Unmarshal([]byte(c.json), &cc)
 				got = cc
+			case Add:
+				a := Add{}
+				err = json.Unmarshal([]byte(c.json), &a)
+				got = a
+			default:
+				panic("unimplemented")
 			}
 			if err != nil {
 				t.Fatal(err)
