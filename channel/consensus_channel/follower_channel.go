@@ -6,6 +6,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
+var ErrNotFollower = fmt.Errorf("method may only be called by channel follower")
 var ErrNoProposals = fmt.Errorf("no proposals in the queue")
 var ErrUnsupportedQueuedProposal = fmt.Errorf("only Add proposal is supported for queued proposals")
 var ErrUnsupportedExpectedProposal = fmt.Errorf("only Add proposal is supported for expected update")

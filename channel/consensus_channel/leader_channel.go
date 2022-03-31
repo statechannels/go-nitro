@@ -6,6 +6,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
+var ErrNotLeader = fmt.Errorf("method may only be called by the channel leader")
 
 // NewLeaderChannel constructs a new LeaderChannel
 func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
