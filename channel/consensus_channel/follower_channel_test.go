@@ -11,9 +11,12 @@ import (
 
 // createSignedProposal generates a signed proposal given the vars, proposal fixed parts and private key
 // The vars passed in are NOT mutated!
-func createSignedProposal(vars Vars, proposal Add, fp state.FixedPart, pk []byte) SignedProposal {
+func createSignedProposal(vars Vars, proposal Proposal, fp state.FixedPart, pk []byte) SignedProposal {
+	if !proposal.isAddProposal() {
+		panic("unimplemented")
+	}
 	proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
-	_ = proposalVars.Add(proposal)
+	_ = proposalVars.Add(proposal.toAdd)
 
 	state := proposalVars.AsState(fp)
 	sig, _ := state.Sign(pk)
@@ -39,7 +42,7 @@ func TestReceive(t *testing.T) {
 		t.Fatal("unable to construct channel")
 	}
 
-	proposal := add(1, vAmount, targetChannel, alice, bob)
+	proposal := Proposal{toAdd: add(1, vAmount, targetChannel, alice, bob)}
 
 	// Create a proposal with an incorrect signature
 	badSigProposal := SignedProposal{bobsSig, proposal}
@@ -65,7 +68,7 @@ func TestReceive(t *testing.T) {
 
 	// Generate a second proposal
 	latestProposed, _ := channel.latestProposedVars()
-	secondProposal := add(2, vAmount, types.Destination{3}, alice, bob)
+	secondProposal := Proposal{toAdd: add(2, vAmount, types.Destination{3}, alice, bob)}
 	anotherValid := createSignedProposal(latestProposed, secondProposal, fp(), alice.PrivateKey)
 	err = channel.Receive(anotherValid)
 	if err != nil {
@@ -106,7 +109,7 @@ func TestFollowerChannel(t *testing.T) {
 		t.Fatal("unable to construct channel")
 	}
 
-	proposal := add(1, uint64(5), targetChannel, alice, bob)
+	proposal := Proposal{toAdd: add(1, uint64(5), targetChannel, alice, bob)}
 
 	err = channel.SignNextProposal(proposal, bob.PrivateKey)
 	if !errors.Is(ErrNoProposals, err) {
@@ -119,7 +122,7 @@ func TestFollowerChannel(t *testing.T) {
 		Signature: state.Signature{},
 	}
 	channel.proposalQueue = []SignedProposal{signedProposal}
-	proposal2 := add(1, uint64(6), targetChannel, alice, bob)
+	proposal2 := Proposal{toAdd: add(1, uint64(6), targetChannel, alice, bob)}
 
 	err = channel.SignNextProposal(proposal2, bob.PrivateKey)
 	if !errors.Is(ErrNonMatchingProposals, err) {
@@ -134,7 +137,7 @@ func TestFollowerChannel(t *testing.T) {
 	if channel.ConsensusTurnNum() != 1 {
 		t.Fatalf("incorrect turn number: expected 1, got %d", channel.ConsensusTurnNum())
 	}
-	if !channel.Includes(proposal.Guarantee) {
+	if !channel.Includes(proposal.toAdd.Guarantee) {
 		t.Fatal("expected the channel to not include the guarantee")
 	}
 	if len(channel.proposalQueue) != 0 {

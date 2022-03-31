@@ -31,17 +31,18 @@ func TestLeaderChannel(t *testing.T) {
 		t.Fatal("initialized with non-zero turn number")
 	}
 
-	p := add(1, amountAdded, targetChannel, alice, bob)
-	sp, err := channel.Propose(p, alice.PrivateKey)
+	p := Proposal{toAdd: add(1, amountAdded, targetChannel, alice, bob)}
+
+	sp, err := channel.Propose(p.toAdd, alice.PrivateKey)
 	if err != nil {
 		t.Fatalf("failed to add proposal: %v", err)
 	}
 
-	success, _ := channel.IsProposed(p.Guarantee)
+	success, _ := channel.IsProposed(p.toAdd.Guarantee)
 	if !success {
 		t.Fatal("incorrect latest proposed vars")
 	}
-	if channel.ConsensusTurnNum() != 0 || channel.Includes(p.Guarantee) {
+	if channel.ConsensusTurnNum() != 0 || channel.Includes(p.toAdd.Guarantee) {
 		t.Fatal("consensus incorrectly updated")
 	}
 
@@ -61,13 +62,13 @@ func TestLeaderChannel(t *testing.T) {
 
 	thirdChannel := types.Destination{3}
 	p2 := p
-	p2.target = thirdChannel
-	g2 := p2.Guarantee
-	secondSigned, err := channel.Propose(p2, alice.PrivateKey)
+	p2.toAdd.target = thirdChannel
+	g2 := p2.toAdd.Guarantee
+	secondSigned, err := channel.Propose(p2.toAdd, alice.PrivateKey)
 	if err != nil {
 		t.Fatalf("failed to add another proposal: %v", err)
 	}
-	if secondSigned.Proposal.(Add).turnNum != 2 {
+	if secondSigned.Proposal.toAdd.turnNum != 2 {
 		t.Fatalf("incorrect proposal generated")
 	}
 
@@ -86,9 +87,9 @@ func TestLeaderChannel(t *testing.T) {
 	counterSig2, _ := latest.AsState(fp()).Sign(bob.PrivateKey)
 
 	p3 := p
-	p3.target = types.Destination{4}
-	g3 := p3.Guarantee
-	thirdSigned, _ := channel.Propose(p3, alice.PrivateKey)
+	p3.toAdd.target = types.Destination{4}
+	g3 := p3.toAdd.Guarantee
+	thirdSigned, _ := channel.Propose(p3.toAdd, alice.PrivateKey)
 
 	p2Returned := SignedProposal{
 		Proposal:  secondSigned.Proposal,
@@ -165,7 +166,7 @@ func TestLeaderChannel(t *testing.T) {
 
 	// A counter signature is received on an unexpected proposal
 	p4Returned := SignedProposal{
-		Proposal:  add(4, 10, targetChannel, alice, bob),
+		Proposal:  Proposal{toAdd: add(4, 10, targetChannel, alice, bob)},
 		Signature: counterSig2,
 	}
 	err = channel.UpdateConsensus(p4Returned)

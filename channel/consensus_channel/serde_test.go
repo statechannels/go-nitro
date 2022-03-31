@@ -73,7 +73,7 @@ func TestSerde(t *testing.T) {
 					R: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
 					V: byte(0),
 				},
-				Proposal: add(1, 2, types.Destination{3}, alice, bob),
+				Proposal: Proposal{toAdd: add(1, 2, types.Destination{3}, alice, bob)},
 			}},
 		}
 
