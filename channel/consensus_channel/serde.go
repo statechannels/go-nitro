@@ -9,6 +9,39 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// jsonAdd replaces Add's private fields with public ones,
+// making it suitable for serialization
+// embedded structs are moved to name fields for easier serialization
+type jsonAdd struct {
+	TurnNum     uint64
+	Guarantee   Guarantee
+	LeftDeposit *big.Int
+}
+
+// MarshalJSON returns a JSON representation of the Add
+func (a Add) MarshalJSON() ([]byte, error) {
+	jsonA := jsonAdd{
+		a.turnNum, a.Guarantee, a.LeftDeposit,
+	}
+	return json.Marshal(jsonA)
+}
+
+// UnmarshalJSON populates the receiver with the
+// json-encoded data
+func (a *Add) UnmarshalJSON(data []byte) error {
+	var jsonA jsonAdd
+	err := json.Unmarshal(data, &jsonA)
+	if err != nil {
+		return fmt.Errorf("error unmarshaling guarantee data: %w", err)
+	}
+
+	a.turnNum = jsonA.TurnNum
+	a.Guarantee = jsonA.Guarantee
+	a.LeftDeposit = jsonA.LeftDeposit
+
+	return nil
+}
+
 // jsonProposal replaces Proposal's private fields with public ones,
 // making it suitable for serialization
 type jsonProposal struct {
@@ -153,9 +186,9 @@ type jsonConsensusChannel struct {
 // MarshalJSON returns a JSON representation of the ConsensusChannel
 func (c ConsensusChannel) MarshalJSON() ([]byte, error) {
 	jsonCh := jsonConsensusChannel{
-		Id:            c.Id,
 		MyIndex:       c.myIndex,
 		FP:            c.fp,
+		Id:            c.Id,
 		Current:       c.current,
 		ProposalQueue: c.proposalQueue,
 	}
