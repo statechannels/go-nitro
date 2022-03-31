@@ -117,7 +117,7 @@ func TestSerde(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(got, want) {
-				t.Fatalf("incorrect json unmarshaling, expected %+v got \n%+v", want, got)
+				t.Fatalf("incorrect json unmarshaling, expected \n%+v got \n%+v", want, got)
 			}
 		})
 	}
