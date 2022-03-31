@@ -6,10 +6,6 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
-// LeaderChannel is used by a leader's virtualfund objective to make and receive ledger updates
-type LeaderChannel struct {
-	ConsensusChannel
-}
 
 // NewLeaderChannel constructs a new LeaderChannel
 func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (LeaderChannel, error) {
@@ -20,7 +16,7 @@ func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome,
 
 // IsProposed returns whether or not the consensus state or any proposed state
 // includes the given guarantee.
-func (c *LeaderChannel) IsProposed(g Guarantee) (bool, error) {
+func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
 	latest, err := c.latestProposedVars()
 	if err != nil {
 		return false, err
@@ -32,7 +28,7 @@ func (c *LeaderChannel) IsProposed(g Guarantee) (bool, error) {
 // Propose receives a proposal to add a guarantee, and generates and stores a SignedProposal in
 // the queue, returning the resulting SignedProposal
 // Note: the TurnNum on add is ignored; the correct turn number is computed by c
-func (c *LeaderChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
+func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 	if c.myIndex != leader {
 		return SignedProposal{}, fmt.Errorf("only proposer can call Add")
 	}
@@ -71,7 +67,7 @@ func (c *LeaderChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 // An error is returned if:
 //  - the countersupplied proposal is not found
 //  - or if it is found but not correctly by the Follower
-func (c *LeaderChannel) UpdateConsensus(countersigned SignedProposal) error {
+func (c *ConsensusChannel) UpdateConsensus(countersigned SignedProposal) error {
 	consensusCandidate := Vars{
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),
