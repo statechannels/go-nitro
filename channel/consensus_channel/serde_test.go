@@ -7,7 +7,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/crypto"
-	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -15,13 +14,13 @@ func TestSerde(t *testing.T) {
 
 	someGuarantee := Guarantee{
 		amount: big.NewInt(1),
-		left:   testdata.Actors.Alice.Destination(),
-		right:  testdata.Actors.Alice.Destination(),
+		left:   alice.Destination(),
+		right:  alice.Destination(),
 		target: types.Destination{99},
 	}
 	someOutcome := makeOutcome(
-		Balance{testdata.Actors.Alice.Destination(), big.NewInt(2)},
-		Balance{testdata.Actors.Bob.Destination(), big.NewInt(7)},
+		Balance{alice.Destination(), big.NewInt(2)},
+		Balance{bob.Destination(), big.NewInt(7)},
 		someGuarantee)
 
 	t.Run("Guarantee", func(t *testing.T) {
