@@ -497,7 +497,7 @@ func (o *Objective) isBob() bool {
 type GetTwoPartyLedgerFunction func(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool)
 
 // todo: #420 assume name and godoc from GetTwoPartyLedgerFunction
-type GetTwoPartyConsensusLedgerFunction func(leader, follower types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
+type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
 // ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
@@ -534,7 +534,7 @@ func ConstructObjectiveFromMessage(
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
 		}
 
-		leftC, _ = getTwoPartyConsensusLedger(intermediary, bob)
+		leftC, _ = getTwoPartyConsensusLedger(intermediary)
 		// if !ok {
 		// 	// todo: #420 handle, after consensus_channel lifecycle is defined & channels present
 		// 	return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
@@ -546,7 +546,7 @@ func ConstructObjectiveFromMessage(
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
 		}
 
-		leftC, _ = getTwoPartyConsensusLedger(alice, intermediary)
+		leftC, _ = getTwoPartyConsensusLedger(alice)
 		// if !ok {
 		// 	// todo: #420 handle, after consensus_channel lifecycle is defined & channels present
 		// 	return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
@@ -557,7 +557,7 @@ func ConstructObjectiveFromMessage(
 			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
 		}
 
-		rightC, _ = getTwoPartyConsensusLedger(intermediary, bob)
+		rightC, _ = getTwoPartyConsensusLedger(bob)
 		// if !ok {
 		// 	// todo: #420 handle, after consensus_channel lifecycle is defined & channels present
 		// 	return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
