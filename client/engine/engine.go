@@ -256,7 +256,6 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 		return
 	}
 
-	e.executeSideEffects(sideEffects)
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 
 	// If our protocol is waiting for nothing then we know the objective is complete
@@ -264,21 +263,28 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
 	if waitingFor == "WaitingForNothing" {
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
-
-		// Whenever a direct funding objective completes we want to create a consensus_channel
-		// Here we assume that every directfund.Objective is for a ledger channel.
-		if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
-			c, err := dfo.CreateConsensusChannel()
-			if err != nil {
-				return ObjectiveChangeEvent{}, fmt.Errorf("could not create consensus channel for objective %s: %w", objective.Id(), err)
-			}
-			err = e.store.SetConsensusChannel(c)
-			if err != nil {
-				return ObjectiveChangeEvent{}, fmt.Errorf("could not store consensus channel for objective %s: %w", objective.Id(), err)
-			}
+		err = e.SpawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
+		if err != nil {
+			return
 		}
 	}
+	e.executeSideEffects(sideEffects)
 	return
+}
+
+// SpawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective iff it is a directfund.Objective.
+func (e Engine) SpawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
+	if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
+		c, err := dfo.CreateConsensusChannel()
+		if err != nil {
+			return fmt.Errorf("could not create consensus channel for objective %s: %w", crankedObjective.Id(), err)
+		}
+		err = e.store.SetConsensusChannel(c)
+		if err != nil {
+			return fmt.Errorf("could not store consensus channel for objective %s: %w", crankedObjective.Id(), err)
+		}
+	}
+	return nil
 }
 
 // getOrCreateObjective creates the objective if the supplied message is a proposal. Otherwise, it attempts to get the objective from the store.
