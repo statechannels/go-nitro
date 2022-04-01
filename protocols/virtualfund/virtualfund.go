@@ -49,13 +49,9 @@ func (c *Connection) Equal(d *Connection) bool {
 	if c == nil && d == nil {
 		return true
 	}
-	if !c.Channel.Equal(d.Channel) {
+	if !c.Channel.Equal(d.Channel) { // todo: #420 replace with a check on ConsensusChannel
 		return false
 	}
-	//
-	// if c.ConsensusChannel.Id != d.ConsensusChannel.Id {
-	// 	return false
-	// }
 	if !reflect.DeepEqual(c.GuaranteeInfo, d.GuaranteeInfo) {
 		return false
 	}
