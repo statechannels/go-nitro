@@ -355,6 +355,10 @@ type SignedProposal struct {
 	Proposal Proposal
 }
 
+func (p SignedProposal) Equal(q SignedProposal) bool {
+	return p.Signature.Equal(q.Signature) && p.Proposal.equal(&q.Proposal)
+}
+
 // Add is a proposal to add a guarantee for the given virtual channel
 // amount is to be deducted from left
 type Add struct {
