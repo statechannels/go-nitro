@@ -495,14 +495,14 @@ func CreateFromDirectFundingObjective(dfo directfund.Objective) (*ConsensusChann
 		if err != nil {
 			return nil, fmt.Errorf("could not create consensus channel as leader: %w", err)
 		}
-		return &con.ConsensusChannel, nil
+		return &con, nil
 
 	} else {
 		con, err := NewLeaderChannel(ledger.FixedPart, turnNum, outcome, signatures)
 		if err != nil {
 			return nil, fmt.Errorf("could not create consensus channel as follower: %w", err)
 		}
-		return &con.ConsensusChannel, nil
+		return &con, nil
 	}
 
 }
