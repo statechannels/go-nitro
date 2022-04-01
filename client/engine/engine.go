@@ -274,7 +274,6 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 
 // SpawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective iff it is a directfund.Objective.
 func (e Engine) SpawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
-	// Whenever a direct funding objective completes we want to create a consensus_channel
 	if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
 		c, err := dfo.CreateConsensusChannel()
 		if err != nil {
