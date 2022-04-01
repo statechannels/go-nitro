@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -52,7 +53,15 @@ func TestDirectFundIntegration(t *testing.T) {
 	want := testdata.Outcomes.Create(*clientA.Address, *clientB.Address, 5, 5)
 	// Ensure that we create a consensus channel in the store
 	for _, store := range []store.Store{storeA, storeB} {
-		con, ok := store.GetConsensusChannel(*clientA.Address, *clientB.Address)
+		var con *consensus_channel.ConsensusChannel
+		var ok bool
+
+		// each client fetches the ConsensusChannel by reference to their counterparty
+		if store.GetChannelSecretKey() == &alice.PrivateKey {
+			con, ok = store.GetConsensusChannel(*clientB.Address)
+		} else {
+			con, ok = store.GetConsensusChannel(*clientA.Address)
+		}
 
 		if !ok {
 			t.Fatalf("expected a consensus channel to have been created")
