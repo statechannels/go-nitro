@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 
@@ -38,8 +39,9 @@ type GuaranteeInfo struct {
 	GuaranteeDestination types.Destination
 }
 type Connection struct {
-	Channel       *channel.TwoPartyLedger
-	GuaranteeInfo GuaranteeInfo
+	Channel          *channel.TwoPartyLedger // todo: #420 deprecate in favor of
+	ConsensusChannel *consensus_channel.ConsensusChannel
+	GuaranteeInfo    GuaranteeInfo
 }
 
 // Equal returns true if the Connection pointed to by the supplied pointer is deeply equal to the receiver.
@@ -47,7 +49,7 @@ func (c *Connection) Equal(d *Connection) bool {
 	if c == nil && d == nil {
 		return true
 	}
-	if !c.Channel.Equal(d.Channel) {
+	if !c.Channel.Equal(d.Channel) { // todo: #420 replace with a check on ConsensusChannel
 		return false
 	}
 	if !reflect.DeepEqual(c.GuaranteeInfo, d.GuaranteeInfo) {
@@ -55,6 +57,66 @@ func (c *Connection) Equal(d *Connection) bool {
 	}
 	return true
 
+}
+
+// ledgerChannelAffordsExpectedGuarantees returns true if, for the channel inside the connection, and for each asset keying the input variables, the channel can afford the allocation given the funding.
+// The decision is made based on the latest supported state of the channel.
+//
+// Both arguments are maps keyed by the same asset.
+func (c *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
+	return c.Channel.Affords(c.getExpectedGuarantees(), c.Channel.OnChainFunding) // todo: #420 deprecate
+}
+
+// insertGuaranteeInfo mutates the reciever Connection struct.
+func (c *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) error {
+
+	c.GuaranteeInfo = GuaranteeInfo{
+		Left:                 left,
+		Right:                right,
+		LeftAmount:           a0,
+		RightAmount:          b0,
+		GuaranteeDestination: vId,
+	}
+
+	// Check that the guarantee metadata can be encoded. This allows us to avoid clunky error-return-chains for getExpectedGuarantees
+	metadata := outcome.GuaranteeMetadata{
+		Left:  c.GuaranteeInfo.Left,
+		Right: c.GuaranteeInfo.Right,
+	}
+	_, err := metadata.Encode()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// getExpectedGuarantees returns a map of asset addresses to guarantees for a Connection.
+func (c *Connection) getExpectedGuarantees() map[types.Address]outcome.Allocation {
+	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
+	metadata := outcome.GuaranteeMetadata{
+		Left:  c.GuaranteeInfo.Left,
+		Right: c.GuaranteeInfo.Right,
+	}
+	encodedGuarantee, err := metadata.Encode()
+	// This error is unexpected. insertGuaranteeInfo checks that the guarantee metadata can be encoded.
+	// If this panic is triggered, GuranteeInfo has been modified after creation
+	if err != nil {
+		panic(err)
+	}
+
+	channelFunds := c.GuaranteeInfo.LeftAmount.Add(c.GuaranteeInfo.RightAmount)
+
+	for asset, amount := range channelFunds {
+		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
+			Destination:    c.GuaranteeInfo.GuaranteeDestination,
+			Amount:         amount,
+			AllocationType: outcome.GuaranteeAllocationType,
+			Metadata:       encodedGuarantee,
+		}
+	}
+
+	return expectedGuaranteesForLedgerChannel
 }
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
@@ -95,7 +157,7 @@ func NewObjective(request ObjectiveRequest, getTwoPartyLedger GetTwoPartyLedgerF
 			IsFinal:           false,
 		},
 		request.MyAddress,
-		left, right)
+		left, nil, right, nil) // todo: replace nil consensusChannels
 	if err != nil {
 		return Objective{}, fmt.Errorf("error creating objective: %w", err)
 	}
@@ -109,7 +171,9 @@ func constructFromState(
 	initialStateOfV state.State,
 	myAddress types.Address,
 	ledgerChannelToMyLeft *channel.TwoPartyLedger,
+	consensusChannelToMyLeft *consensus_channel.ConsensusChannel,
 	ledgerChannelToMyRight *channel.TwoPartyLedger,
+	consensusChannelToMyRight *consensus_channel.ConsensusChannel,
 ) (Objective, error) {
 
 	var init Objective
@@ -171,6 +235,7 @@ func constructFromState(
 	if !init.isAlice() { // everyone other than Alice has a left-channel
 		init.ToMyLeft = &Connection{}
 		init.ToMyLeft.Channel = ledgerChannelToMyLeft
+		init.ToMyLeft.ConsensusChannel = consensusChannelToMyLeft
 		err = init.ToMyLeft.insertGuaranteeInfo(
 			init.a0,
 			init.b0,
@@ -186,6 +251,7 @@ func constructFromState(
 	if !init.isBob() { // everyone other than Bob has a right-channel
 		init.ToMyRight = &Connection{}
 		init.ToMyRight.Channel = ledgerChannelToMyRight
+		init.ToMyRight.ConsensusChannel = consensusChannelToMyRight
 		err = init.ToMyRight.insertGuaranteeInfo(
 			init.a0,
 			init.b0,
@@ -234,11 +300,15 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	var toMyRightId types.Destination
 
 	if !o.isAlice() {
-		toMyLeftId = o.ToMyLeft.Channel.Id // Avoid this if it is nil
+		toMyLeftId = o.ToMyLeft.Channel.Id // Avoid this if it is nil // todo: #420 deprecate
+		// toMyLeftId = o.ToMyLeft.ConsensusChannel.Id
 	}
 	if !o.isBob() {
-		toMyRightId = o.ToMyRight.Channel.Id // Avoid this if it is nil
+		toMyRightId = o.ToMyRight.Channel.Id // Avoid this if it is nil // todo: #420 deprecate
+		// toMyRightId = o.ToMyRight.ConsensusChannel.Id
 	}
+
+	// todo: #420 range over event.Proposals (or similar)
 
 	for _, ss := range event.SignedStates {
 		channelId, _ := ss.State().ChannelId() // TODO handle error
@@ -249,10 +319,10 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 			updated.V.AddSignedState(ss)
 			// We expect pre and post fund state signatures.
 		case toMyLeftId:
-			updated.ToMyLeft.Channel.AddSignedState(ss)
+			updated.ToMyLeft.Channel.AddSignedState(ss) // todo: #420 depricate
 			// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
 		case toMyRightId:
-			updated.ToMyRight.Channel.AddSignedState(ss)
+			updated.ToMyRight.Channel.AddSignedState(ss) // todo: #420 depricate
 			// We expect a countersigned state including an outcome with expected guarantee. We don't know the exact statehash, though.
 		default:
 			return &o, errors.New("event channelId out of scope of objective")
@@ -331,13 +401,14 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 }
 
 func (o Objective) Channels() []*channel.Channel {
+	// todo: #420 consider usage & signature of this fcn
 	ret := make([]*channel.Channel, 0, 3)
 	ret = append(ret, &o.V.Channel)
 	if !o.isAlice() {
-		ret = append(ret, &o.ToMyLeft.Channel.Channel)
+		ret = append(ret, &o.ToMyLeft.Channel.Channel) // todo: #420 depricate
 	}
 	if !o.isBob() {
-		ret = append(ret, &o.ToMyRight.Channel.Channel)
+		ret = append(ret, &o.ToMyRight.Channel.Channel) // todo: #420 depricate
 	}
 	return ret
 }
@@ -345,58 +416,6 @@ func (o Objective) Channels() []*channel.Channel {
 //////////////////////////////////////////////////
 //  Private methods on the VirtualFundObjective //
 //////////////////////////////////////////////////
-
-// insertGuaranteeInfo mutates the reciever Connection struct.
-func (connection *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) error {
-
-	connection.GuaranteeInfo = GuaranteeInfo{
-		Left:                 left,
-		Right:                right,
-		LeftAmount:           a0,
-		RightAmount:          b0,
-		GuaranteeDestination: vId,
-	}
-
-	// Check that the guarantee metadata can be encoded. This allows us to avoid clunky error-return-chains for getExpectedGuarantees
-	metadata := outcome.GuaranteeMetadata{
-		Left:  connection.GuaranteeInfo.Left,
-		Right: connection.GuaranteeInfo.Right,
-	}
-	_, err := metadata.Encode()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// getExpectedGuarantees returns a map of asset addresses to guarantees for a Connection.
-func (connection *Connection) getExpectedGuarantees() map[types.Address]outcome.Allocation {
-	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
-	metadata := outcome.GuaranteeMetadata{
-		Left:  connection.GuaranteeInfo.Left,
-		Right: connection.GuaranteeInfo.Right,
-	}
-	encodedGuarantee, err := metadata.Encode()
-	// This error is unexpected. insertGuaranteeInfo checks that the guarantee metadata can be encoded.
-	// If this panic is triggered, GuranteeInfo has been modified after creation
-	if err != nil {
-		panic(err)
-	}
-
-	channelFunds := connection.GuaranteeInfo.LeftAmount.Add(connection.GuaranteeInfo.RightAmount)
-
-	for asset, amount := range channelFunds {
-		expectedGuaranteesForLedgerChannel[asset] = outcome.Allocation{
-			Destination:    connection.GuaranteeInfo.GuaranteeDestination,
-			Amount:         amount,
-			AllocationType: outcome.GuaranteeAllocationType,
-			Metadata:       encodedGuarantee,
-		}
-	}
-
-	return expectedGuaranteesForLedgerChannel
-}
 
 // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
 func (o Objective) fundingComplete() bool {
@@ -413,14 +432,6 @@ func (o Objective) fundingComplete() bool {
 		return o.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
 	}
 
-}
-
-// ledgerChannelAffordsExpectedGuarantees returns true if, for the channel inside the connection, and for each asset keying the input variables, the channel can afford the allocation given the funding.
-// The decision is made based on the latest supported state of the channel.
-//
-// Both arguments are maps keyed by the same asset.
-func (connection *Connection) ledgerChannelAffordsExpectedGuarantees() bool {
-	return connection.Channel.Affords(connection.getExpectedGuarantees(), connection.Channel.OnChainFunding)
 }
 
 // Equal returns true if the supplied DirectFundObjective is deeply equal to the receiver.
@@ -443,6 +454,7 @@ func (o *Objective) clone() Objective {
 	clone.V = vClone
 
 	if o.ToMyLeft != nil {
+		// todo: #420 consider cloning for consensusChannels
 		lClone := o.ToMyLeft.Channel.Clone()
 		clone.ToMyLeft = &Connection{
 			Channel:       lClone,
@@ -451,6 +463,7 @@ func (o *Objective) clone() Objective {
 	}
 
 	if o.ToMyRight != nil {
+		// todo: #420 consider cloning for consensusChannels
 		rClone := o.ToMyRight.Channel.Clone()
 		clone.ToMyRight = &Connection{
 			Channel:       rClone,
@@ -479,9 +492,17 @@ func (o *Objective) isBob() bool {
 // GetTwoPartyLedgerFunction specifies a function that can be used to retreive ledgers from a store.
 type GetTwoPartyLedgerFunction func(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool)
 
+// todo: #420 assume name and godoc from GetTwoPartyLedgerFunction
+type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
+
 // ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
-func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address, getTwoPartyLedger GetTwoPartyLedgerFunction) (Objective, error) {
+func ConstructObjectiveFromMessage(
+	m protocols.Message,
+	myAddress types.Address,
+	getTwoPartyLedger GetTwoPartyLedgerFunction,
+	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
+) (Objective, error) {
 	if len(m.SignedStates) != 1 {
 		return Objective{}, errors.New("expected exactly one signed state in the message")
 	}
@@ -497,6 +518,8 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 
 	var left *channel.TwoPartyLedger
 	var right *channel.TwoPartyLedger
+	var leftC *consensus_channel.ConsensusChannel
+	var rightC *consensus_channel.ConsensusChannel
 	var ok bool
 
 	if myAddress == alice {
@@ -506,15 +529,36 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
 		}
+
+		leftC, _ = getTwoPartyConsensusLedger(intermediary)
+		// if !ok {
+		// 	// todo: #420 handle, after consensus_channel lifecycle is defined & channels present
+		// 	return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
+		// }
+
 	} else if myAddress == intermediary {
 		left, ok = getTwoPartyLedger(alice, intermediary)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
 		}
+
+		leftC, _ = getTwoPartyConsensusLedger(alice)
+		// if !ok {
+		// 	// todo: #420 handle, after consensus_channel lifecycle is defined & channels present
+		// 	return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+		// }
+
 		right, ok = getTwoPartyLedger(intermediary, bob)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
 		}
+
+		rightC, _ = getTwoPartyConsensusLedger(bob)
+		// if !ok {
+		// 	// todo: #420 handle, after consensus_channel lifecycle is defined & channels present
+		// 	return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+		// }
+
 	} else {
 		return Objective{}, fmt.Errorf("client address not found in an expected participant index")
 	}
@@ -523,8 +567,8 @@ func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address,
 		true, // TODO ensure objective in only approved if the application has given permission somehow
 		initialState,
 		myAddress,
-		left,
-		right,
+		left, leftC, // todo: replace nil consensusChannels
+		right, rightC,
 	)
 }
 
@@ -535,7 +579,7 @@ func IsVirtualFundObjective(id protocols.ObjectiveId) bool {
 
 // proposeLedgerUpdate will propose a ledger update to the channel by crafting a new state
 func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (protocols.SideEffects, error) {
-	ledger := connection.Channel
+	ledger := connection.Channel // todo: #420 deprecate - replace with LeaderChannel.Propose workflow
 	left := connection.GuaranteeInfo.Left
 	right := connection.GuaranteeInfo.Right
 	leftAmount := connection.GuaranteeInfo.LeftAmount
@@ -587,7 +631,7 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 
 // acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
 func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, sk *[]byte) (protocols.SideEffects, error) {
-	ledger := ledgerConnection.Channel
+	ledger := ledgerConnection.Channel // todo: #420 deprecate - replace with FollowerChannel.Receive workflow
 	proposed, ok := ledger.Proposed()
 
 	if !ok {
@@ -637,7 +681,7 @@ func (o *Objective) acceptLedgerUpdate(ledgerConnection Connection, sk *[]byte) 
 // If the user is the follower then they will sign a ledger state proposal if it satisfies their expected guarantees.
 func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[]byte) (protocols.SideEffects, error) {
 
-	ledger := ledgerConnection.Channel
+	ledger := ledgerConnection.Channel // todo: #420 deprecate
 
 	if ledger.IsProposer() { // If the user is the proposer craft a new proposal
 		sideEffects, err := o.proposeLedgerUpdate(ledgerConnection, sk)

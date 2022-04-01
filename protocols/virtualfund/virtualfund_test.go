@@ -75,8 +75,8 @@ func TestMarshalJSON(t *testing.T) {
 		false,
 		vPreFund,
 		alice.address,
-		&channel.TwoPartyLedger{},
-		right,
+		&channel.TwoPartyLedger{}, nil, // todo: #420 deprecate TwoPartyLedgers
+		right, nil,
 	)
 
 	if err != nil {
