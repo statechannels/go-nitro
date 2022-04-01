@@ -266,6 +266,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
 
 		// Whenever a direct funding objective completes we want to create a consensus_channel
+		// Here we assume that every directfund.Objective is for a ledger channel.
 		if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
 			c, err := dfo.CreateConsensusChannel()
 			if err != nil {
