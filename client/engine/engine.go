@@ -256,7 +256,6 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 		return
 	}
 
-	e.executeSideEffects(sideEffects)
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 
 	// If our protocol is waiting for nothing then we know the objective is complete
@@ -278,6 +277,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 			}
 		}
 	}
+	e.executeSideEffects(sideEffects)
 	return
 }
 
