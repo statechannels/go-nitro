@@ -3,15 +3,17 @@ package protocols
 import (
 	"encoding/json"
 
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
 
 // Message is an object to be sent across the wire. It can contain a proposal and signed states, and is addressed to a counterparty.
 type Message struct {
-	To           types.Address
-	ObjectiveId  ObjectiveId
-	SignedStates []state.SignedState
+	To              types.Address
+	ObjectiveId     ObjectiveId
+	SignedStates    []state.SignedState
+	SignedProposals []consensus_channel.SignedProposal
 }
 
 // Serialize serializes the message into a string.
@@ -28,9 +30,19 @@ func DeserializeMessage(s string) (Message, error) {
 }
 
 // CreateSignedStateMessages creates a set of messages containing the signed state.
-// A message will be generated for each participant except for the participant at myyIndex.
+// A message will be generated for each participant except for the participant at myIndex.
 func CreateSignedStateMessages(id ObjectiveId, ss state.SignedState, myIndex uint) []Message {
+	return createMessages(id, ss, consensus_channel.SignedProposal{}, myIndex)
+}
 
+// CreateSignedProposalMessages creates an list of messages containing the signed proposal
+// A message will be generated for each participant except for the participant at myIndex.
+func CreateSignedProposalMessages(id ObjectiveId, sp consensus_channel.SignedProposal, myIndex uint) []Message {
+	return createMessages(id, state.SignedState{}, sp, myIndex)
+}
+
+// createMessages creates a list of messages with the signed state and the signed proposal
+func createMessages(id ObjectiveId, ss state.SignedState, sp consensus_channel.SignedProposal, myIndex uint) []Message {
 	messages := make([]Message, 0)
 	for i, participant := range ss.State().Participants {
 
@@ -38,7 +50,7 @@ func CreateSignedStateMessages(id ObjectiveId, ss state.SignedState, myIndex uin
 		if uint(i) == myIndex {
 			continue
 		}
-		message := Message{To: participant, ObjectiveId: id, SignedStates: []state.SignedState{ss}}
+		message := Message{To: participant, ObjectiveId: id, SignedStates: []state.SignedState{ss}, SignedProposals: []consensus_channel.SignedProposal{sp}}
 		messages = append(messages, message)
 	}
 	return messages
