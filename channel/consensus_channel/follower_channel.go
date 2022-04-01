@@ -16,14 +16,14 @@ var ErrInvalidTurnNum = fmt.Errorf("the proposal turn number is not the next tur
 
 // NewFollowerChannel constructs a new FollowerChannel
 func NewFollowerChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
-	return newConsensusChannel(fp, follower, turnNum, outcome, signatures)
+	return newConsensusChannel(fp, Follower, turnNum, outcome, signatures)
 }
 
 // SignNextProposal is called by the follower and inspects whether the
 // expected proposal matches the first proposal in the queue. If so,
 // the proposal is removed from the queue and integrated into the channel state.
 func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte) error {
-	if c.myIndex != follower {
+	if c.myIndex != Follower {
 		return ErrNotFollower
 	}
 
@@ -65,7 +65,7 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 
 // Receive is called by the follower to validate a proposal from the leader and add it to the proposal queue
 func (c *ConsensusChannel) Receive(p SignedProposal) error {
-	if c.myIndex != follower {
+	if c.myIndex != Follower {
 		return ErrNotFollower
 	}
 	// Get the latest proposal vars we have

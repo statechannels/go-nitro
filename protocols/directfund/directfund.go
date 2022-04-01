@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
@@ -119,6 +120,48 @@ func constructFromState(
 	init.myDepositTarget = init.myDepositSafetyThreshold.Add(myAllocatedAmount)
 
 	return init, nil
+}
+
+// CreateConsensusChannel creates a ConsensusChannel from the Objective by extracting signatures and a single asset outcome from the post fund state.
+func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChannel, error) {
+	ledger := dfo.C
+
+	if !ledger.PostFundComplete() {
+		return nil, fmt.Errorf("expected funding for channel %s to be complete", dfo.C.Id)
+	}
+	signedPostFund := ledger.SignedPostFundState()
+	leaderSig, err := signedPostFund.GetParticipantSignature(uint(consensus_channel.Leader))
+	if err != nil {
+		return nil, fmt.Errorf("could not get leader signature: %w", err)
+	}
+	followerSig, err := signedPostFund.GetParticipantSignature(uint(consensus_channel.Follower))
+	if err != nil {
+		return nil, fmt.Errorf("could not get follower signature: %w", err)
+	}
+	signatures := [2]state.Signature{leaderSig, followerSig}
+
+	if len(signedPostFund.State().Outcome) != 1 {
+		return nil, fmt.Errorf("a consensus channel only supports a single asset")
+	}
+	assetExit := signedPostFund.State().Outcome[0]
+	turnNum := signedPostFund.State().TurnNum
+	outcome := consensus_channel.FromExit(assetExit)
+
+	if ledger.MyIndex == uint(consensus_channel.Leader) {
+		con, err := consensus_channel.NewLeaderChannel(ledger.FixedPart, turnNum, outcome, signatures)
+		if err != nil {
+			return nil, fmt.Errorf("could not create consensus channel as leader: %w", err)
+		}
+		return &con, nil
+
+	} else {
+		con, err := consensus_channel.NewLeaderChannel(ledger.FixedPart, turnNum, outcome, signatures)
+		if err != nil {
+			return nil, fmt.Errorf("could not create consensus channel as follower: %w", err)
+		}
+		return &con, nil
+	}
+
 }
 
 // Public methods on the DirectFundingObjectiveState

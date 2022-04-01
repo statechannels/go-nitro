@@ -35,7 +35,7 @@ func TestSerde(t *testing.T) {
 	someOutcomeJSON := `{"AssetAddress":"0x0000000000000000000000000000000000000000","Left":{"Destination":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Amount":2},"Right":{"Destination":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94","Amount":7},"Guarantees":{"0x6300000000000000000000000000000000000000000000000000000000000000":{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}}}`
 
 	someConsensusChannel := ConsensusChannel{
-		myIndex: leader,
+		myIndex: Leader,
 		fp:      fp(),
 		Id:      types.Destination{1},
 		current: SignedVars{

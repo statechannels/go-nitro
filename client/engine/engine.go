@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -267,8 +266,9 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
 
 		// Whenever a direct funding objective completes we want to create a consensus_channel
+		// Here we assume that every directfund.Objective is for a ledger channel.
 		if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
-			c, err := consensus_channel.CreateFromDirectFundingObjective(*dfo)
+			c, err := dfo.CreateConsensusChannel()
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("could not create consensus channel for objective %s: %w", objective.Id(), err)
 			}
