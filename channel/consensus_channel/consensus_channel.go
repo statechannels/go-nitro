@@ -161,6 +161,11 @@ type Guarantee struct {
 	right  types.Destination
 }
 
+// NewGuarantee constructs a new guarantee
+func NewGuarantee(amount *big.Int, target types.Destination, left types.Destination, right types.Destination) Guarantee {
+	return Guarantee{amount, target, left, right}
+}
+
 func (g Guarantee) equal(g2 Guarantee) bool {
 	if !types.Equal(g.amount, g2.amount) {
 		return false
@@ -191,14 +196,17 @@ type LedgerOutcome struct {
 	guarantees   map[types.Destination]Guarantee
 }
 
-// NewLedgerOutcome creates a new ledger outcome with the given asset address and balances.
-// The outcome will contain no guarantees
-func NewLedgerOutcome(assetAddress types.Address, left, right Balance) *LedgerOutcome {
+// NewLedgerOutcome creates a new ledger outcome with the given asset address and balances and guarantees
+func NewLedgerOutcome(assetAddress types.Address, left, right Balance, guarantees []Guarantee) *LedgerOutcome {
+	guaranteeMap := make(map[types.Destination]Guarantee, len(guarantees))
+	for _, g := range guarantees {
+		guaranteeMap[g.target] = g
+	}
 	return &LedgerOutcome{
 		assetAddress: assetAddress,
 		left:         left,
 		right:        right,
-		guarantees:   make(map[types.Destination]Guarantee),
+		guarantees:   guaranteeMap,
 	}
 }
 
@@ -320,6 +328,15 @@ type Add struct {
 	turnNum uint64
 	Guarantee
 	LeftDeposit *big.Int
+}
+
+// NewAdd constructs a new Add proposal
+func NewAdd(turnNum uint64, g Guarantee, leftDeposit *big.Int) Add {
+	return Add{
+		turnNum:     turnNum,
+		Guarantee:   g,
+		LeftDeposit: leftDeposit,
+	}
 }
 
 func (a Add) RightDeposit() *big.Int {
