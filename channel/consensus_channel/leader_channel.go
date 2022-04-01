@@ -10,13 +10,13 @@ var ErrNotLeader = fmt.Errorf("method may only be called by the channel leader")
 
 // NewLeaderChannel constructs a new LeaderChannel
 func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
-	return newConsensusChannel(fp, leader, turnNum, outcome, signatures)
+	return newConsensusChannel(fp, Leader, turnNum, outcome, signatures)
 }
 
 // IsProposed returns whether or not the consensus state or any proposed state
 // includes the given guarantee.
 func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
-	if c.myIndex != leader {
+	if c.myIndex != Leader {
 		return false, ErrNotLeader
 	}
 	latest, err := c.latestProposedVars()
@@ -27,14 +27,14 @@ func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
 	return latest.Outcome.includes(g), nil
 }
 
-// Propose is called by the leader and receives a proposal to add a guarantee,
+// Propose is called by the Leader and receives a proposal to add a guarantee,
 // and generates and stores a SignedProposal in the queue, returning the
 // resulting SignedProposal
 //
 // Note: the TurnNum on add is ignored; the correct turn number is computed
 // and applied by c
 func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
-	if c.myIndex != leader {
+	if c.myIndex != Leader {
 		return SignedProposal{}, ErrNotLeader
 	}
 
@@ -61,7 +61,7 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 	return signed, nil
 }
 
-// UpdateConsensus is called by the leader and iterates through
+// UpdateConsensus is called by the Leader and iterates through
 // the proposal queue until it finds the countersigned proposal.
 //
 // If this proposal was signed by the Follower:
@@ -75,7 +75,7 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 //  - the countersupplied proposal is not found
 //  - or if it is found but not correctly by the Follower
 func (c *ConsensusChannel) UpdateConsensus(countersigned SignedProposal) error {
-	if c.myIndex != leader {
+	if c.myIndex != Leader {
 		return ErrNotLeader
 	}
 
@@ -115,7 +115,7 @@ func (c *ConsensusChannel) UpdateConsensus(countersigned SignedProposal) error {
 				return fmt.Errorf("unable to recover signer: %w", err)
 			}
 
-			if signer != c.fp.Participants[follower] {
+			if signer != c.fp.Participants[Follower] {
 				return ErrWrongSigner
 			}
 

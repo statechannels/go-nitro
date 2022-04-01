@@ -17,8 +17,8 @@ import (
 type ledgerIndex uint
 
 const (
-	leader   ledgerIndex = 0
-	follower ledgerIndex = 1
+	Leader   ledgerIndex = 0
+	Follower ledgerIndex = 1
 )
 
 // ConsensusChannel is used to manage states in a running ledger channel
@@ -50,20 +50,20 @@ func newConsensusChannel(
 
 	vars := Vars{TurnNum: initialTurnNum, Outcome: outcome.clone()}
 
-	leaderAddr, err := vars.AsState(fp).RecoverSigner(signatures[leader])
+	leaderAddr, err := vars.AsState(fp).RecoverSigner(signatures[Leader])
 	if err != nil {
 		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
-	if leaderAddr != fp.Participants[leader] {
-		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[leader])
+	if leaderAddr != fp.Participants[Leader] {
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[Leader])
 	}
 
-	followerAddr, err := vars.AsState(fp).RecoverSigner(signatures[follower])
+	followerAddr, err := vars.AsState(fp).RecoverSigner(signatures[Follower])
 	if err != nil {
 		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
-	if followerAddr != fp.Participants[follower] {
-		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", followerAddr, fp.Participants[leader])
+	if followerAddr != fp.Participants[Follower] {
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", followerAddr, fp.Participants[Leader])
 	}
 
 	current := SignedVars{
@@ -93,7 +93,7 @@ func (c *ConsensusChannel) Includes(g Guarantee) bool {
 
 // Leader returns the address of the participant responsible for proposing
 func (c *ConsensusChannel) Leader() common.Address {
-	return c.fp.Participants[leader]
+	return c.fp.Participants[Leader]
 }
 func (c *ConsensusChannel) Accept(p SignedProposal) error {
 	panic("UNIMPLEMENTED")
@@ -473,11 +473,11 @@ func CreateFromDirectFundingObjective(dfo directfund.Objective) (*ConsensusChann
 		return nil, fmt.Errorf("expected funding for channel %s to be complete", dfo.C.Id)
 	}
 	signedPostFund := ledger.SignedPostFundState()
-	leaderSig, err := signedPostFund.GetParticipantSignature(uint(leader))
+	leaderSig, err := signedPostFund.GetParticipantSignature(uint(Leader))
 	if err != nil {
 		return nil, fmt.Errorf("could not get leader signature: %w", err)
 	}
-	followerSig, err := signedPostFund.GetParticipantSignature(uint(follower))
+	followerSig, err := signedPostFund.GetParticipantSignature(uint(Follower))
 	if err != nil {
 		return nil, fmt.Errorf("could not get follower signature: %w", err)
 	}
@@ -490,7 +490,7 @@ func CreateFromDirectFundingObjective(dfo directfund.Objective) (*ConsensusChann
 	turnNum := signedPostFund.State().TurnNum
 	outcome := FromExit(assetExit)
 
-	if ledger.MyIndex == uint(leader) {
+	if ledger.MyIndex == uint(Leader) {
 		con, err := NewLeaderChannel(ledger.FixedPart, turnNum, outcome, signatures)
 		if err != nil {
 			return nil, fmt.Errorf("could not create consensus channel as leader: %w", err)
