@@ -87,3 +87,15 @@ func add(turnNum, amount uint64, vId types.Destination, left, right actor) Add {
 		LeftDeposit: bigAmount,
 	}
 }
+
+// fingerprint computes a fingerprint for vars by encoding and returning the hash when provided
+// with a consisted FixedPart
+func fingerprint(v Vars) string {
+	h, err := v.AsState(state.TestState.FixedPart()).Hash()
+
+	if err != nil {
+		panic(err)
+	}
+
+	return h.String()
+}
