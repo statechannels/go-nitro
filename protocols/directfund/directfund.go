@@ -122,10 +122,8 @@ func constructFromState(
 	return init, nil
 }
 
-// CreateFromDirectFundingObjective accepts an objective and generates a new consensus channel from it.
-// It assumes that EVERY DirectFundingObjective is for a ledger channel.
-func (dfo Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChannel, error) {
-	// The current assumption is that ANY direct funding objective is for a ledger channel
+// CreateConsensusChannel creates a ConsensusChannel from the Objective by extracting signatures and a single asset outcome from the post fund state.
+func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChannel, error) {
 	ledger := dfo.C
 
 	if !ledger.PostFundComplete() {
