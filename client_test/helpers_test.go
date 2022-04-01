@@ -65,13 +65,13 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 }
 
 // setupClient is a helper function that contructs a client and returns the new client and message service.
-func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservice.Broker, logDestination io.Writer, meanMessageDelay time.Duration) client.Client {
+func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservice.Broker, logDestination io.Writer, meanMessageDelay time.Duration) (client.Client, store.Store) {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	chain.Subscribe(myAddress)
 	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
 	storeA := store.NewMockStore(pk)
-	return client.New(messageservice, chainservice, storeA, logDestination)
+	return client.New(messageservice, chainservice, storeA, logDestination), storeA
 }
 
 func flushToFileCleanupFn(w io.Reader, fileName string) func() {

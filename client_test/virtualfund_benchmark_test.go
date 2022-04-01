@@ -26,9 +26,9 @@ func TestBenchmark(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientAlice := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
-	clientBob := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
-	clientIrene := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
+	clientAlice, _ := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
+	clientBob, _ := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	clientIrene, _ := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
 
 	directlyFundALedgerChannel(t, clientAlice, clientIrene)
 	directlyFundALedgerChannel(t, clientIrene, clientBob)

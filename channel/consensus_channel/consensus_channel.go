@@ -9,6 +9,8 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/protocols/directfund"
+
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -113,6 +115,12 @@ func (c *ConsensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
 func (c *ConsensusChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
 	state := vars.AsState(c.fp)
 	return state.RecoverSigner(sig)
+}
+
+// ConsensusVars returns the vars of the consensus state
+// The consensus state is the latest state that has been signed by both parties
+func (c *ConsensusChannel) ConsensusVars() Vars {
+	return c.current.Vars
 }
 
 // latestProposedVars returns the latest proposed vars in a consensus channel
@@ -221,6 +229,32 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 		g.right == existing.right &&
 		g.target == existing.target &&
 		types.Equal(existing.amount, g.amount)
+}
+
+// FromExit creates a new LedgerOutcome from the given SingleAssetExit.
+// It makes some assumptions about the exit:
+// - The first alloction entry is for left
+// - The second alloction entry is for right
+// - We ignore guarantee metadata and just assume that it is [left,right]
+func FromExit(sae outcome.SingleAssetExit) LedgerOutcome {
+
+	left := Balance{destination: sae.Allocations[0].Destination, amount: sae.Allocations[0].Amount}
+	right := Balance{destination: sae.Allocations[1].Destination, amount: sae.Allocations[1].Amount}
+	guarantees := make(map[types.Destination]Guarantee)
+	for _, a := range sae.Allocations {
+
+		if a.AllocationType == outcome.GuaranteeAllocationType {
+			g := Guarantee{amount: a.Amount,
+				target: a.Destination,
+				// Instead of decoding the metadata we make an assumption that the metadata has the left/right we expect
+				left:  left.destination,
+				right: right.destination}
+			guarantees[a.Destination] = g
+		}
+
+	}
+	return LedgerOutcome{left: left, right: right, guarantees: guarantees, assetAddress: sae.Asset}
+
 }
 
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
@@ -427,4 +461,48 @@ func (v Vars) AsState(fp state.FixedPart) state.State {
 // Participants returns the channel participants.
 func (c *ConsensusChannel) Participants() []types.Address {
 	return c.fp.Participants
+}
+
+// CreateFromDirectFundingObjective accepts an objective and generates a new consensus channel from it.
+// It assumes that EVERY DirectFundingObjective is for a ledger channel.
+func CreateFromDirectFundingObjective(dfo directfund.Objective) (*ConsensusChannel, error) {
+	// The current assumption is that ANY direct funding objective is for a ledger channel
+	ledger := dfo.C
+
+	if !ledger.PostFundComplete() {
+		return nil, fmt.Errorf("expected funding for channel %s to be complete", dfo.C.Id)
+	}
+	signedPostFund := ledger.SignedPostFundState()
+	leaderSig, err := signedPostFund.GetParticipantSignature(uint(leader))
+	if err != nil {
+		return nil, fmt.Errorf("could not get leader signature: %w", err)
+	}
+	followerSig, err := signedPostFund.GetParticipantSignature(uint(follower))
+	if err != nil {
+		return nil, fmt.Errorf("could not get follower signature: %w", err)
+	}
+	signatures := [2]state.Signature{leaderSig, followerSig}
+
+	if len(signedPostFund.State().Outcome) != 1 {
+		return nil, fmt.Errorf("a consensus channel only supports a single asset")
+	}
+	assetExit := signedPostFund.State().Outcome[0]
+	turnNum := signedPostFund.State().TurnNum
+	outcome := FromExit(assetExit)
+
+	if ledger.MyIndex == uint(leader) {
+		con, err := NewLeaderChannel(ledger.FixedPart, turnNum, outcome, signatures)
+		if err != nil {
+			return nil, fmt.Errorf("could not create consensus channel as leader: %w", err)
+		}
+		return &con.ConsensusChannel, nil
+
+	} else {
+		con, err := NewLeaderChannel(ledger.FixedPart, turnNum, outcome, signatures)
+		if err != nil {
+			return nil, fmt.Errorf("could not create consensus channel as follower: %w", err)
+		}
+		return &con.ConsensusChannel, nil
+	}
+
 }

@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -264,6 +265,18 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
 	if waitingFor == "WaitingForNothing" {
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
+
+		// Whenever a direct funding objective completes we want to create a consensus_channel
+		if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
+			c, err := consensus_channel.CreateFromDirectFundingObjective(*dfo)
+			if err != nil {
+				return ObjectiveChangeEvent{}, fmt.Errorf("could not create consensus channel for objective %s: %w", objective.Id(), err)
+			}
+			err = e.store.SetConsensusChannel(c)
+			if err != nil {
+				return ObjectiveChangeEvent{}, fmt.Errorf("could not store consensus channel for objective %s: %w", objective.Id(), err)
+			}
+		}
 	}
 	return
 }
