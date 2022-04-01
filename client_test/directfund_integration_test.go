@@ -66,6 +66,9 @@ func TestDirectFundIntegration(t *testing.T) {
 		if vars.TurnNum != 1 {
 			t.Fatal("expected consensus turn number to be the post fund setup 1, received #$v", vars.TurnNum)
 		}
+		if con.Leader() != *clientA.Address {
+			t.Fatalf("Expected %v as leader, but got %v", clientA.Address, con.Leader())
+		}
 
 	}
 
