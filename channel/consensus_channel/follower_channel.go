@@ -6,6 +6,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
+var ErrNotFollower = fmt.Errorf("method may only be called by channel follower")
 var ErrNoProposals = fmt.Errorf("no proposals in the queue")
 var ErrUnsupportedQueuedProposal = fmt.Errorf("only Add proposal is supported for queued proposals")
 var ErrUnsupportedExpectedProposal = fmt.Errorf("only Add proposal is supported for expected update")
@@ -13,20 +14,19 @@ var ErrNonMatchingProposals = fmt.Errorf("expected proposal does not match first
 var ErrInvalidProposalSignature = fmt.Errorf("invalid signature for proposal")
 var ErrInvalidTurnNum = fmt.Errorf("the proposal turn number is not the next turn number")
 
-type FollowerChannel struct {
-	ConsensusChannel
-}
-
 // NewFollowerChannel constructs a new FollowerChannel
-func NewFollowerChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (FollowerChannel, error) {
-	channel, err := newConsensusChannel(fp, follower, turnNum, outcome, signatures)
-
-	return FollowerChannel{ConsensusChannel: channel}, err
+func NewFollowerChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
+	return newConsensusChannel(fp, follower, turnNum, outcome, signatures)
 }
 
-// SignNextProposal inspects whether the expected proposal matches the first proposal in
-// the queue. If so, the proposal is removed from the queue and integrated into the channel state
-func (c *FollowerChannel) SignNextProposal(expectedProposal Proposal, sk []byte) error {
+// SignNextProposal is called by the follower and inspects whether the
+// expected proposal matches the first proposal in the queue. If so,
+// the proposal is removed from the queue and integrated into the channel state.
+func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte) error {
+	if c.myIndex != follower {
+		return ErrNotFollower
+	}
+
 	if len(c.proposalQueue) == 0 {
 		return ErrNoProposals
 	}
@@ -64,7 +64,10 @@ func (c *FollowerChannel) SignNextProposal(expectedProposal Proposal, sk []byte)
 }
 
 // Receive is called by the follower to validate a proposal from the leader and add it to the proposal queue
-func (c *FollowerChannel) Receive(p SignedProposal) error {
+func (c *ConsensusChannel) Receive(p SignedProposal) error {
+	if c.myIndex != follower {
+		return ErrNotFollower
+	}
 	// Get the latest proposal vars we have
 	vars, err := c.latestProposedVars()
 	if err != nil {

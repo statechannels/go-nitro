@@ -144,3 +144,24 @@ func TestFollowerChannel(t *testing.T) {
 		t.Fatal("expected the proposal queue to be empty")
 	}
 }
+
+func TestRestrictedLeaderMethods(t *testing.T) {
+	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
+	aliceSig, _ := initialVars.AsState(fp()).Sign(alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
+	sigs := [2]state.Signature{aliceSig, bobsSig}
+
+	channel, _ := NewFollowerChannel(fp(), 0, ledgerOutcome(), sigs)
+
+	if _, err := channel.IsProposed(Guarantee{}); err != ErrNotLeader {
+		t.Errorf("Expected error when calling IsProposed() as a follower, but found none")
+	}
+
+	if _, err := channel.Propose(Add{}, alice.PrivateKey); err != ErrNotLeader {
+		t.Errorf("Expected error when calling Propose() as a follower, but found none")
+	}
+
+	if err := channel.UpdateConsensus(SignedProposal{}); err != ErrNotLeader {
+		t.Errorf("Expected error when calling Propose() as a follower, but found none")
+	}
+}
