@@ -3,6 +3,7 @@ package consensus_channel
 import (
 	"encoding/json"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -18,76 +19,124 @@ func TestSerde(t *testing.T) {
 		right:  alice.Destination(),
 		target: types.Destination{99},
 	}
+	someGuaranteeJSON := `{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}`
+
+	someAdd := Add{
+		turnNum:     4096,
+		Guarantee:   someGuarantee,
+		LeftDeposit: big.NewInt(77),
+	}
+	someAddJSON := `{"TurnNum":4096,"Guarantee":{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"},"LeftDeposit":77}`
+
 	someOutcome := makeOutcome(
 		Balance{alice.Destination(), big.NewInt(2)},
 		Balance{bob.Destination(), big.NewInt(7)},
 		someGuarantee)
+	someOutcomeJSON := `{"AssetAddress":"0x0000000000000000000000000000000000000000","Left":{"Destination":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Amount":2},"Right":{"Destination":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94","Amount":7},"Guarantees":{"0x6300000000000000000000000000000000000000000000000000000000000000":{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}}}`
 
-	t.Run("Guarantee", func(t *testing.T) {
-		got, err := json.Marshal(someGuarantee)
-		if err != nil {
-			t.Fatal(err)
-		}
-		want := `{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}`
-		if string(got) != want {
-			t.Fatalf("incorrect json marshalling, expected %v got \n%v", want, string(got))
-		}
-	})
-
-	t.Run("LedgerOutcome", func(t *testing.T) {
-		got, err := json.Marshal(someOutcome)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		want := `{"AssetAddress":"0x0000000000000000000000000000000000000000","Left":{"Destination":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Amount":2},"Right":{"Destination":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94","Amount":7},"Guarantees":{"0x6300000000000000000000000000000000000000000000000000000000000000":{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}}}`
-		if string(got) != want {
-			t.Fatalf("incorrect json marshalling, expected %v\n got %v", want, string(got))
-		}
-	})
-
-	t.Run("ConsensusChannel", func(t *testing.T) {
-		cc := ConsensusChannel{
-			myIndex: leader,
-			fp:      fp(),
-			Id:      types.Destination{1},
-			current: SignedVars{
-				Vars: Vars{
-					TurnNum: 0,
-					Outcome: someOutcome,
-				},
-				Signatures: [2]crypto.Signature{{
-					R: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
-					S: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
-					V: byte(0),
-				}, {
-					S: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
-					R: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
-					V: byte(0),
-				}},
+	someConsensusChannel := ConsensusChannel{
+		myIndex: leader,
+		fp:      fp(),
+		Id:      types.Destination{1},
+		current: SignedVars{
+			Vars: Vars{
+				TurnNum: 0,
+				Outcome: someOutcome,
 			},
-			proposalQueue: []SignedProposal{{
-				Signature: crypto.Signature{
-					S: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
-					R: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
-					V: byte(0),
-				},
-				Proposal: Proposal{toAdd: add(1, 2, types.Destination{3}, alice, bob)},
+			Signatures: [2]crypto.Signature{{
+				R: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
+				S: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
+				V: byte(0),
+			}, {
+				S: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
+				R: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
+				V: byte(0),
 			}},
-		}
+		},
+		proposalQueue: []SignedProposal{{
+			Signature: crypto.Signature{
+				S: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
+				R: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
+				V: byte(0),
+			},
+			Proposal: Proposal{toAdd: add(1, 2, types.Destination{3}, alice, bob)},
+		}},
+	}
+	someConsensusChannelJSON := `{"Id":"0x0100000000000000000000000000000000000000000000000000000000000000","MyIndex":0,"FP":{"ChainId":0,"Participants":["0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce","0xbbb676f9cff8d242e9eac39d063848807d3d1d94"],"ChannelNonce":9001,"AppDefinition":"0x0000000000000000000000000000000000000000","ChallengeDuration":100},"Current":{"TurnNum":0,"Outcome":{"AssetAddress":"0x0000000000000000000000000000000000000000","Left":{"Destination":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Amount":2},"Right":{"Destination":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94","Amount":7},"Guarantees":{"0x6300000000000000000000000000000000000000000000000000000000000000":{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}}},"Signatures":[{"R":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","S":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","V":0},{"R":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","S":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","V":0}]},"ProposalQueue":[{"R":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","S":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","V":0,"Proposal":{"ToAdd":{"TurnNum":1,"Guarantee":{"Amount":2,"Target":"0x0300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94"},"LeftDeposit":2},"ToRemove":{}}}]}`
 
-		got, err := json.Marshal(cc)
+	type testCase struct {
+		name string
+		rich interface{}
+		json string
+	}
 
-		if err != nil {
-			t.Fatal(err)
-		}
+	testCases := []testCase{
+		{
+			"Guarantee",
+			someGuarantee,
+			someGuaranteeJSON,
+		},
+		{
+			"Add",
+			someAdd,
+			someAddJSON,
+		},
+		{
+			"LedgerOutcome",
+			someOutcome,
+			someOutcomeJSON,
+		},
+		{
+			"ConsensusChannel",
+			someConsensusChannel,
+			someConsensusChannelJSON,
+		},
+	}
 
-		want := `{"Id":"0x0100000000000000000000000000000000000000000000000000000000000000","MyIndex":0,"FP":{"ChainId":0,"Participants":["0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce","0xbbb676f9cff8d242e9eac39d063848807d3d1d94"],"ChannelNonce":9001,"AppDefinition":"0x0000000000000000000000000000000000000000","ChallengeDuration":100},"Current":{"TurnNum":0,"Outcome":{"AssetAddress":"0x0000000000000000000000000000000000000000","Left":{"Destination":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Amount":2},"Right":{"Destination":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94","Amount":7},"Guarantees":{"0x6300000000000000000000000000000000000000000000000000000000000000":{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}}},"Signatures":[{"R":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","S":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","V":0},{"R":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","S":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","V":0}]},"ProposalQueue":[{"R":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","S":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","V":0,"Proposal":{"ToAdd":{"Amount":2,"Target":"0x0300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94"},"ToRemove":{}}}]}`
+	for _, c := range testCases {
 
-		if string(got) != want {
+		t.Run("Marshaling "+c.name, func(t *testing.T) {
+			got, err := json.Marshal(c.rich)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := c.json
+			if string(got) != want {
+				t.Fatalf("incorrect json marshaling, expected %v got \n%v", want, string(got))
+			}
+		})
 
-			t.Fatalf("incorrect json marshalling, expected %v got \n%v", want, string(got))
-		}
-	})
+		t.Run("Unmarshaling "+c.name, func(t *testing.T) {
+			want := c.rich
+			var got interface{}
+			var err error
+			switch c.rich.(type) {
+			case Guarantee:
+				g := Guarantee{}
+				err = json.Unmarshal([]byte(c.json), &g)
+				got = g
+			case LedgerOutcome:
+				lo := LedgerOutcome{}
+				err = json.Unmarshal([]byte(c.json), &lo)
+				got = lo
+			case ConsensusChannel:
+				cc := ConsensusChannel{}
+				err = json.Unmarshal([]byte(c.json), &cc)
+				got = cc
+			case Add:
+				a := Add{}
+				err = json.Unmarshal([]byte(c.json), &a)
+				got = a
+			default:
+				panic("unimplemented")
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
 
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("incorrect json unmarshaling, expected \n%+v got \n%+v", want, got)
+			}
+		})
+	}
 }
