@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
@@ -192,6 +193,7 @@ func TestCrank(t *testing.T) {
 				SignedStates: []state.SignedState{
 					preFundSS,
 				},
+				SignedProposals: []consensus_channel.SignedProposal{},
 			},
 		}}
 
