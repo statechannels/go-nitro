@@ -30,7 +30,12 @@ func TestChannel(t *testing.T) {
 	}
 
 	testClone := func(t *testing.T) {
+
+		// Allow deep.Equal to compare unexported fields
+		deep.CompareUnexportedFields = true
+
 		r := c.Clone()
+
 		if diff := deep.Equal(*r, *c); diff != nil {
 			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
