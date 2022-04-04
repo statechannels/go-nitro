@@ -130,7 +130,7 @@ func convertToAllocations(r rawAllocationsType) Allocations {
 	for i, raw := range r {
 		allocations[i] = Allocation{
 			Destination:    raw.Destination,
-			AllocationType: raw.AllocationType,
+			AllocationType: AllocationType(raw.AllocationType),
 			Amount:         raw.Amount,
 			Metadata:       raw.Metadata,
 		}

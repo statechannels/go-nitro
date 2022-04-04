@@ -9,17 +9,20 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type AllocationType uint8
+
+const (
+	NormalAllocationType AllocationType = iota
+	GuaranteeAllocationType
+)
+
 // Allocation declares an Amount to be paid to a Destination.
 type Allocation struct {
 	Destination    types.Destination // Either an ethereum address or an application-specific identifier
 	Amount         *types.Uint256    // An amount of a particular asset
-	AllocationType uint8             // Directs calling code on how to interpret the allocation
+	AllocationType AllocationType    // Directs calling code on how to interpret the allocation
 	Metadata       []byte            // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
 }
-
-// TODO AllocationType should be an enum?
-const NormalAllocationType = uint8(0)
-const GuaranteeAllocationType = uint8(1)
 
 // Equal returns true if the supplied Allocation matches the receiver Allocation, and false otherwise.
 // Fields are compared with ==, except for big.Ints which are compared using Cmp
