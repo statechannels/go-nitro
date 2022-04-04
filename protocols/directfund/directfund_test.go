@@ -212,6 +212,7 @@ func TestCrank(t *testing.T) {
 				SignedStates: []state.SignedState{
 					postFundSS,
 				},
+				SignedProposals: []consensus_channel.SignedProposal{},
 			},
 		}}
 	expectedFundingSideEffects := protocols.SideEffects{
