@@ -9,27 +9,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// createSignedProposal generates a signed proposal given the vars, proposal fixed parts and private key
-// The vars passed in are NOT mutated!
-func createSignedProposal(vars Vars, proposal Proposal, fp state.FixedPart, pk []byte) SignedProposal {
-	if !proposal.isAddProposal() {
-		panic("unimplemented")
-	}
-	proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
-	_ = proposalVars.Add(proposal.toAdd)
-
-	state := proposalVars.AsState(fp)
-	sig, _ := state.Sign(pk)
-
-	signedProposal := SignedProposal{
-		Proposal:  proposal,
-		Signature: sig,
-	}
-
-	return signedProposal
-
-}
-
 func TestReceive(t *testing.T) {
 	var vAmount = uint64(5)
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}

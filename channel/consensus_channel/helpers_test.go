@@ -87,3 +87,24 @@ func add(turnNum, amount uint64, vId types.Destination, left, right actor) Add {
 		LeftDeposit: bigAmount,
 	}
 }
+
+// createSignedProposal generates a signed proposal given the vars, proposal fixed parts and private key
+// The vars passed in are NOT mutated!
+func createSignedProposal(vars Vars, proposal Proposal, fp state.FixedPart, pk []byte) SignedProposal {
+	if !proposal.isAddProposal() {
+		panic("unimplemented")
+	}
+	proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
+	_ = proposalVars.Add(proposal.toAdd)
+
+	state := proposalVars.AsState(fp)
+	sig, _ := state.Sign(pk)
+
+	signedProposal := SignedProposal{
+		Proposal:  proposal,
+		Signature: sig,
+	}
+
+	return signedProposal
+
+}
