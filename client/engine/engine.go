@@ -130,7 +130,11 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 	if err != nil {
 		return ObjectiveChangeEvent{}, err
 	}
-	event := protocols.ObjectiveEvent{ObjectiveId: message.ObjectiveId, SignedStates: message.SignedStates}
+	event := protocols.ObjectiveEvent{
+		ObjectiveId:     message.ObjectiveId,
+		SignedStates:    message.SignedStates,
+		SignedProposals: message.SignedProposals,
+	}
 	updatedObjective, err := objective.Update(event)
 	if err != nil {
 		return ObjectiveChangeEvent{}, err

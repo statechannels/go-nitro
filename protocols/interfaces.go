@@ -2,6 +2,7 @@ package protocols
 
 import (
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -43,6 +44,7 @@ type AdjudicationStatus struct {
 type ObjectiveEvent struct {
 	ObjectiveId        ObjectiveId
 	SignedStates       []state.SignedState
+	SignedProposals    []consensus_channel.SignedProposal
 	Holdings           types.Funds // mapping from asset identifier to amount
 	AdjudicationStatus AdjudicationStatus
 	BlockNum           uint64
