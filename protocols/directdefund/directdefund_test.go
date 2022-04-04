@@ -298,6 +298,7 @@ func TestCrankBob(t *testing.T) {
 			SignedStates: []state.SignedState{
 				finalStateSignedByBob,
 			},
+			SignedProposals: []consensus_channel.SignedProposal{},
 		},
 		}}
 
