@@ -355,6 +355,7 @@ type SignedProposal struct {
 	Proposal Proposal
 }
 
+// Equal determines whether 2 SignedProposals are equivalent
 func (p SignedProposal) Equal(q SignedProposal) bool {
 	return p.Signature.Equal(q.Signature) && p.Proposal.equal(&q.Proposal)
 }
