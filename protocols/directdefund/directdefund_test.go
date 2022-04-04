@@ -9,7 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
@@ -204,7 +203,6 @@ func TestCrankAlice(t *testing.T) {
 			SignedStates: []state.SignedState{
 				finalStateSignedByAlice,
 			},
-			SignedProposals: []consensus_channel.SignedProposal{},
 		},
 		}}
 
