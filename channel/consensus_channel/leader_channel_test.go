@@ -311,7 +311,7 @@ func TestLeaderChannel(t *testing.T) {
 			if !errors.Is(err, expectedErr) {
 				t.Fatalf("expected error %v, got %v", expectedErr, err)
 			}
-			
+
 			if currentTurnNum != channel.ConsensusTurnNum() {
 				t.Fatalf("consensus changed in error case")
 			}
@@ -334,10 +334,10 @@ func TestLeaderChannel(t *testing.T) {
 		t.Run(msg, testUpdateConsensusOk(counterP))
 	}
 
-	{   // Receiving a valid (but stale) proposal
+	{ // Receiving a valid (but stale) proposal
 		initialVars := Vars{TurnNum: consensusTurnNum, Outcome: startingOutcome.clone()}
 		p0 := createAdd(0, channel1Id)
-		
+
 		counterP := bobSignedProposal(initialVars, p0).SignedProposal
 		channel := testChannel(startingOutcome, populatedQueue())
 		err := channel.UpdateConsensus(counterP)
