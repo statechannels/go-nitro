@@ -59,7 +59,7 @@ func CreateSignedStateMessages(id ObjectiveId, ss state.SignedState, myIndex uin
 	return createMessages(id, &ss, nil, myIndex)
 }
 
-// CreateSignedProposalMessages creates an list of messages containing the signed proposal
+// CreateSignedProposalMessages creates a list of messages containing the signed proposal
 // A message will be generated for each participant except for the participant at myIndex.
 func CreateSignedProposalMessages(id ObjectiveId, sp consensus_channel.SignedProposal, myIndex uint) []Message {
 	return createMessages(id, nil, &sp, myIndex)
