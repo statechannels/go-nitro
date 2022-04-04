@@ -34,9 +34,7 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 	if len(c.proposalQueue) == 0 {
 		return ErrNoProposals
 	}
-	if !c.proposalQueue[0].Proposal.isAddProposal() {
-		return ErrUnsupportedQueuedProposal
-	}
+
 	p := c.proposalQueue[0].Proposal
 
 	if !p.equal(&expectedProposal) {
@@ -48,7 +46,7 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),
 	}
-	err := vars.Add(p.ToAdd)
+	err := vars.HandleProposal(p)
 	if err != nil {
 		return err
 	}
@@ -85,13 +83,12 @@ func (c *ConsensusChannel) Receive(p SignedProposal) error {
 	if !p.Proposal.isAddProposal() {
 		return fmt.Errorf("received proposal is not an add: %v", p.Proposal)
 	}
-	add := p.Proposal.ToAdd
 
-	if add.turnNum != vars.TurnNum+1 {
+	if p.Proposal.TurnNum() != vars.TurnNum+1 {
 		return ErrInvalidTurnNum
 	}
 	// Add the incoming proposal to the vars
-	err = vars.Add(add)
+	err = vars.HandleProposal(p.Proposal)
 	if err != nil {
 		return fmt.Errorf("receive could not add new state vars: %w", err)
 	}

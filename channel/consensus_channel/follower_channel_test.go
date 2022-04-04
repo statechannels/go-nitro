@@ -136,7 +136,7 @@ func TestRestrictedLeaderMethods(t *testing.T) {
 		t.Errorf("Expected error when calling IsProposed() as a follower, but found none")
 	}
 
-	if _, err := channel.Propose(Add{}, alice.PrivateKey); err != ErrNotLeader {
+	if _, err := channel.Propose(Proposal{ToAdd: Add{}}, alice.PrivateKey); err != ErrNotLeader {
 		t.Errorf("Expected error when calling Propose() as a follower, but found none")
 	}
 
@@ -154,7 +154,7 @@ func TestFollowerIncorrectlyAddressedProposals(t *testing.T) {
 	leaderCh, _ := NewLeaderChannel(fp(), 0, ledgerOutcome(), sigs)
 	followerCh, _ := NewFollowerChannel(fp(), 0, ledgerOutcome(), sigs)
 
-	someProposal, _ := leaderCh.Propose(add(1, 1, types.Destination{}, alice, bob), alice.PrivateKey)
+	someProposal, _ := leaderCh.Propose(Proposal{ToAdd: add(1, 1, types.Destination{}, alice, bob)}, alice.PrivateKey)
 	someProposal.Proposal.ChannelID = types.Destination{} // alter the ChannelID so that it doesn't match
 
 	err := followerCh.Receive(someProposal)

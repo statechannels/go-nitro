@@ -110,14 +110,14 @@ func TestLeaderChannel(t *testing.T) {
 			latest, _ := channel.latestProposedVars()
 			latestTurnNum := latest.TurnNum
 
-			sp, err := channel.Propose(add, alice.PrivateKey)
+			sp, err := channel.Propose(Proposal{ToAdd: add}, alice.PrivateKey)
 
 			if !errors.Is(err, expectedErr) {
 				t.Fatalf("expected error %v, got %v", expectedErr, err)
 			}
 
 			if !reflect.DeepEqual(sp, expectedSp) {
-				diff := cmp.Diff(sp, expectedSp, cmp.AllowUnexported(Proposal{}, Add{}, Guarantee{}, big.Int{}))
+				diff := cmp.Diff(sp, expectedSp, cmp.AllowUnexported(Proposal{}, Add{}, Remove{}, Guarantee{}, big.Int{}))
 				t.Fatalf("expected signed proposal %v", diff)
 			}
 

@@ -158,7 +158,7 @@ func TestConsensusChannelStore(t *testing.T) {
 
 	// Generate a new proposal so we test that the proposal queue is being fetched properly
 	proposedGuarantee := cc.NewGuarantee(big.NewInt(1), types.Destination{2}, left.AsAllocation().Destination, right.AsAllocation().Destination)
-	proposal := cc.NewAdd(2, proposedGuarantee, big.NewInt(1))
+	proposal := cc.NewAddProposal(2, proposedGuarantee, big.NewInt(1))
 	_, err = leader.Propose(proposal, td.Actors.Alice.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
@@ -181,7 +181,7 @@ func TestConsensusChannelStore(t *testing.T) {
 		t.Fatalf("expected to retrieve same channel Id as was passed in, but didn't")
 	}
 
-	if diff := cmp.Diff(*got, want, cmp.AllowUnexported(cc.ConsensusChannel{}, big.Int{}, cc.LedgerOutcome{}, cc.Balance{}, cc.Guarantee{}, cc.Add{}, cc.Proposal{})); diff != "" {
+	if diff := cmp.Diff(*got, want, cmp.AllowUnexported(cc.ConsensusChannel{}, big.Int{}, cc.LedgerOutcome{}, cc.Balance{}, cc.Guarantee{}, cc.Add{}, cc.Proposal{}, cc.Remove{})); diff != "" {
 		t.Fatalf("fetched result different than expected %s", diff)
 	}
 }

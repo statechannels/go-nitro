@@ -350,7 +350,25 @@ type SignedVars struct {
 type Proposal struct {
 	ChannelID types.Destination
 	ToAdd     Add
-	ToRemove  struct{} // TODO
+	ToRemove  Remove
+}
+
+// Updates the turn number on the Add or Remove proposal
+func (p *Proposal) SetTurnNum(turnNum uint64) {
+	if p.isAddProposal() {
+		p.ToAdd.turnNum = turnNum
+	} else if p.isRemoveProposal() {
+		p.ToRemove.turnNum = turnNum
+	}
+}
+
+// Returns the turn number on the Add or Remove proposal
+func (p *Proposal) TurnNum() uint64 {
+	if p.isAddProposal() {
+		return p.ToAdd.turnNum
+	} else {
+		return p.ToRemove.turnNum
+	}
 }
 
 // equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
@@ -360,7 +378,12 @@ func (p *Proposal) equal(q *Proposal) bool {
 
 // isAddProposal returns true if the proposal contains a non-nil toAdd and a nil toRemove.
 func (p *Proposal) isAddProposal() bool {
-	return p.ToAdd != Add{} && p.ToRemove == struct{}{}
+	return p.ToAdd != Add{} && p.ToRemove == Remove{}
+}
+
+// isRemoveProposal returns true if the proposal contains a non-nil toRemove and a nil toAdd.
+func (p *Proposal) isRemoveProposal() bool {
+	return p.ToAdd == Add{} && p.ToRemove != Remove{}
 }
 
 // SignedProposal is a Proposall with a signature on it
@@ -409,6 +432,19 @@ func (a Add) equal(a2 Add) bool {
 }
 
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
+
+// HandleProposal handles a proposal to add or remove a guarantee
+// It will mutate Vars by calling Add or Remove for the proposal
+func (vars *Vars) HandleProposal(p Proposal) error {
+	if p.isAddProposal() {
+		return vars.Add(p.ToAdd)
+
+	} else if p.isRemoveProposal() {
+		return vars.Remove(p.ToRemove)
+	} else {
+		return fmt.Errorf("invalid proposal: a proposal must be either an add or a remove proposal")
+	}
+}
 
 // Add mutates Vars by
 // - increasing the turn number by 1
