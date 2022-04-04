@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -12,8 +13,13 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
+
 	"github.com/statechannels/go-nitro/types"
 )
+
+func compareObjectives(a, b Objective) string {
+	return cmp.Diff(&a, &b, cmp.AllowUnexported(Objective{}, channel.Channel{}, big.Int{}, state.SignedState{}))
+}
 
 // signPreAndPostFundingStates is a test utility function which applies signatures from
 // multiple participants to pre and post fund states
@@ -156,7 +162,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 	assertSideEffectsContainsMessageWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, to actor, t *testing.T) {
 		for _, msg := range ses.MessagesToSend {
 			for _, ss := range msg.SignedStates {
-				if ss.Equal(expectedSignedState) && bytes.Equal(msg.To[:], to.address[:]) {
+				if reflect.DeepEqual(ss, expectedSignedState) && bytes.Equal(msg.To[:], to.address[:]) {
 					return
 				}
 			}
@@ -344,7 +350,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			clone := o.clone()
 
-			if diff := cmp.Diff(o, clone); diff != "" {
+			if diff := compareObjectives(o, clone); diff != "" {
 				t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 			}
 		}

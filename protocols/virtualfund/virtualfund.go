@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
@@ -42,21 +41,6 @@ type Connection struct {
 	Channel          *channel.TwoPartyLedger // todo: #420 deprecate in favor of
 	ConsensusChannel *consensus_channel.ConsensusChannel
 	GuaranteeInfo    GuaranteeInfo
-}
-
-// Equal returns true if the Connection pointed to by the supplied pointer is deeply equal to the receiver.
-func (c *Connection) Equal(d *Connection) bool {
-	if c == nil && d == nil {
-		return true
-	}
-	if !c.Channel.Equal(d.Channel) { // todo: #420 replace with a check on ConsensusChannel
-		return false
-	}
-	if !reflect.DeepEqual(c.GuaranteeInfo, d.GuaranteeInfo) {
-		return false
-	}
-	return true
-
 }
 
 // ledgerChannelAffordsExpectedGuarantees returns true if, for the channel inside the connection, and for each asset keying the input variables, the channel can afford the allocation given the funding.
@@ -432,18 +416,6 @@ func (o Objective) fundingComplete() bool {
 		return o.ToMyLeft.ledgerChannelAffordsExpectedGuarantees()
 	}
 
-}
-
-// Equal returns true if the supplied DirectFundObjective is deeply equal to the receiver.
-func (o Objective) Equal(r Objective) bool {
-	return o.Status == r.Status &&
-		o.V.Equal(r.V) &&
-		o.ToMyLeft.Equal(r.ToMyLeft) &&
-		o.ToMyRight.Equal(r.ToMyRight) &&
-		o.n == r.n &&
-		o.MyRole == r.MyRole &&
-		o.a0.Equal(r.a0) &&
-		o.b0.Equal(r.b0)
 }
 
 // Clone returns a deep copy of the receiver.

@@ -2,24 +2,14 @@ package state
 
 import (
 	"encoding/json"
+	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestSignedStateEqual(t *testing.T) {
-	sigA, _ := TestState.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
-
-	ss1 := NewSignedState(TestState)
-	_ = ss1.AddSignature(sigA)
-	ss2 := NewSignedState(TestState)
-	_ = ss2.AddSignature(sigA)
-
-	if !ss1.Equal(ss2) {
-		t.Fatalf(`expected %v to Equal %v, but it did not`, ss1, ss2)
-	}
-}
 func TestMergeWithDuplicateSignatures(t *testing.T) {
 	// ss1 has only alice's signature
 	ss1 := NewSignedState(TestState)
@@ -47,8 +37,8 @@ func TestMergeWithDuplicateSignatures(t *testing.T) {
 		},
 	}
 
-	if !got.Equal(want) {
-		t.Fatalf(`incorrect merge, got %v, wanted %v`, got, want)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf(`incorrect merge, got %v, wanted %v`, got, want)
 	}
 
 }
@@ -77,8 +67,8 @@ func TestMerge(t *testing.T) {
 		},
 	}
 
-	if !got.Equal(want) {
-		t.Fatalf(`incorrect merge, got %v, wanted %v`, got, want)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf(`incorrect merge, got %v, wanted %v`, got, want)
 	}
 
 }
@@ -109,22 +99,26 @@ func TestJSON(t *testing.T) {
 		}
 		want := ss1
 
-		if !got.Equal(ss1) {
-			t.Fatalf(`incorrect UnmarshalJSON, got %v, wanted %v`, got, want)
+		if !reflect.DeepEqual(got, ss1) {
+			t.Errorf(`incorrect UnmarshalJSON, got %v, wanted %v`, got, want)
 		}
 	})
 
 }
 
 func TestSignedStateClone(t *testing.T) {
+	compareStates := func(a, b SignedState) string {
+		return cmp.Diff(a, b, cmp.AllowUnexported(a, big.Int{}))
+	}
+
 	ss1 := NewSignedState(TestState)
 	sigA, _ := TestState.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
 	_ = ss1.AddSignature(sigA)
 
 	clone := ss1.Clone()
 
-	if diff := cmp.Diff(ss1, clone); diff != "" {
-		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
+	if diff := compareStates(ss1, clone); diff != "" {
+		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 
 }
