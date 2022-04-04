@@ -299,8 +299,9 @@ func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 }
 
 var ErrInvalidDeposit = fmt.Errorf("unable to divert to guarantee: invalid deposit")
-var ErrInsufficientFunds = fmt.Errorf("unable to divert to guarantee: insufficient funds")
+var ErrInsufficientFunds = fmt.Errorf("insufficient funds")
 var ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
+var ErrGuaranteeNotFound = fmt.Errorf("guarantee not found")
 
 // Vars stores the turn number and outcome for a state in a consensus channel
 type Vars struct {
@@ -455,6 +456,58 @@ func (vars *Vars) Add(p Add) error {
 	o.guarantees[p.target] = p.Guarantee
 
 	return nil
+}
+
+// Remove mutates Vars by
+// - increasing the turn number by 1
+// - removing the guarantee for the Target channel
+// - adjusting balances accordingly based on LeftAmount and RightAmount
+//
+// An error is returned if:
+// - the turn number is not incremented
+// - a guarantee is not found for the target
+// - the amounts are too large for the guarantee amount
+//
+// If an error is returned, the original vars is not mutated
+func (vars *Vars) Remove(p Remove) error {
+	// CHECKS
+
+	if p.turnNum != vars.TurnNum+1 {
+		return ErrIncorrectTurnNum
+	}
+	o := vars.Outcome
+
+	guarantee, found := o.guarantees[p.Target]
+	if !found {
+		return ErrGuaranteeNotFound
+	}
+
+	totalRemoved := big.NewInt(0).Add(p.LeftAmount, p.RightAmount)
+	if totalRemoved.Cmp(guarantee.amount) != 0 {
+		return ErrInsufficientFunds
+	}
+
+	// EFFECTS
+
+	// Increase the turn number
+	vars.TurnNum += 1
+
+	// Adjust balances
+	o.left.amount.Add(o.left.amount, p.LeftAmount)
+	o.right.amount.Add(o.right.amount, p.RightAmount)
+
+	// Remove the guarantee
+	delete(o.guarantees, p.Target)
+
+	return nil
+}
+
+// Remove is a proposal to remover a guarantee for the given virtual channel
+type Remove struct {
+	turnNum     uint64
+	Target      types.Destination
+	LeftAmount  *big.Int
+	RightAmount *big.Int
 }
 
 func (v Vars) AsState(fp state.FixedPart) state.State {

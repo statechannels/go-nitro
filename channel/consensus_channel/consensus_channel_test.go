@@ -109,6 +109,54 @@ func TestConsensusChannel(t *testing.T) {
 		}
 	}
 
+	testApplyingRemoveProposalToVars := func(t *testing.T) {
+		startingTurnNum := uint64(9)
+
+		vars := Vars{TurnNum: startingTurnNum, Outcome: outcome()}
+		aAmount, bAmount := uint64(2), uint64(3)
+		proposal := remove(10, existingChannel, aAmount, bAmount)
+		err := vars.Remove(proposal)
+
+		if err != nil {
+			t.Fatalf("unable to compute next state: %v", err)
+		}
+
+		if vars.TurnNum != startingTurnNum+1 {
+			t.Fatalf("incorrect state calculation: %v", err)
+		}
+
+		expected := makeOutcome(
+			allocation(alice, aBal+aAmount),
+			allocation(bob, bBal+bAmount),
+		)
+
+		if diff := cmp.Diff(vars.Outcome, expected, cmp.AllowUnexported(expected, Balance{}, big.Int{}, Guarantee{})); diff != "" {
+			t.Fatalf("incorrect outcome: %v", diff)
+		}
+
+		// Proposing the same change again should fail since the guarantee has been removed
+		duplicateProposal := proposal
+		duplicateProposal.turnNum += 1
+		err = vars.Remove(duplicateProposal)
+
+		if !errors.Is(err, ErrGuaranteeNotFound) {
+			t.Fatalf("expected error when adding duplicate guarantee: %v", err)
+		}
+
+		// Proposing a remove that cannot be afforded by the guarantee should fail
+		vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
+		largeProposal := Remove{
+			turnNum:     10,
+			Target:      existingChannel,
+			LeftAmount:  big.NewInt(5),
+			RightAmount: big.NewInt(5),
+		}
+		err = vars.Remove(largeProposal)
+		if !errors.Is(err, ErrInsufficientFunds) {
+			t.Fatalf("expected error when adding too large a guarantee: %v", err)
+		}
+	}
+
 	initialVars := Vars{Outcome: outcome(), TurnNum: 0}
 	aliceSig, _ := initialVars.AsState(fp()).Sign(alice.PrivateKey)
 	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
@@ -147,5 +195,6 @@ func TestConsensusChannel(t *testing.T) {
 	}
 
 	t.Run(`TestApplyingAddProposalToVars`, testApplyingAddProposalToVars)
+	t.Run(`TestApplyingRemoveProposalToVars`, testApplyingRemoveProposalToVars)
 	t.Run(`TestConsensusChannelFunctionality`, testConsensusChannelFunctionality)
 }
