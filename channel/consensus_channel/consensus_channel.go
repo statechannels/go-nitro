@@ -376,6 +376,11 @@ func NewAdd(turnNum uint64, g Guarantee, leftDeposit *big.Int) Add {
 	}
 }
 
+// NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal
+func NewAddProposal(turnNum uint64, g Guarantee, leftDeposit *big.Int) Proposal {
+	return Proposal{toAdd: NewAdd(turnNum, g, leftDeposit)}
+}
+
 func (a Add) RightDeposit() *big.Int {
 	result := big.NewInt(0)
 	result.Sub(a.amount, a.LeftDeposit)
