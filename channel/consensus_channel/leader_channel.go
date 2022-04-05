@@ -24,7 +24,7 @@ func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
 		return false, err
 	}
 
-	return latest.Outcome.includes(g), nil
+	return latest.Outcome.includes(g) && !c.Includes(g), nil
 }
 
 // Propose is called by the Leader and receives a proposal to add a guarantee,

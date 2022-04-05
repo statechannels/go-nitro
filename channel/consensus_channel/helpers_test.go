@@ -8,7 +8,12 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+var channel1Id = types.Destination{1}
 var targetChannel = types.Destination{2}
+
+const aBal = uint64(200)
+const bBal = uint64(300)
+const vAmount = uint64(5)
 
 type actor struct {
 	Address    types.Address
@@ -65,11 +70,15 @@ func makeOutcome(left, right Balance, guarantees ...Guarantee) LedgerOutcome {
 	return LedgerOutcome{left: left, right: right, guarantees: mappedGuarantees}
 }
 
+// ledgerOutcome constructs the LedgerOutcome with items
+//  - alice: 200,
+//  - bob: 300,
+//  - guarantee(target: 1, left: alice, right: bob, amount: 5)
 func ledgerOutcome() LedgerOutcome {
 	return makeOutcome(
-		allocation(alice, uint64(200)),
-		allocation(bob, uint64(300)),
-		guarantee(uint64(5), types.Destination{1}, alice, bob),
+		allocation(alice, aBal),
+		allocation(bob, bBal),
+		guarantee(vAmount, channel1Id, alice, bob),
 	)
 
 }
@@ -86,4 +95,42 @@ func add(turnNum, amount uint64, vId types.Destination, left, right actor) Add {
 		},
 		LeftDeposit: bigAmount,
 	}
+}
+
+// createSignedProposal generates a signed proposal given the vars, proposal fixed parts and private key
+// The vars passed in are NOT mutated!
+func createSignedProposal(vars Vars, proposal Proposal, fp state.FixedPart, pk []byte) SignedProposal {
+	if !proposal.isAddProposal() {
+		panic("unimplemented")
+	}
+	proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
+	_ = proposalVars.Add(proposal.toAdd)
+
+	state := proposalVars.AsState(fp)
+	sig, _ := state.Sign(pk)
+
+	signedProposal := SignedProposal{
+		Proposal:  proposal,
+		Signature: sig,
+	}
+
+	return signedProposal
+
+}
+
+// fingerprint computes a fingerprint for vars by encoding and returning the hash when provided
+// with a consisted FixedPart
+func fingerprint(v Vars) string {
+	h, err := v.AsState(state.TestState.FixedPart()).Hash()
+
+	if err != nil {
+		panic(err)
+	}
+
+	return h.String()
+}
+
+// equals checks that v is other by comparing fingerprints
+func (v *Vars) equals(other Vars) bool {
+	return fingerprint(*v) == fingerprint(other)
 }
