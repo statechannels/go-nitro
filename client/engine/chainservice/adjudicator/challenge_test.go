@@ -83,7 +83,7 @@ func TestChallenge(t *testing.T) {
 		[]state.VariablePart{s.VariablePart()},
 		0,
 		[]state.Signature{aSig, bSig},
-		[]uint{0, 0},
+		[]uint8{0, 0},
 		challengerSig,
 	)
 
