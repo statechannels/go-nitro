@@ -72,6 +72,7 @@ func TestLeaderChannel(t *testing.T) {
 
 		proposalQueue := []SignedProposal{}
 		for _, p := range testProposalQueue {
+			p.Proposal.ChannelID = cId
 			proposalQueue = append(proposalQueue, p.SignedProposal)
 		}
 
@@ -157,7 +158,7 @@ func TestLeaderChannel(t *testing.T) {
 		)
 		c := testChannel(startingOutcome, emptyQueue())
 		proposalMade := createAdd(1, targetChannel)
-		expectedSp := aliceSignedProposal(c.current.Vars, proposalMade).SignedProposal
+		expectedSp := aliceSignedProposal(c.Id, c.current.Vars, proposalMade).SignedProposal
 		t.Run(msg, testPropose(c, proposalMade, expectedSp, nil))
 	}
 
@@ -170,7 +171,7 @@ func TestLeaderChannel(t *testing.T) {
 		)
 		c := testChannel(startingOutcome, emptyQueue())
 		proposalMade := createAdd(1, targetChannel)
-		expectedSp := aliceSignedProposal(c.current.Vars, proposalMade).SignedProposal
+		expectedSp := aliceSignedProposal(c.Id, c.current.Vars, proposalMade).SignedProposal
 
 		proposalMade.turnNum = 9001
 		t.Run(msg, testPropose(c, proposalMade, expectedSp, nil))
@@ -185,7 +186,7 @@ func TestLeaderChannel(t *testing.T) {
 		)
 
 		p1 := createAdd(1, types.Destination{2})
-		sp1 := aliceSignedProposal(Vars{Outcome: startingOutcome}, p1)
+		sp1 := aliceSignedProposal(cId, Vars{Outcome: startingOutcome}, p1)
 		startingQueue := append(emptyQueue(), sp1)
 
 		c := testChannel(startingOutcome, startingQueue)
@@ -193,7 +194,7 @@ func TestLeaderChannel(t *testing.T) {
 		newAdd := add(2, amountAdded, types.Destination{3}, alice, bob)
 
 		currentlyProposed, _ := c.latestProposedVars()
-		expectedSp := aliceSignedProposal(currentlyProposed, newAdd).SignedProposal
+		expectedSp := aliceSignedProposal(c.Id, currentlyProposed, newAdd).SignedProposal
 
 		t.Run(msg, testPropose(c, newAdd, expectedSp, nil))
 	}
@@ -208,7 +209,7 @@ func TestLeaderChannel(t *testing.T) {
 
 		proposedChan := types.Destination{2}
 		p1 := createAdd(1, proposedChan)
-		sp1 := aliceSignedProposal(Vars{Outcome: startingOutcome}, p1)
+		sp1 := aliceSignedProposal(cId, Vars{Outcome: startingOutcome}, p1)
 
 		startingQueue := append(emptyQueue(), sp1)
 
@@ -250,13 +251,13 @@ func TestLeaderChannel(t *testing.T) {
 		vars := Vars{TurnNum: consensusTurnNum, Outcome: startingOutcome}
 
 		p1 := createAdd(vars.TurnNum+1, types.Destination{byte(vars.TurnNum)})
-		sp1 := aliceSignedProposal(vars, p1)
+		sp1 := aliceSignedProposal(cId, vars, p1)
 
 		p2 := createAdd(sp1.TurnNum+1, types.Destination{byte(sp1.TurnNum)})
-		sp2 := aliceSignedProposal(sp1.Vars, p2)
+		sp2 := aliceSignedProposal(cId, sp1.Vars, p2)
 
 		p3 := createAdd(sp2.TurnNum+1, types.Destination{byte(sp2.TurnNum)})
-		sp3 := aliceSignedProposal(sp2.Vars, p3)
+		sp3 := aliceSignedProposal(cId, sp2.Vars, p3)
 
 		return []SignedProposalVars{sp1, sp2, sp3}
 	}
@@ -330,7 +331,7 @@ func TestLeaderChannel(t *testing.T) {
 	for i, signedbyAlice := range populatedQueue() {
 		msg := fmt.Sprintf("ok: receiving a valid counter proposal in position %v", i)
 
-		counterP := bobSignedProposal(signedbyAlice.Vars, signedbyAlice.Proposal.toAdd)
+		counterP := bobSignedProposal(cId, signedbyAlice.Vars, signedbyAlice.Proposal.ToAdd)
 		t.Run(msg, testUpdateConsensusOk(counterP))
 	}
 
@@ -338,7 +339,7 @@ func TestLeaderChannel(t *testing.T) {
 		initialVars := Vars{TurnNum: consensusTurnNum, Outcome: startingOutcome.clone()}
 		p0 := createAdd(0, channel1Id)
 
-		counterP := bobSignedProposal(initialVars, p0).SignedProposal
+		counterP := bobSignedProposal(cId, initialVars, p0).SignedProposal
 		channel := testChannel(startingOutcome, populatedQueue())
 		err := channel.UpdateConsensus(counterP)
 		if err != nil {
@@ -353,7 +354,7 @@ func TestLeaderChannel(t *testing.T) {
 	{
 		msg := "err:wrong signature"
 		p := populatedQueue()[0]
-		counterP := createSignedProposal(p.Vars, p.Proposal.toAdd, brian)
+		counterP := createSignedProposal(cId, p.Vars, p.Proposal.ToAdd, brian)
 		t.Run(msg, testUpdateConsensusErr(counterP, ErrWrongSigner))
 	}
 
@@ -361,7 +362,7 @@ func TestLeaderChannel(t *testing.T) {
 		msg := "err:unexpected proposal"
 		p := populatedQueue()[2]
 		p4 := createAdd(p.TurnNum+10, types.Destination{11})
-		counterP := bobSignedProposal(p.Vars, p4)
+		counterP := bobSignedProposal(cId, p.Vars, p4)
 		t.Run(msg, testUpdateConsensusErr(counterP, ErrProposalQueueExhausted))
 	}
 }
