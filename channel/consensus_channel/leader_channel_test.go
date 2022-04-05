@@ -218,7 +218,7 @@ func TestLeaderIncorrectlyAddressedProposals(t *testing.T) {
 	someProposal.Proposal.ChannelID = types.Destination{} // alter the ChannelID so that it doesn't match
 
 	err = channel.UpdateConsensus(someProposal)
-	if err == nil {
+	if err != ErrIncorrectChannelID {
 		t.Errorf("Expected error applying proposal with incorrect ChannelID, but found none")
 	}
 }

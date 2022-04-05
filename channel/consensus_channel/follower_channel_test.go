@@ -180,13 +180,13 @@ func TestFollowerIncorrectlyAddressedProposals(t *testing.T) {
 
 	err := followerCh.Receive(someProposal)
 
-	if err == nil {
+	if err != ErrIncorrectChannelID {
 		t.Fatalf("expected error receiving proposal with incorrect ChannelID, but found none")
 	}
 
 	err = followerCh.SignNextProposal(someProposal.Proposal, bob.PrivateKey)
 
-	if err == nil {
+	if err != ErrIncorrectChannelID {
 		t.Fatalf("expected error receiving proposal with incorrect ChannelID, but found none")
 	}
 }

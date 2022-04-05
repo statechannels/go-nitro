@@ -15,6 +15,8 @@ import (
 
 type ledgerIndex uint
 
+var ErrIncorrectChannelID = fmt.Errorf("proposal ID and channel ID do not match")
+
 const (
 	Leader   ledgerIndex = 0
 	Follower ledgerIndex = 1
@@ -142,7 +144,7 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 // the channel's ID
 func (c *ConsensusChannel) validateProposalID(propsal Proposal) error {
 	if propsal.ChannelID != c.Id {
-		return fmt.Errorf("proposal is not intended for this channel")
+		return ErrIncorrectChannelID
 	}
 
 	return nil
