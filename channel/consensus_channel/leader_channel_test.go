@@ -197,3 +197,28 @@ func TestRestrictedFollowerMethods(t *testing.T) {
 		t.Errorf("Expected error when calling Receive as a leader, but found none")
 	}
 }
+
+func TestLeaderIncorrectlyAddressedProposals(t *testing.T) {
+	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
+	aliceSig, _ := initialVars.AsState(fp()).Sign(alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
+	sigs := [2]state.Signature{aliceSig, bobsSig}
+
+	channel, err := NewLeaderChannel(fp(), 0, ledgerOutcome(), sigs)
+	if err != nil {
+		t.Fatal("unable to construct channel")
+	}
+
+	someProposal, err := channel.Propose(add(1, 1, types.Destination{}, alice, bob), alice.PrivateKey)
+
+	if err != nil {
+		t.Fatalf("failed to initilize proposal")
+	}
+
+	someProposal.Proposal.ChannelID = types.Destination{} // alter the ChannelID so that it doesn't match
+
+	err = channel.UpdateConsensus(someProposal)
+	if err == nil {
+		t.Errorf("Expected error applying proposal with incorrect ChannelID, but found none")
+	}
+}

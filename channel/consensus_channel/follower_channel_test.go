@@ -165,3 +165,28 @@ func TestRestrictedLeaderMethods(t *testing.T) {
 		t.Errorf("Expected error when calling Propose() as a follower, but found none")
 	}
 }
+
+func TestFollowerIncorrectlyAddressedProposals(t *testing.T) {
+	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
+	aliceSig, _ := initialVars.AsState(fp()).Sign(alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
+	sigs := [2]state.Signature{aliceSig, bobsSig}
+
+	leaderCh, _ := NewLeaderChannel(fp(), 0, ledgerOutcome(), sigs)
+	followerCh, _ := NewFollowerChannel(fp(), 0, ledgerOutcome(), sigs)
+
+	someProposal, _ := leaderCh.Propose(add(1, 1, types.Destination{}, alice, bob), alice.PrivateKey)
+	someProposal.Proposal.ChannelID = types.Destination{} // alter the ChannelID so that it doesn't match
+
+	err := followerCh.Receive(someProposal)
+
+	if err == nil {
+		t.Fatalf("expected error receiving proposal with incorrect ChannelID, but found none")
+	}
+
+	err = followerCh.SignNextProposal(someProposal.Proposal, bob.PrivateKey)
+
+	if err == nil {
+		t.Fatalf("expected error receiving proposal with incorrect ChannelID, but found none")
+	}
+}
