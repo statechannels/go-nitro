@@ -87,13 +87,8 @@ func (c *ConsensusChannel) UpdateConsensus(countersigned SignedProposal) error {
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),
 	}
-	if !countersigned.Proposal.isAddProposal() {
-		// TODO: We'll need to expect other proposals in the future!
-		return fmt.Errorf("unexpected proposal")
-	}
-	received := countersigned.Proposal.ToAdd
 
-	consensusTurnNum := received.turnNum
+	consensusTurnNum := countersigned.Proposal.TurnNum()
 
 	if consensusTurnNum <= consensusCandidate.TurnNum {
 		// We've already seen this proposal; return early
@@ -101,13 +96,8 @@ func (c *ConsensusChannel) UpdateConsensus(countersigned SignedProposal) error {
 	}
 
 	for i, ourP := range c.proposalQueue {
-		if !ourP.Proposal.isAddProposal() {
-			// TODO: We'll need to expect other proposals in the future!
-			return fmt.Errorf("unexpected proposal")
-		}
-		existing := ourP.Proposal.ToAdd
 
-		err := consensusCandidate.Add(existing)
+		err := consensusCandidate.HandleProposal(ourP.Proposal)
 		if err != nil {
 			return err
 		}
