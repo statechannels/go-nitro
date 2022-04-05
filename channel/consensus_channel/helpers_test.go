@@ -104,7 +104,7 @@ func createSignedProposal(vars Vars, proposal Proposal, fp state.FixedPart, pk [
 		panic("unimplemented")
 	}
 	proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
-	_ = proposalVars.Add(proposal.toAdd)
+	_ = proposalVars.Add(proposal.ToAdd)
 
 	state := proposalVars.AsState(fp)
 	sig, _ := state.Sign(pk)

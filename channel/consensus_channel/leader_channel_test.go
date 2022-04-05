@@ -276,7 +276,7 @@ func TestLeaderChannel(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error %v", err)
 			}
-			g := counterProposal.Proposal.toAdd.Guarantee
+			g := counterProposal.Proposal.ToAdd.Guarantee
 			if !channel.Includes(g) {
 				t.Fatalf("failed to fund guarantee given successful counterproposal")
 			}
@@ -285,7 +285,7 @@ func TestLeaderChannel(t *testing.T) {
 				t.Fatalf("guarantee still proposed given successful counterproposal")
 			}
 
-			if channel.ConsensusTurnNum() != counterProposal.Proposal.toAdd.turnNum {
+			if channel.ConsensusTurnNum() != counterProposal.Proposal.ToAdd.turnNum {
 				t.Fatalf("consensus not reached")
 			}
 
