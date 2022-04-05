@@ -273,7 +273,7 @@ func TestLeaderChannel(t *testing.T) {
 			err := channel.UpdateConsensus(counterProposal.SignedProposal)
 
 			if err != nil {
-				t.Fatalf("expected error %v", err)
+				t.Fatalf("unexpected error %v", err)
 			}
 			g := counterProposal.Proposal.toAdd.Guarantee
 			if !channel.Includes(g) {
