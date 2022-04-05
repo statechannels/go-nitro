@@ -42,7 +42,7 @@ func TestReceive(t *testing.T) {
 		t.Fatal("unable to construct channel")
 	}
 
-	proposal := Proposal{ToAdd: add(1, vAmount, targetChannel, alice, bob)}
+	proposal := Proposal{ChannelID: channel.Id, ToAdd: add(1, vAmount, targetChannel, alice, bob)}
 
 	// Create a proposal with an incorrect signature
 	badSigProposal := SignedProposal{bobsSig, proposal}
@@ -68,7 +68,7 @@ func TestReceive(t *testing.T) {
 
 	// Generate a second proposal
 	latestProposed, _ := channel.latestProposedVars()
-	secondProposal := Proposal{ToAdd: add(2, vAmount, types.Destination{3}, alice, bob)}
+	secondProposal := Proposal{ChannelID: channel.Id, ToAdd: add(2, vAmount, types.Destination{3}, alice, bob)}
 	anotherValid := createSignedProposal(latestProposed, secondProposal, fp(), alice.PrivateKey)
 	err = channel.Receive(anotherValid)
 	if err != nil {
@@ -109,7 +109,7 @@ func TestFollowerChannel(t *testing.T) {
 		t.Fatal("unable to construct channel")
 	}
 
-	proposal := Proposal{ToAdd: add(1, uint64(5), targetChannel, alice, bob)}
+	proposal := Proposal{ChannelID: channel.Id, ToAdd: add(1, uint64(5), targetChannel, alice, bob)}
 
 	err = channel.SignNextProposal(proposal, bob.PrivateKey)
 	if !errors.Is(ErrNoProposals, err) {
@@ -122,7 +122,7 @@ func TestFollowerChannel(t *testing.T) {
 		Signature: state.Signature{},
 	}
 	channel.proposalQueue = []SignedProposal{signedProposal}
-	proposal2 := Proposal{ToAdd: add(1, uint64(6), targetChannel, alice, bob)}
+	proposal2 := Proposal{ChannelID: channel.Id, ToAdd: add(1, uint64(6), targetChannel, alice, bob)}
 
 	err = channel.SignNextProposal(proposal2, bob.PrivateKey)
 	if !errors.Is(ErrNonMatchingProposals, err) {

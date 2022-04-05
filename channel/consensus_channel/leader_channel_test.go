@@ -31,7 +31,7 @@ func TestLeaderChannel(t *testing.T) {
 		t.Fatal("initialized with non-zero turn number")
 	}
 
-	p := Proposal{ToAdd: add(1, amountAdded, targetChannel, alice, bob)}
+	p := Proposal{ChannelID: channel.Id, ToAdd: add(1, amountAdded, targetChannel, alice, bob)}
 
 	sp, err := channel.Propose(p.ToAdd, alice.PrivateKey)
 	if err != nil {
@@ -166,7 +166,7 @@ func TestLeaderChannel(t *testing.T) {
 
 	// A counter signature is received on an unexpected proposal
 	p4Returned := SignedProposal{
-		Proposal:  Proposal{ToAdd: add(4, 10, targetChannel, alice, bob)},
+		Proposal:  Proposal{ChannelID: channel.Id, ToAdd: add(4, 10, targetChannel, alice, bob)},
 		Signature: counterSig2,
 	}
 	err = channel.UpdateConsensus(p4Returned)
