@@ -84,7 +84,9 @@ func TestLeaderChannel(t *testing.T) {
 			current:       current,
 		}
 	}
-	const amountAdded = uint64(10)
+	const aAmount = uint64(6)
+	const bAmount = uint64(4)
+	const amountAdded = aAmount + bAmount
 
 	createAdd := func(chID types.Destination, turnNum uint64, target types.Destination) Proposal {
 		return NewAddProposal(
@@ -92,6 +94,15 @@ func TestLeaderChannel(t *testing.T) {
 			turnNum,
 			guarantee(amountAdded, target, alice, bob),
 			big.NewInt(int64(amountAdded)),
+		)
+	}
+	createRemove := func(chID types.Destination, turnNum uint64, target types.Destination) Proposal {
+		return NewRemoveProposal(
+			chID,
+			turnNum,
+			target,
+			big.NewInt(int64(aAmount)),
+			big.NewInt(int64(bAmount)),
 		)
 	}
 
@@ -112,8 +123,15 @@ func TestLeaderChannel(t *testing.T) {
 
 			sp, err := channel.Propose(proposal, alice.PrivateKey)
 
-			if !errors.Is(err, expectedErr) {
-				t.Fatalf("expected error %v, got %v", expectedErr, err)
+			if err != nil {
+				if expectedErr == nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if !errors.Is(err, expectedErr) {
+					t.Fatalf("expected error %v, got %v", expectedErr, err)
+				}
+				// If we receive an error we don't want to perform the other checks
+				return
 			}
 
 			if !reflect.DeepEqual(sp, expectedSp) {
@@ -211,6 +229,51 @@ func TestLeaderChannel(t *testing.T) {
 
 		t.Run(msg, testPropose(c, newAdd, expectedSp, nil))
 	}
+	{
+		msg := "ok:adding a remove proposal"
+		startingOutcome := makeOutcome(
+			allocation(alice, aBal),
+			allocation(bob, bBal),
+			guarantee(amountAdded, channel1Id, alice, bob),
+		)
+
+		c := testChannel(startingOutcome, emptyQueue())
+
+		newRemove := createRemove(cId, 1, channel1Id)
+
+		currentlyProposed, _ := c.latestProposedVars()
+		expectedSp := aliceSignedProposal(currentlyProposed, newRemove).SignedProposal
+
+		t.Run(msg, testPropose(c, newRemove, expectedSp, nil))
+	}
+	{
+		msg := "err:adding a remove proposal with invalid target"
+		startingOutcome := makeOutcome(
+			allocation(alice, aBal),
+			allocation(bob, bBal),
+		)
+
+		c := testChannel(startingOutcome, emptyQueue())
+
+		newRemove := createRemove(cId, 1, channel1Id)
+
+		t.Run(msg, testPropose(c, newRemove, SignedProposal{}, ErrGuaranteeNotFound))
+	}
+	{
+		msg := "err:adding a remove proposal with too large left/right amounts"
+		startingOutcome := makeOutcome(
+			allocation(alice, aBal),
+			allocation(bob, bBal),
+			guarantee(amountAdded, channel1Id, alice, bob),
+		)
+
+		c := testChannel(startingOutcome, emptyQueue())
+
+		// Left+Right > amountAdded
+		newRemove := NewRemoveProposal(cId, 1, channel1Id, big.NewInt(int64(amountAdded)), big.NewInt(int64(amountAdded)))
+
+		t.Run(msg, testPropose(c, newRemove, SignedProposal{}, ErrInsufficientFunds))
+	}
 
 	{
 		msg := "err:adding a duplicate proposal"
@@ -262,17 +325,23 @@ func TestLeaderChannel(t *testing.T) {
 
 	populatedQueue := func() []SignedProposalVars {
 		vars := Vars{TurnNum: consensusTurnNum, Outcome: startingOutcome}
+		t1 := types.Destination{byte(0)}
+		t2 := types.Destination{byte(1)}
+		t3 := types.Destination{byte(2)}
 
-		p1 := createAdd(cId, vars.TurnNum+1, types.Destination{byte(vars.TurnNum)})
+		p1 := createAdd(cId, vars.TurnNum+1, t1)
 		sp1 := aliceSignedProposal(vars, p1)
 
-		p2 := createAdd(cId, sp1.TurnNum+1, types.Destination{byte(sp1.TurnNum)})
+		p2 := createAdd(cId, sp1.TurnNum+1, t2)
 		sp2 := aliceSignedProposal(sp1.Vars, p2)
 
-		p3 := createAdd(cId, sp2.TurnNum+1, types.Destination{byte(sp2.TurnNum)})
+		p3 := createAdd(cId, sp2.TurnNum+1, t3)
 		sp3 := aliceSignedProposal(sp2.Vars, p3)
 
-		return []SignedProposalVars{sp1, sp2, sp3}
+		p4 := createRemove(cId, sp3.TurnNum+1, t3)
+		sp4 := aliceSignedProposal(sp3.Vars, p4)
+
+		return []SignedProposalVars{sp1, sp2, sp3, sp4}
 	}
 
 	testUpdateConsensusOk := func(
@@ -308,7 +377,7 @@ func TestLeaderChannel(t *testing.T) {
 
 			}
 
-			if channel.ConsensusTurnNum() != counterProposal.Proposal.ToAdd.turnNum {
+			if channel.ConsensusTurnNum() != counterProposal.Proposal.TurnNum() {
 				t.Fatalf("consensus not reached")
 			}
 

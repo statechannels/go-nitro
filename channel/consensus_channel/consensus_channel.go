@@ -414,6 +414,16 @@ func NewAddProposal(channelId types.Destination, turnNum uint64, g Guarantee, le
 	return Proposal{ToAdd: NewAdd(turnNum, g, leftDeposit), ChannelID: channelId}
 }
 
+// NewRemove constructs a new Remove proposal
+func NewRemove(turnNum uint64, target types.Destination, leftAmount, rightAmount *big.Int) Remove {
+	return Remove{turnNum: turnNum, Target: target, LeftAmount: leftAmount, RightAmount: rightAmount}
+}
+
+// NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal
+func NewRemoveProposal(channelId types.Destination, turnNum uint64, target types.Destination, leftAmount, rightAmount *big.Int) Proposal {
+	return Proposal{ToRemove: NewRemove(turnNum, target, leftAmount, rightAmount), ChannelID: channelId}
+}
+
 func (a Add) RightDeposit() *big.Int {
 	result := big.NewInt(0)
 	result.Sub(a.amount, a.LeftDeposit)
