@@ -43,22 +43,22 @@ func TestLeaderChannel(t *testing.T) {
 
 	// createSignedProposal generates a proposal given the vars & proposed change
 	// The proposal is signed by the given actor, using a generic fixed part
-	createSignedProposal := func(vars Vars, add Add, actor actor) SignedProposalVars {
+	createSignedProposal := func(chID types.Destination, vars Vars, add Add, actor actor) SignedProposalVars {
 		proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
 		_ = proposalVars.Add(add)
 
 		state := proposalVars.AsState(fp())
 		sig, _ := state.Sign(actor.PrivateKey)
 
-		return SignedProposalVars{SignedProposal{sig, Proposal{toAdd: add}}, proposalVars}
+		return SignedProposalVars{SignedProposal{sig, Proposal{ChannelID: chID, ToAdd: add}}, proposalVars}
 	}
 
-	aliceSignedProposal := func(vars Vars, add Add) SignedProposalVars {
-		return createSignedProposal(vars, add, alice)
+	aliceSignedProposal := func(chID types.Destination, vars Vars, add Add) SignedProposalVars {
+		return createSignedProposal(chID, vars, add, alice)
 	}
 
-	bobSignedProposal := func(vars Vars, add Add) SignedProposalVars {
-		return createSignedProposal(vars, add, bob)
+	bobSignedProposal := func(chID types.Destination, vars Vars, add Add) SignedProposalVars {
+		return createSignedProposal(chID, vars, add, bob)
 	}
 
 	cId, _ := fp().ChannelId()
