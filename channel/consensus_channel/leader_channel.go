@@ -85,6 +85,10 @@ func (c *ConsensusChannel) UpdateConsensus(countersigned SignedProposal) error {
 		return ErrNotLeader
 	}
 
+	if err := c.validateProposalID(countersigned.Proposal); err != nil {
+		return err
+	}
+
 	consensusCandidate := Vars{
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),

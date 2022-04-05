@@ -138,6 +138,16 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 	return vars, nil
 }
 
+// validateProposalID checks that the given proposal's ID matches
+// the channel's ID
+func (c *ConsensusChannel) validateProposalID(propsal Proposal) error {
+	if propsal.ChannelID != c.Id {
+		return fmt.Errorf("proposal is not intended for this channel")
+	}
+
+	return nil
+}
+
 // NewBalance returns a new Balance struct with the given amount and destination
 func NewBalance(destination types.Destination, amount *big.Int) Balance {
 	balanceAmount := big.NewInt(0).Set(amount)

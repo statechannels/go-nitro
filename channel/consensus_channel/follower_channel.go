@@ -27,6 +27,10 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 		return ErrNotFollower
 	}
 
+	if err := c.validateProposalID(expectedProposal); err != nil {
+		return err
+	}
+
 	if len(c.proposalQueue) == 0 {
 		return ErrNoProposals
 	}
@@ -68,6 +72,11 @@ func (c *ConsensusChannel) Receive(p SignedProposal) error {
 	if c.myIndex != Follower {
 		return ErrNotFollower
 	}
+
+	if err := c.validateProposalID(p.Proposal); err != nil {
+		return err
+	}
+
 	// Get the latest proposal vars we have
 	vars, err := c.latestProposedVars()
 	if err != nil {
