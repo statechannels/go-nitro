@@ -410,8 +410,8 @@ func NewAdd(turnNum uint64, g Guarantee, leftDeposit *big.Int) Add {
 }
 
 // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal
-func NewAddProposal(turnNum uint64, g Guarantee, leftDeposit *big.Int) Proposal {
-	return Proposal{ToAdd: NewAdd(turnNum, g, leftDeposit)}
+func NewAddProposal(channelId types.Destination, turnNum uint64, g Guarantee, leftDeposit *big.Int) Proposal {
+	return Proposal{ToAdd: NewAdd(turnNum, g, leftDeposit), ChannelID: channelId}
 }
 
 func (a Add) RightDeposit() *big.Int {
