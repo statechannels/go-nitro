@@ -80,9 +80,6 @@ func (c *ConsensusChannel) Receive(p SignedProposal) error {
 	if err != nil {
 		return fmt.Errorf("could not generate the current proposal: %w", err)
 	}
-	if !p.Proposal.isAddProposal() {
-		return fmt.Errorf("received proposal is not an add: %v", p.Proposal)
-	}
 
 	if p.Proposal.TurnNum() != vars.TurnNum+1 {
 		return ErrInvalidTurnNum
