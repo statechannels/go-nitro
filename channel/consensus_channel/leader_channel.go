@@ -55,7 +55,13 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 		return SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
 	}
 
-	signed := SignedProposal{Proposal: Proposal{ToAdd: add}, Signature: signature}
+	signed := SignedProposal{
+		Proposal: Proposal{
+			ChannelID: c.Id,
+			ToAdd:     add,
+		},
+		Signature: signature,
+	}
 
 	c.proposalQueue = append(c.proposalQueue, signed)
 	return signed, nil

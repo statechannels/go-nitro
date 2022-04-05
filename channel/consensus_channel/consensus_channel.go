@@ -335,8 +335,9 @@ type SignedVars struct {
 //
 // Exactly one of {toAdd, toRemove} should be non nil
 type Proposal struct {
-	ToAdd    Add
-	ToRemove struct{} // TODO
+	ChannelID types.Destination
+	ToAdd     Add
+	ToRemove  struct{} // TODO
 }
 
 // equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
