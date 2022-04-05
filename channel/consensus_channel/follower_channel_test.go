@@ -21,7 +21,7 @@ func TestReceive(t *testing.T) {
 		t.Fatal("unable to construct channel")
 	}
 
-	proposal := Proposal{toAdd: add(1, vAmount, targetChannel, alice, bob)}
+	proposal := Proposal{ChannelID: channel.Id, ToAdd: add(1, vAmount, targetChannel, alice, bob)}
 
 	// Create a proposal with an incorrect signature
 	badSigProposal := SignedProposal{bobsSig, proposal}
@@ -47,7 +47,7 @@ func TestReceive(t *testing.T) {
 
 	// Generate a second proposal
 	latestProposed, _ := channel.latestProposedVars()
-	secondProposal := Proposal{toAdd: add(2, vAmount, types.Destination{3}, alice, bob)}
+	secondProposal := Proposal{ChannelID: channel.Id, ToAdd: add(2, vAmount, types.Destination{3}, alice, bob)}
 	anotherValid := createSignedProposal(latestProposed, secondProposal, fp(), alice.PrivateKey)
 	err = channel.Receive(anotherValid)
 	if err != nil {
@@ -88,7 +88,7 @@ func TestFollowerChannel(t *testing.T) {
 		t.Fatal("unable to construct channel")
 	}
 
-	proposal := Proposal{toAdd: add(1, uint64(5), targetChannel, alice, bob)}
+	proposal := Proposal{ChannelID: channel.Id, ToAdd: add(1, uint64(5), targetChannel, alice, bob)}
 
 	err = channel.SignNextProposal(proposal, bob.PrivateKey)
 	if !errors.Is(ErrNoProposals, err) {
@@ -101,7 +101,7 @@ func TestFollowerChannel(t *testing.T) {
 		Signature: state.Signature{},
 	}
 	channel.proposalQueue = []SignedProposal{signedProposal}
-	proposal2 := Proposal{toAdd: add(1, uint64(6), targetChannel, alice, bob)}
+	proposal2 := Proposal{ChannelID: channel.Id, ToAdd: add(1, uint64(6), targetChannel, alice, bob)}
 
 	err = channel.SignNextProposal(proposal2, bob.PrivateKey)
 	if !errors.Is(ErrNonMatchingProposals, err) {
@@ -116,7 +116,7 @@ func TestFollowerChannel(t *testing.T) {
 	if channel.ConsensusTurnNum() != 1 {
 		t.Fatalf("incorrect turn number: expected 1, got %d", channel.ConsensusTurnNum())
 	}
-	if !channel.Includes(proposal.toAdd.Guarantee) {
+	if !channel.Includes(proposal.ToAdd.Guarantee) {
 		t.Fatal("expected the channel to not include the guarantee")
 	}
 	if len(channel.proposalQueue) != 0 {
@@ -142,5 +142,30 @@ func TestRestrictedLeaderMethods(t *testing.T) {
 
 	if err := channel.UpdateConsensus(SignedProposal{}); err != ErrNotLeader {
 		t.Errorf("Expected error when calling Propose() as a follower, but found none")
+	}
+}
+
+func TestFollowerIncorrectlyAddressedProposals(t *testing.T) {
+	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
+	aliceSig, _ := initialVars.AsState(fp()).Sign(alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
+	sigs := [2]state.Signature{aliceSig, bobsSig}
+
+	leaderCh, _ := NewLeaderChannel(fp(), 0, ledgerOutcome(), sigs)
+	followerCh, _ := NewFollowerChannel(fp(), 0, ledgerOutcome(), sigs)
+
+	someProposal, _ := leaderCh.Propose(add(1, 1, types.Destination{}, alice, bob), alice.PrivateKey)
+	someProposal.Proposal.ChannelID = types.Destination{} // alter the ChannelID so that it doesn't match
+
+	err := followerCh.Receive(someProposal)
+
+	if err != ErrIncorrectChannelID {
+		t.Fatalf("expected error receiving proposal with incorrect ChannelID, but found none")
+	}
+
+	err = followerCh.SignNextProposal(someProposal.Proposal, bob.PrivateKey)
+
+	if err != ErrIncorrectChannelID {
+		t.Fatalf("expected error receiving proposal with incorrect ChannelID, but found none")
 	}
 }

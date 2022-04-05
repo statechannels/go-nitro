@@ -27,6 +27,10 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 		return ErrNotFollower
 	}
 
+	if err := c.validateProposalID(expectedProposal); err != nil {
+		return err
+	}
+
 	if len(c.proposalQueue) == 0 {
 		return ErrNoProposals
 	}
@@ -44,7 +48,7 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),
 	}
-	err := vars.Add(p.toAdd)
+	err := vars.Add(p.ToAdd)
 	if err != nil {
 		return err
 	}
@@ -68,6 +72,11 @@ func (c *ConsensusChannel) Receive(p SignedProposal) error {
 	if c.myIndex != Follower {
 		return ErrNotFollower
 	}
+
+	if err := c.validateProposalID(p.Proposal); err != nil {
+		return err
+	}
+
 	// Get the latest proposal vars we have
 	vars, err := c.latestProposedVars()
 	if err != nil {
@@ -76,7 +85,7 @@ func (c *ConsensusChannel) Receive(p SignedProposal) error {
 	if !p.Proposal.isAddProposal() {
 		return fmt.Errorf("received proposal is not an add: %v", p.Proposal)
 	}
-	add := p.Proposal.toAdd
+	add := p.Proposal.ToAdd
 
 	if add.turnNum != vars.TurnNum+1 {
 		return ErrInvalidTurnNum

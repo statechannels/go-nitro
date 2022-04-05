@@ -15,6 +15,8 @@ import (
 
 type ledgerIndex uint
 
+var ErrIncorrectChannelID = fmt.Errorf("proposal ID and channel ID do not match")
+
 const (
 	Leader   ledgerIndex = 0
 	Follower ledgerIndex = 1
@@ -129,13 +131,23 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 
 	var err error
 	for _, p := range c.proposalQueue {
-		err = vars.Add(p.Proposal.toAdd)
+		err = vars.Add(p.Proposal.ToAdd)
 		if err != nil {
 			return Vars{}, err
 		}
 	}
 
 	return vars, nil
+}
+
+// validateProposalID checks that the given proposal's ID matches
+// the channel's ID
+func (c *ConsensusChannel) validateProposalID(propsal Proposal) error {
+	if propsal.ChannelID != c.Id {
+		return ErrIncorrectChannelID
+	}
+
+	return nil
 }
 
 // NewBalance returns a new Balance struct with the given amount and destination
@@ -335,18 +347,19 @@ type SignedVars struct {
 //
 // Exactly one of {toAdd, toRemove} should be non nil
 type Proposal struct {
-	toAdd    Add
-	toRemove struct{} // TODO
+	ChannelID types.Destination
+	ToAdd     Add
+	ToRemove  struct{} // TODO
 }
 
 // equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
 func (p *Proposal) equal(q *Proposal) bool {
-	return p.toAdd.equal(q.toAdd) && p.toRemove == q.toRemove
+	return p.ToAdd.equal(q.ToAdd) && p.ToRemove == q.ToRemove
 }
 
 // isAddProposal returns true if the proposal contains a non-nil toAdd and a nil toRemove.
 func (p *Proposal) isAddProposal() bool {
-	return p.toAdd != Add{} && p.toRemove == struct{}{}
+	return p.ToAdd != Add{} && p.ToRemove == struct{}{}
 }
 
 // SignedProposal is a Proposall with a signature on it
@@ -374,7 +387,7 @@ func NewAdd(turnNum uint64, g Guarantee, leftDeposit *big.Int) Add {
 
 // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal
 func NewAddProposal(turnNum uint64, g Guarantee, leftDeposit *big.Int) Proposal {
-	return Proposal{toAdd: NewAdd(turnNum, g, leftDeposit)}
+	return Proposal{ToAdd: NewAdd(turnNum, g, leftDeposit)}
 }
 
 func (a Add) RightDeposit() *big.Int {
