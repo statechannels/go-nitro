@@ -45,9 +45,9 @@ func TestReceive(t *testing.T) {
 		t.Fatalf("Expected proposal to be queued")
 	}
 
-	// Generate a second proposal
+	// Generate a second proposal(removal)
 	latestProposed, _ := channel.latestProposedVars()
-	secondProposal := Proposal{ChannelID: channel.Id, ToAdd: add(2, vAmount, types.Destination{3}, alice, bob)}
+	secondProposal := Proposal{ChannelID: channel.Id, ToRemove: remove(2, channel1Id, 2, 3)}
 	anotherValid := createSignedProposal(latestProposed, secondProposal, fp(), alice.PrivateKey)
 	err = channel.Receive(anotherValid)
 	if err != nil {
