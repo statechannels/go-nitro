@@ -365,6 +365,14 @@ func TestLeaderChannel(t *testing.T) {
 		counterP := bobSignedProposal(cId, p.Vars, p4)
 		t.Run(msg, testUpdateConsensusErr(counterP, ErrProposalQueueExhausted))
 	}
+
+	{
+		msg := "err:wrong channel"
+		p := populatedQueue()[2]
+		p4 := createAdd(p.TurnNum+10, types.Destination{11})
+		counterP := bobSignedProposal(types.Destination{}, p.Vars, p4) // blank ChannelID intentionally different than precomputed cId
+		t.Run(msg, testUpdateConsensusErr(counterP, ErrIncorrectChannelID))
+	}
 }
 
 func TestRestrictedFollowerMethods(t *testing.T) {
@@ -381,30 +389,5 @@ func TestRestrictedFollowerMethods(t *testing.T) {
 
 	if err := channel.Receive(SignedProposal{}); err != ErrNotFollower {
 		t.Errorf("Expected error when calling Receive as a leader, but found none")
-	}
-}
-
-func TestLeaderIncorrectlyAddressedProposals(t *testing.T) {
-	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
-	aliceSig, _ := initialVars.AsState(fp()).Sign(alice.PrivateKey)
-	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
-	sigs := [2]state.Signature{aliceSig, bobsSig}
-
-	channel, err := NewLeaderChannel(fp(), 0, ledgerOutcome(), sigs)
-	if err != nil {
-		t.Fatal("unable to construct channel")
-	}
-
-	someProposal, err := channel.Propose(add(1, 1, types.Destination{}, alice, bob), alice.PrivateKey)
-
-	if err != nil {
-		t.Fatalf("failed to initilize proposal")
-	}
-
-	someProposal.Proposal.ChannelID = types.Destination{} // alter the ChannelID so that it doesn't match
-
-	err = channel.UpdateConsensus(someProposal)
-	if err != ErrIncorrectChannelID {
-		t.Errorf("Expected error applying proposal with incorrect ChannelID, but found none")
 	}
 }
