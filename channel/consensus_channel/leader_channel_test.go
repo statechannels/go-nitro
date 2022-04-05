@@ -41,7 +41,7 @@ func TestLeaderChannel(t *testing.T) {
 		return []SignedProposalVars{}
 	}
 
-	// aliceSignedProposal generates a proposal given the vars & proposed change
+	// createSignedProposal generates a proposal given the vars & proposed change
 	// The proposal is signed by the given actor, using a generic fixed part
 	createSignedProposal := func(vars Vars, add Add, actor actor) SignedProposalVars {
 		proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
