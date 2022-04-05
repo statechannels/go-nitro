@@ -109,11 +109,9 @@ func remove(turnNum uint64, vId types.Destination, leftAmount, rightAmount uint6
 // createSignedProposal generates a signed proposal given the vars, proposal fixed parts and private key
 // The vars passed in are NOT mutated!
 func createSignedProposal(vars Vars, proposal Proposal, fp state.FixedPart, pk []byte) SignedProposal {
-	if !proposal.isAddProposal() {
-		panic("unimplemented")
-	}
+
 	proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
-	_ = proposalVars.Add(proposal.ToAdd)
+	_ = proposalVars.HandleProposal(proposal)
 
 	state := proposalVars.AsState(fp)
 	sig, _ := state.Sign(pk)
