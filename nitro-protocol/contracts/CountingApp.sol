@@ -3,6 +3,8 @@ pragma solidity 0.7.4;
 pragma experimental ABIEncoderV2;
 
 import './interfaces/IForceMoveApp.sol';
+import '@statechannels/exit-format/contracts/ExitFormat.sol';
+
 
 /**
  * @dev The CountingApp contracts complies with the ForceMoveApp interface and allows only for a simple counter to be incremented. Used for testing purposes.
@@ -41,7 +43,7 @@ contract CountingApp is IForceMoveApp {
             'Counter must be incremented'
         );
         // Note this is gas inefficient, and inferior to _bytesEqual in use elsewhere
-        require(keccak256(b.outcome) == keccak256(a.outcome), 'Outcome must not change');
+        require(keccak256(ExitFormat.encodeExit(b.outcome)) == keccak256(ExitFormat.encodeExit(a.outcome)), 'Outcome must not change');
         return true;
     }
 }
