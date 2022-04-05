@@ -1,6 +1,7 @@
 package NitroAdjudicator
 
 import (
+	"log"
 	"math/big"
 	"testing"
 
@@ -9,8 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -44,47 +43,58 @@ var Actors actors = actors{
 
 func TestChallenge(t *testing.T) {
 
-	s := state.State{
-		ChainId: big.NewInt(1337),
-		Participants: []types.Address{
-			Actors.Alice.Address,
-			Actors.Bob.Address,
-		},
-		ChannelNonce:      big.NewInt(37140676580),
-		AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
-		ChallengeDuration: big.NewInt(60),
-		AppData:           []byte{},
-		Outcome:           outcome.Exit{},
-		TurnNum:           0,
-		IsFinal:           false,
-	}
+	// s := state.State{
+	// 	ChainId: big.NewInt(1337),
+	// 	Participants: []types.Address{
+	// 		Actors.Alice.Address,
+	// 		Actors.Bob.Address,
+	// 	},
+	// 	ChannelNonce:      big.NewInt(37140676580),
+	// 	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
+	// 	ChallengeDuration: big.NewInt(60),
+	// 	AppData:           []byte{},
+	// 	Outcome:           outcome.Exit{},
+	// 	TurnNum:           0,
+	// 	IsFinal:           false,
+	// }
 
-	aSig, _ := s.Sign(Actors.Alice.PrivateKey)
-	bSig, _ := s.Sign(Actors.Bob.PrivateKey)
-	challengerSig, _ := SignChallengeMessage(s, Actors.Alice.PrivateKey)
+	// aSig, _ := s.Sign(Actors.Alice.PrivateKey)
+	// bSig, _ := s.Sign(Actors.Bob.PrivateKey)
+	// challengerSig, _ := SignChallengeMessage(s, Actors.Alice.PrivateKey)
 
 	key, _ := crypto.GenerateKey()
 	auth := bind.NewKeyedTransactor(key)
 
 	address := auth.From
+	balance := new(big.Int)
+	balance.SetString("10000000000000000000", 10) // 10 eth in wei
 	gAlloc := map[common.Address]core.GenesisAccount{
-		address: {Balance: big.NewInt(10000000000)},
+		address: {Balance: balance},
 	}
 
-	sim := backends.NewSimulatedBackend(gAlloc, 1000000000)
+	blockGasLimit := uint64(4712388)
 
-	naAddress, _, na, _ := DeployNitroAdjudicator(auth, sim)
+	sim := backends.NewSimulatedBackend(gAlloc, blockGasLimit)
 
+	auth.GasPrice = big.NewInt(10000000000)
+
+	naAddress, _, na, err := DeployNitroAdjudicator(auth, sim)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	// sim.Commit()
 	t.Log(naAddress)
-	na.Challenge(
-		&bind.TransactOpts{},
-		IForceMoveFixedPart(s.FixedPart()),
-		big.NewInt(0),
-		[]state.VariablePart{s.VariablePart()},
-		0,
-		[]state.Signature{aSig, bSig},
-		[]uint8{0, 0},
-		challengerSig,
-	)
+	t.Log(na)
+	// na.Challenge(
+	// 	&bind.TransactOpts{},
+	// 	IForceMoveFixedPart(s.FixedPart()),
+	// 	big.NewInt(0),
+	// 	[]state.VariablePart{s.VariablePart()},
+	// 	0,
+	// 	[]state.Signature{aSig, bSig},
+	// 	[]uint8{0, 0},
+	// 	challengerSig,
+	// )
 
 }
