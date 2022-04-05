@@ -131,7 +131,7 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 
 	var err error
 	for _, p := range c.proposalQueue {
-		err = vars.Add(p.Proposal.ToAdd)
+		err = vars.HandleProposal(p.Proposal)
 		if err != nil {
 			return Vars{}, err
 		}
