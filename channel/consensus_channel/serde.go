@@ -45,14 +45,15 @@ func (a *Add) UnmarshalJSON(data []byte) error {
 // jsonProposal replaces Proposal's private fields with public ones,
 // making it suitable for serialization
 type jsonProposal struct {
-	ToAdd    Add
-	ToRemove struct{}
+	ChannelID types.Destination
+	ToAdd     Add
+	ToRemove  struct{}
 }
 
 // MarshalJSON returns a JSON representation of the Proposal
 func (p Proposal) MarshalJSON() ([]byte, error) {
 	jsonP := jsonProposal{
-		p.ToAdd, p.ToRemove,
+		p.ChannelID, p.ToAdd, p.ToRemove,
 	}
 	return json.Marshal(jsonP)
 }
@@ -66,6 +67,7 @@ func (p *Proposal) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("error unmarshaling guarantee data: %w", err)
 	}
 
+	p.ChannelID = jsonP.ChannelID
 	p.ToAdd = jsonP.ToAdd
 	p.ToRemove = jsonP.ToRemove
 
