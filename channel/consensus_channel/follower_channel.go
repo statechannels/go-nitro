@@ -44,7 +44,7 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),
 	}
-	err := vars.Add(p.toAdd)
+	err := vars.Add(p.ToAdd)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func (c *ConsensusChannel) Receive(p SignedProposal) error {
 	if !p.Proposal.isAddProposal() {
 		return fmt.Errorf("received proposal is not an add: %v", p.Proposal)
 	}
-	add := p.Proposal.toAdd
+	add := p.Proposal.ToAdd
 
 	if add.turnNum != vars.TurnNum+1 {
 		return ErrInvalidTurnNum

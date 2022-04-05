@@ -16,7 +16,7 @@ func createSignedProposal(vars Vars, proposal Proposal, fp state.FixedPart, pk [
 		panic("unimplemented")
 	}
 	proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
-	_ = proposalVars.Add(proposal.toAdd)
+	_ = proposalVars.Add(proposal.ToAdd)
 
 	state := proposalVars.AsState(fp)
 	sig, _ := state.Sign(pk)
@@ -42,7 +42,7 @@ func TestReceive(t *testing.T) {
 		t.Fatal("unable to construct channel")
 	}
 
-	proposal := Proposal{toAdd: add(1, vAmount, targetChannel, alice, bob)}
+	proposal := Proposal{ToAdd: add(1, vAmount, targetChannel, alice, bob)}
 
 	// Create a proposal with an incorrect signature
 	badSigProposal := SignedProposal{bobsSig, proposal}
@@ -68,7 +68,7 @@ func TestReceive(t *testing.T) {
 
 	// Generate a second proposal
 	latestProposed, _ := channel.latestProposedVars()
-	secondProposal := Proposal{toAdd: add(2, vAmount, types.Destination{3}, alice, bob)}
+	secondProposal := Proposal{ToAdd: add(2, vAmount, types.Destination{3}, alice, bob)}
 	anotherValid := createSignedProposal(latestProposed, secondProposal, fp(), alice.PrivateKey)
 	err = channel.Receive(anotherValid)
 	if err != nil {
@@ -109,7 +109,7 @@ func TestFollowerChannel(t *testing.T) {
 		t.Fatal("unable to construct channel")
 	}
 
-	proposal := Proposal{toAdd: add(1, uint64(5), targetChannel, alice, bob)}
+	proposal := Proposal{ToAdd: add(1, uint64(5), targetChannel, alice, bob)}
 
 	err = channel.SignNextProposal(proposal, bob.PrivateKey)
 	if !errors.Is(ErrNoProposals, err) {
@@ -122,7 +122,7 @@ func TestFollowerChannel(t *testing.T) {
 		Signature: state.Signature{},
 	}
 	channel.proposalQueue = []SignedProposal{signedProposal}
-	proposal2 := Proposal{toAdd: add(1, uint64(6), targetChannel, alice, bob)}
+	proposal2 := Proposal{ToAdd: add(1, uint64(6), targetChannel, alice, bob)}
 
 	err = channel.SignNextProposal(proposal2, bob.PrivateKey)
 	if !errors.Is(ErrNonMatchingProposals, err) {
@@ -137,7 +137,7 @@ func TestFollowerChannel(t *testing.T) {
 	if channel.ConsensusTurnNum() != 1 {
 		t.Fatalf("incorrect turn number: expected 1, got %d", channel.ConsensusTurnNum())
 	}
-	if !channel.Includes(proposal.toAdd.Guarantee) {
+	if !channel.Includes(proposal.ToAdd.Guarantee) {
 		t.Fatal("expected the channel to not include the guarantee")
 	}
 	if len(channel.proposalQueue) != 0 {

@@ -55,7 +55,7 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 		return SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
 	}
 
-	signed := SignedProposal{Proposal: Proposal{toAdd: add}, Signature: signature}
+	signed := SignedProposal{Proposal: Proposal{ToAdd: add}, Signature: signature}
 
 	c.proposalQueue = append(c.proposalQueue, signed)
 	return signed, nil
@@ -87,7 +87,7 @@ func (c *ConsensusChannel) UpdateConsensus(countersigned SignedProposal) error {
 		// TODO: We'll need to expect other proposals in the future!
 		return fmt.Errorf("unexpected proposal")
 	}
-	received := countersigned.Proposal.toAdd
+	received := countersigned.Proposal.ToAdd
 
 	consensusTurnNum := received.turnNum
 
@@ -101,7 +101,7 @@ func (c *ConsensusChannel) UpdateConsensus(countersigned SignedProposal) error {
 			// TODO: We'll need to expect other proposals in the future!
 			return fmt.Errorf("unexpected proposal")
 		}
-		existing := ourP.Proposal.toAdd
+		existing := ourP.Proposal.ToAdd
 
 		err := consensusCandidate.Add(existing)
 		if err != nil {

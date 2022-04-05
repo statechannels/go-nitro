@@ -52,7 +52,7 @@ type jsonProposal struct {
 // MarshalJSON returns a JSON representation of the Proposal
 func (p Proposal) MarshalJSON() ([]byte, error) {
 	jsonP := jsonProposal{
-		p.toAdd, p.toRemove,
+		p.ToAdd, p.ToRemove,
 	}
 	return json.Marshal(jsonP)
 }
@@ -66,8 +66,8 @@ func (p *Proposal) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("error unmarshaling guarantee data: %w", err)
 	}
 
-	p.toAdd = jsonP.ToAdd
-	p.toRemove = jsonP.ToRemove
+	p.ToAdd = jsonP.ToAdd
+	p.ToRemove = jsonP.ToRemove
 
 	return nil
 }
