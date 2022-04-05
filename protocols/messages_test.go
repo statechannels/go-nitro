@@ -44,7 +44,7 @@ func TestMessage(t *testing.T) {
 		}
 		want := msgString
 		if got != want {
-			t.Fatalf(`incorrect serialization: got %v wanted %v`, got, want)
+			t.Fatalf("incorrect serialization: got:\n%+v\nwanted:\n%+v", got, want)
 		}
 	})
 
@@ -55,7 +55,7 @@ func TestMessage(t *testing.T) {
 			t.Error(err)
 		}
 		if !reflect.DeepEqual(got, want) {
-			t.Errorf(`incorrect deserialization: got %v wanted %v`, got, want)
+			t.Errorf("incorrect deserialization: got:\n%+v\nwanted:\n%+v", got, want)
 		}
 	})
 
