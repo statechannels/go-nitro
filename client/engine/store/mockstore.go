@@ -118,8 +118,7 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 
 	ms.objectives.Store(string(obj.Id()), objJSON)
 
-	related := obj.Related()
-	for _, rel := range related {
+	for _, rel := range obj.Related() {
 		switch rel.(type) {
 		case *channel.Channel:
 			ch := rel.(*channel.Channel)
