@@ -73,34 +73,22 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 
 	ms := store.NewMockStore(sk)
 
-	wants := []protocols.Objective{}
 	dfo := td.Objectives.Directfund.GenericDFO()
-	vfo := td.Objectives.Virtualfund.GenericVFO()
-	wants = append(wants, &dfo)
-	wants = append(wants, &vfo)
 
-	for _, want := range wants {
+	if err := ms.SetObjective(&dfo); err != nil {
+		t.Errorf("error setting objective %v: %s", dfo, err.Error())
+	}
 
-		if err := ms.SetObjective(want); err != nil {
-			t.Errorf("error setting objective %v: %s", want, err.Error())
-		}
+	got, ok := ms.GetObjectiveByChannelId(dfo.C.Id)
 
-		return // FIXME
-		// for _, ch := range want.Channels() { // test target objective retrieval for each associated channel
-
-		// 	got, ok := ms.GetObjectiveByChannelId(ch.Id)
-
-		// 	if !ok {
-		// 		t.Errorf("expected to find the inserted objective, but didn't")
-		// 	}
-		// 	if got.Id() != want.Id() {
-		// 		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
-		// 	}
-		// 	if diff := compareObjectives(got, want); diff != "" {
-		// 		t.Errorf("expected no diff between set and retrieved objective, but found:\n%s", diff)
-		// 	}
-		// }
-
+	if !ok {
+		t.Errorf("expected to find the inserted objective, but didn't")
+	}
+	if got.Id() != dfo.Id() {
+		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
+	}
+	if diff := compareObjectives(got, &dfo); diff != "" {
+		t.Errorf("expected no diff between set and retrieved objective, but found:\n%s", diff)
 	}
 }
 
