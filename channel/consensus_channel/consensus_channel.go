@@ -429,14 +429,14 @@ func (a Add) equal(a2 Add) bool {
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 
 // Add mutates Vars by
-// - increasing the turn number by 1
-// - including the guarantee
-// - adjusting balances accordingly
+//  - increasing the turn number by 1
+//  - including the guarantee
+//  - adjusting balances accordingly
 //
 // An error is returned if:
-// - the turn number is not incremented
-// - the balances are incorrectly adjusted, or the deposits are too large
-// - the guarantee is already included in vars.Outcome
+//  - the turn number is not incremented
+//  - the balances are incorrectly adjusted, or the deposits are too large
+//  - the guarantee is already included in vars.Outcome
 //
 // If an error is returned, the original vars is not mutated
 func (vars *Vars) Add(p Add) error {
