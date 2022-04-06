@@ -152,7 +152,20 @@ func TestConsensusChannel(t *testing.T) {
 			RightAmount: big.NewInt(5),
 		}
 		err = vars.Remove(largeProposal)
-		if !errors.Is(err, ErrInsufficientFunds) {
+		if !errors.Is(err, ErrInvalidAmounts) {
+			t.Fatalf("expected error when adding too large a guarantee: %v", err)
+		}
+
+		// Proposing a remove that does allocate all guarantee funds should fail
+		vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
+		smallProposal := Remove{
+			turnNum:     10,
+			Target:      existingChannel,
+			LeftAmount:  big.NewInt(0),
+			RightAmount: big.NewInt(0),
+		}
+		err = vars.Remove(smallProposal)
+		if !errors.Is(err, ErrInvalidAmounts) {
 			t.Fatalf("expected error when adding too large a guarantee: %v", err)
 		}
 	}

@@ -302,6 +302,7 @@ var ErrInvalidDeposit = fmt.Errorf("unable to divert to guarantee: invalid depos
 var ErrInsufficientFunds = fmt.Errorf("insufficient funds")
 var ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
 var ErrGuaranteeNotFound = fmt.Errorf("guarantee not found")
+var ErrInvalidAmounts = fmt.Errorf("left and right amounts do not add up to the guarantee amount")
 
 // Vars stores the turn number and outcome for a state in a consensus channel
 type Vars struct {
@@ -530,7 +531,7 @@ func (vars *Vars) Remove(p Remove) error {
 
 	totalRemoved := big.NewInt(0).Add(p.LeftAmount, p.RightAmount)
 	if totalRemoved.Cmp(guarantee.amount) != 0 {
-		return ErrInsufficientFunds
+		return ErrInvalidAmounts
 	}
 
 	// EFFECTS
