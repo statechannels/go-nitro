@@ -10,6 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -28,6 +30,36 @@ type actors struct {
 	Bob   actor
 }
 
+func convertVariablePart(vp state.VariablePart) IForceMoveAppVariablePart {
+	return IForceMoveAppVariablePart{
+		AppData: vp.AppData,
+		TurnNum: big.NewInt(int64(vp.TurnNum)),
+		IsFinal: vp.IsFinal,
+		Outcome: convertOutcome(vp.Outcome),
+	}
+}
+
+func convertOutcome(o outcome.Exit) []ExitFormatSingleAssetExit {
+	e := make([]ExitFormatSingleAssetExit, len(o))
+	for i, sae := range o {
+		e[i].Asset = sae.Asset
+		e[i].Metadata = sae.Metadata
+		e[i].Allocations = convertAllocations(sae.Allocations)
+	}
+	return e
+}
+
+func convertAllocations(as outcome.Allocations) []ExitFormatAllocation {
+	b := make([]ExitFormatAllocation, len(as))
+	for i, a := range as {
+		b[i].Destination = a.Destination
+		b[i].Amount = a.Amount
+		b[i].AllocationType = a.AllocationType
+		b[i].Metadata = a.Metadata
+	}
+	return b
+}
+
 // Actors is the endpoint for tests to consume constructed statechannel
 // network participants (public-key secret-key pairs)
 var Actors actors = actors{
@@ -43,24 +75,24 @@ var Actors actors = actors{
 
 func TestChallenge(t *testing.T) {
 
-	// s := state.State{
-	// 	ChainId: big.NewInt(1337),
-	// 	Participants: []types.Address{
-	// 		Actors.Alice.Address,
-	// 		Actors.Bob.Address,
-	// 	},
-	// 	ChannelNonce:      big.NewInt(37140676580),
-	// 	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
-	// 	ChallengeDuration: big.NewInt(60),
-	// 	AppData:           []byte{},
-	// 	Outcome:           outcome.Exit{},
-	// 	TurnNum:           0,
-	// 	IsFinal:           false,
-	// }
+	s := state.State{
+		ChainId: big.NewInt(1337),
+		Participants: []types.Address{
+			Actors.Alice.Address,
+			Actors.Bob.Address,
+		},
+		ChannelNonce:      big.NewInt(37140676580),
+		AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
+		ChallengeDuration: big.NewInt(60),
+		AppData:           []byte{},
+		Outcome:           outcome.Exit{},
+		TurnNum:           0,
+		IsFinal:           false,
+	}
 
-	// aSig, _ := s.Sign(Actors.Alice.PrivateKey)
-	// bSig, _ := s.Sign(Actors.Bob.PrivateKey)
-	// challengerSig, _ := SignChallengeMessage(s, Actors.Alice.PrivateKey)
+	aSig, _ := s.Sign(Actors.Alice.PrivateKey)
+	bSig, _ := s.Sign(Actors.Bob.PrivateKey)
+	challengerSig, _ := SignChallengeMessage(s, Actors.Alice.PrivateKey)
 
 	key, _ := crypto.GenerateKey()
 	auth := bind.NewKeyedTransactor(key)
@@ -86,15 +118,15 @@ func TestChallenge(t *testing.T) {
 	// sim.Commit()
 	t.Log(naAddress)
 	t.Log(na)
-	// na.Challenge(
-	// 	&bind.TransactOpts{},
-	// 	IForceMoveFixedPart(s.FixedPart()),
-	// 	big.NewInt(0),
-	// 	[]state.VariablePart{s.VariablePart()},
-	// 	0,
-	// 	[]state.Signature{aSig, bSig},
-	// 	[]uint8{0, 0},
-	// 	challengerSig,
-	// )
+	na.Challenge(
+		&bind.TransactOpts{},
+		IForceMoveFixedPart(s.FixedPart()),
+		big.NewInt(0),
+		[]IForceMoveAppVariablePart{convertVariablePart(s.VariablePart())},
+		0,
+		[]state.Signature{aSig, bSig},
+		[]uint8{0, 0},
+		challengerSig,
+	)
 
 }
