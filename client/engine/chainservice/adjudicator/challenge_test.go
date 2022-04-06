@@ -1,7 +1,6 @@
 package NitroAdjudicator
 
 import (
-	"log"
 	"math/big"
 	"testing"
 
@@ -123,12 +122,12 @@ func TestChallenge(t *testing.T) {
 	naAddress, _, na, err := DeployNitroAdjudicator(auth, sim)
 
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	sim.Commit()
 	t.Log(naAddress)
 	t.Log(na)
-	na.Challenge(
+	tx, err := na.Challenge(
 		&bind.TransactOpts{},
 		IForceMoveFixedPart(s.FixedPart()),
 		big.NewInt(0),
@@ -138,7 +137,13 @@ func TestChallenge(t *testing.T) {
 		[]uint8{0, 0},
 		convertSignature(challengerSig),
 	)
+	if err != nil {
+		t.Fatal(err)
+	}
 
+	txHash := tx.Hash()
+
+	t.Log(txHash)
 	sim.Commit()
 
 	cId, _ := s.ChannelId()
