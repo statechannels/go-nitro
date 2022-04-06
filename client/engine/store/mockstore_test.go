@@ -67,6 +67,43 @@ func TestSetGetObjective(t *testing.T) {
 	}
 }
 
+func TestGetObjectiveByChannelId(t *testing.T) {
+
+	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
+
+	ms := store.NewMockStore(sk)
+
+	wants := []protocols.Objective{}
+	dfo := td.Objectives.Directfund.GenericDFO()
+	vfo := td.Objectives.Virtualfund.GenericVFO()
+	wants = append(wants, &dfo)
+	wants = append(wants, &vfo)
+
+	for _, want := range wants {
+
+		if err := ms.SetObjective(want); err != nil {
+			t.Errorf("error setting objective %v: %s", want, err.Error())
+		}
+
+		return // FIXME
+		// for _, ch := range want.Channels() { // test target objective retrieval for each associated channel
+
+		// 	got, ok := ms.GetObjectiveByChannelId(ch.Id)
+
+		// 	if !ok {
+		// 		t.Errorf("expected to find the inserted objective, but didn't")
+		// 	}
+		// 	if got.Id() != want.Id() {
+		// 		t.Errorf("expected to retrieve same objective Id as was passed in, but didn't")
+		// 	}
+		// 	if diff := compareObjectives(got, want); diff != "" {
+		// 		t.Errorf("expected no diff between set and retrieved objective, but found:\n%s", diff)
+		// 	}
+		// }
+
+	}
+}
+
 func TestGetChannelSecretKey(t *testing.T) {
 	// from state/test-fixtures.go
 	sk := common.Hex2Bytes("caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634")
