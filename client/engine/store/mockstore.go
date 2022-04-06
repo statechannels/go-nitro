@@ -230,35 +230,16 @@ func (ms *MockStore) GetConsensusChannel(counterparty types.Address) (channel *c
 func (ms *MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
 	// todo: locking
 
-	var ret protocols.Objective
-	var ok bool
-
-	ms.objectives.Range(func(key string, objJSON []byte) bool {
-
-		obj, err := decodeObjective(protocols.ObjectiveId(key), objJSON)
-
-		if err != nil {
-			return true
+	id := directfund.ObjectivePrefix + channelId.String()
+	objJSON, found := ms.objectives.Load(id)
+	if !found {
+		return &directfund.Objective{}, false
 		}
-
-		for _, ch := range obj.Channels() {
-			if ch.Id == channelId {
-				err = ms.populateChannelData(obj)
-
+	obj, err := decodeObjective(protocols.ObjectiveId(id), objJSON)
 				if err != nil {
-					return true // todo: enrich w/ err return
+		return &directfund.Objective{}, false
 				}
-
-				ret = obj
-				ok = true
-				return false // target objective found: break the Range loop
-			}
-		}
-
-		return true // continue
-	})
-
-	return ret, ok
+	return obj, true
 }
 
 // populateChannelData fetches stored Channel data relevent to the given
