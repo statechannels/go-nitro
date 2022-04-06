@@ -304,17 +304,35 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 
 	var toMyLeftId types.Destination
 	var toMyRightId types.Destination
+	var ccLeftID types.Destination
+	var ccRightID types.Destination
 
 	if !o.isAlice() {
 		toMyLeftId = o.ToMyLeft.Channel.Id // Avoid this if it is nil // todo: #420 deprecate
-		// toMyLeftId = o.ToMyLeft.ConsensusChannel.Id
+		ccLeftID = o.ToMyLeft.ConsensusChannel.Id
 	}
 	if !o.isBob() {
 		toMyRightId = o.ToMyRight.Channel.Id // Avoid this if it is nil // todo: #420 deprecate
-		// toMyRightId = o.ToMyRight.ConsensusChannel.Id
+		ccRightID = o.ToMyRight.ConsensusChannel.Id
 	}
 
-	// todo: #420 range over event.Proposals (or similar)
+	for _, sp := range event.SignedProposals {
+		var err error
+		switch sp.Proposal.ChannelID {
+		case types.Destination{}:
+			return &o, errors.New("signed proposal is not addressed to a ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
+		case ccLeftID:
+			err = updated.ToMyLeft.handleProposal(sp)
+		case ccRightID:
+			err = updated.ToMyRight.handleProposal(sp)
+		default:
+			return &o, fmt.Errorf("signed proposal is not addressed to a known ledger connection")
+		}
+
+		if err != nil {
+			return &o, fmt.Errorf("error incorporating signed proposal into objective: %w", err)
+		}
+	}
 
 	for _, ss := range event.SignedStates {
 		channelId, _ := ss.State().ChannelId() // TODO handle error
