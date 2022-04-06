@@ -92,10 +92,29 @@ func (c *ConsensusChannel) Includes(g Guarantee) bool {
 	return c.current.Outcome.includes(g)
 }
 
+// Isleader returns true if the calling client is the leader of the channel,
+// and false otherwise
+func (c *ConsensusChannel) IsLeader() bool {
+	return c.myIndex == Leader
+}
+
+// IsFollower returns true if the calling client is the follower of the channel,
+// and false otherwise
+func (c *ConsensusChannel) IsFollower() bool {
+	return c.myIndex == Follower
+}
+
 // Leader returns the address of the participant responsible for proposing
 func (c *ConsensusChannel) Leader() common.Address {
 	return c.fp.Participants[Leader]
 }
+
+// Follower returns the address of the participant who recieves and contersigns
+// proposals
+func (c *ConsensusChannel) Follower() common.Address {
+	return c.fp.Participants[Follower]
+}
+
 func (c *ConsensusChannel) Accept(p SignedProposal) error {
 	panic("UNIMPLEMENTED")
 }
