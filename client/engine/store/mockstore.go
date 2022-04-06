@@ -246,6 +246,11 @@ func (ms *MockStore) GetObjectiveByChannelId(channelId types.Destination) (proto
 	if err != nil {
 		return &directfund.Objective{}, false
 	}
+	err = ms.populateChannelData(obj)
+	if err != nil {
+		return &directfund.Objective{}, false
+	}
+
 	return obj, true
 }
 
