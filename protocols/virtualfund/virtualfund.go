@@ -75,6 +75,28 @@ func (c *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds, vId typ
 	return nil
 }
 
+// handleProposal recieves a signed proposal and acts according to the leader / follower
+// status of the Connection's ConsensusChannel
+func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
+	if c == nil {
+		return fmt.Errorf("nil connection should not handle proposals")
+	}
+
+	if sp.Proposal.ChannelID != c.ConsensusChannel.Id {
+		return consensus_channel.ErrIncorrectChannelID
+	}
+
+	if c.ConsensusChannel.IsFollower() {
+		return c.ConsensusChannel.Receive(sp)
+	}
+
+	if c.ConsensusChannel.IsLeader() {
+		return c.ConsensusChannel.UpdateConsensus(sp)
+	}
+
+	return nil
+}
+
 // getExpectedGuarantees returns a map of asset addresses to guarantees for a Connection.
 func (c *Connection) getExpectedGuarantees() map[types.Address]outcome.Allocation {
 	expectedGuaranteesForLedgerChannel := make(map[types.Address]outcome.Allocation)
