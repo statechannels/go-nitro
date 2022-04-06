@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	nc "github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -58,6 +59,15 @@ func convertAllocations(as outcome.Allocations) []ExitFormatAllocation {
 		b[i].Metadata = a.Metadata
 	}
 	return b
+}
+
+func convertSignature(s nc.Signature) IForceMoveSignature {
+	sig := IForceMoveSignature{
+		V: s.V,
+	}
+	copy(sig.R[:], s.R)
+	copy(sig.S[:], s.S) // TODO we should just use 32 byte types, which would remove the need for this func
+	return sig
 }
 
 // Actors is the endpoint for tests to consume constructed statechannel
@@ -115,7 +125,7 @@ func TestChallenge(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// sim.Commit()
+	sim.Commit()
 	t.Log(naAddress)
 	t.Log(na)
 	na.Challenge(
@@ -124,9 +134,15 @@ func TestChallenge(t *testing.T) {
 		big.NewInt(0),
 		[]IForceMoveAppVariablePart{convertVariablePart(s.VariablePart())},
 		0,
-		[]state.Signature{aSig, bSig},
+		[]IForceMoveSignature{convertSignature(aSig), convertSignature(bSig)},
 		[]uint8{0, 0},
-		challengerSig,
+		convertSignature(challengerSig),
 	)
+
+	sim.Commit()
+
+	cId, _ := s.ChannelId()
+
+	t.Log(na.StatusOf(&bind.CallOpts{}, cId))
 
 }
