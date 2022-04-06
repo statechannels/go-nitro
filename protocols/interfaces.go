@@ -1,7 +1,8 @@
 package protocols
 
 import (
-	"github.com/statechannels/go-nitro/channel"
+	"encoding/json"
+
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
@@ -50,6 +51,12 @@ type ObjectiveEvent struct {
 	BlockNum           uint64
 }
 
+// Storable is an object that can be stored by the store.
+type Storable interface {
+	json.Marshaler
+	json.Unmarshaler
+}
+
 // Objective is the interface for off-chain protocols.
 // The lifecycle of an objective is as follows:
 // 	* It is initialized by a single client (passing in various parameters). It is implicitly approved by that client. It is communicated to the other clients.
@@ -60,14 +67,14 @@ type ObjectiveEvent struct {
 type Objective interface {
 	Id() ObjectiveId
 
-	Approve() Objective                             // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Reject() Objective                              // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Update(event ObjectiveEvent) (Objective, error) // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Channels() []*channel.Channel
+	Approve() Objective                                                  // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Reject() Objective                                                   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Update(event ObjectiveEvent) (Objective, error)                      // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
 
-	MarshalJSON() ([]byte, error)
-	UnmarshalJSON([]byte) error
+	// Related returns a slice of related objects that need to be stored along with the objective
+	Related() []Storable
+	Storable
 }
 
 // ObjectiveId is a unique identifier for an Objective.

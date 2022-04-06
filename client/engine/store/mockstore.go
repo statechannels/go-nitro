@@ -118,10 +118,17 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 
 	ms.objectives.Store(string(obj.Id()), objJSON)
 
-	for _, ch := range obj.Channels() {
-		err := ms.SetChannel(ch)
-		if err != nil {
-			return fmt.Errorf("error setting channel %s from objective %s: %w", ch.Id, obj.Id(), err)
+	for _, rel := range obj.Related() {
+		switch rel.(type) {
+		case *channel.Channel:
+			ch := rel.(*channel.Channel)
+			err := ms.SetChannel(ch)
+			if err != nil {
+				return fmt.Errorf("error setting channel %s from objective %s: %w", ch.Id, obj.Id(), err)
+			}
+
+		default:
+			return fmt.Errorf("unexpected type: %T", rel)
 		}
 	}
 
@@ -230,35 +237,21 @@ func (ms *MockStore) GetConsensusChannel(counterparty types.Address) (channel *c
 func (ms *MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
 	// todo: locking
 
-	var ret protocols.Objective
-	var ok bool
+	id := directfund.ObjectivePrefix + channelId.String()
+	objJSON, found := ms.objectives.Load(id)
+	if !found {
+		return &directfund.Objective{}, false
+	}
+	obj, err := decodeObjective(protocols.ObjectiveId(id), objJSON)
+	if err != nil {
+		return &directfund.Objective{}, false
+	}
+	err = ms.populateChannelData(obj)
+	if err != nil {
+		return &directfund.Objective{}, false
+	}
 
-	ms.objectives.Range(func(key string, objJSON []byte) bool {
-
-		obj, err := decodeObjective(protocols.ObjectiveId(key), objJSON)
-
-		if err != nil {
-			return true
-		}
-
-		for _, ch := range obj.Channels() {
-			if ch.Id == channelId {
-				err = ms.populateChannelData(obj)
-
-				if err != nil {
-					return true // todo: enrich w/ err return
-				}
-
-				ret = obj
-				ok = true
-				return false // target objective found: break the Range loop
-			}
-		}
-
-		return true // continue
-	})
-
-	return ret, ok
+	return obj, true
 }
 
 // populateChannelData fetches stored Channel data relevent to the given

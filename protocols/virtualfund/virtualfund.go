@@ -384,16 +384,17 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	return &updated, sideEffects, WaitingForNothing, nil
 }
 
-func (o Objective) Channels() []*channel.Channel {
+func (o Objective) Related() []protocols.Storable {
 	// todo: #420 consider usage & signature of this fcn
-	ret := make([]*channel.Channel, 0, 3)
-	ret = append(ret, &o.V.Channel)
-	if !o.isAlice() {
+	ret := []protocols.Storable{&o.V.Channel}
+
+	if o.ToMyLeft != nil {
 		ret = append(ret, &o.ToMyLeft.Channel.Channel) // todo: #420 depricate
 	}
-	if !o.isBob() {
+	if o.ToMyRight != nil {
 		ret = append(ret, &o.ToMyRight.Channel.Channel) // todo: #420 depricate
 	}
+
 	return ret
 }
 
