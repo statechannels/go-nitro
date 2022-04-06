@@ -53,8 +53,8 @@ interface IForceMove {
     ) external;
 
     /**
-     * @notice Repsonds to an ongoing challenge registered against a state channel.
-     * @dev Repsonds to an ongoing challenge registered against a state channel.
+     * @notice Responds to an ongoing challenge registered against a state channel.
+     * @dev Responds to an ongoing challenge registered against a state channel.
      * @param isFinalAB An pair of booleans describing if the challenge state and/or the response state have the `isFinal` property set to `true`.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param variablePartAB An pair of structs, each decribing the properties of the state channel that may change with each state update (for the challenge state and for the response state).
@@ -93,7 +93,7 @@ interface IForceMove {
      * @dev Finalizes a channel by providing a finalization proof.
      * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param appData The keccak256 of the abi.encode of `(challengeDuration, appDefinition, appData)`. Applies to all states in the finalization proof.
+     * @param appData Application specific data. Applies to all states in the finalization proof.
      * @param outcome An outcome structure bytes.
      * @param numStates The number of states in the finalization proof.
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.

@@ -3,7 +3,7 @@ const {writeFileSync} = require('fs');
 const jsonPath = __dirname + '/../addresses.json';
 const addresses = require(jsonPath);
 
-function deepDelete(object, keyToDelete) {
+function deepDelete(object: any, keyToDelete: string) {
   Object.keys(object).forEach(key => {
     if (key === keyToDelete) delete object[key];
     else if (typeof object[key] === 'object') deepDelete(object[key], keyToDelete);

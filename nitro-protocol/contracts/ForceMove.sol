@@ -788,8 +788,8 @@ contract ForceMove is IForceMove, StatusManager {
      * @param turnNum Turn number
      * @param isFinal Is the state final?
      * @param channelId Unique identifier for the channel
-     * @param appData Application specific date
-     * @param outcome Outcome bytes. Will be decoded to hash State properly
+     * @param appData Application specific data.
+     * @param outcome Encoded outcome structure. Will be decoded to hash the State.
      * @return The stateHash
      */
     function _hashState(
