@@ -101,7 +101,10 @@ func TestChallenge(t *testing.T) {
 
 	aSig, _ := s.Sign(Actors.Alice.PrivateKey)
 	bSig, _ := s.Sign(Actors.Bob.PrivateKey)
-	challengerSig, _ := SignChallengeMessage(s, Actors.Alice.PrivateKey)
+	challengerSig, err := SignChallengeMessage(s, Actors.Alice.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	key, _ := crypto.GenerateKey()
 	auth := bind.NewKeyedTransactor(key)
