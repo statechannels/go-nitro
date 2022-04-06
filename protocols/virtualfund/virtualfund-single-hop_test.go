@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
@@ -289,8 +290,66 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			return l, r
 		}
 
+		prepareConsensusChannel := func(role uint, left, right actor) *consensus_channel.ConsensusChannel {
+			fp := state.FixedPart{
+				ChainId:           big.NewInt(9001),
+				Participants:      []types.Address{left.address, right.address},
+				ChannelNonce:      big.NewInt(0),
+				AppDefinition:     types.Address{},
+				ChallengeDuration: big.NewInt(45),
+			}
+
+			leftBal := consensus_channel.NewBalance(left.destination, big.NewInt(6))
+			rightBal := consensus_channel.NewBalance(right.destination, big.NewInt(4))
+
+			lo := *consensus_channel.NewLedgerOutcome(types.Address{}, leftBal, rightBal, []consensus_channel.Guarantee{})
+
+			signedVars := consensus_channel.SignedVars{Vars: consensus_channel.Vars{Outcome: lo}}
+			leftSig, err := signedVars.Vars.AsState(fp).Sign(left.privateKey)
+			if err != nil {
+				panic(err)
+			}
+			rightSig, err := signedVars.Vars.AsState(fp).Sign(right.privateKey)
+			if err != nil {
+				panic(err)
+			}
+			sigs := [2]state.Signature{leftSig, rightSig}
+
+			var cc consensus_channel.ConsensusChannel
+
+			if role == 0 {
+				cc, err = consensus_channel.NewLeaderChannel(fp, 0, lo, sigs)
+			} else {
+				cc, err = consensus_channel.NewFollowerChannel(fp, 0, lo, sigs)
+			}
+			if err != nil {
+				panic(err)
+			}
+
+			return &cc
+		}
+
+		prepareConsensusChannels := func(role uint) (*consensus_channel.ConsensusChannel, *consensus_channel.ConsensusChannel) {
+			var left *consensus_channel.ConsensusChannel
+			var right *consensus_channel.ConsensusChannel
+
+			switch role {
+			case 0:
+				right = prepareConsensusChannel(0, alice, p1)
+			case 1:
+				left = prepareConsensusChannel(0, alice, p1)
+				right = prepareConsensusChannel(1, p1, bob)
+			case 2:
+				left = prepareConsensusChannel(0, p1, bob)
+			}
+
+			return left, right
+		}
+
+
 		testNew := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
+
 			// Assert that a valid set of constructor args does not result in an error
 			o, err := constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, nil, ledgerChannelToMyRight, nil) // todo: #420 deprecate TwoPartyLedgers
 			if err != nil {
@@ -340,7 +399,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 					t.Fatalf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
 				}
 			}
-
 		}
 
 		testclone := func(t *testing.T) {
@@ -357,7 +415,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		testCrank := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
-			var s, _ = constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, nil, ledgerChannelToMyRight, nil) // todo: #420 deprecate TwoPartyLedgers
+			leftCC, rightCC := prepareConsensusChannels(my.role)
+			var s, _ = constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, leftCC, ledgerChannelToMyRight, rightCC) // todo: #420 deprecate TwoPartyLedgers
 			// Assert that cranking an unapproved objective returns an error
 			if _, _, _, err := s.Crank(&my.privateKey); err == nil {
 				t.Fatal(`Expected error when cranking unapproved objective, but got nil`)
@@ -492,28 +551,29 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		testUpdate := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
-			var s, _ = constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, nil, ledgerChannelToMyRight, nil) // todo: #420 deprecate TwoPartyLedgers
+			leftCC, rightCC := prepareConsensusChannels(my.role)
+			var obj, _ = constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, leftCC, ledgerChannelToMyRight, rightCC) // todo: #420 deprecate TwoPartyLedgers
 			// Prepare an event with a mismatched objectiveId
 			e := protocols.ObjectiveEvent{
 				ObjectiveId: "some-other-id",
 			}
 			// Assert that Updating the objective with such an event returns an error
 			// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
-			if _, err := s.Update(e); err == nil {
+			if _, err := obj.Update(e); err == nil {
 				t.Fatal(`Objective ID mismatch -- expected an error but did not get one`)
 			}
 
 			// Now modify the event to give it the "correct" channelId (matching the objective),
 			// and make a new Sigs map.
 			// This prepares us for the rest of the test. We will reuse the same event multiple times
-			e.ObjectiveId = s.Id()
+			e.ObjectiveId = obj.Id()
 			e.SignedStates = make([]state.SignedState, 0)
 
 			// Next, attempt to update the objective with correct signature by a participant on a relevant state
 			// Assert that this results in an appropriate change in the extended state of the objective
 			// Part 1: a signature on a state in channel V
 
-			vPostFund := s.V.PostFundState()
+			vPostFund := obj.V.PostFundState()
 			ss := state.NewSignedState(vPostFund)
 
 			switch my.role {
@@ -535,7 +595,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 			e.SignedStates = append(e.SignedStates, ss)
 
-			updatedObj, err := s.Update(e)
+			updatedObj, err := obj.Update(e)
 			updated := updatedObj.(*Objective)
 			if err != nil {
 				t.Fatal(err)
@@ -564,7 +624,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			// Part 2: a signature on a relevant ledger channel
 			f := protocols.ObjectiveEvent{
-				ObjectiveId: s.Id(),
+				ObjectiveId: obj.Id(),
 			}
 			f.SignedStates = make([]state.SignedState, 0)
 			someTurnNum := uint64(99)
@@ -593,7 +653,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 			f.SignedStates = append(f.SignedStates, ss)
 
-			updatedObj, err = s.Update(f)
+			updatedObj, err = obj.Update(f)
 			updated = updatedObj.(*Objective)
 			if err != nil {
 				t.Fatal(err)
