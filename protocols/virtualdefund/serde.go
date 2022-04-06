@@ -10,55 +10,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// jsonConnection is a serialization-friendly struct representation
-// of a Connection
-type jsonConnection struct {
-	Channel       types.Destination
-	GuaranteeInfo GuaranteeInfo
-}
-
-// MarshalJSON returns a JSON representation of the Connection
-//
-// NOTE: Marshal -> Unmarshal is a lossy process. All channel data
-//       other than the ID is dropped
-func (c Connection) MarshalJSON() ([]byte, error) {
-	jsonC := jsonConnection{c.ConsensusChannel.Id, c.GuaranteeInfo}
-	bytes, err := json.Marshal(jsonC)
-
-	if err != nil {
-		return []byte{}, err
-	}
-
-	return bytes, err
-}
-
-// UnmarshalJSON populates the calling Connection with the
-// json-encoded data
-//
-// NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
-//       (other than Id) is discarded
-func (c *Connection) UnmarshalJSON(data []byte) error {
-	c.ConsensusChannel = &consensus_channel.ConsensusChannel{}
-
-	if string(data) == "null" {
-		// populate a well-formed but blank-addressed Connection
-		c.ConsensusChannel.Id = types.Destination{}
-		return nil
-	}
-
-	var jsonC jsonConnection
-	err := json.Unmarshal(data, &jsonC)
-
-	if err != nil {
-		return err
-	}
-
-	c.ConsensusChannel.Id = jsonC.Channel
-	c.GuaranteeInfo = jsonC.GuaranteeInfo
-
-	return nil
-}
-
 // jsonObjective replaces the virtualfund Objective's channel pointers
 // with the channel's respective IDs, making jsonObjective suitable for serialization
 type jsonObjective struct {
@@ -129,8 +80,8 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.V = &channel.SingleHopVirtualChannel{}
 	o.V.Id = jsonVFO.V
 
-	o.ToMyLeft = &Connection{}
-	o.ToMyRight = &Connection{}
+	o.ToMyLeft = &consensus_channel.ConsensusChannel{}
+	o.ToMyRight = &consensus_channel.ConsensusChannel{}
 	if err := o.ToMyLeft.UnmarshalJSON(jsonVFO.ToMyLeft); err != nil {
 		return fmt.Errorf("failed to unmarshal left ledger channel: %w", err)
 	}
