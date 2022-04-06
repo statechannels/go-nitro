@@ -86,12 +86,14 @@ func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
 		return consensus_channel.ErrIncorrectChannelID
 	}
 
-	if c.ConsensusChannel.IsFollower() {
-		return c.ConsensusChannel.Receive(sp)
-	}
+	if c.ConsensusChannel != nil {
+		if c.ConsensusChannel.IsFollower() {
+			return c.ConsensusChannel.Receive(sp)
+		}
 
-	if c.ConsensusChannel.IsLeader() {
-		return c.ConsensusChannel.UpdateConsensus(sp)
+		if c.ConsensusChannel.IsLeader() {
+			return c.ConsensusChannel.UpdateConsensus(sp)
+		}
 	}
 
 	return nil
@@ -306,16 +308,12 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 
 	var toMyLeftId types.Destination
 	var toMyRightId types.Destination
-	var ccLeftID types.Destination
-	var ccRightID types.Destination
 
 	if !o.isAlice() {
 		toMyLeftId = o.ToMyLeft.Channel.Id // Avoid this if it is nil // todo: #420 deprecate
-		ccLeftID = o.ToMyLeft.ConsensusChannel.Id
 	}
 	if !o.isBob() {
 		toMyRightId = o.ToMyRight.Channel.Id // Avoid this if it is nil // todo: #420 deprecate
-		ccRightID = o.ToMyRight.ConsensusChannel.Id
 	}
 
 	for _, sp := range event.SignedProposals {
@@ -323,9 +321,9 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		switch sp.Proposal.ChannelID {
 		case types.Destination{}:
 			return &o, errors.New("signed proposal is not addressed to a ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
-		case ccLeftID:
+		case toMyLeftId:
 			err = updated.ToMyLeft.handleProposal(sp)
-		case ccRightID:
+		case toMyRightId:
 			err = updated.ToMyRight.handleProposal(sp)
 		default:
 			return &o, fmt.Errorf("signed proposal is not addressed to a known ledger connection")
