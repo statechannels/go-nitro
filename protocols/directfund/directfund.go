@@ -265,10 +265,8 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	return &updated, sideEffects, WaitingForNothing, nil
 }
 
-func (o Objective) Channels() []*channel.Channel {
-	ret := make([]*channel.Channel, 0, 1)
-	ret = append(ret, o.C)
-	return ret
+func (o Objective) Related() []protocols.Storable {
+	return []protocols.Storable{o.C}
 }
 
 //  Private methods on the DirectFundingObjectiveState

@@ -118,10 +118,18 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 
 	ms.objectives.Store(string(obj.Id()), objJSON)
 
-	for _, ch := range obj.Channels() {
-		err := ms.SetChannel(ch)
-		if err != nil {
-			return fmt.Errorf("error setting channel %s from objective %s: %w", ch.Id, obj.Id(), err)
+	related := obj.Related()
+	for _, rel := range related {
+		switch rel.(type) {
+		case *channel.Channel:
+			ch := rel.(*channel.Channel)
+			err := ms.SetChannel(ch)
+			if err != nil {
+				return fmt.Errorf("error setting channel %s from objective %s: %w", ch.Id, obj.Id(), err)
+			}
+
+		default:
+			panic(fmt.Sprintf("unexpected type: %T", rel))
 		}
 	}
 
@@ -234,11 +242,11 @@ func (ms *MockStore) GetObjectiveByChannelId(channelId types.Destination) (proto
 	objJSON, found := ms.objectives.Load(id)
 	if !found {
 		return &directfund.Objective{}, false
-		}
+	}
 	obj, err := decodeObjective(protocols.ObjectiveId(id), objJSON)
-				if err != nil {
+	if err != nil {
 		return &directfund.Objective{}, false
-				}
+	}
 	return obj, true
 }
 
