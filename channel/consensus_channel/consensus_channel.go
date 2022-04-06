@@ -354,18 +354,41 @@ type Proposal struct {
 	ToRemove  Remove
 }
 
+const (
+	AddProposal    ProposalType = "AddProposal"
+	RemoveProposal ProposalType = "RemoveProposal"
+)
+
+type ProposalType string
+
+// Type returns the type of the proposal based on whether it contains an Add or a Remove proposal.
+func (p *Proposal) Type() ProposalType {
+	zeroAdd := Add{}
+	if p.ToAdd != zeroAdd {
+		return AddProposal
+	} else {
+		return RemoveProposal
+	}
+}
+
 // Updates the turn number on the Add or Remove proposal
 func (p *Proposal) SetTurnNum(turnNum uint64) {
-	if p.isAddProposal() {
-		p.ToAdd.turnNum = turnNum
-	} else if p.isRemoveProposal() {
-		p.ToRemove.turnNum = turnNum
+	switch p.Type() {
+	case AddProposal:
+		{
+			p.ToAdd.turnNum = turnNum
+		}
+	case RemoveProposal:
+		{
+			p.ToRemove.turnNum = turnNum
+		}
 	}
+
 }
 
 // Returns the turn number on the Add or Remove proposal
 func (p *Proposal) TurnNum() uint64 {
-	if p.isAddProposal() {
+	if p.Type() == AddProposal {
 		return p.ToAdd.turnNum
 	} else {
 		return p.ToRemove.turnNum
@@ -375,16 +398,6 @@ func (p *Proposal) TurnNum() uint64 {
 // equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
 func (p *Proposal) equal(q *Proposal) bool {
 	return p.ToAdd.equal(q.ToAdd) && p.ToRemove == q.ToRemove
-}
-
-// isAddProposal returns true if the proposal contains a non-nil toAdd and a nil toRemove.
-func (p *Proposal) isAddProposal() bool {
-	return p.ToAdd != Add{} && p.ToRemove == Remove{}
-}
-
-// isRemoveProposal returns true if the proposal contains a non-nil toRemove and a nil toAdd.
-func (p *Proposal) isRemoveProposal() bool {
-	return p.ToAdd == Add{} && p.ToRemove != Remove{}
 }
 
 // SignedProposal is a Proposall with a signature on it
@@ -447,13 +460,19 @@ var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 // HandleProposal handles a proposal to add or remove a guarantee
 // It will mutate Vars by calling Add or Remove for the proposal
 func (vars *Vars) HandleProposal(p Proposal) error {
-	if p.isAddProposal() {
-		return vars.Add(p.ToAdd)
-
-	} else if p.isRemoveProposal() {
-		return vars.Remove(p.ToRemove)
-	} else {
-		return fmt.Errorf("invalid proposal: a proposal must be either an add or a remove proposal")
+	switch p.Type() {
+	case AddProposal:
+		{
+			return vars.Add(p.ToAdd)
+		}
+	case RemoveProposal:
+		{
+			return vars.Remove(p.ToRemove)
+		}
+	default:
+		{
+			return fmt.Errorf("invalid proposal: a proposal must be either an add or a remove proposal")
+		}
 	}
 }
 

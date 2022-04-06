@@ -139,23 +139,28 @@ func TestLeaderChannel(t *testing.T) {
 				t.Fatalf("expected signed proposal %v", diff)
 			}
 
-			if proposal.isAddProposal() {
-				add := proposal.ToAdd
-				proposed, _ := channel.IsProposed(add.Guarantee)
+			switch proposal.Type() {
+			case AddProposal:
+				{
+					add := proposal.ToAdd
+					proposed, _ := channel.IsProposed(add.Guarantee)
 
-				if expectedErr == nil && !proposed {
-					t.Fatalf("failed to propose guarantee in happy case")
-				}
-			} else {
-				remove := proposal.ToRemove
-				vars, _ := channel.latestProposedVars()
-
-				for target := range vars.Outcome.guarantees {
-					if target == remove.Target {
-						t.Fatalf("guarantee still present in proposal for target %s", remove.Target)
+					if expectedErr == nil && !proposed {
+						t.Fatalf("failed to propose guarantee in happy case")
 					}
 				}
+			case RemoveProposal:
+				{
+					remove := proposal.ToRemove
+					vars, _ := channel.latestProposedVars()
 
+					for target := range vars.Outcome.guarantees {
+						if target == remove.Target {
+							t.Fatalf("guarantee still present in proposal for target %s", remove.Target)
+						}
+					}
+
+				}
 			}
 
 			if !errors.Is(err, expectedErr) {
@@ -374,22 +379,27 @@ func TestLeaderChannel(t *testing.T) {
 				t.Fatalf("unexpected error %v", err)
 			}
 
-			if counterProposal.Proposal.isAddProposal() {
-				g := counterProposal.Proposal.ToAdd.Guarantee
-				if !channel.Includes(g) {
-					t.Fatalf("failed to fund guarantee given successful counterproposal")
-				}
+			switch counterProposal.Proposal.Type() {
+			case AddProposal:
+				{
+					g := counterProposal.Proposal.ToAdd.Guarantee
+					if !channel.Includes(g) {
+						t.Fatalf("failed to fund guarantee given successful counterproposal")
+					}
 
-				if proposed, _ := channel.IsProposed(g); proposed {
-					t.Fatalf("guarantee still proposed given successful counterproposal")
+					if proposed, _ := channel.IsProposed(g); proposed {
+						t.Fatalf("guarantee still proposed given successful counterproposal")
+					}
 				}
-			} else {
-				r := counterProposal.Proposal.ToRemove
-				_, foundGuarantee := channel.current.Outcome.guarantees[r.Target]
-				if foundGuarantee {
-					t.Fatalf("failed to remove guarantee given successful counterproposal")
-				}
+			case RemoveProposal:
+				{
+					r := counterProposal.Proposal.ToRemove
+					_, foundGuarantee := channel.current.Outcome.guarantees[r.Target]
+					if foundGuarantee {
+						t.Fatalf("failed to remove guarantee given successful counterproposal")
+					}
 
+				}
 			}
 
 			if channel.ConsensusTurnNum() != counterProposal.Proposal.TurnNum() {
