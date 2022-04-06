@@ -92,7 +92,7 @@ func (c *ConsensusChannel) Includes(g Guarantee) bool {
 	return c.current.Outcome.includes(g)
 }
 
-// Isleader returns true if the calling client is the leader of the channel,
+// IsLeader returns true if the calling client is the leader of the channel,
 // and false otherwise
 func (c *ConsensusChannel) IsLeader() bool {
 	return c.myIndex == Leader
