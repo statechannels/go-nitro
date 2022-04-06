@@ -105,7 +105,7 @@ contract ForceMove is IForceMove, StatusManager {
                 largestTurnNum,
                 uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
                 supportedStateHash,
-                keccak256(variableParts[variableParts.length - 1].outcome)
+                keccak256(Outcome.encodeExit(variableParts[variableParts.length - 1].outcome))
             )
         );
     }
@@ -149,7 +149,7 @@ contract ForceMove is IForceMove, StatusManager {
 
         // checks
 
-        bytes32 challengeOutcomeHash = keccak256(variablePartAB[0].outcome);
+        bytes32 challengeOutcomeHash = keccak256(Outcome.encodeExit(variablePartAB[0].outcome));
 
         _requireSpecificChallenge(
             ChannelData(turnNumRecord, finalizesAt, challengeStateHash, challengeOutcomeHash),
@@ -225,7 +225,7 @@ contract ForceMove is IForceMove, StatusManager {
      * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param appData Application specific data.
-     * @param outcome Encoded outcome structure. Applies to all states in the finalization proof. Will be decoded to hash the State.
+     * @param outcome Outcome structure. Applies to all states in the finalization proof. Will be decoded to hash the State.
      * @param numStates The number of states in the finalization proof.
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
      * @param sigs An array of signatures that support the state with the `largestTurnNum`: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
@@ -234,7 +234,7 @@ contract ForceMove is IForceMove, StatusManager {
         uint48 largestTurnNum,
         FixedPart memory fixedPart,
         bytes memory appData,
-        bytes memory outcome,
+        Outcome.SingleAssetExit[] memory outcome,
         uint8 numStates,
         uint8[] memory whoSignedWhat,
         Signature[] memory sigs
@@ -256,7 +256,7 @@ contract ForceMove is IForceMove, StatusManager {
      * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param appData Application specific data.
-     * @param outcome Encoded outcome structure. Applies to all states in the finalization proof. Will be decoded to hash the State.
+     * @param outcome Outcome structure. Applies to all states in the finalization proof. Will be decoded to hash the State.
      * @param numStates The number of states in the finalization proof.
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
      * @param sigs An array of signatures that support the state with the `largestTurnNum`:: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
@@ -265,7 +265,7 @@ contract ForceMove is IForceMove, StatusManager {
         uint48 largestTurnNum,
         FixedPart memory fixedPart,
         bytes memory appData,
-        bytes memory outcome,
+        Outcome.SingleAssetExit[] memory outcome,
         uint8 numStates,
         uint8[] memory whoSignedWhat,
         Signature[] memory sigs
@@ -310,7 +310,7 @@ contract ForceMove is IForceMove, StatusManager {
             'Invalid signatures / !isFinal'
         );
 
-        bytes32 outcomeHash = keccak256(outcome);
+        bytes32 outcomeHash = keccak256(Outcome.encodeExit(outcome));
 
         // effects
         statusOf[channelId] = _generateStatus(
@@ -581,11 +581,11 @@ contract ForceMove is IForceMove, StatusManager {
         // chainId, participants, channelNonce, appDefinition, challengeDuration
         // and that the b.turnNum = a.turnNum + 1
         if (isFinalAB[1]) {
-            require(_bytesEqual(ab[1].outcome, ab[0].outcome), 'Outcome change verboten');
+            require(_outcomesEqual(ab[1].outcome, ab[0].outcome), 'Outcome change verboten');
         } else {
             require(!isFinalAB[0], 'isFinal retrograde');
             if (turnNumB < 2 * nParticipants) {
-                require(_bytesEqual(ab[1].outcome, ab[0].outcome), 'Outcome change forbidden');
+                require(_outcomesEqual(ab[1].outcome, ab[0].outcome), 'Outcome change forbidden');
                 require(_bytesEqual(ab[1].appData, ab[0].appData), 'appData change forbidden');
             } else {
                 return IsValidTransition.NeedToCheckApp;
@@ -628,6 +628,22 @@ contract ForceMove is IForceMove, StatusManager {
 
         return true;
     }
+
+    /**
+     * @notice Check for equality of two Outcome.SingleAssetExit[]s
+     * @dev Check for equality of two Outcome.SingleAssetExit[]s
+     * @param outcomeA one Exit
+     * @param outcomeB the other Exit
+     * @return true if the bytes are identical, false otherwise.
+     */
+    function _outcomesEqual(Outcome.SingleAssetExit[] memory outcomeA, Outcome.SingleAssetExit[] memory outcomeB)
+        internal
+        pure
+        returns (bool)
+    {
+        return _bytesEqual(Outcome.encodeExit(outcomeA),Outcome.encodeExit(outcomeB));
+    }
+
 
     /**
      * @notice Check for equality of two byte strings
@@ -795,7 +811,7 @@ contract ForceMove is IForceMove, StatusManager {
     function _hashState(
         bytes32 channelId,
         bytes memory appData,
-        bytes memory outcome,
+        Outcome.SingleAssetExit[] memory outcome,
         uint48 turnNum,
         bool isFinal
     ) internal pure returns (bytes32) {
@@ -804,8 +820,7 @@ contract ForceMove is IForceMove, StatusManager {
                 abi.encode(
                     channelId,
                     appData,
-                    // Decoding to get an Outcome struct, since it is the one used in go-nitro State hashing
-                    Outcome.decodeExit(outcome),
+                    outcome,
                     turnNum,
                     isFinal
                 )

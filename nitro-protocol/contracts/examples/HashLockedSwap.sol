@@ -59,15 +59,11 @@ contract HashLockedSwap is IForceMoveApp {
         return true;
     }
 
-    function decode2PartyAllocation(bytes memory outcomeBytes)
+    function decode2PartyAllocation(Outcome.SingleAssetExit[] memory outcome)
         private
         pure
         returns (Outcome.Allocation[] memory allocations)
     {
-        Outcome.SingleAssetExit[] memory outcome = abi.decode(
-            outcomeBytes,
-            (Outcome.SingleAssetExit[])
-        );
 
         Outcome.SingleAssetExit memory assetOutcome = outcome[0];
 

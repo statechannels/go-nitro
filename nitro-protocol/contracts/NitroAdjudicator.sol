@@ -16,7 +16,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
      * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param appData Application specific data.
-     * @param outcomeBytes abi.encode of an array of Outcome.OutcomeItem structs.
+     * @param outcome Outcome structure.
      * @param numStates The number of states in the finalization proof.
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
      * @param sigs Array of signatures, one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
@@ -25,7 +25,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         uint48 largestTurnNum,
         FixedPart memory fixedPart,
         bytes memory appData,
-        bytes memory outcomeBytes,
+        Outcome.SingleAssetExit[] memory outcome,
         uint8 numStates,
         uint8[] memory whoSignedWhat,
         Signature[] memory sigs
@@ -34,34 +34,33 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
             largestTurnNum,
             fixedPart,
             appData,
-            outcomeBytes,
+            outcome,
             numStates,
             whoSignedWhat,
             sigs
         );
 
-        transferAllAssets(channelId, outcomeBytes, bytes32(0));
+        transferAllAssets(channelId, outcome, bytes32(0));
     }
 
     /**
      * @notice Liquidates all assets for the channel
      * @dev Liquidates all assets for the channel
      * @param channelId Unique identifier for a state channel
-     * @param outcomeBytes abi.encode of an array of Outcome.OutcomeItem structs.
+     * @param outcome Outcome structure.
      * @param stateHash stored state hash for the channel
      */
     function transferAllAssets(
         bytes32 channelId,
-        bytes memory outcomeBytes,
+        Outcome.SingleAssetExit[] memory outcome,
         bytes32 stateHash
     ) public {
         // checks
         _requireChannelFinalized(channelId);
-        _requireMatchingFingerprint(stateHash, keccak256(outcomeBytes), channelId);
+        _requireMatchingFingerprint(stateHash, keccak256(Outcome.encodeExit(outcome)), channelId);
 
         // computation
         bool allocatesOnlyZerosForAllAssets = true;
-        Outcome.SingleAssetExit[] memory outcome = Outcome.decodeExit(outcomeBytes);
         Outcome.SingleAssetExit[] memory exit = new Outcome.SingleAssetExit[](outcome.length);
         uint256[] memory initialHoldings = new uint256[](outcome.length);
         uint256[] memory totalPayouts = new uint256[](outcome.length);
@@ -100,7 +99,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         if (allocatesOnlyZerosForAllAssets) {
             delete statusOf[channelId];
         } else {
-            bytes32 outcomeHash = keccak256(abi.encode(outcomeBytes));
+            bytes32 outcomeHash = keccak256(Outcome.encodeExit(outcome));
             _updateFingerprint(channelId, stateHash, outcomeHash);
         }
 

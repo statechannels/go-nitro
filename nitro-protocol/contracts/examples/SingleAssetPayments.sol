@@ -24,21 +24,13 @@ contract SingleAssetPayments is IForceMoveApp {
         uint48 turnNumB,
         uint256 nParticipants
     ) public override pure returns (bool) {
-        Outcome.SingleAssetExit[] memory outcomeA = abi.decode(
-            a.outcome,
-            (Outcome.SingleAssetExit[])
-        );
-        Outcome.SingleAssetExit[] memory outcomeB = abi.decode(
-            b.outcome,
-            (Outcome.SingleAssetExit[])
-        );
-
+        
         // Throws if more than one asset
-        require(outcomeA.length == 1, 'outcomeA: Only one asset allowed');
-        require(outcomeB.length == 1, 'outcomeB: Only one asset allowed');
+        require(a.outcome.length == 1, 'a.outcome: Only one asset allowed');
+        require(b.outcome.length == 1, 'b.outcome: Only one asset allowed');
 
-        Outcome.SingleAssetExit memory assetOutcomeA = outcomeA[0];
-        Outcome.SingleAssetExit memory assetOutcomeB = outcomeB[0];
+        Outcome.SingleAssetExit memory assetOutcomeA = a.outcome[0];
+        Outcome.SingleAssetExit memory assetOutcomeB = b.outcome[0];
 
         // Throws unless that allocation has exactly n outcomes
         Outcome.Allocation[] memory allocationsA = assetOutcomeA.allocations;

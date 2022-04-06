@@ -94,7 +94,7 @@ interface IForceMove {
      * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param appData Application specific data. Applies to all states in the finalization proof.
-     * @param outcome An outcome structure bytes.
+     * @param outcome An outcome structure.
      * @param numStates The number of states in the finalization proof.
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
      * @param sigs An array of signatures that support the state with the `largestTurnNum`:: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
@@ -103,7 +103,7 @@ interface IForceMove {
         uint48 largestTurnNum,
         FixedPart calldata fixedPart,
         bytes memory appData,
-        bytes memory outcome,
+        Outcome.SingleAssetExit[] memory outcome,
         uint8 numStates,
         uint8[] calldata whoSignedWhat,
         Signature[] calldata sigs
