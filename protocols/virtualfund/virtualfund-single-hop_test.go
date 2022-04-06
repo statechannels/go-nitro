@@ -346,7 +346,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			return left, right
 		}
 
-
 		testNew := func(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
 
