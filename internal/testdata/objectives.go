@@ -70,7 +70,7 @@ func genericVFO() virtualfund.Objective {
 		ts.Outcome,
 		ts.ChannelNonce.Int64(),
 	}
-	testVFO, err := virtualfund.NewObjective(request, Channels.MockTwoPartyLedger)
+	testVFO, err := virtualfund.NewObjective(request, Channels.MockTwoPartyLedger, Channels.MockConsensusChannel)
 	if err != nil {
 		panic(fmt.Errorf("error constructing genericVFO: %w", err))
 	}
