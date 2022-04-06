@@ -1,6 +1,7 @@
 package virtualdefund
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -16,17 +17,9 @@ const (
 	WaitingForNothing                 protocols.WaitingFor = "WaitingForNothing"                 // Finished
 )
 
-type GuaranteeInfo struct {
-	Left                 types.Destination
-	Right                types.Destination
-	LeftAmount           types.Funds
-	RightAmount          types.Funds
-	GuaranteeDestination types.Destination
-}
-
-type Connection struct {
-	ConsensusChannel *consensus_channel.ConsensusChannel
-	GuaranteeInfo    GuaranteeInfo
+// ObjectiveRequest represents a request to create a new virtual funding objective.
+type ObjectiveRequest struct {
+	VirtualChannelId types.Destination
 }
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
@@ -34,8 +27,8 @@ type Objective struct {
 	Status protocols.ObjectiveStatus
 	V      *channel.SingleHopVirtualChannel
 
-	ToMyLeft  *Connection
-	ToMyRight *Connection
+	ToMyLeft  *consensus_channel.ConsensusChannel
+	ToMyRight *consensus_channel.ConsensusChannel
 
 	MyRole uint // index in the virtual funding protocol. 0 for Alice, 2 for Bob. Otherwise 1 for the intermediary.
 
@@ -68,11 +61,11 @@ func (o *Objective) Related() []protocols.Storable {
 	relatable := []protocols.Storable{o.V}
 
 	if o.ToMyLeft != nil {
-		relatable = append(relatable, o.ToMyLeft.ConsensusChannel)
+		relatable = append(relatable, o.ToMyLeft)
 	}
 
 	if o.ToMyRight != nil {
-		relatable = append(relatable, o.ToMyRight.ConsensusChannel)
+		relatable = append(relatable, o.ToMyRight)
 	}
 	return relatable
 }
@@ -84,20 +77,7 @@ func (o *Objective) clone() Objective {
 	vClone := o.V.Clone()
 	clone.V = vClone
 
-	if o.ToMyLeft != nil {
-		// todo: #420 consider cloning for consensusChannels
-		clone.ToMyLeft = &Connection{
-			GuaranteeInfo: o.ToMyLeft.GuaranteeInfo,
-		}
-	}
-
-	if o.ToMyRight != nil {
-		// todo: #420 consider cloning for consensusChannels
-		clone.ToMyRight = &Connection{
-			GuaranteeInfo: o.ToMyRight.GuaranteeInfo,
-		}
-	}
-
+	// todo: #420 consider cloning for consensusChannels
 	clone.MyRole = o.MyRole
 
 	return clone
@@ -116,4 +96,46 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 
 	return &o, errors.New("TODO: UNIMPLEMENTED")
 
+}
+
+type GetObjectiveByIdFunction func(id protocols.ObjectiveId) (protocols.Objective, error)
+
+// constructFromState initiates an Objective from an initial state and set of ledgers.
+func constructFromChannel(
+	preApprove bool,
+	v *channel.SingleHopVirtualChannel,
+	myAddress types.Address,
+	consensusChannelToMyLeft *consensus_channel.ConsensusChannel,
+	consensusChannelToMyRight *consensus_channel.ConsensusChannel,
+) (Objective, error) {
+
+	var init Objective
+
+	if preApprove {
+		init.Status = protocols.Approved
+	} else {
+		init.Status = protocols.Unapproved
+	}
+
+	// Infer MyRole
+	found := false
+
+	for i, addr := range v.Participants {
+		if bytes.Equal(addr[:], myAddress[:]) {
+			init.MyRole = uint(i)
+			found = true
+			continue
+		}
+	}
+	if !found {
+		return Objective{}, errors.New("not a participant in V")
+	}
+
+	init.V = v
+
+	// Setup Ledger Channel Connections and expected guarantees
+	init.ToMyLeft = consensusChannelToMyLeft
+	init.ToMyRight = consensusChannelToMyRight
+
+	return init, nil
 }
