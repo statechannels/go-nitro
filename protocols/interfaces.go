@@ -54,6 +54,7 @@ type ObjectiveEvent struct {
 // Storable is an object that can be stored by the store.
 type Storable interface {
 	json.Marshaler
+	json.Unmarshaler
 }
 
 // Objective is the interface for off-chain protocols.
@@ -73,8 +74,7 @@ type Objective interface {
 
 	// Related returns a slice of related objects that need to be stored along with the objective
 	Related() []Storable
-	MarshalJSON() ([]byte, error)
-	UnmarshalJSON([]byte) error
+	Storable
 }
 
 // ObjectiveId is a unique identifier for an Objective.
