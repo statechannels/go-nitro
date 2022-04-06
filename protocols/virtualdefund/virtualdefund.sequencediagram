@@ -1,0 +1,41 @@
+title Virtual Defunding a channel V with Ledger Channels L, L'
+
+participant "Alice" as A
+participant "Irene" as I
+participant "Bob" as B
+
+note left of A : <background:#yellow>Alice proposes final V
+A->I: 0a: V.Final(A)
+A->B: 0b: V.Final(A)
+
+parallel
+note left of A : <background:#yellow>Irene agrees to V
+I->A: 1a: V.Final(I)
+I->B: 1b: V.Final(I)
+parallel off
+
+parallel 
+note right of B : <background:#yellow>Bob agrees to V
+B->A: 1c: V.Final(B)
+parallel off
+B->I: 1d: V.Final(B)
+
+
+note over A,B: End of Round 1
+
+parallel
+note left of A : <background:#yellow>Irene votes to defund V from L 
+I->A: 2a: L.defundV(I)
+note right of B : <background:#yellow>Irene votes to defund V with L'
+I->B: 2b: L'.defundV(I)
+parallel off
+
+parallel 
+note left of A : <background:#yellow>Alice votes to defund V from L
+A->I: 2c: L.fundV(A)
+B->I: 2d: L'.fundV(B)
+note right of B : <background:#yellow>Bob votes to defund V with L'
+parallel off
+
+note over A,B: End of Round 2
+
