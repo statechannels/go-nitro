@@ -128,7 +128,7 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 			}
 
 		default:
-			panic(fmt.Sprintf("unexpected type: %T", rel))
+			return fmt.Errorf("unexpected type: %T", rel)
 		}
 	}
 
