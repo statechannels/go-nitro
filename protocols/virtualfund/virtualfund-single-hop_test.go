@@ -335,12 +335,12 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			switch role {
 			case 0:
-				right = prepareConsensusChannel(0, alice, p1)
+				right = prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1)
 			case 1:
-				left = prepareConsensusChannel(0, alice, p1)
-				right = prepareConsensusChannel(1, p1, bob)
+				left = prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1)
+				right = prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob)
 			case 2:
-				left = prepareConsensusChannel(0, p1, bob)
+				left = prepareConsensusChannel(uint(consensus_channel.Leader), p1, bob)
 			}
 
 			return left, right
