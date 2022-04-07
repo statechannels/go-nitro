@@ -68,41 +68,35 @@ func TestSingleHopVirtualFundNew(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			var expectedGuaranteeMetadataLeft outcome.GuaranteeMetadata
-			var expectedGuaranteeMetadataRight outcome.GuaranteeMetadata
+			var wantLeft consensus_channel.Guarantee
+			var wantRight consensus_channel.Guarantee
+			expectedAmount := big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated())
 			switch my.role {
 			case alice.role:
 				{
-					expectedGuaranteeMetadataRight = outcome.GuaranteeMetadata{Left: alice.destination, Right: p1.destination}
+					wantRight = consensus_channel.NewGuarantee(expectedAmount, o.V.Id, alice.destination, p1.destination)
 				}
 			case p1.role:
 				{
-					expectedGuaranteeMetadataLeft = outcome.GuaranteeMetadata{Left: alice.destination, Right: p1.destination}
-					expectedGuaranteeMetadataRight = outcome.GuaranteeMetadata{Left: p1.destination, Right: bob.destination}
+					wantLeft = consensus_channel.NewGuarantee(expectedAmount, o.V.Id, alice.destination, p1.destination)
+					wantRight = consensus_channel.NewGuarantee(expectedAmount, o.V.Id, p1.destination, bob.destination)
 				}
 			case bob.role:
 				{
-					expectedGuaranteeMetadataLeft = outcome.GuaranteeMetadata{Left: p1.destination, Right: bob.destination}
+					wantLeft = consensus_channel.NewGuarantee(expectedAmount, o.V.Id, p1.destination, bob.destination)
 				}
 			}
-			amount := big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated())
-			if (expectedGuaranteeMetadataLeft != outcome.GuaranteeMetadata{}) {
+
+			zeroG := consensus_channel.Guarantee{}
+			if wantLeft != zeroG {
 				gotLeft := o.ToMyLeft.getExpectedGuarantee()
 
-				left := expectedGuaranteeMetadataLeft.Left
-				right := expectedGuaranteeMetadataLeft.Left
-
-				wantLeft := consensus_channel.NewGuarantee(amount, o.V.Id, left, right)
 				if diff := compareGuarantees(wantLeft, gotLeft); diff != "" {
 					t.Fatalf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
 				}
 			}
-			if (expectedGuaranteeMetadataRight != outcome.GuaranteeMetadata{}) {
+			if wantRight != zeroG {
 				gotRight := o.ToMyRight.getExpectedGuarantee()
-				left := expectedGuaranteeMetadataRight.Left
-				right := expectedGuaranteeMetadataRight.Left
-
-				wantRight := consensus_channel.NewGuarantee(amount, o.V.Id, left, right)
 				if diff := compareGuarantees(wantRight, gotRight); diff != "" {
 					t.Fatalf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
 				}
