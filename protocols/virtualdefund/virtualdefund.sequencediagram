@@ -9,13 +9,13 @@ A->I: 0a: V.Final(A)
 A->B: 0b: V.Final(A)
 
 parallel
-note left of A : <background:#yellow>Irene agrees to V
+note left of A : <background:#yellow>Irene agrees to final V
 I->A: 1a: V.Final(I)
 I->B: 1b: V.Final(I)
 parallel off
 
 parallel 
-note right of B : <background:#yellow>Bob agrees to V
+note right of B : <background:#yellow>Bob agrees to final V
 B->A: 1c: V.Final(B)
 parallel off
 B->I: 1d: V.Final(B)
@@ -24,17 +24,17 @@ B->I: 1d: V.Final(B)
 note over A,B: End of Round 1
 
 parallel
-note left of A : <background:#yellow>Irene votes to defund V from L 
-I->A: 2a: L.defundV(I)
-note right of B : <background:#yellow>Irene votes to defund V with L'
-I->B: 2b: L'.defundV(I)
+note left of A : <background:#yellow>Alice proposes to defund V from L 
+A->I: 2a: L.defund(A)
+note right of B : <background:#yellow>Irene proposes to defund V from L'
+I->B: 2b: L'.defund(I)
 parallel off
 
 parallel 
-note left of A : <background:#yellow>Alice votes to defund V from L
-A->I: 2c: L.fundV(A)
-B->I: 2d: L'.fundV(B)
-note right of B : <background:#yellow>Bob votes to defund V with L'
+note left of A : <background:#yellow>Irene accepts Alice's defund proposal for L
+I->A: 2c: L.defund(I)
+B->I: 2d: L'.defund(B)
+note right of B : <background:#yellow>Bob accepts Irene's defund proposal with L'
 parallel off
 
 note over A,B: End of Round 2
