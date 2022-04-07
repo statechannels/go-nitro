@@ -78,13 +78,7 @@ func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
 	}
 
 	if c.Channel != nil {
-		if c.Channel.IsFollower() {
-			return c.Channel.Receive(sp)
-		}
-
-		if c.Channel.IsLeader() {
-			return c.Channel.UpdateConsensus(sp)
-		}
+		return c.Channel.Receive(sp)
 	}
 
 	return nil

@@ -65,8 +65,8 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 	return nil
 }
 
-// Receive is called by the follower to validate a proposal from the leader and add it to the proposal queue
-func (c *ConsensusChannel) Receive(p SignedProposal) error {
+// followerReceive is called by the follower to validate a proposal from the leader and add it to the proposal queue
+func (c *ConsensusChannel) followerReceive(p SignedProposal) error {
 	if c.MyIndex != Follower {
 		return ErrNotFollower
 	}
