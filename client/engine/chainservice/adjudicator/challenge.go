@@ -10,24 +10,11 @@ import (
 )
 
 func SignChallengeMessage(s state.State, privateKey []byte) (state.Signature, error) {
-
 	challengeHash, err := hashChallengeMessage(s)
-
 	if err != nil {
 		return state.Signature{}, err
 	}
-
-	ecdsaKey, err := crypto.ToECDSA(privateKey)
-	if err != nil {
-		return state.Signature{}, err
-	}
-
-	sig, err := crypto.Sign(challengeHash[:], ecdsaKey)
-	if err != nil {
-		return state.Signature{}, err
-	}
-
-	return nc.SplitSignature(sig), nil
+	return nc.SignEthereumMessage(challengeHash[:], privateKey)
 }
 
 func hashChallengeMessage(s state.State) (types.Bytes32, error) {
