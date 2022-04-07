@@ -185,7 +185,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 		switch request := (apiEvent.ObjectiveToSpawn).(type) {
 
 		case virtualfund.ObjectiveRequest:
-			vfo, err := virtualfund.NewObjective(request, e.store.GetTwoPartyLedger)
+			vfo, err := virtualfund.NewObjective(request, e.store.GetTwoPartyLedger, e.store.GetConsensusChannel)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}

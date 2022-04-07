@@ -92,10 +92,29 @@ func (c *ConsensusChannel) Includes(g Guarantee) bool {
 	return c.current.Outcome.includes(g)
 }
 
+// IsLeader returns true if the calling client is the leader of the channel,
+// and false otherwise
+func (c *ConsensusChannel) IsLeader() bool {
+	return c.myIndex == Leader
+}
+
+// IsFollower returns true if the calling client is the follower of the channel,
+// and false otherwise
+func (c *ConsensusChannel) IsFollower() bool {
+	return c.myIndex == Follower
+}
+
 // Leader returns the address of the participant responsible for proposing
 func (c *ConsensusChannel) Leader() common.Address {
 	return c.fp.Participants[Leader]
 }
+
+// Follower returns the address of the participant who recieves and contersigns
+// proposals
+func (c *ConsensusChannel) Follower() common.Address {
+	return c.fp.Participants[Follower]
+}
+
 func (c *ConsensusChannel) Accept(p SignedProposal) error {
 	panic("UNIMPLEMENTED")
 }
@@ -410,14 +429,14 @@ func (a Add) equal(a2 Add) bool {
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 
 // Add mutates Vars by
-// - increasing the turn number by 1
-// - including the guarantee
-// - adjusting balances accordingly
+//  - increasing the turn number by 1
+//  - including the guarantee
+//  - adjusting balances accordingly
 //
 // An error is returned if:
-// - the turn number is not incremented
-// - the balances are incorrectly adjusted, or the deposits are too large
-// - the guarantee is already included in vars.Outcome
+//  - the turn number is not incremented
+//  - the balances are incorrectly adjusted, or the deposits are too large
+//  - the guarantee is already included in vars.Outcome
 //
 // If an error is returned, the original vars is not mutated
 func (vars *Vars) Add(p Add) error {
