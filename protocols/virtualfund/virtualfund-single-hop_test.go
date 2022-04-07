@@ -19,7 +19,18 @@ import (
 )
 
 func compareObjectives(a, b Objective) string {
-	return cmp.Diff(&a, &b, cmp.AllowUnexported(Objective{}, channel.Channel{}, big.Int{}, state.SignedState{}))
+	return cmp.Diff(&a, &b,
+		cmp.AllowUnexported(
+			Objective{},
+			channel.Channel{},
+			big.Int{},
+			state.SignedState{},
+			consensus_channel.ConsensusChannel{},
+			consensus_channel.Vars{},
+			consensus_channel.LedgerOutcome{},
+			consensus_channel.Balance{},
+		),
+	)
 }
 
 // signPreAndPostFundingStates is a test utility function which applies signatures from
