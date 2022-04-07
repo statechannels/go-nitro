@@ -3,7 +3,9 @@ name: Node
 on:
   push:
     branches: [main]
+    paths: "nitro-protocol/**"
   pull_request:
+    paths: "nitro-protocol/**"
 
 jobs:
   build:
