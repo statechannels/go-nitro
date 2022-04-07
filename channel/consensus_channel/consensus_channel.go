@@ -154,7 +154,6 @@ func (c *ConsensusChannel) LatestProposedVars() Vars {
 	return vars
 }
 
-
 // latestProposedVars returns the latest proposed vars in a consensus channel
 // by cloning its current vars and applying each proposal in the queue
 func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
