@@ -47,14 +47,13 @@ func (a *Add) UnmarshalJSON(data []byte) error {
 type jsonProposal struct {
 	ChannelID types.Destination
 	ToAdd     Add
-	ToRemove  struct{}
+	ToRemove  Remove
 }
 
 // MarshalJSON returns a JSON representation of the Proposal
 func (p Proposal) MarshalJSON() ([]byte, error) {
-	jsonP := jsonProposal{
-		p.ChannelID, p.ToAdd, p.ToRemove,
-	}
+	jsonP := jsonProposal(p)
+
 	return json.Marshal(jsonP)
 }
 

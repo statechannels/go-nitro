@@ -33,7 +33,7 @@ func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
 //
 // Note: the TurnNum on add is ignored; the correct turn number is computed
 // and applied by c
-func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
+func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal, error) {
 	if c.myIndex != Leader {
 		return SignedProposal{}, ErrNotLeader
 	}
@@ -43,9 +43,9 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 		return SignedProposal{}, fmt.Errorf("unable to construct latest proposed vars: %w", err)
 	}
 
-	add.turnNum = vars.TurnNum + 1
+	proposal.SetTurnNum(vars.TurnNum + 1)
 
-	err = vars.Add(add)
+	err = vars.HandleProposal(proposal)
 	if err != nil {
 		return SignedProposal{}, fmt.Errorf("propose could not add new state vars: %w", err)
 	}
@@ -55,13 +55,7 @@ func (c *ConsensusChannel) Propose(add Add, sk []byte) (SignedProposal, error) {
 		return SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
 	}
 
-	signed := SignedProposal{
-		Proposal: Proposal{
-			ChannelID: c.Id,
-			ToAdd:     add,
-		},
-		Signature: signature,
-	}
+	signed := SignedProposal{Proposal: proposal, Signature: signature}
 
 	c.proposalQueue = append(c.proposalQueue, signed)
 	return signed, nil
@@ -93,13 +87,8 @@ func (c *ConsensusChannel) UpdateConsensus(countersigned SignedProposal) error {
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),
 	}
-	if !countersigned.Proposal.isAddProposal() {
-		// TODO: We'll need to expect other proposals in the future!
-		return fmt.Errorf("unexpected proposal")
-	}
-	received := countersigned.Proposal.ToAdd
 
-	consensusTurnNum := received.turnNum
+	consensusTurnNum := countersigned.Proposal.TurnNum()
 
 	if consensusTurnNum <= consensusCandidate.TurnNum {
 		// We've already seen this proposal; return early
@@ -107,13 +96,8 @@ func (c *ConsensusChannel) UpdateConsensus(countersigned SignedProposal) error {
 	}
 
 	for i, ourP := range c.proposalQueue {
-		if !ourP.Proposal.isAddProposal() {
-			// TODO: We'll need to expect other proposals in the future!
-			return fmt.Errorf("unexpected proposal")
-		}
-		existing := ourP.Proposal.ToAdd
 
-		err := consensusCandidate.Add(existing)
+		err := consensusCandidate.HandleProposal(ourP.Proposal)
 		if err != nil {
 			return err
 		}

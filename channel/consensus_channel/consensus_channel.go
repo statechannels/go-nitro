@@ -150,7 +150,7 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 
 	var err error
 	for _, p := range c.proposalQueue {
-		err = vars.Add(p.Proposal.ToAdd)
+		err = vars.HandleProposal(p.Proposal)
 		if err != nil {
 			return Vars{}, err
 		}
@@ -318,8 +318,10 @@ func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 }
 
 var ErrInvalidDeposit = fmt.Errorf("unable to divert to guarantee: invalid deposit")
-var ErrInsufficientFunds = fmt.Errorf("unable to divert to guarantee: insufficient funds")
+var ErrInsufficientFunds = fmt.Errorf("insufficient funds")
 var ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
+var ErrGuaranteeNotFound = fmt.Errorf("guarantee not found")
+var ErrInvalidAmounts = fmt.Errorf("left and right amounts do not add up to the guarantee amount")
 
 // Vars stores the turn number and outcome for a state in a consensus channel
 type Vars struct {
@@ -368,17 +370,53 @@ type SignedVars struct {
 type Proposal struct {
 	ChannelID types.Destination
 	ToAdd     Add
-	ToRemove  struct{} // TODO
+	ToRemove  Remove
+}
+
+const (
+	AddProposal    ProposalType = "AddProposal"
+	RemoveProposal ProposalType = "RemoveProposal"
+)
+
+type ProposalType string
+
+// Type returns the type of the proposal based on whether it contains an Add or a Remove proposal.
+func (p *Proposal) Type() ProposalType {
+	zeroAdd := Add{}
+	if p.ToAdd != zeroAdd {
+		return AddProposal
+	} else {
+		return RemoveProposal
+	}
+}
+
+// Updates the turn number on the Add or Remove proposal
+func (p *Proposal) SetTurnNum(turnNum uint64) {
+	switch p.Type() {
+	case AddProposal:
+		{
+			p.ToAdd.turnNum = turnNum
+		}
+	case RemoveProposal:
+		{
+			p.ToRemove.turnNum = turnNum
+		}
+	}
+
+}
+
+// Returns the turn number on the Add or Remove proposal
+func (p *Proposal) TurnNum() uint64 {
+	if p.Type() == AddProposal {
+		return p.ToAdd.turnNum
+	} else {
+		return p.ToRemove.turnNum
+	}
 }
 
 // equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
 func (p *Proposal) equal(q *Proposal) bool {
 	return p.ToAdd.equal(q.ToAdd) && p.ToRemove == q.ToRemove
-}
-
-// isAddProposal returns true if the proposal contains a non-nil toAdd and a nil toRemove.
-func (p *Proposal) isAddProposal() bool {
-	return p.ToAdd != Add{} && p.ToRemove == struct{}{}
 }
 
 // SignedProposal is a Proposall with a signature on it
@@ -405,8 +443,18 @@ func NewAdd(turnNum uint64, g Guarantee, leftDeposit *big.Int) Add {
 }
 
 // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal
-func NewAddProposal(turnNum uint64, g Guarantee, leftDeposit *big.Int) Proposal {
-	return Proposal{ToAdd: NewAdd(turnNum, g, leftDeposit)}
+func NewAddProposal(channelId types.Destination, turnNum uint64, g Guarantee, leftDeposit *big.Int) Proposal {
+	return Proposal{ToAdd: NewAdd(turnNum, g, leftDeposit), ChannelID: channelId}
+}
+
+// NewRemove constructs a new Remove proposal
+func NewRemove(turnNum uint64, target types.Destination, leftAmount, rightAmount *big.Int) Remove {
+	return Remove{turnNum: turnNum, Target: target, LeftAmount: leftAmount, RightAmount: rightAmount}
+}
+
+// NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal
+func NewRemoveProposal(channelId types.Destination, turnNum uint64, target types.Destination, leftAmount, rightAmount *big.Int) Proposal {
+	return Proposal{ToRemove: NewRemove(turnNum, target, leftAmount, rightAmount), ChannelID: channelId}
 }
 
 func (a Add) RightDeposit() *big.Int {
@@ -427,6 +475,25 @@ func (a Add) equal(a2 Add) bool {
 }
 
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
+
+// HandleProposal handles a proposal to add or remove a guarantee
+// It will mutate Vars by calling Add or Remove for the proposal
+func (vars *Vars) HandleProposal(p Proposal) error {
+	switch p.Type() {
+	case AddProposal:
+		{
+			return vars.Add(p.ToAdd)
+		}
+	case RemoveProposal:
+		{
+			return vars.Remove(p.ToRemove)
+		}
+	default:
+		{
+			return fmt.Errorf("invalid proposal: a proposal must be either an add or a remove proposal")
+		}
+	}
+}
 
 // Add mutates Vars by
 //  - increasing the turn number by 1
@@ -474,6 +541,60 @@ func (vars *Vars) Add(p Add) error {
 	o.guarantees[p.target] = p.Guarantee
 
 	return nil
+}
+
+// Remove mutates Vars by
+// - increasing the turn number by 1
+// - removing the guarantee for the Target channel
+// - adjusting balances accordingly based on LeftAmount and RightAmount
+//
+// An error is returned if:
+// - the turn number is not incremented
+// - a guarantee is not found for the target
+// - the amounts are too large for the guarantee amount
+//
+// If an error is returned, the original vars is not mutated
+func (vars *Vars) Remove(p Remove) error {
+	// CHECKS
+
+	if p.turnNum != vars.TurnNum+1 {
+		return ErrIncorrectTurnNum
+	}
+	o := vars.Outcome
+
+	guarantee, found := o.guarantees[p.Target]
+	if !found {
+		return ErrGuaranteeNotFound
+	}
+
+	totalRemoved := big.NewInt(0).Add(p.LeftAmount, p.RightAmount)
+	if totalRemoved.Cmp(guarantee.amount) != 0 {
+		return ErrInvalidAmounts
+	}
+
+	// EFFECTS
+
+	// Increase the turn number
+	vars.TurnNum += 1
+
+	// Adjust balances
+	o.left.amount.Add(o.left.amount, p.LeftAmount)
+	o.right.amount.Add(o.right.amount, p.RightAmount)
+
+	// Remove the guarantee
+	delete(o.guarantees, p.Target)
+
+	return nil
+}
+
+// Remove is a proposal to remover a guarantee for the given virtual channel
+type Remove struct {
+	turnNum uint64
+	Target  types.Destination
+	// LeftAmount is the amount to be credited to the left participant of the two party ledger channel
+	LeftAmount *big.Int
+	// RightAmount is the amount to be credited to the right participant of the two party ledger channel
+	RightAmount *big.Int
 }
 
 func (v Vars) AsState(fp state.FixedPart) state.State {
