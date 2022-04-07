@@ -100,6 +100,8 @@ func constructLedgerProposal(
 }
 
 func TestSingleHopVirtualFund(t *testing.T) {
+	// todo: #420 unskip
+	t.Skip()
 
 	// assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
 	assertSideEffectsContainsMessageWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, to actor, t *testing.T) {
