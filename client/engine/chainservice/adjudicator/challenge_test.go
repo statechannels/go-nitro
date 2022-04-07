@@ -1,8 +1,13 @@
 package NitroAdjudicator
 
 import (
+	"bytes"
+	"context"
 	"math/big"
 	"testing"
+
+	ethAbi "github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/statechannels/go-nitro/abi"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
@@ -69,6 +74,31 @@ func convertSignature(s nc.Signature) IForceMoveSignature {
 	return sig
 }
 
+func generateStatus(state state.State, finalizesAt *big.Int) ([]byte, error) {
+
+	turnNumBytes := big.NewInt(int64(state.TurnNum)).FillBytes(make([]byte, 6))
+	finalizesAtBytes := finalizesAt.FillBytes(make([]byte, 6))
+
+	stateHash, err := state.Hash()
+	if err != nil {
+		return []byte{}, err
+	}
+	outcomeHash, err := state.Outcome.Hash()
+	if err != nil {
+		return []byte{}, err
+	}
+	handprintPreimage, err := ethAbi.Arguments{{Type: abi.Bytes32}, {Type: abi.Bytes32}}.Pack(stateHash, outcomeHash)
+	handprint := crypto.Keccak256(handprintPreimage)
+	if err != nil {
+		return []byte{}, err
+	}
+	fingerprint := handprint[12:]
+
+	status := []byte(string(turnNumBytes) + string(finalizesAtBytes) + string(fingerprint))
+
+	return status, nil
+}
+
 // Actors is the endpoint for tests to consume constructed statechannel
 // network participants (public-key secret-key pairs)
 var Actors actors = actors{
@@ -84,6 +114,7 @@ var Actors actors = actors{
 
 func TestChallenge(t *testing.T) {
 
+	turnNum := uint64(0)
 	s := state.State{
 		ChainId: big.NewInt(1337),
 		Participants: []types.Address{
@@ -95,7 +126,7 @@ func TestChallenge(t *testing.T) {
 		ChallengeDuration: big.NewInt(60),
 		AppData:           []byte{},
 		Outcome:           outcome.Exit{},
-		TurnNum:           0,
+		TurnNum:           turnNum,
 		IsFinal:           false,
 	}
 
@@ -131,7 +162,7 @@ func TestChallenge(t *testing.T) {
 	t.Log(naAddress)
 	t.Log(na)
 	tx, err := na.Challenge(
-		&bind.TransactOpts{},
+		auth,
 		IForceMoveFixedPart(s.FixedPart()),
 		big.NewInt(0),
 		[]IForceMoveAppVariablePart{convertVariablePart(s.VariablePart())},
@@ -143,14 +174,33 @@ func TestChallenge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	txHash := tx.Hash()
-
-	t.Log(txHash)
 	sim.Commit()
+
+	receipt, err := sim.TransactionReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		t.Fatal(err)
+	}
+	header, err := sim.HeaderByNumber(context.Background(), receipt.BlockNumber)
+	if err != nil {
+		t.Fatal(err)
+	}
+	challengeTime := big.NewInt(int64(header.Time))
+
+	expectedFinalizesAt := big.NewInt(0).Add(challengeTime, s.ChallengeDuration)
 
 	cId, _ := s.ChannelId()
 
-	t.Log(na.StatusOf(&bind.CallOpts{}, cId))
+	expectedOnChainStatus, err := generateStatus(s, expectedFinalizesAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	statusOnChain, err := na.StatusOf(&bind.CallOpts{}, cId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(statusOnChain[:], expectedOnChainStatus) {
+		t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(expectedOnChainStatus[:]))
+	}
 
 }
