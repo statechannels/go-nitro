@@ -61,7 +61,7 @@ func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal
 	return signed, nil
 }
 
-// UpdateConsensus is called by the Leader and iterates through
+// leaderReceive is called by the Leader and iterates through
 // the proposal queue until it finds the countersigned proposal.
 //
 // If this proposal was signed by the Follower:
@@ -73,8 +73,8 @@ func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal
 //
 // An error is returned if:
 //  - the countersupplied proposal is not found
-//  - or if it is found but not correctly by the Follower
-func (c *ConsensusChannel) UpdateConsensus(countersigned SignedProposal) error {
+//  - or if it is found but not correctly signed by the Follower
+func (c *ConsensusChannel) leaderReceive(countersigned SignedProposal) error {
 	if c.myIndex != Leader {
 		return ErrNotLeader
 	}

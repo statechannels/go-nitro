@@ -82,6 +82,20 @@ func newConsensusChannel(
 
 }
 
+// Receive accepts a proposal signed by the ConsensusChannel counterparty,
+// validates its signature, and performs updates the proposal queue and
+// consensus state
+func (c *ConsensusChannel) Receive(sp SignedProposal) error {
+	if c.IsFollower() {
+		return c.followerReceive(sp)
+	}
+	if c.IsLeader() {
+		return c.leaderReceive(sp)
+	}
+
+	return fmt.Errorf("ConsensusChannel is malformed")
+}
+
 // ConsensusTurnNum returns the turn number of the current consensus state
 func (c *ConsensusChannel) ConsensusTurnNum() uint64 {
 	return c.current.TurnNum
