@@ -22,10 +22,7 @@ type jsonObjective struct {
 	MyRole uint
 }
 
-// MarshalJSON returns a JSON representation of the VirtualFundObjective
-//
-// NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
-//       the virtual and ledger channels (other than Ids) is discarded
+// MarshalJSON returns a JSON representation of the VirtualDefundObjective
 func (o Objective) MarshalJSON() ([]byte, error) {
 	var left []byte
 	var right []byte
@@ -62,11 +59,8 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 	return json.Marshal(jsonVFO)
 }
 
-// UnmarshalJSON populates the calling VirtualFundObjective with the
+// UnmarshalJSON populates the calling VirtualDefundObjective with the
 // json-encoded data
-//
-// NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
-//       the virtual and ledger channels (other than Ids) is discarded
 func (o *Objective) UnmarshalJSON(data []byte) error {
 	if string(data) == "null" {
 		return nil
@@ -74,7 +68,7 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 
 	var jsonVFO jsonObjective
 	if err := json.Unmarshal(data, &jsonVFO); err != nil {
-		return fmt.Errorf("failed to unmarshal the VirtualFundObjective: %w", err)
+		return fmt.Errorf("failed to unmarshal the VirtualDefundObjective: %w", err)
 	}
 
 	o.V = &channel.SingleHopVirtualChannel{}
