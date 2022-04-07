@@ -247,6 +247,15 @@ func constructFromState(
 	// Setup Ledger Channel Connections and expected guarantees
 	if !init.isAlice() { // everyone other than Alice has a left-channel
 		init.ToMyLeft = &Connection{}
+
+		if ledgerChannelToMyLeft == nil {
+			return Objective{}, fmt.Errorf("non-alice virtualfund objective requires non-nil ledger channel")
+		}
+		// todo: #420
+		// if consensusChannelToMyLeft == nil {
+		// 	return Objective{}, fmt.Errorf("non-alice virtualfund objective requires non-nil ledger channel")
+		// }
+
 		init.ToMyLeft.Channel = ledgerChannelToMyLeft
 		init.ToMyLeft.ConsensusChannel = consensusChannelToMyLeft
 		err = init.ToMyLeft.insertGuaranteeInfo(
@@ -263,6 +272,15 @@ func constructFromState(
 
 	if !init.isBob() { // everyone other than Bob has a right-channel
 		init.ToMyRight = &Connection{}
+
+		if ledgerChannelToMyRight == nil {
+			return Objective{}, fmt.Errorf("non-bob virtualfund objective requires non-nil ledger channel")
+		}
+		// todo: #420
+		// if consensusChannelToMyRight == nil {
+		// 	return Objective{}, fmt.Errorf("non-bob virtualfund objective requires non-nil ledger channel")
+		// }
+
 		init.ToMyRight.Channel = ledgerChannelToMyRight
 		init.ToMyRight.ConsensusChannel = consensusChannelToMyRight
 		err = init.ToMyRight.insertGuaranteeInfo(
