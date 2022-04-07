@@ -1,0 +1,16 @@
+node_modules
+.env
+coverage
+coverage.json
+typechain-types
+
+# Misc
+.DS_Store
+/.vscode
+
+# Hardhat files
+/abi
+cache
+/artifacts
+/.openzeppelin
+hardhat-deployments
