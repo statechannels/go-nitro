@@ -323,7 +323,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		var err error
 		switch sp.Proposal.ChannelID {
 		case types.Destination{}:
-			return &o, errors.New("signed proposal is not addressed to a ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
+			return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
 		case toMyLeftId:
 			err = updated.ToMyLeft.handleProposal(sp)
 		case toMyRightId:
