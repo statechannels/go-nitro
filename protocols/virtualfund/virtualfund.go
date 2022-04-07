@@ -355,8 +355,47 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 			return &o, errors.New("event channelId out of scope of objective")
 		}
 	}
-	return &updated, nil
 
+	four20StateAssertions(o.ToMyLeft)
+	four20StateAssertions(o.ToMyRight)
+
+	return &updated, nil
+}
+
+// four20StateAssertions performs some sanity checks against the state of the Channel
+// and ConsensusChannel on a connection
+// todo 420: DELETE ME
+func four20StateAssertions(c *Connection) {
+	if c == nil {
+		return
+	}
+
+	if c.ConsensusChannel == nil {
+		return
+	}
+
+	supported, err := c.Channel.LatestSupportedState()
+	if err != nil {
+		panic(err)
+	}
+	sanityCheck(c.ConsensusChannel.ConsensusVars(), supported)
+
+	latest, err := c.Channel.LatestSignedState()
+	if err != nil {
+		panic(err)
+	}
+	sanityCheck(c.ConsensusChannel.LatestProposedVars(), latest.State())
+}
+
+// sanityCheck asserts that v and s are equivalent, by checking their TurnNum and Outcome
+// todo 420: DELETE ME
+func sanityCheck(v consensus_channel.Vars, s state.State) {
+	if !s.Outcome.Equal(v.Outcome.AsOutcome()) {
+		panic("supported outcome differs")
+	}
+	if s.TurnNum != v.TurnNum {
+		panic("wrong turn number")
+	}
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed

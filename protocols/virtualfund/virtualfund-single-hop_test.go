@@ -304,7 +304,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			lo := *consensus_channel.NewLedgerOutcome(types.Address{}, leftBal, rightBal, []consensus_channel.Guarantee{})
 
-			signedVars := consensus_channel.SignedVars{Vars: consensus_channel.Vars{Outcome: lo}}
+			signedVars := consensus_channel.SignedVars{Vars: consensus_channel.Vars{Outcome: lo, TurnNum: 1}}
 			leftSig, err := signedVars.Vars.AsState(fp).Sign(left.privateKey)
 			if err != nil {
 				panic(err)
@@ -318,9 +318,9 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			var cc consensus_channel.ConsensusChannel
 
 			if role == 0 {
-				cc, err = consensus_channel.NewLeaderChannel(fp, 0, lo, sigs)
+				cc, err = consensus_channel.NewLeaderChannel(fp, 1, lo, sigs)
 			} else {
-				cc, err = consensus_channel.NewFollowerChannel(fp, 0, lo, sigs)
+				cc, err = consensus_channel.NewFollowerChannel(fp, 1, lo, sigs)
 			}
 			if err != nil {
 				panic(err)
