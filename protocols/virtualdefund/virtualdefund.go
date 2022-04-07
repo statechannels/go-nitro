@@ -16,12 +16,12 @@ const (
 	WaitingForNothing                 protocols.WaitingFor = "WaitingForNothing"                 // Finished
 )
 
-// ObjectiveRequest represents a request to create a new virtual funding objective.
+// ObjectiveRequest represents a request to create a new virtual defunding objective.
 type ObjectiveRequest struct {
 	VirtualChannelId types.Destination
 }
 
-// Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
+// Objective contains relevent information for the defund objective
 type Objective struct {
 	Status protocols.ObjectiveStatus
 	V      *channel.SingleHopVirtualChannel
@@ -56,6 +56,7 @@ func (o Objective) Reject() protocols.Objective {
 	return &updated
 }
 
+// Relable returns related channels that need to be stored along with the objective.
 func (o *Objective) Related() []protocols.Storable {
 	relatable := []protocols.Storable{o.V}
 
@@ -82,11 +83,12 @@ func (o *Objective) clone() Objective {
 	return clone
 }
 
+// Crank inspects the extended state and declares a list of Effects to be executed
 func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	return &o, protocols.SideEffects{}, WaitingForCompleteFinal, errors.New("TODO: UNIMPLEMENTED")
 }
 
-// Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
+// Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
 // and returns the updated state.
 func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if o.Id() != event.ObjectiveId {
