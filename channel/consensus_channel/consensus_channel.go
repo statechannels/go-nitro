@@ -143,6 +143,18 @@ func (c *ConsensusChannel) ConsensusVars() Vars {
 	return c.current.Vars
 }
 
+// LatestProposedVars is TEMPORARY CODE used for external assertions
+// todo 420: delete this
+func (c *ConsensusChannel) LatestProposedVars() Vars {
+	vars, err := c.latestProposedVars()
+	if err != nil {
+		panic(err)
+	}
+
+	return vars
+}
+
+
 // latestProposedVars returns the latest proposed vars in a consensus channel
 // by cloning its current vars and applying each proposal in the queue
 func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
