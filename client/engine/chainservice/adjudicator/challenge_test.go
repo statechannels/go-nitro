@@ -54,7 +54,7 @@ func convertAllocations(as outcome.Allocations) []ExitFormatAllocation {
 	for i, a := range as {
 		b[i].Destination = a.Destination
 		b[i].Amount = a.Amount
-		b[i].AllocationType = a.AllocationType
+		b[i].AllocationType = uint8(a.AllocationType)
 		b[i].Metadata = a.Metadata
 	}
 	return b
