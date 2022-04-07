@@ -2,7 +2,6 @@ import {Signature, ethers} from 'ethers';
 
 import ForceMoveArtifact from '../../../artifacts/contracts/ForceMove.sol/ForceMove.json';
 import {signChallengeMessage} from '../../signatures';
-import {encodeOutcome, hashOutcome} from '../outcome';
 import {encodeAppData, getFixedPart, getVariablePart, State} from '../state';
 
 // https://github.com/ethers-io/ethers.js/issues/602#issuecomment-574671078
@@ -135,7 +134,7 @@ export function concludeArgs(
   const largestTurnNum = lastState.turnNum;
   const fixedPart = getFixedPart(lastState);
   const appDataBytes = encodeAppData(lastState.appData);
-  const outcomeBytes = encodeOutcome(lastState.outcome);
+  
 
   const numStates = states.length;
 
@@ -143,7 +142,7 @@ export function concludeArgs(
     largestTurnNum,
     fixedPart,
     appDataBytes,
-    outcomeBytes,
+    lastState.outcome,
     numStates,
     whoSignedWhat,
     signatures,
