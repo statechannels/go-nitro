@@ -1,7 +1,6 @@
 package virtualdefund
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
@@ -96,46 +95,4 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 
 	return &o, errors.New("TODO: UNIMPLEMENTED")
 
-}
-
-type GetObjectiveByIdFunction func(id protocols.ObjectiveId) (protocols.Objective, error)
-
-// constructFromState initiates an Objective from an initial state and set of ledgers.
-func constructFromChannel(
-	preApprove bool,
-	v *channel.SingleHopVirtualChannel,
-	myAddress types.Address,
-	consensusChannelToMyLeft *consensus_channel.ConsensusChannel,
-	consensusChannelToMyRight *consensus_channel.ConsensusChannel,
-) (Objective, error) {
-
-	var init Objective
-
-	if preApprove {
-		init.Status = protocols.Approved
-	} else {
-		init.Status = protocols.Unapproved
-	}
-
-	// Infer MyRole
-	found := false
-
-	for i, addr := range v.Participants {
-		if bytes.Equal(addr[:], myAddress[:]) {
-			init.MyRole = uint(i)
-			found = true
-			continue
-		}
-	}
-	if !found {
-		return Objective{}, errors.New("not a participant in V")
-	}
-
-	init.V = v
-
-	// Setup Ledger Channel Connections and expected guarantees
-	init.ToMyLeft = consensusChannelToMyLeft
-	init.ToMyRight = consensusChannelToMyRight
-
-	return init, nil
 }
