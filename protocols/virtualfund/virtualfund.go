@@ -170,7 +170,7 @@ func NewObjective(request ObjectiveRequest, getTwoPartyLedger GetTwoPartyLedgerF
 			IsFinal:           false,
 		},
 		request.MyAddress,
-		left, leftCC, right, rightCC) // todo: replace nil consensusChannels
+		left, leftCC, right, rightCC)
 	if err != nil {
 		return Objective{}, fmt.Errorf("error creating objective: %w", err)
 	}
@@ -485,7 +485,6 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 }
 
 func (o Objective) Related() []protocols.Storable {
-	// todo: #420 consider usage & signature of this fcn
 	ret := []protocols.Storable{&o.V.Channel}
 
 	if o.ToMyLeft != nil {

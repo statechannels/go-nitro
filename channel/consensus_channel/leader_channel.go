@@ -73,7 +73,7 @@ func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal
 //
 // An error is returned if:
 //  - the countersupplied proposal is not found
-//  - or if it is found but not correctly by the Follower
+//  - or if it is found but not correctly signed by the Follower
 func (c *ConsensusChannel) UpdateConsensus(countersigned SignedProposal) error {
 	if c.myIndex != Leader {
 		return ErrNotLeader
