@@ -570,9 +570,11 @@ func (vars *Vars) Remove(p Remove) error {
 
 // Remove is a proposal to remover a guarantee for the given virtual channel
 type Remove struct {
-	turnNum     uint64
-	Target      types.Destination
-	LeftAmount  *big.Int
+	turnNum uint64
+	Target  types.Destination
+	// LeftAmount is the amount to be credited to the left participant of the two party ledger channel
+	LeftAmount *big.Int
+	// RightAmount is the amount to be credited to the right participant of the two party ledger channel
 	RightAmount *big.Int
 }
 
