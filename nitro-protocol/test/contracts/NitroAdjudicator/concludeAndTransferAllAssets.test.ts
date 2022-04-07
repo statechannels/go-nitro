@@ -210,7 +210,7 @@ describe('concludeAndTransferAllAssets', () => {
         largestTurnNum,
         getFixedPart(states[0]),
         encodeAppData(states[0].appData),
-        encodeOutcome(outcome),
+        outcome,
         numStates,
         whoSignedWhat,
         sigs,

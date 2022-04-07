@@ -143,9 +143,8 @@ describe('transferAllAssets', () => {
           outcomeHash,
         })
       ).wait();
-      const encodedOutcome = encodeOutcome(outcome);
 
-      const tx1 = testNitroAdjudicator.transferAllAssets(channelId, encodedOutcome, stateHash);
+      const tx1 = testNitroAdjudicator.transferAllAssets(channelId, outcome, stateHash);
 
       // Call method in a slightly different way if expecting a revert
       if (reasonString) {
