@@ -341,7 +341,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		var err error
 		switch sp.Proposal.ChannelID {
 		case types.Destination{}:
-			return &o, errors.New("signed proposal is not addressed to a ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
+			return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
 		case toMyLeftId:
 			err = updated.ToMyLeft.handleProposal(sp)
 		case toMyRightId:
@@ -526,20 +526,20 @@ func (o *Objective) clone() Objective {
 	clone.V = vClone
 
 	if o.ToMyLeft != nil {
-		// todo: #420 consider cloning for consensusChannels
 		lClone := o.ToMyLeft.Channel.Clone()
 		clone.ToMyLeft = &Connection{
-			Channel:       lClone,
-			GuaranteeInfo: o.ToMyLeft.GuaranteeInfo,
+			Channel:          lClone,
+			ConsensusChannel: o.ToMyLeft.ConsensusChannel, // todo: #420 consider cloning for consensusChannels
+			GuaranteeInfo:    o.ToMyLeft.GuaranteeInfo,
 		}
 	}
 
 	if o.ToMyRight != nil {
-		// todo: #420 consider cloning for consensusChannels
 		rClone := o.ToMyRight.Channel.Clone()
 		clone.ToMyRight = &Connection{
-			Channel:       rClone,
-			GuaranteeInfo: o.ToMyRight.GuaranteeInfo,
+			Channel:          rClone,
+			ConsensusChannel: o.ToMyRight.ConsensusChannel, // todo: #420 consider cloning for consensusChannels
+			GuaranteeInfo:    o.ToMyRight.GuaranteeInfo,
 		}
 	}
 
