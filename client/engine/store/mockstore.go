@@ -15,9 +15,10 @@ import (
 )
 
 type MockStore struct {
-	objectives        bytesSyncMap
-	channels          bytesSyncMap
-	consensusChannels bytesSyncMap
+	objectives         bytesSyncMap
+	channels           bytesSyncMap
+	consensusChannels  bytesSyncMap
+	channelToObjective bytesSyncMap
 
 	key     []byte        // the signing key of the store's engine
 	address types.Address // the (Ethereum) address associated to the signing key
@@ -131,6 +132,8 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 			return fmt.Errorf("unexpected type: %T", rel)
 		}
 	}
+
+	ms.channelToObjective.Store(obj.OwnsChannel().String(), []byte(obj.Id()))
 
 	return nil
 }
