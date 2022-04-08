@@ -90,6 +90,7 @@ func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
 	return nil
 }
 
+// Funded computes whether the ledger channel on the receiver funds the guarantee expected by this connection
 func (c *Connection) Funded() bool {
 	g := c.getExpectedGuarantee()
 	return c.Channel.Includes(g)
