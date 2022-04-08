@@ -625,14 +625,19 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 	ledger := ledgerConnection.Channel // todo: #420 deprecate
 
 	var sideEffects protocols.SideEffects
+	g := ledgerConnection.getExpectedGuarantee()
+	proposed, err := ledger.IsProposed(g)
+
 	if ledger.IsLeader() { // If the user is the proposer craft a new proposal
+		if proposed {
+			return protocols.SideEffects{}, nil
+		}
 		se, err := o.proposeLedgerUpdate(ledgerConnection, sk)
 		if err != nil {
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
 		}
 		sideEffects = se
 	} else {
-		proposed, err := ledger.IsProposed(ledgerConnection.getExpectedGuarantee())
 		if err != nil {
 			return protocols.SideEffects{}, err
 		}
