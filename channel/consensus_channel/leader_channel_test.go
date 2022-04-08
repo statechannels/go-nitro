@@ -227,8 +227,7 @@ func TestLeaderChannel(t *testing.T) {
 
 		c := testChannel(startingOutcome, startingQueue)
 
-		newAdd := Proposal{ToAdd: add(2, amountAdded, types.Destination{3}, alice, bob)}
-		newAdd.ChannelID = p1.ChannelID
+		newAdd := Proposal{ChannelID: p1.ChannelID, ToAdd: add(2, amountAdded, types.Destination{3}, alice, bob)}
 
 		currentlyProposed, _ := c.latestProposedVars()
 		expectedSp := aliceSignedProposal(currentlyProposed, newAdd).SignedProposal
