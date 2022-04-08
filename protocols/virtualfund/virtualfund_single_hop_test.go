@@ -188,8 +188,11 @@ func TestCrankAsAlice(t *testing.T) {
 
 	// Approve the objective, so that the rest of the test cases can run.
 	o := s.Approve().(*Objective)
+
 	// To test the finite state progression, we are going to progressively mutate o
 	// And then crank it to see which "pause point" (WaitingFor) we end up at.
+	// NOTE: Because crank returns a protocools.Objective interface, after each crank we
+	// need to remember to convert the result back to a virtualfund.Objective struct
 
 	// Initial Crank
 	oObj, got, waitingFor, err := o.Crank(&my.privateKey)
