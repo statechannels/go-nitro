@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
 
 	"github.com/statechannels/go-nitro/channel"
@@ -67,26 +69,6 @@ func newTestData() testData {
 	return testData{vPreFund, vPostFund, ledgers}
 }
 
-func assertNilConnection(t *testing.T, c *Connection) {
-	if c != nil {
-		t.Fatalf("TestNew: unexpected connection")
-	}
-}
-
-func assertCorrectConnection(t *testing.T, c *Connection, left, right actor) {
-	td := newTestData()
-	vPreFund := td.vPreFund
-
-	Id, _ := vPreFund.FixedPart().ChannelId()
-
-	expectedAmount := big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated())
-	want := consensus_channel.NewGuarantee(expectedAmount, Id, left.destination, right.destination)
-	got := c.getExpectedGuarantee()
-	if diff := compareGuarantees(want, got); diff != "" {
-		t.Fatalf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
-	}
-}
-
 type Tester func(t *testing.T)
 
 func testNew(a actor) Tester {
@@ -109,16 +91,36 @@ func testNew(a actor) Tester {
 
 		switch a.role {
 		case alice.role:
-			assertNilConnection(t, o.ToMyLeft)
-			assertCorrectConnection(t, o.ToMyRight, alice, p1)
+			assert(t, o.ToMyLeft == nil, "left connection should be nil")
+			assert(t, diffFromCorrectConnection(o.ToMyRight, alice, p1) == "", "incorrect connection")
 		case p1.role:
-			assertCorrectConnection(t, o.ToMyLeft, alice, p1)
-			assertCorrectConnection(t, o.ToMyRight, p1, bob)
+			assert(t, diffFromCorrectConnection(o.ToMyLeft, alice, p1) == "", "incorrect connection")
+			assert(t, diffFromCorrectConnection(o.ToMyRight, p1, bob) == "", "incorrect connection")
 		case bob.role:
-			assertCorrectConnection(t, o.ToMyLeft, p1, bob)
-			assertNilConnection(t, o.ToMyRight)
+			assert(t, diffFromCorrectConnection(o.ToMyLeft, p1, bob) == "", "incorrect connection")
+			assert(t, o.ToMyRight == nil, "right connection should be nil")
+		}
 		}
 	}
+
+// diffFromCorrectConnection compares the guarantee stored on a connection with
+// the guarantee we expect, given the expected left and right actors
+func diffFromCorrectConnection(c *Connection, left, right actor) string {
+	td := newTestData()
+	vPreFund := td.vPreFund
+
+	Id, _ := vPreFund.FixedPart().ChannelId()
+
+	// HACK: This should really be comparing GuaranteeInfo, but GuaranteeInfo
+	// contains types.Funds amounts in their LeftAmount and RightAmount fields.
+	// I am not sure how these types are meant to be used, and am
+	// comparing the _guarantees_ that we expect to include, instead of the GuaranteeInfo
+
+	expectedAmount := big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated())
+	want := consensus_channel.NewGuarantee(expectedAmount, Id, left.destination, right.destination)
+	got := c.getExpectedGuarantee()
+
+	return compareGuarantees(want, got)
 }
 
 func TestNew(t *testing.T) {
@@ -181,9 +183,8 @@ func TestCrankAsAlice(t *testing.T) {
 	ledgers := td.ledgers
 	var s, _ = constructFromState(false, vPreFund, my.address, ledgers[my.destination].left, ledgers[my.destination].right) // todo: #420 deprecate TwoPartyLedgers
 	// Assert that cranking an unapproved objective returns an error
-	if _, _, _, err := s.Crank(&my.privateKey); err == nil {
-		t.Fatal(`Expected error when cranking unapproved objective, but got nil`)
-	}
+	_, _, _, err := s.Crank(&my.privateKey)
+	assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
 
 	// Approve the objective, so that the rest of the test cases can run.
 	o := s.Approve().(*Objective)
@@ -193,19 +194,15 @@ func TestCrankAsAlice(t *testing.T) {
 	// Initial Crank
 	oObj, got, waitingFor, err := o.Crank(&my.privateKey)
 	o = oObj.(*Objective)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if s := assertWaitingFor(WaitingForCompletePrefund, waitingFor); s != "" {
-		t.Fatalf(s)
-	}
 
 	expectedSignedState := state.NewSignedState(o.V.PreFundState())
 	mySig, _ := o.V.PreFundState().Sign(my.privateKey)
 	_ = expectedSignedState.AddSignature(mySig)
-	if s := assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.role); s != "" {
-		t.Fatal(s)
-	}
+
+	ok(t, err)
+	equals(t, waitingFor, WaitingForCompletePrefund)
+	assertStateSentTo(t, got, expectedSignedState, bob)
+	assertStateSentTo(t, got, expectedSignedState, p1)
 
 	// Manually progress the extended state by collecting prefund signatures
 	collectPeerSignaturesOnSetupState(o.V, my.role, true)
@@ -213,100 +210,92 @@ func TestCrankAsAlice(t *testing.T) {
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	// TODO: Check that ledger channel is updated as expected
 	oObj, got, waitingFor, err = o.Crank(&my.privateKey)
+	o = oObj.(*Objective)
 
 	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p}
-	if s := assertProposalSent(got, sp, p1); s != "" {
-		t.Fatal(s)
-	}
-	if s := assertNilError(err); s != "" {
-		t.Fatal(s)
-	}
-	if s := assertWaitingFor(WaitingForCompleteFunding, waitingFor); s != "" {
-		t.Fatal(s)
-	}
+	assertProposalSent(t, got, sp, p1)
+	ok(t, err)
+	equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// Check idempotency
-	_, got, waitingFor, err = oObj.Crank(&my.privateKey)
-	if s := assertNilError(err); s != "" {
-		t.Fatal(s)
+	emptySideEffects := protocols.SideEffects{}
+	oObj, got, waitingFor, err = o.Crank(&my.privateKey)
+	o = oObj.(*Objective)
+	ok(t, err)
+	equals(t, got, emptySideEffects)
+	equals(t, waitingFor, WaitingForCompleteFunding)
 	}
-	if s := assertNoSideEffects(got); s != "" {
-		t.Fatal(s)
-	}
-	if s := assertWaitingFor(WaitingForCompleteFunding, waitingFor); s != "" {
-		t.Fatal(s)
+
+// Copied from https://github.com/benbjohnson/testing
+
+// assert fails the test if the condition is false.
+func assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
+	if !condition {
+		_, file, line, _ := runtime.Caller(1)
+		fmt.Printf("\033[31m%s:%d: "+msg+"\033[39m\n\n", append([]interface{}{filepath.Base(file), line}, v...)...)
+		tb.FailNow()
 	}
 }
 
-func assertNilError(err error) string {
+// ok fails the test if an err is not nil.
+func ok(tb testing.TB, err error) {
 	if err != nil {
-		return fmt.Sprintf("expected no err: %v", err)
+		_, file, line, _ := runtime.Caller(1)
+		fmt.Printf("\033[31m%s:%d: unexpected error: %s\033[39m\n\n", filepath.Base(file), line, err.Error())
+		tb.FailNow()
+	}
 	}
 
-	return ""
+// equals fails the test if exp is not equal to act.
+func equals(tb testing.TB, exp, act interface{}) {
+	if !reflect.DeepEqual(exp, act) {
+		_, file, line, _ := runtime.Caller(1)
+		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, exp, act)
+		tb.FailNow()
 }
-
-func assertWaitingFor(expected, got protocols.WaitingFor) string {
-	if got != expected {
-		return fmt.Sprintf(`WaitingFor: expected %v, got %v`, expected, got)
 	}
 
-	return ""
-}
+// The following assertions are inspired by the ok, assert and equals above
 
 // assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
-func assertProposalSent(ses protocols.SideEffects, sp consensus_channel.SignedProposal, to actor) string {
+func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to actor) {
+	_, file, line, _ := runtime.Caller(1)
 	if len(ses.MessagesToSend) != 1 {
-		return "expected one message"
+		fmt.Printf("\033[31m%s:%d:\n\n\texpected one message", filepath.Base(file), line)
+		t.FailNow()
 	}
 	if len(ses.MessagesToSend[0].SignedProposals) != 1 {
-		return "expected one signed proposal"
+		fmt.Printf("\033[31m%s:%d:\n\n\texpected one signed proposal", filepath.Base(file), line)
+		t.FailNow()
 	}
 
 	msg := ses.MessagesToSend[0]
 	sent := msg.SignedProposals[0]
-	rightProp := reflect.DeepEqual(sent.Proposal, sp.Proposal)
-	rightAddress := bytes.Equal(msg.To[:], to.address[:])
-	if rightProp && rightAddress {
-		return ""
-	}
 
-	return fmt.Sprintf("side effects contain wrong proposal for %v", to.name)
+	if !reflect.DeepEqual(sent.Proposal, sp.Proposal) {
+		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, sent.Proposal, sp.Proposal)
+		t.FailNow()
 }
 
-func assertNoSideEffects(ses protocols.SideEffects) string {
-	if len(ses.MessagesToSend) != 0 {
-		return "expected no message"
+	if !bytes.Equal(msg.To[:], to.address[:]) {
+		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, msg.To.String(), to.address.String())
+		t.FailNow()
 	}
-	if len(ses.TransactionsToSubmit) != 0 {
-		return "expected no transaction"
-	}
-	return ""
 }
 
-// assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
-func assertSideEffectsContainsMessageWith(ses protocols.SideEffects, expectedSignedState state.SignedState, to actor) string {
+
+// assertMessageSentTo asserts that ses contains a message
+func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to actor) {
 	for _, msg := range ses.MessagesToSend {
 		for _, ss := range msg.SignedStates {
-			if reflect.DeepEqual(ss, expectedSignedState) && bytes.Equal(msg.To[:], to.address[:]) {
-				return ""
+			if reflect.DeepEqual(ss, expected) && bytes.Equal(msg.To[:], to.address[:]) {
+				return
 			}
 		}
-	}
-	return fmt.Sprintf("side effects %v do not contain signed state %v for %v", ses, expectedSignedState, to)
 }
 
-// assertSideEffectsContainsMessageWith calls assertSideEffectsContainsMessageWith for all peers of the actor with role myRole.
-func assertSideEffectsContainsMessagesForPeersWith(ses protocols.SideEffects, expectedSignedState state.SignedState, myRole uint) string {
-	for _, peer := range allActors {
-		if peer.role == myRole {
-			break
-		}
-		s := assertSideEffectsContainsMessageWith(ses, expectedSignedState, peer)
-		if s != "" {
-			return s
-		}
-	}
-	return ""
+	_, file, line, _ := runtime.Caller(1)
+	fmt.Printf("\033[31m%s:%d:\n\n\tside effects do not incude signed state", filepath.Base(file), line)
+	t.FailNow()
 }
