@@ -119,6 +119,28 @@ func (c *ConsensusChannel) Accept(p SignedProposal) error {
 	panic("UNIMPLEMENTED")
 }
 
+// HandleProposal receives a signed proposal and acts according to the leader / follower
+// status of the Connection's ConsensusChannel
+func (c *ConsensusChannel) HandleProposal(sp SignedProposal) error {
+	if c == nil {
+		return fmt.Errorf("nil connection should not handle proposals")
+	}
+
+	if sp.Proposal.ChannelID != c.Id {
+		return ErrIncorrectChannelID
+	}
+
+	if c.IsFollower() {
+		return c.Receive(sp)
+	}
+
+	if c.IsLeader() {
+		return c.UpdateConsensus(sp)
+	}
+
+	return nil
+}
+
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
 // values. It signs the resulting state using sk.
 func (c *ConsensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
