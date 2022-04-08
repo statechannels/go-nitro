@@ -248,7 +248,7 @@ func TestCrankAsAlice(t *testing.T) {
 }
 
 func TestCrankAsBob(t *testing.T) {
-	my := alice
+	my := bob
 	td := newTestData()
 	vPreFund := td.vPreFund
 	ledgers := td.ledgers
@@ -275,7 +275,7 @@ func TestCrankAsBob(t *testing.T) {
 
 	ok(t, err)
 	equals(t, waitingFor, WaitingForCompletePrefund)
-	assertStateSentTo(t, effects, expectedSignedState, bob)
+	assertStateSentTo(t, effects, expectedSignedState, alice)
 	assertStateSentTo(t, effects, expectedSignedState, p1)
 
 	// Manually progress the extended state by collecting prefund signatures
@@ -286,7 +286,7 @@ func TestCrankAsBob(t *testing.T) {
 	oObj, effects, waitingFor, err = o.Crank(&my.privateKey)
 	o = oObj.(*Objective)
 
-	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
+	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p}
 	assertProposalSent(t, effects, sp, p1)
 	ok(t, err)
@@ -300,9 +300,9 @@ func TestCrankAsBob(t *testing.T) {
 	equals(t, effects, emptySideEffects)
 	equals(t, waitingFor, WaitingForCompleteFunding)
 
-	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
+	// If Bob had received a signed counterproposal, she should proceed to postFundSetup
 	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.destination, p1.destination)
-	o.ToMyRight.Channel = prepareConsensusChannel(my.role, alice, p1, guaranteeFundingV)
+	o.ToMyLeft.Channel = prepareConsensusChannel(my.role, p1, bob, guaranteeFundingV)
 
 	oObj, effects, waitingFor, err = o.Crank(&my.privateKey)
 	o = oObj.(*Objective)
