@@ -103,7 +103,9 @@ func TestConsensusChannel(t *testing.T) {
 		largeProposal := proposal
 		leftAmount := big.NewInt(0).Set(vars.Outcome.left.amount)
 		largeProposal.amount = leftAmount.Add(leftAmount, big.NewInt(1))
+		largeProposal.LeftDeposit = largeProposal.amount
 		err = vars.Add(largeProposal)
+
 		if !errors.Is(err, ErrInsufficientFunds) {
 			t.Fatalf("expected error when adding too large a guarantee: %v", err)
 		}

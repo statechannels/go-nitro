@@ -534,7 +534,11 @@ func (vars *Vars) Add(p Add) error {
 		return ErrInvalidDeposit
 	}
 
-	if types.Gt(p.amount, o.left.amount) {
+	if types.Gt(p.LeftDeposit, o.left.amount) {
+		return ErrInsufficientFunds
+	}
+
+	if types.Gt(p.RightDeposit(), o.right.amount) {
 		return ErrInsufficientFunds
 	}
 
