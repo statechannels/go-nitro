@@ -144,7 +144,7 @@ func TestClone(t *testing.T) {
 }
 
 // assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
-func assertSideEffectsContainsMessageWith (ses protocols.SideEffects, expectedSignedState state.SignedState, to actor, t *testing.T) {
+func assertSideEffectsContainsMessageWith(ses protocols.SideEffects, expectedSignedState state.SignedState, to actor, t *testing.T) {
 	for _, msg := range ses.MessagesToSend {
 		for _, ss := range msg.SignedStates {
 			if reflect.DeepEqual(ss, expectedSignedState) && bytes.Equal(msg.To[:], to.address[:]) {
@@ -157,17 +157,13 @@ func assertSideEffectsContainsMessageWith (ses protocols.SideEffects, expectedSi
 
 // assertSideEffectsContainsMessageWith calls assertSideEffectsContainsMessageWith for all peers of the actor with role myRole.
 func assertSideEffectsContainsMessagesForPeersWith(ses protocols.SideEffects, expectedSignedState state.SignedState, myRole uint, t *testing.T) {
-	if myRole != alice.role {
-		assertSideEffectsContainsMessageWith(ses, expectedSignedState, alice, t)
-	}
-	if myRole != p1.role {
-		assertSideEffectsContainsMessageWith(ses, expectedSignedState, p1, t)
-	}
-	if myRole != bob.role {
-		assertSideEffectsContainsMessageWith(ses, expectedSignedState, bob, t)
+	for _, peer := range allActors {
+		if peer.role == myRole {
+			break
+		}
+		assertSideEffectsContainsMessageWith(ses, expectedSignedState, peer, t)
 	}
 }
-
 
 func collectPeerSignaturesOnSetupState(V *channel.SingleHopVirtualChannel, myRole uint, prefund bool) {
 	var state state.State
@@ -284,5 +280,10 @@ func testCrank(t *testing.T, my actor) {
 	if waitingFor != WaitingForNothing {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
 	}
+}
 
+func TestCrank(t *testing.T) {
+	for _, a := range allActors {
+		testCrank(t, a)
+	}
 }
