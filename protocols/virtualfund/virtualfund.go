@@ -561,8 +561,7 @@ func (c *Connection) expectedProposal() consensus_channel.Proposal {
 		leftAmount = val
 		break
 	}
-	WRONG_ID := types.Destination{} // TODO: Why does NewAddProposal require a channel id?
-	proposal := consensus_channel.NewAddProposal(WRONG_ID, 0, g, leftAmount)
+	proposal := consensus_channel.NewAddProposal(c.Channel.Id, 0, g, leftAmount)
 
 	return proposal
 }
