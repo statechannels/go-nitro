@@ -196,7 +196,7 @@ func TestCrankAsAlice(t *testing.T) {
 	// need to remember to convert the result back to a virtualfund.Objective struct
 
 	// Initial Crank
-	oObj, got, waitingFor, err := o.Crank(&my.privateKey)
+	oObj, effects, waitingFor, err := o.Crank(&my.privateKey)
 	o = oObj.(*Objective)
 
 	expectedSignedState := state.NewSignedState(o.V.PreFundState())
@@ -205,30 +205,36 @@ func TestCrankAsAlice(t *testing.T) {
 
 	ok(t, err)
 	equals(t, waitingFor, WaitingForCompletePrefund)
-	assertStateSentTo(t, got, expectedSignedState, bob)
-	assertStateSentTo(t, got, expectedSignedState, p1)
+	assertStateSentTo(t, effects, expectedSignedState, bob)
+	assertStateSentTo(t, effects, expectedSignedState, p1)
 
 	// Manually progress the extended state by collecting prefund signatures
 	collectPeerSignaturesOnSetupState(o.V, my.role, true)
 
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	// TODO: Check that ledger channel is updated as expected
-	oObj, got, waitingFor, err = o.Crank(&my.privateKey)
+	oObj, effects, waitingFor, err = o.Crank(&my.privateKey)
 	o = oObj.(*Objective)
 
 	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p}
-	assertProposalSent(t, got, sp, p1)
+	assertProposalSent(t, effects, sp, p1)
 	ok(t, err)
 	equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// Check idempotency
 	emptySideEffects := protocols.SideEffects{}
-	oObj, got, waitingFor, err = o.Crank(&my.privateKey)
+	oObj, effects, waitingFor, err = o.Crank(&my.privateKey)
 	o = oObj.(*Objective)
 	ok(t, err)
-	equals(t, got, emptySideEffects)
+	equals(t, effects, emptySideEffects)
 	equals(t, waitingFor, WaitingForCompleteFunding)
+
+	// When Alice receives a countersigned proposal, she should proceed to postFundSetup
+
+	ledgers["p1"].left.Receive()
+
+	o.Update(event)
 }
 
 // Copied from https://github.com/benbjohnson/testing
