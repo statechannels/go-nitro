@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -303,15 +304,34 @@ func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 
 // assertMessageSentTo asserts that ses contains a message
 func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to actor) {
+	_, file, line, _ := runtime.Caller(1)
 	for _, msg := range ses.MessagesToSend {
 		for _, ss := range msg.SignedStates {
-			if reflect.DeepEqual(ss, expected) && bytes.Equal(msg.To[:], to.address[:]) {
+			correctAddress := bytes.Equal(msg.To[:], to.address[:])
+
+			if correctAddress {
+				diff := compareStates(ss, expected)
+				if diff == "" {
 				return
+				}
+
+				fmt.Printf("\033[31m%s:%d:\n\n\tincorrect state\n\ndiff: %v", filepath.Base(file), line, diff)
+				t.FailNow()
 			}
 		}
 	}
 
-	_, file, line, _ := runtime.Caller(1)
 	fmt.Printf(makeRed+"%s:%d:\n\n\tside effects do not incude signed state"+makeBlack, filepath.Base(file), line)
 	t.FailNow()
+}
+
+func compareStates(a, b state.SignedState) string {
+	return cmp.Diff(&a, &b,
+		cmp.AllowUnexported(
+			big.Int{},
+			state.SignedState{},
+			state.Signature{},
+			state.State{},
+		),
+	)
 }
