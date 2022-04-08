@@ -3,12 +3,12 @@ package virtualdefund
 import (
 	"errors"
 	"fmt"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
 )
 
 const (
@@ -22,10 +22,10 @@ type Objective struct {
 	Status protocols.ObjectiveStatus
 
 	// InitialOutcome is the initial outcome of the virtual channel
-	InitialOutcome outcome.Exit
+	InitialOutcome outcome.SingleAssetExit
 
 	// PaidToBob is the amount that should be paid from Alice (participant 0) to Bob (participant 2)
-	PaidToBob types.Funds
+	PaidToBob *big.Int
 
 	// VFixed is the fixed channel information for the virtual channel
 	VFixed state.FixedPart
@@ -49,18 +49,16 @@ const ObjectivePrefix = "VirtualDefund-"
 
 // finalState returns the final state for the virtual channel
 func (o Objective) finalState() state.State {
-	vp := state.VariablePart{Outcome: o.finalOutcome(), TurnNum: 3, IsFinal: true}
+	vp := state.VariablePart{Outcome: outcome.Exit{o.finalOutcome()}, TurnNum: 3, IsFinal: true}
 	return state.StateFromFixedAndVariablePart(o.VFixed, vp)
 }
 
 // finalOutcome returns the outcome for the final state calculated from the InitialOutcome and PaidToBob
-func (o Objective) finalOutcome() outcome.Exit {
+func (o Objective) finalOutcome() outcome.SingleAssetExit {
 	finalOutcome := o.InitialOutcome.Clone()
-	for _, exit := range finalOutcome {
-		paid := o.PaidToBob[exit.Asset]
-		exit.Allocations[0].Amount.Sub(exit.Allocations[0].Amount, paid)
-		exit.Allocations[1].Amount.Add(exit.Allocations[1].Amount, paid)
-	}
+
+	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.PaidToBob)
+	finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.PaidToBob)
 
 	return finalOutcome
 }
@@ -108,7 +106,7 @@ func (o *Objective) clone() Objective {
 
 	clone.VFixed = o.VFixed.Clone()
 	clone.InitialOutcome = o.InitialOutcome.Clone()
-	clone.PaidToBob = o.PaidToBob.Clone()
+	clone.PaidToBob = big.NewInt(0).Set(o.PaidToBob)
 
 	clone.Signatures = [3]state.Signature{}
 	for i, s := range o.Signatures {

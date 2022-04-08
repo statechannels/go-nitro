@@ -3,12 +3,12 @@ package virtualdefund
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
 )
 
 // jsonObjective replaces the virtualfund Objective's channel pointers
@@ -16,9 +16,9 @@ import (
 type jsonObjective struct {
 	Status         protocols.ObjectiveStatus
 	VFixed         state.FixedPart
-	InitialOutcome outcome.Exit
+	InitialOutcome outcome.SingleAssetExit
 	Signatures     [3]state.Signature
-	PaidToBob      types.Funds
+	PaidToBob      *big.Int
 	ToMyLeft       []byte
 	ToMyRight      []byte
 
