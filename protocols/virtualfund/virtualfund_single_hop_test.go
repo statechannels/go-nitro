@@ -233,11 +233,18 @@ func TestCrankAsAlice(t *testing.T) {
 
 // Copied from https://github.com/benbjohnson/testing
 
+// makeRed sets the colour to red when printed
+const makeRed = "\033[31m"
+
+// makeBlack sets the colour to black when printed.
+// as it is intended to be used at the end of a string, it also adds two linebreaks
+const makeBlack = "\033[39m\n\n"
+
 // assert fails the test if the condition is false.
 func assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
 	if !condition {
 		_, file, line, _ := runtime.Caller(1)
-		fmt.Printf("\033[31m%s:%d: "+msg+"\033[39m\n\n", append([]interface{}{filepath.Base(file), line}, v...)...)
+		fmt.Printf(makeRed+"%s:%d: "+msg+makeBlack, append([]interface{}{filepath.Base(file), line}, v...)...)
 		tb.FailNow()
 	}
 }
@@ -246,7 +253,7 @@ func assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
 func ok(tb testing.TB, err error) {
 	if err != nil {
 		_, file, line, _ := runtime.Caller(1)
-		fmt.Printf("\033[31m%s:%d: unexpected error: %s\033[39m\n\n", filepath.Base(file), line, err.Error())
+		fmt.Printf(makeRed+"%s:%d: unexpected error: %s"+makeBlack, filepath.Base(file), line, err.Error())
 		tb.FailNow()
 	}
 }
@@ -255,7 +262,7 @@ func ok(tb testing.TB, err error) {
 func equals(tb testing.TB, exp, act interface{}) {
 	if !reflect.DeepEqual(exp, act) {
 		_, file, line, _ := runtime.Caller(1)
-		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, exp, act)
+		fmt.Printf(makeRed+"%s:%d:\n\n\texp: %#v\n\n\tgot: %#v"+makeBlack, filepath.Base(file), line, exp, act)
 		tb.FailNow()
 	}
 }
@@ -266,11 +273,11 @@ func equals(tb testing.TB, exp, act interface{}) {
 func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to actor) {
 	_, file, line, _ := runtime.Caller(1)
 	if len(ses.MessagesToSend) != 1 {
-		fmt.Printf("\033[31m%s:%d:\n\n\texpected one message", filepath.Base(file), line)
+		fmt.Printf(makeRed+"%s:%d:\n\n\texpected one message"+makeBlack, filepath.Base(file), line)
 		t.FailNow()
 	}
 	if len(ses.MessagesToSend[0].SignedProposals) != 1 {
-		fmt.Printf("\033[31m%s:%d:\n\n\texpected one signed proposal", filepath.Base(file), line)
+		fmt.Printf(makeRed+"%s:%d:\n\n\texpected one signed proposal"+makeBlack, filepath.Base(file), line)
 		t.FailNow()
 	}
 
@@ -278,12 +285,12 @@ func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 	sent := msg.SignedProposals[0]
 
 	if !reflect.DeepEqual(sent.Proposal, sp.Proposal) {
-		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, sent.Proposal, sp.Proposal)
+		fmt.Printf(makeRed+"%s:%d:\n\n\texp: %+v\n\n\tgot: %+v"+makeBlack, filepath.Base(file), line, sent.Proposal, sp.Proposal)
 		t.FailNow()
 	}
 
 	if !bytes.Equal(msg.To[:], to.address[:]) {
-		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, msg.To.String(), to.address.String())
+		fmt.Printf(makeRed+"%s:%d:\n\n\texp: %#v\n\n\tgot: %#v"+makeBlack, filepath.Base(file), line, msg.To.String(), to.address.String())
 		t.FailNow()
 	}
 }
@@ -299,6 +306,6 @@ func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.S
 	}
 
 	_, file, line, _ := runtime.Caller(1)
-	fmt.Printf("\033[31m%s:%d:\n\n\tside effects do not incude signed state", filepath.Base(file), line)
+	fmt.Printf(makeRed+"%s:%d:\n\n\tside effects do not incude signed state"+makeBlack, filepath.Base(file), line)
 	t.FailNow()
 }
