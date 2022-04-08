@@ -2,12 +2,14 @@
 pragma solidity 0.7.4;
 pragma experimental ABIEncoderV2;
 
+import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
+
 /**
  * @dev The IForceMoveApp interface calls for its children to implement an application-specific validTransition function, defining the state machine of a ForceMove state channel DApp.
  */
 interface IForceMoveApp {
     struct VariablePart {
-        bytes outcome;
+        Outcome.SingleAssetExit[] outcome;
         bytes appData;
     }
 

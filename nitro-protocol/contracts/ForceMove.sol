@@ -105,7 +105,7 @@ contract ForceMove is IForceMove, StatusManager {
                 largestTurnNum,
                 uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
                 supportedStateHash,
-                keccak256(variableParts[variableParts.length - 1].outcome)
+                keccak256(Outcome.encodeExit(variableParts[variableParts.length - 1].outcome))
             )
         );
     }
@@ -134,7 +134,7 @@ contract ForceMove is IForceMove, StatusManager {
         bytes32 challengeStateHash = _hashState(
             channelId,
             variablePartAB[0].appData,
-            variablePartAB[0].outcome,
+            Outcome.encodeExit(variablePartAB[0].outcome),
             turnNumRecord,
             isFinalAB[0]
         );
@@ -142,14 +142,14 @@ contract ForceMove is IForceMove, StatusManager {
         bytes32 responseStateHash = _hashState(
             channelId,
             variablePartAB[1].appData,
-            variablePartAB[1].outcome,
+            Outcome.encodeExit(variablePartAB[1].outcome),
             turnNumRecord + 1,
             isFinalAB[1]
         );
 
         // checks
 
-        bytes32 challengeOutcomeHash = keccak256(variablePartAB[0].outcome);
+        bytes32 challengeOutcomeHash = keccak256(Outcome.encodeExit(variablePartAB[0].outcome));
 
         _requireSpecificChallenge(
             ChannelData(turnNumRecord, finalizesAt, challengeStateHash, challengeOutcomeHash),
@@ -542,7 +542,7 @@ contract ForceMove is IForceMove, StatusManager {
             stateHashes[i] = _hashState(
                 channelId,
                 variableParts[i].appData,
-                variableParts[i].outcome,
+                Outcome.encodeExit(variableParts[i].outcome),
                 turnNum,
                 turnNum >= firstFinalTurnNum
             );
@@ -581,11 +581,11 @@ contract ForceMove is IForceMove, StatusManager {
         // chainId, participants, channelNonce, appDefinition, challengeDuration
         // and that the b.turnNum = a.turnNum + 1
         if (isFinalAB[1]) {
-            require(_bytesEqual(ab[1].outcome, ab[0].outcome), 'Outcome change verboten');
+            require(Outcome.exitsEqual(ab[1].outcome, ab[0].outcome), 'Outcome change verboten');
         } else {
             require(!isFinalAB[0], 'isFinal retrograde');
             if (turnNumB < 2 * nParticipants) {
-                require(_bytesEqual(ab[1].outcome, ab[0].outcome), 'Outcome change forbidden');
+                require(Outcome.exitsEqual(ab[1].outcome, ab[0].outcome), 'Outcome change forbidden');
                 require(_bytesEqual(ab[1].appData, ab[0].appData), 'appData change forbidden');
             } else {
                 return IsValidTransition.NeedToCheckApp;
