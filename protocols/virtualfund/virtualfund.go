@@ -98,6 +98,11 @@ func (c *Connection) Funded() bool {
 // getExpectedGuarantee returns a map of asset addresses to guarantees for a Connection.
 func (c *Connection) getExpectedGuarantee() consensus_channel.Guarantee {
 	amountFunds := c.GuaranteeInfo.LeftAmount.Add(c.GuaranteeInfo.RightAmount)
+
+	//HACK: GuaranteeInfo stores amounts as types.Funds.
+	// We only expect a single asset type, and we want to know how much is to be
+	// diverted for that asset type.
+	// So, we loop through amountFunds and break after the first asset type ...
 	var amount *big.Int
 	for _, val := range amountFunds {
 		amount = val
