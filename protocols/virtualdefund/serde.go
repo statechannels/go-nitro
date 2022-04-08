@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -13,11 +14,13 @@ import (
 // jsonObjective replaces the virtualfund Objective's channel pointers
 // with the channel's respective IDs, making jsonObjective suitable for serialization
 type jsonObjective struct {
-	Status protocols.ObjectiveStatus
-	V      types.Destination
-
-	ToMyLeft  []byte
-	ToMyRight []byte
+	Status         protocols.ObjectiveStatus
+	VFixed         state.FixedPart
+	InitialOutcome outcome.Exit
+	Signatures     [3]state.Signature
+	PaidToBob      types.Funds
+	ToMyLeft       []byte
+	ToMyRight      []byte
 
 	MyRole uint
 }
@@ -49,12 +52,14 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 	}
 
 	jsonVFO := jsonObjective{
-		o.Status,
-		o.V.Id,
-		left,
-		right,
-
-		o.MyRole,
+		Status:         o.Status,
+		VFixed:         o.VFixed,
+		Signatures:     o.Signatures,
+		PaidToBob:      o.PaidToBob,
+		InitialOutcome: o.InitialOutcome,
+		ToMyLeft:       left,
+		ToMyRight:      right,
+		MyRole:         o.MyRole,
 	}
 	return json.Marshal(jsonVFO)
 }
@@ -71,9 +76,6 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("failed to unmarshal the VirtualDefundObjective: %w", err)
 	}
 
-	o.V = &channel.SingleHopVirtualChannel{}
-	o.V.Id = jsonVFO.V
-
 	o.ToMyLeft = &consensus_channel.ConsensusChannel{}
 	o.ToMyRight = &consensus_channel.ConsensusChannel{}
 	if err := o.ToMyLeft.UnmarshalJSON(jsonVFO.ToMyLeft); err != nil {
@@ -86,6 +88,10 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.Status = jsonVFO.Status
 
 	o.MyRole = jsonVFO.MyRole
+	o.Signatures = jsonVFO.Signatures
+	o.InitialOutcome = jsonVFO.InitialOutcome
+	o.VFixed = jsonVFO.VFixed
+	o.PaidToBob = jsonVFO.PaidToBob
 
 	return nil
 }
