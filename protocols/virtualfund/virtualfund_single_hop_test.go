@@ -287,7 +287,6 @@ func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 	}
 }
 
-
 // assertMessageSentTo asserts that ses contains a message
 func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to actor) {
 	for _, msg := range ses.MessagesToSend {
