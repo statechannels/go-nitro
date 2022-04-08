@@ -183,7 +183,76 @@ func TestCrankAsAlice(t *testing.T) {
 	td := newTestData()
 	vPreFund := td.vPreFund
 	ledgers := td.ledgers
-	var s, _ = constructFromState(false, vPreFund, my.address, ledgers[my.destination].left, ledgers[my.destination].right) // todo: #420 deprecate TwoPartyLedgers
+	var s, _ = constructFromState(false, vPreFund, my.address, ledgers[my.destination].left, ledgers[my.destination].right)
+	// Assert that cranking an unapproved objective returns an error
+	_, _, _, err := s.Crank(&my.privateKey)
+	assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
+
+	// Approve the objective, so that the rest of the test cases can run.
+	o := s.Approve().(*Objective)
+
+	// To test the finite state progression, we are going to progressively mutate o
+	// And then crank it to see which "pause point" (WaitingFor) we end up at.
+	// NOTE: Because crank returns a protocools.Objective interface, after each crank we
+	// need to remember to convert the result back to a virtualfund.Objective struct
+
+	// Initial Crank
+	oObj, effects, waitingFor, err := o.Crank(&my.privateKey)
+	o = oObj.(*Objective)
+
+	expectedSignedState := state.NewSignedState(o.V.PreFundState())
+	mySig, _ := o.V.PreFundState().Sign(my.privateKey)
+	_ = expectedSignedState.AddSignature(mySig)
+
+	ok(t, err)
+	equals(t, waitingFor, WaitingForCompletePrefund)
+	assertStateSentTo(t, effects, expectedSignedState, bob)
+	assertStateSentTo(t, effects, expectedSignedState, p1)
+
+	// Manually progress the extended state by collecting prefund signatures
+	collectPeerSignaturesOnSetupState(o.V, my.role, true)
+
+	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
+	// TODO: Check that ledger channel is updated as expected
+	oObj, effects, waitingFor, err = o.Crank(&my.privateKey)
+	o = oObj.(*Objective)
+
+	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
+	sp := consensus_channel.SignedProposal{Proposal: p}
+	assertProposalSent(t, effects, sp, p1)
+	ok(t, err)
+	equals(t, waitingFor, WaitingForCompleteFunding)
+
+	// Check idempotency
+	emptySideEffects := protocols.SideEffects{}
+	oObj, effects, waitingFor, err = o.Crank(&my.privateKey)
+	o = oObj.(*Objective)
+	ok(t, err)
+	equals(t, effects, emptySideEffects)
+	equals(t, waitingFor, WaitingForCompleteFunding)
+
+	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
+	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.destination, p1.destination)
+	o.ToMyRight.Channel = prepareConsensusChannel(my.role, alice, p1, guaranteeFundingV)
+
+	oObj, effects, waitingFor, err = o.Crank(&my.privateKey)
+	o = oObj.(*Objective)
+
+	postFS := state.NewSignedState(o.V.PostFundState())
+	mySig, _ = postFS.State().Sign(my.privateKey)
+	_ = postFS.AddSignature(mySig)
+
+	ok(t, err)
+	equals(t, waitingFor, WaitingForCompletePostFund)
+	assertStateSentTo(t, effects, postFS, bob)
+}
+
+func TestCrankAsBob(t *testing.T) {
+	my := alice
+	td := newTestData()
+	vPreFund := td.vPreFund
+	ledgers := td.ledgers
+	var s, _ = constructFromState(false, vPreFund, my.address, ledgers[my.destination].left, ledgers[my.destination].right)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.privateKey)
 	assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
