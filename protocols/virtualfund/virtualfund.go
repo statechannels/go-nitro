@@ -582,8 +582,8 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 		return protocols.SideEffects{}, err
 	}
 
-	messages := protocols.CreateSignedProposalMessages(o.Id(), signedProposal, uint(ledger.MyIndex))
-	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+	message := o.createSignedProposalMessage(signedProposal, connection.Channel)
+	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	return sideEffects, nil
 }
@@ -600,10 +600,21 @@ func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.Side
 	var signedProposal consensus_channel.SignedProposal
 
 	sideEffects := protocols.SideEffects{}
-	messages := protocols.CreateSignedProposalMessages(o.Id(), signedProposal, uint(ledger.MyIndex))
-	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+	message := o.createSignedProposalMessage(signedProposal, c.Channel)
+	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 	return sideEffects, nil
+}
 
+func (o *Objective) createSignedProposalMessage(sp consensus_channel.SignedProposal, ledger *consensus_channel.ConsensusChannel) protocols.Message {
+	recipient := ledger.Leader()
+	if ledger.IsLeader() {
+		recipient = ledger.Follower()
+	}
+	return protocols.Message{
+		To:              recipient,
+		ObjectiveId:     o.Id(),
+		SignedProposals: []consensus_channel.SignedProposal{sp},
+	}
 }
 
 // updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
