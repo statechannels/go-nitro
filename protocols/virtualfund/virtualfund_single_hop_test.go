@@ -131,7 +131,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func testClone(my actor) Tester {
+func testCloneAs(my actor) Tester {
 	return func(t *testing.T) {
 		td := newTestData()
 		vPreFund := td.vPreFund
@@ -151,7 +151,7 @@ func testClone(my actor) Tester {
 func TestClone(t *testing.T) {
 	for _, a := range allActors {
 		msg := fmt.Sprintf("Testing clone as %v", a.name)
-		t.Run(msg, testClone(a))
+		t.Run(msg, testCloneAs(a))
 	}
 }
 
