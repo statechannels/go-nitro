@@ -500,7 +500,7 @@ func TestRestrictedFollowerMethods(t *testing.T) {
 
 	channel, _ := NewLeaderChannel(fp(), 0, ledgerOutcome(), sigs)
 
-	if err := channel.SignNextProposal(Proposal{}, alice.PrivateKey); err != ErrNotFollower {
+	if _, err := channel.SignNextProposal(Proposal{}, alice.PrivateKey); err != ErrNotFollower {
 		t.Errorf("Expected error when calling SignNextProposal as a leader, but found none")
 	}
 

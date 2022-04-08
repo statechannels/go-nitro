@@ -80,7 +80,6 @@ func ledgerOutcome() LedgerOutcome {
 		allocation(bob, bBal),
 		guarantee(vAmount, channel1Id, alice, bob),
 	)
-
 }
 
 func add(turnNum, amount uint64, vId types.Destination, left, right actor) Add {

@@ -22,23 +22,23 @@ func NewFollowerChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcom
 // SignNextProposal is called by the follower and inspects whether the
 // expected proposal matches the first proposal in the queue. If so,
 // the proposal is removed from the queue and integrated into the channel state.
-func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte) error {
+func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte) (SignedProposal, error) {
 	if c.MyIndex != Follower {
-		return ErrNotFollower
+		return SignedProposal{}, ErrNotFollower
 	}
 
 	if err := c.validateProposalID(expectedProposal); err != nil {
-		return err
+		return SignedProposal{}, err
 	}
 
 	if len(c.proposalQueue) == 0 {
-		return ErrNoProposals
+		return SignedProposal{}, ErrNoProposals
 	}
 
 	p := c.proposalQueue[0].Proposal
 
 	if !p.equal(&expectedProposal) {
-		return ErrNonMatchingProposals
+		return SignedProposal{}, ErrNonMatchingProposals
 	}
 
 	// vars are cloned and modified instead of modified in place to simplify recovering from error
@@ -48,21 +48,22 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 	}
 	err := vars.HandleProposal(p)
 	if err != nil {
-		return err
+		return SignedProposal{}, err
 	}
 
 	signature, err := c.sign(vars, sk)
 	if err != nil {
-		return fmt.Errorf("unable to sign state update: %f", err)
+		return SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
 	}
 
+	signed := c.proposalQueue[0]
 	c.current = SignedVars{
 		Vars:       vars,
-		Signatures: [2]state.Signature{c.proposalQueue[0].Signature, signature},
+		Signatures: [2]state.Signature{signed.Signature, signature},
 	}
 	c.proposalQueue = c.proposalQueue[1:]
 
-	return nil
+	return SignedProposal{signature, signed.Proposal}, nil
 }
 
 // Receive is called by the follower to validate a proposal from the leader and add it to the proposal queue
