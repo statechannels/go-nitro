@@ -10,8 +10,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// Virtual Channel
-
 type actorLedgers struct {
 	left  *consensus_channel.ConsensusChannel
 	right *consensus_channel.ConsensusChannel
