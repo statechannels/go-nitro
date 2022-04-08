@@ -196,106 +196,107 @@ func collectPeerSignaturesOnSetupState(V *channel.SingleHopVirtualChannel, myRol
 	}
 }
 
-func TestCrank(t *testing.T) {
+func TestCrankAsAlice(t *testing.T) {
+	my := alice
+	td := newTestData()
+	vPreFund := td.vPreFund
+	ledgers := td.ledgers
+	var s, _ = constructFromState(false, vPreFund, my.address, ledgers[my.destination].left, ledgers[my.destination].right) // todo: #420 deprecate TwoPartyLedgers
+	// Assert that cranking an unapproved objective returns an error
+	if _, _, _, err := s.Crank(&my.privateKey); err == nil {
+		t.Fatal(`Expected error when cranking unapproved objective, but got nil`)
+	}
+
+	// Approve the objective, so that the rest of the test cases can run.
+	o := s.Approve().(*Objective)
+	// To test the finite state progression, we are going to progressively mutate o
+	// And then crank it to see which "pause point" (WaitingFor) we end up at.
+
+	// Initial Crank
+	oObj, got, waitingFor, err := o.Crank(&my.privateKey)
+	o = oObj.(*Objective)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if waitingFor != WaitingForCompletePrefund {
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
+	}
+
+	expectedSignedState := state.NewSignedState(o.V.PreFundState())
+	mySig, _ := o.V.PreFundState().Sign(my.privateKey)
+	_ = expectedSignedState.AddSignature(mySig)
+	assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.role, t)
+
+	// Manually progress the extended state by collecting prefund signatures
+	collectPeerSignaturesOnSetupState(o.V, my.role, true)
+
+	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
+	// TODO: Check that ledger channel is updated as expected
+	oObj, got, waitingFor, err = o.Crank(&my.privateKey)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if waitingFor != WaitingForCompleteFunding {
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
+	}
+
+	o = oObj.(*Objective)
+
+	// ...
+
+	// Cranking now should not generate side effects, because we already did that
+	oObj, got, waitingFor, err = o.Crank(&my.privateKey)
+	o = oObj.(*Objective)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if waitingFor != WaitingForCompletePostFund {
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
+	}
+
+	// Check that the messsages contain the expected ledger acceptances
+	// We only expect an acceptance in the left ledger channel as we will be the follower in that ledger channel
+	switch my.role {
+	case 1:
+		{
+			// supported, _ := o.ToMyLeft.Channel.LatestSupportedState()
+			// expectedSignedState := state.NewSignedState(supported)
+			// _ = expectedSignedState.Sign(&my.privateKey)
+
+			assertSideEffectsContainsMessageWith(got, expectedSignedState, alice, t)
+
+		}
+	case 2:
+		{
+			// supported, _ := o.ToMyLeft.Channel.LatestSupportedState()
+			// expectedSignedState := state.NewSignedState(supported)
+			// _ = expectedSignedState.Sign(&my.privateKey)
+
+			assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
+		}
+	}
+
+	expectedSignedState = state.NewSignedState(o.V.PostFundState())
+	mySig, _ = o.V.PostFundState().Sign(my.privateKey)
+	_ = expectedSignedState.AddSignature(mySig)
+	assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.role, t)
+
+	// Manually progress the extended state by collecting postfund signatures
+	collectPeerSignaturesOnSetupState(o.V, my.role, false)
+
+	// This should be the final crank...
+	_, _, waitingFor, err = o.Crank(&my.privateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if waitingFor != WaitingForNothing {
+		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
+	}
+
 	testCrank := func(my actor) Tester {
 		return func(t *testing.T) {
-			td := newTestData()
-			vPreFund := td.vPreFund
-			ledgers := td.ledgers
-			var s, _ = constructFromState(false, vPreFund, my.address, ledgers[my.destination].left, ledgers[my.destination].right) // todo: #420 deprecate TwoPartyLedgers
-			// Assert that cranking an unapproved objective returns an error
-			if _, _, _, err := s.Crank(&my.privateKey); err == nil {
-				t.Fatal(`Expected error when cranking unapproved objective, but got nil`)
-			}
-
-			// Approve the objective, so that the rest of the test cases can run.
-			o := s.Approve().(*Objective)
-			// To test the finite state progression, we are going to progressively mutate o
-			// And then crank it to see which "pause point" (WaitingFor) we end up at.
-
-			// Initial Crank
-			oObj, got, waitingFor, err := o.Crank(&my.privateKey)
-			o = oObj.(*Objective)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if waitingFor != WaitingForCompletePrefund {
-				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
-			}
-
-			expectedSignedState := state.NewSignedState(o.V.PreFundState())
-			mySig, _ := o.V.PreFundState().Sign(my.privateKey)
-			_ = expectedSignedState.AddSignature(mySig)
-			assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.role, t)
-
-			// Manually progress the extended state by collecting prefund signatures
-			collectPeerSignaturesOnSetupState(o.V, my.role, true)
-
-			// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
-			// TODO: Check that ledger channel is updated as expected
-			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
-
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if waitingFor != WaitingForCompleteFunding {
-				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
-			}
-
-			o = oObj.(*Objective)
-
-			// ...
-
-			// Cranking now should not generate side effects, because we already did that
-			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
-			o = oObj.(*Objective)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if waitingFor != WaitingForCompletePostFund {
-				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
-			}
-
-			// Check that the messsages contain the expected ledger acceptances
-			// We only expect an acceptance in the left ledger channel as we will be the follower in that ledger channel
-			switch my.role {
-			case 1:
-				{
-					// supported, _ := o.ToMyLeft.Channel.LatestSupportedState()
-					// expectedSignedState := state.NewSignedState(supported)
-					// _ = expectedSignedState.Sign(&my.privateKey)
-
-					assertSideEffectsContainsMessageWith(got, expectedSignedState, alice, t)
-
-				}
-			case 2:
-				{
-					// supported, _ := o.ToMyLeft.Channel.LatestSupportedState()
-					// expectedSignedState := state.NewSignedState(supported)
-					// _ = expectedSignedState.Sign(&my.privateKey)
-
-					assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
-				}
-			}
-
-			expectedSignedState = state.NewSignedState(o.V.PostFundState())
-			mySig, _ = o.V.PostFundState().Sign(my.privateKey)
-			_ = expectedSignedState.AddSignature(mySig)
-			assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.role, t)
-
-			// Manually progress the extended state by collecting postfund signatures
-			collectPeerSignaturesOnSetupState(o.V, my.role, false)
-
-			// This should be the final crank...
-			_, _, waitingFor, err = o.Crank(&my.privateKey)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if waitingFor != WaitingForNothing {
-				t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
-			}
-
 		}
 	}
 
