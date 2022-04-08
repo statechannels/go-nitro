@@ -606,6 +606,7 @@ func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.Side
 	return sideEffects, nil
 }
 
+// createSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
 func (o *Objective) createSignedProposalMessage(sp consensus_channel.SignedProposal, ledger *consensus_channel.ConsensusChannel) protocols.Message {
 	recipient := ledger.Leader()
 	if ledger.IsLeader() {
