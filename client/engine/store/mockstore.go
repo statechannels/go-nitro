@@ -75,6 +75,7 @@ func NewMockStore(key []byte) Store {
 	ms.objectives = syncMap[[]byte]{}
 	ms.channels = syncMap[[]byte]{}
 	ms.consensusChannels = syncMap[[]byte]{}
+	ms.channelToObjective = syncMap[string]{}
 
 	return &ms
 }
