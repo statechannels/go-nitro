@@ -113,10 +113,8 @@ func testNew(t *testing.T, a actor) {
 
 }
 
-var actors = []actor{alice, p1, bob}
-
 func TestNew(t *testing.T) {
-	for _, a := range actors {
+	for _, a := range allActors {
 		testNew(t, a)
 	}
 }
@@ -136,7 +134,7 @@ func testClone(t *testing.T, my actor) {
 }
 
 func TestClone(t *testing.T) {
-	for _, a := range actors {
+	for _, a := range allActors {
 		testClone(t, a)
 	}
 }
