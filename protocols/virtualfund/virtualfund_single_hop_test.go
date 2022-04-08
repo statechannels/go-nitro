@@ -152,28 +152,6 @@ func TestClone(t *testing.T) {
 	}
 }
 
-// assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
-func assertSideEffectsContainsMessageWith(ses protocols.SideEffects, expectedSignedState state.SignedState, to actor, t *testing.T) {
-	for _, msg := range ses.MessagesToSend {
-		for _, ss := range msg.SignedStates {
-			if reflect.DeepEqual(ss, expectedSignedState) && bytes.Equal(msg.To[:], to.address[:]) {
-				return
-			}
-		}
-	}
-	t.Fatalf("side effects %v do not contain signed state %v for %v", ses, expectedSignedState, to)
-}
-
-// assertSideEffectsContainsMessageWith calls assertSideEffectsContainsMessageWith for all peers of the actor with role myRole.
-func assertSideEffectsContainsMessagesForPeersWith(ses protocols.SideEffects, expectedSignedState state.SignedState, myRole uint, t *testing.T) {
-	for _, peer := range allActors {
-		if peer.role == myRole {
-			break
-		}
-		assertSideEffectsContainsMessageWith(ses, expectedSignedState, peer, t)
-	}
-}
-
 func collectPeerSignaturesOnSetupState(V *channel.SingleHopVirtualChannel, myRole uint, prefund bool) {
 	var state state.State
 	if prefund {
@@ -218,14 +196,16 @@ func TestCrankAsAlice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if waitingFor != WaitingForCompletePrefund {
-		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
+	if s := assertWaitingFor(WaitingForCompletePrefund, waitingFor); s != "" {
+		t.Fatalf(s)
 	}
 
 	expectedSignedState := state.NewSignedState(o.V.PreFundState())
 	mySig, _ := o.V.PreFundState().Sign(my.privateKey)
 	_ = expectedSignedState.AddSignature(mySig)
-	assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.role, t)
+	if s := assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.role); s != "" {
+		t.Fatal(s)
+	}
 
 	// Manually progress the extended state by collecting prefund signatures
 	collectPeerSignaturesOnSetupState(o.V, my.role, true)
@@ -234,75 +214,99 @@ func TestCrankAsAlice(t *testing.T) {
 	// TODO: Check that ledger channel is updated as expected
 	oObj, got, waitingFor, err = o.Crank(&my.privateKey)
 
+	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
+	sp := consensus_channel.SignedProposal{Proposal: p}
+	if s := assertProposalSent(got, sp, p1); s != "" {
+		t.Fatal(s)
+	}
+	if s := assertNilError(err); s != "" {
+		t.Fatal(s)
+	}
+	if s := assertWaitingFor(WaitingForCompleteFunding, waitingFor); s != "" {
+		t.Fatal(s)
+	}
+
+	// Check idempotency
+	_, got, waitingFor, err = oObj.Crank(&my.privateKey)
+	if s := assertNilError(err); s != "" {
+		t.Fatal(s)
+	}
+	if s := assertNoSideEffects(got); s != "" {
+		t.Fatal(s)
+	}
+	if s := assertWaitingFor(WaitingForCompleteFunding, waitingFor); s != "" {
+		t.Fatal(s)
+	}
+}
+
+func assertNilError(err error) string {
 	if err != nil {
-		t.Fatal(err)
+		return fmt.Sprintf("expected no err: %v", err)
 	}
 
-	if waitingFor != WaitingForCompleteFunding {
-		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
+	return ""
+}
+
+func assertWaitingFor(expected, got protocols.WaitingFor) string {
+	if got != expected {
+		return fmt.Sprintf(`WaitingFor: expected %v, got %v`, expected, got)
 	}
 
-	o = oObj.(*Objective)
+	return ""
+}
 
-	// ...
-
-	// Cranking now should not generate side effects, because we already did that
-	oObj, got, waitingFor, err = o.Crank(&my.privateKey)
-	o = oObj.(*Objective)
-	if err != nil {
-		t.Fatal(err)
+// assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
+func assertProposalSent(ses protocols.SideEffects, sp consensus_channel.SignedProposal, to actor) string {
+	if len(ses.MessagesToSend) != 1 {
+		return "expected one message"
 	}
-	if waitingFor != WaitingForCompletePostFund {
-		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePostFund, waitingFor)
+	if len(ses.MessagesToSend[0].SignedProposals) != 1 {
+		return "expected one signed proposal"
 	}
 
-	// Check that the messsages contain the expected ledger acceptances
-	// We only expect an acceptance in the left ledger channel as we will be the follower in that ledger channel
-	switch my.role {
-	case 1:
-		{
-			// supported, _ := o.ToMyLeft.Channel.LatestSupportedState()
-			// expectedSignedState := state.NewSignedState(supported)
-			// _ = expectedSignedState.Sign(&my.privateKey)
-
-			assertSideEffectsContainsMessageWith(got, expectedSignedState, alice, t)
-
-		}
-	case 2:
-		{
-			// supported, _ := o.ToMyLeft.Channel.LatestSupportedState()
-			// expectedSignedState := state.NewSignedState(supported)
-			// _ = expectedSignedState.Sign(&my.privateKey)
-
-			assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
-		}
+	msg := ses.MessagesToSend[0]
+	sent := msg.SignedProposals[0]
+	rightProp := reflect.DeepEqual(sent.Proposal, sp.Proposal)
+	rightAddress := bytes.Equal(msg.To[:], to.address[:])
+	if rightProp && rightAddress {
+		return ""
 	}
 
-	expectedSignedState = state.NewSignedState(o.V.PostFundState())
-	mySig, _ = o.V.PostFundState().Sign(my.privateKey)
-	_ = expectedSignedState.AddSignature(mySig)
-	assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.role, t)
+	return fmt.Sprintf("side effects contain wrong proposal for %v", to.name)
+}
 
-	// Manually progress the extended state by collecting postfund signatures
-	collectPeerSignaturesOnSetupState(o.V, my.role, false)
-
-	// This should be the final crank...
-	_, _, waitingFor, err = o.Crank(&my.privateKey)
-	if err != nil {
-		t.Fatal(err)
+func assertNoSideEffects(ses protocols.SideEffects) string {
+	if len(ses.MessagesToSend) != 0 {
+		return "expected no message"
 	}
-	if waitingFor != WaitingForNothing {
-		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForNothing, waitingFor)
+	if len(ses.TransactionsToSubmit) != 0 {
+		return "expected no transaction"
 	}
+	return ""
+}
 
-	testCrank := func(my actor) Tester {
-		return func(t *testing.T) {
+// assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
+func assertSideEffectsContainsMessageWith(ses protocols.SideEffects, expectedSignedState state.SignedState, to actor) string {
+	for _, msg := range ses.MessagesToSend {
+		for _, ss := range msg.SignedStates {
+			if reflect.DeepEqual(ss, expectedSignedState) && bytes.Equal(msg.To[:], to.address[:]) {
+				return ""
+			}
 		}
 	}
+	return fmt.Sprintf("side effects %v do not contain signed state %v for %v", ses, expectedSignedState, to)
+}
 
-	for _, a := range allActors {
-
-		msg := fmt.Sprintf("Testing crank as %v", a.name)
-		t.Run(msg, testCrank(a))
+// assertSideEffectsContainsMessageWith calls assertSideEffectsContainsMessageWith for all peers of the actor with role myRole.
+func assertSideEffectsContainsMessagesForPeersWith(ses protocols.SideEffects, expectedSignedState state.SignedState, myRole uint) string {
+	for _, peer := range allActors {
+		if peer.role == myRole {
+			break
+		}
+		s := assertSideEffectsContainsMessageWith(ses, expectedSignedState, peer)
+		if s != "" {
+			return s
+		}
 	}
+	return ""
 }
