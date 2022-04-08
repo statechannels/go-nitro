@@ -41,7 +41,6 @@ var bob = actor{
 	role:        2,
 }
 
-
 func prepareConsensusChannel(role uint, left, right actor) *consensus_channel.ConsensusChannel {
 	fp := state.FixedPart{
 		ChainId:           big.NewInt(9001),

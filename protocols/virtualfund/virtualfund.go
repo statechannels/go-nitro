@@ -342,17 +342,6 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	return &updated, nil
 }
 
-// sanityCheck asserts that v and s are equivalent, by checking their TurnNum and Outcome
-// todo 420: DELETE ME
-func sanityCheck(v consensus_channel.Vars, s state.State) {
-	if !s.Outcome.Equal(v.Outcome.AsOutcome()) {
-		panic("supported outcome differs")
-	}
-	if s.TurnNum != v.TurnNum {
-		panic("wrong turn number")
-	}
-}
-
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all.

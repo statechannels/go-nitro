@@ -42,7 +42,7 @@ func TestSetGetObjective(t *testing.T) {
 	wants := []protocols.Objective{}
 	dfo := td.Objectives.Directfund.GenericDFO()
 	// todo: #420 unskip
-	// vfo := td.Objectives.Virtualfund.GenericVFO() 
+	// vfo := td.Objectives.Virtualfund.GenericVFO()
 	wants = append(wants, &dfo)
 	// wants = append(wants, &vfo)
 
