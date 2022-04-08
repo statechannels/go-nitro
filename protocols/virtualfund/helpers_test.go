@@ -47,7 +47,11 @@ var bob = actor{
 
 var allActors = []actor{alice, p1, bob}
 
-func prepareConsensusChannel(role uint, left, right actor) *consensus_channel.ConsensusChannel {
+// prepareConsensusChannel prepares a consensus channel with a consensus outcome
+//  - allocating 6 to left
+//  - allocating 4 to right
+//  - including the given guarantees
+func prepareConsensusChannel(role uint, left, right actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
 	fp := state.FixedPart{
 		ChainId:           big.NewInt(9001),
 		Participants:      []types.Address{left.address, right.address},
@@ -59,7 +63,7 @@ func prepareConsensusChannel(role uint, left, right actor) *consensus_channel.Co
 	leftBal := consensus_channel.NewBalance(left.destination, big.NewInt(6))
 	rightBal := consensus_channel.NewBalance(right.destination, big.NewInt(4))
 
-	lo := *consensus_channel.NewLedgerOutcome(types.Address{}, leftBal, rightBal, []consensus_channel.Guarantee{})
+	lo := *consensus_channel.NewLedgerOutcome(types.Address{}, leftBal, rightBal, guarantees)
 
 	signedVars := consensus_channel.SignedVars{Vars: consensus_channel.Vars{Outcome: lo, TurnNum: 1}}
 	leftSig, err := signedVars.Vars.AsState(fp).Sign(left.privateKey)

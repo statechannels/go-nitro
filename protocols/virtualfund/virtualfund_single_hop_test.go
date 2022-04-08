@@ -231,11 +231,20 @@ func TestCrankAsAlice(t *testing.T) {
 	equals(t, effects, emptySideEffects)
 	equals(t, waitingFor, WaitingForCompleteFunding)
 
-	// When Alice receives a countersigned proposal, she should proceed to postFundSetup
+	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
+	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.destination, p1.destination)
+	o.ToMyRight.Channel = prepareConsensusChannel(my.role, alice, p1, guaranteeFundingV)
 
-	ledgers["p1"].left.Receive()
+	oObj, effects, waitingFor, err = o.Crank(&my.privateKey)
+	o = oObj.(*Objective)
 
-	o.Update(event)
+	postFS := state.NewSignedState(o.V.PostFundState())
+	mySig, _ = postFS.State().Sign(my.privateKey)
+	_ = postFS.AddSignature(mySig)
+
+	ok(t, err)
+	equals(t, waitingFor, WaitingForCompletePostFund)
+	assertStateSentTo(t, effects, postFS, bob)
 }
 
 // Copied from https://github.com/benbjohnson/testing
@@ -312,7 +321,7 @@ func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.S
 			if correctAddress {
 				diff := compareStates(ss, expected)
 				if diff == "" {
-				return
+					return
 				}
 
 				fmt.Printf("\033[31m%s:%d:\n\n\tincorrect state\n\ndiff: %v", filepath.Base(file), line, diff)
