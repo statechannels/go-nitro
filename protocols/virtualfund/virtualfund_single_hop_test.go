@@ -84,7 +84,7 @@ func assertCorrectConnection(t *testing.T, c *Connection, left, right actor) {
 	}
 }
 
-func testNewAsActor(t *testing.T, a actor) {
+func testNew(t *testing.T, a actor) {
 	td := newTestData()
 	lookup := td.ledgers
 	vPreFund := td.vPreFund
@@ -119,6 +119,26 @@ var actors = []actor{alice, p1, bob}
 
 func TestNew(t *testing.T) {
 	for _, a := range actors {
-		testNewAsActor(t, a)
+		testNew(t, a)
+	}
+}
+
+func testClone(t *testing.T, my actor) {
+	td := newTestData()
+	vPreFund := td.vPreFund
+	ledgers := td.ledgers
+
+	o, _ := constructFromState(false, vPreFund, my.address, ledgers[my.destination].left, ledgers[my.destination].right)
+
+	clone := o.clone()
+
+	if diff := compareObjectives(o, clone); diff != "" {
+		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestClone(t *testing.T) {
+	for _, a := range actors {
+		testClone(t, a)
 	}
 }
