@@ -1,6 +1,7 @@
 package virtualdefund
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -137,4 +138,33 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	}
 	return &updated, nil
 
+}
+
+// newObjective creates a new VirtualDefundObjective.
+func newObjective(preApprove bool, v *channel.SingleHopVirtualChannel, myAddress types.Address, toMyLeft, toMyRight *consensus_channel.ConsensusChannel) (Objective, error) {
+	var init Objective
+	if preApprove {
+		init.Status = protocols.Approved
+	} else {
+		init.Status = protocols.Unapproved
+	}
+	// Infer MyRole
+	found := false
+	for i, addr := range v.Participants {
+		if bytes.Equal(addr[:], myAddress[:]) {
+			init.MyRole = uint(i)
+			found = true
+			continue
+		}
+	}
+	if !found {
+		return Objective{}, errors.New("not a participant in V")
+	}
+
+	init.V = v
+
+	init.ToMyLeft = toMyLeft
+	init.ToMyRight = toMyRight
+
+	return init, nil
 }
