@@ -318,6 +318,10 @@ func (o Objective) Reject() protocols.Objective {
 	return &updated
 }
 
+func (o Objective) OwnsChannel() types.Destination {
+	return o.V.Id
+}
+
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
 // and returns the updated state.
 func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
