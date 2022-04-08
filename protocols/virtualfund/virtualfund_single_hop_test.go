@@ -10,13 +10,21 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-func TestSingleHopVirtualFundNew(t *testing.T) {
-	/////////////////////
-	// VIRTUAL CHANNEL //
-	/////////////////////
+// Virtual Channel
 
-	// Virtual Channel
-	vPreFund := state.State{
+type actorLedgers struct {
+	left  *consensus_channel.ConsensusChannel
+	right *consensus_channel.ConsensusChannel
+}
+type ledgerLookup map[types.Destination]actorLedgers
+type testData struct {
+	vPreFund  state.State
+	vPostFund state.State
+	ledgers   ledgerLookup
+}
+
+func newTestData() testData {
+	var vPreFund = state.State{
 		ChainId:           big.NewInt(9001),
 		Participants:      []types.Address{alice.address, p1.address, bob.address}, // A single hop virtual channel
 		ChannelNonce:      big.NewInt(0),
@@ -38,75 +46,79 @@ func TestSingleHopVirtualFundNew(t *testing.T) {
 		TurnNum: 0,
 		IsFinal: false,
 	}
-	vPostFund := vPreFund.Clone()
+	var vPostFund = vPreFund.Clone()
 	vPostFund.TurnNum = 1
 
-	TestAs := func(my actor, t *testing.T) {
-		prepareConsensusChannels := func(role uint) (*consensus_channel.ConsensusChannel, *consensus_channel.ConsensusChannel) {
-			var left *consensus_channel.ConsensusChannel
-			var right *consensus_channel.ConsensusChannel
-
-			switch role {
-			case 0:
-				right = prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1)
-			case 1:
-				left = prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1)
-				right = prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob)
-			case 2:
-				left = prepareConsensusChannel(uint(consensus_channel.Leader), p1, bob)
-			}
-
-			return left, right
-		}
-
-		testNew := func(t *testing.T) {
-			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareConsensusChannels(my.role)
-
-			// Assert that a valid set of constructor args does not result in an error
-			o, err := constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight) // todo: #420 deprecate TwoPartyLedgers
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			var wantLeft consensus_channel.Guarantee
-			var wantRight consensus_channel.Guarantee
-			expectedAmount := big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated())
-			switch my.role {
-			case alice.role:
-				{
-					wantRight = consensus_channel.NewGuarantee(expectedAmount, o.V.Id, alice.destination, p1.destination)
-				}
-			case p1.role:
-				{
-					wantLeft = consensus_channel.NewGuarantee(expectedAmount, o.V.Id, alice.destination, p1.destination)
-					wantRight = consensus_channel.NewGuarantee(expectedAmount, o.V.Id, p1.destination, bob.destination)
-				}
-			case bob.role:
-				{
-					wantLeft = consensus_channel.NewGuarantee(expectedAmount, o.V.Id, p1.destination, bob.destination)
-				}
-			}
-
-			zeroG := consensus_channel.Guarantee{}
-			if wantLeft != zeroG {
-				gotLeft := o.ToMyLeft.getExpectedGuarantee()
-
-				if diff := compareGuarantees(wantLeft, gotLeft); diff != "" {
-					t.Fatalf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
-				}
-			}
-			if wantRight != zeroG {
-				gotRight := o.ToMyRight.getExpectedGuarantee()
-				if diff := compareGuarantees(wantRight, gotRight); diff != "" {
-					t.Fatalf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
-				}
-			}
-		}
-
-		t.Run(`New`, testNew)
+	ledgers := make(map[types.Destination]actorLedgers)
+	ledgers[alice.destination] = actorLedgers{
+		right: prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1),
+	}
+	ledgers[p1.destination] = actorLedgers{
+		left:  prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
+		right: prepareConsensusChannel(uint(consensus_channel.Leader), p1, bob),
+	}
+	ledgers[bob.destination] = actorLedgers{
+		left: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
 	}
 
-	t.Run(`AsAlice`, func(t *testing.T) { TestAs(alice, t) })
-	t.Run(`AsBob`, func(t *testing.T) { TestAs(bob, t) })
-	t.Run(`AsP1`, func(t *testing.T) { TestAs(p1, t) })
+	return testData{vPreFund, vPostFund, ledgers}
+}
+
+func assertNilConnection(t *testing.T, c *Connection) {
+	if c != nil {
+		t.Fatalf("TestNew: unexpected connection")
+	}
+}
+
+func assertCorrectConnection(t *testing.T, c *Connection, left, right actor) {
+	td := newTestData()
+	vPreFund := td.vPreFund
+
+	Id, _ := vPreFund.FixedPart().ChannelId()
+
+	expectedAmount := big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated())
+	want := consensus_channel.NewGuarantee(expectedAmount, Id, left.destination, right.destination)
+	got := c.getExpectedGuarantee()
+	if diff := compareGuarantees(want, got); diff != "" {
+		t.Fatalf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func testNewAsActor(t *testing.T, a actor) {
+	td := newTestData()
+	lookup := td.ledgers
+	vPreFund := td.vPreFund
+
+	// Assert that a valid set of constructor args does not result in an error
+	o, err := constructFromState(
+		false,
+		vPreFund,
+		a.address,
+		lookup[a.destination].left,
+		lookup[a.destination].right,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	switch a.role {
+	case alice.role:
+		assertNilConnection(t, o.ToMyLeft)
+		assertCorrectConnection(t, o.ToMyRight, alice, p1)
+	case p1.role:
+		assertCorrectConnection(t, o.ToMyLeft, alice, p1)
+		assertCorrectConnection(t, o.ToMyRight, p1, bob)
+	case bob.role:
+		assertCorrectConnection(t, o.ToMyLeft, p1, bob)
+		assertNilConnection(t, o.ToMyRight)
+	}
+
+}
+
+var actors = []actor{alice, p1, bob}
+
+func TestNew(t *testing.T) {
+	for _, a := range actors {
+		testNewAsActor(t, a)
+	}
 }
