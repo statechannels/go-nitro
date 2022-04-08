@@ -335,10 +335,6 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		case o.V.Id:
 			updated.V.AddSignedState(ss)
 			// We expect pre and post fund state signatures.
-		case toMyLeftId:
-			panic("unexpected state")
-		case toMyRightId:
-			panic("unexpected state")
 		default:
 			return &o, errors.New("event channelId out of scope of objective")
 		}
