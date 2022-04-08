@@ -38,6 +38,11 @@ func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal
 		return SignedProposal{}, ErrNotLeader
 	}
 
+	// TODO: the Propose API should be less confusing!
+	// Currently, the TurnNum is ignored, and Propose could easily
+	// return the same ChannelId that it's been passed
+	proposal.ChannelID = c.Id
+
 	vars, err := c.latestProposedVars()
 	if err != nil {
 		return SignedProposal{}, fmt.Errorf("unable to construct latest proposed vars: %w", err)
