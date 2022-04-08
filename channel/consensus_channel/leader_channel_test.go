@@ -79,7 +79,7 @@ func TestLeaderChannel(t *testing.T) {
 		return ConsensusChannel{
 			fp:            fp(),
 			Id:            cId,
-			myIndex:       Leader,
+			MyIndex:       Leader,
 			proposalQueue: proposalQueue,
 			current:       current,
 		}

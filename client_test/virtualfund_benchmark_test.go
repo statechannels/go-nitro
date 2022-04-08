@@ -18,6 +18,8 @@ import (
 // TestBenchmark sets up three clients, then runs a virtual funding benchmark, printing the duration
 // to the screen.
 func TestBenchmark(t *testing.T) {
+	// todo: #420 unskip
+	t.Skip()
 
 	// Setup logging
 	logDestination := &bytes.Buffer{}
