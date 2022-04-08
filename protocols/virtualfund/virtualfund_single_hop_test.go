@@ -28,6 +28,7 @@ type testData struct {
 	ledgers   ledgerLookup
 }
 
+// newTestData returns new copies of consistent test data each time it is called
 func newTestData() testData {
 	var vPreFund = state.State{
 		ChainId:           big.NewInt(9001),
@@ -100,8 +101,8 @@ func testNew(a actor) Tester {
 			assert(t, diffFromCorrectConnection(o.ToMyLeft, p1, bob) == "", "incorrect connection")
 			assert(t, o.ToMyRight == nil, "right connection should be nil")
 		}
-		}
 	}
+}
 
 // diffFromCorrectConnection compares the guarantee stored on a connection with
 // the guarantee we expect, given the expected left and right actors
@@ -228,7 +229,7 @@ func TestCrankAsAlice(t *testing.T) {
 	ok(t, err)
 	equals(t, got, emptySideEffects)
 	equals(t, waitingFor, WaitingForCompleteFunding)
-	}
+}
 
 // Copied from https://github.com/benbjohnson/testing
 
@@ -248,7 +249,7 @@ func ok(tb testing.TB, err error) {
 		fmt.Printf("\033[31m%s:%d: unexpected error: %s\033[39m\n\n", filepath.Base(file), line, err.Error())
 		tb.FailNow()
 	}
-	}
+}
 
 // equals fails the test if exp is not equal to act.
 func equals(tb testing.TB, exp, act interface{}) {
@@ -256,8 +257,8 @@ func equals(tb testing.TB, exp, act interface{}) {
 		_, file, line, _ := runtime.Caller(1)
 		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, exp, act)
 		tb.FailNow()
-}
 	}
+}
 
 // The following assertions are inspired by the ok, assert and equals above
 
@@ -279,7 +280,7 @@ func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 	if !reflect.DeepEqual(sent.Proposal, sp.Proposal) {
 		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, sent.Proposal, sp.Proposal)
 		t.FailNow()
-}
+	}
 
 	if !bytes.Equal(msg.To[:], to.address[:]) {
 		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, msg.To.String(), to.address.String())
@@ -295,7 +296,7 @@ func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.S
 				return
 			}
 		}
-}
+	}
 
 	_, file, line, _ := runtime.Caller(1)
 	fmt.Printf("\033[31m%s:%d:\n\n\tside effects do not incude signed state", filepath.Base(file), line)
