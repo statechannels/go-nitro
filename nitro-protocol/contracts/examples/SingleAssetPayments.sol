@@ -14,14 +14,12 @@ contract SingleAssetPayments is IForceMoveApp {
      * @dev Encodes the payment channel update rules.
      * @param a State being transitioned from.
      * @param b State being transitioned to.
-     * @param turnNumB Turn number being transitioned to.
      * @param nParticipants Number of participants in this state channel.
      * @return true if the transition conforms to the rules, false otherwise.
      */
     function validTransition(
         VariablePart memory a,
         VariablePart memory b,
-        uint48 turnNumB,
         uint256 nParticipants
     ) public override pure returns (bool) {
         // Throws if more than one asset
@@ -63,7 +61,7 @@ contract SingleAssetPayments is IForceMoveApp {
             );
             allocationSumA += allocationsA[i].amount;
             allocationSumB += allocationsB[i].amount;
-            if (i != turnNumB % nParticipants) {
+            if (i != b.turnNum % nParticipants) {
                 require(
                     allocationsB[i].amount >= allocationsA[i].amount,
                     'Nonmover balance decreased'

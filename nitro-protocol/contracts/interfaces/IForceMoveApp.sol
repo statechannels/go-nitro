@@ -11,6 +11,8 @@ interface IForceMoveApp {
     struct VariablePart {
         Outcome.SingleAssetExit[] outcome;
         bytes appData;
+        uint48 turnNum;
+        bool isFinal;
     }
 
     /**
@@ -18,14 +20,12 @@ interface IForceMoveApp {
      * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel.
      * @param a State being transitioned from.
      * @param b State being transitioned to.
-     * @param turnNumB Turn number being transitioned to.
      * @param nParticipants Number of participants in this state channel.
      * @return true if the transition conforms to this application's rules, false otherwise
      */
     function validTransition(
         VariablePart calldata a,
         VariablePart calldata b,
-        uint48 turnNumB,
         uint256 nParticipants
     ) external pure returns (bool);
 }

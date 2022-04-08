@@ -34,7 +34,6 @@ contract CountingApp is IForceMoveApp {
     function validTransition(
         VariablePart memory a,
         VariablePart memory b,
-        uint48, // turnNumB, unused
         uint256 // nParticipants, unused
     ) public override pure returns (bool) {
         require(
