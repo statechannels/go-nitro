@@ -314,8 +314,8 @@ func TestCrankAsBob(t *testing.T) {
 	equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If Bob had received a signed counterproposal, she should proceed to postFundSetup
-	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.destination, p1.destination)
-	o.ToMyLeft.Channel = prepareConsensusChannel(my.role, p1, bob, guaranteeFundingV)
+	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, p1.destination, bob.destination)
+	o.ToMyLeft.Channel = prepareConsensusChannel(uint(consensus_channel.Leader), bob, p1, guaranteeFundingV)
 
 	oObj, effects, waitingFor, err = o.Crank(&my.privateKey)
 	o = oObj.(*Objective)
@@ -326,7 +326,7 @@ func TestCrankAsBob(t *testing.T) {
 
 	ok(t, err)
 	equals(t, waitingFor, WaitingForCompletePostFund)
-	assertStateSentTo(t, effects, postFS, bob)
+	assertStateSentTo(t, effects, postFS, p1)
 }
 
 // Copied from https://github.com/benbjohnson/testing
