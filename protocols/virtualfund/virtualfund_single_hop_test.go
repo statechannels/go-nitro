@@ -24,9 +24,10 @@ type actorLedgers struct {
 }
 type ledgerLookup map[types.Destination]actorLedgers
 type testData struct {
-	vPreFund  state.State
-	vPostFund state.State
-	ledgers   ledgerLookup
+	vPreFund        state.State
+	vPostFund       state.State
+	leaderLedgers   ledgerLookup
+	followerLedgers ledgerLookup
 }
 
 // newTestData returns new copies of consistent test data each time it is called
@@ -56,19 +57,31 @@ func newTestData() testData {
 	var vPostFund = vPreFund.Clone()
 	vPostFund.TurnNum = 1
 
-	ledgers := make(map[types.Destination]actorLedgers)
-	ledgers[alice.destination] = actorLedgers{
+	leaderLedgers := make(map[types.Destination]actorLedgers)
+	leaderLedgers[alice.destination] = actorLedgers{
 		right: prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1),
 	}
-	ledgers[p1.destination] = actorLedgers{
-		left:  prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
+	leaderLedgers[p1.destination] = actorLedgers{
+		left:  prepareConsensusChannel(uint(consensus_channel.Leader), p1, alice),
 		right: prepareConsensusChannel(uint(consensus_channel.Leader), p1, bob),
 	}
-	ledgers[bob.destination] = actorLedgers{
+	leaderLedgers[bob.destination] = actorLedgers{
+		left: prepareConsensusChannel(uint(consensus_channel.Leader), bob, p1),
+	}
+
+	followerLedgers := make(map[types.Destination]actorLedgers)
+	followerLedgers[alice.destination] = actorLedgers{
+		right: prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
+	}
+	followerLedgers[p1.destination] = actorLedgers{
+		left:  prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
+		right: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
+	}
+	followerLedgers[bob.destination] = actorLedgers{
 		left: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
 	}
 
-	return testData{vPreFund, vPostFund, ledgers}
+	return testData{vPreFund, vPostFund, leaderLedgers, followerLedgers}
 }
 
 type Tester func(t *testing.T)
@@ -76,7 +89,7 @@ type Tester func(t *testing.T)
 func testNew(a actor) Tester {
 	return func(t *testing.T) {
 		td := newTestData()
-		lookup := td.ledgers
+		lookup := td.leaderLedgers
 		vPreFund := td.vPreFund
 
 		// Assert that a valid set of constructor args does not result in an error
@@ -136,7 +149,7 @@ func testCloneAs(my actor) Tester {
 	return func(t *testing.T) {
 		td := newTestData()
 		vPreFund := td.vPreFund
-		ledgers := td.ledgers
+		ledgers := td.leaderLedgers
 
 		o, _ := constructFromState(false, vPreFund, my.address, ledgers[my.destination].left, ledgers[my.destination].right)
 
@@ -182,7 +195,7 @@ func TestCrankAsAlice(t *testing.T) {
 	my := alice
 	td := newTestData()
 	vPreFund := td.vPreFund
-	ledgers := td.ledgers
+		ledgers := td.leaderLedgers
 	var s, _ = constructFromState(false, vPreFund, my.address, ledgers[my.destination].left, ledgers[my.destination].right)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.privateKey)
@@ -251,7 +264,7 @@ func TestCrankAsBob(t *testing.T) {
 	my := bob
 	td := newTestData()
 	vPreFund := td.vPreFund
-	ledgers := td.ledgers
+	ledgers := td.leaderLedgers
 	var s, _ = constructFromState(false, vPreFund, my.address, ledgers[my.destination].left, ledgers[my.destination].right)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.privateKey)
