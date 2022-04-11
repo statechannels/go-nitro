@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 const (
@@ -88,6 +89,12 @@ func (o Objective) Reject() protocols.Objective {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
 	return &updated
+}
+
+// OwnsChannel returns the channel that the objective is funding.
+func (o Objective) OwnsChannel() types.Destination {
+	vId, _ := o.VFixed.ChannelId()
+	return vId
 }
 
 // Relable returns related channels that need to be stored along with the objective.
