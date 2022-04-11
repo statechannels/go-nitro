@@ -97,6 +97,11 @@ func (o Objective) OwnsChannel() types.Destination {
 	return vId
 }
 
+// GetStatus returns the status of the objective.
+func (o Objective) GetStatus() protocols.ObjectiveStatus {
+	return o.Status
+}
+
 // Relable returns related channels that need to be stored along with the objective.
 func (o *Objective) Related() []protocols.Storable {
 	relatable := []protocols.Storable{}
