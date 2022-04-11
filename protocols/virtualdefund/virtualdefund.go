@@ -115,7 +115,7 @@ func (o *Objective) clone() Objective {
 
 	clone.Signatures = [3]state.Signature{}
 	for i, s := range o.Signatures {
-		clone.Signatures[i] = s
+		clone.Signatures[i] = state.CloneSignature(s)
 	}
 	clone.MyRole = o.MyRole
 
