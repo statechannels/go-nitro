@@ -13,8 +13,8 @@ func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome,
 	return newConsensusChannel(fp, Leader, turnNum, outcome, signatures)
 }
 
-// IsProposed returns whether or not the consensus state or any proposed state
-// includes the given guarantee.
+// IsProposed returns whether or not a proposal in the queue would lead to g being included in the receiver's outcome
+// Clarification: If the current outcome already includes g, IsProposed returns false
 func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
 	latest, err := c.latestProposedVars()
 	if err != nil {
