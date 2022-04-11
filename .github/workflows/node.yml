@@ -1,0 +1,22 @@
+name: Node
+
+on:
+  push:
+    branches: [main]
+    paths: "nitro-protocol/**"
+  pull_request:
+    paths: "nitro-protocol/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./nitro-protocol
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - name: Install dependencies
+        run: npm install
+      - name: Run tests
+        run: npm test
