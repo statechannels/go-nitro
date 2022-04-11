@@ -23,7 +23,6 @@ import {
   SimpleAllocation,
 } from '../src/contract/outcome';
 import {FixedPart, getVariablePart, hashState, VariablePart} from '../src/contract/state';
-import {Bytes} from '../src/contract/types';
 
 import {nitroAdjudicator, provider} from './vanillaSetup';
 
