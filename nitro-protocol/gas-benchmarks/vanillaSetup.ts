@@ -9,8 +9,8 @@ import {BigNumber} from '@ethersproject/bignumber';
 
 import nitroAdjudicatorArtifact from '../artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
 import tokenArtifact from '../artifacts/contracts/Token.sol/Token.json';
-import {NitroAdjudicator} from '../typechain/NitroAdjudicator';
-import {Token} from '../typechain/Token';
+import {NitroAdjudicator} from '../typechain-types/NitroAdjudicator';
+import {Token} from '../typechain-types/Token';
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
@@ -60,7 +60,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await kill(hardhatProcess.pid);
+  await kill(hardhatProcess.pid!);
   await hardhatProcessExited;
   await hardhatProcessClosed;
 });
