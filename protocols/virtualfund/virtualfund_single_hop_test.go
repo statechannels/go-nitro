@@ -398,7 +398,6 @@ func TestCrankAsP1(t *testing.T) {
 	equals(t, waitingFor, WaitingForCompleteFunding)
 	equals(t, effects, emptySideEffects)
 
-
 }
 
 // Copied from https://github.com/benbjohnson/testing
