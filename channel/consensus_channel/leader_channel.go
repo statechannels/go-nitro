@@ -16,7 +16,7 @@ func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome,
 // IsProposed returns whether or not the consensus state or any proposed state
 // includes the given guarantee.
 func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
-	if c.myIndex != Leader {
+	if c.MyIndex != Leader {
 		return false, ErrNotLeader
 	}
 	latest, err := c.latestProposedVars()
@@ -34,7 +34,7 @@ func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
 // Note: the TurnNum on add is ignored; the correct turn number is computed
 // and applied by c
 func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal, error) {
-	if c.myIndex != Leader {
+	if c.MyIndex != Leader {
 		return SignedProposal{}, ErrNotLeader
 	}
 

@@ -187,7 +187,7 @@ type jsonConsensusChannel struct {
 // MarshalJSON returns a JSON representation of the ConsensusChannel
 func (c ConsensusChannel) MarshalJSON() ([]byte, error) {
 	jsonCh := jsonConsensusChannel{
-		MyIndex:       c.myIndex,
+		MyIndex:       c.MyIndex,
 		FP:            c.fp,
 		Id:            c.Id,
 		Current:       c.current,
@@ -206,7 +206,7 @@ func (c *ConsensusChannel) UnmarshalJSON(data []byte) error {
 	}
 
 	c.Id = jsonCh.Id
-	c.myIndex = jsonCh.MyIndex
+	c.MyIndex = jsonCh.MyIndex
 	c.fp = jsonCh.FP
 	c.current = jsonCh.Current
 	c.proposalQueue = jsonCh.ProposalQueue

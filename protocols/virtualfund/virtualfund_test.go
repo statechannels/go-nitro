@@ -16,13 +16,6 @@ import (
 
 func TestMarshalJSON(t *testing.T) {
 
-	type actor struct {
-		address     types.Address
-		destination types.Destination
-		privateKey  []byte
-		role        uint
-	}
-
 	alice := actor{
 		address:     common.HexToAddress(`0xD9995BAE12FEe327256FFec1e3184d492bD94C31`),
 		destination: types.AddressToDestination(common.HexToAddress(`0xD9995BAE12FEe327256FFec1e3184d492bD94C31`)),
@@ -70,13 +63,13 @@ func TestMarshalJSON(t *testing.T) {
 	ts := state.TestState
 	ts.TurnNum = channel.PreFundTurnNum
 
-	right, _ := channel.NewTwoPartyLedger(ts, 0)
+	right := prepareConsensusChannel(1, alice, bob)
 	vfo, err := constructFromState(
 		false,
 		vPreFund,
 		alice.address,
-		&channel.TwoPartyLedger{}, nil, // todo: #420 deprecate TwoPartyLedgers
-		right, nil,
+		nil,
+		right,
 	)
 
 	if err != nil {
@@ -106,7 +99,7 @@ func TestMarshalJSON(t *testing.T) {
 	}
 
 	if vfo.ToMyLeft != nil {
-		if !reflect.DeepEqual(vfo.ToMyLeft.getExpectedGuarantees(), got.ToMyLeft.getExpectedGuarantees()) {
+		if !reflect.DeepEqual(vfo.ToMyLeft.getExpectedGuarantee(), got.ToMyLeft.getExpectedGuarantee()) {
 			t.Fatalf("expected left-channel guarantees %v, but found %v", vfo.ToMyLeft, got.ToMyLeft)
 		}
 
@@ -117,7 +110,7 @@ func TestMarshalJSON(t *testing.T) {
 	}
 
 	if vfo.ToMyRight != nil {
-		if !reflect.DeepEqual(vfo.ToMyRight.getExpectedGuarantees(), got.ToMyRight.getExpectedGuarantees()) {
+		if !reflect.DeepEqual(vfo.ToMyRight.getExpectedGuarantee(), got.ToMyRight.getExpectedGuarantee()) {
 			t.Fatalf("expected right-channel %v, but found %v", vfo.ToMyRight, got.ToMyRight)
 		}
 

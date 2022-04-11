@@ -208,6 +208,27 @@ func (ms *MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty typ
 
 // GetConsensusChannel returns a ConsensusChannel between the calling client and
 // the supplied counterparty, if such channel exists
+func (ms *MockStore) GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
+
+	chJSON, ok := ms.consensusChannels.Load(id.String())
+
+	if !ok {
+		return &consensus_channel.ConsensusChannel{}, ErrNoSuchChannel
+	}
+
+	var ch *consensus_channel.ConsensusChannel
+
+	err = ch.UnmarshalJSON(chJSON)
+
+	if err != nil {
+		return &consensus_channel.ConsensusChannel{}, fmt.Errorf("error unmarshaling channel %s", ch.Id)
+	}
+
+	return ch, nil
+}
+
+// GetConsensusChannel returns a ConsensusChannel between the calling client and
+// the supplied counterparty, if such channel exists
 func (ms *MockStore) GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
 
 	ms.consensusChannels.Range(func(key string, chJSON []byte) bool {
@@ -286,21 +307,21 @@ func (ms *MockStore) populateChannelData(obj protocols.Objective) error {
 			vfo.ToMyLeft.Channel != nil &&
 			vfo.ToMyLeft.Channel.Id != zeroAddress {
 
-			left, err := ms.getChannelById(vfo.ToMyLeft.Channel.Id)
+			left, err := ms.GetConsensusChannelById(vfo.ToMyLeft.Channel.Id)
 			if err != nil {
 				return fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
 			}
-			vfo.ToMyLeft.Channel = &channel.TwoPartyLedger{Channel: left}
+			vfo.ToMyLeft.Channel = left
 		}
 
 		if vfo.ToMyRight != nil &&
 			vfo.ToMyRight.Channel != nil &&
 			vfo.ToMyRight.Channel.Id != zeroAddress {
-			right, err := ms.getChannelById(vfo.ToMyRight.Channel.Id)
+			right, err := ms.GetConsensusChannelById(vfo.ToMyRight.Channel.Id)
 			if err != nil {
 				return fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
 			}
-			vfo.ToMyRight.Channel = &channel.TwoPartyLedger{Channel: right}
+			vfo.ToMyRight.Channel = right
 		}
 
 		return nil

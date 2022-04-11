@@ -23,7 +23,7 @@ func NewFollowerChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcom
 // expected proposal matches the first proposal in the queue. If so,
 // the proposal is removed from the queue and integrated into the channel state.
 func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte) error {
-	if c.myIndex != Follower {
+	if c.MyIndex != Follower {
 		return ErrNotFollower
 	}
 

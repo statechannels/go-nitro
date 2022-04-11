@@ -25,7 +25,7 @@ const (
 // ConsensusChannel is used to manage states in a running ledger channel
 type ConsensusChannel struct {
 	// constants
-	myIndex ledgerIndex
+	MyIndex ledgerIndex
 	fp      state.FixedPart
 
 	Id types.Destination
@@ -75,7 +75,7 @@ func newConsensusChannel(
 	return ConsensusChannel{
 		fp:            fp,
 		Id:            cId,
-		myIndex:       myIndex,
+		MyIndex:       myIndex,
 		proposalQueue: make([]SignedProposal, 0),
 		current:       current,
 	}, nil
@@ -109,13 +109,13 @@ func (c *ConsensusChannel) Includes(g Guarantee) bool {
 // IsLeader returns true if the calling client is the leader of the channel,
 // and false otherwise
 func (c *ConsensusChannel) IsLeader() bool {
-	return c.myIndex == Leader
+	return c.MyIndex == Leader
 }
 
 // IsFollower returns true if the calling client is the follower of the channel,
 // and false otherwise
 func (c *ConsensusChannel) IsFollower() bool {
-	return c.myIndex == Follower
+	return c.MyIndex == Follower
 }
 
 // Leader returns the address of the participant responsible for proposing
@@ -137,7 +137,7 @@ func (c *ConsensusChannel) Accept(p SignedProposal) error {
 // values. It signs the resulting state using sk.
 func (c *ConsensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
 	signer := crypto.GetAddressFromSecretKeyBytes(sk)
-	if c.fp.Participants[c.myIndex] != signer {
+	if c.fp.Participants[c.MyIndex] != signer {
 		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
 	}
 
@@ -548,7 +548,11 @@ func (vars *Vars) Add(p Add) error {
 		return ErrInvalidDeposit
 	}
 
-	if types.Gt(p.amount, o.left.amount) {
+	if types.Gt(p.LeftDeposit, o.left.amount) {
+		return ErrInsufficientFunds
+	}
+
+	if types.Gt(p.RightDeposit(), o.right.amount) {
 		return ErrInsufficientFunds
 	}
 
