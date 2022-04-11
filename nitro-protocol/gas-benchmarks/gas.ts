@@ -1,22 +1,22 @@
 type GasRequiredTo = Record<
   Path,
   {
-    vanillaNitro: any;
+    satp: any;
   }
 >;
 
 type Path =
-  | 'deployInfrastructureContracts'
-  | 'directlyFundAChannelWithETHFirst'
-  | 'directlyFundAChannelWithETHSecond'
-  | 'directlyFundAChannelWithERC20First'
-  | 'directlyFundAChannelWithERC20Second'
-  | 'ETHexit'
-  | 'ERC20exit'
-  | 'ETHexitSad'
-  | 'ETHexitSadLedgerFunded'
-  | 'ETHexitSadVirtualFunded'
-  | 'ETHexitSadLedgerFunded';
+  | "deployInfrastructureContracts"
+  | "directlyFundAChannelWithETHFirst"
+  | "directlyFundAChannelWithETHSecond"
+  | "directlyFundAChannelWithERC20First"
+  | "directlyFundAChannelWithERC20Second"
+  | "ETHexit"
+  | "ERC20exit"
+  | "ETHexitSad"
+  | "ETHexitSadLedgerFunded"
+  | "ETHexitSadVirtualFunded"
+  | "ETHexitSadLedgerFunded";
 
 // The channel being benchmarked is a 2 party null app funded with 5 wei / tokens each.
 // KEY
@@ -27,23 +27,23 @@ type Path =
 // 👩    Alice's external destination (e.g. her EOA)
 export const gasRequiredTo: GasRequiredTo = {
   deployInfrastructureContracts: {
-    vanillaNitro: {
+    satp: {
       NitroAdjudicator: 4_228_615, // Singleton
     },
   },
   directlyFundAChannelWithETHFirst: {
-    vanillaNitro: 48_014,
+    satp: 48_014,
   },
   directlyFundAChannelWithETHSecond: {
     // meaning the second participant in the channel
-    vanillaNitro: 30_926,
+    satp: 30_926,
   },
   directlyFundAChannelWithERC20First: {
     // The depositor begins with zero tokens approved for the AssetHolder
     // The AssetHolder begins with some token balance already
     // The depositor retains a nonzero balance of tokens after depositing
     // The depositor retains some tokens approved for the AssetHolder after depositing
-    vanillaNitro: {
+    satp: {
       approve: 46_383,
       // ^^^^^
       // In principle this only needs to be done once per account
@@ -53,7 +53,7 @@ export const gasRequiredTo: GasRequiredTo = {
   },
   directlyFundAChannelWithERC20Second: {
     // meaning the second participant in the channel
-    vanillaNitro: {
+    satp: {
       approve: 46_383,
       // ^^^^^
       // In principle this only needs to be done once per account
@@ -63,18 +63,18 @@ export const gasRequiredTo: GasRequiredTo = {
   },
   ETHexit: {
     // We completely liquidate the channel (paying out both parties)
-    vanillaNitro: 133_112,
+    satp: 133_112,
   },
   ERC20exit: {
     // We completely liquidate the channel (paying out both parties)
-    vanillaNitro: 123_510,
+    satp: 123_510,
   },
   ETHexitSad: {
     // Scenario: Counterparty Bob goes offline
     // initially                 ⬛ ->  X  -> 👩
     // challenge + timeout       ⬛ -> (X) -> 👩
     // transferAllAssets         ⬛ --------> 👩
-    vanillaNitro: {
+    satp: {
       challenge: 94_673,
       transferAllAssets: 109_517,
       total: 204_190,
@@ -82,7 +82,7 @@ export const gasRequiredTo: GasRequiredTo = {
   },
   ETHexitSadLedgerFunded: {
     // Scenario: Counterparty Bob goes offline
-    vanillaNitro: {
+    satp: {
       // initially                   ⬛ ->  L  ->  X  -> 👩
       // challenge X, L and timeout  ⬛ -> (L) -> (X) -> 👩
       // transferAllAssetsL          ⬛ --------> (X) -> 👩
@@ -96,17 +96,12 @@ export const gasRequiredTo: GasRequiredTo = {
   },
   ETHexitSadVirtualFunded: {
     // Scenario: Intermediary Ingrid goes offline
-    vanillaNitro: {
-      // initially                   ⬛ ->  L  ->  J  ->  X  -> 👩
-      // challenge L,J,X + timeout   ⬛ -> (L) -> (J) -> (X) -> 👩
-      // claimL                      ⬛ ---------------> (X) -> 👩
-      // transferAllAssetsX          ⬛ ----------------------> 👩
-      challengeL: 94_980,
-      challengeJ: 103_014,
-      challengeX: 94_673,
-      claimL: 95_060,
-      transferAllAssetsX: 109_517,
-      total: 497_244,
+    satp: {
+      // initially                   ⬛ ->  L  ->  V  -> 👩
+      // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👩
+      // reclaim L                   ⬛ -- (L) --------> 👩
+      // transferAllAssetsL          ⬛ ---------------> 👩
+      // TODO
     },
   },
 };
