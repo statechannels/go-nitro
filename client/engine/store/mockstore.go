@@ -32,7 +32,7 @@ type syncMap[T any] struct {
 // Load returns the value stored in the map for a key, or nil if no
 // value is present.
 // The ok result indicates whether value was found in the map.
-func (o *syncMap[T]) Load(id string) (bytes T, ok bool) {
+func (o *syncMap[T]) Load(id string) (value T, ok bool) {
 	data, ok := o.m.Load(id)
 
 	if !ok {
@@ -40,9 +40,9 @@ func (o *syncMap[T]) Load(id string) (bytes T, ok bool) {
 		return result, false
 	}
 
-	bytes = data.(T)
+	value = data.(T)
 
-	return bytes, ok
+	return value, ok
 }
 
 // Store sets the value for a key.
