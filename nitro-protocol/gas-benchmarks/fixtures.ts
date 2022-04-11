@@ -1,3 +1,5 @@
+
+import {utils} from 'ethers';
 import {Signature} from '@ethersproject/bytes';
 import {Wallet} from '@ethersproject/wallet';
 import {AllocationType} from '@statechannels/exit-format';
@@ -5,12 +7,10 @@ import {BigNumber, BigNumberish, constants, ContractReceipt, ethers} from 'ether
 
 import {
   Bytes32,
-  Channel,
   convertAddressToBytes32,
   encodeOutcome,
   getChannelId,
   getFixedPart,
-  hashAppPart,
   signChallengeMessage,
   SignedState,
   signState,
@@ -49,24 +49,24 @@ class TestChannel {
     allocations: Array<GuaranteeAllocation | SimpleAllocation>
   ) {
     this.wallets = wallets;
-    this.channel = {chainId, channelNonce, participants: wallets.map(w => w.address)};
+    this.fixedPart = {chainId, channelNonce, participants: wallets.map(w => w.address), appDefinition: '0x8504FcA6e1e73947850D66D032435AC931892116', challengeDuration: 600};
     this.allocations = allocations;
   }
   wallets: ethers.Wallet[];
-  channel: Channel;
+  fixedPart: FixedPart;
   private allocations: Array<GuaranteeAllocation | SimpleAllocation>;
   outcome(asset: string) {
     const outcome: Outcome = [{asset, allocations: this.allocations, metadata: '0x'}];
     return outcome;
   }
   get channelId() {
-    return getChannelId(this.channel);
+    return getChannelId(this.fixedPart);
   }
   someState(asset: string): State {
     return {
       challengeDuration: 600,
       appDefinition: '0x8504FcA6e1e73947850D66D032435AC931892116',
-      channel: this.channel,
+      channel: this.fixedPart,
       turnNum: 6,
       isFinal: false,
       outcome: this.outcome(asset),
@@ -115,7 +115,7 @@ class TestChannel {
     largestTurnNum: number;
     fixedPart: FixedPart;
     appPartHash: Bytes32;
-    outcomeBytes: Bytes;
+    outcome: Outcome;
     numStates: 1;
     whoSignedWhat: number[];
     sigs: Signature[];
@@ -124,7 +124,7 @@ class TestChannel {
       largestTurnNum: state.turnNum,
       fixedPart: getFixedPart(state),
       appPartHash: hashAppPart(state),
-      outcomeBytes: encodeOutcome(state.outcome),
+      outcome: state.outcome,
       numStates: 1,
       whoSignedWhat: this.wallets.map(() => 0),
       sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
@@ -137,7 +137,7 @@ class TestChannel {
       fP.largestTurnNum,
       fP.fixedPart,
       fP.appPartHash,
-      fP.outcomeBytes,
+      encodeOutcome(fP.outcome),
       fP.numStates,
       fP.whoSignedWhat,
       fP.sigs
@@ -332,4 +332,20 @@ export async function assertEthBalancesAndHoldings(
       ).toBe(true);
     }),
   ]);
+}
+
+// DEPRECATED
+/**
+ * Encodes and hashes the AppPart of a state
+ * @param state a State
+ * @returns a 32 byte keccak256 hash
+ */
+ export function hashAppPart(state: State): Bytes32 {
+  const {challengeDuration, appDefinition, appData} = state;
+  return utils.keccak256(
+    utils.defaultAbiCoder.encode(
+      ['uint256', 'address', 'bytes'],
+      [challengeDuration, appDefinition, appData]
+    )
+  );
 }
