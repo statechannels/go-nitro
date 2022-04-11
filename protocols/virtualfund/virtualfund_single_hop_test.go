@@ -64,26 +64,26 @@ func newTestData() testData {
 
 	leaderLedgers := make(map[types.Destination]actorLedgers)
 	leaderLedgers[alice.Destination()] = actorLedgers{
-		right: prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1),
+		right: prepareConsensusChannel(CChanConfig{leader: true, left: alice, right: p1}),
 	}
 	leaderLedgers[p1.Destination()] = actorLedgers{
-		left:  prepareConsensusChannel(uint(consensus_channel.Leader), p1, alice),
-		right: prepareConsensusChannel(uint(consensus_channel.Leader), p1, bob),
+		left:  prepareConsensusChannel(CChanConfig{left: p1, right: alice, leader: true}),
+		right: prepareConsensusChannel(CChanConfig{left: p1, right: bob, leader: true}),
 	}
 	leaderLedgers[bob.Destination()] = actorLedgers{
-		left: prepareConsensusChannel(uint(consensus_channel.Leader), bob, p1),
+		left: prepareConsensusChannel(CChanConfig{left: bob, right: p1, leader: true}),
 	}
 
 	followerLedgers := make(map[types.Destination]actorLedgers)
 	followerLedgers[alice.Destination()] = actorLedgers{
-		right: prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
+		right: prepareConsensusChannel(CChanConfig{left: alice, right: p1}),
 	}
 	followerLedgers[p1.Destination()] = actorLedgers{
-		left:  prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
-		right: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
+		left:  prepareConsensusChannel(CChanConfig{left: alice, right: p1}),
+		right: prepareConsensusChannel(CChanConfig{left: p1, right: bob}),
 	}
 	followerLedgers[bob.Destination()] = actorLedgers{
-		left: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
+		left: prepareConsensusChannel(CChanConfig{left: p1, right: bob}),
 	}
 
 	return testData{vPreFund, vPostFund, leaderLedgers, followerLedgers}
@@ -252,7 +252,7 @@ func TestCrankAsAlice(t *testing.T) {
 
 	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
 	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.Destination(), p1.Destination())
-	o.ToMyRight.Channel = prepareConsensusChannel(my.Role, alice, p1, guaranteeFundingV)
+	o.ToMyRight.Channel = prepareConsensusChannel(CChanConfig{left: alice, right: p1, guarantees: []consensus_channel.Guarantee{guaranteeFundingV}})
 
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
@@ -320,7 +320,8 @@ func TestCrankAsBob(t *testing.T) {
 
 	// If Bob had received a signed counterproposal, he should proceed to postFundSetup
 	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, p1.Destination(), bob.Destination())
-	o.ToMyLeft.Channel = prepareConsensusChannel(uint(consensus_channel.Leader), bob, p1, guaranteeFundingV)
+	guarantees := []consensus_channel.Guarantee{guaranteeFundingV}
+	o.ToMyLeft.Channel = prepareConsensusChannel(CChanConfig{leader: true, left: bob, right: p1, guarantees: guarantees})
 
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
@@ -390,7 +391,8 @@ func TestCrankAsP1(t *testing.T) {
 
 	// If P1 had received a signed counterproposal, she should proceed to postFundSetup
 	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.Destination(), p1.Destination())
-	o.ToMyLeft.Channel = prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1, guaranteeFundingV)
+	guarantees := []consensus_channel.Guarantee{guaranteeFundingV}
+	o.ToMyLeft.Channel = prepareConsensusChannel(CChanConfig{leader: true, left: alice, right: p1, guarantees: guarantees})
 
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)

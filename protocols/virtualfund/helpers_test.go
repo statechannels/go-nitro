@@ -9,45 +9,98 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type CChanConfig struct {
+	left       testactors.Actor
+	right      testactors.Actor
+	leftBal    int64
+	rightBal   int64
+	leader     bool
+	guarantees []con_chan.Guarantee
+	props      []con_chan.Proposal
+}
+
 // prepareConsensusChannel prepares a consensus channel with a consensus outcome
-//  - allocating 6 to left
-//  - allocating 4 to right
+//  - allocating a default amount of 6 to cfg.left
+//  - allocating a default amount of 4 to cfg.right
 //  - including the given guarantees
-func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees ...con_chan.Guarantee) *con_chan.ConsensusChannel {
+//  - ensuring that the props are signed and stored by the consensus channel
+func prepareConsensusChannel(cfg CChanConfig) *con_chan.ConsensusChannel {
+	leftBal := cfg.leftBal
+	if leftBal == 0 {
+		leftBal = 6
+	}
+	rightBal := cfg.rightBal
+	if rightBal == 0 {
+		rightBal = 4
+	}
+
+	initialOutcome := func() con_chan.LedgerOutcome {
+		left := con_chan.NewBalance(cfg.left.Destination(), big.NewInt(leftBal))
+		right := con_chan.NewBalance(cfg.right.Destination(), big.NewInt(rightBal))
+
+		return *con_chan.NewLedgerOutcome(types.Address{}, left, right, cfg.guarantees)
+
+	}
+
+	participants := [2]types.Address{
+		cfg.left.Address, cfg.right.Address,
+	}
 	fp := state.FixedPart{
-		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{left.Address, right.Address},
-		ChannelNonce:      big.NewInt(0),
-		AppDefinition:     types.Address{},
-		ChallengeDuration: big.NewInt(45),
+		Participants:      participants[:],
+		ChainId:           big.NewInt(0),
+		ChannelNonce:      big.NewInt(9001),
+		ChallengeDuration: big.NewInt(100),
 	}
 
-	leftBal := con_chan.NewBalance(left.Destination(), big.NewInt(6))
-	rightBal := con_chan.NewBalance(right.Destination(), big.NewInt(4))
+	startingTurnNum := uint64(1)
 
-	lo := *con_chan.NewLedgerOutcome(types.Address{}, leftBal, rightBal, guarantees)
-
-	signedVars := con_chan.SignedVars{Vars: con_chan.Vars{Outcome: lo, TurnNum: 1}}
-	leftSig, err := signedVars.Vars.AsState(fp).Sign(left.PrivateKey)
-	if err != nil {
-		panic(err)
-	}
-	rightSig, err := signedVars.Vars.AsState(fp).Sign(right.PrivateKey)
-	if err != nil {
-		panic(err)
-	}
+	initialVars := con_chan.Vars{TurnNum: uint64(startingTurnNum), Outcome: initialOutcome()}
+	asState := initialVars.AsState(fp)
+	leftSig, _ := asState.Sign(cfg.left.PrivateKey)
+	rightSig, _ := asState.Sign(cfg.right.PrivateKey)
 	sigs := [2]state.Signature{leftSig, rightSig}
 
-	var cc con_chan.ConsensusChannel
-
-	if role == 0 {
-		cc, err = con_chan.NewLeaderChannel(fp, 1, lo, sigs)
+	var c con_chan.ConsensusChannel
+	var err error
+	if cfg.leader {
+		c, err = con_chan.NewLeaderChannel(fp, 1, initialOutcome(), sigs)
 	} else {
-		cc, err = con_chan.NewFollowerChannel(fp, 1, lo, sigs)
+		c, err = con_chan.NewFollowerChannel(fp, 1, initialOutcome(), sigs)
 	}
 	if err != nil {
 		panic(err)
 	}
 
-	return &cc
+	if cfg.leader {
+		// Call Propose for each proposal
+		for _, p := range cfg.props {
+			_, err := c.Propose(p, cfg.left.PrivateKey)
+			if err != nil {
+				panic(err)
+			}
+		}
+	} else {
+		// Sign
+		vars := con_chan.Vars{TurnNum: startingTurnNum, Outcome: initialOutcome()}
+		for _, p := range cfg.props {
+			err = vars.HandleProposal(p)
+			if err != nil {
+				panic(err)
+			}
+			s := vars.AsState(fp)
+			sig, err := s.Sign(cfg.left.PrivateKey)
+			if err != nil {
+				panic(err)
+			}
+
+			sp := con_chan.SignedProposal{Proposal: p, Signature: sig}
+			err = c.Receive(sp)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+	}
+
+	return &c
 }

@@ -183,20 +183,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 	TestAs := func(my testactors.Actor, t *testing.T) {
 
 		prepareConsensusChannels := func(role uint) (*consensus_channel.ConsensusChannel, *consensus_channel.ConsensusChannel) {
-			var left *consensus_channel.ConsensusChannel
-			var right *consensus_channel.ConsensusChannel
-
-			switch role {
-			case 0:
-				right = prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1)
-			case 1:
-				left = prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1)
-				right = prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob)
-			case 2:
-				left = prepareConsensusChannel(uint(consensus_channel.Leader), p1, bob)
-			}
-
-			return left, right
+			panic("to be removed")
 		}
 
 		testNew := func(t *testing.T) {
