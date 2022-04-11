@@ -146,10 +146,6 @@ func TestRestrictedLeaderMethods(t *testing.T) {
 
 	channel, _ := NewFollowerChannel(fp(), 0, ledgerOutcome(), sigs)
 
-	if _, err := channel.IsProposed(Guarantee{}); err != ErrNotLeader {
-		t.Errorf("Expected error when calling IsProposed() as a follower, but found none")
-	}
-
 	if _, err := channel.Propose(Proposal{ToAdd: Add{}}, alice.PrivateKey); err != ErrNotLeader {
 		t.Errorf("Expected error when calling Propose() as a follower, but found none")
 	}

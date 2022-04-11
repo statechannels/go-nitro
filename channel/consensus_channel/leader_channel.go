@@ -16,9 +16,6 @@ func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome,
 // IsProposed returns whether or not the consensus state or any proposed state
 // includes the given guarantee.
 func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
-	if c.MyIndex != Leader {
-		return false, ErrNotLeader
-	}
 	latest, err := c.latestProposedVars()
 	if err != nil {
 		return false, err

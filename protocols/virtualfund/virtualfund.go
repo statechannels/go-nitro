@@ -627,6 +627,9 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 	var sideEffects protocols.SideEffects
 	g := ledgerConnection.getExpectedGuarantee()
 	proposed, err := ledger.IsProposed(g)
+	if err != nil {
+		return protocols.SideEffects{}, err
+	}
 
 	if ledger.IsLeader() { // If the user is the proposer craft a new proposal
 		if proposed {
