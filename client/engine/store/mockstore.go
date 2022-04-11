@@ -18,7 +18,7 @@ type MockStore struct {
 	objectives         syncMap[[]byte]
 	channels           syncMap[[]byte]
 	consensusChannels  syncMap[[]byte]
-	channelToObjective syncMap[string]
+	channelToObjective syncMap[protocols.ObjectiveId]
 
 	key     []byte        // the signing key of the store's engine
 	address types.Address // the (Ethereum) address associated to the signing key
@@ -75,7 +75,7 @@ func NewMockStore(key []byte) Store {
 	ms.objectives = syncMap[[]byte]{}
 	ms.channels = syncMap[[]byte]{}
 	ms.consensusChannels = syncMap[[]byte]{}
-	ms.channelToObjective = syncMap[string]{}
+	ms.channelToObjective = syncMap[protocols.ObjectiveId]{}
 
 	return &ms
 }
@@ -135,7 +135,7 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 		}
 	}
 
-	ms.channelToObjective.Store(obj.OwnsChannel().String(), string(obj.Id()))
+	ms.channelToObjective.Store(obj.OwnsChannel().String(), obj.Id())
 
 	return nil
 }
@@ -241,26 +241,13 @@ func (ms *MockStore) GetConsensusChannel(counterparty types.Address) (channel *c
 
 func (ms *MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
 	// todo: locking
-
 	id, found := ms.channelToObjective.Load(channelId.String())
 	if !found {
 		return &directfund.Objective{}, false
 	}
 
-	objJSON, found := ms.objectives.Load(id)
-	if !found {
-		return &directfund.Objective{}, false
-	}
-	obj, err := decodeObjective(protocols.ObjectiveId(id), objJSON)
-	if err != nil {
-		return &directfund.Objective{}, false
-	}
-	err = ms.populateChannelData(obj)
-	if err != nil {
-		return &directfund.Objective{}, false
-	}
-
-	return obj, true
+	objective, err := ms.GetObjectiveById(protocols.ObjectiveId(id))
+	return objective, err == nil
 }
 
 // populateChannelData fetches stored Channel data relevent to the given
