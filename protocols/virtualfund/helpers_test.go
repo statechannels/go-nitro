@@ -3,7 +3,7 @@ package virtualfund
 import (
 	"math/big"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	con_chan "github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/types"
@@ -13,7 +13,7 @@ import (
 //  - allocating 6 to left
 //  - allocating 4 to right
 //  - including the given guarantees
-func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
+func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees ...con_chan.Guarantee) *con_chan.ConsensusChannel {
 	fp := state.FixedPart{
 		ChainId:           big.NewInt(9001),
 		Participants:      []types.Address{left.Address, right.Address},
@@ -22,12 +22,12 @@ func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees
 		ChallengeDuration: big.NewInt(45),
 	}
 
-	leftBal := consensus_channel.NewBalance(left.Destination(), big.NewInt(6))
-	rightBal := consensus_channel.NewBalance(right.Destination(), big.NewInt(4))
+	leftBal := con_chan.NewBalance(left.Destination(), big.NewInt(6))
+	rightBal := con_chan.NewBalance(right.Destination(), big.NewInt(4))
 
-	lo := *consensus_channel.NewLedgerOutcome(types.Address{}, leftBal, rightBal, guarantees)
+	lo := *con_chan.NewLedgerOutcome(types.Address{}, leftBal, rightBal, guarantees)
 
-	signedVars := consensus_channel.SignedVars{Vars: consensus_channel.Vars{Outcome: lo, TurnNum: 1}}
+	signedVars := con_chan.SignedVars{Vars: con_chan.Vars{Outcome: lo, TurnNum: 1}}
 	leftSig, err := signedVars.Vars.AsState(fp).Sign(left.PrivateKey)
 	if err != nil {
 		panic(err)
@@ -38,12 +38,12 @@ func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees
 	}
 	sigs := [2]state.Signature{leftSig, rightSig}
 
-	var cc consensus_channel.ConsensusChannel
+	var cc con_chan.ConsensusChannel
 
 	if role == 0 {
-		cc, err = consensus_channel.NewLeaderChannel(fp, 1, lo, sigs)
+		cc, err = con_chan.NewLeaderChannel(fp, 1, lo, sigs)
 	} else {
-		cc, err = consensus_channel.NewFollowerChannel(fp, 1, lo, sigs)
+		cc, err = con_chan.NewFollowerChannel(fp, 1, lo, sigs)
 	}
 	if err != nil {
 		panic(err)
