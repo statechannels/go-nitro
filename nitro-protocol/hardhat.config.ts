@@ -67,7 +67,7 @@ const config: HardhatUserConfig = {
   // },
   networks: {
     hardhat: {
-      chainId: 1337,
+      chainId: 31337,
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",
