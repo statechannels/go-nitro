@@ -21,6 +21,32 @@ var correctSignature = Signature{
 	V: byte(0),
 }
 
+func TestCloneSignature(t *testing.T) {
+
+	toCopy := Signature{
+		R: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
+		S: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
+		V: byte(0),
+	}
+
+	got := CloneSignature(toCopy)
+
+	// mutate the signature we cloned so we catch a shallow copy
+	toCopy.R = common.Hex2Bytes(`0`)
+	toCopy.S = common.Hex2Bytes(`0`)
+	toCopy.V = byte(1)
+
+	if !bytes.Equal(common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`), got.R) {
+		t.Fatalf("Incorrect r param in signature. Got %x, wanted %x", got.R, common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`))
+	}
+	if !bytes.Equal(common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`), got.S) {
+		t.Fatalf("Incorrect s param in signature. Got %x, wanted %x", got.S, common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`))
+	}
+	if byte(0) != got.V {
+		t.Fatalf("Incorrect v param in signature. Got %x, wanted %x", got.V, byte(0))
+	}
+}
+
 func TestChannelId(t *testing.T) {
 	want := correctChannelId
 	got, error := TestState.ChannelId()
