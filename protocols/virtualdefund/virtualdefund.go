@@ -205,7 +205,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	return &updated, sideEffects, WaitingForCompleteLedgerDefunding, nil
 }
 
-// FullySigned returns whether we have a signature from every partciapant
+// fullySigned returns whether we have a signature from every partciapant
 func (o Objective) fullySigned() bool {
 	for _, sig := range o.Signatures {
 		if isZero(sig) {
@@ -215,52 +215,33 @@ func (o Objective) fullySigned() bool {
 	return true
 }
 
-// SignedBy returns whether we have a valid signature for the given participant
+// signedBy returns whether we have a valid signature for the given participant
 func (o Objective) signedBy(participant uint) bool {
 	return !isZero(o.Signatures[participant])
 }
 
-// SignedByMe returns whether the current participant has signed the final state
+// signedByMe returns whether the current participant has signed the final state
 func (o Objective) signedByMe() bool {
 	return o.signedBy(o.MyRole)
 
 }
 
-// UpdateSignatures accepts a signed state and updates the Signatures field of the objective
-func (o *Objective) UpdateSignatures(ss state.SignedState) error {
-	incomingSignatures := ss.Signatures()
-	for i := uint(0); i < 3; i++ {
-		existingSig := o.Signatures[i]
-		incomingSig := incomingSignatures[i]
-
-		// If the incoming signature is zeroed we ignore it
-		if isZero(incomingSig) {
-			continue
-		}
-		// If the existing signature is not zeroed we check that it matches the incoming signature
-		if !isZero(existingSig) {
-			if existingSig.Equal(incomingSig) {
-				continue
-			} else {
-				return fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
-			}
-		}
-		// Otherwise we validate the incoming signature and update our signatures
-		finalState := o.finalState()
-		signer, err := finalState.RecoverSigner(incomingSig)
-		p := o.VFixed.Participants[i]
-		if signer != p {
-			return fmt.Errorf("signature is for the wrong participant %s, expected signature from %s ", signer, p)
-		}
-		if err != nil {
-			return fmt.Errorf("failed to recover signer from signature: %w", err)
-		}
-
-		// Update the signature
-		o.Signatures[i] = incomingSig
+// ValidateSignature returns whether the given signature is valid for the given participant
+// If a signature is invalid an error will be returned conaining the reason
+func (o Objective) ValidateSignature(sig state.Signature, participantIndex uint) (bool, error) {
+	if participantIndex > 2 {
+		return false, fmt.Errorf("participant index %d is out of bounds", participantIndex)
 	}
-	return nil
 
+	finalState := o.finalState()
+	signer, err := finalState.RecoverSigner(sig)
+	if err != nil {
+		return false, fmt.Errorf("failed to recover signer from signature: %w", err)
+	}
+	if signer != o.VFixed.Participants[participantIndex] {
+		return false, fmt.Errorf("signature is for %s, expected signature from %s ", signer, o.VFixed.Participants[participantIndex])
+	}
+	return true, nil
 }
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
@@ -279,9 +260,31 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		if incomingChannelId != vChannelId {
 			return &o, errors.New("event channelId out of scope of objective")
 		} else {
-			err := updated.UpdateSignatures(ss)
-			if err != nil {
-				return &o, err
+			incomingSignatures := ss.Signatures()
+			for i := uint(0); i < 3; i++ {
+				existingSig := o.Signatures[i]
+				incomingSig := incomingSignatures[i]
+
+				// If the incoming signature is zeroed we ignore it
+				if isZero(incomingSig) {
+					continue
+				}
+				// If the existing signature is not zeroed we check that it matches the incoming signature
+				if !isZero(existingSig) {
+					if existingSig.Equal(incomingSig) {
+						continue
+					} else {
+						return &o, fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
+					}
+				}
+				// Otherwise we validate the incoming signature and update our signatures
+				isValid, err := updated.ValidateSignature(incomingSig, i)
+				if isValid {
+					// Update the signature
+					updated.Signatures[i] = incomingSig
+				} else {
+					return &o, fmt.Errorf("failed to validate signature: %w", err)
+				}
 			}
 		}
 	}
