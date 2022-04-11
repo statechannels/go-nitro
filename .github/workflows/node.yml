@@ -22,5 +22,7 @@ jobs:
         run: npx hardhat compile
       - name: Run eslint (including prettier)
         run: npm run lint:check
+      - name: Run gas benchmarks
+        run: npm test:gas
       - name: Run tests
         run: npm test
