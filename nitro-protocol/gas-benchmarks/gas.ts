@@ -28,15 +28,15 @@ type Path =
 export const gasRequiredTo: GasRequiredTo = {
   deployInfrastructureContracts: {
     satp: {
-      NitroAdjudicator: 4_228_615, // Singleton
+      NitroAdjudicator: 4_159_688, // Singleton
     },
   },
   directlyFundAChannelWithETHFirst: {
-    satp: 48_014,
+    satp: 47_796,
   },
   directlyFundAChannelWithETHSecond: {
     // meaning the second participant in the channel
-    satp: 30_926,
+    satp: 30_708,
   },
   directlyFundAChannelWithERC20First: {
     // The depositor begins with zero tokens approved for the AssetHolder
@@ -48,7 +48,7 @@ export const gasRequiredTo: GasRequiredTo = {
       // ^^^^^
       // In principle this only needs to be done once per account
       // (the cost may be amortized over several deposits into this AssetHolder)
-      deposit: 71_392,
+      deposit: 71_280,
     },
   },
   directlyFundAChannelWithERC20Second: {
@@ -58,7 +58,7 @@ export const gasRequiredTo: GasRequiredTo = {
       // ^^^^^
       // In principle this only needs to be done once per account
       // (the cost may be amortized over several deposits into this AssetHolder)
-      deposit: 54_304,
+      deposit: 54_192,
     },
   },
   ETHexit: {
