@@ -65,6 +65,16 @@ func (ss SignedState) State() State {
 	return ss.state
 }
 
+// Signatures returns a slice of the signatures stored in the SignedState.
+// There will be one signature per participant. Either a valid signature or a zero value.
+func (ss SignedState) Signatures() []Signature {
+	sigs := make([]Signature, len(ss.state.Participants))
+	for i := 0; i < len(ss.state.Participants); i++ {
+		sigs[i] = ss.sigs[uint(i)]
+	}
+	return sigs
+}
+
 // HasSignatureForParticipant returns true if the participant (at participantIndex) has a valid signature.
 func (ss SignedState) HasSignatureForParticipant(participantIndex uint) bool {
 	_, found := ss.sigs[uint(participantIndex)]

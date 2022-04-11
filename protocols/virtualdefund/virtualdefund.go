@@ -51,14 +51,32 @@ type Objective struct {
 
 const ObjectivePrefix = "VirtualDefund-"
 
-//nolint:unused // not used yet
+// newObjective constructs a new virtual defund objective
+func newObjective(preApprove bool, vFixed state.FixedPart, initialOutcome outcome.SingleAssetExit, paidToBob *big.Int, myRole uint) Objective {
+	var status protocols.ObjectiveStatus
+
+	if preApprove {
+		status = protocols.Approved
+	} else {
+		status = protocols.Unapproved
+	}
+
+	return Objective{
+		Status:         status,
+		InitialOutcome: initialOutcome,
+		PaidToBob:      paidToBob,
+		VFixed:         vFixed,
+		Signatures:     [3]state.Signature{},
+		MyRole:         myRole,
+	}
+}
+
 // finalState returns the final state for the virtual channel
 func (o Objective) finalState() state.State {
 	vp := state.VariablePart{Outcome: outcome.Exit{o.finalOutcome()}, TurnNum: FinalTurnNum, IsFinal: true}
 	return state.StateFromFixedAndVariablePart(o.VFixed, vp)
 }
 
-//nolint:unused // not used yet
 // finalOutcome returns the outcome for the final state calculated from the InitialOutcome and PaidToBob
 func (o Objective) finalOutcome() outcome.SingleAssetExit {
 	finalOutcome := o.InitialOutcome.Clone()
@@ -139,12 +157,98 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	return &o, protocols.SideEffects{}, WaitingForCompleteFinal, errors.New("TODO: UNIMPLEMENTED")
 }
 
+// UpdateSignatures accepts a signed state and updates the Signatures field of the objective
+func (o *Objective) UpdateSignatures(ss state.SignedState) error {
+	incomingSignatures := ss.Signatures()
+	for i := uint(0); i < 3; i++ {
+		existingSig := o.Signatures[i]
+		incomingSig := incomingSignatures[i]
+
+		// If the incoming signature is zeroed we ignore it
+		if isZero(incomingSig) {
+			continue
+		}
+		// If the existing signature is not zeroed we check that it matches the incoming signature
+		if !isZero(existingSig) {
+			if existingSig.Equal(incomingSig) {
+				continue
+			} else {
+				return fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
+			}
+		}
+		// Otherwise we validate the incoming signature and update our signatures
+		finalState := o.finalState()
+		signer, err := finalState.RecoverSigner(incomingSig)
+		p := o.VFixed.Participants[i]
+		if signer != p {
+			return fmt.Errorf("signature is for the wrong participant %s, expected signature from %s ", signer, p)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to recover signer from signature: %w", err)
+		}
+
+		// Update the signature
+		o.Signatures[i] = incomingSig
+	}
+	return nil
+
+}
+
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
 // and returns the updated state.
 func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if o.Id() != event.ObjectiveId {
 		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
-	return &o, errors.New("TODO: UNIMPLEMENTED")
 
+	updated := o.clone()
+
+	for _, ss := range event.SignedStates {
+		incomingChannelId, _ := ss.State().ChannelId() // TODO handle error
+		vChannelId, _ := updated.VFixed.ChannelId()    // TODO handle error
+
+		if incomingChannelId != vChannelId {
+			return &o, errors.New("event channelId out of scope of objective")
+		} else {
+			err := updated.UpdateSignatures(ss)
+			if err != nil {
+				return &o, err
+			}
+		}
+	}
+	var toMyLeftId types.Destination
+	var toMyRightId types.Destination
+
+	if o.ToMyLeft != nil {
+		toMyLeftId = o.ToMyLeft.Id
+	}
+	if o.ToMyRight != nil {
+		toMyRightId = o.ToMyRight.Id
+	}
+
+	for _, sp := range event.SignedProposals {
+		var err error
+		switch sp.Proposal.ChannelID {
+		case types.Destination{}:
+			return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
+		case toMyLeftId:
+			err = updated.ToMyLeft.Receive(sp)
+		case toMyRightId:
+			err = updated.ToMyRight.Receive(sp)
+		default:
+			return &o, fmt.Errorf("signed proposal is not addressed to a known ledger connection")
+		}
+
+		if err != nil {
+			return &o, fmt.Errorf("error incorporating signed proposal into objective: %w", err)
+		}
+	}
+	return &updated, nil
+
+}
+
+// isZero returns true if every byte field on the signature is zero
+func isZero(sig state.Signature) bool {
+	zeroSig := state.Signature{}
+	return sig.Equal(zeroSig)
 }
