@@ -21,6 +21,9 @@ const (
 // The turn number used for the final state
 const FinalTurnNum = 3
 
+// errors
+var ErrNotApproved = errors.New("objective not approved")
+
 // Objective contains relevent information for the defund objective
 type Objective struct {
 	Status protocols.ObjectiveStatus
@@ -69,6 +72,18 @@ func newObjective(preApprove bool, vFixed state.FixedPart, initialOutcome outcom
 		Signatures:     [3]state.Signature{},
 		MyRole:         myRole,
 	}
+}
+
+// signedFinalState returns the final state for the virtual channel
+func (o Objective) signedFinalState() (state.SignedState, error) {
+	signed := state.NewSignedState(o.finalState())
+	for _, sig := range o.Signatures {
+		err := signed.AddSignature(sig)
+		if err != nil {
+			return state.SignedState{}, err
+		}
+	}
+	return signed, nil
 }
 
 // finalState returns the final state for the virtual channel
@@ -154,7 +169,61 @@ func (o *Objective) clone() Objective {
 
 // Crank inspects the extended state and declares a list of Effects to be executed
 func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
-	return &o, protocols.SideEffects{}, WaitingForCompleteFinal, errors.New("TODO: UNIMPLEMENTED")
+	updated := o.clone()
+	sideEffects := protocols.SideEffects{}
+
+	// Input validation
+	if updated.Status != protocols.Approved {
+		return &updated, sideEffects, WaitingForNothing, ErrNotApproved
+	}
+
+	// Signing of the final state
+	if !updated.signedByMe() {
+
+		sig, err := o.finalState().Sign(*secretKey)
+		if err != nil {
+			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not sign final state: %w", err)
+		}
+		// Update the signature stored on the objective
+		updated.Signatures[updated.MyRole] = sig
+
+		// Send out the signature (using a signed state) to fellow participants
+		signedFinal, err := updated.signedFinalState()
+		if err != nil {
+			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not generate signed final state: %w", err)
+		}
+		messages := protocols.CreateSignedStateMessages(updated.Id(), signedFinal, updated.MyRole)
+		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+	}
+
+	// Check if all participants have signed the final state
+	if !updated.fullySigned() {
+		return &updated, sideEffects, WaitingForCompleteFinal, nil
+	}
+
+	// TODO: Implement ledger funding in https://github.com/statechannels/go-nitro/issues/480
+	return &updated, sideEffects, WaitingForCompleteLedgerDefunding, nil
+}
+
+// FullySigned returns whether we have a signature from every partciapant
+func (o Objective) fullySigned() bool {
+	for _, sig := range o.Signatures {
+		if isZero(sig) {
+			return false
+		}
+	}
+	return true
+}
+
+// SignedBy returns whether we have a valid signature for the given participant
+func (o Objective) signedBy(participant uint) bool {
+	return !isZero(o.Signatures[participant])
+}
+
+// SignedByMe returns whether the current participant has signed the final state
+func (o Objective) signedByMe() bool {
+	return o.signedBy(o.MyRole)
+
 }
 
 // UpdateSignatures accepts a signed state and updates the Signatures field of the objective
