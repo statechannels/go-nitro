@@ -17,6 +17,9 @@ const (
 	WaitingForNothing                 protocols.WaitingFor = "WaitingForNothing"                 // Finished
 )
 
+// The turn number used for the final state
+const FinalTurnNum = 3
+
 // Objective contains relevent information for the defund objective
 type Objective struct {
 	Status protocols.ObjectiveStatus
@@ -47,12 +50,14 @@ type Objective struct {
 
 const ObjectivePrefix = "VirtualDefund-"
 
+//nolint:unused // not used yet
 // finalState returns the final state for the virtual channel
 func (o Objective) finalState() state.State {
-	vp := state.VariablePart{Outcome: outcome.Exit{o.finalOutcome()}, TurnNum: 3, IsFinal: true}
+	vp := state.VariablePart{Outcome: outcome.Exit{o.finalOutcome()}, TurnNum: FinalTurnNum, IsFinal: true}
 	return state.StateFromFixedAndVariablePart(o.VFixed, vp)
 }
 
+//nolint:unused // not used yet
 // finalOutcome returns the outcome for the final state calculated from the InitialOutcome and PaidToBob
 func (o Objective) finalOutcome() outcome.SingleAssetExit {
 	finalOutcome := o.InitialOutcome.Clone()
