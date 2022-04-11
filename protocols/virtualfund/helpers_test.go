@@ -14,6 +14,7 @@ type actor struct {
 	destination types.Destination
 	privateKey  []byte
 	role        uint
+	name        string
 }
 
 ////////////
@@ -25,6 +26,7 @@ var alice = actor{
 	destination: types.AddressToDestination(common.HexToAddress(`0xD9995BAE12FEe327256FFec1e3184d492bD94C31`)),
 	privateKey:  common.Hex2Bytes(`7ab741b57e8d94dd7e1a29055646bafde7010f38a900f55bbd7647880faa6ee8`),
 	role:        0,
+	name:        "alice",
 }
 
 var p1 = actor{ // Aliases: The Hub, Irene
@@ -32,6 +34,7 @@ var p1 = actor{ // Aliases: The Hub, Irene
 	destination: types.AddressToDestination(common.HexToAddress(`0xd4Fa489Eacc52BA59438993f37Be9fcC20090E39`)),
 	privateKey:  common.Hex2Bytes(`2030b463177db2da82908ef90fa55ddfcef56e8183caf60db464bc398e736e6f`),
 	role:        1,
+	name:        "p1",
 }
 
 var bob = actor{
@@ -39,7 +42,10 @@ var bob = actor{
 	destination: types.AddressToDestination(common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`)),
 	privateKey:  common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`),
 	role:        2,
+	name:        "bob",
 }
+
+var allActors = []actor{alice, p1, bob}
 
 func prepareConsensusChannel(role uint, left, right actor) *consensus_channel.ConsensusChannel {
 	fp := state.FixedPart{

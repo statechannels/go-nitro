@@ -52,7 +52,6 @@ func compareGuarantees(a, b consensus_channel.Guarantee) string {
 // signLatest is a test utility function which applies signatures from
 // multiple participants to the latest recorded state
 // func signLatest(ledger *consensus_channel.ConsensusChannel, secretKeys [][]byte) {
-// 	panic("whoops")
 
 // Find the largest turn num and therefore the latest state
 // turnNum := uint64(0)

@@ -90,6 +90,7 @@ func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
 	return nil
 }
 
+// Funded computes whether the ledger channel on the receiver funds the guarantee expected by this connection
 func (c *Connection) Funded() bool {
 	g := c.getExpectedGuarantee()
 	return c.Channel.Includes(g)
@@ -98,6 +99,11 @@ func (c *Connection) Funded() bool {
 // getExpectedGuarantee returns a map of asset addresses to guarantees for a Connection.
 func (c *Connection) getExpectedGuarantee() consensus_channel.Guarantee {
 	amountFunds := c.GuaranteeInfo.LeftAmount.Add(c.GuaranteeInfo.RightAmount)
+
+	//HACK: GuaranteeInfo stores amounts as types.Funds.
+	// We only expect a single asset type, and we want to know how much is to be
+	// diverted for that asset type.
+	// So, we loop through amountFunds and break after the first asset type ...
 	var amount *big.Int
 	for _, val := range amountFunds {
 		amount = val
@@ -330,10 +336,6 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		case o.V.Id:
 			updated.V.AddSignedState(ss)
 			// We expect pre and post fund state signatures.
-		case toMyLeftId:
-			panic("unexpected state")
-		case toMyRightId:
-			panic("unexpected state")
 		default:
 			return &o, errors.New("event channelId out of scope of objective")
 		}
@@ -561,8 +563,7 @@ func (c *Connection) expectedProposal() consensus_channel.Proposal {
 		leftAmount = val
 		break
 	}
-	WRONG_ID := types.Destination{} // TODO: Why does NewAddProposal require a channel id?
-	proposal := consensus_channel.NewAddProposal(WRONG_ID, 0, g, leftAmount)
+	proposal := consensus_channel.NewAddProposal(c.Channel.Id, 0, g, leftAmount)
 
 	return proposal
 }
@@ -582,8 +583,8 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 		return protocols.SideEffects{}, err
 	}
 
-	messages := protocols.CreateSignedProposalMessages(o.Id(), signedProposal, uint(ledger.MyIndex))
-	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+	message := o.createSignedProposalMessage(signedProposal, connection.Channel)
+	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	return sideEffects, nil
 }
@@ -600,10 +601,22 @@ func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.Side
 	var signedProposal consensus_channel.SignedProposal
 
 	sideEffects := protocols.SideEffects{}
-	messages := protocols.CreateSignedProposalMessages(o.Id(), signedProposal, uint(ledger.MyIndex))
-	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+	message := o.createSignedProposalMessage(signedProposal, c.Channel)
+	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 	return sideEffects, nil
+}
 
+// createSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
+func (o *Objective) createSignedProposalMessage(sp consensus_channel.SignedProposal, ledger *consensus_channel.ConsensusChannel) protocols.Message {
+	recipient := ledger.Leader()
+	if ledger.IsLeader() {
+		recipient = ledger.Follower()
+	}
+	return protocols.Message{
+		To:              recipient,
+		ObjectiveId:     o.Id(),
+		SignedProposals: []consensus_channel.SignedProposal{sp},
+	}
 }
 
 // updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
@@ -614,14 +627,19 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 	ledger := ledgerConnection.Channel // todo: #420 deprecate
 
 	var sideEffects protocols.SideEffects
+	g := ledgerConnection.getExpectedGuarantee()
+	proposed, err := ledger.IsProposed(g)
+
 	if ledger.IsLeader() { // If the user is the proposer craft a new proposal
+		if proposed {
+			return protocols.SideEffects{}, nil
+		}
 		se, err := o.proposeLedgerUpdate(ledgerConnection, sk)
 		if err != nil {
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
 		}
 		sideEffects = se
 	} else {
-		proposed, err := ledger.IsProposed(ledgerConnection.getExpectedGuarantee())
 		if err != nil {
 			return protocols.SideEffects{}, err
 		}

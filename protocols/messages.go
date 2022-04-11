@@ -32,18 +32,8 @@ func DeserializeMessage(s string) (Message, error) {
 // CreateSignedStateMessages creates a set of messages containing the signed state.
 // A message will be generated for each participant except for the participant at myIndex.
 func CreateSignedStateMessages(id ObjectiveId, ss state.SignedState, myIndex uint) []Message {
-	return createMessages(id, &ss, nil, myIndex)
-}
-
-// CreateSignedProposalMessages creates a list of messages containing the signed proposal
-// A message will be generated for each participant except for the participant at myIndex.
-func CreateSignedProposalMessages(id ObjectiveId, sp consensus_channel.SignedProposal, myIndex uint) []Message {
-	return createMessages(id, nil, &sp, myIndex)
-}
-
-// createMessages creates a list of messages with the signed state and the signed proposal
-func createMessages(id ObjectiveId, ss *state.SignedState, sp *consensus_channel.SignedProposal, myIndex uint) []Message {
 	messages := make([]Message, 0)
+
 	for i, participant := range ss.State().Participants {
 
 		// Do not generate a message for ourselves
@@ -51,14 +41,8 @@ func createMessages(id ObjectiveId, ss *state.SignedState, sp *consensus_channel
 			continue
 		}
 		signedStates := []state.SignedState{}
-		if ss != nil {
-			signedStates = append(signedStates, *ss)
-		}
-		signedProposals := []consensus_channel.SignedProposal{}
-		if sp != nil {
-			signedProposals = append(signedProposals, *sp)
-		}
-		message := Message{To: participant, ObjectiveId: id, SignedStates: signedStates, SignedProposals: signedProposals}
+		signedStates = append(signedStates, ss)
+		message := Message{To: participant, ObjectiveId: id, SignedStates: signedStates, SignedProposals: []consensus_channel.SignedProposal{}}
 		messages = append(messages, message)
 	}
 	return messages

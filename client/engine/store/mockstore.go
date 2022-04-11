@@ -206,8 +206,7 @@ func (ms *MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty typ
 	return ledger, ok
 }
 
-// GetConsensusChannel returns a ConsensusChannel between the calling client and
-// the supplied counterparty, if such channel exists
+// GetConsensusChannelById returns a ConsensusChannel with the given channel id
 func (ms *MockStore) GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
 
 	chJSON, ok := ms.consensusChannels.Load(id.String())
