@@ -13,7 +13,8 @@
     "lint:write": "npx eslint \"src/**/*.ts\" --fix && npm run prettier:write",
     "solhint:check": "npx solhint -w 0 './contracts/**/*.sol'",
     "solhint:write": "echo 'This command does not seem to work. Use npm run prettier:write ' && npx solhint --fix './contracts/**/*.sol'",
-    "prettier:write": "prettier --write './contracts/**/*.sol'"
+    "prettier:write": "prettier --write './contracts/**/*.sol'",
+    "test:gas": "jest -c ./config/jest/jest.gas-benchmarks.config.js"
   },
   "keywords": [],
   "author": "",
@@ -33,6 +34,7 @@
     "@types/mocha": "^9.1.0",
     "@typescript-eslint/eslint-plugin": "^5.19.0",
     "@typescript-eslint/parser": "^5.19.0",
+    "@types/wait-on": "^5.3.1",
     "chai": "^4.3.6",
     "dotenv": "^14.3.2",
     "eslint": "7.17.0",
