@@ -321,13 +321,16 @@ export async function assertEthBalancesAndHoldings(
   await Promise.all([
     ...Object.keys(ethHoldings).map(async key => {
       expect(
-        (await nitroAdjudicator.holdings(constants.AddressZero, internalDestinations[key])).eq(
+        // @ts-ignore
+        (await nitroAdjudicator.holdings(constants.AddressZero, internalDestinations[key])).eq( 
+        // @ts-ignore
           BigNumber.from(ethHoldings[key])
         )
       ).toBe(true);
     }),
     ...Object.keys(ethBalances).map(async key => {
       expect(
+        // @ts-ignore
         (await provider.getBalance(externalDestinations[key])).eq(BigNumber.from(ethBalances[key]))
       ).toBe(true);
     }),
