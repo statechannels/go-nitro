@@ -135,7 +135,17 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 		}
 	}
 
-	ms.channelToObjective.Store(obj.OwnsChannel().String(), obj.Id())
+	// Objective ownership can only be transferred if the channel is not owned by another objective
+	// todo: clear ownership after the objective completes
+	prevOwner, isOwned := ms.channelToObjective.Load(obj.OwnsChannel().String())
+	if obj.GetStatus() == protocols.Approved {
+		if !isOwned {
+			ms.channelToObjective.Store(obj.OwnsChannel().String(), obj.Id())
+		}
+		if isOwned && prevOwner != obj.Id() {
+			return fmt.Errorf("cannot transfer ownership of channel to from objective %s to %s", prevOwner, obj.Id())
+		}
+	}
 
 	return nil
 }
