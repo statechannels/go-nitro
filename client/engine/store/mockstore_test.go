@@ -76,11 +76,22 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 
 	dfo := td.Objectives.Directfund.GenericDFO()
 
+	// Store an unapproved objective
 	if err := ms.SetObjective(&dfo); err != nil {
 		t.Errorf("error setting objective %v: %s", dfo, err.Error())
 	}
 
 	got, ok := ms.GetObjectiveByChannelId(dfo.C.Id)
+	if ok {
+		t.Error("when an unapproved objective is stored, the objective should not own the channel")
+	}
+
+	// Now, approve the objective
+	dfo.Status = protocols.Approved
+	if err := ms.SetObjective(&dfo); err != nil {
+		t.Errorf("error setting objective %v: %s", dfo, err.Error())
+	}
+	got, ok = ms.GetObjectiveByChannelId(dfo.C.Id)
 
 	if !ok {
 		t.Errorf("expected to find the inserted objective, but didn't")
