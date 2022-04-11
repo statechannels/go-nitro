@@ -127,6 +127,11 @@ func (dfo *Objective) OwnsChannel() types.Destination {
 	return dfo.C.Id
 }
 
+// GetStatus returns the status of the objective.
+func (dfo *Objective) GetStatus() protocols.ObjectiveStatus {
+	return dfo.Status
+}
+
 // CreateConsensusChannel creates a ConsensusChannel from the Objective by extracting signatures and a single asset outcome from the post fund state.
 func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChannel, error) {
 	ledger := dfo.C
