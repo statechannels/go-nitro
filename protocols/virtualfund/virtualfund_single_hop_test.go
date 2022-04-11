@@ -191,6 +191,7 @@ func collectPeerSignaturesOnSetupState(V *channel.SingleHopVirtualChannel, myRol
 	}
 }
 
+// TestCrankAsAlice tests the behaviour from a end-user's point of view when they are a leader in the ledger channel
 func TestCrankAsAlice(t *testing.T) {
 	my := alice
 	td := newTestData()
@@ -260,11 +261,12 @@ func TestCrankAsAlice(t *testing.T) {
 	assertStateSentTo(t, effects, postFS, bob)
 }
 
+// TestCrankAsBob tests the behaviour from a end-user's point of view when they are a follower in the ledger channel
 func TestCrankAsBob(t *testing.T) {
 	my := bob
 	td := newTestData()
 	vPreFund := td.vPreFund
-	ledgers := td.leaderLedgers
+	ledgers := td.followerLedgers
 	var s, _ = constructFromState(false, vPreFund, my.address, ledgers[my.destination].left, ledgers[my.destination].right)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.privateKey)
@@ -299,14 +301,12 @@ func TestCrankAsBob(t *testing.T) {
 	oObj, effects, waitingFor, err = o.Crank(&my.privateKey)
 	o = oObj.(*Objective)
 
-	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
-	sp := consensus_channel.SignedProposal{Proposal: p}
+	emptySideEffects := protocols.SideEffects{}
 	ok(t, err)
-	assertProposalSent(t, effects, sp, p1)
+	equals(t, effects, emptySideEffects)
 	equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// Check idempotency
-	emptySideEffects := protocols.SideEffects{}
 	oObj, effects, waitingFor, err = o.Crank(&my.privateKey)
 	o = oObj.(*Objective)
 	ok(t, err)
@@ -329,12 +329,14 @@ func TestCrankAsBob(t *testing.T) {
 	assertStateSentTo(t, effects, postFS, p1)
 }
 
+// TestCrankAsP1 tests the behaviour from an intermediary's point of view when they are a leader in one ledger channel and a follower in the other
 func TestCrankAsP1(t *testing.T) {
 	my := p1
 	td := newTestData()
 	vPreFund := td.vPreFund
-	// Leader in left ledger, follower in right ledger
-	var s, _ = constructFromState(false, vPreFund, my.address, td.leaderLedgers[my.destination].left, td.followerLedgers[my.destination].right)
+	left := td.leaderLedgers[my.destination].left
+	right := td.followerLedgers[my.destination].right
+	var s, _ = constructFromState(false, vPreFund, my.address, left, right)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.privateKey)
 	assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
