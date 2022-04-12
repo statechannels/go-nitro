@@ -1,4 +1,5 @@
 import {utils} from 'ethers';
+import {ParamType} from 'ethers/lib/utils';
 
 import {Channel, getChannelId} from './channel';
 import {encodeOutcome, Outcome} from './outcome';
@@ -97,26 +98,20 @@ export function encodeState(state: State): Bytes {
       {
         type: 'tuple[]',
         components: [
-          // @ts-ignore - reference ethers.utils.ParamType for more info on why certain properties are not present
           {name: 'asset', type: 'address'},
-          // @ts-ignore
           {name: 'metadata', type: 'bytes'},
           {
             type: 'tuple[]',
             name: 'allocations',
             components: [
-              // @ts-ignore
               {name: 'destination', type: 'bytes32'},
-              // @ts-ignore
               {name: 'amount', type: 'uint256'},
-              // @ts-ignore
               {name: 'allocationType', type: 'uint8'},
-              // @ts-ignore
               {name: 'metadata', type: 'bytes'}
             ]
-          }
+          } as ParamType
         ]
-      },
+      } as ParamType,
       'uint256',
       'bool'
     ],
