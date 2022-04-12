@@ -3,6 +3,7 @@ package virtualfund
 import (
 	"math/big"
 
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	con_chan "github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
@@ -71,19 +72,28 @@ func prepareConsensusChannel(cfg CChanConfig) *con_chan.ConsensusChannel {
 		panic(err)
 	}
 
-	if cfg.leader {
-		// Call Propose for each proposal
-		for _, p := range cfg.props {
-			_, err := c.Propose(p, cfg.left.PrivateKey)
+	// make sure the proposals are all valid for this channel
+	turnNum := startingTurnNum
+	vars := con_chan.Vars{TurnNum: startingTurnNum, Outcome: initialOutcome()}
+	for _, p := range cfg.props {
+		turnNum += 1
+		var correctedProp con_chan.Proposal
+		switch p.Type() {
+		case consensus_channel.AddProposal:
+			correctedProp = con_chan.NewAddProposal(c.Id, turnNum, p.ToAdd.Guarantee, p.ToAdd.LeftDeposit)
+		case consensus_channel.RemoveProposal:
+			correctedProp = con_chan.NewRemoveProposal(c.Id, turnNum, p.ToRemove.Target, p.ToRemove.LeftAmount, p.ToRemove.RightAmount)
+		}
+
+		if cfg.leader {
+			// Call Propose with the corrected proposal
+			_, err := c.Propose(correctedProp, cfg.left.PrivateKey)
 			if err != nil {
 				panic(err)
 			}
-		}
-	} else {
-		// Sign
-		vars := con_chan.Vars{TurnNum: startingTurnNum, Outcome: initialOutcome()}
-		for _, p := range cfg.props {
-			err = vars.HandleProposal(p)
+		} else {
+			// Compute the correct signature on the corrected prop
+			err = vars.HandleProposal(correctedProp)
 			if err != nil {
 				panic(err)
 			}
@@ -92,14 +102,15 @@ func prepareConsensusChannel(cfg CChanConfig) *con_chan.ConsensusChannel {
 			if err != nil {
 				panic(err)
 			}
+			sp := con_chan.SignedProposal{Proposal: correctedProp, Signature: sig}
 
-			sp := con_chan.SignedProposal{Proposal: p, Signature: sig}
+
+			// Receive the signed prop
 			err = c.Receive(sp)
 			if err != nil {
 				panic(err)
 			}
 		}
-
 	}
 
 	return &c
