@@ -43,9 +43,9 @@ interface IForceMove {
     function challenge(
         FixedPart memory fixedPart,
         IForceMoveApp.VariablePart[] memory variableParts,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat,
-        Signature memory challengerSig
+        Signature[] calldata sigs,
+        uint8[] calldata whoSignedWhat,
+        Signature calldata challengerSig
     ) external;
 
     /**
@@ -60,7 +60,7 @@ interface IForceMove {
         IForceMoveApp.VariablePart[2] memory variablePartAB,
         // variablePartAB[0] = challengeVariablePart
         // variablePartAB[1] = responseVariablePart
-        Signature memory sig
+        Signature calldata sig
     ) external;
 
     /**
@@ -74,8 +74,8 @@ interface IForceMove {
     function checkpoint(
         FixedPart memory fixedPart,
         IForceMoveApp.VariablePart[] memory variableParts,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat
+        Signature[] calldata sigs,
+        uint8[] calldata whoSignedWhat
     ) external;
 
     /**
@@ -91,8 +91,8 @@ interface IForceMove {
         FixedPart memory fixedPart,
         IForceMoveApp.VariablePart memory latestVariablePart,
         uint8 numStates,
-        uint8[] memory whoSignedWhat,
-        Signature[] memory sigs
+        uint8[] calldata whoSignedWhat,
+        Signature[] calldata sigs
     ) external;
 
     // events
