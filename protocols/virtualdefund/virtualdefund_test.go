@@ -1,19 +1,22 @@
 package virtualdefund
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/internal/testdata"
+	ta "github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
-var alice = testdata.Actors.Alice
-var bob = testdata.Actors.Bob
-var irene = testdata.Actors.Irene
+var alice = ta.Actors.Alice
+var bob = ta.Actors.Bob
+var irene = ta.Actors.Irene
+var allActors = []ta.Actor{alice, irene, bob}
 
 func makeOutcome(aliceAmount uint, bobAmount uint) outcome.SingleAssetExit {
 	return outcome.SingleAssetExit{
@@ -30,8 +33,15 @@ func makeOutcome(aliceAmount uint, bobAmount uint) outcome.SingleAssetExit {
 	}
 }
 
-func TestSingleHopVirtualDefund(t *testing.T) {
+type testdata struct {
+	vFixed         state.FixedPart
+	vFinal         state.State
+	initialOutcome outcome.SingleAssetExit
+	finalOutcome   outcome.SingleAssetExit
+	paid           uint
+}
 
+func generateTestData() testdata {
 	vFixed := state.FixedPart{
 		ChainId:           big.NewInt(9001),
 		Participants:      []types.Address{alice.Address, irene.Address, bob.Address}, // A single hop virtual channel
@@ -42,59 +52,46 @@ func TestSingleHopVirtualDefund(t *testing.T) {
 
 	initialOutcome := makeOutcome(7, 2)
 	finalOutcome := makeOutcome(6, 3)
-	paid := 1
+	paid := uint(1)
 
 	vFinal := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{finalOutcome}, TurnNum: FinalTurnNum})
 
-	TestAs := func(my testdata.Actor, t *testing.T) {
-		// Determine my role
-		var myRole uint
-		for i, p := range vFixed.Participants {
-			if p == my.Address {
-				myRole = uint(i)
+	return testdata{vFixed, vFinal, initialOutcome, finalOutcome, paid}
+}
 
-				break
-			}
-		}
-
-		virtualDefund := newObjective(false, vFixed, initialOutcome, big.NewInt(int64(paid)), myRole)
-
-		testUpdate := func(t *testing.T) {
-			signedFinal := state.NewSignedState(vFinal)
-			// Sign the final state by some other participant
-			if myRole == 0 {
-				_ = signedFinal.Sign(&irene.PrivateKey)
-
-			} else {
-				_ = signedFinal.Sign(&alice.PrivateKey)
-			}
-
-			e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}
-
-			updatedObj, err := virtualDefund.Update(e)
-			updated := updatedObj.(*Objective)
-			if myRole == 0 {
-				if isZero(updated.Signatures[1]) {
-					t.Fatalf("Expected signature for participant irene to be non-zero")
-				}
-
-			} else {
-				if isZero(updated.Signatures[0]) {
-					t.Fatalf("Expected signature for participant alice to be non-zero")
-				}
-			}
-			if err != nil {
-				t.Fatal(err)
-			}
-
-		}
-
-		t.Run(`testUpdate`, testUpdate)
-
+func TestUpdate(t *testing.T) {
+	for _, my := range allActors {
+		msg := fmt.Sprintf("testing update as %s", my.Name)
+		t.Run(msg, testUpdateAs(my))
 	}
+}
 
-	t.Run(`AsAlice`, func(t *testing.T) { TestAs(alice, t) })
-	t.Run(`AsBob`, func(t *testing.T) { TestAs(bob, t) })
-	t.Run(`AsIrene`, func(t *testing.T) { TestAs(irene, t) })
+func testUpdateAs(my ta.Actor) func(t *testing.T) {
+	return func(t *testing.T) {
+		data := generateTestData()
+		virtualDefund := newObjective(false, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), my.Role)
+		signedFinal := state.NewSignedState(data.vFinal)
+		// Sign the final state by some other participant
+		if my.Role == 0 {
+			_ = signedFinal.Sign(&irene.PrivateKey)
 
+		} else {
+			_ = signedFinal.Sign(&alice.PrivateKey)
+		}
+
+		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}
+
+		updatedObj, err := virtualDefund.Update(e)
+		updated := updatedObj.(*Objective)
+		// Check that we properly stored the signature
+		if my.Role == 0 {
+			testhelpers.Assert(t, !isZero(updated.Signatures[1]), "expected signature for participant irene to be non-zero")
+
+		} else {
+			testhelpers.Assert(t, !isZero(updated.Signatures[0]), "expected signature for participant alice to be non-zero")
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }
