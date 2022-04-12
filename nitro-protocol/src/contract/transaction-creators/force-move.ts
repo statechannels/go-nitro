@@ -44,7 +44,7 @@ export function createChallengeTransaction(
   // and SignedStates[] won't comply with that in general. This function accetps the re-ordered sigs.
   const signedStates = states.map(s => ({
     state: s,
-    signature: {v: 0, r: '', s: '', _vs: '', recoveryParam: 0},
+    signature: {v: 0, r: '', s: '', _vs: '', recoveryParam: 0}
   }));
   const challengerSignature = signChallengeMessage(signedStates, challengerPrivateKey);
 
@@ -55,7 +55,7 @@ export function createChallengeTransaction(
     isFinalCount,
     signatures,
     whoSignedWhat,
-    challengerSignature,
+    challengerSignature
   ]);
   return {data};
 }
@@ -68,7 +68,7 @@ interface RespondArgs {
 export function respondArgs({
   challengeState,
   responseState,
-  responseSignature,
+  responseSignature
 }: RespondArgs): any[] {
   const isFinalAB = [challengeState.isFinal, responseState.isFinal];
   const fixedPart = getFixedPart(responseState);
@@ -84,7 +84,7 @@ export function createRespondTransaction(args: RespondArgs): ethers.providers.Tr
 export function createCheckpointTransaction({
   states,
   signatures,
-  whoSignedWhat,
+  whoSignedWhat
 }: CheckpointData): ethers.providers.TransactionRequest {
   const data = ForceMoveContractInterface.encodeFunctionData(
     'checkpoint',
@@ -146,6 +146,6 @@ export function concludeArgs(
     outcomeBytes,
     numStates,
     whoSignedWhat,
-    signatures,
+    signatures
   ];
 }

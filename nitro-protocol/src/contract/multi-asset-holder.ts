@@ -24,7 +24,7 @@ export function getDepositedEvent(eventResult: any[]): DepositedEvent {
   return {
     destination,
     amountDeposited: BigNumber.from(amountDeposited),
-    destinationHoldings: BigNumber.from(destinationHoldings),
+    destinationHoldings: BigNumber.from(destinationHoldings)
   };
 }
 
@@ -87,7 +87,7 @@ export function computeClaimEffectsAndInteractions(
       destination: sourceAllocations[i].destination,
       amount: sourceAllocations[i].amount,
       metadata: sourceAllocations[i].metadata,
-      allocationType: sourceAllocations[i].allocationType,
+      allocationType: sourceAllocations[i].allocationType
     });
   }
   for (let i = 0; i < targetAllocations.length; i++) {
@@ -95,13 +95,13 @@ export function computeClaimEffectsAndInteractions(
       destination: targetAllocations[i].destination,
       amount: targetAllocations[i].amount,
       metadata: targetAllocations[i].metadata,
-      allocationType: targetAllocations[i].allocationType,
+      allocationType: targetAllocations[i].allocationType
     });
     exitAllocations.push({
       destination: targetAllocations[i].destination,
       amount: '0x00',
       metadata: targetAllocations[i].metadata,
-      allocationType: targetAllocations[i].allocationType,
+      allocationType: targetAllocations[i].allocationType
     });
   }
 
@@ -181,7 +181,7 @@ export function computeClaimEffectsAndInteractions(
     newSourceAllocations,
     newTargetAllocations,
     exitAllocations,
-    totalPayouts: totalPayouts.toHexString(),
+    totalPayouts: totalPayouts.toHexString()
   };
 }
 
@@ -210,7 +210,7 @@ export function computeTransferEffectsAndInteractions(
     destination: constants.HashZero,
     amount: '0x00',
     metadata: '0x',
-    allocationType: 0,
+    allocationType: 0
   });
   let allocatesOnlyZeros = true;
   let surplus = BigNumber.from(initialHoldings);
@@ -221,7 +221,7 @@ export function computeTransferEffectsAndInteractions(
       destination: allocations[i].destination,
       amount: BigNumber.from(0).toHexString(),
       metadata: allocations[i].metadata,
-      allocationType: allocations[i].allocationType,
+      allocationType: allocations[i].allocationType
     });
     const affordsForDestination = min(BigNumber.from(allocations[i].amount), surplus);
     if (indices.length == 0 || (k < indices.length && indices[k] === i)) {
@@ -232,7 +232,7 @@ export function computeTransferEffectsAndInteractions(
         destination: allocations[i].destination,
         amount: affordsForDestination.toHexString(),
         metadata: allocations[i].metadata,
-        allocationType: allocations[i].allocationType,
+        allocationType: allocations[i].allocationType
       };
       totalPayouts = totalPayouts.add(affordsForDestination);
       ++k;
@@ -247,7 +247,7 @@ export function computeTransferEffectsAndInteractions(
     newAllocations,
     allocatesOnlyZeros,
     exitAllocations,
-    totalPayouts: totalPayouts.toHexString(),
+    totalPayouts: totalPayouts.toHexString()
   };
 }
 

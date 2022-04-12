@@ -16,7 +16,7 @@ export enum AlreadyMoved {
   'None',
   'A',
   'B',
-  'AB',
+  'AB'
 }
 export interface EmbeddedApplicationData {
   channelIdForX: Bytes32;
@@ -43,16 +43,16 @@ export function encodeEmbeddedApplicationData(data: EmbeddedApplicationData): By
                   {name: 'participants', type: 'address[]'},
                   {name: 'channelNonce', type: 'uint48'},
                   {name: 'appDefinition', type: 'address'},
-                  {name: 'challengeDuration', type: 'uint48'},
-                ],
+                  {name: 'challengeDuration', type: 'uint48'}
+                ]
               },
               {
                 name: 'variableParts',
                 type: 'tuple[]',
                 components: [
                   {name: 'outcome', type: 'bytes'},
-                  {name: 'appData', type: 'bytes'},
-                ],
+                  {name: 'appData', type: 'bytes'}
+                ]
               },
               {name: 'turnNumTo', type: 'uint48'},
               {
@@ -61,15 +61,15 @@ export function encodeEmbeddedApplicationData(data: EmbeddedApplicationData): By
                 components: [
                   {name: 'v', type: 'uint8'},
                   {name: 'r', type: 'bytes32'},
-                  {name: 's', type: 'bytes32'},
-                ],
+                  {name: 's', type: 'bytes32'}
+                ]
               },
-              {name: 'whoSignedWhat', type: 'uint8[2]'},
-            ],
+              {name: 'whoSignedWhat', type: 'uint8[2]'}
+            ]
           },
-          {name: 'alreadyMoved', type: 'uint8'},
-        ],
-      } as ParamType,
+          {name: 'alreadyMoved', type: 'uint8'}
+        ]
+      } as ParamType
     ],
     [data]
   );

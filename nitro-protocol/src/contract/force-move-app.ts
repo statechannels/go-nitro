@@ -43,7 +43,7 @@ export function createValidTransitionTransaction(fromState: State, toState: Stat
     fromVariablePart,
     toVariablePart,
     turnNumB,
-    numberOfParticipants,
+    numberOfParticipants
   ]);
   return {data};
 }

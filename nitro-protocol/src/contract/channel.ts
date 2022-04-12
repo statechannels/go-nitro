@@ -1,6 +1,6 @@
 import {utils} from 'ethers';
-import { FixedPart } from './state';
 
+import {FixedPart} from './state';
 import {Address, Bytes32, Uint256, Uint48} from './types';
 
 /**
