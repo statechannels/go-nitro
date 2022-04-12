@@ -596,13 +596,11 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 // acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
 func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.SideEffects, error) {
 	ledger := c.Channel
-	err := ledger.SignNextProposal(c.expectedProposal(), *sk) // todo: #420 -- need to send side effects!
+	signedProposal, err := ledger.SignNextProposal(c.expectedProposal(), *sk)
 
 	if err != nil {
 		return protocols.SideEffects{}, fmt.Errorf("no proposed state found for ledger channel %w", err)
 	}
-
-	var signedProposal consensus_channel.SignedProposal
 
 	sideEffects := protocols.SideEffects{}
 	message := o.createSignedProposalMessage(signedProposal, c.Channel)
@@ -633,6 +631,9 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 	var sideEffects protocols.SideEffects
 	g := ledgerConnection.getExpectedGuarantee()
 	proposed, err := ledger.IsProposed(g)
+	if err != nil {
+		return protocols.SideEffects{}, err
+	}
 
 	if ledger.IsLeader() { // If the user is the proposer craft a new proposal
 		if proposed {

@@ -9,7 +9,11 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-func prepareConsensusChannel(role uint, left, right testactors.Actor) *consensus_channel.ConsensusChannel {
+// prepareConsensusChannel prepares a consensus channel with a consensus outcome
+//  - allocating 6 to left
+//  - allocating 4 to right
+//  - including the given guarantees
+func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
 	fp := state.FixedPart{
 		ChainId:           big.NewInt(9001),
 		Participants:      []types.Address{left.Address, right.Address},
@@ -21,7 +25,7 @@ func prepareConsensusChannel(role uint, left, right testactors.Actor) *consensus
 	leftBal := consensus_channel.NewBalance(left.Destination(), big.NewInt(6))
 	rightBal := consensus_channel.NewBalance(right.Destination(), big.NewInt(4))
 
-	lo := *consensus_channel.NewLedgerOutcome(types.Address{}, leftBal, rightBal, []consensus_channel.Guarantee{})
+	lo := *consensus_channel.NewLedgerOutcome(types.Address{}, leftBal, rightBal, guarantees)
 
 	signedVars := consensus_channel.SignedVars{Vars: consensus_channel.Vars{Outcome: lo, TurnNum: 1}}
 	leftSig, err := signedVars.Vars.AsState(fp).Sign(left.PrivateKey)

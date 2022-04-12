@@ -9,10 +9,12 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/testactors"
 	actors "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -24,9 +26,10 @@ type actorLedgers struct {
 }
 type ledgerLookup map[types.Destination]actorLedgers
 type testData struct {
-	vPreFund  state.State
-	vPostFund state.State
-	ledgers   ledgerLookup
+	vPreFund        state.State
+	vPostFund       state.State
+	leaderLedgers   ledgerLookup
+	followerLedgers ledgerLookup
 }
 
 var alice, p1, bob actors.Actor = actors.Alice, actors.Irene, actors.Bob
@@ -59,19 +62,31 @@ func newTestData() testData {
 	var vPostFund = vPreFund.Clone()
 	vPostFund.TurnNum = 1
 
-	ledgers := make(map[types.Destination]actorLedgers)
-	ledgers[alice.Destination()] = actorLedgers{
+	leaderLedgers := make(map[types.Destination]actorLedgers)
+	leaderLedgers[alice.Destination()] = actorLedgers{
 		right: prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1),
 	}
-	ledgers[p1.Destination()] = actorLedgers{
-		left:  prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
+	leaderLedgers[p1.Destination()] = actorLedgers{
+		left:  prepareConsensusChannel(uint(consensus_channel.Leader), p1, alice),
 		right: prepareConsensusChannel(uint(consensus_channel.Leader), p1, bob),
 	}
-	ledgers[bob.Destination()] = actorLedgers{
+	leaderLedgers[bob.Destination()] = actorLedgers{
+		left: prepareConsensusChannel(uint(consensus_channel.Leader), bob, p1),
+	}
+
+	followerLedgers := make(map[types.Destination]actorLedgers)
+	followerLedgers[alice.Destination()] = actorLedgers{
+		right: prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
+	}
+	followerLedgers[p1.Destination()] = actorLedgers{
+		left:  prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
+		right: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
+	}
+	followerLedgers[bob.Destination()] = actorLedgers{
 		left: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
 	}
 
-	return testData{vPreFund, vPostFund, ledgers}
+	return testData{vPreFund, vPostFund, leaderLedgers, followerLedgers}
 }
 
 type Tester func(t *testing.T)
@@ -79,7 +94,7 @@ type Tester func(t *testing.T)
 func testNew(a actors.Actor) Tester {
 	return func(t *testing.T) {
 		td := newTestData()
-		lookup := td.ledgers
+		lookup := td.leaderLedgers
 		vPreFund := td.vPreFund
 
 		// Assert that a valid set of constructor args does not result in an error
@@ -139,7 +154,7 @@ func testCloneAs(my actors.Actor) Tester {
 	return func(t *testing.T) {
 		td := newTestData()
 		vPreFund := td.vPreFund
-		ledgers := td.ledgers
+		ledgers := td.leaderLedgers
 
 		o, _ := constructFromState(false, vPreFund, my.Address, ledgers[my.Destination()].left, ledgers[my.Destination()].right)
 
@@ -181,12 +196,13 @@ func collectPeerSignaturesOnSetupState(V *channel.SingleHopVirtualChannel, myRol
 	}
 }
 
+// TestCrankAsAlice tests the behaviour from a end-user's point of view when they are a leader in the ledger channel
 func TestCrankAsAlice(t *testing.T) {
 	my := alice
 	td := newTestData()
 	vPreFund := td.vPreFund
-	ledgers := td.ledgers
-	var s, _ = constructFromState(false, vPreFund, my.Address, ledgers[my.Destination()].left, ledgers[my.Destination()].right) // todo: #420 deprecate TwoPartyLedgers
+	ledgers := td.leaderLedgers
+	var s, _ = constructFromState(false, vPreFund, my.Address, ledgers[my.Destination()].left, ledgers[my.Destination()].right)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.PrivateKey)
 	assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
@@ -200,7 +216,7 @@ func TestCrankAsAlice(t *testing.T) {
 	// need to remember to convert the result back to a virtualfund.Objective struct
 
 	// Initial Crank
-	oObj, got, waitingFor, err := o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err := o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
 	expectedSignedState := state.NewSignedState(o.V.PreFundState())
@@ -209,30 +225,186 @@ func TestCrankAsAlice(t *testing.T) {
 
 	ok(t, err)
 	equals(t, waitingFor, WaitingForCompletePrefund)
-	assertStateSentTo(t, got, expectedSignedState, bob)
-	assertStateSentTo(t, got, expectedSignedState, p1)
+	assertStateSentTo(t, effects, expectedSignedState, bob)
+	assertStateSentTo(t, effects, expectedSignedState, p1)
 
 	// Manually progress the extended state by collecting prefund signatures
 	collectPeerSignaturesOnSetupState(o.V, my.Role, true)
 
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	// TODO: Check that ledger channel is updated as expected
-	oObj, got, waitingFor, err = o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
 	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p}
-	assertProposalSent(t, got, sp, p1)
 	ok(t, err)
+	assertProposalSent(t, effects, sp, p1)
 	equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// Check idempotency
 	emptySideEffects := protocols.SideEffects{}
-	oObj, got, waitingFor, err = o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 	ok(t, err)
-	equals(t, got, emptySideEffects)
+	equals(t, effects, emptySideEffects)
 	equals(t, waitingFor, WaitingForCompleteFunding)
+
+	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
+	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.Destination(), p1.Destination())
+	o.ToMyRight.Channel = prepareConsensusChannel(my.Role, alice, p1, guaranteeFundingV)
+
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
+	o = oObj.(*Objective)
+
+	postFS := state.NewSignedState(o.V.PostFundState())
+	mySig, _ = postFS.State().Sign(my.PrivateKey)
+	_ = postFS.AddSignature(mySig)
+
+	ok(t, err)
+	equals(t, waitingFor, WaitingForCompletePostFund)
+	assertStateSentTo(t, effects, postFS, bob)
+}
+
+// TestCrankAsBob tests the behaviour from a end-user's point of view when they are a follower in the ledger channel
+func TestCrankAsBob(t *testing.T) {
+	my := bob
+	td := newTestData()
+	vPreFund := td.vPreFund
+	ledgers := td.followerLedgers
+	var s, _ = constructFromState(false, vPreFund, my.Address, ledgers[my.Destination()].left, ledgers[my.Destination()].right)
+	// Assert that cranking an unapproved objective returns an error
+	_, _, _, err := s.Crank(&my.PrivateKey)
+	assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
+
+	// Approve the objective, so that the rest of the test cases can run.
+	o := s.Approve().(*Objective)
+
+	// To test the finite state progression, we are going to progressively mutate o
+	// And then crank it to see which "pause point" (WaitingFor) we end up at.
+	// NOTE: Because crank returns a protocools.Objective interface, after each crank we
+	// need to remember to convert the result back to a virtualfund.Objective struct
+
+	// Initial Crank
+	oObj, effects, waitingFor, err := o.Crank(&my.PrivateKey)
+	o = oObj.(*Objective)
+
+	expectedSignedState := state.NewSignedState(o.V.PreFundState())
+	mySig, _ := o.V.PreFundState().Sign(my.PrivateKey)
+	_ = expectedSignedState.AddSignature(mySig)
+
+	ok(t, err)
+	equals(t, waitingFor, WaitingForCompletePrefund)
+	assertStateSentTo(t, effects, expectedSignedState, alice)
+	assertStateSentTo(t, effects, expectedSignedState, p1)
+
+	// Manually progress the extended state by collecting prefund signatures
+	collectPeerSignaturesOnSetupState(o.V, my.Role, true)
+
+	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
+	// TODO: Check that ledger channel is updated as expected
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
+	o = oObj.(*Objective)
+
+	emptySideEffects := protocols.SideEffects{}
+	ok(t, err)
+	equals(t, effects, emptySideEffects)
+	equals(t, waitingFor, WaitingForCompleteFunding)
+
+	// Check idempotency
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
+	o = oObj.(*Objective)
+	ok(t, err)
+	equals(t, effects, emptySideEffects)
+	equals(t, waitingFor, WaitingForCompleteFunding)
+
+	// If Bob had received a signed counterproposal, he should proceed to postFundSetup
+	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, p1.Destination(), bob.Destination())
+	o.ToMyLeft.Channel = prepareConsensusChannel(uint(consensus_channel.Leader), bob, p1, guaranteeFundingV)
+
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
+	o = oObj.(*Objective)
+
+	postFS := state.NewSignedState(o.V.PostFundState())
+	mySig, _ = postFS.State().Sign(my.PrivateKey)
+	_ = postFS.AddSignature(mySig)
+
+	ok(t, err)
+	equals(t, waitingFor, WaitingForCompletePostFund)
+	assertStateSentTo(t, effects, postFS, p1)
+}
+
+// TestCrankAsP1 tests the behaviour from an intermediary's point of view when they are a leader in one ledger channel and a follower in the other
+func TestCrankAsP1(t *testing.T) {
+	my := p1
+	td := newTestData()
+	vPreFund := td.vPreFund
+	left := td.leaderLedgers[my.Destination()].left
+	right := td.followerLedgers[my.Destination()].right
+	var s, _ = constructFromState(false, vPreFund, my.Address, left, right)
+	// Assert that cranking an unapproved objective returns an error
+	_, _, _, err := s.Crank(&my.PrivateKey)
+	assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
+
+	// Approve the objective, so that the rest of the test cases can run.
+	o := s.Approve().(*Objective)
+
+	// To test the finite state progression, we are going to progressively mutate o
+	// And then crank it to see which "pause point" (WaitingFor) we end up at.
+	// NOTE: Because crank returns a protocools.Objective interface, after each crank we
+	// need to remember to convert the result back to a virtualfund.Objective struct
+
+	// Initial Crank
+	oObj, effects, waitingFor, err := o.Crank(&my.PrivateKey)
+	o = oObj.(*Objective)
+
+	expectedSignedState := state.NewSignedState(o.V.PreFundState())
+	mySig, _ := o.V.PreFundState().Sign(my.PrivateKey)
+	_ = expectedSignedState.AddSignature(mySig)
+
+	ok(t, err)
+	equals(t, waitingFor, WaitingForCompletePrefund)
+	assertStateSentTo(t, effects, expectedSignedState, alice)
+	assertStateSentTo(t, effects, expectedSignedState, bob)
+
+	// Manually progress the extended state by collecting prefund signatures
+	collectPeerSignaturesOnSetupState(o.V, my.Role, true)
+
+	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
+	o = oObj.(*Objective)
+
+	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
+	sp := consensus_channel.SignedProposal{Proposal: p}
+	ok(t, err)
+	assertProposalSent(t, effects, sp, alice)
+	equals(t, waitingFor, WaitingForCompleteFunding)
+
+	// Check idempotency
+	emptySideEffects := protocols.SideEffects{}
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
+	o = oObj.(*Objective)
+	ok(t, err)
+	equals(t, effects, emptySideEffects)
+	equals(t, waitingFor, WaitingForCompleteFunding)
+
+	// If P1 had received a signed counterproposal, she should proceed to postFundSetup
+	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.Destination(), p1.Destination())
+	o.ToMyLeft.Channel = prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1, guaranteeFundingV)
+
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
+	o = oObj.(*Objective)
+
+	postFS := state.NewSignedState(o.V.PostFundState())
+	mySig, _ = postFS.State().Sign(my.PrivateKey)
+	_ = postFS.AddSignature(mySig)
+
+	ok(t, err)
+
+	// We need to receive a proposal from Bob before funding is completed!
+	equals(t, waitingFor, WaitingForCompleteFunding)
+	equals(t, effects, emptySideEffects)
+
 }
 
 // Copied from https://github.com/benbjohnson/testing
@@ -300,16 +472,35 @@ func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 }
 
 // assertMessageSentTo asserts that ses contains a message
-func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to actors.Actor) {
+func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
+	_, file, line, _ := runtime.Caller(1)
 	for _, msg := range ses.MessagesToSend {
 		for _, ss := range msg.SignedStates {
-			if reflect.DeepEqual(ss, expected) && bytes.Equal(msg.To[:], to.Address[:]) {
-				return
+			correctAddress := bytes.Equal(msg.To[:], to.Address[:])
+
+			if correctAddress {
+				diff := compareStates(ss, expected)
+				if diff == "" {
+					return
+				}
+
+				fmt.Printf("\033[31m%s:%d:\n\n\tincorrect state\n\ndiff: %v", filepath.Base(file), line, diff)
+				t.FailNow()
 			}
 		}
 	}
 
-	_, file, line, _ := runtime.Caller(1)
 	fmt.Printf(makeRed+"%s:%d:\n\n\tside effects do not incude signed state"+makeBlack, filepath.Base(file), line)
 	t.FailNow()
+}
+
+func compareStates(a, b state.SignedState) string {
+	return cmp.Diff(&a, &b,
+		cmp.AllowUnexported(
+			big.Int{},
+			state.SignedState{},
+			state.Signature{},
+			state.State{},
+		),
+	)
 }

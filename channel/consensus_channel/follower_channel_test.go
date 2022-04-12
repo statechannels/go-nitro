@@ -2,7 +2,10 @@ package consensus_channel
 
 import (
 	"errors"
+	"fmt"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
 
 	"github.com/statechannels/go-nitro/channel/state"
@@ -88,9 +91,10 @@ func TestFollowerChannel(t *testing.T) {
 		t.Fatal("unable to construct channel")
 	}
 
-	proposal := Proposal{ChannelID: channel.Id, ToAdd: add(1, uint64(5), targetChannel, alice, bob)}
+	amountAdded := uint64(5)
+	proposal := Proposal{ChannelID: channel.Id, ToAdd: add(1, amountAdded, targetChannel, alice, bob)}
 
-	err = channel.SignNextProposal(proposal, bob.PrivateKey)
+	_, err = channel.SignNextProposal(proposal, bob.PrivateKey)
 	if !errors.Is(ErrNoProposals, err) {
 		t.Fatalf("expected %v, but got %v", ErrNoProposals, err)
 	}
@@ -101,17 +105,27 @@ func TestFollowerChannel(t *testing.T) {
 		Signature: state.Signature{},
 	}
 	channel.proposalQueue = []SignedProposal{signedProposal}
-	proposal2 := Proposal{ChannelID: channel.Id, ToAdd: add(1, uint64(6), targetChannel, alice, bob)}
+	proposal2 := Proposal{ChannelID: channel.Id, ToAdd: add(1, amountAdded+1, targetChannel, alice, bob)}
 
-	err = channel.SignNextProposal(proposal2, bob.PrivateKey)
+	_, err = channel.SignNextProposal(proposal2, bob.PrivateKey)
 	if !errors.Is(ErrNonMatchingProposals, err) {
 		t.Fatalf("expected %v, but got %v", ErrNonMatchingProposals, err)
 	}
 
-	err = channel.SignNextProposal(proposal, bob.PrivateKey)
+	withMySig, err := channel.SignNextProposal(proposal, bob.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	outcomeSigned := makeOutcome(
+		allocation(alice, aBal-amountAdded),
+		allocation(bob, bBal),
+		guarantee(vAmount, channel1Id, alice, bob),
+		guarantee(amountAdded, targetChannel, alice, bob),
+	)
+	varsSigned := Vars{Outcome: outcomeSigned, TurnNum: 1}
+	correctSig, _ := varsSigned.AsState(fp()).Sign(bob.PrivateKey)
+	equals(t, withMySig.Signature, correctSig)
 
 	if channel.ConsensusTurnNum() != 1 {
 		t.Fatalf("incorrect turn number: expected 1, got %d", channel.ConsensusTurnNum())
@@ -131,10 +145,6 @@ func TestRestrictedLeaderMethods(t *testing.T) {
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
 	channel, _ := NewFollowerChannel(fp(), 0, ledgerOutcome(), sigs)
-
-	if _, err := channel.IsProposed(Guarantee{}); err != ErrNotLeader {
-		t.Errorf("Expected error when calling IsProposed() as a follower, but found none")
-	}
 
 	if _, err := channel.Propose(Proposal{ToAdd: Add{}}, alice.PrivateKey); err != ErrNotLeader {
 		t.Errorf("Expected error when calling Propose() as a follower, but found none")
@@ -163,9 +173,18 @@ func TestFollowerIncorrectlyAddressedProposals(t *testing.T) {
 		t.Fatalf("expected error receiving proposal with incorrect ChannelID, but found none")
 	}
 
-	err = followerCh.SignNextProposal(someProposal.Proposal, bob.PrivateKey)
+	_, err = followerCh.SignNextProposal(someProposal.Proposal, bob.PrivateKey)
 
 	if err != ErrIncorrectChannelID {
 		t.Fatalf("expected error receiving proposal with incorrect ChannelID, but found none")
+	}
+}
+
+// equals fails the test if exp is not equal to act.
+func equals(tb testing.TB, exp, act interface{}) {
+	if !reflect.DeepEqual(exp, act) {
+		_, file, line, _ := runtime.Caller(1)
+		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, exp, act)
+		tb.FailNow()
 	}
 }
