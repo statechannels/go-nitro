@@ -13,7 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	actors "github.com/statechannels/go-nitro/internal/testactors"
-	helpers "github.com/statechannels/go-nitro/internal/testhelpers"
+	. "github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -109,14 +109,14 @@ func testNew(a actors.Actor) Tester {
 
 		switch a.Role {
 		case alice.Role:
-			helpers.Assert(t, o.ToMyLeft == nil, "left connection should be nil")
-			helpers.Assert(t, diffFromCorrectConnection(o.ToMyRight, alice, p1) == "", "incorrect connection")
+			Assert(t, o.ToMyLeft == nil, "left connection should be nil")
+			Assert(t, diffFromCorrectConnection(o.ToMyRight, alice, p1) == "", "incorrect connection")
 		case p1.Role:
-			helpers.Assert(t, diffFromCorrectConnection(o.ToMyLeft, alice, p1) == "", "incorrect connection")
-			helpers.Assert(t, diffFromCorrectConnection(o.ToMyRight, p1, bob) == "", "incorrect connection")
+			Assert(t, diffFromCorrectConnection(o.ToMyLeft, alice, p1) == "", "incorrect connection")
+			Assert(t, diffFromCorrectConnection(o.ToMyRight, p1, bob) == "", "incorrect connection")
 		case bob.Role:
-			helpers.Assert(t, diffFromCorrectConnection(o.ToMyLeft, p1, bob) == "", "incorrect connection")
-			helpers.Assert(t, o.ToMyRight == nil, "right connection should be nil")
+			Assert(t, diffFromCorrectConnection(o.ToMyLeft, p1, bob) == "", "incorrect connection")
+			Assert(t, o.ToMyRight == nil, "right connection should be nil")
 		}
 	}
 }
@@ -203,7 +203,7 @@ func TestCrankAsAlice(t *testing.T) {
 	var s, _ = constructFromState(false, vPreFund, my.Address, ledgers[my.Destination()].left, ledgers[my.Destination()].right)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.PrivateKey)
-	helpers.Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
+	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
 
 	// Approve the objective, so that the rest of the test cases can run.
 	o := s.Approve().(*Objective)
@@ -221,8 +221,8 @@ func TestCrankAsAlice(t *testing.T) {
 	mySig, _ := o.V.PreFundState().Sign(my.PrivateKey)
 	_ = expectedSignedState.AddSignature(mySig)
 
-	helpers.Ok(t, err)
-	helpers.Equals(t, waitingFor, WaitingForCompletePrefund)
+	Ok(t, err)
+	Equals(t, waitingFor, WaitingForCompletePrefund)
 	assertStateSentTo(t, effects, expectedSignedState, bob)
 	assertStateSentTo(t, effects, expectedSignedState, p1)
 
@@ -236,17 +236,17 @@ func TestCrankAsAlice(t *testing.T) {
 
 	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p}
-	helpers.Ok(t, err)
+	Ok(t, err)
 	assertProposalSent(t, effects, sp, p1)
-	helpers.Equals(t, waitingFor, WaitingForCompleteFunding)
+	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// Check idempotency
 	emptySideEffects := protocols.SideEffects{}
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-	helpers.Ok(t, err)
-	helpers.Equals(t, effects, emptySideEffects)
-	helpers.Equals(t, waitingFor, WaitingForCompleteFunding)
+	Ok(t, err)
+	Equals(t, effects, emptySideEffects)
+	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
 	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.Destination(), p1.Destination())
@@ -259,8 +259,8 @@ func TestCrankAsAlice(t *testing.T) {
 	mySig, _ = postFS.State().Sign(my.PrivateKey)
 	_ = postFS.AddSignature(mySig)
 
-	helpers.Ok(t, err)
-	helpers.Equals(t, waitingFor, WaitingForCompletePostFund)
+	Ok(t, err)
+	Equals(t, waitingFor, WaitingForCompletePostFund)
 	assertStateSentTo(t, effects, postFS, bob)
 }
 
@@ -273,7 +273,7 @@ func TestCrankAsBob(t *testing.T) {
 	var s, _ = constructFromState(false, vPreFund, my.Address, ledgers[my.Destination()].left, ledgers[my.Destination()].right)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.PrivateKey)
-	helpers.Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
+	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
 
 	// Approve the objective, so that the rest of the test cases can run.
 	o := s.Approve().(*Objective)
@@ -291,8 +291,8 @@ func TestCrankAsBob(t *testing.T) {
 	mySig, _ := o.V.PreFundState().Sign(my.PrivateKey)
 	_ = expectedSignedState.AddSignature(mySig)
 
-	helpers.Ok(t, err)
-	helpers.Equals(t, waitingFor, WaitingForCompletePrefund)
+	Ok(t, err)
+	Equals(t, waitingFor, WaitingForCompletePrefund)
 	assertStateSentTo(t, effects, expectedSignedState, alice)
 	assertStateSentTo(t, effects, expectedSignedState, p1)
 
@@ -305,16 +305,16 @@ func TestCrankAsBob(t *testing.T) {
 	o = oObj.(*Objective)
 
 	emptySideEffects := protocols.SideEffects{}
-	helpers.Ok(t, err)
-	helpers.Equals(t, effects, emptySideEffects)
-	helpers.Equals(t, waitingFor, WaitingForCompleteFunding)
+	Ok(t, err)
+	Equals(t, effects, emptySideEffects)
+	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// Check idempotency
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-	helpers.Ok(t, err)
-	helpers.Equals(t, effects, emptySideEffects)
-	helpers.Equals(t, waitingFor, WaitingForCompleteFunding)
+	Ok(t, err)
+	Equals(t, effects, emptySideEffects)
+	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If Bob had received a signed counterproposal, he should proceed to postFundSetup
 	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, p1.Destination(), bob.Destination())
@@ -327,8 +327,8 @@ func TestCrankAsBob(t *testing.T) {
 	mySig, _ = postFS.State().Sign(my.PrivateKey)
 	_ = postFS.AddSignature(mySig)
 
-	helpers.Ok(t, err)
-	helpers.Equals(t, waitingFor, WaitingForCompletePostFund)
+	Ok(t, err)
+	Equals(t, waitingFor, WaitingForCompletePostFund)
 	assertStateSentTo(t, effects, postFS, p1)
 }
 
@@ -342,7 +342,7 @@ func TestCrankAsP1(t *testing.T) {
 	var s, _ = constructFromState(false, vPreFund, my.Address, left, right)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.PrivateKey)
-	helpers.Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
+	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
 
 	// Approve the objective, so that the rest of the test cases can run.
 	o := s.Approve().(*Objective)
@@ -360,8 +360,8 @@ func TestCrankAsP1(t *testing.T) {
 	mySig, _ := o.V.PreFundState().Sign(my.PrivateKey)
 	_ = expectedSignedState.AddSignature(mySig)
 
-	helpers.Ok(t, err)
-	helpers.Equals(t, waitingFor, WaitingForCompletePrefund)
+	Ok(t, err)
+	Equals(t, waitingFor, WaitingForCompletePrefund)
 	assertStateSentTo(t, effects, expectedSignedState, alice)
 	assertStateSentTo(t, effects, expectedSignedState, bob)
 
@@ -374,17 +374,17 @@ func TestCrankAsP1(t *testing.T) {
 
 	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p}
-	helpers.Ok(t, err)
+	Ok(t, err)
 	assertProposalSent(t, effects, sp, alice)
-	helpers.Equals(t, waitingFor, WaitingForCompleteFunding)
+	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// Check idempotency
 	emptySideEffects := protocols.SideEffects{}
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-	helpers.Ok(t, err)
-	helpers.Equals(t, effects, emptySideEffects)
-	helpers.Equals(t, waitingFor, WaitingForCompleteFunding)
+	Ok(t, err)
+	Equals(t, effects, emptySideEffects)
+	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If P1 had received a signed counterproposal, she should proceed to postFundSetup
 	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.Destination(), p1.Destination())
@@ -397,27 +397,27 @@ func TestCrankAsP1(t *testing.T) {
 	mySig, _ = postFS.State().Sign(my.PrivateKey)
 	_ = postFS.AddSignature(mySig)
 
-	helpers.Ok(t, err)
+	Ok(t, err)
 
 	// We need to receive a proposal from Bob before funding is completed!
-	helpers.Equals(t, waitingFor, WaitingForCompleteFunding)
-	helpers.Equals(t, effects, emptySideEffects)
+	Equals(t, waitingFor, WaitingForCompleteFunding)
+	Equals(t, effects, emptySideEffects)
 
 }
 
 // assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
 func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to actors.Actor) {
 
-	helpers.Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
+	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
 
-	helpers.Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "expected one signed proposal")
+	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "expected one signed proposal")
 
 	msg := ses.MessagesToSend[0]
 	sent := msg.SignedProposals[0]
 
-	helpers.Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
+	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
 
-	helpers.Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
+	Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
 
 }
 
@@ -430,13 +430,13 @@ func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.S
 
 			if correctAddress {
 				diff := compareStates(ss, expected)
-				helpers.Assert(t, diff == "", "incorrect state\n\ndiff: %v", diff)
+				Assert(t, diff == "", "incorrect state\n\ndiff: %v", diff)
 				found = true
 				break
 			}
 		}
 	}
-	helpers.Assert(t, found, "side effects do not include signed state")
+	Assert(t, found, "side effects do not include signed state")
 
 }
 
