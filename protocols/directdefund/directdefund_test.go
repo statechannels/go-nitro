@@ -180,8 +180,8 @@ func compareSideEffect(a, b protocols.SideEffects) string {
 
 func TestCrankAlice(t *testing.T) {
 	// The starting channel state is:
-	// - Channel has a non-final consensus state
-	// - Channel has funds
+	//  - Channel has a non-final consensus state
+	//  - Channel has funds
 	o, _ := newTestObjective(true)
 
 	// The first crank. Alice is expected to create and sign a final state
@@ -261,8 +261,8 @@ func TestCrankAlice(t *testing.T) {
 
 func TestCrankBob(t *testing.T) {
 	// The starting channel state is:
-	// - Channel has a non-final non-consensus state
-	// - Channel has funds
+	//  - Channel has a non-final non-consensus state
+	//  - Channel has funds
 
 	o, _ := newTestObjective(true)
 	o.C.MyIndex = 1

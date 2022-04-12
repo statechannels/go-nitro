@@ -274,9 +274,9 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 
 // FromExit creates a new LedgerOutcome from the given SingleAssetExit.
 // It makes some assumptions about the exit:
-// - The first alloction entry is for left
-// - The second alloction entry is for right
-// - We ignore guarantee metadata and just assume that it is [left,right]
+//  - The first alloction entry is for left
+//  - The second alloction entry is for right
+//  - We ignore guarantee metadata and just assume that it is [left,right]
 func FromExit(sae outcome.SingleAssetExit) LedgerOutcome {
 
 	left := Balance{destination: sae.Allocations[0].Destination, amount: sae.Allocations[0].Amount}
@@ -299,9 +299,9 @@ func FromExit(sae outcome.SingleAssetExit) LedgerOutcome {
 }
 
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
-// - the "left" balance is first
-// - the "right" balance is second
-// - following [left, right] comes the guarantees in sorted order
+//  - the "left" balance is first
+//  - the "right" balance is second
+//  - following [left, right] comes the guarantees in sorted order
 func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 	// The first items are [left, right] balances
 	allocations := outcome.Allocations{o.left.AsAllocation(), o.right.AsAllocation()}
@@ -559,14 +559,14 @@ func (vars *Vars) Add(p Add) error {
 }
 
 // Remove mutates Vars by
-// - increasing the turn number by 1
-// - removing the guarantee for the Target channel
-// - adjusting balances accordingly based on LeftAmount and RightAmount
+//  - increasing the turn number by 1
+//  - removing the guarantee for the Target channel
+//  - adjusting balances accordingly based on LeftAmount and RightAmount
 //
 // An error is returned if:
-// - the turn number is not incremented
-// - a guarantee is not found for the target
-// - the amounts are too large for the guarantee amount
+//  - the turn number is not incremented
+//  - a guarantee is not found for the target
+//  - the amounts are too large for the guarantee amount
 //
 // If an error is returned, the original vars is not mutated
 func (vars *Vars) Remove(p Remove) error {

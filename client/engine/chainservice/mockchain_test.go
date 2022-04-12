@@ -11,7 +11,7 @@ import (
 
 func TestDeposit(t *testing.T) {
 	// The MockChain and SimpleChainService should work together to react to a deposit transaction for a given channel by:
-	// - sending an event with updated holdings for that channel to all SimpleChainServices which are subscribed
+	//  - sending an event with updated holdings for that channel to all SimpleChainServices which are subscribed
 
 	var a = types.Address(common.HexToAddress(`a`))
 	var b = types.Address(common.HexToAddress(`b`))
