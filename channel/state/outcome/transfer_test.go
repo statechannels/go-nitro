@@ -43,3 +43,30 @@ func TestComputeTransferEffectsAndInteractions(t *testing.T) {
 	}
 
 }
+
+// Run with go test -fuzz FuzzTransfer
+func FuzzTransfer(f *testing.F) {
+
+	var fuzzTarget = func(t *testing.T, initialHoldings uint, destination string, amount uint, metadata []byte) {
+		initialAllocations := Allocations{{ // [{Alice: 2}]
+			Destination:    types.Destination(common.HexToHash("destination")),
+			Amount:         big.NewInt(int64(amount)),
+			AllocationType: 0,
+			Metadata:       metadata,
+		}}
+
+		// Simply fuzz the target without inspecing the return values
+		// TODO test some basic invariant via the return values?
+		got1, got2 := ComputeTransferEffectsAndInteractions(*big.NewInt(int64(initialHoldings)), initialAllocations, []uint{})
+		if types.Gt(got1.Total(), initialAllocations.Total()) {
+			t.Fatal("new allocations allocates more than initial allocations")
+		}
+		if types.Gt(got2.Total(), initialAllocations.Total()) {
+			t.Fatal("exit allocations allocates more than initial allocations")
+		}
+
+	}
+
+	f.Add(uint(7), "0x0a", uint(4), []byte{})
+	f.Fuzz(fuzzTarget)
+}
