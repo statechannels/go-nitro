@@ -592,7 +592,7 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 // acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
 func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.SideEffects, error) {
 	ledger := c.Channel
-	signedProposal, err := ledger.SignNextProposal(c.expectedProposal(), *sk) // todo: #420 -- need to send side effects!
+	signedProposal, err := ledger.SignNextProposal(c.expectedProposal(), *sk)
 
 	if err != nil {
 		return protocols.SideEffects{}, fmt.Errorf("no proposed state found for ledger channel %w", err)
