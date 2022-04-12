@@ -8,6 +8,7 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "hardhat-deploy";
 import "@nomiclabs/hardhat-solhint";
+import "hardhat-prettier";
 
 dotenv.config();
 
