@@ -109,6 +109,25 @@ func TestCrank(t *testing.T) {
 	}
 }
 
+func TestInvalidUpdate(t *testing.T) {
+	data := generateTestData()
+	virtualDefund := newObjective(false, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), 0)
+	invalidFinal := data.vFinal.Clone()
+	invalidFinal.ChannelNonce = big.NewInt(5)
+
+	signedFinal := state.NewSignedState(invalidFinal)
+
+	// Sign the final state by some other participant
+	signByOthers(alice, signedFinal)
+
+	e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}
+	_, err := virtualDefund.Update(e)
+	if err.Error() != "event channelId out of scope of objective" {
+		t.Errorf("Expected error for channelId being out of scope, got %v", err)
+	}
+
+}
+
 func testUpdateAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
@@ -162,12 +181,20 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 			}
 		}
 
-		_, se, waitingFor, err = updated.Crank(&my.PrivateKey)
+		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
+		updated = updatedObj.(*Objective)
 		testhelpers.Ok(t, err)
 
 		testhelpers.Equals(t, waitingFor, WaitingForCompleteLedgerDefunding)
 
 		testhelpers.Assert(t, len(se.MessagesToSend) == 0, "expected no messages to send")
+
+		// Check idempotency
+		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
+		updated = updatedObj.(*Objective)
+		testhelpers.Ok(t, err)
+		testhelpers.Assert(t, len(se.MessagesToSend) == 0, "expected no messages to send")
+		testhelpers.Equals(t, waitingFor, WaitingForCompleteLedgerDefunding)
 
 	}
 }
