@@ -89,10 +89,13 @@ const fields = [
 
 interface MinimalArtifact {
   contractName: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abi: any;
   bytecode: string;
   deployedBytecode: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   linkReferences: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   deployedLinkReferences: any;
 }
 

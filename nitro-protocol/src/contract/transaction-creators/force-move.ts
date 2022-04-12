@@ -87,6 +87,7 @@ export function createCheckpointTransaction({
   return {data};
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function checkpointArgs({states, signatures, whoSignedWhat}: CheckpointData): any[] {
   const fixedPart = getFixedPart(states[0]);
   const variableParts = states.map(s => getVariablePart(s));
@@ -110,6 +111,7 @@ export function concludeArgs(
   states: State[],
   signatures: Signature[],
   whoSignedWhat: number[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any[] {
   // Sanity checks on expected lengths
   if (states.length === 0) {
@@ -128,11 +130,5 @@ export function concludeArgs(
 
   const numStates = states.length;
 
-  return [
-    fixedPart,
-    latestVariablePart,
-    numStates,
-    whoSignedWhat,
-    signatures
-  ];
+  return [fixedPart, latestVariablePart, numStates, whoSignedWhat, signatures];
 }

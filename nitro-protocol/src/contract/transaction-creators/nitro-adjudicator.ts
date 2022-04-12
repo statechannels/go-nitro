@@ -12,6 +12,7 @@ export function concludeAndTransferAllAssetsArgs(
   states: State[],
   signatures: Signature[],
   whoSignedWhat: number[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any[] {
   // Sanity checks on expected lengths
   if (states.length === 0) {
@@ -60,6 +61,7 @@ export function createConcludeAndTransferAllAssetsTransaction(
 function transferAllAssetsArgs(
   state: State,
   overrideStateHash = false // set to true if channel concluded happily
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any[] {
   const channelId = getChannelId(getFixedPart(state));
   const outcomeBytes = encodeOutcome(state.outcome);
