@@ -25,6 +25,9 @@ type CChanConfig struct {
 //  - allocating a default amount of 4 to cfg.right
 //  - including the given guarantees
 //  - ensuring that the props are signed and stored by the consensus channel
+// Note: The props that are passed in cfg don't need to be set up correctly!
+// The correct turn number and channelId will be set in order to ensure that
+// the resulting queue is in a valid state
 func prepareConsensusChannel(cfg CChanConfig) *con_chan.ConsensusChannel {
 	leftBal := cfg.leftBal
 	if leftBal == 0 {
