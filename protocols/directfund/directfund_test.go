@@ -11,31 +11,16 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
-type actor struct {
-	address     types.Address
-	destination types.Destination
-	privateKey  []byte
-}
-
-var alice = actor{
-	address:     common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`),
-	destination: types.AddressToDestination(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)),
-	privateKey:  common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`),
-}
-
-var bob = actor{
-	address:     common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`),
-	destination: types.AddressToDestination(common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`)),
-	privateKey:  common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`),
-}
+var alice, bob testactors.Actor = testactors.Actors.Alice, testactors.Actors.Bob
 
 var testState = state.State{
 	ChainId:           big.NewInt(9001),
-	Participants:      []types.Address{alice.address, bob.address},
+	Participants:      []types.Address{alice.Address, bob.Address},
 	ChannelNonce:      big.NewInt(37140676580),
 	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
 	ChallengeDuration: big.NewInt(60),
@@ -45,11 +30,11 @@ var testState = state.State{
 			Asset: types.Address{},
 			Allocations: outcome.Allocations{
 				outcome.Allocation{
-					Destination: bob.destination, // Bob is first so we can easily test WaitingForMyTurnToFund
+					Destination: bob.Destination(), // Bob is first so we can easily test WaitingForMyTurnToFund
 					Amount:      big.NewInt(5),
 				},
 				outcome.Allocation{
-					Destination: alice.destination,
+					Destination: alice.Destination(),
 					Amount:      big.NewInt(5),
 				},
 			},
@@ -104,7 +89,7 @@ func TestUpdate(t *testing.T) {
 	var s, _ = constructFromState(false, testState, testState.Participants[0])
 
 	var stateToSign state.State = s.C.PreFundState()
-	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.privateKey)
+	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.PrivateKey)
 	// Prepare an event with a mismatched channelId
 	e := protocols.ObjectiveEvent{
 		ObjectiveId: "some-id",
@@ -181,11 +166,11 @@ func TestCrank(t *testing.T) {
 
 	// BEGIN test data preparation
 	var s, _ = constructFromState(false, testState, testState.Participants[0])
-	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.privateKey)
-	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.privateKey)
+	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.PrivateKey)
+	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.PrivateKey)
 
-	var correctSignatureByAliceOnPostFund, _ = s.C.PostFundState().Sign(alice.privateKey)
-	var correctSignatureByBobOnPostFund, _ = s.C.PostFundState().Sign(bob.privateKey)
+	var correctSignatureByAliceOnPostFund, _ = s.C.PostFundState().Sign(alice.PrivateKey)
+	var correctSignatureByBobOnPostFund, _ = s.C.PostFundState().Sign(bob.PrivateKey)
 
 	// Prepare expected side effects
 	preFundSS := state.NewSignedState(s.C.PreFundState())
@@ -193,7 +178,7 @@ func TestCrank(t *testing.T) {
 	expectedPreFundSideEffects := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{
 			{
-				To:          bob.address,
+				To:          bob.Address,
 				ObjectiveId: s.Id(),
 				SignedStates: []state.SignedState{
 					preFundSS,
@@ -207,7 +192,7 @@ func TestCrank(t *testing.T) {
 	expectedPostFundSideEffects := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{
 			{
-				To:          bob.address,
+				To:          bob.Address,
 				ObjectiveId: s.Id(),
 				SignedStates: []state.SignedState{
 					postFundSS,
@@ -226,7 +211,7 @@ func TestCrank(t *testing.T) {
 	// END test data preparation
 
 	// Assert that cranking an unapproved objective returns an error
-	if _, _, _, err := s.Crank(&alice.privateKey); err == nil {
+	if _, _, _, err := s.Crank(&alice.PrivateKey); err == nil {
 		t.Error(`Expected error when cranking unapproved objective, but got nil`)
 	}
 
@@ -239,7 +224,7 @@ func TestCrank(t *testing.T) {
 	//  - what side effects are declared.
 
 	// Initial Crank
-	_, sideEffects, waitingFor, err := o.Crank(&alice.privateKey)
+	_, sideEffects, waitingFor, err := o.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -256,7 +241,7 @@ func TestCrank(t *testing.T) {
 	o.C.AddStateWithSignature(o.C.PreFundState(), correctSignatureByBobOnPreFund)
 
 	// Cranking should move us to the next waiting point
-	_, _, waitingFor, err = o.Crank(&alice.privateKey)
+	_, _, waitingFor, err = o.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -266,7 +251,7 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the first "deposit"
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
-	_, sideEffects, waitingFor, err = o.Crank(&alice.privateKey)
+	_, sideEffects, waitingFor, err = o.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -281,7 +266,7 @@ func TestCrank(t *testing.T) {
 	// Manually make the second "deposit"
 	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
-	_, sideEffects, waitingFor, err = o.Crank(&alice.privateKey)
+	_, sideEffects, waitingFor, err = o.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -298,7 +283,7 @@ func TestCrank(t *testing.T) {
 
 	// This should be the final crank
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
-	_, _, waitingFor, err = o.Crank(&alice.privateKey)
+	_, _, waitingFor, err = o.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
