@@ -422,10 +422,9 @@ func TestCrankAsP1(t *testing.T) {
 	assertStateSentTo(t, effects, postFS, bob)
 	assertStateSentTo(t, effects, postFS, alice)
 
-	// This fails because assertProposalSent asserts that only one message is sent!
-	// p2 := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
-	// sp2 := consensus_channel.SignedProposal{Proposal: p2}
-	// assertProposalSent(t, effects, sp2, bob)
+	p2 := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
+	sp2 := consensus_channel.SignedProposal{Proposal: p2}
+	assertProposalSent(t, effects, sp2, bob)
 }
 
 // Copied from https://github.com/benbjohnson/testing
@@ -469,27 +468,25 @@ func equals(tb testing.TB, exp, act interface{}) {
 // assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
 func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to actors.Actor) {
 	_, file, line, _ := runtime.Caller(1)
-	if len(ses.MessagesToSend) != 1 {
-		fmt.Printf(makeRed+"%s:%d:\n\n\texpected one message"+makeBlack, filepath.Base(file), line)
-		t.FailNow()
-	}
-	if len(ses.MessagesToSend[0].SignedProposals) != 1 {
-		fmt.Printf(makeRed+"%s:%d:\n\n\texpected one signed proposal"+makeBlack, filepath.Base(file), line)
-		t.FailNow()
+
+	for _, msg := range ses.MessagesToSend {
+		if bytes.Equal(msg.To[:], to.Address[:]) {
+			if len(msg.SignedProposals) != 1 {
+				fmt.Printf(makeRed+"%s:%d:\n\n\texpected one signed proposal"+makeBlack, filepath.Base(file), line)
+				t.FailNow()
+			}
+			sent := msg.SignedProposals[0]
+			if !reflect.DeepEqual(sent.Proposal, sp.Proposal) {
+				fmt.Printf(makeRed+"%s:%d:\n\n\texp: %+v\n\n\tgot: %+v"+makeBlack, filepath.Base(file), line, sent.Proposal, sp.Proposal)
+				t.FailNow()
+			}
+
+			return
+		}
 	}
 
-	msg := ses.MessagesToSend[0]
-	sent := msg.SignedProposals[0]
-
-	if !reflect.DeepEqual(sent.Proposal, sp.Proposal) {
-		fmt.Printf(makeRed+"%s:%d:\n\n\texp: %+v\n\n\tgot: %+v"+makeBlack, filepath.Base(file), line, sent.Proposal, sp.Proposal)
-		t.FailNow()
-	}
-
-	if !bytes.Equal(msg.To[:], to.Address[:]) {
-		fmt.Printf(makeRed+"%s:%d:\n\n\texp: %#v\n\n\tgot: %#v"+makeBlack, filepath.Base(file), line, msg.To.String(), to.Address.String())
-		t.FailNow()
-	}
+	fmt.Printf(makeRed+"%s:%d:\n\n\tno signed proposal sent to %v"+makeBlack, filepath.Base(file), line, to.Name)
+	t.FailNow()
 }
 
 // assertMessageSentTo asserts that ses contains a message
