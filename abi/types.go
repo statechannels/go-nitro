@@ -4,8 +4,8 @@ import "github.com/ethereum/go-ethereum/accounts/abi"
 
 // To encode objects as bytes, we need to construct an encoder, using abi.Arguments.
 // An instance of abi.Arguments implements two functions relevant to us:
-// - `Pack`, which packs go values for a given struct into bytes.
-// - `unPack`, which unpacks bytes into go values
+//  - `Pack`, which packs go values for a given struct into bytes.
+//  - `unPack`, which unpacks bytes into go values
 // To construct an abi.Arguments instance, we need to supply an array of "types", which are
 // actually go values. The following types are used when encoding a state
 

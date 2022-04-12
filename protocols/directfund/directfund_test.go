@@ -235,8 +235,8 @@ func TestCrank(t *testing.T) {
 
 	// To test the finite state progression, we are going to progressively mutate o
 	// And then crank it to see
-	// - which "pause point" (WaitingFor) we end up at,
-	// - what side effects are declared.
+	//  - which "pause point" (WaitingFor) we end up at,
+	//  - what side effects are declared.
 
 	// Initial Crank
 	_, sideEffects, waitingFor, err := o.Crank(&alice.privateKey)
