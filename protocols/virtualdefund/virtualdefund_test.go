@@ -59,6 +59,21 @@ func generateTestData() testdata {
 	return testdata{vFixed, vFinal, initialOutcome, finalOutcome, paid}
 }
 
+func signByOthers(my ta.Actor, signedState state.SignedState) state.SignedState {
+	if my.Role != 0 {
+		_ = signedState.Sign(&alice.PrivateKey)
+	}
+
+	if my.Role != 1 {
+		_ = signedState.Sign(&irene.PrivateKey)
+	}
+
+	if my.Role != 2 {
+		_ = signedState.Sign(&bob.PrivateKey)
+	}
+	return signedState
+}
+
 func TestUpdate(t *testing.T) {
 	for _, my := range allActors {
 		msg := fmt.Sprintf("testing update as %s", my.Name)
@@ -72,23 +87,18 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		virtualDefund := newObjective(false, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), my.Role)
 		signedFinal := state.NewSignedState(data.vFinal)
 		// Sign the final state by some other participant
-		if my.Role == 0 {
-			_ = signedFinal.Sign(&irene.PrivateKey)
-
-		} else {
-			_ = signedFinal.Sign(&alice.PrivateKey)
-		}
+		signByOthers(my, signedFinal)
 
 		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}
 
 		updatedObj, err := virtualDefund.Update(e)
 		updated := updatedObj.(*Objective)
-		// Check that we properly stored the signature
-		if my.Role == 0 {
-			testhelpers.Assert(t, !isZero(updated.Signatures[1]), "expected signature for participant irene to be non-zero")
-
-		} else {
-			testhelpers.Assert(t, !isZero(updated.Signatures[0]), "expected signature for participant alice to be non-zero")
+		for _, a := range allActors {
+			if a.Role != my.Role {
+				testhelpers.Assert(t, !isZero(updated.Signatures[a.Role]), "expected signature for participant %s to be non-zero", a.Name)
+			} else {
+				testhelpers.Assert(t, isZero(updated.Signatures[a.Role]), "expected signature for current participant %s to be zero", a.Name)
+			}
 		}
 		if err != nil {
 			t.Fatal(err)
