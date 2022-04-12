@@ -15,9 +15,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-var alice = ta.Actors.Alice
-var bob = ta.Actors.Bob
-var irene = ta.Actors.Irene
+var alice = ta.Alice
+var bob = ta.Bob
+var irene = ta.Irene
 var allActors = []ta.Actor{alice, irene, bob}
 
 // makeOutcome creates an outcome allocating to alice and bob
