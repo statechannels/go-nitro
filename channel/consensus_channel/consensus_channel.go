@@ -107,6 +107,24 @@ func (c *ConsensusChannel) Includes(g Guarantee) bool {
 	return c.current.Outcome.includes(g)
 }
 
+// IncludesTarget returns whether or not the consensus state includes a guarantee targeting the given channel
+func (c *ConsensusChannel) IncludesTarget(target types.Destination) bool {
+	return c.current.Outcome.includesTarget(target)
+}
+
+// RemoveProposedFor returns whether or not a proposal exists to remove the guaranatee for the target
+func (c *ConsensusChannel) RemoveProposedFor(target types.Destination) bool {
+	for _, p := range c.proposalQueue {
+		if p.Proposal.Type() == RemoveProposal {
+			remove := p.Proposal.ToRemove
+			if remove.Target == target {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // IsLeader returns true if the calling client is the leader of the channel,
 // and false otherwise
 func (c *ConsensusChannel) IsLeader() bool {
@@ -304,6 +322,12 @@ func NewLedgerOutcome(assetAddress types.Address, left, right Balance, guarantee
 		right:        right,
 		guarantees:   guaranteeMap,
 	}
+}
+
+// includesTarget returns true when the receiver includes a guarantee that targets the given destination
+func (o *LedgerOutcome) includesTarget(target types.Destination) bool {
+	_, found := o.guarantees[target]
+	return found
 }
 
 // includes returns true when the receiver includes g in its list of guarantees.
