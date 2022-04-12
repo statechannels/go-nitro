@@ -16,7 +16,7 @@ import (
 
 func TestMarshalJSON(t *testing.T) {
 
-	alice, p1, bob := testactors.Actors.Alice, testactors.Actors.Irene, testactors.Actors.Bob
+	alice, p1, bob := testactors.Alice, testactors.Irene, testactors.Bob
 
 	vPreFund := state.State{
 		ChainId:           big.NewInt(9001),

@@ -117,25 +117,25 @@ func TestConsensusChannelStore(t *testing.T) {
 
 	ms := store.NewMockStore(sk)
 
-	got, ok := ms.GetConsensusChannel(ta.Actors.Alice.Address)
+	got, ok := ms.GetConsensusChannel(ta.Alice.Address)
 	if ok {
 		t.Fatalf("expected not to find the a consensus channel, but found %v", got)
 	}
 
 	fp := td.Objectives.Directfund.GenericDFO().C.FixedPart // TODO replace with testdata not nested under GenericDFO
-	fp.Participants[0] = ta.Actors.Alice.Address
-	fp.Participants[1] = ta.Actors.Bob.Address
+	fp.Participants[0] = ta.Alice.Address
+	fp.Participants[1] = ta.Bob.Address
 	asset := types.Address{}
-	left := cc.NewBalance(ta.Actors.Alice.Destination(), big.NewInt(6))
-	right := cc.NewBalance(ta.Actors.Bob.Destination(), big.NewInt(4))
+	left := cc.NewBalance(ta.Alice.Destination(), big.NewInt(6))
+	right := cc.NewBalance(ta.Bob.Destination(), big.NewInt(4))
 
 	existingGuarantee := cc.NewGuarantee(big.NewInt(1), types.Destination{1}, left.AsAllocation().Destination, right.AsAllocation().Destination)
 	outcome := cc.NewLedgerOutcome(asset, left, right, []cc.Guarantee{existingGuarantee})
 
 	initialVars := consensus_channel.Vars{Outcome: *outcome, TurnNum: 0}
 
-	aliceSig, _ := initialVars.AsState(fp).Sign(ta.Actors.Alice.PrivateKey)
-	bobsSig, _ := initialVars.AsState(fp).Sign(ta.Actors.Bob.PrivateKey)
+	aliceSig, _ := initialVars.AsState(fp).Sign(ta.Alice.PrivateKey)
+	bobsSig, _ := initialVars.AsState(fp).Sign(ta.Bob.PrivateKey)
 
 	leader, err := consensus_channel.NewLeaderChannel(
 		fp,
@@ -150,7 +150,7 @@ func TestConsensusChannelStore(t *testing.T) {
 	// Generate a new proposal so we test that the proposal queue is being fetched properly
 	proposedGuarantee := cc.NewGuarantee(big.NewInt(1), types.Destination{2}, left.AsAllocation().Destination, right.AsAllocation().Destination)
 	proposal := cc.NewAddProposal(types.Destination{3}, 2, proposedGuarantee, big.NewInt(1))
-	_, err = leader.Propose(proposal, ta.Actors.Alice.PrivateKey)
+	_, err = leader.Propose(proposal, ta.Alice.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -29,7 +29,7 @@ type testData struct {
 	ledgers   ledgerLookup
 }
 
-var alice, p1, bob actors.Actor = actors.Actors.Alice, actors.Actors.Irene, actors.Actors.Bob
+var alice, p1, bob actors.Actor = actors.Alice, actors.Irene, actors.Bob
 var allActors []actors.Actor = []actors.Actor{alice, p1, bob}
 
 // newTestData returns new copies of consistent test data each time it is called

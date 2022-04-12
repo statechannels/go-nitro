@@ -15,7 +15,7 @@ const aBal = uint64(200)
 const bBal = uint64(300)
 const vAmount = uint64(5)
 
-var alice, bob, brian testactors.Actor = testactors.Actors.Alice, testactors.Actors.Bob, testactors.Actors.Brian
+var alice, bob, brian testactors.Actor = testactors.Alice, testactors.Bob, testactors.Brian
 
 func fp() state.FixedPart {
 	participants := [2]types.Address{

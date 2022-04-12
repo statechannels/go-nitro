@@ -17,7 +17,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-var alice, bob testactors.Actor = testactors.Actors.Alice, testactors.Actors.Bob
+var alice, bob testactors.Actor = testactors.Alice, testactors.Bob
 
 var testState = state.State{
 	ChainId:           big.NewInt(9001),

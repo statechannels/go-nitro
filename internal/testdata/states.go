@@ -35,24 +35,24 @@ var chainId, _ = big.NewInt(0).SetString("9001", 10)
 var someAppDefinition = common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`)
 
 var testOutcome = createLongOutcome(
-	SimpleItem{testactors.Actors.Alice.Destination(), 6},
-	SimpleItem{testactors.Actors.Bob.Destination(), 6},
+	SimpleItem{testactors.Alice.Destination(), 6},
+	SimpleItem{testactors.Bob.Destination(), 6},
 )
 
 var testVirtualState = state.State{
 	ChainId: chainId,
 	Participants: []types.Address{
-		testactors.Actors.Alice.Address,
-		testactors.Actors.Irene.Address,
-		testactors.Actors.Bob.Address,
+		testactors.Alice.Address,
+		testactors.Irene.Address,
+		testactors.Bob.Address,
 	},
 	ChannelNonce:      big.NewInt(1234789),
 	AppDefinition:     someAppDefinition,
 	ChallengeDuration: big.NewInt(60),
 	AppData:           []byte{},
 	Outcome: Outcomes.CreateLongOutcome(
-		SimpleItem{testactors.Actors.Alice.Destination(), 6},
-		SimpleItem{testactors.Actors.Bob.Destination(), 4},
+		SimpleItem{testactors.Alice.Destination(), 6},
+		SimpleItem{testactors.Bob.Destination(), 4},
 	),
 	TurnNum: 0,
 	IsFinal: false,
@@ -61,8 +61,8 @@ var testVirtualState = state.State{
 var testState = state.State{
 	ChainId: chainId,
 	Participants: []types.Address{
-		testactors.Actors.Alice.Address,
-		testactors.Actors.Bob.Address,
+		testactors.Alice.Address,
+		testactors.Bob.Address,
 	},
 	ChannelNonce:      big.NewInt(37140676580),
 	AppDefinition:     someAppDefinition,
