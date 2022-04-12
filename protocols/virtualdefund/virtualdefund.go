@@ -78,9 +78,11 @@ func newObjective(preApprove bool, vFixed state.FixedPart, initialOutcome outcom
 func (o Objective) signedFinalState() (state.SignedState, error) {
 	signed := state.NewSignedState(o.finalState())
 	for _, sig := range o.Signatures {
-		err := signed.AddSignature(sig)
-		if err != nil {
-			return state.SignedState{}, err
+		if !isZero(sig) {
+			err := signed.AddSignature(sig)
+			if err != nil {
+				return state.SignedState{}, err
+			}
 		}
 	}
 	return signed, nil
