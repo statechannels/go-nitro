@@ -1,8 +1,8 @@
 package client_test
 
-import "github.com/statechannels/go-nitro/internal/testdata"
+import "github.com/statechannels/go-nitro/internal/testactors"
 
-var alice = testdata.Actors.Alice
-var bob = testdata.Actors.Bob
-var irene = testdata.Actors.Irene
-var brian = testdata.Actors.Brian
+var alice = testactors.Alice
+var bob = testactors.Bob
+var irene = testactors.Irene
+var brian = testactors.Brian

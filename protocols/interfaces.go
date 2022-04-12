@@ -75,6 +75,11 @@ type Objective interface {
 	// Related returns a slice of related objects that need to be stored along with the objective
 	Related() []Storable
 	Storable
+
+	// OwnsChannel returns the channel the objective exclusively owns.
+	OwnsChannel() types.Destination
+	// GetStatus returns the status of the objective.
+	GetStatus() ObjectiveStatus
 }
 
 // ObjectiveId is a unique identifier for an Objective.

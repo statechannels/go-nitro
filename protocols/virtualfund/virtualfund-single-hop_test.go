@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols"
 
 	"github.com/statechannels/go-nitro/types"
@@ -103,10 +104,10 @@ func TestSingleHopVirtualFund(t *testing.T) {
 	t.Skip()
 
 	// assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
-	assertSideEffectsContainsMessageWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, to actor, t *testing.T) {
+	assertSideEffectsContainsMessageWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, to testactors.Actor, t *testing.T) {
 		for _, msg := range ses.MessagesToSend {
 			for _, ss := range msg.SignedStates {
-				if reflect.DeepEqual(ss, expectedSignedState) && bytes.Equal(msg.To[:], to.address[:]) {
+				if reflect.DeepEqual(ss, expectedSignedState) && bytes.Equal(msg.To[:], to.Address[:]) {
 					return
 				}
 			}
@@ -116,13 +117,13 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 	// assertSideEffectsContainsMessageWith calls assertSideEffectsContainsMessageWith for all peers of the actor with role myRole.
 	assertSideEffectsContainsMessagesForPeersWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, myRole uint, t *testing.T) {
-		if myRole != alice.role {
+		if myRole != alice.Role {
 			assertSideEffectsContainsMessageWith(ses, expectedSignedState, alice, t)
 		}
-		if myRole != p1.role {
+		if myRole != p1.Role {
 			assertSideEffectsContainsMessageWith(ses, expectedSignedState, p1, t)
 		}
-		if myRole != bob.role {
+		if myRole != bob.Role {
 			assertSideEffectsContainsMessageWith(ses, expectedSignedState, bob, t)
 		}
 	}
@@ -135,16 +136,16 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			state = V.PostFundState()
 		}
 
-		if myRole != alice.role {
-			aliceSig, _ := state.Sign(alice.privateKey)
+		if myRole != alice.Role {
+			aliceSig, _ := state.Sign(alice.PrivateKey)
 			V.AddStateWithSignature(state, aliceSig)
 		}
-		if myRole != p1.role {
-			p1Sig, _ := state.Sign(p1.privateKey)
+		if myRole != p1.Role {
+			p1Sig, _ := state.Sign(p1.PrivateKey)
 			V.AddStateWithSignature(state, p1Sig)
 		}
-		if myRole != bob.role {
-			bobSig, _ := state.Sign(bob.privateKey)
+		if myRole != bob.Role {
+			bobSig, _ := state.Sign(bob.PrivateKey)
 			V.AddStateWithSignature(state, bobSig)
 		}
 	}
@@ -156,7 +157,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 	// Virtual Channel
 	vPreFund := state.State{
 		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{alice.address, p1.address, bob.address}, // A single hop virtual channel
+		Participants:      []types.Address{alice.Address, p1.Address, bob.Address}, // A single hop virtual channel
 		ChannelNonce:      big.NewInt(0),
 		AppDefinition:     types.Address{},
 		ChallengeDuration: big.NewInt(45),
@@ -164,11 +165,11 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		Outcome: outcome.Exit{outcome.SingleAssetExit{
 			Allocations: outcome.Allocations{
 				outcome.Allocation{
-					Destination: alice.destination,
+					Destination: alice.Destination(),
 					Amount:      big.NewInt(6),
 				},
 				outcome.Allocation{
-					Destination: bob.destination,
+					Destination: bob.Destination(),
 					Amount:      big.NewInt(4),
 				},
 			},
@@ -179,7 +180,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 	vPostFund := vPreFund.Clone()
 	vPostFund.TurnNum = 1
 
-	TestAs := func(my actor, t *testing.T) {
+	TestAs := func(my testactors.Actor, t *testing.T) {
 
 		prepareConsensusChannels := func(role uint) (*consensus_channel.ConsensusChannel, *consensus_channel.ConsensusChannel) {
 			var left *consensus_channel.ConsensusChannel
@@ -199,29 +200,29 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		}
 
 		testNew := func(t *testing.T) {
-			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareConsensusChannels(my.role)
+			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareConsensusChannels(my.Role)
 
 			// Assert that a valid set of constructor args does not result in an error
-			o, err := constructFromState(false, vPreFund, my.address, ledgerChannelToMyLeft, ledgerChannelToMyRight) // todo: #420 deprecate TwoPartyLedgers
+			o, err := constructFromState(false, vPreFund, my.Address, ledgerChannelToMyLeft, ledgerChannelToMyRight) // todo: #420 deprecate TwoPartyLedgers
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			var expectedGuaranteeMetadataLeft outcome.GuaranteeMetadata
 			var expectedGuaranteeMetadataRight outcome.GuaranteeMetadata
-			switch my.role {
-			case alice.role:
+			switch my.Role {
+			case alice.Role:
 				{
-					expectedGuaranteeMetadataRight = outcome.GuaranteeMetadata{Left: alice.destination, Right: p1.destination}
+					expectedGuaranteeMetadataRight = outcome.GuaranteeMetadata{Left: alice.Destination(), Right: p1.Destination()}
 				}
-			case p1.role:
+			case p1.Role:
 				{
-					expectedGuaranteeMetadataLeft = outcome.GuaranteeMetadata{Left: alice.destination, Right: p1.destination}
-					expectedGuaranteeMetadataRight = outcome.GuaranteeMetadata{Left: p1.destination, Right: bob.destination}
+					expectedGuaranteeMetadataLeft = outcome.GuaranteeMetadata{Left: alice.Destination(), Right: p1.Destination()}
+					expectedGuaranteeMetadataRight = outcome.GuaranteeMetadata{Left: p1.Destination(), Right: bob.Destination()}
 				}
-			case bob.role:
+			case bob.Role:
 				{
-					expectedGuaranteeMetadataLeft = outcome.GuaranteeMetadata{Left: p1.destination, Right: bob.destination}
+					expectedGuaranteeMetadataLeft = outcome.GuaranteeMetadata{Left: p1.Destination(), Right: bob.Destination()}
 				}
 			}
 			amount := big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated())
@@ -249,9 +250,9 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		}
 
 		testclone := func(t *testing.T) {
-			// ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.role)
+			// ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.Role)
 
-			o, _ := constructFromState(false, vPreFund, my.address, nil, nil) // todo: #420 deprecate TwoPartyLedgers
+			o, _ := constructFromState(false, vPreFund, my.Address, nil, nil) // todo: #420 deprecate TwoPartyLedgers
 
 			clone := o.clone()
 
@@ -261,10 +262,10 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		}
 
 		testCrank := func(t *testing.T) {
-			leftCC, rightCC := prepareConsensusChannels(my.role)
-			var s, _ = constructFromState(false, vPreFund, my.address, leftCC, rightCC) // todo: #420 deprecate TwoPartyLedgers
+			leftCC, rightCC := prepareConsensusChannels(my.Role)
+			var s, _ = constructFromState(false, vPreFund, my.Address, leftCC, rightCC) // todo: #420 deprecate TwoPartyLedgers
 			// Assert that cranking an unapproved objective returns an error
-			if _, _, _, err := s.Crank(&my.privateKey); err == nil {
+			if _, _, _, err := s.Crank(&my.PrivateKey); err == nil {
 				t.Fatal(`Expected error when cranking unapproved objective, but got nil`)
 			}
 
@@ -274,7 +275,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// And then crank it to see which "pause point" (WaitingFor) we end up at.
 
 			// Initial Crank
-			oObj, got, waitingFor, err := o.Crank(&my.privateKey)
+			oObj, got, waitingFor, err := o.Crank(&my.PrivateKey)
 			o = oObj.(*Objective)
 			if err != nil {
 				t.Fatal(err)
@@ -284,26 +285,26 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 
 			expectedSignedState := state.NewSignedState(o.V.PreFundState())
-			mySig, _ := o.V.PreFundState().Sign(my.privateKey)
+			mySig, _ := o.V.PreFundState().Sign(my.PrivateKey)
 			_ = expectedSignedState.AddSignature(mySig)
-			assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.role, t)
+			assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.Role, t)
 
 			// Manually progress the extended state by collecting prefund signatures
-			collectPeerSignaturesOnSetupState(o.V, my.role, true)
+			collectPeerSignaturesOnSetupState(o.V, my.Role, true)
 
 			// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 			// TODO: Check that ledger channel is updated as expected
-			oObj, _, waitingFor, _ = o.Crank(&my.privateKey)
+			oObj, _, waitingFor, _ = o.Crank(&my.PrivateKey)
 
 			// TODO: UNCOMMENT
 			// Check that the messsages contain the expected ledger proposals
 			// We only expect a proposal in the right ledger channel, as we will be the leader in that ledger channel
-			// switch my.role {
+			// switch my.Role {
 			// case 0:
 			// 	{
 			// 		supported, _ := o.ToMyRight.Channel.LatestSupportedState()
-			// 		expectedSignedState := state.NewSignedState(constructLedgerProposal(supported, types.AddressToDestination(alice.address), types.AddressToDestination(p1.address), o.V.Id))
-			// 		_ = expectedSignedState.Sign(&my.privateKey)
+			// 		expectedSignedState := state.NewSignedState(constructLedgerProposal(supported, types.AddressToDestination(alice.Address), types.AddressToDestination(p1.Address), o.V.Id))
+			// 		_ = expectedSignedState.Sign(&my.PrivateKey)
 
 			// 		assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
 
@@ -311,8 +312,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// case 1:
 			// 	{
 			// 		supported, _ := o.ToMyRight.Channel.LatestSupportedState()
-			// 		expectedSignedState := state.NewSignedState(constructLedgerProposal(supported, types.AddressToDestination(p1.address), types.AddressToDestination(bob.address), o.V.Id))
-			// 		_ = expectedSignedState.Sign(&my.privateKey)
+			// 		expectedSignedState := state.NewSignedState(constructLedgerProposal(supported, types.AddressToDestination(p1.Address), types.AddressToDestination(bob.Address), o.V.Id))
+			// 		_ = expectedSignedState.Sign(&my.PrivateKey)
 
 			// 		assertSideEffectsContainsMessageWith(got, expectedSignedState, bob, t)
 			// 	}
@@ -326,29 +327,29 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			o = oObj.(*Objective)
 
 			//Update the ledger funding by mimicing other participants either proposing an update or accepting our update
-			// switch my.role {
+			// switch my.Role {
 			// case 0:
 			// 	{
-			// 		signLatest(o.ToMyRight.Channel, [][]byte{p1.privateKey})
+			// 		signLatest(o.ToMyRight.Channel, [][]byte{p1.PrivateKey})
 			// 	}
 			// case 1:
 			// 	{
 			// 		// If we are P1 we mimic Alice proposing the update to the ledger channel
-			// 		addLedgerProposal(o.ToMyLeft.Channel, types.AddressToDestination(alice.address), types.AddressToDestination(p1.address), o.V.Id, &alice.privateKey)
+			// 		addLedgerProposal(o.ToMyLeft.Channel, types.AddressToDestination(alice.Address), types.AddressToDestination(p1.Address), o.V.Id, &alice.PrivateKey)
 			// 		// We mimic Bob accepting the proposal on the right
-			// 		signLatest(o.ToMyRight.Channel, [][]byte{bob.privateKey})
+			// 		signLatest(o.ToMyRight.Channel, [][]byte{bob.PrivateKey})
 
 			// 	}
 			// case 2:
 			// 	{
 			// 		// If we are Bob we mimic P1 proposing the update to the ledger channel
-			// 		addLedgerProposal(o.ToMyLeft.Channel, types.AddressToDestination(p1.address), types.AddressToDestination(bob.address), o.V.Id, &p1.privateKey)
+			// 		addLedgerProposal(o.ToMyLeft.Channel, types.AddressToDestination(p1.Address), types.AddressToDestination(bob.Address), o.V.Id, &p1.PrivateKey)
 
 			// 	}
 			// }
 
 			// Cranking now should not generate side effects, because we already did that
-			oObj, got, waitingFor, err = o.Crank(&my.privateKey)
+			oObj, got, waitingFor, err = o.Crank(&my.PrivateKey)
 			o = oObj.(*Objective)
 			if err != nil {
 				t.Fatal(err)
@@ -359,12 +360,12 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 			// Check that the messsages contain the expected ledger acceptances
 			// We only expect an acceptance in the left ledger channel as we will be the follower in that ledger channel
-			switch my.role {
+			switch my.Role {
 			case 1:
 				{
 					// supported, _ := o.ToMyLeft.Channel.LatestSupportedState()
 					// expectedSignedState := state.NewSignedState(supported)
-					// _ = expectedSignedState.Sign(&my.privateKey)
+					// _ = expectedSignedState.Sign(&my.PrivateKey)
 
 					assertSideEffectsContainsMessageWith(got, expectedSignedState, alice, t)
 
@@ -373,22 +374,22 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				{
 					// supported, _ := o.ToMyLeft.Channel.LatestSupportedState()
 					// expectedSignedState := state.NewSignedState(supported)
-					// _ = expectedSignedState.Sign(&my.privateKey)
+					// _ = expectedSignedState.Sign(&my.PrivateKey)
 
 					assertSideEffectsContainsMessageWith(got, expectedSignedState, p1, t)
 				}
 			}
 
 			expectedSignedState = state.NewSignedState(o.V.PostFundState())
-			mySig, _ = o.V.PostFundState().Sign(my.privateKey)
+			mySig, _ = o.V.PostFundState().Sign(my.PrivateKey)
 			_ = expectedSignedState.AddSignature(mySig)
-			assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.role, t)
+			assertSideEffectsContainsMessagesForPeersWith(got, expectedSignedState, my.Role, t)
 
 			// Manually progress the extended state by collecting postfund signatures
-			collectPeerSignaturesOnSetupState(o.V, my.role, false)
+			collectPeerSignaturesOnSetupState(o.V, my.Role, false)
 
 			// This should be the final crank...
-			_, _, waitingFor, err = o.Crank(&my.privateKey)
+			_, _, waitingFor, err = o.Crank(&my.PrivateKey)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -399,8 +400,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		}
 
 		testUpdate := func(t *testing.T) {
-			leftCC, rightCC := prepareConsensusChannels(my.role)
-			var obj, _ = constructFromState(false, vPreFund, my.address, leftCC, rightCC)
+			leftCC, rightCC := prepareConsensusChannels(my.Role)
+			var obj, _ = constructFromState(false, vPreFund, my.Address, leftCC, rightCC)
 			// Prepare an event with a mismatched objectiveId
 			e := protocols.ObjectiveEvent{
 				ObjectiveId: "some-other-id",
@@ -424,20 +425,20 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			vPostFund := obj.V.PostFundState()
 			ss := state.NewSignedState(vPostFund)
 
-			switch my.role {
+			switch my.Role {
 			case 0:
 				{
-					_ = ss.Sign(&p1.privateKey)
+					_ = ss.Sign(&p1.PrivateKey)
 
 				}
 			case 1:
 				{
-					_ = ss.Sign(&alice.privateKey)
+					_ = ss.Sign(&alice.PrivateKey)
 
 				}
 			case 2:
 				{
-					_ = ss.Sign(&p1.privateKey)
+					_ = ss.Sign(&p1.PrivateKey)
 
 				}
 			}
@@ -449,22 +450,22 @@ func TestSingleHopVirtualFund(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			switch my.role {
+			switch my.Role {
 			case 0:
 				{
-					if !updated.V.SignedStateForTurnNum[1].HasSignatureForParticipant(p1.role) {
+					if !updated.V.SignedStateForTurnNum[1].HasSignatureForParticipant(p1.Role) {
 						t.Fatal(`Objective data not updated as expected`)
 					}
 				}
 			case 1:
 				{
-					if !updated.V.SignedStateForTurnNum[1].HasSignatureForParticipant(alice.role) {
+					if !updated.V.SignedStateForTurnNum[1].HasSignatureForParticipant(alice.Role) {
 						t.Fatal(`Objective data not updated as expected`)
 					}
 				}
 			case 2:
 				{
-					if !updated.V.SignedStateForTurnNum[1].HasSignatureForParticipant(p1.role) {
+					if !updated.V.SignedStateForTurnNum[1].HasSignatureForParticipant(p1.Role) {
 						t.Fatal(`Objective data not updated as expected`)
 					}
 				}
@@ -478,27 +479,27 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// }
 			// f.SignedStates = make([]state.SignedState, 0)
 			// someTurnNum := uint64(99)
-			// switch my.role {
+			// switch my.Role {
 			// case 0:
 			// 	{
 			// 		s := ledgerChannelToMyRight.PreFundState().Clone()
 			// 		s.TurnNum = someTurnNum
 			// 		ss = state.NewSignedState(s)
-			// 		_ = ss.Sign(&p1.privateKey)
+			// 		_ = ss.Sign(&p1.PrivateKey)
 			// 	}
 			// case 1:
 			// 	{
 			// 		s := ledgerChannelToMyRight.PreFundState().Clone()
 			// 		s.TurnNum = someTurnNum
 			// 		ss = state.NewSignedState(s)
-			// 		_ = ss.Sign(&bob.privateKey)
+			// 		_ = ss.Sign(&bob.PrivateKey)
 			// 	}
 			// case 2:
 			// 	{
 			// 		s := ledgerChannelToMyLeft.PreFundState().Clone()
 			// 		s.TurnNum = someTurnNum
 			// 		ss = state.NewSignedState(s)
-			// 		_ = ss.Sign(&p1.privateKey)
+			// 		_ = ss.Sign(&p1.PrivateKey)
 			// 	}
 			// }
 			// f.SignedStates = append(f.SignedStates, ss)
@@ -509,7 +510,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// 	t.Fatal(err)
 			// }
 
-			// switch my.role {
+			// switch my.Role {
 			// case 0:
 			// 	{
 			// 		if !updated.ToMyRight.Channel.SignedStateForTurnNum[someTurnNum].HasSignatureForParticipant((updated.ToMyRight.Channel.MyIndex + 1) % 2) {

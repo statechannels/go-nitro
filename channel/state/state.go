@@ -16,6 +16,21 @@ import (
 
 type Signature = nc.Signature
 
+// CloneSignature creates a deep copy of the provided signature.
+func CloneSignature(s Signature) Signature {
+	clone := Signature{}
+
+	clone.V = s.V
+	clone.R = make([]byte, len(s.R))
+	clone.S = make([]byte, len(s.S))
+
+	copy(clone.R, s.R)
+	copy(clone.S, s.S)
+
+	return clone
+
+}
+
 type (
 	// State holds all of the data describing the state of a channel
 	State struct {

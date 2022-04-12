@@ -78,13 +78,7 @@ func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
 	}
 
 	if c.Channel != nil {
-		if c.Channel.IsFollower() {
-			return c.Channel.Receive(sp)
-		}
-
-		if c.Channel.IsLeader() {
-			return c.Channel.UpdateConsensus(sp)
-		}
+		return c.Channel.Receive(sp)
 	}
 
 	return nil
@@ -289,6 +283,16 @@ func (o Objective) Reject() protocols.Objective {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
 	return &updated
+}
+
+// OwnsChannel returns the channel that the objective is funding.
+func (o Objective) OwnsChannel() types.Destination {
+	return o.V.Id
+}
+
+// GetStatus returns the status of the objective.
+func (o Objective) GetStatus() protocols.ObjectiveStatus {
+	return o.Status
 }
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,

@@ -150,8 +150,8 @@ func TestRestrictedLeaderMethods(t *testing.T) {
 		t.Errorf("Expected error when calling Propose() as a follower, but found none")
 	}
 
-	if err := channel.UpdateConsensus(SignedProposal{}); err != ErrNotLeader {
-		t.Errorf("Expected error when calling Propose() as a follower, but found none")
+	if err := channel.leaderReceive(SignedProposal{}); err != ErrNotLeader {
+		t.Errorf("Expected error when calling leaderReceive() as a follower, but found none")
 	}
 }
 

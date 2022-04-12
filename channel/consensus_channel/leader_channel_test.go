@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -43,7 +44,7 @@ func TestLeaderChannel(t *testing.T) {
 
 	// createSignedProposal generates a proposal given the vars & proposed change
 	// The proposal is signed by the given actor, using a generic fixed part
-	createSignedProposal := func(vars Vars, p Proposal, actor actor) SignedProposalVars {
+	createSignedProposal := func(vars Vars, p Proposal, actor testactors.Actor) SignedProposalVars {
 		proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
 		_ = proposalVars.HandleProposal(p)
 
@@ -373,7 +374,7 @@ func TestLeaderChannel(t *testing.T) {
 			latest, _ := channel.latestProposedVars()
 			latestTurnNum := latest.TurnNum
 
-			err := channel.UpdateConsensus(counterProposal.SignedProposal)
+			err := channel.Receive(counterProposal.SignedProposal)
 
 			if err != nil {
 				t.Fatalf("unexpected error %v", err)
@@ -424,7 +425,7 @@ func TestLeaderChannel(t *testing.T) {
 			latest, _ := channel.latestProposedVars()
 			latestTurnNum := latest.TurnNum
 
-			err := channel.UpdateConsensus(counterProposal.SignedProposal)
+			err := channel.Receive(counterProposal.SignedProposal)
 
 			if !errors.Is(err, expectedErr) {
 				t.Fatalf("expected error %v, got %v", expectedErr, err)
@@ -458,7 +459,7 @@ func TestLeaderChannel(t *testing.T) {
 
 		counterP := bobSignedProposal(initialVars, p0).SignedProposal
 		channel := testChannel(startingOutcome, populatedQueue())
-		err := channel.UpdateConsensus(counterP)
+		err := channel.Receive(counterP)
 		if err != nil {
 			t.Fatalf("unable to update consensus: %v", err)
 		}
@@ -504,7 +505,7 @@ func TestRestrictedFollowerMethods(t *testing.T) {
 		t.Errorf("Expected error when calling SignNextProposal as a leader, but found none")
 	}
 
-	if err := channel.Receive(SignedProposal{}); err != ErrNotFollower {
+	if err := channel.followerReceive(SignedProposal{}); err != ErrNotFollower {
 		t.Errorf("Expected error when calling Receive as a leader, but found none")
 	}
 }

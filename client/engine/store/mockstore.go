@@ -15,36 +15,38 @@ import (
 )
 
 type MockStore struct {
-	objectives        bytesSyncMap
-	channels          bytesSyncMap
-	consensusChannels bytesSyncMap
+	objectives         syncMap[[]byte]
+	channels           syncMap[[]byte]
+	consensusChannels  syncMap[[]byte]
+	channelToObjective syncMap[protocols.ObjectiveId]
 
 	key     []byte        // the signing key of the store's engine
 	address types.Address // the (Ethereum) address associated to the signing key
 }
 
-// bytesSyncMap wraps sync.Map in order to provide type safety
-type bytesSyncMap struct {
+// syncMap wraps sync.Map in order to provide type safety
+type syncMap[T any] struct {
 	m sync.Map
 }
 
 // Load returns the value stored in the map for a key, or nil if no
 // value is present.
 // The ok result indicates whether value was found in the map.
-func (o *bytesSyncMap) Load(id string) (bytes []byte, ok bool) {
+func (o *syncMap[T]) Load(id string) (value T, ok bool) {
 	data, ok := o.m.Load(id)
 
 	if !ok {
-		return nil, false
+		var result T
+		return result, false
 	}
 
-	bytes = data.([]byte)
+	value = data.(T)
 
-	return bytes, ok
+	return value, ok
 }
 
 // Store sets the value for a key.
-func (o *bytesSyncMap) Store(key string, data []byte) {
+func (o *syncMap[T]) Store(key string, data T) {
 	o.m.Store(key, data)
 }
 
@@ -58,9 +60,9 @@ func (o *bytesSyncMap) Store(key string, data []byte) {
 //
 // Range may be O(N) with the number of elements in the map even if f returns
 // false after a constant number of calls.
-func (o *bytesSyncMap) Range(f func(key string, value []byte) bool) {
+func (o *syncMap[T]) Range(f func(key string, value T) bool) {
 	untypedF := func(key, value interface{}) bool {
-		return f(key.(string), value.([]byte))
+		return f(key.(string), value.(T))
 	}
 	o.m.Range(untypedF)
 }
@@ -70,9 +72,10 @@ func NewMockStore(key []byte) Store {
 	ms.key = key
 	ms.address = crypto.GetAddressFromSecretKeyBytes(key)
 
-	ms.objectives = bytesSyncMap{}
-	ms.channels = bytesSyncMap{}
-	ms.consensusChannels = bytesSyncMap{}
+	ms.objectives = syncMap[[]byte]{}
+	ms.channels = syncMap[[]byte]{}
+	ms.consensusChannels = syncMap[[]byte]{}
+	ms.channelToObjective = syncMap[protocols.ObjectiveId]{}
 
 	return &ms
 }
@@ -129,6 +132,18 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 
 		default:
 			return fmt.Errorf("unexpected type: %T", rel)
+		}
+	}
+
+	// Objective ownership can only be transferred if the channel is not owned by another objective
+	// todo: clear ownership after the objective completes
+	prevOwner, isOwned := ms.channelToObjective.Load(obj.OwnsChannel().String())
+	if obj.GetStatus() == protocols.Approved {
+		if !isOwned {
+			ms.channelToObjective.Store(obj.OwnsChannel().String(), obj.Id())
+		}
+		if isOwned && prevOwner != obj.Id() {
+			return fmt.Errorf("cannot transfer ownership of channel to from objective %s to %s", prevOwner, obj.Id())
 		}
 	}
 
@@ -256,22 +271,13 @@ func (ms *MockStore) GetConsensusChannel(counterparty types.Address) (channel *c
 
 func (ms *MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
 	// todo: locking
-
-	id := directfund.ObjectivePrefix + channelId.String()
-	objJSON, found := ms.objectives.Load(id)
+	id, found := ms.channelToObjective.Load(channelId.String())
 	if !found {
 		return &directfund.Objective{}, false
 	}
-	obj, err := decodeObjective(protocols.ObjectiveId(id), objJSON)
-	if err != nil {
-		return &directfund.Objective{}, false
-	}
-	err = ms.populateChannelData(obj)
-	if err != nil {
-		return &directfund.Objective{}, false
-	}
 
-	return obj, true
+	objective, err := ms.GetObjectiveById(protocols.ObjectiveId(id))
+	return objective, err == nil
 }
 
 // populateChannelData fetches stored Channel data relevent to the given
