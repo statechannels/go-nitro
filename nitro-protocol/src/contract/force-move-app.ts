@@ -21,12 +21,10 @@ export async function validTransition(
   const numberOfParticipants = toState.channel.participants.length;
   const fromVariablePart = getVariablePart(fromState);
   const toVariablePart = getVariablePart(toState);
-  const turnNumB = toState.turnNum;
 
   return await appContract.validTransition(
     fromVariablePart,
     toVariablePart,
-    turnNumB,
     numberOfParticipants
   );
 }
@@ -38,11 +36,9 @@ export function createValidTransitionTransaction(fromState: State, toState: Stat
   const numberOfParticipants = toState.channel.participants.length;
   const fromVariablePart = getVariablePart(fromState);
   const toVariablePart = getVariablePart(toState);
-  const turnNumB = toState.turnNum;
   const data = ForceMoveAppContractInterface.encodeFunctionData('validTransition', [
     fromVariablePart,
     toVariablePart,
-    turnNumB,
     numberOfParticipants,
   ]);
   return {data};

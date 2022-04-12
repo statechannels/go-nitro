@@ -1,4 +1,5 @@
-import {Contract, ethers, BigNumberish, BigNumber, providers, Event} from 'ethers';
+import {Contract, ethers, BigNumberish, BigNumber, providers} from 'ethers';
+import { BytesLike } from "@ethersproject/bytes";
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 
 import {ChallengeClearedEvent, ChallengeRegisteredStruct} from '../src/contract/challenge';
@@ -81,6 +82,38 @@ export const finalizedFingerprint = (
     outcome,
     state,
   });
+
+
+ export const parseOutcomeEventResult = (eventOutcomeResult: any[]): Outcome => {
+  eventOutcomeResult = Array.from(eventOutcomeResult);
+  let outcome: Outcome = [];
+
+   if (eventOutcomeResult.length == 0) {
+     return outcome;
+   }
+
+   eventOutcomeResult.forEach((eventSingleAssetExit: any[]) => {
+      const asset: string = eventSingleAssetExit[0];
+      const metadata: BytesLike = eventSingleAssetExit[1];
+      let eventAllocations: any[] = Array.from(eventSingleAssetExit[2]);
+      let allocations: Allocation[] = [];
+      
+      if (eventAllocations.length != 0) {
+        eventAllocations.forEach((eventAllocation: any[]) => {
+          const destination: string = eventAllocation[0];
+          const amount: string = eventAllocation[1]["_hex"];
+          const allocationType: number = eventAllocation[2];
+          const metadata: string = eventAllocation[3];
+
+          allocations.push({destination, amount, allocationType, metadata});
+        });
+      }
+
+      outcome.push({asset, metadata, allocations});
+   });
+
+   return outcome;
+ }
 
 export const newChallengeRegisteredEvent = (
   contract: ethers.Contract,

@@ -5,7 +5,7 @@ import {it} from '@jest/globals'
 
 const {HashZero} = ethers.constants;
 import SingleAssetPaymentsArtifact from '../../../../artifacts/contracts/examples/SingleAssetPayments.sol/SingleAssetPayments.json';
-import {encodeGuaranteeData, encodeOutcome, Outcome} from '../../../../src/contract/outcome';
+import {encodeGuaranteeData, Outcome} from '../../../../src/contract/outcome';
 import {VariablePart} from '../../../../src/contract/state';
 import {
   getTestProvider,
@@ -68,6 +68,7 @@ describe('validTransition', () => {
       balancesB: any;
       reason?: string;
     }) => {
+      let turnNumA = turnNumB - 1;
       balancesA = replaceAddressesAndBigNumberify(balancesA, addresses);
       const allocationsA: Allocation[] = [];
       Object.keys(balancesA).forEach(key =>
@@ -86,8 +87,10 @@ describe('validTransition', () => {
         outcomeA.push(outcomeA[0]);
       }
       const variablePartA: VariablePart = {
-        outcome: encodeOutcome(outcomeA),
+        outcome: outcomeA,
         appData: HashZero,
+        turnNum: turnNumA,
+        isFinal: false,
       };
 
       balancesB = replaceAddressesAndBigNumberify(balancesB, addresses);
@@ -110,15 +113,16 @@ describe('validTransition', () => {
         outcomeB.push(outcomeB[0]);
       }
       const variablePartB: VariablePart = {
-        outcome: encodeOutcome(outcomeB),
+        outcome: outcomeB,
         appData: HashZero,
+        turnNum: turnNumB,
+        isFinal: false,
       };
 
       if (isValid) {
         const isValidFromCall = await singleAssetPayments.validTransition(
           variablePartA,
           variablePartB,
-          turnNumB,
           numParticipants
         );
         expect(isValidFromCall).toBe(true);
@@ -128,7 +132,6 @@ describe('validTransition', () => {
             singleAssetPayments.validTransition(
               variablePartA,
               variablePartB,
-              turnNumB,
               numParticipants
             ),
           reason

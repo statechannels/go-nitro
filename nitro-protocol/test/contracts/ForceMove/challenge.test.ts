@@ -29,6 +29,7 @@ import {
   largeOutcome,
   nonParticipant,
   ongoingChallengeFingerprint,
+  parseOutcomeEventResult,
   setupContract,
 } from '../../test-helpers';
 import {createChallengeTransaction, NITRO_MAX_GAS} from '../../../src/transactions';
@@ -44,7 +45,7 @@ const chainId = process.env.CHAIN_NETWORK_ID;
 const participants = ['', '', ''];
 const wallets = new Array(3);
 const challengeDuration = 86400; // 1 day
-const outcome: Outcome = [{allocations: [], asset: Wallet.createRandom().address, metadata: '0x'}];
+const outcome: Outcome = [{allocations: [{destination: "0x00000000000000000000000096f7123e3a80c9813ef50213aded0e4511cb820f", amount: "0x01", allocationType: 1, metadata: "0x"}], asset: Wallet.createRandom().address, metadata: '0x'}];
 
 const appDefinition = getPlaceHolderContractAddress();
 const keys = [
@@ -169,6 +170,9 @@ describe('challenge', () => {
       const variableParts = states.map(state => getVariablePart(state));
       const fixedPart = getFixedPart(states[0]);
       const channelId = getChannelId(fixedPart);
+      console.log("variableParts");
+      console.log(variableParts);
+      
       
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
@@ -200,9 +204,7 @@ describe('challenge', () => {
 
       const tx = ForceMove.challenge(
         fixedPart,
-        largestTurnNum,
         variableParts,
-        isFinalCount,
         signatures,
         whoSignedWhat,
         challengeSignature
@@ -234,12 +236,13 @@ describe('challenge', () => {
         expect(eventFixedPart[3]).toEqual(fixedPart.appDefinition);
         expect(eventFixedPart[4]).toEqual(fixedPart.challengeDuration);
         expect(eventIsFinal).toEqual(isFinalCount > 0);
-        expect(eventVariableParts[eventVariableParts.length - 1][0]).toEqual(
+        expect(parseOutcomeEventResult(eventVariableParts[eventVariableParts.length - 1][0])).toEqual(
           variableParts[variableParts.length - 1].outcome
         );
         expect(eventVariableParts[eventVariableParts.length - 1][1]).toEqual(
           variableParts[variableParts.length - 1].appData
         );
+          
 
         const expectedChannelStorage: ChannelData = {
           turnNumRecord: largestTurnNum,
