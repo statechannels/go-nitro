@@ -34,28 +34,27 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
             sigs
         );
 
-        transferAllAssets(channelId, Outcome.encodeExit(latestVariablePart.outcome), bytes32(0));
+        transferAllAssets(channelId, latestVariablePart.outcome, bytes32(0));
     }
 
     /**
      * @notice Liquidates all assets for the channel
      * @dev Liquidates all assets for the channel
      * @param channelId Unique identifier for a state channel
-     * @param outcomeBytes abi.encode of an array of Outcome.OutcomeItem structs.
+     * @param outcome An array of SingleAssetExit[] items.
      * @param stateHash stored state hash for the channel
      */
     function transferAllAssets(
         bytes32 channelId,
-        bytes memory outcomeBytes,
+        Outcome.SingleAssetExit[] memory outcome,
         bytes32 stateHash
     ) public {
         // checks
         _requireChannelFinalized(channelId);
-        _requireMatchingFingerprint(stateHash, keccak256(outcomeBytes), channelId);
+        _requireMatchingFingerprint(stateHash, keccak256(Outcome.encodeExit(outcome)), channelId);
 
         // computation
         bool allocatesOnlyZerosForAllAssets = true;
-        Outcome.SingleAssetExit[] memory outcome = Outcome.decodeExit(outcomeBytes);
         Outcome.SingleAssetExit[] memory exit = new Outcome.SingleAssetExit[](outcome.length);
         uint256[] memory initialHoldings = new uint256[](outcome.length);
         uint256[] memory totalPayouts = new uint256[](outcome.length);
@@ -94,7 +93,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         if (allocatesOnlyZerosForAllAssets) {
             delete statusOf[channelId];
         } else {
-            bytes32 outcomeHash = keccak256(abi.encode(outcomeBytes));
+            bytes32 outcomeHash = keccak256(Outcome.encodeExit(outcome));
             _updateFingerprint(channelId, stateHash, outcomeHash);
         }
 
