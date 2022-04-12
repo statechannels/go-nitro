@@ -1,4 +1,4 @@
-package testdata
+package testactors
 
 import (
 	"github.com/ethereum/go-ethereum/common"
