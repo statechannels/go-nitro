@@ -2,7 +2,7 @@ import {Signature, ethers} from 'ethers';
 
 import ForceMoveArtifact from '../../../artifacts/contracts/ForceMove.sol/ForceMove.json';
 import {signChallengeMessage} from '../../signatures';
-import {encodeOutcome, hashOutcome} from '../outcome';
+import {encodeOutcome} from '../outcome';
 import {encodeAppData, getFixedPart, getVariablePart, State} from '../state';
 
 // https://github.com/ethers-io/ethers.js/issues/602#issuecomment-574671078
@@ -69,7 +69,8 @@ export function respondArgs({
   challengeState,
   responseState,
   responseSignature
-}: RespondArgs): any[] {
+}: // eslint-disable-next-line @typescript-eslint/no-explicit-any
+RespondArgs): any[] {
   const isFinalAB = [challengeState.isFinal, responseState.isFinal];
   const fixedPart = getFixedPart(responseState);
   const variablePartAB = [getVariablePart(challengeState), getVariablePart(responseState)];
@@ -94,6 +95,7 @@ export function createCheckpointTransaction({
   return {data};
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function checkpointArgs({states, signatures, whoSignedWhat}: CheckpointData): any[] {
   const largestTurnNum = Math.max(...states.map(s => s.turnNum));
   const fixedPart = getFixedPart(states[0]);
@@ -119,6 +121,7 @@ export function concludeArgs(
   states: State[],
   signatures: Signature[],
   whoSignedWhat: number[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any[] {
   // Sanity checks on expected lengths
   if (states.length === 0) {

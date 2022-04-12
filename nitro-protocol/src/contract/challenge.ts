@@ -29,7 +29,9 @@ export interface ChallengeRegisteredStruct {
   finalizesAt: Uint48;
   challenger: Address;
   isFinal: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fixedPart: Array<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   variableParts: Array<any>;
   sigs: Signature[];
   whoSignedWhat: Uint8[];
@@ -40,6 +42,7 @@ export interface ChallengeRegisteredStruct {
  * @param eventResult the event itself
  * @returns a ChallengeRegisteredEvent
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getChallengeRegisteredEvent(eventResult: any[]): ChallengeRegisteredEvent {
   const {
     channelId,
@@ -107,6 +110,7 @@ export interface RespondTransactionArguments {
  */
 export function getChallengeClearedEvent(
   tx: ethers.Transaction,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventResult: any[]
 ): ChallengeClearedEvent {
   const {newTurnNumRecord}: ChallengeClearedStruct = eventResult.slice(-1)[0].args;

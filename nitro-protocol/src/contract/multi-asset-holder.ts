@@ -19,6 +19,7 @@ export interface DepositedEvent {
  * @param eventResult
  * @returns a DepositedEvent
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getDepositedEvent(eventResult: any[]): DepositedEvent {
   const {destination, amountDeposited, destinationHoldings} = parseEventResult(eventResult);
   return {
