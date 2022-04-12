@@ -104,7 +104,6 @@ func prepareConsensusChannel(cfg CChanConfig) *con_chan.ConsensusChannel {
 			}
 			sp := con_chan.SignedProposal{Proposal: correctedProp, Signature: sig}
 
-
 			// Receive the signed prop
 			err = c.Receive(sp)
 			if err != nil {

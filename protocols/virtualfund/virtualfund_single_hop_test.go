@@ -413,7 +413,6 @@ func TestCrankAsP1(t *testing.T) {
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
-
 	ok(t, err)
 	// We need to receive a proposal from Bob before funding is completed!
 	equals(t, waitingFor, WaitingForCompletePostFund)
