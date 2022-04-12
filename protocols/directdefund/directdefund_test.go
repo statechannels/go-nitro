@@ -12,34 +12,16 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
-type actor struct {
-	address     types.Address
-	destination types.Destination
-	privateKey  []byte
-}
-
-var alicePK = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
-var bobPK = common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`)
-
-var alice = actor{
-	address:     common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`),
-	destination: types.AddressToDestination(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)),
-	privateKey:  alicePK,
-}
-
-var bob = actor{
-	address:     common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`),
-	destination: types.AddressToDestination(common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`)),
-	privateKey:  bobPK,
-}
+var alice, bob testactors.Actor = testactors.Alice, testactors.Bob
 
 var testState = state.State{
 	ChainId:           big.NewInt(9001),
-	Participants:      []types.Address{alice.address, bob.address},
+	Participants:      []types.Address{alice.Address, bob.Address},
 	ChannelNonce:      big.NewInt(37140676580),
 	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
 	ChallengeDuration: big.NewInt(60),
@@ -49,11 +31,11 @@ var testState = state.State{
 			Asset: types.Address{},
 			Allocations: outcome.Allocations{
 				outcome.Allocation{
-					Destination: bob.destination, // Bob is first so we can easily test WaitingForMyTurnToFund
+					Destination: bob.Destination(), // Bob is first so we can easily test WaitingForMyTurnToFund
 					Amount:      big.NewInt(5),
 				},
 				outcome.Allocation{
-					Destination: alice.destination,
+					Destination: alice.Destination(),
 					Amount:      big.NewInt(5),
 				},
 			},
@@ -66,7 +48,7 @@ var testState = state.State{
 // signedTestState returns a signed state with signatures requested in toSign
 func signedTestState(s state.State, toSign []bool) (state.SignedState, error) {
 	ss := state.NewSignedState(s)
-	pks := [2][]byte{alicePK, bobPK}
+	pks := [2][]byte{alice.PrivateKey, bob.PrivateKey}
 	for i, pk := range pks {
 		if !toSign[i] {
 			continue
@@ -185,7 +167,7 @@ func TestCrankAlice(t *testing.T) {
 	o, _ := newTestObjective(true)
 
 	// The first crank. Alice is expected to create and sign a final state
-	updated, se, wf, err := o.Crank(&alicePK)
+	updated, se, wf, err := o.Crank(&alice.PrivateKey)
 
 	if err != nil {
 		t.Error(err)
@@ -203,7 +185,7 @@ func TestCrankAlice(t *testing.T) {
 
 	expectedSE := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{{
-			To:          bob.address,
+			To:          bob.Address,
 			ObjectiveId: o.Id(),
 			SignedStates: []state.SignedState{
 				finalStateSignedByAlice,
@@ -224,7 +206,7 @@ func TestCrankAlice(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, se, wf, err = updated.Crank(&alicePK)
+	_, se, wf, err = updated.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -245,7 +227,7 @@ func TestCrankAlice(t *testing.T) {
 
 	// The third crank. Alice is expected to enter the terminal state of the defunding protocol.
 	updated.C.OnChainFunding = types.Funds{}
-	_, se, wf, err = updated.Crank(&alicePK)
+	_, se, wf, err = updated.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -279,7 +261,7 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The first crank. Bob is expected to create and sign a final state
-	o, se, wf, err := o.Crank(&bobPK)
+	o, se, wf, err := o.Crank(&bob.PrivateKey)
 
 	if err != nil {
 		t.Error(err)
@@ -293,7 +275,7 @@ func TestCrankBob(t *testing.T) {
 	finalStateSignedByBob, _ := signedTestState(finalState, []bool{false, true})
 	expectedSE := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{{
-			To:          alice.address,
+			To:          alice.Address,
 			ObjectiveId: o.Id(),
 			SignedStates: []state.SignedState{
 				finalStateSignedByBob,
@@ -311,7 +293,7 @@ func TestCrankBob(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, se, wf, err = o.Crank(&bobPK)
+	_, se, wf, err = o.Crank(&bob.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -333,7 +315,7 @@ func TestCrankBob(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, se, wf, err = o.Crank(&bobPK)
+	_, se, wf, err = o.Crank(&bob.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}

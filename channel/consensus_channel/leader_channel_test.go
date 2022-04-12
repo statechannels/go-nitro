@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -43,7 +44,7 @@ func TestLeaderChannel(t *testing.T) {
 
 	// createSignedProposal generates a proposal given the vars & proposed change
 	// The proposal is signed by the given actor, using a generic fixed part
-	createSignedProposal := func(vars Vars, p Proposal, actor actor) SignedProposalVars {
+	createSignedProposal := func(vars Vars, p Proposal, actor testactors.Actor) SignedProposalVars {
 		proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
 		_ = proposalVars.HandleProposal(p)
 
