@@ -1,12 +1,14 @@
 package virtualdefund
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/testactors"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
@@ -81,6 +83,13 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
+func TestCrank(t *testing.T) {
+	for _, my := range allActors {
+		msg := fmt.Sprintf("testing crank as %s", my.Name)
+		t.Run(msg, testCrankAs(my))
+	}
+}
+
 func testUpdateAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
@@ -100,8 +109,62 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 				testhelpers.Assert(t, isZero(updated.Signatures[a.Role]), "expected signature for current participant %s to be zero", a.Name)
 			}
 		}
-		if err != nil {
-			t.Fatal(err)
+		testhelpers.Ok(t, err)
+	}
+}
+
+func testCrankAs(my ta.Actor) func(t *testing.T) {
+	return func(t *testing.T) {
+		data := generateTestData()
+		virtualDefund := newObjective(true, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), my.Role)
+
+		updatedObj, se, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
+		testhelpers.Ok(t, err)
+		updated := updatedObj.(*Objective)
+
+		for _, a := range allActors {
+			if a.Role == my.Role {
+				testhelpers.Assert(t, !isZero(updated.Signatures[a.Role]), "expected signature for participant %s to be non-zero", a.Name)
+			} else {
+				testhelpers.Assert(t, isZero(updated.Signatures[a.Role]), "expected signature for current participant %s to be zero", a.Name)
+			}
+		}
+
+		testhelpers.Equals(t, waitingFor, WaitingForCompleteFinal)
+		signedByMe := state.NewSignedState(data.vFinal)
+		signedByMe.Sign(&my.PrivateKey)
+		assertStateSentToEveryone(t, se, signedByMe, my)
+
+		// Update the signatures on the objective so the final state is fully signed
+		signedByOthers := signByOthers(my, state.NewSignedState(data.vFinal))
+		for i, sig := range signedByOthers.Signatures() {
+			if uint(i) != my.Role {
+				updated.Signatures[i] = sig
+			}
+		}
+
+		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
+		testhelpers.Ok(t, err)
+
+		testhelpers.Equals(t, waitingFor, WaitingForCompleteLedgerDefunding)
+
+		testhelpers.Assert(t, len(se.MessagesToSend) == 0, "expected no messages to send")
+
+	}
+}
+
+// assertStateSentToEveryone asserts that ses contains a message for every participant but from
+func assertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected state.SignedState, from testactors.Actor) {
+	for _, a := range allActors {
+		if a.Role != from.Role {
+			for _, msg := range ses.MessagesToSend {
+				if bytes.Equal(msg.To[:], a.Address[:]) {
+					for _, ss := range msg.SignedStates {
+						testhelpers.Equals(t, ss, expected)
+					}
+				}
+			}
 		}
 	}
+
 }
