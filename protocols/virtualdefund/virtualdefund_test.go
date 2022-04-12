@@ -20,6 +20,7 @@ var bob = ta.Actors.Bob
 var irene = ta.Actors.Irene
 var allActors = []ta.Actor{alice, irene, bob}
 
+// makeOutcome creates an outcome allocating to alice and bob
 func makeOutcome(aliceAmount uint, bobAmount uint) outcome.SingleAssetExit {
 	return outcome.SingleAssetExit{
 		Allocations: outcome.Allocations{
@@ -43,6 +44,7 @@ type testdata struct {
 	paid           uint
 }
 
+// generateTestData generates some test data that can be used in a test
 func generateTestData() testdata {
 	vFixed := state.FixedPart{
 		ChainId:           big.NewInt(9001),
@@ -61,6 +63,7 @@ func generateTestData() testdata {
 	return testdata{vFixed, vFinal, initialOutcome, finalOutcome, paid}
 }
 
+// signByOthers signs the state by every participant except my
 func signByOthers(my ta.Actor, signedState state.SignedState) state.SignedState {
 	if my.Role != 0 {
 		_ = signedState.Sign(&alice.PrivateKey)
@@ -74,6 +77,22 @@ func signByOthers(my ta.Actor, signedState state.SignedState) state.SignedState 
 		_ = signedState.Sign(&bob.PrivateKey)
 	}
 	return signedState
+}
+
+// assertStateSentToEveryone asserts that ses contains a message for every participant but from
+func assertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected state.SignedState, from testactors.Actor) {
+	for _, a := range allActors {
+		if a.Role != from.Role {
+			for _, msg := range ses.MessagesToSend {
+				if bytes.Equal(msg.To[:], a.Address[:]) {
+					for _, ss := range msg.SignedStates {
+						testhelpers.Equals(t, ss, expected)
+					}
+				}
+			}
+		}
+	}
+
 }
 
 func TestUpdate(t *testing.T) {
@@ -151,20 +170,4 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		testhelpers.Assert(t, len(se.MessagesToSend) == 0, "expected no messages to send")
 
 	}
-}
-
-// assertStateSentToEveryone asserts that ses contains a message for every participant but from
-func assertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected state.SignedState, from testactors.Actor) {
-	for _, a := range allActors {
-		if a.Role != from.Role {
-			for _, msg := range ses.MessagesToSend {
-				if bytes.Equal(msg.To[:], a.Address[:]) {
-					for _, ss := range msg.SignedStates {
-						testhelpers.Equals(t, ss, expected)
-					}
-				}
-			}
-		}
-	}
-
 }
