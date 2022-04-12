@@ -7,6 +7,7 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "hardhat-deploy";
+import "@nomiclabs/hardhat-solhint";
 
 dotenv.config();
 
@@ -27,7 +28,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.7.4',
+        version: "0.7.4",
         settings: {
           optimizer: {
             enabled: true,
@@ -41,10 +42,10 @@ const config: HardhatUserConfig = {
       // The contract is not part of our core protocol.
       // It is an example of an application a third party dev might write, so it is highly nonideal that it requires this workaround.
       // See https://github.com/ethereum/solidity/issues/10930
-      'contracts/examples/EmbeddedApplication.sol': {
-        version: '0.7.4',
+      "contracts/examples/EmbeddedApplication.sol": {
+        version: "0.7.4",
         settings: {
-          optimizer: {enabled: false},
+          optimizer: { enabled: false },
         },
       },
     },
@@ -55,9 +56,9 @@ const config: HardhatUserConfig = {
     },
   },
   paths: {
-    sources: 'contracts',
-    deploy: 'hardhat-deploy',
-    deployments: 'hardhat-deployments',
+    sources: "contracts",
+    deploy: "hardhat-deploy",
+    deployments: "hardhat-deployments",
   },
   // watcher: {
   //   compilation: {
@@ -76,7 +77,7 @@ const config: HardhatUserConfig = {
       chainId: 3,
     },
     rinkeby: {
-      url: process.env.RINKEBY_URL || '',
+      url: process.env.RINKEBY_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       chainId: 4,
