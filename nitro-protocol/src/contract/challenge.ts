@@ -48,7 +48,7 @@ export function getChallengeRegisteredEvent(eventResult: any[]): ChallengeRegist
     isFinal,
     fixedPart,
     variableParts: variablePartsUnstructured,
-    sigs,
+    sigs
   }: ChallengeRegisteredStruct = eventResult.slice(-1)[0].args;
 
   // Fixed part
@@ -75,7 +75,7 @@ export function getChallengeRegisteredEvent(eventResult: any[]): ChallengeRegist
       appData: v.appData,
       challengeDuration,
       appDefinition,
-      isFinal,
+      isFinal
     };
     return {state, signature};
   });
@@ -126,7 +126,7 @@ export function getChallengeClearedEvent(
       r: args[4][1],
       s: args[4][2],
       _vs: args[4][3],
-      recoveryParam: args[4][4],
+      recoveryParam: args[4][4]
     };
 
     const signedState: SignedState = {
@@ -138,13 +138,13 @@ export function getChallengeClearedEvent(
         outcome,
         appData,
         channel: {chainId: BigNumber.from(chainId).toHexString(), channelNonce, participants},
-        turnNum: BigNumber.from(newTurnNumRecord).toNumber(),
-      },
+        turnNum: BigNumber.from(newTurnNumRecord).toNumber()
+      }
     };
 
     return {
       kind: 'respond',
-      newStates: [signedState],
+      newStates: [signedState]
     };
   } else if (decodedTransaction.name === 'checkpoint') {
     throw new Error('UnimplementedError');
