@@ -151,7 +151,6 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	return &updated, nil
 }
 
-// todo this should not be a deposited event
 func (o Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
 	updated := o.clone()
 	de, ok := event.(chainservice.AllocationUpdatedEvent)
