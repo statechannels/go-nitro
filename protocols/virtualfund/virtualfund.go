@@ -568,14 +568,15 @@ func (c *Connection) expectedProposal() consensus_channel.Proposal {
 		break
 	}
 
-	// this awkward step is required because Channel.SignNextProposal accepts as input the
-	// proposal expected in the queue, and validates that the next proposal in the queue
-	// matches exactly. I am not sure if validating the turn number is critical!
-	turnNum := c.Channel.ConsensusTurnNum() + 1
-
-	proposal := consensus_channel.NewAddProposal(c.Channel.Id, turnNum, g, leftAmount)
-
-	return proposal
+	return consensus_channel.NewAddProposal(
+		c.Channel.Id,
+		// this awkward step is required because Channel.SignNextProposal accepts as input the
+		// proposal expected in the queue, and validates that the next proposal in the queue
+		// matches exactly. I am not sure if validating the turn number is critical!
+		c.Channel.ConsensusTurnNum()+1,
+		g,
+		leftAmount,
+	)
 }
 
 // proposeLedgerUpdate will propose a ledger update to the channel by crafting a new state
