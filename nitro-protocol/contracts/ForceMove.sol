@@ -2,8 +2,8 @@
 pragma solidity 0.7.4;
 pragma experimental ABIEncoderV2;
 
-import { ExitFormat as Outcome } from '@statechannels/exit-format/contracts/ExitFormat.sol';
-import { ECRecovery } from './libraries/ECRecovery.sol';
+import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
+import {ECRecovery} from './libraries/ECRecovery.sol';
 import './interfaces/IForceMove.sol';
 import './interfaces/IForceMoveApp.sol';
 import './StatusManager.sol';
@@ -193,13 +193,7 @@ contract ForceMove is IForceMove, StatusManager {
         // checks
         _requireChannelNotFinalized(channelId);
         _requireIncreasedTurnNumber(channelId, largestTurnNum);
-        _requireStateSupportedBy(
-            variableParts,
-            channelId,
-            fixedPart,
-            sigs,
-            whoSignedWhat
-        );
+        _requireStateSupportedBy(variableParts, channelId, fixedPart, sigs, whoSignedWhat);
 
         // effects
         _clearChallenge(channelId, largestTurnNum);
@@ -221,13 +215,7 @@ contract ForceMove is IForceMove, StatusManager {
         uint8[] calldata whoSignedWhat,
         Signature[] calldata sigs
     ) external override {
-        _conclude(
-            fixedPart,
-            latestVariablePart,
-            numStates,
-            whoSignedWhat,
-            sigs
-        );
+        _conclude(fixedPart, latestVariablePart, numStates, whoSignedWhat, sigs);
     }
 
     /**
@@ -520,7 +508,10 @@ contract ForceMove is IForceMove, StatusManager {
         return stateHashes;
     }
 
-    enum IsValidTransition {True, NeedToCheckApp}
+    enum IsValidTransition {
+        True,
+        NeedToCheckApp
+    }
 
     /**
     * @notice Check that the submitted pair of states form a valid transition
@@ -542,7 +533,10 @@ contract ForceMove is IForceMove, StatusManager {
         } else {
             require(!ab[0].isFinal, 'isFinal retrograde');
             if (ab[1].turnNum < 2 * nParticipants) {
-                require(Outcome.exitsEqual(ab[1].outcome, ab[0].outcome), 'Outcome change forbidden');
+                require(
+                    Outcome.exitsEqual(ab[1].outcome, ab[0].outcome),
+                    'Outcome change forbidden'
+                );
                 require(_bytesEqual(ab[1].appData, ab[0].appData), 'appData change forbidden');
             } else {
                 return IsValidTransition.NeedToCheckApp;
@@ -601,36 +595,36 @@ contract ForceMove is IForceMove, StatusManager {
 
             // if lengths don't match the arrays are not equal
             switch eq(length, mload(_postBytes))
-                case 1 {
-                    // cb is a circuit breaker in the for loop since there's
-                    //  no said feature for inline assembly loops
-                    // cb = 1 - don't breaker
-                    // cb = 0 - break
-                    let cb := 1
+            case 1 {
+                // cb is a circuit breaker in the for loop since there's
+                //  no said feature for inline assembly loops
+                // cb = 1 - don't breaker
+                // cb = 0 - break
+                let cb := 1
 
-                    let mc := add(_preBytes, 0x20)
-                    let end := add(mc, length)
+                let mc := add(_preBytes, 0x20)
+                let end := add(mc, length)
 
-                    for {
-                        let cc := add(_postBytes, 0x20)
-                        // the next line is the loop condition:
-                        // while(uint256(mc < end) + cb == 2)
-                    } eq(add(lt(mc, end), cb), 2) {
-                        mc := add(mc, 0x20)
-                        cc := add(cc, 0x20)
-                    } {
-                        // if any of these checks fails then arrays are not equal
-                        if iszero(eq(mload(mc), mload(cc))) {
-                            // unsuccess:
-                            success := 0
-                            cb := 0
-                        }
+                for {
+                    let cc := add(_postBytes, 0x20)
+                    // the next line is the loop condition:
+                    // while(uint256(mc < end) + cb == 2)
+                } eq(add(lt(mc, end), cb), 2) {
+                    mc := add(mc, 0x20)
+                    cc := add(cc, 0x20)
+                } {
+                    // if any of these checks fails then arrays are not equal
+                    if iszero(eq(mload(mc), mload(cc))) {
+                        // unsuccess:
+                        success := 0
+                        cb := 0
                     }
                 }
-                default {
-                    // unsuccess:
-                    success := 0
-                }
+            }
+            default {
+                // unsuccess:
+                success := 0
+            }
         }
         /* solhint-disable no-inline-assembly */
 
@@ -772,7 +766,13 @@ contract ForceMove is IForceMove, StatusManager {
     function _getChannelId(FixedPart memory fixedPart) internal pure returns (bytes32 channelId) {
         require(fixedPart.chainId == getChainID(), 'Incorrect chainId');
         channelId = keccak256(
-            abi.encode(getChainID(), fixedPart.participants, fixedPart.channelNonce, fixedPart.appDefinition, fixedPart.challengeDuration)
+            abi.encode(
+                getChainID(),
+                fixedPart.participants,
+                fixedPart.channelNonce,
+                fixedPart.appDefinition,
+                fixedPart.challengeDuration
+            )
         );
     }
 }

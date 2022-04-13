@@ -18,7 +18,7 @@ contract HashLockedSwap is IForceMoveApp {
         VariablePart memory a,
         VariablePart memory b,
         uint256
-    ) public override pure returns (bool) {
+    ) public pure override returns (bool) {
         // is this the first and only swap?
         require(b.turnNum == 4, 'b.turnNum != 4');
 

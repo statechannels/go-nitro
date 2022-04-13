@@ -39,7 +39,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         bytes32 channelId,
         uint256 expectedHeld,
         uint256 amount
-    ) external override payable {
+    ) external payable override {
         require(!_isExternalDestination(channelId), 'Deposit to external destination');
         uint256 amountDeposited;
         // this allows participants to reduce the wait between deposits, while protecting them from losing funds by depositing too early. Specifically it protects against the scenario:
@@ -106,10 +106,10 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             Outcome.Allocation[] memory exitAllocations,
             uint256 totalPayouts
         ) = compute_transfer_effects_and_interactions(
-            initialAssetHoldings,
-            outcome[assetIndex].allocations,
-            indices
-        ); // pure, also performs checks
+                initialAssetHoldings,
+                outcome[assetIndex].allocations,
+                indices
+            ); // pure, also performs checks
 
         _apply_transfer_effects(
             assetIndex,
@@ -259,12 +259,12 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         Outcome.Allocation[] memory exitAllocations;
         uint256 totalPayouts;
         {
-            Outcome.Allocation[] memory sourceAllocations = sourceOutcome[claimArgs
-                .sourceAssetIndex]
-                .allocations;
-            Outcome.Allocation[] memory targetAllocations = targetOutcome[claimArgs
-                .targetAssetIndex]
-                .allocations;
+            Outcome.Allocation[] memory sourceAllocations = sourceOutcome[
+                claimArgs.sourceAssetIndex
+            ].allocations;
+            Outcome.Allocation[] memory targetAllocations = targetOutcome[
+                claimArgs.targetAssetIndex
+            ].allocations;
             (
                 newSourceAllocations,
                 newTargetAllocations,
@@ -284,7 +284,8 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             asset,
             sourceOutcome,
             newSourceAllocations,
-            sourceOutcome[claimArgs.sourceAssetIndex].allocations[claimArgs.indexOfTargetInSource]
+            sourceOutcome[claimArgs.sourceAssetIndex]
+                .allocations[claimArgs.indexOfTargetInSource]
                 .destination, // targetChannelId
             targetOutcome,
             newTargetAllocations,
@@ -315,12 +316,12 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             bytes memory targetOutcomeBytes,
             uint256 targetAssetIndex
         ) = (
-            claimArgs.sourceChannelId,
-            claimArgs.sourceOutcomeBytes,
-            claimArgs.sourceAssetIndex,
-            claimArgs.targetOutcomeBytes,
-            claimArgs.targetAssetIndex
-        );
+                claimArgs.sourceChannelId,
+                claimArgs.sourceOutcomeBytes,
+                claimArgs.sourceAssetIndex,
+                claimArgs.targetOutcomeBytes,
+                claimArgs.targetAssetIndex
+            );
 
         _requireIncreasingIndices(claimArgs.targetAllocationIndicesToPayout); // This assumption is relied on by compute_transfer_effects_and_interactions
 
@@ -342,8 +343,8 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         );
 
         initialAssetHoldings = holdings[asset][sourceChannelId];
-        bytes32 targetChannelId = sourceOutcome[sourceAssetIndex].allocations[claimArgs
-            .indexOfTargetInSource]
+        bytes32 targetChannelId = sourceOutcome[sourceAssetIndex]
+            .allocations[claimArgs.indexOfTargetInSource]
             .destination;
 
         // target checks

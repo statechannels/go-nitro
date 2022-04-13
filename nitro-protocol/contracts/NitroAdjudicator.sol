@@ -69,10 +69,10 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
                 Outcome.Allocation[] memory exitAllocations,
                 uint256 totalPayoutsForAsset
             ) = compute_transfer_effects_and_interactions(
-                initialHoldings[assetIndex],
-                allocations,
-                new uint256[](0)
-            );
+                    initialHoldings[assetIndex],
+                    allocations,
+                    new uint256[](0)
+                );
             if (!allocatesOnlyZeros) allocatesOnlyZerosForAllAssets = false;
             totalPayouts[assetIndex] = totalPayoutsForAsset;
             outcome[assetIndex].allocations = newAllocations;

@@ -17,7 +17,7 @@ contract TrivialApp is IForceMoveApp {
         VariablePart memory, // a
         VariablePart memory, // b
         uint256 // nParticipants
-    ) public override pure returns (bool) {
+    ) public pure override returns (bool) {
         return true;
     }
 }

@@ -137,7 +137,12 @@ contract EmbeddedApplication is
     }
 
     // Finite states for J
-    enum AlreadyMoved {None, A, B, AB}
+    enum AlreadyMoved {
+        None,
+        A,
+        B,
+        AB
+    }
 
     // Application Data for J
     struct AppData {
@@ -146,9 +151,9 @@ contract EmbeddedApplication is
         AlreadyMoved alreadyMoved;
     }
 
-    uint256 internal constant AIndex = 0;
-    uint256 internal constant BIndex = 1;
-    uint256 internal constant IIndex = 2;
+    uint256 internal constant A_INDEX = 0;
+    uint256 internal constant B_INDEX = 1;
+    uint256 internal constant C_INDEX = 2;
 
     function validTransition(
         VariablePart memory from,
@@ -157,7 +162,7 @@ contract EmbeddedApplication is
         uint256, // nParticipants (unused)
         uint256, // signedByFrom (unused) - Who has signed the "from" state?
         uint256 signedByTo // Who has signed the "to" state?
-    ) public override pure returns (bool) {
+    ) public pure override returns (bool) {
         // parameter wrangling
         bool signedByA = ForceMoveAppUtilities.isSignedBy(signedByTo, 0);
         bool signedByB = ForceMoveAppUtilities.isSignedBy(signedByTo, 1);
@@ -167,20 +172,24 @@ contract EmbeddedApplication is
         Outcome.Allocation[] memory toAllocations = decode3PartyAllocation(to.outcome);
 
         require(
-            fromAllocations[AIndex].destination == toAllocations[AIndex].destination &&
-                fromAllocations[BIndex].destination == toAllocations[BIndex].destination &&
-                fromAllocations[IIndex].destination == toAllocations[IIndex].destination,
+            fromAllocations[A_INDEX].destination == toAllocations[A_INDEX].destination &&
+                fromAllocations[B_INDEX
+        ].destination == toAllocations[B_INDEX
+        ].destination &&
+                fromAllocations[C_INDEX].destination == toAllocations[C_INDEX].destination,
             'destinations may not change'
         );
 
-        require(fromAllocations[IIndex].amount == toAllocations[IIndex].amount, 'p2.amt !constant');
+        require(fromAllocations[C_INDEX].amount == toAllocations[C_INDEX].amount, 'p2.amt !constant');
         require(
-            fromAllocations[AIndex].amount +
-                fromAllocations[BIndex].amount +
-                fromAllocations[IIndex].amount ==
-                toAllocations[AIndex].amount +
-                    toAllocations[BIndex].amount +
-                    toAllocations[IIndex].amount,
+            fromAllocations[A_INDEX].amount +
+                fromAllocations[B_INDEX
+        ].amount +
+                fromAllocations[C_INDEX].amount ==
+                toAllocations[A_INDEX].amount +
+                    toAllocations[B_INDEX
+            ].amount +
+                    toAllocations[C_INDEX].amount,
             'total allocation changed'
         );
 
@@ -222,14 +231,18 @@ contract EmbeddedApplication is
 
         // validate the supplied support proof
         // extract the allocation
-        Outcome.Allocation[] memory Xallocations = validateSupportProofForX(fromAppData, toAppData);
+        Outcome.Allocation[] memory xAllocations = validateSupportProofForX(fromAppData, toAppData);
 
         // ensure A,B part of the outcome of X has been absorbed into the outcome of J
         require(
-            Xallocations[AIndex].amount == toAllocations[AIndex].amount &&
-                Xallocations[BIndex].amount == toAllocations[BIndex].amount &&
-                Xallocations[AIndex].destination == toAllocations[AIndex].destination &&
-                Xallocations[BIndex].destination == toAllocations[BIndex].destination,
+            xAllocations[A_INDEX].amount == toAllocations[A_INDEX].amount &&
+                xAllocations[B_INDEX
+        ].amount == toAllocations[B_INDEX
+        ].amount &&
+                xAllocations[A_INDEX].destination == toAllocations[A_INDEX].destination &&
+                xAllocations[B_INDEX
+        ].destination == toAllocations[B_INDEX
+        ].destination,
             'X / J outcome mismatch'
         );
         return true;
@@ -238,7 +251,7 @@ contract EmbeddedApplication is
     function validateSupportProofForX(AppData memory fromAppData, AppData memory toAppData)
         internal
         pure
-        returns (Outcome.Allocation[] memory Xallocations)
+        returns (Outcome.Allocation[] memory xAllocations)
     {
         // The following checks follow the protocol-level validTransition function
         // They are the members of FixedPart that do not affect the channelId
@@ -267,7 +280,9 @@ contract EmbeddedApplication is
 
         uint256 finalIndex = toAppData.supportProofForX.variableParts.length - 1;
 
-        bytes memory greaterStateOutcome = toAppData.supportProofForX.variableParts[finalIndex]
+        bytes memory greaterStateOutcome = toAppData
+            .supportProofForX
+            .variableParts[finalIndex]
             .outcome;
 
         bytes32 greaterStateHash = _hashState(
@@ -304,7 +319,7 @@ contract EmbeddedApplication is
                 toAppData.supportProofForX.turnNumTo - 1,
                 false // Assume isFinal is false
             );
-            
+
             if (
                 (toAppData.supportProofForX.whoSignedWhat[0] == 0) &&
                 (toAppData.supportProofForX.whoSignedWhat[1] == 1)
@@ -358,10 +373,9 @@ contract EmbeddedApplication is
 
         return
             decode2PartyAllocation(
-                toAppData.supportProofForX.variableParts[toAppData
+                toAppData
                     .supportProofForX
-                    .variableParts
-                    .length - 1]
+                    .variableParts[toAppData.supportProofForX.variableParts.length - 1]
                     .outcome
             );
     }
