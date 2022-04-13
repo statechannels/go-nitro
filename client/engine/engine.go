@@ -15,6 +15,14 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
 
+type UnhandledChainEvent struct {
+	event chainservice.Event
+}
+
+func (uce *UnhandledChainEvent) Error() string {
+	return fmt.Sprintf("chain event could not be handled: %#v", uce.event)
+}
+
 // Engine is the imperative part of the core business logic of a go-nitro Client
 type Engine struct {
 	// inbound go channels
@@ -152,25 +160,25 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 // attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChangeEvent, error) {
 	e.logger.Printf("handling chain event %v", chainEvent)
-	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelId)
+	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelId())
 	if !ok {
-		// Because the MockChain and SimpleChainService broadcast all events to all subscribers,
-		// it is likely that a client receives an irrelevant event. So we log and continue without
-		// returning an error.
-		e.logger.Printf("handleChainEvent: No objective in store for channel with id %s", chainEvent.ChannelId)
-		return ObjectiveChangeEvent{}, nil
+		return ObjectiveChangeEvent{}, &UnhandledChainEvent{event: chainEvent}
 	}
-	event := protocols.ObjectiveEvent{
-		Holdings:           chainEvent.Holdings,
-		BlockNum:           chainEvent.BlockNum,
-		AdjudicationStatus: chainEvent.AdjudicationStatus,
-		ObjectiveId:        objective.Id(),
+
+	switch event := chainEvent.(type) {
+	case chainservice.DepositedEvent:
+		o, ok := objective.(*directfund.Objective)
+		if !ok {
+			return ObjectiveChangeEvent{}, &UnhandledChainEvent{event: chainEvent}
+		}
+		updatedObjective, err := o.UpdateWithChainEvent(event)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+		return e.attemptProgress(updatedObjective)
+	default:
+		return ObjectiveChangeEvent{}, &UnhandledChainEvent{event: chainEvent}
 	}
-	updatedObjective, err := objective.Update(event)
-	if err != nil {
-		return ObjectiveChangeEvent{}, err
-	}
-	return e.attemptProgress(updatedObjective)
 
 }
 

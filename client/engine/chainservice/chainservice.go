@@ -6,13 +6,27 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// ChainEvent is an internal representation of a blockchain event
-type Event struct {
-	ChannelId          types.Destination
+type Event interface {
+	ChannelId() types.Destination
+}
+
+// DepositedEvent is an internal representation of the deposited blockchain event
+type DepositedEvent struct {
+	IntoChannel        types.Destination
 	Holdings           types.Funds // indexed by asset
 	AdjudicationStatus protocols.AdjudicationStatus
 	BlockNum           uint64
 }
+
+func (de DepositedEvent) ChannelId() types.Destination {
+	return de.IntoChannel
+}
+
+// todo implement other event types
+// AllocationUpdated
+// Concluded
+// ChallengeRegistered
+// ChallengeCleared
 
 type ChainService interface {
 	Out() <-chan Event

@@ -43,12 +43,9 @@ type AdjudicationStatus struct {
 
 // ObjectiveEvent holds information used to update an Objective. Some fields may be nil.
 type ObjectiveEvent struct {
-	ObjectiveId        ObjectiveId
-	SignedStates       []state.SignedState
-	SignedProposals    []consensus_channel.SignedProposal
-	Holdings           types.Funds // mapping from asset identifier to amount
-	AdjudicationStatus AdjudicationStatus
-	BlockNum           uint64
+	ObjectiveId     ObjectiveId
+	SignedStates    []state.SignedState
+	SignedProposals []consensus_channel.SignedProposal
 }
 
 // Storable is an object that can be stored by the store.

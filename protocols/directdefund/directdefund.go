@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/protocols"
 )
 
@@ -131,11 +132,20 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (Objective, error) {
 
 	updated := o.clone()
 	updated.C.AddSignedStates(event.SignedStates)
+
+	return updated, nil
+}
+
+// todo this should not be a deposited event
+func (o Objective) UpdateWithChainEvent(event chainservice.DepositedEvent) (Objective, error) {
+	updated := o.clone()
+	// todo: check block number
 	if event.Holdings != nil {
-		updated.C.OnChainFunding = event.Holdings
+		updated.C.OnChainFunding = event.Holdings.Clone()
 	}
 
 	return updated, nil
+
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
