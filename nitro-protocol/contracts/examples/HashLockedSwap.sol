@@ -20,7 +20,7 @@ contract HashLockedSwap is IForceMoveApp {
         uint256
     ) public override pure returns (bool) {
         // is this the first and only swap?
-        require(b.turnNum == 4, 'turnNumB != 4');
+        require(b.turnNum == 4, 'b.turnNum != 4');
 
         // Decode variables.
         // Assumptions:
