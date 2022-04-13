@@ -38,9 +38,11 @@ export function channelDataToStatus(channelData: ChannelData): Bytes32 {
   return status;
 }
 
-export function parseStatus(
-  status: Bytes32
-): {turnNumRecord: number; finalizesAt: number; fingerprint: Bytes} {
+export function parseStatus(status: Bytes32): {
+  turnNumRecord: number;
+  finalizesAt: number;
+  fingerprint: Bytes;
+} {
   validateHexString(status);
 
   //

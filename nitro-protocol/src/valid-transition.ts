@@ -62,6 +62,6 @@ function _requireExtraImplicitChecks(fromState: State, toState: State) {
   );
 }
 
-function _require(expression: any, errorString: string) {
+function _require(expression: boolean, errorString: string) {
   if (!expression) throw Error(errorString);
 }

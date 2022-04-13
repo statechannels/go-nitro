@@ -67,14 +67,14 @@ import FULLCountingAppArtifact from '../artifacts/contracts/CountingApp.sol/Coun
 import FULLHashLockedSwapArtifact from '../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
 
 interface ArtifactT {
-  _format: string,
-  contractName: string,
-  sourceName: string,
-  abi: object,
-  bytecode: string,
-  deployedBytecode: string,
-  linkReferences: object,
-  deployedLinkReferences: object,
+  _format: string;
+  contractName: string;
+  sourceName: string;
+  abi: object;
+  bytecode: string;
+  deployedBytecode: string;
+  linkReferences: object;
+  deployedLinkReferences: object;
 }
 
 // https://hardhat.org/guides/compile-contracts.html#artifacts
@@ -89,10 +89,13 @@ const fields = [
 
 interface MinimalArtifact {
   contractName: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abi: any;
   bytecode: string;
   deployedBytecode: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   linkReferences: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   deployedLinkReferences: any;
 }
 
@@ -142,13 +145,7 @@ export {
 export {encodeOutcome, decodeOutcome, Outcome, AssetOutcome, hashOutcome} from './contract/outcome';
 export {channelDataToStatus} from './contract/channel-storage';
 
-export {
-  State,
-  VariablePart,
-  getVariablePart,
-  getFixedPart,
-  hashState,
-} from './contract/state';
+export {State, VariablePart, getVariablePart, getFixedPart, hashState} from './contract/state';
 
 export * from './signatures';
 export * from './transactions';

@@ -1,7 +1,7 @@
 import {defaultAbiCoder, ParamType} from '@ethersproject/abi';
 import {Signature} from '@ethersproject/bytes';
-import { encodeOutcome } from './outcome';
 
+import {encodeOutcome} from './outcome';
 import {encodeAppData, FixedPart, State} from './state';
 import {Bytes, Bytes32} from './types';
 

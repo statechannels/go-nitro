@@ -18,5 +18,9 @@ jobs:
       - uses: actions/setup-node@v3
       - name: Install dependencies
         run: npm install
+      - name: Compile contracts
+        run: npx hardhat compile
+      - name: Run eslint (including prettier)
+        run: npm run lint:check
       - name: Run tests
         run: npm test

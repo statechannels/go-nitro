@@ -1,7 +1,8 @@
 import {utils} from 'ethers';
+import {ParamType} from 'ethers/lib/utils';
 
 import {Channel, getChannelId} from './channel';
-import {encodeOutcome, Outcome} from './outcome';
+import {Outcome} from './outcome';
 import {Address, Bytes, Bytes32, Uint256, Uint48} from './types';
 
 /**
@@ -77,7 +78,7 @@ export function encodeAppData(appData: string): Bytes {
  * @param state a State
  * @returns a 32 byte keccak256 hash
  */
- export function hashAppPart(state: State): Bytes32 {
+export function hashAppPart(state: State): Bytes32 {
   const {challengeDuration, appDefinition, appData} = state;
   return utils.keccak256(
     utils.defaultAbiCoder.encode(
@@ -102,28 +103,22 @@ export function encodeState(state: State): Bytes {
       'bytes32',
       'bytes',
       {
-        type: "tuple[]",
+        type: 'tuple[]',
         components: [
-            // @ts-ignore - reference ethers.utils.ParamType for more info on why certain properties are not present
-            { name: "asset", type: "address" },
-            // @ts-ignore
-            { name: "metadata", type: "bytes" },
-            {
-                type: "tuple[]",
-                name: "allocations",
-                components: [
-                    // @ts-ignore
-                    { name: "destination", type: "bytes32" },
-                    // @ts-ignore
-                    { name: "amount", type: "uint256" },
-                    // @ts-ignore
-                    { name: "allocationType", type: "uint8" },
-                    // @ts-ignore
-                    { name: "metadata", type: "bytes" },
-                ],
-            },
+          {name: 'asset', type: 'address'},
+          {name: 'metadata', type: 'bytes'},
+          {
+            type: 'tuple[]',
+            name: 'allocations',
+            components: [
+              {name: 'destination', type: 'bytes32'},
+              {name: 'amount', type: 'uint256'},
+              {name: 'allocationType', type: 'uint8'},
+              {name: 'metadata', type: 'bytes'},
+            ],
+          } as ParamType,
         ],
-      },
+      } as ParamType,
       'uint256',
       'bool',
     ],
@@ -137,7 +132,5 @@ export function encodeState(state: State): Bytes {
  * @returns a 32 byte keccak256 hash
  */
 export function hashState(state: State): Bytes32 {
-  return utils.keccak256(
-    encodeState(state)
-  );
+  return utils.keccak256(encodeState(state));
 }

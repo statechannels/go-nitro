@@ -22,11 +22,7 @@ export async function validTransition(
   const fromVariablePart = getVariablePart(fromState);
   const toVariablePart = getVariablePart(toState);
 
-  return await appContract.validTransition(
-    fromVariablePart,
-    toVariablePart,
-    numberOfParticipants
-  );
+  return await appContract.validTransition(fromVariablePart, toVariablePart, numberOfParticipants);
 }
 
 /**

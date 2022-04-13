@@ -113,9 +113,11 @@ export function createConcludeTransaction(
  * @param signedStates an array of signed states
  * @returns Object with (states, signatures, whosignedWhat)
  */
-export function createSignatureArguments(
-  signedStates: SignedState[]
-): {states: State[]; signatures: Signature[]; whoSignedWhat: number[]} {
+export function createSignatureArguments(signedStates: SignedState[]): {
+  states: State[];
+  signatures: Signature[];
+  whoSignedWhat: number[];
+} {
   const {participants} = signedStates[0].state.channel;
   const states = [];
   const whoSignedWhat = new Array<number>(participants.length);
