@@ -8,6 +8,7 @@ import (
 
 type Event interface {
 	GetChannelId() types.Destination
+	GetBlockNum() uint64
 }
 
 // DepositedEvent is an internal representation of the deposited blockchain event
@@ -20,6 +21,10 @@ type DepositedEvent struct {
 
 func (de DepositedEvent) GetChannelId() types.Destination {
 	return de.ChannelId
+}
+
+func (de DepositedEvent) GetBlockNum() uint64 {
+	return de.BlockNum
 }
 
 // todo implement other event types
