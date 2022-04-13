@@ -2,9 +2,7 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
   plugins: [
-    // All packages in this monorepo use TypeScript
     '@typescript-eslint',
-    // All packages in this monorepo use Prettier
     'prettier',
     // We enforce certain rules on how imports are handled
     'import'
