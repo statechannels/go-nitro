@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -203,12 +204,19 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 
 	updated := o.clone()
 	updated.C.AddSignedStates(event.SignedStates)
+
+	return &updated, nil
+}
+
+func (o Objective) UpdateWithChainEvent(event chainservice.DepositedEvent) (protocols.Objective, error) {
+	updated := o.clone()
 	if event.Holdings != nil && event.BlockNum > updated.latestBlockNumber {
 		updated.C.OnChainFunding = event.Holdings.Clone()
 		updated.latestBlockNumber = event.BlockNum
 	}
 
 	return &updated, nil
+
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed

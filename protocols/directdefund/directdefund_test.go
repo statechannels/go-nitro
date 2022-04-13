@@ -12,6 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -309,8 +310,8 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The third crank. Bob is expected to enter the terminal state of the defunding protocol.
-	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), Holdings: types.Funds{}}
-	o, err = o.Update(e)
+	o, err = o.UpdateWithChainEvent(chainservice.DepositedEvent{Holdings: types.Funds{}})
+
 	if err != nil {
 		t.Error(err)
 	}

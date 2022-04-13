@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -129,13 +130,13 @@ func TestUpdate(t *testing.T) {
 		common.Address{}: big.NewInt(3),
 	}
 	highBlockNum := uint64(200)
-	updatedObjective, err = s.Update(protocols.ObjectiveEvent{ObjectiveId: s.Id(), Holdings: newFunding, BlockNum: highBlockNum})
+	updatedObjective, err = s.UpdateWithChainEvent(chainservice.DepositedEvent{Holdings: newFunding, BlockNum: highBlockNum})
 	if err != nil {
 		t.Error(err)
 	}
 	updated = updatedObjective.(*Objective)
 	if !updated.C.OnChainFunding.Equal(newFunding) {
-		t.Error(`Objective data not updated as expected`, updated.C.OnChainFunding, e.Holdings)
+		t.Error(`Objective data not updated as expected`, updated.C.OnChainFunding, newFunding)
 	}
 	if updated.latestBlockNumber != uint64(highBlockNum) {
 		t.Error("Latest block number not updated as expected", updated.latestBlockNumber, highBlockNum)
@@ -146,7 +147,8 @@ func TestUpdate(t *testing.T) {
 	staleFunding[common.Address{}] = big.NewInt(2)
 	lowBlockNum := uint64(100)
 
-	updatedObjective, _ = updated.Update(protocols.ObjectiveEvent{ObjectiveId: s.Id(), Holdings: staleFunding, BlockNum: uint64(lowBlockNum)})
+	updatedObjective, _ = updated.UpdateWithChainEvent(chainservice.DepositedEvent{Holdings: staleFunding, BlockNum: uint64(lowBlockNum)})
+
 	updated = updatedObjective.(*Objective)
 
 	if updated.C.OnChainFunding.Equal(staleFunding) {
