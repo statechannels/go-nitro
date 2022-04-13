@@ -13,8 +13,8 @@ import (
 type CChanConfig struct {
 	leader      testactors.Actor
 	follower    testactors.Actor
-	leaderBal   int64
-	followerBal int64
+	leaderBal   int64 // defaults to 6, when leaderBal is passed as 0
+	followerBal int64 // defaults to 4, when followerBal is passed as 0
 	isLeader    bool
 	guarantees  []con_chan.Guarantee
 	props       []con_chan.Proposal
@@ -39,34 +39,35 @@ func prepareConsensusChannel(cfg CChanConfig) *con_chan.ConsensusChannel {
 		rightBal = 4
 	}
 
-	initialOutcome := func() con_chan.LedgerOutcome {
-		left := con_chan.NewBalance(cfg.leader.Destination(), big.NewInt(leftBal))
-		right := con_chan.NewBalance(cfg.follower.Destination(), big.NewInt(rightBal))
+	var (
+		fp = state.FixedPart{
+			Participants:      []types.Address{cfg.leader.Address, cfg.follower.Address},
+			ChainId:           big.NewInt(0),
+			ChannelNonce:      big.NewInt(9001),
+			ChallengeDuration: big.NewInt(100),
+		}
 
-		return *con_chan.NewLedgerOutcome(types.Address{}, left, right, cfg.guarantees)
+		startingTurnNum = uint64(1)
+		// initialOutcome produces a new copy of the initial outcome on each invocation
+		initialOutcome = func() con_chan.LedgerOutcome {
+			return *con_chan.NewLedgerOutcome(
+				types.Address{},
+				con_chan.NewBalance(cfg.leader.Destination(), big.NewInt(leftBal)),
+				con_chan.NewBalance(cfg.follower.Destination(), big.NewInt(rightBal)),
+				cfg.guarantees,
+			)
 
-	}
+		}
 
-	participants := [2]types.Address{
-		cfg.leader.Address, cfg.follower.Address,
-	}
-	fp := state.FixedPart{
-		Participants:      participants[:],
-		ChainId:           big.NewInt(0),
-		ChannelNonce:      big.NewInt(9001),
-		ChallengeDuration: big.NewInt(100),
-	}
+		initialVars    = con_chan.Vars{TurnNum: uint64(startingTurnNum), Outcome: initialOutcome()}
+		leaderSig, _   = initialVars.AsState(fp).Sign(cfg.leader.PrivateKey)
+		followerSig, _ = initialVars.AsState(fp).Sign(cfg.follower.PrivateKey)
+		sigs           = [2]state.Signature{leaderSig, followerSig}
 
-	startingTurnNum := uint64(1)
+		c   con_chan.ConsensusChannel
+		err error
+	)
 
-	initialVars := con_chan.Vars{TurnNum: uint64(startingTurnNum), Outcome: initialOutcome()}
-	asState := initialVars.AsState(fp)
-	leftSig, _ := asState.Sign(cfg.leader.PrivateKey)
-	rightSig, _ := asState.Sign(cfg.follower.PrivateKey)
-	sigs := [2]state.Signature{leftSig, rightSig}
-
-	var c con_chan.ConsensusChannel
-	var err error
 	if cfg.isLeader {
 		c, err = con_chan.NewLeaderChannel(fp, 1, initialOutcome(), sigs)
 	} else {
@@ -77,8 +78,10 @@ func prepareConsensusChannel(cfg CChanConfig) *con_chan.ConsensusChannel {
 	}
 
 	// make sure the proposals are all valid for this channel
-	turnNum := startingTurnNum
-	vars := con_chan.Vars{TurnNum: startingTurnNum, Outcome: initialOutcome()}
+	var (
+		turnNum = startingTurnNum
+		vars    = con_chan.Vars{TurnNum: turnNum, Outcome: initialOutcome()}
+	)
 	for _, p := range cfg.props {
 		turnNum += 1
 		var correctedProp con_chan.Proposal
