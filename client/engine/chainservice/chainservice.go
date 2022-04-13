@@ -6,11 +6,13 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// Event dictates which methods all chain events must implement
 type Event interface {
 	GetChannelId() types.Destination
 	GetBlockNum() uint64
 }
 
+// CommonEvent declares fields shared by all chain events
 type CommonEvent struct {
 	ChannelId          types.Destination
 	AdjudicationStatus protocols.AdjudicationStatus
@@ -46,11 +48,11 @@ func (de AllocationUpdatedEvent) GetBlockNum() uint64 {
 }
 
 // todo implement other event types
-// AllocationUpdated
 // Concluded
 // ChallengeRegistered
 // ChallengeCleared
 
+// ChainEventHandler describes an objective that can handle chain events
 type ChainEventHandler interface {
 	UpdateWithChainEvent(event Event) (protocols.Objective, error)
 }
