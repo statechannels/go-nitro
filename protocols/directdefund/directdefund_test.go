@@ -227,7 +227,7 @@ func TestCrankAlice(t *testing.T) {
 	}
 
 	// The third crank. Alice is expected to enter the terminal state of the defunding protocol.
-	updated.C.OnChainFunding = types.Funds{}
+	updated.(*Objective).C.OnChainFunding = types.Funds{}
 	_, se, wf, err = updated.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
@@ -256,13 +256,13 @@ func TestCrankBob(t *testing.T) {
 	finalState.IsFinal = true
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
 	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{finalStateSignedByAlice}}
-	o, err := o.Update(e)
+	updated, err := o.Update(e)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// The first crank. Bob is expected to create and sign a final state
-	o, se, wf, err := o.Crank(&bob.PrivateKey)
+	updated, se, wf, err := updated.Crank(&bob.PrivateKey)
 
 	if err != nil {
 		t.Error(err)
@@ -277,7 +277,7 @@ func TestCrankBob(t *testing.T) {
 	expectedSE := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{{
 			To:          alice.Address,
-			ObjectiveId: o.Id(),
+			ObjectiveId: updated.Id(),
 			SignedStates: []state.SignedState{
 				finalStateSignedByBob,
 			},
@@ -290,11 +290,11 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The second update and crank. Bob is expected to NOT create any transactions or side effects
-	o, err = o.Update(e)
+	updated, err = updated.Update(e)
 	if err != nil {
 		t.Error(err)
 	}
-	_, se, wf, err = o.Crank(&bob.PrivateKey)
+	_, se, wf, err = updated.Crank(&bob.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -310,13 +310,13 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The third crank. Bob is expected to enter the terminal state of the defunding protocol.
-	o, err = o.UpdateWithChainEvent(chainservice.DepositedEvent{Holdings: types.Funds{}})
+	updated, err = updated.(*Objective).UpdateWithChainEvent(chainservice.DepositedEvent{Holdings: types.Funds{}})
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, se, wf, err = o.Crank(&bob.PrivateKey)
+	_, se, wf, err = updated.Crank(&bob.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}

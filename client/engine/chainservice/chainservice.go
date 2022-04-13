@@ -28,6 +28,10 @@ func (de DepositedEvent) ChannelId() types.Destination {
 // ChallengeRegistered
 // ChallengeCleared
 
+type ChainEventHandler interface {
+	UpdateWithChainEvent(event Event) (protocols.Objective, error)
+}
+
 type ChainService interface {
 	Out() <-chan Event
 	In() chan<- protocols.ChainTransaction
