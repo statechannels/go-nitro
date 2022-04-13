@@ -37,10 +37,8 @@ describe('null app', () => {
 
     await expectRevert(async () => {
       await NitroAdjudicator.validTransition(
-        1,
-        [false, false],
+        0,
         [getVariablePart(fromState), getVariablePart(toState)],
-        5,
         ethers.constants.AddressZero
       );
     }, 'VM Exception while processing transaction: revert');

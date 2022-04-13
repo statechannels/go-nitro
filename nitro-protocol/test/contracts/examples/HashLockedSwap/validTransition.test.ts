@@ -6,7 +6,7 @@ import {it} from '@jest/globals'
 const {HashZero} = ethers.constants;
 import HashLockedSwapArtifact from '../../../../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
 import {Bytes32} from '../../../../src';
-import {encodeOutcome, Outcome} from '../../../../src/contract/outcome';
+import {Outcome} from '../../../../src/contract/outcome';
 import {VariablePart} from '../../../../src/contract/state';
 import {Bytes} from '../../../../src/contract/types';
 import {
@@ -84,6 +84,7 @@ describe('validTransition', () => {
       dataB: HashLockedSwapData;
       balancesB: AssetOutcomeShortHand;
     }) => {
+      let turnNumA = turnNumB - 1;
       balancesA = replaceAddressesAndBigNumberify(balancesA, addresses) as AssetOutcomeShortHand;
       const allocationsA: Allocation[] = [];
       Object.keys(balancesA).forEach(key =>
@@ -102,8 +103,10 @@ describe('validTransition', () => {
         },
       ];
       const variablePartA: VariablePart = {
-        outcome: encodeOutcome(outcomeA),
+        outcome: outcomeA,
         appData: encodeHashLockedSwapData(dataA),
+        turnNum: turnNumA,
+        isFinal: false,
       };
       balancesB = replaceAddressesAndBigNumberify(balancesB, addresses) as AssetOutcomeShortHand;
       const allocationsB: Allocation[] = [];
@@ -119,22 +122,23 @@ describe('validTransition', () => {
         {asset: ethers.constants.AddressZero, allocations: allocationsB, metadata: '0x'},
       ];
       const variablePartB: VariablePart = {
-        outcome: encodeOutcome(outcomeB),
+        outcome: outcomeB,
         appData: encodeHashLockedSwapData(dataB),
+        turnNum: turnNumB,
+        isFinal: false,
       };
 
       if (isValid) {
         const isValidFromCall = await hashTimeLock.validTransition(
           variablePartA,
           variablePartB,
-          turnNumB,
           numParticipants
         );
         expect(isValidFromCall).toBe(true);
       } else {
         await expectRevert(
           () =>
-            hashTimeLock.validTransition(variablePartA, variablePartB, turnNumB, numParticipants),
+            hashTimeLock.validTransition(variablePartA, variablePartB, numParticipants),
           'Incorrect preimage'
         );
       }

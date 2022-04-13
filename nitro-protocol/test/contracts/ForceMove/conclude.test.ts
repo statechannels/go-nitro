@@ -7,7 +7,7 @@ import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.s
 import {Channel, getChannelId} from '../../../src/contract/channel';
 import {channelDataToStatus} from '../../../src/contract/channel-storage';
 import {Outcome} from '../../../src/contract/outcome';
-import {getFixedPart, State} from '../../../src/contract/state';
+import {getFixedPart, getVariablePart, State} from '../../../src/contract/state';
 import {concludeArgs} from '../../../src/contract/transaction-creators/force-move';
 import {
   CHANNEL_FINALIZED,
@@ -157,14 +157,12 @@ describe('conclude', () => {
       appDefinition,
       appData: '0x00',
       challengeDuration,
-      turnNum: 99,
+      turnNum: 0,
     };
     const signature = signState(state, wallets[0].privateKey).signature;
     const tx = ForceMove.conclude(
-      0,
       getFixedPart(state),
-      ethers.constants.HashZero,
-      ethers.constants.HashZero,
+      getVariablePart(state),
       2,
       [0, 0, 0],
       [signature, signature, signature] // enough to clear the input type validation

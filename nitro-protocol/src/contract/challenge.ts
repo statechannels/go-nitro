@@ -60,9 +60,8 @@ export function getChallengeRegisteredEvent(eventResult: any[]): ChallengeRegist
 
   // Variable part
   const variableParts: VariablePart[] = variablePartsUnstructured.map(v => {
-    const outcome = v[0];
-    const appData = v[1];
-    return {outcome, appData};
+    const [outcome, appData, turnNum, isFinal] = v;
+    return {outcome, appData, turnNum, isFinal};
   });
 
   const channel: Channel = {chainId, channelNonce, participants};

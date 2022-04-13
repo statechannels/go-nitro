@@ -3,7 +3,7 @@ import {Contract, Wallet, constants} from 'ethers';
 import {it} from '@jest/globals'
 
 import {Channel, getChannelId} from '../../../src/contract/channel';
-import {encodeOutcome, hashOutcome, Outcome} from '../../../src/contract/outcome';
+import {hashOutcome, Outcome} from '../../../src/contract/outcome';
 import {
   computeOutcome,
   getPlaceHolderContractAddress,
@@ -143,9 +143,8 @@ describe('transferAllAssets', () => {
           outcomeHash,
         })
       ).wait();
-      const encodedOutcome = encodeOutcome(outcome);
 
-      const tx1 = testNitroAdjudicator.transferAllAssets(channelId, encodedOutcome, stateHash);
+      const tx1 = testNitroAdjudicator.transferAllAssets(channelId, outcome, stateHash);
 
       // Call method in a slightly different way if expecting a revert
       if (reasonString) {

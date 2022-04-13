@@ -40,21 +40,17 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @dev Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
      * @param variableParts An ordered array of structs, each decribing the properties of the state channel that may change with each state update. Length is from 1 to the number of participants (inclusive).
-     * @param isFinalCount Describes how many of the submitted states have the `isFinal` property set to `true`. It is implied that the rightmost `isFinalCount` states are final, and the rest are not final.
      * @param sigs An array of signatures that support the state with the `largestTurnNum`. There must be one for each participant, e.g.: [sig-from-p0, sig-from-p1, ...]
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
      * @param challengerSig The signature of a participant on the keccak256 of the abi.encode of (supportedStateHash, 'forceMove').
      */
     function challenge(
         FixedPart memory fixedPart,
-        uint48 largestTurnNum,
         IForceMoveApp.VariablePart[] memory variableParts,
-        uint8 isFinalCount, // how many of the states are final
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat,
-        Signature memory challengerSig
+        Signature[] calldata sigs,
+        uint8[] calldata whoSignedWhat,
+        Signature calldata challengerSig
     ) external override {
         // input type validation
         requireValidInput(
@@ -65,6 +61,7 @@ contract ForceMove is IForceMove, StatusManager {
         );
 
         bytes32 channelId = _getChannelId(fixedPart);
+        uint48 largestTurnNum = variableParts[variableParts.length - 1].turnNum;
 
         if (_mode(channelId) == ChannelMode.Open) {
             _requireNonDecreasedTurnNumber(channelId, largestTurnNum);
@@ -75,9 +72,7 @@ contract ForceMove is IForceMove, StatusManager {
             _requireChannelNotFinalized(channelId);
         }
         bytes32 supportedStateHash = _requireStateSupportedBy(
-            largestTurnNum,
             variableParts,
-            isFinalCount,
             channelId,
             fixedPart,
             sigs,
@@ -93,7 +88,7 @@ contract ForceMove is IForceMove, StatusManager {
             largestTurnNum,
             uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
             // This could overflow, so don't join a channel with a huge challengeDuration
-            isFinalCount > 0,
+            variableParts[variableParts.length - 1].isFinal,
             fixedPart,
             variableParts,
             sigs,
@@ -105,7 +100,7 @@ contract ForceMove is IForceMove, StatusManager {
                 largestTurnNum,
                 uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
                 supportedStateHash,
-                keccak256(variableParts[variableParts.length - 1].outcome)
+                keccak256(Outcome.encodeExit(variableParts[variableParts.length - 1].outcome))
             )
         );
     }
@@ -113,18 +108,16 @@ contract ForceMove is IForceMove, StatusManager {
     /**
      * @notice Repsonds to an ongoing challenge registered against a state channel.
      * @dev Repsonds to an ongoing challenge registered against a state channel.
-     * @param isFinalAB An pair of booleans describing if the challenge state and/or the response state have the `isFinal` property set to `true`.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param variablePartAB An pair of structs, each decribing the properties of the state channel that may change with each state update (for the challenge state and for the response state).
      * @param sig The responder's signature on the `responseStateHash`.
      */
     function respond(
-        bool[2] memory isFinalAB,
         FixedPart memory fixedPart,
         IForceMoveApp.VariablePart[2] memory variablePartAB,
         // variablePartAB[0] = challengeVariablePart
         // variablePartAB[1] = responseVariablePart
-        Signature memory sig
+        Signature calldata sig
     ) external override {
         // No need to validate fixedPart.participants.length here, as that validation would have happened during challenge
 
@@ -134,22 +127,22 @@ contract ForceMove is IForceMove, StatusManager {
         bytes32 challengeStateHash = _hashState(
             channelId,
             variablePartAB[0].appData,
-            variablePartAB[0].outcome,
+            Outcome.encodeExit(variablePartAB[0].outcome),
             turnNumRecord,
-            isFinalAB[0]
+            variablePartAB[0].isFinal
         );
 
         bytes32 responseStateHash = _hashState(
             channelId,
             variablePartAB[1].appData,
-            variablePartAB[1].outcome,
+            Outcome.encodeExit(variablePartAB[1].outcome),
             turnNumRecord + 1,
-            isFinalAB[1]
+            variablePartAB[1].isFinal
         );
 
         // checks
 
-        bytes32 challengeOutcomeHash = keccak256(variablePartAB[0].outcome);
+        bytes32 challengeOutcomeHash = keccak256(Outcome.encodeExit(variablePartAB[0].outcome));
 
         _requireSpecificChallenge(
             ChannelData(turnNumRecord, finalizesAt, challengeStateHash, challengeOutcomeHash),
@@ -164,9 +157,7 @@ contract ForceMove is IForceMove, StatusManager {
 
         _requireValidTransition(
             fixedPart.participants.length,
-            isFinalAB,
             variablePartAB,
-            turnNumRecord + 1,
             fixedPart.appDefinition
         );
 
@@ -178,19 +169,15 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
      * @dev Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
      * @param variableParts An ordered array of structs, each decribing the properties of the state channel that may change with each state update.
-     * @param isFinalCount Describes how many of the submitted states have the `isFinal` property set to `true`. It is implied that the rightmost `isFinalCount` states are final, and the rest are not final.
      * @param sigs An array of signatures that support the state with the `largestTurnNum`: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
      */
     function checkpoint(
         FixedPart memory fixedPart,
-        uint48 largestTurnNum,
         IForceMoveApp.VariablePart[] memory variableParts,
-        uint8 isFinalCount, // how many of the states are final
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat
+        Signature[] calldata sigs,
+        uint8[] calldata whoSignedWhat
     ) external override {
         // input type validation
         requireValidInput(
@@ -201,14 +188,13 @@ contract ForceMove is IForceMove, StatusManager {
         );
 
         bytes32 channelId = _getChannelId(fixedPart);
+        uint48 largestTurnNum = variableParts[variableParts.length - 1].turnNum;
 
         // checks
         _requireChannelNotFinalized(channelId);
         _requireIncreasedTurnNumber(channelId, largestTurnNum);
         _requireStateSupportedBy(
-            largestTurnNum,
             variableParts,
-            isFinalCount,
             channelId,
             fixedPart,
             sigs,
@@ -222,28 +208,22 @@ contract ForceMove is IForceMove, StatusManager {
     /**
      * @notice Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
      * @dev Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
-     * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param appData Application specific data.
-     * @param outcome Encoded outcome structure. Applies to all states in the finalization proof. Will be decoded to hash the State.
+     * @param latestVariablePart Latest variable part in finalization proof. Must have the largest turnNum and the same appData and outcome as all other variable parts in finalization proof.
      * @param numStates The number of states in the finalization proof.
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
      * @param sigs An array of signatures that support the state with the `largestTurnNum`: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
      */
     function conclude(
-        uint48 largestTurnNum,
         FixedPart memory fixedPart,
-        bytes memory appData,
-        bytes memory outcome,
+        IForceMoveApp.VariablePart memory latestVariablePart,
         uint8 numStates,
-        uint8[] memory whoSignedWhat,
-        Signature[] memory sigs
+        uint8[] calldata whoSignedWhat,
+        Signature[] calldata sigs
     ) external override {
         _conclude(
-            largestTurnNum,
             fixedPart,
-            appData,
-            outcome,
+            latestVariablePart,
             numStates,
             whoSignedWhat,
             sigs
@@ -253,19 +233,15 @@ contract ForceMove is IForceMove, StatusManager {
     /**
      * @notice Finalizes a channel by providing a finalization proof. Internal method.
      * @dev Finalizes a channel by providing a finalization proof. Internal method.
-     * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param appData Application specific data.
-     * @param outcome Encoded outcome structure. Applies to all states in the finalization proof. Will be decoded to hash the State.
+     * @param latestVariablePart Latest variable part in finalization proof. Must have the largest turnNum and the same appData and outcome as all other variable parts in finalization proof.
      * @param numStates The number of states in the finalization proof.
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
      * @param sigs An array of signatures that support the state with the `largestTurnNum`:: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
      */
     function _conclude(
-        uint48 largestTurnNum,
         FixedPart memory fixedPart,
-        bytes memory appData,
-        bytes memory outcome,
+        IForceMoveApp.VariablePart memory latestVariablePart,
         uint8 numStates,
         uint8[] memory whoSignedWhat,
         Signature[] memory sigs
@@ -281,7 +257,7 @@ contract ForceMove is IForceMove, StatusManager {
             whoSignedWhat.length
         );
 
-        require(largestTurnNum + 1 >= numStates, 'largestTurnNum too low');
+        require(latestVariablePart.turnNum + 1 >= numStates, 'largestTurnNum too low');
         // ^^ SW-C101: prevent underflow
 
         // By construction, the following states form a valid transition
@@ -289,9 +265,9 @@ contract ForceMove is IForceMove, StatusManager {
         for (uint48 i = 0; i < numStates; i++) {
             stateHashes[i] = _hashState(
                 channelId,
-                appData,
-                outcome,
-                largestTurnNum + (i + 1) - numStates, // turnNum
+                latestVariablePart.appData,
+                Outcome.encodeExit(latestVariablePart.outcome),
+                latestVariablePart.turnNum + (i + 1) - numStates, // turnNum
                 // ^^ SW-C101: It is not easy to use SafeMath here, since we are not using uint256s
                 // Instead, we are protected by the require statement above
                 true // isFinal
@@ -301,7 +277,7 @@ contract ForceMove is IForceMove, StatusManager {
         // checks
         require(
             _validSignatures(
-                largestTurnNum,
+                latestVariablePart.turnNum,
                 fixedPart.participants,
                 stateHashes,
                 sigs,
@@ -310,7 +286,7 @@ contract ForceMove is IForceMove, StatusManager {
             'Invalid signatures / !isFinal'
         );
 
-        bytes32 outcomeHash = keccak256(outcome);
+        bytes32 outcomeHash = keccak256(Outcome.encodeExit(latestVariablePart.outcome));
 
         // effects
         statusOf[channelId] = _generateStatus(
@@ -474,9 +450,7 @@ contract ForceMove is IForceMove, StatusManager {
     /**
      * @notice Check that the submitted data constitute a support proof.
      * @dev Check that the submitted data constitute a support proof.
-     * @param largestTurnNum Largest turnNum of the support proof
      * @param variableParts Variable parts of the states in the support proof
-     * @param isFinalCount How many of the states are final? The final isFinalCount states are implied final, the remainder are implied not final.
      * @param channelId Unique identifier for a channel.
      * @param fixedPart Fixed Part of the states in the support proof
      * @param sigs A signature from each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
@@ -484,25 +458,21 @@ contract ForceMove is IForceMove, StatusManager {
      * @return The hash of the latest state in the proof, if supported, else reverts.
      */
     function _requireStateSupportedBy(
-        uint48 largestTurnNum,
         IForceMoveApp.VariablePart[] memory variableParts,
-        uint8 isFinalCount,
         bytes32 channelId,
         FixedPart memory fixedPart,
         Signature[] memory sigs,
         uint8[] memory whoSignedWhat
     ) internal pure returns (bytes32) {
         bytes32[] memory stateHashes = _requireValidTransitionChain(
-            largestTurnNum,
             variableParts,
-            isFinalCount,
             channelId,
             fixedPart
         );
 
         require(
             _validSignatures(
-                largestTurnNum,
+                variableParts[variableParts.length - 1].turnNum,
                 fixedPart.participants,
                 stateHashes,
                 sigs,
@@ -517,9 +487,7 @@ contract ForceMove is IForceMove, StatusManager {
     /**
      * @notice Check that the submitted states form a chain of valid transitions
      * @dev Check that the submitted states form a chain of valid transitions
-     * @param largestTurnNum Largest turnNum of the support proof
      * @param variableParts Variable parts of the states in the support proof
-     * @param isFinalCount How many of the states are final? The final isFinalCount states are implied final, the remainder are implied not final.
      * @param channelId Unique identifier for a channel.
      * @param fixedPart Fixed Part of the states in the support proof
      * @return true if every state is a validTransition from its predecessor, false otherwise.
@@ -527,31 +495,24 @@ contract ForceMove is IForceMove, StatusManager {
     function _requireValidTransitionChain(
         // returns stateHashes array if valid
         // else, reverts
-        uint48 largestTurnNum,
         IForceMoveApp.VariablePart[] memory variableParts,
-        uint8 isFinalCount,
         bytes32 channelId,
         FixedPart memory fixedPart
     ) internal pure returns (bytes32[] memory) {
         bytes32[] memory stateHashes = new bytes32[](variableParts.length);
-        uint48 firstFinalTurnNum = largestTurnNum - isFinalCount + 1;
-        uint48 turnNum;
 
         for (uint48 i = 0; i < variableParts.length; i++) {
-            turnNum = largestTurnNum - uint48(variableParts.length) + 1 + i;
             stateHashes[i] = _hashState(
                 channelId,
                 variableParts[i].appData,
-                variableParts[i].outcome,
-                turnNum,
-                turnNum >= firstFinalTurnNum
+                Outcome.encodeExit(variableParts[i].outcome),
+                variableParts[i].turnNum,
+                variableParts[i].isFinal
             );
-            if (turnNum < largestTurnNum) {
+            if (i < variableParts.length - 1) {
                 _requireValidTransition(
                     fixedPart.participants.length,
-                    [turnNum >= firstFinalTurnNum, turnNum + 1 >= firstFinalTurnNum],
                     [variableParts[i], variableParts[i + 1]],
-                    turnNum + 1,
                     fixedPart.appDefinition
                 );
             }
@@ -566,26 +527,22 @@ contract ForceMove is IForceMove, StatusManager {
     * @dev Check that the submitted pair of states form a valid transition
     * @param nParticipants Number of participants in the channel.
     transition
-    * @param isFinalAB Pair of booleans denoting whether the first and second state (resp.) are final.
     * @param ab Variable parts of each of the pair of states
-    * @param turnNumB turnNum of the later state of the pair
     * @return true if the later state is a validTransition from its predecessor, false otherwise.
     */
     function _requireValidProtocolTransition(
         uint256 nParticipants,
-        bool[2] memory isFinalAB, // [a.isFinal, b.isFinal]
-        IForceMoveApp.VariablePart[2] memory ab, // [a,b]
-        uint48 turnNumB
+        IForceMoveApp.VariablePart[2] memory ab // [a,b]
     ) internal pure returns (IsValidTransition) {
         // a separate check on the signatures for the submitted states implies that the following fields are equal for a and b:
         // chainId, participants, channelNonce, appDefinition, challengeDuration
         // and that the b.turnNum = a.turnNum + 1
-        if (isFinalAB[1]) {
-            require(_bytesEqual(ab[1].outcome, ab[0].outcome), 'Outcome change verboten');
+        if (ab[1].isFinal) {
+            require(Outcome.exitsEqual(ab[1].outcome, ab[0].outcome), 'Outcome change verboten');
         } else {
-            require(!isFinalAB[0], 'isFinal retrograde');
-            if (turnNumB < 2 * nParticipants) {
-                require(_bytesEqual(ab[1].outcome, ab[0].outcome), 'Outcome change forbidden');
+            require(!ab[0].isFinal, 'isFinal retrograde');
+            if (ab[1].turnNum < 2 * nParticipants) {
+                require(Outcome.exitsEqual(ab[1].outcome, ab[0].outcome), 'Outcome change forbidden');
                 require(_bytesEqual(ab[1].appData, ab[0].appData), 'appData change forbidden');
             } else {
                 return IsValidTransition.NeedToCheckApp;
@@ -599,29 +556,23 @@ contract ForceMove is IForceMove, StatusManager {
     * @dev Check that the submitted pair of states form a valid transition
     * @param nParticipants Number of participants in the channel.
     transition
-    * @param isFinalAB Pair of booleans denoting whether the first and second state (resp.) are final.
     * @param ab Variable parts of each of the pair of states
-    * @param turnNumB turnNum of the later state of the pair.
     * @param appDefinition Address of deployed contract containing application-specific validTransition function.
     * @return true if the later state is a validTransition from its predecessor, false otherwise.
     */
     function _requireValidTransition(
         uint256 nParticipants,
-        bool[2] memory isFinalAB, // [a.isFinal, b.isFinal]
         IForceMoveApp.VariablePart[2] memory ab, // [a,b]
-        uint48 turnNumB,
         address appDefinition
     ) internal pure returns (bool) {
         IsValidTransition isValidProtocolTransition = _requireValidProtocolTransition(
             nParticipants,
-            isFinalAB, // [a.isFinal, b.isFinal]
-            ab, // [a,b]
-            turnNumB
+            ab // [a,b]
         );
 
         if (isValidProtocolTransition == IsValidTransition.NeedToCheckApp) {
             require(
-                IForceMoveApp(appDefinition).validTransition(ab[0], ab[1], turnNumB, nParticipants),
+                IForceMoveApp(appDefinition).validTransition(ab[0], ab[1], nParticipants),
                 'Invalid ForceMoveApp Transition'
             );
         }

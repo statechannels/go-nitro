@@ -1,11 +1,11 @@
 import {expectRevert} from '@statechannels/devtools';
-import {Contract, Wallet, ethers, BigNumber, constants, FixedNumber} from 'ethers';
+import {Contract, Wallet, ethers, BigNumber, constants} from 'ethers';
 import {it} from '@jest/globals'
 
 import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
 import {Channel, getChannelId} from '../../../src/contract/channel';
-import {encodeOutcome, Outcome} from '../../../src/contract/outcome';
-import {encodeAppData, FixedPart, getFixedPart, State} from '../../../src/contract/state';
+import {Outcome} from '../../../src/contract/outcome';
+import {FixedPart, getFixedPart, getVariablePart, State} from '../../../src/contract/state';
 import {
   computeOutcome,
   getPlaceHolderContractAddress,
@@ -207,10 +207,8 @@ describe('concludeAndTransferAllAssets', () => {
 
       // Form transaction
       const tx = testNitroAdjudicator.concludeAndTransferAllAssets(
-        largestTurnNum,
         getFixedPart(states[0]),
-        encodeAppData(states[0].appData),
-        encodeOutcome(outcome),
+        getVariablePart(states[0]),
         numStates,
         whoSignedWhat,
         sigs,

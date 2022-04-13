@@ -13,55 +13,48 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
     /**
      * @notice Finalizes a channel by providing a finalization proof, and liquidates all assets for the channel.
      * @dev Finalizes a channel by providing a finalization proof, and liquidates all assets for the channel.
-     * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param appData Application specific data.
-     * @param outcomeBytes abi.encode of an array of Outcome.OutcomeItem structs.
+     * @param latestVariablePart Latest variable part in finalization proof. Must have the largest turnNum and the same appData and outcome as all other variable parts in finalization proof.
      * @param numStates The number of states in the finalization proof.
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
      * @param sigs Array of signatures, one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
      */
     function concludeAndTransferAllAssets(
-        uint48 largestTurnNum,
         FixedPart memory fixedPart,
-        bytes memory appData,
-        bytes memory outcomeBytes,
+        IForceMoveApp.VariablePart memory latestVariablePart,
         uint8 numStates,
         uint8[] memory whoSignedWhat,
         Signature[] memory sigs
     ) public {
         bytes32 channelId = _conclude(
-            largestTurnNum,
             fixedPart,
-            appData,
-            outcomeBytes,
+            latestVariablePart,
             numStates,
             whoSignedWhat,
             sigs
         );
 
-        transferAllAssets(channelId, outcomeBytes, bytes32(0));
+        transferAllAssets(channelId, latestVariablePart.outcome, bytes32(0));
     }
 
     /**
      * @notice Liquidates all assets for the channel
      * @dev Liquidates all assets for the channel
      * @param channelId Unique identifier for a state channel
-     * @param outcomeBytes abi.encode of an array of Outcome.OutcomeItem structs.
+     * @param outcome An array of SingleAssetExit[] items.
      * @param stateHash stored state hash for the channel
      */
     function transferAllAssets(
         bytes32 channelId,
-        bytes memory outcomeBytes,
+        Outcome.SingleAssetExit[] memory outcome,
         bytes32 stateHash
     ) public {
         // checks
         _requireChannelFinalized(channelId);
-        _requireMatchingFingerprint(stateHash, keccak256(outcomeBytes), channelId);
+        _requireMatchingFingerprint(stateHash, keccak256(Outcome.encodeExit(outcome)), channelId);
 
         // computation
         bool allocatesOnlyZerosForAllAssets = true;
-        Outcome.SingleAssetExit[] memory outcome = Outcome.decodeExit(outcomeBytes);
         Outcome.SingleAssetExit[] memory exit = new Outcome.SingleAssetExit[](outcome.length);
         uint256[] memory initialHoldings = new uint256[](outcome.length);
         uint256[] memory totalPayouts = new uint256[](outcome.length);
@@ -100,7 +93,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         if (allocatesOnlyZerosForAllAssets) {
             delete statusOf[channelId];
         } else {
-            bytes32 outcomeHash = keccak256(abi.encode(outcomeBytes));
+            bytes32 outcomeHash = keccak256(Outcome.encodeExit(outcome));
             _updateFingerprint(channelId, stateHash, outcomeHash);
         }
 
@@ -113,20 +106,16 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
     * @dev Check that the submitted pair of states form a valid transition (public wrapper for internal function _requireValidTransition)
     * @param nParticipants Number of participants in the channel.
     transition
-    * @param isFinalAB Pair of booleans denoting whether the first and second state (resp.) are final.
     * @param ab Variable parts of each of the pair of states
-    * @param turnNumB turnNum of the later state of the pair.
     * @param appDefinition Address of deployed contract containing application-specific validTransition function.
     * @return true if the later state is a validTransition from its predecessor, reverts otherwise.
     */
     function validTransition(
         uint256 nParticipants,
-        bool[2] memory isFinalAB, // [a.isFinal, b.isFinal]
         IForceMoveApp.VariablePart[2] memory ab, // [a,b]
-        uint48 turnNumB,
         address appDefinition
     ) public pure returns (bool) {
-        return _requireValidTransition(nParticipants, isFinalAB, ab, turnNumB, appDefinition);
+        return _requireValidTransition(nParticipants, ab, appDefinition);
     }
 
     /**

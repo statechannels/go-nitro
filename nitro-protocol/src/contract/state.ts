@@ -42,9 +42,11 @@ export function getFixedPart(state: State): FixedPart {
  * The part of a State which usually changes during state channel updates
  */
 export interface VariablePart {
-  outcome: Bytes;
+  outcome: Outcome;
   appData: Bytes; // any encoded app-related type encoded once more as bytes
   //(e.g. if in SC App uint256 is used, firstly enode appData as uint256, then as bytes)
+  turnNum: Uint48;
+  isFinal: boolean;
 }
 
 /**
@@ -53,7 +55,12 @@ export interface VariablePart {
  * @returns the VariablePart, which usually changes during state channel updates
  */
 export function getVariablePart(state: State): VariablePart {
-  return {outcome: encodeOutcome(state.outcome), appData: encodeAppData(state.appData)};
+  return {
+    outcome: state.outcome,
+    appData: encodeAppData(state.appData),
+    turnNum: state.turnNum,
+    isFinal: state.isFinal,
+  };
 }
 
 /**

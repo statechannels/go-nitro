@@ -19,8 +19,10 @@ function getRandomVariablePart(): VariablePart {
   const hash = computeSaltedHash(salt, randomNum);
 
   const variablePart: VariablePart = {
-    outcome: hash,
+    outcome: [],
     appData: hash,
+    turnNum: 1,
+    isFinal: false,
   };
   return variablePart;
 }
@@ -35,7 +37,7 @@ describe('validTransition', () => {
     for (let i = 0; i < 5; i++) {
       const from: VariablePart = getRandomVariablePart();
       const to: VariablePart = getRandomVariablePart();
-      const isValidFromCall = await trivialApp.validTransition(from, to, 0, 0);
+      const isValidFromCall = await trivialApp.validTransition(from, to, 0);
       expect(isValidFromCall).toBe(true);
     }
   });

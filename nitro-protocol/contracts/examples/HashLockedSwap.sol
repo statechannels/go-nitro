@@ -17,11 +17,10 @@ contract HashLockedSwap is IForceMoveApp {
     function validTransition(
         VariablePart memory a,
         VariablePart memory b,
-        uint48 turnNumB,
         uint256
     ) public override pure returns (bool) {
         // is this the first and only swap?
-        require(turnNumB == 4, 'turnNumB != 4');
+        require(b.turnNum == 4, 'b.turnNum != 4');
 
         // Decode variables.
         // Assumptions:
@@ -59,16 +58,11 @@ contract HashLockedSwap is IForceMoveApp {
         return true;
     }
 
-    function decode2PartyAllocation(bytes memory outcomeBytes)
+    function decode2PartyAllocation(Outcome.SingleAssetExit[] memory outcome)
         private
         pure
         returns (Outcome.Allocation[] memory allocations)
     {
-        Outcome.SingleAssetExit[] memory outcome = abi.decode(
-            outcomeBytes,
-            (Outcome.SingleAssetExit[])
-        );
-
         Outcome.SingleAssetExit memory assetOutcome = outcome[0];
 
         allocations = assetOutcome.allocations; // TODO should we check each allocation is a "simple" one?

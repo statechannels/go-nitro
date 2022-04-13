@@ -29,6 +29,7 @@ import {
   largeOutcome,
   nonParticipant,
   ongoingChallengeFingerprint,
+  parseOutcomeEventResult,
   setupContract,
 } from '../../test-helpers';
 import {createChallengeTransaction, NITRO_MAX_GAS} from '../../../src/transactions';
@@ -200,9 +201,7 @@ describe('challenge', () => {
 
       const tx = ForceMove.challenge(
         fixedPart,
-        largestTurnNum,
         variableParts,
-        isFinalCount,
         signatures,
         whoSignedWhat,
         challengeSignature
@@ -234,12 +233,13 @@ describe('challenge', () => {
         expect(eventFixedPart[3]).toEqual(fixedPart.appDefinition);
         expect(eventFixedPart[4]).toEqual(fixedPart.challengeDuration);
         expect(eventIsFinal).toEqual(isFinalCount > 0);
-        expect(eventVariableParts[eventVariableParts.length - 1][0]).toEqual(
+        expect(parseOutcomeEventResult(eventVariableParts[eventVariableParts.length - 1][0])).toEqual(
           variableParts[variableParts.length - 1].outcome
         );
         expect(eventVariableParts[eventVariableParts.length - 1][1]).toEqual(
           variableParts[variableParts.length - 1].appData
         );
+          
 
         const expectedChannelStorage: ChannelData = {
           turnNumRecord: largestTurnNum,

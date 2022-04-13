@@ -2,8 +2,7 @@ import {Signature, ethers} from 'ethers';
 
 import ForceMoveArtifact from '../../../artifacts/contracts/ForceMove.sol/ForceMove.json';
 import {signChallengeMessage} from '../../signatures';
-import {encodeOutcome, hashOutcome} from '../outcome';
-import {encodeAppData, getFixedPart, getVariablePart, State} from '../state';
+import {getFixedPart, getVariablePart, State} from '../state';
 
 // https://github.com/ethers-io/ethers.js/issues/602#issuecomment-574671078
 export const ForceMoveContractInterface = new ethers.utils.Interface(ForceMoveArtifact.abi);
@@ -35,13 +34,10 @@ export function createChallengeTransaction(
   const variableParts = states.map(s => getVariablePart(s));
   const fixedPart = getFixedPart(states[0]);
 
-  // Get the largest turn number from the states
-  const largestTurnNum = Math.max(...states.map(s => s.turnNum));
-  const isFinalCount = states.filter(s => s.isFinal === true).length;
   // Q: Is there a reason why createForceMoveTransaction accepts a State[] and a Signature[]
   // Argument rather than a SignedState[] argument?
   // A: Yes, because the signatures must be passed in participant order: [sig-from-p0, sig-from-p1, ...]
-  // and SignedStates[] won't comply with that in general. This function accetps the re-ordered sigs.
+  // and SignedStates[] won't comply with that in general. This function accepts the re-ordered sigs.
   const signedStates = states.map(s => ({
     state: s,
     signature: {v: 0, r: '', s: '', _vs: '', recoveryParam: 0},
@@ -50,9 +46,7 @@ export function createChallengeTransaction(
 
   const data = ForceMoveContractInterface.encodeFunctionData('challenge', [
     fixedPart,
-    largestTurnNum,
     variableParts,
-    isFinalCount,
     signatures,
     whoSignedWhat,
     challengerSignature,
@@ -70,10 +64,9 @@ export function respondArgs({
   responseState,
   responseSignature,
 }: RespondArgs): any[] {
-  const isFinalAB = [challengeState.isFinal, responseState.isFinal];
   const fixedPart = getFixedPart(responseState);
   const variablePartAB = [getVariablePart(challengeState), getVariablePart(responseState)];
-  return [isFinalAB, fixedPart, variablePartAB, responseSignature];
+  return [fixedPart, variablePartAB, responseSignature];
 }
 
 export function createRespondTransaction(args: RespondArgs): ethers.providers.TransactionRequest {
@@ -95,12 +88,10 @@ export function createCheckpointTransaction({
 }
 
 export function checkpointArgs({states, signatures, whoSignedWhat}: CheckpointData): any[] {
-  const largestTurnNum = Math.max(...states.map(s => s.turnNum));
   const fixedPart = getFixedPart(states[0]);
   const variableParts = states.map(s => getVariablePart(s));
-  const isFinalCount = states.filter(s => s.isFinal).length;
 
-  return [fixedPart, largestTurnNum, variableParts, isFinalCount, signatures, whoSignedWhat];
+  return [fixedPart, variableParts, signatures, whoSignedWhat];
 }
 
 export function createConcludeTransaction(
@@ -132,18 +123,14 @@ export function concludeArgs(
   }
 
   const lastState = states.reduce((s1, s2) => (s1.turnNum >= s2.turnNum ? s1 : s2), states[0]);
-  const largestTurnNum = lastState.turnNum;
   const fixedPart = getFixedPart(lastState);
-  const appDataBytes = encodeAppData(lastState.appData);
-  const outcomeBytes = encodeOutcome(lastState.outcome);
+  const latestVariablePart = getVariablePart(lastState);
 
   const numStates = states.length;
 
   return [
-    largestTurnNum,
     fixedPart,
-    appDataBytes,
-    outcomeBytes,
+    latestVariablePart,
     numStates,
     whoSignedWhat,
     signatures,
