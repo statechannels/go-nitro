@@ -7,19 +7,19 @@ import (
 )
 
 type Event interface {
-	ChannelId() types.Destination
+	GetChannelId() types.Destination
 }
 
 // DepositedEvent is an internal representation of the deposited blockchain event
 type DepositedEvent struct {
-	IntoChannel        types.Destination
+	ChannelId          types.Destination
 	Holdings           types.Funds // indexed by asset
 	AdjudicationStatus protocols.AdjudicationStatus
 	BlockNum           uint64
 }
 
-func (de DepositedEvent) ChannelId() types.Destination {
-	return de.IntoChannel
+func (de DepositedEvent) GetChannelId() types.Destination {
+	return de.ChannelId
 }
 
 // todo implement other event types

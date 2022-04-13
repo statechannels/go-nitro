@@ -59,7 +59,7 @@ func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 		mc.holdings[tx.ChannelId] = mc.holdings[tx.ChannelId].Add(tx.Deposit)
 	}
 	event := DepositedEvent{
-		IntoChannel:        tx.ChannelId,
+		ChannelId:          tx.ChannelId,
 		Holdings:           mc.holdings[tx.ChannelId],
 		AdjudicationStatus: protocols.AdjudicationStatus{TurnNumRecord: 0},
 		BlockNum:           mc.blockNum,

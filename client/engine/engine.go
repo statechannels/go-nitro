@@ -160,7 +160,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 // attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChangeEvent, error) {
 	e.logger.Printf("handling chain event %v", chainEvent)
-	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelId())
+	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.GetChannelId())
 	if !ok {
 		return ObjectiveChangeEvent{}, &UnhandledChainEvent{event: chainEvent}
 	}
