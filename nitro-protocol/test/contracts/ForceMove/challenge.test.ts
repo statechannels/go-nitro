@@ -45,7 +45,7 @@ const chainId = process.env.CHAIN_NETWORK_ID;
 const participants = ['', '', ''];
 const wallets = new Array(3);
 const challengeDuration = 86400; // 1 day
-const outcome: Outcome = [{allocations: [{destination: "0x00000000000000000000000096f7123e3a80c9813ef50213aded0e4511cb820f", amount: "0x01", allocationType: 1, metadata: "0x"}], asset: Wallet.createRandom().address, metadata: '0x'}];
+const outcome: Outcome = [{allocations: [], asset: Wallet.createRandom().address, metadata: '0x'}];
 
 const appDefinition = getPlaceHolderContractAddress();
 const keys = [
@@ -170,9 +170,6 @@ describe('challenge', () => {
       const variableParts = states.map(state => getVariablePart(state));
       const fixedPart = getFixedPart(states[0]);
       const channelId = getChannelId(fixedPart);
-      console.log("variableParts");
-      console.log(variableParts);
-      
       
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
