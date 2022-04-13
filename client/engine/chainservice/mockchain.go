@@ -58,12 +58,30 @@ func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 	if tx.Deposit.IsNonZero() {
 		mc.holdings[tx.ChannelId] = mc.holdings[tx.ChannelId].Add(tx.Deposit)
 	}
-	event := DepositedEvent{
-		ChannelId:          tx.ChannelId,
-		Holdings:           mc.holdings[tx.ChannelId],
-		AdjudicationStatus: protocols.AdjudicationStatus{TurnNumRecord: 0},
-		BlockNum:           mc.blockNum,
+	var event Event
+	switch tx.Type {
+	case protocols.DepositTransactionType:
+		event = DepositedEvent{
+			CommonEvent: CommonEvent{
+				ChannelId:          tx.ChannelId,
+				AdjudicationStatus: protocols.AdjudicationStatus{TurnNumRecord: 0},
+				BlockNum:           mc.blockNum},
+
+			Holdings: mc.holdings[tx.ChannelId],
+		}
+	case protocols.WithdrawAllTransactionType:
+		event = AllocationUpdatedEvent{
+			CommonEvent: CommonEvent{
+				ChannelId:          tx.ChannelId,
+				AdjudicationStatus: protocols.AdjudicationStatus{TurnNumRecord: 0},
+				BlockNum:           mc.blockNum},
+
+			Holdings: mc.holdings[tx.ChannelId],
+		}
+	default:
+		panic("unexpected chain transaction")
 	}
+
 	for _, out := range mc.out {
 		attemptSend(out, event)
 	}
