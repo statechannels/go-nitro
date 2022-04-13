@@ -30,13 +30,13 @@ type CChanConfig struct {
 // The correct turn number and channelId will be set in order to ensure that
 // the resulting queue is in a valid state
 func prepareConsensusChannel(cfg CChanConfig) *con_chan.ConsensusChannel {
-	leftBal := cfg.leaderBal
-	if leftBal == 0 {
-		leftBal = 6
+	leaderBal := cfg.leaderBal
+	if leaderBal == 0 {
+		leaderBal = 6
 	}
-	rightBal := cfg.followerBal
-	if rightBal == 0 {
-		rightBal = 4
+	followerBal := cfg.followerBal
+	if followerBal == 0 {
+		followerBal = 4
 	}
 
 	var (
@@ -52,8 +52,8 @@ func prepareConsensusChannel(cfg CChanConfig) *con_chan.ConsensusChannel {
 		initialOutcome = func() con_chan.LedgerOutcome {
 			return *con_chan.NewLedgerOutcome(
 				types.Address{},
-				con_chan.NewBalance(cfg.leader.Destination(), big.NewInt(leftBal)),
-				con_chan.NewBalance(cfg.follower.Destination(), big.NewInt(rightBal)),
+				con_chan.NewBalance(cfg.leader.Destination(), big.NewInt(leaderBal)),
+				con_chan.NewBalance(cfg.follower.Destination(), big.NewInt(followerBal)),
 				cfg.guarantees,
 			)
 
