@@ -130,7 +130,7 @@ func TestUpdate(t *testing.T) {
 		common.Address{}: big.NewInt(3),
 	}
 	highBlockNum := uint64(200)
-	updatedObjective, err = s.UpdateWithChainEvent(chainservice.DepositedEvent{Holdings: newFunding, BlockNum: highBlockNum})
+	updatedObjective, err = s.UpdateWithChainEvent(chainservice.DepositedEvent{Holdings: newFunding, CommonEvent: chainservice.CommonEvent{BlockNum: highBlockNum}})
 	if err != nil {
 		t.Error(err)
 	}
@@ -147,7 +147,7 @@ func TestUpdate(t *testing.T) {
 	staleFunding[common.Address{}] = big.NewInt(2)
 	lowBlockNum := uint64(100)
 
-	updatedObjective, _ = updated.UpdateWithChainEvent(chainservice.DepositedEvent{Holdings: staleFunding, BlockNum: uint64(lowBlockNum)})
+	updatedObjective, _ = updated.UpdateWithChainEvent(chainservice.DepositedEvent{Holdings: staleFunding, CommonEvent: chainservice.CommonEvent{BlockNum: uint64(lowBlockNum)}})
 
 	updated = updatedObjective.(*Objective)
 
@@ -204,6 +204,7 @@ func TestCrank(t *testing.T) {
 		}}
 	expectedFundingSideEffects := protocols.SideEffects{
 		TransactionsToSubmit: []protocols.ChainTransaction{{
+			Type:      protocols.DepositTransactionType,
 			ChannelId: s.C.Id,
 			Deposit: types.Funds{
 				testState.Outcome[0].Asset: testState.Outcome[0].Allocations[0].Amount,

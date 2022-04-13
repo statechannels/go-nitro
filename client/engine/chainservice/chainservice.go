@@ -11,12 +11,16 @@ type Event interface {
 	GetBlockNum() uint64
 }
 
-// DepositedEvent is an internal representation of the deposited blockchain event
-type DepositedEvent struct {
+type CommonEvent struct {
 	ChannelId          types.Destination
-	Holdings           types.Funds // indexed by asset
 	AdjudicationStatus protocols.AdjudicationStatus
 	BlockNum           uint64
+}
+
+// DepositedEvent is an internal representation of the deposited blockchain event
+type DepositedEvent struct {
+	CommonEvent
+	Holdings types.Funds // indexed by asset
 }
 
 func (de DepositedEvent) GetChannelId() types.Destination {
@@ -27,12 +31,10 @@ func (de DepositedEvent) GetBlockNum() uint64 {
 	return de.BlockNum
 }
 
-// DepositedEvent is an internal representation of the deposited blockchain event
+// AllocationUpdated is an internal representation of the AllocatonUpdated blockchain event
 type AllocationUpdatedEvent struct {
-	ChannelId          types.Destination
-	Holdings           types.Funds // indexed by asset
-	AdjudicationStatus protocols.AdjudicationStatus
-	BlockNum           uint64
+	CommonEvent
+	Holdings types.Funds // indexed by asset
 }
 
 func (de AllocationUpdatedEvent) GetChannelId() types.Destination {

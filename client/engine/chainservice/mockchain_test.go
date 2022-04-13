@@ -36,6 +36,7 @@ func TestDeposit(t *testing.T) {
 	testTx := protocols.ChainTransaction{
 		ChannelId: types.Destination(common.HexToHash(`4ebd366d014a173765ba1e50f284c179ade31f20441bec41664712aac6cc461d`)),
 		Deposit:   testDeposit,
+		Type:      protocols.DepositTransactionType,
 	}
 
 	// Send one transaction into one of the SimpleChainServices and recieve one event from it.

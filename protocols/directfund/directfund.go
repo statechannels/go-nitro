@@ -260,7 +260,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	}
 
 	if !fundingComplete && safeToDeposit && amountToDeposit.IsNonZero() {
-		deposit := protocols.ChainTransaction{ChannelId: updated.C.Id, Deposit: amountToDeposit}
+		deposit := protocols.ChainTransaction{Type: protocols.DepositTransactionType, ChannelId: updated.C.Id, Deposit: amountToDeposit}
 		sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, deposit)
 	}
 
