@@ -9,8 +9,11 @@
     "test": "npm run test:contracts && npm run test:app --all",
     "test:app": "npx hardhat compile && jest -c ./config/jest/jest.config.js",
     "test:contracts": "npx hardhat compile && jest -c ./config/jest/jest.contracts.config.js",
-    "lint:check": "eslint \"src/**/*.ts\" --cache",
-    "lint:write": "eslint \"src/**/*.ts\" --fix"
+    "lint:check": "eslint \"src/**/*.ts\" --cache && npm run solhint:check",
+    "lint:write": "eslint \"src/**/*.ts\" --fix, && npm run prettier:write",
+    "solhint:check": "solhint -w 0  './contracts/**/*.sol'",
+    "solhint:write": "echo 'This command does not seem to work. Use yarn prettier:write ' && solhint --fix './contracts/**/*.sol'",
+    "prettier:write": "prettier --write './contracts/**/*.sol'"
   },
   "keywords": [],
   "author": "",
