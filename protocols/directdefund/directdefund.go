@@ -154,7 +154,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 // todo this should not be a deposited event
 func (o Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
 	updated := o.clone()
-	de, ok := event.(chainservice.DepositedEvent)
+	de, ok := event.(chainservice.AllocationUpdatedEvent)
 	if !ok {
 		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
 	}

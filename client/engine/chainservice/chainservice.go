@@ -27,6 +27,22 @@ func (de DepositedEvent) GetBlockNum() uint64 {
 	return de.BlockNum
 }
 
+// DepositedEvent is an internal representation of the deposited blockchain event
+type AllocationUpdatedEvent struct {
+	ChannelId          types.Destination
+	Holdings           types.Funds // indexed by asset
+	AdjudicationStatus protocols.AdjudicationStatus
+	BlockNum           uint64
+}
+
+func (de AllocationUpdatedEvent) GetChannelId() types.Destination {
+	return de.ChannelId
+}
+
+func (de AllocationUpdatedEvent) GetBlockNum() uint64 {
+	return de.BlockNum
+}
+
 // todo implement other event types
 // AllocationUpdated
 // Concluded
