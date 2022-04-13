@@ -72,6 +72,7 @@ func newObjective(preApprove bool, vFixed state.FixedPart, initialOutcome outcom
 		Signatures:     [3]state.Signature{},
 		MyRole:         myRole,
 	}
+
 }
 
 // signedFinalState returns the final state for the virtual channel
@@ -203,8 +204,28 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 		return &updated, sideEffects, WaitingForCompleteFinal, nil
 	}
 
-	// TODO: Implement ledger funding in https://github.com/statechannels/go-nitro/issues/480
-	return &updated, sideEffects, WaitingForCompleteLedgerDefunding, nil
+	if !updated.isAlice() && !updated.isLeftDefunded() {
+		ledgerSideEffects, err := updated.defundLedger(updated.ToMyLeft, secretKey)
+		if err != nil {
+			return &o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
+		}
+		sideEffects.Merge(ledgerSideEffects)
+	}
+
+	if !updated.isBob() && !updated.isRightDefunded() {
+		ledgerSideEffects, err := updated.defundLedger(updated.ToMyRight, secretKey)
+		if err != nil {
+			return &o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
+		}
+		sideEffects.Merge(ledgerSideEffects)
+	}
+
+	if fullyDefunded := updated.isLeftDefunded() && updated.isRightDefunded(); !fullyDefunded {
+		return &updated, sideEffects, WaitingForCompleteLedgerDefunding, nil
+	} else {
+		return &updated, sideEffects, WaitingForNothing, nil
+	}
+
 }
 
 // fullySigned returns whether we have a signature from every partciapant
@@ -217,6 +238,71 @@ func (o Objective) fullySigned() bool {
 	return true
 }
 
+// isAlice returns true if the receiver represents participant 0 in the virtualdefund protocol
+func (o Objective) isAlice() bool {
+	return o.MyRole == 0
+}
+
+// isBob returns true if the receiver represents participant 2 in the virtualdefund protocol
+func (o Objective) isBob() bool {
+	return o.MyRole == 2
+}
+
+// ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
+func (o Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) consensus_channel.Proposal {
+	left := o.finalOutcome().Allocations[0].Amount
+	right := o.finalOutcome().Allocations[1].Amount
+
+	return consensus_channel.NewRemoveProposal(ledger.Id, FinalTurnNum, o.VId(), left, right)
+}
+
+// defundLedger updates the ledger channel to remove the guarantee that funds V.
+func (o *Objective) defundLedger(ledger *consensus_channel.ConsensusChannel, sk *[]byte) (protocols.SideEffects, error) {
+
+	var sideEffects protocols.SideEffects
+
+	proposed := ledger.RemoveProposedFor(o.VId())
+
+	if ledger.IsLeader() {
+		if proposed { // If we've already proposed a remove proposal we can return
+			return protocols.SideEffects{}, nil
+		}
+
+		signedProposal, err := ledger.Propose(o.ledgerProposal(ledger), *sk)
+		if err != nil {
+			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
+		}
+
+		message := o.createSignedProposalMessage(signedProposal, ledger)
+		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
+
+	} else {
+
+		if proposed {
+			sp, err := ledger.SignNextProposal(o.ledgerProposal(ledger), *sk)
+
+			if err != nil {
+				return protocols.SideEffects{}, fmt.Errorf("could not sign proposal: %w", err)
+			}
+
+			message := o.createSignedProposalMessage(sp, ledger)
+			sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
+
+		} else {
+
+		}
+	}
+
+	return sideEffects, nil
+}
+
+// VId returns the channel id of the virtual channel.
+func (o Objective) VId() types.Destination {
+	vId, _ := o.VFixed.ChannelId() // TODO Deal with error
+
+	return vId
+}
+
 // signedBy returns whether we have a valid signature for the given participant
 func (o Objective) signedBy(participant uint) bool {
 	return !isZero(o.Signatures[participant])
@@ -226,6 +312,41 @@ func (o Objective) signedBy(participant uint) bool {
 func (o Objective) signedByMe() bool {
 	return o.signedBy(o.MyRole)
 
+}
+
+// isRightDefunded returns whether the ledger channel ToMyRight has been defunded
+// If ToMyRight==nil then we return true
+func (o Objective) isRightDefunded() bool {
+	if o.ToMyRight == nil {
+		return true
+	}
+
+	included := o.ToMyLeft.IncludesTarget(o.VId())
+	return !included
+}
+
+// isLeftDefunded returns whether the ledger channel ToMyLeft has been defunded
+// If ToMyLeft==nil then we return true
+func (o Objective) isLeftDefunded() bool {
+	if o.ToMyLeft == nil {
+		return true
+	}
+
+	included := o.ToMyLeft.IncludesTarget(o.VId())
+	return !included
+}
+
+// createSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
+func (o *Objective) createSignedProposalMessage(sp consensus_channel.SignedProposal, ledger *consensus_channel.ConsensusChannel) protocols.Message {
+	recipient := ledger.Leader()
+	if ledger.IsLeader() {
+		recipient = ledger.Follower()
+	}
+	return protocols.Message{
+		To:              recipient,
+		ObjectiveId:     o.Id(),
+		SignedProposals: []consensus_channel.SignedProposal{sp},
+	}
 }
 
 // validateSignature returns whether the given signature is valid for the given participant
