@@ -64,26 +64,26 @@ func newTestData() testData {
 
 	leaderLedgers := make(map[types.Destination]actorLedgers)
 	leaderLedgers[alice.Destination()] = actorLedgers{
-		right: prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1),
+		right: prepareConsensusChannel(CChanConfig{isLeader: true, leader: alice, follower: p1}),
 	}
 	leaderLedgers[p1.Destination()] = actorLedgers{
-		left:  prepareConsensusChannel(uint(consensus_channel.Leader), p1, alice),
-		right: prepareConsensusChannel(uint(consensus_channel.Leader), p1, bob),
+		left:  prepareConsensusChannel(CChanConfig{leader: p1, follower: alice, isLeader: true}),
+		right: prepareConsensusChannel(CChanConfig{leader: p1, follower: bob, isLeader: true}),
 	}
 	leaderLedgers[bob.Destination()] = actorLedgers{
-		left: prepareConsensusChannel(uint(consensus_channel.Leader), bob, p1),
+		left: prepareConsensusChannel(CChanConfig{leader: bob, follower: p1, isLeader: true}),
 	}
 
 	followerLedgers := make(map[types.Destination]actorLedgers)
 	followerLedgers[alice.Destination()] = actorLedgers{
-		right: prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
+		right: prepareConsensusChannel(CChanConfig{leader: alice, follower: p1}),
 	}
 	followerLedgers[p1.Destination()] = actorLedgers{
-		left:  prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
-		right: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
+		left:  prepareConsensusChannel(CChanConfig{leader: alice, follower: p1}),
+		right: prepareConsensusChannel(CChanConfig{leader: p1, follower: bob}),
 	}
 	followerLedgers[bob.Destination()] = actorLedgers{
-		left: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
+		left: prepareConsensusChannel(CChanConfig{leader: p1, follower: bob}),
 	}
 
 	return testData{vPreFund, vPostFund, leaderLedgers, followerLedgers}
@@ -252,7 +252,7 @@ func TestCrankAsAlice(t *testing.T) {
 
 	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
 	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.Destination(), p1.Destination())
-	o.ToMyRight.Channel = prepareConsensusChannel(my.Role, alice, p1, guaranteeFundingV)
+	o.ToMyRight.Channel = prepareConsensusChannel(CChanConfig{leader: alice, follower: p1, guarantees: []consensus_channel.Guarantee{guaranteeFundingV}})
 
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
@@ -301,8 +301,7 @@ func TestCrankAsBob(t *testing.T) {
 	// Manually progress the extended state by collecting prefund signatures
 	collectPeerSignaturesOnSetupState(o.V, my.Role, true)
 
-	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
-	// TODO: Check that ledger channel is updated as expected
+	// Cranking should have no effect, since Bob is the follower
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
@@ -311,16 +310,13 @@ func TestCrankAsBob(t *testing.T) {
 	equals(t, effects, emptySideEffects)
 	equals(t, waitingFor, WaitingForCompleteFunding)
 
-	// Check idempotency
-	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
-	o = oObj.(*Objective)
-	ok(t, err)
-	equals(t, effects, emptySideEffects)
-	equals(t, waitingFor, WaitingForCompleteFunding)
-
 	// If Bob had received a signed counterproposal, he should proceed to postFundSetup
-	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, p1.Destination(), bob.Destination())
-	o.ToMyLeft.Channel = prepareConsensusChannel(uint(consensus_channel.Leader), bob, p1, guaranteeFundingV)
+	leftDeposit := big.NewInt(6)
+	rightDeposit := big.NewInt(4)
+	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(0).Add(leftDeposit, rightDeposit), o.V.Id, p1.Destination(), bob.Destination())
+	prop := consensus_channel.NewAddProposal(types.Destination{}, 0, guaranteeFundingV, leftDeposit)
+	props := []consensus_channel.Proposal{prop}
+	o.ToMyLeft.Channel = prepareConsensusChannel(CChanConfig{isLeader: false, leader: p1, follower: bob, props: props, leaderBal: 20})
 
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
@@ -330,8 +326,9 @@ func TestCrankAsBob(t *testing.T) {
 	_ = postFS.AddSignature(mySig)
 
 	ok(t, err)
-	equals(t, waitingFor, WaitingForCompletePostFund)
+	equals(t, WaitingForCompletePostFund, waitingFor)
 	assertStateSentTo(t, effects, postFS, p1)
+	assertStateSentTo(t, effects, postFS, alice)
 }
 
 // TestCrankAsP1 tests the behaviour from an intermediary's point of view when they are a leader in one ledger channel and a follower in the other
@@ -388,9 +385,12 @@ func TestCrankAsP1(t *testing.T) {
 	equals(t, effects, emptySideEffects)
 	equals(t, waitingFor, WaitingForCompleteFunding)
 
-	// If P1 had received a signed counterproposal, she should proceed to postFundSetup
-	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.Destination(), p1.Destination())
-	o.ToMyLeft.Channel = prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1, guaranteeFundingV)
+	// If P1 had received a signed counterproposal, they would send out one ledger proposal, but not both!
+	// So, they'd still be waiting for complete funding
+	totalDeposit := big.NewInt(10)
+	leftGuarantee := consensus_channel.NewGuarantee(totalDeposit, o.V.Id, alice.Destination(), p1.Destination())
+	guarantees := []consensus_channel.Guarantee{leftGuarantee}
+	o.ToMyLeft.Channel = prepareConsensusChannel(CChanConfig{isLeader: true, leader: alice, follower: p1, guarantees: guarantees})
 
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
@@ -400,11 +400,30 @@ func TestCrankAsP1(t *testing.T) {
 	_ = postFS.AddSignature(mySig)
 
 	ok(t, err)
-
 	// We need to receive a proposal from Bob before funding is completed!
 	equals(t, waitingFor, WaitingForCompleteFunding)
 	equals(t, effects, emptySideEffects)
 
+	// If P1 had ALSO received a signed proposal in his follower channel, he would counter-sign it and move to postFS
+	rightGuarantee := consensus_channel.NewGuarantee(totalDeposit, o.V.Id, p1.Destination(), bob.Destination())
+	prop := consensus_channel.NewAddProposal(types.Destination{}, 0, rightGuarantee, big.NewInt(6))
+	props := []consensus_channel.Proposal{prop}
+	o.ToMyRight.Channel = prepareConsensusChannel(CChanConfig{isLeader: false, leader: bob, follower: p1, props: props, leaderBal: 20})
+
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
+	o = oObj.(*Objective)
+
+	ok(t, err)
+	// We need to receive a proposal from Bob before funding is completed!
+	equals(t, waitingFor, WaitingForCompletePostFund)
+
+	ok(t, err)
+	assertStateSentTo(t, effects, postFS, bob)
+	assertStateSentTo(t, effects, postFS, alice)
+
+	p2 := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
+	sp2 := consensus_channel.SignedProposal{Proposal: p2}
+	assertProposalSent(t, effects, sp2, bob)
 }
 
 // Copied from https://github.com/benbjohnson/testing
@@ -448,27 +467,25 @@ func equals(tb testing.TB, exp, act interface{}) {
 // assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
 func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to actors.Actor) {
 	_, file, line, _ := runtime.Caller(1)
-	if len(ses.MessagesToSend) != 1 {
-		fmt.Printf(makeRed+"%s:%d:\n\n\texpected one message"+makeBlack, filepath.Base(file), line)
-		t.FailNow()
-	}
-	if len(ses.MessagesToSend[0].SignedProposals) != 1 {
-		fmt.Printf(makeRed+"%s:%d:\n\n\texpected one signed proposal"+makeBlack, filepath.Base(file), line)
-		t.FailNow()
+
+	for _, msg := range ses.MessagesToSend {
+		if bytes.Equal(msg.To[:], to.Address[:]) {
+			if len(msg.SignedProposals) != 1 {
+				fmt.Printf(makeRed+"%s:%d:\n\n\texpected one signed proposal"+makeBlack, filepath.Base(file), line)
+				t.FailNow()
+			}
+			sent := msg.SignedProposals[0]
+			if !reflect.DeepEqual(sent.Proposal, sp.Proposal) {
+				fmt.Printf(makeRed+"%s:%d:\n\n\texp: %+v\n\n\tgot: %+v"+makeBlack, filepath.Base(file), line, sent.Proposal, sp.Proposal)
+				t.FailNow()
+			}
+
+			return
+		}
 	}
 
-	msg := ses.MessagesToSend[0]
-	sent := msg.SignedProposals[0]
-
-	if !reflect.DeepEqual(sent.Proposal, sp.Proposal) {
-		fmt.Printf(makeRed+"%s:%d:\n\n\texp: %+v\n\n\tgot: %+v"+makeBlack, filepath.Base(file), line, sent.Proposal, sp.Proposal)
-		t.FailNow()
-	}
-
-	if !bytes.Equal(msg.To[:], to.Address[:]) {
-		fmt.Printf(makeRed+"%s:%d:\n\n\texp: %#v\n\n\tgot: %#v"+makeBlack, filepath.Base(file), line, msg.To.String(), to.Address.String())
-		t.FailNow()
-	}
+	fmt.Printf(makeRed+"%s:%d:\n\n\tno signed proposal sent to %v"+makeBlack, filepath.Base(file), line, to.Name)
+	t.FailNow()
 }
 
 // assertMessageSentTo asserts that ses contains a message

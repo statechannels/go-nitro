@@ -4,50 +4,120 @@ import (
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	con_chan "github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/types"
 )
 
+type CChanConfig struct {
+	leader      testactors.Actor
+	follower    testactors.Actor
+	leaderBal   int64 // defaults to 6, when leaderBal is passed as 0
+	followerBal int64 // defaults to 4, when followerBal is passed as 0
+	isLeader    bool
+	guarantees  []con_chan.Guarantee
+	props       []con_chan.Proposal
+}
+
 // prepareConsensusChannel prepares a consensus channel with a consensus outcome
-//  - allocating 6 to left
-//  - allocating 4 to right
+//  - allocating a default amount of 6 to cfg.left
+//  - allocating a default amount of 4 to cfg.right
 //  - including the given guarantees
-func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
-	fp := state.FixedPart{
-		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{left.Address, right.Address},
-		ChannelNonce:      big.NewInt(0),
-		AppDefinition:     types.Address{},
-		ChallengeDuration: big.NewInt(45),
+//  - ensuring that the props are signed and stored by the consensus channel
+//
+// Note: The props that are passed in cfg don't need to be set up correctly!
+// The correct turn number and channelId will be set in order to ensure that
+// the resulting queue is in a valid state
+func prepareConsensusChannel(cfg CChanConfig) *con_chan.ConsensusChannel {
+	leaderBal := cfg.leaderBal
+	if leaderBal == 0 {
+		leaderBal = 6
+	}
+	followerBal := cfg.followerBal
+	if followerBal == 0 {
+		followerBal = 4
 	}
 
-	leftBal := consensus_channel.NewBalance(left.Destination(), big.NewInt(6))
-	rightBal := consensus_channel.NewBalance(right.Destination(), big.NewInt(4))
+	var (
+		fp = state.FixedPart{
+			Participants:      []types.Address{cfg.leader.Address, cfg.follower.Address},
+			ChainId:           big.NewInt(0),
+			ChannelNonce:      big.NewInt(9001),
+			ChallengeDuration: big.NewInt(100),
+		}
 
-	lo := *consensus_channel.NewLedgerOutcome(types.Address{}, leftBal, rightBal, guarantees)
+		startingTurnNum = uint64(1)
+		// initialOutcome produces a new copy of the initial outcome on each invocation
+		initialOutcome = func() con_chan.LedgerOutcome {
+			return *con_chan.NewLedgerOutcome(
+				types.Address{},
+				con_chan.NewBalance(cfg.leader.Destination(), big.NewInt(leaderBal)),
+				con_chan.NewBalance(cfg.follower.Destination(), big.NewInt(followerBal)),
+				cfg.guarantees,
+			)
 
-	signedVars := consensus_channel.SignedVars{Vars: consensus_channel.Vars{Outcome: lo, TurnNum: 1}}
-	leftSig, err := signedVars.Vars.AsState(fp).Sign(left.PrivateKey)
-	if err != nil {
-		panic(err)
-	}
-	rightSig, err := signedVars.Vars.AsState(fp).Sign(right.PrivateKey)
-	if err != nil {
-		panic(err)
-	}
-	sigs := [2]state.Signature{leftSig, rightSig}
+		}
 
-	var cc consensus_channel.ConsensusChannel
+		initialVars    = con_chan.Vars{TurnNum: uint64(startingTurnNum), Outcome: initialOutcome()}
+		leaderSig, _   = initialVars.AsState(fp).Sign(cfg.leader.PrivateKey)
+		followerSig, _ = initialVars.AsState(fp).Sign(cfg.follower.PrivateKey)
+		sigs           = [2]state.Signature{leaderSig, followerSig}
 
-	if role == 0 {
-		cc, err = consensus_channel.NewLeaderChannel(fp, 1, lo, sigs)
+		c   con_chan.ConsensusChannel
+		err error
+	)
+
+	if cfg.isLeader {
+		c, err = con_chan.NewLeaderChannel(fp, 1, initialOutcome(), sigs)
 	} else {
-		cc, err = consensus_channel.NewFollowerChannel(fp, 1, lo, sigs)
+		c, err = con_chan.NewFollowerChannel(fp, 1, initialOutcome(), sigs)
 	}
 	if err != nil {
 		panic(err)
 	}
 
-	return &cc
+	// make sure the proposals are all valid for this channel
+	var (
+		turnNum = startingTurnNum
+		vars    = con_chan.Vars{TurnNum: turnNum, Outcome: initialOutcome()}
+	)
+	for _, p := range cfg.props {
+		turnNum += 1
+		var correctedProp con_chan.Proposal
+		switch p.Type() {
+		case consensus_channel.AddProposal:
+			correctedProp = con_chan.NewAddProposal(c.Id, turnNum, p.ToAdd.Guarantee, p.ToAdd.LeftDeposit)
+		case consensus_channel.RemoveProposal:
+			correctedProp = con_chan.NewRemoveProposal(c.Id, turnNum, p.ToRemove.Target, p.ToRemove.LeftAmount, p.ToRemove.RightAmount)
+		}
+
+		if cfg.isLeader {
+			// Call Propose with the corrected proposal
+			_, err := c.Propose(correctedProp, cfg.leader.PrivateKey)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			// Compute the correct signature on the corrected prop
+			err = vars.HandleProposal(correctedProp)
+			if err != nil {
+				panic(err)
+			}
+			s := vars.AsState(fp)
+			sig, err := s.Sign(cfg.leader.PrivateKey)
+			if err != nil {
+				panic(err)
+			}
+			sp := con_chan.SignedProposal{Proposal: correctedProp, Signature: sig}
+
+			// Receive the signed prop
+			err = c.Receive(sp)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	return &c
 }
