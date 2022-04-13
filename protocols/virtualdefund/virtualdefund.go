@@ -167,6 +167,14 @@ func (o *Objective) clone() Objective {
 	}
 	clone.MyRole = o.MyRole
 
+	// TODO: Properly clone the consensus channels
+	if o.ToMyLeft != nil {
+		clone.ToMyLeft = o.ToMyLeft
+	}
+	if o.ToMyRight != nil {
+		clone.ToMyRight = o.ToMyRight
+	}
+
 	return clone
 }
 
