@@ -137,7 +137,12 @@ contract EmbeddedApplication is
     }
 
     // Finite states for J
-    enum AlreadyMoved {None, A, B, AB}
+    enum AlreadyMoved {
+        None,
+        A,
+        B,
+        AB
+    }
 
     // Application Data for J
     struct AppData {
@@ -157,7 +162,7 @@ contract EmbeddedApplication is
         uint256, // nParticipants (unused)
         uint256, // signedByFrom (unused) - Who has signed the "from" state?
         uint256 signedByTo // Who has signed the "to" state?
-    ) public override pure returns (bool) {
+    ) public pure override returns (bool) {
         // parameter wrangling
         bool signedByA = ForceMoveAppUtilities.isSignedBy(signedByTo, 0);
         bool signedByB = ForceMoveAppUtilities.isSignedBy(signedByTo, 1);
@@ -267,7 +272,9 @@ contract EmbeddedApplication is
 
         uint256 finalIndex = toAppData.supportProofForX.variableParts.length - 1;
 
-        bytes memory greaterStateOutcome = toAppData.supportProofForX.variableParts[finalIndex]
+        bytes memory greaterStateOutcome = toAppData
+            .supportProofForX
+            .variableParts[finalIndex]
             .outcome;
 
         bytes32 greaterStateHash = _hashState(
@@ -304,7 +311,7 @@ contract EmbeddedApplication is
                 toAppData.supportProofForX.turnNumTo - 1,
                 false // Assume isFinal is false
             );
-            
+
             if (
                 (toAppData.supportProofForX.whoSignedWhat[0] == 0) &&
                 (toAppData.supportProofForX.whoSignedWhat[1] == 1)
@@ -358,10 +365,9 @@ contract EmbeddedApplication is
 
         return
             decode2PartyAllocation(
-                toAppData.supportProofForX.variableParts[toAppData
+                toAppData
                     .supportProofForX
-                    .variableParts
-                    .length - 1]
+                    .variableParts[toAppData.supportProofForX.variableParts.length - 1]
                     .outcome
             );
     }

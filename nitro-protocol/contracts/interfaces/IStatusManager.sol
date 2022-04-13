@@ -2,7 +2,11 @@
 pragma solidity 0.7.4;
 
 interface IStatusManager {
-    enum ChannelMode {Open, Challenge, Finalized}
+    enum ChannelMode {
+        Open,
+        Challenge,
+        Finalized
+    }
 
     struct ChannelData {
         uint48 turnNumRecord;

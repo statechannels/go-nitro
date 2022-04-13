@@ -35,7 +35,7 @@ contract CountingApp is IForceMoveApp {
         VariablePart memory a,
         VariablePart memory b,
         uint256 // nParticipants, unused
-    ) public override pure returns (bool) {
+    ) public pure override returns (bool) {
         require(
             appData(b.appData).counter == appData(a.appData).counter + 1,
             'Counter must be incremented'
