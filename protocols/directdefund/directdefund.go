@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 const (
@@ -98,34 +99,48 @@ func (o Objective) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + o.C.Id.String())
 }
 
-func (o Objective) Approve() Objective {
+func (o Objective) Approve() protocols.Objective {
 	updated := o.clone()
 	// todo: consider case of o.Status == Rejected
 	updated.Status = protocols.Approved
 
-	return updated
+	return &updated
 }
 
-func (o Objective) Reject() Objective {
+func (o Objective) Reject() protocols.Objective {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
-	return updated
+	return &updated
+}
+
+// OwnsChannel returns the channel that the objective is funding.
+func (ddo *Objective) OwnsChannel() types.Destination {
+	return ddo.C.Id
+}
+
+// GetStatus returns the status of the objective.
+func (ddo *Objective) GetStatus() protocols.ObjectiveStatus {
+	return ddo.Status
+}
+
+func (o Objective) Related() []protocols.Storable {
+	return []protocols.Storable{o.C}
 }
 
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectDefundingObjective,
 // and returns the updated objective
-func (o Objective) Update(event protocols.ObjectiveEvent) (Objective, error) {
+func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if o.Id() != event.ObjectiveId {
-		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
 	if len(event.SignedStates) > 0 {
 		for _, ss := range event.SignedStates {
 			if !ss.State().IsFinal {
-				return o, errors.New("direct defund objective can only be updated with final states")
+				return &o, errors.New("direct defund objective can only be updated with final states")
 			}
 			if o.finalTurnNum != ss.State().TurnNum {
-				return o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, ss.State().TurnNum)
+				return &o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, ss.State().TurnNum)
 			}
 		}
 	}
@@ -133,34 +148,38 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (Objective, error) {
 	updated := o.clone()
 	updated.C.AddSignedStates(event.SignedStates)
 
-	return updated, nil
+	return &updated, nil
 }
 
 // todo this should not be a deposited event
-func (o Objective) UpdateWithChainEvent(event chainservice.DepositedEvent) (Objective, error) {
+func (o Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
 	updated := o.clone()
+	de, ok := event.(chainservice.DepositedEvent)
+	if !ok {
+		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
+	}
 	// todo: check block number
-	if event.Holdings != nil {
-		updated.C.OnChainFunding = event.Holdings.Clone()
+	if de.Holdings != nil {
+		updated.C.OnChainFunding = de.Holdings.Clone()
 	}
 
-	return updated, nil
+	return &updated, nil
 
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
-func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
 
 	if updated.Status != protocols.Approved {
-		return updated, sideEffects, WaitingForNothing, ErrNotApproved
+		return &updated, sideEffects, WaitingForNothing, ErrNotApproved
 	}
 
 	latestSignedState, err := updated.C.LatestSignedState()
 	if err != nil {
-		return updated, sideEffects, WaitingForNothing, errors.New("The channel must contain at least one signed state to crank the defund objective")
+		return &updated, sideEffects, WaitingForNothing, errors.New("The channel must contain at least one signed state to crank the defund objective")
 	}
 
 	// Finalize and sign a state if no supported, finalized state exists
@@ -172,7 +191,7 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 		}
 		ss, err := updated.C.SignAndAddState(stateToSign, secretKey)
 		if err != nil {
-			return updated, protocols.SideEffects{}, WaitingForFinalization, fmt.Errorf("could not sign final state %w", err)
+			return &updated, protocols.SideEffects{}, WaitingForFinalization, fmt.Errorf("could not sign final state %w", err)
 		}
 		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
@@ -180,10 +199,10 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 
 	latestSupportedState, err := updated.C.LatestSupportedState()
 	if err != nil {
-		return updated, sideEffects, WaitingForFinalization, fmt.Errorf("error finding a supported state: %w", err)
+		return &updated, sideEffects, WaitingForFinalization, fmt.Errorf("error finding a supported state: %w", err)
 	}
 	if !latestSupportedState.IsFinal {
-		return updated, sideEffects, WaitingForFinalization, nil
+		return &updated, sideEffects, WaitingForFinalization, nil
 	}
 
 	// Withdrawal of funds
@@ -195,10 +214,10 @@ func (o Objective) Crank(secretKey *[]byte) (Objective, protocols.SideEffects, p
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
 		}
 		// Every participant waits for all channel funds to be distributed, even if the participant has no funds in the channel
-		return updated, sideEffects, WaitingForWithdraw, nil
+		return &updated, sideEffects, WaitingForWithdraw, nil
 	}
 
-	return updated, sideEffects, WaitingForNothing, nil
+	return &updated, sideEffects, WaitingForNothing, nil
 }
 
 // IsDirectDefundObjective inspects a objective id and returns true if the objective id is for a direct defund objective.

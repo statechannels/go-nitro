@@ -208,11 +208,16 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	return &updated, nil
 }
 
-func (o Objective) UpdateWithChainEvent(event chainservice.DepositedEvent) (protocols.Objective, error) {
+func (o Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
 	updated := o.clone()
-	if event.Holdings != nil && event.BlockNum > updated.latestBlockNumber {
-		updated.C.OnChainFunding = event.Holdings.Clone()
-		updated.latestBlockNumber = event.BlockNum
+
+	de, ok := event.(chainservice.DepositedEvent)
+	if !ok {
+		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
+	}
+	if de.Holdings != nil && de.BlockNum > updated.latestBlockNumber {
+		updated.C.OnChainFunding = de.Holdings.Clone()
+		updated.latestBlockNumber = de.BlockNum
 	}
 
 	return &updated, nil

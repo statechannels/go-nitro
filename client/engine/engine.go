@@ -165,21 +165,15 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 		return ObjectiveChangeEvent{}, &UnhandledChainEvent{event: chainEvent}
 	}
 
-	switch event := chainEvent.(type) {
-	case chainservice.DepositedEvent:
-		o, ok := objective.(*directfund.Objective)
-		if !ok {
-			return ObjectiveChangeEvent{}, &UnhandledChainEvent{event: chainEvent}
-		}
-		updatedObjective, err := o.UpdateWithChainEvent(event)
-		if err != nil {
-			return ObjectiveChangeEvent{}, err
-		}
-		return e.attemptProgress(updatedObjective)
-	default:
+	eventHandler, ok := objective.(chainservice.ChainEventHandler)
+	if !ok {
 		return ObjectiveChangeEvent{}, &UnhandledChainEvent{event: chainEvent}
 	}
-
+	updatedEventHandler, err := eventHandler.UpdateWithChainEvent(chainEvent)
+	if err != nil {
+		return ObjectiveChangeEvent{}, err
+	}
+	return e.attemptProgress(updatedEventHandler)
 }
 
 // handleAPIEvent handles an API Event (triggered by an API call)
