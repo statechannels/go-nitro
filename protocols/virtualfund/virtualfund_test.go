@@ -44,7 +44,7 @@ func TestMarshalJSON(t *testing.T) {
 	ts := state.TestState
 	ts.TurnNum = channel.PreFundTurnNum
 
-	right := prepareConsensusChannel(CChanConfig{left: alice, right: bob})
+	right := prepareConsensusChannel(CChanConfig{leader: alice, follower: bob})
 	vfo, err := constructFromState(
 		false,
 		vPreFund,
