@@ -54,7 +54,7 @@ export function parseStatus(status: Bytes32): {
   return {
     turnNumRecord: asNumber(turnNumRecord),
     finalizesAt: asNumber(finalizesAt),
-    fingerprint
+    fingerprint,
   };
 }
 const asNumber: (s: string) => number = s => BigNumber.from(s).toNumber();

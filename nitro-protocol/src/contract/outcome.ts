@@ -77,16 +77,16 @@ const exampleGuaranteeOutcome1: GuaranteeOutcome = [
         destination: '0xjointchannel1',
         amount: '0xa',
         allocationType: ExitFormat.AllocationType.guarantee,
-        metadata: encodeGuaranteeData([B_ADDRESS, A_ADDRESS])
+        metadata: encodeGuaranteeData([B_ADDRESS, A_ADDRESS]),
       },
       {
         destination: '0xjointchannel2',
         amount: '0xa',
         allocationType: ExitFormat.AllocationType.guarantee,
-        metadata: encodeGuaranteeData([A_ADDRESS, B_ADDRESS])
-      }
-    ]
-  }
+        metadata: encodeGuaranteeData([A_ADDRESS, B_ADDRESS]),
+      },
+    ],
+  },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

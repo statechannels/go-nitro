@@ -41,7 +41,7 @@ export function concludeAndTransferAllAssetsArgs(
     outcomeBytes,
     numStates,
     whoSignedWhat,
-    signatures
+    signatures,
   ];
 }
 
@@ -54,7 +54,7 @@ export function createConcludeAndTransferAllAssetsTransaction(
     data: NitroAdjudicatorContractInterface.encodeFunctionData(
       'concludeAndTransferAllAssets',
       concludeAndTransferAllAssetsArgs(states, signatures, whoSignedWhat)
-    )
+    ),
   };
 }
 
@@ -77,6 +77,6 @@ export function createTransferAllAssetsTransaction(
     data: NitroAdjudicatorContractInterface.encodeFunctionData(
       'transferAllAssets',
       transferAllAssetsArgs(state, overrideStateHash)
-    )
+    ),
   };
 }

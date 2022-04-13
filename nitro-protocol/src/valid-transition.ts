@@ -9,7 +9,7 @@ import {State} from './contract/state';
  */
 export enum ValidTransitionStatus {
   True,
-  NeedToCheckApp
+  NeedToCheckApp,
 }
 
 /**

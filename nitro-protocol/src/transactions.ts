@@ -49,7 +49,7 @@ export function createRespondTransaction(
   return forceMoveTrans.createRespondTransaction({
     challengeState,
     responseState: response.state,
-    responseSignature: response.signature
+    responseSignature: response.signature,
   });
 }
 
@@ -65,7 +65,7 @@ export function createCheckpointTransaction(
   return forceMoveTrans.createCheckpointTransaction({
     states,
     signatures,
-    whoSignedWhat
+    whoSignedWhat,
   });
 }
 
@@ -145,6 +145,6 @@ export function createSignatureArguments(signedStates: SignedState[]): {
   return {
     states,
     signatures,
-    whoSignedWhat
+    whoSignedWhat,
   };
 }

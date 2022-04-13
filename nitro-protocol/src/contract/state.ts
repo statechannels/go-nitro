@@ -60,7 +60,7 @@ export function getVariablePart(state: State): VariablePart {
     outcome: state.outcome,
     appData: encodeAppData(state.appData),
     turnNum: state.turnNum,
-    isFinal: state.isFinal
+    isFinal: state.isFinal,
   };
 }
 
@@ -114,13 +114,13 @@ export function encodeState(state: State): Bytes {
               {name: 'destination', type: 'bytes32'},
               {name: 'amount', type: 'uint256'},
               {name: 'allocationType', type: 'uint8'},
-              {name: 'metadata', type: 'bytes'}
-            ]
-          } as ParamType
-        ]
+              {name: 'metadata', type: 'bytes'},
+            ],
+          } as ParamType,
+        ],
       } as ParamType,
       'uint256',
-      'bool'
+      'bool',
     ],
     [channelId, appDataBytes, outcome, turnNum, isFinal]
   );

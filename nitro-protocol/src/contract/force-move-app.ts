@@ -35,7 +35,7 @@ export function createValidTransitionTransaction(fromState: State, toState: Stat
   const data = ForceMoveAppContractInterface.encodeFunctionData('validTransition', [
     fromVariablePart,
     toVariablePart,
-    numberOfParticipants
+    numberOfParticipants,
   ]);
   return {data};
 }

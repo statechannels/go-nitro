@@ -22,7 +22,7 @@ export function createETHDepositTransaction(
     constants.AddressZero, // Magic constant indicating ETH
     destination,
     expectedHeld,
-    amount
+    amount,
   ]);
   return {data};
 }
@@ -45,7 +45,7 @@ export function createERC20DepositTransaction(
     tokenAddress,
     destination,
     expectedHeld,
-    amount
+    amount,
   ]);
   return {data};
 }

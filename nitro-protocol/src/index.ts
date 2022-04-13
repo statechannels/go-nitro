@@ -84,7 +84,7 @@ const fields = [
   'bytecode',
   'deployedBytecode',
   'linkReferences',
-  'deployedLinkReferences'
+  'deployedLinkReferences',
 ];
 
 interface MinimalArtifact {
@@ -103,7 +103,7 @@ const minimize = (artifact: ArtifactT) => pick(artifact, fields) as MinimalArtif
 
 export const ContractArtifacts = {
   NitroAdjudicatorArtifact: minimize(FULLNitroAdjudicatorArtifact),
-  HashLockedSwapArtifact: minimize(FULLHashLockedSwapArtifact)
+  HashLockedSwapArtifact: minimize(FULLHashLockedSwapArtifact),
 };
 
 /*
@@ -114,7 +114,7 @@ export const ContractArtifacts = {
 export const TestContractArtifacts = {
   CountingAppArtifact: minimize(FULLCountingAppArtifact),
   TestNitroAdjudicatorArtifact: minimize(FULLTestNitroAdjudicatorArtifact),
-  TokenArtifact: minimize(FULLTokenArtifact)
+  TokenArtifact: minimize(FULLTokenArtifact),
 };
 
 export {
@@ -123,24 +123,24 @@ export {
   OutcomeShortHand,
   randomChannelId,
   randomExternalDestination,
-  replaceAddressesAndBigNumberify
+  replaceAddressesAndBigNumberify,
 } from '../test/test-helpers';
 export {
   DepositedEvent,
   getDepositedEvent,
   convertBytes32ToAddress,
-  convertAddressToBytes32
+  convertAddressToBytes32,
 } from './contract/multi-asset-holder';
 export {
   getChallengeRegisteredEvent,
   getChallengeClearedEvent,
-  ChallengeRegisteredEvent
+  ChallengeRegisteredEvent,
 } from './contract/challenge';
 export {Channel, getChannelId, isExternalDestination} from './contract/channel';
 export {
   validTransition,
   ForceMoveAppContractInterface,
-  createValidTransitionTransaction
+  createValidTransitionTransaction,
 } from './contract/force-move-app';
 export {encodeOutcome, decodeOutcome, Outcome, AssetOutcome, hashOutcome} from './contract/outcome';
 export {channelDataToStatus} from './contract/channel-storage';
@@ -151,7 +151,7 @@ export * from './signatures';
 export * from './transactions';
 export {
   createERC20DepositTransaction,
-  createETHDepositTransaction
+  createETHDepositTransaction,
 } from './contract/transaction-creators/multi-asset-holder';
 
 // types
