@@ -42,8 +42,8 @@ func TestDeposit(t *testing.T) {
 	inA <- testTx
 	event := <-outA
 
-	if event.ChannelId() != testTx.ChannelId {
-		t.Fatalf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, event.ChannelId())
+	if event.GetChannelId() != testTx.ChannelId {
+		t.Fatalf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, event.GetChannelId())
 	}
 	if !event.(DepositedEvent).Holdings.Equal(testTx.Deposit) {
 		t.Fatalf(`holdings mismatch: expected %v but got %v`, testTx.Deposit, event.(DepositedEvent).Holdings)
@@ -56,8 +56,8 @@ func TestDeposit(t *testing.T) {
 	// The expectation is that the MockChainService remembered the previous deposit and added this one to it:
 	expectedHoldings := testTx.Deposit.Add(testTx.Deposit)
 
-	if event.ChannelId() != testTx.ChannelId {
-		t.Fatalf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, event.ChannelId())
+	if event.GetChannelId() != testTx.ChannelId {
+		t.Fatalf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, event.GetChannelId())
 	}
 	if !event.(DepositedEvent).Holdings.Equal(expectedHoldings) {
 		t.Fatalf(`holdings mismatch: expected %v but got %v`, expectedHoldings, event.(DepositedEvent).Holdings)
@@ -66,8 +66,8 @@ func TestDeposit(t *testing.T) {
 	// Pull an event out of the other mock chain service and check that
 	eventB := <-mcsB.Out()
 
-	if eventB.ChannelId() != testTx.ChannelId {
-		t.Fatalf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, eventB.ChannelId())
+	if eventB.GetChannelId() != testTx.ChannelId {
+		t.Fatalf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, eventB.GetChannelId())
 	}
 	if !eventB.(DepositedEvent).Holdings.Equal(testTx.Deposit) {
 		t.Fatalf(`holdings mismatch: expected %v but got %v`, testTx.Deposit, eventB.(DepositedEvent).Holdings)
@@ -76,8 +76,8 @@ func TestDeposit(t *testing.T) {
 	// Pull another event out of the other mock chain service and check that
 	eventB = <-mcsB.Out()
 
-	if eventB.ChannelId() != testTx.ChannelId {
-		t.Fatalf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, eventB.ChannelId())
+	if eventB.GetChannelId() != testTx.ChannelId {
+		t.Fatalf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, eventB.GetChannelId())
 	}
 	if !eventB.(DepositedEvent).Holdings.Equal(expectedHoldings) {
 		t.Fatalf(`holdings mismatch: expected %v but got %v`, expectedHoldings, eventB.(DepositedEvent).Holdings)
