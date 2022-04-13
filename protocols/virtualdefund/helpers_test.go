@@ -1,0 +1,117 @@
+package virtualdefund
+
+import (
+	"bytes"
+	"math/big"
+	"testing"
+
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/testactors"
+	. "github.com/statechannels/go-nitro/internal/testhelpers"
+	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
+)
+
+// assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
+// TODO: This is copied from https://github.com/statechannels/go-nitro/blob/0722a1127241583944f32efa0638012f64b96bf0/protocols/virtualfund/virtualfund_single_hop_test.go#L409
+func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to testactors.Actor) {
+
+	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
+
+	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "expected one signed proposal")
+
+	msg := ses.MessagesToSend[0]
+	sent := msg.SignedProposals[0]
+
+	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
+
+	Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
+
+}
+
+// generateLedgers generates the left and right ledger channels based on myRole
+// The ledgers will contain a guarantee if vIsFunded==true otherwise a ledger will have no guarantees
+func generateLedgers(myRole uint, vId types.Destination, vIsFunded bool) (left, right *consensus_channel.ConsensusChannel) {
+	leftGuarantees := []consensus_channel.Guarantee{}
+	rightGuarantees := []consensus_channel.Guarantee{}
+	switch myRole {
+	case 0:
+		{
+
+			if vIsFunded {
+				rightGuarantees = append(rightGuarantees, generateGuarantee(testactors.Alice, testactors.Irene, vId))
+			}
+			return nil, prepareConsensusChannel(uint(consensus_channel.Leader), testactors.Alice, testactors.Irene, rightGuarantees...)
+
+		}
+	case 1:
+		{
+			if vIsFunded {
+				leftGuarantees = append(leftGuarantees, generateGuarantee(testactors.Alice, testactors.Irene, vId))
+				rightGuarantees = append(rightGuarantees, generateGuarantee(testactors.Irene, testactors.Bob, vId))
+			}
+			return prepareConsensusChannel(uint(consensus_channel.Follower), testactors.Alice, testactors.Irene, leftGuarantees...),
+				prepareConsensusChannel(uint(consensus_channel.Leader), testactors.Irene, testactors.Bob, rightGuarantees...)
+
+		}
+	case 2:
+		{
+			if vIsFunded {
+				leftGuarantees = append(leftGuarantees, generateGuarantee(testactors.Irene, testactors.Bob, vId))
+			}
+			return prepareConsensusChannel(uint(consensus_channel.Follower), testactors.Irene, testactors.Bob, leftGuarantees...), nil
+
+		}
+	default:
+		panic("invalid myRole")
+	}
+}
+
+func generateGuarantee(left, right testactors.Actor, vId types.Destination) consensus_channel.Guarantee {
+	return consensus_channel.NewGuarantee(big.NewInt(10), vId, left.Destination(), right.Destination())
+
+}
+
+// prepareConsensusChannel prepares a consensus channel with a consensus outcome
+//  - allocating 6 to left
+//  - allocating 4 to right
+//  - including the given guarantees
+func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
+	fp := state.FixedPart{
+		ChainId:           big.NewInt(9001),
+		Participants:      []types.Address{left.Address, right.Address},
+		ChannelNonce:      big.NewInt(0),
+		AppDefinition:     types.Address{},
+		ChallengeDuration: big.NewInt(45),
+	}
+
+	leftBal := consensus_channel.NewBalance(left.Destination(), big.NewInt(0))
+	rightBal := consensus_channel.NewBalance(right.Destination(), big.NewInt(0))
+
+	lo := *consensus_channel.NewLedgerOutcome(types.Address{}, leftBal, rightBal, guarantees)
+
+	signedVars := consensus_channel.SignedVars{Vars: consensus_channel.Vars{Outcome: lo, TurnNum: 1}}
+	leftSig, err := signedVars.Vars.AsState(fp).Sign(left.PrivateKey)
+	if err != nil {
+		panic(err)
+	}
+	rightSig, err := signedVars.Vars.AsState(fp).Sign(right.PrivateKey)
+	if err != nil {
+		panic(err)
+	}
+	sigs := [2]state.Signature{leftSig, rightSig}
+
+	var cc consensus_channel.ConsensusChannel
+
+	if role == 0 {
+		cc, err = consensus_channel.NewLeaderChannel(fp, 1, lo, sigs)
+	} else {
+		cc, err = consensus_channel.NewFollowerChannel(fp, 1, lo, sigs)
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	return &cc
+}

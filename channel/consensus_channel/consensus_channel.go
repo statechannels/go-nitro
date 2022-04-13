@@ -310,6 +310,14 @@ func (lo *LedgerOutcome) Clone() LedgerOutcome {
 	}
 }
 
+func (l LedgerOutcome) Left() Balance {
+	return l.left
+}
+
+func (l LedgerOutcome) Right() Balance {
+	return l.right
+}
+
 // NewLedgerOutcome creates a new ledger outcome with the given asset address and balances and guarantees
 func NewLedgerOutcome(assetAddress types.Address, left, right Balance, guarantees []Guarantee) *LedgerOutcome {
 	guaranteeMap := make(map[types.Destination]Guarantee, len(guarantees))
