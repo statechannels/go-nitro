@@ -2,7 +2,7 @@ import {utils} from 'ethers';
 import {ParamType} from 'ethers/lib/utils';
 
 import {Channel, getChannelId} from './channel';
-import {encodeOutcome, Outcome} from './outcome';
+import {Outcome} from './outcome';
 import {Address, Bytes, Bytes32, Uint256, Uint48} from './types';
 
 /**
@@ -60,7 +60,7 @@ export function getVariablePart(state: State): VariablePart {
     outcome: state.outcome,
     appData: encodeAppData(state.appData),
     turnNum: state.turnNum,
-    isFinal: state.isFinal,
+    isFinal: state.isFinal
   };
 }
 

@@ -63,7 +63,8 @@ export function respondArgs({
   challengeState,
   responseState,
   responseSignature
-}: RespondArgs): any[] {
+}: // eslint-disable-next-line @typescript-eslint/no-explicit-any
+RespondArgs): any[] {
   const fixedPart = getFixedPart(responseState);
   const variablePartAB = [getVariablePart(challengeState), getVariablePart(responseState)];
   return [fixedPart, variablePartAB, responseSignature];

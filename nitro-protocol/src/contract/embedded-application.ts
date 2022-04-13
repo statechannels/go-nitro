@@ -1,7 +1,7 @@
 import {defaultAbiCoder, ParamType} from '@ethersproject/abi';
 import {Signature} from '@ethersproject/bytes';
-import { encodeOutcome } from './outcome';
 
+import {encodeOutcome} from './outcome';
 import {encodeAppData, FixedPart, State} from './state';
 import {Bytes, Bytes32} from './types';
 
@@ -14,7 +14,7 @@ export interface VariablePart {
 export function getVariablePart(state: State): VariablePart {
   return {
     outcome: encodeOutcome(state.outcome),
-    appData: encodeAppData(state.appData),
+    appData: encodeAppData(state.appData)
   };
 }
 
