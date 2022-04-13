@@ -205,7 +205,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		updated.ToMyLeft = defundedLeft
 		updated.ToMyRight = defundedRight
 
-		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
+		_, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 		testhelpers.Ok(t, err)
 		testhelpers.Assert(t, len(se.MessagesToSend) == 0, "expected no messages to send")
 		testhelpers.Equals(t, waitingFor, WaitingForNothing)
