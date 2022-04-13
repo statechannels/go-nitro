@@ -55,7 +55,7 @@ type Objective struct {
 const ObjectivePrefix = "VirtualDefund-"
 
 // newObjective constructs a new virtual defund objective
-func newObjective(preApprove bool, vFixed state.FixedPart, initialOutcome outcome.SingleAssetExit, paidToBob *big.Int, myRole uint) Objective {
+func newObjective(preApprove bool, vFixed state.FixedPart, initialOutcome outcome.SingleAssetExit, paidToBob *big.Int, toMyLeft, toMyRight *consensus_channel.ConsensusChannel, myRole uint) Objective {
 	var status protocols.ObjectiveStatus
 
 	if preApprove {
@@ -71,6 +71,8 @@ func newObjective(preApprove bool, vFixed state.FixedPart, initialOutcome outcom
 		VFixed:         vFixed,
 		Signatures:     [3]state.Signature{},
 		MyRole:         myRole,
+		ToMyLeft:       toMyLeft,
+		ToMyRight:      toMyRight,
 	}
 
 }
