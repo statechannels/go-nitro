@@ -1,8 +1,22 @@
 import {defaultAbiCoder, ParamType} from '@ethersproject/abi';
 import {Signature} from '@ethersproject/bytes';
+import { encodeOutcome } from './outcome';
 
-import {FixedPart, VariablePart} from './state';
+import {encodeAppData, FixedPart, State} from './state';
 import {Bytes, Bytes32} from './types';
+
+// redefinition to support EmbeddedApplication.sol logic
+export interface VariablePart {
+  outcome: string;
+  appData: string;
+}
+// redefinition to support EmbeddedApplication.sol logic
+export function getVariablePart(state: State): VariablePart {
+  return {
+    outcome: encodeOutcome(state.outcome),
+    appData: encodeAppData(state.appData),
+  };
+}
 
 export interface SupportProof {
   fixedPart: FixedPart;
