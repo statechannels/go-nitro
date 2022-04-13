@@ -19,7 +19,7 @@ const (
 )
 
 // The turn number used for the final state
-const FinalTurnNum = 3
+const FinalTurnNum = 2
 
 // errors
 var ErrNotApproved = errors.New("objective not approved")
