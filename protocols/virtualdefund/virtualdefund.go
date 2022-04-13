@@ -321,7 +321,7 @@ func (o Objective) isRightDefunded() bool {
 		return true
 	}
 
-	included := o.ToMyLeft.IncludesTarget(o.VId())
+	included := o.ToMyRight.IncludesTarget(o.VId())
 	return !included
 }
 
