@@ -124,12 +124,12 @@ func constructFromState(
 }
 
 // OwnsChannel returns the channel that the objective is funding.
-func (dfo *Objective) OwnsChannel() types.Destination {
+func (dfo Objective) OwnsChannel() types.Destination {
 	return dfo.C.Id
 }
 
 // GetStatus returns the status of the objective.
-func (dfo *Objective) GetStatus() protocols.ObjectiveStatus {
+func (dfo Objective) GetStatus() protocols.ObjectiveStatus {
 	return dfo.Status
 }
 
