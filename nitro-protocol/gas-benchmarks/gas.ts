@@ -1,7 +1,7 @@
 type GasRequiredTo = Record<
   Path,
   {
-    vanillaNitro: any;
+    satp: any;
   }
 >;
 
@@ -27,86 +27,81 @@ type Path =
 // 👩    Alice's external destination (e.g. her EOA)
 export const gasRequiredTo: GasRequiredTo = {
   deployInfrastructureContracts: {
-    vanillaNitro: {
-      NitroAdjudicator: 4_228_615, // Singleton
+    satp: {
+      NitroAdjudicator: 4_389_105, // Singleton
     },
   },
   directlyFundAChannelWithETHFirst: {
-    vanillaNitro: 48_014,
+    satp: 47_797,
   },
   directlyFundAChannelWithETHSecond: {
     // meaning the second participant in the channel
-    vanillaNitro: 30_926,
+    satp: 30_709,
   },
   directlyFundAChannelWithERC20First: {
     // The depositor begins with zero tokens approved for the AssetHolder
     // The AssetHolder begins with some token balance already
     // The depositor retains a nonzero balance of tokens after depositing
     // The depositor retains some tokens approved for the AssetHolder after depositing
-    vanillaNitro: {
+    satp: {
       approve: 46_383,
       // ^^^^^
       // In principle this only needs to be done once per account
       // (the cost may be amortized over several deposits into this AssetHolder)
-      deposit: 71_392,
+      deposit: 71_280,
     },
   },
   directlyFundAChannelWithERC20Second: {
     // meaning the second participant in the channel
-    vanillaNitro: {
+    satp: {
       approve: 46_383,
       // ^^^^^
       // In principle this only needs to be done once per account
       // (the cost may be amortized over several deposits into this AssetHolder)
-      deposit: 54_304,
+      deposit: 54_192,
     },
   },
   ETHexit: {
     // We completely liquidate the channel (paying out both parties)
-    vanillaNitro: 133_112,
+    satp: 144_462,
   },
   ERC20exit: {
     // We completely liquidate the channel (paying out both parties)
-    vanillaNitro: 123_510,
+    satp: 134_816,
   },
   ETHexitSad: {
     // Scenario: Counterparty Bob goes offline
     // initially                 ⬛ ->  X  -> 👩
     // challenge + timeout       ⬛ -> (X) -> 👩
     // transferAllAssets         ⬛ --------> 👩
-    vanillaNitro: {
-      challenge: 94_673,
-      transferAllAssets: 109_517,
-      total: 204_190,
+    satp: {
+      challenge: 107_405,
+      transferAllAssets: 110_149,
+      total: 217_554,
     },
   },
   ETHexitSadLedgerFunded: {
     // Scenario: Counterparty Bob goes offline
-    vanillaNitro: {
+    satp: {
       // initially                   ⬛ ->  L  ->  X  -> 👩
       // challenge X, L and timeout  ⬛ -> (L) -> (X) -> 👩
       // transferAllAssetsL          ⬛ --------> (X) -> 👩
       // transferAllAssetsX          ⬛ ---------------> 👩
-      challengeX: 94_673,
-      challengeL: 91_703,
-      transferAllAssetsL: 58_742,
-      transferAllAssetsX: 109_517,
-      total: 354_635,
+      challengeX: 107_405,
+      challengeL: 101_397,
+      transferAllAssetsL: 59_047,
+      transferAllAssetsX: 110_149,
+      total: 377_998,
     },
   },
   ETHexitSadVirtualFunded: {
     // Scenario: Intermediary Ingrid goes offline
-    vanillaNitro: {
-      // initially                   ⬛ ->  L  ->  J  ->  X  -> 👩
-      // challenge L,J,X + timeout   ⬛ -> (L) -> (J) -> (X) -> 👩
-      // claimL                      ⬛ ---------------> (X) -> 👩
-      // transferAllAssetsX          ⬛ ----------------------> 👩
-      challengeL: 94_980,
-      challengeJ: 103_014,
-      challengeX: 94_673,
-      claimL: 95_060,
-      transferAllAssetsX: 109_517,
-      total: 497_244,
+    satp: {
+      // initially                   ⬛ ->  L  ->  V  -> 👩
+      // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👩
+      // reclaim L                   ⬛ -- (L) --------> 👩
+      // transferAllAssetsL          ⬛ ---------------> 👩
+      // TODO
     },
   },
 };
