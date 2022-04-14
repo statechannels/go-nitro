@@ -6,9 +6,6 @@ import (
 	"math/big"
 	"testing"
 
-	ethAbi "github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/statechannels/go-nitro/abi"
-
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
@@ -16,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	nc "github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -35,70 +31,6 @@ type actors struct {
 	Bob   actor
 }
 
-func convertVariablePart(vp state.VariablePart) IForceMoveAppVariablePart {
-	return IForceMoveAppVariablePart{
-		AppData: vp.AppData,
-		TurnNum: big.NewInt(int64(vp.TurnNum)),
-		IsFinal: vp.IsFinal,
-		Outcome: convertOutcome(vp.Outcome),
-	}
-}
-
-func convertOutcome(o outcome.Exit) []ExitFormatSingleAssetExit {
-	e := make([]ExitFormatSingleAssetExit, len(o))
-	for i, sae := range o {
-		e[i].Asset = sae.Asset
-		e[i].Metadata = sae.Metadata
-		e[i].Allocations = convertAllocations(sae.Allocations)
-	}
-	return e
-}
-
-func convertAllocations(as outcome.Allocations) []ExitFormatAllocation {
-	b := make([]ExitFormatAllocation, len(as))
-	for i, a := range as {
-		b[i].Destination = a.Destination
-		b[i].Amount = a.Amount
-		b[i].AllocationType = uint8(a.AllocationType)
-		b[i].Metadata = a.Metadata
-	}
-	return b
-}
-
-func convertSignature(s nc.Signature) IForceMoveSignature {
-	sig := IForceMoveSignature{
-		V: s.V,
-	}
-	copy(sig.R[:], s.R)
-	copy(sig.S[:], s.S) // TODO we should just use 32 byte types, which would remove the need for this func
-	return sig
-}
-
-func generateStatus(state state.State, finalizesAt *big.Int) ([]byte, error) {
-
-	turnNumBytes := big.NewInt(int64(state.TurnNum)).FillBytes(make([]byte, 6))
-	finalizesAtBytes := finalizesAt.FillBytes(make([]byte, 6))
-
-	stateHash, err := state.Hash()
-	if err != nil {
-		return []byte{}, err
-	}
-	outcomeHash, err := state.Outcome.Hash()
-	if err != nil {
-		return []byte{}, err
-	}
-	handprintPreimage, err := ethAbi.Arguments{{Type: abi.Bytes32}, {Type: abi.Bytes32}}.Pack(stateHash, outcomeHash)
-	handprint := crypto.Keccak256(handprintPreimage)
-	if err != nil {
-		return []byte{}, err
-	}
-	fingerprint := handprint[12:]
-
-	status := []byte(string(turnNumBytes) + string(finalizesAtBytes) + string(fingerprint))
-
-	return status, nil
-}
-
 // Actors is the endpoint for tests to consume constructed statechannel
 // network participants (public-key secret-key pairs)
 var Actors actors = actors{
@@ -112,55 +44,60 @@ var Actors actors = actors{
 	},
 }
 
+var turnNum = uint64(0)
+
+var s = state.State{
+	ChainId: big.NewInt(1337),
+	Participants: []types.Address{
+		Actors.Alice.Address,
+		Actors.Bob.Address,
+	},
+	ChannelNonce:      big.NewInt(37140676580),
+	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
+	ChallengeDuration: big.NewInt(60),
+	AppData:           []byte{},
+	Outcome:           outcome.Exit{},
+	TurnNum:           turnNum,
+	IsFinal:           false,
+}
+
 func TestChallenge(t *testing.T) {
 
-	turnNum := uint64(0)
-	s := state.State{
-		ChainId: big.NewInt(1337),
-		Participants: []types.Address{
-			Actors.Alice.Address,
-			Actors.Bob.Address,
-		},
-		ChannelNonce:      big.NewInt(37140676580),
-		AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
-		ChallengeDuration: big.NewInt(60),
-		AppData:           []byte{},
-		Outcome:           outcome.Exit{},
-		TurnNum:           turnNum,
-		IsFinal:           false,
-	}
-
+	// Generate Signatures
 	aSig, _ := s.Sign(Actors.Alice.PrivateKey)
 	bSig, _ := s.Sign(Actors.Bob.PrivateKey)
 	challengerSig, err := SignChallengeMessage(s, Actors.Alice.PrivateKey)
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Setup transacting EOA
 	key, _ := crypto.GenerateKey()
 	auth := bind.NewKeyedTransactor(key)
-
+	auth.GasPrice = big.NewInt(10000000000)
 	address := auth.From
 	balance := new(big.Int)
 	balance.SetString("10000000000000000000", 10) // 10 eth in wei
+
+	// Setup "blockchain"
 	gAlloc := map[common.Address]core.GenesisAccount{
 		address: {Balance: balance},
 	}
-
 	blockGasLimit := uint64(4712388)
-
 	sim := backends.NewSimulatedBackend(gAlloc, blockGasLimit)
 
-	auth.GasPrice = big.NewInt(10000000000)
-
-	naAddress, _, na, err := DeployNitroAdjudicator(auth, sim)
+	// Deply Adjudicator
+	_, _, na, err := DeployNitroAdjudicator(auth, sim)
 
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Mine a block
 	sim.Commit()
-	t.Log(naAddress)
-	t.Log(na)
+
+	// Fire off a Challenge tx
 	tx, err := na.Challenge(
 		auth,
 		IForceMoveFixedPart(s.FixedPart()),
@@ -172,8 +109,11 @@ func TestChallenge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Mine a block
 	sim.Commit()
 
+	// Compute challenge time
 	receipt, err := sim.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		t.Fatal(err)
@@ -184,19 +124,21 @@ func TestChallenge(t *testing.T) {
 	}
 	challengeTime := big.NewInt(int64(header.Time))
 
+	// Generate expectaiont
 	expectedFinalizesAt := big.NewInt(0).Add(challengeTime, s.ChallengeDuration)
-
 	cId, _ := s.ChannelId()
-
 	expectedOnChainStatus, err := generateStatus(s, expectedFinalizesAt)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Inspect state of chain (call StatusOf)
 	statusOnChain, err := na.StatusOf(&bind.CallOpts{}, cId)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Make assertion
 	if !bytes.Equal(statusOnChain[:], expectedOnChainStatus) {
 		t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(expectedOnChainStatus[:]))
 	}
