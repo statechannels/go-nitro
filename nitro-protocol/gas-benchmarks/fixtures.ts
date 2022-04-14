@@ -89,25 +89,23 @@ class TestChannel {
     // for challenging and outcome pushing
     state: State
   ): {
-    largestTurnNum: number;
     fixedPart: FixedPart;
     variableParts: VariablePart[];
     isFinalCount: number;
     whoSignedWhat: number[];
     signatures: Signature[];
     challengeSignature: Signature;
-    outcomeBytes: string;
+    outcome: Outcome;
     stateHash: string;
   } {
     return {
-      largestTurnNum: state.turnNum,
       fixedPart: getFixedPart(state),
       variableParts: [getVariablePart(state)],
       isFinalCount: 0,
       whoSignedWhat: this.wallets.map(() => 0),
       signatures: this.wallets.map(w => signState(state, w.privateKey).signature),
       challengeSignature: signChallengeMessage([{state} as SignedState], Alice.privateKey),
-      outcomeBytes: encodeOutcome(state.outcome),
+      outcome: state.outcome,
       stateHash: hashState(state),
     };
   }
@@ -116,18 +114,16 @@ class TestChannel {
     // for concluding
     state: State
   ): {
-    largestTurnNum: number;
     fixedPart: FixedPart;
-    appPartHash: Bytes32;
+    latestVariablePart: VariablePart;
     outcome: Outcome;
     numStates: 1;
     whoSignedWhat: number[];
     sigs: Signature[];
   } {
     return {
-      largestTurnNum: state.turnNum,
       fixedPart: getFixedPart(state),
-      appPartHash: hashAppPart(state),
+      latestVariablePart: getVariablePart(state),
       outcome: state.outcome,
       numStates: 1,
       whoSignedWhat: this.wallets.map(() => 0),
@@ -138,10 +134,8 @@ class TestChannel {
   async concludeAndTransferAllAssetsTx(asset: string) {
     const fP = this.supportProof(this.finalState(asset));
     return await nitroAdjudicator.concludeAndTransferAllAssets(
-      fP.largestTurnNum,
       fP.fixedPart,
-      fP.appPartHash,
-      encodeOutcome(fP.outcome),
+      fP.latestVariablePart,
       fP.numStates,
       fP.whoSignedWhat,
       fP.sigs
@@ -152,9 +146,7 @@ class TestChannel {
     const proof = this.counterSignedSupportProof(this.someState(asset));
     return await nitroAdjudicator.challenge(
       proof.fixedPart,
-      proof.largestTurnNum,
       proof.variableParts,
-      proof.isFinalCount,
       proof.signatures,
       proof.whoSignedWhat,
       proof.challengeSignature
@@ -280,9 +272,7 @@ export async function challengeChannelAndExpectGas(
 
   const challengeTx = await nitroAdjudicator.challenge(
     proof.fixedPart,
-    proof.largestTurnNum,
     proof.variableParts,
-    proof.isFinalCount,
     proof.signatures,
     proof.whoSignedWhat,
     proof.challengeSignature
