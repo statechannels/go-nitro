@@ -15,13 +15,13 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
 
-// UnhandledChainEvent is an engine error when the the engine cannot process a chain event
-type UnhandledChainEvent struct {
+// ErrUnhandledChainEvent is an engine error when the the engine cannot process a chain event
+type ErrUnhandledChainEvent struct {
 	event     chainservice.Event
 	objective protocols.Objective
 }
 
-func (uce *UnhandledChainEvent) Error() string {
+func (uce *ErrUnhandledChainEvent) Error() string {
 	return fmt.Sprintf("chain event could not be handled %#v by objective %#v", uce.event, uce.objective)
 }
 
@@ -164,12 +164,12 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 	e.logger.Printf("handling chain event %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.GetChannelId())
 	if !ok {
-		return ObjectiveChangeEvent{}, &UnhandledChainEvent{event: chainEvent, objective: objective}
+		return ObjectiveChangeEvent{}, &ErrUnhandledChainEvent{event: chainEvent, objective: objective}
 	}
 
 	eventHandler, ok := objective.(chainservice.ChainEventHandler)
 	if !ok {
-		return ObjectiveChangeEvent{}, &UnhandledChainEvent{event: chainEvent, objective: objective}
+		return ObjectiveChangeEvent{}, &ErrUnhandledChainEvent{event: chainEvent, objective: objective}
 	}
 	updatedEventHandler, err := eventHandler.UpdateWithChainEvent(chainEvent)
 	if err != nil {
