@@ -22,7 +22,7 @@ type ErrUnhandledChainEvent struct {
 }
 
 func (uce *ErrUnhandledChainEvent) Error() string {
-	return fmt.Sprintf("chain event could not be handled %#v by objective %#v", uce.event, uce.objective)
+	return fmt.Sprintf("chain event %#v could not be handled by objective %#v", uce.event, uce.objective)
 }
 
 // Engine is the imperative part of the core business logic of a go-nitro Client
