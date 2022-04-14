@@ -19,10 +19,11 @@ import (
 type ErrUnhandledChainEvent struct {
 	event     chainservice.Event
 	objective protocols.Objective
+	reason    string
 }
 
 func (uce *ErrUnhandledChainEvent) Error() string {
-	return fmt.Sprintf("chain event %#v could not be handled by objective %#v", uce.event, uce.objective)
+	return fmt.Sprintf("chain event %#v could not be handled by objective %#v due to: %s", uce.event, uce.objective, uce.reason)
 }
 
 // Engine is the imperative part of the core business logic of a go-nitro Client
@@ -164,12 +165,12 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 	e.logger.Printf("handling chain event %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.GetChannelId())
 	if !ok {
-		return ObjectiveChangeEvent{}, &ErrUnhandledChainEvent{event: chainEvent, objective: objective}
+		return ObjectiveChangeEvent{}, &ErrUnhandledChainEvent{event: chainEvent, objective: objective, reason: "no objective for channel"}
 	}
 
 	eventHandler, ok := objective.(chainservice.ChainEventHandler)
 	if !ok {
-		return ObjectiveChangeEvent{}, &ErrUnhandledChainEvent{event: chainEvent, objective: objective}
+		return ObjectiveChangeEvent{}, &ErrUnhandledChainEvent{event: chainEvent, objective: objective, reason: "objective does not handle chain events"}
 	}
 	updatedEventHandler, err := eventHandler.UpdateWithChainEvent(chainEvent)
 	if err != nil {
