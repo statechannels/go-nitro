@@ -51,7 +51,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
     ) public {
         // checks
         _requireChannelFinalized(channelId);
-        _requireMatchingFingerprint(stateHash, keccak256(Outcome.encodeExit(outcome)), channelId);
+        _requireMatchingFingerprint(stateHash, _hashOutcome(outcome), channelId);
 
         // computation
         bool allocatesOnlyZerosForAllAssets = true;
@@ -93,8 +93,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         if (allocatesOnlyZerosForAllAssets) {
             delete statusOf[channelId];
         } else {
-            bytes32 outcomeHash = keccak256(Outcome.encodeExit(outcome));
-            _updateFingerprint(channelId, stateHash, outcomeHash);
+            _updateFingerprint(channelId, stateHash, _hashOutcome(outcome));
         }
 
         // interactions

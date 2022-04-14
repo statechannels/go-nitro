@@ -100,7 +100,7 @@ contract ForceMove is IForceMove, StatusManager {
                 largestTurnNum,
                 uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
                 supportedStateHash,
-                keccak256(Outcome.encodeExit(variableParts[variableParts.length - 1].outcome))
+                _hashOutcome(variableParts[variableParts.length - 1].outcome)
             )
         );
     }
@@ -142,10 +142,8 @@ contract ForceMove is IForceMove, StatusManager {
 
         // checks
 
-        bytes32 challengeOutcomeHash = keccak256(Outcome.encodeExit(variablePartAB[0].outcome));
-
         _requireSpecificChallenge(
-            ChannelData(turnNumRecord, finalizesAt, challengeStateHash, challengeOutcomeHash),
+            ChannelData(turnNumRecord, finalizesAt, challengeStateHash, _hashOutcome(variablePartAB[0].outcome)),
             channelId
         );
 
@@ -274,11 +272,9 @@ contract ForceMove is IForceMove, StatusManager {
             'Invalid signatures / !isFinal'
         );
 
-        bytes32 outcomeHash = keccak256(Outcome.encodeExit(latestVariablePart.outcome));
-
         // effects
         statusOf[channelId] = _generateStatus(
-            ChannelData(0, uint48(block.timestamp), bytes32(0), outcomeHash) //solhint-disable-line not-rely-on-time
+            ChannelData(0, uint48(block.timestamp), bytes32(0), _hashOutcome(latestVariablePart.outcome)) //solhint-disable-line not-rely-on-time
         );
         emit Concluded(channelId, uint48(block.timestamp)); //solhint-disable-line not-rely-on-time
     }
@@ -754,6 +750,18 @@ contract ForceMove is IForceMove, StatusManager {
                     isFinal
                 )
             );
+    }
+
+    /**
+     * @notice Hashes the outcome structure. Internal helper.
+     * @dev Hashes the outcome structure. Internal helper.
+     * @param outcome Outcome structure to encode hash.
+     * @return bytes32 Hash of encoded outcome structure.
+     */
+    function  _hashOutcome(Outcome.SingleAssetExit[] memory outcome)
+        internal pure returns(bytes32)
+    {
+        return keccak256(Outcome.encodeExit(outcome));
     }
 
     /**
