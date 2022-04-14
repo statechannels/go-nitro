@@ -9,7 +9,6 @@ import (
 // Event dictates which methods all chain events must implement
 type Event interface {
 	ChannelID() types.Destination
-	GetBlockNum() uint64
 }
 
 // CommonEvent declares fields shared by all chain events
@@ -29,10 +28,6 @@ func (de DepositedEvent) ChannelID() types.Destination {
 	return de.channelID
 }
 
-func (de DepositedEvent) GetBlockNum() uint64 {
-	return de.BlockNum
-}
-
 // AllocationUpdated is an internal representation of the AllocatonUpdated blockchain event
 type AllocationUpdatedEvent struct {
 	CommonEvent
@@ -41,10 +36,6 @@ type AllocationUpdatedEvent struct {
 
 func (de AllocationUpdatedEvent) ChannelID() types.Destination {
 	return de.channelID
-}
-
-func (de AllocationUpdatedEvent) GetBlockNum() uint64 {
-	return de.BlockNum
 }
 
 // todo implement other event types
