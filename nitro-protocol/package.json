@@ -13,7 +13,8 @@
     "lint:write": "npx eslint \"src/**/*.ts\" --fix && npm run prettier:write",
     "solhint:check": "npx solhint -w 0 './contracts/**/*.sol'",
     "solhint:write": "echo 'This command does not seem to work. Use npm run prettier:write ' && npx solhint --fix './contracts/**/*.sol'",
-    "prettier:write": "prettier --write './contracts/**/*.sol'"
+    "prettier:write": "prettier --write './contracts/**/*.sol'",
+    "test:gas": "jest -c ./config/jest/jest.gas-benchmarks.config.js"
   },
   "keywords": [],
   "author": "",
@@ -26,13 +27,14 @@
     "@statechannels/devtools": "^0.5.7",
     "@typechain/ethers-v5": "^9.0.0",
     "@typechain/hardhat": "^4.0.0",
-    "@types/jest": "^27.4.0",
+    "@types/jest": "^27.4.1",
     "@types/lodash.isequal": "^4.5.5",
     "@types/lodash.pick": "^4.4.6",
     "@types/lodash.shuffle": "^4.2.6",
     "@types/mocha": "^9.1.0",
     "@typescript-eslint/eslint-plugin": "^5.19.0",
     "@typescript-eslint/parser": "^5.19.0",
+    "@types/wait-on": "^5.3.1",
     "chai": "^4.3.6",
     "dotenv": "^14.3.2",
     "eslint": "7.17.0",
@@ -55,7 +57,8 @@
     "ts-jest": "^27.1.3",
     "ts-node": "^10.4.0",
     "typechain": "^8.0.0",
-    "typescript": "^4.6.3"
+    "typescript": "^4.6.3",
+    "wait-on": "^6.0.1"
   },
   "dependencies": {
     "@statechannels/exit-format": "^0.0.6",
