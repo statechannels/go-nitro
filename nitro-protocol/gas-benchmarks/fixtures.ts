@@ -332,19 +332,3 @@ export async function assertEthBalancesAndHoldings(
     }),
   ]);
 }
-
-// DEPRECATED
-/**
- * Encodes and hashes the AppPart of a state
- * @param state a State
- * @returns a 32 byte keccak256 hash
- */
-export function hashAppPart(state: State): Bytes32 {
-  const {challengeDuration, appDefinition, appData} = state;
-  return utils.keccak256(
-    utils.defaultAbiCoder.encode(
-      ['uint256', 'address', 'bytes'],
-      [challengeDuration, appDefinition, appData]
-    )
-  );
-}
