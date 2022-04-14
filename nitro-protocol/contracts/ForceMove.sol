@@ -127,7 +127,7 @@ contract ForceMove is IForceMove, StatusManager {
         bytes32 challengeStateHash = _hashState(
             channelId,
             variablePartAB[0].appData,
-            Outcome.encodeExit(variablePartAB[0].outcome),
+            variablePartAB[0].outcome,
             turnNumRecord,
             variablePartAB[0].isFinal
         );
@@ -135,7 +135,7 @@ contract ForceMove is IForceMove, StatusManager {
         bytes32 responseStateHash = _hashState(
             channelId,
             variablePartAB[1].appData,
-            Outcome.encodeExit(variablePartAB[1].outcome),
+            variablePartAB[1].outcome,
             turnNumRecord + 1,
             variablePartAB[1].isFinal
         );
@@ -254,7 +254,7 @@ contract ForceMove is IForceMove, StatusManager {
             stateHashes[i] = _hashState(
                 channelId,
                 latestVariablePart.appData,
-                Outcome.encodeExit(latestVariablePart.outcome),
+                latestVariablePart.outcome,
                 latestVariablePart.turnNum + (i + 1) - numStates, // turnNum
                 // ^^ SW-C101: It is not easy to use SafeMath here, since we are not using uint256s
                 // Instead, we are protected by the require statement above
@@ -493,7 +493,7 @@ contract ForceMove is IForceMove, StatusManager {
             stateHashes[i] = _hashState(
                 channelId,
                 variableParts[i].appData,
-                Outcome.encodeExit(variableParts[i].outcome),
+                variableParts[i].outcome,
                 variableParts[i].turnNum,
                 variableParts[i].isFinal
             );
@@ -734,13 +734,13 @@ contract ForceMove is IForceMove, StatusManager {
      * @param isFinal Is the state final?
      * @param channelId Unique identifier for the channel
      * @param appData Application specific data.
-     * @param outcome Encoded outcome structure. Will be decoded to hash the State.
+     * @param outcome Outcome structure.
      * @return The stateHash
      */
     function _hashState(
         bytes32 channelId,
         bytes memory appData,
-        bytes memory outcome,
+        Outcome.SingleAssetExit[] memory outcome,
         uint48 turnNum,
         bool isFinal
     ) internal pure returns (bytes32) {
@@ -749,8 +749,7 @@ contract ForceMove is IForceMove, StatusManager {
                 abi.encode(
                     channelId,
                     appData,
-                    // Decoding to get an Outcome struct, since it is the one used in go-nitro State hashing
-                    Outcome.decodeExit(outcome),
+                    outcome,
                     turnNum,
                     isFinal
                 )
