@@ -1,4 +1,3 @@
-
 import {utils} from 'ethers';
 import {Signature} from '@ethersproject/bytes';
 import {Wallet} from '@ethersproject/wallet';
@@ -48,7 +47,13 @@ class TestChannel {
     allocations: Array<GuaranteeAllocation | SimpleAllocation>
   ) {
     this.wallets = wallets;
-    this.fixedPart = {chainId, channelNonce, participants: wallets.map(w => w.address), appDefinition: '0x8504FcA6e1e73947850D66D032435AC931892116', challengeDuration: 600};
+    this.fixedPart = {
+      chainId,
+      channelNonce,
+      participants: wallets.map(w => w.address),
+      appDefinition: '0x8504FcA6e1e73947850D66D032435AC931892116',
+      challengeDuration: 600,
+    };
     this.allocations = allocations;
   }
   wallets: ethers.Wallet[];
@@ -320,15 +325,18 @@ export async function assertEthBalancesAndHoldings(
   await Promise.all([
     ...Object.keys(ethHoldings).map(async key => {
       expect(
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        (await nitroAdjudicator.holdings(constants.AddressZero, internalDestinations[key])).eq( 
-        // @ts-ignore
+        (await nitroAdjudicator.holdings(constants.AddressZero, internalDestinations[key])).eq(
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
           BigNumber.from(ethHoldings[key])
         )
       ).toBe(true);
     }),
     ...Object.keys(ethBalances).map(async key => {
       expect(
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         (await provider.getBalance(externalDestinations[key])).eq(BigNumber.from(ethBalances[key]))
       ).toBe(true);
@@ -342,7 +350,7 @@ export async function assertEthBalancesAndHoldings(
  * @param state a State
  * @returns a 32 byte keccak256 hash
  */
- export function hashAppPart(state: State): Bytes32 {
+export function hashAppPart(state: State): Bytes32 {
   const {challengeDuration, appDefinition, appData} = state;
   return utils.keccak256(
     utils.defaultAbiCoder.encode(
