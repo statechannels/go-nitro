@@ -164,9 +164,7 @@ func TestChallenge(t *testing.T) {
 	tx, err := na.Challenge(
 		auth,
 		IForceMoveFixedPart(s.FixedPart()),
-		big.NewInt(0),
 		[]IForceMoveAppVariablePart{convertVariablePart(s.VariablePart())},
-		0,
 		[]IForceMoveSignature{convertSignature(aSig), convertSignature(bSig)},
 		[]uint8{0, 0},
 		convertSignature(challengerSig),
