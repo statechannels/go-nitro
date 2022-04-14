@@ -163,7 +163,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 // attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChangeEvent, error) {
 	e.logger.Printf("handling chain event %v", chainEvent)
-	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.GetChannelId())
+	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
 	if !ok {
 		return ObjectiveChangeEvent{}, &ErrUnhandledChainEvent{event: chainEvent, objective: objective, reason: "no objective for channel"}
 	}

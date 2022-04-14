@@ -8,13 +8,13 @@ import (
 
 // Event dictates which methods all chain events must implement
 type Event interface {
-	GetChannelId() types.Destination
+	ChannelID() types.Destination
 	GetBlockNum() uint64
 }
 
 // CommonEvent declares fields shared by all chain events
 type CommonEvent struct {
-	ChannelId          types.Destination
+	channelID          types.Destination
 	AdjudicationStatus protocols.AdjudicationStatus
 	BlockNum           uint64
 }
@@ -25,8 +25,8 @@ type DepositedEvent struct {
 	Holdings types.Funds // indexed by asset
 }
 
-func (de DepositedEvent) GetChannelId() types.Destination {
-	return de.ChannelId
+func (de DepositedEvent) ChannelID() types.Destination {
+	return de.channelID
 }
 
 func (de DepositedEvent) GetBlockNum() uint64 {
@@ -39,8 +39,8 @@ type AllocationUpdatedEvent struct {
 	Holdings types.Funds // indexed by asset
 }
 
-func (de AllocationUpdatedEvent) GetChannelId() types.Destination {
-	return de.ChannelId
+func (de AllocationUpdatedEvent) ChannelID() types.Destination {
+	return de.channelID
 }
 
 func (de AllocationUpdatedEvent) GetBlockNum() uint64 {
