@@ -6,17 +6,17 @@ type GasRequiredTo = Record<
 >;
 
 type Path =
-  | "deployInfrastructureContracts"
-  | "directlyFundAChannelWithETHFirst"
-  | "directlyFundAChannelWithETHSecond"
-  | "directlyFundAChannelWithERC20First"
-  | "directlyFundAChannelWithERC20Second"
-  | "ETHexit"
-  | "ERC20exit"
-  | "ETHexitSad"
-  | "ETHexitSadLedgerFunded"
-  | "ETHexitSadVirtualFunded"
-  | "ETHexitSadLedgerFunded";
+  | 'deployInfrastructureContracts'
+  | 'directlyFundAChannelWithETHFirst'
+  | 'directlyFundAChannelWithETHSecond'
+  | 'directlyFundAChannelWithERC20First'
+  | 'directlyFundAChannelWithERC20Second'
+  | 'ETHexit'
+  | 'ERC20exit'
+  | 'ETHexitSad'
+  | 'ETHexitSadLedgerFunded'
+  | 'ETHexitSadVirtualFunded'
+  | 'ETHexitSadLedgerFunded';
 
 // The channel being benchmarked is a 2 party null app funded with 5 wei / tokens each.
 // KEY
@@ -28,15 +28,15 @@ type Path =
 export const gasRequiredTo: GasRequiredTo = {
   deployInfrastructureContracts: {
     satp: {
-      NitroAdjudicator: 4_159_688, // Singleton
+      NitroAdjudicator: 4_389_105, // Singleton
     },
   },
   directlyFundAChannelWithETHFirst: {
-    satp: 47_796,
+    satp: 47_797,
   },
   directlyFundAChannelWithETHSecond: {
     // meaning the second participant in the channel
-    satp: 30_708,
+    satp: 30_709,
   },
   directlyFundAChannelWithERC20First: {
     // The depositor begins with zero tokens approved for the AssetHolder
@@ -63,11 +63,11 @@ export const gasRequiredTo: GasRequiredTo = {
   },
   ETHexit: {
     // We completely liquidate the channel (paying out both parties)
-    satp: 133_112,
+    satp: 144_462,
   },
   ERC20exit: {
     // We completely liquidate the channel (paying out both parties)
-    satp: 123_510,
+    satp: 134_816,
   },
   ETHexitSad: {
     // Scenario: Counterparty Bob goes offline
@@ -75,9 +75,9 @@ export const gasRequiredTo: GasRequiredTo = {
     // challenge + timeout       ⬛ -> (X) -> 👩
     // transferAllAssets         ⬛ --------> 👩
     satp: {
-      challenge: 94_673,
-      transferAllAssets: 109_517,
-      total: 204_190,
+      challenge: 107_405,
+      transferAllAssets: 110_149,
+      total: 217_554,
     },
   },
   ETHexitSadLedgerFunded: {
@@ -87,11 +87,11 @@ export const gasRequiredTo: GasRequiredTo = {
       // challenge X, L and timeout  ⬛ -> (L) -> (X) -> 👩
       // transferAllAssetsL          ⬛ --------> (X) -> 👩
       // transferAllAssetsX          ⬛ ---------------> 👩
-      challengeX: 94_673,
-      challengeL: 91_703,
-      transferAllAssetsL: 58_742,
-      transferAllAssetsX: 109_517,
-      total: 354_635,
+      challengeX: 107_405,
+      challengeL: 101_397,
+      transferAllAssetsL: 59_047,
+      transferAllAssetsX: 110_149,
+      total: 377_998,
     },
   },
   ETHexitSadVirtualFunded: {
