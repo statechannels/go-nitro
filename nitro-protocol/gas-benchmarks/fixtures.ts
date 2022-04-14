@@ -1,3 +1,4 @@
+import {utils} from 'ethers';
 import {Signature} from '@ethersproject/bytes';
 import {Wallet} from '@ethersproject/wallet';
 import {AllocationType} from '@statechannels/exit-format';
@@ -5,12 +6,9 @@ import {BigNumber, BigNumberish, constants, ContractReceipt, ethers} from 'ether
 
 import {
   Bytes32,
-  Channel,
   convertAddressToBytes32,
-  encodeOutcome,
   getChannelId,
   getFixedPart,
-  hashAppPart,
   signChallengeMessage,
   SignedState,
   signState,
@@ -23,7 +21,6 @@ import {
   SimpleAllocation,
 } from '../src/contract/outcome';
 import {FixedPart, getVariablePart, hashState, VariablePart} from '../src/contract/state';
-import {Bytes} from '../src/contract/types';
 
 import {nitroAdjudicator, provider} from './vanillaSetup';
 
@@ -49,24 +46,30 @@ class TestChannel {
     allocations: Array<GuaranteeAllocation | SimpleAllocation>
   ) {
     this.wallets = wallets;
-    this.channel = {chainId, channelNonce, participants: wallets.map(w => w.address)};
+    this.fixedPart = {
+      chainId,
+      channelNonce,
+      participants: wallets.map(w => w.address),
+      appDefinition: '0x8504FcA6e1e73947850D66D032435AC931892116',
+      challengeDuration: 600,
+    };
     this.allocations = allocations;
   }
   wallets: ethers.Wallet[];
-  channel: Channel;
+  fixedPart: FixedPart;
   private allocations: Array<GuaranteeAllocation | SimpleAllocation>;
   outcome(asset: string) {
     const outcome: Outcome = [{asset, allocations: this.allocations, metadata: '0x'}];
     return outcome;
   }
   get channelId() {
-    return getChannelId(this.channel);
+    return getChannelId(this.fixedPart);
   }
   someState(asset: string): State {
     return {
       challengeDuration: 600,
       appDefinition: '0x8504FcA6e1e73947850D66D032435AC931892116',
-      channel: this.channel,
+      channel: this.fixedPart,
       turnNum: 6,
       isFinal: false,
       outcome: this.outcome(asset),
@@ -85,25 +88,23 @@ class TestChannel {
     // for challenging and outcome pushing
     state: State
   ): {
-    largestTurnNum: number;
     fixedPart: FixedPart;
     variableParts: VariablePart[];
     isFinalCount: number;
     whoSignedWhat: number[];
     signatures: Signature[];
     challengeSignature: Signature;
-    outcomeBytes: string;
+    outcome: Outcome;
     stateHash: string;
   } {
     return {
-      largestTurnNum: state.turnNum,
       fixedPart: getFixedPart(state),
       variableParts: [getVariablePart(state)],
       isFinalCount: 0,
       whoSignedWhat: this.wallets.map(() => 0),
       signatures: this.wallets.map(w => signState(state, w.privateKey).signature),
       challengeSignature: signChallengeMessage([{state} as SignedState], Alice.privateKey),
-      outcomeBytes: encodeOutcome(state.outcome),
+      outcome: state.outcome,
       stateHash: hashState(state),
     };
   }
@@ -112,19 +113,17 @@ class TestChannel {
     // for concluding
     state: State
   ): {
-    largestTurnNum: number;
     fixedPart: FixedPart;
-    appPartHash: Bytes32;
-    outcomeBytes: Bytes;
+    latestVariablePart: VariablePart;
+    outcome: Outcome;
     numStates: 1;
     whoSignedWhat: number[];
     sigs: Signature[];
   } {
     return {
-      largestTurnNum: state.turnNum,
       fixedPart: getFixedPart(state),
-      appPartHash: hashAppPart(state),
-      outcomeBytes: encodeOutcome(state.outcome),
+      latestVariablePart: getVariablePart(state),
+      outcome: state.outcome,
       numStates: 1,
       whoSignedWhat: this.wallets.map(() => 0),
       sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
@@ -134,10 +133,8 @@ class TestChannel {
   async concludeAndTransferAllAssetsTx(asset: string) {
     const fP = this.supportProof(this.finalState(asset));
     return await nitroAdjudicator.concludeAndTransferAllAssets(
-      fP.largestTurnNum,
       fP.fixedPart,
-      fP.appPartHash,
-      fP.outcomeBytes,
+      fP.latestVariablePart,
       fP.numStates,
       fP.whoSignedWhat,
       fP.sigs
@@ -148,9 +145,7 @@ class TestChannel {
     const proof = this.counterSignedSupportProof(this.someState(asset));
     return await nitroAdjudicator.challenge(
       proof.fixedPart,
-      proof.largestTurnNum,
       proof.variableParts,
-      proof.isFinalCount,
       proof.signatures,
       proof.whoSignedWhat,
       proof.challengeSignature
@@ -276,9 +271,7 @@ export async function challengeChannelAndExpectGas(
 
   const challengeTx = await nitroAdjudicator.challenge(
     proof.fixedPart,
-    proof.largestTurnNum,
     proof.variableParts,
-    proof.isFinalCount,
     proof.signatures,
     proof.whoSignedWhat,
     proof.challengeSignature
@@ -321,15 +314,37 @@ export async function assertEthBalancesAndHoldings(
   await Promise.all([
     ...Object.keys(ethHoldings).map(async key => {
       expect(
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         (await nitroAdjudicator.holdings(constants.AddressZero, internalDestinations[key])).eq(
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
           BigNumber.from(ethHoldings[key])
         )
       ).toBe(true);
     }),
     ...Object.keys(ethBalances).map(async key => {
       expect(
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         (await provider.getBalance(externalDestinations[key])).eq(BigNumber.from(ethBalances[key]))
       ).toBe(true);
     }),
   ]);
+}
+
+// DEPRECATED
+/**
+ * Encodes and hashes the AppPart of a state
+ * @param state a State
+ * @returns a 32 byte keccak256 hash
+ */
+export function hashAppPart(state: State): Bytes32 {
+  const {challengeDuration, appDefinition, appData} = state;
+  return utils.keccak256(
+    utils.defaultAbiCoder.encode(
+      ['uint256', 'address', 'bytes'],
+      [challengeDuration, appDefinition, appData]
+    )
+  );
 }
