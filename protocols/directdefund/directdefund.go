@@ -151,6 +151,9 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	return &updated, nil
 }
 
+// UpdateWithChainEvent updates the objective with observed on-chain data.
+//
+// Only Allocation Updated events are currently handled.
 func (o Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
 	updated := o.clone()
 	de, ok := event.(chainservice.AllocationUpdatedEvent)
