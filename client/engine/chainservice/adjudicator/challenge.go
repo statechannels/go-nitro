@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// SignChallengeMessage generates the special signature required to launch a challenge. This is used to prevent non-participants from launching challenges.
 func SignChallengeMessage(s state.State, privateKey []byte) (state.Signature, error) {
 	challengeHash, err := hashChallengeMessage(s)
 	if err != nil {
