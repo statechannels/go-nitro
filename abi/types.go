@@ -1,3 +1,4 @@
+// Package abi contains constants which are useful when performing abi encoding and decoding.
 package abi
 
 import "github.com/ethereum/go-ethereum/accounts/abi"
