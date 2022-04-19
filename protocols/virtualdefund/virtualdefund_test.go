@@ -107,7 +107,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestCrank(t *testing.T) {
-	for _, my := range []testactors.Actor{bob} {
+	for _, my := range allActors {
 		msg := fmt.Sprintf("testing crank as %s", my.Name)
 		t.Run(msg, testCrankAs(my))
 	}
@@ -200,7 +200,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 
 		checkForLeaderProposals(t, se, updated)
 
-		proposals := generateLeaderProposals(my.Role, vId, updated)
+		proposals := generateProposalsResponses(my.Role, vId, updated)
 		updateProposals(updated, proposals...)
 
 		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
@@ -208,7 +208,6 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		testhelpers.Ok(t, err)
 
 		testhelpers.Equals(t, waitingFor, WaitingForNothing)
-
 		checkForFollowerProposals(t, se, updated)
 
 	}

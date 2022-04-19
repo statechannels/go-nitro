@@ -138,25 +138,44 @@ func checkForFollowerProposals(t *testing.T, se protocols.SideEffects, o *Object
 	}
 }
 
-// generateLeaderProposals generates the signed proposals for the leader of the consensus channel
-func generateLeaderProposals(myRole uint, vId types.Destination, o *Objective) []consensus_channel.SignedProposal {
+// generateProposalsResponses generates the signed proposals that a participant should expect from the other participants
+func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective) []consensus_channel.SignedProposal {
 	leftAmount := big.NewInt(6)
 	rightAmount := big.NewInt(4)
 	switch myRole {
-	case 1:
+	case 0:
 		{
-			// Irene should get a proposal from Alice
-			p := consensus_channel.NewRemoveProposal(o.ToMyLeft.Id, FinalTurnNum, vId, leftAmount, rightAmount)
-			sp, err := signProposal(alice, p, o.ToMyLeft)
+			// Alice expects Irene to accept her proposal
+			p := consensus_channel.NewRemoveProposal(o.ToMyRight.Id, FinalTurnNum, vId, leftAmount, rightAmount)
+			sp, err := signProposal(irene, p, o.ToMyRight)
 			if err != nil {
 				panic(err)
 			}
 
 			return []consensus_channel.SignedProposal{sp}
 		}
+
+	case 1:
+		{
+			// Irene expects Alice to send a proposal
+			p := consensus_channel.NewRemoveProposal(o.ToMyLeft.Id, FinalTurnNum, vId, leftAmount, rightAmount)
+			sp, err := signProposal(alice, p, o.ToMyLeft)
+			if err != nil {
+				panic(err)
+			}
+
+			// Irene expects Bob to accept her proposal
+			p2 := consensus_channel.NewRemoveProposal(o.ToMyRight.Id, FinalTurnNum, vId, leftAmount, rightAmount)
+			sp2, err := signProposal(bob, p2, o.ToMyRight)
+			if err != nil {
+				panic(err)
+			}
+
+			return []consensus_channel.SignedProposal{sp, sp2}
+		}
 	case 2:
 		{
-			// Bob should get a proposal from Irene
+			// Bob expects Irene to send a proposal
 			p := consensus_channel.NewRemoveProposal(o.ToMyLeft.Id, FinalTurnNum, vId, leftAmount, rightAmount)
 			sp, err := signProposal(irene, p, o.ToMyLeft)
 			if err != nil {
