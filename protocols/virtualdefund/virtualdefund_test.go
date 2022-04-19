@@ -137,7 +137,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
 		vId, _ := data.vFixed.ChannelId()
-		left, right := generateLedgers(my.Role, vId, true)
+		left, right := generateLedgers(my.Role, vId)
 
 		virtualDefund := newObjective(false, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), left, right, my.Role)
 		signedFinal := state.NewSignedState(data.vFinal)
@@ -164,7 +164,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
 		vId, _ := data.vFixed.ChannelId()
-		left, right := generateLedgers(my.Role, vId, true)
+		left, right := generateLedgers(my.Role, vId)
 		virtualDefund := newObjective(true, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), left, right, my.Role)
 
 		updatedObj, se, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)

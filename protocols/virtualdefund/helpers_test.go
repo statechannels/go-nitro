@@ -32,36 +32,23 @@ func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 }
 
 // generateLedgers generates the left and right ledger channels based on myRole
-// The ledgers will contain a guarantee if vIsFunded==true otherwise a ledger will have no guarantees
-func generateLedgers(myRole uint, vId types.Destination, vIsFunded bool) (left, right *consensus_channel.ConsensusChannel) {
-	leftGuarantees := []consensus_channel.Guarantee{}
-	rightGuarantees := []consensus_channel.Guarantee{}
+func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus_channel.ConsensusChannel) {
 	switch myRole {
 	case 0:
 		{
-
-			if vIsFunded {
-				rightGuarantees = append(rightGuarantees, generateGuarantee(testactors.Alice, testactors.Irene, vId))
-			}
-			return nil, prepareConsensusChannel(uint(consensus_channel.Leader), testactors.Alice, testactors.Irene, rightGuarantees...)
-
+			return nil, prepareConsensusChannel(uint(consensus_channel.Leader), testactors.Alice, testactors.Irene, generateGuarantee(testactors.Alice, testactors.Irene, vId))
 		}
 	case 1:
 		{
-			if vIsFunded {
-				leftGuarantees = append(leftGuarantees, generateGuarantee(testactors.Alice, testactors.Irene, vId))
-				rightGuarantees = append(rightGuarantees, generateGuarantee(testactors.Irene, testactors.Bob, vId))
-			}
-			return prepareConsensusChannel(uint(consensus_channel.Follower), testactors.Alice, testactors.Irene, leftGuarantees...),
-				prepareConsensusChannel(uint(consensus_channel.Leader), testactors.Irene, testactors.Bob, rightGuarantees...)
+
+			return prepareConsensusChannel(uint(consensus_channel.Follower), testactors.Alice, testactors.Irene, generateGuarantee(testactors.Alice, testactors.Irene, vId)),
+				prepareConsensusChannel(uint(consensus_channel.Leader), testactors.Irene, testactors.Bob, generateGuarantee(testactors.Irene, testactors.Bob, vId))
 
 		}
 	case 2:
 		{
-			if vIsFunded {
-				leftGuarantees = append(leftGuarantees, generateGuarantee(testactors.Irene, testactors.Bob, vId))
-			}
-			return prepareConsensusChannel(uint(consensus_channel.Follower), testactors.Irene, testactors.Bob, leftGuarantees...), nil
+
+			return prepareConsensusChannel(uint(consensus_channel.Follower), testactors.Irene, testactors.Bob, generateGuarantee(testactors.Irene, testactors.Bob, vId)), nil
 
 		}
 	default:
