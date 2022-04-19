@@ -117,13 +117,13 @@ func checkForFollowerProposals(t *testing.T, se protocols.SideEffects, o *Object
 	case 1:
 		{
 			// Irene should accept a proposal from Alice
-			rightProposal := consensus_channel.SignedProposal{Proposal: consensus_channel.NewRemoveProposal(o.ToMyLeft.Id, FinalTurnNum, o.VId(), td.leftAmount, td.rightAmount)}
+			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyLeft.Id, td)}
 			assertProposalSent(t, se, rightProposal, alice)
 		}
 	case 2:
 		{
 			// Bob should accept a proposal from Irene
-			rightProposal := consensus_channel.SignedProposal{Proposal: consensus_channel.NewRemoveProposal(o.ToMyLeft.Id, FinalTurnNum, o.VId(), td.leftAmount, td.rightAmount)}
+			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyLeft.Id, td)}
 			assertProposalSent(t, se, rightProposal, irene)
 		}
 
@@ -136,7 +136,7 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 	case 0:
 		{
 			// Alice expects Irene to accept her proposal
-			p := consensus_channel.NewRemoveProposal(o.ToMyRight.Id, FinalTurnNum, vId, td.leftAmount, td.rightAmount)
+			p := generateRemoveProposal(o.ToMyRight.Id, td)
 			sp, err := signProposal(irene, p, o.ToMyRight)
 			if err != nil {
 				panic(err)
@@ -148,25 +148,19 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 	case 1:
 		{
 			// Irene expects Alice to send a proposal
-			p := consensus_channel.NewRemoveProposal(o.ToMyLeft.Id, FinalTurnNum, vId, td.leftAmount, td.rightAmount)
-			sp, err := signProposal(alice, p, o.ToMyLeft)
-			if err != nil {
-				panic(err)
-			}
+			fromAlice := generateRemoveProposal(o.ToMyLeft.Id, td)
+			fromAliceSigned, _ := signProposal(alice, fromAlice, o.ToMyLeft)
 
 			// Irene expects Bob to accept her proposal
-			p2 := consensus_channel.NewRemoveProposal(o.ToMyRight.Id, FinalTurnNum, vId, td.leftAmount, td.rightAmount)
-			sp2, err := signProposal(bob, p2, o.ToMyRight)
-			if err != nil {
-				panic(err)
-			}
+			fromBob := generateRemoveProposal(o.ToMyRight.Id, td)
+			fromBobSigned, _ := signProposal(bob, fromBob, o.ToMyRight)
 
-			return []consensus_channel.SignedProposal{sp, sp2}
+			return []consensus_channel.SignedProposal{fromAliceSigned, fromBobSigned}
 		}
 	case 2:
 		{
 			// Bob expects Irene to send a proposal
-			p := consensus_channel.NewRemoveProposal(o.ToMyLeft.Id, FinalTurnNum, vId, td.leftAmount, td.rightAmount)
+			p := generateRemoveProposal(o.ToMyLeft.Id, td)
 			sp, err := signProposal(irene, p, o.ToMyLeft)
 			if err != nil {
 				panic(err)
@@ -202,13 +196,13 @@ func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objectiv
 	case 0:
 		{
 			// Alice Proposes to Irene on her right
-			rightProposal := consensus_channel.SignedProposal{Proposal: consensus_channel.NewRemoveProposal(o.ToMyRight.Id, FinalTurnNum, o.VId(), td.leftAmount, td.rightAmount)}
+			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyRight.Id, td)}
 			assertProposalSent(t, se, rightProposal, irene)
 		}
 	case 1:
 		{
 			// Irene proposes to Bob on her right
-			rightProposal := consensus_channel.SignedProposal{Proposal: consensus_channel.NewRemoveProposal(o.ToMyRight.Id, FinalTurnNum, o.VId(), td.leftAmount, td.rightAmount)}
+			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyRight.Id, td)}
 			assertProposalSent(t, se, rightProposal, bob)
 		}
 
@@ -250,13 +244,21 @@ func makeOutcome(aliceAmount uint, bobAmount uint) outcome.SingleAssetExit {
 }
 
 type testdata struct {
-	vFixed         state.FixedPart
 	vFinal         state.State
 	initialOutcome outcome.SingleAssetExit
-	finalOutcome   outcome.SingleAssetExit
-	paid           uint
-	leftAmount     *big.Int
-	rightAmount    *big.Int
+
+	paid uint
+	// finalAliceAmount is the amount we expect to be allocated in the ledger to Alice after defunding is complete
+	finalAliceAmount uint
+	// finalBobAmount is the amount we expect to be allocated in the ledger to Bob after defunding is complete
+	finalBobAmount uint
+}
+
+// generateRemoveProposal generates a remove proposal for the given channelId and test data
+func generateRemoveProposal(cId types.Destination, td testdata) consensus_channel.Proposal {
+	vId, _ := td.vFinal.ChannelId()
+	return consensus_channel.NewRemoveProposal(cId, FinalTurnNum, vId, big.NewInt(int64(td.finalAliceAmount)), big.NewInt(int64(td.finalBobAmount)))
+
 }
 
 // generateTestData generates some test data that can be used in a test
@@ -269,15 +271,15 @@ func generateTestData() testdata {
 		ChallengeDuration: big.NewInt(45),
 	}
 
-	leftAmount := big.NewInt(6)
-	rightAmount := big.NewInt(4)
-	initialOutcome := makeOutcome(7, 3)
-	finalOutcome := makeOutcome(6, 4)
-	paid := uint(1)
+	finalAliceAmount := uint(6)
+	finalBobAmount := uint(4)
 
+	paid := uint(1)
+	initialOutcome := makeOutcome(finalAliceAmount+paid, finalBobAmount-paid)
+	finalOutcome := makeOutcome(finalAliceAmount, finalBobAmount)
 	vFinal := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{finalOutcome}, TurnNum: FinalTurnNum})
 
-	return testdata{vFixed, vFinal, initialOutcome, finalOutcome, paid, leftAmount, rightAmount}
+	return testdata{vFinal, initialOutcome, paid, finalAliceAmount, finalBobAmount}
 }
 
 // signStateByOthers signs the state by every participant except me

@@ -33,7 +33,7 @@ func TestCrank(t *testing.T) {
 func TestInvalidUpdate(t *testing.T) {
 	data := generateTestData()
 
-	virtualDefund := newObjective(false, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), nil, nil, 0)
+	virtualDefund := newObjective(false, data.vFinal.FixedPart(), data.initialOutcome, big.NewInt(int64(data.paid)), nil, nil, 0)
 	invalidFinal := data.vFinal.Clone()
 	invalidFinal.ChannelNonce = big.NewInt(5)
 
@@ -53,10 +53,10 @@ func TestInvalidUpdate(t *testing.T) {
 func testUpdateAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
-		vId, _ := data.vFixed.ChannelId()
+		vId, _ := data.vFinal.ChannelId()
 		left, right := generateLedgers(my.Role, vId)
 
-		virtualDefund := newObjective(false, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), left, right, my.Role)
+		virtualDefund := newObjective(false, data.vFinal.FixedPart(), data.initialOutcome, big.NewInt(int64(data.paid)), left, right, my.Role)
 		signedFinal := state.NewSignedState(data.vFinal)
 		// Sign the final state by some other participant
 		signStateByOthers(my, signedFinal)
@@ -80,9 +80,9 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 func testCrankAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
-		vId, _ := data.vFixed.ChannelId()
+		vId, _ := data.vFinal.ChannelId()
 		left, right := generateLedgers(my.Role, vId)
-		virtualDefund := newObjective(true, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), left, right, my.Role)
+		virtualDefund := newObjective(true, data.vFinal.FixedPart(), data.initialOutcome, big.NewInt(int64(data.paid)), left, right, my.Role)
 
 		updatedObj, se, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
 		testhelpers.Ok(t, err)
