@@ -25,7 +25,7 @@ func hashChallengeMessage(s state.State) (types.Bytes32, error) {
 		return types.Bytes32{}, err
 	}
 
-	encoded, err := ethAbi.Arguments{{Type: abi.Destination}, {Type: abi.String}}.Pack(digest, "forceMove")
+	encoded, err := ethAbi.Arguments{{Type: abi.Bytes32}, {Type: abi.String}}.Pack(digest, "forceMove")
 	if err != nil {
 		return types.Bytes32{}, err
 	}
