@@ -15,7 +15,9 @@ Please see [contributing.md](./contributing.md)
 The following roadmap gives an idea of the various packages that compose the `go-nitro` module, and their implementation status:
 
 ```bash
+├── abi ✅                     # types for abi encoding and decoding.
 ├── channel ✅                 # query the latest supported state of a channel
+│   ├── consensus_channel 🚧   # manage a running ledger channel.
 │   └── state ✅               # generate and recover signatures on state updates
 │       ├── outcome ✅         # define how funds are dispersed when a channel closes
 ├── client 🚧                  # exposes an API to the consuming application
@@ -23,10 +25,16 @@ The following roadmap gives an idea of the various packages that compose the `go
 │       ├── chainservice 🚧    # watch the chain and submit transactions
 │       ├── messageservice 🚧  # send and recieves messages from peers
 │       └── store 🚧           # store keys, state updates and other critical data
-├── protocols ✅
-│   ├── interfaces.go ✅       # specify the interface of our protocols
+├── client_test 🚧             # integration tests involving multiple clients
+├── crypto  ✅                 # create Ethereum accounts, create & recover signatures
+├── internal
+│   ├── testactors ✅          # peers with vanity addresses (Alice, Bob, Irene, ... )
+│   ├── testdata ✅            # literals and utility functions used by other test packages
+│   ├── testhelpers ✅         # pretty-print test failures
+|
+├── protocols ✅               # functional core of the go-nitro client
 │   ├── direct-fund ✅         # fund a channel on-chain
-│   ├── direct-defund 🚧       # defund a channel on-chain
+│   ├── direct-defund ✅       # defund a channel on-chain
 │   ├── virtual-fund ✅        # fund a channel off-chain through one or more intermediaries
 │   └── virtual-defund 🚧      # defund a channel off-chain through one or more intermediaries
 └── types ✅                   # basic types and utility methods
