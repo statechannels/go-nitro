@@ -10,9 +10,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./nitro-protocol
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -34,7 +31,7 @@ jobs:
           sudo apt-get install ethereum
 
       - name: Regenerate contract bindings
-        run: sh ../generate-adjudicator-bindings.sh
+        run: sh ./generate-adjudicator-bindings.sh
 
       - name: check git tree is clean
         # This will fail the job if any previous step (re)generated a file
