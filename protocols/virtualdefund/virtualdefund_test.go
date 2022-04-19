@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testactors"
@@ -108,7 +107,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestCrank(t *testing.T) {
-	for _, my := range allActors {
+	for _, my := range []testactors.Actor{bob} {
 		msg := fmt.Sprintf("testing crank as %s", my.Name)
 		t.Run(msg, testCrankAs(my))
 	}
@@ -157,6 +156,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 			}
 		}
 		testhelpers.Ok(t, err)
+
 	}
 }
 
@@ -198,41 +198,19 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 
 		testhelpers.Equals(t, WaitingForCompleteLedgerDefunding, waitingFor)
 
-		checkForProposals(t, se, updated)
+		checkForLeaderProposals(t, se, updated)
 
-		// Generate ledger channels that have the guarantee removed
-		defundedLeft, defundedRight := generateLedgers(my.Role, vId, false)
-		updated.ToMyLeft = defundedLeft
-		updated.ToMyRight = defundedRight
+		proposals := generateLeaderProposals(my.Role, vId, updated)
+		updateProposals(updated, proposals...)
 
-		_, se, waitingFor, err = updated.Crank(&my.PrivateKey)
+		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
+		updated = updatedObj.(*Objective)
 		testhelpers.Ok(t, err)
-		testhelpers.Assert(t, len(se.MessagesToSend) == 0, "expected no messages to send")
+
 		testhelpers.Equals(t, waitingFor, WaitingForNothing)
 
-	}
-
-}
-
-// checkForProposals checks that the outgoing message contains the correct proposals depending on o.MyRole
-func checkForProposals(t *testing.T, se protocols.SideEffects, o *Objective) {
-
-	leftAmount := big.NewInt(6)
-	rightAmount := big.NewInt(4)
-
-	switch o.MyRole {
-	case 0:
-		{
-			// Alice Proposes to Irene on her right
-			rightProposal := consensus_channel.SignedProposal{Proposal: consensus_channel.NewRemoveProposal(o.ToMyRight.Id, FinalTurnNum, o.VId(), leftAmount, rightAmount)}
-			assertProposalSent(t, se, rightProposal, irene)
-		}
-	case 1:
-		{
-			// Irene proposes to Bob on her right
-			rightProposal := consensus_channel.SignedProposal{Proposal: consensus_channel.NewRemoveProposal(o.ToMyRight.Id, FinalTurnNum, o.VId(), leftAmount, rightAmount)}
-			assertProposalSent(t, se, rightProposal, bob)
-		}
+		checkForFollowerProposals(t, se, updated)
 
 	}
+
 }

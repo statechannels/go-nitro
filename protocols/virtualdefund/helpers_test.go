@@ -2,6 +2,7 @@ package virtualdefund
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -114,4 +115,115 @@ func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees
 	}
 
 	return &cc
+}
+
+// checkForFollowerProposals checks that the follower have signed and sent the appropriate proposal
+func checkForFollowerProposals(t *testing.T, se protocols.SideEffects, o *Objective) {
+	leftAmount := big.NewInt(6)
+	rightAmount := big.NewInt(4)
+	switch o.MyRole {
+	case 1:
+		{
+			// Irene should accept a proposal from Alice
+			rightProposal := consensus_channel.SignedProposal{Proposal: consensus_channel.NewRemoveProposal(o.ToMyLeft.Id, FinalTurnNum, o.VId(), leftAmount, rightAmount)}
+			assertProposalSent(t, se, rightProposal, alice)
+		}
+	case 2:
+		{
+			// Bob should accept a proposal from Irene
+			rightProposal := consensus_channel.SignedProposal{Proposal: consensus_channel.NewRemoveProposal(o.ToMyLeft.Id, FinalTurnNum, o.VId(), leftAmount, rightAmount)}
+			assertProposalSent(t, se, rightProposal, irene)
+		}
+
+	}
+}
+
+// generateLeaderProposals generates the signed proposals for the leader of the consensus channel
+func generateLeaderProposals(myRole uint, vId types.Destination, o *Objective) []consensus_channel.SignedProposal {
+	leftAmount := big.NewInt(6)
+	rightAmount := big.NewInt(4)
+	switch myRole {
+	case 1:
+		{
+			// Irene should get a proposal from Alice
+			p := consensus_channel.NewRemoveProposal(o.ToMyLeft.Id, FinalTurnNum, vId, leftAmount, rightAmount)
+			sp, err := signProposal(alice, p, o.ToMyLeft)
+			if err != nil {
+				panic(err)
+			}
+
+			return []consensus_channel.SignedProposal{sp}
+		}
+	case 2:
+		{
+			// Bob should get a proposal from Irene
+			p := consensus_channel.NewRemoveProposal(o.ToMyLeft.Id, FinalTurnNum, vId, leftAmount, rightAmount)
+			sp, err := signProposal(irene, p, o.ToMyLeft)
+			if err != nil {
+				panic(err)
+			}
+			return []consensus_channel.SignedProposal{sp}
+
+		}
+	default:
+		return []consensus_channel.SignedProposal{}
+	}
+}
+
+// updateProposals updates the consensus channels on the objective with the given proposals
+// It is used to simulate having received a proposal from the other party
+func updateProposals(o *Objective, proposals ...consensus_channel.SignedProposal) {
+	for _, p := range proposals {
+		var err error
+		if o.ToMyLeft != nil && o.ToMyLeft.Id == p.Proposal.ChannelID {
+			err = o.ToMyLeft.Receive(p)
+		}
+		if o.ToMyRight != nil && o.ToMyRight.Id == p.Proposal.ChannelID {
+			err = o.ToMyRight.Receive(p)
+		}
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+// checkForLeaderProposals checks that the outgoing message contains the correct proposals depending on o.MyRole
+func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objective) {
+
+	leftAmount := big.NewInt(6)
+	rightAmount := big.NewInt(4)
+
+	switch o.MyRole {
+	case 0:
+		{
+			// Alice Proposes to Irene on her right
+			rightProposal := consensus_channel.SignedProposal{Proposal: consensus_channel.NewRemoveProposal(o.ToMyRight.Id, FinalTurnNum, o.VId(), leftAmount, rightAmount)}
+			assertProposalSent(t, se, rightProposal, irene)
+		}
+	case 1:
+		{
+			// Irene proposes to Bob on her right
+			rightProposal := consensus_channel.SignedProposal{Proposal: consensus_channel.NewRemoveProposal(o.ToMyRight.Id, FinalTurnNum, o.VId(), leftAmount, rightAmount)}
+			assertProposalSent(t, se, rightProposal, bob)
+		}
+
+	}
+}
+
+// signProposal signs a proposal with the given actor's private key
+func signProposal(me testactors.Actor, p consensus_channel.Proposal, c *consensus_channel.ConsensusChannel) (consensus_channel.SignedProposal, error) {
+
+	vars := c.ConsensusVars().Clone()
+	err := vars.HandleProposal(p)
+	if err != nil {
+		return consensus_channel.SignedProposal{}, err
+	}
+
+	state := vars.AsState(c.FixedPart())
+	sig, err := state.Sign(me.PrivateKey)
+	if err != nil {
+		return consensus_channel.SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
+	}
+
+	return consensus_channel.SignedProposal{Signature: sig, Proposal: p}, nil
 }
