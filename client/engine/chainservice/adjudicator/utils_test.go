@@ -1,0 +1,34 @@
+package NitroAdjudicator
+
+import (
+	"math/big"
+
+	ethAbi "github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/statechannels/go-nitro/abi"
+	"github.com/statechannels/go-nitro/channel/state"
+)
+
+func generateStatus(state state.State, finalizesAt *big.Int) ([]byte, error) {
+	turnNumBytes := big.NewInt(int64(state.TurnNum)).FillBytes(make([]byte, 6))
+	finalizesAtBytes := finalizesAt.FillBytes(make([]byte, 6))
+
+	stateHash, err := state.Hash()
+	if err != nil {
+		return []byte{}, err
+	}
+	outcomeHash, err := state.Outcome.Hash()
+	if err != nil {
+		return []byte{}, err
+	}
+	handprintPreimage, err := ethAbi.Arguments{{Type: abi.Bytes32}, {Type: abi.Bytes32}}.Pack(stateHash, outcomeHash)
+	handprint := crypto.Keccak256(handprintPreimage)
+	if err != nil {
+		return []byte{}, err
+	}
+	fingerprint := handprint[12:]
+
+	status := []byte(string(turnNumBytes) + string(finalizesAtBytes) + string(fingerprint))
+
+	return status, nil
+}

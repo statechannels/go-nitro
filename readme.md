@@ -59,6 +59,24 @@ and executes logic from the `protocols` package. Data required for the secure cr
 More detailed information can be found in each package's respective _readme_.
 ![architecture](./client/architecture.png)
 
+## On-chain code
+
+`go-nitro` was originally developed "off-chain first". Alongside that development, we are now building out the on-chain component (solidity contracts): these are housed in the `nitro-protocol` directory. This directory contains an npm package with a hardhat / typechain / jest toolchain. This code originates from the nitro-protocol [npm package](https://www.npmjs.com/package/@statechannels/nitro-protocol), but is being modified / upgraded. The new version of the code is sometimes called nitro v2 or "satp".
+
+Initially, these two development streams will remain independent, with each having its own continuous integration checks.
+
+Over time, the development streams will become more coupled.
+
+We now use `solc` and `abigen` to generate Go bindings from our `*.sol` source files. This is achieved by running the `generate_adjudicator_bindings.sh` script at the top level of the repo. Because our `*.sol` files depend on external projects via `node_modules`, to run this script successfully you must:
+
+- have successfully run `npm install` in the `nitro-protocol` directory.
+- have [solc](https://docs.soliditylang.org/en/v0.8.13/installing-solidity.html) installed at the correct version (currently 0.7.4, see the CI or linting config for a hint if you think it may have changed)
+- have [abigen](https://geth.ethereum.org/docs/install-and-build/installing-geth) (a tool shipped with go-ethereum) installed.
+
+The resulting Go bindings file is _checked-in_ to the repository. Although it is auto-generated from on-chain source code, it effectively forms part of the off-chain source code.
+
+If you alter the contracts, you should regenerate the bindings file at check it in. A github action will run which will check that you have done this correctly.
+
 ## Contributing
 
 See [contributing.md](./contributing.md)
