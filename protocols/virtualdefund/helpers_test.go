@@ -19,6 +19,7 @@ import (
 
 // assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
 // TODO: This is copied from https://github.com/statechannels/go-nitro/blob/0722a1127241583944f32efa0638012f64b96bf0/protocols/virtualfund/virtualfund_single_hop_test.go#L409
+// We should probably establish some shared helpers
 func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to testactors.Actor) {
 
 	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
@@ -35,6 +36,7 @@ func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 }
 
 // generateLedgers generates the left and right ledger channels based on myRole
+// The ledger channels will include a guarantee that funds V
 func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus_channel.ConsensusChannel) {
 	switch myRole {
 	case 0:
@@ -59,14 +61,15 @@ func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus
 	}
 }
 
+// generateGuarantee generates a guarantee for the given participants and vId
 func generateGuarantee(left, right testactors.Actor, vId types.Destination) consensus_channel.Guarantee {
 	return consensus_channel.NewGuarantee(big.NewInt(10), vId, left.Destination(), right.Destination())
 
 }
 
 // prepareConsensusChannel prepares a consensus channel with a consensus outcome
-//  - allocating 6 to left
-//  - allocating 4 to right
+//  - allocating 0 to left
+//  - allocating 0 to right
 //  - including the given guarantees
 func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
 	fp := state.FixedPart{
@@ -176,8 +179,7 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 	}
 }
 
-// updateProposals updates the consensus channels on the objective with the given proposals
-// It is used to simulate having received a proposal from the other party
+// updateProposals updates the consensus channels on the objective with the given proposals by calling Receive
 func updateProposals(o *Objective, proposals ...consensus_channel.SignedProposal) {
 	for _, p := range proposals {
 		var err error
@@ -193,7 +195,7 @@ func updateProposals(o *Objective, proposals ...consensus_channel.SignedProposal
 	}
 }
 
-// checkForLeaderProposals checks that the outgoing message contains the correct proposals depending on o.MyRole
+// checkForLeaderProposals checks that the outgoing message contains the correct proposals from the leader of a consensus channel
 func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objective, td testdata) {
 
 	switch o.MyRole {
@@ -278,17 +280,17 @@ func generateTestData() testdata {
 	return testdata{vFixed, vFinal, initialOutcome, finalOutcome, paid, leftAmount, rightAmount}
 }
 
-// signByOthers signs the state by every participant except my
-func signByOthers(my ta.Actor, signedState state.SignedState) state.SignedState {
-	if my.Role != 0 {
+// signStateByOthers signs the state by every participant except me
+func signStateByOthers(me ta.Actor, signedState state.SignedState) state.SignedState {
+	if me.Role != 0 {
 		_ = signedState.Sign(&alice.PrivateKey)
 	}
 
-	if my.Role != 1 {
+	if me.Role != 1 {
 		_ = signedState.Sign(&irene.PrivateKey)
 	}
 
-	if my.Role != 2 {
+	if me.Role != 2 {
 		_ = signedState.Sign(&bob.PrivateKey)
 	}
 	return signedState

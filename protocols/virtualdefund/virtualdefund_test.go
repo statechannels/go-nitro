@@ -39,8 +39,8 @@ func TestInvalidUpdate(t *testing.T) {
 
 	signedFinal := state.NewSignedState(invalidFinal)
 
-	// Sign the final state by other participant
-	signByOthers(alice, signedFinal)
+	// Sign the final state by some other participant
+	signStateByOthers(alice, signedFinal)
 
 	e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}
 	_, err := virtualDefund.Update(e)
@@ -59,7 +59,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		virtualDefund := newObjective(false, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), left, right, my.Role)
 		signedFinal := state.NewSignedState(data.vFinal)
 		// Sign the final state by some other participant
-		signByOthers(my, signedFinal)
+		signStateByOthers(my, signedFinal)
 
 		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}
 
@@ -102,7 +102,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		assertStateSentToEveryone(t, se, signedByMe, my)
 
 		// Update the signatures on the objective so the final state is fully signed
-		signedByOthers := signByOthers(my, state.NewSignedState(data.vFinal))
+		signedByOthers := signStateByOthers(my, state.NewSignedState(data.vFinal))
 		for i, sig := range signedByOthers.Signatures() {
 			if uint(i) != my.Role {
 				updated.Signatures[i] = sig
