@@ -31,7 +31,7 @@ jobs:
 
       - name: Install abigen (part of go-ethereum)
         run: |
-          curl -o https://gethstore.blob.core.windows.net/builds/geth-alltools-linux-amd64-1.10.8-26675454.tar.gz
+          curl https://gethstore.blob.core.windows.net/builds/geth-alltools-linux-amd64-1.10.8-26675454.tar.gz
           tar -xzf geth-alltools-linux-amd64-1.10.8-26675454.tar.gz
           mv geth-alltools-linux-amd64-1.10.8-26675454/abigen $GITHUB_WORKSPACE/bin
           sudo chmod +x $GITHUB_WORKSPACE/bin/abigen
