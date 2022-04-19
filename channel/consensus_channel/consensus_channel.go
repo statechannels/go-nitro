@@ -2,6 +2,7 @@
 package consensus_channel
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"sort"
@@ -540,7 +541,7 @@ func (p *Proposal) TurnNum() uint64 {
 
 // equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
 func (p *Proposal) equal(q *Proposal) bool {
-	return p.ToAdd.equal(q.ToAdd) && p.ToRemove == q.ToRemove
+	return p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
 }
 
 // SignedProposal is a Proposal with a signature on it
@@ -614,6 +615,23 @@ func (a Add) equal(a2 Add) bool {
 		return false
 	}
 	return types.Equal(a.LeftDeposit, a2.LeftDeposit)
+}
+
+func (r Remove) equal(r2 Remove) bool {
+	if r.turnNum != r2.turnNum {
+		return false
+	}
+	if !bytes.Equal(r.Target.Bytes(), r2.Target.Bytes()) {
+
+		return false
+	}
+	if !types.Equal(r.LeftAmount, r2.LeftAmount) {
+		return false
+	}
+	if !types.Equal(r.RightAmount, r2.RightAmount) {
+		return false
+	}
+	return true
 }
 
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
