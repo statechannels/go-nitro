@@ -1,0 +1,42 @@
+name: Node
+
+on:
+  push:
+    branches: [main]
+    paths: "nitro-protocol/contracts/**"
+  pull_request:
+    paths: "nitro-protocol/contracts/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./nitro-protocol
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install solc
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/bin
+          curl -o solc https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.7.4+commit.3f05b770 
+          mv solc $GITHUB_WORKSPACE/bin
+          sudo chmod +x $GITHUB_WORKSPACE/bin/solc
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
+
+      - name: Install abigen (part of go-ethereum)
+        run: |
+          sudo add-apt-repository -y ppa:ethereum/ethereum
+          sudo apt-get update
+          sudo apt-get install ethereum
+
+      - name: Regenerate contract bindings
+        run: sh ./generate-adjudicator-bindings.sh
+
+      - name: check git tree is clean
+        # This will fail the job if any previous step (re)generated a file
+        # that doesn't match what you checked in (or forgot to check in)
+        run: git diff --exit-code
