@@ -1,4 +1,4 @@
-name: Node
+name: Check Bindings
 
 on:
   push:
@@ -34,7 +34,7 @@ jobs:
           sudo apt-get install ethereum
 
       - name: Regenerate contract bindings
-        run: generate-adjudicator-bindings.sh
+        run: sh ../generate-adjudicator-bindings.sh
 
       - name: check git tree is clean
         # This will fail the job if any previous step (re)generated a file
