@@ -44,9 +44,8 @@ Milestones that we hope to hit in the coming weeks:
 | Integration Test | Engine components |Status |
 | --------------------------------------|--- | --------|
 | Directly Fund an (Alice, Bob) Channel | mock | ✅ |
-| Virtually Fund an (Alice, Bob) Channel through a single Intermediary | mock | 🟡 |
-| Virtually Fund an (Alice, Bob) and an (Alice, Brian) Channel through a single Intermediary | mock |🚧 |
-| Virtually Fund an (Alice, Bob) Channel through a single Intermediary | mock | |
+| Virtually Fund an (Alice, Bob) Channel through a single Intermediary | mock | ✅ |
+| Virtually Fund an (Alice, Bob) and an (Alice, Brian) Channel through a single Intermediary | mock | 🟡|
 | Stream micropayments fron Alice to Bob | mock | |
 | Directly Fund an (Alice, Bob) Channel | production | |
 
