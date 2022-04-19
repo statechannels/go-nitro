@@ -28,7 +28,7 @@ type Path =
 export const gasRequiredTo: GasRequiredTo = {
   deployInfrastructureContracts: {
     satp: {
-      NitroAdjudicator: 4_363_895, // Singleton
+      NitroAdjudicator: 4_576_822, // Singleton
     },
   },
   directlyFundAChannelWithETHFirst: {
@@ -63,11 +63,11 @@ export const gasRequiredTo: GasRequiredTo = {
   },
   ETHexit: {
     // We completely liquidate the channel (paying out both parties)
-    satp: 138_891,
+    satp: 138_767,
   },
   ERC20exit: {
     // We completely liquidate the channel (paying out both parties)
-    satp: 129_265,
+    satp: 129_141,
   },
   ETHexitSad: {
     // Scenario: Counterparty Bob goes offline
@@ -75,9 +75,9 @@ export const gasRequiredTo: GasRequiredTo = {
     // challenge + timeout       ⬛ -> (X) -> 👩
     // transferAllAssets         ⬛ --------> 👩
     satp: {
-      challenge: 102_329,
-      transferAllAssets: 110_192,
-      total: 212_521,
+      challenge: 105_153,
+      transferAllAssets: 110_103,
+      total: 215_256,
     },
   },
   ETHexitSadLedgerFunded: {
@@ -87,11 +87,11 @@ export const gasRequiredTo: GasRequiredTo = {
       // challenge X, L and timeout  ⬛ -> (L) -> (X) -> 👩
       // transferAllAssetsL          ⬛ --------> (X) -> 👩
       // transferAllAssetsX          ⬛ ---------------> 👩
-      challengeX: 102_329,
-      challengeL: 97_703,
-      transferAllAssetsL: 59_090,
-      transferAllAssetsX: 110_192,
-      total: 369_314,
+      challengeX: 105_153,
+      challengeL: 100_525,
+      transferAllAssetsL: 59_000,
+      transferAllAssetsX: 110_103,
+      total: 374_781,
     },
   },
   ETHexitSadVirtualFunded: {
