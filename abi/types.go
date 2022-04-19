@@ -22,7 +22,7 @@ var Bytes32, _ = abi.NewType("bytes32", "bytes32", nil)
 var Bool, _ = abi.NewType("bool", "bool", nil)
 
 // Destination is the bytes32 type for abi encoding
-var Destination, _ = abi.NewType("bytes32", "address", nil)
+var Destination = Bytes32
 
 // Bytes is the bytes type for abi encoding
 var Bytes, _ = abi.NewType("bytes", "bytes", nil)
