@@ -11,6 +11,7 @@ import './StatusManager.sol';
  * @dev An implementation of ForceMove protocol, which allows state channels to be adjudicated and finalized.
  */
 contract ForceMove is IForceMove, StatusManager {
+    
     // *****************
     // External methods:
     // *****************
