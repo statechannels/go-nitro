@@ -1,4 +1,4 @@
-// Package testhelpers contains functions that pretty-print test failures.
+// Package testhelpers contains functions which pretty-print test failures.
 package testhelpers
 
 import (
