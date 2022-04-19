@@ -83,6 +83,11 @@ func newConsensusChannel(
 
 }
 
+// FixedPart returns the fixed part of the channel
+func (c *ConsensusChannel) FixedPart() state.FixedPart {
+	return c.fp
+}
+
 // Receive accepts a proposal signed by the ConsensusChannel counterparty,
 // validates its signature, and performs updates the proposal queue and
 // consensus state
