@@ -1,3 +1,4 @@
+// Package testactors exports peers with vanity addresses: with corresponding keys, names and virtual funding protocol roles.
 package testactors
 
 import (

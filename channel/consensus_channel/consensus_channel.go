@@ -1,3 +1,4 @@
+// Package consensus_channel manages a running ledger channel.
 package consensus_channel
 
 import (

@@ -1,3 +1,4 @@
+// Package testhelpers contains functions which pretty-print test failures.
 package testhelpers
 
 import (
@@ -37,7 +38,7 @@ func Ok(tb testing.TB, err error) {
 	}
 }
 
-// Equals fails the test is want is not deeply equal to got.
+// Equals fails the test if want is not deeply equal to got.
 // Equals uses reflect.DeepEqual to compare the two values.
 func Equals(tb testing.TB, want, got interface{}) {
 	if !reflect.DeepEqual(want, got) {
