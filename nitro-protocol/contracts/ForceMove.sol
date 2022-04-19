@@ -61,7 +61,7 @@ contract ForceMove is IForceMove, StatusManager {
         );
 
         bytes32 channelId = _getChannelId(fixedPart);
-        uint48 largestTurnNum = variableParts[variableParts.length - 1].turnNum;
+        uint48 largestTurnNum = _lastVariablePart(variableParts).turnNum;
 
         if (_mode(channelId) == ChannelMode.Open) {
             _requireNonDecreasedTurnNumber(channelId, largestTurnNum);
@@ -88,7 +88,7 @@ contract ForceMove is IForceMove, StatusManager {
             largestTurnNum,
             uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
             // This could overflow, so don't join a channel with a huge challengeDuration
-            variableParts[variableParts.length - 1].isFinal,
+            _lastVariablePart(variableParts).isFinal,
             fixedPart,
             variableParts,
             sigs,
@@ -100,7 +100,7 @@ contract ForceMove is IForceMove, StatusManager {
                 largestTurnNum,
                 uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
                 supportedStateHash,
-                _hashOutcome(variableParts[variableParts.length - 1].outcome)
+                _hashOutcome(_lastVariablePart(variableParts).outcome)
             )
         );
     }
@@ -186,7 +186,7 @@ contract ForceMove is IForceMove, StatusManager {
         );
 
         bytes32 channelId = _getChannelId(fixedPart);
-        uint48 largestTurnNum = variableParts[variableParts.length - 1].turnNum;
+        uint48 largestTurnNum = _lastVariablePart(variableParts).turnNum;
 
         // checks
         _requireChannelNotFinalized(channelId);
@@ -456,7 +456,7 @@ contract ForceMove is IForceMove, StatusManager {
 
         require(
             _validSignatures(
-                variableParts[variableParts.length - 1].turnNum,
+                _lastVariablePart(variableParts).turnNum,
                 fixedPart.participants,
                 stateHashes,
                 sigs,
@@ -781,5 +781,17 @@ contract ForceMove is IForceMove, StatusManager {
                 fixedPart.challengeDuration
             )
         );
+    }
+
+    /**
+     * @notice Returns the last VariablePart from array.
+     * @dev Returns the last VariablePart from array.
+     * @param variableParts Array of VariableParts.
+     * @return VariablePart Last VariablePart from array.
+     */
+    function _lastVariablePart(IForceMoveApp.VariablePart[] memory variableParts)
+        internal pure returns (IForceMoveApp.VariablePart memory)
+    {
+        return variableParts[variableParts.length - 1];
     }
 }
