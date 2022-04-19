@@ -14,7 +14,9 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
       - name: Install dependencies
-        run: npm install
+        run: |
+          cd ./nitro-protocol
+          npm install
 
       - name: Install solc
         run: |
