@@ -61,7 +61,7 @@ More detailed information can be found in each package's respective _readme_.
 
 ## On-chain code
 
-`go-nitro` was originally being developed "off-chain first". Alongside that development, we are now building out the on-chain component (solidity contracts): these are housed in the `nitro-protocol` directory. This directory contains an npm package with a hardhat / typechain / jest toolchain. This code originates from the nitro-protocol [npm package](https://www.npmjs.com/package/@statechannels/nitro-protocol), but is being modified / upgraded. The new version of the code is sometimes called nitro v2 or "satp".
+`go-nitro` was originally developed "off-chain first". Alongside that development, we are now building out the on-chain component (solidity contracts): these are housed in the `nitro-protocol` directory. This directory contains an npm package with a hardhat / typechain / jest toolchain. This code originates from the nitro-protocol [npm package](https://www.npmjs.com/package/@statechannels/nitro-protocol), but is being modified / upgraded. The new version of the code is sometimes called nitro v2 or "satp".
 
 Initially, these two development streams will remain independent, with each having its own continuous integration checks.
 

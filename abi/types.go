@@ -9,7 +9,7 @@ import "github.com/ethereum/go-ethereum/accounts/abi"
 // To construct an abi.Arguments instance, we need to supply an array of "types", which are
 // actually go values. The following types are used when encoding a state
 
-// Sting is the String type for abi encoding
+// String is the String type for abi encoding
 var String, _ = abi.NewType("string", "string", nil)
 
 // Uint256 is the Uint256 type for abi encoding

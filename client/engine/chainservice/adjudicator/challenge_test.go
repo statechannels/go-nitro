@@ -87,7 +87,7 @@ func TestChallenge(t *testing.T) {
 	blockGasLimit := uint64(4712388)
 	sim := backends.NewSimulatedBackend(gAlloc, blockGasLimit)
 
-	// Deply Adjudicator
+	// Deploy Adjudicator
 	_, _, na, err := DeployNitroAdjudicator(auth, sim)
 
 	if err != nil {
@@ -124,7 +124,7 @@ func TestChallenge(t *testing.T) {
 	}
 	challengeTime := big.NewInt(int64(header.Time))
 
-	// Generate expectaiont
+	// Generate expectation
 	expectedFinalizesAt := big.NewInt(0).Add(challengeTime, s.ChallengeDuration)
 	cId, _ := s.ChannelId()
 	expectedOnChainStatus, err := generateStatus(s, expectedFinalizesAt)

@@ -19,7 +19,6 @@ func SignChallengeMessage(s state.State, privateKey []byte) (state.Signature, er
 }
 
 func hashChallengeMessage(s state.State) (types.Bytes32, error) {
-
 	digest, err := s.Hash()
 	if err != nil {
 		return types.Bytes32{}, err
@@ -31,5 +30,4 @@ func hashChallengeMessage(s state.State) (types.Bytes32, error) {
 	}
 
 	return crypto.Keccak256Hash(encoded), nil
-
 }

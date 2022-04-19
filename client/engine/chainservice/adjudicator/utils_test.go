@@ -10,7 +10,6 @@ import (
 )
 
 func generateStatus(state state.State, finalizesAt *big.Int) ([]byte, error) {
-
 	turnNumBytes := big.NewInt(int64(state.TurnNum)).FillBytes(make([]byte, 6))
 	finalizesAtBytes := finalizesAt.FillBytes(make([]byte, 6))
 
