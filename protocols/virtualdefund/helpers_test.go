@@ -8,7 +8,10 @@ import (
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	ta "github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	. "github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -232,4 +235,83 @@ func signProposal(me testactors.Actor, p consensus_channel.Proposal, c *consensu
 	}
 
 	return consensus_channel.SignedProposal{Signature: sig, Proposal: p}, nil
+}
+
+// makeOutcome creates an outcome allocating to alice and bob
+func makeOutcome(aliceAmount uint, bobAmount uint) outcome.SingleAssetExit {
+	return outcome.SingleAssetExit{
+		Allocations: outcome.Allocations{
+			outcome.Allocation{
+				Destination: alice.Destination(),
+				Amount:      big.NewInt(int64(aliceAmount)),
+			},
+			outcome.Allocation{
+				Destination: bob.Destination(),
+				Amount:      big.NewInt(int64(bobAmount)),
+			},
+		},
+	}
+}
+
+type testdata struct {
+	vFixed         state.FixedPart
+	vFinal         state.State
+	initialOutcome outcome.SingleAssetExit
+	finalOutcome   outcome.SingleAssetExit
+	paid           uint
+}
+
+// generateTestData generates some test data that can be used in a test
+func generateTestData() testdata {
+	vFixed := state.FixedPart{
+		ChainId:           big.NewInt(9001),
+		Participants:      []types.Address{alice.Address, irene.Address, bob.Address}, // A single hop virtual channel
+		ChannelNonce:      big.NewInt(0),
+		AppDefinition:     types.Address{},
+		ChallengeDuration: big.NewInt(45),
+	}
+
+	initialOutcome := makeOutcome(7, 3)
+	finalOutcome := makeOutcome(6, 4)
+	paid := uint(1)
+
+	vFinal := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{finalOutcome}, TurnNum: FinalTurnNum})
+
+	return testdata{vFixed, vFinal, initialOutcome, finalOutcome, paid}
+}
+
+// signByOthers signs the state by every participant except my
+func signByOthers(my ta.Actor, signedState state.SignedState) state.SignedState {
+	if my.Role != 0 {
+		_ = signedState.Sign(&alice.PrivateKey)
+	}
+
+	if my.Role != 1 {
+		_ = signedState.Sign(&irene.PrivateKey)
+	}
+
+	if my.Role != 2 {
+		_ = signedState.Sign(&bob.PrivateKey)
+	}
+	return signedState
+}
+
+// assertStateSentToEveryone asserts that ses contains a message for every participant but from
+func assertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected state.SignedState, from testactors.Actor) {
+	for _, a := range allActors {
+		if a.Role != from.Role {
+			assertStateSentTo(t, ses, expected, a)
+		}
+	}
+}
+
+// assertStateSentTo asserts that ses contains a message for the participant
+func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
+	for _, msg := range ses.MessagesToSend {
+		if bytes.Equal(msg.To[:], to.Address[:]) {
+			for _, ss := range msg.SignedStates {
+				testhelpers.Equals(t, ss, expected)
+			}
+		}
+	}
 }
