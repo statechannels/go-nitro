@@ -115,9 +115,9 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 
 		testhelpers.Equals(t, WaitingForCompleteLedgerDefunding, waitingFor)
 
-		checkForLeaderProposals(t, se, updated)
+		checkForLeaderProposals(t, se, updated, data)
 
-		proposals := generateProposalsResponses(my.Role, vId, updated)
+		proposals := generateProposalsResponses(my.Role, vId, updated, data)
 		updateProposals(updated, proposals...)
 
 		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
@@ -125,7 +125,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		testhelpers.Ok(t, err)
 
 		testhelpers.Equals(t, waitingFor, WaitingForNothing)
-		checkForFollowerProposals(t, se, updated)
+		checkForFollowerProposals(t, se, updated, data)
 
 	}
 
