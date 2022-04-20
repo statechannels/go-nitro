@@ -83,16 +83,20 @@ func signByOthers(my ta.Actor, signedState state.SignedState) state.SignedState 
 func assertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected state.SignedState, from testactors.Actor) {
 	for _, a := range allActors {
 		if a.Role != from.Role {
-			for _, msg := range ses.MessagesToSend {
-				if bytes.Equal(msg.To[:], a.Address[:]) {
-					for _, ss := range msg.SignedStates {
-						testhelpers.Equals(t, ss, expected)
-					}
-				}
+			assertStateSentTo(t, ses, expected, a)
+		}
+	}
+}
+
+// assertStateSentTo asserts that ses contains a message for the participant
+func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
+	for _, msg := range ses.MessagesToSend {
+		if bytes.Equal(msg.To[:], to.Address[:]) {
+			for _, ss := range msg.SignedStates {
+				testhelpers.Equals(t, ss, expected)
 			}
 		}
 	}
-
 }
 
 func TestUpdate(t *testing.T) {
