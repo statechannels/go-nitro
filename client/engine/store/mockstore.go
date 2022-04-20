@@ -235,8 +235,7 @@ func (ms *MockStore) GetConsensusChannelById(id types.Destination) (channel *con
 		return &consensus_channel.ConsensusChannel{}, ErrNoSuchChannel
 	}
 
-	var ch *consensus_channel.ConsensusChannel
-
+	ch := &consensus_channel.ConsensusChannel{}
 	err = ch.UnmarshalJSON(chJSON)
 
 	if err != nil {
