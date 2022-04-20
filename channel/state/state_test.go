@@ -18,7 +18,7 @@ var signerAddress = common.HexToAddress(`F5A1BB5607C9D079E46d1B3Dc33f257d937b43B
 var correctSignature = Signature{
 	R: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
 	S: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
-	V: byte(0),
+	V: byte(27),
 }
 
 func TestCloneSignature(t *testing.T) {
