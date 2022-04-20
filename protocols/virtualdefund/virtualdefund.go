@@ -228,9 +228,9 @@ func (o Objective) signedByMe() bool {
 
 }
 
-// ValidateSignature returns whether the given signature is valid for the given participant
+// validateSignature returns whether the given signature is valid for the given participant
 // If a signature is invalid an error will be returned containing the reason
-func (o Objective) ValidateSignature(sig state.Signature, participantIndex uint) (bool, error) {
+func (o Objective) validateSignature(sig state.Signature, participantIndex uint) (bool, error) {
 	if participantIndex > 2 {
 		return false, fmt.Errorf("participant index %d is out of bounds", participantIndex)
 	}
@@ -280,7 +280,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 					}
 				}
 				// Otherwise we validate the incoming signature and update our signatures
-				isValid, err := updated.ValidateSignature(incomingSig, i)
+				isValid, err := updated.validateSignature(incomingSig, i)
 				if isValid {
 					// Update the signature
 					updated.Signatures[i] = incomingSig
