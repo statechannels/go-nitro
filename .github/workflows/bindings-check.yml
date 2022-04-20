@@ -25,7 +25,7 @@ jobs:
 
       - name: Install solc
         run: |
-          curl -o solc https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.7.4+commit.3f05b770 
+          curl -o solc https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.7.6+commit.7338295f 
           mv solc $GITHUB_WORKSPACE/bin
           sudo chmod +x $GITHUB_WORKSPACE/bin/solc
 
