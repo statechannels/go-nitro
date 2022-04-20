@@ -117,7 +117,7 @@ func TestInvalidUpdate(t *testing.T) {
 
 	signedFinal := state.NewSignedState(invalidFinal)
 
-	// Sign the final state by some other participant
+	// Sign the final state by other participant
 	signByOthers(alice, signedFinal)
 
 	e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}

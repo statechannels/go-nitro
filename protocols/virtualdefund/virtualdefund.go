@@ -229,7 +229,7 @@ func (o Objective) signedByMe() bool {
 }
 
 // ValidateSignature returns whether the given signature is valid for the given participant
-// If a signature is invalid an error will be returned conaining the reason
+// If a signature is invalid an error will be returned containing the reason
 func (o Objective) ValidateSignature(sig state.Signature, participantIndex uint) (bool, error) {
 	if participantIndex > 2 {
 		return false, fmt.Errorf("participant index %d is out of bounds", participantIndex)
@@ -304,7 +304,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		var err error
 		switch sp.Proposal.ChannelID {
 		case types.Destination{}:
-			return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
+			return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because of Alice or Bob we allow a null channel.
 		case toMyLeftId:
 			err = updated.ToMyLeft.Receive(sp)
 		case toMyRightId:
