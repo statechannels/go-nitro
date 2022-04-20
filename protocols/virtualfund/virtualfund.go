@@ -224,7 +224,6 @@ func constructFromState(
 	if !init.isAlice() { // everyone other than Alice has a left-channel
 		init.ToMyLeft = &Connection{}
 
-		// todo: #420
 		if consensusChannelToMyLeft == nil {
 			return Objective{}, fmt.Errorf("non-alice virtualfund objective requires non-nil left ledger channel")
 		}
