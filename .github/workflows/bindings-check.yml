@@ -1,4 +1,4 @@
-name: Check Bindings
+name: Check Bindings and Lockfile
 
 on:
   push:
