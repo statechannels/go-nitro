@@ -525,18 +525,18 @@ func ConstructObjectiveFromMessage(
 	if myAddress == alice {
 		return Objective{}, errors.New("participant[0] should not construct objectives from peer messages")
 	} else if myAddress == bob {
-		leftC, _ = getTwoPartyConsensusLedger(intermediary)
+		leftC, ok = getTwoPartyConsensusLedger(intermediary)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
 		}
 
 	} else if myAddress == intermediary {
-		leftC, _ = getTwoPartyConsensusLedger(alice)
+		leftC, ok = getTwoPartyConsensusLedger(alice)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
 		}
 
-		rightC, _ = getTwoPartyConsensusLedger(bob)
+		rightC, ok = getTwoPartyConsensusLedger(bob)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
 		}
