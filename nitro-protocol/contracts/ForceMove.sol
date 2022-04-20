@@ -46,11 +46,11 @@ contract ForceMove is IForceMove, StatusManager {
      * @param challengerSig The signature of a participant on the keccak256 of the abi.encode of (supportedStateHash, 'forceMove').
      */
     function challenge(
-        FixedPart calldata fixedPart,
+        FixedPart memory fixedPart,
         IForceMoveApp.VariablePart[] memory variableParts,
-        Signature[] calldata sigs,
-        uint8[] calldata whoSignedWhat,
-        Signature calldata challengerSig
+        Signature[] memory sigs,
+        uint8[] memory whoSignedWhat,
+        Signature memory challengerSig
     ) external override {
         // input type validation
         requireValidInput(
@@ -113,11 +113,11 @@ contract ForceMove is IForceMove, StatusManager {
      * @param sig The responder's signature on the `responseStateHash`.
      */
     function respond(
-        FixedPart calldata fixedPart,
-        IForceMoveApp.VariablePart[2] calldata variablePartAB,
+        FixedPart memory fixedPart,
+        IForceMoveApp.VariablePart[2] memory variablePartAB,
         // variablePartAB[0] = challengeVariablePart
         // variablePartAB[1] = responseVariablePart
-        Signature calldata sig
+        Signature memory sig
     ) external override {
         // No need to validate fixedPart.participants.length here, as that validation would have happened during challenge
 
@@ -172,10 +172,10 @@ contract ForceMove is IForceMove, StatusManager {
      * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
      */
     function checkpoint(
-        FixedPart calldata fixedPart,
-        IForceMoveApp.VariablePart[] calldata variableParts,
-        Signature[] calldata sigs,
-        uint8[] calldata whoSignedWhat
+        FixedPart memory fixedPart,
+        IForceMoveApp.VariablePart[] memory variableParts,
+        Signature[] memory sigs,
+        uint8[] memory whoSignedWhat
     ) external override {
         // input type validation
         requireValidInput(
@@ -207,11 +207,11 @@ contract ForceMove is IForceMove, StatusManager {
      * @param sigs An array of signatures that support the state with the `largestTurnNum`: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
      */
     function conclude(
-        FixedPart calldata fixedPart,
-        IForceMoveApp.VariablePart calldata latestVariablePart,
+        FixedPart memory fixedPart,
+        IForceMoveApp.VariablePart memory latestVariablePart,
         uint8 numStates,
-        uint8[] calldata whoSignedWhat,
-        Signature[] calldata sigs
+        uint8[] memory whoSignedWhat,
+        Signature[] memory sigs
     ) external override {
         _conclude(fixedPart, latestVariablePart, numStates, whoSignedWhat, sigs);
     }
