@@ -129,7 +129,12 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 			if err != nil {
 				return fmt.Errorf("error setting channel %s from objective %s: %w", ch.Id, obj.Id(), err)
 			}
-
+		case *consensus_channel.ConsensusChannel:
+			ch := rel.(*consensus_channel.ConsensusChannel)
+			err := ms.SetConsensusChannel(ch)
+			if err != nil {
+				return fmt.Errorf("error setting consensus channel %s from objective %s: %w", ch.Id, obj.Id(), err)
+			}
 		default:
 			return fmt.Errorf("unexpected type: %T", rel)
 		}
