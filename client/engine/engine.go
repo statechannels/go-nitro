@@ -165,7 +165,10 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 	e.logger.Printf("handling chain event %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
 	if !ok {
-		return ObjectiveChangeEvent{}, &ErrUnhandledChainEvent{event: chainEvent, objective: objective, reason: "no objective for channel"}
+		// TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
+		// for now we can ignore channels we aren't involved in
+		// in the future the chain service should allow us to register for specific channels
+		return ObjectiveChangeEvent{}, nil
 	}
 
 	eventHandler, ok := objective.(chainservice.ChainEventHandler)

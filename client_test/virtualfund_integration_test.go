@@ -14,8 +14,6 @@ import (
 )
 
 func TestVirtualFundIntegration(t *testing.T) {
-	// todo: #420 unskip
-	t.Skip()
 
 	// Setup logging
 	logDestination := &bytes.Buffer{}
