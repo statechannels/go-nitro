@@ -70,6 +70,7 @@ func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 			Holdings: mc.holdings[tx.ChannelId],
 		}
 	case protocols.WithdrawAllTransactionType:
+		mc.holdings[tx.ChannelId] = types.Funds{}
 		event = AllocationUpdatedEvent{
 			CommonEvent: CommonEvent{
 				channelID:          tx.ChannelId,
