@@ -408,11 +408,13 @@ func (r ObjectiveRequest) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + channelId.String())
 }
 
+// ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.
 type ObjectiveResponse struct {
 	Id        protocols.ObjectiveId
 	ChannelId types.Destination
 }
 
+// Response computes and returns the appropriate response from the request.
 func (r ObjectiveRequest) Response() ObjectiveResponse {
 	fixedPart := state.FixedPart{ChainId: big.NewInt(0), // TODO
 		Participants:      []types.Address{r.MyAddress, r.CounterParty},
