@@ -122,15 +122,13 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 	ms.objectives.Store(string(obj.Id()), objJSON)
 
 	for _, rel := range obj.Related() {
-		switch rel.(type) {
+		switch ch := rel.(type) {
 		case *channel.Channel:
-			ch := rel.(*channel.Channel)
 			err := ms.SetChannel(ch)
 			if err != nil {
 				return fmt.Errorf("error setting channel %s from objective %s: %w", ch.Id, obj.Id(), err)
 			}
 		case *consensus_channel.ConsensusChannel:
-			ch := rel.(*consensus_channel.ConsensusChannel)
 			err := ms.SetConsensusChannel(ch)
 			if err != nil {
 				return fmt.Errorf("error setting consensus channel %s from objective %s: %w", ch.Id, obj.Id(), err)
