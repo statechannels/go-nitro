@@ -136,7 +136,6 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 	}
 
 	// Objective ownership can only be transferred if the channel is not owned by another objective
-	// todo: clear ownership after the objective completes
 	prevOwner, isOwned := ms.channelToObjective.Load(obj.OwnsChannel().String())
 	if obj.GetStatus() == protocols.Approved {
 		if !isOwned {
@@ -363,4 +362,8 @@ func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective
 	} else {
 		return nil, fmt.Errorf("objective id %s does not correspond to a known Objective type", id)
 	}
+}
+
+func (ms *MockStore) ReleaseChannelFromOwnership(channelId types.Destination) {
+	ms.channelToObjective.m.Delete(channelId.String())
 }

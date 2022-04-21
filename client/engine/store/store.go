@@ -25,6 +25,8 @@ type Store interface {
 	GetChannelById(id types.Destination) (c *channel.Channel, ok bool)
 	SetChannel(*channel.Channel) error
 
+	ReleaseChannelFromOwnership(types.Destination) // Release channel from being owned by any objective
+
 	ConsensusChannelStore
 }
 
