@@ -27,7 +27,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.7.4',
+        version: '0.7.6',
         settings: {
           optimizer: {
             enabled: true,
@@ -42,7 +42,7 @@ const config: HardhatUserConfig = {
       // It is an example of an application a third party dev might write, so it is highly nonideal that it requires this workaround.
       // See https://github.com/ethereum/solidity/issues/10930
       'contracts/examples/EmbeddedApplication.sol': {
-        version: '0.7.4',
+        version: '0.7.6',
         settings: {
           optimizer: {enabled: false},
         },

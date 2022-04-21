@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.7.4;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import './IForceMoveApp.sol';
@@ -43,9 +43,9 @@ interface IForceMove {
     function challenge(
         FixedPart memory fixedPart,
         IForceMoveApp.VariablePart[] memory variableParts,
-        Signature[] calldata sigs,
-        uint8[] calldata whoSignedWhat,
-        Signature calldata challengerSig
+        Signature[] memory sigs,
+        uint8[] memory whoSignedWhat,
+        Signature memory challengerSig
     ) external;
 
     /**
@@ -60,7 +60,7 @@ interface IForceMove {
         IForceMoveApp.VariablePart[2] memory variablePartAB,
         // variablePartAB[0] = challengeVariablePart
         // variablePartAB[1] = responseVariablePart
-        Signature calldata sig
+        Signature memory sig
     ) external;
 
     /**
@@ -74,8 +74,8 @@ interface IForceMove {
     function checkpoint(
         FixedPart memory fixedPart,
         IForceMoveApp.VariablePart[] memory variableParts,
-        Signature[] calldata sigs,
-        uint8[] calldata whoSignedWhat
+        Signature[] memory sigs,
+        uint8[] memory whoSignedWhat
     ) external;
 
     /**
@@ -91,8 +91,8 @@ interface IForceMove {
         FixedPart memory fixedPart,
         IForceMoveApp.VariablePart memory latestVariablePart,
         uint8 numStates,
-        uint8[] calldata whoSignedWhat,
-        Signature[] calldata sigs
+        uint8[] memory whoSignedWhat,
+        Signature[] memory sigs
     ) external;
 
     // events

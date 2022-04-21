@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.7.4;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
@@ -48,9 +48,9 @@ contract ForceMove is IForceMove, StatusManager {
     function challenge(
         FixedPart memory fixedPart,
         IForceMoveApp.VariablePart[] memory variableParts,
-        Signature[] calldata sigs,
-        uint8[] calldata whoSignedWhat,
-        Signature calldata challengerSig
+        Signature[] memory sigs,
+        uint8[] memory whoSignedWhat,
+        Signature memory challengerSig
     ) external override {
         // input type validation
         requireValidInput(
@@ -117,7 +117,7 @@ contract ForceMove is IForceMove, StatusManager {
         IForceMoveApp.VariablePart[2] memory variablePartAB,
         // variablePartAB[0] = challengeVariablePart
         // variablePartAB[1] = responseVariablePart
-        Signature calldata sig
+        Signature memory sig
     ) external override {
         // No need to validate fixedPart.participants.length here, as that validation would have happened during challenge
 
@@ -174,8 +174,8 @@ contract ForceMove is IForceMove, StatusManager {
     function checkpoint(
         FixedPart memory fixedPart,
         IForceMoveApp.VariablePart[] memory variableParts,
-        Signature[] calldata sigs,
-        uint8[] calldata whoSignedWhat
+        Signature[] memory sigs,
+        uint8[] memory whoSignedWhat
     ) external override {
         // input type validation
         requireValidInput(
@@ -210,8 +210,8 @@ contract ForceMove is IForceMove, StatusManager {
         FixedPart memory fixedPart,
         IForceMoveApp.VariablePart memory latestVariablePart,
         uint8 numStates,
-        uint8[] calldata whoSignedWhat,
-        Signature[] calldata sigs
+        uint8[] memory whoSignedWhat,
+        Signature[] memory sigs
     ) external override {
         _conclude(fixedPart, latestVariablePart, numStates, whoSignedWhat, sigs);
     }
