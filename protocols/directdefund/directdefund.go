@@ -52,11 +52,21 @@ func isInConsensusOrFinalState(c *channel.Channel) (bool, error) {
 	return cmp.Equal(latestSS.State(), latestSupportedState), nil
 }
 
+// GetChannel specifies a function that can be used to retreive channels from a store.
+// TODO why not declare this interface in the store?
+type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel, ok bool)
+
 // NewObjective initiates an Objective with the supplied channel
 func NewObjective(
 	preApprove bool,
-	c *channel.Channel,
+	channelId types.Destination,
+	getChannel GetChannelByIdFunction,
 ) (Objective, error) {
+	c, ok := getChannel(channelId)
+
+	if !ok {
+		return Objective{}, fmt.Errorf("could not find channel %s", channelId)
+	}
 	// We choose to disallow creating an objective if the channel has an in-progress update.
 	// We allow the creation of of an objective if the channel has some final states.
 	// In the future, we can add a restriction that only defund objectives can add final states to the channel.
@@ -249,4 +259,14 @@ func (o Objective) clone() Objective {
 	clone.finalTurnNum = o.finalTurnNum
 
 	return clone
+}
+
+// ObjectiveRequest represents a request to create a new direct defund objective.
+type ObjectiveRequest struct {
+	ChannelId types.Destination
+}
+
+// Id returns the objective id for the request.
+func (r ObjectiveRequest) Id() protocols.ObjectiveId {
+	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
 }
