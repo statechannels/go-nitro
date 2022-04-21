@@ -296,54 +296,53 @@ func (ms *MockStore) GetObjectiveByChannelId(channelId types.Destination) (proto
 func (ms *MockStore) populateChannelData(obj protocols.Objective) error {
 	id := obj.Id()
 
-	if dfo, isDirectFund := obj.(*directfund.Objective); isDirectFund {
+	switch o := obj.(type) {
+	case *directfund.Objective:
 
-		ch, err := ms.getChannelById(dfo.C.Id)
+		ch, err := ms.getChannelById(o.C.Id)
 
 		if err != nil {
 			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
 		}
 
-		dfo.C = &ch
+		o.C = &ch
 
 		return nil
-
-	} else if vfo, isVirtualFund := obj.(*virtualfund.Objective); isVirtualFund {
-
-		v, err := ms.getChannelById(vfo.V.Id)
+	case *virtualfund.Objective:
+		v, err := ms.getChannelById(o.V.Id)
 		if err != nil {
 			return fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
 		}
-		vfo.V = &channel.SingleHopVirtualChannel{Channel: v}
+		o.V = &channel.SingleHopVirtualChannel{Channel: v}
 
 		zeroAddress := types.Destination{}
 
-		if vfo.ToMyLeft != nil &&
-			vfo.ToMyLeft.Channel != nil &&
-			vfo.ToMyLeft.Channel.Id != zeroAddress {
+		if o.ToMyLeft != nil &&
+			o.ToMyLeft.Channel != nil &&
+			o.ToMyLeft.Channel.Id != zeroAddress {
 
-			left, err := ms.GetConsensusChannelById(vfo.ToMyLeft.Channel.Id)
+			left, err := ms.GetConsensusChannelById(o.ToMyLeft.Channel.Id)
 			if err != nil {
 				return fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
 			}
-			vfo.ToMyLeft.Channel = left
+			o.ToMyLeft.Channel = left
 		}
 
-		if vfo.ToMyRight != nil &&
-			vfo.ToMyRight.Channel != nil &&
-			vfo.ToMyRight.Channel.Id != zeroAddress {
-			right, err := ms.GetConsensusChannelById(vfo.ToMyRight.Channel.Id)
+		if o.ToMyRight != nil &&
+			o.ToMyRight.Channel != nil &&
+			o.ToMyRight.Channel.Id != zeroAddress {
+			right, err := ms.GetConsensusChannelById(o.ToMyRight.Channel.Id)
 			if err != nil {
 				return fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
 			}
-			vfo.ToMyRight.Channel = right
+			o.ToMyRight.Channel = right
 		}
 
 		return nil
-
-	} else {
+	default:
 		return fmt.Errorf("objective %s did not correctly represent a known Objective type", id)
 	}
+
 }
 
 // decodeObjective is a helper which encapsulates the deserialization
