@@ -174,6 +174,7 @@ func (ms *MockStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel)
 	return nil
 }
 
+// GetChannelById retrieves the channel with the supplied id, if it exists.
 func (ms *MockStore) GetChannelById(id types.Destination) (c *channel.Channel, ok bool) {
 	ch, err := ms.getChannelById(id)
 
