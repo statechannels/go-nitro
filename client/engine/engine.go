@@ -346,6 +346,12 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
 		return &vfo, nil
+	case directdefund.IsDirectDefundObjective(message.ObjectiveId):
+		ddfo, err := directdefund.ConstructObjectiveFromMessage(message, e.store.GetChannelById)
+		if err != nil {
+			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message: %w", err)
+		}
+		return &ddfo, nil
 
 	default:
 		return &directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
