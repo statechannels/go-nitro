@@ -224,9 +224,8 @@ func constructFromState(
 	if !init.isAlice() { // everyone other than Alice has a left-channel
 		init.ToMyLeft = &Connection{}
 
-		// todo: #420
 		if consensusChannelToMyLeft == nil {
-			return Objective{}, fmt.Errorf("non-alice virtualfund objective requires non-nil ledger channel")
+			return Objective{}, fmt.Errorf("non-alice virtualfund objective requires non-nil left ledger channel")
 		}
 
 		init.ToMyLeft.Channel = consensusChannelToMyLeft
@@ -246,7 +245,7 @@ func constructFromState(
 		init.ToMyRight = &Connection{}
 
 		if consensusChannelToMyRight == nil {
-			return Objective{}, fmt.Errorf("non-bob virtualfund objective requires non-nil ledger channel")
+			return Objective{}, fmt.Errorf("non-bob virtualfund objective requires non-nil right ledger channel")
 		}
 
 		init.ToMyRight.Channel = consensusChannelToMyRight

@@ -3,6 +3,7 @@ package testdata
 import (
 	"fmt"
 
+	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
@@ -60,6 +61,10 @@ func genericDFO() directfund.Objective {
 
 func genericVFO() virtualfund.Objective {
 	ts := testVirtualState.Clone()
+	ts.Participants[0] = testactors.Alice.Address
+	ts.Participants[1] = testactors.Irene.Address
+	ts.Participants[2] = testactors.Bob.Address
+
 	request := virtualfund.ObjectiveRequest{
 		ts.Participants[0],
 		ts.Participants[1],
@@ -70,7 +75,15 @@ func genericVFO() virtualfund.Objective {
 		ts.Outcome,
 		ts.ChannelNonce.Int64(),
 	}
-	testVFO, err := virtualfund.NewObjective(request, Channels.MockTwoPartyLedger, Channels.MockConsensusChannel)
+
+	ledgerPath := createLedgerPath([]testactors.Actor{
+		testactors.Alice,
+		testactors.Irene,
+		testactors.Bob,
+	})
+	lookup := ledgerPath.GetLedgerLookup(testactors.Alice.Address)
+
+	testVFO, err := virtualfund.NewObjective(request, Channels.MockTwoPartyLedger, lookup)
 	if err != nil {
 		panic(fmt.Errorf("error constructing genericVFO: %w", err))
 	}
