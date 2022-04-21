@@ -99,7 +99,7 @@ func (l LedgerNetwork) GetLedgerLookup(seeker types.Address) virtualfund.GetTwoP
 // createLedgerNetwork returns active, funded consensus_channels connecting the supplied
 // actors according the the supplied edge list.
 //
-// Edges specify actors via their indeces in the actors slice,
+// Edges specify actors via their indices in the actors slice,
 // and each edge is ordered [leader, follower].
 func createLedgerNetwork(actors []testactors.Actor, edges [][2]int) LedgerNetwork {
 	if len(edges) == 0 {
