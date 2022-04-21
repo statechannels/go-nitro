@@ -73,7 +73,7 @@ func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequ
 }
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty
-func (c *Client) CreateDirectChannel(objectiveRequest directfund.ObjectiveRequest) protocols.ObjectiveId {
+func (c *Client) CreateDirectChannel(objectiveRequest directfund.ObjectiveRequest) directfund.ObjectiveResponse {
 
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objectiveRequest,
@@ -81,7 +81,7 @@ func (c *Client) CreateDirectChannel(objectiveRequest directfund.ObjectiveReques
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objectiveRequest.Id()
+	return objectiveRequest.Response()
 
 }
 

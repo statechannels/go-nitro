@@ -408,6 +408,25 @@ func (r ObjectiveRequest) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + channelId.String())
 }
 
+type ObjectiveResponse struct {
+	Id        protocols.ObjectiveId
+	ChannelId types.Destination
+}
+
+func (r ObjectiveRequest) Response() ObjectiveResponse {
+	fixedPart := state.FixedPart{ChainId: big.NewInt(0), // TODO
+		Participants:      []types.Address{r.MyAddress, r.CounterParty},
+		ChannelNonce:      big.NewInt(r.Nonce),
+		ChallengeDuration: r.ChallengeDuration}
+
+	channelId, _ := fixedPart.ChannelId()
+
+	return ObjectiveResponse{
+		Id:        protocols.ObjectiveId(ObjectivePrefix + channelId.String()),
+		ChannelId: channelId,
+	}
+}
+
 // mermaid diagram
 // key:
 // - effect!
