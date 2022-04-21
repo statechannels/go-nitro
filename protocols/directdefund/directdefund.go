@@ -52,11 +52,20 @@ func isInConsensusOrFinalState(c *channel.Channel) (bool, error) {
 	return cmp.Equal(latestSS.State(), latestSupportedState), nil
 }
 
+// GetChannelByIdFunction specifies a function that can be used to retreive channels from a store.
+type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel, ok bool)
+
 // NewObjective initiates an Objective with the supplied channel
 func NewObjective(
 	preApprove bool,
-	c *channel.Channel,
+	channelId types.Destination,
+	getChannel GetChannelByIdFunction,
 ) (Objective, error) {
+	c, ok := getChannel(channelId)
+
+	if !ok {
+		return Objective{}, fmt.Errorf("could not find channel %s", channelId)
+	}
 	// We choose to disallow creating an objective if the channel has an in-progress update.
 	// We allow the creation of of an objective if the channel has some final states.
 	// In the future, we can add a restriction that only defund objectives can add final states to the channel.
@@ -90,6 +99,31 @@ func NewObjective(
 	}
 
 	return init, nil
+}
+
+var ErrNoFinalState = errors.New("Cannot spawn direct defund objective without a final state")
+
+// ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
+func ConstructObjectiveFromMessage(
+	m protocols.Message,
+	getChannel GetChannelByIdFunction,
+) (Objective, error) {
+	preApprove := true
+	// TODO: do not blindly preapprove
+	// See https://github.com/statechannels/go-nitro/issues/213
+
+	// Implicit in the wire protocol is that the message signalling
+	// closure of a channel includes an isFinal state (in the 0 slot of the message)
+	//
+	if !m.SignedStates[0].State().IsFinal {
+		return Objective{}, ErrNoFinalState
+	}
+
+	cId, err := m.SignedStates[0].State().ChannelId()
+	if err != nil {
+		return Objective{}, err
+	}
+	return NewObjective(preApprove, cId, getChannel)
 }
 
 // Public methods on the DirectDefundingObjective
@@ -249,4 +283,14 @@ func (o Objective) clone() Objective {
 	clone.finalTurnNum = o.finalTurnNum
 
 	return clone
+}
+
+// ObjectiveRequest represents a request to create a new direct defund objective.
+type ObjectiveRequest struct {
+	ChannelId types.Destination
+}
+
+// Id returns the objective id for the request.
+func (r ObjectiveRequest) Id() protocols.ObjectiveId {
+	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
 }

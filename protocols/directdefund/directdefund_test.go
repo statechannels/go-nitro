@@ -104,8 +104,12 @@ func newTestObjective(signByBob bool) (Objective, error) {
 		return o, err
 	}
 
+	getChannel := func(id types.Destination) (channel *channel.Channel, ok bool) {
+		return testChannel, true
+	}
+
 	// Assert that valid constructor args do not result in error
-	o, err = NewObjective(true, testChannel)
+	o, err = NewObjective(true, testChannel.Id, getChannel)
 	if err != nil {
 		return o, err
 	}

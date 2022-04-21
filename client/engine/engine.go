@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
@@ -206,6 +207,13 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			}
 			return e.attemptProgress(&dfo)
 
+		case directdefund.ObjectiveRequest:
+			ddfo, err := directdefund.NewObjective(true, request.ChannelId, e.store.GetChannelById)
+			if err != nil {
+				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+			}
+			return e.attemptProgress(&ddfo)
+
 		default:
 			return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)
 		}
@@ -275,6 +283,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
 	if waitingFor == "WaitingForNothing" {
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
+		e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
 		err = e.SpawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
 		if err != nil {
 			return
@@ -340,6 +349,12 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
 		return &vfo, nil
+	case directdefund.IsDirectDefundObjective(message.ObjectiveId):
+		ddfo, err := directdefund.ConstructObjectiveFromMessage(message, e.store.GetChannelById)
+		if err != nil {
+			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message: %w", err)
+		}
+		return &ddfo, nil
 
 	default:
 		return &directfund.Objective{}, errors.New("cannot handle unimplemented objective type")

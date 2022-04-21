@@ -18,7 +18,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client) {
+func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client) types.Destination {
 	// Set up an outcome that requires both participants to deposit
 	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, 5, 5)
 
@@ -31,10 +31,11 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 		ChallengeDuration: big.NewInt(0),
 		Nonce:             rand.Int63(),
 	}
-	id := alpha.CreateDirectChannel(request)
-	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, id)
-	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, id)
+	response := alpha.CreateDirectChannel(request)
 
+	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, response.Id)
+	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, response.Id)
+	return response.ChannelId
 }
 func TestDirectFundIntegration(t *testing.T) {
 

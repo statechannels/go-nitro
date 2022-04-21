@@ -22,7 +22,10 @@ type Store interface {
 	GetObjectiveByChannelId(types.Destination) (obj protocols.Objective, ok bool) // Get the objective that currently owns the channel with the supplied ChannelId
 	SetObjective(protocols.Objective) error                                       // Write an objective
 	GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (channel *channel.TwoPartyLedger, ok bool)
+	GetChannelById(id types.Destination) (c *channel.Channel, ok bool)
 	SetChannel(*channel.Channel) error
+
+	ReleaseChannelFromOwnership(types.Destination) // Release channel from being owned by any objective
 
 	ConsensusChannelStore
 }

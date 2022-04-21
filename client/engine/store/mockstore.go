@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
@@ -139,7 +140,6 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 	}
 
 	// Objective ownership can only be transferred if the channel is not owned by another objective
-	// todo: clear ownership after the objective completes
 	prevOwner, isOwned := ms.channelToObjective.Load(obj.OwnsChannel().String())
 	if obj.GetStatus() == protocols.Approved {
 		if !isOwned {
@@ -175,6 +175,17 @@ func (ms *MockStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel)
 
 	ms.consensusChannels.Store(ch.Id.String(), chJSON)
 	return nil
+}
+
+// GetChannelById retrieves the channel with the supplied id, if it exists.
+func (ms *MockStore) GetChannelById(id types.Destination) (c *channel.Channel, ok bool) {
+	ch, err := ms.getChannelById(id)
+
+	if err != nil {
+		return &channel.Channel{}, false
+	}
+
+	return &ch, true
 }
 
 // getChannelById returns the stored channel
@@ -288,71 +299,89 @@ func (ms *MockStore) GetObjectiveByChannelId(channelId types.Destination) (proto
 func (ms *MockStore) populateChannelData(obj protocols.Objective) error {
 	id := obj.Id()
 
-	if dfo, isDirectFund := obj.(*directfund.Objective); isDirectFund {
-
-		ch, err := ms.getChannelById(dfo.C.Id)
+	switch o := obj.(type) {
+	case *directfund.Objective:
+		ch, err := ms.getChannelById(o.C.Id)
 
 		if err != nil {
 			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
 		}
 
-		dfo.C = &ch
+		o.C = &ch
 
 		return nil
+	case *directdefund.Objective:
 
-	} else if vfo, isVirtualFund := obj.(*virtualfund.Objective); isVirtualFund {
+		ch, err := ms.getChannelById(o.C.Id)
 
-		v, err := ms.getChannelById(vfo.V.Id)
+		if err != nil {
+			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
+		}
+
+		o.C = &ch
+
+		return nil
+	case *virtualfund.Objective:
+		v, err := ms.getChannelById(o.V.Id)
 		if err != nil {
 			return fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
 		}
-		vfo.V = &channel.SingleHopVirtualChannel{Channel: v}
+		o.V = &channel.SingleHopVirtualChannel{Channel: v}
 
 		zeroAddress := types.Destination{}
 
-		if vfo.ToMyLeft != nil &&
-			vfo.ToMyLeft.Channel != nil &&
-			vfo.ToMyLeft.Channel.Id != zeroAddress {
+		if o.ToMyLeft != nil &&
+			o.ToMyLeft.Channel != nil &&
+			o.ToMyLeft.Channel.Id != zeroAddress {
 
-			left, err := ms.GetConsensusChannelById(vfo.ToMyLeft.Channel.Id)
+			left, err := ms.GetConsensusChannelById(o.ToMyLeft.Channel.Id)
 			if err != nil {
 				return fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
 			}
-			vfo.ToMyLeft.Channel = left
+			o.ToMyLeft.Channel = left
 		}
 
-		if vfo.ToMyRight != nil &&
-			vfo.ToMyRight.Channel != nil &&
-			vfo.ToMyRight.Channel.Id != zeroAddress {
-			right, err := ms.GetConsensusChannelById(vfo.ToMyRight.Channel.Id)
+		if o.ToMyRight != nil &&
+			o.ToMyRight.Channel != nil &&
+			o.ToMyRight.Channel.Id != zeroAddress {
+			right, err := ms.GetConsensusChannelById(o.ToMyRight.Channel.Id)
 			if err != nil {
 				return fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
 			}
-			vfo.ToMyRight.Channel = right
+			o.ToMyRight.Channel = right
 		}
 
 		return nil
-
-	} else {
+	default:
 		return fmt.Errorf("objective %s did not correctly represent a known Objective type", id)
 	}
+
 }
 
 // decodeObjective is a helper which encapsulates the deserialization
 // of Objective JSON data. The decoded objectives will not have any
 // channel data other than the channel Id.
 func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective, error) {
-	if directfund.IsDirectFundObjective(id) {
+
+	switch {
+	case directfund.IsDirectFundObjective(id):
 		dfo := directfund.Objective{}
 		err := dfo.UnmarshalJSON(data)
-
 		return &dfo, err
-	} else if virtualfund.IsVirtualFundObjective(id) {
+	case directdefund.IsDirectDefundObjective(id):
+		ddfo := directdefund.Objective{}
+		err := ddfo.UnmarshalJSON(data)
+		return &ddfo, err
+	case virtualfund.IsVirtualFundObjective(id):
 		vfo := virtualfund.Objective{}
 		err := vfo.UnmarshalJSON(data)
-
 		return &vfo, err
-	} else {
+	default:
 		return nil, fmt.Errorf("objective id %s does not correspond to a known Objective type", id)
+
 	}
+}
+
+func (ms *MockStore) ReleaseChannelFromOwnership(channelId types.Destination) {
+	ms.channelToObjective.m.Delete(channelId.String())
 }
