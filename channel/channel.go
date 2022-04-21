@@ -135,6 +135,11 @@ func (c Channel) PreFundState() state.State {
 	return c.SignedStateForTurnNum[PreFundTurnNum].State()
 }
 
+// SignedPreFundState returns the signed pre fund setup state for the channel.
+func (c Channel) SignedPreFundState() state.SignedState {
+	return c.SignedStateForTurnNum[PreFundTurnNum]
+}
+
 // PostFundState() returns the post fund setup state for the channel.
 func (c Channel) PostFundState() state.State {
 	return c.SignedStateForTurnNum[PostFundTurnNum].State()
@@ -144,7 +149,6 @@ func (c Channel) PostFundState() state.State {
 // SignedPostFundState() returns the SIGNED post fund setup state for the channel.
 func (c Channel) SignedPostFundState() state.SignedState {
 	return c.SignedStateForTurnNum[PostFundTurnNum]
-
 }
 
 // PreFundSignedByMe() returns true if I have signed the pre fund setup state, false otherwise.
