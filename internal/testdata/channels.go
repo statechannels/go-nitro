@@ -182,7 +182,7 @@ func createTestLedger(leader, follower testactors.Actor) TestLedger {
 		sigs,
 	)
 	if err != nil {
-		panic(fmt.Sprintf("error creating leader channel in testLedger: %v", err)
+		panic(fmt.Sprintf("error creating leader channel in testLedger: %v", err))
 	}
 	followCh, err := consensus_channel.NewFollowerChannel(
 		fp,
@@ -191,7 +191,7 @@ func createTestLedger(leader, follower testactors.Actor) TestLedger {
 		sigs,
 	)
 	if err != nil {
-		panic(fmt.Sprintf("error creating follwer channel in testLedger: %v", err)
+		panic(fmt.Sprintf("error creating follwer channel in testLedger: %v", err))
 	}
 
 	return TestLedger{leaderCh, followCh}
