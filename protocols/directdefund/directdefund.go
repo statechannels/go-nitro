@@ -52,8 +52,7 @@ func isInConsensusOrFinalState(c *channel.Channel) (bool, error) {
 	return cmp.Equal(latestSS.State(), latestSupportedState), nil
 }
 
-// GetChannel specifies a function that can be used to retreive channels from a store.
-// TODO why not declare this interface in the store?
+// GetChannelByIdFunction specifies a function that can be used to retreive channels from a store.
 type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel, ok bool)
 
 // NewObjective initiates an Objective with the supplied channel
