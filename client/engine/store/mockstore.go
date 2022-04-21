@@ -174,6 +174,16 @@ func (ms *MockStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel)
 	return nil
 }
 
+func (ms *MockStore) GetChannelById(id types.Destination) (c *channel.Channel, ok bool) {
+	ch, err := ms.getChannelById(id)
+
+	if err != nil {
+		return &channel.Channel{}, false
+	}
+
+	return &ch, true
+}
+
 // getChannelById returns the stored channel
 func (ms *MockStore) getChannelById(id types.Destination) (channel.Channel, error) {
 	chJSON, ok := ms.channels.Load(id.String())
