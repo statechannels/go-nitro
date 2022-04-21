@@ -172,26 +172,29 @@ func TestClone(t *testing.T) {
 	}
 }
 
-func collectPeerSignaturesOnSetupState(V *channel.SingleHopVirtualChannel, myRole uint, prefund bool) {
+func collectPeerSignaturesOnSetupState(v *channel.SingleHopVirtualChannel, myRole uint, prefund bool) *channel.SingleHopVirtualChannel {
 	var state state.State
 	if prefund {
-		state = V.PreFundState()
+		state = v.PreFundState()
 	} else {
-		state = V.PostFundState()
+		state = v.PostFundState()
 	}
+
+	updated := v.Clone()
 
 	if myRole != alice.Role {
 		aliceSig, _ := state.Sign(alice.PrivateKey)
-		V.AddStateWithSignature(state, aliceSig)
+		updated.AddStateWithSignature(state, aliceSig)
 	}
 	if myRole != p1.Role {
 		p1Sig, _ := state.Sign(p1.PrivateKey)
-		V.AddStateWithSignature(state, p1Sig)
+		updated.AddStateWithSignature(state, p1Sig)
 	}
 	if myRole != bob.Role {
 		bobSig, _ := state.Sign(bob.PrivateKey)
-		V.AddStateWithSignature(state, bobSig)
+		updated.AddStateWithSignature(state, bobSig)
 	}
+	return updated
 }
 
 // TestCrankAsAlice tests the behaviour from a end-user's point of view when they are a leader in the ledger channel
@@ -226,8 +229,12 @@ func TestCrankAsAlice(t *testing.T) {
 	assertStateSentTo(t, effects, expectedSignedState, bob)
 	assertStateSentTo(t, effects, expectedSignedState, p1)
 
-	// Manually progress the extended state by collecting prefund signatures
-	collectPeerSignaturesOnSetupState(o.V, my.Role, true)
+	// Update the objective with prefund signatures
+	c := collectPeerSignaturesOnSetupState(o.V, my.Role, true)
+	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{c.SignedPreFundState()}}
+	oObj, err = o.Update(e)
+	o = oObj.(*Objective)
+	Ok(t, err)
 
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	// TODO: Check that ledger channel is updated as expected
@@ -237,7 +244,7 @@ func TestCrankAsAlice(t *testing.T) {
 	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p}
 	Ok(t, err)
-	assertProposalSent(t, effects, sp, p1)
+	assertOneProposalSent(t, effects, sp, p1)
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// Check idempotency
@@ -249,8 +256,11 @@ func TestCrankAsAlice(t *testing.T) {
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
-	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.Destination(), p1.Destination())
-	o.ToMyRight.Channel = prepareConsensusChannel(my.Role, alice, p1, guaranteeFundingV)
+	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[1]}
+	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposals: []consensus_channel.SignedProposal{sp}}
+	oObj, err = o.Update(e)
+	o = oObj.(*Objective)
+	Ok(t, err)
 
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
@@ -296,8 +306,12 @@ func TestCrankAsBob(t *testing.T) {
 	assertStateSentTo(t, effects, expectedSignedState, alice)
 	assertStateSentTo(t, effects, expectedSignedState, p1)
 
-	// Manually progress the extended state by collecting prefund signatures
-	collectPeerSignaturesOnSetupState(o.V, my.Role, true)
+	// Update the objective with prefund signatures
+	c := collectPeerSignaturesOnSetupState(o.V, my.Role, true)
+	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{c.SignedPreFundState()}}
+	oObj, err = o.Update(e)
+	o = oObj.(*Objective)
+	Ok(t, err)
 
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	// TODO: Check that ledger channel is updated as expected
@@ -317,8 +331,12 @@ func TestCrankAsBob(t *testing.T) {
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If Bob had received a signed counterproposal, he should proceed to postFundSetup
-	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, p1.Destination(), bob.Destination())
-	o.ToMyLeft.Channel = prepareConsensusChannel(uint(consensus_channel.Leader), bob, p1, guaranteeFundingV)
+	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
+	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, bob, o.ToMyLeft.getExpectedGuarantee())[0]}
+	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposals: []consensus_channel.SignedProposal{sp}}
+	oObj, err = o.Update(e)
+	o = oObj.(*Objective)
+	Ok(t, err)
 
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
@@ -330,6 +348,7 @@ func TestCrankAsBob(t *testing.T) {
 	Ok(t, err)
 	Equals(t, waitingFor, WaitingForCompletePostFund)
 	assertStateSentTo(t, effects, postFS, p1)
+	assertOneProposalSent(t, effects, sp, p1)
 }
 
 // TestCrankAsP1 tests the behaviour from an intermediary's point of view when they are a leader in one ledger channel and a follower in the other
@@ -365,8 +384,12 @@ func TestCrankAsP1(t *testing.T) {
 	assertStateSentTo(t, effects, expectedSignedState, alice)
 	assertStateSentTo(t, effects, expectedSignedState, bob)
 
-	// Manually progress the extended state by collecting prefund signatures
-	collectPeerSignaturesOnSetupState(o.V, my.Role, true)
+	// Update the objective with prefund signatures
+	c := collectPeerSignaturesOnSetupState(o.V, my.Role, true)
+	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{c.SignedPreFundState()}}
+	oObj, err = o.Update(e)
+	o = oObj.(*Objective)
+	Ok(t, err)
 
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
@@ -375,7 +398,7 @@ func TestCrankAsP1(t *testing.T) {
 	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p}
 	Ok(t, err)
-	assertProposalSent(t, effects, sp, alice)
+	assertOneProposalSent(t, effects, sp, alice)
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// Check idempotency
@@ -387,8 +410,12 @@ func TestCrankAsP1(t *testing.T) {
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If P1 had received a signed counterproposal, she should proceed to postFundSetup
-	guaranteeFundingV := consensus_channel.NewGuarantee(big.NewInt(10), o.V.Id, alice.Destination(), p1.Destination())
-	o.ToMyLeft.Channel = prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1, guaranteeFundingV)
+	p = consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
+	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[1]}
+	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposals: []consensus_channel.SignedProposal{sp}}
+	oObj, err = o.Update(e)
+	o = oObj.(*Objective)
+	Ok(t, err)
 
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
@@ -405,20 +432,21 @@ func TestCrankAsP1(t *testing.T) {
 
 }
 
-// assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
-func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to actors.Actor) {
+// assertOneProposalSent fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed proposal.
+func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to actors.Actor) {
+	numProposals := 0
+	for _, msg := range ses.MessagesToSend {
+		if len(msg.SignedProposals) > 0 {
 
-	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
+			msg := ses.MessagesToSend[0]
+			sent := msg.SignedProposals[0]
 
-	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "expected one signed proposal")
-
-	msg := ses.MessagesToSend[0]
-	sent := msg.SignedProposals[0]
-
-	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
-
-	Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
-
+			Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
+			Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
+			numProposals++
+		}
+	}
+	Assert(t, numProposals == 1, "expected 1 proposal but got %d", numProposals)
 }
 
 // assertMessageSentTo asserts that ses contains a message
