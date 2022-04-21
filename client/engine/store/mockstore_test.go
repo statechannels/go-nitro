@@ -21,7 +21,17 @@ import (
 )
 
 func compareObjectives(a, b protocols.Objective) string {
-	return cmp.Diff(&a, &b, cmp.AllowUnexported(directfund.Objective{}, virtualfund.Objective{}, channel.Channel{}, big.Int{}, state.SignedState{}))
+	return cmp.Diff(&a, &b, cmp.AllowUnexported(
+		directfund.Objective{},
+		virtualfund.Objective{},
+		channel.Channel{},
+		big.Int{},
+		state.SignedState{},
+		consensus_channel.ConsensusChannel{},
+		consensus_channel.Vars{},
+		consensus_channel.LedgerOutcome{},
+		consensus_channel.Balance{},
+	))
 }
 
 func TestNewMockStore(t *testing.T) {
@@ -42,10 +52,9 @@ func TestSetGetObjective(t *testing.T) {
 
 	wants := []protocols.Objective{}
 	dfo := td.Objectives.Directfund.GenericDFO()
-	// todo: #420 unskip
-	// vfo := td.Objectives.Virtualfund.GenericVFO()
+	vfo := td.Objectives.Virtualfund.GenericVFO()
 	wants = append(wants, &dfo)
-	// wants = append(wants, &vfo)
+	wants = append(wants, &vfo)
 
 	for _, want := range wants {
 
