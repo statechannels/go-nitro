@@ -102,10 +102,6 @@ func (l LedgerNetwork) GetLedgerLookup(seeker types.Address) virtualfund.GetTwoP
 // Edges specify actors via their indices in the actors slice,
 // and each edge is ordered [leader, follower].
 func createLedgerNetwork(actors []testactors.Actor, edges [][2]int) LedgerNetwork {
-	if len(edges) == 0 {
-		return createLedgerPath(actors)
-	}
-
 	// naive connectedness check: does not detect, eg
 	// a--b  c--d (no path from a to c or d, etc)
 	for i, a := range actors {

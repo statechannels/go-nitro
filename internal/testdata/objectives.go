@@ -76,11 +76,11 @@ func genericVFO() virtualfund.Objective {
 		ts.ChannelNonce.Int64(),
 	}
 
-	ledgerPath := createLedgerNetwork([]testactors.Actor{
+	ledgerPath := createLedgerPath([]testactors.Actor{
 		testactors.Alice,
 		testactors.Irene,
 		testactors.Bob,
-	}, nil)
+	})
 	lookup := ledgerPath.GetLedgerLookup(testactors.Alice.Address)
 
 	testVFO, err := virtualfund.NewObjective(request, Channels.MockTwoPartyLedger, lookup)
