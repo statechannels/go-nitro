@@ -102,6 +102,31 @@ func NewObjective(
 	return init, nil
 }
 
+var ErrNoFinalState = errors.New("Cannot spawn direct defund objective without a final state")
+
+// ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
+func ConstructObjectiveFromMessage(
+	m protocols.Message,
+	getChannel GetChannelByIdFunction,
+) (Objective, error) {
+	preApprove := true
+	// TODO: do not blindly preapprove
+	// See https://github.com/statechannels/go-nitro/issues/213
+
+	// Implicit in the wire protocol is that the message signalling
+	// closure of a channel includes an isFinal state (in the 0 slot of the message)
+	//
+	if !m.SignedStates[0].State().IsFinal {
+		return Objective{}, ErrNoFinalState
+	}
+
+	cId, err := m.SignedStates[0].State().ChannelId()
+	if err != nil {
+		return Objective{}, err
+	}
+	return NewObjective(preApprove, cId, getChannel)
+}
+
 // Public methods on the DirectDefundingObjective
 
 // Id returns the unique id of the objective
