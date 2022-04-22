@@ -36,6 +36,15 @@ module.exports = {
     {
       files: ['**/*.ts'],
       extends: ['plugin:@typescript-eslint/recommended'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+      },
+    },
+    {
+      files: ['./src/**/*.ts'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'warn',
+      },
     },
   ],
 };
