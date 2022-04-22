@@ -11,7 +11,6 @@ import './StatusManager.sol';
  * @dev An implementation of ForceMove protocol, which allows state channels to be adjudicated and finalized.
  */
 contract ForceMove is IForceMove, StatusManager {
-    
     // *****************
     // External methods:
     // *****************
@@ -143,7 +142,12 @@ contract ForceMove is IForceMove, StatusManager {
         // checks
 
         _requireSpecificChallenge(
-            ChannelData(turnNumRecord, finalizesAt, challengeStateHash, _hashOutcome(variablePartAB[0].outcome)),
+            ChannelData(
+                turnNumRecord,
+                finalizesAt,
+                challengeStateHash,
+                _hashOutcome(variablePartAB[0].outcome)
+            ),
             channelId
         );
 
@@ -274,7 +278,12 @@ contract ForceMove is IForceMove, StatusManager {
 
         // effects
         statusOf[channelId] = _generateStatus(
-            ChannelData(0, uint48(block.timestamp), bytes32(0), _hashOutcome(latestVariablePart.outcome)) //solhint-disable-line not-rely-on-time
+            ChannelData(
+                0,
+                uint48(block.timestamp),
+                bytes32(0),
+                _hashOutcome(latestVariablePart.outcome)
+            ) //solhint-disable-line not-rely-on-time
         );
         emit Concluded(channelId, uint48(block.timestamp)); //solhint-disable-line not-rely-on-time
     }
@@ -740,16 +749,7 @@ contract ForceMove is IForceMove, StatusManager {
         uint48 turnNum,
         bool isFinal
     ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    channelId,
-                    appData,
-                    outcome,
-                    turnNum,
-                    isFinal
-                )
-            );
+        return keccak256(abi.encode(channelId, appData, outcome, turnNum, isFinal));
     }
 
     /**
@@ -758,8 +758,10 @@ contract ForceMove is IForceMove, StatusManager {
      * @param outcome Outcome structure to encode hash.
      * @return bytes32 Hash of encoded outcome structure.
      */
-    function  _hashOutcome(Outcome.SingleAssetExit[] memory outcome)
-        internal pure returns(bytes32)
+    function _hashOutcome(Outcome.SingleAssetExit[] memory outcome)
+        internal
+        pure
+        returns (bytes32)
     {
         return keccak256(Outcome.encodeExit(outcome));
     }
@@ -790,7 +792,9 @@ contract ForceMove is IForceMove, StatusManager {
      * @return VariablePart Last VariablePart from array.
      */
     function _lastVariablePart(IForceMoveApp.VariablePart[] memory variableParts)
-        internal pure returns (IForceMoveApp.VariablePart memory)
+        internal
+        pure
+        returns (IForceMoveApp.VariablePart memory)
     {
         return variableParts[variableParts.length - 1];
     }
