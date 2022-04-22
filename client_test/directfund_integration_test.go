@@ -12,7 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
-	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/client/engine/store/store_interface"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/types"
@@ -53,7 +53,7 @@ func TestDirectFundIntegration(t *testing.T) {
 
 	want := testdata.Outcomes.Create(*clientA.Address, *clientB.Address, 5, 5)
 	// Ensure that we create a consensus channel in the store
-	for _, store := range []store.Store{storeA, storeB} {
+	for _, store := range []store_interface.Store{storeA, storeB} {
 		var con *consensus_channel.ConsensusChannel
 		var ok bool
 

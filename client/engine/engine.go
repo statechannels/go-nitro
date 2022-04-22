@@ -10,6 +10,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/client/engine/store/store_interface"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -40,7 +41,7 @@ type Engine struct {
 
 	toApi chan ObjectiveChangeEvent
 
-	store store.Store // A Store for persisting and restoring important data
+	store store_interface.Store // A Store for persisting and restoring important data
 
 	logger *log.Logger
 }
@@ -66,7 +67,7 @@ type CompletedObjectiveEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer) Engine {
+func New(msg messageservice.MessageService, chain chainservice.ChainService, store store_interface.Store, logDestination io.Writer) Engine {
 	e := Engine{}
 
 	e.store = store
@@ -194,7 +195,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 		switch request := (apiEvent.ObjectiveToSpawn).(type) {
 
 		case virtualfund.ObjectiveRequest:
-			vfo, err := virtualfund.NewObjective(request, e.store.GetTwoPartyLedger, e.store.GetConsensusChannel)
+			vfo, err := virtualfund.NewObjective(request, e.store)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
@@ -344,7 +345,7 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 
 		return &dfo, err
 	case virtualfund.IsVirtualFundObjective(message.ObjectiveId):
-		vfo, err := virtualfund.ConstructObjectiveFromMessage(message, *e.store.GetAddress(), e.store.GetTwoPartyLedger, e.store.GetConsensusChannel)
+		vfo, err := virtualfund.ConstructObjectiveFromMessage(message, *e.store.GetAddress(), e.store)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}

@@ -12,6 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/client/engine/store/store_interface"
 
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -128,8 +129,8 @@ type Objective struct {
 }
 
 // NewObjective creates a new virtual funding objective from a given request.
-func NewObjective(request ObjectiveRequest, getTwoPartyLedger GetTwoPartyLedgerFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
-	rightCC, ok := getTwoPartyConsensusLedger(request.Intermediary)
+func NewObjective(request ObjectiveRequest, getter store_interface.ConsensusChannelGetter) (Objective, error) {
+	rightCC, ok := getter.GetConsensusChannel(request.Intermediary)
 
 	if !ok {
 		return Objective{}, fmt.Errorf("could not find ledger for %s and %s", request.MyAddress, request.Intermediary)
@@ -490,19 +491,12 @@ func (o *Objective) isBob() bool {
 	return o.MyRole == o.n+1
 }
 
-// GetTwoPartyLedgerFunction specifies a function that can be used to retreive ledgers from a store.
-type GetTwoPartyLedgerFunction func(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool)
-
-// todo: #420 assume name and godoc from GetTwoPartyLedgerFunction
-type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
-
 // ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
 func ConstructObjectiveFromMessage(
 	m protocols.Message,
 	myAddress types.Address,
-	getTwoPartyLedger GetTwoPartyLedgerFunction,
-	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
+	getter store_interface.ConsensusChannelGetter,
 ) (Objective, error) {
 	if len(m.SignedStates) != 1 {
 		return Objective{}, errors.New("expected exactly one signed state in the message")
@@ -524,18 +518,18 @@ func ConstructObjectiveFromMessage(
 	if myAddress == alice {
 		return Objective{}, errors.New("participant[0] should not construct objectives from peer messages")
 	} else if myAddress == bob {
-		leftC, ok = getTwoPartyConsensusLedger(intermediary)
+		leftC, ok = getter.GetConsensusChannel(intermediary)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
 		}
 
 	} else if myAddress == intermediary {
-		leftC, ok = getTwoPartyConsensusLedger(alice)
+		leftC, ok = getter.GetConsensusChannel(alice)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
 		}
 
-		rightC, ok = getTwoPartyConsensusLedger(bob)
+		rightC, ok = getter.GetConsensusChannel(bob)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
 		}

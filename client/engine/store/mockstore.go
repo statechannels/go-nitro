@@ -7,11 +7,13 @@ import (
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/client/engine/store/store_interface"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
+
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -68,7 +70,7 @@ func (o *syncMap[T]) Range(f func(key string, value T) bool) {
 	o.m.Range(untypedF)
 }
 
-func NewMockStore(key []byte) Store {
+func NewMockStore(key []byte) store_interface.Store {
 	ms := MockStore{}
 	ms.key = key
 	ms.address = crypto.GetAddressFromSecretKeyBytes(key)
