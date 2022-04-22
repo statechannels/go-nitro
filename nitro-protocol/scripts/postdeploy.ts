@@ -1,6 +1,7 @@
-const {writeFileSync} = require('fs');
+import {writeFileSync} from 'fs';
 
 const jsonPath = __dirname + '/../addresses.json';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const addresses = require(jsonPath);
 
 function deepDelete(object: any, keyToDelete: string) {

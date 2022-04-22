@@ -1,10 +1,12 @@
-const {configureEnvVariables} = require('@statechannels/devtools');
+import {resolve} from 'path';
+
+import {configureEnvVariables} from '@statechannels/devtools';
 
 configureEnvVariables();
-const {resolve} = require('path');
+// eslint-disable-next-line no-undef
 const root = resolve(__dirname, '../../');
 
-module.exports = {
+export default {
   globals: {
     'ts-jest': {
       tsconfig: './tsconfig.json',

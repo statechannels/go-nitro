@@ -1,10 +1,10 @@
-import {utils, BigNumber, BigNumberish, constants, ContractReceipt, ethers} from 'ethers';
+import {BigNumber, BigNumberish, constants, ContractReceipt, ethers} from 'ethers';
 import {Signature} from '@ethersproject/bytes';
 import {Wallet} from '@ethersproject/wallet';
 import {AllocationType} from '@statechannels/exit-format';
+import {expect} from '@jest/globals';
 
 import {
-  Bytes32,
   convertAddressToBytes32,
   getChannelId,
   getFixedPart,

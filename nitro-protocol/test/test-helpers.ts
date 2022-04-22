@@ -2,6 +2,7 @@ import {Contract, ethers, BigNumberish, BigNumber, providers} from 'ethers';
 import {BytesLike} from '@ethersproject/bytes';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 import {isBigNumberish} from '@ethersproject/bignumber/lib/bignumber';
+import {LogDescription} from '@ethersproject/abi';
 
 import {ChallengeClearedEvent, ChallengeRegisteredStruct} from '../src/contract/challenge';
 import {channelDataToStatus} from '../src/contract/channel-storage';
@@ -227,12 +228,13 @@ export function replaceAddressesAndBigNumberify(
   const newObject: AssetOutcomeShortHand | OutcomeShortHand = {};
   Object.keys(object).forEach(key => {
     if (isBigNumberish(object[key])) {
-      newObject[addresses[key]!] = BigNumber.from(object[key]);
+      newObject[addresses[key] as string] = BigNumber.from(object[key]);
     } else if (typeof object[key] === 'object') {
       // Recurse
-      newObject[addresses[key]!] = replaceAddressesAndBigNumberify(object[key], addresses) as
-        | AssetOutcomeShortHand
-        | BigNumberish;
+      newObject[addresses[key] as string] = replaceAddressesAndBigNumberify(
+        object[key],
+        addresses
+      ) as AssetOutcomeShortHand | BigNumberish;
     }
   });
   return newObject;
@@ -293,8 +295,12 @@ export function computeOutcome(outcomeShortHand: OutcomeShortHand): Outcome {
   return outcome;
 }
 
-export function compileEventsFromLogs(logs: any[], contractsArray: Contract[]): Object[] {
-  const events: Object[] = [];
+interface Event extends LogDescription {
+  contract: string;
+}
+
+export function compileEventsFromLogs(logs: any[], contractsArray: Contract[]): Event[] {
+  const events: Event[] = [];
   logs.forEach(log => {
     contractsArray.forEach(contract => {
       if (log.address === contract.address) {

@@ -155,8 +155,11 @@ describe('deposit', () => {
 });
 
 const getDepositedEvent = (events: ethers.Event[]) =>
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   events.find(({event}) => event === 'Deposited')!.args;
+
 const getTransferEvent = (events: ethers.Event[]) =>
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   events.find(({topics}) => topics[0] === token.filters.Transfer(AddressZero).topics![0])!;
 
 async function getBalance(asset: string, address: string) {

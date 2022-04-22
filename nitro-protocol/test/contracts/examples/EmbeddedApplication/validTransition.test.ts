@@ -1,6 +1,5 @@
-/* eslint-disable jest/expect-expect */
 import {expectRevert as innerExpectRevert} from '@statechannels/devtools';
-import {constants, Contract, Signature, Wallet} from 'ethers';
+import {constants, Contract, Wallet} from 'ethers';
 import {AllocationType} from '@statechannels/exit-format';
 
 import embeddedApplicationArtifact from '../../../../artifacts/contracts/examples/EmbeddedApplication.sol/EmbeddedApplication.json';
