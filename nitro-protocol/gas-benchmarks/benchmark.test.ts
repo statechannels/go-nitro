@@ -1,5 +1,3 @@
-import {expect} from '@jest/globals';
-
 import {encodeOutcome} from '../src';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../src/transactions';
 

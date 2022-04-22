@@ -1,7 +1,6 @@
 import {exec} from 'child_process';
 import {promises, existsSync, truncateSync} from 'fs';
 
-import {jest, beforeAll, afterAll, expect} from '@jest/globals';
 import {ContractFactory, Contract} from '@ethersproject/contracts';
 import {providers} from 'ethers';
 import waitOn from 'wait-on';
@@ -61,7 +60,8 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await kill(hardhatProcess.pid);
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  await kill(hardhatProcess.pid!);
   await hardhatProcessExited;
   await hardhatProcessClosed;
 });

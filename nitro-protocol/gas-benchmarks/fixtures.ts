@@ -2,7 +2,6 @@ import {BigNumber, BigNumberish, constants, ContractReceipt, ethers} from 'ether
 import {Signature} from '@ethersproject/bytes';
 import {Wallet} from '@ethersproject/wallet';
 import {AllocationType} from '@statechannels/exit-format';
-import {expect} from '@jest/globals';
 
 import {
   convertAddressToBytes32,
