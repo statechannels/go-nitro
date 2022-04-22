@@ -5,20 +5,17 @@ import {AllocationType} from '@statechannels/exit-format';
 
 import embeddedApplicationArtifact from '../../../../artifacts/contracts/examples/EmbeddedApplication.sol/EmbeddedApplication.json';
 import {convertAddressToBytes32, getChannelId, signState} from '../../../../src';
-import {encodeOutcome} from '../../../../src/contract/outcome';
+import {encodeOutcome, Outcome} from '../../../../src/contract/outcome';
 import {getFixedPart, State} from '../../../../src/contract/state';
 import {
   AlreadyMoved,
   encodeEmbeddedApplicationData,
   VariablePart,
   SupportProof,
-  getVariablePart
+  getVariablePart,
 } from '../../../../src/contract/embedded-application';
 import {getTestProvider, setupContract} from '../../../test-helpers';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../../src/transactions';
-import {Outcome} from '../../../../src/contract/outcome';
-
-
 
 type RevertReason =
   // each reason represents a distinct code path that we should check in this test

@@ -1,7 +1,7 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 import {Contract, ethers} from 'ethers';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
 import SingleAssetPaymentsArtifact from '../../../../artifacts/contracts/examples/SingleAssetPayments.sol/SingleAssetPayments.json';
@@ -68,7 +68,7 @@ describe('validTransition', () => {
       balancesB: any;
       reason?: string;
     }) => {
-      let turnNumA = turnNumB - 1;
+      const turnNumA = turnNumB - 1;
       balancesA = replaceAddressesAndBigNumberify(balancesA, addresses);
       const allocationsA: Allocation[] = [];
       Object.keys(balancesA).forEach(key =>
@@ -128,12 +128,7 @@ describe('validTransition', () => {
         expect(isValidFromCall).toBe(true);
       } else {
         await expectRevert(
-          () =>
-            singleAssetPayments.validTransition(
-              variablePartA,
-              variablePartB,
-              numParticipants
-            ),
+          () => singleAssetPayments.validTransition(variablePartA, variablePartB, numParticipants),
           reason
         );
       }

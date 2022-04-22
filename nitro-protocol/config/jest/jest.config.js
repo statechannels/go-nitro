@@ -1,4 +1,5 @@
 const {configureEnvVariables} = require('@statechannels/devtools');
+
 configureEnvVariables();
 const {resolve} = require('path');
 const root = resolve(__dirname, '../../');

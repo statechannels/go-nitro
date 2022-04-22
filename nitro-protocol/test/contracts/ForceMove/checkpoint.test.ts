@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers} from 'ethers';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
 
@@ -25,7 +25,8 @@ import {
   setupContract,
 } from '../../test-helpers';
 import {signStates} from '../../../src';
-import { testParams } from './types';
+
+import {testParams} from './types';
 
 const provider = getTestProvider();
 let ForceMove: Contract;
@@ -102,7 +103,13 @@ describe('checkpoint', () => {
   `('$description', async ({largestTurnNum, support, finalizesAt, reason}: testParams) => {
     const {appDatas, whoSignedWhat} = support;
     const channel: Channel = {chainId, channelNonce, participants};
-    const fixedPart: FixedPart = {chainId, channelNonce, participants, appDefinition, challengeDuration};
+    const fixedPart: FixedPart = {
+      chainId,
+      channelNonce,
+      participants,
+      appDefinition,
+      challengeDuration,
+    };
     const channelId = getChannelId(fixedPart);
 
     const states = appDatas.map((data, idx) => ({
@@ -142,7 +149,7 @@ describe('checkpoint', () => {
     // Call public wrapper to set state (only works on test contract)
     await (await ForceMove.setStatus(channelId, fingerprint)).wait();
     expect(await ForceMove.statusOf(channelId)).toEqual(fingerprint);
-    
+
     const signatures = await signStates(states, wallets, whoSignedWhat);
 
     const tx = ForceMove.checkpoint(...checkpointArgs({states, signatures, whoSignedWhat}));

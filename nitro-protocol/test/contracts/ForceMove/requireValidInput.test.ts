@@ -1,5 +1,5 @@
 import {Contract} from 'ethers';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 
 import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
 import {getTestProvider, setupContract} from '../../test-helpers';

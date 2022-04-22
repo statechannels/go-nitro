@@ -1,5 +1,5 @@
 import {ethers, Wallet} from 'ethers';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 
 import {SignedState, State} from '../../src';
 import {Channel} from '../../src/contract/channel';

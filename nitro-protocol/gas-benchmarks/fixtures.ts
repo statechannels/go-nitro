@@ -1,8 +1,7 @@
-import {utils} from 'ethers';
+import {utils, BigNumber, BigNumberish, constants, ContractReceipt, ethers} from 'ethers';
 import {Signature} from '@ethersproject/bytes';
 import {Wallet} from '@ethersproject/wallet';
 import {AllocationType} from '@statechannels/exit-format';
-import {BigNumber, BigNumberish, constants, ContractReceipt, ethers} from 'ethers';
 
 import {
   Bytes32,

@@ -5,14 +5,14 @@ module.exports = {
     '@typescript-eslint',
     'prettier',
     // We enforce certain rules on how imports are handled
-    'import'
+    'import',
   ],
   extends: [
     'eslint:recommended',
     'plugin:prettier/recommended',
     'plugin:import/errors',
     'plugin:import/warnings',
-    'plugin:import/typescript'
+    'plugin:import/typescript',
   ],
   rules: {
     'no-self-compare': 'error',
@@ -20,8 +20,8 @@ module.exports = {
       1,
       {
         groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
-        'newlines-between': 'always'
-      }
+        'newlines-between': 'always',
+      },
     ],
     /**
      * The default setting for Prettier is 'warn' because then it shows as yellow squiggly lines
@@ -30,12 +30,12 @@ module.exports = {
      * scripts in the packages within this monorepo, we add that flag so that the precommit hooks
      * associated with that script will fail when run.
      */
-    'prettier/prettier': 'warn'
+    'prettier/prettier': 'warn',
   },
   overrides: [
     {
       files: ['**/*.ts'],
-      extends: ['plugin:@typescript-eslint/recommended']
-    }
-  ]
+      extends: ['plugin:@typescript-eslint/recommended'],
+    },
+  ],
 };

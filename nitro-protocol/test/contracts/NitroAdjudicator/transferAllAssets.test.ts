@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, constants} from 'ethers';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 
 import {Channel, getChannelId} from '../../../src/contract/channel';
 import {hashOutcome, Outcome} from '../../../src/contract/outcome';
@@ -23,17 +23,17 @@ import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TEST
 import {channelDataToStatus, convertBytes32ToAddress} from '../../../src';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../src/transactions';
 
-const testNitroAdjudicator = (setupContract(
+const testNitroAdjudicator = setupContract(
   getTestProvider(),
   TESTNitroAdjudicatorArtifact,
   process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
-) as unknown) as TESTNitroAdjudicator & Contract;
+) as unknown as TESTNitroAdjudicator & Contract;
 
-const token = (setupContract(
+const token = setupContract(
   getTestProvider(),
   TokenArtifact,
   process.env.TEST_TOKEN_ADDRESS
-) as unknown) as Token & Contract;
+) as unknown as Token & Contract;
 
 const addresses = {
   // Channels

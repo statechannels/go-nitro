@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers, BigNumber, constants} from 'ethers';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 
 import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
 import {Channel, getChannelId} from '../../../src/contract/channel';
@@ -24,17 +24,17 @@ import {Token} from '../../../typechain-types/Token';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 
-const testNitroAdjudicator = (setupContract(
+const testNitroAdjudicator = setupContract(
   getTestProvider(),
   TESTNitroAdjudicatorArtifact,
   process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
-) as unknown) as TESTNitroAdjudicator & Contract;
+) as unknown as TESTNitroAdjudicator & Contract;
 
-const token = (setupContract(
+const token = setupContract(
   getTestProvider(),
   TokenArtifact,
   process.env.TEST_TOKEN_ADDRESS
-) as unknown) as Token & Contract;
+) as unknown as Token & Contract;
 
 const provider = getTestProvider();
 const chainId = process.env.CHAIN_NETWORK_ID;
@@ -45,9 +45,9 @@ const challengeDuration = 0x1000;
 let appDefinition: string;
 
 interface addressesT {
-  [index: string]: string | undefined,
-  At: string,
-  Bt: string,
+  [index: string]: string | undefined;
+  At: string;
+  Bt: string;
 }
 
 const addresses: addressesT = {
@@ -68,7 +68,7 @@ const addresses: addressesT = {
 };
 
 interface payoutsT {
-  [index: string]: number
+  [index: string]: number;
 }
 
 const tenPayouts = {ERC20: {} as payoutsT};
@@ -144,7 +144,13 @@ describe('concludeAndTransferAllAssets', () => {
       reasonString: string;
     }) => {
       const channel: Channel = {chainId, participants, channelNonce};
-      const fixedPart: FixedPart = {chainId, participants, channelNonce, appDefinition, challengeDuration}
+      const fixedPart: FixedPart = {
+        chainId,
+        participants,
+        channelNonce,
+        appDefinition,
+        challengeDuration,
+      };
       const channelId = getChannelId(fixedPart);
       addresses.c = channelId;
       const support = oneState;

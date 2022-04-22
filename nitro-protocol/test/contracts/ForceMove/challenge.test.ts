@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers, Signature, BigNumber} from 'ethers';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
 const {defaultAbiCoder} = ethers.utils;
@@ -35,7 +35,8 @@ import {
 import {createChallengeTransaction, NITRO_MAX_GAS} from '../../../src/transactions';
 import {hashChallengeMessage} from '../../../src/contract/challenge';
 import {MAX_OUTCOME_ITEMS} from '../../../src/contract/outcome';
-import { transitionType } from './types';
+
+import {transitionType} from './types';
 
 const provider = getTestProvider();
 
@@ -151,13 +152,13 @@ describe('challenge', () => {
   `(
     '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, stateData, challengeSignatureType, reasonString}) => {
-      const {appDatas, whoSignedWhat} : transitionType = stateData;
+      const {appDatas, whoSignedWhat}: transitionType = stateData;
       const channel: Channel = {
         chainId,
         participants,
         channelNonce,
       };
-      
+
       const states: State[] = appDatas.map((data, idx) => ({
         turnNum: largestTurnNum - appDatas.length + 1 + idx,
         isFinal: idx > appDatas.length - isFinalCount,
@@ -170,7 +171,7 @@ describe('challenge', () => {
       const variableParts = states.map(state => getVariablePart(state));
       const fixedPart = getFixedPart(states[0]);
       const channelId = getChannelId(fixedPart);
-      
+
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
       const challengeState: SignedState = {
@@ -233,13 +234,12 @@ describe('challenge', () => {
         expect(eventFixedPart[3]).toEqual(fixedPart.appDefinition);
         expect(eventFixedPart[4]).toEqual(fixedPart.challengeDuration);
         expect(eventIsFinal).toEqual(isFinalCount > 0);
-        expect(parseOutcomeEventResult(eventVariableParts[eventVariableParts.length - 1][0])).toEqual(
-          variableParts[variableParts.length - 1].outcome
-        );
+        expect(
+          parseOutcomeEventResult(eventVariableParts[eventVariableParts.length - 1][0])
+        ).toEqual(variableParts[variableParts.length - 1].outcome);
         expect(eventVariableParts[eventVariableParts.length - 1][1]).toEqual(
           variableParts[variableParts.length - 1].appData
         );
-          
 
         const expectedChannelStorage: ChannelData = {
           turnNumRecord: largestTurnNum,
@@ -258,7 +258,7 @@ describe('challenge', () => {
 
 describe('challenge with transaction generator', () => {
   const twoPartyFixedPart = {...twoPartyChannel, appDefinition, challengeDuration};
-  
+
   beforeEach(async () => {
     await (await ForceMove.setStatus(getChannelId(twoPartyFixedPart), HashZero)).wait();
   });
