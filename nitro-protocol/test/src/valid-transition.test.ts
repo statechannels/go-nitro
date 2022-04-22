@@ -1,5 +1,5 @@
 import {ethers, Wallet} from 'ethers';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 
 import {Channel, State} from '../../src';
 import {requireValidProtocolTransition, ValidTransitionStatus} from '../../src/valid-transition';

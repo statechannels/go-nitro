@@ -4,11 +4,11 @@ import {getTestProvider, setupContract} from '../../test-helpers';
 import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 
-const testNitroAdjudicator = (setupContract(
+const testNitroAdjudicator = setupContract(
   getTestProvider(),
   TESTNitroAdjudicatorArtifact,
   process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
-) as unknown) as TESTNitroAdjudicator;
+) as unknown as TESTNitroAdjudicator;
 
 const participants = ['', '', ''];
 const wallets = new Array(3);

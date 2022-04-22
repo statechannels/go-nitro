@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {BigNumber, constants, Contract} from 'ethers';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 
 import {
@@ -17,11 +17,11 @@ import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TEST
 import {channelDataToStatus} from '../../../src';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../src/transactions';
 
-const testNitroAdjudicator = (setupContract(
+const testNitroAdjudicator = setupContract(
   getTestProvider(),
   TESTNitroAdjudicatorArtifact,
   process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
-) as unknown) as TESTNitroAdjudicator & Contract;
+) as unknown as TESTNitroAdjudicator & Contract;
 
 const addresses = {
   // Channels

@@ -1,7 +1,7 @@
 import {expectRevert} from '@statechannels/devtools';
 import {ethers, Contract, Wallet} from 'ethers';
 const {HashZero} = ethers.constants;
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 
 import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
 import {Channel, getChannelId} from '../../../src/contract/channel';
@@ -121,7 +121,7 @@ describe('conclude', () => {
       // Call public wrapper to set state (only works on test contract)
       await (await ForceMove.setStatus(channelId, initialFingerprint)).wait();
       expect(await ForceMove.statusOf(channelId)).toEqual(initialFingerprint);
-      
+
       // Sign the states
       const sigs = await signStates(states, wallets, whoSignedWhat);
 

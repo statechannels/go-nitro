@@ -173,22 +173,21 @@ contract EmbeddedApplication is
 
         require(
             fromAllocations[A_INDEX].destination == toAllocations[A_INDEX].destination &&
-                fromAllocations[B_INDEX
-        ].destination == toAllocations[B_INDEX
-        ].destination &&
+                fromAllocations[B_INDEX].destination == toAllocations[B_INDEX].destination &&
                 fromAllocations[C_INDEX].destination == toAllocations[C_INDEX].destination,
             'destinations may not change'
         );
 
-        require(fromAllocations[C_INDEX].amount == toAllocations[C_INDEX].amount, 'p2.amt !constant');
+        require(
+            fromAllocations[C_INDEX].amount == toAllocations[C_INDEX].amount,
+            'p2.amt !constant'
+        );
         require(
             fromAllocations[A_INDEX].amount +
-                fromAllocations[B_INDEX
-        ].amount +
+                fromAllocations[B_INDEX].amount +
                 fromAllocations[C_INDEX].amount ==
                 toAllocations[A_INDEX].amount +
-                    toAllocations[B_INDEX
-            ].amount +
+                    toAllocations[B_INDEX].amount +
                     toAllocations[C_INDEX].amount,
             'total allocation changed'
         );
@@ -236,13 +235,9 @@ contract EmbeddedApplication is
         // ensure A,B part of the outcome of X has been absorbed into the outcome of J
         require(
             xAllocations[A_INDEX].amount == toAllocations[A_INDEX].amount &&
-                xAllocations[B_INDEX
-        ].amount == toAllocations[B_INDEX
-        ].amount &&
+                xAllocations[B_INDEX].amount == toAllocations[B_INDEX].amount &&
                 xAllocations[A_INDEX].destination == toAllocations[A_INDEX].destination &&
-                xAllocations[B_INDEX
-        ].destination == toAllocations[B_INDEX
-        ].destination,
+                xAllocations[B_INDEX].destination == toAllocations[B_INDEX].destination,
             'X / J outcome mismatch'
         );
         return true;

@@ -7,11 +7,11 @@ import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicato
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 
-const testNitroAdjudicator = (setupContract(
+const testNitroAdjudicator = setupContract(
   getTestProvider(),
   TESTNitroAdjudicatorArtifact,
   process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
-) as unknown) as TESTNitroAdjudicator;
+) as unknown as TESTNitroAdjudicator;
 
 import {computeTransferEffectsAndInteractions} from '../../../src/contract/multi-asset-holder';
 

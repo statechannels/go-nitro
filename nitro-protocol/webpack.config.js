@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/camelcase */
 /* eslint-disable @typescript-eslint/no-var-requires */
-const path = require('path');
+import {resolve} from 'path';
 
 const config = {
   entry: './lib/src/index.js',
@@ -10,7 +9,8 @@ const config = {
   output: {
     filename: 'nitro-protocol.min.js',
     libraryTarget: 'commonjs',
-    path: path.resolve(__dirname, 'dist'),
+    // eslint-disable-next-line no-undef
+    path: resolve(__dirname, 'dist'),
   },
   node: {
     fs: 'empty',
@@ -18,4 +18,4 @@ const config = {
   },
 };
 
-module.exports = [config];
+export default [config];

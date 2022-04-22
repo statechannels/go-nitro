@@ -1,5 +1,6 @@
+import {it} from '@jest/globals';
+
 import {convertBytes32ToAddress} from '../../../src/contract/multi-asset-holder';
-import {it} from '@jest/globals'
 
 describe('convertBytes32ToAddress', () => {
   it.each`

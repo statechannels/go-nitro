@@ -1,12 +1,13 @@
 import {Contract, ethers, BigNumberish, BigNumber, providers} from 'ethers';
-import { BytesLike } from "@ethersproject/bytes";
+import {BytesLike} from '@ethersproject/bytes';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
+import {isBigNumberish} from '@ethersproject/bignumber/lib/bignumber';
+import {LogDescription} from '@ethersproject/abi';
 
 import {ChallengeClearedEvent, ChallengeRegisteredStruct} from '../src/contract/challenge';
 import {channelDataToStatus} from '../src/contract/channel-storage';
 import {Outcome} from '../src/contract/outcome';
 import {Bytes32} from '../src';
-import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 
 // Interfaces
 
@@ -83,37 +84,36 @@ export const finalizedFingerprint = (
     state,
   });
 
-
- export const parseOutcomeEventResult = (eventOutcomeResult: any[]): Outcome => {
+export const parseOutcomeEventResult = (eventOutcomeResult: any[]): Outcome => {
   eventOutcomeResult = Array.from(eventOutcomeResult);
-  let outcome: Outcome = [];
+  const outcome: Outcome = [];
 
-   if (eventOutcomeResult.length == 0) {
-     return outcome;
-   }
+  if (eventOutcomeResult.length == 0) {
+    return outcome;
+  }
 
-   eventOutcomeResult.forEach((eventSingleAssetExit: any[]) => {
-      const asset: string = eventSingleAssetExit[0];
-      const metadata: BytesLike = eventSingleAssetExit[1];
-      let eventAllocations: any[] = Array.from(eventSingleAssetExit[2]);
-      let allocations: Allocation[] = [];
-      
-      if (eventAllocations.length != 0) {
-        eventAllocations.forEach((eventAllocation: any[]) => {
-          const destination: string = eventAllocation[0];
-          const amount: string = eventAllocation[1]["_hex"];
-          const allocationType: number = eventAllocation[2];
-          const metadata: string = eventAllocation[3];
+  eventOutcomeResult.forEach((eventSingleAssetExit: any[]) => {
+    const asset: string = eventSingleAssetExit[0];
+    const metadata: BytesLike = eventSingleAssetExit[1];
+    const eventAllocations: any[] = Array.from(eventSingleAssetExit[2]);
+    const allocations: Allocation[] = [];
 
-          allocations.push({destination, amount, allocationType, metadata});
-        });
-      }
+    if (eventAllocations.length != 0) {
+      eventAllocations.forEach((eventAllocation: any[]) => {
+        const destination: string = eventAllocation[0];
+        const amount: string = eventAllocation[1]['_hex'];
+        const allocationType: number = eventAllocation[2];
+        const metadata: string = eventAllocation[3];
 
-      outcome.push({asset, metadata, allocations});
-   });
+        allocations.push({destination, amount, allocationType, metadata});
+      });
+    }
 
-   return outcome;
- }
+    outcome.push({asset, metadata, allocations});
+  });
+
+  return outcome;
+};
 
 export const newChallengeRegisteredEvent = (
   contract: ethers.Contract,
@@ -228,12 +228,13 @@ export function replaceAddressesAndBigNumberify(
   const newObject: AssetOutcomeShortHand | OutcomeShortHand = {};
   Object.keys(object).forEach(key => {
     if (isBigNumberish(object[key])) {
-      newObject[addresses[key]!] = BigNumber.from(object[key]);
+      newObject[addresses[key] as string] = BigNumber.from(object[key]);
     } else if (typeof object[key] === 'object') {
       // Recurse
-      newObject[addresses[key]!] =
-        replaceAddressesAndBigNumberify(object[key], addresses) as
-        AssetOutcomeShortHand | BigNumberish;
+      newObject[addresses[key] as string] = replaceAddressesAndBigNumberify(
+        object[key],
+        addresses
+      ) as AssetOutcomeShortHand | BigNumberish;
     }
   });
   return newObject;
@@ -294,8 +295,12 @@ export function computeOutcome(outcomeShortHand: OutcomeShortHand): Outcome {
   return outcome;
 }
 
-export function compileEventsFromLogs(logs: any[], contractsArray: Contract[]): Object[] {
-  const events: Object[] = [];
+interface Event extends LogDescription {
+  contract: string;
+}
+
+export function compileEventsFromLogs(logs: any[], contractsArray: Contract[]): Event[] {
+  const events: Event[] = [];
   logs.forEach(log => {
     contractsArray.forEach(contract => {
       if (log.address === contract.address) {

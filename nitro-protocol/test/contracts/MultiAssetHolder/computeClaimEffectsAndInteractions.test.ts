@@ -1,17 +1,17 @@
 import {BigNumber, BytesLike, constants} from 'ethers';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 
 import {getTestProvider, setupContract} from '../../test-helpers';
 import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 
-const testNitroAdjudicator = (setupContract(
+const testNitroAdjudicator = setupContract(
   getTestProvider(),
   TESTNitroAdjudicatorArtifact,
   process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
-) as unknown) as TESTNitroAdjudicator;
+) as unknown as TESTNitroAdjudicator;
 
 import {computeClaimEffectsAndInteractions} from '../../../src/contract/multi-asset-holder';
 import {encodeGuaranteeData} from '../../../src/contract/outcome';
@@ -39,10 +39,10 @@ interface TestCase {
 }
 
 interface AllocationT {
-  destination: string,
-  amount: BigNumber,
-  allocationType: number,
-  metadata: BytesLike
+  destination: string;
+  amount: BigNumber;
+  allocationType: number;
+  metadata: BytesLike;
 }
 
 const testcase1: TestCase = {

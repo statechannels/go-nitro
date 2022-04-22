@@ -1,7 +1,7 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 import {Contract, ethers, utils} from 'ethers';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
 import HashLockedSwapArtifact from '../../../../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
@@ -84,7 +84,7 @@ describe('validTransition', () => {
       dataB: HashLockedSwapData;
       balancesB: AssetOutcomeShortHand;
     }) => {
-      let turnNumA = turnNumB - 1;
+      const turnNumA = turnNumB - 1;
       balancesA = replaceAddressesAndBigNumberify(balancesA, addresses) as AssetOutcomeShortHand;
       const allocationsA: Allocation[] = [];
       Object.keys(balancesA).forEach(key =>
@@ -137,8 +137,7 @@ describe('validTransition', () => {
         expect(isValidFromCall).toBe(true);
       } else {
         await expectRevert(
-          () =>
-            hashTimeLock.validTransition(variablePartA, variablePartB, numParticipants),
+          () => hashTimeLock.validTransition(variablePartA, variablePartB, numParticipants),
           'Incorrect preimage'
         );
       }

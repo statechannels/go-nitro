@@ -1,5 +1,6 @@
+import {it} from '@jest/globals';
+
 import {isExternalDestination} from '../../../src/contract/channel';
-import {it} from '@jest/globals'
 
 describe('isExternalDestination', () => {
   it.each`

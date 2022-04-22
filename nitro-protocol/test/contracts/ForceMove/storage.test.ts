@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, ethers} from 'ethers';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 
 import ForceMoveArtifact from '../../../artifacts/contracts//test/TESTForceMove.sol/TESTForceMove.json';
 import {channelDataToStatus, parseStatus} from '../../../src/contract/channel-storage';
@@ -38,9 +38,11 @@ describe('storage', () => {
     await (
       await ForceMove.setStatusFromChannelData(ethers.constants.HashZero, blockchainStorage)
     ).wait();
-    const {turnNumRecord, finalizesAt, fingerprint: f} = await ForceMove.unpackStatus(
-      ethers.constants.HashZero
-    );
+    const {
+      turnNumRecord,
+      finalizesAt,
+      fingerprint: f,
+    } = await ForceMove.unpackStatus(ethers.constants.HashZero);
     expect({turnNumRecord, finalizesAt, fingerprint: f._hex}).toMatchObject(expected);
   });
 });

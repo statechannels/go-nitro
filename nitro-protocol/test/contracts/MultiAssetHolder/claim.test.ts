@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, constants, BigNumber} from 'ethers';
-import {it} from '@jest/globals'
+import {it} from '@jest/globals';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 
 import {
@@ -24,11 +24,11 @@ import {
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../src/transactions';
 import {encodeGuaranteeData} from '../../../src/contract/outcome';
 const provider = getTestProvider();
-const testNitroAdjudicator: TESTNitroAdjudicator & Contract = (setupContract(
+const testNitroAdjudicator: TESTNitroAdjudicator & Contract = setupContract(
   provider,
   TESTNitroAdjudicatorArtifact,
   process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
-) as unknown) as TESTNitroAdjudicator & Contract;
+) as unknown as TESTNitroAdjudicator & Contract;
 const addresses: {[index: string]: any} = {
   // Channels
   t: undefined as string | undefined, // Target

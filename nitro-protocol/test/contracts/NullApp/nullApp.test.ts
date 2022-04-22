@@ -17,7 +17,6 @@ beforeAll(async () => {
 });
 
 describe('null app', () => {
-  // eslint-disable-next-line jest/expect-expect
   it('should revert when validTransition is called', async () => {
     const channel: Channel = {
       participants: [Wallet.createRandom().address, Wallet.createRandom().address],

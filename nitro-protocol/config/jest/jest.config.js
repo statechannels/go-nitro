@@ -1,8 +1,14 @@
-const {configureEnvVariables} = require('@statechannels/devtools');
-configureEnvVariables();
+// eslint-disable-next-line no-undef
 const {resolve} = require('path');
+
+/* eslint-disable no-undef */
+const {configureEnvVariables} = require('@statechannels/devtools');
+
+configureEnvVariables();
+// eslint-disable-next-line no-undef
 const root = resolve(__dirname, '../../');
 
+// eslint-disable-next-line no-undef
 module.exports = {
   globals: {
     'ts-jest': {
