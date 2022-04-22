@@ -182,6 +182,10 @@ func (c *ConsensusChannel) ConsensusVars() Vars {
 	return c.current.Vars
 }
 
+func (c *ConsensusChannel) Signatures() [2]state.Signature {
+	return c.current.Signatures
+}
+
 // latestProposedVars returns the latest proposed vars in a consensus channel
 // by cloning its current vars and applying each proposal in the queue
 func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
