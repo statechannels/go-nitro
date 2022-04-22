@@ -182,6 +182,7 @@ func (c *ConsensusChannel) ConsensusVars() Vars {
 	return c.current.Vars
 }
 
+// Signatures returns the signatures on the currently supported state
 func (c *ConsensusChannel) Signatures() [2]state.Signature {
 	return c.current.Signatures
 }

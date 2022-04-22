@@ -17,6 +17,7 @@ func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees
 	return prepareConsensusChannelHelper(role, left, right, 6, 4, 1, guarantees...)
 }
 
+// consensusStateSignatures prepares a consensus channel with a consensus outcome and returns the signatures on the consensus state
 func consensusStateSignatures(left, right testactors.Actor, guarantees ...consensus_channel.Guarantee) [2]state.Signature {
 	return prepareConsensusChannelHelper(0, left, right, 0, 0, 2, guarantees...).Signatures()
 }
