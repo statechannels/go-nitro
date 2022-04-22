@@ -649,3 +649,10 @@ func (v Vars) AsState(fp state.FixedPart) state.State {
 func (c *ConsensusChannel) Participants() []types.Address {
 	return c.fp.Participants
 }
+
+// Clone returns a deep copy of the receiver.
+func (c *ConsensusChannel) Clone() *ConsensusChannel {
+	// TODO a proper clone
+	d := c
+	return d
+}

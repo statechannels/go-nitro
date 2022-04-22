@@ -457,7 +457,7 @@ func (o *Objective) clone() Objective {
 	clone.V = vClone
 
 	if o.ToMyLeft != nil {
-		lClone := o.ToMyLeft.Channel // todo: #420 properly clone
+		lClone := o.ToMyLeft.Channel.Clone()
 		clone.ToMyLeft = &Connection{
 			Channel:       lClone,
 			GuaranteeInfo: o.ToMyLeft.GuaranteeInfo,
@@ -465,8 +465,8 @@ func (o *Objective) clone() Objective {
 	}
 
 	if o.ToMyRight != nil {
-		rClone := o.ToMyRight.Channel
-		clone.ToMyRight = &Connection{ // todo: #420 properly clone
+		rClone := o.ToMyRight.Channel.Clone()
+		clone.ToMyRight = &Connection{
 			Channel:       rClone,
 			GuaranteeInfo: o.ToMyRight.GuaranteeInfo,
 		}
