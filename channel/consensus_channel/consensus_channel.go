@@ -390,6 +390,13 @@ type SignedVars struct {
 	Signatures [2]state.Signature
 }
 
+// clone returns a deep copy of the reciever
+// TODO it currently just does a shallow copy
+func (sv *SignedVars) clone() SignedVars {
+	sv2 := sv
+	return *sv2
+}
+
 // Proposal is a proposal either to add or to remove a guarantee.
 //
 // Exactly one of {toAdd, toRemove} should be non nil
@@ -449,6 +456,13 @@ func (p *Proposal) equal(q *Proposal) bool {
 type SignedProposal struct {
 	state.Signature
 	Proposal Proposal
+}
+
+// clone returns a deep copy of the reciever
+// TODO it currently just does a shallow copy
+func (sp *SignedProposal) clone() *SignedProposal {
+	sp2 := sp
+	return sp2
 }
 
 // Add is a proposal to add a guarantee for the given virtual channel
@@ -651,8 +665,7 @@ func (c *ConsensusChannel) Participants() []types.Address {
 }
 
 // Clone returns a deep copy of the receiver.
-func (c *ConsensusChannel) Clone() *ConsensusChannel {
-	// TODO a proper clone
-	d := c
+func (c *ConsensusChannel) Clone() ConsensusChannel {
+	d := ConsensusChannel{c.MyIndex, c.fp.Clone(), c.Id, c.current.clone(), c.proposalQueue.clone()}
 	return d
 }
