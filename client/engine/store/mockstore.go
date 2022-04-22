@@ -286,7 +286,7 @@ func (ms *MockStore) GetObjectiveByChannelId(channelId types.Destination) (proto
 	// todo: locking
 	id, found := ms.channelToObjective.Load(channelId.String())
 	if !found {
-		return &directfund.Objective{}, false
+		return nil, false
 	}
 
 	objective, err := ms.GetObjectiveById(protocols.ObjectiveId(id))
