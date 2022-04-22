@@ -7,6 +7,7 @@ import (
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/client/engine/store/store_interface"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
@@ -65,11 +66,27 @@ type TestLedger struct {
 	FollowerView consensus_channel.ConsensusChannel
 }
 
+func (ln LedgerNetwork) GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
+	for _, ledger := range ln.ledgers {
+		if ledger.FollowerView.Follower() == seeker &&
+			ledger.FollowerView.Leader() == counterparty {
+			return &ledger.FollowerView, true
+		}
+
+		if ledger.LeaderView.Leader() == seeker &&
+			ledger.LeaderView.Follower() == counterparty {
+			return &ledger.LeaderView, true
+		}
+	}
+	return nil, false
+}
+
 // GetLedgerLookup returns a ledger-lookup function for the given ledger seeker.
 //
 // The returned function inspects the ledgers from the ledger set, and returns
 // the ledger between the seeker and given counterparty from the seeker's perspective.
-func (l LedgerNetwork) GetLedgerLookup(seeker types.Address) virtualfund.GetTwoPartyConsensusLedgerFunction {
+func (l LedgerNetwork) GetLedgerLookup(seeker types.Address) store_interface.ConsensusChannelGetter {
+
 	var myLedgers []TestLedger
 
 	// package all of seeker's ledgers for the closure
@@ -80,20 +97,7 @@ func (l LedgerNetwork) GetLedgerLookup(seeker types.Address) virtualfund.GetTwoP
 		}
 	}
 
-	return func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool) {
-		for _, ledger := range myLedgers {
-			if ledger.FollowerView.Follower() == seeker &&
-				ledger.FollowerView.Leader() == counterparty {
-				return &ledger.FollowerView, true
-			}
-
-			if ledger.LeaderView.Leader() == seeker &&
-				ledger.LeaderView.Follower() == counterparty {
-				return &ledger.LeaderView, true
-			}
-		}
-		return nil, false
-	}
+	return LedgerNetwork{myLedgers}
 }
 
 // createLedgerNetwork returns active, funded consensus_channels connecting the supplied
