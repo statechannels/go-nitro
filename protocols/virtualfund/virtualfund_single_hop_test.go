@@ -242,7 +242,7 @@ func TestCrankAsAlice(t *testing.T) {
 	o = oObj.(*Objective)
 
 	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
-	sp := consensus_channel.SignedProposal{Proposal: p}
+	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[0]}
 	Ok(t, err)
 	assertOneProposalSent(t, effects, sp, p1)
 	Equals(t, waitingFor, WaitingForCompleteFunding)
@@ -348,6 +348,7 @@ func TestCrankAsBob(t *testing.T) {
 	Ok(t, err)
 	Equals(t, waitingFor, WaitingForCompletePostFund)
 	assertStateSentTo(t, effects, postFS, p1)
+	sp.Signature = consensusStateSignatures(p1, bob, o.ToMyLeft.getExpectedGuarantee())[1]
 	assertOneProposalSent(t, effects, sp, p1)
 }
 
@@ -396,7 +397,7 @@ func TestCrankAsP1(t *testing.T) {
 	o = oObj.(*Objective)
 
 	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
-	sp := consensus_channel.SignedProposal{Proposal: p}
+	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[0]}
 	Ok(t, err)
 	assertOneProposalSent(t, effects, sp, alice)
 	Equals(t, waitingFor, WaitingForCompleteFunding)
@@ -429,7 +430,6 @@ func TestCrankAsP1(t *testing.T) {
 	// We need to receive a proposal from Bob before funding is completed!
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 	Equals(t, effects, emptySideEffects)
-
 }
 
 // assertOneProposalSent fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed proposal.
@@ -443,6 +443,7 @@ func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus
 
 			Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
 			Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
+			Assert(t, compareSignedProposals(sp, sent), "exp: %+v\n\n\tgot%+v", sp, sent)
 			numProposals++
 		}
 	}
@@ -475,6 +476,17 @@ func compareStates(a, b state.SignedState) string {
 			state.SignedState{},
 			state.Signature{},
 			state.State{},
+		),
+	)
+}
+
+func compareSignedProposals(a, b consensus_channel.SignedProposal) bool {
+	return cmp.Equal(&a, &b,
+		cmp.AllowUnexported(
+			consensus_channel.Add{},
+			consensus_channel.Remove{},
+			consensus_channel.Guarantee{},
+			big.Int{},
 		),
 	)
 }
