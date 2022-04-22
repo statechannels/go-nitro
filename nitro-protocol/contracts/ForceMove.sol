@@ -280,10 +280,10 @@ contract ForceMove is IForceMove, StatusManager {
         statusOf[channelId] = _generateStatus(
             ChannelData(
                 0,
-                uint48(block.timestamp),
+                uint48(block.timestamp), //solhint-disable-line not-rely-on-time
                 bytes32(0),
                 _hashOutcome(latestVariablePart.outcome)
-            ) //solhint-disable-line not-rely-on-time
+            )
         );
         emit Concluded(channelId, uint48(block.timestamp)); //solhint-disable-line not-rely-on-time
     }
