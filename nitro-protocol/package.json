@@ -14,7 +14,7 @@
     "solhint:check": "npx solhint -w 0 './contracts/**/*.sol'",
     "solhint:write": "echo 'This command does not seem to work. Use npm run prettier:write ' && npx solhint --fix './contracts/**/*.sol'",
     "prettier:write": "prettier --write './contracts/**/*.sol'",
-    "test:gas": "jest -c ./config/jest/jest.gas-benchmarks.config.js"
+    "test:gas": "npx hardhat compile && jest -c ./config/jest/jest.gas-benchmarks.config.js"
   },
   "keywords": [],
   "author": "",
