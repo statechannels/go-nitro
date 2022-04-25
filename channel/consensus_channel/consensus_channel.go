@@ -460,7 +460,7 @@ type SignedProposal struct {
 
 // clone returns a deep copy of the reciever
 // TODO it currently just does a shallow copy
-func (sp *SignedProposal) clone() *SignedProposal {
+func (sp *SignedProposal) Clone() *SignedProposal {
 	sp2 := sp
 	return sp2
 }
@@ -666,6 +666,11 @@ func (c *ConsensusChannel) Participants() []types.Address {
 
 // Clone returns a deep copy of the receiver.
 func (c *ConsensusChannel) Clone() ConsensusChannel {
-	d := ConsensusChannel{c.MyIndex, c.fp.Clone(), c.Id, c.current.clone(), c.proposalQueue.clone()}
+
+	clonedProposalQueue := make([]SignedProposal, len(c.proposalQueue))
+	for i, p := range c.proposalQueue {
+		clonedProposalQueue[i] = *p.Clone()
+	}
+	d := ConsensusChannel{c.MyIndex, c.fp.Clone(), c.Id, c.current.clone(), clonedProposalQueue}
 	return d
 }
