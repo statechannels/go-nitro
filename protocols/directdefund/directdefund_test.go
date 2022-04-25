@@ -14,6 +14,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -104,12 +105,13 @@ func newTestObjective(signByBob bool) (Objective, error) {
 		return o, err
 	}
 
-	getChannel := func(id types.Destination) (channel *channel.Channel, ok bool) {
-		return testChannel, true
+	getConsensusChannel := func(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
+		cc, _ := testdata.Channels.MockConsensusChannel(alice.Address)
+		return cc, nil
 	}
 
 	// Assert that valid constructor args do not result in error
-	o, err = NewObjective(true, testChannel.Id, getChannel)
+	o, err = NewObjective(true, testChannel.Id, getConsensusChannel)
 	if err != nil {
 		return o, err
 	}
