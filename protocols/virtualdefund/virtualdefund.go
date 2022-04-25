@@ -232,9 +232,8 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 
 	if fullyDefunded := updated.isLeftDefunded() && updated.isRightDefunded(); !fullyDefunded {
 		return &updated, sideEffects, WaitingForCompleteLedgerDefunding, nil
-	} else {
-		return &updated, sideEffects, WaitingForNothing, nil
 	}
+	return &updated, sideEffects, WaitingForNothing, nil
 
 }
 
@@ -297,9 +296,6 @@ func (o *Objective) defundLedger(ledger *consensus_channel.ConsensusChannel, sk 
 
 			message := o.createSignedProposalMessage(sp, ledger)
 			sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
-
-		} else {
-
 		}
 	}
 
