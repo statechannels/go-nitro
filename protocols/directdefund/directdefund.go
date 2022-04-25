@@ -57,7 +57,7 @@ func isInConsensusOrFinalState(c *channel.Channel) (bool, error) {
 type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel, ok bool)
 
 // todo: #420 assume name and godoc from GetTwoPartyLedgerFunction
-type GetTwoPartyConsensusLedgerFunction func(channelId types.Destination) (ledger *consensus_channel.ConsensusChannel, ok bool)
+type GetTwoPartyConsensusLedgerFunction func(channelId types.Destination) (ledger *consensus_channel.ConsensusChannel, err error)
 
 // NewObjective initiates an Objective with the supplied channel
 func NewObjective(
@@ -65,9 +65,9 @@ func NewObjective(
 	channelId types.Destination,
 	getConsensusChannel GetTwoPartyConsensusLedgerFunction,
 ) (Objective, error) {
-	cc, ok := getConsensusChannel(channelId)
-	if !ok {
-		return Objective{}, fmt.Errorf("could not find channel %s", channelId)
+	cc, err := getConsensusChannel(channelId)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not find channel %s; %w", channelId, err)
 	}
 
 	c, err := CreateChannelFromConsensusChannel(*cc)
