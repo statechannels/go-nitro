@@ -21,7 +21,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
      */
     function concludeAndTransferAllAssets(
         FixedPart memory fixedPart,
-        IForceMoveApp.VariablePart memory latestVariablePart,
+        VariablePart memory latestVariablePart,
         uint8 numStates,
         uint8[] memory whoSignedWhat,
         Signature[] memory sigs
@@ -111,7 +111,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
     */
     function validTransition(
         uint256 nParticipants,
-        IForceMoveApp.VariablePart[2] memory ab, // [a,b]
+        VariablePart[2] memory ab, // [a,b]
         address appDefinition
     ) public pure returns (bool) {
         return _requireValidTransition(nParticipants, ab, appDefinition);
