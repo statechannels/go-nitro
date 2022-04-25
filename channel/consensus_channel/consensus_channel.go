@@ -193,6 +193,10 @@ func (c *ConsensusChannel) LatestProposedVars() Vars {
 	return vars
 }
 
+func (c *ConsensusChannel) ProposalQueue() []SignedProposal {
+	return c.proposalQueue
+}
+
 // latestProposedVars returns the latest proposed vars in a consensus channel
 // by cloning its current vars and applying each proposal in the queue
 func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
@@ -265,6 +269,9 @@ func (g *Guarantee) Clone() Guarantee {
 		left:   g.left,
 		right:  g.right,
 	}
+}
+func (g Guarantee) Target() types.Destination {
+	return g.target
 }
 
 // NewGuarantee constructs a new guarantee
@@ -536,7 +543,27 @@ func (p *Proposal) equal(q *Proposal) bool {
 	return p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
 }
 
-// SignedProposal is a Proposal with a signature on it
+func (p *Proposal) Target() types.Destination {
+	switch p.Type() {
+	case "AddProposal":
+		{
+			return p.ToAdd.Target()
+
+		}
+	case "RemoveProposal":
+		{
+
+			return p.ToRemove.Target
+
+		}
+	default:
+		{
+			panic("invalid proposal type")
+		}
+	}
+}
+
+// SignedProposal is a Proposall with a signature on it
 type SignedProposal struct {
 	state.Signature
 	Proposal Proposal

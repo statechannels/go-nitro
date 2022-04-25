@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -410,32 +411,34 @@ func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 
 	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
 
-	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "expected one signed proposal")
+	Assert(t, len(ses.MessagesToSend[0].ObjectivePayloads) == 1, "expected one payload")
 
 	msg := ses.MessagesToSend[0]
-	sent := msg.SignedProposals[0]
 
-	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
+	sent := msg.SignedProposals()[0].Value
+	Assert(t, reflect.DeepEqual(sent.Proposal, sp.Proposal), "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
 
 	Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
-
 }
 
 // assertMessageSentTo asserts that ses contains a message
 func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
 	found := false
 	for _, msg := range ses.MessagesToSend {
-		for _, ss := range msg.SignedStates {
-			correctAddress := bytes.Equal(msg.To[:], to.Address[:])
+		correctAddress := bytes.Equal(msg.To[:], to.Address[:])
+		if correctAddress {
+			for _, ss := range msg.SignedStates() {
 
-			if correctAddress {
-				diff := compareStates(ss, expected)
+				diff := compareStates(ss.Value, expected)
 				Assert(t, diff == "", "incorrect state\n\ndiff: %v", diff)
 				found = true
 				break
+
 			}
 		}
+
 	}
+
 	Assert(t, found, "side effects do not include signed state")
 
 }

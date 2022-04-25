@@ -106,10 +106,11 @@ func TestSingleHopVirtualFund(t *testing.T) {
 	// assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
 	assertSideEffectsContainsMessageWith := func(ses protocols.SideEffects, expectedSignedState state.SignedState, to testactors.Actor, t *testing.T) {
 		for _, msg := range ses.MessagesToSend {
-			for _, ss := range msg.SignedStates {
+			for _, ss := range msg.SignedStates() {
 				if reflect.DeepEqual(ss, expectedSignedState) && bytes.Equal(msg.To[:], to.Address[:]) {
 					return
 				}
+
 			}
 		}
 		t.Fatalf("side effects %v do not contain signed state %v for %v", ses, expectedSignedState, to)

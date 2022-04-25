@@ -48,7 +48,7 @@ var testState = state.State{
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
 	// Assert that valid constructor args do not result in error
-	if _, err := constructFromState(false, testState, testState.Participants[0]); err != nil {
+	if _, err := ConstructFromState(false, testState, testState.Participants[0]); err != nil {
 		t.Error(err)
 	}
 
@@ -56,19 +56,19 @@ func TestNew(t *testing.T) {
 	finalState := testState.Clone()
 	finalState.IsFinal = true
 
-	if _, err := constructFromState(false, finalState, testState.Participants[0]); err == nil {
+	if _, err := ConstructFromState(false, finalState, testState.Participants[0]); err == nil {
 		t.Error("expected an error when constructing with an intial state marked final, but got nil")
 	}
 
 	nonParticipant := common.HexToAddress("0x5b53f71453aeCb03D837bfe170570d40aE736CB4")
-	if _, err := constructFromState(false, testState, nonParticipant); err == nil {
+	if _, err := ConstructFromState(false, testState, nonParticipant); err == nil {
 		t.Error("expected an error when constructing with a participant not in the channel, but got nil")
 	}
 }
 
 func TestConstructFromState(t *testing.T) {
 	// Assert that valid constructor args do not result in error
-	if _, err := constructFromState(false, testState, testState.Participants[0]); err != nil {
+	if _, err := ConstructFromState(false, testState, testState.Participants[0]); err != nil {
 		t.Error(err)
 	}
 
@@ -76,18 +76,18 @@ func TestConstructFromState(t *testing.T) {
 	finalState := testState.Clone()
 	finalState.IsFinal = true
 
-	if _, err := constructFromState(false, finalState, testState.Participants[0]); err == nil {
+	if _, err := ConstructFromState(false, finalState, testState.Participants[0]); err == nil {
 		t.Error("expected an error when constructing with an intial state marked final, but got nil")
 	}
 
 	nonParticipant := common.HexToAddress("0x5b53f71453aeCb03D837bfe170570d40aE736CB4")
-	if _, err := constructFromState(false, testState, nonParticipant); err == nil {
+	if _, err := ConstructFromState(false, testState, nonParticipant); err == nil {
 		t.Error("expected an error when constructing with a participant not in the channel, but got nil")
 	}
 }
 func TestUpdate(t *testing.T) {
 	// Construct various variables for use in TestUpdate
-	var s, _ = constructFromState(false, testState, testState.Participants[0])
+	var s, _ = ConstructFromState(false, testState, testState.Participants[0])
 
 	var stateToSign state.State = s.C.PreFundState()
 	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.PrivateKey)
@@ -161,13 +161,13 @@ func TestUpdate(t *testing.T) {
 }
 
 func compareSideEffect(a, b protocols.SideEffects) string {
-	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}))
+	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}, consensus_channel.Add{}, consensus_channel.Guarantee{}, consensus_channel.Remove{}))
 }
 
 func TestCrank(t *testing.T) {
 
 	// BEGIN test data preparation
-	var s, _ = constructFromState(false, testState, testState.Participants[0])
+	var s, _ = ConstructFromState(false, testState, testState.Participants[0])
 	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.PrivateKey)
 	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.PrivateKey)
 
@@ -180,26 +180,23 @@ func TestCrank(t *testing.T) {
 	expectedPreFundSideEffects := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{
 			{
-				To:          bob.Address,
-				ObjectiveId: s.Id(),
-				SignedStates: []state.SignedState{
-					preFundSS,
-				},
-				SignedProposals: []consensus_channel.SignedProposal{},
-			},
-		}}
+				To: bob.Address,
+				ObjectivePayloads: []protocols.ObjectivePayload{{
+					ObjectiveId: s.Id(),
+					SignedState: preFundSS,
+				}},
+			}}}
 
 	postFundSS := state.NewSignedState(s.C.PostFundState())
 	_ = postFundSS.AddSignature(correctSignatureByAliceOnPostFund)
 	expectedPostFundSideEffects := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{
 			{
-				To:          bob.Address,
-				ObjectiveId: s.Id(),
-				SignedStates: []state.SignedState{
-					postFundSS,
-				},
-				SignedProposals: []consensus_channel.SignedProposal{},
+				To: bob.Address,
+				ObjectivePayloads: []protocols.ObjectivePayload{{
+					ObjectiveId: s.Id(),
+					SignedState: postFundSS,
+				}},
 			},
 		}}
 	expectedFundingSideEffects := protocols.SideEffects{
@@ -300,7 +297,7 @@ func TestClone(t *testing.T) {
 		return cmp.Diff(&a, &b, cmp.AllowUnexported(Objective{}, channel.Channel{}, big.Int{}, state.SignedState{}))
 	}
 
-	var s, _ = constructFromState(false, testState, testState.Participants[0])
+	var s, _ = ConstructFromState(false, testState, testState.Participants[0])
 
 	clone := s.clone()
 
@@ -310,7 +307,7 @@ func TestClone(t *testing.T) {
 }
 
 func TestMarshalJSON(t *testing.T) {
-	dfo, _ := constructFromState(false, testState, testState.Participants[0])
+	dfo, _ := ConstructFromState(false, testState, testState.Participants[0])
 
 	encodedDfo, err := json.Marshal(dfo)
 
