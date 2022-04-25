@@ -59,9 +59,9 @@ func TestDirectFundIntegration(t *testing.T) {
 
 		// each client fetches the ConsensusChannel by reference to their counterparty
 		if store.GetChannelSecretKey() == &alice.PrivateKey {
-			con, ok = store.GetConsensusChannel(*clientB.Address)
+			con, ok = store.GetLedgerChannel(*clientB.Address)
 		} else {
-			con, ok = store.GetConsensusChannel(*clientA.Address)
+			con, ok = store.GetLedgerChannel(*clientA.Address)
 		}
 
 		if !ok {

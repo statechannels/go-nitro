@@ -130,7 +130,7 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 				return fmt.Errorf("error setting channel %s from objective %s: %w", ch.Id, obj.Id(), err)
 			}
 		case *consensus_channel.ConsensusChannel:
-			err := ms.SetConsensusChannel(ch)
+			err := ms.SetLedgerChannel(ch)
 			if err != nil {
 				return fmt.Errorf("error setting consensus channel %s from objective %s: %w", ch.Id, obj.Id(), err)
 			}
@@ -165,8 +165,8 @@ func (ms *MockStore) SetChannel(ch *channel.Channel) error {
 	return nil
 }
 
-// SetConsensusChannel sets the channel in the store.
-func (ms *MockStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel) error {
+// SetLedgerChannel sets the channel in the store.
+func (ms *MockStore) SetLedgerChannel(ch *consensus_channel.ConsensusChannel) error {
 	chJSON, err := ch.MarshalJSON()
 
 	if err != nil {
@@ -254,9 +254,9 @@ func (ms *MockStore) GetConsensusChannelById(id types.Destination) (channel *con
 	return ch, nil
 }
 
-// GetConsensusChannel returns a ConsensusChannel between the calling client and
+// GetLedgerChannel returns a ConsensusChannel between the calling client and
 // the supplied counterparty, if such channel exists
-func (ms *MockStore) GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
+func (ms *MockStore) GetLedgerChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
 
 	ms.consensusChannels.Range(func(key string, chJSON []byte) bool {
 

@@ -27,10 +27,10 @@ type Store interface {
 
 	ReleaseChannelFromOwnership(types.Destination) // Release channel from being owned by any objective
 
-	ConsensusChannelStore
+	LedgerChannelStore
 }
 
-type ConsensusChannelStore interface {
-	GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool)
-	SetConsensusChannel(*consensus_channel.ConsensusChannel) error
+type LedgerChannelStore interface {
+	GetLedgerChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool)
+	SetLedgerChannel(*consensus_channel.ConsensusChannel) error
 }

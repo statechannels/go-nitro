@@ -194,7 +194,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 		switch request := (apiEvent.ObjectiveToSpawn).(type) {
 
 		case virtualfund.ObjectiveRequest:
-			vfo, err := virtualfund.NewObjective(request, e.store.GetConsensusChannel)
+			vfo, err := virtualfund.NewObjective(request, e.store.GetLedgerChannel)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
@@ -300,7 +300,7 @@ func (e Engine) SpawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 		if err != nil {
 			return fmt.Errorf("could not create consensus channel for objective %s: %w", crankedObjective.Id(), err)
 		}
-		err = e.store.SetConsensusChannel(c)
+		err = e.store.SetLedgerChannel(c)
 		if err != nil {
 			return fmt.Errorf("could not store consensus channel for objective %s: %w", crankedObjective.Id(), err)
 		}
@@ -344,7 +344,7 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 
 		return &dfo, err
 	case virtualfund.IsVirtualFundObjective(message.ObjectiveId):
-		vfo, err := virtualfund.ConstructObjectiveFromMessage(message, *e.store.GetAddress(), e.store.GetConsensusChannel)
+		vfo, err := virtualfund.ConstructObjectiveFromMessage(message, *e.store.GetAddress(), e.store.GetLedgerChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}

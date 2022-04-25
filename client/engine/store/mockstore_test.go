@@ -137,7 +137,7 @@ func TestConsensusChannelStore(t *testing.T) {
 
 	ms := store.NewMockStore(sk)
 
-	got, ok := ms.GetConsensusChannel(ta.Alice.Address)
+	got, ok := ms.GetLedgerChannel(ta.Alice.Address)
 	if ok {
 		t.Fatalf("expected not to find the a consensus channel, but found %v", got)
 	}
@@ -178,11 +178,11 @@ func TestConsensusChannelStore(t *testing.T) {
 	// The store only deals with ConsensusChannels
 	want := leader
 
-	if err := ms.SetConsensusChannel(&want); err != nil {
+	if err := ms.SetLedgerChannel(&want); err != nil {
 		t.Fatalf("error setting consensus channel %v: %s", want, err.Error())
 	}
 
-	got, ok = ms.GetConsensusChannel(fp.Participants[1])
+	got, ok = ms.GetLedgerChannel(fp.Participants[1])
 
 	if !ok {
 		t.Fatalf("expected to find the inserted consensus channel, but didn't")
@@ -196,3 +196,4 @@ func TestConsensusChannelStore(t *testing.T) {
 		t.Fatalf("fetched result different than expected %s", diff)
 	}
 }
+2
