@@ -270,7 +270,7 @@ func (o *Objective) defundLedger(ledger *consensus_channel.ConsensusChannel, sk 
 
 	var sideEffects protocols.SideEffects
 
-	proposed := ledger.RemoveProposedFor(o.VId())
+	proposed := ledger.HasRemovalBeenProposedFor(o.VId())
 
 	if ledger.IsLeader() {
 		if proposed { // If we've already proposed a remove proposal we can return

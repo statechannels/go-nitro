@@ -118,8 +118,8 @@ func (c *ConsensusChannel) IncludesTarget(target types.Destination) bool {
 	return c.current.Outcome.includesTarget(target)
 }
 
-// RemoveProposedFor returns whether or not a proposal exists to remove the guaranatee for the target
-func (c *ConsensusChannel) RemoveProposedFor(target types.Destination) bool {
+// HasRemovalBeenProposedFor returns whether or not a proposal exists to remove the guaranatee for the target
+func (c *ConsensusChannel) HasRemovalBeenProposedFor(target types.Destination) bool {
 	for _, p := range c.proposalQueue {
 		if p.Proposal.Type() == RemoveProposal {
 			remove := p.Proposal.ToRemove
