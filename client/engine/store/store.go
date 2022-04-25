@@ -32,6 +32,6 @@ type Store interface {
 
 type ConsensusChannelStore interface {
 	GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool)
-	GetConsensusChannelById(id types.Destination)
+	GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, ok bool)
 	SetConsensusChannel(*consensus_channel.ConsensusChannel) error
 }
