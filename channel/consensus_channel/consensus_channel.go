@@ -211,6 +211,14 @@ type Balance struct {
 	amount      *big.Int
 }
 
+// Clone returns a deep copy of the recievr
+func (b *Balance) Clone() Balance {
+	return Balance{
+		destination: b.destination,
+		amount:      big.NewInt(0).Set(b.amount),
+	}
+}
+
 // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
 func (b Balance) AsAllocation() outcome.Allocation {
 	amount := big.NewInt(0).Set(b.amount)
@@ -223,6 +231,16 @@ type Guarantee struct {
 	target types.Destination
 	left   types.Destination
 	right  types.Destination
+}
+
+// Clone returns a deep copy of the receiver
+func (g *Guarantee) Clone() Guarantee {
+	return Guarantee{
+		amount: big.NewInt(0).Set(g.amount),
+		target: g.target,
+		left:   g.left,
+		right:  g.right,
+	}
 }
 
 // NewGuarantee constructs a new guarantee
@@ -258,6 +276,20 @@ type LedgerOutcome struct {
 	left         Balance       // Balance of participants[0]
 	right        Balance       // Balance of participants[1]
 	guarantees   map[types.Destination]Guarantee
+}
+
+// Clone returns a deep copy of the receiver
+func (lo *LedgerOutcome) Clone() LedgerOutcome {
+	clonedGuarantees := make(map[types.Destination]Guarantee)
+	for key, g := range lo.guarantees {
+		clonedGuarantees[key] = g.Clone()
+	}
+	return LedgerOutcome{
+		assetAddress: lo.assetAddress,
+		left:         lo.left.Clone(),
+		right:        lo.right.Clone(),
+		guarantees:   clonedGuarantees,
+	}
 }
 
 // NewLedgerOutcome creates a new ledger outcome with the given asset address and balances and guarantees
@@ -355,6 +387,14 @@ type Vars struct {
 	Outcome LedgerOutcome
 }
 
+// Clone returns a deep copy of the receiver
+func (v *Vars) Clone() Vars {
+	return Vars{
+		v.TurnNum,
+		v.Outcome.Clone(),
+	}
+}
+
 // clone returns a deep clone of v
 func (o *LedgerOutcome) clone() LedgerOutcome {
 	assetAddress := o.assetAddress
@@ -391,10 +431,15 @@ type SignedVars struct {
 }
 
 // clone returns a deep copy of the reciever
-// TODO it currently just does a shallow copy
 func (sv *SignedVars) clone() SignedVars {
-	sv2 := sv
-	return *sv2
+	clonedSignatures := [2]state.Signature{
+		sv.Signatures[0],
+		sv.Signatures[1],
+	}
+	return SignedVars{
+		sv.Vars.Clone(),
+		clonedSignatures,
+	}
 }
 
 // Proposal is a proposal either to add or to remove a guarantee.
@@ -404,6 +449,15 @@ type Proposal struct {
 	ChannelID types.Destination
 	ToAdd     Add
 	ToRemove  Remove
+}
+
+// Clone returns a deep copy of the receiver.
+func (p *Proposal) Clone() Proposal {
+	return Proposal{
+		p.ChannelID,
+		p.ToAdd.Clone(),
+		p.ToRemove.Clone(),
+	}
 }
 
 const (
@@ -452,16 +506,15 @@ func (p *Proposal) equal(q *Proposal) bool {
 	return p.ToAdd.equal(q.ToAdd) && p.ToRemove == q.ToRemove
 }
 
-// SignedProposal is a Proposall with a signature on it
+// SignedProposal is a Proposal with a signature on it
 type SignedProposal struct {
 	state.Signature
 	Proposal Proposal
 }
 
 // clone returns a deep copy of the reciever
-// TODO it currently just does a shallow copy
-func (sp *SignedProposal) Clone() *SignedProposal {
-	sp2 := sp
+func (sp *SignedProposal) Clone() SignedProposal {
+	sp2 := SignedProposal{sp.Signature, sp.Proposal.Clone()}
 	return sp2
 }
 
@@ -471,6 +524,18 @@ type Add struct {
 	turnNum uint64
 	Guarantee
 	LeftDeposit *big.Int
+}
+
+// Clone returns a deep copy of the receiver
+func (a *Add) Clone() Add {
+	if a == nil {
+		return Add{}
+	}
+	return Add{
+		a.turnNum,
+		a.Guarantee.Clone(),
+		big.NewInt(0).Set(a.LeftDeposit),
+	}
 }
 
 // NewAdd constructs a new Add proposal
@@ -641,6 +706,19 @@ type Remove struct {
 	RightAmount *big.Int
 }
 
+// Clone returns a deep copy of the receiver
+func (r *Remove) Clone() Remove {
+	if r == nil || r.LeftAmount == nil || r.RightAmount == nil {
+		return Remove{}
+	}
+	return Remove{
+		turnNum:     r.turnNum,
+		Target:      r.Target,
+		LeftAmount:  big.NewInt(0).Set(r.LeftAmount),
+		RightAmount: big.NewInt(0).Set(r.RightAmount),
+	}
+}
+
 func (v Vars) AsState(fp state.FixedPart) state.State {
 	outcome := v.Outcome.AsOutcome()
 	return state.State{
@@ -665,12 +743,12 @@ func (c *ConsensusChannel) Participants() []types.Address {
 }
 
 // Clone returns a deep copy of the receiver.
-func (c *ConsensusChannel) Clone() ConsensusChannel {
+func (c *ConsensusChannel) Clone() *ConsensusChannel {
 
 	clonedProposalQueue := make([]SignedProposal, len(c.proposalQueue))
 	for i, p := range c.proposalQueue {
-		clonedProposalQueue[i] = *p.Clone()
+		clonedProposalQueue[i] = p.Clone()
 	}
 	d := ConsensusChannel{c.MyIndex, c.fp.Clone(), c.Id, c.current.clone(), clonedProposalQueue}
-	return d
+	return &d
 }
