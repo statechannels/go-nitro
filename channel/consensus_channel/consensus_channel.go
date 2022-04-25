@@ -834,3 +834,13 @@ func (c *ConsensusChannel) Clone() *ConsensusChannel {
 	d := ConsensusChannel{c.MyIndex, c.fp.Clone(), c.Id, c.OnChainFunding.Clone(), c.current.clone(), clonedProposalQueue}
 	return &d
 }
+
+// SupportedSignedState returns the latest supported signed state.
+func (cc *ConsensusChannel) SupportedSignedState() state.SignedState {
+	s := cc.ConsensusVars().AsState(cc.fp)
+	sigs := cc.current.Signatures
+	ss := state.NewSignedState(s)
+	_ = ss.AddSignature(sigs[0])
+	_ = ss.AddSignature(sigs[1])
+	return ss
+}
