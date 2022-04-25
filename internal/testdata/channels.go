@@ -15,7 +15,7 @@ import (
 
 type channelCollection struct {
 	// MockConsensusChannel constructs and returns a ledger channel
-	MockConsensusChannel virtualfund.GetTwoPartyConsensusLedgerFunction
+	MockConsensusChannel virtualfund.GetLedgerFunction
 }
 
 var Channels channelCollection = channelCollection{
@@ -67,7 +67,7 @@ type TestLedger struct {
 //
 // The returned function inspects the ledgers from the ledger set, and returns
 // the ledger between the seeker and given counterparty from the seeker's perspective.
-func (l LedgerNetwork) GetLedgerLookup(seeker types.Address) virtualfund.GetTwoPartyConsensusLedgerFunction {
+func (l LedgerNetwork) GetLedgerLookup(seeker types.Address) virtualfund.GetLedgerFunction {
 	var myLedgers []TestLedger
 
 	// package all of seeker's ledgers for the closure

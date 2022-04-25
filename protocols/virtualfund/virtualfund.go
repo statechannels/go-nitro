@@ -128,7 +128,7 @@ type Objective struct {
 }
 
 // NewObjective creates a new virtual funding objective from a given request.
-func NewObjective(request ObjectiveRequest, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
+func NewObjective(request ObjectiveRequest, getTwoPartyConsensusLedger GetLedgerFunction) (Objective, error) {
 	rightCC, ok := getTwoPartyConsensusLedger(request.Intermediary)
 
 	if !ok {
@@ -490,15 +490,15 @@ func (o *Objective) isBob() bool {
 	return o.MyRole == o.n+1
 }
 
-// todo: #420 assume name and godoc from GetTwoPartyLedgerFunction
-type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
+// GetLedgerFunction defines a lookup for an ledger channels with a given counterparty
+type GetLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
 // ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
 func ConstructObjectiveFromMessage(
 	m protocols.Message,
 	myAddress types.Address,
-	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
+	getLedger GetLedgerFunction,
 ) (Objective, error) {
 	if len(m.SignedStates) != 1 {
 		return Objective{}, errors.New("expected exactly one signed state in the message")
@@ -520,18 +520,18 @@ func ConstructObjectiveFromMessage(
 	if myAddress == alice {
 		return Objective{}, errors.New("participant[0] should not construct objectives from peer messages")
 	} else if myAddress == bob {
-		leftC, ok = getTwoPartyConsensusLedger(intermediary)
+		leftC, ok = getLedger(intermediary)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
 		}
 
 	} else if myAddress == intermediary {
-		leftC, ok = getTwoPartyConsensusLedger(alice)
+		leftC, ok = getLedger(alice)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
 		}
 
-		rightC, ok = getTwoPartyConsensusLedger(bob)
+		rightC, ok = getLedger(bob)
 		if !ok {
 			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
 		}
