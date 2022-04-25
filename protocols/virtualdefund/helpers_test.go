@@ -192,7 +192,8 @@ func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objectiv
 // signProposal signs a proposal with the given actor's private key
 func signProposal(me testactors.Actor, p consensus_channel.Proposal, c *consensus_channel.ConsensusChannel) (consensus_channel.SignedProposal, error) {
 
-	vars := c.ConsensusVars().Clone()
+	con := c.ConsensusVars()
+	vars := con.Clone()
 	err := vars.HandleProposal(p)
 	if err != nil {
 		return consensus_channel.SignedProposal{}, err
