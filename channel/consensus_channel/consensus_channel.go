@@ -2,6 +2,7 @@
 package consensus_channel
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"sort"
@@ -83,6 +84,11 @@ func newConsensusChannel(
 
 }
 
+// FixedPart returns the fixed part of the channel
+func (c *ConsensusChannel) FixedPart() state.FixedPart {
+	return c.fp
+}
+
 // Receive accepts a proposal signed by the ConsensusChannel counterparty,
 // validates its signature, and performs updates the proposal queue and
 // consensus state
@@ -105,6 +111,24 @@ func (c *ConsensusChannel) ConsensusTurnNum() uint64 {
 // Includes returns whether or not the consensus state includes the given guarantee
 func (c *ConsensusChannel) Includes(g Guarantee) bool {
 	return c.current.Outcome.includes(g)
+}
+
+// IncludesTarget returns whether or not the consensus state includes a guarantee targeting the given channel
+func (c *ConsensusChannel) IncludesTarget(target types.Destination) bool {
+	return c.current.Outcome.includesTarget(target)
+}
+
+// HasRemovalBeenProposedFor returns whether or not a proposal exists to remove the guaranatee for the target
+func (c *ConsensusChannel) HasRemovalBeenProposedFor(target types.Destination) bool {
+	for _, p := range c.proposalQueue {
+		if p.Proposal.Type() == RemoveProposal {
+			remove := p.Proposal.ToRemove
+			if remove.Target == target {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // IsLeader returns true if the calling client is the leader of the channel,
@@ -306,6 +330,12 @@ func NewLedgerOutcome(assetAddress types.Address, left, right Balance, guarantee
 	}
 }
 
+// includesTarget returns true when the receiver includes a guarantee that targets the given destination
+func (o *LedgerOutcome) includesTarget(target types.Destination) bool {
+	_, found := o.guarantees[target]
+	return found
+}
+
 // includes returns true when the receiver includes g in its list of guarantees.
 func (o *LedgerOutcome) includes(g Guarantee) bool {
 	existing, found := o.guarantees[g.target]
@@ -503,7 +533,7 @@ func (p *Proposal) TurnNum() uint64 {
 
 // equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
 func (p *Proposal) equal(q *Proposal) bool {
-	return p.ToAdd.equal(q.ToAdd) && p.ToRemove == q.ToRemove
+	return p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
 }
 
 // SignedProposal is a Proposal with a signature on it
@@ -577,6 +607,23 @@ func (a Add) equal(a2 Add) bool {
 		return false
 	}
 	return types.Equal(a.LeftDeposit, a2.LeftDeposit)
+}
+
+func (r Remove) equal(r2 Remove) bool {
+	if r.turnNum != r2.turnNum {
+		return false
+	}
+	if !bytes.Equal(r.Target.Bytes(), r2.Target.Bytes()) {
+
+		return false
+	}
+	if !types.Equal(r.LeftAmount, r2.LeftAmount) {
+		return false
+	}
+	if !types.Equal(r.RightAmount, r2.RightAmount) {
+		return false
+	}
+	return true
 }
 
 var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")

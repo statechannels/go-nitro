@@ -2,11 +2,17 @@
 package testhelpers
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"testing"
+
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/protocols"
 )
 
 // Copied from https://github.com/benbjohnson/testing
@@ -46,4 +52,39 @@ func Equals(tb testing.TB, want, got interface{}) {
 		fmt.Printf(makeRed+"%s:%d:\n\n\texp: %#v\n\n\tgot: %#v"+makeBlack, filepath.Base(file), line, want, got)
 		tb.FailNow()
 	}
+}
+
+// AssertStateSentToEveryone asserts that ses contains a message for every participant but from
+func AssertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected state.SignedState, from testactors.Actor, allActors []testactors.Actor) {
+	for _, a := range allActors {
+		if a.Role != from.Role {
+			AssertStateSentTo(t, ses, expected, a)
+		}
+	}
+}
+
+// AssertStateSentTo asserts that ses contains a message for the participant
+func AssertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
+	for _, msg := range ses.MessagesToSend {
+		if bytes.Equal(msg.To[:], to.Address[:]) {
+			for _, ss := range msg.SignedStates {
+				Equals(t, ss, expected)
+			}
+		}
+	}
+}
+
+func AssertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to testactors.Actor) {
+
+	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
+
+	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "expected one signed proposal")
+
+	msg := ses.MessagesToSend[0]
+	sent := msg.SignedProposals[0]
+
+	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
+
+	Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
+
 }
