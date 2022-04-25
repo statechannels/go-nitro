@@ -23,9 +23,6 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 	// Since we are delaying messages we allow for enough time to complete the objective
 	const OBJECTIVE_TIMEOUT = time.Second * 2
 
-	// This test fails due to https://github.com/statechannels/go-nitro/issues/366
-	t.Skip()
-
 	// Setup logging
 	logDestination := &bytes.Buffer{}
 	t.Cleanup(flushToFileCleanupFn(logDestination, "virtual_fund_message_delay_test.log"))
