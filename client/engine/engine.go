@@ -284,7 +284,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	if waitingFor == "WaitingForNothing" {
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
 		e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
-		err = e.SpawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
+		err = e.SpawnLedgerChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
 		if err != nil {
 			return
 		}
@@ -293,10 +293,10 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	return
 }
 
-// SpawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective iff it is a directfund.Objective.
-func (e Engine) SpawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
+// SpawnLedgerChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective iff it is a directfund.Objective.
+func (e Engine) SpawnLedgerChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
 	if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
-		c, err := dfo.CreateConsensusChannel()
+		c, err := dfo.CreateLedgerChannel()
 		if err != nil {
 			return fmt.Errorf("could not create consensus channel for objective %s: %w", crankedObjective.Id(), err)
 		}

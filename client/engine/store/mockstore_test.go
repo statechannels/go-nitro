@@ -196,4 +196,3 @@ func TestConsensusChannelStore(t *testing.T) {
 		t.Fatalf("fetched result different than expected %s", diff)
 	}
 }
-2

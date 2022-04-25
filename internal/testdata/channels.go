@@ -47,7 +47,7 @@ func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel
 		Outcome:           ts.Outcome,
 	}
 	testObj, _ := directfund.NewObjective(request, false)
-	cc, _ := testObj.CreateConsensusChannel()
+	cc, _ := testObj.CreateLedgerChannel()
 	return cc, true
 }
 
