@@ -93,10 +93,13 @@ func (c *ConsensusChannel) FixedPart() state.FixedPart {
 // validates its signature, and performs updates the proposal queue and
 // consensus state
 func (c *ConsensusChannel) Receive(sp SignedProposal) error {
+
 	if c.IsFollower() {
+
 		return c.followerReceive(sp)
 	}
 	if c.IsLeader() {
+
 		return c.leaderReceive(sp)
 	}
 
@@ -661,6 +664,7 @@ var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 // HandleProposal handles a proposal to add or remove a guarantee
 // It will mutate Vars by calling Add or Remove for the proposal
 func (vars *Vars) HandleProposal(p Proposal) error {
+
 	switch p.Type() {
 	case AddProposal:
 		{

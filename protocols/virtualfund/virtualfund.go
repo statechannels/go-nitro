@@ -79,7 +79,11 @@ func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
 	}
 
 	if c.Channel != nil {
-		return c.Channel.Receive(sp)
+		err := c.Channel.Receive(sp)
+		// Ignore stale or future proposals
+		if errors.Is(err, consensus_channel.ErrInvalidTurnNum) {
+			return nil
+		}
 	}
 
 	return nil
@@ -636,6 +640,7 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 	var sideEffects protocols.SideEffects
 	g := ledgerConnection.getExpectedGuarantee()
 	proposed, err := ledger.IsProposed(g)
+
 	if err != nil {
 		return protocols.SideEffects{}, err
 	}
@@ -653,8 +658,10 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 		if err != nil {
 			return protocols.SideEffects{}, err
 		}
+		// If the proposal is next in the queue we accept it
+		proposedNext, _ := ledger.IsProposedNext(g)
+		if proposedNext {
 
-		if proposed {
 			se, err := o.acceptLedgerUpdate(ledgerConnection, sk)
 			if err != nil {
 				return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
