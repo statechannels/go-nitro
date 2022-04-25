@@ -249,7 +249,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			return e.attemptProgress(&dfo)
 
 		case directdefund.ObjectiveRequest:
-			ddfo, err := directdefund.NewObjective(true, request.ChannelId, e.store.GetChannelById)
+			ddfo, err := directdefund.NewObjective(true, request.ChannelId, e.store.GetConsensusChannelById)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
@@ -391,7 +391,7 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		}
 		return &vfo, nil
 	case directdefund.IsDirectDefundObjective(id):
-		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), e.store.GetChannelById)
+		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), e.store.GetConsensusChannelById)
 		if err != nil {
 			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message: %w", err)
 		}
