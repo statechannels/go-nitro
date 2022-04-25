@@ -215,7 +215,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	}
 
 	if !updated.isAlice() && !updated.isLeftDefunded() {
-		ledgerSideEffects, err := updated.defundLedger(updated.ToMyLeft, secretKey)
+		ledgerSideEffects, err := updated.updateLedgerToRemoveGuarantee(updated.ToMyLeft, secretKey)
 		if err != nil {
 			return &o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
@@ -223,7 +223,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	}
 
 	if !updated.isBob() && !updated.isRightDefunded() {
-		ledgerSideEffects, err := updated.defundLedger(updated.ToMyRight, secretKey)
+		ledgerSideEffects, err := updated.updateLedgerToRemoveGuarantee(updated.ToMyRight, secretKey)
 		if err != nil {
 			return &o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
@@ -265,8 +265,8 @@ func (o Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) co
 	return consensus_channel.NewRemoveProposal(ledger.Id, FinalTurnNum, o.VId(), left, right)
 }
 
-// defundLedger updates the ledger channel to remove the guarantee that funds V.
-func (o *Objective) defundLedger(ledger *consensus_channel.ConsensusChannel, sk *[]byte) (protocols.SideEffects, error) {
+// updateLedgerToRemoveGuarantee updates the ledger channel to remove the guarantee that funds V.
+func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.ConsensusChannel, sk *[]byte) (protocols.SideEffects, error) {
 
 	var sideEffects protocols.SideEffects
 
