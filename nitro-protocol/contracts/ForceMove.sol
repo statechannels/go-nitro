@@ -46,7 +46,7 @@ contract ForceMove is IForceMove, StatusManager {
      */
     function challenge(
         FixedPart memory fixedPart,
-        IForceMoveApp.VariablePart[] memory variableParts,
+        VariablePart[] memory variableParts,
         Signature[] memory sigs,
         uint8[] memory whoSignedWhat,
         Signature memory challengerSig
@@ -113,7 +113,7 @@ contract ForceMove is IForceMove, StatusManager {
      */
     function respond(
         FixedPart memory fixedPart,
-        IForceMoveApp.VariablePart[2] memory variablePartAB,
+        VariablePart[2] memory variablePartAB,
         // variablePartAB[0] = challengeVariablePart
         // variablePartAB[1] = responseVariablePart
         Signature memory sig
@@ -177,7 +177,7 @@ contract ForceMove is IForceMove, StatusManager {
      */
     function checkpoint(
         FixedPart memory fixedPart,
-        IForceMoveApp.VariablePart[] memory variableParts,
+        VariablePart[] memory variableParts,
         Signature[] memory sigs,
         uint8[] memory whoSignedWhat
     ) external override {
@@ -212,7 +212,7 @@ contract ForceMove is IForceMove, StatusManager {
      */
     function conclude(
         FixedPart memory fixedPart,
-        IForceMoveApp.VariablePart memory latestVariablePart,
+        VariablePart memory latestVariablePart,
         uint8 numStates,
         uint8[] memory whoSignedWhat,
         Signature[] memory sigs
@@ -231,7 +231,7 @@ contract ForceMove is IForceMove, StatusManager {
      */
     function _conclude(
         FixedPart memory fixedPart,
-        IForceMoveApp.VariablePart memory latestVariablePart,
+        VariablePart memory latestVariablePart,
         uint8 numStates,
         uint8[] memory whoSignedWhat,
         Signature[] memory sigs
@@ -451,7 +451,7 @@ contract ForceMove is IForceMove, StatusManager {
      * @return The hash of the latest state in the proof, if supported, else reverts.
      */
     function _requireStateSupportedBy(
-        IForceMoveApp.VariablePart[] memory variableParts,
+        VariablePart[] memory variableParts,
         bytes32 channelId,
         FixedPart memory fixedPart,
         Signature[] memory sigs,
@@ -488,7 +488,7 @@ contract ForceMove is IForceMove, StatusManager {
     function _requireValidTransitionChain(
         // returns stateHashes array if valid
         // else, reverts
-        IForceMoveApp.VariablePart[] memory variableParts,
+        VariablePart[] memory variableParts,
         bytes32 channelId,
         FixedPart memory fixedPart
     ) internal pure returns (bytes32[] memory) {
@@ -528,7 +528,7 @@ contract ForceMove is IForceMove, StatusManager {
     */
     function _requireValidProtocolTransition(
         uint256 nParticipants,
-        IForceMoveApp.VariablePart[2] memory ab // [a,b]
+        VariablePart[2] memory ab // [a,b]
     ) internal pure returns (IsValidTransition) {
         // a separate check on the signatures for the submitted states implies that the following fields are equal for a and b:
         // chainId, participants, channelNonce, appDefinition, challengeDuration
@@ -561,7 +561,7 @@ contract ForceMove is IForceMove, StatusManager {
     */
     function _requireValidTransition(
         uint256 nParticipants,
-        IForceMoveApp.VariablePart[2] memory ab, // [a,b]
+        VariablePart[2] memory ab, // [a,b]
         address appDefinition
     ) internal pure returns (bool) {
         IsValidTransition isValidProtocolTransition = _requireValidProtocolTransition(
@@ -791,10 +791,10 @@ contract ForceMove is IForceMove, StatusManager {
      * @param variableParts Array of VariableParts.
      * @return VariablePart Last VariablePart from array.
      */
-    function _lastVariablePart(IForceMoveApp.VariablePart[] memory variableParts)
+    function _lastVariablePart(VariablePart[] memory variableParts)
         internal
         pure
-        returns (IForceMoveApp.VariablePart memory)
+        returns (VariablePart memory)
     {
         return variableParts[variableParts.length - 1];
     }
