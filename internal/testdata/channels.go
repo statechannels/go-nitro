@@ -14,13 +14,11 @@ import (
 )
 
 type channelCollection struct {
-	// MockTwoPartyLedger constructs and returns a ledger channel
-	MockTwoPartyLedger   virtualfund.GetTwoPartyLedgerFunction
+	// MockConsensusChannel constructs and returns a ledger channel
 	MockConsensusChannel virtualfund.GetTwoPartyConsensusLedgerFunction
 }
 
 var Channels channelCollection = channelCollection{
-	MockTwoPartyLedger:   mockTwoPartyLedger,
 	MockConsensusChannel: mockConsensusChannel,
 }
 

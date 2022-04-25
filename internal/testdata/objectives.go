@@ -83,7 +83,7 @@ func genericVFO() virtualfund.Objective {
 	})
 	lookup := ledgerPath.GetLedgerLookup(testactors.Alice.Address)
 
-	testVFO, err := virtualfund.NewObjective(request, Channels.MockTwoPartyLedger, lookup)
+	testVFO, err := virtualfund.NewObjective(request, lookup)
 	if err != nil {
 		panic(fmt.Errorf("error constructing genericVFO: %w", err))
 	}
