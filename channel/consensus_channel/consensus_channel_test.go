@@ -13,9 +13,6 @@ import (
 
 func TestConsensusChannel(t *testing.T) {
 	existingChannel := types.Destination{1}
-	aBal := uint64(200)
-	bBal := uint64(300)
-	vAmount := uint64(5)
 
 	proposal := add(10, vAmount, targetChannel, alice, bob)
 
