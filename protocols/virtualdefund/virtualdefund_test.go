@@ -8,6 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
+	. "github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
 )
 
@@ -99,7 +100,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		testhelpers.Equals(t, waitingFor, WaitingForCompleteFinal)
 		signedByMe := state.NewSignedState(data.vFinal)
 		_ = signedByMe.Sign(&my.PrivateKey)
-		assertStateSentToEveryone(t, se, signedByMe, my)
+		AssertStateSentToEveryone(t, se, signedByMe, my, allActors)
 
 		// Update the signatures on the objective so the final state is fully signed
 		signedByOthers := signStateByOthers(my, state.NewSignedState(data.vFinal))

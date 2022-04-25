@@ -1,7 +1,6 @@
 package virtualdefund
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 	"testing"
@@ -11,29 +10,10 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
-	"github.com/statechannels/go-nitro/internal/testhelpers"
 	. "github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
-
-// assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
-// TODO: This is copied from https://github.com/statechannels/go-nitro/blob/0722a1127241583944f32efa0638012f64b96bf0/protocols/virtualfund/virtualfund_single_hop_test.go#L409
-// We should probably establish some shared helpers
-func assertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to testactors.Actor) {
-
-	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
-
-	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "expected one signed proposal")
-
-	msg := ses.MessagesToSend[0]
-	sent := msg.SignedProposals[0]
-
-	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
-
-	Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
-
-}
 
 // generateLedgers generates the left and right ledger channels based on myRole
 // The ledger channels will include a guarantee that funds V
@@ -118,13 +98,13 @@ func checkForFollowerProposals(t *testing.T, se protocols.SideEffects, o *Object
 		{
 			// Irene should accept a proposal from Alice
 			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyLeft.Id, td)}
-			assertProposalSent(t, se, rightProposal, alice)
+			AssertProposalSent(t, se, rightProposal, alice)
 		}
 	case 2:
 		{
 			// Bob should accept a proposal from Irene
 			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyLeft.Id, td)}
-			assertProposalSent(t, se, rightProposal, irene)
+			AssertProposalSent(t, se, rightProposal, irene)
 		}
 
 	}
@@ -197,13 +177,13 @@ func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objectiv
 		{
 			// Alice Proposes to Irene on her right
 			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyRight.Id, td)}
-			assertProposalSent(t, se, rightProposal, irene)
+			AssertProposalSent(t, se, rightProposal, irene)
 		}
 	case 1:
 		{
 			// Irene proposes to Bob on her right
 			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyRight.Id, td)}
-			assertProposalSent(t, se, rightProposal, bob)
+			AssertProposalSent(t, se, rightProposal, bob)
 		}
 
 	}
@@ -296,24 +276,4 @@ func signStateByOthers(me ta.Actor, signedState state.SignedState) state.SignedS
 		_ = signedState.Sign(&bob.PrivateKey)
 	}
 	return signedState
-}
-
-// assertStateSentToEveryone asserts that ses contains a message for every participant but from
-func assertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected state.SignedState, from testactors.Actor) {
-	for _, a := range allActors {
-		if a.Role != from.Role {
-			assertStateSentTo(t, ses, expected, a)
-		}
-	}
-}
-
-// assertStateSentTo asserts that ses contains a message for the participant
-func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
-	for _, msg := range ses.MessagesToSend {
-		if bytes.Equal(msg.To[:], to.Address[:]) {
-			for _, ss := range msg.SignedStates {
-				testhelpers.Equals(t, ss, expected)
-			}
-		}
-	}
 }
