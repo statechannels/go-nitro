@@ -115,11 +115,6 @@ func (c Channel) MyDestination() types.Destination {
 	return types.AddressToDestination(c.Participants[c.MyIndex])
 }
 
-// TheirDestination returns the destination of the ledger counterparty
-func (lc TwoPartyLedger) TheirDestination() types.Destination {
-	return types.AddressToDestination(lc.Participants[(lc.MyIndex+1)%2])
-}
-
 // Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.
 func (c *Channel) Clone() *Channel {
 	if c == nil {
