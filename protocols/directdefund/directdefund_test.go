@@ -2,13 +2,11 @@ package directdefund
 
 import (
 	"encoding/json"
-	"errors"
 	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
-	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -66,26 +64,6 @@ func signedTestState(s state.State, toSign []bool) (state.SignedState, error) {
 		}
 	}
 	return ss, nil
-}
-
-// newChannelFromSignedState constructs a new Channel from the signed state.
-func newChannelFromSignedState(ss state.SignedState, myIndex uint) (*channel.Channel, error) {
-	s := ss.State()
-	prefund := s.Clone()
-	prefund.TurnNum = 0
-	c, err := channel.New(prefund, myIndex)
-	if err != nil {
-		return c, err
-	}
-
-	sss := make([]state.SignedState, 1)
-	sss[0] = ss
-	allOk := c.AddSignedStates(sss)
-	if !allOk {
-		return c, errors.New("Unable to add a state to channel")
-	}
-	c.OnChainFunding = map[common.Address]*big.Int{types.Address{}: big.NewInt(1)}
-	return c, nil
 }
 
 func newTestObjective(signByBob bool) (Objective, error) {
