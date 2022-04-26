@@ -23,14 +23,9 @@ func TestChannel(t *testing.T) {
 
 	s := state.TestState.Clone()
 
-	_, err1 := New(s, 0)
-	s.TurnNum = 0
 	c, err2 := New(s, 0)
 
 	testNew := func(t *testing.T) {
-		if err1 == nil {
-			t.Error(`expected error constructing with a non turnNum=0 state, but got none`)
-		}
 		if err2 != nil {
 			t.Error(err2)
 		}
@@ -175,8 +170,8 @@ func TestChannel(t *testing.T) {
 		}
 
 		// It should properly update the latestSupportedStateNum
-		if myC.latestSupportedStateTurnNum != 0 {
-			t.Fatalf("Expected latestSupportedStateTurnNum of 0 but got %d", myC.latestSupportedStateTurnNum)
+		if myC.latestSupportedStateTurnNum != s.TurnNum {
+			t.Fatalf("Expected latestSupportedStateTurnNum of %d but got %d", s.TurnNum, myC.latestSupportedStateTurnNum)
 
 		}
 		// verify the signatures
@@ -219,8 +214,8 @@ func TestChannel(t *testing.T) {
 
 		// It should properly update the latestSupportedStateNum
 		got := myC.latestSupportedStateTurnNum
-		if got != 0 {
-			t.Fatalf("Expected latestSupportedStateTurnNum of 0 but got %d", got)
+		if got != s.TurnNum {
+			t.Fatalf("Expected latestSupportedStateTurnNum of %d but got %d", s.TurnNum, got)
 		}
 
 		// verify the signatures
