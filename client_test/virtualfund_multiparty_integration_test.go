@@ -15,7 +15,7 @@ import (
 
 // TestMultiPartyVirtualFundIntegration tests the scenario where Alice creates virtual channels with Bob and Brian using Irene as the intermediary.
 func TestMultiPartyVirtualFundIntegration(t *testing.T) {
-	t.Skip()
+
 	logDestination := &bytes.Buffer{}
 	t.Cleanup(flushToFileCleanupFn(logDestination, "virtualfund_multiparty_client_test.log"))
 
