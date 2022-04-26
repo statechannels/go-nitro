@@ -72,7 +72,7 @@ func NewObjective(
 
 	c, err := CreateChannelFromConsensusChannel(*cc)
 	if err != nil {
-		return Objective{}, fmt.Errorf("could not create consensus channel %w", err)
+		return Objective{}, fmt.Errorf("could not create Channel from ConsensusChannel; %w", err)
 	}
 
 	// We choose to disallow creating an objective if the channel has an in-progress update.
