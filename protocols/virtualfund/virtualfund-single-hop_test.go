@@ -203,7 +203,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareConsensusChannels(my.Role)
 
 			// Assert that a valid set of constructor args does not result in an error
-			o, err := constructFromState(false, vPreFund, my.Address, ledgerChannelToMyLeft, ledgerChannelToMyRight) // todo: #420 deprecate TwoPartyLedgers
+			o, err := constructFromState(false, vPreFund, my.Address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -252,7 +252,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		testclone := func(t *testing.T) {
 			// ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.Role)
 
-			o, _ := constructFromState(false, vPreFund, my.Address, nil, nil) // todo: #420 deprecate TwoPartyLedgers
+			o, _ := constructFromState(false, vPreFund, my.Address, nil, nil)
 
 			clone := o.clone()
 
@@ -263,7 +263,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 		testCrank := func(t *testing.T) {
 			leftCC, rightCC := prepareConsensusChannels(my.Role)
-			var s, _ = constructFromState(false, vPreFund, my.Address, leftCC, rightCC) // todo: #420 deprecate TwoPartyLedgers
+			var s, _ = constructFromState(false, vPreFund, my.Address, leftCC, rightCC)
 			// Assert that cranking an unapproved objective returns an error
 			if _, _, _, err := s.Crank(&my.PrivateKey); err == nil {
 				t.Fatal(`Expected error when cranking unapproved objective, but got nil`)
