@@ -120,7 +120,7 @@ func TestUpdate(t *testing.T) {
 	ss, _ = signedTestState(s, []bool{true, false})
 	e.SignedStates = []state.SignedState{ss}
 
-	if _, err := o.Update(e); err.Error() != "expected state with turn number 3, received turn number 4" {
+	if _, err := o.Update(e); err.Error() != "expected state with turn number 2, received turn number 4" {
 		t.Error(err)
 	}
 }
@@ -147,8 +147,8 @@ func TestCrankAlice(t *testing.T) {
 	}
 
 	// Create the state we expect Alice to send
-	finalState := testState.Clone()
-	finalState.TurnNum = 3 // test state has turn number 2 and is not final, hence we expect 2 + 1 = 3
+	finalState, _ := o.C.LatestSupportedState()
+	finalState.TurnNum = 2
 	finalState.IsFinal = true
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
 
