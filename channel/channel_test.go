@@ -358,44 +358,6 @@ func TestChannel(t *testing.T) {
 
 }
 
-func TestTwoPartyLedger(t *testing.T) {
-	compareChannels := func(a, b *TwoPartyLedger) string {
-		return cmp.Diff(*a, *b, cmp.AllowUnexported(*a, big.Int{}, state.SignedState{}, Channel{}))
-	}
-
-	s := state.TestState.Clone()
-	s.TurnNum = 0
-	testClone := func(t *testing.T) {
-		r, err := NewTwoPartyLedger(s, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-		c := r.Clone()
-		if diff := compareChannels(r, c); diff != "" {
-			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
-		}
-
-		r.latestSupportedStateTurnNum++
-		if reflect.DeepEqual(r.Channel, c.Channel) {
-			t.Error("Clone: modifying the clone should not modify the original")
-		}
-
-		r.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
-		if r.Participants[0] == c.Participants[0] {
-			t.Error("Clone: modifying the clone should not modify the original")
-		}
-
-		var nilTwoPartyLedger *TwoPartyLedger
-		clone := nilTwoPartyLedger.Clone()
-		if clone != nil {
-			t.Fatal("Tried to clone a TwoPartyLedger via a nil pointer, but got something not nil")
-		}
-
-	}
-
-	t.Run(`TestClone`, testClone)
-}
-
 func TestSingleHopVirtualChannel(t *testing.T) {
 	compareChannels := func(a, b *SingleHopVirtualChannel) string {
 		return cmp.Diff(*a, *b, cmp.AllowUnexported(*a, big.Int{}, state.SignedState{}, Channel{}))
