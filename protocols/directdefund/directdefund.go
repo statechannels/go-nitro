@@ -171,28 +171,31 @@ func (o Objective) Related() []protocols.Storable {
 	return []protocols.Storable{o.C}
 }
 
-// Update receives an ObjectiveEvent, applies all applicable event data to the DirectDefundingObjective,
-// and returns the updated objective
-func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
-	if o.Id() != event.ObjectiveId {
-		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
-	}
+func (o Objective) UpdateWithProposal(sp consensus_channel.SignedProposal) (protocols.Objective, error) {
+	return &o, fmt.Errorf("direct funding does not support proposals")
+}
 
-	if len(event.SignedStates) > 0 {
-		for _, ss := range event.SignedStates {
-			if !ss.State().IsFinal {
-				return &o, errors.New("direct defund objective can only be updated with final states")
-			}
-			if o.finalTurnNum != ss.State().TurnNum {
-				return &o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, ss.State().TurnNum)
-			}
-		}
-	}
-
+func (o Objective) UpdateWithState(ss state.SignedState) (protocols.Objective, error) {
 	updated := o.clone()
-	updated.C.AddSignedStates(event.SignedStates)
 
+	incomingChannelId, _ := ss.State().ChannelId() // TODO handle error
+	oChannelId, _ := updated.C.ChannelId()
+
+	if incomingChannelId != oChannelId {
+		return &o, fmt.Errorf("incoming channel id %s does not match objective channel id %s", incomingChannelId, oChannelId)
+	}
+	if !ss.State().IsFinal {
+		return &o, errors.New("direct defund objective can only be updated with final states")
+	}
+	if o.finalTurnNum != ss.State().TurnNum {
+		return &o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, ss.State().TurnNum)
+	}
+	ok := updated.C.AddSignedState(ss)
+	if !ok {
+		return &o, fmt.Errorf("could not add signed state to channel")
+	}
 	return &updated, nil
+
 }
 
 // UpdateWithChainEvent updates the objective with observed on-chain data.

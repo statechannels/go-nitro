@@ -9,7 +9,6 @@ import (
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
 	. "github.com/statechannels/go-nitro/internal/testhelpers"
-	"github.com/statechannels/go-nitro/protocols"
 )
 
 var alice = ta.Alice
@@ -43,8 +42,7 @@ func TestInvalidUpdate(t *testing.T) {
 	// Sign the final state by some other participant
 	signStateByOthers(alice, signedFinal)
 
-	e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}
-	_, err := virtualDefund.Update(e)
+	_, err := virtualDefund.UpdateWithState(signedFinal)
 	if err.Error() != "event channelId out of scope of objective" {
 		t.Errorf("Expected error for channelId being out of scope, got %v", err)
 	}
@@ -62,9 +60,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		// Sign the final state by some other participant
 		signStateByOthers(my, signedFinal)
 
-		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}
-
-		updatedObj, err := virtualDefund.Update(e)
+		updatedObj, err := virtualDefund.UpdateWithState(signedFinal)
 		updated := updatedObj.(*Objective)
 		for _, a := range allActors {
 			if a.Role != my.Role {

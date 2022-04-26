@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -149,12 +148,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 			return ObjectiveChangeEvent{}, err
 		}
 
-		event := protocols.ObjectiveEvent{
-			ObjectiveId:     entry.ObjectiveId,
-			SignedProposals: []consensus_channel.SignedProposal{},
-			SignedStates:    []state.SignedState{entry.Payload},
-		}
-		updatedObjective, err := objective.Update(event)
+		updatedObjective, err := objective.UpdateWithState(entry.Payload)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
@@ -175,12 +169,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 			return ObjectiveChangeEvent{}, err
 		}
 
-		event := protocols.ObjectiveEvent{
-			ObjectiveId:     entry.ObjectiveId,
-			SignedProposals: []consensus_channel.SignedProposal{entry.Payload},
-			SignedStates:    []state.SignedState{},
-		}
-		updatedObjective, err := objective.Update(event)
+		updatedObjective, err := objective.UpdateWithProposal(entry.Payload)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}

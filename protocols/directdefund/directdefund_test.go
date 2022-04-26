@@ -93,23 +93,13 @@ func TestNew(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	o, _ := newTestObjective()
 
-	// Prepare an event with a mismatched channelId
-	e := protocols.ObjectiveEvent{
-		ObjectiveId: "some-id",
-	}
-	// Assert that Updating the objective with such an event returns an error
-	if _, err := o.Update(e); err == nil {
-		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
-	}
-
 	// Try updating the objective with a non-final state. An error is expected.
 	s := testState.Clone()
 	s.TurnNum = 3
-	e.ObjectiveId = o.Id()
-	ss, _ := signedTestState(s, []bool{true, false})
-	e.SignedStates = []state.SignedState{ss}
 
-	if _, err := o.Update(e); err.Error() != "direct defund objective can only be updated with final states" {
+	ss, _ := signedTestState(s, []bool{true, false})
+
+	if _, err := o.UpdateWithState(ss); err.Error() != "direct defund objective can only be updated with final states" {
 		t.Error(err)
 	}
 
@@ -117,9 +107,8 @@ func TestUpdate(t *testing.T) {
 	s.TurnNum = 4
 	s.IsFinal = true
 	ss, _ = signedTestState(s, []bool{true, false})
-	e.SignedStates = []state.SignedState{ss}
 
-	if _, err := o.Update(e); err.Error() != "expected state with turn number 2, received turn number 4" {
+	if _, err := o.UpdateWithState(ss); err.Error() != "expected state with turn number 2, received turn number 4" {
 		t.Error(err)
 	}
 }
@@ -169,9 +158,8 @@ func TestCrankAlice(t *testing.T) {
 
 	// The second update and crank. Alice is expected to create a withdrawAll transaction
 	finalStateSignedByAliceBob, _ := signedTestState(finalState, []bool{true, true})
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{finalStateSignedByAliceBob}}
 
-	updated, err = updated.Update(e)
+	updated, err = updated.UpdateWithState(finalStateSignedByAliceBob)
 	if err != nil {
 		t.Error(err)
 	}
@@ -223,8 +211,8 @@ func TestCrankBob(t *testing.T) {
 	finalState.TurnNum = 2
 	finalState.IsFinal = true
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{finalStateSignedByAlice}}
-	updated, err := o.Update(e)
+
+	updated, err := o.UpdateWithState(finalStateSignedByAlice)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +242,7 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The second update and crank. Bob is expected to NOT create any transactions or side effects
-	updated, err = updated.Update(e)
+	updated, err = updated.UpdateWithState(finalStateSignedByAlice)
 	if err != nil {
 		t.Error(err)
 	}

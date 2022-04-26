@@ -360,50 +360,48 @@ func (o Objective) validateSignature(sig state.Signature, participantIndex uint)
 	return true, nil
 }
 
-// Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
-// and returns the updated state.
-func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
-	if o.Id() != event.ObjectiveId {
-		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
-	}
-
+func (o Objective) UpdateWithState(ss state.SignedState) (protocols.Objective, error) {
 	updated := o.clone()
 
-	for _, ss := range event.SignedStates {
-		incomingChannelId, _ := ss.State().ChannelId() // TODO handle error
-		vChannelId, _ := updated.VFixed.ChannelId()    // TODO handle error
+	incomingChannelId, _ := ss.State().ChannelId() // TODO handle error
+	vChannelId, _ := updated.VFixed.ChannelId()    // TODO handle error
 
-		if incomingChannelId != vChannelId {
-			return &o, errors.New("event channelId out of scope of objective")
-		} else {
-			incomingSignatures := ss.Signatures()
-			for i := uint(0); i < 3; i++ {
-				existingSig := o.Signatures[i]
-				incomingSig := incomingSignatures[i]
+	if incomingChannelId != vChannelId {
+		return &o, errors.New("event channelId out of scope of objective")
+	} else {
+		incomingSignatures := ss.Signatures()
+		for i := uint(0); i < 3; i++ {
+			existingSig := o.Signatures[i]
+			incomingSig := incomingSignatures[i]
 
-				// If the incoming signature is zeroed we ignore it
-				if isZero(incomingSig) {
+			// If the incoming signature is zeroed we ignore it
+			if isZero(incomingSig) {
+				continue
+			}
+			// If the existing signature is not zeroed we check that it matches the incoming signature
+			if !isZero(existingSig) {
+				if existingSig.Equal(incomingSig) {
 					continue
-				}
-				// If the existing signature is not zeroed we check that it matches the incoming signature
-				if !isZero(existingSig) {
-					if existingSig.Equal(incomingSig) {
-						continue
-					} else {
-						return &o, fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
-					}
-				}
-				// Otherwise we validate the incoming signature and update our signatures
-				isValid, err := updated.validateSignature(incomingSig, i)
-				if isValid {
-					// Update the signature
-					updated.Signatures[i] = incomingSig
 				} else {
-					return &o, fmt.Errorf("failed to validate signature: %w", err)
+					return &o, fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
 				}
+			}
+			// Otherwise we validate the incoming signature and update our signatures
+			isValid, err := updated.validateSignature(incomingSig, i)
+			if isValid {
+				// Update the signature
+				updated.Signatures[i] = incomingSig
+			} else {
+				return &o, fmt.Errorf("failed to validate signature: %w", err)
 			}
 		}
 	}
+	return &updated, nil
+
+}
+
+func (o Objective) UpdateWithProposal(sp consensus_channel.SignedProposal) (protocols.Objective, error) {
+	updated := o.clone()
 	var toMyLeftId types.Destination
 	var toMyRightId types.Destination
 
@@ -414,25 +412,23 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		toMyRightId = o.ToMyRight.Id
 	}
 
-	for _, sp := range event.SignedProposals {
-		var err error
-		switch sp.Proposal.ChannelID {
-		case types.Destination{}:
-			return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because of Alice or Bob we allow a null channel.
-		case toMyLeftId:
-			err = updated.ToMyLeft.Receive(sp)
-		case toMyRightId:
-			err = updated.ToMyRight.Receive(sp)
-		default:
-			return &o, fmt.Errorf("signed proposal is not addressed to a known ledger connection")
-		}
-
-		if err != nil {
-			return &o, fmt.Errorf("error incorporating signed proposal into objective: %w", err)
-		}
+	var err error
+	switch sp.Proposal.ChannelID {
+	case types.Destination{}:
+		return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because of Alice or Bob we allow a null channel.
+	case toMyLeftId:
+		err = updated.ToMyLeft.Receive(sp)
+	case toMyRightId:
+		err = updated.ToMyRight.Receive(sp)
+	default:
+		return &o, fmt.Errorf("signed proposal is not addressed to a known ledger connection")
 	}
-	return &updated, nil
 
+	if err != nil {
+		return &o, fmt.Errorf("error incorporating signed proposal into objective: %w", err)
+	}
+
+	return &updated, nil
 }
 
 // isZero returns true if every byte field on the signature is zero

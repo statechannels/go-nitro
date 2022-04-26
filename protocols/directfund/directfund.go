@@ -197,17 +197,25 @@ func (o Objective) Reject() protocols.Objective {
 	return &updated
 }
 
-// Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
-// and returns the updated state
-func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
-	if o.Id() != event.ObjectiveId {
-		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
-	}
+func (o Objective) UpdateWithProposal(sp consensus_channel.SignedProposal) (protocols.Objective, error) {
+	return &o, fmt.Errorf("direct funding does not support proposals")
+}
 
+func (o Objective) UpdateWithState(ss state.SignedState) (protocols.Objective, error) {
 	updated := o.clone()
-	updated.C.AddSignedStates(event.SignedStates)
 
+	incomingChannelId, _ := ss.State().ChannelId() // TODO handle error
+	oChannelId, _ := updated.C.ChannelId()
+
+	if incomingChannelId != oChannelId {
+		return &o, fmt.Errorf("incoming channel id %s does not match objective channel id %s", incomingChannelId, oChannelId)
+	}
+	ok := updated.C.AddSignedState(ss)
+	if !ok {
+		return &o, fmt.Errorf("could not add signed state to channel")
+	}
 	return &updated, nil
+
 }
 
 // UpdateWithChainEvent updates the objective with observed on-chain data.

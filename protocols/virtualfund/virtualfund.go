@@ -298,15 +298,24 @@ func (o Objective) GetStatus() protocols.ObjectiveStatus {
 	return o.Status
 }
 
-// Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
-// and returns the updated state.
-func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
-	if o.Id() != event.ObjectiveId {
-		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+func (o Objective) UpdateWithState(ss state.SignedState) (protocols.Objective, error) {
+	updated := o.clone()
+	channelId := ss.ChannelId()
+	switch channelId {
+	case types.Destination{}:
+		return &o, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
+	case o.V.Id:
+		updated.V.AddSignedState(ss)
+		return &updated, nil
+
+	default:
+		return &o, errors.New("event channelId out of scope of objective")
 	}
 
-	updated := o.clone()
+}
 
+func (o Objective) UpdateWithProposal(sp consensus_channel.SignedProposal) (protocols.Objective, error) {
+	updated := o.clone()
 	var toMyLeftId types.Destination
 	var toMyRightId types.Destination
 
@@ -317,35 +326,20 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		toMyRightId = o.ToMyRight.Channel.Id // Avoid this if it is nil
 	}
 
-	for _, sp := range event.SignedProposals {
-		var err error
-		switch sp.Proposal.ChannelID {
-		case types.Destination{}:
-			return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
-		case toMyLeftId:
-			err = updated.ToMyLeft.handleProposal(sp)
-		case toMyRightId:
-			err = updated.ToMyRight.handleProposal(sp)
-		default:
-			return &o, fmt.Errorf("signed proposal is not addressed to a known ledger connection")
-		}
-
-		if err != nil {
-			return &o, fmt.Errorf("error incorporating signed proposal into objective: %w", err)
-		}
+	var err error
+	switch sp.Proposal.ChannelID {
+	case types.Destination{}:
+		return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
+	case toMyLeftId:
+		err = updated.ToMyLeft.handleProposal(sp)
+	case toMyRightId:
+		err = updated.ToMyRight.handleProposal(sp)
+	default:
+		return &o, fmt.Errorf("signed proposal is not addressed to a known ledger connection")
 	}
 
-	for _, ss := range event.SignedStates {
-		channelId, _ := ss.State().ChannelId() // TODO handle error
-		switch channelId {
-		case types.Destination{}:
-			return &o, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
-		case o.V.Id:
-			updated.V.AddSignedState(ss)
-			// We expect pre and post fund state signatures.
-		default:
-			return &o, errors.New("event channelId out of scope of objective")
-		}
+	if err != nil {
+		return &o, fmt.Errorf("error incorporating signed proposal into objective: %w", err)
 	}
 
 	return &updated, nil
