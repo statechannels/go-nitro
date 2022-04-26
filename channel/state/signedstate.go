@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/types"
 )
 
 type SignedState struct {
@@ -162,4 +163,15 @@ func (ss *SignedState) UnmarshalJSON(j []byte) error {
 	ss.sigs = rr.Sigs
 	return err
 
+}
+
+// ChannelId returns the channel id of the state.
+func (ss SignedState) ChannelId() types.Destination {
+	cId, _ := ss.state.ChannelId()
+	return cId
+}
+
+// TurnNum returns the turn number of the state.
+func (ss SignedState) TurnNum() uint64 {
+	return ss.state.TurnNum
 }

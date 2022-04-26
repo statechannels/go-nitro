@@ -189,6 +189,11 @@ func (c *ConsensusChannel) Signatures() [2]state.Signature {
 	return c.current.Signatures
 }
 
+// ProposalQueue returns the current queue of proposals
+func (c *ConsensusChannel) ProposalQueue() []SignedProposal {
+	return c.proposalQueue
+}
+
 // latestProposedVars returns the latest proposed vars in a consensus channel
 // by cloning its current vars and applying each proposal in the queue
 func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
@@ -261,6 +266,11 @@ func (g *Guarantee) Clone() Guarantee {
 		left:   g.left,
 		right:  g.right,
 	}
+}
+
+// Target returns the target of the guarantee
+func (g Guarantee) Target() types.Destination {
+	return g.target
 }
 
 // NewGuarantee constructs a new guarantee
@@ -532,7 +542,35 @@ func (p *Proposal) equal(q *Proposal) bool {
 	return p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
 }
 
-// SignedProposal is a Proposal with a signature on it
+// ChannelId returns the channel id of the proposal.
+func (p SignedProposal) ChannelId() types.Destination {
+	return p.Proposal.ChannelID
+}
+
+// TurnNum returns the turn number of the proposal.
+func (p SignedProposal) TurnNum() uint64 {
+	return p.Proposal.TurnNum()
+}
+
+// Target returns the target channel of the proposal
+func (p *Proposal) Target() types.Destination {
+	switch p.Type() {
+	case "AddProposal":
+		{
+			return p.ToAdd.Target()
+		}
+	case "RemoveProposal":
+		{
+			return p.ToRemove.Target
+		}
+	default:
+		{
+			panic("invalid proposal type")
+		}
+	}
+}
+
+// SignedProposal is a Proposall with a signature on it
 type SignedProposal struct {
 	state.Signature
 	Proposal Proposal
@@ -627,6 +665,7 @@ var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 // HandleProposal handles a proposal to add or remove a guarantee
 // It will mutate Vars by calling Add or Remove for the proposal
 func (vars *Vars) HandleProposal(p Proposal) error {
+
 	switch p.Type() {
 	case AddProposal:
 		{

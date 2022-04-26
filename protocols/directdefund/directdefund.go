@@ -8,6 +8,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/state"
+
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -102,9 +104,9 @@ func NewObjective(
 
 var ErrNoFinalState = errors.New("Cannot spawn direct defund objective without a final state")
 
-// ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
-func ConstructObjectiveFromMessage(
-	m protocols.Message,
+// ConstructObjectiveFromState takes in a message and constructs an objective from it.
+func ConstructObjectiveFromState(
+	s state.State,
 	getChannel GetChannelByIdFunction,
 ) (Objective, error) {
 	preApprove := true
@@ -114,11 +116,11 @@ func ConstructObjectiveFromMessage(
 	// Implicit in the wire protocol is that the message signalling
 	// closure of a channel includes an isFinal state (in the 0 slot of the message)
 	//
-	if !m.SignedStates[0].State().IsFinal {
+	if !s.IsFinal {
 		return Objective{}, ErrNoFinalState
 	}
 
-	cId, err := m.SignedStates[0].State().ChannelId()
+	cId, err := s.ChannelId()
 	if err != nil {
 		return Objective{}, err
 	}

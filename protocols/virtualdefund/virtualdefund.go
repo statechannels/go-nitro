@@ -349,9 +349,12 @@ func (o *Objective) createSignedProposalMessage(sp consensus_channel.SignedPropo
 		recipient = ledger.Follower()
 	}
 	return protocols.Message{
-		To:              recipient,
-		ObjectiveId:     o.Id(),
-		SignedProposals: []consensus_channel.SignedProposal{sp},
+		To: recipient,
+		Payloads: []protocols.MessagePayload{{
+			ObjectiveId:    o.Id(),
+			SignedProposal: sp,
+		},
+		},
 	}
 }
 

@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -137,22 +139,61 @@ func (e *Engine) Run() {
 // attempts progress.
 func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent, error) {
 
-	e.logger.Printf("Handling inbound message %+v", summarizeMessage(message))
-	objective, err := e.getOrCreateObjective(message)
-	if err != nil {
-		return ObjectiveChangeEvent{}, err
-	}
-	event := protocols.ObjectiveEvent{
-		ObjectiveId:     message.ObjectiveId,
-		SignedStates:    message.SignedStates,
-		SignedProposals: message.SignedProposals,
-	}
-	updatedObjective, err := objective.Update(event)
-	if err != nil {
-		return ObjectiveChangeEvent{}, err
+	e.logger.Printf("Handling inbound message %+v", protocols.SummarizeMessage(message))
+	allCompleted := ObjectiveChangeEvent{}
+
+	for _, entry := range message.SignedStates() {
+
+		objective, err := e.getOrCreateObjective(entry.ObjectiveId, entry.Payload)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+
+		event := protocols.ObjectiveEvent{
+			ObjectiveId:     entry.ObjectiveId,
+			SignedProposals: []consensus_channel.SignedProposal{},
+			SignedStates:    []state.SignedState{entry.Payload},
+		}
+		updatedObjective, err := objective.Update(event)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+
+		progressEvent, err := e.attemptProgress(updatedObjective)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+
+		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+
 	}
 
-	return e.attemptProgress(updatedObjective)
+	proposalEntries := message.SignedProposals()
+	for _, entry := range proposalEntries {
+		objective, err := e.store.GetObjectiveById(entry.ObjectiveId)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+
+		event := protocols.ObjectiveEvent{
+			ObjectiveId:     entry.ObjectiveId,
+			SignedProposals: []consensus_channel.SignedProposal{entry.Payload},
+			SignedStates:    []state.SignedState{},
+		}
+		updatedObjective, err := objective.Update(event)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+
+		progressEvent, err := e.attemptProgress(updatedObjective)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+
+		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+	}
+
+	return allCompleted, nil
 
 }
 
@@ -244,7 +285,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 // executeSideEffects executes the SideEffects declared by cranking an Objective
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	for _, message := range sideEffects.MessagesToSend {
-		e.logger.Printf("Sending message %+v", summarizeMessage(message))
+		e.logger.Printf("Sending message %+v", protocols.SummarizeMessage(message))
 		e.toMsg <- message
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
@@ -309,8 +350,7 @@ func (e Engine) SpawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 }
 
 // getOrCreateObjective creates the objective if the supplied message is a proposal. Otherwise, it attempts to get the objective from the store.
-func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Objective, error) {
-	id := message.ObjectiveId
+func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedState) (protocols.Objective, error) {
 
 	objective, err := e.store.GetObjectiveById(id)
 
@@ -318,7 +358,7 @@ func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Obje
 		return objective, nil
 	} else if errors.Is(err, store.ErrNoSuchObjective) {
 
-		newObj, err := e.constructObjectiveFromMessage(message)
+		newObj, err := e.constructObjectiveFromMessage(id, ss)
 		if err != nil {
 			return nil, fmt.Errorf("error constructing objective from message: %w", err)
 		}
@@ -330,27 +370,26 @@ func (e *Engine) getOrCreateObjective(message protocols.Message) (protocols.Obje
 		return newObj, nil
 
 	} else {
-		return nil, fmt.Errorf("unexpected error getting/creating objective %s: %w", message.ObjectiveId, err)
+		return nil, fmt.Errorf("unexpected error getting/creating objective %s: %w", id, err)
 	}
 }
 
 // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied message.
-func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (protocols.Objective, error) {
+func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss state.SignedState) (protocols.Objective, error) {
 
 	switch {
-	case directfund.IsDirectFundObjective(message.ObjectiveId):
-		dfo, err := directfund.ConstructObjectiveFromMessage(
-			message, *e.store.GetAddress())
+	case directfund.IsDirectFundObjective(id):
+		dfo, err := directfund.ConstructFromState(true, ss.State(), *e.store.GetAddress())
 
 		return &dfo, err
-	case virtualfund.IsVirtualFundObjective(message.ObjectiveId):
-		vfo, err := virtualfund.ConstructObjectiveFromMessage(message, *e.store.GetAddress(), e.store.GetConsensusChannel)
+	case virtualfund.IsVirtualFundObjective(id):
+		vfo, err := virtualfund.ConstructObjectiveFromState(ss.State(), *e.store.GetAddress(), e.store.GetConsensusChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
 		return &vfo, nil
-	case directdefund.IsDirectDefundObjective(message.ObjectiveId):
-		ddfo, err := directdefund.ConstructObjectiveFromMessage(message, e.store.GetChannelById)
+	case directdefund.IsDirectDefundObjective(id):
+		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), e.store.GetChannelById)
 		if err != nil {
 			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message: %w", err)
 		}
@@ -360,27 +399,4 @@ func (e *Engine) constructObjectiveFromMessage(message protocols.Message) (proto
 		return &directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
 	}
 
-}
-
-type messageSummary struct {
-	to           string
-	objectiveId  protocols.ObjectiveId
-	signedStates []signedStateSummary
-}
-type signedStateSummary struct {
-	turnNum   uint64
-	channelId string
-}
-
-// summarizeMessage returns a basic summary of a message suitable for logging
-func summarizeMessage(message protocols.Message) messageSummary {
-	summary := messageSummary{to: message.To.String(), objectiveId: message.ObjectiveId, signedStates: []signedStateSummary{}}
-	for _, signedState := range message.SignedStates {
-		channelId, err := signedState.State().ChannelId()
-		if err != nil {
-			panic(err)
-		}
-		summary.signedStates = append(summary.signedStates, signedStateSummary{turnNum: signedState.State().TurnNum, channelId: channelId.String()})
-	}
-	return summary
 }
