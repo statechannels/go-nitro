@@ -68,7 +68,7 @@ func newConsensusChannel(
 		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
 	if followerAddr != fp.Participants[Follower] {
-		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", followerAddr, fp.Participants[Leader])
+		return ConsensusChannel{}, fmt.Errorf("follower did not sign initial state: %v, %v", followerAddr, fp.Participants[Leader])
 	}
 
 	current := SignedVars{
@@ -814,7 +814,7 @@ func (v Vars) AsState(fp state.FixedPart) state.State {
 		ChannelNonce:      fp.ChannelNonce,
 		ChallengeDuration: fp.ChallengeDuration,
 		AppData:           types.Bytes{},
-		AppDefinition:     types.Address{},
+		AppDefinition:     fp.AppDefinition,
 		IsFinal:           false,
 	}
 }
