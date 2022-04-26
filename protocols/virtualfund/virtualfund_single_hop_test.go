@@ -197,6 +197,21 @@ func cloneAndSignSetupStateByPeers(v channel.SingleHopVirtualChannel, myRole uin
 	return withSigs
 }
 
+func TestMisaddressedUpdate(t *testing.T) {
+	var (
+		td      = newTestData()
+		ledgers = td.leaderLedgers
+		vfo, _  = constructFromState(false, td.vPreFund, alice.Address, ledgers[alice.Destination()].left, ledgers[alice.Destination()].right)
+		event   = protocols.ObjectiveEvent{
+			ObjectiveId: "this-is-not-correct",
+		}
+	)
+
+	if _, err := vfo.Update(event); err == nil {
+		t.Fatal("expected error updating vfo with objective ID mismatch, but found none")
+	}
+}
+
 // TestCrankAsAlice tests the behaviour from a end-user's point of view when they are a leader in the ledger channel
 func TestCrankAsAlice(t *testing.T) {
 	my := alice

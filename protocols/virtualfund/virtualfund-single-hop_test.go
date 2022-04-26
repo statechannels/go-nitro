@@ -165,20 +165,14 @@ func TestSingleHopVirtualFund(t *testing.T) {
 		testUpdate := func(t *testing.T) {
 			leftCC, rightCC := prepareConsensusChannels(my.Role)
 			var obj, _ = constructFromState(false, vPreFund, my.Address, leftCC, rightCC)
-			// Prepare an event with a mismatched objectiveId
-			e := protocols.ObjectiveEvent{
-				ObjectiveId: "some-other-id",
-			}
-			// Assert that Updating the objective with such an event returns an error
-			// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
-			if _, err := obj.Update(e); err == nil {
-				t.Fatal(`Objective ID mismatch -- expected an error but did not get one`)
-			}
 
-			// Now modify the event to give it the "correct" channelId (matching the objective),
+			// Prepare an event with the "correct" channelId (matching the objective),
 			// and make a new Sigs map.
 			// This prepares us for the rest of the test. We will reuse the same event multiple times
-			e.ObjectiveId = obj.Id()
+			e := protocols.ObjectiveEvent{
+				ObjectiveId: obj.Id(),
+			}
+
 			e.SignedStates = make([]state.SignedState, 0)
 
 			// Next, attempt to update the objective with correct signature by a participant on a relevant state
