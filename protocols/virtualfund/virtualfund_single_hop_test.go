@@ -172,7 +172,7 @@ func TestClone(t *testing.T) {
 	}
 }
 
-func collectPeerSignaturesOnSetupState(v *channel.SingleHopVirtualChannel, myRole uint, prefund bool) *channel.SingleHopVirtualChannel {
+func cloneAndSignSetupStateByPeers(v *channel.SingleHopVirtualChannel, myRole uint, prefund bool) *channel.SingleHopVirtualChannel {
 	var state state.State
 	if prefund {
 		state = v.PreFundState()
@@ -230,7 +230,7 @@ func TestCrankAsAlice(t *testing.T) {
 	assertStateSentTo(t, effects, expectedSignedState, p1)
 
 	// Update the objective with prefund signatures
-	c := collectPeerSignaturesOnSetupState(o.V, my.Role, true)
+	c := cloneAndSignSetupStateByPeers(o.V, my.Role, true)
 	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{c.SignedPreFundState()}}
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
@@ -307,7 +307,7 @@ func TestCrankAsBob(t *testing.T) {
 	assertStateSentTo(t, effects, expectedSignedState, p1)
 
 	// Update the objective with prefund signatures
-	c := collectPeerSignaturesOnSetupState(o.V, my.Role, true)
+	c := cloneAndSignSetupStateByPeers(o.V, my.Role, true)
 	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{c.SignedPreFundState()}}
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
@@ -386,7 +386,7 @@ func TestCrankAsP1(t *testing.T) {
 	assertStateSentTo(t, effects, expectedSignedState, bob)
 
 	// Update the objective with prefund signatures
-	c := collectPeerSignaturesOnSetupState(o.V, my.Role, true)
+	c := cloneAndSignSetupStateByPeers(o.V, my.Role, true)
 	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{c.SignedPreFundState()}}
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
