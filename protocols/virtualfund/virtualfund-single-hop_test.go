@@ -1,3 +1,4 @@
+// todo: #420 delete this file
 package virtualfund
 
 import (
@@ -100,7 +101,6 @@ func compareGuarantees(a, b consensus_channel.Guarantee) string {
 // }
 
 func TestSingleHopVirtualFund(t *testing.T) {
-	// todo: #420 unskip
 	t.Skip()
 
 	// assertSideEffectsContainsMessageWith fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed state.
