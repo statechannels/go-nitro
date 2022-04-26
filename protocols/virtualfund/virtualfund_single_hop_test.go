@@ -173,28 +173,28 @@ func TestClone(t *testing.T) {
 }
 
 func cloneAndSignSetupStateByPeers(v channel.SingleHopVirtualChannel, myRole uint, prefund bool) *channel.SingleHopVirtualChannel {
+	withSigs := v.Clone()
+
 	var state state.State
 	if prefund {
-		state = v.PreFundState()
+		state = withSigs.PreFundState()
 	} else {
-		state = v.PostFundState()
+		state = withSigs.PostFundState()
 	}
-
-	updated := v.Clone()
 
 	if myRole != alice.Role {
 		aliceSig, _ := state.Sign(alice.PrivateKey)
-		updated.AddStateWithSignature(state, aliceSig)
+		withSigs.AddStateWithSignature(state, aliceSig)
 	}
 	if myRole != p1.Role {
 		p1Sig, _ := state.Sign(p1.PrivateKey)
-		updated.AddStateWithSignature(state, p1Sig)
+		withSigs.AddStateWithSignature(state, p1Sig)
 	}
 	if myRole != bob.Role {
 		bobSig, _ := state.Sign(bob.PrivateKey)
-		updated.AddStateWithSignature(state, bobSig)
+		withSigs.AddStateWithSignature(state, bobSig)
 	}
-	return updated
+	return withSigs
 }
 
 // TestCrankAsAlice tests the behaviour from a end-user's point of view when they are a leader in the ledger channel
