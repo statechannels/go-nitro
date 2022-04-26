@@ -649,7 +649,10 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 		if err != nil {
 			return protocols.SideEffects{}, err
 		}
-		if proposed {
+		// If the proposal is next in the queue we accept it
+		proposedNext, _ := ledger.IsProposedNext(g)
+		if proposedNext {
+
 			se, err := o.acceptLedgerUpdate(ledgerConnection, sk)
 			if err != nil {
 				return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
