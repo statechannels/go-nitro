@@ -41,13 +41,6 @@ type AdjudicationStatus struct {
 	// TODO eventually this struct will contain the other fields stored in (or committed to by) the adjudicator
 }
 
-// ObjectiveEvent holds information used to update an Objective. Some fields may be nil.
-type ObjectiveEvent struct {
-	ObjectiveId     ObjectiveId
-	SignedStates    []state.SignedState
-	SignedProposals []consensus_channel.SignedProposal
-}
-
 // Storable is an object that can be stored by the store.
 type Storable interface {
 	json.Marshaler
