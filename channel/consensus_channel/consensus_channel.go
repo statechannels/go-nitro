@@ -93,13 +93,10 @@ func (c *ConsensusChannel) FixedPart() state.FixedPart {
 // validates its signature, and performs updates the proposal queue and
 // consensus state
 func (c *ConsensusChannel) Receive(sp SignedProposal) error {
-
 	if c.IsFollower() {
-
 		return c.followerReceive(sp)
 	}
 	if c.IsLeader() {
-
 		return c.leaderReceive(sp)
 	}
 
