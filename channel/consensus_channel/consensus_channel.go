@@ -193,6 +193,7 @@ func (c *ConsensusChannel) LatestProposedVars() Vars {
 	return vars
 }
 
+// ProposalQueue returns the current queue of proposals
 func (c *ConsensusChannel) ProposalQueue() []SignedProposal {
 	return c.proposalQueue
 }
@@ -270,6 +271,8 @@ func (g *Guarantee) Clone() Guarantee {
 		right:  g.right,
 	}
 }
+
+// Target returns the target of the guarantee
 func (g Guarantee) Target() types.Destination {
 	return g.target
 }
