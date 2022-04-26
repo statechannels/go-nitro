@@ -120,9 +120,6 @@ func newTestObjective(signByBob bool) (Objective, error) {
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
-	if _, err := newTestObjective(false); err == nil {
-		t.Error("expected an error constructing the defund objective from a state without signatures from all participant, but got nil")
-	}
 
 	if _, err := newTestObjective(true); err != nil {
 		t.Error(err)
