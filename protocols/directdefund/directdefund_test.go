@@ -89,31 +89,18 @@ func newChannelFromSignedState(ss state.SignedState, myIndex uint) (*channel.Cha
 }
 
 func newTestObjective(signByBob bool) (Objective, error) {
-	o := Objective{}
-
-	toSign := []bool{true, true}
-	if !signByBob {
-		toSign = []bool{true, false}
-	}
-	ss, err := signedTestState(testState, toSign)
-	if err != nil {
-		return o, err
-	}
-
-	testChannel, err := newChannelFromSignedState(ss, 0)
-	if err != nil {
-		return o, err
-	}
+	// TODO remove signByBob
+	cc, _ := testdata.Channels.MockConsensusChannel(alice.Address)
 
 	getConsensusChannel := func(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
-		cc, _ := testdata.Channels.MockConsensusChannel(alice.Address)
+
 		return cc, nil
 	}
 
 	// Assert that valid constructor args do not result in error
-	o, err = NewObjective(true, testChannel.Id, getConsensusChannel)
+	o, err := NewObjective(true, cc.Id, getConsensusChannel)
 	if err != nil {
-		return o, err
+		return Objective{}, err
 	}
 	return o, nil
 }
@@ -183,7 +170,7 @@ func TestCrankAlice(t *testing.T) {
 
 	// Create the state we expect Alice to send
 	finalState := testState.Clone()
-	finalState.TurnNum = 3
+	finalState.TurnNum = 3 // test state has turn number 2 and is not final, hence we expect 2 + 1 = 3
 	finalState.IsFinal = true
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
 
