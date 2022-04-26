@@ -307,10 +307,10 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	var toMyRightId types.Destination
 
 	if !o.isAlice() {
-		toMyLeftId = o.ToMyLeft.Channel.Id // Avoid this if it is nil // todo: #420 deprecate
+		toMyLeftId = o.ToMyLeft.Channel.Id // Avoid this if it is nil
 	}
 	if !o.isBob() {
-		toMyRightId = o.ToMyRight.Channel.Id // Avoid this if it is nil // todo: #420 deprecate
+		toMyRightId = o.ToMyRight.Channel.Id // Avoid this if it is nil
 	}
 
 	for _, sp := range event.SignedProposals {
@@ -571,7 +571,7 @@ func (c *Connection) expectedProposal() consensus_channel.Proposal {
 
 // proposeLedgerUpdate will propose a ledger update to the channel by crafting a new state
 func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (protocols.SideEffects, error) {
-	ledger := connection.Channel // todo: #420 deprecate - replace with LeaderChannel.Propose workflow
+	ledger := connection.Channel
 
 	if !ledger.IsLeader() {
 		return protocols.SideEffects{}, errors.New("only the proposer can propose a ledger update")
@@ -623,7 +623,7 @@ func (o *Objective) createSignedProposalMessage(sp consensus_channel.SignedPropo
 // If the user is the follower then they will sign a ledger state proposal if it satisfies their expected guarantees.
 func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[]byte) (protocols.SideEffects, error) {
 
-	ledger := ledgerConnection.Channel // todo: #420 deprecate
+	ledger := ledgerConnection.Channel
 
 	var sideEffects protocols.SideEffects
 	g := ledgerConnection.getExpectedGuarantee()
