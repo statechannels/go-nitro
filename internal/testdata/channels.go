@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
@@ -20,19 +19,6 @@ type channelCollection struct {
 
 var Channels channelCollection = channelCollection{
 	MockConsensusChannel: mockConsensusChannel,
-}
-
-func mockTwoPartyLedger(firstParty, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool) {
-	ledger, err := channel.NewTwoPartyLedger(createLedgerState(
-		firstParty,
-		secondParty,
-		100,
-		100,
-	), 0) // todo: make myIndex configurable
-	if err != nil {
-		panic(fmt.Errorf("error mocking a twoPartyLedger: %w", err))
-	}
-	return ledger, true
 }
 
 func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool) {
