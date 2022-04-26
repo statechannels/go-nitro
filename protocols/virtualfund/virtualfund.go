@@ -78,7 +78,11 @@ func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
 	}
 
 	if c.Channel != nil {
-		return c.Channel.Receive(sp)
+		err := c.Channel.Receive(sp)
+		// Ignore stale or future proposals
+		if errors.Is(err, consensus_channel.ErrInvalidTurnNum) {
+			return nil
+		}
 	}
 
 	return nil
