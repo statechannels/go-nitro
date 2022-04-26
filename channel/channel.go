@@ -32,9 +32,6 @@ type Channel struct {
 // New constructs a new Channel from the supplied state.
 func New(s state.State, myIndex uint) (*Channel, error) {
 	c := Channel{}
-	if s.TurnNum != PreFundTurnNum {
-		return &c, errors.New(`channel must be constructed with TurnNum=0 state`)
-	}
 
 	var err error
 	c.Id, err = s.ChannelId()
