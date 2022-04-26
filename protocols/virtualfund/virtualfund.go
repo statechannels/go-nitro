@@ -128,7 +128,7 @@ type Objective struct {
 }
 
 // NewObjective creates a new virtual funding objective from a given request.
-func NewObjective(request ObjectiveRequest, getTwoPartyLedger GetTwoPartyLedgerFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
+func NewObjective(request ObjectiveRequest, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 	rightCC, ok := getTwoPartyConsensusLedger(request.Intermediary)
 
 	if !ok {
@@ -490,10 +490,8 @@ func (o *Objective) isBob() bool {
 	return o.MyRole == o.n+1
 }
 
-// GetTwoPartyLedgerFunction specifies a function that can be used to retreive ledgers from a store.
-type GetTwoPartyLedgerFunction func(firstParty types.Address, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool)
-
-// todo: #420 assume name and godoc from GetTwoPartyLedgerFunction
+// GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
+// the calling client and the given counterparty, if such a channel exists.
 type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
 // ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
@@ -501,7 +499,6 @@ type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger
 func ConstructObjectiveFromMessage(
 	m protocols.Message,
 	myAddress types.Address,
-	getTwoPartyLedger GetTwoPartyLedgerFunction,
 	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
 ) (Objective, error) {
 	if len(m.SignedStates) != 1 {

@@ -206,35 +206,6 @@ func (ms *MockStore) getChannelById(id types.Destination) (channel.Channel, erro
 	return ch, nil
 }
 
-// GetTwoPartyLedger returns a ledger channel between the two parties if it exists.
-func (ms *MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (*channel.TwoPartyLedger, bool) {
-	var ledger *channel.TwoPartyLedger
-	var ok bool
-
-	ms.channels.Range(func(key string, chJSON []byte) bool {
-
-		var ch channel.Channel
-		err := json.Unmarshal(chJSON, &ch)
-
-		if err != nil {
-			return true // channel not found, continue looking
-		}
-
-		if len(ch.Participants) == 2 {
-			// TODO: Should order matter?
-			if ch.Participants[0] == firstParty && ch.Participants[1] == secondParty {
-				ledger = &channel.TwoPartyLedger{Channel: ch}
-				ok = true
-				return false // we have found the target channel: break the Range loop
-			}
-		}
-
-		return true // channel not found: continue looking
-	})
-
-	return ledger, ok
-}
-
 // GetConsensusChannelById returns a ConsensusChannel with the given channel id
 func (ms *MockStore) GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
 
