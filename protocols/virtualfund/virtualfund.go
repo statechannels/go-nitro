@@ -490,7 +490,8 @@ func (o *Objective) isBob() bool {
 	return o.MyRole == o.n+1
 }
 
-// todo: #420 assume name and godoc from GetTwoPartyLedgerFunction
+// GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
+// the calling client and the given counterparty, if such a channel exists.
 type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
 // ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
