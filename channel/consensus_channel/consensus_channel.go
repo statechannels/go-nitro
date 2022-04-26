@@ -537,8 +537,8 @@ func (p *Proposal) TurnNum() uint64 {
 	}
 }
 
-// equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
-func (p *Proposal) equal(q *Proposal) bool {
+// Equal returns true if the supplied Proposal is deeply Equal to the receiver, false otherwise.
+func (p *Proposal) Equal(q *Proposal) bool {
 	return p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
 }
 

@@ -213,3 +213,51 @@ func SummarizeMessage(m Message) MessageSummary {
 
 	return MessageSummary{To: m.To.String(), Proposals: proposals, States: states}
 }
+
+// CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
+// It contains the provided signed proposals and any proposals in the proposal queue.
+func CreateSignedProposalMessage(ledger *consensus_channel.ConsensusChannel, sp ...consensus_channel.SignedProposal) Message {
+	recipient := ledger.Leader()
+	if ledger.IsLeader() {
+		recipient = ledger.Follower()
+	}
+	// Append the proposals to any existing proposals in the queue
+	proposals := append(ledger.ProposalQueue(), sp...)
+	payloads := make([]MessagePayload, len(proposals))
+	for i, sp := range proposals {
+		id := getProposalObjectiveId(sp.Proposal)
+		payloads[i] = MessagePayload{
+			ObjectiveId:    id,
+			SignedProposal: sp,
+		}
+	}
+
+	return Message{
+		To:       recipient,
+		Payloads: payloads,
+	}
+}
+
+// getProposalObjectiveId returns the objectiveId for a proposal.
+func getProposalObjectiveId(p consensus_channel.Proposal) ObjectiveId {
+	switch p.Type() {
+	case "AddProposal":
+		{
+			const prefix = "VirtualFund-"
+			channelId := p.ToAdd.Guarantee.Target().String()
+			return ObjectiveId(prefix + channelId)
+
+		}
+	case "RemoveProposal":
+		{
+			const prefix = "VirtualDefund-"
+			channelId := p.ToRemove.Target.String()
+			return ObjectiveId(prefix + channelId)
+
+		}
+	default:
+		{
+			panic("invalid proposal type")
+		}
+	}
+}

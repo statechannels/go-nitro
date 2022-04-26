@@ -584,7 +584,7 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 		return protocols.SideEffects{}, err
 	}
 
-	message := o.createSignedProposalMessage(ledger.ProposalQueue(), connection.Channel)
+	message := protocols.CreateSignedProposalMessage(connection.Channel)
 	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	return sideEffects, nil
@@ -600,30 +600,9 @@ func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.Side
 	}
 
 	sideEffects := protocols.SideEffects{}
-	message := o.createSignedProposalMessage(append(ledger.ProposalQueue(), sp), c.Channel)
+	message := protocols.CreateSignedProposalMessage(c.Channel, sp)
 	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 	return sideEffects, nil
-}
-
-// createSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
-func (o *Objective) createSignedProposalMessage(proposals []consensus_channel.SignedProposal, ledger *consensus_channel.ConsensusChannel) protocols.Message {
-	recipient := ledger.Leader()
-	if ledger.IsLeader() {
-		recipient = ledger.Follower()
-	}
-	payloads := make([]protocols.MessagePayload, len(proposals))
-	for i, sp := range proposals {
-		id := getProposalObjectiveId(sp.Proposal)
-		payloads[i] = protocols.MessagePayload{
-			ObjectiveId:    id,
-			SignedProposal: sp,
-		}
-	}
-
-	return protocols.Message{
-		To:       recipient,
-		Payloads: payloads,
-	}
 }
 
 // updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
@@ -690,29 +669,4 @@ func (r ObjectiveRequest) Id() protocols.ObjectiveId {
 
 	channelId, _ := fixedPart.ChannelId()
 	return protocols.ObjectiveId(ObjectivePrefix + channelId.String())
-}
-
-// getProposalObjectiveId returns the objectiveId for a proposal.
-func getProposalObjectiveId(p consensus_channel.Proposal) protocols.ObjectiveId {
-	switch p.Type() {
-	case "AddProposal":
-		{
-			const prefix = "VirtualFund-"
-			channelId := p.ToAdd.Guarantee.Target().String()
-			return protocols.ObjectiveId(prefix + channelId)
-
-		}
-	case "RemoveProposal":
-		{
-
-			const prefix = "VirtualFund-"
-			channelId := p.ToRemove.Target.String()
-			return protocols.ObjectiveId(prefix + channelId)
-
-		}
-	default:
-		{
-			panic("invalid proposal type")
-		}
-	}
 }
