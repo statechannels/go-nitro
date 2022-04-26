@@ -2,9 +2,7 @@
 package virtualfund
 
 import (
-	"bytes"
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -152,56 +150,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			return left, right
 		}
 
-		testNew := func(t *testing.T) {
-			ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareConsensusChannels(my.Role)
-
-			// Assert that a valid set of constructor args does not result in an error
-			o, err := constructFromState(false, vPreFund, my.Address, ledgerChannelToMyLeft, ledgerChannelToMyRight)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			var expectedGuaranteeMetadataLeft outcome.GuaranteeMetadata
-			var expectedGuaranteeMetadataRight outcome.GuaranteeMetadata
-			switch my.Role {
-			case alice.Role:
-				{
-					expectedGuaranteeMetadataRight = outcome.GuaranteeMetadata{Left: alice.Destination(), Right: p1.Destination()}
-				}
-			case p1.Role:
-				{
-					expectedGuaranteeMetadataLeft = outcome.GuaranteeMetadata{Left: alice.Destination(), Right: p1.Destination()}
-					expectedGuaranteeMetadataRight = outcome.GuaranteeMetadata{Left: p1.Destination(), Right: bob.Destination()}
-				}
-			case bob.Role:
-				{
-					expectedGuaranteeMetadataLeft = outcome.GuaranteeMetadata{Left: p1.Destination(), Right: bob.Destination()}
-				}
-			}
-			amount := big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated())
-			if (expectedGuaranteeMetadataLeft != outcome.GuaranteeMetadata{}) {
-				gotLeft := o.ToMyLeft.getExpectedGuarantee()
-
-				left := expectedGuaranteeMetadataLeft.Left
-				right := expectedGuaranteeMetadataLeft.Left
-
-				wantLeft := consensus_channel.NewGuarantee(amount, o.V.Id, left, right)
-				if diff := compareGuarantees(wantLeft, gotLeft); diff != "" {
-					t.Fatalf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
-				}
-			}
-			if (expectedGuaranteeMetadataRight != outcome.GuaranteeMetadata{}) {
-				gotRight := o.ToMyRight.getExpectedGuarantee()
-				left := expectedGuaranteeMetadataRight.Left
-				right := expectedGuaranteeMetadataRight.Left
-
-				wantRight := consensus_channel.NewGuarantee(amount, o.V.Id, left, right)
-				if diff := compareGuarantees(wantRight, gotRight); diff != "" {
-					t.Fatalf("TestNew: expectedGuarantee mismatch (-want +got):\n%s", diff)
-				}
-			}
-		}
-
 		testclone := func(t *testing.T) {
 			// ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.Role)
 
@@ -347,9 +295,8 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			// }
 
 		}
-		t.Run(`New`, testNew)
+
 		t.Run(`clone`, testclone)
-		t.Run(`Crank`, testCrank)
 		t.Run(`Update`, testUpdate)
 
 	}
