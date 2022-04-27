@@ -67,8 +67,7 @@ func signedTestState(s state.State, toSign []bool) (state.SignedState, error) {
 }
 
 // newTestObjective returns a directdefund Objective constructed with a MockConsensusChannel.
-func newTestObjective(signByBob bool) (Objective, error) {
-	// TODO remove signByBob
+func newTestObjective() (Objective, error) {
 	cc, _ := testdata.Channels.MockConsensusChannel(alice.Address)
 
 	getConsensusChannel := func(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
@@ -86,13 +85,13 @@ func newTestObjective(signByBob bool) (Objective, error) {
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
 
-	if _, err := newTestObjective(true); err != nil {
+	if _, err := newTestObjective(); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestUpdate(t *testing.T) {
-	o, _ := newTestObjective(true)
+	o, _ := newTestObjective()
 
 	// Prepare an event with a mismatched channelId
 	e := protocols.ObjectiveEvent{
@@ -133,7 +132,7 @@ func TestCrankAlice(t *testing.T) {
 	// The starting channel state is:
 	//  - Channel has a non-final consensus state
 	//  - Channel has funds
-	o, _ := newTestObjective(true)
+	o, _ := newTestObjective()
 
 	// The first crank. Alice is expected to create and sign a final state
 	updated, se, wf, err := o.Crank(&alice.PrivateKey)
@@ -216,7 +215,7 @@ func TestCrankBob(t *testing.T) {
 	//  - Channel has a non-final non-consensus state
 	//  - Channel has funds
 
-	o, _ := newTestObjective(true)
+	o, _ := newTestObjective()
 	o.C.MyIndex = 1
 
 	// Update the objective with Alice's final state
@@ -296,7 +295,7 @@ func TestCrankBob(t *testing.T) {
 }
 
 func TestMarshalJSON(t *testing.T) {
-	ddfo, _ := newTestObjective(true)
+	ddfo, _ := newTestObjective()
 
 	encodedDdfo, err := json.Marshal(ddfo)
 
