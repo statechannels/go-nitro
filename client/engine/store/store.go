@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -27,11 +27,11 @@ type Store interface {
 
 	ReleaseChannelFromOwnership(types.Destination) // Release channel from being owned by any objective
 
-	ConsensusChannelStore
+	LedgerChannelStore
 }
 
-type ConsensusChannelStore interface {
-	GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool)
-	GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error)
-	SetConsensusChannel(*consensus_channel.ConsensusChannel) error
+type LedgerChannelStore interface {
+	GetLedgerChannel(counterparty types.Address) (channel *ledger.LedgerChannel, ok bool)
+	GetLedgerChannelById(id types.Destination) (channel *ledger.LedgerChannel, err error)
+	SetLedgerChannel(*ledger.LedgerChannel) error
 }

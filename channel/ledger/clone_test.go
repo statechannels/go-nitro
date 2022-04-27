@@ -1,4 +1,4 @@
-package consensus_channel
+package ledger
 
 import (
 	"math/big"
@@ -22,7 +22,7 @@ func TestClone(t *testing.T) {
 	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
-	cc, err := newConsensusChannel(fp(), Leader, 0, outcome, sigs)
+	cc, err := newLedgerChannel(fp(), Leader, 0, outcome, sigs)
 
 	if err != nil {
 		t.Fatal(err)
@@ -30,10 +30,10 @@ func TestClone(t *testing.T) {
 
 	clone := cc.Clone()
 
-	compareConsensusChannels := func(a, b ConsensusChannel) string {
+	compareLedgerChannels := func(a, b LedgerChannel) string {
 		return cmp.Diff(&a, &b,
 			cmp.AllowUnexported(
-				ConsensusChannel{},
+				LedgerChannel{},
 				Vars{},
 				LedgerOutcome{},
 				Guarantee{},
@@ -42,7 +42,7 @@ func TestClone(t *testing.T) {
 				state.SignedState{}))
 	}
 
-	if diff := compareConsensusChannels(cc, *clone); diff != "" {
+	if diff := compareLedgerChannels(cc, *clone); diff != "" {
 		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 	}
 

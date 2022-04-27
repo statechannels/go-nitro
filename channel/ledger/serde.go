@@ -1,4 +1,4 @@
-package consensus_channel
+package ledger
 
 import (
 	"encoding/json"
@@ -174,9 +174,9 @@ func (l *LedgerOutcome) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// jsonConsensusChannel replaces ConsensusChannel's private fields with public ones,
+// jsonLedgerChannel replaces LedgerChannel's private fields with public ones,
 // making it suitable for serialization
-type jsonConsensusChannel struct {
+type jsonLedgerChannel struct {
 	Id             types.Destination
 	OnChainFunding types.Funds
 	MyIndex        ledgerIndex
@@ -185,9 +185,9 @@ type jsonConsensusChannel struct {
 	ProposalQueue  []SignedProposal
 }
 
-// MarshalJSON returns a JSON representation of the ConsensusChannel
-func (c ConsensusChannel) MarshalJSON() ([]byte, error) {
-	jsonCh := jsonConsensusChannel{
+// MarshalJSON returns a JSON representation of the LedgerChannel
+func (c LedgerChannel) MarshalJSON() ([]byte, error) {
+	jsonCh := jsonLedgerChannel{
 		MyIndex:        c.MyIndex,
 		FP:             c.fp,
 		Id:             c.Id,
@@ -200,8 +200,8 @@ func (c ConsensusChannel) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON populates the receiver with the
 // json-encoded data
-func (c *ConsensusChannel) UnmarshalJSON(data []byte) error {
-	var jsonCh jsonConsensusChannel
+func (c *LedgerChannel) UnmarshalJSON(data []byte) error {
+	var jsonCh jsonLedgerChannel
 	err := json.Unmarshal(data, &jsonCh)
 	if err != nil {
 		return fmt.Errorf("error unmarshaling channel data: %w", err)

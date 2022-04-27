@@ -1,4 +1,4 @@
-package consensus_channel
+package ledger
 
 import (
 	"errors"

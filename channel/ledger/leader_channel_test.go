@@ -1,4 +1,4 @@
-package consensus_channel
+package ledger
 
 import (
 	"errors"
@@ -63,7 +63,7 @@ func TestLeaderChannel(t *testing.T) {
 	}
 
 	cId, _ := fp().ChannelId()
-	testChannel := func(lo LedgerOutcome, testProposalQueue []SignedProposalVars) ConsensusChannel {
+	testChannel := func(lo LedgerOutcome, testProposalQueue []SignedProposalVars) LedgerChannel {
 		vars := Vars{TurnNum: 0, Outcome: lo}
 		aliceSig, _ := vars.AsState(fp()).Sign(alice.PrivateKey)
 		bobsSig, _ := vars.AsState(fp()).Sign(bob.PrivateKey)
@@ -77,7 +77,7 @@ func TestLeaderChannel(t *testing.T) {
 			proposalQueue = append(proposalQueue, p.SignedProposal)
 		}
 
-		return ConsensusChannel{
+		return LedgerChannel{
 			fp:            fp(),
 			Id:            cId,
 			MyIndex:       Leader,
@@ -112,7 +112,7 @@ func TestLeaderChannel(t *testing.T) {
 	// ******* //
 
 	testPropose := func(
-		channel ConsensusChannel,
+		channel LedgerChannel,
 		proposal Proposal,
 		expectedSp SignedProposal,
 		expectedErr error,

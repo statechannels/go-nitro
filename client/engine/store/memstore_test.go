@@ -7,8 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
-	cc "github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
+	cc "github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	nc "github.com/statechannels/go-nitro/crypto"
@@ -27,10 +27,10 @@ func compareObjectives(a, b protocols.Objective) string {
 		channel.Channel{},
 		big.Int{},
 		state.SignedState{},
-		consensus_channel.ConsensusChannel{},
-		consensus_channel.Vars{},
-		consensus_channel.LedgerOutcome{},
-		consensus_channel.Balance{},
+		ledger.LedgerChannel{},
+		ledger.Vars{},
+		ledger.LedgerOutcome{},
+		ledger.Balance{},
 	))
 }
 
@@ -132,14 +132,14 @@ func TestGetChannelSecretKey(t *testing.T) {
 	}
 }
 
-func TestConsensusChannelStore(t *testing.T) {
+func TestLedgerChannelStore(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
 	ms := store.NewMemStore(sk)
 
-	got, ok := ms.GetConsensusChannel(ta.Alice.Address)
+	got, ok := ms.GetLedgerChannel(ta.Alice.Address)
 	if ok {
-		t.Fatalf("expected not to find the a consensus channel, but found %v", got)
+		t.Fatalf("expected not to find the a ledger channel, but found %v", got)
 	}
 
 	fp := td.Objectives.Directfund.GenericDFO().C.FixedPart // TODO replace with testdata not nested under GenericDFO
@@ -152,12 +152,12 @@ func TestConsensusChannelStore(t *testing.T) {
 	existingGuarantee := cc.NewGuarantee(big.NewInt(1), types.Destination{1}, left.AsAllocation().Destination, right.AsAllocation().Destination)
 	outcome := cc.NewLedgerOutcome(asset, left, right, []cc.Guarantee{existingGuarantee})
 
-	initialVars := consensus_channel.Vars{Outcome: *outcome, TurnNum: 0}
+	initialVars := ledger.Vars{Outcome: *outcome, TurnNum: 0}
 
 	aliceSig, _ := initialVars.AsState(fp).Sign(ta.Alice.PrivateKey)
 	bobsSig, _ := initialVars.AsState(fp).Sign(ta.Bob.PrivateKey)
 
-	leader, err := consensus_channel.NewLeaderChannel(
+	leader, err := ledger.NewLeaderChannel(
 		fp,
 		0,
 		*outcome,
@@ -175,24 +175,24 @@ func TestConsensusChannelStore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The store only deals with ConsensusChannels
+	// The store only deals with LedgerChannels
 	want := leader
 
-	if err := ms.SetConsensusChannel(&want); err != nil {
-		t.Fatalf("error setting consensus channel %v: %s", want, err.Error())
+	if err := ms.SetLedgerChannel(&want); err != nil {
+		t.Fatalf("error setting ledger channel %v: %s", want, err.Error())
 	}
 
-	got, ok = ms.GetConsensusChannel(fp.Participants[1])
+	got, ok = ms.GetLedgerChannel(fp.Participants[1])
 
 	if !ok {
-		t.Fatalf("expected to find the inserted consensus channel, but didn't")
+		t.Fatalf("expected to find the inserted ledger channel, but didn't")
 	}
 
 	if got.Id != want.Id {
 		t.Fatalf("expected to retrieve same channel Id as was passed in, but didn't")
 	}
 
-	if diff := cmp.Diff(*got, want, cmp.AllowUnexported(cc.ConsensusChannel{}, big.Int{}, cc.LedgerOutcome{}, cc.Balance{}, cc.Guarantee{}, cc.Add{}, cc.Proposal{}, cc.Remove{})); diff != "" {
+	if diff := cmp.Diff(*got, want, cmp.AllowUnexported(cc.LedgerChannel{}, big.Int{}, cc.LedgerOutcome{}, cc.Balance{}, cc.Guarantee{}, cc.Add{}, cc.Proposal{}, cc.Remove{})); diff != "" {
 		t.Fatalf("fetched result different than expected %s", diff)
 	}
 }

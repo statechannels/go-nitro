@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 
@@ -38,7 +38,7 @@ type GuaranteeInfo struct {
 	GuaranteeDestination types.Destination
 }
 type Connection struct {
-	Channel       *consensus_channel.ConsensusChannel
+	Channel       *ledger.LedgerChannel
 	GuaranteeInfo GuaranteeInfo
 }
 
@@ -67,20 +67,20 @@ func (c *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds, vId typ
 }
 
 // handleProposal recieves a signed proposal and acts according to the leader / follower
-// status of the Connection's ConsensusChannel
-func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
+// status of the Connection's LedgerChannel
+func (c *Connection) handleProposal(sp ledger.SignedProposal) error {
 	if c == nil {
 		return fmt.Errorf("nil connection should not handle proposals")
 	}
 
 	if sp.Proposal.ChannelID != c.Channel.Id {
-		return consensus_channel.ErrIncorrectChannelID
+		return ledger.ErrIncorrectChannelID
 	}
 
 	if c.Channel != nil {
 		err := c.Channel.Receive(sp)
 		// Ignore stale or future proposals
-		if errors.Is(err, consensus_channel.ErrInvalidTurnNum) {
+		if errors.Is(err, ledger.ErrInvalidTurnNum) {
 			return nil
 		}
 	}
@@ -95,7 +95,7 @@ func (c *Connection) Funded() bool {
 }
 
 // getExpectedGuarantee returns a map of asset addresses to guarantees for a Connection.
-func (c *Connection) getExpectedGuarantee() consensus_channel.Guarantee {
+func (c *Connection) getExpectedGuarantee() ledger.Guarantee {
 	amountFunds := c.GuaranteeInfo.LeftAmount.Add(c.GuaranteeInfo.RightAmount)
 
 	//HACK: GuaranteeInfo stores amounts as types.Funds.
@@ -112,7 +112,7 @@ func (c *Connection) getExpectedGuarantee() consensus_channel.Guarantee {
 	left := c.GuaranteeInfo.Left
 	right := c.GuaranteeInfo.Right
 
-	return consensus_channel.NewGuarantee(amount, target, left, right)
+	return ledger.NewGuarantee(amount, target, left, right)
 }
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
@@ -138,7 +138,7 @@ func NewObjective(request ObjectiveRequest, getTwoPartyConsensusLedger GetTwoPar
 	if !ok {
 		return Objective{}, fmt.Errorf("could not find ledger for %s and %s", request.MyAddress, request.Intermediary)
 	}
-	var leftCC *consensus_channel.ConsensusChannel
+	var leftCC *ledger.LedgerChannel
 
 	objective, err := constructFromState(true,
 		state.State{
@@ -165,8 +165,8 @@ func constructFromState(
 	preApprove bool,
 	initialStateOfV state.State,
 	myAddress types.Address,
-	consensusChannelToMyLeft *consensus_channel.ConsensusChannel,
-	consensusChannelToMyRight *consensus_channel.ConsensusChannel,
+	ledgerChannelToMyLeft *ledger.LedgerChannel,
+	ledgerChannelToMyRight *ledger.LedgerChannel,
 ) (Objective, error) {
 
 	var init Objective
@@ -228,11 +228,11 @@ func constructFromState(
 	if !init.isAlice() { // everyone other than Alice has a left-channel
 		init.ToMyLeft = &Connection{}
 
-		if consensusChannelToMyLeft == nil {
+		if ledgerChannelToMyLeft == nil {
 			return Objective{}, fmt.Errorf("non-alice virtualfund objective requires non-nil left ledger channel")
 		}
 
-		init.ToMyLeft.Channel = consensusChannelToMyLeft
+		init.ToMyLeft.Channel = ledgerChannelToMyLeft
 		err = init.ToMyLeft.insertGuaranteeInfo(
 			init.a0,
 			init.b0,
@@ -248,11 +248,11 @@ func constructFromState(
 	if !init.isBob() { // everyone other than Bob has a right-channel
 		init.ToMyRight = &Connection{}
 
-		if consensusChannelToMyRight == nil {
+		if ledgerChannelToMyRight == nil {
 			return Objective{}, fmt.Errorf("non-bob virtualfund objective requires non-nil right ledger channel")
 		}
 
-		init.ToMyRight.Channel = consensusChannelToMyRight
+		init.ToMyRight.Channel = ledgerChannelToMyRight
 		err = init.ToMyRight.insertGuaranteeInfo(
 			init.a0,
 			init.b0,
@@ -494,9 +494,9 @@ func (o *Objective) isBob() bool {
 	return o.MyRole == o.n+1
 }
 
-// GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
+// GetTwoPartyConsensusLedgerFuncion describes functions which return a LedgerChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
-type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
+type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *ledger.LedgerChannel, ok bool)
 
 // ConstructObjectiveFromState takes in a message and constructs an objective from it.
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
@@ -514,8 +514,8 @@ func ConstructObjectiveFromState(
 	intermediary := participants[1]
 	bob := participants[2]
 
-	var leftC *consensus_channel.ConsensusChannel
-	var rightC *consensus_channel.ConsensusChannel
+	var leftC *ledger.LedgerChannel
+	var rightC *ledger.LedgerChannel
 	var ok bool
 
 	if myAddress == alice {
@@ -555,7 +555,7 @@ func IsVirtualFundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
 
-func (c *Connection) expectedProposal() consensus_channel.Proposal {
+func (c *Connection) expectedProposal() ledger.Proposal {
 	g := c.getExpectedGuarantee()
 
 	var leftAmount *big.Int
@@ -564,7 +564,7 @@ func (c *Connection) expectedProposal() consensus_channel.Proposal {
 		break
 	}
 	proposalTurnNum := c.Channel.ConsensusTurnNum() + 1
-	proposal := consensus_channel.NewAddProposal(c.Channel.Id, proposalTurnNum, g, leftAmount)
+	proposal := ledger.NewAddProposal(c.Channel.Id, proposalTurnNum, g, leftAmount)
 
 	return proposal
 }

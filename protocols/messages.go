@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"sort"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -27,7 +27,7 @@ type Message struct {
 type MessagePayload struct {
 	ObjectiveId    ObjectiveId
 	SignedState    state.SignedState
-	SignedProposal consensus_channel.SignedProposal
+	SignedProposal ledger.SignedProposal
 }
 
 // hasState returns true if the payload contains a signed state.
@@ -37,7 +37,7 @@ func (p MessagePayload) hasState() bool {
 
 // hasProposal returns true if the payload contains a signed proposal.
 func (p MessagePayload) hasProposal() bool {
-	return p.SignedProposal.Proposal != consensus_channel.Proposal{}
+	return p.SignedProposal.Proposal != ledger.Proposal{}
 }
 
 // Type returns the type of the payload, either a SignedProposal or SignedState.
@@ -78,11 +78,11 @@ func (m Message) SignedStates() []ObjectivePayload[state.SignedState] {
 
 // SignedProposals returns a slice of signed proposals with their objectiveId that were contained in the message.
 // The proposals are sorted by ledger id then turnNum.
-func (m Message) SignedProposals() []ObjectivePayload[consensus_channel.SignedProposal] {
-	signedProposals := make([]ObjectivePayload[consensus_channel.SignedProposal], 0)
+func (m Message) SignedProposals() []ObjectivePayload[ledger.SignedProposal] {
+	signedProposals := make([]ObjectivePayload[ledger.SignedProposal], 0)
 	for _, p := range m.Payloads {
 		if p.Type() == SignedProposalPayload {
-			entry := ObjectivePayload[consensus_channel.SignedProposal]{p.SignedProposal, p.ObjectiveId}
+			entry := ObjectivePayload[ledger.SignedProposal]{p.SignedProposal, p.ObjectiveId}
 			signedProposals = append(signedProposals, entry)
 		}
 	}
@@ -138,7 +138,7 @@ func (se *SideEffects) Merge(other SideEffects) {
 // PayloadValue is a type constraint that specifies a payload is either a SignedProposal or SignedState.
 // It includes functions to get basic info to allow sorting.
 type PayloadValue interface {
-	state.SignedState | consensus_channel.SignedProposal
+	state.SignedState | ledger.SignedProposal
 	ChannelId() types.Destination
 	TurnNum() uint64
 }
@@ -213,7 +213,7 @@ func SummarizeMessage(m Message) MessageSummary {
 
 // CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
 // It contains the provided signed proposals and any proposals in the proposal queue.
-func CreateSignedProposalMessage(ledger *consensus_channel.ConsensusChannel, sp ...consensus_channel.SignedProposal) Message {
+func CreateSignedProposalMessage(ledger *ledger.LedgerChannel, sp ...ledger.SignedProposal) Message {
 	recipient := ledger.Leader()
 	if ledger.IsLeader() {
 		recipient = ledger.Follower()
@@ -236,7 +236,7 @@ func CreateSignedProposalMessage(ledger *consensus_channel.ConsensusChannel, sp 
 }
 
 // getProposalObjectiveId returns the objectiveId for a proposal.
-func getProposalObjectiveId(p consensus_channel.Proposal) ObjectiveId {
+func getProposalObjectiveId(p ledger.Proposal) ObjectiveId {
 	switch p.Type() {
 	case "AddProposal":
 		{

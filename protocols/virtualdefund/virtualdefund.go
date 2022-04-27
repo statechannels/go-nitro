@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
@@ -42,8 +42,8 @@ type Objective struct {
 	// Signatures gets updated as participants sign and send states to each other.
 	Signatures [3]state.Signature
 
-	ToMyLeft  *consensus_channel.ConsensusChannel
-	ToMyRight *consensus_channel.ConsensusChannel
+	ToMyLeft  *ledger.LedgerChannel
+	ToMyRight *ledger.LedgerChannel
 
 	// MyRole is the index of the participant in the participants list
 	// 0 is Alice
@@ -55,7 +55,7 @@ type Objective struct {
 const ObjectivePrefix = "VirtualDefund-"
 
 // newObjective constructs a new virtual defund objective
-func newObjective(preApprove bool, vFixed state.FixedPart, initialOutcome outcome.SingleAssetExit, paidToBob *big.Int, toMyLeft, toMyRight *consensus_channel.ConsensusChannel, myRole uint) Objective {
+func newObjective(preApprove bool, vFixed state.FixedPart, initialOutcome outcome.SingleAssetExit, paidToBob *big.Int, toMyLeft, toMyRight *ledger.LedgerChannel, myRole uint) Objective {
 	var status protocols.ObjectiveStatus
 
 	if preApprove {
@@ -169,7 +169,7 @@ func (o *Objective) clone() Objective {
 	}
 	clone.MyRole = o.MyRole
 
-	// TODO: Properly clone the consensus channels
+	// TODO: Properly clone the ledger channels
 	if o.ToMyLeft != nil {
 		clone.ToMyLeft = o.ToMyLeft
 	}
@@ -258,15 +258,15 @@ func (o Objective) isBob() bool {
 }
 
 // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
-func (o Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) consensus_channel.Proposal {
+func (o Objective) ledgerProposal(l *ledger.LedgerChannel) ledger.Proposal {
 	left := o.finalOutcome().Allocations[0].Amount
 	right := o.finalOutcome().Allocations[1].Amount
 
-	return consensus_channel.NewRemoveProposal(ledger.Id, FinalTurnNum, o.VId(), left, right)
+	return ledger.NewRemoveProposal(l.Id, FinalTurnNum, o.VId(), left, right)
 }
 
 // updateLedgerToRemoveGuarantee updates the ledger channel to remove the guarantee that funds V.
-func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.ConsensusChannel, sk *[]byte) (protocols.SideEffects, error) {
+func (o *Objective) updateLedgerToRemoveGuarantee(ledger *ledger.LedgerChannel, sk *[]byte) (protocols.SideEffects, error) {
 
 	var sideEffects protocols.SideEffects
 

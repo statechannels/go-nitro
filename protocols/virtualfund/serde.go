@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -38,7 +38,7 @@ func (c Connection) MarshalJSON() ([]byte, error) {
 // NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
 //       (other than Id) is discarded
 func (c *Connection) UnmarshalJSON(data []byte) error {
-	c.Channel = &consensus_channel.ConsensusChannel{}
+	c.Channel = &ledger.LedgerChannel{}
 
 	if string(data) == "null" {
 		// populate a well-formed but blank-addressed Connection

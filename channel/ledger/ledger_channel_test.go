@@ -1,4 +1,4 @@
-package consensus_channel
+package ledger
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-func TestConsensusChannel(t *testing.T) {
+func TestLedgerChannel(t *testing.T) {
 	existingChannel := types.Destination{1}
 
 	proposal := add(10, vAmount, targetChannel, alice, bob)
@@ -174,11 +174,11 @@ func TestConsensusChannel(t *testing.T) {
 	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
-	testConsensusChannelFunctionality := func(t *testing.T) {
-		channel, err := newConsensusChannel(fp(), Leader, 0, outcome(), sigs)
+	testLedgerChannelFunctionality := func(t *testing.T) {
+		channel, err := newLedgerChannel(fp(), Leader, 0, outcome(), sigs)
 
 		if err != nil {
-			t.Fatalf("unable to construct a new consensus channel: %v", err)
+			t.Fatalf("unable to construct a new ledger channel: %v", err)
 		}
 
 		_, err = channel.sign(initialVars, bob.PrivateKey)
@@ -200,7 +200,7 @@ func TestConsensusChannel(t *testing.T) {
 
 		briansSig, _ := initialVars.AsState(fp()).Sign(brian.PrivateKey)
 		wrongSigs := [2]state.Signature{sigs[1], briansSig}
-		_, err = newConsensusChannel(fp(), Leader, 0, outcome(), wrongSigs)
+		_, err = newLedgerChannel(fp(), Leader, 0, outcome(), wrongSigs)
 		if err == nil {
 			t.Fatalf("channel should check that signers are participants")
 		}
@@ -208,5 +208,5 @@ func TestConsensusChannel(t *testing.T) {
 
 	t.Run(`TestApplyingAddProposalToVars`, testApplyingAddProposalToVars)
 	t.Run(`TestApplyingRemoveProposalToVars`, testApplyingRemoveProposalToVars)
-	t.Run(`TestConsensusChannelFunctionality`, testConsensusChannelFunctionality)
+	t.Run(`TestLedgerChannelFunctionality`, testLedgerChannelFunctionality)
 }

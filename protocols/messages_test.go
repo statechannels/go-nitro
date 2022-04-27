@@ -5,14 +5,14 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
 
-func addProposal() consensus_channel.SignedProposal {
+func addProposal() ledger.SignedProposal {
 	amount := big.NewInt(1)
-	add := consensus_channel.NewAddProposal(types.Destination{'l'}, 1, consensus_channel.NewGuarantee(
+	add := ledger.NewAddProposal(types.Destination{'l'}, 1, ledger.NewGuarantee(
 		amount,
 		types.Destination{'a'},
 		types.Destination{'b'},
@@ -21,7 +21,7 @@ func addProposal() consensus_channel.SignedProposal {
 		amount,
 	)
 
-	return consensus_channel.SignedProposal{Proposal: add, Signature: state.Signature{}}
+	return ledger.SignedProposal{Proposal: add, Signature: state.Signature{}}
 }
 
 func TestMessage(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testactors"
@@ -17,23 +17,23 @@ import (
 
 // generateLedgers generates the left and right ledger channels based on myRole
 // The ledger channels will include a guarantee that funds V
-func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus_channel.ConsensusChannel) {
+func generateLedgers(myRole uint, vId types.Destination) (left, right *ledger.LedgerChannel) {
 	switch myRole {
 	case 0:
 		{
-			return nil, prepareConsensusChannel(uint(consensus_channel.Leader), testactors.Alice, testactors.Irene, generateGuarantee(testactors.Alice, testactors.Irene, vId))
+			return nil, prepareLedgerChannel(uint(ledger.Leader), testactors.Alice, testactors.Irene, generateGuarantee(testactors.Alice, testactors.Irene, vId))
 		}
 	case 1:
 		{
 
-			return prepareConsensusChannel(uint(consensus_channel.Follower), testactors.Alice, testactors.Irene, generateGuarantee(testactors.Alice, testactors.Irene, vId)),
-				prepareConsensusChannel(uint(consensus_channel.Leader), testactors.Irene, testactors.Bob, generateGuarantee(testactors.Irene, testactors.Bob, vId))
+			return prepareLedgerChannel(uint(ledger.Follower), testactors.Alice, testactors.Irene, generateGuarantee(testactors.Alice, testactors.Irene, vId)),
+				prepareLedgerChannel(uint(ledger.Leader), testactors.Irene, testactors.Bob, generateGuarantee(testactors.Irene, testactors.Bob, vId))
 
 		}
 	case 2:
 		{
 
-			return prepareConsensusChannel(uint(consensus_channel.Follower), testactors.Irene, testactors.Bob, generateGuarantee(testactors.Irene, testactors.Bob, vId)), nil
+			return prepareLedgerChannel(uint(ledger.Follower), testactors.Irene, testactors.Bob, generateGuarantee(testactors.Irene, testactors.Bob, vId)), nil
 
 		}
 	default:
@@ -42,16 +42,16 @@ func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus
 }
 
 // generateGuarantee generates a guarantee for the given participants and vId
-func generateGuarantee(left, right testactors.Actor, vId types.Destination) consensus_channel.Guarantee {
-	return consensus_channel.NewGuarantee(big.NewInt(10), vId, left.Destination(), right.Destination())
+func generateGuarantee(left, right testactors.Actor, vId types.Destination) ledger.Guarantee {
+	return ledger.NewGuarantee(big.NewInt(10), vId, left.Destination(), right.Destination())
 
 }
 
-// prepareConsensusChannel prepares a consensus channel with a consensus outcome
+// prepareLedgerChannel prepares a ledger channel with a consensus outcome
 //  - allocating 0 to left
 //  - allocating 0 to right
 //  - including the given guarantees
-func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
+func prepareLedgerChannel(role uint, left, right testactors.Actor, guarantees ...ledger.Guarantee) *ledger.LedgerChannel {
 	fp := state.FixedPart{
 		ChainId:           big.NewInt(9001),
 		Participants:      []types.Address{left.Address, right.Address},
@@ -60,12 +60,12 @@ func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees
 		ChallengeDuration: big.NewInt(45),
 	}
 
-	leftBal := consensus_channel.NewBalance(left.Destination(), big.NewInt(0))
-	rightBal := consensus_channel.NewBalance(right.Destination(), big.NewInt(0))
+	leftBal := ledger.NewBalance(left.Destination(), big.NewInt(0))
+	rightBal := ledger.NewBalance(right.Destination(), big.NewInt(0))
 
-	lo := *consensus_channel.NewLedgerOutcome(types.Address{}, leftBal, rightBal, guarantees)
+	lo := *ledger.NewLedgerOutcome(types.Address{}, leftBal, rightBal, guarantees)
 
-	signedVars := consensus_channel.SignedVars{Vars: consensus_channel.Vars{Outcome: lo, TurnNum: 1}}
+	signedVars := ledger.SignedVars{Vars: ledger.Vars{Outcome: lo, TurnNum: 1}}
 	leftSig, err := signedVars.Vars.AsState(fp).Sign(left.PrivateKey)
 	if err != nil {
 		panic(err)
@@ -76,12 +76,12 @@ func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees
 	}
 	sigs := [2]state.Signature{leftSig, rightSig}
 
-	var cc consensus_channel.ConsensusChannel
+	var cc ledger.LedgerChannel
 
 	if role == 0 {
-		cc, err = consensus_channel.NewLeaderChannel(fp, 1, lo, sigs)
+		cc, err = ledger.NewLeaderChannel(fp, 1, lo, sigs)
 	} else {
-		cc, err = consensus_channel.NewFollowerChannel(fp, 1, lo, sigs)
+		cc, err = ledger.NewFollowerChannel(fp, 1, lo, sigs)
 	}
 	if err != nil {
 		panic(err)
@@ -97,13 +97,13 @@ func checkForFollowerProposals(t *testing.T, se protocols.SideEffects, o *Object
 	case 1:
 		{
 			// Irene should accept a proposal from Alice
-			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyLeft.Id, td)}
+			rightProposal := ledger.SignedProposal{Proposal: generateRemoveProposal(o.ToMyLeft.Id, td)}
 			AssertProposalSent(t, se, rightProposal, alice)
 		}
 	case 2:
 		{
 			// Bob should accept a proposal from Irene
-			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyLeft.Id, td)}
+			rightProposal := ledger.SignedProposal{Proposal: generateRemoveProposal(o.ToMyLeft.Id, td)}
 			AssertProposalSent(t, se, rightProposal, irene)
 		}
 
@@ -111,7 +111,7 @@ func checkForFollowerProposals(t *testing.T, se protocols.SideEffects, o *Object
 }
 
 // generateProposalsResponses generates the signed proposals that a participant should expect from the other participants
-func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective, td testdata) []consensus_channel.SignedProposal {
+func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective, td testdata) []ledger.SignedProposal {
 	switch myRole {
 	case 0:
 		{
@@ -122,7 +122,7 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 				panic(err)
 			}
 
-			return []consensus_channel.SignedProposal{sp}
+			return []ledger.SignedProposal{sp}
 		}
 
 	case 1:
@@ -135,7 +135,7 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 			fromBob := generateRemoveProposal(o.ToMyRight.Id, td)
 			fromBobSigned, _ := signProposal(bob, fromBob, o.ToMyRight)
 
-			return []consensus_channel.SignedProposal{fromAliceSigned, fromBobSigned}
+			return []ledger.SignedProposal{fromAliceSigned, fromBobSigned}
 		}
 	case 2:
 		{
@@ -145,16 +145,16 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 			if err != nil {
 				panic(err)
 			}
-			return []consensus_channel.SignedProposal{sp}
+			return []ledger.SignedProposal{sp}
 
 		}
 	default:
-		return []consensus_channel.SignedProposal{}
+		return []ledger.SignedProposal{}
 	}
 }
 
-// updateProposals updates the consensus channels on the objective with the given proposals by calling Receive
-func updateProposals(o *Objective, proposals ...consensus_channel.SignedProposal) {
+// updateProposals updates the ledger channels on the objective with the given proposals by calling Receive
+func updateProposals(o *Objective, proposals ...ledger.SignedProposal) {
 	for _, p := range proposals {
 		var err error
 		if o.ToMyLeft != nil && o.ToMyLeft.Id == p.Proposal.ChannelID {
@@ -169,20 +169,20 @@ func updateProposals(o *Objective, proposals ...consensus_channel.SignedProposal
 	}
 }
 
-// checkForLeaderProposals checks that the outgoing message contains the correct proposals from the leader of a consensus channel
+// checkForLeaderProposals checks that the outgoing message contains the correct proposals from the leader of a ledger channel
 func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objective, td testdata) {
 
 	switch o.MyRole {
 	case 0:
 		{
 			// Alice Proposes to Irene on her right
-			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyRight.Id, td)}
+			rightProposal := ledger.SignedProposal{Proposal: generateRemoveProposal(o.ToMyRight.Id, td)}
 			AssertProposalSent(t, se, rightProposal, irene)
 		}
 	case 1:
 		{
 			// Irene proposes to Bob on her right
-			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyRight.Id, td)}
+			rightProposal := ledger.SignedProposal{Proposal: generateRemoveProposal(o.ToMyRight.Id, td)}
 			AssertProposalSent(t, se, rightProposal, bob)
 		}
 
@@ -190,22 +190,22 @@ func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objectiv
 }
 
 // signProposal signs a proposal with the given actor's private key
-func signProposal(me testactors.Actor, p consensus_channel.Proposal, c *consensus_channel.ConsensusChannel) (consensus_channel.SignedProposal, error) {
+func signProposal(me testactors.Actor, p ledger.Proposal, c *ledger.LedgerChannel) (ledger.SignedProposal, error) {
 
 	con := c.ConsensusVars()
 	vars := con.Clone()
 	err := vars.HandleProposal(p)
 	if err != nil {
-		return consensus_channel.SignedProposal{}, err
+		return ledger.SignedProposal{}, err
 	}
 
 	state := vars.AsState(c.FixedPart())
 	sig, err := state.Sign(me.PrivateKey)
 	if err != nil {
-		return consensus_channel.SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
+		return ledger.SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
 	}
 
-	return consensus_channel.SignedProposal{Signature: sig, Proposal: p}, nil
+	return ledger.SignedProposal{Signature: sig, Proposal: p}, nil
 }
 
 // makeOutcome creates an outcome allocating to alice and bob
@@ -236,9 +236,9 @@ type testdata struct {
 }
 
 // generateRemoveProposal generates a remove proposal for the given channelId and test data
-func generateRemoveProposal(cId types.Destination, td testdata) consensus_channel.Proposal {
+func generateRemoveProposal(cId types.Destination, td testdata) ledger.Proposal {
 	vId, _ := td.vFinal.ChannelId()
-	return consensus_channel.NewRemoveProposal(cId, FinalTurnNum, vId, big.NewInt(int64(td.finalAliceAmount)), big.NewInt(int64(td.finalBobAmount)))
+	return ledger.NewRemoveProposal(cId, FinalTurnNum, vId, big.NewInt(int64(td.finalAliceAmount)), big.NewInt(int64(td.finalBobAmount)))
 
 }
 

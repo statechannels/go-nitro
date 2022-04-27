@@ -17,7 +17,7 @@ The following roadmap gives an idea of the various packages that compose the `go
 ```bash
 ├── abi ✅                     # types for abi encoding and decoding.
 ├── channel ✅                 # query the latest supported state of a channel
-│   ├── consensus_channel 🚧   # manage a running ledger channel.
+│   ├── ledger 🚧              # manage a running ledger channel.
 │   └── state ✅               # generate and recover signatures on state updates
 │       ├── outcome ✅         # define how funds are dispersed when a channel closes
 ├── client 🚧                  # exposes an API to the consuming application

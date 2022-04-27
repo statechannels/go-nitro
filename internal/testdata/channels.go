@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -14,15 +14,15 @@ import (
 )
 
 type channelCollection struct {
-	// MockConsensusChannel constructs and returns a ledger channel
-	MockConsensusChannel virtualfund.GetTwoPartyConsensusLedgerFunction
+	// MockLedgerChannel constructs and returns a ledger channel
+	MockLedgerChannel virtualfund.GetTwoPartyConsensusLedgerFunction
 }
 
 var Channels channelCollection = channelCollection{
-	MockConsensusChannel: mockConsensusChannel,
+	MockLedgerChannel: mockLedgerChannel,
 }
 
-func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool) {
+func mockLedgerChannel(counterparty types.Address) (l *ledger.LedgerChannel, ok bool) {
 	ts := testState.Clone()
 	request := directfund.ObjectiveRequest{
 		MyAddress:         ts.Participants[0],
@@ -36,7 +36,7 @@ func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel
 	testObj, err := directfund.NewObjective(request, true)
 
 	if err != nil {
-		return &consensus_channel.ConsensusChannel{}, false
+		return &ledger.LedgerChannel{}, false
 	}
 
 	// Manually progress the extended state by collecting postfund signatures
@@ -45,7 +45,7 @@ func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel
 	testObj.C.AddStateWithSignature(testObj.C.PostFundState(), correctSignatureByAliceOnPostFund)
 	testObj.C.AddStateWithSignature(testObj.C.PostFundState(), correctSignatureByBobOnPostFund)
 
-	cc, err := testObj.CreateConsensusChannel()
+	cc, err := testObj.CreateLedgerChannel()
 	cc.OnChainFunding = types.Funds{
 		common.HexToAddress("0x00"): big.NewInt(2),
 	}
@@ -57,16 +57,16 @@ func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel
 	return cc, true
 }
 
-// LedgerNetwork is a collection of in-memory consensus_channel ledgers
+// LedgerNetwork is a collection of in-memory ledger ledgers
 // which expose both the leader and follower perspective on the ledger
 type LedgerNetwork struct {
 	ledgers []TestLedger
 }
 
-// TestLedger wraps the leader and follower views of a consensus_channel
+// TestLedger wraps the leader and follower views of a ledger
 type TestLedger struct {
-	LeaderView   consensus_channel.ConsensusChannel
-	FollowerView consensus_channel.ConsensusChannel
+	LeaderView   ledger.LedgerChannel
+	FollowerView ledger.LedgerChannel
 }
 
 // GetLedgerLookup returns a ledger-lookup function for the given ledger seeker.
@@ -84,7 +84,7 @@ func (l LedgerNetwork) GetLedgerLookup(seeker types.Address) virtualfund.GetTwoP
 		}
 	}
 
-	return func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool) {
+	return func(counterparty types.Address) (ledger *ledger.LedgerChannel, ok bool) {
 		for _, ledger := range myLedgers {
 			if ledger.FollowerView.Follower() == seeker &&
 				ledger.FollowerView.Leader() == counterparty {
@@ -100,7 +100,7 @@ func (l LedgerNetwork) GetLedgerLookup(seeker types.Address) virtualfund.GetTwoP
 	}
 }
 
-// createLedgerNetwork returns active, funded consensus_channels connecting the supplied
+// createLedgerNetwork returns active, funded ledgers connecting the supplied
 // actors according the the supplied edge list.
 //
 // Edges specify actors via their indices in the actors slice,
@@ -139,9 +139,9 @@ func createLedgerNetwork(actors []testactors.Actor, edges [][2]int) LedgerNetwor
 	return ret
 }
 
-// createLedgerPath returns active, funded consensus_channels connecting the supplied
+// createLedgerPath returns active, funded ledgers connecting the supplied
 // actors in left-to-right fashion from actors[0] to actors[len(actors)-1]. The
-// leftmost actor in each consensuschannel is the channel's leader.
+// leftmost actor in each ledger channel is the channel's leader.
 //
 // Constructed and returned channels can be accessed from either "perspective"
 // of leader or follower
@@ -165,20 +165,20 @@ func createTestLedger(leader, follower testactors.Actor) TestLedger {
 	fp.Participants[0] = leader.Address
 	fp.Participants[1] = follower.Address
 
-	outcome := consensus_channel.NewLedgerOutcome(
+	outcome := ledger.NewLedgerOutcome(
 		types.Address{}, // the zero asset
-		consensus_channel.NewBalance(leader.Destination(), big.NewInt(100)),
-		consensus_channel.NewBalance(follower.Destination(), big.NewInt(200)),
-		[]consensus_channel.Guarantee{},
+		ledger.NewBalance(leader.Destination(), big.NewInt(100)),
+		ledger.NewBalance(follower.Destination(), big.NewInt(200)),
+		[]ledger.Guarantee{},
 	)
 
-	initVars := consensus_channel.Vars{Outcome: *outcome, TurnNum: 0}
+	initVars := ledger.Vars{Outcome: *outcome, TurnNum: 0}
 	leaderSig, _ := initVars.AsState(fp).Sign(leader.PrivateKey)
 	followSig, _ := initVars.AsState(fp).Sign(follower.PrivateKey)
 
 	sigs := [2]state.Signature{leaderSig, followSig}
 
-	leaderCh, err := consensus_channel.NewLeaderChannel(
+	leaderCh, err := ledger.NewLeaderChannel(
 		fp,
 		0,
 		*outcome,
@@ -187,7 +187,7 @@ func createTestLedger(leader, follower testactors.Actor) TestLedger {
 	if err != nil {
 		panic(fmt.Sprintf("error creating leader channel in testLedger: %v", err))
 	}
-	followCh, err := consensus_channel.NewFollowerChannel(
+	followCh, err := ledger.NewFollowerChannel(
 		fp,
 		0,
 		*outcome,

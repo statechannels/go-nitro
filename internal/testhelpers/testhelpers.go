@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols"
@@ -74,7 +74,7 @@ func AssertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.S
 	}
 }
 
-func AssertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to testactors.Actor) {
+func AssertProposalSent(t *testing.T, ses protocols.SideEffects, sp ledger.SignedProposal, to testactors.Actor) {
 
 	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
 

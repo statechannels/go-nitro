@@ -1,4 +1,4 @@
-package consensus_channel
+package ledger
 
 import (
 	"fmt"
@@ -15,14 +15,14 @@ var ErrInvalidProposalSignature = fmt.Errorf("invalid signature for proposal")
 var ErrInvalidTurnNum = fmt.Errorf("the proposal turn number is not the next turn number")
 
 // NewFollowerChannel constructs a new FollowerChannel
-func NewFollowerChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
-	return newConsensusChannel(fp, Follower, turnNum, outcome, signatures)
+func NewFollowerChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (LedgerChannel, error) {
+	return newLedgerChannel(fp, Follower, turnNum, outcome, signatures)
 }
 
 // SignNextProposal is called by the follower and inspects whether the
 // expected proposal matches the first proposal in the queue. If so,
 // the proposal is removed from the queue and integrated into the channel state.
-func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte) (SignedProposal, error) {
+func (c *LedgerChannel) SignNextProposal(expectedProposal Proposal, sk []byte) (SignedProposal, error) {
 	if c.MyIndex != Follower {
 		return SignedProposal{}, ErrNotFollower
 	}
@@ -67,7 +67,7 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 }
 
 // followerReceive is called by the follower to validate a proposal from the leader and add it to the proposal queue
-func (c *ConsensusChannel) followerReceive(p SignedProposal) error {
+func (c *LedgerChannel) followerReceive(p SignedProposal) error {
 	if c.MyIndex != Follower {
 		return ErrNotFollower
 	}

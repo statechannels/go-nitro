@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testactors"
@@ -19,8 +19,8 @@ import (
 )
 
 type actorLedgers struct {
-	left  *consensus_channel.ConsensusChannel
-	right *consensus_channel.ConsensusChannel
+	left  *ledger.LedgerChannel
+	right *ledger.LedgerChannel
 }
 type ledgerLookup map[types.Destination]actorLedgers
 type testData struct {
@@ -62,26 +62,26 @@ func newTestData() testData {
 
 	leaderLedgers := make(map[types.Destination]actorLedgers)
 	leaderLedgers[alice.Destination()] = actorLedgers{
-		right: prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1),
+		right: prepareLedgerChannel(uint(ledger.Leader), alice, p1),
 	}
 	leaderLedgers[p1.Destination()] = actorLedgers{
-		left:  prepareConsensusChannel(uint(consensus_channel.Leader), p1, alice),
-		right: prepareConsensusChannel(uint(consensus_channel.Leader), p1, bob),
+		left:  prepareLedgerChannel(uint(ledger.Leader), p1, alice),
+		right: prepareLedgerChannel(uint(ledger.Leader), p1, bob),
 	}
 	leaderLedgers[bob.Destination()] = actorLedgers{
-		left: prepareConsensusChannel(uint(consensus_channel.Leader), bob, p1),
+		left: prepareLedgerChannel(uint(ledger.Leader), bob, p1),
 	}
 
 	followerLedgers := make(map[types.Destination]actorLedgers)
 	followerLedgers[alice.Destination()] = actorLedgers{
-		right: prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
+		right: prepareLedgerChannel(uint(ledger.Follower), alice, p1),
 	}
 	followerLedgers[p1.Destination()] = actorLedgers{
-		left:  prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
-		right: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
+		left:  prepareLedgerChannel(uint(ledger.Follower), alice, p1),
+		right: prepareLedgerChannel(uint(ledger.Follower), p1, bob),
 	}
 	followerLedgers[bob.Destination()] = actorLedgers{
-		left: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
+		left: prepareLedgerChannel(uint(ledger.Follower), p1, bob),
 	}
 
 	return testData{vPreFund, vPostFund, leaderLedgers, followerLedgers}
@@ -135,7 +135,7 @@ func diffFromCorrectConnection(c *Connection, left, right actors.Actor) string {
 	// comparing the _guarantees_ that we expect to include, instead of the GuaranteeInfo
 
 	expectedAmount := big.NewInt(0).Set(vPreFund.VariablePart().Outcome[0].TotalAllocated())
-	want := consensus_channel.NewGuarantee(expectedAmount, Id, left.Destination(), right.Destination())
+	want := ledger.NewGuarantee(expectedAmount, Id, left.Destination(), right.Destination())
 	got := c.getExpectedGuarantee()
 
 	return compareGuarantees(want, got)
@@ -258,8 +258,8 @@ func TestCrankAsAlice(t *testing.T) {
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
-	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
-	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[0]}
+	p := ledger.NewAddProposal(o.ToMyRight.Channel.Id, 2, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
+	sp := ledger.SignedProposal{Proposal: p, Signature: ledgerStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[0]}
 	Ok(t, err)
 	assertOneProposalSent(t, effects, sp, p1)
 	Equals(t, waitingFor, WaitingForCompleteFunding)
@@ -273,8 +273,8 @@ func TestCrankAsAlice(t *testing.T) {
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
-	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[1]}
-	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposals: []consensus_channel.SignedProposal{sp}}
+	sp = ledger.SignedProposal{Proposal: p, Signature: ledgerStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[1]}
+	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposals: []ledger.SignedProposal{sp}}
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -350,9 +350,9 @@ func TestCrankAsBob(t *testing.T) {
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If Bob had received a signed counterproposal, he should proceed to postFundSetup
-	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
-	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, bob, o.ToMyLeft.getExpectedGuarantee())[0]}
-	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposals: []consensus_channel.SignedProposal{sp}}
+	p := ledger.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
+	sp := ledger.SignedProposal{Proposal: p, Signature: ledgerStateSignatures(p1, bob, o.ToMyLeft.getExpectedGuarantee())[0]}
+	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposals: []ledger.SignedProposal{sp}}
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -367,7 +367,7 @@ func TestCrankAsBob(t *testing.T) {
 	Ok(t, err)
 	Equals(t, waitingFor, WaitingForCompletePostFund)
 	assertStateSentTo(t, effects, postFS, p1)
-	sp.Signature = consensusStateSignatures(p1, bob, o.ToMyLeft.getExpectedGuarantee())[1]
+	sp.Signature = ledgerStateSignatures(p1, bob, o.ToMyLeft.getExpectedGuarantee())[1]
 	assertOneProposalSent(t, effects, sp, p1)
 }
 
@@ -417,8 +417,8 @@ func TestCrankAsP1(t *testing.T) {
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
-	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
-	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[0]}
+	p := ledger.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
+	sp := ledger.SignedProposal{Proposal: p, Signature: ledgerStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[0]}
 	Ok(t, err)
 	assertOneProposalSent(t, effects, sp, alice)
 	Equals(t, waitingFor, WaitingForCompleteFunding)
@@ -432,9 +432,9 @@ func TestCrankAsP1(t *testing.T) {
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If P1 had received a signed counterproposal, she should proceed to postFundSetup
-	p = consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
-	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[1]}
-	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposals: []consensus_channel.SignedProposal{sp}}
+	p = ledger.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
+	sp = ledger.SignedProposal{Proposal: p, Signature: ledgerStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[1]}
+	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposals: []ledger.SignedProposal{sp}}
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -468,7 +468,7 @@ func assertSupportedPrefund(o *Objective, t *testing.T) {
 }
 
 // assertOneProposalSent fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed proposal.
-func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to actors.Actor) {
+func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp ledger.SignedProposal, to actors.Actor) {
 	numProposals := 0
 	for _, msg := range ses.MessagesToSend {
 		if len(msg.SignedProposals()) > 0 {
@@ -514,12 +514,12 @@ func compareStates(a, b state.SignedState) string {
 	)
 }
 
-func compareSignedProposals(a, b consensus_channel.SignedProposal) bool {
+func compareSignedProposals(a, b ledger.SignedProposal) bool {
 	return cmp.Equal(&a, &b,
 		cmp.AllowUnexported(
-			consensus_channel.Add{},
-			consensus_channel.Remove{},
-			consensus_channel.Guarantee{},
+			ledger.Add{},
+			ledger.Remove{},
+			ledger.Guarantee{},
 			big.Int{},
 		),
 	)
@@ -532,18 +532,18 @@ func compareObjectives(a, b Objective) string {
 			channel.Channel{},
 			big.Int{},
 			state.SignedState{},
-			consensus_channel.ConsensusChannel{},
-			consensus_channel.Vars{},
-			consensus_channel.LedgerOutcome{},
-			consensus_channel.Balance{},
+			ledger.LedgerChannel{},
+			ledger.Vars{},
+			ledger.LedgerOutcome{},
+			ledger.Balance{},
 		),
 	)
 }
 
-func compareGuarantees(a, b consensus_channel.Guarantee) string {
+func compareGuarantees(a, b ledger.Guarantee) string {
 	return cmp.Diff(&a, &b,
 		cmp.AllowUnexported(
-			consensus_channel.Guarantee{},
+			ledger.Guarantee{},
 			big.Int{},
 		),
 	)

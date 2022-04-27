@@ -3,7 +3,7 @@ package protocols
 import (
 	"encoding/json"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -45,7 +45,7 @@ type AdjudicationStatus struct {
 type ObjectiveEvent struct {
 	ObjectiveId     ObjectiveId
 	SignedStates    []state.SignedState
-	SignedProposals []consensus_channel.SignedProposal
+	SignedProposals []ledger.SignedProposal
 }
 
 // Storable is an object that can be stored by the store.

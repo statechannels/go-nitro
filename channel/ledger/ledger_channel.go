@@ -1,5 +1,5 @@
-// Package consensus_channel manages a running ledger channel.
-package consensus_channel
+// Package ledger manages a running ledger channel.
+package ledger
 
 import (
 	"bytes"
@@ -24,8 +24,8 @@ const (
 	Follower ledgerIndex = 1
 )
 
-// ConsensusChannel is used to manage states in a running ledger channel
-type ConsensusChannel struct {
+// LedgerChannel is used to manage states in a running ledger channel
+type LedgerChannel struct {
 	// constants
 	MyIndex ledgerIndex
 	fp      state.FixedPart
@@ -39,36 +39,36 @@ type ConsensusChannel struct {
 	proposalQueue []SignedProposal // A queue of proposed changes, starting from the consensus state
 }
 
-// newConsensusChannel constructs a new consensus channel, validating its input by checking that the signatures are as expected for the given fp, initialTurnNum and outcome]
-func newConsensusChannel(
+// newLedgerChannel constructs a new ledger channel, validating its input by checking that the signatures are as expected for the given fp, initialTurnNum and outcome]
+func newLedgerChannel(
 	fp state.FixedPart,
 	myIndex ledgerIndex,
 	initialTurnNum uint64,
 	outcome LedgerOutcome,
 	signatures [2]state.Signature,
-) (ConsensusChannel, error) {
+) (LedgerChannel, error) {
 
 	cId, err := fp.ChannelId()
 	if err != nil {
-		return ConsensusChannel{}, err
+		return LedgerChannel{}, err
 	}
 
 	vars := Vars{TurnNum: initialTurnNum, Outcome: outcome.clone()}
 
 	leaderAddr, err := vars.AsState(fp).RecoverSigner(signatures[Leader])
 	if err != nil {
-		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+		return LedgerChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
 	if leaderAddr != fp.Participants[Leader] {
-		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[Leader])
+		return LedgerChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[Leader])
 	}
 
 	followerAddr, err := vars.AsState(fp).RecoverSigner(signatures[Follower])
 	if err != nil {
-		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+		return LedgerChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
 	if followerAddr != fp.Participants[Follower] {
-		return ConsensusChannel{}, fmt.Errorf("follower did not sign initial state: %v, %v", followerAddr, fp.Participants[Leader])
+		return LedgerChannel{}, fmt.Errorf("follower did not sign initial state: %v, %v", followerAddr, fp.Participants[Leader])
 	}
 
 	current := SignedVars{
@@ -76,7 +76,7 @@ func newConsensusChannel(
 		signatures,
 	}
 
-	return ConsensusChannel{
+	return LedgerChannel{
 		fp:            fp,
 		Id:            cId,
 		MyIndex:       myIndex,
@@ -87,14 +87,14 @@ func newConsensusChannel(
 }
 
 // FixedPart returns the fixed part of the channel
-func (c *ConsensusChannel) FixedPart() state.FixedPart {
+func (c *LedgerChannel) FixedPart() state.FixedPart {
 	return c.fp
 }
 
-// Receive accepts a proposal signed by the ConsensusChannel counterparty,
+// Receive accepts a proposal signed by the LedgerChannel counterparty,
 // validates its signature, and performs updates the proposal queue and
 // consensus state
-func (c *ConsensusChannel) Receive(sp SignedProposal) error {
+func (c *LedgerChannel) Receive(sp SignedProposal) error {
 	if c.IsFollower() {
 		return c.followerReceive(sp)
 	}
@@ -102,26 +102,26 @@ func (c *ConsensusChannel) Receive(sp SignedProposal) error {
 		return c.leaderReceive(sp)
 	}
 
-	return fmt.Errorf("ConsensusChannel is malformed")
+	return fmt.Errorf("LedgerChannel is malformed")
 }
 
 // ConsensusTurnNum returns the turn number of the current consensus state
-func (c *ConsensusChannel) ConsensusTurnNum() uint64 {
+func (c *LedgerChannel) ConsensusTurnNum() uint64 {
 	return c.current.TurnNum
 }
 
 // Includes returns whether or not the consensus state includes the given guarantee
-func (c *ConsensusChannel) Includes(g Guarantee) bool {
+func (c *LedgerChannel) Includes(g Guarantee) bool {
 	return c.current.Outcome.includes(g)
 }
 
 // IncludesTarget returns whether or not the consensus state includes a guarantee targeting the given channel
-func (c *ConsensusChannel) IncludesTarget(target types.Destination) bool {
+func (c *LedgerChannel) IncludesTarget(target types.Destination) bool {
 	return c.current.Outcome.includesTarget(target)
 }
 
 // HasRemovalBeenProposedFor returns whether or not a proposal exists to remove the guaranatee for the target
-func (c *ConsensusChannel) HasRemovalBeenProposedFor(target types.Destination) bool {
+func (c *LedgerChannel) HasRemovalBeenProposedFor(target types.Destination) bool {
 	for _, p := range c.proposalQueue {
 		if p.Proposal.Type() == RemoveProposal {
 			remove := p.Proposal.ToRemove
@@ -135,34 +135,34 @@ func (c *ConsensusChannel) HasRemovalBeenProposedFor(target types.Destination) b
 
 // IsLeader returns true if the calling client is the leader of the channel,
 // and false otherwise
-func (c *ConsensusChannel) IsLeader() bool {
+func (c *LedgerChannel) IsLeader() bool {
 	return c.MyIndex == Leader
 }
 
 // IsFollower returns true if the calling client is the follower of the channel,
 // and false otherwise
-func (c *ConsensusChannel) IsFollower() bool {
+func (c *LedgerChannel) IsFollower() bool {
 	return c.MyIndex == Follower
 }
 
 // Leader returns the address of the participant responsible for proposing
-func (c *ConsensusChannel) Leader() common.Address {
+func (c *LedgerChannel) Leader() common.Address {
 	return c.fp.Participants[Leader]
 }
 
 // Follower returns the address of the participant who recieves and contersigns
 // proposals
-func (c *ConsensusChannel) Follower() common.Address {
+func (c *LedgerChannel) Follower() common.Address {
 	return c.fp.Participants[Follower]
 }
 
-func (c *ConsensusChannel) Accept(p SignedProposal) error {
+func (c *LedgerChannel) Accept(p SignedProposal) error {
 	panic("UNIMPLEMENTED")
 }
 
-// sign constructs a state.State from the given vars, using the ConsensusChannel's constant
+// sign constructs a state.State from the given vars, using the LedgerChannel's constant
 // values. It signs the resulting state using sk.
-func (c *ConsensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
+func (c *LedgerChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
 	signer := crypto.GetAddressFromSecretKeyBytes(sk)
 	if c.fp.Participants[c.MyIndex] != signer {
 		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
@@ -173,30 +173,30 @@ func (c *ConsensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
 }
 
 // recoverSigner returns the signer of the vars using the given signature
-func (c *ConsensusChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
+func (c *LedgerChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
 	state := vars.AsState(c.fp)
 	return state.RecoverSigner(sig)
 }
 
 // ConsensusVars returns the vars of the consensus state
 // The consensus state is the latest state that has been signed by both parties
-func (c *ConsensusChannel) ConsensusVars() Vars {
+func (c *LedgerChannel) ConsensusVars() Vars {
 	return c.current.Vars
 }
 
 // Signatures returns the signatures on the currently supported state
-func (c *ConsensusChannel) Signatures() [2]state.Signature {
+func (c *LedgerChannel) Signatures() [2]state.Signature {
 	return c.current.Signatures
 }
 
 // ProposalQueue returns the current queue of proposals
-func (c *ConsensusChannel) ProposalQueue() []SignedProposal {
+func (c *LedgerChannel) ProposalQueue() []SignedProposal {
 	return c.proposalQueue
 }
 
-// latestProposedVars returns the latest proposed vars in a consensus channel
+// latestProposedVars returns the latest proposed vars in a ledger channel
 // by cloning its current vars and applying each proposal in the queue
-func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
+func (c *LedgerChannel) latestProposedVars() (Vars, error) {
 	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
 
 	var err error
@@ -212,7 +212,7 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 
 // validateProposalID checks that the given proposal's ID matches
 // the channel's ID
-func (c *ConsensusChannel) validateProposalID(propsal Proposal) error {
+func (c *LedgerChannel) validateProposalID(propsal Proposal) error {
 	if propsal.ChannelID != c.Id {
 		return ErrIncorrectChannelID
 	}
@@ -417,7 +417,7 @@ var ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
 var ErrGuaranteeNotFound = fmt.Errorf("guarantee not found")
 var ErrInvalidAmounts = fmt.Errorf("left and right amounts do not add up to the guarantee amount")
 
-// Vars stores the turn number and outcome for a state in a consensus channel
+// Vars stores the turn number and outcome for a state in a ledger channel
 type Vars struct {
 	TurnNum uint64
 	Outcome LedgerOutcome
@@ -460,7 +460,7 @@ func (o *LedgerOutcome) clone() LedgerOutcome {
 	}
 }
 
-// SignedVars stores 0-2 signatures for some vars in a consensus channel
+// SignedVars stores 0-2 signatures for some vars in a ledger channel
 type SignedVars struct {
 	Vars
 	Signatures [2]state.Signature
@@ -820,23 +820,23 @@ func (v Vars) AsState(fp state.FixedPart) state.State {
 }
 
 // Participants returns the channel participants.
-func (c *ConsensusChannel) Participants() []types.Address {
+func (c *LedgerChannel) Participants() []types.Address {
 	return c.fp.Participants
 }
 
 // Clone returns a deep copy of the receiver.
-func (c *ConsensusChannel) Clone() *ConsensusChannel {
+func (c *LedgerChannel) Clone() *LedgerChannel {
 
 	clonedProposalQueue := make([]SignedProposal, len(c.proposalQueue))
 	for i, p := range c.proposalQueue {
 		clonedProposalQueue[i] = p.Clone()
 	}
-	d := ConsensusChannel{c.MyIndex, c.fp.Clone(), c.Id, c.OnChainFunding.Clone(), c.current.clone(), clonedProposalQueue}
+	d := LedgerChannel{c.MyIndex, c.fp.Clone(), c.Id, c.OnChainFunding.Clone(), c.current.clone(), clonedProposalQueue}
 	return &d
 }
 
 // SupportedSignedState returns the latest supported signed state.
-func (cc *ConsensusChannel) SupportedSignedState() state.SignedState {
+func (cc *LedgerChannel) SupportedSignedState() state.SignedState {
 	s := cc.ConsensusVars().AsState(cc.fp)
 	sigs := cc.current.Signatures
 	ss := state.NewSignedState(s)

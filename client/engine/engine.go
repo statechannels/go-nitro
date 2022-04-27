@@ -7,7 +7,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -151,7 +151,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 		event := protocols.ObjectiveEvent{
 			ObjectiveId:     entry.ObjectiveId,
-			SignedProposals: []consensus_channel.SignedProposal{},
+			SignedProposals: []ledger.SignedProposal{},
 			SignedStates:    []state.SignedState{entry.Payload},
 		}
 		updatedObjective, err := objective.Update(event)
@@ -177,7 +177,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 		event := protocols.ObjectiveEvent{
 			ObjectiveId:     entry.ObjectiveId,
-			SignedProposals: []consensus_channel.SignedProposal{entry.Payload},
+			SignedProposals: []ledger.SignedProposal{entry.Payload},
 			SignedStates:    []state.SignedState{},
 		}
 		updatedObjective, err := objective.Update(event)
@@ -235,7 +235,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 		switch request := (apiEvent.ObjectiveToSpawn).(type) {
 
 		case virtualfund.ObjectiveRequest:
-			vfo, err := virtualfund.NewObjective(request, e.store.GetConsensusChannel)
+			vfo, err := virtualfund.NewObjective(request, e.store.GetLedgerChannel)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
@@ -249,7 +249,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			return e.attemptProgress(&dfo)
 
 		case directdefund.ObjectiveRequest:
-			ddfo, err := directdefund.NewObjective(true, request.ChannelId, e.store.GetConsensusChannelById)
+			ddfo, err := directdefund.NewObjective(true, request.ChannelId, e.store.GetLedgerChannelById)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
@@ -325,7 +325,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	if waitingFor == "WaitingForNothing" {
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
 		e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
-		err = e.SpawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
+		err = e.SpawnLedgerChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
 		if err != nil {
 			return
 		}
@@ -334,18 +334,18 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	return
 }
 
-// SpawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective iff it is a directfund.Objective.
+// SpawnLedgerChannelIfDirectFundObjective will attempt to create and store a LedgerChannel derived from the supplied Objective iff it is a directfund.Objective.
 //
 // The associated Channel will remain in the store.
-func (e Engine) SpawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
+func (e Engine) SpawnLedgerChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
 	if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
-		c, err := dfo.CreateConsensusChannel()
+		c, err := dfo.CreateLedgerChannel()
 		if err != nil {
-			return fmt.Errorf("could not create consensus channel for objective %s: %w", crankedObjective.Id(), err)
+			return fmt.Errorf("could not create ledger channel for objective %s: %w", crankedObjective.Id(), err)
 		}
-		err = e.store.SetConsensusChannel(c)
+		err = e.store.SetLedgerChannel(c)
 		if err != nil {
-			return fmt.Errorf("could not store consensus channel for objective %s: %w", crankedObjective.Id(), err)
+			return fmt.Errorf("could not store ledger channel for objective %s: %w", crankedObjective.Id(), err)
 		}
 	}
 	return nil
@@ -385,18 +385,18 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 
 		return &dfo, err
 	case virtualfund.IsVirtualFundObjective(id):
-		vfo, err := virtualfund.ConstructObjectiveFromState(ss.State(), *e.store.GetAddress(), e.store.GetConsensusChannel)
+		vfo, err := virtualfund.ConstructObjectiveFromState(ss.State(), *e.store.GetAddress(), e.store.GetLedgerChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
 		return &vfo, nil
 	case directdefund.IsDirectDefundObjective(id):
-		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), e.store.GetConsensusChannelById)
+		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), e.store.GetLedgerChannelById)
 		if err != nil {
 			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message: %w", err)
 		}
 
-		// TODO Destroy / Disable / Disown the associated ConsensusChannel
+		// TODO Destroy / Disable / Disown the associated LedgerChannel
 
 		return &ddfo, nil
 

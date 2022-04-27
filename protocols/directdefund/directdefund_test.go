@@ -7,7 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -66,16 +66,16 @@ func signedTestState(s state.State, toSign []bool) (state.SignedState, error) {
 	return ss, nil
 }
 
-// newTestObjective returns a directdefund Objective constructed with a MockConsensusChannel.
+// newTestObjective returns a directdefund Objective constructed with a MockLedgerChannel.
 func newTestObjective() (Objective, error) {
-	cc, _ := testdata.Channels.MockConsensusChannel(alice.Address)
+	cc, _ := testdata.Channels.MockLedgerChannel(alice.Address)
 
-	getConsensusChannel := func(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
+	getLedgerChannel := func(id types.Destination) (channel *ledger.LedgerChannel, err error) {
 		return cc, nil
 	}
 
 	// Assert that valid constructor args do not result in error
-	o, err := NewObjective(true, cc.Id, getConsensusChannel)
+	o, err := NewObjective(true, cc.Id, getLedgerChannel)
 	if err != nil {
 		return Objective{}, err
 	}
@@ -125,7 +125,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func compareSideEffect(a, b protocols.SideEffects) string {
-	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}, consensus_channel.Add{}, consensus_channel.Remove{}, consensus_channel.Guarantee{}))
+	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}, ledger.Add{}, ledger.Remove{}, ledger.Guarantee{}))
 }
 
 func TestCrankAlice(t *testing.T) {

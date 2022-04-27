@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
@@ -76,8 +76,8 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("failed to unmarshal the VirtualDefundObjective: %w", err)
 	}
 
-	o.ToMyLeft = &consensus_channel.ConsensusChannel{}
-	o.ToMyRight = &consensus_channel.ConsensusChannel{}
+	o.ToMyLeft = &ledger.LedgerChannel{}
+	o.ToMyRight = &ledger.LedgerChannel{}
 	if err := o.ToMyLeft.UnmarshalJSON(jsonVFO.ToMyLeft); err != nil {
 		return fmt.Errorf("failed to unmarshal left ledger channel: %w", err)
 	}

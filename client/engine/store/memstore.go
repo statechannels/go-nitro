@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
@@ -18,7 +18,7 @@ import (
 type MemStore struct {
 	objectives         syncMap[[]byte]
 	channels           syncMap[[]byte]
-	consensusChannels  syncMap[[]byte]
+	ledgerChannels     syncMap[[]byte]
 	channelToObjective syncMap[protocols.ObjectiveId]
 
 	key     []byte        // the signing key of the store's engine
@@ -75,7 +75,7 @@ func NewMemStore(key []byte) Store {
 
 	ms.objectives = syncMap[[]byte]{}
 	ms.channels = syncMap[[]byte]{}
-	ms.consensusChannels = syncMap[[]byte]{}
+	ms.ledgerChannels = syncMap[[]byte]{}
 	ms.channelToObjective = syncMap[protocols.ObjectiveId]{}
 
 	return &ms
@@ -129,10 +129,10 @@ func (ms *MemStore) SetObjective(obj protocols.Objective) error {
 			if err != nil {
 				return fmt.Errorf("error setting channel %s from objective %s: %w", ch.Id, obj.Id(), err)
 			}
-		case *consensus_channel.ConsensusChannel:
-			err := ms.SetConsensusChannel(ch)
+		case *ledger.LedgerChannel:
+			err := ms.SetLedgerChannel(ch)
 			if err != nil {
-				return fmt.Errorf("error setting consensus channel %s from objective %s: %w", ch.Id, obj.Id(), err)
+				return fmt.Errorf("error setting ledger channel %s from objective %s: %w", ch.Id, obj.Id(), err)
 			}
 		default:
 			return fmt.Errorf("unexpected type: %T", rel)
@@ -165,15 +165,15 @@ func (ms *MemStore) SetChannel(ch *channel.Channel) error {
 	return nil
 }
 
-// SetConsensusChannel sets the channel in the store.
-func (ms *MemStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel) error {
+// SetLedgerChannel sets the channel in the store.
+func (ms *MemStore) SetLedgerChannel(ch *ledger.LedgerChannel) error {
 	chJSON, err := ch.MarshalJSON()
 
 	if err != nil {
 		return err
 	}
 
-	ms.consensusChannels.Store(ch.Id.String(), chJSON)
+	ms.ledgerChannels.Store(ch.Id.String(), chJSON)
 	return nil
 }
 
@@ -206,32 +206,32 @@ func (ms *MemStore) getChannelById(id types.Destination) (channel.Channel, error
 	return ch, nil
 }
 
-// GetConsensusChannelById returns a ConsensusChannel with the given channel id
-func (ms *MemStore) GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
+// GetLedgerChannelById returns a LedgerChannel with the given channel id
+func (ms *MemStore) GetLedgerChannelById(id types.Destination) (channel *ledger.LedgerChannel, err error) {
 
-	chJSON, ok := ms.consensusChannels.Load(id.String())
+	chJSON, ok := ms.ledgerChannels.Load(id.String())
 
 	if !ok {
-		return &consensus_channel.ConsensusChannel{}, ErrNoSuchChannel
+		return &ledger.LedgerChannel{}, ErrNoSuchChannel
 	}
 
-	ch := &consensus_channel.ConsensusChannel{}
+	ch := &ledger.LedgerChannel{}
 	err = ch.UnmarshalJSON(chJSON)
 
 	if err != nil {
-		return &consensus_channel.ConsensusChannel{}, fmt.Errorf("error unmarshaling channel %s", ch.Id)
+		return &ledger.LedgerChannel{}, fmt.Errorf("error unmarshaling channel %s", ch.Id)
 	}
 
 	return ch, nil
 }
 
-// GetConsensusChannel returns a ConsensusChannel between the calling client and
+// GetLedgerChannel returns a LedgerChannel between the calling client and
 // the supplied counterparty, if such channel exists
-func (ms *MemStore) GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
+func (ms *MemStore) GetLedgerChannel(counterparty types.Address) (channel *ledger.LedgerChannel, ok bool) {
 
-	ms.consensusChannels.Range(func(key string, chJSON []byte) bool {
+	ms.ledgerChannels.Range(func(key string, chJSON []byte) bool {
 
-		var ch consensus_channel.ConsensusChannel
+		var ch ledger.LedgerChannel
 		err := json.Unmarshal(chJSON, &ch)
 
 		if err != nil {
@@ -305,7 +305,7 @@ func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 			o.ToMyLeft.Channel != nil &&
 			o.ToMyLeft.Channel.Id != zeroAddress {
 
-			left, err := ms.GetConsensusChannelById(o.ToMyLeft.Channel.Id)
+			left, err := ms.GetLedgerChannelById(o.ToMyLeft.Channel.Id)
 			if err != nil {
 				return fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
 			}
@@ -315,7 +315,7 @@ func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 		if o.ToMyRight != nil &&
 			o.ToMyRight.Channel != nil &&
 			o.ToMyRight.Channel.Id != zeroAddress {
-			right, err := ms.GetConsensusChannelById(o.ToMyRight.Channel.Id)
+			right, err := ms.GetLedgerChannelById(o.ToMyRight.Channel.Id)
 			if err != nil {
 				return fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
 			}

@@ -1,4 +1,4 @@
-package consensus_channel
+package ledger
 
 import (
 	"encoding/json"
@@ -34,7 +34,7 @@ func TestSerde(t *testing.T) {
 		someGuarantee)
 	someOutcomeJSON := `{"AssetAddress":"0x0000000000000000000000000000000000000000","Left":{"Destination":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Amount":2},"Right":{"Destination":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94","Amount":7},"Guarantees":{"0x6300000000000000000000000000000000000000000000000000000000000000":{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}}}`
 
-	someConsensusChannel := ConsensusChannel{
+	someLedgerChannel := LedgerChannel{
 		MyIndex: Leader,
 		fp:      fp(),
 		Id:      types.Destination{1},
@@ -65,7 +65,7 @@ func TestSerde(t *testing.T) {
 			Proposal: Proposal{ToAdd: add(1, 2, types.Destination{3}, alice, bob)},
 		}},
 	}
-	someConsensusChannelJSON := `{"Id":"0x0100000000000000000000000000000000000000000000000000000000000000","OnChainFunding":{"0x0000000000000000000000000000000000000000":9},"MyIndex":0,"FP":{"ChainId":9001,"Participants":["0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce","0xbbb676f9cff8d242e9eac39d063848807d3d1d94"],"ChannelNonce":9001,"AppDefinition":"0x0000000000000000000000000000000000000000","ChallengeDuration":100},"Current":{"TurnNum":0,"Outcome":{"AssetAddress":"0x0000000000000000000000000000000000000000","Left":{"Destination":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Amount":2},"Right":{"Destination":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94","Amount":7},"Guarantees":{"0x6300000000000000000000000000000000000000000000000000000000000000":{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}}},"Signatures":[{"R":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","S":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","V":0},{"R":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","S":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","V":0}]},"ProposalQueue":[{"R":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","S":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","V":0,"Proposal":{"ChannelID":"0x0000000000000000000000000000000000000000000000000000000000000000","ToAdd":{"TurnNum":1,"Guarantee":{"Amount":2,"Target":"0x0300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94"},"LeftDeposit":2},"ToRemove":{"Target":"0x0000000000000000000000000000000000000000000000000000000000000000","LeftAmount":null,"RightAmount":null}}}]}`
+	someLedgerChannelJSON := `{"Id":"0x0100000000000000000000000000000000000000000000000000000000000000","OnChainFunding":{"0x0000000000000000000000000000000000000000":9},"MyIndex":0,"FP":{"ChainId":9001,"Participants":["0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce","0xbbb676f9cff8d242e9eac39d063848807d3d1d94"],"ChannelNonce":9001,"AppDefinition":"0x0000000000000000000000000000000000000000","ChallengeDuration":100},"Current":{"TurnNum":0,"Outcome":{"AssetAddress":"0x0000000000000000000000000000000000000000","Left":{"Destination":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Amount":2},"Right":{"Destination":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94","Amount":7},"Guarantees":{"0x6300000000000000000000000000000000000000000000000000000000000000":{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}}},"Signatures":[{"R":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","S":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","V":0},{"R":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","S":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","V":0}]},"ProposalQueue":[{"R":"FAQK1MWY27BVpQQwFCoTUY4TMLedJO7Yb8vf8aepVYk=","S":"cEs6/MbnAhAsoa8/c887N/MAfzaMQOi4HKgjpldAoFM=","V":0,"Proposal":{"ChannelID":"0x0000000000000000000000000000000000000000000000000000000000000000","ToAdd":{"TurnNum":1,"Guarantee":{"Amount":2,"Target":"0x0300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94"},"LeftDeposit":2},"ToRemove":{"Target":"0x0000000000000000000000000000000000000000000000000000000000000000","LeftAmount":null,"RightAmount":null}}}]}`
 
 	type testCase struct {
 		name string
@@ -90,9 +90,9 @@ func TestSerde(t *testing.T) {
 			someOutcomeJSON,
 		},
 		{
-			"ConsensusChannel",
-			someConsensusChannel,
-			someConsensusChannelJSON,
+			"LedgerChannel",
+			someLedgerChannel,
+			someLedgerChannelJSON,
 		},
 	}
 
@@ -122,8 +122,8 @@ func TestSerde(t *testing.T) {
 				lo := LedgerOutcome{}
 				err = json.Unmarshal([]byte(c.json), &lo)
 				got = lo
-			case ConsensusChannel:
-				cc := ConsensusChannel{}
+			case LedgerChannel:
+				cc := LedgerChannel{}
 				err = json.Unmarshal([]byte(c.json), &cc)
 				got = cc
 			case Add:

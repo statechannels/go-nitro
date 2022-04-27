@@ -1,4 +1,4 @@
-package consensus_channel
+package ledger
 
 import (
 	"fmt"
@@ -9,14 +9,14 @@ import (
 var ErrNotLeader = fmt.Errorf("method may only be called by the channel leader")
 
 // NewLeaderChannel constructs a new LeaderChannel
-func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
-	return newConsensusChannel(fp, Leader, turnNum, outcome, signatures)
+func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (LedgerChannel, error) {
+	return newLedgerChannel(fp, Leader, turnNum, outcome, signatures)
 }
 
 // IsProposed returns true if a proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
 //
 // Specific clarification: If the current outcome already includes g, IsProposed returns false.
-func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
+func (c *LedgerChannel) IsProposed(g Guarantee) (bool, error) {
 	latest, err := c.latestProposedVars()
 	if err != nil {
 		return false, err
@@ -27,7 +27,7 @@ func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
 }
 
 // IsProposedNext returns if the next proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
-func (c *ConsensusChannel) IsProposedNext(g Guarantee) (bool, error) {
+func (c *LedgerChannel) IsProposedNext(g Guarantee) (bool, error) {
 	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
 
 	if len(c.proposalQueue) == 0 {
@@ -49,7 +49,7 @@ func (c *ConsensusChannel) IsProposedNext(g Guarantee) (bool, error) {
 //
 // Note: the TurnNum on add is ignored; the correct turn number is computed
 // and applied by c
-func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal, error) {
+func (c *LedgerChannel) Propose(proposal Proposal, sk []byte) (SignedProposal, error) {
 	if c.MyIndex != Leader {
 		return SignedProposal{}, ErrNotLeader
 	}
@@ -95,7 +95,7 @@ func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal
 // An error is returned if:
 //  - the countersupplied proposal is not found
 //  - or if it is found but not correctly signed by the Follower
-func (c *ConsensusChannel) leaderReceive(countersigned SignedProposal) error {
+func (c *LedgerChannel) leaderReceive(countersigned SignedProposal) error {
 	if c.MyIndex != Leader {
 		return ErrNotLeader
 	}

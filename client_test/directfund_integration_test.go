@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/ledger"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -52,20 +52,20 @@ func TestDirectFundIntegration(t *testing.T) {
 	directlyFundALedgerChannel(t, clientA, clientB)
 
 	want := testdata.Outcomes.Create(*clientA.Address, *clientB.Address, 5, 5)
-	// Ensure that we create a consensus channel in the store
+	// Ensure that we create a ledger channel in the store
 	for _, store := range []store.Store{storeA, storeB} {
-		var con *consensus_channel.ConsensusChannel
+		var con *ledger.LedgerChannel
 		var ok bool
 
-		// each client fetches the ConsensusChannel by reference to their counterparty
+		// each client fetches the LedgerChannel by reference to their counterparty
 		if store.GetChannelSecretKey() == &alice.PrivateKey {
-			con, ok = store.GetConsensusChannel(*clientB.Address)
+			con, ok = store.GetLedgerChannel(*clientB.Address)
 		} else {
-			con, ok = store.GetConsensusChannel(*clientA.Address)
+			con, ok = store.GetLedgerChannel(*clientA.Address)
 		}
 
 		if !ok {
-			t.Fatalf("expected a consensus channel to have been created")
+			t.Fatalf("expected a ledger channel to have been created")
 		}
 		vars := con.ConsensusVars()
 		got := vars.Outcome.AsOutcome()
