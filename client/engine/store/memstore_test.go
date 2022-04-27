@@ -34,7 +34,7 @@ func compareObjectives(a, b protocols.Objective) string {
 	))
 }
 
-func TestNewMockStore(t *testing.T) {
+func TestNewMemStore(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 	store.NewMemStore(sk)
 }
