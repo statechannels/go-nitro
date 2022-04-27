@@ -792,6 +792,6 @@ func (c *ConsensusChannel) Clone() *ConsensusChannel {
 	for i, p := range c.proposalQueue {
 		clonedProposalQueue[i] = p.Clone()
 	}
-	d := ConsensusChannel{c.MyIndex, c.fp.Clone(), c.Id, c.current.clone(), clonedProposalQueue}
+	d := ConsensusChannel{c.MyIndex, c.fp.Clone(), c.Id, c.OnChainFunding.Clone(), c.current.clone(), clonedProposalQueue}
 	return &d
 }
