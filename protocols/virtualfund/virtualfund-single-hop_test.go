@@ -132,20 +132,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 	TestAs := func(my testactors.Actor, t *testing.T) {
 
-		testclone := func(t *testing.T) {
-			// ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.Role)
-
-			o, _ := constructFromState(false, vPreFund, my.Address, nil, nil)
-
-			clone := o.clone()
-
-			if diff := compareObjectives(o, clone); diff != "" {
-				t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
-			}
-		}
-
-		t.Run(`clone`, testclone)
-
 	}
 
 	t.Run(`AsAlice`, func(t *testing.T) { TestAs(alice, t) })
