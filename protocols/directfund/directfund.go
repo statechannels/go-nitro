@@ -49,7 +49,7 @@ func NewObjective(request ObjectiveRequest, preApprove bool) (Objective, error) 
 
 	objective, err := ConstructFromState(preApprove,
 		state.State{
-			ChainId:           big.NewInt(0), // TODO
+			ChainId:           big.NewInt(9001), // TODO https://github.com/statechannels/go-nitro/issues/601
 			Participants:      []types.Address{request.MyAddress, request.CounterParty},
 			ChannelNonce:      big.NewInt(request.Nonce),
 			AppDefinition:     request.AppDefinition,
@@ -382,7 +382,7 @@ type ObjectiveRequest struct {
 
 // Id returns the objective id for the request.
 func (r ObjectiveRequest) Id() protocols.ObjectiveId {
-	fixedPart := state.FixedPart{ChainId: big.NewInt(0), // TODO
+	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
 		Participants:      []types.Address{r.MyAddress, r.CounterParty},
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}
@@ -399,7 +399,7 @@ type ObjectiveResponse struct {
 
 // Response computes and returns the appropriate response from the request.
 func (r ObjectiveRequest) Response() ObjectiveResponse {
-	fixedPart := state.FixedPart{ChainId: big.NewInt(0), // TODO
+	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
 		Participants:      []types.Address{r.MyAddress, r.CounterParty},
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}

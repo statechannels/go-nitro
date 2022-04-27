@@ -142,7 +142,7 @@ func NewObjective(request ObjectiveRequest, getTwoPartyConsensusLedger GetTwoPar
 
 	objective, err := constructFromState(true,
 		state.State{
-			ChainId:           big.NewInt(0), // TODO
+			ChainId:           big.NewInt(9001), // TODO https://github.com/statechannels/go-nitro/issues/601
 			Participants:      []types.Address{request.MyAddress, request.Intermediary, request.CounterParty},
 			ChannelNonce:      big.NewInt(request.Nonce),
 			ChallengeDuration: request.ChallengeDuration,
@@ -662,7 +662,7 @@ type ObjectiveRequest struct {
 
 // Id returns the objective id for the request.
 func (r ObjectiveRequest) Id() protocols.ObjectiveId {
-	fixedPart := state.FixedPart{ChainId: big.NewInt(0), // TODO
+	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO https://github.com/statechannels/go-nitro/issues/601
 		Participants:      []types.Address{r.MyAddress, r.Intermediary, r.CounterParty},
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}

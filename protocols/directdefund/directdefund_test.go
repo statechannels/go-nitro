@@ -66,12 +66,12 @@ func signedTestState(s state.State, toSign []bool) (state.SignedState, error) {
 	return ss, nil
 }
 
+// newTestObjective returns a directdefund Objective constructed with a MockConsensusChannel.
 func newTestObjective(signByBob bool) (Objective, error) {
 	// TODO remove signByBob
 	cc, _ := testdata.Channels.MockConsensusChannel(alice.Address)
 
 	getConsensusChannel := func(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
-
 		return cc, nil
 	}
 
@@ -147,7 +147,10 @@ func TestCrankAlice(t *testing.T) {
 	}
 
 	// Create the state we expect Alice to send
-	finalState, _ := o.C.LatestSupportedState()
+	finalState, err := o.C.LatestSupportedState()
+	if err != nil {
+		t.Fatal(err)
+	}
 	finalState.TurnNum = 2
 	finalState.IsFinal = true
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
@@ -218,20 +221,20 @@ func TestCrankBob(t *testing.T) {
 
 	// Update the objective with Alice's final state
 	finalState := testState.Clone()
-	finalState.TurnNum = 3
+	finalState.TurnNum = 2
 	finalState.IsFinal = true
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
 	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{finalStateSignedByAlice}}
 	updated, err := o.Update(e)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// The first crank. Bob is expected to create and sign a final state
 	updated, se, wf, err := updated.Crank(&bob.PrivateKey)
 
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if wf != WaitingForWithdraw {
