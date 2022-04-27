@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
@@ -32,8 +33,27 @@ func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel
 		Nonce:             ts.ChannelNonce.Int64(),
 		Outcome:           ts.Outcome,
 	}
-	testObj, _ := directfund.NewObjective(request, false)
-	cc, _ := testObj.CreateConsensusChannel()
+	testObj, err := directfund.NewObjective(request, true)
+
+	if err != nil {
+		return &consensus_channel.ConsensusChannel{}, false
+	}
+
+	// Manually progress the extended state by collecting postfund signatures
+	correctSignatureByAliceOnPostFund, _ := testObj.C.PostFundState().Sign(testactors.Alice.PrivateKey)
+	correctSignatureByBobOnPostFund, _ := testObj.C.PostFundState().Sign(testactors.Bob.PrivateKey)
+	testObj.C.AddStateWithSignature(testObj.C.PostFundState(), correctSignatureByAliceOnPostFund)
+	testObj.C.AddStateWithSignature(testObj.C.PostFundState(), correctSignatureByBobOnPostFund)
+
+	cc, err := testObj.CreateConsensusChannel()
+	cc.OnChainFunding = types.Funds{
+		common.HexToAddress("0x00"): big.NewInt(2),
+	}
+
+	if err != nil {
+		panic(err)
+	}
+
 	return cc, true
 }
 

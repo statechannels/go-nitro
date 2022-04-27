@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
-
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -56,17 +56,25 @@ func isInConsensusOrFinalState(c *channel.Channel) (bool, error) {
 // GetChannelByIdFunction specifies a function that can be used to retreive channels from a store.
 type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel, ok bool)
 
+// GetConsensusChannel describes functions which return a ConsensusChannel ledger channel for a channel id.
+type GetConsensusChannel func(channelId types.Destination) (ledger *consensus_channel.ConsensusChannel, err error)
+
 // NewObjective initiates an Objective with the supplied channel
 func NewObjective(
 	preApprove bool,
 	channelId types.Destination,
-	getChannel GetChannelByIdFunction,
+	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
-	c, ok := getChannel(channelId)
-
-	if !ok {
-		return Objective{}, fmt.Errorf("could not find channel %s", channelId)
+	cc, err := getConsensusChannel(channelId)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not find channel %s; %w", channelId, err)
 	}
+
+	c, err := CreateChannelFromConsensusChannel(*cc)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not create Channel from ConsensusChannel; %w", err)
+	}
+
 	// We choose to disallow creating an objective if the channel has an in-progress update.
 	// We allow the creation of of an objective if the channel has some final states.
 	// In the future, we can add a restriction that only defund objectives can add final states to the channel.
@@ -104,10 +112,10 @@ func NewObjective(
 
 var ErrNoFinalState = errors.New("Cannot spawn direct defund objective without a final state")
 
-// ConstructObjectiveFromState takes in a message and constructs an objective from it.
+// ConstructObjectiveFromState takes in a state and constructs an objective from it.
 func ConstructObjectiveFromState(
 	s state.State,
-	getChannel GetChannelByIdFunction,
+	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
 	preApprove := true
 	// TODO: do not blindly preapprove
@@ -124,7 +132,8 @@ func ConstructObjectiveFromState(
 	if err != nil {
 		return Objective{}, err
 	}
-	return NewObjective(preApprove, cId, getChannel)
+
+	return NewObjective(preApprove, cId, getConsensusChannel)
 }
 
 // Public methods on the DirectDefundingObjective
@@ -263,6 +272,20 @@ func IsDirectDefundObjective(id protocols.ObjectiveId) bool {
 }
 
 //  Private methods on the DirectDefundingObjective
+
+// CreateChannelFromConsensusChannel creates a Channel with (an appropriate latest supported state) from the supplied ConsensusChannel.
+func CreateChannelFromConsensusChannel(cc consensus_channel.ConsensusChannel) (*channel.Channel, error) {
+
+	c, err := channel.New(cc.ConsensusVars().AsState(cc.SupportedSignedState().State().FixedPart()), uint(cc.MyIndex))
+
+	if err != nil {
+		return &channel.Channel{}, err
+	}
+	c.OnChainFunding = cc.OnChainFunding.Clone()
+	c.AddSignedState(cc.SupportedSignedState())
+
+	return c, nil
+}
 
 // fullyWithdrawn returns true if the channel contains no assets on chain
 func (o Objective) fullyWithdrawn() bool {

@@ -249,7 +249,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			return e.attemptProgress(&dfo)
 
 		case directdefund.ObjectiveRequest:
-			ddfo, err := directdefund.NewObjective(true, request.ChannelId, e.store.GetChannelById)
+			ddfo, err := directdefund.NewObjective(true, request.ChannelId, e.store.GetConsensusChannelById)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
@@ -335,6 +335,8 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 }
 
 // SpawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective iff it is a directfund.Objective.
+//
+// The associated Channel will remain in the store.
 func (e Engine) SpawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
 	if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
 		c, err := dfo.CreateConsensusChannel()
@@ -389,10 +391,13 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		}
 		return &vfo, nil
 	case directdefund.IsDirectDefundObjective(id):
-		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), e.store.GetChannelById)
+		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), e.store.GetConsensusChannelById)
 		if err != nil {
 			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message: %w", err)
 		}
+
+		// TODO Destroy / Disable / Disown the associated ConsensusChannel
+
 		return &ddfo, nil
 
 	default:
