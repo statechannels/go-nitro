@@ -80,6 +80,10 @@ func TestDirectFundIntegration(t *testing.T) {
 			t.Fatalf("Expected %v as leader, but got %v", clientA.Address, con.Leader())
 		}
 
+		if !con.OnChainFunding.IsNonZero() {
+			t.Fatal("Expected nonzero on chain funding, but got zero")
+		}
+
 	}
 
 }
