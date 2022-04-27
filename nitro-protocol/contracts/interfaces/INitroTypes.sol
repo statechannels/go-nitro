@@ -18,6 +18,11 @@ interface INitroTypes {
         bool isFinal;
     }
 
+    struct SignedVariablePart {
+        VariablePart variablePart;
+        Signature[] sigs;
+    }
+
     struct FixedPart {
         uint256 chainId;
         address[] participants;
