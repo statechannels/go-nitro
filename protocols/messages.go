@@ -42,13 +42,16 @@ func (p MessagePayload) hasProposal() bool {
 
 // Type returns the type of the payload, either a SignedProposal or SignedState.
 func (p MessagePayload) Type() PayloadType {
-
-	if p.hasProposal() && !p.hasState() {
+	switch {
+	case p.hasProposal() && !p.hasState():
 		return SignedProposalPayload
-	} else if p.hasState() && !p.hasProposal() {
+	case !p.hasProposal() && p.hasState():
 		return SignedStatePayload
+	case p.hasProposal() && p.hasState():
+		panic("payload has both state and proposal %v")
+	default:
+		panic("payload has neither state nor proposal")
 	}
-	panic("payload has both state and proposal")
 }
 
 // ObjectivePayload is a struct that contains an objectiveId and EITHER a Signed State or Signed Proposal.
