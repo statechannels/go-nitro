@@ -4,7 +4,6 @@ package directdefund // import "github.com/statechannels/go-nitro/directfund"
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
@@ -265,12 +264,7 @@ func IsDirectDefundObjective(id protocols.ObjectiveId) bool {
 
 // fullyWithdrawn returns true if the channel contains no assets on chain
 func (o Objective) fullyWithdrawn() bool {
-	for _, holdings := range o.C.OnChainFunding {
-		if holdings.Cmp(big.NewInt(0)) != 0 {
-			return false
-		}
-	}
-	return true
+	return !o.C.OnChainFunding.IsNonZero()
 }
 
 // clone returns a deep copy of the receiver.
