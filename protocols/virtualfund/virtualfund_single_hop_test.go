@@ -197,6 +197,21 @@ func cloneAndSignSetupStateByPeers(v channel.SingleHopVirtualChannel, myRole uin
 	return withSigs
 }
 
+func TestMisaddressedUpdate(t *testing.T) {
+	var (
+		td      = newTestData()
+		ledgers = td.leaderLedgers
+		vfo, _  = constructFromState(false, td.vPreFund, alice.Address, ledgers[alice.Destination()].left, ledgers[alice.Destination()].right)
+		event   = protocols.ObjectiveEvent{
+			ObjectiveId: "this-is-not-correct",
+		}
+	)
+
+	if _, err := vfo.Update(event); err == nil {
+		t.Fatal("expected error updating vfo with objective ID mismatch, but found none")
+	}
+}
+
 // TestCrankAsAlice tests the behaviour from a end-user's point of view when they are a leader in the ledger channel
 func TestCrankAsAlice(t *testing.T) {
 	my := alice
@@ -235,6 +250,8 @@ func TestCrankAsAlice(t *testing.T) {
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
+
+	assertSupportedPrefund(o, t)
 
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	// TODO: Check that ledger channel is updated as expected
@@ -312,6 +329,8 @@ func TestCrankAsBob(t *testing.T) {
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
+
+	assertSupportedPrefund(o, t)
 
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	// TODO: Check that ledger channel is updated as expected
@@ -392,6 +411,8 @@ func TestCrankAsP1(t *testing.T) {
 	o = oObj.(*Objective)
 	Ok(t, err)
 
+	assertSupportedPrefund(o, t)
+
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
@@ -430,6 +451,20 @@ func TestCrankAsP1(t *testing.T) {
 	// We need to receive a proposal from Bob before funding is completed!
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 	Equals(t, effects, emptySideEffects)
+}
+
+// assertSupportedPrefund checks that all three participants have signed the prefund. It
+// is used to manually inspect the objective after Update recieves counterparty signatures.
+func assertSupportedPrefund(o *Objective, t *testing.T) {
+	if !o.V.SignedStateForTurnNum[0].HasSignatureForParticipant(alice.Role) {
+		t.Fatal(`Objective prefund state not signed by alice`)
+	}
+	if !o.V.SignedStateForTurnNum[0].HasSignatureForParticipant(bob.Role) {
+		t.Fatal(`Objective prefund state not signed by bob`)
+	}
+	if !o.V.SignedStateForTurnNum[0].HasSignatureForParticipant(p1.Role) {
+		t.Fatal(`Objective prefund state not signed by p1`)
+	}
 }
 
 // assertOneProposalSent fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed proposal.
@@ -485,6 +520,30 @@ func compareSignedProposals(a, b consensus_channel.SignedProposal) bool {
 		cmp.AllowUnexported(
 			consensus_channel.Add{},
 			consensus_channel.Remove{},
+			consensus_channel.Guarantee{},
+			big.Int{},
+		),
+	)
+}
+
+func compareObjectives(a, b Objective) string {
+	return cmp.Diff(&a, &b,
+		cmp.AllowUnexported(
+			Objective{},
+			channel.Channel{},
+			big.Int{},
+			state.SignedState{},
+			consensus_channel.ConsensusChannel{},
+			consensus_channel.Vars{},
+			consensus_channel.LedgerOutcome{},
+			consensus_channel.Balance{},
+		),
+	)
+}
+
+func compareGuarantees(a, b consensus_channel.Guarantee) string {
+	return cmp.Diff(&a, &b,
+		cmp.AllowUnexported(
 			consensus_channel.Guarantee{},
 			big.Int{},
 		),
