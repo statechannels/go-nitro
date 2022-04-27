@@ -56,14 +56,14 @@ func isInConsensusOrFinalState(c *channel.Channel) (bool, error) {
 // GetChannelByIdFunction specifies a function that can be used to retreive channels from a store.
 type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel, ok bool)
 
-// todo: #420 assume name and godoc from GetTwoPartyLedgerFunction
-type GetTwoPartyConsensusLedgerFunction func(channelId types.Destination) (ledger *consensus_channel.ConsensusChannel, err error)
+// GetConsensusChannel describes functions which return a ConsensusChannel ledger channel for a channel id.
+type GetConsensusChannel func(channelId types.Destination) (ledger *consensus_channel.ConsensusChannel, err error)
 
 // NewObjective initiates an Objective with the supplied channel
 func NewObjective(
 	preApprove bool,
 	channelId types.Destination,
-	getConsensusChannel GetTwoPartyConsensusLedgerFunction,
+	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
 	cc, err := getConsensusChannel(channelId)
 	if err != nil {
@@ -115,7 +115,7 @@ var ErrNoFinalState = errors.New("Cannot spawn direct defund objective without a
 // ConstructObjectiveFromState takes in a state and constructs an objective from it.
 func ConstructObjectiveFromState(
 	s state.State,
-	getConsensusChannel GetTwoPartyConsensusLedgerFunction,
+	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
 	preApprove := true
 	// TODO: do not blindly preapprove
