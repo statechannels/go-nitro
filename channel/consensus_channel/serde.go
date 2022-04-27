@@ -177,21 +177,23 @@ func (l *LedgerOutcome) UnmarshalJSON(data []byte) error {
 // jsonConsensusChannel replaces ConsensusChannel's private fields with public ones,
 // making it suitable for serialization
 type jsonConsensusChannel struct {
-	Id            types.Destination
-	MyIndex       ledgerIndex
-	FP            state.FixedPart
-	Current       SignedVars
-	ProposalQueue []SignedProposal
+	Id             types.Destination
+	OnChainFunding types.Funds
+	MyIndex        ledgerIndex
+	FP             state.FixedPart
+	Current        SignedVars
+	ProposalQueue  []SignedProposal
 }
 
 // MarshalJSON returns a JSON representation of the ConsensusChannel
 func (c ConsensusChannel) MarshalJSON() ([]byte, error) {
 	jsonCh := jsonConsensusChannel{
-		MyIndex:       c.MyIndex,
-		FP:            c.fp,
-		Id:            c.Id,
-		Current:       c.current,
-		ProposalQueue: c.proposalQueue,
+		MyIndex:        c.MyIndex,
+		FP:             c.fp,
+		Id:             c.Id,
+		OnChainFunding: c.OnChainFunding,
+		Current:        c.current,
+		ProposalQueue:  c.proposalQueue,
 	}
 	return json.Marshal(jsonCh)
 }
@@ -206,6 +208,7 @@ func (c *ConsensusChannel) UnmarshalJSON(data []byte) error {
 	}
 
 	c.Id = jsonCh.Id
+	c.OnChainFunding = jsonCh.OnChainFunding
 	c.MyIndex = jsonCh.MyIndex
 	c.fp = jsonCh.FP
 	c.current = jsonCh.Current
