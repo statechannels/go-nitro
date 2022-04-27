@@ -32,6 +32,8 @@ type ConsensusChannel struct {
 
 	Id types.Destination
 
+	OnChainFunding types.Funds
+
 	// variables
 	current       SignedVars       // The "consensus state", signed by both parties
 	proposalQueue []SignedProposal // A queue of proposed changes, starting from the consensus state
