@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
@@ -45,6 +46,9 @@ func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel
 	testObj.C.AddStateWithSignature(testObj.C.PostFundState(), correctSignatureByBobOnPostFund)
 
 	cc, err := testObj.CreateConsensusChannel()
+	cc.OnChainFunding = types.Funds{
+		common.HexToAddress("0x00"): big.NewInt(2),
+	}
 
 	if err != nil {
 		panic(err)
