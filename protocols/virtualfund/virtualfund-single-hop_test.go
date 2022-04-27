@@ -11,7 +11,6 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testactors"
-	"github.com/statechannels/go-nitro/protocols"
 
 	"github.com/statechannels/go-nitro/types"
 )
@@ -133,23 +132,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 
 	TestAs := func(my testactors.Actor, t *testing.T) {
 
-		prepareConsensusChannels := func(role uint) (*consensus_channel.ConsensusChannel, *consensus_channel.ConsensusChannel) {
-			var left *consensus_channel.ConsensusChannel
-			var right *consensus_channel.ConsensusChannel
-
-			switch role {
-			case 0:
-				right = prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1)
-			case 1:
-				left = prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1)
-				right = prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob)
-			case 2:
-				left = prepareConsensusChannel(uint(consensus_channel.Leader), p1, bob)
-			}
-
-			return left, right
-		}
-
 		testclone := func(t *testing.T) {
 			// ledgerChannelToMyLeft, ledgerChannelToMyRight := prepareLedgerChannels(my.Role)
 
@@ -162,49 +144,7 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 		}
 
-		testUpdate := func(t *testing.T) {
-			leftCC, rightCC := prepareConsensusChannels(my.Role)
-			var obj, _ = constructFromState(false, vPreFund, my.Address, leftCC, rightCC)
-
-			// Prepare an event with the "correct" channelId (matching the objective),
-			// and make a new Sigs map.
-			// This prepares us for the rest of the test. We will reuse the same event multiple times
-			e := protocols.ObjectiveEvent{
-				ObjectiveId: obj.Id(),
-			}
-
-			e.SignedStates = make([]state.SignedState, 0)
-
-			// Next, attempt to update the objective with correct signature by a participant on a relevant state
-			// Assert that this results in an appropriate change in the extended state of the objective
-			// Part 1: a signature on a state in channel V
-
-			vPostFund := obj.V.PostFundState()
-			ss := state.NewSignedState(vPostFund)
-
-			switch my.Role {
-			case 0:
-				{
-					_ = ss.Sign(&p1.PrivateKey)
-
-				}
-			case 1:
-				{
-					_ = ss.Sign(&alice.PrivateKey)
-
-				}
-			case 2:
-				{
-					_ = ss.Sign(&p1.PrivateKey)
-
-				}
-			}
-			e.SignedStates = append(e.SignedStates, ss)
-
-		}
-
 		t.Run(`clone`, testclone)
-		t.Run(`Update`, testUpdate)
 
 	}
 
