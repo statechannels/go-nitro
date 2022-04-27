@@ -281,6 +281,7 @@ func CreateChannelFromConsensusChannel(cc consensus_channel.ConsensusChannel) (*
 	if err != nil {
 		return &channel.Channel{}, err
 	}
+	c.OnChainFunding = cc.OnChainFunding.Clone()
 	c.AddSignedState(cc.SupportedSignedState())
 
 	return c, nil
