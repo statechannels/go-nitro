@@ -471,12 +471,12 @@ func assertSupportedPrefund(o *Objective, t *testing.T) {
 func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to actors.Actor) {
 	numProposals := 0
 	for _, msg := range ses.MessagesToSend {
-		if len(msg.SignedProposals) > 0 {
+		if len(msg.SignedProposals()) > 0 {
 
 			msg := ses.MessagesToSend[0]
-			sent := msg.SignedProposals[0]
+			sent := msg.SignedProposals()[0].Payload
 
-			Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
+			Assert(t, len(ses.MessagesToSend[0].SignedProposals()) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
 			Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
 			Assert(t, compareSignedProposals(sp, sent), "exp: %+v\n\n\tgot%+v", sp, sent)
 			numProposals++
@@ -489,11 +489,10 @@ func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus
 func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
 	found := false
 	for _, msg := range ses.MessagesToSend {
-		for _, ss := range msg.SignedStates {
-			correctAddress := bytes.Equal(msg.To[:], to.Address[:])
-
-			if correctAddress {
-				diff := compareStates(ss, expected)
+		correctAddress := bytes.Equal(msg.To[:], to.Address[:])
+		if correctAddress {
+			for _, ss := range msg.SignedStates() {
+				diff := compareStates(ss.Payload, expected)
 				Assert(t, diff == "", "incorrect state\n\ndiff: %v", diff)
 				found = true
 				break

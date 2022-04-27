@@ -47,7 +47,7 @@ type Objective struct {
 // NewObjective creates a new direct funding objective from a given request.
 func NewObjective(request ObjectiveRequest, preApprove bool) (Objective, error) {
 
-	objective, err := constructFromState(preApprove,
+	objective, err := ConstructFromState(preApprove,
 		state.State{
 			ChainId:           big.NewInt(0), // TODO
 			Participants:      []types.Address{request.MyAddress, request.CounterParty},
@@ -67,9 +67,9 @@ func NewObjective(request ObjectiveRequest, preApprove bool) (Objective, error) 
 	return objective, nil
 }
 
-// constructFromState initiates a Objective with data calculated from
+// ConstructFromState initiates a Objective with data calculated from
 // the supplied initialState and client address
-func constructFromState(
+func ConstructFromState(
 	preApprove bool,
 	initialState state.State,
 	myAddress types.Address,
@@ -367,25 +367,6 @@ func (o Objective) clone() Objective {
 // IsDirectFundObjective inspects a objective id and returns true if the objective id is for a direct fund objective.
 func IsDirectFundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)
-}
-
-// ConstructObjectiveFromMessage takes in a message and constructs a direct funding objective from it.
-func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address) (Objective, error) {
-
-	if len(m.SignedStates) == 0 {
-		return Objective{}, errors.New("expected at least one signed state in the message")
-	}
-	initialState := m.SignedStates[0].State()
-
-	objective, err := constructFromState(
-		true, // TODO ensure objective in only approved if the application has given permission somehow
-		initialState,
-		myAddress,
-	)
-	if err != nil {
-		return Objective{}, fmt.Errorf("could not create new objective: %w", err)
-	}
-	return objective, nil
 }
 
 // ObjectiveRequest represents a request to create a new direct funding objective.

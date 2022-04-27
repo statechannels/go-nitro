@@ -162,7 +162,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func compareSideEffect(a, b protocols.SideEffects) string {
-	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}))
+	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}, consensus_channel.Add{}, consensus_channel.Remove{}, consensus_channel.Guarantee{}))
 }
 
 func TestCrankAlice(t *testing.T) {
@@ -190,14 +190,12 @@ func TestCrankAlice(t *testing.T) {
 
 	expectedSE := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{{
-			To:          bob.Address,
-			ObjectiveId: o.Id(),
-			SignedStates: []state.SignedState{
-				finalStateSignedByAlice,
-			},
-			SignedProposals: []consensus_channel.SignedProposal{},
-		},
-		}}
+			To: bob.Address,
+			Payloads: []protocols.MessagePayload{{
+				ObjectiveId: o.Id(),
+				SignedState: finalStateSignedByAlice,
+			}},
+		}}}
 
 	if diff := compareSideEffect(expectedSE, se); diff != "" {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
@@ -280,14 +278,10 @@ func TestCrankBob(t *testing.T) {
 	finalStateSignedByBob, _ := signedTestState(finalState, []bool{false, true})
 	expectedSE := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{{
-			To:          alice.Address,
-			ObjectiveId: updated.Id(),
-			SignedStates: []state.SignedState{
-				finalStateSignedByBob,
-			},
-			SignedProposals: []consensus_channel.SignedProposal{},
-		},
-		}}
+			To: alice.Address,
+			Payloads: []protocols.MessagePayload{{ObjectiveId: updated.Id(),
+				SignedState: finalStateSignedByBob,
+			}}}}}
 
 	if diff := compareSideEffect(expectedSE, se); diff != "" {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)

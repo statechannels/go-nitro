@@ -180,11 +180,11 @@ func equalParticipants(p []types.Address, q []types.Address) bool {
 
 // Equal returns true if the given State is deeply equal to the receiever.
 func (s State) Equal(r State) bool {
-	return s.ChainId.Cmp(r.ChainId) == 0 &&
+	return types.Equal(s.ChainId, r.ChainId) &&
 		equalParticipants(s.Participants, r.Participants) &&
-		s.ChannelNonce.Cmp(r.ChannelNonce) == 0 &&
+		types.Equal(s.ChannelNonce, r.ChannelNonce) &&
 		bytes.Equal(s.AppDefinition.Bytes(), r.AppDefinition.Bytes()) &&
-		s.ChallengeDuration.Cmp(r.ChallengeDuration) == 0 &&
+		types.Equal(s.ChallengeDuration, r.ChallengeDuration) &&
 		bytes.Equal(s.AppData, r.AppData) &&
 		s.Outcome.Equal(r.Outcome) &&
 		s.TurnNum == r.TurnNum &&

@@ -353,13 +353,13 @@ func TestLeaderChannel(t *testing.T) {
 		p1 := createAdd(cId, vars.TurnNum+1, t1)
 		sp1 := aliceSignedProposal(vars, p1)
 
-		p2 := createAdd(cId, sp1.TurnNum+1, t2)
+		p2 := createAdd(cId, sp1.Vars.TurnNum+1, t2)
 		sp2 := aliceSignedProposal(sp1.Vars, p2)
 
-		p3 := createAdd(cId, sp2.TurnNum+1, t3)
+		p3 := createAdd(cId, sp2.Vars.TurnNum+1, t3)
 		sp3 := aliceSignedProposal(sp2.Vars, p3)
 
-		p4 := createRemove(cId, sp3.TurnNum+1, t3)
+		p4 := createRemove(cId, sp3.Vars.TurnNum+1, t3)
 		sp4 := aliceSignedProposal(sp3.Vars, p4)
 
 		return []SignedProposalVars{sp1, sp2, sp3, sp4}
@@ -479,7 +479,7 @@ func TestLeaderChannel(t *testing.T) {
 	{
 		msg := "err:unexpected proposal"
 		p := populatedQueue()[2]
-		p4 := createAdd(cId, p.TurnNum+10, types.Destination{11})
+		p4 := createAdd(cId, p.Vars.TurnNum+10, types.Destination{11})
 		counterP := bobSignedProposal(p.Vars, p4)
 		t.Run(msg, testUpdateConsensusErr(counterP, ErrProposalQueueExhausted))
 	}
@@ -487,7 +487,7 @@ func TestLeaderChannel(t *testing.T) {
 	{
 		msg := "err:wrong channel"
 		p := populatedQueue()[2]
-		p4 := createAdd(types.Destination{}, p.TurnNum+10, types.Destination{11}) // blank ChannelID intentionally different than precomputed cId
+		p4 := createAdd(types.Destination{}, p.Vars.TurnNum+10, types.Destination{11}) // blank ChannelID intentionally different than precomputed cId
 		counterP := bobSignedProposal(p.Vars, p4)
 		t.Run(msg, testUpdateConsensusErr(counterP, ErrIncorrectChannelID))
 	}

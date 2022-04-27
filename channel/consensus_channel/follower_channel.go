@@ -37,7 +37,7 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 
 	p := c.proposalQueue[0].Proposal
 
-	if !p.equal(&expectedProposal) {
+	if !p.Equal(&expectedProposal) {
 		return SignedProposal{}, ErrNonMatchingProposals
 	}
 

@@ -78,7 +78,11 @@ func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
 	}
 
 	if c.Channel != nil {
-		return c.Channel.Receive(sp)
+		err := c.Channel.Receive(sp)
+		// Ignore stale or future proposals
+		if errors.Is(err, consensus_channel.ErrInvalidTurnNum) {
+			return nil
+		}
 	}
 
 	return nil
@@ -494,18 +498,14 @@ func (o *Objective) isBob() bool {
 // the calling client and the given counterparty, if such a channel exists.
 type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
-// ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
+// ConstructObjectiveFromState takes in a message and constructs an objective from it.
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
-func ConstructObjectiveFromMessage(
-	m protocols.Message,
+func ConstructObjectiveFromState(
+	initialState state.State,
 	myAddress types.Address,
 	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
 ) (Objective, error) {
-	if len(m.SignedStates) != 1 {
-		return Objective{}, errors.New("expected exactly one signed state in the message")
-	}
 
-	initialState := m.SignedStates[0].State()
 	participants := initialState.Participants
 
 	// This logic assumes a single hop virtual channel.
@@ -579,12 +579,12 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 
 	sideEffects := protocols.SideEffects{}
 
-	signedProposal, err := ledger.Propose(connection.expectedProposal(), *sk)
+	_, err := ledger.Propose(connection.expectedProposal(), *sk)
 	if err != nil {
 		return protocols.SideEffects{}, err
 	}
 
-	message := o.createSignedProposalMessage(signedProposal, connection.Channel)
+	message := protocols.CreateSignedProposalMessage(connection.Channel)
 	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	return sideEffects, nil
@@ -593,29 +593,16 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 // acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
 func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.SideEffects, error) {
 	ledger := c.Channel
-	signedProposal, err := ledger.SignNextProposal(c.expectedProposal(), *sk)
+	sp, err := ledger.SignNextProposal(c.expectedProposal(), *sk)
 
 	if err != nil {
 		return protocols.SideEffects{}, fmt.Errorf("no proposed state found for ledger channel %w", err)
 	}
 
 	sideEffects := protocols.SideEffects{}
-	message := o.createSignedProposalMessage(signedProposal, c.Channel)
+	message := protocols.CreateSignedProposalMessage(c.Channel, sp)
 	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 	return sideEffects, nil
-}
-
-// createSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
-func (o *Objective) createSignedProposalMessage(sp consensus_channel.SignedProposal, ledger *consensus_channel.ConsensusChannel) protocols.Message {
-	recipient := ledger.Leader()
-	if ledger.IsLeader() {
-		recipient = ledger.Follower()
-	}
-	return protocols.Message{
-		To:              recipient,
-		ObjectiveId:     o.Id(),
-		SignedProposals: []consensus_channel.SignedProposal{sp},
-	}
 }
 
 // updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
@@ -645,8 +632,10 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 		if err != nil {
 			return protocols.SideEffects{}, err
 		}
+		// If the proposal is next in the queue we accept it
+		proposedNext, _ := ledger.IsProposedNext(g)
+		if proposedNext {
 
-		if proposed {
 			se, err := o.acceptLedgerUpdate(ledgerConnection, sk)
 			if err != nil {
 				return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)

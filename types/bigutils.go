@@ -17,6 +17,12 @@ func Lt(a *big.Int, b *big.Int) bool {
 }
 
 func Equal(a *big.Int, b *big.Int) bool {
+	if a == nil {
+		return b == nil
+	}
+	if b == nil {
+		return a == nil
+	}
 	return a.Cmp(b) == 0
 }
 

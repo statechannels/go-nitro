@@ -67,8 +67,8 @@ func AssertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected
 func AssertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
 	for _, msg := range ses.MessagesToSend {
 		if bytes.Equal(msg.To[:], to.Address[:]) {
-			for _, ss := range msg.SignedStates {
-				Equals(t, ss, expected)
+			for _, ss := range msg.SignedStates() {
+				Equals(t, ss.Payload, expected)
 			}
 		}
 	}
@@ -78,13 +78,13 @@ func AssertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 
 	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
 
-	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "expected one signed proposal")
+	found := false
 
 	msg := ses.MessagesToSend[0]
-	sent := msg.SignedProposals[0]
-
-	Assert(t, len(ses.MessagesToSend[0].SignedProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
-
+	for _, p := range msg.SignedProposals() {
+		found = found || p.Payload.Proposal.Equal(&sp.Proposal)
+	}
+	Assert(t, found, "proposal %+v not found in signed proposals %+v", sp.Proposal, msg.SignedProposals())
 	Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
 
 }

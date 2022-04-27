@@ -277,12 +277,12 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 			return protocols.SideEffects{}, nil
 		}
 
-		signedProposal, err := ledger.Propose(o.ledgerProposal(ledger), *sk)
+		sp, err := ledger.Propose(o.ledgerProposal(ledger), *sk)
 		if err != nil {
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
 		}
 
-		message := o.createSignedProposalMessage(signedProposal, ledger)
+		message := protocols.CreateSignedProposalMessage(ledger, sp)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	} else {
@@ -294,7 +294,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 				return protocols.SideEffects{}, fmt.Errorf("could not sign proposal: %w", err)
 			}
 
-			message := o.createSignedProposalMessage(sp, ledger)
+			message := protocols.CreateSignedProposalMessage(ledger, sp)
 			sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 		}
 	}
@@ -340,19 +340,6 @@ func (o Objective) isLeftDefunded() bool {
 
 	included := o.ToMyLeft.IncludesTarget(o.VId())
 	return !included
-}
-
-// createSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
-func (o *Objective) createSignedProposalMessage(sp consensus_channel.SignedProposal, ledger *consensus_channel.ConsensusChannel) protocols.Message {
-	recipient := ledger.Leader()
-	if ledger.IsLeader() {
-		recipient = ledger.Follower()
-	}
-	return protocols.Message{
-		To:              recipient,
-		ObjectiveId:     o.Id(),
-		SignedProposals: []consensus_channel.SignedProposal{sp},
-	}
 }
 
 // validateSignature returns whether the given signature is valid for the given participant
