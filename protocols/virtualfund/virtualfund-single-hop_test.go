@@ -201,33 +201,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 			e.SignedStates = append(e.SignedStates, ss)
 
-			updatedObj, err := obj.Update(e)
-			updated := updatedObj.(*Objective)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			switch my.Role {
-			case 0:
-				{
-					if !updated.V.SignedStateForTurnNum[1].HasSignatureForParticipant(p1.Role) {
-						t.Fatal(`Objective data not updated as expected`)
-					}
-				}
-			case 1:
-				{
-					if !updated.V.SignedStateForTurnNum[1].HasSignatureForParticipant(alice.Role) {
-						t.Fatal(`Objective data not updated as expected`)
-					}
-				}
-			case 2:
-				{
-					if !updated.V.SignedStateForTurnNum[1].HasSignatureForParticipant(p1.Role) {
-						t.Fatal(`Objective data not updated as expected`)
-					}
-				}
-			}
-
 			// Part 2: a signature on a relevant ledger channel
 			// TODO: This doesn't quite test things
 

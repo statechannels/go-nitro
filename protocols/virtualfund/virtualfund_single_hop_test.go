@@ -251,6 +251,8 @@ func TestCrankAsAlice(t *testing.T) {
 	o = oObj.(*Objective)
 	Ok(t, err)
 
+	assertSupportedPrefund(o, t)
+
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	// TODO: Check that ledger channel is updated as expected
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
@@ -327,6 +329,8 @@ func TestCrankAsBob(t *testing.T) {
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
+
+	assertSupportedPrefund(o, t)
 
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	// TODO: Check that ledger channel is updated as expected
@@ -407,6 +411,8 @@ func TestCrankAsP1(t *testing.T) {
 	o = oObj.(*Objective)
 	Ok(t, err)
 
+	assertSupportedPrefund(o, t)
+
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
@@ -445,6 +451,20 @@ func TestCrankAsP1(t *testing.T) {
 	// We need to receive a proposal from Bob before funding is completed!
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 	Equals(t, effects, emptySideEffects)
+}
+
+// assertSupportedPrefund checks that all three participants have signed the prefund. It
+// is used to manually inspect the objective after Update recieves counterparty signatures.
+func assertSupportedPrefund(o *Objective, t *testing.T) {
+	if !o.V.SignedStateForTurnNum[0].HasSignatureForParticipant(alice.Role) {
+		t.Fatal(`Objective prefund state not signed by alice`)
+	}
+	if !o.V.SignedStateForTurnNum[0].HasSignatureForParticipant(bob.Role) {
+		t.Fatal(`Objective prefund state not signed by bob`)
+	}
+	if !o.V.SignedStateForTurnNum[0].HasSignatureForParticipant(p1.Role) {
+		t.Fatal(`Objective prefund state not signed by p1`)
+	}
 }
 
 // assertOneProposalSent fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed proposal.
