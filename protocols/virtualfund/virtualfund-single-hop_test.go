@@ -1,17 +1,6 @@
 // todo: #420 delete this file
 package virtualfund
 
-import (
-	"math/big"
-	"testing"
-
-	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/internal/testactors"
-
-	"github.com/statechannels/go-nitro/types"
-)
-
 // signPreAndPostFundingStates is a test utility function which applies signatures from
 // multiple participants to pre and post fund states
 // func signPreAndPostFundingStates(ledger *channel.TwoPartyLedger, secretKeys []*[]byte) {
@@ -69,45 +58,3 @@ import (
 // 	nextState.Outcome, _ = nextState.Outcome.DivertToGuarantee(left, right, leftAmount, rightAmount, guaranteeDestination)
 // 	return nextState
 // }
-
-func TestSingleHopVirtualFund(t *testing.T) {
-	t.Skip()
-
-	/////////////////////
-	// VIRTUAL CHANNEL //
-	/////////////////////
-
-	// Virtual Channel
-	vPreFund := state.State{
-		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{alice.Address, p1.Address, bob.Address}, // A single hop virtual channel
-		ChannelNonce:      big.NewInt(0),
-		AppDefinition:     types.Address{},
-		ChallengeDuration: big.NewInt(45),
-		AppData:           []byte{},
-		Outcome: outcome.Exit{outcome.SingleAssetExit{
-			Allocations: outcome.Allocations{
-				outcome.Allocation{
-					Destination: alice.Destination(),
-					Amount:      big.NewInt(6),
-				},
-				outcome.Allocation{
-					Destination: bob.Destination(),
-					Amount:      big.NewInt(4),
-				},
-			},
-		}},
-		TurnNum: 0,
-		IsFinal: false,
-	}
-	vPostFund := vPreFund.Clone()
-	vPostFund.TurnNum = 1
-
-	TestAs := func(my testactors.Actor, t *testing.T) {
-
-	}
-
-	t.Run(`AsAlice`, func(t *testing.T) { TestAs(alice, t) })
-	t.Run(`AsBob`, func(t *testing.T) { TestAs(bob, t) })
-	t.Run(`AsP1`, func(t *testing.T) { TestAs(p1, t) })
-}
