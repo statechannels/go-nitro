@@ -201,66 +201,6 @@ func TestSingleHopVirtualFund(t *testing.T) {
 			}
 			e.SignedStates = append(e.SignedStates, ss)
 
-			// Part 2: a signature on a relevant ledger channel
-			// TODO: This doesn't quite test things
-
-			// f := protocols.ObjectiveEvent{
-			// 	ObjectiveId: obj.Id(),
-			// }
-			// f.SignedStates = make([]state.SignedState, 0)
-			// someTurnNum := uint64(99)
-			// switch my.Role {
-			// case 0:
-			// 	{
-			// 		s := ledgerChannelToMyRight.PreFundState().Clone()
-			// 		s.TurnNum = someTurnNum
-			// 		ss = state.NewSignedState(s)
-			// 		_ = ss.Sign(&p1.PrivateKey)
-			// 	}
-			// case 1:
-			// 	{
-			// 		s := ledgerChannelToMyRight.PreFundState().Clone()
-			// 		s.TurnNum = someTurnNum
-			// 		ss = state.NewSignedState(s)
-			// 		_ = ss.Sign(&bob.PrivateKey)
-			// 	}
-			// case 2:
-			// 	{
-			// 		s := ledgerChannelToMyLeft.PreFundState().Clone()
-			// 		s.TurnNum = someTurnNum
-			// 		ss = state.NewSignedState(s)
-			// 		_ = ss.Sign(&p1.PrivateKey)
-			// 	}
-			// }
-			// f.SignedStates = append(f.SignedStates, ss)
-
-			// updatedObj, err = obj.Update(f)
-			// updated = updatedObj.(*Objective)
-			// if err != nil {
-			// 	t.Fatal(err)
-			// }
-
-			// switch my.Role {
-			// case 0:
-			// 	{
-			// 		if !updated.ToMyRight.Channel.SignedStateForTurnNum[someTurnNum].HasSignatureForParticipant((updated.ToMyRight.Channel.MyIndex + 1) % 2) {
-			// 			t.Fatal(`Objective data not updated as expected`)
-			// 		}
-			// 	}
-			// case 1:
-			// 	{
-			// 		if !updated.ToMyRight.Channel.SignedStateForTurnNum[someTurnNum].HasSignatureForParticipant((updated.ToMyRight.Channel.MyIndex + 1) % 2) {
-			// 			t.Fatal(`Objective data not updated as expected`)
-			// 		}
-			// 	}
-			// case 2:
-			// 	{
-			// 		if !updated.ToMyLeft.Channel.SignedStateForTurnNum[someTurnNum].HasSignatureForParticipant((updated.ToMyLeft.Channel.MyIndex + 1) % 2) {
-			// 			t.Fatal(`Objective data not updated as expected`)
-			// 		}
-			// 	}
-			// }
-
 		}
 
 		t.Run(`clone`, testclone)
