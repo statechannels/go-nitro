@@ -57,7 +57,7 @@ func (p MessagePayload) Type() PayloadType {
 	panic("payload has both state and proposal")
 }
 
-// ObjectivePayload is a struct that contains an objectiveId and EITHER.
+// ObjectivePayload is a struct that contains an objectiveId and EITHER a Signed State or Signed Proposal.
 type ObjectivePayload[T PayloadValue] struct {
 	Payload     T
 	ObjectiveId ObjectiveId
