@@ -570,7 +570,7 @@ func (p *Proposal) Target() types.Destination {
 	}
 }
 
-// SignedProposal is a Proposall with a signature on it
+// SignedProposal is a Proposal with a signature on it
 type SignedProposal struct {
 	state.Signature
 	Proposal Proposal
