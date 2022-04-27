@@ -5,39 +5,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testactors"
 
 	"github.com/statechannels/go-nitro/types"
 )
-
-func compareObjectives(a, b Objective) string {
-	return cmp.Diff(&a, &b,
-		cmp.AllowUnexported(
-			Objective{},
-			channel.Channel{},
-			big.Int{},
-			state.SignedState{},
-			consensus_channel.ConsensusChannel{},
-			consensus_channel.Vars{},
-			consensus_channel.LedgerOutcome{},
-			consensus_channel.Balance{},
-		),
-	)
-}
-
-func compareGuarantees(a, b consensus_channel.Guarantee) string {
-	return cmp.Diff(&a, &b,
-		cmp.AllowUnexported(
-			consensus_channel.Guarantee{},
-			big.Int{},
-		),
-	)
-}
 
 // signPreAndPostFundingStates is a test utility function which applies signatures from
 // multiple participants to pre and post fund states

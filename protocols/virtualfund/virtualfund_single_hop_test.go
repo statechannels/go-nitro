@@ -525,3 +525,27 @@ func compareSignedProposals(a, b consensus_channel.SignedProposal) bool {
 		),
 	)
 }
+
+func compareObjectives(a, b Objective) string {
+	return cmp.Diff(&a, &b,
+		cmp.AllowUnexported(
+			Objective{},
+			channel.Channel{},
+			big.Int{},
+			state.SignedState{},
+			consensus_channel.ConsensusChannel{},
+			consensus_channel.Vars{},
+			consensus_channel.LedgerOutcome{},
+			consensus_channel.Balance{},
+		),
+	)
+}
+
+func compareGuarantees(a, b consensus_channel.Guarantee) string {
+	return cmp.Diff(&a, &b,
+		cmp.AllowUnexported(
+			consensus_channel.Guarantee{},
+			big.Int{},
+		),
+	)
+}
