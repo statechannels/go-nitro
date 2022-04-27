@@ -70,7 +70,7 @@ func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservi
 	chain.Subscribe(myAddress)
 	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
-	storeA := store.NewMockStore(pk)
+	storeA := store.NewMemStore(pk)
 	return client.New(messageservice, chainservice, storeA, logDestination), storeA
 }
 

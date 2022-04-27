@@ -36,13 +36,13 @@ func compareObjectives(a, b protocols.Objective) string {
 
 func TestNewMockStore(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
-	store.NewMockStore(sk)
+	store.NewMemStore(sk)
 }
 
 func TestSetGetObjective(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
-	ms := store.NewMockStore(sk)
+	ms := store.NewMemStore(sk)
 
 	id := protocols.ObjectiveId("404")
 	got, err := ms.GetObjectiveById(id)
@@ -82,7 +82,7 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
-	ms := store.NewMockStore(sk)
+	ms := store.NewMemStore(sk)
 
 	dfo := td.Objectives.Directfund.GenericDFO()
 
@@ -119,7 +119,7 @@ func TestGetChannelSecretKey(t *testing.T) {
 	sk := common.Hex2Bytes("caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634")
 	pk := common.HexToAddress("0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD")
 
-	ms := store.NewMockStore(sk)
+	ms := store.NewMemStore(sk)
 	key := ms.GetChannelSecretKey()
 
 	msg := []byte("sign this")
@@ -135,7 +135,7 @@ func TestGetChannelSecretKey(t *testing.T) {
 func TestConsensusChannelStore(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
-	ms := store.NewMockStore(sk)
+	ms := store.NewMemStore(sk)
 
 	got, ok := ms.GetConsensusChannel(ta.Alice.Address)
 	if ok {
