@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
@@ -33,12 +32,7 @@ type MessagePayload struct {
 
 // hasState returns true if the payload contains a signed state.
 func (p MessagePayload) hasState() bool {
-	stateHash, err := p.SignedState.State().Hash()
-	if err != nil {
-		return false
-	}
-
-	return bytes.Compare(stateHash.Bytes(), common.Hash{}.Bytes()) != 0
+	return !p.SignedState.State().Equal(state.State{})
 }
 
 // hasProposal returns true if the payload contains a signed proposal.
