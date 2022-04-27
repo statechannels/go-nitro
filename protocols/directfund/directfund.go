@@ -160,6 +160,7 @@ func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChan
 
 	if ledger.MyIndex == uint(consensus_channel.Leader) {
 		con, err := consensus_channel.NewLeaderChannel(ledger.FixedPart, turnNum, outcome, signatures)
+		con.OnChainFunding = ledger.OnChainFunding.Clone() // Copy OnChainFunding so we don't lose this information
 		if err != nil {
 			return nil, fmt.Errorf("could not create consensus channel as leader: %w", err)
 		}
@@ -167,6 +168,7 @@ func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChan
 
 	} else {
 		con, err := consensus_channel.NewFollowerChannel(ledger.FixedPart, turnNum, outcome, signatures)
+		con.OnChainFunding = ledger.OnChainFunding.Clone() // Copy OnChainFunding so we don't lose this information
 		if err != nil {
 			return nil, fmt.Errorf("could not create consensus channel as follower: %w", err)
 		}
