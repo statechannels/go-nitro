@@ -16,32 +16,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// generateLedgers generates the left and right ledger channels based on myRole
-// The ledger channels will include a guarantee that funds V
-func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus_channel.ConsensusChannel) {
-	switch myRole {
-	case 0:
-		{
-			return nil, prepareConsensusChannel(uint(consensus_channel.Leader), testactors.Alice, testactors.Irene, generateGuarantee(testactors.Alice, testactors.Irene, vId))
-		}
-	case 1:
-		{
-
-			return prepareConsensusChannel(uint(consensus_channel.Follower), testactors.Alice, testactors.Irene, generateGuarantee(testactors.Alice, testactors.Irene, vId)),
-				prepareConsensusChannel(uint(consensus_channel.Leader), testactors.Irene, testactors.Bob, generateGuarantee(testactors.Irene, testactors.Bob, vId))
-
-		}
-	case 2:
-		{
-
-			return prepareConsensusChannel(uint(consensus_channel.Follower), testactors.Irene, testactors.Bob, generateGuarantee(testactors.Irene, testactors.Bob, vId)), nil
-
-		}
-	default:
-		panic("invalid myRole")
-	}
-}
-
 // generateStoreGetters generates mocks for some store methods
 func generateStoreGetters() (GetChannelByIdFunction, GetTwoPartyConsensusLedgerFunction) {
 	fun1 := func(id types.Destination) (*channel.Channel, bool) {
@@ -51,55 +25,6 @@ func generateStoreGetters() (GetChannelByIdFunction, GetTwoPartyConsensusLedgerF
 		return &consensus_channel.ConsensusChannel{}, true // TODO
 	}
 	return fun1, fun2
-}
-
-// generateGuarantee generates a guarantee for the given participants and vId
-func generateGuarantee(left, right testactors.Actor, vId types.Destination) consensus_channel.Guarantee {
-	return consensus_channel.NewGuarantee(big.NewInt(10), vId, left.Destination(), right.Destination())
-
-}
-
-// prepareConsensusChannel prepares a consensus channel with a consensus outcome
-//  - allocating 0 to left
-//  - allocating 0 to right
-//  - including the given guarantees
-func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
-	fp := state.FixedPart{
-		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{left.Address(), right.Address()},
-		ChannelNonce:      big.NewInt(0),
-		AppDefinition:     types.Address{},
-		ChallengeDuration: big.NewInt(45),
-	}
-
-	leftBal := consensus_channel.NewBalance(left.Destination(), big.NewInt(0))
-	rightBal := consensus_channel.NewBalance(right.Destination(), big.NewInt(0))
-
-	lo := *consensus_channel.NewLedgerOutcome(types.Address{}, leftBal, rightBal, guarantees)
-
-	signedVars := consensus_channel.SignedVars{Vars: consensus_channel.Vars{Outcome: lo, TurnNum: 1}}
-	leftSig, err := signedVars.Vars.AsState(fp).Sign(left.PrivateKey)
-	if err != nil {
-		panic(err)
-	}
-	rightSig, err := signedVars.Vars.AsState(fp).Sign(right.PrivateKey)
-	if err != nil {
-		panic(err)
-	}
-	sigs := [2]state.Signature{leftSig, rightSig}
-
-	var cc consensus_channel.ConsensusChannel
-
-	if role == 0 {
-		cc, err = consensus_channel.NewLeaderChannel(fp, 1, lo, sigs)
-	} else {
-		cc, err = consensus_channel.NewFollowerChannel(fp, 1, lo, sigs)
-	}
-	if err != nil {
-		panic(err)
-	}
-
-	return &cc
 }
 
 // checkForFollowerProposals checks that the follower have signed and sent the appropriate proposal

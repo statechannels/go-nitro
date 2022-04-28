@@ -62,7 +62,6 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		t.Skip() // TODO
 		data := generateTestData()
 		request := ObjectiveRequest{}
-		// left, right := generateLedgers(my.Role, vId)
 		getChannel, getConsensusChannel := generateStoreGetters()
 
 		virtualDefund, err := NewObjective(false, request, getChannel, getConsensusChannel)
