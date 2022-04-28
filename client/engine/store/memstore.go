@@ -167,7 +167,7 @@ func (ms *MemStore) SetChannel(ch *channel.Channel) error {
 
 // DestroyChannel deletes the channel with id id.
 func (ms *MemStore) DestroyChannel(id types.Destination) {
-	ms.channels.m.Delete(id)
+	ms.channels.m.Delete(id.String())
 }
 
 // SetConsensusChannel sets the channel in the store.
@@ -184,7 +184,7 @@ func (ms *MemStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel) 
 
 // DestroyChannel deletes the channel with id id.
 func (ms *MemStore) DestroyConsensusChannel(id types.Destination) {
-	ms.consensusChannels.m.Delete(id)
+	ms.consensusChannels.m.Delete(id.String())
 }
 
 // GetChannelById retrieves the channel with the supplied id, if it exists.
