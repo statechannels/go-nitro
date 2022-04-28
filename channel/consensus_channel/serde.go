@@ -42,6 +42,41 @@ func (a *Add) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// jsonRemove replaces Remove's private fields with public ones,
+// making it suitable for serialization
+// embedded structs are moved to name fields for easier serialization
+type jsonRemove struct {
+	TurnNum     uint64
+	Target      types.Destination
+	LeftAmount  *big.Int
+	RightAmount *big.Int
+}
+
+// MarshalJSON returns a JSON representation of the Add
+func (r Remove) MarshalJSON() ([]byte, error) {
+	jsonR := jsonRemove{
+		r.turnNum, r.Target, r.LeftAmount, r.RightAmount,
+	}
+	return json.Marshal(jsonR)
+}
+
+// UnmarshalJSON populates the receiver with the
+// json-encoded data
+func (r *Remove) UnmarshalJSON(data []byte) error {
+	var jsonR jsonRemove
+	err := json.Unmarshal(data, &jsonR)
+	if err != nil {
+		return fmt.Errorf("error unmarshaling remove data: %w", err)
+	}
+
+	r.turnNum = jsonR.TurnNum
+	r.Target = jsonR.Target
+	r.LeftAmount = jsonR.LeftAmount
+	r.RightAmount = jsonR.RightAmount
+
+	return nil
+}
+
 // jsonProposal replaces Proposal's private fields with public ones,
 // making it suitable for serialization
 type jsonProposal struct {
