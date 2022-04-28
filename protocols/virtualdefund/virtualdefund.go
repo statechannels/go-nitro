@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -54,8 +55,18 @@ type Objective struct {
 
 const ObjectivePrefix = "VirtualDefund-"
 
-// newObjective constructs a new virtual defund objective
-func newObjective(preApprove bool, vFixed state.FixedPart, initialOutcome outcome.SingleAssetExit, paidToBob *big.Int, toMyLeft, toMyRight *consensus_channel.ConsensusChannel, myRole uint) Objective {
+// GetChannelByIdFunction specifies a function that can be used to retreive channels from a store.
+type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel, ok bool)
+
+// GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
+// the calling client and the given counterparty, if such a channel exists.
+type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
+
+// NewObjective constructs a new virtual defund objective
+func NewObjective(preApprove bool,
+	request ObjectiveRequest,
+	getChannel GetChannelByIdFunction,
+	getConsensusChannel GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 	var status protocols.ObjectiveStatus
 
 	if preApprove {
@@ -64,16 +75,32 @@ func newObjective(preApprove bool, vFixed state.FixedPart, initialOutcome outcom
 		status = protocols.Unapproved
 	}
 
+	V, found := getChannel(request.ChannelId)
+	if !found {
+		return Objective{}, fmt.Errorf("could not find channel %s", request.ChannelId)
+	}
+	if V.MyIndex != 0 {
+		return Objective{}, errors.New("only participant 0 may instigate closing the channel")
+	}
+	initialOutcome := V.PostFundState().Outcome[0]
+
+	var toMyLeft *consensus_channel.ConsensusChannel // Only Alice calls NewObjective, so there is no ledger channel to her left.
+
+	toMyRight, found := getConsensusChannel(request.Intermediary)
+	if !found {
+		return Objective{}, fmt.Errorf("Error getting consensus channel")
+	}
+
 	return Objective{
 		Status:         status,
 		InitialOutcome: initialOutcome,
-		PaidToBob:      paidToBob,
-		VFixed:         vFixed,
+		PaidToBob:      request.PaidToBob,
+		VFixed:         V.FixedPart,
 		Signatures:     [3]state.Signature{},
-		MyRole:         myRole,
+		MyRole:         V.MyIndex,
 		ToMyLeft:       toMyLeft,
 		ToMyRight:      toMyRight,
-	}
+	}, nil
 
 }
 
@@ -443,7 +470,11 @@ func isZero(sig state.Signature) bool {
 
 // ObjectiveRequest represents a request to create a new direct defund objective.
 type ObjectiveRequest struct {
-	ChannelId types.Destination
+	ChannelId    types.Destination
+	PaidToBob    *big.Int
+	MyAddress    types.Address
+	Intermediary types.Address
+	CounterParty types.Address
 }
 
 // Id returns the objective id for the request.
