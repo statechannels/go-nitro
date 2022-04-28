@@ -13,9 +13,10 @@ type Address = common.Address
 // An ethereum hash (32 bytes)
 type Bytes32 = common.Hash
 
-// Destination represents a payable address in go-nitro, which is either:
-//  - a blockchain account address left-padded with 0s, or
-//  - a 32-byte nitro channel address
+// Destination represents a payable address in go-nitro. In a state channel network,
+// payable address are either:
+//  - Internal: a 32-byte nitro channel ID, or
+//  - External: a blockchain account or contract address, left-padded with 0s
 type Destination Bytes32
 
 // An arbitrary length byte slice
