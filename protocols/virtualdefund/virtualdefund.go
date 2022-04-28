@@ -77,9 +77,7 @@ func NewObjective(preApprove bool,
 	if !found {
 		return Objective{}, fmt.Errorf("could not find channel %s", request.ChannelId)
 	}
-	if V.MyIndex != 0 {
-		return Objective{}, errors.New("only participant 0 may instigate closing the channel")
-	}
+
 	initialOutcome := V.PostFundState().Outcome[0]
 
 	var toMyLeft *consensus_channel.ConsensusChannel // Only Alice calls NewObjective, so there is no ledger channel to her left.
