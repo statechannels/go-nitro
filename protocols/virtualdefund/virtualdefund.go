@@ -83,7 +83,7 @@ func NewObjective(preApprove bool,
 
 	var toMyLeft *consensus_channel.ConsensusChannel // Only Alice calls NewObjective, so there is no ledger channel to her left.
 
-	intermediary := V.Participants[2]
+	intermediary := V.Participants[1] // This mirrors how it is done in virtualfund. We should probably extract to a shared constant somewhere.
 
 	toMyRight, found := getConsensusChannel(intermediary)
 	if !found {
