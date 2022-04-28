@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -70,6 +71,22 @@ func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequ
 	c.engine.FromAPI <- apiEvent
 
 	return objectiveRequest.Id()
+}
+
+// CloseDirectChannel attempts to close and defund the given directly funded channel.
+func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.ObjectiveId {
+
+	objectiveRequest := virtualdefund.ObjectiveRequest{
+		ChannelId: channelId,
+	}
+	apiEvent := engine.APIEvent{
+		ObjectiveToSpawn: objectiveRequest,
+	}
+	// Send the event to the engine
+	c.engine.FromAPI <- apiEvent
+
+	return objectiveRequest.Id()
+
 }
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty
