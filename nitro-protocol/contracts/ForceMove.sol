@@ -71,9 +71,9 @@ contract ForceMove is IForceMove, StatusManager {
             _requireChannelNotFinalized(channelId);
         }
         bytes32 supportedStateHash = _requireStateSupportedBy(
+            fixedPart,
             variableParts,
             channelId,
-            fixedPart,
             sigs,
             whoSignedWhat
         );
@@ -211,7 +211,7 @@ contract ForceMove is IForceMove, StatusManager {
         // checks
         _requireChannelNotFinalized(channelId);
         _requireIncreasedTurnNumber(channelId, largestTurnNum);
-        _requireStateSupportedBy(variableParts, channelId, fixedPart, sigs, whoSignedWhat);
+        _requireStateSupportedBy(fixedPart, variableParts, channelId, sigs, whoSignedWhat);
 
         // effects
         _clearChallenge(channelId, largestTurnNum);
@@ -467,9 +467,9 @@ contract ForceMove is IForceMove, StatusManager {
      * @return The hash of the latest state in the proof, if supported, else reverts.
      */
     function _requireStateSupportedBy(
+        FixedPart memory fixedPart,
         VariablePart[] memory variableParts,
         bytes32 channelId,
-        FixedPart memory fixedPart,
         Signature[] memory sigs,
         uint8[] memory whoSignedWhat
     ) internal pure returns (bytes32) {
