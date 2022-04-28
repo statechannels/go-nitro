@@ -84,8 +84,7 @@ func TestDirectFundIntegration(t *testing.T) {
 			t.Fatal("Expected nonzero on chain funding, but got zero")
 		}
 
-		_, channelStillInStore := store.GetChannelById(con.Id)
-		if channelStillInStore {
+		if _, channelStillInStore := store.GetChannelById(con.Id); channelStillInStore {
 			t.Fatalf("Expected channel to have been destroyed in %v's store, but it was not", store.GetAddress())
 		}
 
