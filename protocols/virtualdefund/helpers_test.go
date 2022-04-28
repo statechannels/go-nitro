@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -39,6 +40,17 @@ func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus
 	default:
 		panic("invalid myRole")
 	}
+}
+
+// generateStoreGetters generates mocks for some store methods
+func generateStoreGetters() (GetChannelByIdFunction, GetTwoPartyConsensusLedgerFunction) {
+	fun1 := func(id types.Destination) (*channel.Channel, bool) {
+		return &channel.Channel{}, true // TODO
+	}
+	fun2 := func(address types.Address) (*consensus_channel.ConsensusChannel, bool) {
+		return &consensus_channel.ConsensusChannel{}, true // TODO
+	}
+	return fun1, fun2
 }
 
 // generateGuarantee generates a guarantee for the given participants and vId
