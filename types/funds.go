@@ -55,15 +55,15 @@ func Sum(a ...Funds) Funds {
 	return sum
 }
 
-// Equal returns true if receiver `f` and input `g` are identical in value.
+// Equal returns true if receiver and input g are identical in monetary value, and false otherwise.
 //
 // Note that a zero-balance equals a non-balance: {[0x0a,0x00],[0x0b,0x01]} == {[0x0b,0x01]}
 func (f Funds) Equal(g Funds) bool {
 	return f.canAfford(g) && g.canAfford(f)
 }
 
-// canAfford returns true if each of `g`'s non-zero asset balances is matched
-// or exceeded by the same asset-balance in `f`
+// canAfford returns true if each of g's non-zero asset balances is matched
+// or exceeded by the same asset-balance in the receiver
 func (f Funds) canAfford(g Funds) bool {
 	zero := big.NewInt(0)
 
