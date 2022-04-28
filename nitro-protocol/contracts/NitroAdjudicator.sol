@@ -101,20 +101,19 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
     }
 
     /**
-    * @notice Check that the submitted pair of states form a valid transition (public wrapper for internal function _requireValidTransition)
-    * @dev Check that the submitted pair of states form a valid transition (public wrapper for internal function _requireValidTransition)
-    * @param nParticipants Number of participants in the channel.
-    transition
-    * @param ab Variable parts of each of the pair of states
-    * @param appDefinition Address of deployed contract containing application-specific validTransition function.
-    * @return true if the later state is a validTransition from its predecessor, reverts otherwise.
-    */
-    function validTransition(
-        uint256 nParticipants,
-        VariablePart[2] memory ab, // [a,b]
-        address appDefinition
-    ) public pure returns (bool) {
-        return _requireValidTransition(nParticipants, ab, appDefinition);
+     * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel.
+     * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel.
+     * @param fixedPart Fixed part of the state channel.
+     * @param signedVariableParts Array of variable parts to find the latest of.
+     * @return VariablePart Latest supported by application variable part from supplied array.
+     */    
+    function latestSupportedState(
+        FixedPart calldata fixedPart,
+        SignedVariablePart[] calldata signedVariableParts
+    ) external pure returns (VariablePart memory) {
+        // copy to memory explicitly to avoid `Stack to deep` error
+        SignedVariablePart[] memory _signedVariableParts = signedVariableParts;
+        return IForceMoveApp(fixedPart.appDefinition).latestSupportedState(fixedPart, _signedVariableParts);
     }
 
     /**

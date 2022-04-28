@@ -157,10 +157,26 @@ contract ForceMove is IForceMove, StatusManager {
             'Signer not authorized mover'
         );
 
-        _requireValidTransition(
-            fixedPart.participants.length,
-            variablePartAB,
-            fixedPart.appDefinition
+        VariablePart[] memory variableParts = new VariablePart[](2);
+        variableParts[0] = variablePartAB[0];
+        variableParts[1] = variablePartAB[1];
+
+        Signature[] memory sigs = new Signature[](1);
+        sigs[0] = sig;
+
+        uint8[] memory whoSignedWhat = new uint8[](1);
+        whoSignedWhat[0] = 1;
+
+        _requireVariablePartIsLast(
+            IForceMoveApp(fixedPart.appDefinition).latestSupportedState(
+                fixedPart,
+                _bindSigsToVariableParts(
+                    variableParts,
+                    sigs,
+                    whoSignedWhat
+                )
+            ),
+            variableParts
         );
 
         // effects
@@ -457,126 +473,79 @@ contract ForceMove is IForceMove, StatusManager {
         Signature[] memory sigs,
         uint8[] memory whoSignedWhat
     ) internal pure returns (bytes32) {
-        bytes32[] memory stateHashes = _requireValidTransitionChain(
-            variableParts,
+        VariablePart memory latestVariablePart = IForceMoveApp(fixedPart.appDefinition)
+            .latestSupportedState(fixedPart, _bindSigsToVariableParts(variableParts, sigs, whoSignedWhat));
+
+        // enforcing the latest supported state being in the last slot of the array
+        _requireVariablePartIsLast(latestVariablePart, variableParts);
+
+        return _hashState(
             channelId,
-            fixedPart
+            latestVariablePart.appData,
+            latestVariablePart.outcome,
+            latestVariablePart.turnNum,
+            latestVariablePart.isFinal
         );
-
-        require(
-            _validSignatures(
-                _lastVariablePart(variableParts).turnNum,
-                fixedPart.participants,
-                stateHashes,
-                sigs,
-                whoSignedWhat
-            ),
-            'Invalid signatures'
-        );
-
-        return stateHashes[stateHashes.length - 1];
     }
 
     /**
-     * @notice Check that the submitted states form a chain of valid transitions
-     * @dev Check that the submitted states form a chain of valid transitions
-     * @param variableParts Variable parts of the states in the support proof
-     * @param channelId Unique identifier for a channel.
-     * @param fixedPart Fixed Part of the states in the support proof
-     * @return true if every state is a validTransition from its predecessor, false otherwise.
+     * @notice Construct SignedVariablePart array from supplied variable parts and signatures.
+     * @dev Construct SignedVariablePart array from supplied variable parts and signatures.
+     * @param variableParts Variable parts to construct signed ones from.
+     * @param sigs Signatures to combine with variable parts.
+     * @param whoSignedWhat participant[i] signed stateHashes[whoSignedWhat[i]]
+     * @return SignedVariablePart array.
      */
-    function _requireValidTransitionChain(
-        // returns stateHashes array if valid
-        // else, reverts
+    function _bindSigsToVariableParts(
         VariablePart[] memory variableParts,
-        bytes32 channelId,
-        FixedPart memory fixedPart
-    ) internal pure returns (bytes32[] memory) {
-        bytes32[] memory stateHashes = new bytes32[](variableParts.length);
+        Signature[] memory sigs,
+        uint8[] memory whoSignedWhat
+    ) internal pure returns (SignedVariablePart[] memory) {
+        SignedVariablePart[] memory signedVariableParts = new SignedVariablePart[](variableParts.length);
 
-        for (uint48 i = 0; i < variableParts.length; i++) {
-            stateHashes[i] = _hashState(
-                channelId,
-                variableParts[i].appData,
-                variableParts[i].outcome,
-                variableParts[i].turnNum,
-                variableParts[i].isFinal
+        // copy variable parts to signed variable parts
+        for (uint256 i = 0; i < variableParts.length; i++) {
+            signedVariableParts[i] = SignedVariablePart(
+                variableParts[i],
+                new Signature[](0)
             );
-            if (i < variableParts.length - 1) {
-                _requireValidTransition(
-                    fixedPart.participants.length,
-                    [variableParts[i], variableParts[i + 1]],
-                    fixedPart.appDefinition
-                );
-            }
         }
-        return stateHashes;
-    }
 
-    enum IsValidTransition {
-        True,
-        NeedToCheckApp
+        // add each sig to corresponding signed variable part
+        for (uint256 i = 0; i < sigs.length; i++) {
+            Signature[] memory sigsPresent = signedVariableParts[whoSignedWhat[i]].sigs;
+            // create an array to add another sig
+            Signature[] memory updatedSigs = new Signature[](sigsPresent.length + 1);
+
+            // copy sigs
+            for (uint256 k = 0; k < sigsPresent.length; k++) {
+                updatedSigs[k] = sigsPresent[k];
+            }
+
+            updatedSigs[updatedSigs.length - 1] = sigs[i];
+            signedVariableParts[i].sigs = updatedSigs;
+        }
+
+        return signedVariableParts;
     }
 
     /**
-    * @notice Check that the submitted pair of states form a valid transition
-    * @dev Check that the submitted pair of states form a valid transition
-    * @param nParticipants Number of participants in the channel.
-    transition
-    * @param ab Variable parts of each of the pair of states
-    * @return true if the later state is a validTransition from its predecessor, false otherwise.
-    */
-    function _requireValidProtocolTransition(
-        uint256 nParticipants,
-        VariablePart[2] memory ab // [a,b]
-    ) internal pure returns (IsValidTransition) {
-        // a separate check on the signatures for the submitted states implies that the following fields are equal for a and b:
-        // chainId, participants, channelNonce, appDefinition, challengeDuration
-        // and that the b.turnNum = a.turnNum + 1
-        if (ab[1].isFinal) {
-            require(Outcome.exitsEqual(ab[1].outcome, ab[0].outcome), 'Outcome change verboten');
-        } else {
-            require(!ab[0].isFinal, 'isFinal retrograde');
-            if (ab[1].turnNum < 2 * nParticipants) {
-                require(
-                    Outcome.exitsEqual(ab[1].outcome, ab[0].outcome),
-                    'Outcome change forbidden'
-                );
-                require(_bytesEqual(ab[1].appData, ab[0].appData), 'appData change forbidden');
-            } else {
-                return IsValidTransition.NeedToCheckApp;
-            }
-        }
-        return IsValidTransition.True;
-    }
-
-    /**
-    * @notice Check that the submitted pair of states form a valid transition
-    * @dev Check that the submitted pair of states form a valid transition
-    * @param nParticipants Number of participants in the channel.
-    transition
-    * @param ab Variable parts of each of the pair of states
-    * @param appDefinition Address of deployed contract containing application-specific validTransition function.
-    * @return true if the later state is a validTransition from its predecessor, false otherwise.
-    */
-    function _requireValidTransition(
-        uint256 nParticipants,
-        VariablePart[2] memory ab, // [a,b]
-        address appDefinition
-    ) internal pure returns (bool) {
-        IsValidTransition isValidProtocolTransition = _requireValidProtocolTransition(
-            nParticipants,
-            ab // [a,b]
+     * @notice Check whether supplied variablePart is in the last slot if variableParts.
+     * @dev Check whether supplied variablePart is in the last slot if variableParts.
+     * @param variablePart VariablePart to be in the last slot.
+     * @param variableParts VariableParts the last slot of to check.
+     */
+    function _requireVariablePartIsLast(
+        VariablePart memory variablePart,
+        VariablePart[] memory variableParts
+    ) internal pure {
+        require(
+            _bytesEqual(
+                abi.encode(variableParts[variableParts.length - 1]),
+                abi.encode(variablePart)
+            ),
+            'variablePart not the last.'
         );
-
-        if (isValidProtocolTransition == IsValidTransition.NeedToCheckApp) {
-            require(
-                IForceMoveApp(appDefinition).validTransition(ab[0], ab[1], nParticipants),
-                'Invalid ForceMoveApp Transition'
-            );
-        }
-
-        return true;
     }
 
     /**

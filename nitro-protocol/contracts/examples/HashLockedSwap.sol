@@ -14,48 +14,49 @@ contract HashLockedSwap is IForceMoveApp {
         bytes preImage;
     }
 
-    function validTransition(
-        VariablePart memory a,
-        VariablePart memory b,
-        uint256
-    ) public pure override returns (bool) {
-        // is this the first and only swap?
-        require(b.turnNum == 4, 'b.turnNum != 4');
+    function latestSupportedState(
+        FixedPart calldata fixedPart,
+        SignedVariablePart[] calldata signedVariableParts
+    ) external pure override returns (VariablePart memory) {
+        // TODO
 
-        // Decode variables.
-        // Assumptions:
-        //  - single asset in this channel
-        //  - two parties in this channel
-        //  - not a "guarantee" channel (c.f. Nitro paper)
-        Outcome.Allocation[] memory allocationsA = decode2PartyAllocation(a.outcome);
-        Outcome.Allocation[] memory allocationsB = decode2PartyAllocation(b.outcome);
-        bytes memory preImage = abi.decode(b.appData, (AppData)).preImage;
-        bytes32 h = abi.decode(a.appData, (AppData)).h;
+        // // is this the first and only swap?
+        // require(b.turnNum == 4, 'b.turnNum != 4');
 
-        // is the preimage correct?
-        require(sha256(preImage) == h, 'Incorrect preimage');
-        // NOTE ON GAS COSTS
-        // The gas cost of hashing depends on the choice of hash function
-        // and the length of the the preImage.
-        // sha256 is twice as expensive as keccak256
-        // https://ethereum.stackexchange.com/a/3200
-        // But is compatible with bitcoin.
+        // // Decode variables.
+        // // Assumptions:
+        // //  - single asset in this channel
+        // //  - two parties in this channel
+        // //  - not a "guarantee" channel (c.f. Nitro paper)
+        // Outcome.Allocation[] memory allocationsA = decode2PartyAllocation(a.outcome);
+        // Outcome.Allocation[] memory allocationsB = decode2PartyAllocation(b.outcome);
+        // bytes memory preImage = abi.decode(b.appData, (AppData)).preImage;
+        // bytes32 h = abi.decode(a.appData, (AppData)).h;
 
-        // slots for each participant unchanged
-        require(
-            allocationsA[0].destination == allocationsB[0].destination &&
-                allocationsA[1].destination == allocationsB[1].destination,
-            'destinations may not change'
-        );
+        // // is the preimage correct?
+        // require(sha256(preImage) == h, 'Incorrect preimage');
+        // // NOTE ON GAS COSTS
+        // // The gas cost of hashing depends on the choice of hash function
+        // // and the length of the the preImage.
+        // // sha256 is twice as expensive as keccak256
+        // // https://ethereum.stackexchange.com/a/3200
+        // // But is compatible with bitcoin.
 
-        // was the payment made?
-        require(
-            allocationsA[0].amount == allocationsB[1].amount &&
-                allocationsA[1].amount == allocationsB[0].amount,
-            'amounts must be permuted'
-        );
+        // // slots for each participant unchanged
+        // require(
+        //     allocationsA[0].destination == allocationsB[0].destination &&
+        //         allocationsA[1].destination == allocationsB[1].destination,
+        //     'destinations may not change'
+        // );
 
-        return true;
+        // // was the payment made?
+        // require(
+        //     allocationsA[0].amount == allocationsB[1].amount &&
+        //         allocationsA[1].amount == allocationsB[0].amount,
+        //     'amounts must be permuted'
+        // );
+
+        // return true;
     }
 
     function decode2PartyAllocation(Outcome.SingleAssetExit[] memory outcome)

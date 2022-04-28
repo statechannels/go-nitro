@@ -25,23 +25,17 @@ contract CountingApp is IForceMoveApp {
     }
 
     /**
-     * @notice Encodes the CountingApp rules.
-     * @dev Encodes the CountingApp rules.
-     * @param a State being transitioned from.
-     * @param b State being transitioned to.
-     * @return true if the transition conforms to the rules, false otherwise.
-     */
-    function validTransition(
-        VariablePart memory a,
-        VariablePart memory b,
-        uint256 // nParticipants, unused
-    ) public pure override returns (bool) {
-        require(
-            appData(b.appData).counter == appData(a.appData).counter + 1,
-            'Counter must be incremented'
-        );
-        // Note this is gas inefficient, and inferior to _bytesEqual in use elsewhere
-        require(Outcome.exitsEqual(b.outcome, a.outcome), 'Outcome must not change');
-        return true;
+     * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel.
+     * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel.
+     * @param fixedPart Fixed part of the state channel.
+     * @param signedVariableParts Array of variable parts to find the latest of.
+     * @return VariablePart Latest supported by application variable part from supplied array.
+     */    
+    function latestSupportedState(
+        FixedPart calldata fixedPart,
+        SignedVariablePart[] calldata signedVariableParts
+    ) external pure override returns (VariablePart memory) {
+        // TODO
+        return signedVariableParts[signedVariableParts.length - 1].variablePart;
     }
 }
