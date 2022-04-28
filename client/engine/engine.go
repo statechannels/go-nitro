@@ -402,6 +402,12 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
 		return &vfo, nil
+	case virtualdefund.IsVirtualDefundObjective(id):
+		vdfo, err := virtualdefund.ConstructObjectiveFromState(ss.State(), e.store.GetChannelById, e.store.GetConsensusChannel)
+		if err != nil {
+			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
+		}
+		return &vdfo, nil
 	case directdefund.IsDirectDefundObjective(id):
 		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), e.store.GetConsensusChannelById)
 		if err != nil {
