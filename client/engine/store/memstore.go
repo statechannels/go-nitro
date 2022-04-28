@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -314,6 +315,10 @@ func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective
 		vfo := virtualfund.Objective{}
 		err := vfo.UnmarshalJSON(data)
 		return &vfo, err
+	case virtualdefund.IsVirtualDefundObjective(id):
+		dvfo := virtualdefund.Objective{}
+		err := dvfo.UnmarshalJSON(data)
+		return &dvfo, err
 	default:
 		return nil, fmt.Errorf("objective id %s does not correspond to a known Objective type", id)
 
