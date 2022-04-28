@@ -49,7 +49,7 @@ func TestDirectDefundIntegration(t *testing.T) {
 		}
 
 		_, err := store.GetConsensusChannelById(channelId)
-		if consensusChannelStillInStore := err != nil; consensusChannelStillInStore {
+		if consensusChannelStillInStore := (err == nil); consensusChannelStillInStore {
 			t.Fatalf("Expected ConsensusChannel to have been destroyed in %v's store, but it was not", store.GetAddress())
 		}
 
