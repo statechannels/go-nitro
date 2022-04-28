@@ -36,9 +36,9 @@ func TestDirectDefundIntegration(t *testing.T) {
 
 	// Ensure that we no longer have a consensus channel in the store
 	// And that we have a regular Channel instead
-	for _, store := range []store.Store{storeA, storeB} {
+	for _, clientStore := range []store.Store{storeA, storeB} {
 
-		c, channelInStore := store.GetChannelById(channelId)
+		c, channelInStore := clientStore.GetChannelById(channelId)
 
 		if !channelInStore {
 			t.Fatalf("expected a Channel to have been created")
@@ -48,9 +48,9 @@ func TestDirectDefundIntegration(t *testing.T) {
 			t.Fatal("Expected zero on chain funding, but got nonzero")
 		}
 
-		_, err := store.GetConsensusChannelById(channelId)
-		if consensusChannelStillInStore := (err == nil); consensusChannelStillInStore {
-			t.Fatalf("Expected ConsensusChannel to have been destroyed in %v's store, but it was not", store.GetAddress())
+		_, err := clientStore.GetConsensusChannelById(channelId)
+		if err != store.ErrNoSuchChannel {
+			t.Fatalf("Expected ConsensusChannel to have been destroyed in %v's store, but it was not", clientStore.GetAddress())
 		}
 
 	}

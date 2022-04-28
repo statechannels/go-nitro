@@ -51,7 +51,7 @@ func (o *syncMap[T]) Store(key string, data T) {
 	o.m.Store(key, data)
 }
 
-// Delete cleats the value for a key.
+// Delete deletes the value for a key.
 func (o *syncMap[T]) Delete(key string) {
 	o.m.Delete(key)
 }
