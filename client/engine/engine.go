@@ -253,6 +253,8 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
+			// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
+			e.store.DestroyConsensusChannel(request.ChannelId)
 			return e.attemptProgress(&ddfo)
 
 		default:
@@ -347,6 +349,8 @@ func (e Engine) SpawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 		if err != nil {
 			return fmt.Errorf("could not store consensus channel for objective %s: %w", crankedObjective.Id(), err)
 		}
+		// Destroy the channel since the consensus channel takes over governance:
+		e.store.DestroyChannel(c.Id)
 	}
 	return nil
 }
@@ -395,9 +399,8 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		if err != nil {
 			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message: %w", err)
 		}
-
-		// TODO Destroy / Disable / Disown the associated ConsensusChannel
-
+		// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
+		e.store.DestroyConsensusChannel(ddfo.C.Id)
 		return &ddfo, nil
 
 	default:
