@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -104,6 +105,29 @@ func NewObjective(preApprove bool,
 		ToMyRight:      toMyRight,
 	}, nil
 
+}
+
+// ConstructObjectiveFromState takes in a message and constructs an objective from it.
+// It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
+func ConstructObjectiveFromState(
+	initialState state.State,
+	getChannel GetChannelByIdFunction,
+	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
+) (Objective, error) {
+	channelId, err := initialState.ChannelId()
+	if err != nil {
+		return Objective{}, err
+	}
+	paidToBob := big.NewInt(0) // TODO how to set this properly?
+	return NewObjective(true,
+		ObjectiveRequest{channelId, paidToBob},
+		getChannel,
+		getTwoPartyConsensusLedger)
+}
+
+// IsVirtualDefundObjective inspects a objective id and returns true if the objective id is for a virtualdefund objective.
+func IsVirtualDefundObjective(id protocols.ObjectiveId) bool {
+	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
 
 // signedFinalState returns the final state for the virtual channel
