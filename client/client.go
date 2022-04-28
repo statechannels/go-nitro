@@ -62,7 +62,7 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
-func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequest) protocols.ObjectiveId {
+func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequest) virtualfund.ObjectiveResponse {
 
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objectiveRequest,
@@ -70,7 +70,7 @@ func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequ
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objectiveRequest.Id()
+	return objectiveRequest.Response()
 }
 
 // CloseDirectChannel attempts to close and defund the given directly funded channel.

@@ -61,7 +61,7 @@ func createVirtualChannels(client client.Client, counterParty types.Address, int
 			Nonce:             rand.Int63(),
 		}
 
-		ids[i] = client.CreateVirtualChannel(request)
+		ids[i] = client.CreateVirtualChannel(request).Id
 	}
 	return ids
 }
