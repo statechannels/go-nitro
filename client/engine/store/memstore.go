@@ -51,6 +51,11 @@ func (o *syncMap[T]) Store(key string, data T) {
 	o.m.Store(key, data)
 }
 
+// Delete cleats the value for a key.
+func (o *syncMap[T]) Delete(key string) {
+	o.m.Delete(key)
+}
+
 // Range calls f sequentially for each key and value present in the map.
 // If f returns false, range stops the iteration.
 //
@@ -167,7 +172,7 @@ func (ms *MemStore) SetChannel(ch *channel.Channel) error {
 
 // DestroyChannel deletes the channel with id id.
 func (ms *MemStore) DestroyChannel(id types.Destination) {
-	ms.channels.m.Delete(id.String())
+	ms.channels.Delete(id.String())
 }
 
 // SetConsensusChannel sets the channel in the store.
@@ -184,7 +189,7 @@ func (ms *MemStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel) 
 
 // DestroyChannel deletes the channel with id id.
 func (ms *MemStore) DestroyConsensusChannel(id types.Destination) {
-	ms.consensusChannels.m.Delete(id.String())
+	ms.consensusChannels.Delete(id.String())
 }
 
 // GetChannelById retrieves the channel with the supplied id, if it exists.
