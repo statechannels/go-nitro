@@ -441,3 +441,13 @@ func isZero(sig state.Signature) bool {
 	zeroSig := state.Signature{}
 	return sig.Equal(zeroSig)
 }
+
+// ObjectiveRequest represents a request to create a new direct defund objective.
+type ObjectiveRequest struct {
+	ChannelId types.Destination
+}
+
+// Id returns the objective id for the request.
+func (r ObjectiveRequest) Id() protocols.ObjectiveId {
+	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
+}
