@@ -17,7 +17,15 @@ import (
 
 type ledgerIndex uint
 
-var ErrIncorrectChannelID = fmt.Errorf("proposal ID and channel ID do not match")
+var (
+	ErrIncorrectChannelID = fmt.Errorf("proposal ID and channel ID do not match")
+	ErrIncorrectTurnNum   = fmt.Errorf("incorrect turn number")
+	ErrInvalidDeposit     = fmt.Errorf("unable to divert to guarantee: invalid deposit")
+	ErrInsufficientFunds  = fmt.Errorf("insufficient funds")
+	ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
+	ErrGuaranteeNotFound  = fmt.Errorf("guarantee not found")
+	ErrInvalidAmounts     = fmt.Errorf("left and right amounts do not add up to the guarantee amount")
+)
 
 const (
 	Leader   ledgerIndex = 0
@@ -411,12 +419,6 @@ func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 	}
 }
 
-var ErrInvalidDeposit = fmt.Errorf("unable to divert to guarantee: invalid deposit")
-var ErrInsufficientFunds = fmt.Errorf("insufficient funds")
-var ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
-var ErrGuaranteeNotFound = fmt.Errorf("guarantee not found")
-var ErrInvalidAmounts = fmt.Errorf("left and right amounts do not add up to the guarantee amount")
-
 // Vars stores the turn number and outcome for a state in a consensus channel
 type Vars struct {
 	TurnNum uint64
@@ -659,8 +661,6 @@ func (r Remove) equal(r2 Remove) bool {
 	}
 	return true
 }
-
-var ErrIncorrectTurnNum = fmt.Errorf("incorrect turn number")
 
 // HandleProposal handles a proposal to add or remove a guarantee
 // It will mutate Vars by calling Add or Remove for the proposal

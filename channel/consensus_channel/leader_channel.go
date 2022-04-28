@@ -6,7 +6,11 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
-var ErrNotLeader = fmt.Errorf("method may only be called by the channel leader")
+var (
+	ErrNotLeader              = fmt.Errorf("method may only be called by the channel leader")
+	ErrProposalQueueExhausted = fmt.Errorf("proposal queue exhausted")
+	ErrWrongSigner            = fmt.Errorf("proposal incorrectly signed")
+)
 
 // NewLeaderChannel constructs a new LeaderChannel
 func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
@@ -148,6 +152,3 @@ func (c *ConsensusChannel) leaderReceive(countersigned SignedProposal) error {
 
 	return ErrProposalQueueExhausted
 }
-
-var ErrProposalQueueExhausted = fmt.Errorf("proposal queue exhausted")
-var ErrWrongSigner = fmt.Errorf("proposal incorrectly signed")
