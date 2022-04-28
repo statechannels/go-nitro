@@ -8,6 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -27,10 +28,31 @@ func TestDirectDefundIntegration(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientA, _ := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
-	clientB, _ := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
+	clientB, storeB := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
 
 	channelId := directlyFundALedgerChannel(t, clientA, clientB)
 	directlyDefundALedgerChannel(t, clientA, clientB, channelId)
+
+	// Ensure that we no longer have a consensus channel in the store
+	// And that we have a regular Channel instead
+	for _, store := range []store.Store{storeA, storeB} {
+
+		c, channelInStore := store.GetChannelById(channelId)
+
+		if !channelInStore {
+			t.Fatalf("expected a Channel to have been created")
+		}
+
+		if c.OnChainFunding.IsNonZero() {
+			t.Fatal("Expected zero on chain funding, but got nonzero")
+		}
+
+		_, err := store.GetConsensusChannelById(channelId)
+		if consensusChannelStillInStore := err != nil; consensusChannelStillInStore {
+			t.Fatalf("Expected ConsensusChannel to have been destroyed in %v's store, but it was not", store.GetAddress())
+		}
+
+	}
 
 }
