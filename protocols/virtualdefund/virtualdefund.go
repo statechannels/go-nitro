@@ -83,7 +83,9 @@ func NewObjective(preApprove bool,
 
 	var toMyLeft *consensus_channel.ConsensusChannel // Only Alice calls NewObjective, so there is no ledger channel to her left.
 
-	toMyRight, found := getConsensusChannel(request.Intermediary)
+	intermediary := V.Participants[2]
+
+	toMyRight, found := getConsensusChannel(intermediary)
 	if !found {
 		return Objective{}, fmt.Errorf("Error getting consensus channel")
 	}
@@ -471,11 +473,8 @@ func isZero(sig state.Signature) bool {
 
 // ObjectiveRequest represents a request to create a new direct defund objective.
 type ObjectiveRequest struct {
-	ChannelId    types.Destination
-	PaidToBob    *big.Int
-	MyAddress    types.Address
-	Intermediary types.Address
-	CounterParty types.Address
+	ChannelId types.Destination
+	PaidToBob *big.Int
 }
 
 // Id returns the objective id for the request.

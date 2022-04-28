@@ -3,6 +3,7 @@ package client // import "github.com/statechannels/go-nitro/client"
 
 import (
 	"io"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -74,10 +75,11 @@ func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequ
 }
 
 // CloseDirectChannel attempts to close and defund the given directly funded channel.
-func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.ObjectiveId {
+func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big.Int) protocols.ObjectiveId {
 
 	objectiveRequest := virtualdefund.ObjectiveRequest{
 		ChannelId: channelId,
+		PaidToBob: paidToBob,
 	}
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objectiveRequest,

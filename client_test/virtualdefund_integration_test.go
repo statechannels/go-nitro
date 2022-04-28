@@ -3,6 +3,7 @@ package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
 	"bytes"
+	"math/big"
 	"testing"
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -24,7 +25,9 @@ func TestVirtualDefundIntegration(t *testing.T) {
 
 	cId := openAVirtualChannel(t, clientA, clientB, clientI)
 
-	id := clientA.CloseVirtualChannel(cId)
+	paidToBob := big.NewInt(0)
+
+	id := clientA.CloseVirtualChannel(cId, paidToBob)
 
 	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, id)
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, id)
