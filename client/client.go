@@ -80,6 +80,7 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big
 	objectiveRequest := virtualdefund.ObjectiveRequest{
 		ChannelId: channelId,
 		PaidToBob: paidToBob,
+		MyAddress: *c.Address,
 	}
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objectiveRequest,

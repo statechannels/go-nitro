@@ -80,13 +80,40 @@ func NewObjective(preApprove bool,
 
 	initialOutcome := V.PostFundState().Outcome[0]
 
-	var toMyLeft *consensus_channel.ConsensusChannel // Only Alice calls NewObjective, so there is no ledger channel to her left.
+	// This logic assumes a single hop virtual channel.
+	// Currently this is the only type of virtual channel supported.
+	alice := V.Participants[0]
+	intermediary := V.Participants[1]
+	bob := V.Participants[2]
 
-	intermediary := V.Participants[1] // This mirrors how it is done in virtualfund. We should probably extract to a shared constant somewhere.
+	var toMyLeft, toMyRight *consensus_channel.ConsensusChannel
+	var ok bool
 
-	toMyRight, found := getConsensusChannel(intermediary)
-	if !found {
-		return Objective{}, fmt.Errorf("Error getting consensus channel")
+	myAddress := request.MyAddress
+	if myAddress == alice {
+		toMyRight, ok = getConsensusChannel(intermediary)
+		if !ok {
+			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+		}
+	} else if myAddress == bob {
+		toMyLeft, ok = getConsensusChannel(intermediary)
+		if !ok {
+			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
+		}
+
+	} else if myAddress == intermediary {
+		toMyLeft, ok = getConsensusChannel(alice)
+		if !ok {
+			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+		}
+
+		toMyRight, ok = getConsensusChannel(bob)
+		if !ok {
+			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+		}
+
+	} else {
+		return Objective{}, fmt.Errorf("client address not found in an expected participant index")
 	}
 
 	return Objective{
@@ -106,6 +133,7 @@ func NewObjective(preApprove bool,
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
 func ConstructObjectiveFromState(
 	initialState state.State,
+	myAddress types.Address,
 	getChannel GetChannelByIdFunction,
 	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
 ) (Objective, error) {
@@ -115,7 +143,7 @@ func ConstructObjectiveFromState(
 	}
 	paidToBob := big.NewInt(0) // TODO how to set this properly?
 	return NewObjective(true,
-		ObjectiveRequest{channelId, paidToBob},
+		ObjectiveRequest{channelId, paidToBob, myAddress},
 		getChannel,
 		getTwoPartyConsensusLedger)
 }
@@ -497,6 +525,7 @@ func isZero(sig state.Signature) bool {
 type ObjectiveRequest struct {
 	ChannelId types.Destination
 	PaidToBob *big.Int
+	MyAddress types.Address
 }
 
 // Id returns the objective id for the request.
