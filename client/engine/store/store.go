@@ -24,6 +24,7 @@ type Store interface {
 
 	GetChannelById(id types.Destination) (c *channel.Channel, ok bool)
 	SetChannel(*channel.Channel) error
+	DestroyChannel(id types.Destination)
 
 	ReleaseChannelFromOwnership(types.Destination) // Release channel from being owned by any objective
 
@@ -34,4 +35,5 @@ type ConsensusChannelStore interface {
 	GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool)
 	GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error)
 	SetConsensusChannel(*consensus_channel.ConsensusChannel) error
+	DestroyConsensusChannel(id types.Destination)
 }
