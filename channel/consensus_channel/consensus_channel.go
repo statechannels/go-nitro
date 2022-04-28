@@ -35,16 +35,19 @@ const (
 // ConsensusChannel is used to manage states in a running ledger channel
 type ConsensusChannel struct {
 	// constants
-	MyIndex ledgerIndex
-	fp      state.FixedPart
 
-	Id types.Destination
-
+	MyIndex        ledgerIndex
+	fp             state.FixedPart
+	Id             types.Destination
 	OnChainFunding types.Funds
 
 	// variables
-	current       SignedVars       // The "consensus state", signed by both parties
-	proposalQueue []SignedProposal // A queue of proposed changes, starting from the consensus state
+
+	// current represents the "consensus state", signed by both parties
+	current SignedVars
+
+	// a queue of proposed changes which can be applied to the current state
+	proposalQueue []SignedProposal
 }
 
 // newConsensusChannel constructs a new consensus channel, validating its input by checking that the signatures are as expected for the given fp, initialTurnNum and outcome]
