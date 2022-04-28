@@ -670,3 +670,24 @@ func (r ObjectiveRequest) Id() protocols.ObjectiveId {
 	channelId, _ := fixedPart.ChannelId()
 	return protocols.ObjectiveId(ObjectivePrefix + channelId.String())
 }
+
+// ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.
+type ObjectiveResponse struct {
+	Id        protocols.ObjectiveId
+	ChannelId types.Destination
+}
+
+// Response computes and returns the appropriate response from the request.
+func (r ObjectiveRequest) Response() ObjectiveResponse {
+	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
+		Participants:      []types.Address{r.MyAddress, r.Intermediary, r.CounterParty},
+		ChannelNonce:      big.NewInt(r.Nonce),
+		ChallengeDuration: r.ChallengeDuration}
+
+	channelId, _ := fixedPart.ChannelId()
+
+	return ObjectiveResponse{
+		Id:        protocols.ObjectiveId(ObjectivePrefix + channelId.String()),
+		ChannelId: channelId,
+	}
+}
