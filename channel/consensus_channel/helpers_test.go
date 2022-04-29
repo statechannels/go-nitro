@@ -19,7 +19,7 @@ var alice, bob, brian testactors.Actor = testactors.Alice, testactors.Bob, testa
 
 func fp() state.FixedPart {
 	participants := [2]types.Address{
-		alice.Address, bob.Address,
+		alice.Address(), bob.Address(),
 	}
 	return state.FixedPart{
 		Participants:      participants[:],

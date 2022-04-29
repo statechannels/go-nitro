@@ -20,7 +20,7 @@ func TestMarshalJSON(t *testing.T) {
 
 	vPreFund := state.State{
 		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{alice.Address, p1.Address, bob.Address}, // A single hop virtual channel
+		Participants:      []types.Address{alice.Address(), p1.Address(), bob.Address()}, // A single hop virtual channel
 		ChannelNonce:      big.NewInt(0),
 		AppDefinition:     types.Address{},
 		ChallengeDuration: big.NewInt(45),
@@ -48,7 +48,7 @@ func TestMarshalJSON(t *testing.T) {
 	vfo, err := constructFromState(
 		false,
 		vPreFund,
-		alice.Address,
+		alice.Address(),
 		nil,
 		right,
 	)

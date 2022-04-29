@@ -137,14 +137,14 @@ func TestConsensusChannelStore(t *testing.T) {
 
 	ms := store.NewMemStore(sk)
 
-	got, ok := ms.GetConsensusChannel(ta.Alice.Address)
+	got, ok := ms.GetConsensusChannel(ta.Alice.Address())
 	if ok {
 		t.Fatalf("expected not to find the a consensus channel, but found %v", got)
 	}
 
 	fp := td.Objectives.Directfund.GenericDFO().C.FixedPart // TODO replace with testdata not nested under GenericDFO
-	fp.Participants[0] = ta.Alice.Address
-	fp.Participants[1] = ta.Bob.Address
+	fp.Participants[0] = ta.Alice.Address()
+	fp.Participants[1] = ta.Bob.Address()
 	asset := types.Address{}
 	left := cc.NewBalance(ta.Alice.Destination(), big.NewInt(6))
 	right := cc.NewBalance(ta.Bob.Destination(), big.NewInt(4))

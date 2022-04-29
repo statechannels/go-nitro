@@ -21,7 +21,7 @@ var alice, bob testactors.Actor = testactors.Alice, testactors.Bob
 
 var testState = state.State{
 	ChainId:           big.NewInt(9001),
-	Participants:      []types.Address{alice.Address, bob.Address},
+	Participants:      []types.Address{alice.Address(), bob.Address()},
 	ChannelNonce:      big.NewInt(37140676580),
 	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
 	ChallengeDuration: big.NewInt(60),
@@ -68,7 +68,7 @@ func signedTestState(s state.State, toSign []bool) (state.SignedState, error) {
 
 // newTestObjective returns a directdefund Objective constructed with a MockConsensusChannel.
 func newTestObjective() (Objective, error) {
-	cc, _ := testdata.Channels.MockConsensusChannel(alice.Address)
+	cc, _ := testdata.Channels.MockConsensusChannel(alice.Address())
 
 	getConsensusChannel := func(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
 		return cc, nil
@@ -156,7 +156,7 @@ func TestCrankAlice(t *testing.T) {
 
 	expectedSE := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{{
-			To: bob.Address,
+			To: bob.Address(),
 			Payloads: []protocols.MessagePayload{{
 				ObjectiveId: o.Id(),
 				SignedState: finalStateSignedByAlice,
@@ -244,7 +244,7 @@ func TestCrankBob(t *testing.T) {
 	finalStateSignedByBob, _ := signedTestState(finalState, []bool{false, true})
 	expectedSE := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{{
-			To: alice.Address,
+			To: alice.Address(),
 			Payloads: []protocols.MessagePayload{{ObjectiveId: updated.Id(),
 				SignedState: finalStateSignedByBob,
 			}}}}}

@@ -54,7 +54,7 @@ func generateGuarantee(left, right testactors.Actor, vId types.Destination) cons
 func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
 	fp := state.FixedPart{
 		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{left.Address, right.Address},
+		Participants:      []types.Address{left.Address(), right.Address()},
 		ChannelNonce:      big.NewInt(0),
 		AppDefinition:     types.Address{},
 		ChallengeDuration: big.NewInt(45),
@@ -246,7 +246,7 @@ func generateRemoveProposal(cId types.Destination, td testdata) consensus_channe
 func generateTestData() testdata {
 	vFixed := state.FixedPart{
 		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{alice.Address, irene.Address, bob.Address}, // A single hop virtual channel
+		Participants:      []types.Address{alice.Address(), irene.Address(), bob.Address()}, // A single hop virtual channel
 		ChannelNonce:      big.NewInt(0),
 		AppDefinition:     types.Address{},
 		ChallengeDuration: big.NewInt(45),

@@ -66,7 +66,8 @@ func AssertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected
 // AssertStateSentTo asserts that ses contains a message for the participant
 func AssertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
 	for _, msg := range ses.MessagesToSend {
-		if bytes.Equal(msg.To[:], to.Address[:]) {
+		toAddress := to.Address()
+		if bytes.Equal(msg.To[:], toAddress[:]) {
 			for _, ss := range msg.SignedStates() {
 				Equals(t, ss.Payload, expected)
 			}
@@ -84,7 +85,8 @@ func AssertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 	for _, p := range msg.SignedProposals() {
 		found = found || p.Payload.Proposal.Equal(&sp.Proposal)
 	}
+	toAddress := to.Address()
 	Assert(t, found, "proposal %+v not found in signed proposals %+v", sp.Proposal, msg.SignedProposals())
-	Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
+	Assert(t, bytes.Equal(msg.To[:], toAddress[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address().String())
 
 }

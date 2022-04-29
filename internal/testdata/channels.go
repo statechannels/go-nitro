@@ -162,8 +162,8 @@ func createLedgerPath(actors []testactors.Actor) LedgerNetwork {
 
 func createTestLedger(leader, follower testactors.Actor) TestLedger {
 	fp := testState.Clone().FixedPart()
-	fp.Participants[0] = leader.Address
-	fp.Participants[1] = follower.Address
+	fp.Participants[0] = leader.Address()
+	fp.Participants[1] = follower.Address()
 
 	outcome := consensus_channel.NewLedgerOutcome(
 		types.Address{}, // the zero asset

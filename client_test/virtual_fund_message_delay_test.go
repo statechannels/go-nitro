@@ -37,7 +37,7 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)
 
-	ids := createVirtualChannels(clientA, bob.Address, irene.Address, 5)
+	ids := createVirtualChannels(clientA, bob.Address(), irene.Address(), 5)
 	waitTimeForCompletedObjectiveIds(t, &clientA, OBJECTIVE_TIMEOUT, ids...)
 	waitTimeForCompletedObjectiveIds(t, &clientB, OBJECTIVE_TIMEOUT, ids...)
 	waitTimeForCompletedObjectiveIds(t, &clientI, OBJECTIVE_TIMEOUT, ids...)

@@ -21,7 +21,7 @@ var alice, bob testactors.Actor = testactors.Alice, testactors.Bob
 
 var testState = state.State{
 	ChainId:           big.NewInt(9001),
-	Participants:      []types.Address{alice.Address, bob.Address},
+	Participants:      []types.Address{alice.Address(), bob.Address()},
 	ChannelNonce:      big.NewInt(37140676580),
 	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
 	ChallengeDuration: big.NewInt(60),
@@ -180,7 +180,7 @@ func TestCrank(t *testing.T) {
 	expectedPreFundSideEffects := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{
 			{
-				To: bob.Address,
+				To: bob.Address(),
 				Payloads: []protocols.MessagePayload{{
 					ObjectiveId: s.Id(),
 					SignedState: preFundSS,
@@ -192,7 +192,7 @@ func TestCrank(t *testing.T) {
 	expectedPostFundSideEffects := protocols.SideEffects{
 		MessagesToSend: []protocols.Message{
 			{
-				To: bob.Address,
+				To: bob.Address(),
 				Payloads: []protocols.MessagePayload{{
 					ObjectiveId: s.Id(),
 					SignedState: postFundSS,
