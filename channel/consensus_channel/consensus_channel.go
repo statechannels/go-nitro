@@ -32,7 +32,7 @@ const (
 	Follower ledgerIndex = 1
 )
 
-// ConsensusChannel is used to manage states in a running ledger channel
+// ConsensusChannel is used to manage states in a running ledger channel.
 type ConsensusChannel struct {
 	// constants
 
@@ -50,7 +50,8 @@ type ConsensusChannel struct {
 	proposalQueue []SignedProposal
 }
 
-// newConsensusChannel constructs a new consensus channel, validating its input by checking that the signatures are as expected for the given fp, initialTurnNum and outcome]
+// newConsensusChannel constructs a new consensus channel, validating its input by
+// checking that the signatures are as expected for the given fp, initialTurnNum and outcome.
 func newConsensusChannel(
 	fp state.FixedPart,
 	myIndex ledgerIndex,
@@ -97,14 +98,14 @@ func newConsensusChannel(
 
 }
 
-// FixedPart returns the fixed part of the channel
+// FixedPart returns the fixed part of the channel.
 func (c *ConsensusChannel) FixedPart() state.FixedPart {
 	return c.fp
 }
 
 // Receive accepts a proposal signed by the ConsensusChannel counterparty,
-// validates its signature, and performs updates the proposal queue and
-// consensus state
+// validates its signature, and performs updates to the proposal queue and
+// consensus state.
 func (c *ConsensusChannel) Receive(sp SignedProposal) error {
 	if c.IsFollower() {
 		return c.followerReceive(sp)
@@ -116,22 +117,23 @@ func (c *ConsensusChannel) Receive(sp SignedProposal) error {
 	return fmt.Errorf("ConsensusChannel is malformed")
 }
 
-// ConsensusTurnNum returns the turn number of the current consensus state
+// ConsensusTurnNum returns the turn number of the current consensus state.
 func (c *ConsensusChannel) ConsensusTurnNum() uint64 {
 	return c.current.TurnNum
 }
 
-// Includes returns whether or not the consensus state includes the given guarantee
+// Includes returns whether or not the consensus state includes the given guarantee.
 func (c *ConsensusChannel) Includes(g Guarantee) bool {
 	return c.current.Outcome.includes(g)
 }
 
-// IncludesTarget returns whether or not the consensus state includes a guarantee targeting the given channel
+// IncludesTarget returns whether or not the consensus state includes a guarantee
+// addressed to the given target.
 func (c *ConsensusChannel) IncludesTarget(target types.Destination) bool {
 	return c.current.Outcome.includesTarget(target)
 }
 
-// HasRemovalBeenProposedFor returns whether or not a proposal exists to remove the guaranatee for the target
+// HasRemovalBeenProposedFor returns whether or not a proposal exists to remove the guaranatee for the target.
 func (c *ConsensusChannel) HasRemovalBeenProposedFor(target types.Destination) bool {
 	for _, p := range c.proposalQueue {
 		if p.Proposal.Type() == RemoveProposal {
@@ -145,24 +147,24 @@ func (c *ConsensusChannel) HasRemovalBeenProposedFor(target types.Destination) b
 }
 
 // IsLeader returns true if the calling client is the leader of the channel,
-// and false otherwise
+// and false otherwise.
 func (c *ConsensusChannel) IsLeader() bool {
 	return c.MyIndex == Leader
 }
 
 // IsFollower returns true if the calling client is the follower of the channel,
-// and false otherwise
+// and false otherwise.
 func (c *ConsensusChannel) IsFollower() bool {
 	return c.MyIndex == Follower
 }
 
-// Leader returns the address of the participant responsible for proposing
+// Leader returns the address of the participant responsible for proposing.
 func (c *ConsensusChannel) Leader() common.Address {
 	return c.fp.Participants[Leader]
 }
 
 // Follower returns the address of the participant who recieves and contersigns
-// proposals
+// proposals.
 func (c *ConsensusChannel) Follower() common.Address {
 	return c.fp.Participants[Follower]
 }
@@ -183,30 +185,30 @@ func (c *ConsensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
 	return state.Sign(sk)
 }
 
-// recoverSigner returns the signer of the vars using the given signature
+// recoverSigner returns the signer of the vars using the given signature.
 func (c *ConsensusChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
 	state := vars.AsState(c.fp)
 	return state.RecoverSigner(sig)
 }
 
 // ConsensusVars returns the vars of the consensus state
-// The consensus state is the latest state that has been signed by both parties
+// The consensus state is the latest state that has been signed by both parties.
 func (c *ConsensusChannel) ConsensusVars() Vars {
 	return c.current.Vars
 }
 
-// Signatures returns the signatures on the currently supported state
+// Signatures returns the signatures on the currently supported state.
 func (c *ConsensusChannel) Signatures() [2]state.Signature {
 	return c.current.Signatures
 }
 
-// ProposalQueue returns the current queue of proposals
+// ProposalQueue returns the current queue of proposals.
 func (c *ConsensusChannel) ProposalQueue() []SignedProposal {
 	return c.proposalQueue
 }
 
 // latestProposedVars returns the latest proposed vars in a consensus channel
-// by cloning its current vars and applying each proposal in the queue
+// by cloning its current vars and applying each proposal in the queue.
 func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
 
@@ -222,7 +224,7 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 }
 
 // validateProposalID checks that the given proposal's ID matches
-// the channel's ID
+// the channel's ID.
 func (c *ConsensusChannel) validateProposalID(propsal Proposal) error {
 	if propsal.ChannelID != c.Id {
 		return ErrIncorrectChannelID
@@ -231,7 +233,7 @@ func (c *ConsensusChannel) validateProposalID(propsal Proposal) error {
 	return nil
 }
 
-// NewBalance returns a new Balance struct with the given amount and destination
+// NewBalance returns a new Balance struct with the given destination and amount.
 func NewBalance(destination types.Destination, amount *big.Int) Balance {
 	balanceAmount := big.NewInt(0).Set(amount)
 	return Balance{
@@ -241,13 +243,14 @@ func NewBalance(destination types.Destination, amount *big.Int) Balance {
 
 }
 
-// Balance represents an Allocation of type 0, ie. a simple allocation.
+// Balance is a convenient ergonomic representation of a single-asset Allocation
+// of type 0, ie. a simple allocation.
 type Balance struct {
 	destination types.Destination
 	amount      *big.Int
 }
 
-// Clone returns a deep copy of the recievr
+// Clone returns a deep copy of the receiver.
 func (b *Balance) Clone() Balance {
 	return Balance{
 		destination: b.destination,
@@ -255,13 +258,14 @@ func (b *Balance) Clone() Balance {
 	}
 }
 
-// AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
+// AsAllocation converts a Balance struct into the on-chain outcome.Allocation type.
 func (b Balance) AsAllocation() outcome.Allocation {
 	amount := big.NewInt(0).Set(b.amount)
-	return outcome.Allocation{Destination: b.destination, Amount: amount, AllocationType: 0}
+	return outcome.Allocation{Destination: b.destination, Amount: amount, AllocationType: outcome.NormalAllocationType}
 }
 
-// Guarantee represents an Allocation of type 1, ie. a guarantee.
+// Guarantee is a convenient, ergonomic representation a
+// single-asset Allocation of type 1, ie. a guarantee.
 type Guarantee struct {
 	amount *big.Int
 	target types.Destination
@@ -269,7 +273,7 @@ type Guarantee struct {
 	right  types.Destination
 }
 
-// Clone returns a deep copy of the receiver
+// Clone returns a deep copy of the receiver.
 func (g *Guarantee) Clone() Guarantee {
 	return Guarantee{
 		amount: big.NewInt(0).Set(g.amount),
@@ -279,12 +283,12 @@ func (g *Guarantee) Clone() Guarantee {
 	}
 }
 
-// Target returns the target of the guarantee
+// Target returns the target of the guarantee.
 func (g Guarantee) Target() types.Destination {
 	return g.target
 }
 
-// NewGuarantee constructs a new guarantee
+// NewGuarantee constructs a new guarantee.
 func NewGuarantee(amount *big.Int, target types.Destination, left types.Destination, right types.Destination) Guarantee {
 	return Guarantee{amount, target, left, right}
 }
@@ -319,7 +323,7 @@ type LedgerOutcome struct {
 	guarantees   map[types.Destination]Guarantee
 }
 
-// Clone returns a deep copy of the receiver
+// Clone returns a deep copy of the receiver.
 func (lo *LedgerOutcome) Clone() LedgerOutcome {
 	clonedGuarantees := make(map[types.Destination]Guarantee)
 	for key, g := range lo.guarantees {
@@ -333,7 +337,7 @@ func (lo *LedgerOutcome) Clone() LedgerOutcome {
 	}
 }
 
-// NewLedgerOutcome creates a new ledger outcome with the given asset address and balances and guarantees
+// NewLedgerOutcome creates a new ledger outcome with the given asset address, balances, and guarantees.
 func NewLedgerOutcome(assetAddress types.Address, left, right Balance, guarantees []Guarantee) *LedgerOutcome {
 	guaranteeMap := make(map[types.Destination]Guarantee, len(guarantees))
 	for _, g := range guarantees {
@@ -347,7 +351,7 @@ func NewLedgerOutcome(assetAddress types.Address, left, right Balance, guarantee
 	}
 }
 
-// includesTarget returns true when the receiver includes a guarantee that targets the given destination
+// includesTarget returns true when the receiver includes a guarantee that targets the given destination.
 func (o *LedgerOutcome) includesTarget(target types.Destination) bool {
 	_, found := o.guarantees[target]
 	return found
@@ -367,6 +371,7 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 }
 
 // FromExit creates a new LedgerOutcome from the given SingleAssetExit.
+//
 // It makes some assumptions about the exit:
 //  - The first alloction entry is for left
 //  - The second alloction entry is for right
@@ -395,7 +400,7 @@ func FromExit(sae outcome.SingleAssetExit) LedgerOutcome {
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
 //  - the "left" balance is first
 //  - the "right" balance is second
-//  - following [left, right] comes the guarantees in sorted order
+//  - following [left, right] comes the guarantees sorted according to their target destination
 func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 	// The first items are [left, right] balances
 	allocations := outcome.Allocations{o.left.AsAllocation(), o.right.AsAllocation()}
@@ -422,13 +427,13 @@ func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 	}
 }
 
-// Vars stores the turn number and outcome for a state in a consensus channel
+// Vars stores the turn number and outcome for a state in a consensus channel.
 type Vars struct {
 	TurnNum uint64
 	Outcome LedgerOutcome
 }
 
-// Clone returns a deep copy of the receiver
+// Clone returns a deep copy of the receiver.
 func (v *Vars) Clone() Vars {
 	return Vars{
 		v.TurnNum,
@@ -436,7 +441,7 @@ func (v *Vars) Clone() Vars {
 	}
 }
 
-// clone returns a deep clone of v
+// clone returns a deep clone of v.
 func (o *LedgerOutcome) clone() LedgerOutcome {
 	assetAddress := o.assetAddress
 
@@ -465,13 +470,13 @@ func (o *LedgerOutcome) clone() LedgerOutcome {
 	}
 }
 
-// SignedVars stores 0-2 signatures for some vars in a consensus channel
+// SignedVars stores 0-2 signatures for some vars in a consensus channel.
 type SignedVars struct {
 	Vars
 	Signatures [2]state.Signature
 }
 
-// clone returns a deep copy of the reciever
+// clone returns a deep copy of the reciever.
 func (sv *SignedVars) clone() SignedVars {
 	clonedSignatures := [2]state.Signature{
 		sv.Signatures[0],
@@ -485,8 +490,11 @@ func (sv *SignedVars) clone() SignedVars {
 
 // Proposal is a proposal either to add or to remove a guarantee.
 //
-// Exactly one of {toAdd, toRemove} should be non nil
+// Exactly one of {toAdd, toRemove} should be non nil.
 type Proposal struct {
+	// ChannelID of the ConsensusChannel which should recieve the proposal.
+	//
+	// The target virtual channel ID is contained in the Add / Remove struct.
 	ChannelID types.Destination
 	ToAdd     Add
 	ToRemove  Remove
@@ -518,7 +526,7 @@ func (p *Proposal) Type() ProposalType {
 	}
 }
 
-// Updates the turn number on the Add or Remove proposal
+// SetTurnNum updates the turn number on the Add or Remove proposal.
 func (p *Proposal) SetTurnNum(turnNum uint64) {
 	switch p.Type() {
 	case AddProposal:
@@ -533,7 +541,7 @@ func (p *Proposal) SetTurnNum(turnNum uint64) {
 
 }
 
-// Returns the turn number on the Add or Remove proposal
+// TurnNum returns the turn number on the Add or Remove proposal.
 func (p *Proposal) TurnNum() uint64 {
 	if p.Type() == AddProposal {
 		return p.ToAdd.turnNum
@@ -542,12 +550,12 @@ func (p *Proposal) TurnNum() uint64 {
 	}
 }
 
-// Equal returns true if the supplied Proposal is deeply Equal to the receiver, false otherwise.
+// Equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
 func (p *Proposal) Equal(q *Proposal) bool {
 	return p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
 }
 
-// ChannelId returns the channel id of the proposal.
+// ChannelId returns the id of the ConsensusChannel which receive the proposal.
 func (p SignedProposal) ChannelId() types.Destination {
 	return p.Proposal.ChannelID
 }
@@ -557,7 +565,7 @@ func (p SignedProposal) TurnNum() uint64 {
 	return p.Proposal.TurnNum()
 }
 
-// Target returns the target channel of the proposal
+// Target returns the target channel of the proposal.
 func (p *Proposal) Target() types.Destination {
 	switch p.Type() {
 	case "AddProposal":
@@ -575,27 +583,28 @@ func (p *Proposal) Target() types.Destination {
 	}
 }
 
-// SignedProposal is a Proposal with a signature on it
+// SignedProposal is a Proposal with a signature on it.
 type SignedProposal struct {
 	state.Signature
 	Proposal Proposal
 }
 
-// clone returns a deep copy of the reciever
+// clone returns a deep copy of the reciever.
 func (sp *SignedProposal) Clone() SignedProposal {
 	sp2 := SignedProposal{sp.Signature, sp.Proposal.Clone()}
 	return sp2
 }
 
-// Add is a proposal to add a guarantee for the given virtual channel
-// amount is to be deducted from left
+// Add encodes a proposal to add a guarantee to a ConsensusChannel.
+//
+// The balance of the guarantee is to be deducted from left.
 type Add struct {
 	turnNum uint64
 	Guarantee
 	LeftDeposit *big.Int
 }
 
-// Clone returns a deep copy of the receiver
+// Clone returns a deep copy of the receiver.
 func (a *Add) Clone() Add {
 	if a == nil {
 		return Add{}
@@ -607,7 +616,7 @@ func (a *Add) Clone() Add {
 	}
 }
 
-// NewAdd constructs a new Add proposal
+// NewAdd constructs a new Add proposal.
 func NewAdd(turnNum uint64, g Guarantee, leftDeposit *big.Int) Add {
 	return Add{
 		turnNum:     turnNum,
@@ -616,21 +625,23 @@ func NewAdd(turnNum uint64, g Guarantee, leftDeposit *big.Int) Add {
 	}
 }
 
-// NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal
+// NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
 func NewAddProposal(channelId types.Destination, turnNum uint64, g Guarantee, leftDeposit *big.Int) Proposal {
 	return Proposal{ToAdd: NewAdd(turnNum, g, leftDeposit), ChannelID: channelId}
 }
 
-// NewRemove constructs a new Remove proposal
+// NewRemove constructs a new Remove proposal.
 func NewRemove(turnNum uint64, target types.Destination, leftAmount, rightAmount *big.Int) Remove {
 	return Remove{turnNum: turnNum, Target: target, LeftAmount: leftAmount, RightAmount: rightAmount}
 }
 
-// NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal
+// NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
 func NewRemoveProposal(channelId types.Destination, turnNum uint64, target types.Destination, leftAmount, rightAmount *big.Int) Proposal {
 	return Proposal{ToRemove: NewRemove(turnNum, target, leftAmount, rightAmount), ChannelID: channelId}
 }
 
+// RightDeposit computes the deposit from the right participant such that
+// a.LeftDeposit + a.RightDeposit() fully funds a's guarantee.
 func (a Add) RightDeposit() *big.Int {
 	result := big.NewInt(0)
 	result.Sub(a.amount, a.LeftDeposit)
@@ -665,8 +676,8 @@ func (r Remove) equal(r2 Remove) bool {
 	return true
 }
 
-// HandleProposal handles a proposal to add or remove a guarantee
-// It will mutate Vars by calling Add or Remove for the proposal
+// HandleProposal handles a proposal to add or remove a guarantee.
+// It will mutate Vars by calling Add or Remove for the proposal.
 func (vars *Vars) HandleProposal(p Proposal) error {
 
 	switch p.Type() {
@@ -695,7 +706,7 @@ func (vars *Vars) HandleProposal(p Proposal) error {
 //  - the balances are incorrectly adjusted, or the deposits are too large
 //  - the guarantee is already included in vars.Outcome
 //
-// If an error is returned, the original vars is not mutated
+// If an error is returned, the original vars is not mutated.
 func (vars *Vars) Add(p Add) error {
 	// CHECKS
 	if p.turnNum != vars.TurnNum+1 {
@@ -747,7 +758,7 @@ func (vars *Vars) Add(p Add) error {
 //  - a guarantee is not found for the target
 //  - the amounts are too large for the guarantee amount
 //
-// If an error is returned, the original vars is not mutated
+// If an error is returned, the original vars is not mutated.
 func (vars *Vars) Remove(p Remove) error {
 	// CHECKS
 
@@ -781,7 +792,7 @@ func (vars *Vars) Remove(p Remove) error {
 	return nil
 }
 
-// Remove is a proposal to remover a guarantee for the given virtual channel
+// Remove is a proposal to remover a guarantee for the given virtual channel.
 type Remove struct {
 	turnNum uint64
 	Target  types.Destination
