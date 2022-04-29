@@ -61,9 +61,9 @@ func genericDFO() directfund.Objective {
 
 func genericVFO() virtualfund.Objective {
 	ts := testVirtualState.Clone()
-	ts.Participants[0] = testactors.Alice.Address
-	ts.Participants[1] = testactors.Irene.Address
-	ts.Participants[2] = testactors.Bob.Address
+	ts.Participants[0] = testactors.Alice.Address()
+	ts.Participants[1] = testactors.Irene.Address()
+	ts.Participants[2] = testactors.Bob.Address()
 
 	request := virtualfund.ObjectiveRequest{
 		ts.Participants[0],
@@ -81,7 +81,7 @@ func genericVFO() virtualfund.Objective {
 		testactors.Irene,
 		testactors.Bob,
 	})
-	lookup := ledgerPath.GetLedgerLookup(testactors.Alice.Address)
+	lookup := ledgerPath.GetLedgerLookup(testactors.Alice.Address())
 
 	testVFO, err := virtualfund.NewObjective(request, lookup)
 	if err != nil {

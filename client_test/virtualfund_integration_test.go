@@ -29,11 +29,11 @@ func TestVirtualFundIntegration(t *testing.T) {
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)
 
-	outcome := td.Outcomes.Create(alice.Address, bob.Address, 1, 1)
+	outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
 	request := virtualfund.ObjectiveRequest{
-		MyAddress:         alice.Address,
-		CounterParty:      bob.Address,
-		Intermediary:      irene.Address,
+		MyAddress:         alice.Address(),
+		CounterParty:      bob.Address(),
+		Intermediary:      irene.Address(),
 		Outcome:           outcome,
 		AppDefinition:     types.Address{},
 		AppData:           types.Bytes{},

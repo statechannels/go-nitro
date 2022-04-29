@@ -37,7 +37,7 @@ func TestBenchmark(t *testing.T) {
 
 	n := 1
 	for i := 0; i < n; i++ {
-		go benchmarkVirtualChannelCreation(t, clientAlice, clientBob, irene.Address, done)
+		go benchmarkVirtualChannelCreation(t, clientAlice, clientBob, irene.Address(), done)
 	}
 
 	expect(t, done, n, time.Second*1)

@@ -37,7 +37,7 @@ var allActors []actors.Actor = []actors.Actor{alice, p1, bob}
 func newTestData() testData {
 	var vPreFund = state.State{
 		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{alice.Address, p1.Address, bob.Address},
+		Participants:      []types.Address{alice.Address(), p1.Address(), bob.Address()},
 		ChannelNonce:      big.NewInt(0),
 		AppDefinition:     types.Address{},
 		ChallengeDuration: big.NewInt(45),
@@ -99,7 +99,7 @@ func testNew(a actors.Actor) Tester {
 		o, err := constructFromState(
 			false,
 			vPreFund,
-			a.Address,
+			a.Address(),
 			lookup[a.Destination()].left,
 			lookup[a.Destination()].right,
 		)
@@ -154,7 +154,7 @@ func testCloneAs(my actors.Actor) Tester {
 		vPreFund := td.vPreFund
 		ledgers := td.leaderLedgers
 
-		o, _ := constructFromState(false, vPreFund, my.Address, ledgers[my.Destination()].left, ledgers[my.Destination()].right)
+		o, _ := constructFromState(false, vPreFund, my.Address(), ledgers[my.Destination()].left, ledgers[my.Destination()].right)
 
 		clone := o.clone()
 
@@ -201,7 +201,7 @@ func TestMisaddressedUpdate(t *testing.T) {
 	var (
 		td      = newTestData()
 		ledgers = td.leaderLedgers
-		vfo, _  = constructFromState(false, td.vPreFund, alice.Address, ledgers[alice.Destination()].left, ledgers[alice.Destination()].right)
+		vfo, _  = constructFromState(false, td.vPreFund, alice.Address(), ledgers[alice.Destination()].left, ledgers[alice.Destination()].right)
 		event   = protocols.ObjectiveEvent{
 			ObjectiveId: "this-is-not-correct",
 		}
@@ -218,7 +218,7 @@ func TestCrankAsAlice(t *testing.T) {
 	td := newTestData()
 	vPreFund := td.vPreFund
 	ledgers := td.leaderLedgers
-	var s, _ = constructFromState(false, vPreFund, my.Address, ledgers[my.Destination()].left, ledgers[my.Destination()].right)
+	var s, _ = constructFromState(false, vPreFund, my.Address(), ledgers[my.Destination()].left, ledgers[my.Destination()].right)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.PrivateKey)
 	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
@@ -297,7 +297,7 @@ func TestCrankAsBob(t *testing.T) {
 	td := newTestData()
 	vPreFund := td.vPreFund
 	ledgers := td.followerLedgers
-	var s, _ = constructFromState(false, vPreFund, my.Address, ledgers[my.Destination()].left, ledgers[my.Destination()].right)
+	var s, _ = constructFromState(false, vPreFund, my.Address(), ledgers[my.Destination()].left, ledgers[my.Destination()].right)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.PrivateKey)
 	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
@@ -378,7 +378,7 @@ func TestCrankAsP1(t *testing.T) {
 	vPreFund := td.vPreFund
 	left := td.leaderLedgers[my.Destination()].left
 	right := td.followerLedgers[my.Destination()].right
-	var s, _ = constructFromState(false, vPreFund, my.Address, left, right)
+	var s, _ = constructFromState(false, vPreFund, my.Address(), left, right)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.PrivateKey)
 	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
@@ -475,9 +475,10 @@ func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus
 
 			msg := ses.MessagesToSend[0]
 			sent := msg.SignedProposals()[0].Payload
+			toAddress := to.Address()
 
 			Assert(t, len(ses.MessagesToSend[0].SignedProposals()) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
-			Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())
+			Assert(t, bytes.Equal(msg.To[:], toAddress[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address().String())
 			Assert(t, compareSignedProposals(sp, sent), "exp: %+v\n\n\tgot%+v", sp, sent)
 			numProposals++
 		}
@@ -489,7 +490,8 @@ func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus
 func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
 	found := false
 	for _, msg := range ses.MessagesToSend {
-		correctAddress := bytes.Equal(msg.To[:], to.Address[:])
+		toAddress := to.Address()
+		correctAddress := bytes.Equal(msg.To[:], toAddress[:])
 		if correctAddress {
 			for _, ss := range msg.SignedStates() {
 				diff := compareStates(ss.Payload, expected)
