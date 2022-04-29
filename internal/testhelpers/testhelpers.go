@@ -82,7 +82,7 @@ func AssertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 
 	msg := ses.MessagesToSend[0]
 	for _, p := range msg.SignedProposals() {
-		found = found || p.Payload.Proposal.Equal(&sp.Proposal)
+		found = found || p.Payload.Proposal.Equal(&sp.Proposal) && p.Payload.TurnNum == sp.TurnNum
 	}
 	Assert(t, found, "proposal %+v not found in signed proposals %+v", sp.Proposal, msg.SignedProposals())
 	Assert(t, bytes.Equal(msg.To[:], to.Address[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address.String())

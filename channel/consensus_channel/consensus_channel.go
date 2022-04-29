@@ -526,33 +526,9 @@ func (p *Proposal) Type() ProposalType {
 	}
 }
 
-// SetTurnNum updates the turn number on the Add or Remove proposal.
-func (p *Proposal) SetTurnNum(turnNum uint64) {
-	switch p.Type() {
-	case AddProposal:
-		{
-			p.ToAdd.turnNum = turnNum
-		}
-	case RemoveProposal:
-		{
-			p.ToRemove.turnNum = turnNum
-		}
-	}
-
-}
-
-// TurnNum returns the turn number on the Add or Remove proposal.
-func (p *Proposal) TurnNum() uint64 {
-	if p.Type() == AddProposal {
-		return p.ToAdd.turnNum
-	} else {
-		return p.ToRemove.turnNum
-	}
-}
-
 // Equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
 func (p *Proposal) Equal(q *Proposal) bool {
-	return p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
+	return p.ChannelID == q.ChannelID && p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
 }
 
 // ChannelId returns the id of the ConsensusChannel which receive the proposal.
@@ -560,9 +536,11 @@ func (p SignedProposal) ChannelId() types.Destination {
 	return p.Proposal.ChannelID
 }
 
-// TurnNum returns the turn number of the proposal.
-func (p SignedProposal) TurnNum() uint64 {
-	return p.Proposal.TurnNum()
+// SortInfo returns the channelId and turn number so the proposal can be easily sorted.
+func (p SignedProposal) SortInfo() (types.Destination, uint64) {
+	cId := p.Proposal.ChannelID
+	turnNum := p.TurnNum
+	return cId, turnNum
 }
 
 // Target returns the target channel of the proposal.
@@ -587,11 +565,12 @@ func (p *Proposal) Target() types.Destination {
 type SignedProposal struct {
 	state.Signature
 	Proposal Proposal
+	TurnNum  uint64
 }
 
 // Clone returns a deep copy of the reciever.
 func (sp *SignedProposal) Clone() SignedProposal {
-	sp2 := SignedProposal{sp.Signature, sp.Proposal.Clone()}
+	sp2 := SignedProposal{sp.Signature, sp.Proposal.Clone(), sp.TurnNum}
 	return sp2
 }
 
@@ -599,7 +578,6 @@ func (sp *SignedProposal) Clone() SignedProposal {
 //
 // The balance of the guarantee is to be deducted from left.
 type Add struct {
-	turnNum uint64
 	Guarantee
 	LeftDeposit *big.Int
 }
@@ -610,34 +588,32 @@ func (a *Add) Clone() Add {
 		return Add{}
 	}
 	return Add{
-		a.turnNum,
 		a.Guarantee.Clone(),
 		big.NewInt(0).Set(a.LeftDeposit),
 	}
 }
 
 // NewAdd constructs a new Add proposal.
-func NewAdd(turnNum uint64, g Guarantee, leftDeposit *big.Int) Add {
+func NewAdd(g Guarantee, leftDeposit *big.Int) Add {
 	return Add{
-		turnNum:     turnNum,
 		Guarantee:   g,
 		LeftDeposit: leftDeposit,
 	}
 }
 
 // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
-func NewAddProposal(channelId types.Destination, turnNum uint64, g Guarantee, leftDeposit *big.Int) Proposal {
-	return Proposal{ToAdd: NewAdd(turnNum, g, leftDeposit), ChannelID: channelId}
+func NewAddProposal(channelId types.Destination, g Guarantee, leftDeposit *big.Int) Proposal {
+	return Proposal{ToAdd: NewAdd(g, leftDeposit), ChannelID: channelId}
 }
 
 // NewRemove constructs a new Remove proposal.
-func NewRemove(turnNum uint64, target types.Destination, leftAmount, rightAmount *big.Int) Remove {
-	return Remove{turnNum: turnNum, Target: target, LeftAmount: leftAmount, RightAmount: rightAmount}
+func NewRemove(target types.Destination, leftAmount, rightAmount *big.Int) Remove {
+	return Remove{Target: target, LeftAmount: leftAmount, RightAmount: rightAmount}
 }
 
 // NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
-func NewRemoveProposal(channelId types.Destination, turnNum uint64, target types.Destination, leftAmount, rightAmount *big.Int) Proposal {
-	return Proposal{ToRemove: NewRemove(turnNum, target, leftAmount, rightAmount), ChannelID: channelId}
+func NewRemoveProposal(channelId types.Destination, target types.Destination, leftAmount, rightAmount *big.Int) Proposal {
+	return Proposal{ToRemove: NewRemove(target, leftAmount, rightAmount), ChannelID: channelId}
 }
 
 // RightDeposit computes the deposit from the right participant such that
@@ -650,9 +626,6 @@ func (a Add) RightDeposit() *big.Int {
 }
 
 func (a Add) equal(a2 Add) bool {
-	if a.turnNum != a2.turnNum {
-		return false
-	}
 	if !a.Guarantee.equal(a2.Guarantee) {
 		return false
 	}
@@ -660,9 +633,6 @@ func (a Add) equal(a2 Add) bool {
 }
 
 func (r Remove) equal(r2 Remove) bool {
-	if r.turnNum != r2.turnNum {
-		return false
-	}
 	if !bytes.Equal(r.Target.Bytes(), r2.Target.Bytes()) {
 
 		return false
@@ -709,10 +679,6 @@ func (vars *Vars) HandleProposal(p Proposal) error {
 // If an error is returned, the original vars is not mutated.
 func (vars *Vars) Add(p Add) error {
 	// CHECKS
-	if p.turnNum != vars.TurnNum+1 {
-		return ErrIncorrectTurnNum
-	}
-
 	o := vars.Outcome
 
 	_, found := o.guarantees[p.target]
@@ -762,9 +728,6 @@ func (vars *Vars) Add(p Add) error {
 func (vars *Vars) Remove(p Remove) error {
 	// CHECKS
 
-	if p.turnNum != vars.TurnNum+1 {
-		return ErrIncorrectTurnNum
-	}
 	o := vars.Outcome
 
 	guarantee, found := o.guarantees[p.Target]
@@ -794,8 +757,7 @@ func (vars *Vars) Remove(p Remove) error {
 
 // Remove is a proposal to remover a guarantee for the given virtual channel.
 type Remove struct {
-	turnNum uint64
-	Target  types.Destination
+	Target types.Destination
 	// LeftAmount is the amount to be credited to the left participant of the two party ledger channel
 	LeftAmount *big.Int
 	// RightAmount is the amount to be credited to the right participant of the two party ledger channel
@@ -808,7 +770,6 @@ func (r *Remove) Clone() Remove {
 		return Remove{}
 	}
 	return Remove{
-		turnNum:     r.turnNum,
 		Target:      r.Target,
 		LeftAmount:  big.NewInt(0).Set(r.LeftAmount),
 		RightAmount: big.NewInt(0).Set(r.RightAmount),

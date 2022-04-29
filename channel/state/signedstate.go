@@ -175,3 +175,10 @@ func (ss SignedState) ChannelId() types.Destination {
 func (ss SignedState) TurnNum() uint64 {
 	return ss.state.TurnNum
 }
+
+// SortInfo returns the channel id and turn number of the state, so the state can be easily sorted.
+func (ss SignedState) SortInfo() (types.Destination, uint64) {
+	cId, _ := ss.State().ChannelId()
+	turnNum := ss.State().TurnNum
+	return cId, turnNum
+}

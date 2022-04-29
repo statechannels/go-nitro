@@ -44,22 +44,22 @@ func TestLeaderChannel(t *testing.T) {
 
 	// createSignedProposal generates a proposal given the vars & proposed change
 	// The proposal is signed by the given actor, using a generic fixed part
-	createSignedProposal := func(vars Vars, p Proposal, actor testactors.Actor) SignedProposalVars {
+	createSignedProposal := func(vars Vars, p Proposal, actor testactors.Actor, turnNum uint64) SignedProposalVars {
 		proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
 		_ = proposalVars.HandleProposal(p)
 
 		state := proposalVars.AsState(fp())
 		sig, _ := state.Sign(actor.PrivateKey)
 
-		return SignedProposalVars{SignedProposal{sig, p}, proposalVars}
+		return SignedProposalVars{SignedProposal{sig, p, turnNum}, proposalVars}
 	}
 
-	aliceSignedProposal := func(vars Vars, p Proposal) SignedProposalVars {
-		return createSignedProposal(vars, p, alice)
+	aliceSignedProposal := func(vars Vars, p Proposal, turnNum uint64) SignedProposalVars {
+		return createSignedProposal(vars, p, alice, turnNum)
 	}
 
-	bobSignedProposal := func(vars Vars, p Proposal) SignedProposalVars {
-		return createSignedProposal(vars, p, bob)
+	bobSignedProposal := func(vars Vars, p Proposal, turnNum uint64) SignedProposalVars {
+		return createSignedProposal(vars, p, bob, turnNum)
 	}
 
 	cId, _ := fp().ChannelId()
@@ -89,18 +89,16 @@ func TestLeaderChannel(t *testing.T) {
 	const bAmount = uint64(4)
 	const amountAdded = aAmount + bAmount
 
-	createAdd := func(chID types.Destination, turnNum uint64, target types.Destination) Proposal {
+	createAdd := func(chID types.Destination, target types.Destination) Proposal {
 		return NewAddProposal(
 			chID,
-			turnNum,
 			guarantee(amountAdded, target, alice, bob),
 			big.NewInt(int64(amountAdded)),
 		)
 	}
-	createRemove := func(chID types.Destination, turnNum uint64, target types.Destination) Proposal {
+	createRemove := func(chID types.Destination, target types.Destination) Proposal {
 		return NewRemoveProposal(
 			chID,
-			turnNum,
 			target,
 			big.NewInt(int64(aAmount)),
 			big.NewInt(int64(bAmount)),
@@ -194,8 +192,9 @@ func TestLeaderChannel(t *testing.T) {
 			guarantee(vAmount, channel1Id, alice, bob),
 		)
 		c := testChannel(startingOutcome, emptyQueue())
-		proposalMade := createAdd(cId, 1, targetChannel)
-		expectedSp := aliceSignedProposal(c.current.Vars, proposalMade).SignedProposal
+		proposalMade := createAdd(cId, targetChannel)
+
+		expectedSp := aliceSignedProposal(c.current.Vars, proposalMade, 1).SignedProposal
 		t.Run(msg, testPropose(c, proposalMade, expectedSp, nil))
 	}
 
@@ -207,10 +206,9 @@ func TestLeaderChannel(t *testing.T) {
 			guarantee(vAmount, channel1Id, alice, bob),
 		)
 		c := testChannel(startingOutcome, emptyQueue())
-		proposalMade := createAdd(cId, 1, targetChannel)
-		expectedSp := aliceSignedProposal(c.current.Vars, proposalMade).SignedProposal
+		proposalMade := createAdd(cId, targetChannel)
+		expectedSp := aliceSignedProposal(c.current.Vars, proposalMade, 1).SignedProposal
 
-		proposalMade.SetTurnNum(9001)
 		t.Run(msg, testPropose(c, proposalMade, expectedSp, nil))
 	}
 
@@ -222,16 +220,16 @@ func TestLeaderChannel(t *testing.T) {
 			guarantee(vAmount, channel1Id, alice, bob),
 		)
 
-		p1 := createAdd(cId, 1, types.Destination{2})
-		sp1 := aliceSignedProposal(Vars{Outcome: startingOutcome}, p1)
+		p1 := createAdd(cId, types.Destination{2})
+		sp1 := aliceSignedProposal(Vars{TurnNum: 1, Outcome: startingOutcome}, p1, 1)
 		startingQueue := append(emptyQueue(), sp1)
 
 		c := testChannel(startingOutcome, startingQueue)
 
-		newAdd := Proposal{ChannelID: p1.ChannelID, ToAdd: add(2, amountAdded, types.Destination{3}, alice, bob)}
+		newAdd := Proposal{ChannelID: p1.ChannelID, ToAdd: add(amountAdded, types.Destination{3}, alice, bob)}
 
 		currentlyProposed, _ := c.latestProposedVars()
-		expectedSp := aliceSignedProposal(currentlyProposed, newAdd).SignedProposal
+		expectedSp := aliceSignedProposal(currentlyProposed, newAdd, 2).SignedProposal
 
 		t.Run(msg, testPropose(c, newAdd, expectedSp, nil))
 	}
@@ -245,10 +243,10 @@ func TestLeaderChannel(t *testing.T) {
 
 		c := testChannel(startingOutcome, emptyQueue())
 
-		newRemove := createRemove(cId, 1, channel1Id)
+		newRemove := createRemove(cId, channel1Id)
 
 		currentlyProposed, _ := c.latestProposedVars()
-		expectedSp := aliceSignedProposal(currentlyProposed, newRemove).SignedProposal
+		expectedSp := aliceSignedProposal(currentlyProposed, newRemove, 1).SignedProposal
 
 		t.Run(msg, testPropose(c, newRemove, expectedSp, nil))
 	}
@@ -261,7 +259,7 @@ func TestLeaderChannel(t *testing.T) {
 
 		c := testChannel(startingOutcome, emptyQueue())
 
-		newRemove := createRemove(cId, 1, channel1Id)
+		newRemove := createRemove(cId, channel1Id)
 
 		t.Run(msg, testPropose(c, newRemove, SignedProposal{}, ErrGuaranteeNotFound))
 	}
@@ -276,7 +274,7 @@ func TestLeaderChannel(t *testing.T) {
 		c := testChannel(startingOutcome, emptyQueue())
 
 		// Left+Right > amountAdded
-		newRemove := NewRemoveProposal(cId, 1, channel1Id, big.NewInt(int64(amountAdded)), big.NewInt(int64(amountAdded)))
+		newRemove := NewRemoveProposal(cId, channel1Id, big.NewInt(int64(amountAdded)), big.NewInt(int64(amountAdded)))
 
 		t.Run(msg, testPropose(c, newRemove, SignedProposal{}, ErrInvalidAmounts))
 	}
@@ -291,7 +289,7 @@ func TestLeaderChannel(t *testing.T) {
 		c := testChannel(startingOutcome, emptyQueue())
 
 		// Left+Right < amountAdded
-		newRemove := NewRemoveProposal(cId, 1, channel1Id, big.NewInt(int64(1)), big.NewInt(int64(1)))
+		newRemove := NewRemoveProposal(cId, channel1Id, big.NewInt(int64(1)), big.NewInt(int64(1)))
 
 		t.Run(msg, testPropose(c, newRemove, SignedProposal{}, ErrInvalidAmounts))
 	}
@@ -305,14 +303,14 @@ func TestLeaderChannel(t *testing.T) {
 		)
 
 		proposedChan := types.Destination{2}
-		p1 := createAdd(cId, 1, proposedChan)
-		sp1 := aliceSignedProposal(Vars{Outcome: startingOutcome}, p1)
+		p1 := createAdd(cId, proposedChan)
+		sp1 := aliceSignedProposal(Vars{TurnNum: 1, Outcome: startingOutcome}, p1, 1)
 
 		startingQueue := append(emptyQueue(), sp1)
 
 		c := testChannel(startingOutcome, startingQueue)
 
-		duplicateAdd := Proposal{ToAdd: add(2, amountAdded, proposedChan, alice, bob)}
+		duplicateAdd := Proposal{ToAdd: add(amountAdded, proposedChan, alice, bob), ChannelID: c.Id}
 
 		t.Run(msg, testPropose(c, duplicateAdd, SignedProposal{}, ErrDuplicateGuarantee))
 	}
@@ -328,8 +326,7 @@ func TestLeaderChannel(t *testing.T) {
 
 		c := testChannel(startingOutcome, emptyQueue())
 
-		p := Proposal{ToAdd: add(2, amountAdded, proposedChan, alice, bob)}
-
+		p := Proposal{ToAdd: add(amountAdded, proposedChan, alice, bob), ChannelID: c.Id}
 		t.Run(msg, testPropose(c, p, SignedProposal{}, ErrInsufficientFunds))
 	}
 
@@ -350,17 +347,17 @@ func TestLeaderChannel(t *testing.T) {
 		t2 := types.Destination{byte(1)}
 		t3 := types.Destination{byte(2)}
 
-		p1 := createAdd(cId, vars.TurnNum+1, t1)
-		sp1 := aliceSignedProposal(vars, p1)
+		p1 := createAdd(cId, t1)
+		sp1 := aliceSignedProposal(vars, p1, vars.TurnNum+1)
 
-		p2 := createAdd(cId, sp1.Vars.TurnNum+1, t2)
-		sp2 := aliceSignedProposal(sp1.Vars, p2)
+		p2 := createAdd(cId, t2)
+		sp2 := aliceSignedProposal(sp1.Vars, p2, sp1.Vars.TurnNum+1)
 
-		p3 := createAdd(cId, sp2.Vars.TurnNum+1, t3)
-		sp3 := aliceSignedProposal(sp2.Vars, p3)
+		p3 := createAdd(cId, t3)
+		sp3 := aliceSignedProposal(sp2.Vars, p3, sp2.Vars.TurnNum+1)
 
-		p4 := createRemove(cId, sp3.Vars.TurnNum+1, t3)
-		sp4 := aliceSignedProposal(sp3.Vars, p4)
+		p4 := createRemove(cId, t3)
+		sp4 := aliceSignedProposal(sp3.Vars, p4, sp3.Vars.TurnNum+1)
 
 		return []SignedProposalVars{sp1, sp2, sp3, sp4}
 	}
@@ -403,7 +400,7 @@ func TestLeaderChannel(t *testing.T) {
 				}
 			}
 
-			if channel.ConsensusTurnNum() != counterProposal.Proposal.TurnNum() {
+			if channel.ConsensusTurnNum() != counterProposal.SignedProposal.TurnNum {
 				t.Fatalf("consensus not reached")
 			}
 
@@ -449,16 +446,17 @@ func TestLeaderChannel(t *testing.T) {
 	for i, signedbyAlice := range populatedQueue() {
 		msg := fmt.Sprintf("ok: receiving a valid counter proposal in position %v", i)
 
-		counterP := bobSignedProposal(signedbyAlice.Vars, signedbyAlice.Proposal)
+		counterP := bobSignedProposal(signedbyAlice.Vars, signedbyAlice.Proposal, signedbyAlice.SignedProposal.TurnNum)
 		t.Run(msg, testUpdateConsensusOk(counterP))
 	}
 
 	{ // Receiving a valid (but stale) proposal
 		initialVars := Vars{TurnNum: consensusTurnNum, Outcome: startingOutcome.clone()}
-		p0 := createAdd(cId, 0, channel1Id)
+		p0 := createAdd(cId, channel1Id)
 
-		counterP := bobSignedProposal(initialVars, p0).SignedProposal
+		counterP := bobSignedProposal(initialVars, p0, 0).SignedProposal
 		channel := testChannel(startingOutcome, populatedQueue())
+
 		err := channel.Receive(counterP)
 		if err != nil {
 			t.Fatalf("unable to update consensus: %v", err)
@@ -472,23 +470,23 @@ func TestLeaderChannel(t *testing.T) {
 	{
 		msg := "err:wrong signature"
 		p := populatedQueue()[0]
-		counterP := createSignedProposal(p.Vars, p.Proposal, brian)
+		counterP := createSignedProposal(p.Vars, p.Proposal, brian, p.SignedProposal.TurnNum)
 		t.Run(msg, testUpdateConsensusErr(counterP, ErrWrongSigner))
 	}
 
 	{
 		msg := "err:unexpected proposal"
 		p := populatedQueue()[2]
-		p4 := createAdd(cId, p.Vars.TurnNum+10, types.Destination{11})
-		counterP := bobSignedProposal(p.Vars, p4)
+		p4 := createAdd(cId, types.Destination{11})
+		counterP := bobSignedProposal(p.Vars, p4, p.Vars.TurnNum+10)
 		t.Run(msg, testUpdateConsensusErr(counterP, ErrProposalQueueExhausted))
 	}
 
 	{
 		msg := "err:wrong channel"
 		p := populatedQueue()[2]
-		p4 := createAdd(types.Destination{}, p.Vars.TurnNum+10, types.Destination{11}) // blank ChannelID intentionally different than precomputed cId
-		counterP := bobSignedProposal(p.Vars, p4)
+		p4 := createAdd(types.Destination{}, types.Destination{11}) // blank ChannelID intentionally different than precomputed cId
+		counterP := bobSignedProposal(p.Vars, p4, p.Vars.TurnNum+10)
 		t.Run(msg, testUpdateConsensusErr(counterP, ErrIncorrectChannelID))
 	}
 }
