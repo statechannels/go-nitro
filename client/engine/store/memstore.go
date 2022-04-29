@@ -3,10 +3,10 @@ package store
 import (
 	"encoding/json"
 	"fmt"
-	"sync"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
@@ -16,61 +16,13 @@ import (
 )
 
 type MemStore struct {
-	objectives         syncMap[[]byte]
-	channels           syncMap[[]byte]
-	consensusChannels  syncMap[[]byte]
-	channelToObjective syncMap[protocols.ObjectiveId]
+	objectives         safesync.Map[[]byte]
+	channels           safesync.Map[[]byte]
+	consensusChannels  safesync.Map[[]byte]
+	channelToObjective safesync.Map[protocols.ObjectiveId]
 
 	key     []byte        // the signing key of the store's engine
 	address types.Address // the (Ethereum) address associated to the signing key
-}
-
-// syncMap wraps sync.Map in order to provide type safety
-type syncMap[T any] struct {
-	m sync.Map
-}
-
-// Load returns the value stored in the map for a key, or nil if no
-// value is present.
-// The ok result indicates whether value was found in the map.
-func (o *syncMap[T]) Load(id string) (value T, ok bool) {
-	data, ok := o.m.Load(id)
-
-	if !ok {
-		var result T
-		return result, false
-	}
-
-	value = data.(T)
-
-	return value, ok
-}
-
-// Store sets the value for a key.
-func (o *syncMap[T]) Store(key string, data T) {
-	o.m.Store(key, data)
-}
-
-// Delete deletes the value for a key.
-func (o *syncMap[T]) Delete(key string) {
-	o.m.Delete(key)
-}
-
-// Range calls f sequentially for each key and value present in the map.
-// If f returns false, range stops the iteration.
-//
-// Range does not necessarily correspond to any consistent snapshot of the Map's
-// contents: no key will be visited more than once, but if the value for any key
-// is stored or deleted concurrently, Range may reflect any mapping for that key
-// from any point during the Range call.
-//
-// Range may be O(N) with the number of elements in the map even if f returns
-// false after a constant number of calls.
-func (o *syncMap[T]) Range(f func(key string, value T) bool) {
-	untypedF := func(key, value interface{}) bool {
-		return f(key.(string), value.(T))
-	}
-	o.m.Range(untypedF)
 }
 
 func NewMemStore(key []byte) Store {
@@ -78,10 +30,10 @@ func NewMemStore(key []byte) Store {
 	ms.key = key
 	ms.address = crypto.GetAddressFromSecretKeyBytes(key)
 
-	ms.objectives = syncMap[[]byte]{}
-	ms.channels = syncMap[[]byte]{}
-	ms.consensusChannels = syncMap[[]byte]{}
-	ms.channelToObjective = syncMap[protocols.ObjectiveId]{}
+	ms.objectives = safesync.Map[[]byte]{}
+	ms.channels = safesync.Map[[]byte]{}
+	ms.consensusChannels = safesync.Map[[]byte]{}
+	ms.channelToObjective = safesync.Map[protocols.ObjectiveId]{}
 
 	return &ms
 }
@@ -369,5 +321,5 @@ func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective
 }
 
 func (ms *MemStore) ReleaseChannelFromOwnership(channelId types.Destination) {
-	ms.channelToObjective.m.Delete(channelId.String())
+	ms.channelToObjective.Delete(channelId.String())
 }
