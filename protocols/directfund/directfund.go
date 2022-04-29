@@ -30,9 +30,6 @@ func FundOnChainEffect(cId types.Destination, asset string, amount types.Funds) 
 	return "deposit" + amount.String() + "into" + cId.String()
 }
 
-// errors
-var ErrNotApproved = errors.New("objective not approved")
-
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
 	Status protocols.ObjectiveStatus
@@ -238,7 +235,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	sideEffects := protocols.SideEffects{}
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return &updated, protocols.SideEffects{}, WaitingForNothing, ErrNotApproved
+		return &updated, protocols.SideEffects{}, WaitingForNothing, protocols.ErrNotApproved
 	}
 
 	// Prefunding

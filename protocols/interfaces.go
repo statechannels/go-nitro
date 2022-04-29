@@ -2,6 +2,7 @@ package protocols
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -14,6 +15,10 @@ type TransactionType string
 const (
 	DepositTransactionType     TransactionType = "Deposit"
 	WithdrawAllTransactionType TransactionType = "Withdraw"
+)
+
+var (
+	ErrNotApproved = errors.New("objective not approved")
 )
 
 // ChainTransaction is an object to be sent to a blockchain provider.

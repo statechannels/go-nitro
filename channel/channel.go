@@ -12,7 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// Class containing states and metadata, and exposing convenience methods.
+// Channel contains states and metadata and exposes convenience methods.
 type Channel struct {
 	Id      types.Destination
 	MyIndex uint
@@ -23,10 +23,10 @@ type Channel struct {
 	// Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain
 	// It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
 
-	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
-
-	SignedStateForTurnNum map[uint64]state.SignedState // this stores up to 1 state per turn number.
+	SignedStateForTurnNum map[uint64]state.SignedState
 	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
+
+	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
 }
 
 // New constructs a new Channel from the supplied state.
@@ -148,7 +148,7 @@ func (c Channel) SignedPostFundState() state.SignedState {
 	return c.SignedStateForTurnNum[PostFundTurnNum]
 }
 
-// PreFundSignedByMe() returns true if I have signed the pre fund setup state, false otherwise.
+// PreFundSignedByMe returns true if the calling client has signed the pre fund setup state, false otherwise.
 func (c Channel) PreFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[PreFundTurnNum]; ok {
 		if c.SignedStateForTurnNum[PreFundTurnNum].HasSignatureForParticipant(c.MyIndex) {
@@ -158,7 +158,7 @@ func (c Channel) PreFundSignedByMe() bool {
 	return false
 }
 
-// PostFundSignedByMe() returns true if I have signed the post fund setup state, false otherwise.
+// PostFundSignedByMe returns true if the calling client has signed the post fund setup state, false otherwise.
 func (c Channel) PostFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[PostFundTurnNum]; ok {
 		if c.SignedStateForTurnNum[PostFundTurnNum].HasSignatureForParticipant(c.MyIndex) {
@@ -178,7 +178,8 @@ func (c Channel) PostFundComplete() bool {
 	return c.SignedStateForTurnNum[PostFundTurnNum].HasAllSignatures()
 }
 
-// LatestSupportedState returns the latest supported state.
+// LatestSupportedState returns the latest supported state. A state is supported if it is signed
+// by all participants.
 func (c Channel) LatestSupportedState() (state.State, error) {
 	if c.latestSupportedStateTurnNum == MaxTurnNum {
 		return state.State{}, errors.New(`no state is yet supported`)
@@ -186,7 +187,7 @@ func (c Channel) LatestSupportedState() (state.State, error) {
 	return c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State(), nil
 }
 
-// LatestSignedState fetches the state with the largest turn number signed by any participant
+// LatestSignedState fetches the state with the largest turn number signed by at least one participant.
 func (c Channel) LatestSignedState() (state.SignedState, error) {
 	if len(c.SignedStateForTurnNum) == 0 {
 		return state.SignedState{}, errors.New("No states are signed")

@@ -21,9 +21,6 @@ const (
 // The turn number used for the final state
 const FinalTurnNum = 2
 
-// errors
-var ErrNotApproved = errors.New("objective not approved")
-
 // Objective contains relevent information for the defund objective
 type Objective struct {
 	Status protocols.ObjectiveStatus
@@ -187,7 +184,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return &updated, sideEffects, WaitingForNothing, ErrNotApproved
+		return &updated, sideEffects, WaitingForNothing, protocols.ErrNotApproved
 	}
 
 	// Signing of the final state

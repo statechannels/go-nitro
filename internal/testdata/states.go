@@ -81,7 +81,7 @@ func createLedgerState(client, hub types.Address, clientBalance, hubBalance uint
 	}
 	state.Outcome = Outcomes.Create(client, hub, clientBalance, hubBalance)
 	state.AppDefinition = types.Address{} // ledger channel running the consensus app
-	state.TurnNum = 0                     // a requirement for channel.NewTwoPartyLedger
+	state.TurnNum = 0
 
 	return state
 }

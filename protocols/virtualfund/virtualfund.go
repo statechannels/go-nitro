@@ -26,9 +26,6 @@ const (
 
 const ObjectivePrefix = "VirtualFund-"
 
-// errors
-var ErrNotApproved = errors.New("objective not approved")
-
 // GuaranteeInfo contains the information used to generate the expected guarantees.
 type GuaranteeInfo struct {
 	Left                 types.Destination
@@ -360,7 +357,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	sideEffects := protocols.SideEffects{}
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return &updated, sideEffects, WaitingForNothing, ErrNotApproved
+		return &updated, sideEffects, WaitingForNothing, protocols.ErrNotApproved
 	}
 
 	// Prefunding

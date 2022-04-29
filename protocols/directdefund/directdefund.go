@@ -23,9 +23,11 @@ const (
 
 const ObjectivePrefix = "DirectDefunding-"
 
-// errors
-var ErrNotApproved = errors.New("objective not approved")
-var ErrChannelUpdateInProgress = errors.New("can only defund a channel when the latest state is supported or when the channel has a final state")
+var (
+	ErrNotApproved             = errors.New("objective not approved")
+	ErrChannelUpdateInProgress = errors.New("can only defund a channel when the latest state is supported or when the channel has a final state")
+	ErrNoFinalState            = errors.New("Cannot spawn direct defund objective without a final state")
+)
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
@@ -109,8 +111,6 @@ func NewObjective(
 
 	return init, nil
 }
-
-var ErrNoFinalState = errors.New("Cannot spawn direct defund objective without a final state")
 
 // ConstructObjectiveFromState takes in a state and constructs an objective from it.
 func ConstructObjectiveFromState(
