@@ -1,3 +1,4 @@
+// package safesync provides a type-safe, concurrency-safe Map struct
 package safesync
 
 import "sync"
