@@ -321,5 +321,5 @@ func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective
 }
 
 func (ms *MemStore) ReleaseChannelFromOwnership(channelId types.Destination) {
-	ms.channelToObjective.m.Delete(channelId.String())
+	ms.channelToObjective.Delete(channelId.String())
 }
