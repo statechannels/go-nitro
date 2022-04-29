@@ -148,7 +148,7 @@ func (c Channel) SignedPostFundState() state.SignedState {
 	return c.SignedStateForTurnNum[PostFundTurnNum]
 }
 
-// PreFundSignedByMe() returns true if the calling client has signed the pre fund setup state, false otherwise.
+// PreFundSignedByMe returns true if the calling client has signed the pre fund setup state, false otherwise.
 func (c Channel) PreFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[PreFundTurnNum]; ok {
 		if c.SignedStateForTurnNum[PreFundTurnNum].HasSignatureForParticipant(c.MyIndex) {
