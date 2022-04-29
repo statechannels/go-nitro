@@ -264,7 +264,7 @@ func (b Balance) AsAllocation() outcome.Allocation {
 	return outcome.Allocation{Destination: b.destination, Amount: amount, AllocationType: outcome.NormalAllocationType}
 }
 
-// Guarantee is a convenient, ergonomic representation a
+// Guarantee is a convenient, ergonomic representation of a
 // single-asset Allocation of type 1, ie. a guarantee.
 type Guarantee struct {
 	amount *big.Int
