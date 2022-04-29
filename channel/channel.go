@@ -12,7 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// Channel contains states and metadata, and exposes convenience methods.
+// Channel contains states and metadata and exposes convenience methods.
 type Channel struct {
 	Id      types.Destination
 	MyIndex uint
