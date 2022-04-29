@@ -589,7 +589,7 @@ type SignedProposal struct {
 	Proposal Proposal
 }
 
-// clone returns a deep copy of the reciever.
+// Clone returns a deep copy of the reciever.
 func (sp *SignedProposal) Clone() SignedProposal {
 	sp2 := SignedProposal{sp.Signature, sp.Proposal.Clone()}
 	return sp2
