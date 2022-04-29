@@ -63,7 +63,7 @@ func (f Funds) Equal(g Funds) bool {
 }
 
 // canAfford returns true if each of g's non-zero asset balances is matched
-// or exceeded by the same asset-balance in the receiver
+// or exceeded by the same asset-balance in the receiver.
 func (f Funds) canAfford(g Funds) bool {
 	zero := big.NewInt(0)
 
