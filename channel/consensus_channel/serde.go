@@ -52,7 +52,7 @@ type jsonRemove struct {
 	RightAmount *big.Int
 }
 
-// MarshalJSON returns a JSON representation of the Add
+// MarshalJSON returns a JSON representation of the Remove
 func (r Remove) MarshalJSON() ([]byte, error) {
 	jsonR := jsonRemove{
 		r.turnNum, r.Target, r.LeftAmount, r.RightAmount,
