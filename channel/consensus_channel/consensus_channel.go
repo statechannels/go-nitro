@@ -243,7 +243,7 @@ func NewBalance(destination types.Destination, amount *big.Int) Balance {
 
 }
 
-// Balance is a convenient ergonomic representation of a single-asset Allocation
+// Balance is a convenient, ergonomic representation of a single-asset Allocation
 // of type 0, ie. a simple allocation.
 type Balance struct {
 	destination types.Destination
