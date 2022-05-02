@@ -62,10 +62,9 @@ func ledgerOutcome() LedgerOutcome {
 	)
 }
 
-func add(turnNum, amount uint64, vId types.Destination, left, right testactors.Actor) Add {
+func add(amount uint64, vId types.Destination, left, right testactors.Actor) Add {
 	bigAmount := big.NewInt(int64(amount))
 	return Add{
-		turnNum: turnNum,
 		Guarantee: Guarantee{
 			amount: bigAmount,
 			target: vId,
@@ -76,9 +75,8 @@ func add(turnNum, amount uint64, vId types.Destination, left, right testactors.A
 	}
 }
 
-func remove(turnNum uint64, vId types.Destination, leftAmount, rightAmount uint64) Remove {
+func remove(vId types.Destination, leftAmount, rightAmount uint64) Remove {
 	return Remove{
-		turnNum:     turnNum,
 		LeftAmount:  big.NewInt(int64(leftAmount)),
 		RightAmount: big.NewInt(int64(rightAmount)),
 		Target:      vId,
@@ -98,6 +96,7 @@ func createSignedProposal(vars Vars, proposal Proposal, fp state.FixedPart, pk [
 	signedProposal := SignedProposal{
 		Proposal:  proposal,
 		Signature: sig,
+		TurnNum:   state.TurnNum,
 	}
 
 	return signedProposal

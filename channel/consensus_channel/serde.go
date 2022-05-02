@@ -13,7 +13,6 @@ import (
 // making it suitable for serialization
 // embedded structs are moved to name fields for easier serialization
 type jsonAdd struct {
-	TurnNum     uint64
 	Guarantee   Guarantee
 	LeftDeposit *big.Int
 }
@@ -21,7 +20,7 @@ type jsonAdd struct {
 // MarshalJSON returns a JSON representation of the Add
 func (a Add) MarshalJSON() ([]byte, error) {
 	jsonA := jsonAdd{
-		a.turnNum, a.Guarantee, a.LeftDeposit,
+		a.Guarantee, a.LeftDeposit,
 	}
 	return json.Marshal(jsonA)
 }
@@ -35,7 +34,6 @@ func (a *Add) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("error unmarshaling guarantee data: %w", err)
 	}
 
-	a.turnNum = jsonA.TurnNum
 	a.Guarantee = jsonA.Guarantee
 	a.LeftDeposit = jsonA.LeftDeposit
 
@@ -46,7 +44,6 @@ func (a *Add) UnmarshalJSON(data []byte) error {
 // making it suitable for serialization
 // embedded structs are moved to name fields for easier serialization
 type jsonRemove struct {
-	TurnNum     uint64
 	Target      types.Destination
 	LeftAmount  *big.Int
 	RightAmount *big.Int
@@ -55,7 +52,7 @@ type jsonRemove struct {
 // MarshalJSON returns a JSON representation of the Remove
 func (r Remove) MarshalJSON() ([]byte, error) {
 	jsonR := jsonRemove{
-		r.turnNum, r.Target, r.LeftAmount, r.RightAmount,
+		r.Target, r.LeftAmount, r.RightAmount,
 	}
 	return json.Marshal(jsonR)
 }
@@ -69,7 +66,6 @@ func (r *Remove) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("error unmarshaling remove data: %w", err)
 	}
 
-	r.turnNum = jsonR.TurnNum
 	r.Target = jsonR.Target
 	r.LeftAmount = jsonR.LeftAmount
 	r.RightAmount = jsonR.RightAmount
@@ -87,7 +83,7 @@ type jsonProposal struct {
 
 // MarshalJSON returns a JSON representation of the Proposal
 func (p Proposal) MarshalJSON() ([]byte, error) {
-	jsonP := jsonProposal(p)
+	jsonP := jsonProposal{p.ChannelID, p.ToAdd, p.ToRemove}
 
 	return json.Marshal(jsonP)
 }

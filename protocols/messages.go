@@ -139,22 +139,20 @@ func (se *SideEffects) Merge(other SideEffects) {
 // It includes functions to get basic info to allow sorting.
 type PayloadValue interface {
 	state.SignedState | consensus_channel.SignedProposal
-	ChannelId() types.Destination
-	TurnNum() uint64
+	SortInfo() (channelID types.Destination, turnNum uint64)
 }
 
 // sortPayloads sorts the objective payloads by channel id then turnNum.
 // This is used to ensure that the payloads can be processed in a deterministic order.
 func sortPayloads[T PayloadValue](payloads []ObjectivePayload[T]) {
 	sort.Slice(payloads, func(i, j int) bool {
-		p1, p2 := payloads[i], payloads[j]
+		cId1, turnNum1 := payloads[i].Payload.SortInfo()
+		cId2, turnNum2 := payloads[j].Payload.SortInfo()
 
-		cId1 := p1.Payload.ChannelId()
-		cId2 := p2.Payload.ChannelId()
 		cIdCompare := bytes.Compare(cId1.Bytes(), cId2.Bytes())
 
 		if sameChannel := cIdCompare == 0; sameChannel {
-			return p1.Payload.TurnNum() < p2.Payload.TurnNum()
+			return turnNum1 < turnNum2
 		} else {
 			return cIdCompare < 0
 		}
@@ -193,7 +191,7 @@ func SummarizeMessage(m Message) MessageSummary {
 			LedgerId:    p.Payload.Proposal.ChannelID.String(),
 			ObjectiveId: string(p.ObjectiveId),
 			Target:      p.Payload.Proposal.Target().String(),
-			TurnNum:     p.Payload.Proposal.TurnNum(),
+			TurnNum:     p.Payload.TurnNum,
 			Type:        string(p.Payload.Proposal.Type()),
 		}
 	}

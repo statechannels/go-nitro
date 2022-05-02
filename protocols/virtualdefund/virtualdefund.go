@@ -259,7 +259,7 @@ func (o Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) co
 	left := o.finalOutcome().Allocations[0].Amount
 	right := o.finalOutcome().Allocations[1].Amount
 
-	return consensus_channel.NewRemoveProposal(ledger.Id, FinalTurnNum, o.VId(), left, right)
+	return consensus_channel.NewRemoveProposal(ledger.Id, o.VId(), left, right)
 }
 
 // updateLedgerToRemoveGuarantee updates the ledger channel to remove the guarantee that funds V.
@@ -421,7 +421,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		case toMyRightId:
 			err = updated.ToMyRight.Receive(sp)
 		default:
-			return &o, fmt.Errorf("signed proposal is not addressed to a known ledger connection")
+			return &o, fmt.Errorf("signed proposal is not addressed to a known ledger connection %+v", sp)
 		}
 
 		if err != nil {

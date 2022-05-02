@@ -97,13 +97,13 @@ func checkForFollowerProposals(t *testing.T, se protocols.SideEffects, o *Object
 	case 1:
 		{
 			// Irene should accept a proposal from Alice
-			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyLeft.Id, td)}
+			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyLeft.Id, td), TurnNum: 2}
 			AssertProposalSent(t, se, rightProposal, alice)
 		}
 	case 2:
 		{
 			// Bob should accept a proposal from Irene
-			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyLeft.Id, td)}
+			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyLeft.Id, td), TurnNum: 2}
 			AssertProposalSent(t, se, rightProposal, irene)
 		}
 
@@ -117,7 +117,7 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 		{
 			// Alice expects Irene to accept her proposal
 			p := generateRemoveProposal(o.ToMyRight.Id, td)
-			sp, err := signProposal(irene, p, o.ToMyRight)
+			sp, err := signProposal(irene, p, o.ToMyRight, 2)
 			if err != nil {
 				panic(err)
 			}
@@ -129,11 +129,11 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 		{
 			// Irene expects Alice to send a proposal
 			fromAlice := generateRemoveProposal(o.ToMyLeft.Id, td)
-			fromAliceSigned, _ := signProposal(alice, fromAlice, o.ToMyLeft)
+			fromAliceSigned, _ := signProposal(alice, fromAlice, o.ToMyLeft, 2)
 
 			// Irene expects Bob to accept her proposal
 			fromBob := generateRemoveProposal(o.ToMyRight.Id, td)
-			fromBobSigned, _ := signProposal(bob, fromBob, o.ToMyRight)
+			fromBobSigned, _ := signProposal(bob, fromBob, o.ToMyRight, 2)
 
 			return []consensus_channel.SignedProposal{fromAliceSigned, fromBobSigned}
 		}
@@ -141,7 +141,7 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 		{
 			// Bob expects Irene to send a proposal
 			p := generateRemoveProposal(o.ToMyLeft.Id, td)
-			sp, err := signProposal(irene, p, o.ToMyLeft)
+			sp, err := signProposal(irene, p, o.ToMyLeft, 2)
 			if err != nil {
 				panic(err)
 			}
@@ -176,13 +176,13 @@ func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objectiv
 	case 0:
 		{
 			// Alice Proposes to Irene on her right
-			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyRight.Id, td)}
+			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyRight.Id, td), TurnNum: 2}
 			AssertProposalSent(t, se, rightProposal, irene)
 		}
 	case 1:
 		{
 			// Irene proposes to Bob on her right
-			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyRight.Id, td)}
+			rightProposal := consensus_channel.SignedProposal{Proposal: generateRemoveProposal(o.ToMyRight.Id, td), TurnNum: 2}
 			AssertProposalSent(t, se, rightProposal, bob)
 		}
 
@@ -190,7 +190,7 @@ func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objectiv
 }
 
 // signProposal signs a proposal with the given actor's private key
-func signProposal(me testactors.Actor, p consensus_channel.Proposal, c *consensus_channel.ConsensusChannel) (consensus_channel.SignedProposal, error) {
+func signProposal(me testactors.Actor, p consensus_channel.Proposal, c *consensus_channel.ConsensusChannel, turnNum uint64) (consensus_channel.SignedProposal, error) {
 
 	con := c.ConsensusVars()
 	vars := con.Clone()
@@ -205,7 +205,7 @@ func signProposal(me testactors.Actor, p consensus_channel.Proposal, c *consensu
 		return consensus_channel.SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
 	}
 
-	return consensus_channel.SignedProposal{Signature: sig, Proposal: p}, nil
+	return consensus_channel.SignedProposal{Signature: sig, Proposal: p, TurnNum: turnNum}, nil
 }
 
 // makeOutcome creates an outcome allocating to alice and bob
@@ -238,7 +238,7 @@ type testdata struct {
 // generateRemoveProposal generates a remove proposal for the given channelId and test data
 func generateRemoveProposal(cId types.Destination, td testdata) consensus_channel.Proposal {
 	vId, _ := td.vFinal.ChannelId()
-	return consensus_channel.NewRemoveProposal(cId, FinalTurnNum, vId, big.NewInt(int64(td.finalAliceAmount)), big.NewInt(int64(td.finalBobAmount)))
+	return consensus_channel.NewRemoveProposal(cId, vId, big.NewInt(int64(td.finalAliceAmount)), big.NewInt(int64(td.finalBobAmount)))
 
 }
 
