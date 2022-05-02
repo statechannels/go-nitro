@@ -23,14 +23,14 @@ func TestVirtualDefundIntegration(t *testing.T) {
 	clientB, _ := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
 	clientI, _ := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
 
-	cId := openAVirtualChannel(t, clientA, clientB, clientI)
+	cIds := openVirtualChannels(t, clientA, clientB, clientI, 2)
 
 	paidToBob := big.NewInt(0)
 
-	id := clientA.CloseVirtualChannel(cId, paidToBob)
+	id, id2 := clientA.CloseVirtualChannel(cIds[0], paidToBob), clientA.CloseVirtualChannel(cIds[1], paidToBob)
 
-	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, id)
-	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, id)
-	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, id)
+	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, id, id2)
+	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, id, id2)
+	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, id, id2)
 
 }
