@@ -2,7 +2,6 @@
 package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
-	"bytes"
 	"math/big"
 	"testing"
 
@@ -13,8 +12,9 @@ import (
 func TestVirtualDefundIntegration(t *testing.T) {
 
 	// Setup logging
-	logDestination := &bytes.Buffer{}
-	t.Cleanup(flushToFileCleanupFn(logDestination, "virtualdefund_client_test.log"))
+	logFile := "virtualdefund_client_test.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
