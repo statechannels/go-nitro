@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -16,8 +15,9 @@ import (
 func TestVirtualFundIntegration(t *testing.T) {
 
 	// Setup logging
-	logDestination := &bytes.Buffer{}
-	t.Cleanup(flushToFileCleanupFn(logDestination, "virtualfund_client_test.log"))
+	logFile := "virtualfund_client_test.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()

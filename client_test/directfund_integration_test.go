@@ -2,7 +2,6 @@
 package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
-	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -40,8 +39,9 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 func TestDirectFundIntegration(t *testing.T) {
 
 	// Setup logging
-	logDestination := &bytes.Buffer{}
-	t.Cleanup(flushToFileCleanupFn(logDestination, "directfund_client_test.log"))
+	logFile := "directfund_client_test.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
