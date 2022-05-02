@@ -246,7 +246,7 @@ func TestCrankAsAlice(t *testing.T) {
 
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{c.SignedPreFundState()}}
+	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedState: c.SignedPreFundState()}
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -274,7 +274,7 @@ func TestCrankAsAlice(t *testing.T) {
 
 	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
 	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[1]}
-	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposals: []consensus_channel.SignedProposal{sp}}
+	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposal: sp}
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -325,7 +325,7 @@ func TestCrankAsBob(t *testing.T) {
 
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{c.SignedPreFundState()}}
+	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedState: c.SignedPreFundState()}
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -352,7 +352,7 @@ func TestCrankAsBob(t *testing.T) {
 	// If Bob had received a signed counterproposal, he should proceed to postFundSetup
 	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, bob, o.ToMyLeft.getExpectedGuarantee())[0]}
-	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposals: []consensus_channel.SignedProposal{sp}}
+	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposal: sp}
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -406,7 +406,7 @@ func TestCrankAsP1(t *testing.T) {
 
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{c.SignedPreFundState()}}
+	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedState: c.SignedPreFundState()}
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -434,7 +434,7 @@ func TestCrankAsP1(t *testing.T) {
 	// If P1 had received a signed counterproposal, she should proceed to postFundSetup
 	p = consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, 2, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[1]}
-	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposals: []consensus_channel.SignedProposal{sp}}
+	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposal: sp}
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)

@@ -314,8 +314,9 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		toMyRightId = o.ToMyRight.Channel.Id // Avoid this if it is nil
 	}
 
-	for _, sp := range event.SignedProposals {
+	if sp := event.SignedProposal; sp.Proposal.Target() == o.V.Id {
 		var err error
+
 		switch sp.Proposal.ChannelID {
 		case types.Destination{}:
 			return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
@@ -332,7 +333,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		}
 	}
 
-	for _, ss := range event.SignedStates {
+	if ss := event.SignedState; len(ss.Signatures()) != 0 {
 		channelId, _ := ss.State().ChannelId() // TODO handle error
 		switch channelId {
 		case types.Destination{}:

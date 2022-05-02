@@ -188,51 +188,6 @@ func TestChannel(t *testing.T) {
 		}
 	}
 
-	testAddSignedStates := func(t *testing.T) {
-		myC, _ := New(s, 0)
-
-		ss := state.NewSignedState(s)
-		sigA, err := ss.State().Sign(alicePrivateKey)
-		if err != nil {
-			t.Error(err)
-		}
-		sigB, err := ss.State().Sign(bobPrivateKey)
-		if err != nil {
-			t.Error(err)
-		}
-		err = ss.AddSignature(sigA)
-		if err != nil {
-			t.Error(err)
-		}
-		err = ss.AddSignature(sigB)
-		if err != nil {
-			t.Error(err)
-		}
-		if ok := myC.AddSignedStates([]state.SignedState{ss}); !ok {
-			t.Error("AddSignedStates returned false")
-		}
-
-		// It should properly update the latestSupportedStateNum
-		got := myC.latestSupportedStateTurnNum
-		if got != s.TurnNum {
-			t.Fatalf("Expected latestSupportedStateTurnNum of %d but got %d", s.TurnNum, got)
-		}
-
-		// verify the signatures
-		expectedSigs := []state.Signature{sigA, sigB}
-		for i := range myC.Participants {
-			gotSig, err := myC.SignedStateForTurnNum[s.TurnNum].GetParticipantSignature(uint(i))
-			if err != nil {
-				panic(err)
-			}
-			wantSig := expectedSigs[i]
-			if !gotSig.Equal(wantSig) {
-				t.Fatalf("Expected to find signature %x at index 0, but got %x", wantSig, gotSig)
-			}
-		}
-
-	}
-
 	testAddStateWithSignature := func(t *testing.T) {
 		// Begin testing the cases that are NOOPs returning false
 		want := false
@@ -348,7 +303,6 @@ func TestChannel(t *testing.T) {
 	t.Run(`TestLatestSignedState`, testLatestSignedState)
 	t.Run(`TestTotal`, testTotal)
 	t.Run(`TestAddStateWithSignature`, testAddStateWithSignature)
-	t.Run(`TestAddSignedStates`, testAddSignedStates)
 	t.Run(`TestAddSignedState`, testAddSignedState)
 
 }

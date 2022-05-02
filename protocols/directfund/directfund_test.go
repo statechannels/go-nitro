@@ -105,7 +105,6 @@ func TestUpdate(t *testing.T) {
 	// and make a new Sigs map.
 	// This prepares us for the rest of the test. We will reuse the same event multiple times
 	e.ObjectiveId = s.Id()
-	e.SignedStates = make([]state.SignedState, 0)
 
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
@@ -114,7 +113,7 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	e.SignedStates = append(e.SignedStates, ss)
+	e.SignedState = ss
 	updatedObjective, err := s.Update(e)
 	if err != nil {
 		t.Error(err)

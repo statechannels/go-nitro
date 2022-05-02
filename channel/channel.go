@@ -266,19 +266,6 @@ func (c *Channel) AddSignedState(ss state.SignedState) bool {
 	return true
 }
 
-// AddSignedStates adds each signed state in the passed slice. It returns true if all signed states were added successfully, false otherwise.
-// If one or more signed states fails to be added, this does not prevent other signed states from being added.
-func (c *Channel) AddSignedStates(sss []state.SignedState) bool {
-	allOk := true
-	for _, ss := range sss {
-		ok := c.AddSignedState(ss)
-		if !ok {
-			allOk = false
-		}
-	}
-	return allOk
-}
-
 // SignAndAddPrefund signs and adds the prefund state for the channel, returning a state.SignedState suitable for sending to peers.
 func (c *Channel) SignAndAddPrefund(sk *[]byte) (state.SignedState, error) {
 	return c.SignAndAddState(c.PreFundState(), sk)

@@ -178,19 +178,20 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
-	if len(event.SignedStates) > 0 {
-		for _, ss := range event.SignedStates {
-			if !ss.State().IsFinal {
-				return &o, errors.New("direct defund objective can only be updated with final states")
-			}
-			if o.finalTurnNum != ss.State().TurnNum {
-				return &o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, ss.State().TurnNum)
-			}
+	if len(event.SignedState.Signatures()) != 0 {
+
+		if !event.SignedState.State().IsFinal {
+			return &o, errors.New("direct defund objective can only be updated with final states")
 		}
+		if o.finalTurnNum != event.SignedState.State().TurnNum {
+			return &o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, event.SignedState.State().TurnNum)
+		}
+	} else {
+		return &o, fmt.Errorf("event does not contain a signed state")
 	}
 
 	updated := o.clone()
-	updated.C.AddSignedStates(event.SignedStates)
+	updated.C.AddSignedState(event.SignedState)
 
 	return &updated, nil
 }
