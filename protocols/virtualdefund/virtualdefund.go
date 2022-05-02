@@ -504,6 +504,10 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		default:
 			return &o, fmt.Errorf("signed proposal is not addressed to a known ledger connection %+v", sp)
 		}
+		// Ignore stale or future proposals.
+		if errors.Is(err, consensus_channel.ErrInvalidTurnNum) {
+			return &updated, nil
+		}
 
 		if err != nil {
 			return &o, fmt.Errorf("error incorporating signed proposal into objective: %w", err)
