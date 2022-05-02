@@ -531,8 +531,8 @@ func (p *Proposal) Equal(q *Proposal) bool {
 	return p.ChannelID == q.ChannelID && p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
 }
 
-// ChannelId returns the id of the ConsensusChannel which receive the proposal.
-func (p SignedProposal) ChannelId() types.Destination {
+// ChannelID returns the id of the ConsensusChannel which receive the proposal.
+func (p SignedProposal) ChannelID() types.Destination {
 	return p.Proposal.ChannelID
 }
 

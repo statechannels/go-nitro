@@ -139,7 +139,7 @@ func (se *SideEffects) Merge(other SideEffects) {
 // It includes functions to get basic info to allow sorting.
 type PayloadValue interface {
 	state.SignedState | consensus_channel.SignedProposal
-	SortInfo() (channelId types.Destination, turnNum uint64)
+	SortInfo() (channelID types.Destination, turnNum uint64)
 }
 
 // sortPayloads sorts the objective payloads by channel id then turnNum.
