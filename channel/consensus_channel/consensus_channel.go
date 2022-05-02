@@ -133,8 +133,8 @@ func (c *ConsensusChannel) IncludesTarget(target types.Destination) bool {
 	return c.current.Outcome.includesTarget(target)
 }
 
-// HasRemovalBeenProposedFor returns whether or not a proposal exists to remove the guaranatee for the target.
-func (c *ConsensusChannel) HasRemovalBeenProposedFor(target types.Destination) bool {
+// HasRemovalBeenProposed returns whether or not a proposal exists to remove the guaranatee for the target.
+func (c *ConsensusChannel) HasRemovalBeenProposed(target types.Destination) bool {
 	for _, p := range c.proposalQueue {
 		if p.Proposal.Type() == RemoveProposal {
 			remove := p.Proposal.ToRemove
@@ -144,6 +144,18 @@ func (c *ConsensusChannel) HasRemovalBeenProposedFor(target types.Destination) b
 		}
 	}
 	return false
+}
+
+// HasRemovalBeenProposedNext returns whether or not the next proposal in the queue is a remove proposal for the given target
+func (c *ConsensusChannel) HasRemovalBeenProposedNext(target types.Destination) bool {
+
+	if len(c.proposalQueue) == 0 {
+		return false
+	}
+
+	p := c.proposalQueue[0]
+	return p.Proposal.Type() == RemoveProposal && p.Proposal.ToRemove.Target == target
+
 }
 
 // IsLeader returns true if the calling client is the leader of the channel,
