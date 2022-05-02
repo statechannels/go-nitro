@@ -141,11 +141,35 @@ func ConstructObjectiveFromState(
 	if err != nil {
 		return Objective{}, err
 	}
-	paidToBob := big.NewInt(0) // TODO how to set this properly?
+
+	paidToBob, err := calculatePaidToBob(initialState, getChannel)
+	if err != nil {
+		return Objective{}, err
+	}
 	return NewObjective(true,
 		ObjectiveRequest{channelId, paidToBob, myAddress},
 		getChannel,
 		getTwoPartyConsensusLedger)
+}
+
+// calculatePaidToBob determines the amount paid to bob by comparing the prefund setup state and the proposed final state.
+func calculatePaidToBob(proposedFinalState state.State, getChannel GetChannelByIdFunction) (*big.Int, error) {
+	if !proposedFinalState.IsFinal {
+		return big.NewInt(0), fmt.Errorf("expected final state")
+	}
+	cId, err := proposedFinalState.ChannelId()
+	if err != nil {
+		return big.NewInt(0), err
+	}
+	c, found := getChannel(cId)
+	pf := c.PreFundState()
+
+	if !found {
+		return big.NewInt(0), fmt.Errorf("could not find channel %s", cId)
+	}
+	initialBobAmount := pf.Outcome[0].Allocations[1].Amount
+	finalBobAmount := proposedFinalState.Outcome[0].Allocations[1].Amount
+	return big.NewInt(0).Sub(finalBobAmount, initialBobAmount), nil
 }
 
 // IsVirtualDefundObjective inspects a objective id and returns true if the objective id is for a virtualdefund objective.

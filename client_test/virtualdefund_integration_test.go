@@ -25,7 +25,7 @@ func TestVirtualDefundIntegration(t *testing.T) {
 
 	cIds := openVirtualChannels(t, clientA, clientB, clientI, 2)
 
-	paidToBob := big.NewInt(0)
+	paidToBob := big.NewInt(1)
 
 	id, id2 := clientA.CloseVirtualChannel(cIds[0], paidToBob), clientA.CloseVirtualChannel(cIds[1], paidToBob)
 
