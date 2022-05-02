@@ -2,7 +2,6 @@
 package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/statechannels/go-nitro/client"
@@ -22,8 +21,9 @@ func directlyDefundALedgerChannel(t *testing.T, alpha client.Client, beta client
 func TestDirectDefundIntegration(t *testing.T) {
 
 	// Setup logging
-	logDestination := &bytes.Buffer{}
-	t.Cleanup(flushToFileCleanupFn(logDestination, "directdefund_client_test.log"))
+	logFile := "directdefund_client_test.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
