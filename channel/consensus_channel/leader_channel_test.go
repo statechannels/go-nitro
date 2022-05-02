@@ -199,20 +199,6 @@ func TestLeaderChannel(t *testing.T) {
 	}
 
 	{
-		msg := "ok:provided turn number is ignored"
-		startingOutcome := makeOutcome(
-			allocation(alice, aBal-amountAdded),
-			allocation(bob, bBal),
-			guarantee(vAmount, channel1Id, alice, bob),
-		)
-		c := testChannel(startingOutcome, emptyQueue())
-		proposalMade := createAdd(cId, targetChannel)
-		expectedSp := aliceSignedProposal(c.current.Vars, proposalMade, 1).SignedProposal
-
-		t.Run(msg, testPropose(c, proposalMade, expectedSp, nil))
-	}
-
-	{
 		msg := "ok:adding with a non-empty queue"
 		startingOutcome := makeOutcome(
 			allocation(alice, aBal-amountAdded),
