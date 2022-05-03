@@ -18,7 +18,7 @@ import (
 )
 
 func TestLargeScaleVirtualFundIntegration(t *testing.T) {
-	const numRetrievalClients = 10
+	const numRetrievalClients = 1
 
 	logFile := "largescale_client_test.log"
 	truncateLog(logFile)
