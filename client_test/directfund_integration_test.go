@@ -36,10 +36,10 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, response.Id)
 	return response.ChannelId
 }
-func TestDirectFundIntegration(t *testing.T) {
+func TestDirectFund(t *testing.T) {
 
 	// Setup logging
-	logFile := "directfund_client_test.log"
+	logFile := "test_direct_fund.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
