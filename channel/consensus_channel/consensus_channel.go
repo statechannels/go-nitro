@@ -394,8 +394,9 @@ func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 			g := Guarantee{
 				amount: a.Amount,
 				target: a.Destination,
-				left:   gM.Left,
-				right:  gM.Right,
+				// Instead of decoding the metadata we make an assumption that the metadata has the left/right we expect
+				left:  gM.Left,
+				right: gM.Right,
 			}
 			guarantees[a.Destination] = g
 		}
@@ -412,6 +413,7 @@ func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 //  - guarantees follow, sorted according to their target destinations
 func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 	// The first items are [left, right] balances
+	allocations := outcome.Allocations{o.leader.AsAllocation(), o.follower.AsAllocation()}
 	allocations := outcome.Allocations{o.leader.AsAllocation(), o.follower.AsAllocation()}
 
 	// Followed by guarantees, _sorted by the target destination_
