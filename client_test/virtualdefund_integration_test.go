@@ -7,6 +7,7 @@ import (
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/protocols"
 )
 
 func TestVirtualDefundIntegration(t *testing.T) {
@@ -23,14 +24,18 @@ func TestVirtualDefundIntegration(t *testing.T) {
 	clientB, _ := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
 	clientI, _ := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
 
-	cIds := openVirtualChannels(t, clientA, clientB, clientI, 2)
+	// TODO: This test only supports defunding 1 virtual channel due to https://github.com/statechannels/go-nitro/issues/637
+	cIds := openVirtualChannels(t, clientA, clientB, clientI, 1)
 
 	paidToBob := big.NewInt(1)
 
-	id, id2 := clientA.CloseVirtualChannel(cIds[0], paidToBob), clientA.CloseVirtualChannel(cIds[1], paidToBob)
+	ids := make([]protocols.ObjectiveId, len(cIds))
+	for i := 0; i < len(cIds); i++ {
+		ids[i] = clientA.CloseVirtualChannel(cIds[i], paidToBob)
 
-	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, id, id2)
-	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, id, id2)
-	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, id, id2)
+	}
+	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, ids...)
+	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, ids...)
+	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, ids...)
 
 }
