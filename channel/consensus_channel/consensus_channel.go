@@ -584,10 +584,11 @@ func (sp *SignedProposal) Clone() SignedProposal {
 }
 
 // Add encodes a proposal to add a guarantee to a ConsensusChannel.
-//
-// The balance of the guarantee is to be deducted from left.
 type Add struct {
 	Guarantee
+	// LeftDeposit is the portion of the Add's amount that will be depositied by the left participant.
+	//
+	// The right participant's deposit is comupted from the guarantee and LeftDeposit.
 	LeftDeposit *big.Int
 }
 
@@ -766,11 +767,12 @@ func (vars *Vars) Remove(p Remove) error {
 
 // Remove is a proposal to remove a guarantee for the given virtual channel.
 type Remove struct {
+	// Target is the address of the virtual channel being defunded
 	Target types.Destination
-	// LeftAmount is the amount to be credited to the left participant of the two party ledger channel
+	// LeftAmount is the amount to be credited to the left funder of the guarantee for Target
 	LeftAmount *big.Int
-	// RightAmount is the amount to be credited to the right participant of the two party ledger channel
-	RightAmount *big.Int
+	// RightAmount is the amount to be credited to the right funder the guarantee for Target
+	RightAmount *big.Int // todo?: replace this with a function, as in Add
 }
 
 // Clone returns a deep copy of the receiver
