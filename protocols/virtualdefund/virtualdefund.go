@@ -230,6 +230,9 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if fullyDefunded := updated.isLeftDefunded() && updated.isRightDefunded(); !fullyDefunded {
 		return &updated, sideEffects, WaitingForCompleteLedgerDefunding, nil
 	}
+
+	// Mark the objective as done
+	updated.Status = protocols.Completed
 	return &updated, sideEffects, WaitingForNothing, nil
 
 }

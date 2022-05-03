@@ -148,7 +148,10 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
-
+		if objective.GetStatus() == protocols.Completed {
+			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
+			continue
+		}
 		event := protocols.ObjectiveEvent{
 			ObjectiveId:     entry.ObjectiveId,
 			SignedProposals: []consensus_channel.SignedProposal{},
@@ -173,6 +176,10 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		objective, err := e.store.GetObjectiveById(entry.ObjectiveId)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
+		}
+		if objective.GetStatus() == protocols.Completed {
+			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
+			continue
 		}
 
 		event := protocols.ObjectiveEvent{

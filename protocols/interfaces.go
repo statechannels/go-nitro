@@ -93,6 +93,7 @@ const (
 	Unapproved ObjectiveStatus = iota
 	Approved
 	Rejected
+	Completed
 )
 
 // ObjectiveRequest is a request to create a new objective.
