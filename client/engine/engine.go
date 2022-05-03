@@ -174,6 +174,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 	proposalEntries := message.SignedProposals()
 	for _, entry := range proposalEntries {
+		e.logger.Printf("handling proposal %+v", protocols.SummarizeProposal(entry.ObjectiveId, entry.Payload))
 		objective, err := e.store.GetObjectiveById(entry.ObjectiveId)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
