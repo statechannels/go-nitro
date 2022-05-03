@@ -328,7 +328,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		}
 
 		if err != nil {
-			return &o, fmt.Errorf("error incorporating signed proposal into objective: %w", err)
+			return &o, fmt.Errorf("error incorporating signed proposal %+v into objective: %w", protocols.SummarizeProposal(event.ObjectiveId, sp), err)
 		}
 	}
 
