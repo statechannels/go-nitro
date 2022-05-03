@@ -408,9 +408,9 @@ func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 }
 
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
-//  - the "left" balance is first
-//  - the "right" balance is second
-//  - following [left, right] comes the guarantees sorted according to their target destination
+//  - the "leader" balance is first
+//  - the "follower" balance is second
+//  - guarantees follow, sorted according to their target destinations
 func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 	// The first items are [left, right] balances
 	allocations := outcome.Allocations{o.leader.AsAllocation(), o.follower.AsAllocation()}
@@ -426,7 +426,6 @@ func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 
 	for _, target := range keys {
 		allocations = append(allocations, o.guarantees[target].AsAllocation())
-
 	}
 
 	return outcome.Exit{
@@ -455,12 +454,12 @@ func (v *Vars) Clone() Vars {
 func (o *LedgerOutcome) clone() LedgerOutcome {
 	assetAddress := o.assetAddress
 
-	left := Balance{
+	leader := Balance{
 		destination: o.leader.destination,
 		amount:      big.NewInt(0).Set(o.leader.amount),
 	}
 
-	right := Balance{
+	follower := Balance{
 		destination: o.follower.destination,
 		amount:      big.NewInt(0).Set(o.follower.amount),
 	}
@@ -474,8 +473,8 @@ func (o *LedgerOutcome) clone() LedgerOutcome {
 
 	return LedgerOutcome{
 		assetAddress: assetAddress,
-		leader:       left,
-		follower:     right,
+		leader:       leader,
+		follower:     follower,
 		guarantees:   guarantees,
 	}
 }
