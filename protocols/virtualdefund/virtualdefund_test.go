@@ -32,10 +32,18 @@ func TestCrank(t *testing.T) {
 }
 
 func TestInvalidUpdate(t *testing.T) {
-	t.Skip() // TODO https://github.com/statechannels/go-nitro/issues/643
 	data := generateTestData()
-	request := ObjectiveRequest{}
-	getChannel, getConsensusChannel := generateStoreGetters()
+	vId, err := data.vFinal.ChannelId()
+	request := ObjectiveRequest{
+		ChannelId: vId,
+		PaidToBob: big.NewInt(int64(data.paid)),
+		MyAddress: alice.Address(),
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vFinal)
 
 	virtualDefund, err := NewObjective(false, request, getChannel, getConsensusChannel)
 	if err != nil {
@@ -61,8 +69,9 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Skip() // TODO https://github.com/statechannels/go-nitro/issues/643
 		data := generateTestData()
+		vId, _ := data.vFinal.ChannelId()
 		request := ObjectiveRequest{}
-		getChannel, getConsensusChannel := generateStoreGetters()
+		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vFinal)
 
 		virtualDefund, err := NewObjective(false, request, getChannel, getConsensusChannel)
 		if err != nil {
@@ -94,7 +103,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		data := generateTestData()
 		vId, _ := data.vFinal.ChannelId()
 		request := ObjectiveRequest{}
-		getChannel, getConsensusChannel := generateStoreGetters()
+		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vFinal)
 		virtualDefund, err := NewObjective(true, request, getChannel, getConsensusChannel)
 		if err != nil {
 			t.Fatal(err)
