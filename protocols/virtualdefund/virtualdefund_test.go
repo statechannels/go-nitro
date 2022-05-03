@@ -32,7 +32,7 @@ func TestCrank(t *testing.T) {
 }
 
 func TestInvalidUpdate(t *testing.T) {
-	t.Skip() // TODO
+	t.Skip() // TODO https://github.com/statechannels/go-nitro/issues/643
 	data := generateTestData()
 	request := ObjectiveRequest{}
 	getChannel, getConsensusChannel := generateStoreGetters()
@@ -59,7 +59,7 @@ func TestInvalidUpdate(t *testing.T) {
 
 func testUpdateAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
-		t.Skip() // TODO
+		t.Skip() // TODO https://github.com/statechannels/go-nitro/issues/643
 		data := generateTestData()
 		request := ObjectiveRequest{}
 		getChannel, getConsensusChannel := generateStoreGetters()
@@ -90,7 +90,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 
 func testCrankAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
-		t.Skip() // TODO
+		t.Skip() // TODO https://github.com/statechannels/go-nitro/issues/643
 		data := generateTestData()
 		vId, _ := data.vFinal.ChannelId()
 		request := ObjectiveRequest{}
