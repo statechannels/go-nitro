@@ -764,7 +764,7 @@ func (vars *Vars) Remove(p Remove) error {
 	return nil
 }
 
-// Remove is a proposal to remover a guarantee for the given virtual channel.
+// Remove is a proposal to remove a guarantee for the given virtual channel.
 type Remove struct {
 	Target types.Destination
 	// LeftAmount is the amount to be credited to the left participant of the two party ledger channel
