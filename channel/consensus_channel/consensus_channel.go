@@ -372,28 +372,38 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 
 // FromExit creates a new LedgerOutcome from the given SingleAssetExit.
 //
-// It makes some assumptions about the exit:
-//  - The first alloction entry is for left
-//  - The second alloction entry is for right
-//  - We ignore guarantee metadata and just assume that it is [left,right]
-func FromExit(sae outcome.SingleAssetExit) LedgerOutcome {
+// It makes the following assumptions about the exit:
+//  - The first alloction entry is for the ledger leader
+//  - The second alloction entry is for the ledger follower
+func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 
-	left := Balance{destination: sae.Allocations[0].Destination, amount: sae.Allocations[0].Amount}
-	right := Balance{destination: sae.Allocations[1].Destination, amount: sae.Allocations[1].Amount}
-	guarantees := make(map[types.Destination]Guarantee)
+	var (
+		leader     = Balance{destination: sae.Allocations[0].Destination, amount: sae.Allocations[0].Amount}
+		follower   = Balance{destination: sae.Allocations[1].Destination, amount: sae.Allocations[1].Amount}
+		guarantees = make(map[types.Destination]Guarantee)
+	)
+
 	for _, a := range sae.Allocations {
+		gM, err := outcome.DecodeIntoGuaranteeMetadata(a.Metadata)
+
+		if err != nil {
+			return LedgerOutcome{}, fmt.Errorf("failed to decode guarantee metadata: %w", err)
+		}
 
 		if a.AllocationType == outcome.GuaranteeAllocationType {
-			g := Guarantee{amount: a.Amount,
+			g := Guarantee{
+				amount: a.Amount,
 				target: a.Destination,
 				// Instead of decoding the metadata we make an assumption that the metadata has the left/right we expect
-				left:  left.destination,
-				right: right.destination}
+				left:  gM.Left,
+				right: gM.Right,
+			}
 			guarantees[a.Destination] = g
 		}
 
 	}
-	return LedgerOutcome{leader: left, follower: right, guarantees: guarantees, assetAddress: sae.Asset}
+
+	return LedgerOutcome{leader: leader, follower: follower, guarantees: guarantees, assetAddress: sae.Asset}, nil
 
 }
 
