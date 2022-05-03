@@ -60,7 +60,7 @@ func NewTestMessageService(address types.Address, broker Broker, maxDelay time.D
 		fromPeers: make(chan []byte, 5),
 	}
 
-	tms.goveclogger = govec.InitGoVector(address.String(), "../artifacts/vectorclock", govec.GetDefaultConfig())
+	tms.goveclogger = govec.InitGoVector(address.String(), "../artifacts/vectorclock/"+address.String(), govec.GetDefaultConfig())
 
 	tms.connect(broker)
 	go tms.routeFromPeers()
