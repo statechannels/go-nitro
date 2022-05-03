@@ -394,9 +394,8 @@ func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 			g := Guarantee{
 				amount: a.Amount,
 				target: a.Destination,
-				// Instead of decoding the metadata we make an assumption that the metadata has the left/right we expect
-				left:  gM.Left,
-				right: gM.Right,
+				left:   gM.Left,
+				right:  gM.Right,
 			}
 			guarantees[a.Destination] = g
 		}
