@@ -94,7 +94,8 @@ func (t TestMessageService) dispatchMessage(message protocols.Message, b Broker)
 		if err != nil {
 			panic(`could not serialize message`)
 		}
-		peer.fromPeers <- []byte(serializedMsg)
+		vectorClockMessage := t.goveclogger.PrepareSend("Sending Message", serializedMsg, govec.GetDefaultLogOptions())
+		peer.fromPeers <- vectorClockMessage
 	} else {
 		panic(fmt.Sprintf("client %v has no connection to client %v",
 			t.address, message.To))
@@ -115,13 +116,16 @@ func (tms TestMessageService) routeToPeers(b Broker) {
 
 // routeFromPeers listens for messages from peers, deserializes them and feeds them to the engine
 func (tms TestMessageService) routeFromPeers() {
-	for message := range tms.fromPeers {
+	for vectorClockMessage := range tms.fromPeers {
+		message := []byte("")
+		tms.goveclogger.UnpackReceive("Receiving Message", vectorClockMessage, &message, govec.GetDefaultLogOptions())
 		msg, err := protocols.DeserializeMessage(string(message))
 		if err != nil {
 			panic(fmt.Errorf("could not deserialize message :%w", err))
 		}
 		tms.out <- msg
 	}
+
 }
 
 // ┌──────────┐toMsg       in┌───────────┐
