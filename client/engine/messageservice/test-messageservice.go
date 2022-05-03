@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/DistributedClocks/GoVector/govec"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -19,7 +20,8 @@ import (
 //  3. run independently in information-silo goroutines, while
 //     communicating on the simulated network
 type TestMessageService struct {
-	address types.Address
+	address     types.Address
+	goveclogger *govec.GoLog // vector clock logger
 
 	// connection to Engine:
 	in       chan protocols.Message // for recieving messages from engine
@@ -28,9 +30,10 @@ type TestMessageService struct {
 
 	// connection with Peers:
 	fromPeers chan []byte // for receiving serialized messages from peers
+
 }
 
-// A Broker manages a mapping from identifying address to a TestMessageService,
+// A Broker manages a mapping from identifying address to a TestMessageService,s
 // allowing messages sent from one message service to be directed to the intended
 // recipient
 type Broker struct {
@@ -56,6 +59,8 @@ func NewTestMessageService(address types.Address, broker Broker, maxDelay time.D
 		maxDelay:  maxDelay,
 		fromPeers: make(chan []byte, 5),
 	}
+
+	tms.goveclogger = govec.InitGoVector(address.String(), "../artifacts/vectorclock", govec.GetDefaultConfig())
 
 	tms.connect(broker)
 	go tms.routeFromPeers()
