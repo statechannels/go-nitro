@@ -411,8 +411,7 @@ func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 //  - the "follower" balance is second
 //  - guarantees follow, sorted according to their target destinations
 func (o *LedgerOutcome) AsOutcome() outcome.Exit {
-	// The first items are [left, right] balances
-	allocations := outcome.Allocations{o.leader.AsAllocation(), o.follower.AsAllocation()}
+	// The first items are [leader, follower] balances
 	allocations := outcome.Allocations{o.leader.AsAllocation(), o.follower.AsAllocation()}
 
 	// Followed by guarantees, _sorted by the target destination_
