@@ -25,6 +25,9 @@ type TestMessageService struct {
 	in       chan protocols.Message // for recieving messages from engine
 	out      chan protocols.Message // for sending message to engine
 	maxDelay time.Duration          // the max delay for messages
+
+	// connection to Peers:
+	fromPeers chan []byte // for receiving serialized messages from peers
 }
 
 // A Broker manages a mapping from identifying address to a TestMessageService,
@@ -47,13 +50,25 @@ func NewBroker() Broker {
 // Messages will be handled with a random delay between 0 and maxDelay
 func NewTestMessageService(address types.Address, broker Broker, maxDelay time.Duration) TestMessageService {
 	tms := TestMessageService{
-		address:  address,
-		in:       make(chan protocols.Message, 5),
-		out:      make(chan protocols.Message, 5),
-		maxDelay: maxDelay,
+		address:   address,
+		in:        make(chan protocols.Message, 5),
+		out:       make(chan protocols.Message, 5),
+		maxDelay:  maxDelay,
+		fromPeers: make(chan []byte, 5),
 	}
 
 	tms.connect(broker)
+
+	go func() {
+		for message := range tms.fromPeers {
+			msg, err := protocols.DeserializeMessage(string(message))
+			if err != nil {
+				panic(err)
+			}
+			tms.out <- msg
+		}
+	}()
+
 	return tms
 }
 
@@ -74,7 +89,7 @@ func (t TestMessageService) dispatchMessage(message protocols.Message, b Broker)
 		time.Sleep(randomDelay)
 	}
 
-	peerChan, ok := b.services[message.To]
+	peer, ok := b.services[message.To]
 	if ok {
 		// To mimic a proper message service, we serialize and then
 		// deserialize the message
@@ -83,11 +98,7 @@ func (t TestMessageService) dispatchMessage(message protocols.Message, b Broker)
 		if err != nil {
 			panic(`could not serialize message`)
 		}
-		deserializedMsg, err := protocols.DeserializeMessage(serializedMsg)
-		if err != nil {
-			panic(`could not deserialize message`)
-		}
-		peerChan.out <- deserializedMsg
+		peer.fromPeers <- []byte(serializedMsg)
 	} else {
 		panic(fmt.Sprintf("client %v has no connection to client %v",
 			t.address, message.To))
@@ -125,4 +136,4 @@ func (t TestMessageService) connect(b Broker) {
 // │  Engine  │        │     │  Message  │
 // │          │fromMsg │  out│  Service  │
 // │    B     │  ◄─────┴─────┤    B      │
-// └──────────┘              └───────────┘
+// └───
