@@ -385,9 +385,8 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 		if err != nil {
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
 		}
-
-		// This will generate a message for all proposals in the queue, including the one we just proposed
-		message := protocols.CreateSignedProposalMessage(ledger)
+		recipient := ledger.Follower()
+		message := protocols.CreateSignedProposalMessage(recipient, ledger.ProposalQueue()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	} else {
@@ -399,8 +398,8 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 			if err != nil {
 				return protocols.SideEffects{}, fmt.Errorf("could not sign proposal: %w", err)
 			}
-
-			message := protocols.CreateSignedProposalMessage(ledger, sp)
+			recipient := ledger.Leader()
+			message := protocols.CreateSignedProposalMessage(recipient, sp)
 			sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 		}
 	}
