@@ -274,12 +274,12 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 			return protocols.SideEffects{}, nil
 		}
 
-		sp, err := ledger.Propose(o.ledgerProposal(ledger), *sk)
+		_, err := ledger.Propose(o.ledgerProposal(ledger), *sk)
 		if err != nil {
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
 		}
-
-		message := protocols.CreateSignedProposalMessage(ledger, sp)
+		recipient := ledger.Follower()
+		message := protocols.CreateSignedProposalMessage(recipient, ledger.ProposalQueue()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	} else {
@@ -290,8 +290,8 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 			if err != nil {
 				return protocols.SideEffects{}, fmt.Errorf("could not sign proposal: %w", err)
 			}
-
-			message := protocols.CreateSignedProposalMessage(ledger, sp)
+			recipient := ledger.Leader()
+			message := protocols.CreateSignedProposalMessage(recipient, sp)
 			sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 		}
 	}
