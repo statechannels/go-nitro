@@ -375,20 +375,22 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 // It makes some assumptions about the exit:
 //  - The first alloction entry is for left
 //  - The second alloction entry is for right
-//  - We ignore guarantee metadata and just assume that it is [left,right]
 func FromExit(sae outcome.SingleAssetExit) LedgerOutcome {
-
 	left := Balance{destination: sae.Allocations[0].Destination, amount: sae.Allocations[0].Amount}
 	right := Balance{destination: sae.Allocations[1].Destination, amount: sae.Allocations[1].Amount}
 	guarantees := make(map[types.Destination]Guarantee)
 	for _, a := range sae.Allocations {
 
 		if a.AllocationType == outcome.GuaranteeAllocationType {
+			gM, err := outcome.DecodeIntoGuaranteeMetadata(a.Metadata)
+			if err != nil {
+				panic(err)
+			}
 			g := Guarantee{amount: a.Amount,
 				target: a.Destination,
 				// Instead of decoding the metadata we make an assumption that the metadata has the left/right we expect
-				left:  left.destination,
-				right: right.destination}
+				left:  gM.Left,
+				right: gM.Right}
 			guarantees[a.Destination] = g
 		}
 
