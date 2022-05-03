@@ -314,7 +314,7 @@ func (g Guarantee) AsAllocation() outcome.Allocation {
 // LedgerOutcome encodes the outcome of a ledger channel involving a "leader" and "follower"
 // participant.
 //
-// Allocation items are not stored in sorted order. The conventional ordering of allocation items is:
+// This struct does not store items in sorted order. The conventional ordering of allocation items is:
 // [leader, follower, ...guaranteesSortedbyTargetDestination]
 type LedgerOutcome struct {
 	assetAddress types.Address // Address of the asset type
