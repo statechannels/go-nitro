@@ -19,7 +19,7 @@ import (
 
 func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client) types.Destination {
 	// Set up an outcome that requires both participants to deposit
-	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, 5, 5)
+	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, 5_000_000, 5_000_000)
 
 	request := directfund.ObjectiveRequest{
 		MyAddress:         *alpha.Address,
