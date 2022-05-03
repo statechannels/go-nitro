@@ -181,8 +181,8 @@ type jsonLedgerOutcome struct {
 func (l LedgerOutcome) MarshalJSON() ([]byte, error) {
 	jsonLo := jsonLedgerOutcome{
 		AssetAddress: l.assetAddress,
-		Left:         l.left,
-		Right:        l.right,
+		Left:         l.leader,
+		Right:        l.follower,
 		Guarantees:   l.guarantees,
 	}
 	return json.Marshal(jsonLo)
@@ -198,8 +198,8 @@ func (l *LedgerOutcome) UnmarshalJSON(data []byte) error {
 	}
 
 	l.assetAddress = jsonLo.AssetAddress
-	l.left = jsonLo.Left
-	l.right = jsonLo.Right
+	l.leader = jsonLo.Left
+	l.follower = jsonLo.Right
 	l.guarantees = jsonLo.Guarantees
 
 	return nil

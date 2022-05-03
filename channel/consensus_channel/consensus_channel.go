@@ -311,15 +311,15 @@ func (g Guarantee) AsAllocation() outcome.Allocation {
 	}
 }
 
-// LedgerOutcome encodes the outcome of a ledger channel involving a "left" and "right"
+// LedgerOutcome encodes the outcome of a ledger channel involving a "leader" and "follower"
 // participant.
 //
 // Allocation items are not stored in sorted order. The conventional ordering of allocation items is:
-// [left, right, ...guaranteesSortedbyTargetDestination]
+// [leader, follower, ...guaranteesSortedbyTargetDestination]
 type LedgerOutcome struct {
 	assetAddress types.Address // Address of the asset type
-	left         Balance       // Balance of participants[0]
-	right        Balance       // Balance of participants[1]
+	leader       Balance       // Balance of participants[0]
+	follower     Balance       // Balance of participants[1]
 	guarantees   map[types.Destination]Guarantee
 }
 
@@ -331,22 +331,22 @@ func (lo *LedgerOutcome) Clone() LedgerOutcome {
 	}
 	return LedgerOutcome{
 		assetAddress: lo.assetAddress,
-		left:         lo.left.Clone(),
-		right:        lo.right.Clone(),
+		leader:       lo.leader.Clone(),
+		follower:     lo.follower.Clone(),
 		guarantees:   clonedGuarantees,
 	}
 }
 
 // NewLedgerOutcome creates a new ledger outcome with the given asset address, balances, and guarantees.
-func NewLedgerOutcome(assetAddress types.Address, left, right Balance, guarantees []Guarantee) *LedgerOutcome {
+func NewLedgerOutcome(assetAddress types.Address, leader, follower Balance, guarantees []Guarantee) *LedgerOutcome {
 	guaranteeMap := make(map[types.Destination]Guarantee, len(guarantees))
 	for _, g := range guarantees {
 		guaranteeMap[g.target] = g
 	}
 	return &LedgerOutcome{
 		assetAddress: assetAddress,
-		left:         left,
-		right:        right,
+		leader:       leader,
+		follower:     follower,
 		guarantees:   guaranteeMap,
 	}
 }
@@ -393,7 +393,7 @@ func FromExit(sae outcome.SingleAssetExit) LedgerOutcome {
 		}
 
 	}
-	return LedgerOutcome{left: left, right: right, guarantees: guarantees, assetAddress: sae.Asset}
+	return LedgerOutcome{leader: left, follower: right, guarantees: guarantees, assetAddress: sae.Asset}
 
 }
 
@@ -403,7 +403,7 @@ func FromExit(sae outcome.SingleAssetExit) LedgerOutcome {
 //  - following [left, right] comes the guarantees sorted according to their target destination
 func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 	// The first items are [left, right] balances
-	allocations := outcome.Allocations{o.left.AsAllocation(), o.right.AsAllocation()}
+	allocations := outcome.Allocations{o.leader.AsAllocation(), o.follower.AsAllocation()}
 
 	// Followed by guarantees, _sorted by the target destination_
 	keys := make([]types.Destination, 0, len(o.guarantees))
@@ -446,13 +446,13 @@ func (o *LedgerOutcome) clone() LedgerOutcome {
 	assetAddress := o.assetAddress
 
 	left := Balance{
-		destination: o.left.destination,
-		amount:      big.NewInt(0).Set(o.left.amount),
+		destination: o.leader.destination,
+		amount:      big.NewInt(0).Set(o.leader.amount),
 	}
 
 	right := Balance{
-		destination: o.right.destination,
-		amount:      big.NewInt(0).Set(o.right.amount),
+		destination: o.follower.destination,
+		amount:      big.NewInt(0).Set(o.follower.amount),
 	}
 
 	guarantees := make(map[types.Destination]Guarantee)
@@ -464,8 +464,8 @@ func (o *LedgerOutcome) clone() LedgerOutcome {
 
 	return LedgerOutcome{
 		assetAddress: assetAddress,
-		left:         left,
-		right:        right,
+		leader:       left,
+		follower:     right,
 		guarantees:   guarantees,
 	}
 }
@@ -690,11 +690,11 @@ func (vars *Vars) Add(p Add) error {
 		return ErrInvalidDeposit
 	}
 
-	if types.Gt(p.LeftDeposit, o.left.amount) {
+	if types.Gt(p.LeftDeposit, o.leader.amount) {
 		return ErrInsufficientFunds
 	}
 
-	if types.Gt(p.RightDeposit(), o.right.amount) {
+	if types.Gt(p.RightDeposit(), o.follower.amount) {
 		return ErrInsufficientFunds
 	}
 
@@ -704,9 +704,9 @@ func (vars *Vars) Add(p Add) error {
 	vars.TurnNum += 1
 
 	// Adjust balances
-	o.left.amount.Sub(o.left.amount, p.LeftDeposit)
+	o.leader.amount.Sub(o.leader.amount, p.LeftDeposit)
 	rightDeposit := p.RightDeposit()
-	o.right.amount.Sub(o.right.amount, rightDeposit)
+	o.follower.amount.Sub(o.follower.amount, rightDeposit)
 
 	// Include guarantee
 	o.guarantees[p.target] = p.Guarantee
@@ -746,8 +746,8 @@ func (vars *Vars) Remove(p Remove) error {
 	vars.TurnNum += 1
 
 	// Adjust balances
-	o.left.amount.Add(o.left.amount, p.LeftAmount)
-	o.right.amount.Add(o.right.amount, p.RightAmount)
+	o.leader.amount.Add(o.leader.amount, p.LeftAmount)
+	o.follower.amount.Add(o.follower.amount, p.RightAmount)
 
 	// Remove the guarantee
 	delete(o.guarantees, p.Target)

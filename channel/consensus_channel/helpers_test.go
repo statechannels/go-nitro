@@ -47,7 +47,7 @@ func makeOutcome(left, right Balance, guarantees ...Guarantee) LedgerOutcome {
 	for _, g := range guarantees {
 		mappedGuarantees[g.target] = g
 	}
-	return LedgerOutcome{left: left, right: right, guarantees: mappedGuarantees}
+	return LedgerOutcome{leader: left, follower: right, guarantees: mappedGuarantees}
 }
 
 // ledgerOutcome constructs the LedgerOutcome with items

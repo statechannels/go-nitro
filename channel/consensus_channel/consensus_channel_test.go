@@ -50,13 +50,13 @@ func TestConsensusChannel(t *testing.T) {
 	}
 
 	clone2 := vars.Outcome.clone()
-	clone2.left.amount.SetInt64(111)
+	clone2.leader.amount.SetInt64(111)
 	if f1 != fingerprint(vars) {
 		t.Fatal("vars shares data with clone")
 	}
 
 	clone3 := vars.Outcome.clone()
-	clone3.right.amount.SetInt64(111)
+	clone3.follower.amount.SetInt64(111)
 	if f1 != fingerprint(vars) {
 		t.Fatal("vars shares data with clone")
 	}
@@ -97,7 +97,7 @@ func TestConsensusChannel(t *testing.T) {
 		// Proposing a change that depletes a balance should fail
 		vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
 		largeProposal := proposal
-		leftAmount := big.NewInt(0).Set(vars.Outcome.left.amount)
+		leftAmount := big.NewInt(0).Set(vars.Outcome.leader.amount)
 		largeProposal.amount = leftAmount.Add(leftAmount, big.NewInt(1))
 		largeProposal.LeftDeposit = largeProposal.amount
 		err = vars.Add(largeProposal)
