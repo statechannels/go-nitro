@@ -18,10 +18,10 @@ func directlyDefundALedgerChannel(t *testing.T, alpha client.Client, beta client
 	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, id)
 
 }
-func TestDirectDefundIntegration(t *testing.T) {
+func TestDirectDefund(t *testing.T) {
 
 	// Setup logging
-	logFile := "directdefund_client_test.log"
+	logFile := "test_direct_defund.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 

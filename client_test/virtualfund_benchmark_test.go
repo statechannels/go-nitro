@@ -16,10 +16,10 @@ import (
 
 // TestBenchmark sets up three clients, then runs a virtual funding benchmark, printing the duration
 // to the screen.
-func TestBenchmark(t *testing.T) {
+func TestVirtualFundBenchmark(t *testing.T) {
 
 	// Setup logging
-	logFile := "virtualfund_benchmark_test.log"
+	logFile := "test_virtual_fund_benchmark.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 

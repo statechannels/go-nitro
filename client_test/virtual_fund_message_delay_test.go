@@ -23,7 +23,7 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 	const OBJECTIVE_TIMEOUT = time.Second * 2
 
 	// Setup logging
-	logFile := "virtual_fund_message_delay_test.log"
+	logFile := "test_virtual_fund_with_message_delays.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
