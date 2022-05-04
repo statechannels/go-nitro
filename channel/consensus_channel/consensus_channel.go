@@ -375,6 +375,7 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 // It makes the following assumptions about the exit:
 //  - The first alloction entry is for the ledger leader
 //  - The second alloction entry is for the ledger follower
+//  - All other allocations are guarantees
 func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 
 	var (
@@ -384,13 +385,15 @@ func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 	)
 
 	for _, a := range sae.Allocations {
-		gM, err := outcome.DecodeIntoGuaranteeMetadata(a.Metadata)
-
-		if err != nil {
-			return LedgerOutcome{}, fmt.Errorf("failed to decode guarantee metadata: %w", err)
-		}
 
 		if a.AllocationType == outcome.GuaranteeAllocationType {
+			gM, err := outcome.DecodeIntoGuaranteeMetadata(a.Metadata)
+
+			if err != nil {
+				// panic(err)
+				return LedgerOutcome{}, fmt.Errorf("failed to decode guarantee metadata: %w", err)
+			}
+
 			g := Guarantee{
 				amount: a.Amount,
 				target: a.Destination,
