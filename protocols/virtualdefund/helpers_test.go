@@ -248,8 +248,8 @@ func makeOutcome(aliceAmount uint, bobAmount uint) outcome.SingleAssetExit {
 }
 
 type testdata struct {
-	vFinal         state.State
-	initialOutcome outcome.SingleAssetExit
+	vInitial state.State
+	vFinal   state.State
 
 	paid uint
 	// finalAliceAmount is the amount we expect to be allocated in the ledger to Alice after defunding is complete
@@ -281,9 +281,11 @@ func generateTestData() testdata {
 	paid := uint(1)
 	initialOutcome := makeOutcome(finalAliceAmount+paid, finalBobAmount-paid)
 	finalOutcome := makeOutcome(finalAliceAmount, finalBobAmount)
+
+	vInitial := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{initialOutcome}, TurnNum: 1})
 	vFinal := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{finalOutcome}, TurnNum: FinalTurnNum})
 
-	return testdata{vFinal, initialOutcome, paid, finalAliceAmount, finalBobAmount}
+	return testdata{vInitial, vFinal, paid, finalAliceAmount, finalBobAmount}
 }
 
 // signStateByOthers signs the state by every participant except me
