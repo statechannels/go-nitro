@@ -67,11 +67,15 @@ func TestInvalidUpdate(t *testing.T) {
 
 func testUpdateAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
-		t.Skip() // TODO https://github.com/statechannels/go-nitro/issues/643
 		data := generateTestData()
 		vId, _ := data.vFinal.ChannelId()
-		request := ObjectiveRequest{}
-		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vFinal)
+		request := ObjectiveRequest{
+			ChannelId: vId,
+			PaidToBob: big.NewInt(int64(data.paid)),
+			MyAddress: alice.Address(),
+		}
+
+		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
 
 		virtualDefund, err := NewObjective(false, request, getChannel, getConsensusChannel)
 		if err != nil {
@@ -84,6 +88,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedState: signedFinal}
 
 		updatedObj, err := virtualDefund.Update(e)
+		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
 		for _, a := range allActors {
 			if a.Role != my.Role {
@@ -92,7 +97,6 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 				testhelpers.Assert(t, isZero(updated.Signatures[a.Role]), "expected signature for current participant %s to be zero", a.Name)
 			}
 		}
-		testhelpers.Ok(t, err)
 
 	}
 }
