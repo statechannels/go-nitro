@@ -125,17 +125,16 @@ func (tms TestMessageService) routeInbound() {
 // │  Engine  │              │  Message  │
 // │          │fromMsg    out│  Service  │
 // │    A     │  ◄───────────┤    A      │
-// └──────────┘              └────┬──────┘
-//                                │toPeers[B]
+// └──────────┘              └───────────┘
 //                                │
 //                                │
-//                     ┌──────────┘
-//                     │
-//                     │
-//                     │
-// ┌──────────┐toMsg   │   in┌───────────┐
-// │          │  ──────┼────►|           │
-// │  Engine  │        │     │  Message  │
-// │          │fromMsg │  out│  Service  │
-// │    B     │  ◄─────┴─────┤    B      │
-// └───
+//                                │
+//                                │
+//                                │
+//                                v fromPeers
+// ┌──────────┐toMsg       in┌───────────┐
+// │          │  ───────────►|           │
+// │  Engine  │              │  Message  │
+// │          │fromMsg    out│  Service  │
+// │    B     │  ◄───────────┤    B      │
+// └──────────┘              └───────────┘
