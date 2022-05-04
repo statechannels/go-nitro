@@ -264,6 +264,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 		return &updated, sideEffects, WaitingForWithdraw, nil
 	}
 
+	updated.Status = protocols.Completed
 	return &updated, sideEffects, WaitingForNothing, nil
 }
 
