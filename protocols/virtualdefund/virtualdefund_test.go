@@ -43,7 +43,7 @@ func TestInvalidUpdate(t *testing.T) {
 	// Sign the final state by some other participant
 	signStateByOthers(alice, signedFinal)
 
-	e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}
+	e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedState: signedFinal}
 	_, err := virtualDefund.Update(e)
 	if err.Error() != "event channelId out of scope of objective" {
 		t.Errorf("Expected error for channelId being out of scope, got %v", err)
@@ -62,7 +62,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		// Sign the final state by some other participant
 		signStateByOthers(my, signedFinal)
 
-		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}
+		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedState: signedFinal}
 
 		updatedObj, err := virtualDefund.Update(e)
 		updated := updatedObj.(*Objective)

@@ -366,7 +366,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 
 	updated := o.clone()
 
-	for _, ss := range event.SignedStates {
+	if ss := event.SignedState; len(ss.Signatures()) != 0 {
 		incomingChannelId, _ := ss.State().ChannelId() // TODO handle error
 		vChannelId, _ := updated.VFixed.ChannelId()    // TODO handle error
 
@@ -411,7 +411,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		toMyRightId = o.ToMyRight.Id
 	}
 
-	for _, sp := range event.SignedProposals {
+	if sp := event.SignedProposal; sp.ChannelID() == o.OwnsChannel() {
 		var err error
 		switch sp.Proposal.ChannelID {
 		case types.Destination{}:

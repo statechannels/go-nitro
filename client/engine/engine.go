@@ -150,9 +150,9 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		}
 
 		event := protocols.ObjectiveEvent{
-			ObjectiveId:     entry.ObjectiveId,
-			SignedProposals: []consensus_channel.SignedProposal{},
-			SignedStates:    []state.SignedState{entry.Payload},
+			ObjectiveId:    entry.ObjectiveId,
+			SignedProposal: consensus_channel.SignedProposal{},
+			SignedState:    entry.Payload,
 		}
 		updatedObjective, err := objective.Update(event)
 		if err != nil {
@@ -176,9 +176,9 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		}
 
 		event := protocols.ObjectiveEvent{
-			ObjectiveId:     entry.ObjectiveId,
-			SignedProposals: []consensus_channel.SignedProposal{entry.Payload},
-			SignedStates:    []state.SignedState{},
+			ObjectiveId:    entry.ObjectiveId,
+			SignedProposal: entry.Payload,
+			SignedState:    state.SignedState{},
 		}
 		updatedObjective, err := objective.Update(event)
 		if err != nil {

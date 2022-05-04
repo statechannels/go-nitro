@@ -206,7 +206,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	}
 
 	updated := o.clone()
-	updated.C.AddSignedStates(event.SignedStates)
+	updated.C.AddSignedState(event.SignedState)
 
 	return &updated, nil
 }
