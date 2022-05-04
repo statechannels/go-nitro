@@ -587,9 +587,9 @@ func (sp *SignedProposal) Clone() SignedProposal {
 // Add encodes a proposal to add a guarantee to a ConsensusChannel.
 type Add struct {
 	Guarantee
-	// LeftDeposit is the portion of the Add's amount that will be depositied by the left participant.
+	// LeftDeposit is the portion of the Add's amount that will be deducted from left participant's ledger balance.
 	//
-	// The right participant's deposit is computed from the guarantee and LeftDeposit.
+	// The right participant's deduction is computed as the difference between the guarantee amount and LeftDeposit.
 	LeftDeposit *big.Int
 }
 
