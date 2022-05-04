@@ -72,7 +72,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		request := ObjectiveRequest{
 			ChannelId: vId,
 			PaidToBob: big.NewInt(int64(data.paid)),
-			MyAddress: alice.Address(),
+			MyAddress: my.Address(),
 		}
 
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
@@ -103,11 +103,15 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 
 func testCrankAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
-		t.Skip() // TODO https://github.com/statechannels/go-nitro/issues/643
 		data := generateTestData()
 		vId, _ := data.vFinal.ChannelId()
-		request := ObjectiveRequest{}
-		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vFinal)
+		request := ObjectiveRequest{
+			ChannelId: vId,
+			PaidToBob: big.NewInt(int64(data.paid)),
+			MyAddress: my.Address(),
+		}
+
+		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
 		virtualDefund, err := NewObjective(true, request, getChannel, getConsensusChannel)
 		if err != nil {
 			t.Fatal(err)
