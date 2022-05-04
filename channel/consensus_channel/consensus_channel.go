@@ -390,7 +390,6 @@ func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 			gM, err := outcome.DecodeIntoGuaranteeMetadata(a.Metadata)
 
 			if err != nil {
-				// panic(err)
 				return LedgerOutcome{}, fmt.Errorf("failed to decode guarantee metadata: %w", err)
 			}
 
