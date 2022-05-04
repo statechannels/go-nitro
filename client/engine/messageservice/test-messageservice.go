@@ -104,7 +104,6 @@ func (tms TestMessageService) connect(b Broker) {
 // routeOutbound listens for messages from the engine, and dispatches them
 func (tms TestMessageService) routeOutbound(b Broker) {
 	for message := range tms.in {
-
 		go tms.dispatchMessage(message, b)
 	}
 }
