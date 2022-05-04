@@ -589,7 +589,7 @@ type Add struct {
 	Guarantee
 	// LeftDeposit is the portion of the Add's amount that will be depositied by the left participant.
 	//
-	// The right participant's deposit is comupted from the guarantee and LeftDeposit.
+	// The right participant's deposit is computed from the guarantee and LeftDeposit.
 	LeftDeposit *big.Int
 }
 
