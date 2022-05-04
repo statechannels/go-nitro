@@ -570,7 +570,7 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 	ledger := connection.Channel
 
 	if !ledger.IsLeader() {
-		return protocols.SideEffects{}, errors.New("only the proposer can propose a ledger update")
+		return protocols.SideEffects{}, errors.New("only the leader can propose a ledger update")
 	}
 
 	sideEffects := protocols.SideEffects{}
