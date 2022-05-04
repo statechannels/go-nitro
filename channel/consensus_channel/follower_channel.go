@@ -65,7 +65,7 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 	}
 	c.proposalQueue = c.proposalQueue[1:]
 
-	return SignedProposal{signature, signed.Proposal}, nil
+	return SignedProposal{signature, signed.Proposal, vars.TurnNum}, nil
 }
 
 // followerReceive is called by the follower to validate a proposal from the leader and add it to the proposal queue
@@ -84,7 +84,7 @@ func (c *ConsensusChannel) followerReceive(p SignedProposal) error {
 		return fmt.Errorf("could not generate the current proposal: %w", err)
 	}
 
-	if p.Proposal.TurnNum() != vars.TurnNum+1 {
+	if p.TurnNum != vars.TurnNum+1 {
 		return ErrInvalidTurnNum
 	}
 	// Add the incoming proposal to the vars

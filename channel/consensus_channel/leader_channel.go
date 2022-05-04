@@ -40,6 +40,10 @@ func (c *ConsensusChannel) IsProposedNext(g Guarantee) (bool, error) {
 
 	p := c.proposalQueue[0]
 	err := vars.HandleProposal(p.Proposal)
+	if vars.TurnNum != p.TurnNum {
+		return false, fmt.Errorf("proposal turn number %d does not match vars %d", p.TurnNum, vars.TurnNum)
+	}
+
 	if err != nil {
 		return false, err
 	}
@@ -51,24 +55,18 @@ func (c *ConsensusChannel) IsProposedNext(g Guarantee) (bool, error) {
 // and generates and stores a SignedProposal in the queue, returning the
 // resulting SignedProposal
 //
-// Note: the TurnNum on add is ignored; the correct turn number is computed
-// and applied by c
 func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal, error) {
 	if c.MyIndex != Leader {
 		return SignedProposal{}, ErrNotLeader
 	}
 
-	// TODO: the Propose API should be less confusing!
-	// Currently, the TurnNum is ignored, and Propose could easily
-	// return the same ChannelId that it's been passed
-	proposal.ChannelID = c.Id
-
+	if proposal.ChannelID != c.Id {
+		return SignedProposal{}, ErrIncorrectChannelID
+	}
 	vars, err := c.latestProposedVars()
 	if err != nil {
 		return SignedProposal{}, fmt.Errorf("unable to construct latest proposed vars: %w", err)
 	}
-
-	proposal.SetTurnNum(vars.TurnNum + 1)
 
 	err = vars.HandleProposal(proposal)
 	if err != nil {
@@ -80,7 +78,7 @@ func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal
 		return SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
 	}
 
-	signed := SignedProposal{Proposal: proposal, Signature: signature}
+	signed := SignedProposal{Proposal: proposal, Signature: signature, TurnNum: vars.TurnNum}
 
 	c.proposalQueue = append(c.proposalQueue, signed)
 	return signed, nil
@@ -112,8 +110,7 @@ func (c *ConsensusChannel) leaderReceive(countersigned SignedProposal) error {
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),
 	}
-
-	consensusTurnNum := countersigned.Proposal.TurnNum()
+	consensusTurnNum := countersigned.TurnNum
 
 	if consensusTurnNum <= consensusCandidate.TurnNum {
 		// We've already seen this proposal; return early

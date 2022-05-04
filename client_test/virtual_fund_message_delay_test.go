@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -24,8 +23,9 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 	const OBJECTIVE_TIMEOUT = time.Second * 2
 
 	// Setup logging
-	logDestination := &bytes.Buffer{}
-	t.Cleanup(flushToFileCleanupFn(logDestination, "virtual_fund_message_delay_test.log"))
+	logFile := "test_virtual_fund_with_message_delays.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()

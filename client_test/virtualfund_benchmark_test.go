@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -17,11 +16,12 @@ import (
 
 // TestBenchmark sets up three clients, then runs a virtual funding benchmark, printing the duration
 // to the screen.
-func TestBenchmark(t *testing.T) {
+func TestVirtualFundBenchmark(t *testing.T) {
 
 	// Setup logging
-	logDestination := &bytes.Buffer{}
-	t.Cleanup(flushToFileCleanupFn(logDestination, "virtualfund_benchmark_test.log"))
+	logFile := "test_virtual_fund_benchmark.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()

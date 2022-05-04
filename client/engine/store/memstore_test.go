@@ -169,7 +169,7 @@ func TestConsensusChannelStore(t *testing.T) {
 
 	// Generate a new proposal so we test that the proposal queue is being fetched properly
 	proposedGuarantee := cc.NewGuarantee(big.NewInt(1), types.Destination{2}, left.AsAllocation().Destination, right.AsAllocation().Destination)
-	proposal := cc.NewAddProposal(types.Destination{3}, 2, proposedGuarantee, big.NewInt(1))
+	proposal := cc.NewAddProposal(leader.Id, proposedGuarantee, big.NewInt(1))
 	_, err = leader.Propose(proposal, ta.Alice.PrivateKey)
 	if err != nil {
 		t.Fatal(err)

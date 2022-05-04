@@ -14,5 +14,8 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# Logs
-*.log
+# The artifacts contains only logs, for now
+artifacts
+
+# OSX specific files
+.DS_Store

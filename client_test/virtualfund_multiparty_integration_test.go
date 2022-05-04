@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -13,11 +12,12 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// TestMultiPartyVirtualFundIntegration tests the scenario where Alice creates virtual channels with Bob and Brian using Irene as the intermediary.
-func TestMultiPartyVirtualFundIntegration(t *testing.T) {
+// TestVirtualFundMultiParty tests the scenario where Alice creates virtual channels with Bob and Brian using Irene as the intermediary.
+func TestVirtualFundMultiParty(t *testing.T) {
 
-	logDestination := &bytes.Buffer{}
-	t.Cleanup(flushToFileCleanupFn(logDestination, "virtualfund_multiparty_client_test.log"))
+	logFile := "test_virtual_fund_multi_party.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()

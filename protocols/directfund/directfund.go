@@ -153,7 +153,11 @@ func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChan
 	}
 	assetExit := signedPostFund.State().Outcome[0]
 	turnNum := signedPostFund.State().TurnNum
-	outcome := consensus_channel.FromExit(assetExit)
+	outcome, err := consensus_channel.FromExit(assetExit)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create ledger outcome from channel exit: %w", err)
+	}
 
 	if ledger.MyIndex == uint(consensus_channel.Leader) {
 		con, err := consensus_channel.NewLeaderChannel(ledger.FixedPart, turnNum, outcome, signatures)

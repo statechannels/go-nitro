@@ -311,15 +311,15 @@ func (g Guarantee) AsAllocation() outcome.Allocation {
 	}
 }
 
-// LedgerOutcome encodes the outcome of a ledger channel involving a "left" and "right"
+// LedgerOutcome encodes the outcome of a ledger channel involving a "leader" and "follower"
 // participant.
 //
-// Allocation items are not stored in sorted order. The conventional ordering of allocation items is:
-// [left, right, ...guaranteesSortedbyTargetDestination]
+// This struct does not store items in sorted order. The conventional ordering of allocation items is:
+// [leader, follower, ...guaranteesSortedbyTargetDestination]
 type LedgerOutcome struct {
 	assetAddress types.Address // Address of the asset type
-	left         Balance       // Balance of participants[0]
-	right        Balance       // Balance of participants[1]
+	leader       Balance       // Balance of participants[0]
+	follower     Balance       // Balance of participants[1]
 	guarantees   map[types.Destination]Guarantee
 }
 
@@ -331,22 +331,22 @@ func (lo *LedgerOutcome) Clone() LedgerOutcome {
 	}
 	return LedgerOutcome{
 		assetAddress: lo.assetAddress,
-		left:         lo.left.Clone(),
-		right:        lo.right.Clone(),
+		leader:       lo.leader.Clone(),
+		follower:     lo.follower.Clone(),
 		guarantees:   clonedGuarantees,
 	}
 }
 
 // NewLedgerOutcome creates a new ledger outcome with the given asset address, balances, and guarantees.
-func NewLedgerOutcome(assetAddress types.Address, left, right Balance, guarantees []Guarantee) *LedgerOutcome {
+func NewLedgerOutcome(assetAddress types.Address, leader, follower Balance, guarantees []Guarantee) *LedgerOutcome {
 	guaranteeMap := make(map[types.Destination]Guarantee, len(guarantees))
 	for _, g := range guarantees {
 		guaranteeMap[g.target] = g
 	}
 	return &LedgerOutcome{
 		assetAddress: assetAddress,
-		left:         left,
-		right:        right,
+		leader:       leader,
+		follower:     follower,
 		guarantees:   guaranteeMap,
 	}
 }
@@ -372,38 +372,49 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 
 // FromExit creates a new LedgerOutcome from the given SingleAssetExit.
 //
-// It makes some assumptions about the exit:
-//  - The first alloction entry is for left
-//  - The second alloction entry is for right
-//  - We ignore guarantee metadata and just assume that it is [left,right]
-func FromExit(sae outcome.SingleAssetExit) LedgerOutcome {
+// It makes the following assumptions about the exit:
+//  - The first alloction entry is for the ledger leader
+//  - The second alloction entry is for the ledger follower
+//  - All other allocations are guarantees
+func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 
-	left := Balance{destination: sae.Allocations[0].Destination, amount: sae.Allocations[0].Amount}
-	right := Balance{destination: sae.Allocations[1].Destination, amount: sae.Allocations[1].Amount}
-	guarantees := make(map[types.Destination]Guarantee)
+	var (
+		leader     = Balance{destination: sae.Allocations[0].Destination, amount: sae.Allocations[0].Amount}
+		follower   = Balance{destination: sae.Allocations[1].Destination, amount: sae.Allocations[1].Amount}
+		guarantees = make(map[types.Destination]Guarantee)
+	)
+
 	for _, a := range sae.Allocations {
 
 		if a.AllocationType == outcome.GuaranteeAllocationType {
-			g := Guarantee{amount: a.Amount,
+			gM, err := outcome.DecodeIntoGuaranteeMetadata(a.Metadata)
+
+			if err != nil {
+				return LedgerOutcome{}, fmt.Errorf("failed to decode guarantee metadata: %w", err)
+			}
+
+			g := Guarantee{
+				amount: a.Amount,
 				target: a.Destination,
-				// Instead of decoding the metadata we make an assumption that the metadata has the left/right we expect
-				left:  left.destination,
-				right: right.destination}
+				left:   gM.Left,
+				right:  gM.Right,
+			}
 			guarantees[a.Destination] = g
 		}
 
 	}
-	return LedgerOutcome{left: left, right: right, guarantees: guarantees, assetAddress: sae.Asset}
+
+	return LedgerOutcome{leader: leader, follower: follower, guarantees: guarantees, assetAddress: sae.Asset}, nil
 
 }
 
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
-//  - the "left" balance is first
-//  - the "right" balance is second
-//  - following [left, right] comes the guarantees sorted according to their target destination
+//  - the "leader" balance is first
+//  - the "follower" balance is second
+//  - guarantees follow, sorted according to their target destinations
 func (o *LedgerOutcome) AsOutcome() outcome.Exit {
-	// The first items are [left, right] balances
-	allocations := outcome.Allocations{o.left.AsAllocation(), o.right.AsAllocation()}
+	// The first items are [leader, follower] balances
+	allocations := outcome.Allocations{o.leader.AsAllocation(), o.follower.AsAllocation()}
 
 	// Followed by guarantees, _sorted by the target destination_
 	keys := make([]types.Destination, 0, len(o.guarantees))
@@ -416,7 +427,6 @@ func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 
 	for _, target := range keys {
 		allocations = append(allocations, o.guarantees[target].AsAllocation())
-
 	}
 
 	return outcome.Exit{
@@ -445,14 +455,14 @@ func (v *Vars) Clone() Vars {
 func (o *LedgerOutcome) clone() LedgerOutcome {
 	assetAddress := o.assetAddress
 
-	left := Balance{
-		destination: o.left.destination,
-		amount:      big.NewInt(0).Set(o.left.amount),
+	leader := Balance{
+		destination: o.leader.destination,
+		amount:      big.NewInt(0).Set(o.leader.amount),
 	}
 
-	right := Balance{
-		destination: o.right.destination,
-		amount:      big.NewInt(0).Set(o.right.amount),
+	follower := Balance{
+		destination: o.follower.destination,
+		amount:      big.NewInt(0).Set(o.follower.amount),
 	}
 
 	guarantees := make(map[types.Destination]Guarantee)
@@ -464,8 +474,8 @@ func (o *LedgerOutcome) clone() LedgerOutcome {
 
 	return LedgerOutcome{
 		assetAddress: assetAddress,
-		left:         left,
-		right:        right,
+		leader:       leader,
+		follower:     follower,
 		guarantees:   guarantees,
 	}
 }
@@ -526,43 +536,21 @@ func (p *Proposal) Type() ProposalType {
 	}
 }
 
-// SetTurnNum updates the turn number on the Add or Remove proposal.
-func (p *Proposal) SetTurnNum(turnNum uint64) {
-	switch p.Type() {
-	case AddProposal:
-		{
-			p.ToAdd.turnNum = turnNum
-		}
-	case RemoveProposal:
-		{
-			p.ToRemove.turnNum = turnNum
-		}
-	}
-
-}
-
-// TurnNum returns the turn number on the Add or Remove proposal.
-func (p *Proposal) TurnNum() uint64 {
-	if p.Type() == AddProposal {
-		return p.ToAdd.turnNum
-	} else {
-		return p.ToRemove.turnNum
-	}
-}
-
 // Equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
 func (p *Proposal) Equal(q *Proposal) bool {
-	return p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
+	return p.ChannelID == q.ChannelID && p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
 }
 
-// ChannelId returns the id of the ConsensusChannel which receive the proposal.
-func (p SignedProposal) ChannelId() types.Destination {
+// ChannelID returns the id of the ConsensusChannel which receive the proposal.
+func (p SignedProposal) ChannelID() types.Destination {
 	return p.Proposal.ChannelID
 }
 
-// TurnNum returns the turn number of the proposal.
-func (p SignedProposal) TurnNum() uint64 {
-	return p.Proposal.TurnNum()
+// SortInfo returns the channelId and turn number so the proposal can be easily sorted.
+func (p SignedProposal) SortInfo() (types.Destination, uint64) {
+	cId := p.Proposal.ChannelID
+	turnNum := p.TurnNum
+	return cId, turnNum
 }
 
 // Target returns the target channel of the proposal.
@@ -587,20 +575,21 @@ func (p *Proposal) Target() types.Destination {
 type SignedProposal struct {
 	state.Signature
 	Proposal Proposal
+	TurnNum  uint64
 }
 
 // Clone returns a deep copy of the reciever.
 func (sp *SignedProposal) Clone() SignedProposal {
-	sp2 := SignedProposal{sp.Signature, sp.Proposal.Clone()}
+	sp2 := SignedProposal{sp.Signature, sp.Proposal.Clone(), sp.TurnNum}
 	return sp2
 }
 
 // Add encodes a proposal to add a guarantee to a ConsensusChannel.
-//
-// The balance of the guarantee is to be deducted from left.
 type Add struct {
-	turnNum uint64
 	Guarantee
+	// LeftDeposit is the portion of the Add's amount that will be deducted from left participant's ledger balance.
+	//
+	// The right participant's deduction is computed as the difference between the guarantee amount and LeftDeposit.
 	LeftDeposit *big.Int
 }
 
@@ -610,34 +599,32 @@ func (a *Add) Clone() Add {
 		return Add{}
 	}
 	return Add{
-		a.turnNum,
 		a.Guarantee.Clone(),
 		big.NewInt(0).Set(a.LeftDeposit),
 	}
 }
 
 // NewAdd constructs a new Add proposal.
-func NewAdd(turnNum uint64, g Guarantee, leftDeposit *big.Int) Add {
+func NewAdd(g Guarantee, leftDeposit *big.Int) Add {
 	return Add{
-		turnNum:     turnNum,
 		Guarantee:   g,
 		LeftDeposit: leftDeposit,
 	}
 }
 
 // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
-func NewAddProposal(channelId types.Destination, turnNum uint64, g Guarantee, leftDeposit *big.Int) Proposal {
-	return Proposal{ToAdd: NewAdd(turnNum, g, leftDeposit), ChannelID: channelId}
+func NewAddProposal(channelId types.Destination, g Guarantee, leftDeposit *big.Int) Proposal {
+	return Proposal{ToAdd: NewAdd(g, leftDeposit), ChannelID: channelId}
 }
 
 // NewRemove constructs a new Remove proposal.
-func NewRemove(turnNum uint64, target types.Destination, leftAmount, rightAmount *big.Int) Remove {
-	return Remove{turnNum: turnNum, Target: target, LeftAmount: leftAmount, RightAmount: rightAmount}
+func NewRemove(target types.Destination, leftAmount, rightAmount *big.Int) Remove {
+	return Remove{Target: target, LeftAmount: leftAmount, RightAmount: rightAmount}
 }
 
 // NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
-func NewRemoveProposal(channelId types.Destination, turnNum uint64, target types.Destination, leftAmount, rightAmount *big.Int) Proposal {
-	return Proposal{ToRemove: NewRemove(turnNum, target, leftAmount, rightAmount), ChannelID: channelId}
+func NewRemoveProposal(channelId types.Destination, target types.Destination, leftAmount, rightAmount *big.Int) Proposal {
+	return Proposal{ToRemove: NewRemove(target, leftAmount, rightAmount), ChannelID: channelId}
 }
 
 // RightDeposit computes the deposit from the right participant such that
@@ -650,9 +637,6 @@ func (a Add) RightDeposit() *big.Int {
 }
 
 func (a Add) equal(a2 Add) bool {
-	if a.turnNum != a2.turnNum {
-		return false
-	}
 	if !a.Guarantee.equal(a2.Guarantee) {
 		return false
 	}
@@ -660,9 +644,6 @@ func (a Add) equal(a2 Add) bool {
 }
 
 func (r Remove) equal(r2 Remove) bool {
-	if r.turnNum != r2.turnNum {
-		return false
-	}
 	if !bytes.Equal(r.Target.Bytes(), r2.Target.Bytes()) {
 
 		return false
@@ -709,10 +690,6 @@ func (vars *Vars) HandleProposal(p Proposal) error {
 // If an error is returned, the original vars is not mutated.
 func (vars *Vars) Add(p Add) error {
 	// CHECKS
-	if p.turnNum != vars.TurnNum+1 {
-		return ErrIncorrectTurnNum
-	}
-
 	o := vars.Outcome
 
 	_, found := o.guarantees[p.target]
@@ -724,11 +701,11 @@ func (vars *Vars) Add(p Add) error {
 		return ErrInvalidDeposit
 	}
 
-	if types.Gt(p.LeftDeposit, o.left.amount) {
+	if types.Gt(p.LeftDeposit, o.leader.amount) {
 		return ErrInsufficientFunds
 	}
 
-	if types.Gt(p.RightDeposit(), o.right.amount) {
+	if types.Gt(p.RightDeposit(), o.follower.amount) {
 		return ErrInsufficientFunds
 	}
 
@@ -738,9 +715,9 @@ func (vars *Vars) Add(p Add) error {
 	vars.TurnNum += 1
 
 	// Adjust balances
-	o.left.amount.Sub(o.left.amount, p.LeftDeposit)
+	o.leader.amount.Sub(o.leader.amount, p.LeftDeposit)
 	rightDeposit := p.RightDeposit()
-	o.right.amount.Sub(o.right.amount, rightDeposit)
+	o.follower.amount.Sub(o.follower.amount, rightDeposit)
 
 	// Include guarantee
 	o.guarantees[p.target] = p.Guarantee
@@ -762,9 +739,6 @@ func (vars *Vars) Add(p Add) error {
 func (vars *Vars) Remove(p Remove) error {
 	// CHECKS
 
-	if p.turnNum != vars.TurnNum+1 {
-		return ErrIncorrectTurnNum
-	}
 	o := vars.Outcome
 
 	guarantee, found := o.guarantees[p.Target]
@@ -783,8 +757,8 @@ func (vars *Vars) Remove(p Remove) error {
 	vars.TurnNum += 1
 
 	// Adjust balances
-	o.left.amount.Add(o.left.amount, p.LeftAmount)
-	o.right.amount.Add(o.right.amount, p.RightAmount)
+	o.leader.amount.Add(o.leader.amount, p.LeftAmount)
+	o.follower.amount.Add(o.follower.amount, p.RightAmount)
 
 	// Remove the guarantee
 	delete(o.guarantees, p.Target)
@@ -792,14 +766,14 @@ func (vars *Vars) Remove(p Remove) error {
 	return nil
 }
 
-// Remove is a proposal to remover a guarantee for the given virtual channel.
+// Remove is a proposal to remove a guarantee for the given virtual channel.
 type Remove struct {
-	turnNum uint64
-	Target  types.Destination
-	// LeftAmount is the amount to be credited to the left participant of the two party ledger channel
+	// Target is the address of the virtual channel being defunded
+	Target types.Destination
+	// LeftAmount is the amount to be credited (in the ledger channel) to the participant specified as the "left" in the guarantee.
 	LeftAmount *big.Int
-	// RightAmount is the amount to be credited to the right participant of the two party ledger channel
-	RightAmount *big.Int
+	// RightAmount is the amount to be credited (in the ledger channel) to the participant specified as the "right" in the guarantee.
+	RightAmount *big.Int // todo?: replace this with a function, as in Add
 }
 
 // Clone returns a deep copy of the receiver
@@ -808,7 +782,6 @@ func (r *Remove) Clone() Remove {
 		return Remove{}
 	}
 	return Remove{
-		turnNum:     r.turnNum,
 		Target:      r.Target,
 		LeftAmount:  big.NewInt(0).Set(r.LeftAmount),
 		RightAmount: big.NewInt(0).Set(r.RightAmount),

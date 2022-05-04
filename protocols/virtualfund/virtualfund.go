@@ -561,8 +561,7 @@ func (c *Connection) expectedProposal() consensus_channel.Proposal {
 		leftAmount = val
 		break
 	}
-	proposalTurnNum := c.Channel.ConsensusTurnNum() + 1
-	proposal := consensus_channel.NewAddProposal(c.Channel.Id, proposalTurnNum, g, leftAmount)
+	proposal := consensus_channel.NewAddProposal(c.Channel.Id, g, leftAmount)
 
 	return proposal
 }

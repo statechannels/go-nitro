@@ -31,8 +31,8 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 
 			// If all objectives are completed we can send the all done signal and return
 			isDone := true
-			for _, objectiveCompleted := range completed {
-				isDone = isDone && objectiveCompleted
+			for _, id := range ids {
+				isDone = isDone && completed[id]
 			}
 			if isDone {
 				allDone <- struct{}{}
@@ -74,14 +74,6 @@ func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservi
 	return client.New(messageservice, chainservice, storeA, logDestination), storeA
 }
 
-func flushToFileCleanupFn(w io.Reader, fileName string) func() {
-	return func() {
-		truncateLog(fileName)
-		ld := newLogWriter(fileName)
-		_, _ = ld.ReadFrom(w)
-		ld.Close()
-	}
-}
 func truncateLog(logFile string) {
 	logDestination := newLogWriter(logFile)
 
