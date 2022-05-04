@@ -89,33 +89,30 @@ func NewObjective(preApprove bool,
 	var toMyLeft, toMyRight *consensus_channel.ConsensusChannel
 	var ok bool
 
-	myAddress := request.MyAddress
-	if myAddress == alice {
+	switch request.MyAddress {
+	case alice:
 		toMyRight, ok = getConsensusChannel(intermediary)
 		if !ok {
-			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", alice, intermediary)
+			return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", alice, intermediary)
 		}
-	} else if myAddress == bob {
-		toMyLeft, ok = getConsensusChannel(intermediary)
-		if !ok {
-			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
-		}
-
-	} else if myAddress == intermediary {
+	case intermediary:
 		toMyLeft, ok = getConsensusChannel(alice)
 		if !ok {
-			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
+			return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", alice, intermediary)
 		}
-
 		toMyRight, ok = getConsensusChannel(bob)
 		if !ok {
-			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+			return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", intermediary, bob)
 		}
-
-	} else {
+	case bob:
+		toMyLeft, ok = getConsensusChannel(intermediary)
+		if !ok {
+			return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", intermediary, bob)
+		}
+	default:
 		return Objective{}, fmt.Errorf("client address not found in an expected participant index")
-	}
 
+	}
 	return Objective{
 		Status:         status,
 		InitialOutcome: initialOutcome,
