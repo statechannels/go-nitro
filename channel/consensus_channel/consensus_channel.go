@@ -770,9 +770,9 @@ func (vars *Vars) Remove(p Remove) error {
 type Remove struct {
 	// Target is the address of the virtual channel being defunded
 	Target types.Destination
-	// LeftAmount is the amount to be credited to the left funder of the guarantee for Target
+	// LeftAmount is the amount to be credited (in the ledger channel) to the participant specified as the "left" in the guarantee.
 	LeftAmount *big.Int
-	// RightAmount is the amount to be credited to the right funder the guarantee for Target
+	// RightAmount is the amount to be credited (in the ledger channel) to the participant specified as the "right" in the guarantee.
 	RightAmount *big.Int // todo?: replace this with a function, as in Add
 }
 
