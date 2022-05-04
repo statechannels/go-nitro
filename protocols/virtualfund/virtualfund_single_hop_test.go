@@ -273,7 +273,7 @@ func TestCrankAsAlice(t *testing.T) {
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
-  sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[1], TurnNum: 2}
+	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[1], TurnNum: 2}
 	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposal: sp}
 
 	oObj, err = o.Update(e)
@@ -437,7 +437,7 @@ func TestCrankAsP1(t *testing.T) {
 	p = consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[1], TurnNum: 2}
 	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposal: sp}
-  
+
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
