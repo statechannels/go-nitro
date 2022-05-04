@@ -58,8 +58,8 @@ func NewTestMessageService(address types.Address, broker Broker, maxDelay time.D
 	}
 
 	tms.connect(broker)
-	go tms.routeInbound()
-	go tms.routeOutbound(broker)
+	go tms.routeFromPeers()
+	go tms.routeToPeers(broker)
 
 	return tms
 }
@@ -101,15 +101,15 @@ func (tms TestMessageService) connect(b Broker) {
 	b.services[tms.address] = tms
 }
 
-// routeOutbound listens for messages from the engine, and dispatches them
-func (tms TestMessageService) routeOutbound(b Broker) {
+// routeToPeers listens for messages from the engine, and dispatches them
+func (tms TestMessageService) routeToPeers(b Broker) {
 	for message := range tms.in {
 		go tms.dispatchMessage(message, b)
 	}
 }
 
-// routeInbound listens for messages from peers, deserializes them and feeds them to the engine
-func (tms TestMessageService) routeInbound() {
+// routeFromPeers listens for messages from peers, deserializes them and feeds them to the engine
+func (tms TestMessageService) routeFromPeers() {
 	for message := range tms.fromPeers {
 		msg, err := protocols.DeserializeMessage(string(message))
 		if err != nil {
