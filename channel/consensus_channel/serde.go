@@ -172,8 +172,8 @@ func (g *Guarantee) UnmarshalJSON(data []byte) error {
 // making it suitable for serialization
 type jsonLedgerOutcome struct {
 	AssetAddress types.Address // Address of the asset type
-	Left         Balance       // Balance of participants[0]
-	Right        Balance       // Balance of participants[1]
+	Leader       Balance       // Balance of participants[0]
+	Follower     Balance       // Balance of participants[1]
 	Guarantees   map[types.Destination]Guarantee
 }
 
@@ -181,8 +181,8 @@ type jsonLedgerOutcome struct {
 func (l LedgerOutcome) MarshalJSON() ([]byte, error) {
 	jsonLo := jsonLedgerOutcome{
 		AssetAddress: l.assetAddress,
-		Left:         l.leader,
-		Right:        l.follower,
+		Leader:       l.leader,
+		Follower:     l.follower,
 		Guarantees:   l.guarantees,
 	}
 	return json.Marshal(jsonLo)
@@ -198,8 +198,8 @@ func (l *LedgerOutcome) UnmarshalJSON(data []byte) error {
 	}
 
 	l.assetAddress = jsonLo.AssetAddress
-	l.leader = jsonLo.Left
-	l.follower = jsonLo.Right
+	l.leader = jsonLo.Leader
+	l.follower = jsonLo.Follower
 	l.guarantees = jsonLo.Guarantees
 
 	return nil
