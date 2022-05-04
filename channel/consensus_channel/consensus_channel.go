@@ -769,8 +769,13 @@ func (vars *Vars) Remove(p Remove) error {
 	vars.TurnNum += 1
 
 	// Adjust balances
-	o.leader.amount.Add(o.leader.amount, p.LeftAmount)
-	o.follower.amount.Add(o.follower.amount, p.RightAmount)
+	if o.leader.destination == guarantee.left {
+		o.leader.amount.Add(o.leader.amount, p.LeftAmount)
+		o.follower.amount.Add(o.follower.amount, p.RightAmount)
+	} else {
+		o.leader.amount.Add(o.leader.amount, p.RightAmount)
+		o.follower.amount.Add(o.follower.amount, p.LeftAmount)
+	}
 
 	// Remove the guarantee
 	delete(o.guarantees, p.Target)
