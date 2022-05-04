@@ -26,7 +26,7 @@ type TestMessageService struct {
 	out      chan protocols.Message // for sending message to engine
 	maxDelay time.Duration          // the max delay for messages
 
-	// connection to Peers:
+	// connection with Peers:
 	fromPeers chan []byte // for receiving serialized messages from peers
 }
 
