@@ -42,12 +42,12 @@ func guarantee(amount uint64, target types.Destination, left, right testactors.A
 	}
 }
 
-func makeOutcome(left, right Balance, guarantees ...Guarantee) LedgerOutcome {
+func makeOutcome(leader, follower Balance, guarantees ...Guarantee) LedgerOutcome {
 	mappedGuarantees := make(map[types.Destination]Guarantee)
 	for _, g := range guarantees {
 		mappedGuarantees[g.target] = g
 	}
-	return LedgerOutcome{leader: left, follower: right, guarantees: mappedGuarantees}
+	return LedgerOutcome{leader: leader, follower: follower, guarantees: mappedGuarantees}
 }
 
 // ledgerOutcome constructs the LedgerOutcome with items
