@@ -56,7 +56,7 @@ func generateStoreGetters(myRole uint, vId types.Destination, vFinal state.State
 		if left != nil && (left.Participants()[0] == address || left.Participants()[1] == address) {
 			return left, true
 		}
-		if right != nil && (right.Participants()[0] == address || right.Participants()[0] == address) {
+		if right != nil && (right.Participants()[0] == address || right.Participants()[1] == address) {
 			return right, true
 		}
 		return &consensus_channel.ConsensusChannel{}, false
