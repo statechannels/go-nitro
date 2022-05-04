@@ -472,8 +472,14 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	updated := o.clone()
 
 	for _, ss := range event.SignedStates {
-		incomingChannelId, _ := ss.State().ChannelId() // TODO handle error
-		vChannelId, _ := updated.VFixed.ChannelId()    // TODO handle error
+		incomingChannelId, err := ss.State().ChannelId()
+		if err != nil {
+			return &o, fmt.Errorf("Err computing channel id: %w", err)
+		}
+		vChannelId, err := updated.VFixed.ChannelId()
+		if err != nil {
+			return &o, fmt.Errorf("Err computing channel id: %w", err)
+		}
 
 		if incomingChannelId != vChannelId {
 			return &o, errors.New("event channelId out of scope of objective")
