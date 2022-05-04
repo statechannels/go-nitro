@@ -572,7 +572,7 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 	ledger := connection.Channel
 
 	if !ledger.IsLeader() {
-		return protocols.SideEffects{}, errors.New("only the proposer can propose a ledger update")
+		return protocols.SideEffects{}, errors.New("only the leader can propose a ledger update")
 	}
 
 	sideEffects := protocols.SideEffects{}
@@ -582,7 +582,8 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 		return protocols.SideEffects{}, err
 	}
 
-	message := protocols.CreateSignedProposalMessage(connection.Channel)
+	recipient := ledger.Follower()
+	message := protocols.CreateSignedProposalMessage(recipient, connection.Channel.ProposalQueue()...)
 	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	return sideEffects, nil
@@ -598,7 +599,8 @@ func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.Side
 	}
 
 	sideEffects := protocols.SideEffects{}
-	message := protocols.CreateSignedProposalMessage(c.Channel, sp)
+	recipient := ledger.Leader()
+	message := protocols.CreateSignedProposalMessage(recipient, sp)
 	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 	return sideEffects, nil
 }

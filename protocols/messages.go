@@ -211,13 +211,8 @@ func SummarizeMessage(m Message) MessageSummary {
 
 // CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
 // It contains the provided signed proposals and any proposals in the proposal queue.
-func CreateSignedProposalMessage(ledger *consensus_channel.ConsensusChannel, sp ...consensus_channel.SignedProposal) Message {
-	recipient := ledger.Leader()
-	if ledger.IsLeader() {
-		recipient = ledger.Follower()
-	}
-	// Append the proposals to any existing proposals in the queue
-	proposals := append(ledger.ProposalQueue(), sp...)
+func CreateSignedProposalMessage(recipient types.Address, proposals ...consensus_channel.SignedProposal) Message {
+
 	payloads := make([]MessagePayload, len(proposals))
 	for i, sp := range proposals {
 		id := getProposalObjectiveId(sp.Proposal)
