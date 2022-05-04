@@ -93,7 +93,7 @@ func NewObjective(preApprove bool,
 	if myAddress == alice {
 		toMyRight, ok = getConsensusChannel(intermediary)
 		if !ok {
-			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", alice, intermediary)
 		}
 	} else if myAddress == bob {
 		toMyLeft, ok = getConsensusChannel(intermediary)
