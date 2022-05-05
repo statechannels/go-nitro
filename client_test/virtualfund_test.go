@@ -46,7 +46,7 @@ func openVirtualChannels(t *testing.T, clientA client.Client, clientB client.Cli
 func TestVirtualFundIntegration(t *testing.T) {
 
 	// Setup logging
-	logFile := "virtualfund_client_test.log"
+	logFile := "test_virtual_fund.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 

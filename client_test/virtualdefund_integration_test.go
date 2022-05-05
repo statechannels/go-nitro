@@ -13,7 +13,7 @@ import (
 func TestVirtualDefundIntegration(t *testing.T) {
 
 	// Setup logging
-	logFile := "virtualdefund_client_test.log"
+	logFile := "test_virtual_defund.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
