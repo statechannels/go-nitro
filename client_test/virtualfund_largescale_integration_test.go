@@ -44,9 +44,9 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 
 	retrievalProviderHubConnection, _ := retrievalProviderStore.GetConsensusChannel(*paymentHub.Address)
 
-	foo, _ := json.Marshal(retrievalProviderHubConnection.SupportedSignedState().State().Outcome)
+	finalOutcome, _ := json.Marshal(retrievalProviderHubConnection.SupportedSignedState().State().Outcome)
 
-	logDestination.Write(foo)
+	logDestination.Write(finalOutcome)
 
 }
 
