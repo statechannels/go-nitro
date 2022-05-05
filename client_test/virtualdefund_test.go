@@ -84,10 +84,10 @@ func runVirtualDefundIntegrationTest(t *testing.T, messageDelay time.Duration, o
 			case alice.Address():
 				checkAliceIreneLedgerOutcome(t, vdfo.VId(), vdfo.ToMyRight.ConsensusVars().Outcome, totalPaidToBob)
 			case bob.Address():
-				checkIreneBobLedger(t, vdfo.VId(), vdfo.ToMyLeft.ConsensusVars().Outcome, totalPaidToBob)
+				checkIreneBobLedgerOutcome(t, vdfo.VId(), vdfo.ToMyLeft.ConsensusVars().Outcome, totalPaidToBob)
 			case irene.Address():
 				checkAliceIreneLedgerOutcome(t, vdfo.VId(), vdfo.ToMyLeft.ConsensusVars().Outcome, totalPaidToBob)
-				checkIreneBobLedger(t, vdfo.VId(), vdfo.ToMyRight.ConsensusVars().Outcome, totalPaidToBob)
+				checkIreneBobLedgerOutcome(t, vdfo.VId(), vdfo.ToMyRight.ConsensusVars().Outcome, totalPaidToBob)
 			}
 		}
 
@@ -110,8 +110,8 @@ func checkAliceIreneLedgerOutcome(t *testing.T, vId types.Destination, outcome c
 	}
 }
 
-// checkIreneBobLedger checks the ledger outcome between irene and bob is as expected
-func checkIreneBobLedger(t *testing.T, vId types.Destination, outcome consensus_channel.LedgerOutcome, totalPaidToBob uint) {
+// checkIreneBobLedgerOutcome checks the ledger outcome between irene and bob is as expected
+func checkIreneBobLedgerOutcome(t *testing.T, vId types.Destination, outcome consensus_channel.LedgerOutcome, totalPaidToBob uint) {
 	if outcome.IncludesTarget(vId) {
 		t.Errorf("The outcome %+v should not contain a guarantee for the virtual channel %s", outcome, vId)
 	}
