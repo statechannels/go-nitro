@@ -30,7 +30,7 @@ func TestVirtualDefundIntegration(t *testing.T) {
 	clientB, storeB := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
 	clientI, storeI := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
 
-	numOfVirtualChannels := uint(1)
+	numOfVirtualChannels := uint(5)
 	paidToBob := uint(1)
 	totalPaidToBob := paidToBob * numOfVirtualChannels
 

@@ -167,8 +167,13 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
-
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+
+		relatedObjectiveCompletions, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedObjectiveCompletions.CompletedObjectives...)
 
 	}
 
@@ -200,10 +205,56 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		}
 
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
-	}
 
+		relatedProgressEvent, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedProgressEvent.CompletedObjectives...)
+
+	}
 	return allCompleted, nil
 
+}
+
+// attemptProgressForRelatedObjectives attempts to progress any objectives that may be related to the objective that was just updated
+// An objective is related when it shares a ledger channel with the provided objective.
+// This allows progress to made on other objectives that may be unblocked after processing the updatedObjective.
+func (e *Engine) attemptProgressForRelatedObjectives(updatedObjective *protocols.Objective) (ObjectiveChangeEvent, error) {
+	allCompleted := ObjectiveChangeEvent{}
+	relatedIds, err := e.findRelatedObjectives(*updatedObjective)
+	if err != nil {
+		return ObjectiveChangeEvent{}, err
+	}
+	for _, id := range relatedIds {
+		related, err := e.store.GetObjectiveById(id)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+		progressEvent, err := e.attemptProgress(related)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+	}
+	return allCompleted, nil
+}
+
+// findRelatedObjectives finds all objectives that are related to provided objective.
+// An objective is related when it shares a ledger channel with the provided objective.
+func (e *Engine) findRelatedObjectives(o protocols.Objective) ([]protocols.ObjectiveId, error) {
+	relatedIds := []protocols.ObjectiveId{}
+	for _, rel := range o.Related() {
+		c, ok := rel.(*consensus_channel.ConsensusChannel)
+		if ok {
+			for _, p := range c.ProposalQueue() {
+				id := getProposalObjectiveId(p.Proposal)
+
+				relatedIds = append(relatedIds, id)
+			}
+		}
+	}
+	return relatedIds, nil
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
@@ -429,4 +480,28 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		return &directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
 	}
 
+}
+
+// getProposalObjectiveId returns the objectiveId for a proposal.
+func getProposalObjectiveId(p consensus_channel.Proposal) protocols.ObjectiveId {
+	switch p.Type() {
+	case consensus_channel.AddProposal:
+		{
+			const prefix = virtualfund.ObjectivePrefix
+			channelId := p.ToAdd.Guarantee.Target().String()
+			return protocols.ObjectiveId(prefix + channelId)
+
+		}
+	case consensus_channel.RemoveProposal:
+		{
+			const prefix = virtualdefund.ObjectivePrefix
+			channelId := p.ToRemove.Target.String()
+			return protocols.ObjectiveId(prefix + channelId)
+
+		}
+	default:
+		{
+			panic("invalid proposal type")
+		}
+	}
 }
