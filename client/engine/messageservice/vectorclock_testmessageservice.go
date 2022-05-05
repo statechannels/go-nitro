@@ -76,15 +76,22 @@ func summarizeMessageSend(msg protocols.Message) string {
 	summary := ""
 	for _, entry := range msg.SignedStates() {
 		summary += `send `
-		summary += fmt.Sprint(entry.Payload.ChannelId())[0:8]
+		if len(entry.Payload.State().Participants) == 3 {
+			summary += `V`
+		} else {
+			summary += `L`
+		}
+		summary += fmt.Sprint(entry.Payload.ChannelId())[1:8]
+		summary += fmt.Sprint(entry.Payload.TurnNum())
 		summary += ` @turn `
 		summary += fmt.Sprint(entry.Payload.TurnNum())
+
 	}
 	for _, entry := range msg.SignedProposals() {
 		summary += `propose `
-		summary += fmt.Sprint(entry.Payload.Proposal.ChannelID)[0:8]
+		summary += fmt.Sprint(entry.Payload.Proposal.ChannelID)[1:8]
 		summary += ` funds `
-		summary += fmt.Sprint(entry.Payload.Proposal.ToAdd.Target())[0:8]
+		summary += fmt.Sprint(entry.Payload.Proposal.ToAdd.Target())[1:8]
 	}
 	return summary
 }
