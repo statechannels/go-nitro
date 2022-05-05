@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"math/big"
 	"math/rand"
+	"os"
+	"os/exec"
+	"path"
+	"runtime"
 	"testing"
 	"time"
 
@@ -21,6 +25,8 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	const numRetrievalClients = 1
 
 	logDir := "../artifacts/vectorclock"
+	os.RemoveAll(logDir)
+
 	logFile := "largescale_client_test.log"
 
 	truncateLog(logFile)
@@ -50,6 +56,17 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 
 	logDestination.Write(finalOutcome)
 
+	combineLogs(t, logDir, "shiviz.log")
+	// replaceAddresses(logDir, "shiviz.log")
+
+}
+
+func combineLogs(t *testing.T, logDir string, combinedLogsFilename string) {
+	_, filename, _, _ := runtime.Caller(1)
+	logDir = path.Join(path.Dir(filename), logDir)
+	// NOTE: you may need to add GOPATH to PATH
+	output, err := exec.Command("GoVector", "--log_type", "shiviz", "--log_dir", logDir, "--outfile", path.Join(logDir, combinedLogsFilename)).Output()
+	t.Log(string(output), err)
 }
 
 func createVirtualChannelWithRetrievalProvider(c client.Client, retrievalProvider client.Client) protocols.ObjectiveId {
