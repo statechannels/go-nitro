@@ -64,12 +64,24 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 	}
 }
 
-// setupClient is a helper function that contructs a client and returns the new client and message service.
+// setupClient is a helper function that contructs a client and returns the new client and its store.
 func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservice.Broker, logDestination io.Writer, meanMessageDelay time.Duration) (client.Client, store.Store) {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	chain.Subscribe(myAddress)
 	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
+	storeA := store.NewMemStore(pk)
+	return client.New(messageservice, chainservice, storeA, logDestination), storeA
+}
+
+// setupIntstumentedClient is a helper function that contructs a client and returns the new client and its store.
+//
+// The client will be _instrumented_, which is useful in debugging. In particular it will output logs containing vector clock stamps into the supplied logDir directory.
+func setupInstrumentedClient(pk []byte, chain chainservice.MockChain, msgBroker messageservice.Broker, logDestination io.Writer, meanMessageDelay time.Duration, logDir string) (client.Client, store.Store) {
+	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
+	chain.Subscribe(myAddress)
+	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
+	messageservice := messageservice.NewVectorClockTestMessageService(myAddress, msgBroker, meanMessageDelay, logDir)
 	storeA := store.NewMemStore(pk)
 	return client.New(messageservice, chainservice, storeA, logDestination), storeA
 }

@@ -27,7 +27,7 @@ type VectorClockTestMessageService struct {
 // NewTestMessageService returns a running TestMessageService
 // It accepts an address, a broker, and a max delay for messages.
 // Messages will be handled with a random delay between 0 and maxDelay
-func NewVectorClockTestMessageService(address types.Address, broker Broker, maxDelay time.Duration) VectorClockTestMessageService {
+func NewVectorClockTestMessageService(address types.Address, broker Broker, maxDelay time.Duration, logDir string) VectorClockTestMessageService {
 
 	vctms := VectorClockTestMessageService{
 		TestMessageService: TestMessageService{
@@ -37,7 +37,7 @@ func NewVectorClockTestMessageService(address types.Address, broker Broker, maxD
 			maxDelay:  maxDelay,
 			fromPeers: make(chan []byte, 5),
 		},
-		goveclogger: govec.InitGoVector(address.String(), "../artifacts/vectorclock/"+address.String(), govec.GetDefaultConfig()),
+		goveclogger: govec.InitGoVector(address.String(), logDir+"/"+address.String(), govec.GetDefaultConfig()),
 	}
 
 	vctms.connect(broker)
