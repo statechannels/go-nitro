@@ -64,12 +64,16 @@ func (t VectorClockTestMessageService) dispatchMessage(message protocols.Message
 		if err != nil {
 			panic(`could not serialize message`)
 		}
-		vectorClockMessage := t.goveclogger.PrepareSend("Sending Message", serializedMsg, govec.GetDefaultLogOptions())
+		vectorClockMessage := t.goveclogger.PrepareSend(summarizeMessageSend(message), serializedMsg, govec.GetDefaultLogOptions())
 		peer.fromPeers <- vectorClockMessage
 	} else {
 		panic(fmt.Sprintf("client %v has no connection to client %v",
 			t.address, message.To))
 	}
+}
+
+func summarizeMessageSend(msg protocols.Message) string {
+	return "Send: " + string(msg.Payloads[0].ObjectiveId)
 }
 
 // routeToPeers listens for messages from the engine, and dispatches them
