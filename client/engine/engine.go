@@ -485,16 +485,16 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 // getProposalObjectiveId returns the objectiveId for a proposal.
 func getProposalObjectiveId(p consensus_channel.Proposal) protocols.ObjectiveId {
 	switch p.Type() {
-	case "AddProposal":
+	case consensus_channel.AddProposal:
 		{
-			const prefix = "VirtualFund-"
+			const prefix = virtualfund.ObjectivePrefix
 			channelId := p.ToAdd.Guarantee.Target().String()
 			return protocols.ObjectiveId(prefix + channelId)
 
 		}
-	case "RemoveProposal":
+	case consensus_channel.RemoveProposal:
 		{
-			const prefix = "VirtualDefund-"
+			const prefix = virtualdefund.ObjectivePrefix
 			channelId := p.ToRemove.Target.String()
 			return protocols.ObjectiveId(prefix + channelId)
 
