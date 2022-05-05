@@ -73,7 +73,20 @@ func (t VectorClockTestMessageService) dispatchMessage(message protocols.Message
 }
 
 func summarizeMessageSend(msg protocols.Message) string {
-	return "Send: " + string(msg.Payloads[0].ObjectiveId)
+	summary := ""
+	for _, entry := range msg.SignedStates() {
+		summary += `send `
+		summary += fmt.Sprint(entry.Payload.ChannelId())[0:8]
+		summary += ` @turn `
+		summary += fmt.Sprint(entry.Payload.TurnNum())
+	}
+	for _, entry := range msg.SignedProposals() {
+		summary += `propose `
+		summary += fmt.Sprint(entry.Payload.Proposal.ChannelID)[0:8]
+		summary += ` funds `
+		summary += fmt.Sprint(entry.Payload.Proposal.ToAdd.Target())[0:8]
+	}
+	return summary
 }
 
 // routeToPeers listens for messages from the engine, and dispatches them
