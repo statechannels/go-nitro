@@ -3,8 +3,10 @@ package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
 	"fmt"
+	"io"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -22,19 +24,38 @@ func TestVirtualDefundIntegration(t *testing.T) {
 	logFile := "test_virtual_defund.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
+	runVirtualDefundIntegrationTest(t, 0, defaultTimeout, logDestination)
 
+}
+
+func TestVirtualDefundIntegrationWithMessageDelay(t *testing.T) {
+
+	// Setup logging
+	logFile := "test_virtual_defund_with_message_delay.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
+
+	const MAX_MESSAGE_DELAY = time.Millisecond * 100
+	// Since we are delaying messages we allow for enough time to complete the objective
+	const OBJECTIVE_TIMEOUT = time.Second * 2
+
+	runVirtualDefundIntegrationTest(t, MAX_MESSAGE_DELAY, OBJECTIVE_TIMEOUT, logDestination)
+
+}
+
+// runVirtualDefundIntegrationTest runs a virtual defund integration test using the provided message delay, objective timeout and log destination
+func runVirtualDefundIntegrationTest(t *testing.T, messageDelay time.Duration, objectiveTimeout time.Duration, logDestination io.Writer) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
-	clientB, storeB := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
-	clientI, storeI := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
+	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, messageDelay)
+	clientB, storeB := setupClient(bob.PrivateKey, chain, broker, logDestination, messageDelay)
+	clientI, storeI := setupClient(irene.PrivateKey, chain, broker, logDestination, messageDelay)
 
 	numOfVirtualChannels := uint(5)
 	paidToBob := uint(1)
 	totalPaidToBob := paidToBob * numOfVirtualChannels
 
-	// TODO: This test only supports defunding 1 virtual channel due to https://github.com/statechannels/go-nitro/issues/637
 	cIds := openVirtualChannels(t, clientA, clientB, clientI, numOfVirtualChannels)
 
 	ids := make([]protocols.ObjectiveId, len(cIds))
@@ -42,9 +63,9 @@ func TestVirtualDefundIntegration(t *testing.T) {
 		ids[i] = clientA.CloseVirtualChannel(cIds[i], big.NewInt(int64(paidToBob)))
 
 	}
-	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, ids...)
-	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, ids...)
-	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, ids...)
+	waitTimeForCompletedObjectiveIds(t, &clientA, objectiveTimeout, ids...)
+	waitTimeForCompletedObjectiveIds(t, &clientB, objectiveTimeout, ids...)
+	waitTimeForCompletedObjectiveIds(t, &clientI, objectiveTimeout, ids...)
 
 	for _, clientStore := range []store.Store{storeA, storeB, storeI} {
 		for _, cId := range cIds {
@@ -71,7 +92,6 @@ func TestVirtualDefundIntegration(t *testing.T) {
 		}
 
 	}
-
 }
 
 // checkAliceIreneLedgerOutcome checks the ledger outcome between alice and irene is as expected
