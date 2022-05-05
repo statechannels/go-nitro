@@ -17,9 +17,11 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+const ledgerChannelDeposit = 5_000_000
+
 func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client) types.Destination {
 	// Set up an outcome that requires both participants to deposit
-	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, 5_000_000, 5_000_000)
+	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, ledgerChannelDeposit, ledgerChannelDeposit)
 
 	request := directfund.ObjectiveRequest{
 		MyAddress:         *alpha.Address,
@@ -51,7 +53,7 @@ func TestDirectFund(t *testing.T) {
 
 	directlyFundALedgerChannel(t, clientA, clientB)
 
-	want := testdata.Outcomes.Create(*clientA.Address, *clientB.Address, 5, 5)
+	want := testdata.Outcomes.Create(*clientA.Address, *clientB.Address, ledgerChannelDeposit, ledgerChannelDeposit)
 	// Ensure that we create a consensus channel in the store
 	for _, store := range []store.Store{storeA, storeB} {
 		var con *consensus_channel.ConsensusChannel
