@@ -55,7 +55,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 		go createVirtualChannelWithRetrievalProvider(retrievalClients[i], retrievalProvider)
 	}
 
-	<-time.After(5 * time.Second)
+	<-time.After(1 * time.Second)
 
 	retrievalProviderHubConnection, _ := retrievalProviderStore.GetConsensusChannel(*paymentHub.Address)
 
