@@ -22,6 +22,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// TestLargeScaleVirtualFundIntegration spins up one retrieval provider, one payment hub and several retrieval clients.
+// The clients are instrumented and emit vector clock logs
+// The output shiviz.log can be pasted into https://bestchai.bitbucket.io/shiviz/ to visualize the messages which are sent.
 func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	const numRetrievalClients = 1
 
