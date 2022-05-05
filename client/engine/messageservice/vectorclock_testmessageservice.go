@@ -71,6 +71,12 @@ func (t VectorClockTestMessageService) dispatchMessage(message protocols.Message
 // It may be used to make logs more readable.
 func summarizeMessageSend(msg protocols.Message) string {
 	summary := ""
+	for _, entry := range msg.SignedProposals() {
+		summary += `propose `
+		summary += fmt.Sprint(entry.Payload.Proposal.ChannelID)[1:8]
+		summary += ` funds `
+		summary += fmt.Sprint(entry.Payload.Proposal.ToAdd.Target())[1:8]
+	}
 	for _, entry := range msg.SignedStates() {
 		summary += `send `
 		if len(entry.Payload.State().Participants) == 3 {
@@ -83,12 +89,6 @@ func summarizeMessageSend(msg protocols.Message) string {
 		summary += ` @turn `
 		summary += fmt.Sprint(entry.Payload.TurnNum())
 
-	}
-	for _, entry := range msg.SignedProposals() {
-		summary += `propose `
-		summary += fmt.Sprint(entry.Payload.Proposal.ChannelID)[1:8]
-		summary += ` funds `
-		summary += fmt.Sprint(entry.Payload.Proposal.ToAdd.Target())[1:8]
 	}
 	return summary
 }
