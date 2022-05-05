@@ -2,6 +2,7 @@ package client_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"math/rand"
 	"os"
@@ -25,6 +26,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	const numRetrievalClients = 1
 
 	logDir := "../artifacts/vectorclock"
+
 	os.RemoveAll(logDir)
 
 	logFile := "largescale_client_test.log"
@@ -35,15 +37,15 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	retrievalProvider, retrievalProviderStore := setupInstrumentedClient(bob.PrivateKey, chain, broker, logDestination, 0, logDir)
-	paymentHub, _ := setupInstrumentedClient(irene.PrivateKey, chain, broker, logDestination, 0, logDir)
+	retrievalProvider, retrievalProviderStore := setupInstrumentedClient(bob.PrivateKey, chain, broker, logDestination, 0, logDir, "RP")
+	paymentHub, _ := setupInstrumentedClient(irene.PrivateKey, chain, broker, logDestination, 0, logDir, "PH")
 
 	directlyFundALedgerChannel(t, retrievalProvider, paymentHub)
 
 	retrievalClients := make([]client.Client, numRetrievalClients)
-	for i, _ := range retrievalClients {
+	for i := range retrievalClients {
 		secretKey, _ := nc.GeneratePrivateKeyAndAddress()
-		retrievalClients[i], _ = setupInstrumentedClient(secretKey, chain, broker, logDestination, 0, logDir)
+		retrievalClients[i], _ = setupInstrumentedClient(secretKey, chain, broker, logDestination, 0, logDir, "RC"+fmt.Sprint(i))
 		directlyFundALedgerChannel(t, retrievalClients[i], paymentHub)
 		go createVirtualChannelWithRetrievalProvider(retrievalClients[i], retrievalProvider)
 	}
@@ -57,7 +59,6 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	logDestination.Write(finalOutcome)
 
 	combineLogs(t, logDir, "shiviz.log")
-	// replaceAddresses(logDir, "shiviz.log")
 
 }
 
