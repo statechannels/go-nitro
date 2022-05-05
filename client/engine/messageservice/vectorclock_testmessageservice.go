@@ -10,22 +10,16 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// TestMessageService is an implementaion of the MessageService interface
-// for use in multi-engine test environments.
-//
-// It allows for individual nitro-clients / engines to:
-//  1. be instantiated together via test setup data
-//  2. "connect" with one another via gochans
-//  3. run independently in information-silo goroutines, while
-//     communicating on the simulated network
+// VectorClockTestMessageService embeds a TestMessageService and extends it with instrumentation outputing vector clock logs.
+// See https://en.wikipedia.org/wiki/Vector_clock and https://github.com/DistributedClocks/GoVector
 type VectorClockTestMessageService struct {
 	TestMessageService
 	goveclogger *govec.GoLog // vector clock logger
 
 }
 
-// NewTestMessageService returns a running TestMessageService
-// It accepts an address, a broker, and a max delay for messages.
+// NewVectorClockTestMessageService returns a running VectorClockTestMessageService
+// It accepts an address, a broker, a max delay for messages and a prettyName for use in the log output.
 // Messages will be handled with a random delay between 0 and maxDelay
 func NewVectorClockTestMessageService(address types.Address, broker Broker, maxDelay time.Duration, logDir string, prettyName string) VectorClockTestMessageService {
 
@@ -49,6 +43,7 @@ func NewVectorClockTestMessageService(address types.Address, broker Broker, maxD
 
 // dispatchMessage is responsible for dispatching a message to the appropriate peer message service.
 // If there is a mean delay it will wait a random amount of time(based on meanDelay) before sending the message.
+// Messages sends are intercepted by the vector clock logger, which runs the vector clock algorithm and wraps the message accordingly.
 func (t VectorClockTestMessageService) dispatchMessage(message protocols.Message, b Broker) {
 	if t.maxDelay > 0 {
 		randomDelay := time.Duration(rand.Int63n(t.maxDelay.Nanoseconds()))
@@ -72,6 +67,8 @@ func (t VectorClockTestMessageService) dispatchMessage(message protocols.Message
 	}
 }
 
+// summarizeMessageSend returns a string which tersely summarizes the supplied message.
+// It may be used to make logs more readable.
 func summarizeMessageSend(msg protocols.Message) string {
 	summary := ""
 	for _, entry := range msg.SignedStates() {
@@ -103,7 +100,8 @@ func (vctms VectorClockTestMessageService) routeToPeers(b Broker) {
 	}
 }
 
-// routeFromPeers listens for messages from peers, deserializes them and feeds them to the engine
+// routeFromPeers listens for messages from peers, deserializes them and feeds them to the engine.
+// Inbound messages are intercepted by the vector clock logger, which unwraps the message (stripping off the vector clock header) and runs the vector clock algorithm.
 func (vctms VectorClockTestMessageService) routeFromPeers() {
 	for vectorClockMessage := range vctms.fromPeers {
 		message := []byte("")
