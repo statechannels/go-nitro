@@ -113,7 +113,7 @@ func (tms TestMessageService) routeFromPeers() {
 	for message := range tms.fromPeers {
 		msg, err := protocols.DeserializeMessage(string(message))
 		if err != nil {
-			panic(err)
+			panic(fmt.Errorf("could not deserialize message :%w", err))
 		}
 		tms.out <- msg
 	}
