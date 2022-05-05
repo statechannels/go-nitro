@@ -515,7 +515,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		toMyRightId = o.ToMyRight.Id
 	}
 
-	if sp := event.SignedProposal; sp.ChannelID() == o.OwnsChannel() {
+	if sp := event.SignedProposal; sp.Proposal.Target() == o.VId() {
 		var err error
 		switch sp.Proposal.ChannelID {
 		case types.Destination{}:
