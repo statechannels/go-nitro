@@ -20,6 +20,7 @@ jobs:
         run: go build -v ./...
 
       - name: Test
+        run: echo $(go env GOPATH) >> $GITHUB_PATH
         run: go test -v ./... -count=2 -shuffle=on
         timeout-minutes: 1
 
