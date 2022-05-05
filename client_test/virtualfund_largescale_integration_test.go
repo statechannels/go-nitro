@@ -22,8 +22,10 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// TestLargeScaleVirtualFundIntegration spins up one retrieval provider, one payment hub and several retrieval clients.
-// The clients are instrumented and emit vector clock logs
+// TestLargeScaleVirtualFundIntegration may be used to test a "large scale" payment channel newtork.
+// It uses terminology from the Filecoin retrieval market:
+// It spins up one retrieval provider, one payment hub and several (a configurable number of) retrieval clients.
+// The clients are instrumented and emit vector clock logs, which are combined into an output file ../artifacts/shiviz.log at the end of the test run.
 // The output shiviz.log can be pasted into https://bestchai.bitbucket.io/shiviz/ to visualize the messages which are sent.
 func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	const numRetrievalClients = 1
