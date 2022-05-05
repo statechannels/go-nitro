@@ -61,7 +61,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 
 	finalOutcome, _ := json.Marshal(retrievalProviderHubConnection.SupportedSignedState().State().Outcome)
 
-	logDestination.Write(finalOutcome)
+	_, _ = logDestination.Write(finalOutcome)
 
 	combineLogs(t, vectorClockLogDir, "shiviz.log")
 
