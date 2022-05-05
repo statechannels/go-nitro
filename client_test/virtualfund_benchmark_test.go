@@ -9,9 +9,9 @@ import (
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/internal/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/internal/testdata"
-	"github.com/statechannels/go-nitro/protocols/virtualfund"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 // TestBenchmark sets up three clients, then runs a virtual funding benchmark, printing the duration

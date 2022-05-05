@@ -6,7 +6,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 type AllocationType uint8

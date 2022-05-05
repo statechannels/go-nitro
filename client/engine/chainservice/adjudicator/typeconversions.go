@@ -3,9 +3,9 @@ package NitroAdjudicator
 import (
 	"math/big"
 
-	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
-	nc "github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/internal/channel/state"
+	"github.com/statechannels/go-nitro/internal/channel/state/outcome"
+	nc "github.com/statechannels/go-nitro/internal/crypto"
 )
 
 func convertVariablePart(vp state.VariablePart) IForceMoveAppVariablePart {

@@ -5,14 +5,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
-	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/internal/channel/state"
+	"github.com/statechannels/go-nitro/internal/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/protocols"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	. "github.com/statechannels/go-nitro/internal/testhelpers"
-	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 // generateLedgers generates the left and right ledger channels based on myRole

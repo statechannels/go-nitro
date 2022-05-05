@@ -1,8 +1,8 @@
 package chainservice
 
 import (
-	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/protocols"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 // SimpleChainService forwards inputted transactions to a MockChain, and passes Events straight back.

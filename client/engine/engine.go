@@ -7,15 +7,15 @@ import (
 	"io"
 	"log"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
-	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
-	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/protocols/directdefund"
-	"github.com/statechannels/go-nitro/protocols/directfund"
-	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/internal/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/internal/channel/state"
+	"github.com/statechannels/go-nitro/internal/protocols"
+	"github.com/statechannels/go-nitro/internal/protocols/directdefund"
+	"github.com/statechannels/go-nitro/internal/protocols/directfund"
+	"github.com/statechannels/go-nitro/internal/protocols/virtualfund"
 )
 
 // ErrUnhandledChainEvent is an engine error when the the engine cannot process a chain event

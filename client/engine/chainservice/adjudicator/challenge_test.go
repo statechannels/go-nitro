@@ -11,9 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/channel/state"
+	"github.com/statechannels/go-nitro/internal/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 type actor struct {

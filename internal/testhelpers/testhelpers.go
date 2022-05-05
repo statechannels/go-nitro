@@ -9,10 +9,10 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
-	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/internal/channel/state"
+	"github.com/statechannels/go-nitro/internal/protocols"
 	"github.com/statechannels/go-nitro/internal/testactors"
-	"github.com/statechannels/go-nitro/protocols"
 )
 
 // Copied from https://github.com/benbjohnson/testing

@@ -8,11 +8,11 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
-	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/protocols/directdefund"
-	"github.com/statechannels/go-nitro/protocols/directfund"
-	"github.com/statechannels/go-nitro/protocols/virtualfund"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/protocols"
+	"github.com/statechannels/go-nitro/internal/protocols/directdefund"
+	"github.com/statechannels/go-nitro/internal/protocols/directfund"
+	"github.com/statechannels/go-nitro/internal/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 // Client provides the interface for the consuming application

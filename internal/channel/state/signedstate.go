@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/statechannels/go-nitro/crypto"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/crypto"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 type SignedState struct {

@@ -4,15 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine/store/safesync"
-	"github.com/statechannels/go-nitro/crypto"
-	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/protocols/directdefund"
-	"github.com/statechannels/go-nitro/protocols/directfund"
-	"github.com/statechannels/go-nitro/protocols/virtualfund"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/channel"
+	"github.com/statechannels/go-nitro/internal/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/internal/crypto"
+	"github.com/statechannels/go-nitro/internal/protocols"
+	"github.com/statechannels/go-nitro/internal/protocols/directdefund"
+	"github.com/statechannels/go-nitro/internal/protocols/directfund"
+	"github.com/statechannels/go-nitro/internal/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 type MemStore struct {

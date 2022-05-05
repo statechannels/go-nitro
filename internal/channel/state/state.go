@@ -8,10 +8,10 @@ import (
 
 	ethAbi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/statechannels/go-nitro/abi"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
-	nc "github.com/statechannels/go-nitro/crypto"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/abi"
+	"github.com/statechannels/go-nitro/internal/channel/state/outcome"
+	nc "github.com/statechannels/go-nitro/internal/crypto"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 type Signature = nc.Signature

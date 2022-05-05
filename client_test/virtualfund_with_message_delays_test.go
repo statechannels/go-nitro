@@ -9,10 +9,10 @@ import (
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/internal/protocols"
+	"github.com/statechannels/go-nitro/internal/protocols/virtualfund"
 	td "github.com/statechannels/go-nitro/internal/testdata"
-	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/protocols/virtualfund"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 func TestVirtualFundWithMessageDelays(t *testing.T) {

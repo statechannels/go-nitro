@@ -5,11 +5,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/channel/state"
+	"github.com/statechannels/go-nitro/internal/protocols"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
 	. "github.com/statechannels/go-nitro/internal/testhelpers"
-	"github.com/statechannels/go-nitro/protocols"
 )
 
 var alice = ta.Alice

@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 // GeneratePrivateKeyAndAddress generates a pseudo-random ECDSA secret key and its corresponding Ethereum address.

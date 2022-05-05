@@ -1,8 +1,8 @@
 package chainservice
 
 import (
-	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/protocols"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 // MockChain provides an interface which simulates a blockchain network. It is designed for use as a central service which multiple

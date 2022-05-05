@@ -3,7 +3,7 @@ package consensus_channel
 import (
 	"fmt"
 
-	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/channel/state"
 )
 
 var (

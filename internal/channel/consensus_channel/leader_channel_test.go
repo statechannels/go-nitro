@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 func TestNewLeaderChannel(t *testing.T) {

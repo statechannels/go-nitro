@@ -1,7 +1,7 @@
 // Package messageservice is a messaging service responsible for routing messages to peers and relaying messages received from peers.
 package messageservice // import "github.com/statechannels/go-nitro/client/messageservice"
 
-import "github.com/statechannels/go-nitro/protocols"
+import "github.com/statechannels/go-nitro/internal/protocols"
 
 type MessageService interface {
 	// Out returns a chan for recieving messages from the message service

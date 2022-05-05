@@ -3,7 +3,7 @@ package channel
 import (
 	"errors"
 
-	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/channel/state"
 )
 
 type SingleHopVirtualChannel struct {

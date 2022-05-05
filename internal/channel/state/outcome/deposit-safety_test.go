@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 func TestDepositSafetyThreshold(t *testing.T) {

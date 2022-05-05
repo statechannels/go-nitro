@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
-	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/internal/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/internal/channel/state"
+	"github.com/statechannels/go-nitro/internal/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/protocols"
 )
 
 // jsonObjective replaces the virtualfund Objective's channel pointers

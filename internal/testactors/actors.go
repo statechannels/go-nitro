@@ -3,8 +3,8 @@ package testactors
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/statechannels/go-nitro/crypto"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/crypto"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 type Actor struct {

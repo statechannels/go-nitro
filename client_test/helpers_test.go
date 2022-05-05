@@ -12,8 +12,8 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
-	"github.com/statechannels/go-nitro/crypto"
-	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/internal/crypto"
+	"github.com/statechannels/go-nitro/internal/protocols"
 )
 
 const defaultTimeout = time.Second

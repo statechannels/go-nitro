@@ -32,7 +32,7 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 // A linear state machine with enumerated states.
@@ -150,7 +150,7 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/channel/state"
 )
 
 type DirectFundingExtendedState = DirectFundingObjectiveState // DirectFundingExtendedState contains the (potentially infinite) extended state of the Direct Funding machine.

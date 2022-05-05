@@ -4,10 +4,10 @@ package store // import "github.com/statechannels/go-nitro/client/engine/store"
 import (
 	"errors"
 
-	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
-	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/channel"
+	"github.com/statechannels/go-nitro/internal/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/internal/protocols"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 var (

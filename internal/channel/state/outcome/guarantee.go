@@ -2,7 +2,7 @@ package outcome
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 // A Guarantee is an Allocation with AllocationType == GuaranteeAllocationType and Metadata = encode(GuaranteeMetaData)

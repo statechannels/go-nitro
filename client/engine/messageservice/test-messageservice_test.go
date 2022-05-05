@@ -3,8 +3,8 @@ package messageservice
 import (
 	"testing"
 
-	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/protocols"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 var broker = NewBroker()

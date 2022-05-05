@@ -7,11 +7,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/channel"
+	"github.com/statechannels/go-nitro/internal/channel/state"
+	"github.com/statechannels/go-nitro/internal/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testactors"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 func TestMarshalJSON(t *testing.T) {

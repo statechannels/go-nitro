@@ -5,8 +5,8 @@ import (
 
 	ethAbi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/statechannels/go-nitro/abi"
-	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/abi"
+	"github.com/statechannels/go-nitro/internal/channel/state"
 )
 
 func generateStatus(state state.State, finalizesAt *big.Int) ([]byte, error) {

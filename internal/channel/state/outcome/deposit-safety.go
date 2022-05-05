@@ -3,7 +3,7 @@ package outcome
 import (
 	"math/big"
 
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 // DepositSafetyThreshold returns the amount of this asset that a user with

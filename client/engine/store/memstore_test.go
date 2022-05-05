@@ -6,18 +6,18 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
-	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
-	cc "github.com/statechannels/go-nitro/channel/consensus_channel"
-	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/store"
-	nc "github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/internal/channel"
+	"github.com/statechannels/go-nitro/internal/channel/consensus_channel"
+	cc "github.com/statechannels/go-nitro/internal/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/internal/channel/state"
+	nc "github.com/statechannels/go-nitro/internal/crypto"
+	"github.com/statechannels/go-nitro/internal/protocols"
+	"github.com/statechannels/go-nitro/internal/protocols/directfund"
+	"github.com/statechannels/go-nitro/internal/protocols/virtualfund"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
-	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/protocols/directfund"
-	"github.com/statechannels/go-nitro/protocols/virtualfund"
-	"github.com/statechannels/go-nitro/types"
+	"github.com/statechannels/go-nitro/internal/types"
 )
 
 func compareObjectives(a, b protocols.Objective) string {

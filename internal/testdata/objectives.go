@@ -3,9 +3,9 @@ package testdata
 import (
 	"fmt"
 
+	"github.com/statechannels/go-nitro/internal/protocols/directfund"
+	"github.com/statechannels/go-nitro/internal/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/internal/testactors"
-	"github.com/statechannels/go-nitro/protocols/directfund"
-	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
 
 // objectiveCollection namespaces literal objectives, precomputed objectives, and
