@@ -30,16 +30,16 @@ type VectorClockTestMessageService struct {
 func NewVectorClockTestMessageService(address types.Address, broker Broker, maxDelay time.Duration) VectorClockTestMessageService {
 
 	vctms := VectorClockTestMessageService{
-		TestMessageService:{
-		address:   address,
-		in:        make(chan protocols.Message, 5),
-		out:       make(chan protocols.Message, 5),
-		maxDelay:  maxDelay,
-		fromPeers: make(chan []byte, 5),
+		TestMessageService: TestMessageService{
+			address:   address,
+			in:        make(chan protocols.Message, 5),
+			out:       make(chan protocols.Message, 5),
+			maxDelay:  maxDelay,
+			fromPeers: make(chan []byte, 5),
 		},
-		goveclogger: govec.InitGoVector(address.String(), "../artifacts/vectorclock/"+address.String(), govec.GetDefaultConfig())
+		goveclogger: govec.InitGoVector(address.String(), "../artifacts/vectorclock/"+address.String(), govec.GetDefaultConfig()),
 	}
-	
+
 	vctms.connect(broker)
 	go vctms.routeFromPeers()
 	go vctms.routeToPeers(broker)
