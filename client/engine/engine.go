@@ -217,7 +217,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 }
 
-// attemptProgressForRelatedObjectives attempts to progress any objectives that may be related to the objective that was just updated
+// attemptProgressForRelatedObjectives attempts to progress any objectives that may be related to the objective that was just cranked
 // An objective is related when it shares a ledger channel with the provided objective.
 // This allows progress to made on other objectives that may be unblocked after processing the updatedObjective.
 func (e *Engine) attemptProgressForRelatedObjectives(updatedObjective *protocols.Objective) (ObjectiveChangeEvent, error) {

@@ -74,7 +74,7 @@ func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequ
 	return objectiveRequest.Response()
 }
 
-// CloseDirectChannel attempts to close and defund the given directly funded channel.
+// CloseVirtualChannel attempts to close and defund the given virtually funded channel.
 func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big.Int) protocols.ObjectiveId {
 
 	objectiveRequest := virtualdefund.ObjectiveRequest{
