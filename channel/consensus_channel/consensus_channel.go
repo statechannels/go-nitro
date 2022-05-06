@@ -262,8 +262,10 @@ type Balance struct {
 	amount      *big.Int
 }
 
+// Equal returns true if the balances are deeply equal, false otherwise.
 func (b Balance) Equal(b2 Balance) bool {
-	return bytes.Equal(b.destination.Bytes(), b2.destination.Bytes()) && b.amount.Cmp(b2.amount) == 0
+	return bytes.Equal(b.destination.Bytes(), b2.destination.Bytes()) &&
+		types.Equal(b.amount, b2.amount)
 }
 
 // Clone returns a deep copy of the receiver.
