@@ -51,10 +51,9 @@ func (c *ConsensusChannel) IsProposedNext(g Guarantee) (bool, error) {
 	return vars.Outcome.includes(g) && !c.Includes(g), nil
 }
 
-// Propose is called by the Leader and receives a proposal to add a guarantee,
+// Propose is called by the Leader and receives a proposal to add or remove a guarantee,
 // and generates and stores a SignedProposal in the queue, returning the
 // resulting SignedProposal
-//
 func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal, error) {
 	if c.MyIndex != Leader {
 		return SignedProposal{}, ErrNotLeader
