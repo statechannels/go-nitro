@@ -15,11 +15,11 @@ type SimpleChainService struct {
 }
 
 // NewSimpleChainService returns a SimpleChainService which is listening for transactions and events.
-func NewSimpleChainService(mc MockChain, address types.Address) ChainService {
+func NewSimpleChainService(mc *MockChain, address types.Address) ChainService {
 	mcs := SimpleChainService{}
 	mcs.out = make(chan Event)
 	mcs.in = make(chan protocols.ChainTransaction)
-	mcs.chain = &mc
+	mcs.chain = mc
 	mcs.address = address
 
 	go mcs.forwardEvents()
