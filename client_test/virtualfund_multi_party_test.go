@@ -60,8 +60,8 @@ func TestVirtualFundMultiParty(t *testing.T) {
 		ChallengeDuration: big.NewInt(0),
 		Nonce:             rand.Int63(),
 	}
-	id := clientAlice.CreateVirtualChannel(withBobRequest)
-	id2 := clientAlice.CreateVirtualChannel(withBrianRequest)
+	id := clientAlice.CreateVirtualChannel(withBobRequest).Id
+	id2 := clientAlice.CreateVirtualChannel(withBrianRequest).Id
 
 	waitTimeForCompletedObjectiveIds(t, &clientBob, defaultTimeout, id)
 	waitTimeForCompletedObjectiveIds(t, &clientBrian, defaultTimeout, id2)

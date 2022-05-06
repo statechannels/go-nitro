@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -290,6 +291,29 @@ func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 		}
 
 		return nil
+	case *virtualdefund.Objective:
+
+		zeroAddress := types.Destination{}
+
+		if o.ToMyLeft != nil &&
+			o.ToMyLeft.Id != zeroAddress {
+
+			left, err := ms.GetConsensusChannelById(o.ToMyLeft.Id)
+			if err != nil {
+				return fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
+			}
+			o.ToMyLeft = left
+		}
+
+		if o.ToMyRight != nil &&
+			o.ToMyRight.Id != zeroAddress {
+			right, err := ms.GetConsensusChannelById(o.ToMyRight.Id)
+			if err != nil {
+				return fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
+			}
+			o.ToMyRight = right
+		}
+		return nil
 	default:
 		return fmt.Errorf("objective %s did not correctly represent a known Objective type", id)
 	}
@@ -314,6 +338,10 @@ func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective
 		vfo := virtualfund.Objective{}
 		err := vfo.UnmarshalJSON(data)
 		return &vfo, err
+	case virtualdefund.IsVirtualDefundObjective(id):
+		dvfo := virtualdefund.Objective{}
+		err := dvfo.UnmarshalJSON(data)
+		return &dvfo, err
 	default:
 		return nil, fmt.Errorf("objective id %s does not correspond to a known Objective type", id)
 

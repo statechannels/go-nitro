@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -39,6 +40,28 @@ func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus
 	default:
 		panic("invalid myRole")
 	}
+}
+
+// generateStoreGetters generates mocks for some store methods
+func generateStoreGetters(myRole uint, vId types.Destination, vFinal state.State) (GetChannelByIdFunction, GetTwoPartyConsensusLedgerFunction) {
+	left, right := generateLedgers(myRole, vId)
+	fun1 := func(id types.Destination) (*channel.Channel, bool) {
+		c, err := channel.New(vFinal, myRole)
+		if err != nil {
+			return &channel.Channel{}, false
+		}
+		return c, true
+	}
+	fun2 := func(address types.Address) (*consensus_channel.ConsensusChannel, bool) {
+		if left != nil && (left.Participants()[0] == address || left.Participants()[1] == address) {
+			return left, true
+		}
+		if right != nil && (right.Participants()[0] == address || right.Participants()[1] == address) {
+			return right, true
+		}
+		return &consensus_channel.ConsensusChannel{}, false
+	}
+	return fun1, fun2
 }
 
 // generateGuarantee generates a guarantee for the given participants and vId
@@ -225,8 +248,8 @@ func makeOutcome(aliceAmount uint, bobAmount uint) outcome.SingleAssetExit {
 }
 
 type testdata struct {
-	vFinal         state.State
-	initialOutcome outcome.SingleAssetExit
+	vInitial state.State
+	vFinal   state.State
 
 	paid uint
 	// finalAliceAmount is the amount we expect to be allocated in the ledger to Alice after defunding is complete
@@ -258,9 +281,11 @@ func generateTestData() testdata {
 	paid := uint(1)
 	initialOutcome := makeOutcome(finalAliceAmount+paid, finalBobAmount-paid)
 	finalOutcome := makeOutcome(finalAliceAmount, finalBobAmount)
+
+	vInitial := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{initialOutcome}, TurnNum: 1})
 	vFinal := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{finalOutcome}, TurnNum: FinalTurnNum})
 
-	return testdata{vFinal, initialOutcome, paid, finalAliceAmount, finalBobAmount}
+	return testdata{vInitial, vFinal, paid, finalAliceAmount, finalBobAmount}
 }
 
 // signStateByOthers signs the state by every participant except me

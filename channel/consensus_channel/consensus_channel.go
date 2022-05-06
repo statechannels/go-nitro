@@ -164,7 +164,7 @@ func (c *ConsensusChannel) Includes(g Guarantee) bool {
 // IncludesTarget returns whether or not the consensus state includes a guarantee
 // addressed to the given target.
 func (c *ConsensusChannel) IncludesTarget(target types.Destination) bool {
-	return c.current.Outcome.includesTarget(target)
+	return c.current.Outcome.IncludesTarget(target)
 }
 
 // HasRemovalBeenProposed returns whether or not a proposal exists to remove the guaranatee for the target.
@@ -296,6 +296,12 @@ type Balance struct {
 	amount      *big.Int
 }
 
+// Equal returns true if the balances are deeply equal, false otherwise.
+func (b Balance) Equal(b2 Balance) bool {
+	return bytes.Equal(b.destination.Bytes(), b2.destination.Bytes()) &&
+		types.Equal(b.amount, b2.amount)
+}
+
 // Clone returns a deep copy of the receiver.
 func (b *Balance) Clone() Balance {
 	return Balance{
@@ -383,6 +389,16 @@ func (lo *LedgerOutcome) Clone() LedgerOutcome {
 	}
 }
 
+// Leader returns the leader's balance.
+func (lo *LedgerOutcome) Leader() Balance {
+	return lo.leader
+}
+
+// Follower returns teh follower's balance.
+func (lo *LedgerOutcome) Follower() Balance {
+	return lo.follower
+}
+
 // NewLedgerOutcome creates a new ledger outcome with the given asset address, balances, and guarantees.
 func NewLedgerOutcome(assetAddress types.Address, leader, follower Balance, guarantees []Guarantee) *LedgerOutcome {
 	guaranteeMap := make(map[types.Destination]Guarantee, len(guarantees))
@@ -397,8 +413,8 @@ func NewLedgerOutcome(assetAddress types.Address, leader, follower Balance, guar
 	}
 }
 
-// includesTarget returns true when the receiver includes a guarantee that targets the given destination.
-func (o *LedgerOutcome) includesTarget(target types.Destination) bool {
+// IncludesTarget returns true when the receiver includes a guarantee that targets the given destination.
+func (o *LedgerOutcome) IncludesTarget(target types.Destination) bool {
 	_, found := o.guarantees[target]
 	return found
 }
