@@ -649,24 +649,13 @@ func (a Add) RightDeposit() *big.Int {
 }
 
 func (a Add) equal(a2 Add) bool {
-	if !a.Guarantee.equal(a2.Guarantee) {
-		return false
-	}
-	return types.Equal(a.LeftDeposit, a2.LeftDeposit)
+	return a.Guarantee.equal(a2.Guarantee) && types.Equal(a.LeftDeposit, a2.LeftDeposit)
 }
 
 func (r Remove) equal(r2 Remove) bool {
-	if !bytes.Equal(r.Target.Bytes(), r2.Target.Bytes()) {
-
-		return false
-	}
-	if !types.Equal(r.LeftAmount, r2.LeftAmount) {
-		return false
-	}
-	if !types.Equal(r.RightAmount, r2.RightAmount) {
-		return false
-	}
-	return true
+	return bytes.Equal(r.Target.Bytes(), r2.Target.Bytes()) &&
+		types.Equal(r.LeftAmount, r2.LeftAmount) &&
+		types.Equal(r.RightAmount, r2.RightAmount)
 }
 
 // HandleProposal handles a proposal to add or remove a guarantee.
