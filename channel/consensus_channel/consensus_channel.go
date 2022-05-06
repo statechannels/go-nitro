@@ -117,6 +117,40 @@ func (c *ConsensusChannel) Receive(sp SignedProposal) error {
 	return fmt.Errorf("ConsensusChannel is malformed")
 }
 
+// IsProposed returns true if a proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
+//
+// Specific clarification: If the current outcome already includes g, IsProposed returns false.
+func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
+	latest, err := c.latestProposedVars()
+	if err != nil {
+		return false, err
+	}
+
+	return latest.Outcome.includes(g) && !c.Includes(g), nil
+
+}
+
+// IsProposedNext returns if the next proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
+func (c *ConsensusChannel) IsProposedNext(g Guarantee) (bool, error) {
+	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
+
+	if len(c.proposalQueue) == 0 {
+		return false, nil
+	}
+
+	p := c.proposalQueue[0]
+	err := vars.HandleProposal(p.Proposal)
+	if vars.TurnNum != p.TurnNum {
+		return false, fmt.Errorf("proposal turn number %d does not match vars %d", p.TurnNum, vars.TurnNum)
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	return vars.Outcome.includes(g) && !c.Includes(g), nil
+}
+
 // ConsensusTurnNum returns the turn number of the current consensus state.
 func (c *ConsensusChannel) ConsensusTurnNum() uint64 {
 	return c.current.TurnNum
@@ -649,24 +683,13 @@ func (a Add) RightDeposit() *big.Int {
 }
 
 func (a Add) equal(a2 Add) bool {
-	if !a.Guarantee.equal(a2.Guarantee) {
-		return false
-	}
-	return types.Equal(a.LeftDeposit, a2.LeftDeposit)
+	return a.Guarantee.equal(a2.Guarantee) && types.Equal(a.LeftDeposit, a2.LeftDeposit)
 }
 
 func (r Remove) equal(r2 Remove) bool {
-	if !bytes.Equal(r.Target.Bytes(), r2.Target.Bytes()) {
-
-		return false
-	}
-	if !types.Equal(r.LeftAmount, r2.LeftAmount) {
-		return false
-	}
-	if !types.Equal(r.RightAmount, r2.RightAmount) {
-		return false
-	}
-	return true
+	return bytes.Equal(r.Target.Bytes(), r2.Target.Bytes()) &&
+		types.Equal(r.LeftAmount, r2.LeftAmount) &&
+		types.Equal(r.RightAmount, r2.RightAmount)
 }
 
 // HandleProposal handles a proposal to add or remove a guarantee.

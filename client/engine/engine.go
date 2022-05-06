@@ -343,7 +343,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	return
 }
 
-// SpawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective iff it is a directfund.Objective.
+// SpawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective if it is a directfund.Objective.
 //
 // The associated Channel will remain in the store.
 func (e Engine) SpawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
