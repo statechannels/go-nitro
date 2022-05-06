@@ -1,6 +1,9 @@
 package chainservice
 
 import (
+	"math/rand"
+	"time"
+
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -58,6 +61,10 @@ func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 	if tx.Deposit.IsNonZero() {
 		mc.holdings[tx.ChannelId] = mc.holdings[tx.ChannelId].Add(tx.Deposit)
 	}
+	maxDelay := time.Millisecond * 100
+	randomDelay := time.Duration(rand.Int63n(maxDelay.Nanoseconds()))
+	time.Sleep(randomDelay)
+
 	var event Event
 	switch tx.Type {
 	case protocols.DepositTransactionType:
@@ -91,6 +98,10 @@ func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 
 // attemptSend sends event to the supplied chan, and drops it if the chan is full
 func attemptSend(out chan Event, event Event) {
+	maxDelay := time.Millisecond * 100
+	randomDelay := time.Duration(rand.Int63n(maxDelay.Nanoseconds()))
+	time.Sleep(randomDelay)
+
 	select {
 	case out <- event:
 	default:
