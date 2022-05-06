@@ -139,6 +139,10 @@ func ConstructObjectiveFromState(
 		return Objective{}, err
 	}
 
+	// TODO: Because there is no payment system we are not able to query or verify how much was paid.
+	// So the current behaviour is as follows:
+	// - whomever calls CloseVirtualChannel gets to set paidToBob however they like
+	// - the responder will go along with it
 	paidToBob, err := calculatePaidToBob(initialState, getChannel)
 	if err != nil {
 		return Objective{}, err
