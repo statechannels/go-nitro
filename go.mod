@@ -3,12 +3,12 @@ module github.com/statechannels/go-nitro
 go 1.18
 
 require (
+	github.com/DistributedClocks/GoVector v0.0.0-20210402100930-db949c81a0af
 	github.com/ethereum/go-ethereum v1.10.8
 	github.com/google/go-cmp v0.5.6
 )
 
 require (
-	github.com/DistributedClocks/GoVector v0.0.0-20210402100930-db949c81a0af // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/VictoriaMetrics/fastcache v1.6.0 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta // indirect
