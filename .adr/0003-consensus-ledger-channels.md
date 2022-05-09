@@ -88,7 +88,7 @@ FollowerChannel:
   SignNextProposal(expectedProposal) -> inspect the proposalQueue, and if item[0] matches the supplied expectation, sign, dequeue, and prepare for sending to the counterparty
 ```
 
-**Note**: state channel security guarnatees depend on signed channel states. To that end, proposals sent over the wire are labelled with their turn number, and the signature sent with a proposal is a signature on the **resultant channel state** after the proposed `Add` or `Remove` is applied - not on the proposal data itself.
+**Note**: state channel security guarantees depend on signed channel states. To that end, proposals sent over the wire are labelled with their turn number, and the signature sent with a proposal is a signature on the **resultant channel state** after the proposed `Add` or `Remove` is applied - not on the proposal data itself.
 
 
 ### Integration with virtualfunding protocols
@@ -108,4 +108,4 @@ For `virtualdefund`, the above applies with a `Remove` proposal in place of the 
 
 To guard against proposals being dropped or reordered, clients include all unacknowledged proposals with each message. In the context of a healthy network, this might be expected to result in occasional double transmmissions and rare triple transmissions. This expectation is subject to future benchmarking / simulation (TODO).
 
-In an unhealthy netowrk, or in the case of an offline counterparty, clients will require a mechanism to "give up" on sending messages to the unavailable counterparty for some cooldown period (TODO).
+In an unhealthy network, or in the case of an offline counterparty, clients will require a mechanism to "give up" on sending messages to the unavailable counterparty for some cooldown period (TODO).
