@@ -99,12 +99,12 @@ func checkAliceIreneLedgerOutcome(t *testing.T, vId types.Destination, outcome c
 	if outcome.IncludesTarget(vId) {
 		t.Errorf("The outcome %+v should not contain a guarantee for the virtual channel %s", outcome, vId)
 	}
-	expectedLeaderBalance := consensus_channel.NewBalance(alice.Destination(), big.NewInt(int64(5-totalPaidToBob)))
+	expectedLeaderBalance := consensus_channel.NewBalance(alice.Destination(), big.NewInt(int64(ledgerChannelDeposit-totalPaidToBob)))
 	if diff := cmp.Diff(expectedLeaderBalance, outcome.Leader()); diff != "" {
 		t.Errorf("Unexpected leader balance: %s", diff)
 	}
 
-	expectedFollowerBalance := consensus_channel.NewBalance(irene.Destination(), big.NewInt(int64(5+totalPaidToBob)))
+	expectedFollowerBalance := consensus_channel.NewBalance(irene.Destination(), big.NewInt(int64(ledgerChannelDeposit+totalPaidToBob)))
 	if diff := cmp.Diff(expectedFollowerBalance, outcome.Follower()); diff != "" {
 		t.Errorf("Unexpected follower balance: %s", diff)
 	}
@@ -115,12 +115,12 @@ func checkIreneBobLedgerOutcome(t *testing.T, vId types.Destination, outcome con
 	if outcome.IncludesTarget(vId) {
 		t.Errorf("The outcome %+v should not contain a guarantee for the virtual channel %s", outcome, vId)
 	}
-	expectedLeaderBalance := consensus_channel.NewBalance(irene.Destination(), big.NewInt(int64(5-totalPaidToBob)))
+	expectedLeaderBalance := consensus_channel.NewBalance(irene.Destination(), big.NewInt(int64(ledgerChannelDeposit-totalPaidToBob)))
 	if diff := cmp.Diff(expectedLeaderBalance, outcome.Leader()); diff != "" {
 		t.Errorf("Unexpected leader balance: %s", diff)
 	}
 
-	expectedFollowerBalance := consensus_channel.NewBalance(bob.Destination(), big.NewInt(int64(5+totalPaidToBob)))
+	expectedFollowerBalance := consensus_channel.NewBalance(bob.Destination(), big.NewInt(int64(ledgerChannelDeposit+totalPaidToBob)))
 	if diff := cmp.Diff(expectedFollowerBalance, outcome.Follower()); diff != "" {
 		t.Errorf("Unexpected follower balance: %s", diff)
 	}

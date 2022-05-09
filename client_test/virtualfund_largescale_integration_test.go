@@ -103,5 +103,5 @@ func createVirtualChannelWithRetrievalProvider(c client.Client, retrievalProvide
 		ChallengeDuration: big.NewInt(0),
 		Nonce:             rand.Int63(),
 	}
-	return c.CreateVirtualChannel(withRetrievalProvider)
+	return c.CreateVirtualChannel(withRetrievalProvider).Id
 }
