@@ -52,7 +52,7 @@ Above document outlines a protocol for ledger channel in which the channel appli
 - contains update rules which allow participants to unilaterally include items from their counterparty's queue into the current outcome
 
 pros:
-- potential for a reduction in total network round-trips on virtuafund / defund operations
+- potential for a reduction in total network round-trips on virtualfund / defund operations
 - potential for reduced "blocking" time while waiting on network round-trips
 
 cons:
