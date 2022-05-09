@@ -12,16 +12,12 @@ interface IForceMove is INitroTypes {
      * @notice Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @dev Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param variableParts An ordered array of structs, each decribing the properties of the state channel that may change with each state update. Length is from 1 to the number of participants (inclusive).
-     * @param sigs An array of signatures that support the state with the `largestTurnNum`. There must be one for each participant, e.g.: [sig-from-p0, sig-from-p1, ...]
-     * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
+     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct decribing the properties of the state channel that may change with each state update. Length is from 1 to the number of participants (inclusive).
      * @param challengerSig The signature of a participant on the keccak256 of the abi.encode of (supportedStateHash, 'forceMove').
      */
     function challenge(
         FixedPart memory fixedPart,
-        VariablePart[] memory variableParts,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat,
+        SignedVariablePart[] memory signedVariableParts,
         Signature memory challengerSig
     ) external;
 
@@ -44,15 +40,11 @@ interface IForceMove is INitroTypes {
      * @notice Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
      * @dev Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param variableParts An ordered array of structs, each decribing the properties of the state channel that may change with each state update.
-     * @param sigs An array of signatures that support the state with the `largestTurnNum`: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
-     * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
+     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct decribing the properties of the state channel that may change with each state update. Length is from 1 to the number of participants (inclusive).
      */
     function checkpoint(
         FixedPart memory fixedPart,
-        VariablePart[] memory variableParts,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat
+        SignedVariablePart[] memory signedVariableParts
     ) external;
 
     /**
@@ -81,9 +73,7 @@ interface IForceMove is INitroTypes {
      * @param finalizesAt The unix timestamp when `channelId` will finalize.
      * @param isFinal Boolean denoting whether the challenge state is final.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param variableParts An ordered array of structs, each decribing the properties of the state channel that may change with each state update.
-     * @param sigs A list of Signatures that supported the challenge: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
-     * @param whoSignedWhat Indexing information to identify which signature was by which participant
+     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct decribing the properties of the state channel that may change with each state update. Length is from 1 to the number of participants (inclusive).
      */
     event ChallengeRegistered(
         bytes32 indexed channelId,
@@ -91,9 +81,7 @@ interface IForceMove is INitroTypes {
         uint48 finalizesAt,
         bool isFinal,
         FixedPart fixedPart,
-        VariablePart[] variableParts,
-        Signature[] sigs,
-        uint8[] whoSignedWhat
+        SignedVariablePart[] signedVariableParts
     );
 
     /**
