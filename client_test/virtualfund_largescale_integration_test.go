@@ -58,7 +58,9 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 		secretKey, _ := nc.GeneratePrivateKeyAndAddress()
 		retrievalClients[i], _ = setupInstrumentedClient(secretKey, chain, broker, logDestination, 0, vectorClockLogDir, "RC"+fmt.Sprint(i))
 		directlyFundALedgerChannel(t, retrievalClients[i], paymentHub)
-		go createVirtualChannelWithRetrievalProvider(retrievalClients[i], retrievalProvider)
+	}
+	for _, client := range retrievalClients {
+		go createVirtualChannelWithRetrievalProvider(client, retrievalProvider)
 	}
 
 	// HACK: wait a second for stuff to happen (be better to wait for objectives to finish)

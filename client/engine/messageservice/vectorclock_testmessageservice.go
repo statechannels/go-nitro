@@ -21,7 +21,13 @@ type VectorClockTestMessageService struct {
 // NewVectorClockTestMessageService returns a running VectorClockTestMessageService
 // It accepts an address, a broker, a max delay for messages and a prettyName for use in the log output.
 // Messages will be handled with a random delay between 0 and maxDelay
-func NewVectorClockTestMessageService(address types.Address, broker Broker, maxDelay time.Duration, logDir string, prettyName string) VectorClockTestMessageService {
+func NewVectorClockTestMessageService(
+	address types.Address,
+	broker Broker,
+	maxDelay time.Duration,
+	logDir string,
+	prettyName string,
+) VectorClockTestMessageService {
 
 	vctms := VectorClockTestMessageService{
 		TestMessageService: TestMessageService{
