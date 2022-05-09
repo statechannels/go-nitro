@@ -70,7 +70,7 @@ Update **ordering** is managed by a designated ledger channel leader (`participa
 
 ### Introduced Data Structures
 
-The consensus update ledger channel implementation exisits as the `struct ConsensusChannel` export from `package consensus_channel`.
+The consensus update ledger channel implementation exists as the `struct ConsensusChannel` export from `package consensus_channel`.
 
 `ConsensusChannel` represents an API into a running channel that is specific to ledger channels. In addition to default channel data like `state.FixedPart` (package state), it:
 - defines the data structure `LedgerOutcome`, tailored to represent the variablepart of a ledger channel (each party's balance + a map of guarantees for virtualchannels)
