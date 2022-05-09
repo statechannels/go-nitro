@@ -218,11 +218,10 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
-// It
-// reads an objective from the store,
-// gets a pointer to a channel secret key from the store,
-// generates an updated objective and
-// attempts progress.
+// It:
+//  - reads an objective from the store,
+//  - generates an updated objective, and
+//  - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChangeEvent, error) {
 	e.logger.Printf("handling chain event %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
