@@ -12,11 +12,13 @@ Accepted
 
 A running ledger channel must serve concurrent funding requests originating from many different particpants. In the below channel network:
 
+```
 Alice ----.              .-- Doris
            \            /
 Bob   ---- Irene --- Ivy --- Eric
            /           \
 Charlie --/             \--- Frannie
+```
 
 Any client participant (A-F) can initate a virtualfund protocol with any other participant at any time, which will require updates to each ledger channel on the path between them. Updates to ledger channels must be ordered in some capacity so that (for example) the channel is not "overdrawn".
 
