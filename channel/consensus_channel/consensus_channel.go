@@ -60,10 +60,12 @@ func newConsensusChannel(
 	signatures [2]state.Signature,
 ) (ConsensusChannel, error) {
 
-	cId, err := fp.ChannelId()
+	err := fp.Validate()
 	if err != nil {
 		return ConsensusChannel{}, err
 	}
+
+	cId := fp.ChannelId()
 
 	vars := Vars{TurnNum: initialTurnNum, Outcome: outcome.clone()}
 

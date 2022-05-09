@@ -78,19 +78,11 @@ func (s State) VariablePart() VariablePart {
 //
 // Up to hash collisions, ChannelId distinguishes channels that have different FixedPart
 // values
-func (s State) ChannelId() (types.Destination, error) {
+func (s State) ChannelId() types.Destination {
 	return s.FixedPart().ChannelId()
 }
 
-func (fp FixedPart) ChannelId() (types.Destination, error) {
-
-	if fp.ChainId == nil {
-		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChainId`)
-	}
-
-	if fp.ChannelNonce == nil {
-		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChannelNonce`)
-	}
+func (fp FixedPart) ChannelId() types.Destination {
 
 	encodedChannelPart, error := ethAbi.Arguments{
 		{Type: abi.Uint256},
@@ -102,9 +94,6 @@ func (fp FixedPart) ChannelId() (types.Destination, error) {
 
 	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
 
-	if error == nil && channelId.IsExternal() {
-		error = errors.New("channelId is an external destination") // This is extremely unlikely
-	}
 	return channelId, error
 
 }
@@ -200,6 +189,28 @@ func (f FixedPart) Clone() FixedPart {
 	clone.AppDefinition = f.AppDefinition
 	clone.ChallengeDuration = new(big.Int).Set(f.ChallengeDuration)
 	return clone
+}
+
+// Validate checks whether the receiver is malformed and returns an error if it is.
+func (fp FixedPart) Validate() error {
+	if fp.ChainId == nil {
+		return errors.New(`cannot compute ChannelId with nil ChainId`)
+	}
+
+	if fp.ChannelNonce == nil {
+		return errors.New(`cannot compute ChannelId with nil ChannelNonce`)
+	}
+
+	if fp.ChannelId().IsExternal() {
+		return errors.New("channelId is an external destination") // This is extremely unlikely
+	}
+
+	return nil
+}
+
+// Validate checks whether the state is malformed and returns an error if it is.
+func (s State) Validate() error {
+	return s.FixedPart().Validate()
 }
 
 // Clone returns a deep copy of the receiver.
