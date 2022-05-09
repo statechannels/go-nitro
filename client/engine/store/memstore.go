@@ -98,10 +98,10 @@ func (ms *MemStore) SetObjective(obj protocols.Objective) error {
 	}
 
 	// Objective ownership can only be transferred if the channel is not owned by another objective
-	prevOwner, isOwned := ms.channelToObjective.Load(obj.OwnsChannel().String())
+	prevOwner, isOwned := ms.channelToObjective.Load(obj.PrincipalChannel().String())
 	if status := obj.GetStatus(); status == protocols.Approved {
 		if !isOwned {
-			ms.channelToObjective.Store(obj.OwnsChannel().String(), obj.Id())
+			ms.channelToObjective.Store(obj.PrincipalChannel().String(), obj.Id())
 		}
 		if isOwned && prevOwner != obj.Id() {
 			return fmt.Errorf("cannot transfer ownership of channel to from objective %s to %s", prevOwner, obj.Id())

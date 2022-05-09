@@ -78,8 +78,8 @@ type Objective interface {
 	Related() []Storable
 	Storable
 
-	// OwnsChannel returns the channel the objective exclusively owns.
-	OwnsChannel() types.Destination
+	// PrincipalChannel returns the channel the objective exclusively owns.
+	PrincipalChannel() types.Destination
 	// GetStatus returns the status of the objective.
 	GetStatus() ObjectiveStatus
 }

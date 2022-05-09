@@ -285,8 +285,8 @@ func (o Objective) Reject() protocols.Objective {
 	return &updated
 }
 
-// OwnsChannel returns the channel that the objective is funding.
-func (o Objective) OwnsChannel() types.Destination {
+// PrincipalChannel returns the channel that the objective is funding.
+func (o Objective) PrincipalChannel() types.Destination {
 	return o.V.Id
 }
 

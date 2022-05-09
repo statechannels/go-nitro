@@ -125,8 +125,8 @@ func ConstructFromState(
 	return init, nil
 }
 
-// OwnsChannel returns the channel that the objective is funding.
-func (dfo Objective) OwnsChannel() types.Destination {
+// PrincipalChannel returns the channel that the objective is funding.
+func (dfo Objective) PrincipalChannel() types.Destination {
 	return dfo.C.Id
 }
 
