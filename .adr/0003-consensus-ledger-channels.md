@@ -106,6 +106,16 @@ Each of these produces a SignedProposal, which is returned to the engine as a pr
 
 For `virtualdefund`, the above applies with a `Remove` proposal in place of the `Add`.
 
+### Integration with directfunding protocols
+
+Existing `directfund` and `directdefund` protocols operate on the `Channel` struct from `package channel`. The `Channel` struct is the canonical view of a channel.
+
+This requires a conversion steps on each end:
+- `directfund.Objective` contains converter method `CreateConsensusChannel()`, which prepares a ledger channel for usage by the virtualfunding protocols after the directfund is complete
+- package `directdefund` contains converter method `CreateChannelFromConsensusChannel(cc)`, which prepares a `Channel` struct from the ledger channel.
+
+This is not ideal (why create one temp data-type only to immediatly convert it for storage?), and is subject to future refactoring. See [this notion doc](https://www.notion.so/statechannels/Channels-ConsensusChannels-Objectives-9701e24e2bc1491a83fae375e4e4c64a#9c41424d07694150bdc6cf373309757a) for further detail.
+
 ### Peer Messaging
 
 Because each proposal implies a specific, sequentially numbered state, the sending and receiving of proposals must be reliable in context of a real-world network. Safeguards must exist against both __dropped messages__ and __message reordering__.
