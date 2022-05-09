@@ -22,21 +22,6 @@ interface IForceMove is INitroTypes {
     ) external;
 
     /**
-     * @notice Repsonds to an ongoing challenge registered against a state channel.
-     * @dev Repsonds to an ongoing challenge registered against a state channel.
-     * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param variablePartAB An pair of structs, each decribing the properties of the state channel that may change with each state update (for the challenge state and for the response state).
-     * @param sig The responder's signature on the `responseStateHash`.
-     */
-    function respond(
-        FixedPart memory fixedPart,
-        VariablePart[2] memory variablePartAB,
-        // variablePartAB[0] = challengeVariablePart
-        // variablePartAB[1] = responseVariablePart
-        Signature memory sig
-    ) external;
-
-    /**
      * @notice Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
      * @dev Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
