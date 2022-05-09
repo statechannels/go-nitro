@@ -244,11 +244,11 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 	return e.attemptProgress(updatedEventHandler)
 }
 
-// handleAPIEvent handles an API Event (triggered by an API call)
+// handleAPIEvent handles an API Event (triggered by a client API call).
 // It will attempt to perform all of the following:
-// Spawn a new, approved objective (if not null)
-// Reject an existing objective (if not null)
-// Approve an existing objective (if not null)
+//  - Spawn a new, approved objective (if not null)
+//  - Reject an existing objective (if not null)
+//  - Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error) {
 	if apiEvent.ObjectiveToSpawn != nil {
 
