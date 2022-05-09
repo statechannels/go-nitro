@@ -122,7 +122,7 @@ Because each proposal implies a specific, sequentially numbered state, the sendi
 
 #### Redundancy (current approach)
 
-Clients include all unacknowledged proposals with each message. In the context of a healthy network, this might be expected to result in occasional double transmmissions and rare triple transmissions. This expectation is subject to future benchmarking / simulation (TODO).
+Clients include all unacknowledged proposals with each message. In the context of a healthy network, this might be expected to result in occasional double transmissions and rare triple transmissions. This expectation is subject to future benchmarking / simulation (TODO).
 
 In an unhealthy network, or in the case of an offline counterparty, clients will require a mechanism to "give up" on sending messages to the unavailable counterparty for some cooldown period (TODO).
 
