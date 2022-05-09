@@ -191,3 +191,28 @@ func TestConstructObjectiveFromState(t *testing.T) {
 		t.Errorf("objective mismatch (-want +got):\n%s", diff)
 	}
 }
+
+func TestApproveReject(t *testing.T) {
+	data := generateTestData()
+	vId := data.vFinal.ChannelId()
+	request := ObjectiveRequest{
+		ChannelId: vId,
+		PaidToBob: big.NewInt(int64(data.paid)),
+		MyAddress: alice.Address(),
+	}
+
+	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vInitial)
+
+	virtualDefund, err := NewObjective(false, request, getChannel, getConsensusChannel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	approved := virtualDefund.Approve()
+	if approved.GetStatus() != protocols.Approved {
+		t.Errorf("Expected approved status, got %v", approved.GetStatus())
+	}
+	rejected := virtualDefund.Reject()
+	if rejected.GetStatus() != protocols.Rejected {
+		t.Errorf("Expected rejceted status, got %v", approved.GetStatus())
+	}
+}
