@@ -396,26 +396,6 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Checks that a given ChannelData struct matches the challenge stored on chain, and that the channel is in Challenge mode.
-     * @dev Checks that a given ChannelData struct matches the challenge stored on chain, and that the channel is in Challenge mode.
-     * @param data A given ChannelData data structure.
-     * @param channelId Unique identifier for a channel.
-     */
-    function _requireSpecificChallenge(ChannelData memory data, bytes32 channelId) internal view {
-        _requireMatchingStorage(data, channelId);
-        _requireOngoingChallenge(channelId);
-    }
-
-    /**
-     * @notice Checks that a given channel is in the Challenge mode.
-     * @dev Checks that a given channel is in the Challenge mode.
-     * @param channelId Unique identifier for a channel.
-     */
-    function _requireOngoingChallenge(bytes32 channelId) internal view {
-        require(_mode(channelId) == ChannelMode.Challenge, 'No ongoing challenge.');
-    }
-
-    /**
      * @notice Checks that a given channel is NOT in the Finalized mode.
      * @dev Checks that a given channel is in the Challenge mode.
      * @param channelId Unique identifier for a channel.
@@ -431,16 +411,6 @@ contract ForceMove is IForceMove, StatusManager {
      */
     function _requireChannelOpen(bytes32 channelId) internal view {
         require(_mode(channelId) == ChannelMode.Open, 'Channel not open.');
-    }
-
-    /**
-     * @notice Checks that a given ChannelData struct matches the challenge stored on chain.
-     * @dev Checks that a given ChannelData struct matches the challenge stored on chain.
-     * @param data A given ChannelData data structure.
-     * @param channelId Unique identifier for a channel.
-     */
-    function _requireMatchingStorage(ChannelData memory data, bytes32 channelId) internal view {
-        require(_matchesStatus(data, statusOf[channelId]), 'status(ChannelData)!=storage');
     }
 
     /**
