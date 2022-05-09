@@ -51,17 +51,11 @@ interface IForceMove is INitroTypes {
      * @notice Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
      * @dev Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param latestVariablePart Latest variable part in finalization proof. Must have the largest turnNum and the same appData and outcome as all other variable parts in finalization proof.
-     * @param numStates The number of states in the finalization proof.
-     * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
-     * @param sigs An array of signatures that support the state with the `largestTurnNum`: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
+     * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
      */
     function conclude(
         FixedPart memory fixedPart,
-        VariablePart memory latestVariablePart,
-        uint8 numStates,
-        uint8[] memory whoSignedWhat,
-        Signature[] memory sigs
+        SignedVariablePart[] memory signedVariableParts
     ) external;
 
     // events

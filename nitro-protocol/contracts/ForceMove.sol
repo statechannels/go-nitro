@@ -48,7 +48,7 @@ contract ForceMove is IForceMove, StatusManager {
         Signature memory challengerSig
     ) external override {
         // input type validation
-        requireValidParticipantsStates(
+        requireValidInput(
             fixedPart.participants.length,
             signedVariableParts.length
         );
@@ -177,7 +177,7 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart[] memory signedVariableParts
     ) external override {
         // input type validation
-        requireValidParticipantsStates(
+        requireValidInput(
             fixedPart.participants.length,
             signedVariableParts.length
         );
@@ -198,36 +198,24 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
      * @dev Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param latestVariablePart Latest variable part in finalization proof. Must have the largest turnNum and the same appData and outcome as all other variable parts in finalization proof.
-     * @param numStates The number of states in the finalization proof.
-     * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
-     * @param sigs An array of signatures that support the state with the `largestTurnNum`: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
+     * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
      */
     function conclude(
         FixedPart memory fixedPart,
-        VariablePart memory latestVariablePart,
-        uint8 numStates,
-        uint8[] memory whoSignedWhat,
-        Signature[] memory sigs
+        SignedVariablePart[] memory signedVariableParts
     ) external override {
-        _conclude(fixedPart, latestVariablePart, numStates, whoSignedWhat, sigs);
+        _conclude(fixedPart, signedVariableParts);
     }
 
     /**
      * @notice Finalizes a channel by providing a finalization proof. Internal method.
      * @dev Finalizes a channel by providing a finalization proof. Internal method.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param latestVariablePart Latest variable part in finalization proof. Must have the largest turnNum and the same appData and outcome as all other variable parts in finalization proof.
-     * @param numStates The number of states in the finalization proof.
-     * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
-     * @param sigs An array of signatures that support the state with the `largestTurnNum`:: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
+     * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
      */
     function _conclude(
         FixedPart memory fixedPart,
-        VariablePart memory latestVariablePart,
-        uint8 numStates,
-        uint8[] memory whoSignedWhat,
-        Signature[] memory sigs
+        SignedVariablePart[] memory signedVariableParts
     ) internal returns (bytes32 channelId) {
         channelId = _getChannelId(fixedPart);
         _requireChannelNotFinalized(channelId);
@@ -235,39 +223,11 @@ contract ForceMove is IForceMove, StatusManager {
         // input type validation
         requireValidInput(
             fixedPart.participants.length,
-            numStates,
-            sigs.length,
-            whoSignedWhat.length
+            signedVariableParts.length
         );
-
-        require(latestVariablePart.turnNum + 1 >= numStates, 'largestTurnNum too low');
-        // ^^ SW-C101: prevent underflow
-
-        // By construction, the following states form a valid transition
-        bytes32[] memory stateHashes = new bytes32[](numStates);
-        for (uint48 i = 0; i < numStates; i++) {
-            stateHashes[i] = _hashState(
-                channelId,
-                latestVariablePart.appData,
-                latestVariablePart.outcome,
-                latestVariablePart.turnNum + (i + 1) - numStates, // turnNum
-                // ^^ SW-C101: It is not easy to use SafeMath here, since we are not using uint256s
-                // Instead, we are protected by the require statement above
-                true // isFinal
-            );
-        }
 
         // checks
-        require(
-            _validSignatures(
-                latestVariablePart.turnNum,
-                fixedPart.participants,
-                stateHashes,
-                sigs,
-                whoSignedWhat
-            ),
-            'Invalid signatures / !isFinal'
-        );
+        _requireStateSupportedBy(fixedPart, signedVariableParts, channelId);
 
         // effects
         statusOf[channelId] = _generateStatus(
@@ -275,7 +235,7 @@ contract ForceMove is IForceMove, StatusManager {
                 0,
                 uint48(block.timestamp), //solhint-disable-line not-rely-on-time
                 bytes32(0),
-                _hashOutcome(latestVariablePart.outcome)
+                _hashOutcome(_lastVariablePart(signedVariableParts).outcome)
             )
         );
         emit Concluded(channelId, uint48(block.timestamp)); //solhint-disable-line not-rely-on-time
@@ -292,34 +252,12 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Validates input for several external methods.
-     * @dev Validates input for several external methods.
-     * @param numParticipants Length of the participants array.
-     * @param numStates Number of states submitted.
-     * @param numSigs Number of signatures submitted.
-     * @param numWhoSignedWhats whoSignedWhat.length.
-     */
-    function requireValidInput(
-        uint256 numParticipants,
-        uint256 numStates,
-        uint256 numSigs,
-        uint256 numWhoSignedWhats
-    ) public pure returns (bool) {
-        require(
-            (numSigs == numParticipants) && (numWhoSignedWhats == numParticipants),
-            'Bad |signatures|v|whoSignedWhat|'
-        );
-        requireValidParticipantsStates(numParticipants, numStates);
-        return true;
-    }
-
-    /**
      * @notice Validates related to participants and states input for several external methods.
      * @dev Validates related to participants and states input for several external methods.
      * @param numParticipants Length of the participants array.
      * @param numStates Number of states submitted.
      */
-    function requireValidParticipantsStates(
+    function requireValidInput(
         uint256 numParticipants,
         uint256 numStates
     ) public pure returns (bool) {
@@ -371,66 +309,6 @@ contract ForceMove is IForceMove, StatusManager {
             }
         }
         return false;
-    }
-
-    /**
-     * @notice Given an array of state hashes, checks the validity of the supplied signatures. Valid means there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array.
-     * @dev Given an array of state hashes, checks the validity of the supplied signatures. Valid means there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array.
-     * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
-     * @param participants A list of addresses representing the participants of a channel.
-     * @param stateHashes Array of keccak256(State) submitted in support of a state,
-     * @param sigs Array of Signatures, one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
-     * @param whoSignedWhat participant[i] signed stateHashes[whoSignedWhat[i]]
-     * @return true if the signatures are valid, false otherwise
-     */
-    function _validSignatures(
-        uint48 largestTurnNum,
-        address[] memory participants,
-        bytes32[] memory stateHashes,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat // whoSignedWhat[i] is the index of the state in stateHashes that was signed by participants[i]
-    ) internal pure returns (bool) {
-        uint256 nParticipants = participants.length;
-        uint256 nStates = stateHashes.length;
-
-        require(
-            _acceptableWhoSignedWhat(whoSignedWhat, largestTurnNum, nParticipants, nStates),
-            'Unacceptable whoSignedWhat array'
-        );
-        for (uint256 i = 0; i < nParticipants; i++) {
-            address signer = _recoverSigner(stateHashes[whoSignedWhat[i]], sigs[i]);
-            if (signer != participants[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * @notice Given a declaration of which state in the support proof was signed by which participant, check if this declaration is acceptable. Acceptable means there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array.
-     * @dev Given a declaration of which state in the support proof was signed by which participant, check if this declaration is acceptable. Acceptable means there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array.
-     * @param whoSignedWhat participant[i] signed stateHashes[whoSignedWhat[i]]
-     * @param largestTurnNum Largest turnNum of the support proof
-     * @param nParticipants Number of participants in the channel
-     * @param nStates Number of states in the support proof
-     * @return true if whoSignedWhat is acceptable, false otherwise
-     */
-    function _acceptableWhoSignedWhat(
-        uint8[] memory whoSignedWhat,
-        uint48 largestTurnNum,
-        uint256 nParticipants,
-        uint256 nStates
-    ) internal pure returns (bool) {
-        require(whoSignedWhat.length == nParticipants, '|whoSignedWhat|!=nParticipants');
-        for (uint256 i = 0; i < nParticipants; i++) {
-            uint256 offset = (nParticipants + largestTurnNum - i) % nParticipants;
-            // offset is the difference between the index of participant[i] and the index of the participant who owns the largesTurnNum state
-            // the additional nParticipants in the dividend ensures offset always positive
-            if (whoSignedWhat[i] + offset + 1 < nStates) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**
