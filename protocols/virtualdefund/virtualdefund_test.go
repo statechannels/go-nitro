@@ -127,7 +127,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 
 		testhelpers.Equals(t, waitingFor, WaitingForCompleteFinal)
 		signedByMe := state.NewSignedState(data.vFinal)
-		_ = signedByMe.Sign(&my.PrivateKey)
+		SignState(&signedByMe, &my.PrivateKey)
 		AssertStateSentToEveryone(t, se, signedByMe, my, allActors)
 
 		// Update the signatures on the objective so the final state is fully signed

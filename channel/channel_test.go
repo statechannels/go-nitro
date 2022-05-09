@@ -3,6 +3,7 @@ package channel
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -243,10 +244,8 @@ func TestChannel(t *testing.T) {
 			t.Error(err)
 		}
 		expectedSignedState := state.NewSignedState(c.PostFundState())
-		err = expectedSignedState.Sign(&alicePrivateKey)
-		if err != nil {
-			t.Error(err)
-		}
+		signState(&expectedSignedState, &alicePrivateKey)
+
 		if diff := cmp.Diff(expectedSignedState, latestSignedState, cmp.AllowUnexported(expectedSignedState)); diff != "" {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
 		}
@@ -281,10 +280,7 @@ func TestChannel(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		err = expectedSignedState.Sign(&bobPrivateKey)
-		if err != nil {
-			t.Error(err)
-		}
+		signState(&expectedSignedState, &bobPrivateKey)
 
 		if diff := compareStates(latestSignedState, expectedSignedState); diff != "" {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
@@ -380,5 +376,18 @@ func TestSerde(t *testing.T) {
 
 	if !reflect.DeepEqual(c, someChannel) {
 		t.Fatalf("incorrect json unmarshaling, expected \n%+v got \n%+v", someChannel, got)
+	}
+}
+
+// signState generates a signature on the signed state with the supplied key, and adds that signature.
+// If an error occurs the function panics
+func signState(ss *state.SignedState, secretKey *[]byte) {
+	sig, err := ss.State().Sign(*secretKey)
+	if err != nil {
+		panic(fmt.Errorf("SignAndAdd failed to sign the state: %w", err))
+	}
+	err = ss.AddSignature(sig)
+	if err != nil {
+		panic(fmt.Errorf("SignAndAdd failed to sign the state: %w", err))
 	}
 }

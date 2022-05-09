@@ -291,15 +291,15 @@ func generateTestData() testdata {
 // signStateByOthers signs the state by every participant except me
 func signStateByOthers(me ta.Actor, signedState state.SignedState) state.SignedState {
 	if me.Role != 0 {
-		_ = signedState.Sign(&alice.PrivateKey)
+		SignState(&signedState, &alice.PrivateKey)
 	}
 
 	if me.Role != 1 {
-		_ = signedState.Sign(&irene.PrivateKey)
+		SignState(&signedState, &irene.PrivateKey)
 	}
 
 	if me.Role != 2 {
-		_ = signedState.Sign(&bob.PrivateKey)
+		SignState(&signedState, &bob.PrivateKey)
 	}
 	return signedState
 }
