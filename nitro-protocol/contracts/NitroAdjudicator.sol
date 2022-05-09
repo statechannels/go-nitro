@@ -14,27 +14,18 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
      * @notice Finalizes a channel by providing a finalization proof, and liquidates all assets for the channel.
      * @dev Finalizes a channel by providing a finalization proof, and liquidates all assets for the channel.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param latestVariablePart Latest variable part in finalization proof. Must have the largest turnNum and the same appData and outcome as all other variable parts in finalization proof.
-     * @param numStates The number of states in the finalization proof.
-     * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
-     * @param sigs Array of signatures, one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
+     * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
      */
     function concludeAndTransferAllAssets(
         FixedPart memory fixedPart,
-        VariablePart memory latestVariablePart,
-        uint8 numStates,
-        uint8[] memory whoSignedWhat,
-        Signature[] memory sigs
+        SignedVariablePart[] memory signedVariableParts
     ) public {
         bytes32 channelId = _conclude(
             fixedPart,
-            latestVariablePart,
-            numStates,
-            whoSignedWhat,
-            sigs
+            signedVariableParts
         );
 
-        transferAllAssets(channelId, latestVariablePart.outcome, bytes32(0));
+        transferAllAssets(channelId, _lastVariablePart(signedVariableParts).outcome, bytes32(0));
     }
 
     /**
