@@ -84,7 +84,7 @@ func (s State) ChannelId() types.Destination {
 
 func (fp FixedPart) ChannelId() types.Destination {
 
-	encodedChannelPart, error := ethAbi.Arguments{
+	encodedChannelPart, err := ethAbi.Arguments{
 		{Type: abi.Uint256},
 		{Type: abi.AddressArray},
 		{Type: abi.Uint256},
@@ -92,23 +92,19 @@ func (fp FixedPart) ChannelId() types.Destination {
 		{Type: abi.Uint256},
 	}.Pack(fp.ChainId, fp.Participants, fp.ChannelNonce, fp.AppDefinition, fp.ChallengeDuration)
 
+	if err != nil {
+		panic(err)
+	}
+
 	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
 
-	return channelId, error
+	return channelId
 
 }
 
 // encodes the state into a []bytes value
 func (s State) encode() (types.Bytes, error) {
-	ChannelId, error := s.ChannelId()
-	if error != nil {
-		return types.Bytes{}, fmt.Errorf("failed to construct channelId: %w", error)
-	}
-
-	if error != nil {
-		return types.Bytes{}, fmt.Errorf("failed to encode outcome: %w", error)
-
-	}
+	ChannelId := s.ChannelId()
 
 	return ethAbi.Arguments{
 		{Type: abi.Destination}, // channel id (includes ChainID, Participants, ChannelNonce)

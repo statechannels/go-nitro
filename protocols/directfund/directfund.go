@@ -71,6 +71,12 @@ func ConstructFromState(
 	initialState state.State,
 	myAddress types.Address,
 ) (Objective, error) {
+	var err error
+
+	err = initialState.FixedPart().Validate()
+	if err != nil {
+		return Objective{}, err
+	}
 	if initialState.TurnNum != 0 {
 		return Objective{}, errors.New("cannot construct direct fund objective without prefund state")
 	}
@@ -79,7 +85,6 @@ func ConstructFromState(
 	}
 
 	var init = Objective{}
-	var err error
 
 	if preApprove {
 		init.Status = protocols.Approved
@@ -389,7 +394,7 @@ func (r ObjectiveRequest) Id() protocols.ObjectiveId {
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}
 
-	channelId, _ := fixedPart.ChannelId()
+	channelId := fixedPart.ChannelId()
 	return protocols.ObjectiveId(ObjectivePrefix + channelId.String())
 }
 
@@ -406,7 +411,7 @@ func (r ObjectiveRequest) Response() ObjectiveResponse {
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}
 
-	channelId, _ := fixedPart.ChannelId()
+	channelId := fixedPart.ChannelId()
 
 	return ObjectiveResponse{
 		Id:        protocols.ObjectiveId(ObjectivePrefix + channelId.String()),

@@ -33,14 +33,11 @@ func TestCrank(t *testing.T) {
 
 func TestInvalidUpdate(t *testing.T) {
 	data := generateTestData()
-	vId, err := data.vFinal.ChannelId()
+	vId := data.vFinal.ChannelId()
 	request := ObjectiveRequest{
 		ChannelId: vId,
 		PaidToBob: big.NewInt(int64(data.paid)),
 		MyAddress: alice.Address(),
-	}
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vFinal)
@@ -68,7 +65,7 @@ func TestInvalidUpdate(t *testing.T) {
 func testUpdateAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
-		vId, _ := data.vFinal.ChannelId()
+		vId := data.vFinal.ChannelId()
 		request := ObjectiveRequest{
 			ChannelId: vId,
 			PaidToBob: big.NewInt(int64(data.paid)),
@@ -104,7 +101,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 func testCrankAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
-		vId, _ := data.vFinal.ChannelId()
+		vId := data.vFinal.ChannelId()
 		request := ObjectiveRequest{
 			ChannelId: vId,
 			PaidToBob: big.NewInt(int64(data.paid)),

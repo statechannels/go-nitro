@@ -126,7 +126,7 @@ func TestChallenge(t *testing.T) {
 
 	// Generate expectation
 	expectedFinalizesAt := big.NewInt(0).Add(challengeTime, s.ChallengeDuration)
-	cId, _ := s.ChannelId()
+	cId := s.ChannelId()
 	expectedOnChainStatus, err := generateStatus(s, expectedFinalizesAt)
 	if err != nil {
 		t.Fatal(err)

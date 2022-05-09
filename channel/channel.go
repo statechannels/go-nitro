@@ -242,7 +242,7 @@ func (c *Channel) AddSignedState(ss state.SignedState) bool {
 
 	s := ss.State()
 
-	if cId, err := s.ChannelId(); cId != c.Id || err != nil {
+	if cId := s.ChannelId(); cId != c.Id {
 		// Channel mismatch
 		return false
 	}

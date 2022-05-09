@@ -134,10 +134,13 @@ func ConstructObjectiveFromState(
 	getChannel GetChannelByIdFunction,
 	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
 ) (Objective, error) {
-	channelId, err := initialState.ChannelId()
+
+	err := initialState.FixedPart().Validate()
 	if err != nil {
 		return Objective{}, err
 	}
+
+	channelId := initialState.ChannelId()
 
 	// TODO: Because there is no payment system we are not able to query or verify how much was paid.
 	// So the current behaviour is as follows:
@@ -158,10 +161,7 @@ func calculatePaidToBob(proposedFinalState state.State, getChannel GetChannelByI
 	if !proposedFinalState.IsFinal {
 		return big.NewInt(0), fmt.Errorf("expected final state")
 	}
-	cId, err := proposedFinalState.ChannelId()
-	if err != nil {
-		return big.NewInt(0), err
-	}
+	cId := proposedFinalState.ChannelId()
 	c, found := getChannel(cId)
 	pf := c.PreFundState()
 
@@ -210,7 +210,7 @@ func (o Objective) finalOutcome() outcome.SingleAssetExit {
 
 // Id returns the objective id.
 func (o Objective) Id() protocols.ObjectiveId {
-	vId, _ := o.VFixed.ChannelId() //TODO: Handle error
+	vId := o.VFixed.ChannelId() //TODO: Handle error
 	return protocols.ObjectiveId(ObjectivePrefix + vId.String())
 
 }
@@ -232,7 +232,7 @@ func (o Objective) Reject() protocols.Objective {
 
 // OwnsChannel returns the channel that the objective is funding.
 func (o Objective) OwnsChannel() types.Destination {
-	vId, _ := o.VFixed.ChannelId()
+	vId := o.VFixed.ChannelId()
 	return vId
 }
 
@@ -409,7 +409,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 
 // VId returns the channel id of the virtual channel.
 func (o Objective) VId() types.Destination {
-	vId, _ := o.VFixed.ChannelId() // TODO Deal with error
+	vId := o.VFixed.ChannelId() // TODO Deal with error
 
 	return vId
 }
@@ -475,8 +475,8 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	updated := o.clone()
 
 	if ss := event.SignedState; len(ss.Signatures()) != 0 {
-		incomingChannelId, _ := ss.State().ChannelId() // TODO handle error
-		vChannelId, _ := updated.VFixed.ChannelId()    // TODO handle error
+		incomingChannelId := ss.State().ChannelId()
+		vChannelId := updated.VFixed.ChannelId()
 
 		if incomingChannelId != vChannelId {
 			return &o, errors.New("event channelId out of scope of objective")
