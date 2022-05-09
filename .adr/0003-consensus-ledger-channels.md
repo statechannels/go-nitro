@@ -108,6 +108,26 @@ For `virtualdefund`, the above applies with a `Remove` proposal in place of the 
 
 ### Peer Messaging
 
-To guard against proposals being dropped or reordered, clients include all unacknowledged proposals with each message. In the context of a healthy network, this might be expected to result in occasional double transmmissions and rare triple transmissions. This expectation is subject to future benchmarking / simulation (TODO).
+Because each proposal implies a specific, sequentially numbered state, the sending and receiving of proposals must be reliable in context of a real-world network. Safeguards must exist against both __dropped messages__ and __message reordering__.
+
+#### Redundancy (current approach)
+
+Clients include all unacknowledged proposals with each message. In the context of a healthy network, this might be expected to result in occasional double transmmissions and rare triple transmissions. This expectation is subject to future benchmarking / simulation (TODO).
 
 In an unhealthy network, or in the case of an offline counterparty, clients will require a mechanism to "give up" on sending messages to the unavailable counterparty for some cooldown period (TODO).
+
+In the current implementation, proposals are batched naively (sending `N` proposals results in a payload `N` times as large as a single proposal). Future work could improve on this by omitting redundant information (repeated labelling of the ledger channel, signatures associated with each individual proposal, etc).
+
+#### MessageService with guaranteed delivery (alternative approach)
+
+A messageservice which recieves an acknowledgement on each transmission could effectively guarantee message delivery, and could be relied upon for correct message ordering as well by waiting for message `N` to be acknowledged before sending message `N+1`.
+
+This approach simplifies the __message reordering__ problem for both sender and receiver, but adds latency (network trips for each `ack` signal) to every funding operation. Ledger channel updates are the expected bottleneck in a busy channel network, so adding latency here is not preferred.
+
+#### Receiever requests absent proposals  (alternative approach)
+
+A follower client waiting on proposal `N` who recieves some out-of-order proposal `N+M` could explicitly request proposals `[N, ... ,N+M-1]` from the counterparty. In the case of out-of-order messages, this is well-behaved:
+- it allows the channel leader to optimistically send all proposals individually
+- messages that arrive out-of-order can simply be processed by the follower, and the request for retransmission can simply be ignored (it is non-blocking)
+
+In the case of dropped messages, this scheme is expected to be a little less performant than the `Redundancy` scheme, as it requires the extra network trip with the request for a retransmission, which itself can not be triggered until the follower is "aware" that it is missing proposals.
