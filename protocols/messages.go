@@ -192,7 +192,7 @@ func SummarizeMessage(m Message) MessageSummary {
 
 	states := make([]StateSummary, len(m.SignedStates()))
 	for i, s := range m.SignedStates() {
-		channelId, _ := s.Payload.State().ChannelId()
+		channelId := s.Payload.State().ChannelId()
 		states[i] = StateSummary{
 			ObjectiveId: string(s.ObjectiveId),
 			ChannelId:   channelId.String(),

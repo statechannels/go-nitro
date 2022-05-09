@@ -334,7 +334,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	}
 
 	if ss := event.SignedState; len(ss.Signatures()) != 0 {
-		channelId, _ := ss.State().ChannelId() // TODO handle error
+		channelId := ss.State().ChannelId() // TODO handle error
 		switch channelId {
 		case types.Destination{}:
 			return &o, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
@@ -667,7 +667,7 @@ func (r ObjectiveRequest) Id() protocols.ObjectiveId {
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}
 
-	channelId, _ := fixedPart.ChannelId()
+	channelId := fixedPart.ChannelId()
 	return protocols.ObjectiveId(ObjectivePrefix + channelId.String())
 }
 
@@ -684,7 +684,7 @@ func (r ObjectiveRequest) Response() ObjectiveResponse {
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}
 
-	channelId, _ := fixedPart.ChannelId()
+	channelId := fixedPart.ChannelId()
 
 	return ObjectiveResponse{
 		Id:        protocols.ObjectiveId(ObjectivePrefix + channelId.String()),

@@ -78,21 +78,13 @@ func (s State) VariablePart() VariablePart {
 //
 // Up to hash collisions, ChannelId distinguishes channels that have different FixedPart
 // values
-func (s State) ChannelId() (types.Destination, error) {
+func (s State) ChannelId() types.Destination {
 	return s.FixedPart().ChannelId()
 }
 
-func (fp FixedPart) ChannelId() (types.Destination, error) {
+func (fp FixedPart) ChannelId() types.Destination {
 
-	if fp.ChainId == nil {
-		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChainId`)
-	}
-
-	if fp.ChannelNonce == nil {
-		return types.Destination{}, errors.New(`cannot compute ChannelId with nil ChannelNonce`)
-	}
-
-	encodedChannelPart, error := ethAbi.Arguments{
+	encodedChannelPart, err := ethAbi.Arguments{
 		{Type: abi.Uint256},
 		{Type: abi.AddressArray},
 		{Type: abi.Uint256},
@@ -100,26 +92,19 @@ func (fp FixedPart) ChannelId() (types.Destination, error) {
 		{Type: abi.Uint256},
 	}.Pack(fp.ChainId, fp.Participants, fp.ChannelNonce, fp.AppDefinition, fp.ChallengeDuration)
 
+	if err != nil {
+		panic(err)
+	}
+
 	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
 
-	if error == nil && channelId.IsExternal() {
-		error = errors.New("channelId is an external destination") // This is extremely unlikely
-	}
-	return channelId, error
+	return channelId
 
 }
 
 // encodes the state into a []bytes value
 func (s State) encode() (types.Bytes, error) {
-	ChannelId, error := s.ChannelId()
-	if error != nil {
-		return types.Bytes{}, fmt.Errorf("failed to construct channelId: %w", error)
-	}
-
-	if error != nil {
-		return types.Bytes{}, fmt.Errorf("failed to encode outcome: %w", error)
-
-	}
+	ChannelId := s.ChannelId()
 
 	return ethAbi.Arguments{
 		{Type: abi.Destination}, // channel id (includes ChainID, Participants, ChannelNonce)
@@ -200,6 +185,28 @@ func (f FixedPart) Clone() FixedPart {
 	clone.AppDefinition = f.AppDefinition
 	clone.ChallengeDuration = new(big.Int).Set(f.ChallengeDuration)
 	return clone
+}
+
+// Validate checks whether the receiver is malformed and returns an error if it is.
+func (fp FixedPart) Validate() error {
+	if fp.ChainId == nil {
+		return errors.New(`cannot compute ChannelId with nil ChainId`)
+	}
+
+	if fp.ChannelNonce == nil {
+		return errors.New(`cannot compute ChannelId with nil ChannelNonce`)
+	}
+
+	if fp.ChannelId().IsExternal() {
+		return errors.New("channelId is an external destination") // This is extremely unlikely
+	}
+
+	return nil
+}
+
+// Validate checks whether the state is malformed and returns an error if it is.
+func (s State) Validate() error {
+	return s.FixedPart().Validate()
 }
 
 // Clone returns a deep copy of the receiver.

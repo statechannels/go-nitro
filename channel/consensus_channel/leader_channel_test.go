@@ -62,7 +62,7 @@ func TestLeaderChannel(t *testing.T) {
 		return createSignedProposal(vars, p, bob, turnNum)
 	}
 
-	cId, _ := fp().ChannelId()
+	cId := fp().ChannelId()
 	testChannel := func(lo LedgerOutcome, testProposalQueue []SignedProposalVars) ConsensusChannel {
 		vars := Vars{TurnNum: 0, Outcome: lo}
 		aliceSig, _ := vars.AsState(fp()).Sign(alice.PrivateKey)

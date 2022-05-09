@@ -128,10 +128,12 @@ func ConstructObjectiveFromState(
 		return Objective{}, ErrNoFinalState
 	}
 
-	cId, err := s.ChannelId()
+	err := s.FixedPart().Validate()
 	if err != nil {
 		return Objective{}, err
 	}
+
+	cId := s.ChannelId()
 
 	return NewObjective(preApprove, cId, getConsensusChannel)
 }

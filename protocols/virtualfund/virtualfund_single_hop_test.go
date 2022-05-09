@@ -127,7 +127,7 @@ func diffFromCorrectConnection(c *Connection, left, right actors.Actor) string {
 	td := newTestData()
 	vPreFund := td.vPreFund
 
-	Id, _ := vPreFund.FixedPart().ChannelId()
+	Id := vPreFund.FixedPart().ChannelId()
 
 	// HACK: This should really be comparing GuaranteeInfo, but GuaranteeInfo
 	// contains types.Funds amounts in their LeftAmount and RightAmount fields.

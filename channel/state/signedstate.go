@@ -167,7 +167,7 @@ func (ss *SignedState) UnmarshalJSON(j []byte) error {
 
 // ChannelId returns the channel id of the state.
 func (ss SignedState) ChannelId() types.Destination {
-	cId, _ := ss.state.ChannelId()
+	cId := ss.state.ChannelId()
 	return cId
 }
 
@@ -178,7 +178,7 @@ func (ss SignedState) TurnNum() uint64 {
 
 // SortInfo returns the channel id and turn number of the state, so the state can be easily sorted.
 func (ss SignedState) SortInfo() (types.Destination, uint64) {
-	cId, _ := ss.State().ChannelId()
+	cId := ss.State().ChannelId()
 	turnNum := ss.State().TurnNum
 	return cId, turnNum
 }
