@@ -39,28 +39,22 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @dev Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param variableParts An ordered array of structs, each decribing the properties of the state channel that may change with each state update. Length is from 1 to the number of participants (inclusive).
-     * @param sigs An array of signatures that support the state with the `largestTurnNum`. There must be one for each participant, e.g.: [sig-from-p0, sig-from-p1, ...]
-     * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
+     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct decribing the properties of the state channel that may change with each state update. Length is from 1 to the number of participants (inclusive).
      * @param challengerSig The signature of a participant on the keccak256 of the abi.encode of (supportedStateHash, 'forceMove').
      */
     function challenge(
         FixedPart memory fixedPart,
-        VariablePart[] memory variableParts,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat,
+        SignedVariablePart[] memory signedVariableParts,
         Signature memory challengerSig
     ) external override {
         // input type validation
-        requireValidInput(
+        requireValidParticipantsStates(
             fixedPart.participants.length,
-            variableParts.length,
-            sigs.length,
-            whoSignedWhat.length
+            signedVariableParts.length
         );
 
         bytes32 channelId = _getChannelId(fixedPart);
-        uint48 largestTurnNum = _lastVariablePart(variableParts).turnNum;
+        uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
 
         if (_mode(channelId) == ChannelMode.Open) {
             _requireNonDecreasedTurnNumber(channelId, largestTurnNum);
@@ -72,10 +66,8 @@ contract ForceMove is IForceMove, StatusManager {
         }
         bytes32 supportedStateHash = _requireStateSupportedBy(
             fixedPart,
-            variableParts,
-            channelId,
-            sigs,
-            whoSignedWhat
+            signedVariableParts,
+            channelId
         );
 
         _requireChallengerIsParticipant(supportedStateHash, fixedPart.participants, challengerSig);
@@ -87,11 +79,9 @@ contract ForceMove is IForceMove, StatusManager {
             largestTurnNum,
             uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
             // This could overflow, so don't join a channel with a huge challengeDuration
-            _lastVariablePart(variableParts).isFinal,
+            _lastVariablePart(signedVariableParts).isFinal,
             fixedPart,
-            variableParts,
-            sigs,
-            whoSignedWhat
+            signedVariableParts
         );
 
         statusOf[channelId] = _generateStatus(
@@ -99,7 +89,7 @@ contract ForceMove is IForceMove, StatusManager {
                 largestTurnNum,
                 uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
                 supportedStateHash,
-                _hashOutcome(_lastVariablePart(variableParts).outcome)
+                _hashOutcome(_lastVariablePart(signedVariableParts).outcome)
             )
         );
     }
@@ -157,26 +147,19 @@ contract ForceMove is IForceMove, StatusManager {
             'Signer not authorized mover'
         );
 
-        VariablePart[] memory variableParts = new VariablePart[](2);
-        variableParts[0] = variablePartAB[0];
-        variableParts[1] = variablePartAB[1];
-
         Signature[] memory sigs = new Signature[](1);
         sigs[0] = sig;
 
-        uint8[] memory whoSignedWhat = new uint8[](1);
-        whoSignedWhat[0] = 1;
+        SignedVariablePart[] memory signedVariableParts = new SignedVariablePart[](2);
+        signedVariableParts[0].variablePart = variablePartAB[0];
+        signedVariableParts[1] = SignedVariablePart(variablePartAB[1], sigs);
 
         _requireVariablePartIsLast(
             IForceMoveApp(fixedPart.appDefinition).latestSupportedState(
                 fixedPart,
-                _bindSigsToVariableParts(
-                    variableParts,
-                    sigs,
-                    whoSignedWhat
-                )
+                signedVariableParts
             ),
-            variableParts
+            signedVariableParts
         );
 
         // effects
@@ -187,31 +170,25 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
      * @dev Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param variableParts An ordered array of structs, each decribing the properties of the state channel that may change with each state update.
-     * @param sigs An array of signatures that support the state with the `largestTurnNum`: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
-     * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
+     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct decribing the properties of the state channel that may change with each state update. Length is from 1 to the number of participants (inclusive).
      */
     function checkpoint(
         FixedPart memory fixedPart,
-        VariablePart[] memory variableParts,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat
+        SignedVariablePart[] memory signedVariableParts
     ) external override {
         // input type validation
-        requireValidInput(
+        requireValidParticipantsStates(
             fixedPart.participants.length,
-            variableParts.length,
-            sigs.length,
-            whoSignedWhat.length
+            signedVariableParts.length
         );
 
         bytes32 channelId = _getChannelId(fixedPart);
-        uint48 largestTurnNum = _lastVariablePart(variableParts).turnNum;
+        uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
 
         // checks
         _requireChannelNotFinalized(channelId);
         _requireIncreasedTurnNumber(channelId, largestTurnNum);
-        _requireStateSupportedBy(fixedPart, variableParts, channelId, sigs, whoSignedWhat);
+        _requireStateSupportedBy(fixedPart, signedVariableParts, channelId);
 
         // effects
         _clearChallenge(channelId, largestTurnNum);
@@ -317,10 +294,10 @@ contract ForceMove is IForceMove, StatusManager {
     /**
      * @notice Validates input for several external methods.
      * @dev Validates input for several external methods.
-     * @param numParticipants Length of the participants array
-     * @param numStates Number of states submitted
-     * @param numSigs Number of signatures submitted
-     * @param numWhoSignedWhats whoSignedWhat.length
+     * @param numParticipants Length of the participants array.
+     * @param numStates Number of states submitted.
+     * @param numSigs Number of signatures submitted.
+     * @param numWhoSignedWhats whoSignedWhat.length.
      */
     function requireValidInput(
         uint256 numParticipants,
@@ -328,11 +305,25 @@ contract ForceMove is IForceMove, StatusManager {
         uint256 numSigs,
         uint256 numWhoSignedWhats
     ) public pure returns (bool) {
-        require((numParticipants >= numStates) && (numStates > 0), 'Insufficient or excess states');
         require(
             (numSigs == numParticipants) && (numWhoSignedWhats == numParticipants),
             'Bad |signatures|v|whoSignedWhat|'
         );
+        requireValidParticipantsStates(numParticipants, numStates);
+        return true;
+    }
+
+    /**
+     * @notice Validates related to participants and states input for several external methods.
+     * @dev Validates related to participants and states input for several external methods.
+     * @param numParticipants Length of the participants array.
+     * @param numStates Number of states submitted.
+     */
+    function requireValidParticipantsStates(
+        uint256 numParticipants,
+        uint256 numStates
+    ) public pure returns (bool) {
+        require((numParticipants >= numStates) && (numStates > 0), 'Insufficient or excess states');
         require(numParticipants <= type(uint8).max, 'Too many participants!'); // type(uint8).max = 2**8 - 1 = 255
         // no more than 255 participants
         // max index for participants is 254
@@ -459,25 +450,21 @@ contract ForceMove is IForceMove, StatusManager {
     /**
      * @notice Check that the submitted data constitute a support proof.
      * @dev Check that the submitted data constitute a support proof.
-     * @param variableParts Variable parts of the states in the support proof
+     * @param fixedPart Fixed Part of the states in the support proof.
+     * @param signedVariableParts Signed variable parts of the states in the support proof.
      * @param channelId Unique identifier for a channel.
-     * @param fixedPart Fixed Part of the states in the support proof
-     * @param sigs A signature from each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
-     * @param whoSignedWhat participant[i] signed stateHashes[whoSignedWhat[i]]
      * @return The hash of the latest state in the proof, if supported, else reverts.
      */
     function _requireStateSupportedBy(
         FixedPart memory fixedPart,
-        VariablePart[] memory variableParts,
-        bytes32 channelId,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat
+        SignedVariablePart[] memory signedVariableParts,
+        bytes32 channelId
     ) internal pure returns (bytes32) {
         VariablePart memory latestVariablePart = IForceMoveApp(fixedPart.appDefinition)
-            .latestSupportedState(fixedPart, _bindSigsToVariableParts(variableParts, sigs, whoSignedWhat));
+            .latestSupportedState(fixedPart, signedVariableParts);
 
         // enforcing the latest supported state being in the last slot of the array
-        _requireVariablePartIsLast(latestVariablePart, variableParts);
+        _requireVariablePartIsLast(latestVariablePart, signedVariableParts);
 
         return _hashState(
             channelId,
@@ -489,59 +476,18 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Construct SignedVariablePart array from supplied variable parts and signatures.
-     * @dev Construct SignedVariablePart array from supplied variable parts and signatures.
-     * @param variableParts Variable parts to construct signed ones from.
-     * @param sigs Signatures to combine with variable parts.
-     * @param whoSignedWhat participant[i] signed stateHashes[whoSignedWhat[i]]
-     * @return SignedVariablePart array.
-     */
-    function _bindSigsToVariableParts(
-        VariablePart[] memory variableParts,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat
-    ) internal pure returns (SignedVariablePart[] memory) {
-        SignedVariablePart[] memory signedVariableParts = new SignedVariablePart[](variableParts.length);
-
-        // copy variable parts to signed variable parts
-        for (uint256 i = 0; i < variableParts.length; i++) {
-            signedVariableParts[i] = SignedVariablePart(
-                variableParts[i],
-                new Signature[](0)
-            );
-        }
-
-        // add each sig to corresponding signed variable part
-        for (uint256 i = 0; i < sigs.length; i++) {
-            Signature[] memory sigsPresent = signedVariableParts[whoSignedWhat[i]].sigs;
-            // create an array to add another sig
-            Signature[] memory updatedSigs = new Signature[](sigsPresent.length + 1);
-
-            // copy sigs
-            for (uint256 k = 0; k < sigsPresent.length; k++) {
-                updatedSigs[k] = sigsPresent[k];
-            }
-
-            updatedSigs[updatedSigs.length - 1] = sigs[i];
-            signedVariableParts[i].sigs = updatedSigs;
-        }
-
-        return signedVariableParts;
-    }
-
-    /**
      * @notice Check whether supplied variablePart is in the last slot if variableParts.
      * @dev Check whether supplied variablePart is in the last slot if variableParts.
      * @param variablePart VariablePart to be in the last slot.
-     * @param variableParts VariableParts the last slot of to check.
+     * @param signedVariableParts SignedVariableParts the last slot of to check.
      */
     function _requireVariablePartIsLast(
         VariablePart memory variablePart,
-        VariablePart[] memory variableParts
+        SignedVariablePart[] memory signedVariableParts
     ) internal pure {
         require(
             _bytesEqual(
-                abi.encode(variableParts[variableParts.length - 1]),
+                abi.encode(signedVariableParts[signedVariableParts.length - 1].variablePart),
                 abi.encode(variablePart)
             ),
             'variablePart not the last.'
@@ -755,16 +701,16 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Returns the last VariablePart from array.
-     * @dev Returns the last VariablePart from array.
-     * @param variableParts Array of VariableParts.
+     * @notice Returns the last VariablePart from array of SignedVariableParts.
+     * @dev Returns the last VariablePart from array of SignedVariableParts.
+     * @param signedVariableParts Array of SignedVariableParts.
      * @return VariablePart Last VariablePart from array.
      */
-    function _lastVariablePart(VariablePart[] memory variableParts)
+    function _lastVariablePart(SignedVariablePart[] memory signedVariableParts)
         internal
         pure
         returns (VariablePart memory)
     {
-        return variableParts[variableParts.length - 1];
+        return signedVariableParts[signedVariableParts.length - 1].variablePart;
     }
 }
