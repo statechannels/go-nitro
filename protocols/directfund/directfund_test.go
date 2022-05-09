@@ -250,7 +250,11 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the first "deposit"
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
-	_, sideEffects, waitingFor, err = o.Crank(&alice.PrivateKey)
+	updated, sideEffects, waitingFor, err := o.Crank(&alice.PrivateKey)
+
+	if !updated.(*Objective).transactionSubmitted {
+		t.Fatalf("Expected transactionSubmitted flag to be set to true")
+	}
 	if err != nil {
 		t.Error(err)
 	}

@@ -175,9 +175,12 @@ func TestCrankAlice(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, se, wf, err = updated.Crank(&alice.PrivateKey)
+	updated, se, wf, err = updated.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
+	}
+	if !updated.(*Objective).transactionSubmitted {
+		t.Fatalf("Expected transactionSubmitted flag to be set to true")
 	}
 
 	if wf != WaitingForWithdraw {
@@ -258,9 +261,13 @@ func TestCrankBob(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, se, wf, err = updated.Crank(&bob.PrivateKey)
+	updated, se, wf, err = updated.Crank(&bob.PrivateKey)
 	if err != nil {
 		t.Error(err)
+	}
+
+	if updated.(*Objective).transactionSubmitted {
+		t.Fatalf("Expected transactionSubmitted flag to be set to false")
 	}
 
 	if wf != WaitingForWithdraw {
