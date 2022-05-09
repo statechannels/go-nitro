@@ -1,6 +1,7 @@
 package channel
 
 import (
+	"encoding/json"
 	"errors"
 	"math/big"
 	"reflect"
@@ -343,4 +344,41 @@ func TestSingleHopVirtualChannel(t *testing.T) {
 
 	}
 	t.Run(`TestClone`, testClone)
+}
+
+func TestSerde(t *testing.T) {
+
+	ss := state.NewSignedState(state.TestState)
+	signedStateForTurnNum := make(map[uint64]state.SignedState)
+	signedStateForTurnNum[0] = ss
+
+	someChannel := Channel{
+		Id:                          types.Destination{1},
+		MyIndex:                     1,
+		FixedPart:                   state.TestState.FixedPart(),
+		SignedStateForTurnNum:       signedStateForTurnNum,
+		latestSupportedStateTurnNum: 2,
+	}
+
+	someChannelJSON := `{"Id":"0x0100000000000000000000000000000000000000000000000000000000000000","MyIndex":1,"OnChainFunding":null,"ChainId":9001,"Participants":["0xf5a1bb5607c9d079e46d1b3dc33f257d937b43bd","0x760bf27cd45036a6c486802d30b5d90cffbe31fe"],"ChannelNonce":37140676580,"AppDefinition":"0x5e29e5ab8ef33f050c7cc10b5a0456d975c5f88d","ChallengeDuration":60,"SignedStateForTurnNum":{"0":{"State":{"ChainId":9001,"Participants":["0xf5a1bb5607c9d079e46d1b3dc33f257d937b43bd","0x760bf27cd45036a6c486802d30b5d90cffbe31fe"],"ChannelNonce":37140676580,"AppDefinition":"0x5e29e5ab8ef33f050c7cc10b5a0456d975c5f88d","ChallengeDuration":60,"AppData":"","Outcome":[{"Asset":"0x0000000000000000000000000000000000000000","Metadata":null,"Allocations":[{"Destination":"0x000000000000000000000000f5a1bb5607c9d079e46d1b3dc33f257d937b43bd","Amount":5,"AllocationType":0,"Metadata":null},{"Destination":"0x000000000000000000000000ee18ff1575055691009aa246ae608132c57a422c","Amount":5,"AllocationType":0,"Metadata":null}]}],"TurnNum":5,"IsFinal":false},"Sigs":{}}},"LatestSupportedStateTurnNum":2}`
+
+	// Marshalling
+	got, err := json.Marshal(someChannel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != someChannelJSON {
+		t.Fatalf("incorrect json marshaling, expected %v got \n%v", someChannelJSON, string(got))
+	}
+
+	//Unmarshalling
+	var c Channel
+	err = json.Unmarshal([]byte(someChannelJSON), &c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(c, someChannel) {
+		t.Fatalf("incorrect json unmarshaling, expected \n%+v got \n%+v", someChannel, got)
+	}
 }
