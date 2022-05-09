@@ -201,15 +201,17 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 // Only Allocation Updated events are currently handled.
 func (o Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
 	updated := o.clone()
-	de, ok := event.(chainservice.AllocationUpdatedEvent)
-	if !ok {
+	switch e := event.(type) {
+	case chainservice.AllocationUpdatedEvent:
+		{
+			// todo: check block number
+			if e.Holdings != nil {
+				updated.C.OnChainFunding = e.Holdings.Clone()
+			}
+		}
+	default:
 		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
 	}
-	// todo: check block number
-	if de.Holdings != nil {
-		updated.C.OnChainFunding = de.Holdings.Clone()
-	}
-
 	return &updated, nil
 
 }

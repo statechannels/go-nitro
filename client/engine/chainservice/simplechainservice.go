@@ -11,11 +11,11 @@ type SimpleChainService struct {
 	in  chan protocols.ChainTransaction // in is the chan used to recieve Transactions from the engine
 
 	address types.Address // address is used to subscribe to the MockChain's Out chan
-	chain   MockChain
+	chain   *MockChain
 }
 
 // NewSimpleChainService returns a SimpleChainService which is listening for transactions and events.
-func NewSimpleChainService(mc MockChain, address types.Address) ChainService {
+func NewSimpleChainService(mc *MockChain, address types.Address) ChainService {
 	mcs := SimpleChainService{}
 	mcs.out = make(chan Event)
 	mcs.in = make(chan protocols.ChainTransaction)
