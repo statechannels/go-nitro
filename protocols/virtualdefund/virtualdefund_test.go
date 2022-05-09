@@ -149,7 +149,12 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		checkForLeaderProposals(t, se, updated, data)
 
 		proposals := generateProposalsResponses(my.Role, vId, updated, data)
-		updateProposals(updated, proposals...)
+		for _, p := range proposals {
+			e := protocols.ObjectiveEvent{ObjectiveId: updated.Id(), SignedProposal: p}
+			updatedObj, err = updated.Update(e)
+			testhelpers.Ok(t, err)
+			updated = updatedObj.(*Objective)
+		}
 
 		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 		updated = updatedObj.(*Objective)
