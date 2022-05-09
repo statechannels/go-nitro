@@ -73,7 +73,7 @@ func TestLeaderChannel(t *testing.T) {
 
 		proposalQueue := []SignedProposal{}
 		for _, p := range testProposalQueue {
-			p.Proposal.ChannelID = cId
+			p.Proposal.LedgerID = cId
 			proposalQueue = append(proposalQueue, p.SignedProposal)
 		}
 
@@ -212,7 +212,7 @@ func TestLeaderChannel(t *testing.T) {
 
 		c := testChannel(startingOutcome, startingQueue)
 
-		newAdd := Proposal{ChannelID: p1.ChannelID, ToAdd: add(amountAdded, types.Destination{3}, alice, bob)}
+		newAdd := Proposal{LedgerID: p1.LedgerID, ToAdd: add(amountAdded, types.Destination{3}, alice, bob)}
 
 		currentlyProposed, _ := c.latestProposedVars()
 		expectedSp := aliceSignedProposal(currentlyProposed, newAdd, 2).SignedProposal
@@ -296,7 +296,7 @@ func TestLeaderChannel(t *testing.T) {
 
 		c := testChannel(startingOutcome, startingQueue)
 
-		duplicateAdd := Proposal{ToAdd: add(amountAdded, proposedChan, alice, bob), ChannelID: c.Id}
+		duplicateAdd := Proposal{ToAdd: add(amountAdded, proposedChan, alice, bob), LedgerID: c.Id}
 
 		t.Run(msg, testPropose(c, duplicateAdd, SignedProposal{}, ErrDuplicateGuarantee))
 	}
@@ -312,7 +312,7 @@ func TestLeaderChannel(t *testing.T) {
 
 		c := testChannel(startingOutcome, emptyQueue())
 
-		p := Proposal{ToAdd: add(amountAdded, proposedChan, alice, bob), ChannelID: c.Id}
+		p := Proposal{ToAdd: add(amountAdded, proposedChan, alice, bob), LedgerID: c.Id}
 		t.Run(msg, testPropose(c, p, SignedProposal{}, ErrInsufficientFunds))
 	}
 

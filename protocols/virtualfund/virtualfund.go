@@ -70,7 +70,7 @@ func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
 		return fmt.Errorf("nil connection should not handle proposals")
 	}
 
-	if sp.Proposal.ChannelID != c.Channel.Id {
+	if sp.Proposal.LedgerID != c.Channel.Id {
 		return consensus_channel.ErrIncorrectChannelID
 	}
 
@@ -317,7 +317,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 	if sp := event.SignedProposal; sp.Proposal.Target() == o.V.Id {
 		var err error
 
-		switch sp.Proposal.ChannelID {
+		switch sp.Proposal.LedgerID {
 		case types.Destination{}:
 			return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
 		case toMyLeftId:

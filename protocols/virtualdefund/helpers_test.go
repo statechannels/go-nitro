@@ -180,10 +180,10 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 func updateProposals(o *Objective, proposals ...consensus_channel.SignedProposal) {
 	for _, p := range proposals {
 		var err error
-		if o.ToMyLeft != nil && o.ToMyLeft.Id == p.Proposal.ChannelID {
+		if o.ToMyLeft != nil && o.ToMyLeft.Id == p.Proposal.LedgerID {
 			err = o.ToMyLeft.Receive(p)
 		}
-		if o.ToMyRight != nil && o.ToMyRight.Id == p.Proposal.ChannelID {
+		if o.ToMyRight != nil && o.ToMyRight.Id == p.Proposal.LedgerID {
 			err = o.ToMyRight.Receive(p)
 		}
 		if err != nil {

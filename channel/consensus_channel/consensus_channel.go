@@ -274,7 +274,7 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 // validateProposalID checks that the given proposal's ID matches
 // the channel's ID.
 func (c *ConsensusChannel) validateProposalID(propsal Proposal) error {
-	if propsal.ChannelID != c.Id {
+	if propsal.LedgerID != c.Id {
 		return ErrIncorrectChannelID
 	}
 
@@ -566,18 +566,18 @@ func (sv *SignedVars) clone() SignedVars {
 //
 // Exactly one of {toAdd, toRemove} should be non nil.
 type Proposal struct {
-	// ChannelID of the ConsensusChannel which should recieve the proposal.
+	// LedgerID is the ChannelID of the ConsensusChannel which should recieve the proposal.
 	//
 	// The target virtual channel ID is contained in the Add / Remove struct.
-	ChannelID types.Destination
-	ToAdd     Add
-	ToRemove  Remove
+	LedgerID types.Destination
+	ToAdd    Add
+	ToRemove Remove
 }
 
 // Clone returns a deep copy of the receiver.
 func (p *Proposal) Clone() Proposal {
 	return Proposal{
-		p.ChannelID,
+		p.LedgerID,
 		p.ToAdd.Clone(),
 		p.ToRemove.Clone(),
 	}
@@ -602,17 +602,17 @@ func (p *Proposal) Type() ProposalType {
 
 // Equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
 func (p *Proposal) Equal(q *Proposal) bool {
-	return p.ChannelID == q.ChannelID && p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
+	return p.LedgerID == q.LedgerID && p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
 }
 
 // ChannelID returns the id of the ConsensusChannel which receive the proposal.
 func (p SignedProposal) ChannelID() types.Destination {
-	return p.Proposal.ChannelID
+	return p.Proposal.LedgerID
 }
 
 // SortInfo returns the channelId and turn number so the proposal can be easily sorted.
 func (p SignedProposal) SortInfo() (types.Destination, uint64) {
-	cId := p.Proposal.ChannelID
+	cId := p.Proposal.LedgerID
 	turnNum := p.TurnNum
 	return cId, turnNum
 }
@@ -677,8 +677,8 @@ func NewAdd(g Guarantee, leftDeposit *big.Int) Add {
 }
 
 // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
-func NewAddProposal(channelId types.Destination, g Guarantee, leftDeposit *big.Int) Proposal {
-	return Proposal{ToAdd: NewAdd(g, leftDeposit), ChannelID: channelId}
+func NewAddProposal(ledgerID types.Destination, g Guarantee, leftDeposit *big.Int) Proposal {
+	return Proposal{ToAdd: NewAdd(g, leftDeposit), LedgerID: ledgerID}
 }
 
 // NewRemove constructs a new Remove proposal.
@@ -687,8 +687,8 @@ func NewRemove(target types.Destination, leftAmount, rightAmount *big.Int) Remov
 }
 
 // NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
-func NewRemoveProposal(channelId types.Destination, target types.Destination, leftAmount, rightAmount *big.Int) Proposal {
-	return Proposal{ToRemove: NewRemove(target, leftAmount, rightAmount), ChannelID: channelId}
+func NewRemoveProposal(ledgerID types.Destination, target types.Destination, leftAmount, rightAmount *big.Int) Proposal {
+	return Proposal{ToRemove: NewRemove(target, leftAmount, rightAmount), LedgerID: ledgerID}
 }
 
 // RightDeposit computes the deposit from the right participant such that
