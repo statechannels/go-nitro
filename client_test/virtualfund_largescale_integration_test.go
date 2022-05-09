@@ -29,7 +29,7 @@ import (
 // The output shiviz.log can be pasted into https://bestchai.bitbucket.io/shiviz/ to visualize the messages which are sent.
 func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 
-	t.Skip() // This test is skipped because it requires an external dependency to run.
+	// t.Skip() // This test is skipped because it requires an external dependency to run.
 	// go install github.com/DistributedClocks/GoVector@latest
 	// You may need to add GOPATH/bin to your PATH
 

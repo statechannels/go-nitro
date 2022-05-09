@@ -23,6 +23,8 @@ func (d Destination) ToAddress() (Address, error) {
 	}
 
 	address := Address{}
+
+	//lint:ignore S1001
 	for i, b := range d[12:] {
 		address[i] = b
 	}

@@ -51,10 +51,7 @@ type jsonRemove struct {
 
 // MarshalJSON returns a JSON representation of the Remove
 func (r Remove) MarshalJSON() ([]byte, error) {
-	jsonR := jsonRemove{
-		r.Target, r.LeftAmount, r.RightAmount,
-	}
-	return json.Marshal(jsonR)
+	return json.Marshal(jsonRemove(r))
 }
 
 // UnmarshalJSON populates the receiver with the
@@ -83,9 +80,7 @@ type jsonProposal struct {
 
 // MarshalJSON returns a JSON representation of the Proposal
 func (p Proposal) MarshalJSON() ([]byte, error) {
-	jsonP := jsonProposal{p.ChannelID, p.ToAdd, p.ToRemove}
-
-	return json.Marshal(jsonP)
+	return json.Marshal(jsonProposal(p))
 }
 
 // UnmarshalJSON populates the receiver with the
