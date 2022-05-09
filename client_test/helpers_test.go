@@ -88,7 +88,7 @@ func setupInstrumentedClient(
 ) (client.Client, store.Store) {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	chain.Subscribe(myAddress)
-	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
+	chainservice := chainservice.NewSimpleChainService(&chain, myAddress)
 	messageservice := messageservice.NewVectorClockTestMessageService(myAddress, msgBroker, meanMessageDelay, logDir, prettyName)
 	storeA := store.NewMemStore(pk)
 	return client.New(messageservice, chainservice, storeA, logDestination), storeA
