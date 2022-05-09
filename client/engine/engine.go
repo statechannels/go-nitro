@@ -133,11 +133,11 @@ func (e *Engine) Run() {
 }
 
 // handleMessage handles a Message from a peer go-nitro Wallet.
-// It
-// reads an objective from the store,
-// gets a pointer to a channel secret key from the store,
-// generates an updated objective and
-// attempts progress.
+// It:
+//  - reads an objective from the store,
+//  - generates an updated objective,
+//  - attempts progress on the target Objective,
+//  - attemps progress on related objevtives which may have become unblocked
 func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent, error) {
 
 	e.logger.Printf("Handling inbound message %+v", protocols.SummarizeMessage(message))
@@ -177,8 +177,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 	}
 
-	proposalEntries := message.SignedProposals()
-	for _, entry := range proposalEntries {
+	for _, entry := range message.SignedProposals() {
 		e.logger.Printf("handling proposal %+v", protocols.SummarizeProposal(entry.ObjectiveId, entry.Payload))
 		objective, err := e.store.GetObjectiveById(entry.ObjectiveId)
 		if err != nil {
