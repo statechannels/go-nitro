@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
@@ -158,4 +160,29 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 
 	}
 
+}
+
+func TestConstructObjectiveFromState(t *testing.T) {
+	data := generateTestData()
+	vId := data.vFinal.ChannelId()
+
+	getChannel, getConsensusChannel := generateStoreGetters(alice.Role, vId, data.vInitial)
+
+	got, err := ConstructObjectiveFromState(data.vFinal, alice.Address(), getChannel, getConsensusChannel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	left, right := generateLedgers(alice.Role, vId)
+	want := Objective{
+		Status:         protocols.Approved,
+		InitialOutcome: data.vInitial.Outcome[0],
+		PaidToBob:      big.NewInt(int64(data.paid)),
+		VFixed:         data.vFinal.FixedPart(),
+		Signatures:     [3]state.Signature{},
+		ToMyLeft:       left,
+		ToMyRight:      right,
+	}
+	if diff := cmp.Diff(want, got, cmp.AllowUnexported(big.Int{}, consensus_channel.ConsensusChannel{}, consensus_channel.LedgerOutcome{}, consensus_channel.Guarantee{})); diff != "" {
+		t.Errorf("objective mismatch (-want +got):\n%s", diff)
+	}
 }
