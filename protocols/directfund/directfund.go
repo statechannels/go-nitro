@@ -39,6 +39,7 @@ type Objective struct {
 	myDepositTarget          types.Funds // I want to get the on chain holdings up to this much
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
 	latestBlockNumber        uint64      // the latest block number we've seen
+	transactionSubmitted     bool        // whether a transation for the objective has been submitted or not
 }
 
 // NewObjective creates a new direct funding objective from a given request.
@@ -270,8 +271,9 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 		return &updated, sideEffects, WaitingForMyTurnToFund, nil
 	}
 
-	if !fundingComplete && safeToDeposit && amountToDeposit.IsNonZero() {
+	if !fundingComplete && safeToDeposit && amountToDeposit.IsNonZero() && !updated.transactionSubmitted {
 		deposit := protocols.ChainTransaction{Type: protocols.DepositTransactionType, ChannelId: updated.C.Id, Deposit: amountToDeposit}
+		updated.transactionSubmitted = true
 		sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, deposit)
 	}
 

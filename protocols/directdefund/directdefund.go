@@ -31,9 +31,10 @@ var (
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
-	Status       protocols.ObjectiveStatus
-	C            *channel.Channel
-	finalTurnNum uint64
+	Status               protocols.ObjectiveStatus
+	C                    *channel.Channel
+	finalTurnNum         uint64
+	transactionSubmitted bool // whether a transation for the objective has been submitted or not
 }
 
 // isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
@@ -257,12 +258,13 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	}
 
 	// Withdrawal of funds
-	if !updated.fullyWithdrawn() {
-		// TODO #314: before submiting a withdrawal transaction, we should check if a withdrawal transaction has already been submitted
+	if !updated.fullyWithdrawn() && !updated.transactionSubmitted {
+
 		// The first participant in the channel submits the withdrawAll transaction
 		if updated.C.MyIndex == 0 {
 			withdrawAll := protocols.ChainTransaction{Type: protocols.WithdrawAllTransactionType, ChannelId: updated.C.Id}
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
+			updated.transactionSubmitted = true
 		}
 		// Every participant waits for all channel funds to be distributed, even if the participant has no funds in the channel
 		return &updated, sideEffects, WaitingForWithdraw, nil
