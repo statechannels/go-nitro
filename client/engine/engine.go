@@ -133,11 +133,11 @@ func (e *Engine) Run() {
 }
 
 // handleMessage handles a Message from a peer go-nitro Wallet.
-// It
-// reads an objective from the store,
-// gets a pointer to a channel secret key from the store,
-// generates an updated objective and
-// attempts progress.
+// It:
+//  - reads an objective from the store,
+//  - generates an updated objective,
+//  - attempts progress on the target Objective,
+//  - attemps progress on related objevtives which may have become unblocked
 func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent, error) {
 
 	e.logger.Printf("Handling inbound message %+v", protocols.SummarizeMessage(message))
@@ -177,8 +177,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 	}
 
-	proposalEntries := message.SignedProposals()
-	for _, entry := range proposalEntries {
+	for _, entry := range message.SignedProposals() {
 		e.logger.Printf("handling proposal %+v", protocols.SummarizeProposal(entry.ObjectiveId, entry.Payload))
 		objective, err := e.store.GetObjectiveById(entry.ObjectiveId)
 		if err != nil {
@@ -218,11 +217,10 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
-// It
-// reads an objective from the store,
-// gets a pointer to a channel secret key from the store,
-// generates an updated objective and
-// attempts progress.
+// It:
+//  - reads an objective from the store,
+//  - generates an updated objective, and
+//  - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChangeEvent, error) {
 	e.logger.Printf("handling chain event %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
@@ -244,11 +242,11 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 	return e.attemptProgress(updatedEventHandler)
 }
 
-// handleAPIEvent handles an API Event (triggered by an API call)
+// handleAPIEvent handles an API Event (triggered by a client API call).
 // It will attempt to perform all of the following:
-// Spawn a new, approved objective (if not null)
-// Reject an existing objective (if not null)
-// Approve an existing objective (if not null)
+//  - Spawn a new, approved objective (if not null)
+//  - Reject an existing objective (if not null)
+//  - Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error) {
 	if apiEvent.ObjectiveToSpawn != nil {
 
@@ -354,7 +352,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	if waitingFor == "WaitingForNothing" {
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
 		e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
-		err = e.SpawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
+		err = e.spawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
 		if err != nil {
 			return
 		}
@@ -363,10 +361,10 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	return
 }
 
-// SpawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective if it is a directfund.Objective.
+// spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective if it is a directfund.Objective.
 //
 // The associated Channel will remain in the store.
-func (e Engine) SpawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
+func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
 	if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
 		c, err := dfo.CreateConsensusChannel()
 		if err != nil {
