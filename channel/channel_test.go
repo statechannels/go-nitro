@@ -3,7 +3,6 @@ package channel
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -244,7 +244,7 @@ func TestChannel(t *testing.T) {
 			t.Error(err)
 		}
 		expectedSignedState := state.NewSignedState(c.PostFundState())
-		signState(&expectedSignedState, &alicePrivateKey)
+		testhelpers.SignState(&expectedSignedState, &alicePrivateKey)
 
 		if diff := cmp.Diff(expectedSignedState, latestSignedState, cmp.AllowUnexported(expectedSignedState)); diff != "" {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
@@ -280,7 +280,7 @@ func TestChannel(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		signState(&expectedSignedState, &bobPrivateKey)
+		testhelpers.SignState(&expectedSignedState, &bobPrivateKey)
 
 		if diff := compareStates(latestSignedState, expectedSignedState); diff != "" {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
@@ -376,18 +376,5 @@ func TestSerde(t *testing.T) {
 
 	if !reflect.DeepEqual(c, someChannel) {
 		t.Fatalf("incorrect json unmarshaling, expected \n%+v got \n%+v", someChannel, got)
-	}
-}
-
-// signState generates a signature on the signed state with the supplied key, and adds that signature.
-// If an error occurs the function panics
-func signState(ss *state.SignedState, secretKey *[]byte) {
-	sig, err := ss.State().Sign(*secretKey)
-	if err != nil {
-		panic(fmt.Errorf("SignAndAdd failed to sign the state: %w", err))
-	}
-	err = ss.AddSignature(sig)
-	if err != nil {
-		panic(fmt.Errorf("SignAndAdd failed to sign the state: %w", err))
 	}
 }
