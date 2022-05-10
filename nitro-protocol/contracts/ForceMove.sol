@@ -49,7 +49,7 @@ contract ForceMove is IForceMove, StatusManager {
     ) external override {
         bytes32 channelId = _getChannelId(fixedPart);
 
-        VariablePart memory supportedVariablePart = IForceMoveApp(fixedPart.appDefinition).latestSupportedState(fixedPart, signedVariableParts);
+        VariablePart memory supportedVariablePart = signedVariableParts[IForceMoveApp(fixedPart.appDefinition).latestSupportedState(fixedPart, signedVariableParts)].variablePart;
         uint48 supportedTurnNum = supportedVariablePart.turnNum;
 
         if (_mode(channelId) == ChannelMode.Open) {
@@ -106,7 +106,7 @@ contract ForceMove is IForceMove, StatusManager {
     ) external override {
         bytes32 channelId = _getChannelId(fixedPart);
 
-        VariablePart memory supportedVariablePart = IForceMoveApp(fixedPart.appDefinition).latestSupportedState(fixedPart, signedVariableParts);
+        VariablePart memory supportedVariablePart = signedVariableParts[IForceMoveApp(fixedPart.appDefinition).latestSupportedState(fixedPart, signedVariableParts)].variablePart;
         uint48 supportedTurnNum = supportedVariablePart.turnNum;
 
 
@@ -150,7 +150,7 @@ contract ForceMove is IForceMove, StatusManager {
             signedVariableParts.length
         );
 
-        VariablePart memory supportedVariablePart = IForceMoveApp(fixedPart.appDefinition).latestSupportedState(fixedPart, signedVariableParts);
+        VariablePart memory supportedVariablePart = signedVariableParts[IForceMoveApp(fixedPart.appDefinition).latestSupportedState(fixedPart, signedVariableParts)].variablePart;
         uint48 supportedTurnNum = supportedVariablePart.turnNum;
 
         // checks

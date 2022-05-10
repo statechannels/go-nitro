@@ -34,8 +34,8 @@ contract CountingApp is IForceMoveApp {
     function latestSupportedState(
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
-    ) external pure override returns (VariablePart memory) {
+    ) external pure override returns (uint256) {
         // TODO see https://github.com/statechannels/go-nitro/issues/558
-        return signedVariableParts[signedVariableParts.length - 1].variablePart;
+        return signedVariableParts.length - 1;
     }
 }

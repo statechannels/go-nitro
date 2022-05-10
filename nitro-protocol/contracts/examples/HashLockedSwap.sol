@@ -17,7 +17,7 @@ contract HashLockedSwap is IForceMoveApp {
     function latestSupportedState(
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
-    ) external pure override returns (VariablePart memory) {
+    ) external pure override returns (uint256) {
         // TODO see https://github.com/statechannels/go-nitro/issues/558
 
         // // is this the first and only swap?

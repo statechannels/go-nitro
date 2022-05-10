@@ -101,7 +101,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
     function latestSupportedState(
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
-    ) external pure returns (VariablePart memory) {
+    ) external pure returns (uint256) {
         // To avoid `Stack to deep` error, signedVariableParts are copied to `memory` array explicitly
         SignedVariablePart[] memory _signedVariableParts = signedVariableParts;
         return IForceMoveApp(fixedPart.appDefinition).latestSupportedState(fixedPart, _signedVariableParts);

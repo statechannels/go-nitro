@@ -16,7 +16,7 @@ contract TrivialApp is IForceMoveApp {
     function latestSupportedState(
         FixedPart calldata, // fixedPart, unused
         SignedVariablePart[] calldata signedVariableParts
-    ) external pure override returns (VariablePart memory) {
-        return signedVariableParts[signedVariableParts.length - 1].variablePart;
+    ) external pure override returns (uint256) {
+        return signedVariableParts.length - 1;
     }
 }
