@@ -174,6 +174,7 @@ func (ms *MemStore) getChannelById(id types.Destination) (channel.Channel, error
 	return ch, nil
 }
 
+// GetChannelsByParticipant returns any channels that include the given participant
 func (ms *MemStore) GetChannelsByParticipant(participant types.Address) []*channel.Channel {
 	toReturn := []*channel.Channel{}
 	ms.channels.Range(func(key string, chJSON []byte) bool {
