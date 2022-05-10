@@ -112,7 +112,7 @@ func TestConsensusChannel(t *testing.T) {
 
 		vars := Vars{TurnNum: startingTurnNum, Outcome: outcome()}
 		aAmount, bAmount := uint64(2), uint64(3)
-		proposal := remove(existingChannel, aAmount, bAmount)
+		proposal := remove(existingChannel, aAmount)
 		err := vars.Remove(proposal)
 
 		if err != nil {
@@ -144,26 +144,24 @@ func TestConsensusChannel(t *testing.T) {
 		// Proposing a remove that cannot be afforded by the guarantee should fail
 		vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
 		largeProposal := Remove{
-			Target:      existingChannel,
-			LeftAmount:  big.NewInt(5),
-			RightAmount: big.NewInt(5),
+			Target:     existingChannel,
+			LeftAmount: big.NewInt(10),
 		}
 		err = vars.Remove(largeProposal)
-		if !errors.Is(err, ErrInvalidAmounts) {
-			t.Fatalf("expected error when adding too large a guarantee: %v", err)
+		if !errors.Is(err, ErrInvalidAmount) {
+			t.Fatalf("expected error when recovering too large much from a guarantee: %v", err)
 		}
 
 		// Proposing a remove that does allocate all guarantee funds should fail
-		vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
-		smallProposal := Remove{
-			Target:      existingChannel,
-			LeftAmount:  big.NewInt(0),
-			RightAmount: big.NewInt(0),
-		}
-		err = vars.Remove(smallProposal)
-		if !errors.Is(err, ErrInvalidAmounts) {
-			t.Fatalf("expected error when adding too large a guarantee: %v", err)
-		}
+		// vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
+		// smallProposal := Remove{
+		// 	Target:     existingChannel,
+		// 	LeftAmount: big.NewInt(0),
+		// }
+		// // err = vars.Remove(smallProposal)
+		// // if !errors.Is(err, ErrInvalidAmount) {
+		// // 	t.Fatalf("expected error when recovering too little from a guarantee: %v", err)
+		// // }
 	}
 
 	initialVars := Vars{Outcome: outcome(), TurnNum: 0}

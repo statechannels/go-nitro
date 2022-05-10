@@ -50,7 +50,7 @@ func TestReceive(t *testing.T) {
 
 	// Generate a second proposal(removal)
 	latestProposed, _ := channel.latestProposedVars()
-	secondProposal := Proposal{LedgerID: channel.Id, ToRemove: remove(channel1Id, 2, 3)}
+	secondProposal := Proposal{LedgerID: channel.Id, ToRemove: remove(channel1Id, 2)}
 	anotherValid := createSignedProposal(latestProposed, secondProposal, fp(), alice.PrivateKey)
 	err = channel.Receive(anotherValid)
 	if err != nil {

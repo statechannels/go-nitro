@@ -44,15 +44,14 @@ func (a *Add) UnmarshalJSON(data []byte) error {
 // making it suitable for serialization
 // embedded structs are moved to name fields for easier serialization
 type jsonRemove struct {
-	Target      types.Destination
-	LeftAmount  *big.Int
-	RightAmount *big.Int
+	Target     types.Destination
+	LeftAmount *big.Int
 }
 
 // MarshalJSON returns a JSON representation of the Remove
 func (r Remove) MarshalJSON() ([]byte, error) {
 	jsonR := jsonRemove{
-		r.Target, r.LeftAmount, r.RightAmount,
+		r.Target, r.LeftAmount,
 	}
 	return json.Marshal(jsonR)
 }
@@ -68,7 +67,6 @@ func (r *Remove) UnmarshalJSON(data []byte) error {
 
 	r.Target = jsonR.Target
 	r.LeftAmount = jsonR.LeftAmount
-	r.RightAmount = jsonR.RightAmount
 
 	return nil
 }
