@@ -48,21 +48,27 @@ contract ForceMove is IForceMove, StatusManager {
         Signature memory challengerSig
     ) external override {
         bytes32 channelId = _getChannelId(fixedPart);
-        uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
+
+        VariablePart memory supportedVariablePart = IForceMoveApp(fixedPart.appDefinition).latestSupportedState(fixedPart, signedVariableParts);
+        uint48 supportedTurnNum = supportedVariablePart.turnNum;
 
         if (_mode(channelId) == ChannelMode.Open) {
-            _requireNonDecreasedTurnNumber(channelId, largestTurnNum);
+            _requireNonDecreasedTurnNumber(channelId, supportedTurnNum);
         } else if (_mode(channelId) == ChannelMode.Challenge) {
-            _requireIncreasedTurnNumber(channelId, largestTurnNum);
+            _requireIncreasedTurnNumber(channelId, supportedTurnNum);
         } else {
             // This should revert.
             _requireChannelNotFinalized(channelId);
         }
-        bytes32 supportedStateHash = _requireStateSupportedBy(
-            fixedPart,
-            signedVariableParts,
-            channelId
-        );
+
+
+        bytes32 supportedStateHash =  _hashState(
+            channelId,
+            supportedVariablePart.appData,
+            supportedVariablePart.outcome,
+            supportedVariablePart.turnNum,
+            supportedVariablePart.isFinal);
+        
 
         _requireChallengerIsParticipant(supportedStateHash, fixedPart.participants, challengerSig);
 
@@ -70,7 +76,7 @@ contract ForceMove is IForceMove, StatusManager {
 
         emit ChallengeRegistered(
             channelId,
-            largestTurnNum,
+            supportedTurnNum,
             uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
             // This could overflow, so don't join a channel with a huge challengeDuration
             _lastVariablePart(signedVariableParts).isFinal,
@@ -80,7 +86,7 @@ contract ForceMove is IForceMove, StatusManager {
 
         statusOf[channelId] = _generateStatus(
             ChannelData(
-                largestTurnNum,
+                supportedTurnNum,
                 uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
                 supportedStateHash,
                 _hashOutcome(_lastVariablePart(signedVariableParts).outcome)
@@ -99,15 +105,17 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart[] memory signedVariableParts
     ) external override {
         bytes32 channelId = _getChannelId(fixedPart);
-        uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
+
+        VariablePart memory supportedVariablePart = IForceMoveApp(fixedPart.appDefinition).latestSupportedState(fixedPart, signedVariableParts);
+        uint48 supportedTurnNum = supportedVariablePart.turnNum;
+
 
         // checks
         _requireChannelNotFinalized(channelId);
-        _requireIncreasedTurnNumber(channelId, largestTurnNum);
-        _requireStateSupportedBy(fixedPart, signedVariableParts, channelId);
+        _requireIncreasedTurnNumber(channelId, supportedTurnNum);
 
         // effects
-        _clearChallenge(channelId, largestTurnNum);
+        _clearChallenge(channelId, supportedTurnNum);
     }
 
     /**
@@ -136,8 +144,17 @@ contract ForceMove is IForceMove, StatusManager {
         channelId = _getChannelId(fixedPart);
         _requireChannelNotFinalized(channelId);
 
+        // input type validation
+        requireValidInput(
+            fixedPart.participants.length,
+            signedVariableParts.length
+        );
+
+        VariablePart memory supportedVariablePart = IForceMoveApp(fixedPart.appDefinition).latestSupportedState(fixedPart, signedVariableParts);
+        uint48 supportedTurnNum = supportedVariablePart.turnNum;
+
         // checks
-        _requireStateSupportedBy(fixedPart, signedVariableParts, channelId);
+        require(supportedVariablePart.isFinal);
 
         // effects
         statusOf[channelId] = _generateStatus(
@@ -218,52 +235,6 @@ contract ForceMove is IForceMove, StatusManager {
         return (a);
     }
 
-    /**
-     * @notice Check that the submitted data constitute a support proof.
-     * @dev Check that the submitted data constitute a support proof.
-     * @param fixedPart Fixed Part of the states in the support proof.
-     * @param signedVariableParts Signed variable parts of the states in the support proof.
-     * @param channelId Unique identifier for a channel.
-     * @return The hash of the latest state in the proof, if supported, else reverts.
-     */
-    function _requireStateSupportedBy(
-        FixedPart memory fixedPart,
-        SignedVariablePart[] memory signedVariableParts,
-        bytes32 channelId
-    ) internal pure returns (bytes32) {
-        VariablePart memory latestVariablePart = IForceMoveApp(fixedPart.appDefinition)
-            .latestSupportedState(fixedPart, signedVariableParts);
-
-        // enforcing the latest supported state being in the last slot of the array
-        _requireVariablePartIsLast(latestVariablePart, signedVariableParts);
-
-        return _hashState(
-            channelId,
-            latestVariablePart.appData,
-            latestVariablePart.outcome,
-            latestVariablePart.turnNum,
-            latestVariablePart.isFinal
-        );
-    }
-
-    /**
-     * @notice Check whether supplied variablePart is in the last slot if variableParts.
-     * @dev Check whether supplied variablePart is in the last slot if variableParts.
-     * @param variablePart VariablePart to be in the last slot.
-     * @param signedVariableParts SignedVariableParts the last slot of to check.
-     */
-    function _requireVariablePartIsLast(
-        VariablePart memory variablePart,
-        SignedVariablePart[] memory signedVariableParts
-    ) internal pure {
-        require(
-            _bytesEqual(
-                abi.encode(signedVariableParts[signedVariableParts.length - 1].variablePart),
-                abi.encode(variablePart)
-            ),
-            'variablePart not the last.'
-        );
-    }
 
     /**
      * @notice Check for equality of two byte strings
