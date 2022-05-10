@@ -207,7 +207,7 @@ func SummarizeMessage(m Message) MessageSummary {
 func SummarizeProposal(oId ObjectiveId, sp consensus_channel.SignedProposal) ProposalSummary {
 
 	return ProposalSummary{
-		LedgerId:    sp.Proposal.ChannelID.String(),
+		LedgerId:    sp.Proposal.LedgerID.String(),
 		ObjectiveId: string(oId),
 		Target:      sp.Proposal.Target().String(),
 		TurnNum:     sp.TurnNum,

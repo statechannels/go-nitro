@@ -79,7 +79,7 @@ func summarizeMessageSend(msg protocols.Message) string {
 	summary := ""
 	for _, entry := range msg.SignedProposals() {
 		summary += `propose `
-		summary += fmt.Sprint(entry.Payload.Proposal.ChannelID)[1:8]
+		summary += fmt.Sprint(entry.Payload.Proposal.LedgerID)[1:8]
 		summary += ` funds `
 		summary += fmt.Sprint(entry.Payload.Proposal.ToAdd.Target())[1:8]
 	}

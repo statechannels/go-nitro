@@ -26,7 +26,7 @@ func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal
 		return SignedProposal{}, ErrNotLeader
 	}
 
-	if proposal.ChannelID != c.Id {
+	if proposal.LedgerID != c.Id {
 		return SignedProposal{}, ErrIncorrectChannelID
 	}
 	vars, err := c.latestProposedVars()

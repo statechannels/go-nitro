@@ -521,7 +521,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 
 	if sp := event.SignedProposal; sp.Proposal.Target() == o.VId() {
 		var err error
-		switch sp.Proposal.ChannelID {
+		switch sp.Proposal.LedgerID {
 		case types.Destination{}:
 			return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because of Alice or Bob we allow a null channel.
 		case toMyLeftId:
