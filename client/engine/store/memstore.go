@@ -174,7 +174,8 @@ func (ms *MemStore) getChannelById(id types.Destination) (channel.Channel, error
 	return ch, nil
 }
 
-func (ms *MemStore) GetChannelByParticipant(participant types.Address) (c *channel.Channel, ok bool) {
+func (ms *MemStore) GetChannelsByParticipant(participant types.Address) []*channel.Channel {
+	toReturn := []*channel.Channel{}
 	ms.channels.Range(func(key string, chJSON []byte) bool {
 
 		var ch channel.Channel
@@ -187,9 +188,7 @@ func (ms *MemStore) GetChannelByParticipant(participant types.Address) (c *chann
 		participants := ch.FixedPart.Participants
 		for _, p := range participants {
 			if p == participant {
-				c = &ch
-				ok = true
-				return false // we have found the target channel: break the Range loop
+				toReturn = append(toReturn, &ch)
 			}
 
 		}
@@ -197,7 +196,7 @@ func (ms *MemStore) GetChannelByParticipant(participant types.Address) (c *chann
 		return true // channel not found: continue looking
 	})
 
-	return
+	return toReturn
 }
 
 // GetConsensusChannelById returns a ConsensusChannel with the given channel id
