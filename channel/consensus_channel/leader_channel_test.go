@@ -263,21 +263,6 @@ func TestLeaderChannel(t *testing.T) {
 
 		t.Run(msg, testPropose(c, newRemove, SignedProposal{}, ErrInvalidAmount))
 	}
-	// {
-	// 	msg := "err:adding a remove proposal with too small left/right amounts"
-	// 	startingOutcome := makeOutcome(
-	// 		allocation(alice, aBal),
-	// 		allocation(bob, bBal),
-	// 		guarantee(amountAdded, channel1Id, alice, bob),
-	// 	)
-
-	// 	c := testChannel(startingOutcome, emptyQueue())
-
-	// 	// Left+Right < amountAdded
-	// 	newRemove := NewRemoveProposal(cId, channel1Id, big.NewInt(int64(1)))
-
-	// 	t.Run(msg, testPropose(c, newRemove, SignedProposal{}, ErrInvalidAmount))
-	// }
 
 	{
 		msg := "err:adding a duplicate proposal"

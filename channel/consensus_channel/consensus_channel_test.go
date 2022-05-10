@@ -152,16 +152,6 @@ func TestConsensusChannel(t *testing.T) {
 			t.Fatalf("expected error when recovering too large much from a guarantee: %v", err)
 		}
 
-		// Proposing a remove that does allocate all guarantee funds should fail
-		// vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
-		// smallProposal := Remove{
-		// 	Target:     existingChannel,
-		// 	LeftAmount: big.NewInt(0),
-		// }
-		// // err = vars.Remove(smallProposal)
-		// // if !errors.Is(err, ErrInvalidAmount) {
-		// // 	t.Fatalf("expected error when recovering too little from a guarantee: %v", err)
-		// // }
 	}
 
 	initialVars := Vars{Outcome: outcome(), TurnNum: 0}
