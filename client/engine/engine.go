@@ -137,7 +137,7 @@ func (e *Engine) Run() {
 //  - reads an objective from the store,
 //  - generates an updated objective,
 //  - attempts progress on the target Objective,
-//  - attemps progress on related objevtives which may have become unblocked
+//  - attempts progress on related objectives which may have become unblocked.
 func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent, error) {
 
 	e.logger.Printf("Handling inbound message %+v", protocols.SummarizeMessage(message))
