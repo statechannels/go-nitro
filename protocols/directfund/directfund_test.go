@@ -47,23 +47,43 @@ var testState = state.State{
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
+
+	getByParticipant := func(id types.Address) []*channel.Channel {
+		return []*channel.Channel{}
+	}
+	getByConsensus := func(id types.Address) (*consensus_channel.ConsensusChannel, bool) {
+		return nil, false
+	}
+	request := ObjectiveRequest{
+		MyAddress:         testState.Participants[0],
+		CounterParty:      testState.Participants[1],
+		AppDefinition:     testState.AppDefinition,
+		AppData:           testState.AppData,
+		ChallengeDuration: testState.ChallengeDuration,
+		Outcome:           testState.Outcome,
+		Nonce:             testState.ChannelNonce.Int64(),
+	}
 	// Assert that valid constructor args do not result in error
-	if _, err := ConstructFromState(false, testState, testState.Participants[0]); err != nil {
+	if _, err := NewObjective(request, false, getByParticipant, getByConsensus); err != nil {
 		t.Error(err)
 	}
 
-	// Construct a final state
-	finalState := testState.Clone()
-	finalState.IsFinal = true
-
-	if _, err := ConstructFromState(false, finalState, testState.Participants[0]); err == nil {
-		t.Error("expected an error when constructing with an intial state marked final, but got nil")
+	getByParticipantHasChannel := func(id types.Address) []*channel.Channel {
+		c, _ := channel.New(testState, 0)
+		return []*channel.Channel{c}
 	}
 
-	nonParticipant := common.HexToAddress("0x5b53f71453aeCb03D837bfe170570d40aE736CB4")
-	if _, err := ConstructFromState(false, testState, nonParticipant); err == nil {
-		t.Error("expected an error when constructing with a participant not in the channel, but got nil")
+	if _, err := NewObjective(request, false, getByParticipantHasChannel, getByConsensus); err == nil {
+		t.Errorf("Expected an error when constructing with an objective when an existing channel exists")
 	}
+
+	getByConsensusHasChannel := func(id types.Address) (*consensus_channel.ConsensusChannel, bool) {
+		return nil, true
+	}
+	if _, err := NewObjective(request, false, getByParticipant, getByConsensusHasChannel); err == nil {
+		t.Errorf("Expected an error when constructing with an objective when an existing channel consensus channel exists")
+	}
+
 }
 
 func TestConstructFromState(t *testing.T) {

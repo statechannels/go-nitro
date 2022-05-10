@@ -42,14 +42,14 @@ type Objective struct {
 }
 
 // GetChannelByIdFunction specifies a function that can be used to retreive channels from a store.
-type GetChannelByParticipantFunction func(participant types.Address) (channel *channel.Channel, ok bool)
+type GetChannelsByParticipantFunction func(participant types.Address) []*channel.Channel
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
 type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
 // NewObjective creates a new direct funding objective from a given request.
-func NewObjective(request ObjectiveRequest, preApprove bool, getChannel GetChannelByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
+func NewObjective(request ObjectiveRequest, preApprove bool, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 
 	objective, err := ConstructFromState(preApprove,
 		state.State{
@@ -68,7 +68,29 @@ func NewObjective(request ObjectiveRequest, preApprove bool, getChannel GetChann
 	if err != nil {
 		return Objective{}, fmt.Errorf("could not create new objective: %w", err)
 	}
+	if channelsExistWithCounterparty(request.CounterParty, getChannels, getTwoPartyConsensusLedger) {
+		return Objective{}, fmt.Errorf("a channel already exists with counterparty %s", request.CounterParty)
+	}
 	return objective, nil
+}
+
+// channelsExistWithCounterparty returns true if a channel or consensus_channel exists with the counterparty
+func channelsExistWithCounterparty(counterparty types.Address, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) bool {
+	// check for any channels that may be in the process of direct funding
+	channels := getChannels(counterparty)
+
+	for _, c := range channels {
+		// We only want to find directly funded channels that would have two participants
+		if len(c.Participants) == 2 {
+			return true
+		}
+	}
+
+	_, ok := getTwoPartyConsensusLedger(counterparty)
+	if ok {
+		return true
+	}
+	return false
 }
 
 // ConstructFromState initiates a Objective with data calculated from
