@@ -24,16 +24,8 @@ var Channels channelCollection = channelCollection{
 
 func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool) {
 	ts := testState.Clone()
-	request := directfund.ObjectiveRequest{
-		MyAddress:         ts.Participants[0],
-		CounterParty:      ts.Participants[1],
-		AppData:           ts.AppData,
-		AppDefinition:     ts.AppDefinition,
-		ChallengeDuration: ts.ChallengeDuration,
-		Nonce:             ts.ChannelNonce.Int64(),
-		Outcome:           ts.Outcome,
-	}
-	testObj, err := directfund.NewObjective(request, true)
+	ts.TurnNum = 0
+	testObj, err := directfund.ConstructFromState(true, ts, ts.Participants[0])
 
 	if err != nil {
 		return &consensus_channel.ConsensusChannel{}, false
@@ -98,45 +90,6 @@ func (l LedgerNetwork) GetLedgerLookup(seeker types.Address) virtualfund.GetTwoP
 		}
 		return nil, false
 	}
-}
-
-// createLedgerNetwork returns active, funded consensus_channels connecting the supplied
-// actors according the the supplied edge list.
-//
-// Edges specify actors via their indices in the actors slice,
-// and each edge is ordered [leader, follower].
-func createLedgerNetwork(actors []testactors.Actor, edges [][2]int) LedgerNetwork {
-	// naive connectedness check: does not detect, eg
-	// a--b  c--d (no path from a to c or d, etc)
-	for i, a := range actors {
-		connected := false
-		for _, edge := range edges {
-			if edge[0] == i || edge[1] == i {
-				connected = true
-			}
-		}
-		if !connected {
-			panic(fmt.Sprintf("actor %v is not connected in the test network", a))
-		}
-	}
-
-	var ret LedgerNetwork
-
-	for _, edge := range edges {
-		if edge[0] > len(actors)-1 ||
-			edge[1] > len(actors)-1 ||
-			edge[0] == edge[1] {
-			panic(fmt.Sprintf("malformed ledger network edge list: %v", edge))
-		}
-		leader := actors[edge[0]]
-		follower := actors[edge[1]]
-
-		testLedger := createTestLedger(leader, follower)
-
-		ret.ledgers = append(ret.ledgers, testLedger)
-	}
-
-	return ret
 }
 
 // createLedgerPath returns active, funded consensus_channels connecting the supplied

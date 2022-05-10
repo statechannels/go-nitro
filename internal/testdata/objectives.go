@@ -43,16 +43,8 @@ var Objectives objectiveCollection = objectiveCollection{
 
 func genericDFO() directfund.Objective {
 	ts := testState.Clone()
-	request := directfund.ObjectiveRequest{
-		MyAddress:         ts.Participants[0],
-		CounterParty:      ts.Participants[1],
-		AppData:           ts.AppData,
-		AppDefinition:     ts.AppDefinition,
-		ChallengeDuration: ts.ChallengeDuration,
-		Nonce:             ts.ChannelNonce.Int64(),
-		Outcome:           ts.Outcome,
-	}
-	testObj, err := directfund.NewObjective(request, false)
+	ts.TurnNum = 0
+	testObj, err := directfund.ConstructFromState(false, ts, ts.Participants[0])
 	if err != nil {
 		panic(fmt.Errorf("error constructing genericDFO: %w", err))
 	}

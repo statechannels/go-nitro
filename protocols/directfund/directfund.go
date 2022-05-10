@@ -41,8 +41,15 @@ type Objective struct {
 	latestBlockNumber        uint64      // the latest block number we've seen
 }
 
+// GetChannelByIdFunction specifies a function that can be used to retreive channels from a store.
+type GetChannelByParticipantFunction func(participant types.Address) (channel *channel.Channel, ok bool)
+
+// GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
+// the calling client and the given counterparty, if such a channel exists.
+type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
+
 // NewObjective creates a new direct funding objective from a given request.
-func NewObjective(request ObjectiveRequest, preApprove bool) (Objective, error) {
+func NewObjective(request ObjectiveRequest, preApprove bool, getChannel GetChannelByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 
 	objective, err := ConstructFromState(preApprove,
 		state.State{
