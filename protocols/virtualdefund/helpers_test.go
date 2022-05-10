@@ -176,22 +176,6 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 	}
 }
 
-// updateProposals updates the consensus channels on the objective with the given proposals by calling Receive
-func updateProposals(o *Objective, proposals ...consensus_channel.SignedProposal) {
-	for _, p := range proposals {
-		var err error
-		if o.ToMyLeft != nil && o.ToMyLeft.Id == p.Proposal.LedgerID {
-			err = o.ToMyLeft.Receive(p)
-		}
-		if o.ToMyRight != nil && o.ToMyRight.Id == p.Proposal.LedgerID {
-			err = o.ToMyRight.Receive(p)
-		}
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
 // checkForLeaderProposals checks that the outgoing message contains the correct proposals from the leader of a consensus channel
 func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objective, td testdata) {
 
@@ -291,15 +275,15 @@ func generateTestData() testdata {
 // signStateByOthers signs the state by every participant except me
 func signStateByOthers(me ta.Actor, signedState state.SignedState) state.SignedState {
 	if me.Role != 0 {
-		_ = signedState.Sign(&alice.PrivateKey)
+		SignState(&signedState, &alice.PrivateKey)
 	}
 
 	if me.Role != 1 {
-		_ = signedState.Sign(&irene.PrivateKey)
+		SignState(&signedState, &irene.PrivateKey)
 	}
 
 	if me.Role != 2 {
-		_ = signedState.Sign(&bob.PrivateKey)
+		SignState(&signedState, &bob.PrivateKey)
 	}
 	return signedState
 }

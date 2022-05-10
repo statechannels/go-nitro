@@ -122,3 +122,30 @@ func TestSignedStateClone(t *testing.T) {
 	}
 
 }
+
+func TestSignatureGetters(t *testing.T) {
+	ss := NewSignedState(TestState)
+	sigA, _ := TestState.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
+	_ = ss.AddSignature(sigA)
+
+	got, err := ss.GetParticipantSignature(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, sigA) {
+		t.Errorf("incorrect GetParticipantSignature, got %v, wanted %v", got, sigA)
+	}
+
+	if ss.HasAllSignatures() != false {
+		t.Errorf("incorrect HasAllSignatures, expected false but got true")
+	}
+
+	expectedSigs := make([]Signature, len(ss.state.Participants))
+	expectedSigs[0] = sigA
+	gotSigs := ss.Signatures()
+
+	if !reflect.DeepEqual(gotSigs, expectedSigs) {
+		t.Errorf("incorrect Signatures, got %v, wanted %v", gotSigs, expectedSigs)
+	}
+
+}

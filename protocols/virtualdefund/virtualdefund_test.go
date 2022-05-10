@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
@@ -127,7 +129,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 
 		testhelpers.Equals(t, waitingFor, WaitingForCompleteFinal)
 		signedByMe := state.NewSignedState(data.vFinal)
-		_ = signedByMe.Sign(&my.PrivateKey)
+		SignState(&signedByMe, &my.PrivateKey)
 		AssertStateSentToEveryone(t, se, signedByMe, my, allActors)
 
 		// Update the signatures on the objective so the final state is fully signed
@@ -147,7 +149,12 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		checkForLeaderProposals(t, se, updated, data)
 
 		proposals := generateProposalsResponses(my.Role, vId, updated, data)
-		updateProposals(updated, proposals...)
+		for _, p := range proposals {
+			e := protocols.ObjectiveEvent{ObjectiveId: updated.Id(), SignedProposal: p}
+			updatedObj, err = updated.Update(e)
+			testhelpers.Ok(t, err)
+			updated = updatedObj.(*Objective)
+		}
 
 		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 		updated = updatedObj.(*Objective)
@@ -158,4 +165,54 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 
 	}
 
+}
+
+func TestConstructObjectiveFromState(t *testing.T) {
+	data := generateTestData()
+	vId := data.vFinal.ChannelId()
+
+	getChannel, getConsensusChannel := generateStoreGetters(alice.Role, vId, data.vInitial)
+
+	got, err := ConstructObjectiveFromState(data.vFinal, alice.Address(), getChannel, getConsensusChannel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	left, right := generateLedgers(alice.Role, vId)
+	want := Objective{
+		Status:         protocols.Approved,
+		InitialOutcome: data.vInitial.Outcome[0],
+		PaidToBob:      big.NewInt(int64(data.paid)),
+		VFixed:         data.vFinal.FixedPart(),
+		Signatures:     [3]state.Signature{},
+		ToMyLeft:       left,
+		ToMyRight:      right,
+	}
+	if diff := cmp.Diff(want, got, cmp.AllowUnexported(big.Int{}, consensus_channel.ConsensusChannel{}, consensus_channel.LedgerOutcome{}, consensus_channel.Guarantee{})); diff != "" {
+		t.Errorf("objective mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestApproveReject(t *testing.T) {
+	data := generateTestData()
+	vId := data.vFinal.ChannelId()
+	request := ObjectiveRequest{
+		ChannelId: vId,
+		PaidToBob: big.NewInt(int64(data.paid)),
+		MyAddress: alice.Address(),
+	}
+
+	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vInitial)
+
+	virtualDefund, err := NewObjective(false, request, getChannel, getConsensusChannel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	approved := virtualDefund.Approve()
+	if approved.GetStatus() != protocols.Approved {
+		t.Errorf("Expected approved status, got %v", approved.GetStatus())
+	}
+	rejected := virtualDefund.Reject()
+	if rejected.GetStatus() != protocols.Rejected {
+		t.Errorf("Expected rejceted status, got %v", approved.GetStatus())
+	}
 }
