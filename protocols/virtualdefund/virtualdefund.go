@@ -179,7 +179,7 @@ func IsVirtualDefundObjective(id protocols.ObjectiveId) bool {
 }
 
 // signedFinalState returns the final state for the virtual channel
-func (o Objective) signedFinalState() (state.SignedState, error) {
+func (o *Objective) signedFinalState() (state.SignedState, error) {
 	signed := state.NewSignedState(o.finalState())
 	for _, sig := range o.Signatures {
 		if !isZero(sig) {
@@ -193,13 +193,13 @@ func (o Objective) signedFinalState() (state.SignedState, error) {
 }
 
 // finalState returns the final state for the virtual channel
-func (o Objective) finalState() state.State {
+func (o *Objective) finalState() state.State {
 	vp := state.VariablePart{Outcome: outcome.Exit{o.finalOutcome()}, TurnNum: FinalTurnNum, IsFinal: true}
 	return state.StateFromFixedAndVariablePart(o.VFixed, vp)
 }
 
 // finalOutcome returns the outcome for the final state calculated from the InitialOutcome and PaidToBob
-func (o Objective) finalOutcome() outcome.SingleAssetExit {
+func (o *Objective) finalOutcome() outcome.SingleAssetExit {
 	finalOutcome := o.InitialOutcome.Clone()
 
 	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.PaidToBob)
@@ -209,14 +209,14 @@ func (o Objective) finalOutcome() outcome.SingleAssetExit {
 }
 
 // Id returns the objective id.
-func (o Objective) Id() protocols.ObjectiveId {
+func (o *Objective) Id() protocols.ObjectiveId {
 	vId := o.VFixed.ChannelId() //TODO: Handle error
 	return protocols.ObjectiveId(ObjectivePrefix + vId.String())
 
 }
 
 // Approve returns an approved copy of the objective.
-func (o Objective) Approve() protocols.Objective {
+func (o *Objective) Approve() protocols.Objective {
 	updated := o.clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
@@ -224,20 +224,20 @@ func (o Objective) Approve() protocols.Objective {
 }
 
 // Approve returns a rejected copy of the objective.
-func (o Objective) Reject() protocols.Objective {
+func (o *Objective) Reject() protocols.Objective {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
 	return &updated
 }
 
 // OwnsChannel returns the channel that the objective is funding.
-func (o Objective) OwnsChannel() types.Destination {
+func (o *Objective) OwnsChannel() types.Destination {
 	vId := o.VFixed.ChannelId()
 	return vId
 }
 
 // GetStatus returns the status of the objective.
-func (o Objective) GetStatus() protocols.ObjectiveStatus {
+func (o *Objective) GetStatus() protocols.ObjectiveStatus {
 	return o.Status
 }
 
@@ -282,7 +282,7 @@ func (o *Objective) clone() Objective {
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
-func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
 	sideEffects := protocols.SideEffects{}
 
@@ -318,7 +318,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.isAlice() && !updated.isLeftDefunded() {
 		ledgerSideEffects, err := updated.updateLedgerToRemoveGuarantee(updated.ToMyLeft, secretKey)
 		if err != nil {
-			return &o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
+			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
 		sideEffects.Merge(ledgerSideEffects)
 	}
@@ -326,7 +326,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.isBob() && !updated.isRightDefunded() {
 		ledgerSideEffects, err := updated.updateLedgerToRemoveGuarantee(updated.ToMyRight, secretKey)
 		if err != nil {
-			return &o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
+			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
 		sideEffects.Merge(ledgerSideEffects)
 	}
@@ -342,7 +342,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 }
 
 // fullySigned returns whether we have a signature from every partciapant
-func (o Objective) fullySigned() bool {
+func (o *Objective) fullySigned() bool {
 	for _, sig := range o.Signatures {
 		if isZero(sig) {
 			return false
@@ -352,17 +352,17 @@ func (o Objective) fullySigned() bool {
 }
 
 // isAlice returns true if the receiver represents participant 0 in the virtualdefund protocol
-func (o Objective) isAlice() bool {
+func (o *Objective) isAlice() bool {
 	return o.MyRole == 0
 }
 
 // isBob returns true if the receiver represents participant 2 in the virtualdefund protocol
-func (o Objective) isBob() bool {
+func (o *Objective) isBob() bool {
 	return o.MyRole == 2
 }
 
 // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
-func (o Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) consensus_channel.Proposal {
+func (o *Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) consensus_channel.Proposal {
 	left := o.finalOutcome().Allocations[0].Amount
 	right := o.finalOutcome().Allocations[1].Amount
 
@@ -408,26 +408,26 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 }
 
 // VId returns the channel id of the virtual channel.
-func (o Objective) VId() types.Destination {
+func (o *Objective) VId() types.Destination {
 	vId := o.VFixed.ChannelId() // TODO Deal with error
 
 	return vId
 }
 
 // signedBy returns whether we have a valid signature for the given participant
-func (o Objective) signedBy(participant uint) bool {
+func (o *Objective) signedBy(participant uint) bool {
 	return !isZero(o.Signatures[participant])
 }
 
 // signedByMe returns whether the current participant has signed the final state
-func (o Objective) signedByMe() bool {
+func (o *Objective) signedByMe() bool {
 	return o.signedBy(o.MyRole)
 
 }
 
 // isRightDefunded returns whether the ledger channel ToMyRight has been defunded
 // If ToMyRight==nil then we return true
-func (o Objective) isRightDefunded() bool {
+func (o *Objective) isRightDefunded() bool {
 	if o.ToMyRight == nil {
 		return true
 	}
@@ -438,7 +438,7 @@ func (o Objective) isRightDefunded() bool {
 
 // isLeftDefunded returns whether the ledger channel ToMyLeft has been defunded
 // If ToMyLeft==nil then we return true
-func (o Objective) isLeftDefunded() bool {
+func (o *Objective) isLeftDefunded() bool {
 	if o.ToMyLeft == nil {
 		return true
 	}
@@ -449,7 +449,7 @@ func (o Objective) isLeftDefunded() bool {
 
 // validateSignature returns whether the given signature is valid for the given participant
 // If a signature is invalid an error will be returned containing the reason
-func (o Objective) validateSignature(sig state.Signature, participantIndex uint) (bool, error) {
+func (o *Objective) validateSignature(sig state.Signature, participantIndex uint) (bool, error) {
 	if participantIndex > 2 {
 		return false, fmt.Errorf("participant index %d is out of bounds", participantIndex)
 	}
@@ -467,9 +467,9 @@ func (o Objective) validateSignature(sig state.Signature, participantIndex uint)
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
 // and returns the updated state.
-func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if o.Id() != event.ObjectiveId {
-		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
 	updated := o.clone()
@@ -479,7 +479,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		vChannelId := updated.VFixed.ChannelId()
 
 		if incomingChannelId != vChannelId {
-			return &o, errors.New("event channelId out of scope of objective")
+			return o, errors.New("event channelId out of scope of objective")
 		} else {
 			incomingSignatures := ss.Signatures()
 			for i := uint(0); i < 3; i++ {
@@ -495,7 +495,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 					if existingSig.Equal(incomingSig) {
 						continue
 					} else {
-						return &o, fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
+						return o, fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
 					}
 				}
 				// Otherwise we validate the incoming signature and update our signatures
@@ -504,7 +504,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 					// Update the signature
 					updated.Signatures[i] = incomingSig
 				} else {
-					return &o, fmt.Errorf("failed to validate signature: %w", err)
+					return o, fmt.Errorf("failed to validate signature: %w", err)
 				}
 			}
 		}
@@ -523,13 +523,13 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		var err error
 		switch sp.Proposal.LedgerID {
 		case types.Destination{}:
-			return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because of Alice or Bob we allow a null channel.
+			return o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because of Alice or Bob we allow a null channel.
 		case toMyLeftId:
 			err = updated.ToMyLeft.Receive(sp)
 		case toMyRightId:
 			err = updated.ToMyRight.Receive(sp)
 		default:
-			return &o, fmt.Errorf("signed proposal is not addressed to a known ledger connection %+v", sp)
+			return o, fmt.Errorf("signed proposal is not addressed to a known ledger connection %+v", sp)
 		}
 		// Ignore stale or future proposals.
 		if errors.Is(err, consensus_channel.ErrInvalidTurnNum) {
@@ -537,7 +537,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		}
 
 		if err != nil {
-			return &o, fmt.Errorf("error incorporating signed proposal %+v into objective: %w", protocols.SummarizeProposal(event.ObjectiveId, sp), err)
+			return o, fmt.Errorf("error incorporating signed proposal %+v into objective: %w", protocols.SummarizeProposal(event.ObjectiveId, sp), err)
 		}
 	}
 	return &updated, nil
