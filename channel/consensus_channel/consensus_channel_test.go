@@ -153,6 +153,7 @@ func TestConsensusChannel(t *testing.T) {
 		}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 		// Proposing a remove that does allocate all guarantee funds should fail
 		// vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
@@ -165,6 +166,8 @@ func TestConsensusChannel(t *testing.T) {
 		// // 	t.Fatalf("expected error when recovering too little from a guarantee: %v", err)
 		// // }
 >>>>>>> 7a38201a... refactor: remove `RightAmount` from `Remove`...
+=======
+>>>>>>> 92d089a5... remove test targeting undervalued Remove proposals
 	}
 
 	initialVars := Vars{Outcome: outcome(), TurnNum: 0}

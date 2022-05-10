@@ -264,6 +264,7 @@ func TestLeaderChannel(t *testing.T) {
 		t.Run(msg, testPropose(c, newRemove, SignedProposal{}, ErrInvalidAmount))
 	}
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 	// {
 	// 	msg := "err:adding a remove proposal with too small left/right amounts"
@@ -281,6 +282,8 @@ func TestLeaderChannel(t *testing.T) {
 	// 	t.Run(msg, testPropose(c, newRemove, SignedProposal{}, ErrInvalidAmount))
 	// }
 >>>>>>> 7a38201a... refactor: remove `RightAmount` from `Remove`...
+=======
+>>>>>>> 92d089a5... remove test targeting undervalued Remove proposals
 
 	{
 		msg := "err:adding a duplicate proposal"
