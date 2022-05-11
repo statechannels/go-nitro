@@ -266,12 +266,12 @@ func constructFromState(
 }
 
 // Id returns the objective id.
-func (o Objective) Id() protocols.ObjectiveId {
+func (o *Objective) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + o.V.Id.String())
 }
 
 // Approve returns an approved copy of the objective.
-func (o Objective) Approve() protocols.Objective {
+func (o *Objective) Approve() protocols.Objective {
 	updated := o.clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
@@ -279,27 +279,27 @@ func (o Objective) Approve() protocols.Objective {
 }
 
 // Approve returns a rejected copy of the objective.
-func (o Objective) Reject() protocols.Objective {
+func (o *Objective) Reject() protocols.Objective {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
 	return &updated
 }
 
 // OwnsChannel returns the channel that the objective is funding.
-func (o Objective) OwnsChannel() types.Destination {
+func (o *Objective) OwnsChannel() types.Destination {
 	return o.V.Id
 }
 
 // GetStatus returns the status of the objective.
-func (o Objective) GetStatus() protocols.ObjectiveStatus {
+func (o *Objective) GetStatus() protocols.ObjectiveStatus {
 	return o.Status
 }
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
 // and returns the updated state.
-func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if o.Id() != event.ObjectiveId {
-		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
 	updated := o.clone()
@@ -319,17 +319,17 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 
 		switch sp.Proposal.LedgerID {
 		case types.Destination{}:
-			return &o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
+			return o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
 		case toMyLeftId:
 			err = updated.ToMyLeft.handleProposal(sp)
 		case toMyRightId:
 			err = updated.ToMyRight.handleProposal(sp)
 		default:
-			return &o, fmt.Errorf("signed proposal is not addressed to a known ledger connection")
+			return o, fmt.Errorf("signed proposal is not addressed to a known ledger connection")
 		}
 
 		if err != nil {
-			return &o, fmt.Errorf("error incorporating signed proposal %+v into objective: %w", protocols.SummarizeProposal(event.ObjectiveId, sp), err)
+			return o, fmt.Errorf("error incorporating signed proposal %+v into objective: %w", protocols.SummarizeProposal(event.ObjectiveId, sp), err)
 		}
 	}
 
@@ -337,12 +337,12 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 		channelId := ss.State().ChannelId() // TODO handle error
 		switch channelId {
 		case types.Destination{}:
-			return &o, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
+			return o, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
 		case o.V.Id:
 			updated.V.AddSignedState(ss)
 			// We expect pre and post fund state signatures.
 		default:
-			return &o, errors.New("event channelId out of scope of objective")
+			return o, errors.New("event channelId out of scope of objective")
 		}
 	}
 
@@ -352,7 +352,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all.
-func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
@@ -366,7 +366,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.V.PreFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return &o, protocols.SideEffects{}, WaitingForNothing, err
+			return o, protocols.SideEffects{}, WaitingForNothing, err
 		}
 		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
@@ -382,7 +382,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 
 		ledgerSideEffects, err := updated.updateLedgerWithGuarantee(*updated.ToMyLeft, secretKey)
 		if err != nil {
-			return &o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
+			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
 		sideEffects.Merge(ledgerSideEffects)
 	}
@@ -390,7 +390,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.isBob() && !updated.ToMyRight.Funded() {
 		ledgerSideEffects, err := updated.updateLedgerWithGuarantee(*updated.ToMyRight, secretKey)
 		if err != nil {
-			return &o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
+			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
 		sideEffects.Merge(ledgerSideEffects)
 	}
@@ -403,7 +403,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	if !updated.V.PostFundSignedByMe() {
 		ss, err := updated.V.SignAndAddPostfund(secretKey)
 		if err != nil {
-			return &o, protocols.SideEffects{}, WaitingForNothing, err
+			return o, protocols.SideEffects{}, WaitingForNothing, err
 		}
 		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
@@ -418,7 +418,7 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	return &updated, sideEffects, WaitingForNothing, nil
 }
 
-func (o Objective) Related() []protocols.Storable {
+func (o *Objective) Related() []protocols.Storable {
 	ret := []protocols.Storable{&o.V.Channel}
 
 	if o.ToMyLeft != nil {
@@ -436,7 +436,7 @@ func (o Objective) Related() []protocols.Storable {
 //////////////////////////////////////////////////
 
 // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
-func (o Objective) fundingComplete() bool {
+func (o *Objective) fundingComplete() bool {
 
 	// Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
 	// A = P_0 and B=P_n are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
