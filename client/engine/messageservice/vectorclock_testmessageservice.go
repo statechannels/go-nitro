@@ -90,10 +90,11 @@ func summarizeMessageSend(msg protocols.Message) string {
 		} else {
 			summary += `L`
 		}
+		_, turnNum := entry.Payload.SortInfo()
 		summary += fmt.Sprint(entry.Payload.ChannelId())[1:8]
-		summary += fmt.Sprint(entry.Payload.TurnNum())
+		summary += fmt.Sprint(turnNum)
 		summary += ` @turn `
-		summary += fmt.Sprint(entry.Payload.TurnNum())
+		summary += fmt.Sprint(turnNum)
 
 	}
 	return summary
