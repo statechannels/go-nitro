@@ -25,6 +25,7 @@ type Store interface {
 	SetObjective(protocols.Objective) error                                       // Write an objective
 
 	GetChannelById(id types.Destination) (c *channel.Channel, ok bool)
+	GetChannelsByParticipant(participant types.Address) []*channel.Channel // Returns any channels that includes the given participant
 	SetChannel(*channel.Channel) error
 	DestroyChannel(id types.Destination)
 

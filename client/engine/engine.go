@@ -267,7 +267,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			return e.attemptProgress(&vdfo)
 
 		case directfund.ObjectiveRequest:
-			dfo, err := directfund.NewObjective(request, true)
+			dfo, err := directfund.NewObjective(request, true, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
