@@ -76,7 +76,9 @@ func (t VectorClockTestMessageService) dispatchMessage(message protocols.Message
 // summarizeMessageSend returns a string which tersely summarizes the supplied message.
 // It may be used to make logs more readable.
 func summarizeMessageSend(msg protocols.Message) string {
-	summary := ""
+	str, _ := msg.Serialize()
+	size := len([]byte(str))
+	summary := fmt.Sprint(size) + "B:"
 	for _, entry := range msg.SignedProposals() {
 		summary += `propose `
 		summary += fmt.Sprint(entry.Payload.Proposal.LedgerID)[1:8]
