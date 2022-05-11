@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine/store/safesync"
@@ -22,14 +23,14 @@ type MemStore struct {
 	consensusChannels  safesync.Map[[]byte]
 	channelToObjective safesync.Map[protocols.ObjectiveId]
 
-	key     []byte        // the signing key of the store's engine
-	address types.Address // the (Ethereum) address associated to the signing key
+	key     string // the signing key of the store's engine
+	address string // the (Ethereum) address associated to the signing key
 }
 
 func NewMemStore(key []byte) Store {
 	ms := MemStore{}
-	ms.key = key
-	ms.address = crypto.GetAddressFromSecretKeyBytes(key)
+	ms.key = common.Bytes2Hex(key)
+	ms.address = crypto.GetAddressFromSecretKeyBytes(key).String()
 
 	ms.objectives = safesync.Map[[]byte]{}
 	ms.channels = safesync.Map[[]byte]{}
@@ -40,11 +41,13 @@ func NewMemStore(key []byte) Store {
 }
 
 func (ms *MemStore) GetAddress() *types.Address {
-	return &ms.address
+	address := common.HexToAddress(ms.address)
+	return &address
 }
 
 func (ms *MemStore) GetChannelSecretKey() *[]byte {
-	return &ms.key
+	val := common.Hex2Bytes(ms.key)
+	return &val
 }
 
 func (ms *MemStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Objective, error) {
