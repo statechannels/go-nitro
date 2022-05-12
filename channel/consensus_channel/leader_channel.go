@@ -17,10 +17,9 @@ func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome,
 	return newConsensusChannel(fp, Leader, turnNum, outcome, signatures)
 }
 
-// Propose is called by the Leader and receives a proposal to add a guarantee,
+// Propose is called by the Leader and receives a proposal to add or remove a guarantee,
 // and generates and stores a SignedProposal in the queue, returning the
 // resulting SignedProposal
-//
 func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal, error) {
 	if c.MyIndex != Leader {
 		return SignedProposal{}, ErrNotLeader
