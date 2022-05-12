@@ -26,7 +26,6 @@ func NewVectorClockTestMessageService(
 	broker Broker,
 	maxDelay time.Duration,
 	logDir string,
-	prettyName string,
 ) VectorClockTestMessageService {
 
 	vctms := VectorClockTestMessageService{
@@ -37,7 +36,7 @@ func NewVectorClockTestMessageService(
 			maxDelay:  maxDelay,
 			fromPeers: make(chan []byte, 5),
 		},
-		goveclogger: govec.InitGoVector(prettyName, logDir+"/"+address.String(), govec.GetDefaultConfig()),
+		goveclogger: govec.InitGoVector(address.String(), logDir+"/"+address.String(), govec.GetDefaultConfig()),
 	}
 
 	vctms.connect(broker)
@@ -81,20 +80,14 @@ func summarizeMessageSend(msg protocols.Message) string {
 	summary := fmt.Sprint(size) + "B:"
 	for _, entry := range msg.SignedProposals() {
 		summary += `propose `
-		summary += fmt.Sprint(entry.Payload.Proposal.LedgerID)[1:8]
+		summary += fmt.Sprint(entry.Payload.Proposal.LedgerID)
 		summary += ` funds `
-		summary += fmt.Sprint(entry.Payload.Proposal.ToAdd.Target())[1:8]
+		summary += fmt.Sprint(entry.Payload.Proposal.ToAdd.Target())
 	}
 	for _, entry := range msg.SignedStates() {
 		summary += `send `
-		if len(entry.Payload.State().Participants) == 3 {
-			summary += `V`
-		} else {
-			summary += `L`
-		}
 		_, turnNum := entry.Payload.SortInfo()
-		summary += fmt.Sprint(entry.Payload.ChannelId())[1:8]
-		summary += fmt.Sprint(turnNum)
+		summary += fmt.Sprint(entry.Payload.ChannelId())
 		summary += ` @turn `
 		summary += fmt.Sprint(turnNum)
 
