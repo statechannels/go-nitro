@@ -35,7 +35,7 @@ contract CountingApp is IForceMoveApp {
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
     ) external pure override returns (VariablePart memory) {
-        // TODO
+        // TODO see https://github.com/statechannels/go-nitro/issues/558
         return signedVariableParts[signedVariableParts.length - 1].variablePart;
     }
 }
