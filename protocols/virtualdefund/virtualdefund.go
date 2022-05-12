@@ -61,9 +61,9 @@ type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel
 type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
 // NewObjective constructs a new virtual defund objective
-func NewObjective(preApprove bool,
+func NewObjective(request ObjectiveRequest,
+	preApprove bool,
 	myAddress types.Address,
-	request ObjectiveRequest,
 	getChannel GetChannelByIdFunction,
 	getConsensusChannel GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 	var status protocols.ObjectiveStatus
@@ -151,9 +151,10 @@ func ConstructObjectiveFromState(
 	if err != nil {
 		return Objective{}, err
 	}
-	return NewObjective(true,
-		myAddress,
+	return NewObjective(
 		ObjectiveRequest{channelId, paidToBob},
+		true,
+		myAddress,
 		getChannel,
 		getTwoPartyConsensusLedger)
 }

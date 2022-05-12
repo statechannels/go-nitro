@@ -43,7 +43,7 @@ func TestInvalidUpdate(t *testing.T) {
 
 	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vFinal)
 
-	virtualDefund, err := NewObjective(false, alice.Address(), request, getChannel, getConsensusChannel)
+	virtualDefund, err := NewObjective(request, false, alice.Address(), getChannel, getConsensusChannel)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
 
-		virtualDefund, err := NewObjective(false, my.Address(), request, getChannel, getConsensusChannel)
+		virtualDefund, err := NewObjective(request, false, my.Address(), getChannel, getConsensusChannel)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -108,7 +108,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		}
 
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
-		virtualDefund, err := NewObjective(true, my.Address(), request, getChannel, getConsensusChannel)
+		virtualDefund, err := NewObjective(request, true, my.Address(), getChannel, getConsensusChannel)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -199,7 +199,7 @@ func TestApproveReject(t *testing.T) {
 
 	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vInitial)
 
-	virtualDefund, err := NewObjective(false, alice.Address(), request, getChannel, getConsensusChannel)
+	virtualDefund, err := NewObjective(request, false, alice.Address(), getChannel, getConsensusChannel)
 	if err != nil {
 		t.Fatal(err)
 	}
