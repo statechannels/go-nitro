@@ -49,7 +49,6 @@ func TestVirtualFundBenchmark(t *testing.T) {
 func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, irene types.Address, done chan interface{}) {
 	outcome := testdata.Outcomes.Create(*alice.Address, *bob.Address, 1, 1)
 	request := virtualfund.ObjectiveRequest{
-		MyAddress:         *alice.Address,
 		CounterParty:      *bob.Address,
 		Intermediary:      irene,
 		Outcome:           outcome,

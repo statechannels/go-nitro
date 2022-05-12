@@ -71,7 +71,7 @@ func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequ
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objectiveRequest.Response()
+	return objectiveRequest.Response(*c.Address)
 }
 
 // CloseVirtualChannel attempts to close and defund the given virtually funded channel.
@@ -80,7 +80,6 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big
 	objectiveRequest := virtualdefund.ObjectiveRequest{
 		ChannelId: channelId,
 		PaidToBob: paidToBob,
-		MyAddress: *c.Address,
 	}
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objectiveRequest,
@@ -88,7 +87,7 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objectiveRequest.Id()
+	return objectiveRequest.Id(*c.Address)
 
 }
 
@@ -101,7 +100,7 @@ func (c *Client) CreateDirectChannel(objectiveRequest directfund.ObjectiveReques
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objectiveRequest.Response()
+	return objectiveRequest.Response(*c.Address)
 
 }
 
@@ -117,6 +116,6 @@ func (c *Client) CloseDirectChannel(channelId types.Destination) protocols.Objec
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objectiveRequest.Id()
+	return objectiveRequest.Id(*c.Address)
 
 }

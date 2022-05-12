@@ -318,6 +318,6 @@ type ObjectiveRequest struct {
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id() protocols.ObjectiveId {
+func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
 }

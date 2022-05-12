@@ -51,7 +51,7 @@ func createVirtualChannels(client client.Client, counterParty types.Address, int
 	for i := uint(0); i < amountOfChannels; i++ {
 		outcome := td.Outcomes.Create(*client.Address, counterParty, 1, 1)
 		request := virtualfund.ObjectiveRequest{
-			MyAddress:         *client.Address,
+
 			CounterParty:      counterParty,
 			Intermediary:      intermediary,
 			Outcome:           outcome,

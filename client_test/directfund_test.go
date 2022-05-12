@@ -24,7 +24,6 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, ledgerChannelDeposit, ledgerChannelDeposit)
 
 	request := directfund.ObjectiveRequest{
-		MyAddress:         *alpha.Address,
 		CounterParty:      *beta.Address,
 		Outcome:           outcome,
 		AppDefinition:     types.Address{},

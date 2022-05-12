@@ -56,7 +56,7 @@ func TestNew(t *testing.T) {
 		return nil, false
 	}
 	request := ObjectiveRequest{
-		MyAddress:         testState.Participants[0],
+
 		CounterParty:      testState.Participants[1],
 		AppDefinition:     testState.AppDefinition,
 		AppData:           testState.AppData,
@@ -65,7 +65,7 @@ func TestNew(t *testing.T) {
 		Nonce:             testState.ChannelNonce.Int64(),
 	}
 	// Assert that valid constructor args do not result in error
-	if _, err := NewObjective(request, false, getByParticipant, getByConsensus); err != nil {
+	if _, err := NewObjective(request, false, testState.Participants[0], getByParticipant, getByConsensus); err != nil {
 		t.Error(err)
 	}
 
@@ -74,14 +74,14 @@ func TestNew(t *testing.T) {
 		return []*channel.Channel{c}
 	}
 
-	if _, err := NewObjective(request, false, getByParticipantHasChannel, getByConsensus); err == nil {
+	if _, err := NewObjective(request, false, testState.Participants[0], getByParticipantHasChannel, getByConsensus); err == nil {
 		t.Errorf("Expected an error when constructing with an objective when an existing channel exists")
 	}
 
 	getByConsensusHasChannel := func(id types.Address) (*consensus_channel.ConsensusChannel, bool) {
 		return nil, true
 	}
-	if _, err := NewObjective(request, false, getByParticipant, getByConsensusHasChannel); err == nil {
+	if _, err := NewObjective(request, false, testState.Participants[0], getByParticipant, getByConsensusHasChannel); err == nil {
 		t.Errorf("Expected an error when constructing with an objective when an existing channel consensus channel exists")
 	}
 

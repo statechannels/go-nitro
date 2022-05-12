@@ -50,12 +50,12 @@ type GetChannelsByParticipantFunction func(participant types.Address) []*channel
 type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
 // NewObjective creates a new direct funding objective from a given request.
-func NewObjective(request ObjectiveRequest, preApprove bool, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
+func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 
 	objective, err := ConstructFromState(preApprove,
 		state.State{
 			ChainId:           big.NewInt(9001), // TODO https://github.com/statechannels/go-nitro/issues/601
-			Participants:      []types.Address{request.MyAddress, request.CounterParty},
+			Participants:      []types.Address{myAddress, request.CounterParty},
 			ChannelNonce:      big.NewInt(request.Nonce),
 			AppDefinition:     request.AppDefinition,
 			ChallengeDuration: request.ChallengeDuration,
@@ -64,7 +64,7 @@ func NewObjective(request ObjectiveRequest, preApprove bool, getChannels GetChan
 			TurnNum:           0,
 			IsFinal:           false,
 		},
-		request.MyAddress,
+		myAddress,
 	)
 	if err != nil {
 		return Objective{}, fmt.Errorf("could not create new objective: %w", err)
@@ -409,7 +409,6 @@ func IsDirectFundObjective(id protocols.ObjectiveId) bool {
 
 // ObjectiveRequest represents a request to create a new direct funding objective.
 type ObjectiveRequest struct {
-	MyAddress         types.Address
 	CounterParty      types.Address
 	AppDefinition     types.Address
 	AppData           types.Bytes
@@ -419,9 +418,9 @@ type ObjectiveRequest struct {
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id() protocols.ObjectiveId {
+func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
 	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
-		Participants:      []types.Address{r.MyAddress, r.CounterParty},
+		Participants:      []types.Address{myAddress, r.CounterParty},
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}
 
@@ -436,9 +435,9 @@ type ObjectiveResponse struct {
 }
 
 // Response computes and returns the appropriate response from the request.
-func (r ObjectiveRequest) Response() ObjectiveResponse {
+func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
 	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
-		Participants:      []types.Address{r.MyAddress, r.CounterParty},
+		Participants:      []types.Address{myAddress, r.CounterParty},
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}
 
