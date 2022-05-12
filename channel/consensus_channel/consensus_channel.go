@@ -60,10 +60,12 @@ func newConsensusChannel(
 	signatures [2]state.Signature,
 ) (ConsensusChannel, error) {
 
-	cId, err := fp.ChannelId()
+	err := fp.Validate()
 	if err != nil {
 		return ConsensusChannel{}, err
 	}
+
+	cId := fp.ChannelId()
 
 	vars := Vars{TurnNum: initialTurnNum, Outcome: outcome.clone()}
 
@@ -117,6 +119,40 @@ func (c *ConsensusChannel) Receive(sp SignedProposal) error {
 	return fmt.Errorf("ConsensusChannel is malformed")
 }
 
+// IsProposed returns true if a proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
+//
+// Specific clarification: If the current outcome already includes g, IsProposed returns false.
+func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
+	latest, err := c.latestProposedVars()
+	if err != nil {
+		return false, err
+	}
+
+	return latest.Outcome.includes(g) && !c.Includes(g), nil
+
+}
+
+// IsProposedNext returns if the next proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
+func (c *ConsensusChannel) IsProposedNext(g Guarantee) (bool, error) {
+	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
+
+	if len(c.proposalQueue) == 0 {
+		return false, nil
+	}
+
+	p := c.proposalQueue[0]
+	err := vars.HandleProposal(p.Proposal)
+	if vars.TurnNum != p.TurnNum {
+		return false, fmt.Errorf("proposal turn number %d does not match vars %d", p.TurnNum, vars.TurnNum)
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	return vars.Outcome.includes(g) && !c.Includes(g), nil
+}
+
 // ConsensusTurnNum returns the turn number of the current consensus state.
 func (c *ConsensusChannel) ConsensusTurnNum() uint64 {
 	return c.current.TurnNum
@@ -130,7 +166,7 @@ func (c *ConsensusChannel) Includes(g Guarantee) bool {
 // IncludesTarget returns whether or not the consensus state includes a guarantee
 // addressed to the given target.
 func (c *ConsensusChannel) IncludesTarget(target types.Destination) bool {
-	return c.current.Outcome.includesTarget(target)
+	return c.current.Outcome.IncludesTarget(target)
 }
 
 // HasRemovalBeenProposed returns whether or not a proposal exists to remove the guaranatee for the target.
@@ -238,7 +274,7 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 // validateProposalID checks that the given proposal's ID matches
 // the channel's ID.
 func (c *ConsensusChannel) validateProposalID(propsal Proposal) error {
-	if propsal.ChannelID != c.Id {
+	if propsal.LedgerID != c.Id {
 		return ErrIncorrectChannelID
 	}
 
@@ -260,6 +296,12 @@ func NewBalance(destination types.Destination, amount *big.Int) Balance {
 type Balance struct {
 	destination types.Destination
 	amount      *big.Int
+}
+
+// Equal returns true if the balances are deeply equal, false otherwise.
+func (b Balance) Equal(b2 Balance) bool {
+	return bytes.Equal(b.destination.Bytes(), b2.destination.Bytes()) &&
+		types.Equal(b.amount, b2.amount)
 }
 
 // Clone returns a deep copy of the receiver.
@@ -349,6 +391,16 @@ func (lo *LedgerOutcome) Clone() LedgerOutcome {
 	}
 }
 
+// Leader returns the leader's balance.
+func (lo *LedgerOutcome) Leader() Balance {
+	return lo.leader
+}
+
+// Follower returns teh follower's balance.
+func (lo *LedgerOutcome) Follower() Balance {
+	return lo.follower
+}
+
 // NewLedgerOutcome creates a new ledger outcome with the given asset address, balances, and guarantees.
 func NewLedgerOutcome(assetAddress types.Address, leader, follower Balance, guarantees []Guarantee) *LedgerOutcome {
 	guaranteeMap := make(map[types.Destination]Guarantee, len(guarantees))
@@ -363,8 +415,8 @@ func NewLedgerOutcome(assetAddress types.Address, leader, follower Balance, guar
 	}
 }
 
-// includesTarget returns true when the receiver includes a guarantee that targets the given destination.
-func (o *LedgerOutcome) includesTarget(target types.Destination) bool {
+// IncludesTarget returns true when the receiver includes a guarantee that targets the given destination.
+func (o *LedgerOutcome) IncludesTarget(target types.Destination) bool {
 	_, found := o.guarantees[target]
 	return found
 }
@@ -514,18 +566,18 @@ func (sv *SignedVars) clone() SignedVars {
 //
 // Exactly one of {toAdd, toRemove} should be non nil.
 type Proposal struct {
-	// ChannelID of the ConsensusChannel which should recieve the proposal.
+	// LedgerID is the ChannelID of the ConsensusChannel which should recieve the proposal.
 	//
 	// The target virtual channel ID is contained in the Add / Remove struct.
-	ChannelID types.Destination
-	ToAdd     Add
-	ToRemove  Remove
+	LedgerID types.Destination
+	ToAdd    Add
+	ToRemove Remove
 }
 
 // Clone returns a deep copy of the receiver.
 func (p *Proposal) Clone() Proposal {
 	return Proposal{
-		p.ChannelID,
+		p.LedgerID,
 		p.ToAdd.Clone(),
 		p.ToRemove.Clone(),
 	}
@@ -550,17 +602,17 @@ func (p *Proposal) Type() ProposalType {
 
 // Equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
 func (p *Proposal) Equal(q *Proposal) bool {
-	return p.ChannelID == q.ChannelID && p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
+	return p.LedgerID == q.LedgerID && p.ToAdd.equal(q.ToAdd) && p.ToRemove.equal(q.ToRemove)
 }
 
 // ChannelID returns the id of the ConsensusChannel which receive the proposal.
 func (p SignedProposal) ChannelID() types.Destination {
-	return p.Proposal.ChannelID
+	return p.Proposal.LedgerID
 }
 
 // SortInfo returns the channelId and turn number so the proposal can be easily sorted.
 func (p SignedProposal) SortInfo() (types.Destination, uint64) {
-	cId := p.Proposal.ChannelID
+	cId := p.Proposal.LedgerID
 	turnNum := p.TurnNum
 	return cId, turnNum
 }
@@ -625,8 +677,8 @@ func NewAdd(g Guarantee, leftDeposit *big.Int) Add {
 }
 
 // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
-func NewAddProposal(channelId types.Destination, g Guarantee, leftDeposit *big.Int) Proposal {
-	return Proposal{ToAdd: NewAdd(g, leftDeposit), ChannelID: channelId}
+func NewAddProposal(ledgerID types.Destination, g Guarantee, leftDeposit *big.Int) Proposal {
+	return Proposal{ToAdd: NewAdd(g, leftDeposit), LedgerID: ledgerID}
 }
 
 // NewRemove constructs a new Remove proposal.
@@ -635,8 +687,8 @@ func NewRemove(target types.Destination, leftAmount, rightAmount *big.Int) Remov
 }
 
 // NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
-func NewRemoveProposal(channelId types.Destination, target types.Destination, leftAmount, rightAmount *big.Int) Proposal {
-	return Proposal{ToRemove: NewRemove(target, leftAmount, rightAmount), ChannelID: channelId}
+func NewRemoveProposal(ledgerID types.Destination, target types.Destination, leftAmount, rightAmount *big.Int) Proposal {
+	return Proposal{ToRemove: NewRemove(target, leftAmount, rightAmount), LedgerID: ledgerID}
 }
 
 // RightDeposit computes the deposit from the right participant such that
@@ -649,24 +701,13 @@ func (a Add) RightDeposit() *big.Int {
 }
 
 func (a Add) equal(a2 Add) bool {
-	if !a.Guarantee.equal(a2.Guarantee) {
-		return false
-	}
-	return types.Equal(a.LeftDeposit, a2.LeftDeposit)
+	return a.Guarantee.equal(a2.Guarantee) && types.Equal(a.LeftDeposit, a2.LeftDeposit)
 }
 
 func (r Remove) equal(r2 Remove) bool {
-	if !bytes.Equal(r.Target.Bytes(), r2.Target.Bytes()) {
-
-		return false
-	}
-	if !types.Equal(r.LeftAmount, r2.LeftAmount) {
-		return false
-	}
-	if !types.Equal(r.RightAmount, r2.RightAmount) {
-		return false
-	}
-	return true
+	return bytes.Equal(r.Target.Bytes(), r2.Target.Bytes()) &&
+		types.Equal(r.LeftAmount, r2.LeftAmount) &&
+		types.Equal(r.RightAmount, r2.RightAmount)
 }
 
 // HandleProposal handles a proposal to add or remove a guarantee.

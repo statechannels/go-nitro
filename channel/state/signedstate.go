@@ -20,19 +20,6 @@ func NewSignedState(s State) SignedState {
 	return SignedState{s, make(map[uint]Signature, len(s.Participants))}
 }
 
-// Sign generates a signature on the receiver's state with the supplied key, and adds that signature.
-func (ss SignedState) Sign(secretKey *[]byte) error {
-	sig, err := ss.state.Sign(*secretKey)
-	if err != nil {
-		return fmt.Errorf("SignAndAdd failed to sign the state: %w", err)
-	}
-	err = ss.AddSignature(sig)
-	if err != nil {
-		return fmt.Errorf("SignAndAdd failed to sign the state: %w", err)
-	}
-	return nil
-}
-
 // AddSignature adds a participant's signature to the SignedState.
 //
 // An error is returned if
@@ -167,18 +154,13 @@ func (ss *SignedState) UnmarshalJSON(j []byte) error {
 
 // ChannelId returns the channel id of the state.
 func (ss SignedState) ChannelId() types.Destination {
-	cId, _ := ss.state.ChannelId()
+	cId := ss.state.ChannelId()
 	return cId
-}
-
-// TurnNum returns the turn number of the state.
-func (ss SignedState) TurnNum() uint64 {
-	return ss.state.TurnNum
 }
 
 // SortInfo returns the channel id and turn number of the state, so the state can be easily sorted.
 func (ss SignedState) SortInfo() (types.Destination, uint64) {
-	cId, _ := ss.State().ChannelId()
+	cId := ss.State().ChannelId()
 	turnNum := ss.State().TurnNum
 	return cId, turnNum
 }

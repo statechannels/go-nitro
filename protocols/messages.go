@@ -187,18 +187,12 @@ func SummarizeMessage(m Message) MessageSummary {
 	proposals := make([]ProposalSummary, len(m.SignedProposals()))
 	for i, p := range m.SignedProposals() {
 
-		proposals[i] = ProposalSummary{
-			LedgerId:    p.Payload.Proposal.ChannelID.String(),
-			ObjectiveId: string(p.ObjectiveId),
-			Target:      p.Payload.Proposal.Target().String(),
-			TurnNum:     p.Payload.TurnNum,
-			Type:        string(p.Payload.Proposal.Type()),
-		}
+		proposals[i] = SummarizeProposal(p.ObjectiveId, p.Payload)
 	}
 
 	states := make([]StateSummary, len(m.SignedStates()))
 	for i, s := range m.SignedStates() {
-		channelId, _ := s.Payload.State().ChannelId()
+		channelId := s.Payload.State().ChannelId()
 		states[i] = StateSummary{
 			ObjectiveId: string(s.ObjectiveId),
 			ChannelId:   channelId.String(),
@@ -207,6 +201,18 @@ func SummarizeMessage(m Message) MessageSummary {
 	}
 
 	return MessageSummary{To: m.To.String(), Proposals: proposals, States: states}
+}
+
+// SummarizeProposal returns a ProposalSummary for the provided signed proposal.
+func SummarizeProposal(oId ObjectiveId, sp consensus_channel.SignedProposal) ProposalSummary {
+
+	return ProposalSummary{
+		LedgerId:    sp.Proposal.LedgerID.String(),
+		ObjectiveId: string(oId),
+		Target:      sp.Proposal.Target().String(),
+		TurnNum:     sp.TurnNum,
+		Type:        string(sp.Proposal.Type()),
+	}
 }
 
 // CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger

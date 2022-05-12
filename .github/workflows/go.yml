@@ -12,16 +12,27 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v3
         with:
-          go-version: '^1.18.0'
+          go-version: "^1.18.0"
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3.1.0
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: v1.45.2
+
+      - name: make bin folder
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/bin
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
+
+      - name: install GoVector
+        run: GOPATH=$($GITHUB_WORKSPACE/bin) go install github.com/DistributedClocks/GoVector@latest
 
       - name: Build
         run: go build -v ./...
 
       - name: Test
-        run: go test -v ./... -count=2 -shuffle=on
         timeout-minutes: 1
+        run: go test -v ./... -count=2 -shuffle=on
 
       - name: Archive logs
         if: always()

@@ -17,40 +17,6 @@ func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome,
 	return newConsensusChannel(fp, Leader, turnNum, outcome, signatures)
 }
 
-// IsProposed returns true if a proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
-//
-// Specific clarification: If the current outcome already includes g, IsProposed returns false.
-func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
-	latest, err := c.latestProposedVars()
-	if err != nil {
-		return false, err
-	}
-
-	return latest.Outcome.includes(g) && !c.Includes(g), nil
-
-}
-
-// IsProposedNext returns if the next proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
-func (c *ConsensusChannel) IsProposedNext(g Guarantee) (bool, error) {
-	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
-
-	if len(c.proposalQueue) == 0 {
-		return false, nil
-	}
-
-	p := c.proposalQueue[0]
-	err := vars.HandleProposal(p.Proposal)
-	if vars.TurnNum != p.TurnNum {
-		return false, fmt.Errorf("proposal turn number %d does not match vars %d", p.TurnNum, vars.TurnNum)
-	}
-
-	if err != nil {
-		return false, err
-	}
-
-	return vars.Outcome.includes(g) && !c.Includes(g), nil
-}
-
 // Propose is called by the Leader and receives a proposal to add or remove a guarantee,
 // and generates and stores a SignedProposal in the queue, returning the
 // resulting SignedProposal
@@ -59,7 +25,7 @@ func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal
 		return SignedProposal{}, ErrNotLeader
 	}
 
-	if proposal.ChannelID != c.Id {
+	if proposal.LedgerID != c.Id {
 		return SignedProposal{}, ErrIncorrectChannelID
 	}
 	vars, err := c.latestProposedVars()

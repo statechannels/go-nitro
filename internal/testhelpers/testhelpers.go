@@ -90,3 +90,16 @@ func AssertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 	Assert(t, bytes.Equal(msg.To[:], toAddress[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address().String())
 
 }
+
+// SignState generates a signature on the signed state with the supplied key, and adds that signature.
+// If an error occurs the function panics
+func SignState(ss *state.SignedState, secretKey *[]byte) {
+	sig, err := ss.State().Sign(*secretKey)
+	if err != nil {
+		panic(fmt.Errorf("SignAndAdd failed to sign the state: %w", err))
+	}
+	err = ss.AddSignature(sig)
+	if err != nil {
+		panic(fmt.Errorf("SignAndAdd failed to sign the state: %w", err))
+	}
+}

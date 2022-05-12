@@ -23,8 +23,8 @@ func TestDeposit(t *testing.T) {
 	chain.Subscribe(b)
 
 	// Construct SimpleChainServices
-	mcsA := NewSimpleChainService(chain, a)
-	mcsB := NewSimpleChainService(chain, b)
+	mcsA := NewSimpleChainService(&chain, a)
+	mcsB := NewSimpleChainService(&chain, b)
 
 	inA := mcsA.In()
 	outA := mcsA.Out()

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine/store/safesync"
@@ -11,6 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -21,14 +23,14 @@ type MemStore struct {
 	consensusChannels  safesync.Map[[]byte]
 	channelToObjective safesync.Map[protocols.ObjectiveId]
 
-	key     []byte        // the signing key of the store's engine
-	address types.Address // the (Ethereum) address associated to the signing key
+	key     string // the signing key of the store's engine
+	address string // the (Ethereum) address associated to the signing key
 }
 
 func NewMemStore(key []byte) Store {
 	ms := MemStore{}
-	ms.key = key
-	ms.address = crypto.GetAddressFromSecretKeyBytes(key)
+	ms.key = common.Bytes2Hex(key)
+	ms.address = crypto.GetAddressFromSecretKeyBytes(key).String()
 
 	ms.objectives = safesync.Map[[]byte]{}
 	ms.channels = safesync.Map[[]byte]{}
@@ -39,11 +41,13 @@ func NewMemStore(key []byte) Store {
 }
 
 func (ms *MemStore) GetAddress() *types.Address {
-	return &ms.address
+	address := common.HexToAddress(ms.address)
+	return &address
 }
 
 func (ms *MemStore) GetChannelSecretKey() *[]byte {
-	return &ms.key
+	val := common.Hex2Bytes(ms.key)
+	return &val
 }
 
 func (ms *MemStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Objective, error) {
@@ -173,6 +177,32 @@ func (ms *MemStore) getChannelById(id types.Destination) (channel.Channel, error
 	return ch, nil
 }
 
+// GetChannelsByParticipant returns any channels that include the given participant
+func (ms *MemStore) GetChannelsByParticipant(participant types.Address) []*channel.Channel {
+	toReturn := []*channel.Channel{}
+	ms.channels.Range(func(key string, chJSON []byte) bool {
+
+		var ch channel.Channel
+		err := json.Unmarshal(chJSON, &ch)
+
+		if err != nil {
+			return true // channel not found, continue looking
+		}
+
+		participants := ch.FixedPart.Participants
+		for _, p := range participants {
+			if p == participant {
+				toReturn = append(toReturn, &ch)
+			}
+
+		}
+
+		return true // channel not found: continue looking
+	})
+
+	return toReturn
+}
+
 // GetConsensusChannelById returns a ConsensusChannel with the given channel id
 func (ms *MemStore) GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
 
@@ -290,6 +320,29 @@ func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 		}
 
 		return nil
+	case *virtualdefund.Objective:
+
+		zeroAddress := types.Destination{}
+
+		if o.ToMyLeft != nil &&
+			o.ToMyLeft.Id != zeroAddress {
+
+			left, err := ms.GetConsensusChannelById(o.ToMyLeft.Id)
+			if err != nil {
+				return fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
+			}
+			o.ToMyLeft = left
+		}
+
+		if o.ToMyRight != nil &&
+			o.ToMyRight.Id != zeroAddress {
+			right, err := ms.GetConsensusChannelById(o.ToMyRight.Id)
+			if err != nil {
+				return fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
+			}
+			o.ToMyRight = right
+		}
+		return nil
 	default:
 		return fmt.Errorf("objective %s did not correctly represent a known Objective type", id)
 	}
@@ -314,6 +367,10 @@ func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective
 		vfo := virtualfund.Objective{}
 		err := vfo.UnmarshalJSON(data)
 		return &vfo, err
+	case virtualdefund.IsVirtualDefundObjective(id):
+		dvfo := virtualdefund.Objective{}
+		err := dvfo.UnmarshalJSON(data)
+		return &dvfo, err
 	default:
 		return nil, fmt.Errorf("objective id %s does not correspond to a known Objective type", id)
 

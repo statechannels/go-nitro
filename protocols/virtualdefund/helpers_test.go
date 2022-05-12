@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -39,6 +40,28 @@ func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus
 	default:
 		panic("invalid myRole")
 	}
+}
+
+// generateStoreGetters generates mocks for some store methods
+func generateStoreGetters(myRole uint, vId types.Destination, vFinal state.State) (GetChannelByIdFunction, GetTwoPartyConsensusLedgerFunction) {
+	left, right := generateLedgers(myRole, vId)
+	fun1 := func(id types.Destination) (*channel.Channel, bool) {
+		c, err := channel.New(vFinal, myRole)
+		if err != nil {
+			return &channel.Channel{}, false
+		}
+		return c, true
+	}
+	fun2 := func(address types.Address) (*consensus_channel.ConsensusChannel, bool) {
+		if left != nil && (left.Participants()[0] == address || left.Participants()[1] == address) {
+			return left, true
+		}
+		if right != nil && (right.Participants()[0] == address || right.Participants()[1] == address) {
+			return right, true
+		}
+		return &consensus_channel.ConsensusChannel{}, false
+	}
+	return fun1, fun2
 }
 
 // generateGuarantee generates a guarantee for the given participants and vId
@@ -153,22 +176,6 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 	}
 }
 
-// updateProposals updates the consensus channels on the objective with the given proposals by calling Receive
-func updateProposals(o *Objective, proposals ...consensus_channel.SignedProposal) {
-	for _, p := range proposals {
-		var err error
-		if o.ToMyLeft != nil && o.ToMyLeft.Id == p.Proposal.ChannelID {
-			err = o.ToMyLeft.Receive(p)
-		}
-		if o.ToMyRight != nil && o.ToMyRight.Id == p.Proposal.ChannelID {
-			err = o.ToMyRight.Receive(p)
-		}
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
 // checkForLeaderProposals checks that the outgoing message contains the correct proposals from the leader of a consensus channel
 func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objective, td testdata) {
 
@@ -225,8 +232,8 @@ func makeOutcome(aliceAmount uint, bobAmount uint) outcome.SingleAssetExit {
 }
 
 type testdata struct {
-	vFinal         state.State
-	initialOutcome outcome.SingleAssetExit
+	vInitial state.State
+	vFinal   state.State
 
 	paid uint
 	// finalAliceAmount is the amount we expect to be allocated in the ledger to Alice after defunding is complete
@@ -237,7 +244,7 @@ type testdata struct {
 
 // generateRemoveProposal generates a remove proposal for the given channelId and test data
 func generateRemoveProposal(cId types.Destination, td testdata) consensus_channel.Proposal {
-	vId, _ := td.vFinal.ChannelId()
+	vId := td.vFinal.ChannelId()
 	return consensus_channel.NewRemoveProposal(cId, vId, big.NewInt(int64(td.finalAliceAmount)), big.NewInt(int64(td.finalBobAmount)))
 
 }
@@ -258,23 +265,25 @@ func generateTestData() testdata {
 	paid := uint(1)
 	initialOutcome := makeOutcome(finalAliceAmount+paid, finalBobAmount-paid)
 	finalOutcome := makeOutcome(finalAliceAmount, finalBobAmount)
+
+	vInitial := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{initialOutcome}, TurnNum: 1})
 	vFinal := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{finalOutcome}, TurnNum: FinalTurnNum})
 
-	return testdata{vFinal, initialOutcome, paid, finalAliceAmount, finalBobAmount}
+	return testdata{vInitial, vFinal, paid, finalAliceAmount, finalBobAmount}
 }
 
 // signStateByOthers signs the state by every participant except me
 func signStateByOthers(me ta.Actor, signedState state.SignedState) state.SignedState {
 	if me.Role != 0 {
-		_ = signedState.Sign(&alice.PrivateKey)
+		SignState(&signedState, &alice.PrivateKey)
 	}
 
 	if me.Role != 1 {
-		_ = signedState.Sign(&irene.PrivateKey)
+		SignState(&signedState, &irene.PrivateKey)
 	}
 
 	if me.Role != 2 {
-		_ = signedState.Sign(&bob.PrivateKey)
+		SignState(&signedState, &bob.PrivateKey)
 	}
 	return signedState
 }

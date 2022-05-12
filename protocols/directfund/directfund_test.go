@@ -13,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -47,23 +48,43 @@ var testState = state.State{
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
+
+	getByParticipant := func(id types.Address) []*channel.Channel {
+		return []*channel.Channel{}
+	}
+	getByConsensus := func(id types.Address) (*consensus_channel.ConsensusChannel, bool) {
+		return nil, false
+	}
+	request := ObjectiveRequest{
+		MyAddress:         testState.Participants[0],
+		CounterParty:      testState.Participants[1],
+		AppDefinition:     testState.AppDefinition,
+		AppData:           testState.AppData,
+		ChallengeDuration: testState.ChallengeDuration,
+		Outcome:           testState.Outcome,
+		Nonce:             testState.ChannelNonce.Int64(),
+	}
 	// Assert that valid constructor args do not result in error
-	if _, err := ConstructFromState(false, testState, testState.Participants[0]); err != nil {
+	if _, err := NewObjective(request, false, getByParticipant, getByConsensus); err != nil {
 		t.Error(err)
 	}
 
-	// Construct a final state
-	finalState := testState.Clone()
-	finalState.IsFinal = true
-
-	if _, err := ConstructFromState(false, finalState, testState.Participants[0]); err == nil {
-		t.Error("expected an error when constructing with an intial state marked final, but got nil")
+	getByParticipantHasChannel := func(id types.Address) []*channel.Channel {
+		c, _ := channel.New(testState, 0)
+		return []*channel.Channel{c}
 	}
 
-	nonParticipant := common.HexToAddress("0x5b53f71453aeCb03D837bfe170570d40aE736CB4")
-	if _, err := ConstructFromState(false, testState, nonParticipant); err == nil {
-		t.Error("expected an error when constructing with a participant not in the channel, but got nil")
+	if _, err := NewObjective(request, false, getByParticipantHasChannel, getByConsensus); err == nil {
+		t.Errorf("Expected an error when constructing with an objective when an existing channel exists")
 	}
+
+	getByConsensusHasChannel := func(id types.Address) (*consensus_channel.ConsensusChannel, bool) {
+		return nil, true
+	}
+	if _, err := NewObjective(request, false, getByParticipant, getByConsensusHasChannel); err == nil {
+		t.Errorf("Expected an error when constructing with an objective when an existing channel consensus channel exists")
+	}
+
 }
 
 func TestConstructFromState(t *testing.T) {
@@ -250,7 +271,11 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the first "deposit"
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
-	_, sideEffects, waitingFor, err = o.Crank(&alice.PrivateKey)
+	updated, sideEffects, waitingFor, err := o.Crank(&alice.PrivateKey)
+
+	if !updated.(*Objective).transactionSubmitted {
+		t.Fatalf("Expected transactionSubmitted flag to be set to true")
+	}
 	if err != nil {
 		t.Error(err)
 	}
@@ -336,5 +361,19 @@ func TestMarshalJSON(t *testing.T) {
 	}
 	if got.C.Id != dfo.C.Id {
 		t.Fatalf("expected channel Id %s but got %s", dfo.C.Id, got.C.Id)
+	}
+}
+
+func TestApproveReject(t *testing.T) {
+	o, err := ConstructFromState(false, testState, testState.Participants[0])
+	testhelpers.Ok(t, err)
+
+	approved := o.Approve()
+	if approved.GetStatus() != protocols.Approved {
+		t.Errorf("Expected approved status, got %v", approved.GetStatus())
+	}
+	rejected := o.Reject()
+	if rejected.GetStatus() != protocols.Rejected {
+		t.Errorf("Expected rejceted status, got %v", approved.GetStatus())
 	}
 }

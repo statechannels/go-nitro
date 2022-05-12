@@ -13,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -175,9 +176,12 @@ func TestCrankAlice(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, se, wf, err = updated.Crank(&alice.PrivateKey)
+	updated, se, wf, err = updated.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
+	}
+	if !updated.(*Objective).transactionSubmitted {
+		t.Fatalf("Expected transactionSubmitted flag to be set to true")
 	}
 
 	if wf != WaitingForWithdraw {
@@ -258,9 +262,13 @@ func TestCrankBob(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, se, wf, err = updated.Crank(&bob.PrivateKey)
+	updated, se, wf, err = updated.Crank(&bob.PrivateKey)
 	if err != nil {
 		t.Error(err)
+	}
+
+	if updated.(*Objective).transactionSubmitted {
+		t.Fatalf("Expected transactionSubmitted flag to be set to false")
 	}
 
 	if wf != WaitingForWithdraw {
@@ -317,5 +325,18 @@ func TestMarshalJSON(t *testing.T) {
 	}
 	if got.C.Id != ddfo.C.Id {
 		t.Fatalf("expected channel Id %s but got %s", ddfo.C.Id, got.C.Id)
+	}
+}
+func TestApproveReject(t *testing.T) {
+	o, err := newTestObjective()
+	testhelpers.Ok(t, err)
+
+	approved := o.Approve()
+	if approved.GetStatus() != protocols.Approved {
+		t.Errorf("Expected approved status, got %v", approved.GetStatus())
+	}
+	rejected := o.Reject()
+	if rejected.GetStatus() != protocols.Rejected {
+		t.Errorf("Expected rejceted status, got %v", approved.GetStatus())
 	}
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
 
@@ -132,11 +133,11 @@ func (e *Engine) Run() {
 }
 
 // handleMessage handles a Message from a peer go-nitro Wallet.
-// It
-// reads an objective from the store,
-// gets a pointer to a channel secret key from the store,
-// generates an updated objective and
-// attempts progress.
+// It:
+//  - reads an objective from the store,
+//  - generates an updated objective,
+//  - attempts progress on the target Objective,
+//  - attempts progress on related objectives which may have become unblocked.
 func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent, error) {
 
 	e.logger.Printf("Handling inbound message %+v", protocols.SummarizeMessage(message))
@@ -166,13 +167,18 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
-
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+
+		relatedObjectiveCompletions, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedObjectiveCompletions.CompletedObjectives...)
 
 	}
 
-	proposalEntries := message.SignedProposals()
-	for _, entry := range proposalEntries {
+	for _, entry := range message.SignedProposals() {
+		e.logger.Printf("handling proposal %+v", protocols.SummarizeProposal(entry.ObjectiveId, entry.Payload))
 		objective, err := e.store.GetObjectiveById(entry.ObjectiveId)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
@@ -198,18 +204,23 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		}
 
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
-	}
 
+		relatedProgressEvent, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedProgressEvent.CompletedObjectives...)
+
+	}
 	return allCompleted, nil
 
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
-// It
-// reads an objective from the store,
-// gets a pointer to a channel secret key from the store,
-// generates an updated objective and
-// attempts progress.
+// It:
+//  - reads an objective from the store,
+//  - generates an updated objective, and
+//  - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChangeEvent, error) {
 	e.logger.Printf("handling chain event %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
@@ -231,11 +242,11 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 	return e.attemptProgress(updatedEventHandler)
 }
 
-// handleAPIEvent handles an API Event (triggered by an API call)
+// handleAPIEvent handles an API Event (triggered by a client API call).
 // It will attempt to perform all of the following:
-// Spawn a new, approved objective (if not null)
-// Reject an existing objective (if not null)
-// Approve an existing objective (if not null)
+//  - Spawn a new, approved objective (if not null)
+//  - Reject an existing objective (if not null)
+//  - Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error) {
 	if apiEvent.ObjectiveToSpawn != nil {
 
@@ -248,8 +259,15 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			}
 			return e.attemptProgress(&vfo)
 
+		case virtualdefund.ObjectiveRequest:
+			vdfo, err := virtualdefund.NewObjective(true, request, e.store.GetChannelById, e.store.GetConsensusChannel)
+			if err != nil {
+				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+			}
+			return e.attemptProgress(&vdfo)
+
 		case directfund.ObjectiveRequest:
-			dfo, err := directfund.NewObjective(request, true)
+			dfo, err := directfund.NewObjective(request, true, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
@@ -334,7 +352,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	if waitingFor == "WaitingForNothing" {
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
 		e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
-		err = e.SpawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
+		err = e.spawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
 		if err != nil {
 			return
 		}
@@ -343,10 +361,10 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	return
 }
 
-// SpawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective iff it is a directfund.Objective.
+// spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective if it is a directfund.Objective.
 //
 // The associated Channel will remain in the store.
-func (e Engine) SpawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
+func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
 	if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
 		c, err := dfo.CreateConsensusChannel()
 		if err != nil {
@@ -401,6 +419,12 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
 		return &vfo, nil
+	case virtualdefund.IsVirtualDefundObjective(id):
+		vdfo, err := virtualdefund.ConstructObjectiveFromState(ss.State(), *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
+		if err != nil {
+			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
+		}
+		return &vdfo, nil
 	case directdefund.IsDirectDefundObjective(id):
 		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), e.store.GetConsensusChannelById)
 		if err != nil {
@@ -414,4 +438,72 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		return &directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
 	}
 
+}
+
+// TODO: These were implemented to quickly resolve https://github.com/statechannels/go-nitro/issues/637
+// This may not be the long term approach we use.
+// See https://www.notion.so/statechannels/Messages-arriving-out-of-order-can-cause-virtual-protocols-to-stall-fc5fe7a1121f4b289a6f6384c1ed4429
+
+// attemptProgressForRelatedObjectives attempts to progress any objectives that may be related to the objective that was just cranked
+// An objective is related when it shares a ledger channel with the provided objective.
+// This allows progress to made on other objectives that may be unblocked after processing the updatedObjective.
+func (e *Engine) attemptProgressForRelatedObjectives(updatedObjective *protocols.Objective) (ObjectiveChangeEvent, error) {
+	allCompleted := ObjectiveChangeEvent{}
+	relatedIds, err := e.findRelatedObjectives(*updatedObjective)
+	if err != nil {
+		return ObjectiveChangeEvent{}, err
+	}
+	for _, id := range relatedIds {
+		related, err := e.store.GetObjectiveById(id)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+		progressEvent, err := e.attemptProgress(related)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+	}
+	return allCompleted, nil
+}
+
+// findRelatedObjectives finds all objectives that are related to provided objective.
+// An objective is related when it shares a ledger channel with the provided objective.
+func (e *Engine) findRelatedObjectives(o protocols.Objective) ([]protocols.ObjectiveId, error) {
+	relatedIds := []protocols.ObjectiveId{}
+	for _, rel := range o.Related() {
+		c, ok := rel.(*consensus_channel.ConsensusChannel)
+		if ok {
+			for _, p := range c.ProposalQueue() {
+				id := getProposalObjectiveId(p.Proposal)
+
+				relatedIds = append(relatedIds, id)
+			}
+		}
+	}
+	return relatedIds, nil
+}
+
+// getProposalObjectiveId returns the objectiveId for a proposal.
+func getProposalObjectiveId(p consensus_channel.Proposal) protocols.ObjectiveId {
+	switch p.Type() {
+	case consensus_channel.AddProposal:
+		{
+			const prefix = virtualfund.ObjectivePrefix
+			channelId := p.ToAdd.Guarantee.Target().String()
+			return protocols.ObjectiveId(prefix + channelId)
+
+		}
+	case consensus_channel.RemoveProposal:
+		{
+			const prefix = virtualdefund.ObjectivePrefix
+			channelId := p.ToRemove.Target.String()
+			return protocols.ObjectiveId(prefix + channelId)
+
+		}
+	default:
+		{
+			panic("invalid proposal type")
+		}
+	}
 }

@@ -127,7 +127,7 @@ func diffFromCorrectConnection(c *Connection, left, right actors.Actor) string {
 	td := newTestData()
 	vPreFund := td.vPreFund
 
-	Id, _ := vPreFund.FixedPart().ChannelId()
+	Id := vPreFund.FixedPart().ChannelId()
 
 	// HACK: This should really be comparing GuaranteeInfo, but GuaranteeInfo
 	// contains types.Funds amounts in their LeftAmount and RightAmount fields.
@@ -214,11 +214,13 @@ func TestMisaddressedUpdate(t *testing.T) {
 
 // TestCrankAsAlice tests the behaviour from a end-user's point of view when they are a leader in the ledger channel
 func TestCrankAsAlice(t *testing.T) {
-	my := alice
-	td := newTestData()
-	vPreFund := td.vPreFund
-	ledgers := td.leaderLedgers
-	var s, _ = constructFromState(false, vPreFund, my.Address(), ledgers[my.Destination()].left, ledgers[my.Destination()].right)
+	var (
+		my       = alice
+		td       = newTestData()
+		vPreFund = td.vPreFund
+		ledgers  = td.leaderLedgers
+		s, _     = constructFromState(false, vPreFund, my.Address(), ledgers[my.Destination()].left, ledgers[my.Destination()].right)
+	)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.PrivateKey)
 	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
@@ -294,11 +296,13 @@ func TestCrankAsAlice(t *testing.T) {
 
 // TestCrankAsBob tests the behaviour from a end-user's point of view when they are a follower in the ledger channel
 func TestCrankAsBob(t *testing.T) {
-	my := bob
-	td := newTestData()
-	vPreFund := td.vPreFund
-	ledgers := td.followerLedgers
-	var s, _ = constructFromState(false, vPreFund, my.Address(), ledgers[my.Destination()].left, ledgers[my.Destination()].right)
+	var (
+		my       = bob
+		td       = newTestData()
+		vPreFund = td.vPreFund
+		ledgers  = td.followerLedgers
+		s, _     = constructFromState(false, vPreFund, my.Address(), ledgers[my.Destination()].left, ledgers[my.Destination()].right)
+	)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.PrivateKey)
 	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
@@ -375,12 +379,14 @@ func TestCrankAsBob(t *testing.T) {
 
 // TestCrankAsP1 tests the behaviour from an intermediary's point of view when they are a leader in one ledger channel and a follower in the other
 func TestCrankAsP1(t *testing.T) {
-	my := p1
-	td := newTestData()
-	vPreFund := td.vPreFund
-	left := td.leaderLedgers[my.Destination()].left
-	right := td.followerLedgers[my.Destination()].right
-	var s, _ = constructFromState(false, vPreFund, my.Address(), left, right)
+	var (
+		my       = p1
+		td       = newTestData()
+		vPreFund = td.vPreFund
+		left     = td.leaderLedgers[my.Destination()].left
+		right    = td.followerLedgers[my.Destination()].right
+		s, _     = constructFromState(false, vPreFund, my.Address(), left, right)
+	)
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.PrivateKey)
 	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)

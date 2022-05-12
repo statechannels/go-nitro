@@ -27,7 +27,7 @@ func (mc MockChain) In() chan<- protocols.ChainTransaction {
 	return mc.in
 }
 
-// NewMockChain returns a new MockChain with an out chan initialized for each of the addresses passed in.
+// NewMockChain returns a new MockChain.
 func NewMockChain() MockChain {
 
 	mc := MockChain{}
@@ -40,6 +40,7 @@ func NewMockChain() MockChain {
 	return mc
 }
 
+// Subscribe inserts a go chan (for the supplied address) into the MockChain.
 func (mc *MockChain) Subscribe(a types.Address) {
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	mc.out[a] = make(chan Event, 10)

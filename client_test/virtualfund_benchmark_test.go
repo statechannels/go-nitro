@@ -58,7 +58,7 @@ func benchmarkVirtualChannelCreation(t *testing.T, alice, bob client.Client, ire
 		ChallengeDuration: big.NewInt(0),
 		Nonce:             rand.Int63(),
 	}
-	id := alice.CreateVirtualChannel(request)
+	id := alice.CreateVirtualChannel(request).Id
 
 	defer elapsed(t, string(id))()
 

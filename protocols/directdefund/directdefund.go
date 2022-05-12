@@ -31,9 +31,10 @@ var (
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
-	Status       protocols.ObjectiveStatus
-	C            *channel.Channel
-	finalTurnNum uint64
+	Status               protocols.ObjectiveStatus
+	C                    *channel.Channel
+	finalTurnNum         uint64
+	transactionSubmitted bool // whether a transation for the objective has been submitted or not
 }
 
 // isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
@@ -128,10 +129,12 @@ func ConstructObjectiveFromState(
 		return Objective{}, ErrNoFinalState
 	}
 
-	cId, err := s.ChannelId()
+	err := s.FixedPart().Validate()
 	if err != nil {
 		return Objective{}, err
 	}
+
+	cId := s.ChannelId()
 
 	return NewObjective(preApprove, cId, getConsensusChannel)
 }
@@ -139,11 +142,11 @@ func ConstructObjectiveFromState(
 // Public methods on the DirectDefundingObjective
 
 // Id returns the unique id of the objective
-func (o Objective) Id() protocols.ObjectiveId {
+func (o *Objective) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + o.C.Id.String())
 }
 
-func (o Objective) Approve() protocols.Objective {
+func (o *Objective) Approve() protocols.Objective {
 	updated := o.clone()
 	// todo: consider case of o.Status == Rejected
 	updated.Status = protocols.Approved
@@ -151,7 +154,7 @@ func (o Objective) Approve() protocols.Objective {
 	return &updated
 }
 
-func (o Objective) Reject() protocols.Objective {
+func (o *Objective) Reject() protocols.Objective {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
 	return &updated
@@ -167,27 +170,27 @@ func (ddo Objective) GetStatus() protocols.ObjectiveStatus {
 	return ddo.Status
 }
 
-func (o Objective) Related() []protocols.Storable {
+func (o *Objective) Related() []protocols.Storable {
 	return []protocols.Storable{o.C}
 }
 
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectDefundingObjective,
 // and returns the updated objective
-func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if o.Id() != event.ObjectiveId {
-		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
 	if len(event.SignedState.Signatures()) != 0 {
 
 		if !event.SignedState.State().IsFinal {
-			return &o, errors.New("direct defund objective can only be updated with final states")
+			return o, errors.New("direct defund objective can only be updated with final states")
 		}
 		if o.finalTurnNum != event.SignedState.State().TurnNum {
-			return &o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, event.SignedState.State().TurnNum)
+			return o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, event.SignedState.State().TurnNum)
 		}
 	} else {
-		return &o, fmt.Errorf("event does not contain a signed state")
+		return o, fmt.Errorf("event does not contain a signed state")
 	}
 
 	updated := o.clone()
@@ -199,23 +202,25 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 // UpdateWithChainEvent updates the objective with observed on-chain data.
 //
 // Only Allocation Updated events are currently handled.
-func (o Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
+func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
 	updated := o.clone()
-	de, ok := event.(chainservice.AllocationUpdatedEvent)
-	if !ok {
+	switch e := event.(type) {
+	case chainservice.AllocationUpdatedEvent:
+		{
+			// todo: check block number
+			if e.Holdings != nil {
+				updated.C.OnChainFunding = e.Holdings.Clone()
+			}
+		}
+	default:
 		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
 	}
-	// todo: check block number
-	if de.Holdings != nil {
-		updated.C.OnChainFunding = de.Holdings.Clone()
-	}
-
 	return &updated, nil
 
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
-func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
@@ -253,12 +258,13 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	}
 
 	// Withdrawal of funds
-	if !updated.fullyWithdrawn() {
-		// TODO #314: before submiting a withdrawal transaction, we should check if a withdrawal transaction has already been submitted
+	if !updated.fullyWithdrawn() && !updated.transactionSubmitted {
+
 		// The first participant in the channel submits the withdrawAll transaction
 		if updated.C.MyIndex == 0 {
 			withdrawAll := protocols.ChainTransaction{Type: protocols.WithdrawAllTransactionType, ChannelId: updated.C.Id}
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
+			updated.transactionSubmitted = true
 		}
 		// Every participant waits for all channel funds to be distributed, even if the participant has no funds in the channel
 		return &updated, sideEffects, WaitingForWithdraw, nil
@@ -290,12 +296,12 @@ func CreateChannelFromConsensusChannel(cc consensus_channel.ConsensusChannel) (*
 }
 
 // fullyWithdrawn returns true if the channel contains no assets on chain
-func (o Objective) fullyWithdrawn() bool {
+func (o *Objective) fullyWithdrawn() bool {
 	return !o.C.OnChainFunding.IsNonZero()
 }
 
 // clone returns a deep copy of the receiver.
-func (o Objective) clone() Objective {
+func (o *Objective) clone() Objective {
 	clone := Objective{}
 	clone.Status = o.Status
 

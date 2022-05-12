@@ -3,6 +3,7 @@ package client // import "github.com/statechannels/go-nitro/client"
 
 import (
 	"io"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -11,6 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -61,7 +63,7 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
-func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequest) protocols.ObjectiveId {
+func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequest) virtualfund.ObjectiveResponse {
 
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objectiveRequest,
@@ -69,7 +71,25 @@ func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequ
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
+	return objectiveRequest.Response()
+}
+
+// CloseVirtualChannel attempts to close and defund the given virtually funded channel.
+func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big.Int) protocols.ObjectiveId {
+
+	objectiveRequest := virtualdefund.ObjectiveRequest{
+		ChannelId: channelId,
+		PaidToBob: paidToBob,
+		MyAddress: *c.Address,
+	}
+	apiEvent := engine.APIEvent{
+		ObjectiveToSpawn: objectiveRequest,
+	}
+	// Send the event to the engine
+	c.engine.FromAPI <- apiEvent
+
 	return objectiveRequest.Id()
+
 }
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty

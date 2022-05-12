@@ -196,3 +196,19 @@ func TestConsensusChannelStore(t *testing.T) {
 		t.Fatalf("fetched result different than expected %s", diff)
 	}
 }
+
+func TestGetChannelsByParticipant(t *testing.T) {
+	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
+
+	ms := store.NewMemStore(sk)
+	c := td.Objectives.Directfund.GenericDFO().C
+	want := []*channel.Channel{c}
+	_ = ms.SetChannel(c)
+
+	got := ms.GetChannelsByParticipant(c.Participants[0])
+
+	if diff := cmp.Diff(got, want, cmp.AllowUnexported(channel.Channel{}, big.Int{}, state.SignedState{})); diff != "" {
+		t.Fatalf("fetched result different than expected %s", diff)
+	}
+
+}
