@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
-	"os/exec"
 	"path"
 	"runtime"
 	"strings"
@@ -32,10 +31,6 @@ import (
 func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 
 	prettyPrintDict := make(map[string]string)
-
-	// t.Skip() // This test is skipped because it requires an external dependency to run.
-	// go install github.com/DistributedClocks/GoVector@latest
-	// You may need to add GOPATH/bin to your PATH
 
 	// Increase numRetrievalClients to simulate multiple retrieval clients all wanting to pay the same retrieval provider through the same hub
 	const numRetrievalClients = 1
@@ -115,7 +110,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	_, _ = logDestination.Write(finalOutcome)
 
 	// Combine vector clock logs together, ready for input to the visualizer
-	combineLogs(t, vectorClockLogDir, "shiviz.log")
+	combineLogs(t, vectorClockLogDir, "shiviz.log", retrievalProvider, paymentHub, retrievalClients)
 
 	// prettify log
 	prettify(t, vectorClockLogDir, "shiviz.log", prettyPrintDict)
@@ -123,14 +118,40 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 }
 
 // combineLogs runs the GoVector CLI utility
-func combineLogs(t *testing.T, logDir string, combinedLogsFilename string) {
+func combineLogs(t *testing.T, logDir string, combinedLogsFilename string, RP client.Client, PH client.Client, retrievalClients []client.Client) {
 	_, filename, _, _ := runtime.Caller(1)
 	logDir = path.Join(path.Dir(filename), logDir)
-	// NOTE: you may need to add GOPATH to PATH
-	_, err := exec.Command("GoVector", "--log_type", "shiviz", "--log_dir", logDir, "--outfile", path.Join(logDir, combinedLogsFilename)).Output()
+
+	output := `(?<host>\S*) (?<clock>{.*})\n(?<event>.*)`
+	output += "\n"
+	output += "\n"
+
+	// we want RP leftmost
+	// we want PH immediately to the right of RP
+	input, err := ioutil.ReadFile(path.Join(logDir, RP.Address.String()+"-Log.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	output += string(input)
+	output += "\n"
+	input, err = ioutil.ReadFile(path.Join(logDir, PH.Address.String()+"-Log.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	output += string(input)
+	output += "\n"
+	for i := range retrievalClients {
+		input, err := ioutil.ReadFile(path.Join(logDir, retrievalClients[i].Address.String()+"-Log.txt"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		output += string(input)
+	}
+
+	if err = ioutil.WriteFile(path.Join(logDir, combinedLogsFilename), []byte(output), 0666); err != nil {
+		t.Fatal(err)
+	}
+
 }
 
 // prettify replaces addresses and destinations using the supplied prettyPrintDict
@@ -146,8 +167,7 @@ func prettify(t *testing.T, logDir string, combinedLogsFilename string, prettyPr
 	}
 
 	if err = ioutil.WriteFile(path.Join(logDir, combinedLogsFilename)+"_pretty", []byte(output), 0666); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		t.Fatal(err)
 	}
 }
 
