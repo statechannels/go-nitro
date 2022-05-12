@@ -15,6 +15,7 @@ import (
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/client/engine/store"
 	nc "github.com/statechannels/go-nitro/crypto"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
@@ -29,7 +30,7 @@ import (
 // The output shiviz.log can be pasted into https://bestchai.bitbucket.io/shiviz/ to visualize the messages which are sent.
 func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 
-	t.Skip() // This test is skipped because it requires an external dependency to run.
+	// t.Skip() // This test is skipped because it requires an external dependency to run.
 	// go install github.com/DistributedClocks/GoVector@latest
 	// You may need to add GOPATH/bin to your PATH
 
@@ -50,19 +51,48 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	broker := messageservice.NewBroker()
 
 	// Setup singleton (instrumented) clients
-	retrievalProvider, retrievalProviderStore := setupInstrumentedClient(bob.PrivateKey, chain, broker, logDestination, 0, vectorClockLogDir, "RP")
-	paymentHub, _ := setupInstrumentedClient(irene.PrivateKey, chain, broker, logDestination, 0, vectorClockLogDir, "PH")
+	retrievalProvider, retrievalProviderStore := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	paymentHub, paymentHubStore := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
 
 	// Connect RP to PH
 	directlyFundALedgerChannel(t, retrievalProvider, paymentHub)
 
-	// Setup a number of RCs, each with a ledger connection to PH, and immediately trying to connect virtually to RP
+	// Setup a number of RCs, each with a ledger connection to PH
 	retrievalClients := make([]client.Client, numRetrievalClients)
+	rcStores := make([]store.Store, numRetrievalClients)
 	for i := range retrievalClients {
 		secretKey, _ := nc.GeneratePrivateKeyAndAddress()
-		retrievalClients[i], _ = setupInstrumentedClient(secretKey, chain, broker, logDestination, 0, vectorClockLogDir, "RC"+fmt.Sprint(i))
+		retrievalClients[i], rcStores[i] = setupClient(secretKey, chain, broker, logDestination, 0)
 		directlyFundALedgerChannel(t, retrievalClients[i], paymentHub)
 	}
+
+	// Switch to instrumented clients
+	chain = chainservice.NewMockChain()
+	broker = messageservice.NewBroker()
+	retrievalProvider = client.New(
+		messageservice.NewVectorClockTestMessageService(bob.Address(), broker, 0, vectorClockLogDir, "RP"),
+		chainservice.NewSimpleChainService(&chain, bob.Address()),
+		retrievalProviderStore,
+		logDestination,
+	)
+	paymentHub = client.New(
+		messageservice.NewVectorClockTestMessageService(irene.Address(), broker, 0, vectorClockLogDir, "PH"),
+		chainservice.NewSimpleChainService(&chain, irene.Address()),
+		paymentHubStore,
+		logDestination,
+	)
+	for i := range retrievalClients {
+		retrievalClients[i] =
+			client.New(
+				messageservice.NewVectorClockTestMessageService(*retrievalClients[i].Address, broker, 0, vectorClockLogDir, "RC"+fmt.Sprint(i)),
+				chainservice.NewSimpleChainService(&chain, *retrievalClients[i].Address),
+				rcStores[i],
+				logDestination,
+			)
+
+	}
+
+	// All Retrieval Clients try to start a virtual channel with the retrievalProvider, through the Payment Hub
 	for _, client := range retrievalClients {
 		go createVirtualChannelWithRetrievalProvider(client, retrievalProvider)
 	}
