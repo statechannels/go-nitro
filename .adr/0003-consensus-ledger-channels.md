@@ -6,7 +6,8 @@ Accepted
 
 ## Definitions
 
-**L(x,y)** is the ledger channel between x and y.
+- **L(x,y)** is the ledger channel between x and y.
+- references to **virtualfunding** operations are intended as generic references to either `virtualfund` or `virtualdefund`. (Similar for **directfunding**)
 
 ## Context
 
@@ -41,7 +42,7 @@ cons:
 
 ### Async Ledger Updates
 
-- https://www.notion.so/statechannels/RFC-13-Async-virtual-funding-b2b6ed9e39b34a7fbd362026dc248b0f
+- (https://www.notion.so/statechannels/RFC-13-Async-virtual-funding-b2b6ed9e39b34a7fbd362026dc248b0f)
 
 Above document outlines a protocol for ledger channel in which the channel application logic:
 
@@ -116,28 +117,6 @@ This requires a conversion steps on each end:
 
 This is not ideal (why create one temp data-type only to immediatly convert it for storage?), and is subject to future refactoring. See [this notion doc](https://www.notion.so/statechannels/Channels-ConsensusChannels-Objectives-9701e24e2bc1491a83fae375e4e4c64a#9c41424d07694150bdc6cf373309757a) for further detail.
 
-### Peer Messaging
+### Integration with engine
 
-Because each proposal implies a specific, sequentially numbered state, the sending and receiving of proposals must be reliable in context of a real-world network. Safeguards must exist against both __dropped messages__ and __message reordering__.
-
-#### Redundancy (current approach)
-
-Clients include all unacknowledged proposals with each message. In the context of a healthy network, this might be expected to result in occasional double transmissions and rare triple transmissions. This expectation is subject to future benchmarking / simulation (TODO).
-
-In an unhealthy network, or in the case of an offline counterparty, clients will require a mechanism to "give up" on sending messages to the unavailable counterparty for some cooldown period (TODO).
-
-In the current implementation, proposals are batched naively (sending `N` proposals results in a payload `N` times as large as a single proposal). Future work could improve on this by omitting redundant information (repeated labelling of the ledger channel, signatures associated with each individual proposal, etc).
-
-#### MessageService with guaranteed delivery (alternative approach)
-
-A messageservice which recieves an acknowledgement on each transmission could effectively guarantee message delivery, and could be relied upon for correct message ordering as well by waiting for message `N` to be acknowledged before sending message `N+1`.
-
-This approach simplifies the __message reordering__ problem for both sender and receiver, but adds latency (network trips for each `ack` signal) to every funding operation. Ledger channel updates are the expected bottleneck in a busy channel network, so adding latency here is not preferred.
-
-#### Receiever requests absent proposals  (alternative approach)
-
-A follower client waiting on proposal `N` who recieves some out-of-order proposal `N+M` could explicitly request proposals `[N, ... ,N+M-1]` from the counterparty. In the case of out-of-order messages, this is well-behaved:
-- it allows the channel leader to optimistically send all proposals individually
-- messages that arrive out-of-order can simply be processed by the follower, and the request for retransmission can simply be ignored (it is non-blocking)
-
-In the case of dropped messages, this scheme is expected to be a little less performant than the `Redundancy` scheme, as it requires the extra network trip with the request for a retransmission, which itself can not be triggered until the follower is "aware" that it is missing proposals.
+Because individual protocols are implemented as pure functions, reordering recieved proposals and managing sequential updates is handled by the engine (`package engine`). See [ADR-0005](0005-proposal-processing.md) for details on how proposal ordering is handled by the engine.
