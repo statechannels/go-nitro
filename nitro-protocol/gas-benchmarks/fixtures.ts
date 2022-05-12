@@ -18,7 +18,7 @@ import {
   Outcome,
   SimpleAllocation,
 } from '../src/contract/outcome';
-import {FixedPart, getVariablePart, hashState, VariablePart} from '../src/contract/state';
+import {FixedPart, getVariablePart, hashState, SignedVariablePart} from '../src/contract/state';
 
 import {nitroAdjudicator, provider} from './vanillaSetup';
 
@@ -87,20 +87,19 @@ class TestChannel {
     state: State
   ): {
     fixedPart: FixedPart;
-    variableParts: VariablePart[];
-    isFinalCount: number;
-    whoSignedWhat: number[];
-    signatures: Signature[];
+    signedVariableParts: SignedVariablePart[];
     challengeSignature: Signature;
     outcome: Outcome;
     stateHash: string;
   } {
     return {
       fixedPart: getFixedPart(state),
-      variableParts: [getVariablePart(state)],
-      isFinalCount: 0,
-      whoSignedWhat: this.wallets.map(() => 0),
-      signatures: this.wallets.map(w => signState(state, w.privateKey).signature),
+      signedVariableParts: [
+        {
+          variablePart: getVariablePart(state),
+          sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
+        },
+      ],
       challengeSignature: signChallengeMessage([{state} as SignedState], Alice.privateKey),
       outcome: state.outcome,
       stateHash: hashState(state),
@@ -112,19 +111,16 @@ class TestChannel {
     state: State
   ): {
     fixedPart: FixedPart;
-    latestVariablePart: VariablePart;
-    outcome: Outcome;
-    numStates: 1;
-    whoSignedWhat: number[];
-    sigs: Signature[];
+    signedVariableParts: SignedVariablePart[];
   } {
     return {
       fixedPart: getFixedPart(state),
-      latestVariablePart: getVariablePart(state),
-      outcome: state.outcome,
-      numStates: 1,
-      whoSignedWhat: this.wallets.map(() => 0),
-      sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
+      signedVariableParts: [
+        {
+          variablePart: getVariablePart(state),
+          sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
+        },
+      ],
     };
   }
 
@@ -132,10 +128,7 @@ class TestChannel {
     const fP = this.supportProof(this.finalState(asset));
     return await nitroAdjudicator.concludeAndTransferAllAssets(
       fP.fixedPart,
-      fP.latestVariablePart,
-      fP.numStates,
-      fP.whoSignedWhat,
-      fP.sigs
+      fP.signedVariableParts
     );
   }
 
@@ -143,9 +136,7 @@ class TestChannel {
     const proof = this.counterSignedSupportProof(this.someState(asset));
     return await nitroAdjudicator.challenge(
       proof.fixedPart,
-      proof.variableParts,
-      proof.signatures,
-      proof.whoSignedWhat,
+      proof.signedVariableParts,
       proof.challengeSignature
     );
   }
@@ -269,9 +260,7 @@ export async function challengeChannelAndExpectGas(
 
   const challengeTx = await nitroAdjudicator.challenge(
     proof.fixedPart,
-    proof.variableParts,
-    proof.signatures,
-    proof.whoSignedWhat,
+    proof.signedVariableParts,
     proof.challengeSignature
   );
   await expect(challengeTx).toConsumeGas(expectedGas);
