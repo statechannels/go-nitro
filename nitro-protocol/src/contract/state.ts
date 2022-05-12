@@ -1,4 +1,5 @@
 import {utils} from 'ethers';
+import {Signature} from '@ethersproject/bytes';
 import {ParamType} from 'ethers/lib/utils';
 
 import {Channel, getChannelId} from './channel';
@@ -48,6 +49,14 @@ export interface VariablePart {
   //(e.g. if in SC App uint256 is used, firstly enode appData as uint256, then as bytes)
   turnNum: Uint48;
   isFinal: boolean;
+}
+
+/**
+ * Variable part with its signatures created by participants
+ */
+export interface SignedVariablePart {
+  variablePart: VariablePart;
+  sigs: Signature[];
 }
 
 /**
