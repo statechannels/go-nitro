@@ -20,6 +20,8 @@ contract SingleAssetPayments is IForceMoveApp {
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
     ) external pure override returns (VariablePart memory) {
+        // TODO see https://github.com/statechannels/go-nitro/issues/558
+        
         // // Throws if more than one asset
         // require(a.outcome.length == 1, 'outcomeA: Only one asset allowed');
         // require(b.outcome.length == 1, 'outcomeB: Only one asset allowed');
