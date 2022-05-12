@@ -33,7 +33,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	prettyPrintDict := make(map[string]string)
 
 	// Increase numRetrievalClients to simulate multiple retrieval clients all wanting to pay the same retrieval provider through the same hub
-	const numRetrievalClients = 1
+	const numRetrievalClients = 3
 
 	// Set a directory for each client to store vector clock logs, and cleat it.
 	vectorClockLogDir := "../artifacts/vectorclock"
