@@ -33,7 +33,7 @@ interface INitroTypes {
 
     struct State {
         // participants sign the hash of this
-        bytes32 channelId; // keccack(chainId,participants,channelNonce,appDefinition,challengeDuration)
+        bytes32 channelId; // keccack(FixedPart)
         bytes appData;
         bytes outcome;
         uint48 turnNum;
