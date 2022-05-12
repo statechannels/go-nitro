@@ -47,12 +47,6 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart[] memory signedVariableParts,
         Signature memory challengerSig
     ) external override {
-        // input type validation
-        requireValidInput(
-            fixedPart.participants.length,
-            signedVariableParts.length
-        );
-
         bytes32 channelId = _getChannelId(fixedPart);
         uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
 
@@ -104,12 +98,6 @@ contract ForceMove is IForceMove, StatusManager {
         FixedPart memory fixedPart,
         SignedVariablePart[] memory signedVariableParts
     ) external override {
-        // input type validation
-        requireValidInput(
-            fixedPart.participants.length,
-            signedVariableParts.length
-        );
-
         bytes32 channelId = _getChannelId(fixedPart);
         uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
 
@@ -148,12 +136,6 @@ contract ForceMove is IForceMove, StatusManager {
         channelId = _getChannelId(fixedPart);
         _requireChannelNotFinalized(channelId);
 
-        // input type validation
-        requireValidInput(
-            fixedPart.participants.length,
-            signedVariableParts.length
-        );
-
         // checks
         _requireStateSupportedBy(fixedPart, signedVariableParts, channelId);
 
@@ -177,23 +159,6 @@ contract ForceMove is IForceMove, StatusManager {
         }
         /* solhint-disable no-inline-assembly */
         return id;
-    }
-
-    /**
-     * @notice Validates related to participants and states input for several external methods.
-     * @dev Validates related to participants and states input for several external methods.
-     * @param numParticipants Length of the participants array.
-     * @param numStates Number of states submitted.
-     */
-    function requireValidInput(
-        uint256 numParticipants,
-        uint256 numStates
-    ) public pure returns (bool) {
-        require((numParticipants >= numStates) && (numStates > 0), 'Insufficient or excess states');
-        require(numParticipants <= type(uint8).max, 'Too many participants!'); // type(uint8).max = 2**8 - 1 = 255
-        // no more than 255 participants
-        // max index for participants is 254
-        return true;
     }
 
     // *****************
