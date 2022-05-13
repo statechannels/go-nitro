@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/DistributedClocks/GoVector/govec"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -81,8 +82,14 @@ func summarizeMessageSend(msg protocols.Message) string {
 	for _, entry := range msg.SignedProposals() {
 		summary += `propose `
 		summary += fmt.Sprint(entry.Payload.Proposal.LedgerID)
-		summary += ` funds `
-		summary += fmt.Sprint(entry.Payload.Proposal.ToAdd.Target())
+		if (entry.Payload.Proposal.ToAdd != consensus_channel.Add{}) {
+			summary += ` funds `
+			summary += fmt.Sprint(entry.Payload.Proposal.ToAdd.Target())
+		}
+		if (entry.Payload.Proposal.ToRemove != consensus_channel.Remove{}) {
+			summary += ` defunds `
+			summary += fmt.Sprint(entry.Payload.Proposal.ToRemove.Target)
+		}
 	}
 	for _, entry := range msg.SignedStates() {
 		summary += `send `
