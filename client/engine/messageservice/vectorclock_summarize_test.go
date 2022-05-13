@@ -31,7 +31,7 @@ func TestSummarizeMessage(t *testing.T) {
 	}
 
 	got1 := summarizeMessageSend(msg1)
-	want1 := "886B:propose 0x0300000000000000000000000000000000000000000000000000000000000000 funds 0x0900000000000000000000000000000000000000000000000000000000000000"
+	want1 := "867B:propose 0x0300000000000000000000000000000000000000000000000000000000000000 funds 0x0900000000000000000000000000000000000000000000000000000000000000"
 
 	if got1 != want1 {
 		t.Fatalf("wrong message summary: got %s, wanted %s", got1, want1)
@@ -45,9 +45,8 @@ func TestSummarizeMessage(t *testing.T) {
 				SignedState: state.SignedState{},
 				SignedProposal: consensus_channel.SignedProposal{
 					Proposal: consensus_channel.Proposal{LedgerID: types.Destination{3}, ToRemove: consensus_channel.Remove{
-						Target:      types.Destination{7},
-						LeftAmount:  big.NewInt(2),
-						RightAmount: big.NewInt(3),
+						Target:     types.Destination{7},
+						LeftAmount: big.NewInt(2),
 					}},
 					TurnNum: 2,
 				},
@@ -56,7 +55,7 @@ func TestSummarizeMessage(t *testing.T) {
 	}
 
 	got2 := summarizeMessageSend(msg2)
-	want2 := "886B:propose 0x0300000000000000000000000000000000000000000000000000000000000000 defunds 0x0700000000000000000000000000000000000000000000000000000000000000"
+	want2 := "870B:propose 0x0300000000000000000000000000000000000000000000000000000000000000 defunds 0x0700000000000000000000000000000000000000000000000000000000000000"
 
 	if got2 != want2 {
 		t.Fatalf("wrong message summary: got %s, wanted %s", got2, want2)
