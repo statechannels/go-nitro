@@ -93,7 +93,6 @@ func combineLogs(t *testing.T, logDir string, combinedLogsFilename string) {
 
 func createVirtualChannelWithRetrievalProvider(c client.Client, retrievalProvider client.Client) protocols.ObjectiveId {
 	withRetrievalProvider := virtualfund.ObjectiveRequest{
-		MyAddress:    *c.Address,
 		CounterParty: *retrievalProvider.Address,
 		Intermediary: irene.Address(),
 		Outcome: td.Outcomes.Create(

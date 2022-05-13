@@ -61,8 +61,9 @@ type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel
 type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
 // NewObjective constructs a new virtual defund objective
-func NewObjective(preApprove bool,
-	request ObjectiveRequest,
+func NewObjective(request ObjectiveRequest,
+	preApprove bool,
+	myAddress types.Address,
 	getChannel GetChannelByIdFunction,
 	getConsensusChannel GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 	var status protocols.ObjectiveStatus
@@ -89,7 +90,7 @@ func NewObjective(preApprove bool,
 	var toMyLeft, toMyRight *consensus_channel.ConsensusChannel
 	var ok bool
 
-	switch request.MyAddress {
+	switch myAddress {
 	case alice:
 		toMyRight, ok = getConsensusChannel(intermediary)
 		if !ok {
@@ -150,8 +151,10 @@ func ConstructObjectiveFromState(
 	if err != nil {
 		return Objective{}, err
 	}
-	return NewObjective(true,
-		ObjectiveRequest{channelId, paidToBob, myAddress},
+	return NewObjective(
+		ObjectiveRequest{channelId, paidToBob},
+		true,
+		myAddress,
 		getChannel,
 		getTwoPartyConsensusLedger)
 }
@@ -554,10 +557,9 @@ func isZero(sig state.Signature) bool {
 type ObjectiveRequest struct {
 	ChannelId types.Destination
 	PaidToBob *big.Int
-	MyAddress types.Address
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id() protocols.ObjectiveId {
+func (r ObjectiveRequest) Id(types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
 }

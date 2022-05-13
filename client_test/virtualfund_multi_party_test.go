@@ -31,7 +31,6 @@ func TestVirtualFundMultiParty(t *testing.T) {
 	directlyFundALedgerChannel(t, clientIrene, clientBob)
 	directlyFundALedgerChannel(t, clientIrene, clientBrian)
 	withBobRequest := virtualfund.ObjectiveRequest{
-		MyAddress:    alice.Address(),
 		CounterParty: bob.Address(),
 		Intermediary: irene.Address(),
 		Outcome: td.Outcomes.Create(
@@ -46,7 +45,6 @@ func TestVirtualFundMultiParty(t *testing.T) {
 		Nonce:             rand.Int63(),
 	}
 	withBrianRequest := virtualfund.ObjectiveRequest{
-		MyAddress:    alice.Address(),
 		CounterParty: brian.Address(),
 		Intermediary: irene.Address(),
 		Outcome: td.Outcomes.Create(

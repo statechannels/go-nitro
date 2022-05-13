@@ -253,28 +253,28 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 		switch request := (apiEvent.ObjectiveToSpawn).(type) {
 
 		case virtualfund.ObjectiveRequest:
-			vfo, err := virtualfund.NewObjective(request, e.store.GetConsensusChannel)
+			vfo, err := virtualfund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetConsensusChannel)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 			return e.attemptProgress(&vfo)
 
 		case virtualdefund.ObjectiveRequest:
-			vdfo, err := virtualdefund.NewObjective(true, request, e.store.GetChannelById, e.store.GetConsensusChannel)
+			vdfo, err := virtualdefund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 			return e.attemptProgress(&vdfo)
 
 		case directfund.ObjectiveRequest:
-			dfo, err := directfund.NewObjective(request, true, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
+			dfo, err := directfund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 			return e.attemptProgress(&dfo)
 
 		case directdefund.ObjectiveRequest:
-			ddfo, err := directdefund.NewObjective(true, request.ChannelId, e.store.GetConsensusChannelById)
+			ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}

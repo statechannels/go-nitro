@@ -64,13 +64,13 @@ type GetConsensusChannel func(channelId types.Destination) (ledger *consensus_ch
 
 // NewObjective initiates an Objective with the supplied channel
 func NewObjective(
+	request ObjectiveRequest,
 	preApprove bool,
-	channelId types.Destination,
 	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
-	cc, err := getConsensusChannel(channelId)
+	cc, err := getConsensusChannel(request.ChannelId)
 	if err != nil {
-		return Objective{}, fmt.Errorf("could not find channel %s; %w", channelId, err)
+		return Objective{}, fmt.Errorf("could not find channel %s; %w", request.ChannelId, err)
 	}
 
 	c, err := CreateChannelFromConsensusChannel(*cc)
@@ -135,8 +135,10 @@ func ConstructObjectiveFromState(
 	}
 
 	cId := s.ChannelId()
-
-	return NewObjective(preApprove, cId, getConsensusChannel)
+	request := ObjectiveRequest{
+		ChannelId: cId,
+	}
+	return NewObjective(request, preApprove, getConsensusChannel)
 }
 
 // Public methods on the DirectDefundingObjective
@@ -318,6 +320,6 @@ type ObjectiveRequest struct {
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id() protocols.ObjectiveId {
+func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
 }

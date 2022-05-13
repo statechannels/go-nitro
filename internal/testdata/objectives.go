@@ -58,7 +58,6 @@ func genericVFO() virtualfund.Objective {
 	ts.Participants[2] = testactors.Bob.Address()
 
 	request := virtualfund.ObjectiveRequest{
-		ts.Participants[0],
 		ts.Participants[1],
 		ts.Participants[2],
 		ts.AppDefinition,
@@ -75,7 +74,7 @@ func genericVFO() virtualfund.Objective {
 	})
 	lookup := ledgerPath.GetLedgerLookup(testactors.Alice.Address())
 
-	testVFO, err := virtualfund.NewObjective(request, lookup)
+	testVFO, err := virtualfund.NewObjective(request, true, ts.Participants[0], lookup)
 	if err != nil {
 		panic(fmt.Errorf("error constructing genericVFO: %w", err))
 	}

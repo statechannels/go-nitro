@@ -129,18 +129,18 @@ type Objective struct {
 }
 
 // NewObjective creates a new virtual funding objective from a given request.
-func NewObjective(request ObjectiveRequest, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
+func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 	rightCC, ok := getTwoPartyConsensusLedger(request.Intermediary)
 
 	if !ok {
-		return Objective{}, fmt.Errorf("could not find ledger for %s and %s", request.MyAddress, request.Intermediary)
+		return Objective{}, fmt.Errorf("could not find ledger for %s and %s", myAddress, request.Intermediary)
 	}
 	var leftCC *consensus_channel.ConsensusChannel
 
-	objective, err := constructFromState(true,
+	objective, err := constructFromState(preApprove,
 		state.State{
 			ChainId:           big.NewInt(9001), // TODO https://github.com/statechannels/go-nitro/issues/601
-			Participants:      []types.Address{request.MyAddress, request.Intermediary, request.CounterParty},
+			Participants:      []types.Address{myAddress, request.Intermediary, request.CounterParty},
 			ChannelNonce:      big.NewInt(request.Nonce),
 			ChallengeDuration: request.ChallengeDuration,
 			AppData:           request.AppData,
@@ -148,7 +148,7 @@ func NewObjective(request ObjectiveRequest, getTwoPartyConsensusLedger GetTwoPar
 			TurnNum:           0,
 			IsFinal:           false,
 		},
-		request.MyAddress,
+		myAddress,
 		leftCC, rightCC)
 	if err != nil {
 		return Objective{}, fmt.Errorf("error creating objective: %w", err)
@@ -650,7 +650,6 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 
 // ObjectiveRequest represents a request to create a new virtual funding objective.
 type ObjectiveRequest struct {
-	MyAddress         types.Address
 	Intermediary      types.Address
 	CounterParty      types.Address
 	AppDefinition     types.Address
@@ -661,9 +660,9 @@ type ObjectiveRequest struct {
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id() protocols.ObjectiveId {
+func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
 	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO https://github.com/statechannels/go-nitro/issues/601
-		Participants:      []types.Address{r.MyAddress, r.Intermediary, r.CounterParty},
+		Participants:      []types.Address{myAddress, r.Intermediary, r.CounterParty},
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}
 
@@ -678,9 +677,9 @@ type ObjectiveResponse struct {
 }
 
 // Response computes and returns the appropriate response from the request.
-func (r ObjectiveRequest) Response() ObjectiveResponse {
+func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
 	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
-		Participants:      []types.Address{r.MyAddress, r.Intermediary, r.CounterParty},
+		Participants:      []types.Address{myAddress, r.Intermediary, r.CounterParty},
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}
 

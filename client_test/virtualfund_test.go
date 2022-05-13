@@ -23,7 +23,6 @@ func openVirtualChannels(t *testing.T, clientA client.Client, clientB client.Cli
 	for i := 0; i < int(numOfChannels); i++ {
 		outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
 		request := virtualfund.ObjectiveRequest{
-			MyAddress:         alice.Address(),
 			CounterParty:      bob.Address(),
 			Intermediary:      irene.Address(),
 			Outcome:           outcome,
