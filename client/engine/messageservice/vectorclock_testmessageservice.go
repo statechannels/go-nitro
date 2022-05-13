@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/DistributedClocks/GoVector/govec"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -26,7 +27,6 @@ func NewVectorClockTestMessageService(
 	broker Broker,
 	maxDelay time.Duration,
 	logDir string,
-	prettyName string,
 ) VectorClockTestMessageService {
 
 	vctms := VectorClockTestMessageService{
@@ -37,7 +37,7 @@ func NewVectorClockTestMessageService(
 			maxDelay:  maxDelay,
 			fromPeers: make(chan []byte, 5),
 		},
-		goveclogger: govec.InitGoVector(prettyName, logDir+"/"+address.String(), govec.GetDefaultConfig()),
+		goveclogger: govec.InitGoVector(address.String(), logDir+"/"+address.String(), govec.GetDefaultConfig()),
 	}
 
 	vctms.connect(broker)
@@ -76,23 +76,25 @@ func (t VectorClockTestMessageService) dispatchMessage(message protocols.Message
 // summarizeMessageSend returns a string which tersely summarizes the supplied message.
 // It may be used to make logs more readable.
 func summarizeMessageSend(msg protocols.Message) string {
-	summary := ""
+	str, _ := msg.Serialize()
+	size := len([]byte(str))
+	summary := fmt.Sprint(size) + "B:"
 	for _, entry := range msg.SignedProposals() {
 		summary += `propose `
-		summary += fmt.Sprint(entry.Payload.Proposal.LedgerID)[1:8]
-		summary += ` funds `
-		summary += fmt.Sprint(entry.Payload.Proposal.ToAdd.Target())[1:8]
+		summary += fmt.Sprint(entry.Payload.Proposal.LedgerID)
+		if (entry.Payload.Proposal.ToAdd != consensus_channel.Add{}) {
+			summary += ` funds `
+			summary += fmt.Sprint(entry.Payload.Proposal.ToAdd.Target())
+		}
+		if (entry.Payload.Proposal.ToRemove != consensus_channel.Remove{}) {
+			summary += ` defunds `
+			summary += fmt.Sprint(entry.Payload.Proposal.ToRemove.Target)
+		}
 	}
 	for _, entry := range msg.SignedStates() {
 		summary += `send `
-		if len(entry.Payload.State().Participants) == 3 {
-			summary += `V`
-		} else {
-			summary += `L`
-		}
 		_, turnNum := entry.Payload.SortInfo()
-		summary += fmt.Sprint(entry.Payload.ChannelId())[1:8]
-		summary += fmt.Sprint(turnNum)
+		summary += fmt.Sprint(entry.Payload.ChannelId())
 		summary += ` @turn `
 		summary += fmt.Sprint(turnNum)
 

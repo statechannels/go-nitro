@@ -74,26 +74,6 @@ func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservi
 	return client.New(messageservice, chainservice, storeA, logDestination), storeA
 }
 
-// setupIntstrumentedClient is a helper function that contructs a client and returns the new client and its store.
-//
-// The client will be _instrumented_, which is useful in debugging. In particular it will output logs containing vector clock stamps into the supplied logDir directory.
-func setupInstrumentedClient(
-	pk []byte,
-	chain chainservice.MockChain,
-	msgBroker messageservice.Broker,
-	logDestination io.Writer,
-	meanMessageDelay time.Duration,
-	logDir string,
-	prettyName string,
-) (client.Client, store.Store) {
-	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
-	chain.Subscribe(myAddress)
-	chainservice := chainservice.NewSimpleChainService(&chain, myAddress)
-	messageservice := messageservice.NewVectorClockTestMessageService(myAddress, msgBroker, meanMessageDelay, logDir, prettyName)
-	storeA := store.NewMemStore(pk)
-	return client.New(messageservice, chainservice, storeA, logDestination), storeA
-}
-
 func truncateLog(logFile string) {
 	logDestination := newLogWriter(logFile)
 
