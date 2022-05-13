@@ -129,7 +129,7 @@ var allocationsTy = abi.ArgumentMarshaling{
 	},
 }
 
-// DivertToGuarantee returns a new Allocations, identical to the reciever but with
+// DivertToGuarantee returns a new Allocations, identical to the receiver but with
 // the leftDestination's amount reduced by leftAmount,
 // the rightDestination's amount reduced by rightAmount,
 // and a Guarantee appended for the guaranteeDestination

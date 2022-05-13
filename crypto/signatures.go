@@ -30,7 +30,7 @@ func SignEthereumMessage(message []byte, secretKey []byte) (Signature, error) {
 	}
 	sig := SplitSignature(concatenatedSignature)
 
-	// This step is necessary to remain compatible wih the ecrecover precompile
+	// This step is necessary to remain compatible with the ecrecover precompile
 	if int(sig.V) < 27 {
 		sig.V = byte(int(sig.V + 27))
 	}
@@ -42,7 +42,7 @@ func SignEthereumMessage(message []byte, secretKey []byte) (Signature, error) {
 // It reconstructs the appropriate digest and recovers an address via secp256k1 public key recovery
 func RecoverEthereumMessageSigner(message []byte, signature Signature) (common.Address, error) {
 
-	// This step is necessary to remain compatible wih the ecrecover precompile
+	// This step is necessary to remain compatible with the ecrecover precompile
 	sig := signature
 	if int(sig.V) >= 27 {
 		sig.V = byte(int(sig.V - 27))

@@ -98,7 +98,7 @@ func TestConstructFromState(t *testing.T) {
 	finalState.IsFinal = true
 
 	if _, err := ConstructFromState(false, finalState, testState.Participants[0]); err == nil {
-		t.Error("expected an error when constructing with an intial state marked final, but got nil")
+		t.Error("expected an error when constructing with an initial state marked final, but got nil")
 	}
 
 	nonParticipant := common.HexToAddress("0x5b53f71453aeCb03D837bfe170570d40aE736CB4")

@@ -28,7 +28,7 @@ func TestConnect(t *testing.T) {
 	got := <-bobOut
 
 	if got.Payloads[0].ObjectiveId != testId {
-		t.Fatalf("expected bob to recieve ObjectiveId %v, but recieved %v",
+		t.Fatalf("expected bob to receive ObjectiveId %v, but received %v",
 			testId, got.Payloads[0].ObjectiveId)
 	}
 }

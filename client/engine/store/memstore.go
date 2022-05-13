@@ -261,7 +261,7 @@ func (ms *MemStore) GetObjectiveByChannelId(channelId types.Destination) (protoc
 	return objective, err == nil
 }
 
-// populateChannelData fetches stored Channel data relevent to the given
+// populateChannelData fetches stored Channel data relevant to the given
 // objective and attaches it to the objective. The channel data is attached
 // in-place of the objectives existing channel pointers.
 func (ms *MemStore) populateChannelData(obj protocols.Objective) error {

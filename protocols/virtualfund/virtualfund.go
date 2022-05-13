@@ -39,7 +39,7 @@ type Connection struct {
 	GuaranteeInfo GuaranteeInfo
 }
 
-// insertGuaranteeInfo mutates the reciever Connection struct.
+// insertGuaranteeInfo mutates the receiver Connection struct.
 func (c *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) error {
 
 	c.GuaranteeInfo = GuaranteeInfo{
@@ -63,7 +63,7 @@ func (c *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds, vId typ
 	return nil
 }
 
-// handleProposal recieves a signed proposal and acts according to the leader / follower
+// handleProposal receives a signed proposal and acts according to the leader / follower
 // status of the Connection's ConsensusChannel
 func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
 	if c == nil {
@@ -483,12 +483,12 @@ func (o *Objective) clone() Objective {
 	return clone
 }
 
-// isAlice returns true if the reciever represents participant 0 in the virtualfund protocol.
+// isAlice returns true if the receiver represents participant 0 in the virtualfund protocol.
 func (o *Objective) isAlice() bool {
 	return o.MyRole == 0
 }
 
-// isBob returns true if the reciever represents participant n+1 in the virtualfund protocol.
+// isBob returns true if the receiver represents participant n+1 in the virtualfund protocol.
 func (o *Objective) isBob() bool {
 	return o.MyRole == o.n+1
 }

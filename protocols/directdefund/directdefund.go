@@ -34,7 +34,7 @@ type Objective struct {
 	Status               protocols.ObjectiveStatus
 	C                    *channel.Channel
 	finalTurnNum         uint64
-	transactionSubmitted bool // whether a transation for the objective has been submitted or not
+	transactionSubmitted bool // whether a transition for the objective has been submitted or not
 }
 
 // isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
@@ -56,7 +56,7 @@ func isInConsensusOrFinalState(c *channel.Channel) (bool, error) {
 	return cmp.Equal(latestSS.State(), latestSupportedState), nil
 }
 
-// GetChannelByIdFunction specifies a function that can be used to retreive channels from a store.
+// GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel, ok bool)
 
 // GetConsensusChannel describes functions which return a ConsensusChannel ledger channel for a channel id.
