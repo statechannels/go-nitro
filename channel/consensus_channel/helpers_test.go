@@ -75,11 +75,10 @@ func add(amount uint64, vId types.Destination, left, right testactors.Actor) Add
 	}
 }
 
-func remove(vId types.Destination, leftAmount, rightAmount uint64) Remove {
+func remove(vId types.Destination, leftAmount uint64) Remove {
 	return Remove{
-		LeftAmount:  big.NewInt(int64(leftAmount)),
-		RightAmount: big.NewInt(int64(rightAmount)),
-		Target:      vId,
+		Target:     vId,
+		LeftAmount: big.NewInt(int64(leftAmount)),
 	}
 }
 

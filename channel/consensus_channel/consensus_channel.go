@@ -24,7 +24,7 @@ var (
 	ErrInsufficientFunds  = fmt.Errorf("insufficient funds")
 	ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
 	ErrGuaranteeNotFound  = fmt.Errorf("guarantee not found")
-	ErrInvalidAmounts     = fmt.Errorf("left and right amounts do not add up to the guarantee amount")
+	ErrInvalidAmount      = fmt.Errorf("left amount is greater than the guarantee amount")
 )
 
 const (
@@ -682,13 +682,13 @@ func NewAddProposal(ledgerID types.Destination, g Guarantee, leftDeposit *big.In
 }
 
 // NewRemove constructs a new Remove proposal.
-func NewRemove(target types.Destination, leftAmount, rightAmount *big.Int) Remove {
-	return Remove{Target: target, LeftAmount: leftAmount, RightAmount: rightAmount}
+func NewRemove(target types.Destination, leftAmount *big.Int) Remove {
+	return Remove{Target: target, LeftAmount: leftAmount}
 }
 
 // NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
-func NewRemoveProposal(ledgerID types.Destination, target types.Destination, leftAmount, rightAmount *big.Int) Proposal {
-	return Proposal{ToRemove: NewRemove(target, leftAmount, rightAmount), LedgerID: ledgerID}
+func NewRemoveProposal(ledgerID types.Destination, target types.Destination, leftAmount *big.Int) Proposal {
+	return Proposal{ToRemove: NewRemove(target, leftAmount), LedgerID: ledgerID}
 }
 
 // RightDeposit computes the deposit from the right participant such that
@@ -706,8 +706,7 @@ func (a Add) equal(a2 Add) bool {
 
 func (r Remove) equal(r2 Remove) bool {
 	return bytes.Equal(r.Target.Bytes(), r2.Target.Bytes()) &&
-		types.Equal(r.LeftAmount, r2.LeftAmount) &&
-		types.Equal(r.RightAmount, r2.RightAmount)
+		types.Equal(r.LeftAmount, r2.LeftAmount)
 }
 
 // HandleProposal handles a proposal to add or remove a guarantee.
@@ -799,9 +798,8 @@ func (vars *Vars) Remove(p Remove) error {
 		return ErrGuaranteeNotFound
 	}
 
-	totalRemoved := big.NewInt(0).Add(p.LeftAmount, p.RightAmount)
-	if totalRemoved.Cmp(guarantee.amount) != 0 {
-		return ErrInvalidAmounts
+	if p.LeftAmount.Cmp(guarantee.amount) > 0 {
+		return ErrInvalidAmount
 	}
 
 	// EFFECTS
@@ -809,12 +807,14 @@ func (vars *Vars) Remove(p Remove) error {
 	// Increase the turn number
 	vars.TurnNum += 1
 
+	rightAmount := big.NewInt(0).Sub(guarantee.amount, p.LeftAmount)
+
 	// Adjust balances
 	if o.leader.destination == guarantee.left {
 		o.leader.amount.Add(o.leader.amount, p.LeftAmount)
-		o.follower.amount.Add(o.follower.amount, p.RightAmount)
+		o.follower.amount.Add(o.follower.amount, rightAmount)
 	} else {
-		o.leader.amount.Add(o.leader.amount, p.RightAmount)
+		o.leader.amount.Add(o.leader.amount, rightAmount)
 		o.follower.amount.Add(o.follower.amount, p.LeftAmount)
 	}
 
@@ -829,20 +829,19 @@ type Remove struct {
 	// Target is the address of the virtual channel being defunded
 	Target types.Destination
 	// LeftAmount is the amount to be credited (in the ledger channel) to the participant specified as the "left" in the guarantee.
+	//
+	// The amount for the "right" participant is calculated as the difference between the guarantee amount and LeftAmount.
 	LeftAmount *big.Int
-	// RightAmount is the amount to be credited (in the ledger channel) to the participant specified as the "right" in the guarantee.
-	RightAmount *big.Int // todo?: replace this with a function, as in Add
 }
 
 // Clone returns a deep copy of the receiver
 func (r *Remove) Clone() Remove {
-	if r == nil || r.LeftAmount == nil || r.RightAmount == nil {
+	if r == nil || r.LeftAmount == nil {
 		return Remove{}
 	}
 	return Remove{
-		Target:      r.Target,
-		LeftAmount:  big.NewInt(0).Set(r.LeftAmount),
-		RightAmount: big.NewInt(0).Set(r.RightAmount),
+		Target:     r.Target,
+		LeftAmount: big.NewInt(0).Set(r.LeftAmount),
 	}
 }
 

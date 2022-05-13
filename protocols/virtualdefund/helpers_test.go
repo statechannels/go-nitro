@@ -245,7 +245,7 @@ type testdata struct {
 // generateRemoveProposal generates a remove proposal for the given channelId and test data
 func generateRemoveProposal(cId types.Destination, td testdata) consensus_channel.Proposal {
 	vId := td.vFinal.ChannelId()
-	return consensus_channel.NewRemoveProposal(cId, vId, big.NewInt(int64(td.finalAliceAmount)), big.NewInt(int64(td.finalBobAmount)))
+	return consensus_channel.NewRemoveProposal(cId, vId, big.NewInt(int64(td.finalAliceAmount)))
 
 }
 
