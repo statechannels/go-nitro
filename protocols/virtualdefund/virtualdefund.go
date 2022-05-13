@@ -23,7 +23,7 @@ const (
 // The turn number used for the final state
 const FinalTurnNum = 2
 
-// Objective contains relevent information for the defund objective
+// Objective contains relevant information for the defund objective
 type Objective struct {
 	Status protocols.ObjectiveStatus
 
@@ -53,7 +53,7 @@ type Objective struct {
 
 const ObjectivePrefix = "VirtualDefund-"
 
-// GetChannelByIdFunction specifies a function that can be used to retreive channels from a store.
+// GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel, ok bool)
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between

@@ -90,7 +90,7 @@ func (ss SignedState) GetParticipantSignature(participantIndex uint) (crypto.Sig
 	}
 }
 
-// Merge checks the passed SignedState's state and the reciever's state for equality, andd adds each signature from the former to the latter.
+// Merge checks the passed SignedState's state and the receiver's state for equality, and adds each signature from the former to the latter.
 func (ss SignedState) Merge(ss2 SignedState) error {
 	if !ss.state.Equal(ss2.state) {
 		return errors.New(`cannot merge signed states with distinct state hashes`)

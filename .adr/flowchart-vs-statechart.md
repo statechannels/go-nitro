@@ -17,7 +17,7 @@ For the flow chart, declared side effects are shown with a ! and the blocking co
 
 - It reduces replication of state between the enumerable and extended parts
 - It emphasizes that information can be absorbed independently of the enumerable state (by default, although it is possible to have a dependence on the extended state). It is simple to process **passive** transitions.
-- It emphasizes that the state can **actively** transition independently of the events recieved.
+- It emphasizes that the state can **actively** transition independently of the events received.
 - The separation betwen passive and active transitions makes restarting protocols straightforward. After all of the information is fed into the objective (in any order), a crank will get things going.
 
 ## Discarded code

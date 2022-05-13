@@ -23,7 +23,7 @@ The following roadmap gives an idea of the various packages that compose the `go
 ├── client 🚧                  # exposes an API to the consuming application
 │   └── engine 🚧              # coordinate the client components, runs the protocols
 │       ├── chainservice 🚧    # watch the chain and submit transactions
-│       ├── messageservice 🚧  # send and recieves messages from peers
+│       ├── messageservice 🚧  # send and receives messages from peers
 │       └── store 🚧           # store keys, state updates and other critical data
 ├── client_test 🚧             # integration tests involving multiple clients
 ├── crypto  ✅                 # create Ethereum accounts, create & recover signatures

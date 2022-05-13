@@ -10,7 +10,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// TestMessageService is an implementaion of the MessageService interface
+// TestMessageService is an implementation of the MessageService interface
 // for use in multi-engine test environments.
 //
 // It allows for individual nitro-clients / engines to:
@@ -22,7 +22,7 @@ type TestMessageService struct {
 	address types.Address
 
 	// connection to Engine:
-	in       chan protocols.Message // for recieving messages from engine
+	in       chan protocols.Message // for receiving messages from engine
 	out      chan protocols.Message // for sending message to engine
 	maxDelay time.Duration          // the max delay for messages
 

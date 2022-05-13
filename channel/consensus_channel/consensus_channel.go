@@ -211,7 +211,7 @@ func (c *ConsensusChannel) Leader() common.Address {
 	return c.fp.Participants[Leader]
 }
 
-// Follower returns the address of the participant who recieves and contersigns
+// Follower returns the address of the participant who receives and contersigns
 // proposals.
 func (c *ConsensusChannel) Follower() common.Address {
 	return c.fp.Participants[Follower]
@@ -396,7 +396,7 @@ func (lo *LedgerOutcome) Leader() Balance {
 	return lo.leader
 }
 
-// Follower returns teh follower's balance.
+// Follower returns the follower's balance.
 func (lo *LedgerOutcome) Follower() Balance {
 	return lo.follower
 }
@@ -550,7 +550,7 @@ type SignedVars struct {
 	Signatures [2]state.Signature
 }
 
-// clone returns a deep copy of the reciever.
+// clone returns a deep copy of the receiver.
 func (sv *SignedVars) clone() SignedVars {
 	clonedSignatures := [2]state.Signature{
 		sv.Signatures[0],
@@ -566,7 +566,7 @@ func (sv *SignedVars) clone() SignedVars {
 //
 // Exactly one of {toAdd, toRemove} should be non nil.
 type Proposal struct {
-	// LedgerID is the ChannelID of the ConsensusChannel which should recieve the proposal.
+	// LedgerID is the ChannelID of the ConsensusChannel which should receive the proposal.
 	//
 	// The target virtual channel ID is contained in the Add / Remove struct.
 	LedgerID types.Destination
@@ -642,7 +642,7 @@ type SignedProposal struct {
 	TurnNum  uint64
 }
 
-// Clone returns a deep copy of the reciever.
+// Clone returns a deep copy of the receiver.
 func (sp *SignedProposal) Clone() SignedProposal {
 	sp2 := SignedProposal{sp.Signature, sp.Proposal.Clone(), sp.TurnNum}
 	return sp2

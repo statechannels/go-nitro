@@ -39,7 +39,7 @@ func TestDeposit(t *testing.T) {
 		Type:      protocols.DepositTransactionType,
 	}
 
-	// Send one transaction into one of the SimpleChainServices and recieve one event from it.
+	// Send one transaction into one of the SimpleChainServices and receive one event from it.
 	inA <- testTx
 	event := <-outA
 
@@ -50,7 +50,7 @@ func TestDeposit(t *testing.T) {
 		t.Fatalf(`holdings mismatch: expected %v but got %v`, testTx.Deposit, event.(DepositedEvent).Holdings)
 	}
 
-	// Send the transaction again and recieve another event
+	// Send the transaction again and receive another event
 	inA <- testTx
 	event = <-outA
 

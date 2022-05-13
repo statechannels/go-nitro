@@ -39,10 +39,10 @@ type Objective struct {
 	myDepositTarget          types.Funds // I want to get the on chain holdings up to this much
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
 	latestBlockNumber        uint64      // the latest block number we've seen
-	transactionSubmitted     bool        // whether a transation for the objective has been submitted or not
+	transactionSubmitted     bool        // whether a transition for the objective has been submitted or not
 }
 
-// GetChannelByIdFunction specifies a function that can be used to retreive channels from a store.
+// GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 type GetChannelsByParticipantFunction func(participant types.Address) []*channel.Channel
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between

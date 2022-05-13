@@ -8,7 +8,7 @@ import (
 // SimpleChainService forwards inputted transactions to a MockChain, and passes Events straight back.
 type SimpleChainService struct {
 	out chan Event                      // out is the chan used to send Events to the engine
-	in  chan protocols.ChainTransaction // in is the chan used to recieve Transactions from the engine
+	in  chan protocols.ChainTransaction // in is the chan used to receive Transactions from the engine
 
 	address types.Address // address is used to subscribe to the MockChain's Out chan
 	chain   *MockChain

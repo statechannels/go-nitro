@@ -11,7 +11,7 @@ import (
 // It keeps a record of of holdings and adjudication status for each channel, accepts transactions and emits events.
 type MockChain struct {
 	out map[types.Address]chan Event    // out is a mapping with a chan for each connected ChainService, used to send Events to that service
-	in  chan protocols.ChainTransaction // in is the chan used to recieve Transactions from multiple ChainServices
+	in  chan protocols.ChainTransaction // in is the chan used to receive Transactions from multiple ChainServices
 
 	holdings map[types.Destination]types.Funds // holdings tracks funds for each channel
 	blockNum uint64
