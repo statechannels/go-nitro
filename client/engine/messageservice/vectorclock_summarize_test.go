@@ -45,9 +45,8 @@ func TestSummarizeMessage(t *testing.T) {
 				SignedState: state.SignedState{},
 				SignedProposal: consensus_channel.SignedProposal{
 					Proposal: consensus_channel.Proposal{LedgerID: types.Destination{3}, ToRemove: consensus_channel.Remove{
-						Target:      types.Destination{7},
-						LeftAmount:  big.NewInt(2),
-						RightAmount: big.NewInt(3),
+						Target:     types.Destination{7},
+						LeftAmount: big.NewInt(2),
 					}},
 					TurnNum: 2,
 				},
