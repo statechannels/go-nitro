@@ -20,7 +20,7 @@ import {
 } from '../src/contract/outcome';
 import {FixedPart, getVariablePart, hashState, SignedVariablePart} from '../src/contract/state';
 
-import {nitroAdjudicator, provider} from './vanillaSetup';
+import {nitroAdjudicator, provider, trivialAppAddress} from './vanillaSetup';
 
 export const chainId = '0x7a69'; // 31337 in hex (hardhat network default)
 
@@ -48,7 +48,7 @@ class TestChannel {
       chainId,
       channelNonce,
       participants: wallets.map(w => w.address),
-      appDefinition: '0x8504FcA6e1e73947850D66D032435AC931892116',
+      appDefinition: trivialAppAddress, // TODO adjust this to point to an appropriate (deployed) application, according to the channel type
       challengeDuration: 600,
     };
     this.allocations = allocations;
@@ -66,7 +66,7 @@ class TestChannel {
   someState(asset: string): State {
     return {
       challengeDuration: 600,
-      appDefinition: '0x8504FcA6e1e73947850D66D032435AC931892116',
+      appDefinition: trivialAppAddress, // TODO adjust this to point to an appropriate (deployed) application, according to the channel type
       channel: this.fixedPart,
       turnNum: 6,
       isFinal: false,
