@@ -41,6 +41,8 @@ type Engine struct {
 	toMsg   chan<- protocols.Message
 	toChain chan<- protocols.ChainTransaction
 
+	results chan engineResult
+
 	toApi chan ObjectiveChangeEvent
 
 	store store.Store // A Store for persisting and restoring important data
@@ -84,6 +86,8 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.toChain = chain.In()
 	e.toMsg = msg.In()
 
+	e.results = make(chan engineResult)
+
 	// initialize a Logger
 	logPrefix := e.store.GetAddress().String()[0:8] + ": "
 	e.logger = log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
@@ -97,38 +101,35 @@ func (e *Engine) ToApi() <-chan ObjectiveChangeEvent {
 	return e.toApi
 }
 
+type engineResult struct {
+	res ObjectiveChangeEvent
+	err error
+}
+
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
 func (e *Engine) Run() {
 	for {
-		var res ObjectiveChangeEvent
-		var err error
 		select {
 		case apiEvent := <-e.FromAPI:
-			res, err = e.handleAPIEvent(apiEvent)
+			go func() { e.results <- e.handleAPIEvent(apiEvent) }()
 
 		case chainEvent := <-e.fromChain:
-
-			res, err = e.handleChainEvent(chainEvent)
+			go func() { e.results <- e.handleChainEvent(chainEvent) }()
 
 		case message := <-e.fromMsg:
-			res, err = e.handleMessage(message)
-		}
+			go func() { e.results <- e.handleMessage(message) }()
 
-		// Handle errors
-		if err != nil {
-			e.logger.Panic(err)
-			// TODO do not panic if in production.
-			// TODO report errors back to the consuming application
-		}
-
-		// Only send out an event if there are changes
-		if len(res.CompletedObjectives) > 0 {
-			for _, obj := range res.CompletedObjectives {
-				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
+		case handled := <-e.results:
+			if handled.err != nil {
+				e.logger.Panic(handled.err)
 			}
-			e.toApi <- res
+			if len(handled.res.CompletedObjectives) > 0 {
+				for _, obj := range handled.res.CompletedObjectives {
+					e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
+				}
+				e.toApi <- handled.res
+			}
 		}
-
 	}
 }
 
@@ -138,7 +139,7 @@ func (e *Engine) Run() {
 //  - generates an updated objective,
 //  - attempts progress on the target Objective,
 //  - attempts progress on related objectives which may have become unblocked.
-func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent, error) {
+func (e *Engine) handleMessage(message protocols.Message) engineResult {
 
 	e.logger.Printf("Handling inbound message %+v", protocols.SummarizeMessage(message))
 	allCompleted := ObjectiveChangeEvent{}
@@ -147,7 +148,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 		objective, err := e.getOrCreateObjective(entry.ObjectiveId, entry.Payload)
 		if err != nil {
-			return ObjectiveChangeEvent{}, err
+			return engineResult{ObjectiveChangeEvent{}, err}
 		}
 		if objective.GetStatus() == protocols.Completed {
 			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
@@ -160,18 +161,18 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		}
 		updatedObjective, err := objective.Update(event)
 		if err != nil {
-			return ObjectiveChangeEvent{}, err
+			return engineResult{ObjectiveChangeEvent{}, err}
 		}
 
-		progressEvent, err := e.attemptProgress(updatedObjective)
-		if err != nil {
-			return ObjectiveChangeEvent{}, err
+		result := e.attemptProgress(updatedObjective)
+		if result.err != nil {
+			return engineResult{ObjectiveChangeEvent{}, result.err}
 		}
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, result.res.CompletedObjectives...)
 
 		relatedObjectiveCompletions, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
 		if err != nil {
-			return ObjectiveChangeEvent{}, err
+			return engineResult{ObjectiveChangeEvent{}, err}
 		}
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedObjectiveCompletions.CompletedObjectives...)
 
@@ -181,7 +182,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		e.logger.Printf("handling proposal %+v", protocols.SummarizeProposal(entry.ObjectiveId, entry.Payload))
 		objective, err := e.store.GetObjectiveById(entry.ObjectiveId)
 		if err != nil {
-			return ObjectiveChangeEvent{}, err
+			return engineResult{ObjectiveChangeEvent{}, err}
 		}
 		if objective.GetStatus() == protocols.Completed {
 			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
@@ -195,24 +196,24 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		}
 		updatedObjective, err := objective.Update(event)
 		if err != nil {
-			return ObjectiveChangeEvent{}, err
+			return engineResult{ObjectiveChangeEvent{}, err}
 		}
 
-		progressEvent, err := e.attemptProgress(updatedObjective)
+		progressResult := e.attemptProgress(updatedObjective)
 		if err != nil {
-			return ObjectiveChangeEvent{}, err
+			return engineResult{ObjectiveChangeEvent{}, progressResult.err}
 		}
 
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressResult.res.CompletedObjectives...)
 
 		relatedProgressEvent, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
 		if err != nil {
-			return ObjectiveChangeEvent{}, err
+			return engineResult{ObjectiveChangeEvent{}, err}
 		}
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedProgressEvent.CompletedObjectives...)
 
 	}
-	return allCompleted, nil
+	return engineResult{allCompleted, nil}
 
 }
 
@@ -221,23 +222,23 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 //  - reads an objective from the store,
 //  - generates an updated objective, and
 //  - attempts progress.
-func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChangeEvent, error) {
+func (e *Engine) handleChainEvent(chainEvent chainservice.Event) engineResult {
 	e.logger.Printf("handling chain event %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
 	if !ok {
 		// TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
 		// for now we can ignore channels we aren't involved in
 		// in the future the chain service should allow us to register for specific channels
-		return ObjectiveChangeEvent{}, nil
+		return engineResult{ObjectiveChangeEvent{}, nil}
 	}
 
 	eventHandler, ok := objective.(chainservice.ChainEventHandler)
 	if !ok {
-		return ObjectiveChangeEvent{}, &ErrUnhandledChainEvent{event: chainEvent, objective: objective, reason: "objective does not handle chain events"}
+		return engineResult{ObjectiveChangeEvent{}, &ErrUnhandledChainEvent{event: chainEvent, objective: objective, reason: "objective does not handle chain events"}}
 	}
 	updatedEventHandler, err := eventHandler.UpdateWithChainEvent(chainEvent)
 	if err != nil {
-		return ObjectiveChangeEvent{}, err
+		return engineResult{ObjectiveChangeEvent{}, err}
 	}
 	return e.attemptProgress(updatedEventHandler)
 }
@@ -247,7 +248,7 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 //  - Spawn a new, approved objective (if not null)
 //  - Reject an existing objective (if not null)
 //  - Approve an existing objective (if not null)
-func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error) {
+func (e *Engine) handleAPIEvent(apiEvent APIEvent) engineResult {
 	if apiEvent.ObjectiveToSpawn != nil {
 
 		switch request := (apiEvent.ObjectiveToSpawn).(type) {
@@ -255,35 +256,35 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 		case virtualfund.ObjectiveRequest:
 			vfo, err := virtualfund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetConsensusChannel)
 			if err != nil {
-				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+				return engineResult{ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)}
 			}
 			return e.attemptProgress(&vfo)
 
 		case virtualdefund.ObjectiveRequest:
 			vdfo, err := virtualdefund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
 			if err != nil {
-				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+				return engineResult{ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)}
 			}
 			return e.attemptProgress(&vdfo)
 
 		case directfund.ObjectiveRequest:
 			dfo, err := directfund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
 			if err != nil {
-				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+				return engineResult{ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)}
 			}
 			return e.attemptProgress(&dfo)
 
 		case directdefund.ObjectiveRequest:
 			ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
 			if err != nil {
-				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+				return engineResult{ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)}
 			}
 			// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 			e.store.DestroyConsensusChannel(request.ChannelId)
 			return e.attemptProgress(&ddfo)
 
 		default:
-			return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)
+			return engineResult{ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)}
 		}
 
 	}
@@ -291,21 +292,21 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 	if apiEvent.ObjectiveToReject != `` {
 		objective, err := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
 		if err != nil {
-			return ObjectiveChangeEvent{}, err
+			return engineResult{ObjectiveChangeEvent{}, err}
 		}
 		updatedProtocol := objective.Reject()
 		err = e.store.SetObjective(updatedProtocol)
-		return ObjectiveChangeEvent{}, err
+		return engineResult{ObjectiveChangeEvent{}, err}
 	}
 	if apiEvent.ObjectiveToApprove != `` {
 		objective, err := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
 		if err != nil {
-			return ObjectiveChangeEvent{}, err
+			return engineResult{ObjectiveChangeEvent{}, err}
 		}
 		updatedObjective := objective.Approve()
 		return e.attemptProgress(updatedObjective)
 	}
-	return ObjectiveChangeEvent{}, nil
+	return engineResult{ObjectiveChangeEvent{}, nil}
 
 }
 
@@ -328,20 +329,20 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 // 	3. It commits the cranked objective to the store
 // 	4. It executes any side effects that were declared during cranking
 // 	5. It updates progress metadata in the store
-func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent, err error) {
+func (e *Engine) attemptProgress(objective protocols.Objective) engineResult {
 
 	secretKey := e.store.GetChannelSecretKey()
 
 	crankedObjective, sideEffects, waitingFor, err := objective.Crank(secretKey)
 
 	if err != nil {
-		return
+		return engineResult{err: err}
 	}
 
 	err = e.store.SetObjective(crankedObjective)
 
 	if err != nil {
-		return
+		return engineResult{err: err}
 	}
 
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
@@ -350,15 +351,17 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	// TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
 	// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
 	if waitingFor == "WaitingForNothing" {
-		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
+		var res ObjectiveChangeEvent
+		res.CompletedObjectives = append(res.CompletedObjectives, crankedObjective)
 		e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
 		err = e.spawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
 		if err != nil {
-			return
+			return engineResult{res, err}
 		}
 	}
 	e.executeSideEffects(sideEffects)
-	return
+
+	return engineResult{err: err}
 }
 
 // spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective if it is a directfund.Objective.
@@ -458,11 +461,11 @@ func (e *Engine) attemptProgressForRelatedObjectives(updatedObjective *protocols
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
-		progressEvent, err := e.attemptProgress(related)
-		if err != nil {
-			return ObjectiveChangeEvent{}, err
+		result := e.attemptProgress(related)
+		if result.err != nil {
+			return ObjectiveChangeEvent{}, result.err
 		}
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, result.res.CompletedObjectives...)
 	}
 	return allCompleted, nil
 }
