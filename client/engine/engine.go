@@ -169,7 +169,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		}
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
 
-		relatedObjectiveCompletions, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
+		relatedObjectiveCompletions, err := e.attemptProgressForPendingObjectives(&updatedObjective)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
@@ -205,7 +205,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
 
-		relatedProgressEvent, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
+		relatedProgressEvent, err := e.attemptProgressForPendingObjectives(&updatedObjective)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
@@ -444,12 +444,11 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 // This may not be the long term approach we use.
 // See https://www.notion.so/statechannels/Messages-arriving-out-of-order-can-cause-virtual-protocols-to-stall-fc5fe7a1121f4b289a6f6384c1ed4429
 
-// attemptProgressForRelatedObjectives attempts to progress any objectives that may be related to the objective that was just cranked
-// An objective is related when it shares a ledger channel with the provided objective.
-// This allows progress to made on other objectives that may be unblocked after processing the updatedObjective.
-func (e *Engine) attemptProgressForRelatedObjectives(updatedObjective *protocols.Objective) (ObjectiveChangeEvent, error) {
+// attemptProgressForPendingObjectives attempts to progress objectives that may
+// have been unblocked after processing the updatedObjective.
+func (e *Engine) attemptProgressForPendingObjectives(updatedObjective *protocols.Objective) (ObjectiveChangeEvent, error) {
 	allCompleted := ObjectiveChangeEvent{}
-	relatedIds, err := e.findRelatedObjectives(*updatedObjective)
+	relatedIds, err := e.findPendingObjectives(*updatedObjective)
 	if err != nil {
 		return ObjectiveChangeEvent{}, err
 	}
@@ -467,16 +466,18 @@ func (e *Engine) attemptProgressForRelatedObjectives(updatedObjective *protocols
 	return allCompleted, nil
 }
 
-// findRelatedObjectives finds all objectives that are related to provided objective.
-// An objective is related when it shares a ledger channel with the provided objective.
-func (e *Engine) findRelatedObjectives(o protocols.Objective) ([]protocols.ObjectiveId, error) {
+// findPendingObjectives
+//  - determines if o relies on any ledger channels
+//  - inspects these ledger channels for pending proposals
+//  - constructs and returns the objectiveID for these pending proposals
+func (e *Engine) findPendingObjectives(o protocols.Objective) ([]protocols.ObjectiveId, error) {
 	relatedIds := []protocols.ObjectiveId{}
 	for _, rel := range o.Related() {
 		c, ok := rel.(*consensus_channel.ConsensusChannel)
 		if ok {
-			for _, p := range c.ProposalQueue() {
-				id := getProposalObjectiveId(p.Proposal)
-
+			proposals := c.ProposalQueue()
+			if len(proposals) > 0 {
+				id := getProposalObjectiveId(proposals[0].Proposal)
 				relatedIds = append(relatedIds, id)
 			}
 		}
