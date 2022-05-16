@@ -33,6 +33,7 @@ type ChainTransaction struct {
 type SideEffects struct {
 	MessagesToSend       []Message
 	TransactionsToSubmit []ChainTransaction
+	ProposalsToProcess   []consensus_channel.Proposal
 }
 
 // WaitingFor is an enumerable "pause-point" computed from an Objective. It describes how the objective is blocked on actions by third parties (i.e. co-participants or the blockchain).
