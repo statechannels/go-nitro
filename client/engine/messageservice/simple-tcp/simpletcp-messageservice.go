@@ -151,7 +151,4 @@ func (s *SimpleTCPMessageService) Close() {
 	close(s.quit)
 	s.listener.Close()
 
-	close(s.in)
-	close(s.out)
-
 }
