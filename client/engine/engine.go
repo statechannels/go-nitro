@@ -36,7 +36,7 @@ type Engine struct {
 	FromAPI    chan APIEvent // This one is exported so that the Client can send API calls
 	fromChain  <-chan chainservice.Event
 	fromMsg    <-chan protocols.Message
-	fromLedger chan protocols.ObjectiveId
+	fromLedger chan consensus_channel.Proposal
 
 	// outbound go channels
 	toMsg   chan<- protocols.Message
@@ -115,7 +115,7 @@ func (e *Engine) Run() {
 			res, err = e.handleMessage(message)
 
 		case id := <-e.fromLedger:
-			res, err = e.crankObjective(id)
+			res, err = e.handleProposal(id)
 		}
 
 		// Handle errors
@@ -136,9 +136,11 @@ func (e *Engine) Run() {
 	}
 }
 
-// crankObjective queries the store for the specified id, and
-// attempts progress on the returned objective.
-func (e *Engine) crankObjective(id protocols.ObjectiveId) (ObjectiveChangeEvent, error) {
+// handleProposal handles a Proposal returned to the engine from
+// a running ledger channel by pulling its corresponding objective
+// from the store and attempting progress.
+func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (ObjectiveChangeEvent, error) {
+	id := getProposalObjectiveId(proposal)
 	obj, err := e.store.GetObjectiveById(id)
 	if err != nil {
 		return ObjectiveChangeEvent{}, err
@@ -330,7 +332,7 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 		e.toChain <- tx
 	}
 	for _, proposal := range sideEffects.ProposalsToProcess {
-		e.fromLedger <- getProposalObjectiveId(proposal)
+		e.fromLedger <- proposal
 	}
 }
 
