@@ -16,7 +16,7 @@ contract TurnTaking {
         INitroTypes.FixedPart memory fixedPart,
         INitroTypes.SignedVariablePart[] memory signedVariableParts
     ) internal pure {
-        require(fixedPart.participants.length <= signedVariableParts.length, 'Too little signed variale parts');
+        require(fixedPart.participants.length == signedVariableParts.length, 'Invalid amount of variable parts');
         
         for (uint i = 0; i < signedVariableParts.length; i++) {
             _requireSignedByMover(fixedPart, signedVariableParts[i]);
@@ -74,7 +74,7 @@ contract TurnTaking {
         address signer
     ) internal pure {
         address recovered = _recoverSigner(stateHash, sig);
-        require(signer == recovered, 'Wrong signer');
+        require(signer == recovered, 'Invalid signer');
     }
 
     /**
