@@ -457,50 +457,6 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 
 }
 
-// TODO: These were implemented to quickly resolve https://github.com/statechannels/go-nitro/issues/637
-// This may not be the long term approach we use.
-// See https://www.notion.so/statechannels/Messages-arriving-out-of-order-can-cause-virtual-protocols-to-stall-fc5fe7a1121f4b289a6f6384c1ed4429
-
-// attemptProgressForRelatedObjectives attempts to progress any objectives that may be related to the objective that was just cranked
-// An objective is related when it shares a ledger channel with the provided objective.
-// This allows progress to made on other objectives that may be unblocked after processing the updatedObjective.
-func (e *Engine) attemptProgressForRelatedObjectives(updatedObjective *protocols.Objective) (ObjectiveChangeEvent, error) {
-	allCompleted := ObjectiveChangeEvent{}
-	relatedIds, err := e.findRelatedObjectives(*updatedObjective)
-	if err != nil {
-		return ObjectiveChangeEvent{}, err
-	}
-	for _, id := range relatedIds {
-		related, err := e.store.GetObjectiveById(id)
-		if err != nil {
-			return ObjectiveChangeEvent{}, err
-		}
-		progressEvent, err := e.attemptProgress(related)
-		if err != nil {
-			return ObjectiveChangeEvent{}, err
-		}
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
-	}
-	return allCompleted, nil
-}
-
-// findRelatedObjectives finds all objectives that are related to provided objective.
-// An objective is related when it shares a ledger channel with the provided objective.
-func (e *Engine) findRelatedObjectives(o protocols.Objective) ([]protocols.ObjectiveId, error) {
-	relatedIds := []protocols.ObjectiveId{}
-	for _, rel := range o.Related() {
-		c, ok := rel.(*consensus_channel.ConsensusChannel)
-		if ok {
-			for _, p := range c.ProposalQueue() {
-				id := getProposalObjectiveId(p.Proposal)
-
-				relatedIds = append(relatedIds, id)
-			}
-		}
-	}
-	return relatedIds, nil
-}
-
 // getProposalObjectiveId returns the objectiveId for a proposal.
 func getProposalObjectiveId(p consensus_channel.Proposal) protocols.ObjectiveId {
 	switch p.Type() {
