@@ -33,9 +33,10 @@ func (uce *ErrUnhandledChainEvent) Error() string {
 // Engine is the imperative part of the core business logic of a go-nitro Client
 type Engine struct {
 	// inbound go channels
-	FromAPI   chan APIEvent // This one is exported so that the Client can send API calls
-	fromChain <-chan chainservice.Event
-	fromMsg   <-chan protocols.Message
+	FromAPI    chan APIEvent // This one is exported so that the Client can send API calls
+	fromChain  <-chan chainservice.Event
+	fromMsg    <-chan protocols.Message
+	fromLedger chan consensus_channel.Proposal
 
 	// outbound go channels
 	toMsg   chan<- protocols.Message
@@ -112,6 +113,9 @@ func (e *Engine) Run() {
 
 		case message := <-e.fromMsg:
 			res, err = e.handleMessage(message)
+
+		case id := <-e.fromLedger:
+			res, err = e.handleProposal(id)
 		}
 
 		// Handle errors
@@ -130,6 +134,18 @@ func (e *Engine) Run() {
 		}
 
 	}
+}
+
+// handleProposal handles a Proposal returned to the engine from
+// a running ledger channel by pulling its corresponding objective
+// from the store and attempting progress.
+func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (ObjectiveChangeEvent, error) {
+	id := getProposalObjectiveId(proposal)
+	obj, err := e.store.GetObjectiveById(id)
+	if err != nil {
+		return ObjectiveChangeEvent{}, err
+	}
+	return e.attemptProgress(obj)
 }
 
 // handleMessage handles a Message from a peer go-nitro Wallet.
@@ -169,11 +185,9 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		}
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
 
-		relatedObjectiveCompletions, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedObjectiveCompletions.CompletedObjectives...)
 
 	}
 
@@ -205,11 +219,9 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
 
-		relatedProgressEvent, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedProgressEvent.CompletedObjectives...)
 
 	}
 	return allCompleted, nil
@@ -318,6 +330,9 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	for _, tx := range sideEffects.TransactionsToSubmit {
 		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId)
 		e.toChain <- tx
+	}
+	for _, proposal := range sideEffects.ProposalsToProcess {
+		e.fromLedger <- proposal
 	}
 }
 
@@ -438,50 +453,6 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		return &directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
 	}
 
-}
-
-// TODO: These were implemented to quickly resolve https://github.com/statechannels/go-nitro/issues/637
-// This may not be the long term approach we use.
-// See https://www.notion.so/statechannels/Messages-arriving-out-of-order-can-cause-virtual-protocols-to-stall-fc5fe7a1121f4b289a6f6384c1ed4429
-
-// attemptProgressForRelatedObjectives attempts to progress any objectives that may be related to the objective that was just cranked
-// An objective is related when it shares a ledger channel with the provided objective.
-// This allows progress to made on other objectives that may be unblocked after processing the updatedObjective.
-func (e *Engine) attemptProgressForRelatedObjectives(updatedObjective *protocols.Objective) (ObjectiveChangeEvent, error) {
-	allCompleted := ObjectiveChangeEvent{}
-	relatedIds, err := e.findRelatedObjectives(*updatedObjective)
-	if err != nil {
-		return ObjectiveChangeEvent{}, err
-	}
-	for _, id := range relatedIds {
-		related, err := e.store.GetObjectiveById(id)
-		if err != nil {
-			return ObjectiveChangeEvent{}, err
-		}
-		progressEvent, err := e.attemptProgress(related)
-		if err != nil {
-			return ObjectiveChangeEvent{}, err
-		}
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
-	}
-	return allCompleted, nil
-}
-
-// findRelatedObjectives finds all objectives that are related to provided objective.
-// An objective is related when it shares a ledger channel with the provided objective.
-func (e *Engine) findRelatedObjectives(o protocols.Objective) ([]protocols.ObjectiveId, error) {
-	relatedIds := []protocols.ObjectiveId{}
-	for _, rel := range o.Related() {
-		c, ok := rel.(*consensus_channel.ConsensusChannel)
-		if ok {
-			for _, p := range c.ProposalQueue() {
-				id := getProposalObjectiveId(p.Proposal)
-
-				relatedIds = append(relatedIds, id)
-			}
-		}
-	}
-	return relatedIds, nil
 }
 
 // getProposalObjectiveId returns the objectiveId for a proposal.

@@ -400,6 +400,12 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 			if err != nil {
 				return protocols.SideEffects{}, fmt.Errorf("could not sign proposal: %w", err)
 			}
+			// ledger sideEffect
+			if proposals := ledger.ProposalQueue(); len(proposals) != 0 {
+				sideEffects.ProposalsToProcess = append(sideEffects.ProposalsToProcess, proposals[0].Proposal)
+			}
+
+			// messaging sideEffect
 			recipient := ledger.Leader()
 			message := protocols.CreateSignedProposalMessage(recipient, sp)
 			sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
