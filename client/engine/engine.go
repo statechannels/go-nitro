@@ -183,11 +183,9 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		}
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
 
-		// relatedObjectiveCompletions, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
-		// allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedObjectiveCompletions.CompletedObjectives...)
 
 	}
 
@@ -219,11 +217,9 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
 
-		// relatedProgressEvent, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
-		// allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedProgressEvent.CompletedObjectives...)
 
 	}
 	return allCompleted, nil
