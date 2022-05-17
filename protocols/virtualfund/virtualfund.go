@@ -597,8 +597,14 @@ func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.Side
 	if err != nil {
 		return protocols.SideEffects{}, fmt.Errorf("no proposed state found for ledger channel %w", err)
 	}
-
 	sideEffects := protocols.SideEffects{}
+
+	// ledger sideEffect
+	if proposals := ledger.ProposalQueue(); len(proposals) != 0 {
+		sideEffects.ProposalsToProcess = append(sideEffects.ProposalsToProcess, proposals[0].Proposal)
+	}
+
+	// message sideEffect
 	recipient := ledger.Leader()
 	message := protocols.CreateSignedProposalMessage(recipient, sp)
 	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
