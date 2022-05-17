@@ -20,6 +20,7 @@ func NewSimpleChainService(mc *MockChain, address types.Address) ChainService {
 	mcs.out = make(chan Event)
 	mcs.in = make(chan protocols.ChainTransaction)
 	mcs.chain = mc
+	mcs.chain.Subscribe(address)
 	mcs.address = address
 
 	go mcs.forwardEvents()
