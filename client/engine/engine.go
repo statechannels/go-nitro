@@ -33,9 +33,10 @@ func (uce *ErrUnhandledChainEvent) Error() string {
 // Engine is the imperative part of the core business logic of a go-nitro Client
 type Engine struct {
 	// inbound go channels
-	FromAPI   chan APIEvent // This one is exported so that the Client can send API calls
-	fromChain <-chan chainservice.Event
-	fromMsg   <-chan protocols.Message
+	FromAPI    chan APIEvent // This one is exported so that the Client can send API calls
+	fromChain  <-chan chainservice.Event
+	fromMsg    <-chan protocols.Message
+	fromLedger chan protocols.ObjectiveId
 
 	// outbound go channels
 	toMsg   chan<- protocols.Message
@@ -112,6 +113,9 @@ func (e *Engine) Run() {
 
 		case message := <-e.fromMsg:
 			res, err = e.handleMessage(message)
+
+		case id := <-e.fromLedger:
+			res, err = e.crankObjective(id)
 		}
 
 		// Handle errors
@@ -130,6 +134,16 @@ func (e *Engine) Run() {
 		}
 
 	}
+}
+
+// crankObjective queries the store for the specified id, and
+// attempts progress on the returned objective.
+func (e *Engine) crankObjective(id protocols.ObjectiveId) (ObjectiveChangeEvent, error) {
+	obj, err := e.store.GetObjectiveById(id)
+	if err != nil {
+		return ObjectiveChangeEvent{}, err
+	}
+	return e.attemptProgress(obj)
 }
 
 // handleMessage handles a Message from a peer go-nitro Wallet.
@@ -169,11 +183,11 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		}
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
 
-		relatedObjectiveCompletions, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
+		// relatedObjectiveCompletions, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedObjectiveCompletions.CompletedObjectives...)
+		// allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedObjectiveCompletions.CompletedObjectives...)
 
 	}
 
@@ -205,11 +219,11 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
 
-		relatedProgressEvent, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
+		// relatedProgressEvent, err := e.attemptProgressForRelatedObjectives(&updatedObjective)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedProgressEvent.CompletedObjectives...)
+		// allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, relatedProgressEvent.CompletedObjectives...)
 
 	}
 	return allCompleted, nil
@@ -318,6 +332,9 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	for _, tx := range sideEffects.TransactionsToSubmit {
 		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId)
 		e.toChain <- tx
+	}
+	for _, proposal := range sideEffects.ProposalsToProcess {
+		e.fromLedger <- getProposalObjectiveId(proposal)
 	}
 }
 
