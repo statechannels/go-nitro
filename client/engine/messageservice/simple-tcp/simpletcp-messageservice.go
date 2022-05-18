@@ -50,6 +50,25 @@ func NewSimpleTCPMessageService(myUrl string, peers map[types.Address]string) *S
 
 }
 
+func (s *SimpleTCPMessageService) handleConnection(conn net.Conn) {
+	defer conn.Close()
+
+	raw, err := bufio.NewReader(conn).ReadString(DELIMETER)
+
+	if err != nil {
+		s.panicIfRunning(err)
+		return
+
+	}
+	m, err := protocols.DeserializeMessage(raw)
+	if err != nil {
+		s.panicIfRunning(err)
+		return
+	}
+	s.out <- m
+
+}
+
 // listenForOutgoing listens for any messages that should be sent out to peers and sends them
 func (s *SimpleTCPMessageService) listenForOutgoing() {
 	for {
@@ -104,22 +123,7 @@ func (s *SimpleTCPMessageService) listenForIncoming() {
 			return
 		}
 
-		raw, err := bufio.NewReader(conn).ReadString(DELIMETER)
-
-		if err != nil {
-			s.panicIfRunning(err)
-			return
-
-		}
-		m, err := protocols.DeserializeMessage(raw)
-		if err != nil {
-			s.panicIfRunning(err)
-			return
-		}
-		s.out <- m
-
-		conn.Close()
-
+		go s.handleConnection(conn)
 	}
 
 }
