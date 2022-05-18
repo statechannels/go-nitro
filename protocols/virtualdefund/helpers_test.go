@@ -9,7 +9,6 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/internal/testactors"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	. "github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
@@ -22,19 +21,19 @@ func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus
 	switch myRole {
 	case 0:
 		{
-			return nil, prepareConsensusChannel(uint(consensus_channel.Leader), testactors.Alice, testactors.Irene, generateGuarantee(testactors.Alice, testactors.Irene, vId))
+			return nil, prepareConsensusChannel(uint(consensus_channel.Leader), ta.Alice, ta.Irene, generateGuarantee(ta.Alice, ta.Irene, vId))
 		}
 	case 1:
 		{
 
-			return prepareConsensusChannel(uint(consensus_channel.Follower), testactors.Alice, testactors.Irene, generateGuarantee(testactors.Alice, testactors.Irene, vId)),
-				prepareConsensusChannel(uint(consensus_channel.Leader), testactors.Irene, testactors.Bob, generateGuarantee(testactors.Irene, testactors.Bob, vId))
+			return prepareConsensusChannel(uint(consensus_channel.Follower), ta.Alice, ta.Irene, generateGuarantee(ta.Alice, ta.Irene, vId)),
+				prepareConsensusChannel(uint(consensus_channel.Leader), ta.Irene, ta.Bob, generateGuarantee(ta.Irene, ta.Bob, vId))
 
 		}
 	case 2:
 		{
 
-			return prepareConsensusChannel(uint(consensus_channel.Follower), testactors.Irene, testactors.Bob, generateGuarantee(testactors.Irene, testactors.Bob, vId)), nil
+			return prepareConsensusChannel(uint(consensus_channel.Follower), ta.Irene, ta.Bob, generateGuarantee(ta.Irene, ta.Bob, vId)), nil
 
 		}
 	default:
@@ -65,7 +64,7 @@ func generateStoreGetters(myRole uint, vId types.Destination, vFinal state.State
 }
 
 // generateGuarantee generates a guarantee for the given participants and vId
-func generateGuarantee(left, right testactors.Actor, vId types.Destination) consensus_channel.Guarantee {
+func generateGuarantee(left, right ta.Actor, vId types.Destination) consensus_channel.Guarantee {
 	return consensus_channel.NewGuarantee(big.NewInt(10), vId, left.Destination(), right.Destination())
 
 }
@@ -74,7 +73,7 @@ func generateGuarantee(left, right testactors.Actor, vId types.Destination) cons
 //  - allocating 0 to left
 //  - allocating 0 to right
 //  - including the given guarantees
-func prepareConsensusChannel(role uint, left, right testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
+func prepareConsensusChannel(role uint, left, right ta.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
 	fp := state.FixedPart{
 		ChainId:           big.NewInt(9001),
 		Participants:      []types.Address{left.Address(), right.Address()},
@@ -197,7 +196,7 @@ func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objectiv
 }
 
 // signProposal signs a proposal with the given actor's private key
-func signProposal(me testactors.Actor, p consensus_channel.Proposal, c *consensus_channel.ConsensusChannel, turnNum uint64) (consensus_channel.SignedProposal, error) {
+func signProposal(me ta.Actor, p consensus_channel.Proposal, c *consensus_channel.ConsensusChannel, turnNum uint64) (consensus_channel.SignedProposal, error) {
 
 	con := c.ConsensusVars()
 	vars := con.Clone()

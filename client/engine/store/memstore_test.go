@@ -7,7 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	cc "github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -27,10 +26,10 @@ func compareObjectives(a, b protocols.Objective) string {
 		channel.Channel{},
 		big.Int{},
 		state.SignedState{},
-		consensus_channel.ConsensusChannel{},
-		consensus_channel.Vars{},
-		consensus_channel.LedgerOutcome{},
-		consensus_channel.Balance{},
+		cc.ConsensusChannel{},
+		cc.Vars{},
+		cc.LedgerOutcome{},
+		cc.Balance{},
 	))
 }
 
@@ -91,7 +90,7 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 		t.Errorf("error setting objective %v: %s", dfo, err.Error())
 	}
 
-	got, ok := ms.GetObjectiveByChannelId(dfo.C.Id)
+	_, ok := ms.GetObjectiveByChannelId(dfo.C.Id)
 	if ok {
 		t.Error("when an unapproved objective is stored, the objective should not own the channel")
 	}
@@ -101,7 +100,7 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 	if err := ms.SetObjective(&dfo); err != nil {
 		t.Errorf("error setting objective %v: %s", dfo, err.Error())
 	}
-	got, ok = ms.GetObjectiveByChannelId(dfo.C.Id)
+	got, ok := ms.GetObjectiveByChannelId(dfo.C.Id)
 
 	if !ok {
 		t.Errorf("expected to find the inserted objective, but didn't")
@@ -152,12 +151,12 @@ func TestConsensusChannelStore(t *testing.T) {
 	existingGuarantee := cc.NewGuarantee(big.NewInt(1), types.Destination{1}, left.AsAllocation().Destination, right.AsAllocation().Destination)
 	outcome := cc.NewLedgerOutcome(asset, left, right, []cc.Guarantee{existingGuarantee})
 
-	initialVars := consensus_channel.Vars{Outcome: *outcome, TurnNum: 0}
+	initialVars := cc.Vars{Outcome: *outcome, TurnNum: 0}
 
 	aliceSig, _ := initialVars.AsState(fp).Sign(ta.Alice.PrivateKey)
 	bobsSig, _ := initialVars.AsState(fp).Sign(ta.Bob.PrivateKey)
 
-	leader, err := consensus_channel.NewLeaderChannel(
+	leader, err := cc.NewLeaderChannel(
 		fp,
 		0,
 		*outcome,
