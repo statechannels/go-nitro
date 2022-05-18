@@ -13,8 +13,9 @@ type MockChain struct {
 	out map[types.Address]chan Event    // out is a mapping with a chan for each connected ChainService, used to send Events to that service
 	in  chan protocols.ChainTransaction // in is the chan used to receive Transactions from multiple ChainServices
 
-	holdings map[types.Destination]types.Funds // holdings tracks funds for each channel
-	blockNum uint64
+	transListener chan protocols.ChainTransaction   // this is used to broadcast transactions that have been received
+	holdings      map[types.Destination]types.Funds // holdings tracks funds for each channel
+	blockNum      uint64
 }
 
 // Out returns the out chan for a particular ChainService, and narrows the type so that external consumers may only receive on it.
@@ -29,11 +30,18 @@ func (mc MockChain) In() chan<- protocols.ChainTransaction {
 
 // NewMockChain returns a new MockChain.
 func NewMockChain() MockChain {
+	return NewMockChainWithTransactionListener(nil)
+}
+
+// NewMockChainWithTransactionListener returns a new MockChain with the supplied transaction listener.
+// The transaction listener will receive all transactions that are sent to the MockChain.
+func NewMockChainWithTransactionListener(transactionListener chan protocols.ChainTransaction) MockChain {
 
 	mc := MockChain{}
 	mc.out = make(map[types.Address]chan Event)
 	mc.in = make(chan protocols.ChainTransaction)
 	mc.holdings = make(map[types.Destination]types.Funds)
+	mc.transListener = transactionListener
 	mc.blockNum = 1
 
 	go mc.Run()
@@ -49,8 +57,20 @@ func (mc *MockChain) Subscribe(a types.Address) {
 // Run starts a listener for transactions on the MockChain's in chan.
 func (mc MockChain) Run() {
 	for tx := range mc.in {
+		mc.sendToTransListener(tx)
 		mc.blockNum++
 		mc.handleTx(tx)
+	}
+}
+
+// sendToTransListener sends the transaction to the transListener if not nil and the chan is not full.
+func (mc *MockChain) sendToTransListener(tx protocols.ChainTransaction) {
+	if mc.transListener != nil {
+		// Send to transOut and ignore if the chan is full
+		select {
+		case mc.transListener <- tx:
+		default:
+		}
 	}
 }
 
