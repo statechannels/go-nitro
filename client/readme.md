@@ -15,6 +15,7 @@ The flow of data through the client is shown in this diagram:
 4. The side effects are sent on go channels to:
    - the `message` service
    - the `chain` service
+   - _back_ to the `engine` (e.g. when an update declares further progress can be made)
 5. The consuming application is informed about updates
 
 The `chain` and `message` services are responsible for communicating with the blockchain and with counterparties (respectively).
