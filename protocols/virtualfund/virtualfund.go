@@ -204,11 +204,11 @@ func constructFromState(
 	for i := range initialStateOfV.Outcome {
 		asset := initialStateOfV.Outcome[i].Asset
 		if initialStateOfV.Outcome[i].Allocations[0].Destination != types.AddressToDestination(initialStateOfV.Participants[0]) {
-			return Objective{}, errors.New("Allocation in slot 0 does not correspond to participant 0")
+			return Objective{}, errors.New("allocation in slot 0 does not correspond to participant 0")
 		}
 		amount0 := initialStateOfV.Outcome[i].Allocations[0].Amount
 		if initialStateOfV.Outcome[i].Allocations[1].Destination != types.AddressToDestination(initialStateOfV.Participants[init.n+1]) {
-			return Objective{}, errors.New("Allocation in slot 1 does not correspond to participant " + fmt.Sprint(init.n+1))
+			return Objective{}, errors.New("allocation in slot 1 does not correspond to participant " + fmt.Sprint(init.n+1))
 		}
 		amount1 := initialStateOfV.Outcome[i].Allocations[1].Amount
 		if init.a0[asset] == nil {

@@ -26,7 +26,7 @@ const ObjectivePrefix = "DirectDefunding-"
 var (
 	ErrNotApproved             = errors.New("objective not approved")
 	ErrChannelUpdateInProgress = errors.New("can only defund a channel when the latest state is supported or when the channel has a final state")
-	ErrNoFinalState            = errors.New("Cannot spawn direct defund objective without a final state")
+	ErrNoFinalState            = errors.New("cannot spawn direct defund objective without a final state")
 )
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
@@ -233,7 +233,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	latestSignedState, err := updated.C.LatestSignedState()
 	if err != nil {
-		return &updated, sideEffects, WaitingForNothing, errors.New("The channel must contain at least one signed state to crank the defund objective")
+		return &updated, sideEffects, WaitingForNothing, errors.New("the channel must contain at least one signed state to crank the defund objective")
 	}
 
 	// Finalize and sign a state if no supported, finalized state exists
