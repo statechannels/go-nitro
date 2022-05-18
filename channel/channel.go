@@ -32,9 +32,8 @@ type Channel struct {
 // New constructs a new Channel from the supplied state.
 func New(s state.State, myIndex uint) (*Channel, error) {
 	c := Channel{}
-	var err error
+	var err error = s.Validate()
 
-	err = s.Validate()
 	if err != nil {
 		return &c, err
 	}
