@@ -88,10 +88,8 @@ func channelsExistWithCounterparty(counterparty types.Address, getChannels GetCh
 	}
 
 	_, ok := getTwoPartyConsensusLedger(counterparty)
-	if ok {
-		return true
-	}
-	return false
+
+	return ok
 }
 
 // ConstructFromState initiates a Objective with data calculated from
