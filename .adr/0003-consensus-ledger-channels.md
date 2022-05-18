@@ -119,4 +119,4 @@ This is not ideal (why create one temp data-type only to immediatly convert it f
 
 ### Integration with engine
 
-Because individual protocols are implemented as pure functions, reordering recieved proposals and managing sequential updates is handled by the engine (`package engine`). See [ADR-0005](0005-proposal-processing.md) for details on how proposal ordering is handled by the engine.
+Because individual protocols are implemented as pure functions, reordering recieved proposals and managing sequential updates is handled by the engine (`package engine`). See [ADR-0006](0006-proposal-processing-ledger-effects.md) for details on how proposal ordering is handled by the engine.
