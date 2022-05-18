@@ -71,26 +71,19 @@ func (s *SimpleTCPMessageService) listenForOutgoing() {
 				raw = fmt.Sprintf("%s%c", raw, DELIMETER)
 
 				if err != nil {
-					panic(err)
+					s.panicIfRunning(err)
+					return
 				}
 
 				conn, err := net.Dial(CONN_TYPE, peer)
 				if err != nil {
-					select {
-					case <-s.quit: // If we are quitting we can ignore the error
-						return
-					default:
-						panic(err)
-					}
+					s.panicIfRunning(err)
+					return
 				}
 				_, err = conn.Write([]byte(raw))
 				if err != nil {
-					select {
-					case <-s.quit: // If we are quitting we can ignore the error
-						return
-					default:
-						panic(err)
-					}
+					s.panicIfRunning(err)
+					return
 				}
 				conn.Close()
 
@@ -107,28 +100,21 @@ func (s *SimpleTCPMessageService) listenForIncoming() {
 		conn, err := s.listener.Accept()
 
 		if err != nil {
-			select {
-			case <-s.quit:
-				return
-			default:
-				panic(err)
-			}
+			s.panicIfRunning(err)
+			return
 		}
 
 		raw, err := bufio.NewReader(conn).ReadString(DELIMETER)
 
 		if err != nil {
-			select {
-			case <-s.quit: // If we are quitting we can ignore the error
-				return
-			default:
-				panic(err)
-			}
+			s.panicIfRunning(err)
+			return
 
 		}
 		m, err := protocols.DeserializeMessage(raw)
 		if err != nil {
-			panic(err)
+			s.panicIfRunning(err)
+			return
 		}
 		s.out <- m
 
@@ -136,6 +122,16 @@ func (s *SimpleTCPMessageService) listenForIncoming() {
 
 	}
 
+}
+
+// panicIfRunning panics if the SimpleTCPMessageService is running, otherwise it just returns
+func (s *SimpleTCPMessageService) panicIfRunning(err error) {
+	select {
+	case <-s.quit: // If we are quitting we can ignore the error
+		return
+	default:
+		panic(err)
+	}
 }
 
 func (s *SimpleTCPMessageService) Out() <-chan protocols.Message {
