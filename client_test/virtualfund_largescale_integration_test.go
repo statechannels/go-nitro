@@ -132,12 +132,14 @@ func combineLogs(t *testing.T, logDir string, combinedLogsFilename string, RP cl
 	if err != nil {
 		t.Fatal(err)
 	}
+	os.Remove(path.Join(logDir, RP.Address.String()+"-Log.txt"))
 	output += string(input)
 	output += "\n"
 	input, err = ioutil.ReadFile(path.Join(logDir, PH.Address.String()+"-Log.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	os.Remove(path.Join(logDir, PH.Address.String()+"-Log.txt"))
 	output += string(input)
 	output += "\n"
 	for i := range retrievalClients {
@@ -145,6 +147,7 @@ func combineLogs(t *testing.T, logDir string, combinedLogsFilename string, RP cl
 		if err != nil {
 			t.Fatal(err)
 		}
+		os.Remove(path.Join(logDir, retrievalClients[i].Address.String()+"-Log.txt"))
 		output += string(input)
 	}
 
