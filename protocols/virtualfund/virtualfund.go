@@ -442,12 +442,12 @@ func (o *Objective) fundingComplete() bool {
 	// A = P_0 and B=P_n are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
 
 	switch {
-	case o.isAlice(): // Alice
+	case o.isAlice():
 		return o.ToMyRight.Funded()
+	case o.isBob():
+		return o.ToMyLeft.Funded()
 	default: // Intermediary
 		return o.ToMyRight.Funded() && o.ToMyLeft.Funded()
-	case o.isBob(): // Bob
-		return o.ToMyLeft.Funded()
 	}
 
 }
