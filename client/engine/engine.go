@@ -114,8 +114,8 @@ func (e *Engine) Run() {
 		case message := <-e.fromMsg:
 			res, err = e.handleMessage(message)
 
-		case id := <-e.fromLedger:
-			res, err = e.handleProposal(id)
+		case proposal := <-e.fromLedger:
+			res, err = e.handleProposal(proposal)
 		}
 
 		// Handle errors
