@@ -23,9 +23,7 @@ func (d Destination) ToAddress() (Address, error) {
 	}
 
 	address := Address{}
-	for i, b := range d[12:] {
-		address[i] = b
-	}
+	copy(address[:], d[12:])
 	return address, nil
 }
 
