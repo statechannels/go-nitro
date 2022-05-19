@@ -12,7 +12,7 @@ Accepted
 
 See [ADR-0003](./0003-consensus-ledger-channels.md), [ADR-0005](./0005-proposal-processing-related-objectives.md) for additional context. This ADR supersedes ADR-0005.
 
-### Pramble
+### Preamble
 
 `go-nitro`'s initial design intent centered around a simple, dumb, engine which:
 - recieves messages from either
