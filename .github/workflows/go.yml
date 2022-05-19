@@ -47,6 +47,6 @@ jobs:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_NOTIFICATIONS_BOT_TOKEN }}
         uses: voxmedia/github-action-slack-notify-build@v1
         with:
-          channel: go-nitro-ci-failures-on-main
+          channel_id: C03G4AUGA7M
           status: FAILED
           color: danger
