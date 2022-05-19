@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Deprecated - see [ADR-0006](./0006-proposal-processing-ledger-effects.md)
 
 ## Definitions
 
