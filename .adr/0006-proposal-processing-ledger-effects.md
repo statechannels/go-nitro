@@ -41,6 +41,6 @@ As development progressed, the engine has taken on additional logical complexity
 
 The `RelatedObjectives` workflow has been replaced with a `SideEffects`-`ProposalQueue` workflow which more closely mimics the initial design intent outlined above.
 
-Now, any `virtualfunding` objective whose `Crank()` progresses the state of some ledger channel checks that ledger channel for any further pending propsals. If it finds any, it returns a `ProposalToProcess` side effect, which gets piped back into the engine the the same manner as any of the existing APIs (peer messages, chain service, client application).
+Now, any `virtualfunding` objective whose `Crank()` progresses the state of some ledger channel checks that ledger channel for any further pending propsals. If it finds any, it returns a `ProposalToProcess` side effect, which gets piped back into the engine in the same manner as any of the existing APIs (peer messages, chain service, client application).
 
 The engine regains some of its blissful ignorance. It doesn't know in advance which objective cranks might produce these proposal side-effects. After the fact, it doesn't know anything about where the ProposalProcessing requests are coming from.
