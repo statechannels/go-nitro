@@ -6,7 +6,7 @@ Accepted
 
 ## Definitions
 
-- references to **virtualfundging** objectives are intended as generic references to either `virtualfund` or `virtualdefund`.
+- references to **virtualfunding** objectives are intended as generic references to either `virtualfund` or `virtualdefund`.
 
 ## Context
 
