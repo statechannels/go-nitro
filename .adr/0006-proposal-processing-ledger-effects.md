@@ -47,6 +47,8 @@ Now, any `virtualfunding` objective whose `Crank()` progresses the state of some
 
 The engine regains some of its blissful ignorance. It doesn't know in advance which objective cranks might produce these proposal side-effects. After the fact, it doesn't know anything about where the ProposalProcessing requests are coming from.
 
+Virtual channel participants, whose funding of the virtual channel involves a single ledger channel, can expect a maximum of one returned proposal per crank. Intermediaries, who use two ledger channels to fund the virtual channel, may return a proposal from both.
+
 ### Details
 
 This workflow replaces the sequential, synchrohous processessing of queued proposals with an async model. It is now possible (and in practical terms, likely) that a ledger channel with multiple queued proposals may not have those proposals processed sequentially by the engine at the exclusion of other incoming messages.
