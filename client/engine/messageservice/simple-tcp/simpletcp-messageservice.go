@@ -51,7 +51,6 @@ func NewSimpleTCPMessageService(myUrl string, peers map[types.Address]string) *S
 }
 
 func (s *SimpleTCPMessageService) handleConnection(conn net.Conn) {
-	defer conn.Close()
 
 	raw, err := bufio.NewReader(conn).ReadString(DELIMETER)
 
