@@ -46,3 +46,11 @@ The `RelatedObjectives` workflow has been replaced with a `SideEffects`-`Proposa
 Now, any `virtualfunding` objective whose `Crank()` progresses the state of some ledger channel checks that ledger channel for any further pending propsals. If it finds any, it returns a `ProposalToProcess` side effect, which gets piped back into the engine in the same manner as any of the existing APIs (peer messages, chain service, client application).
 
 The engine regains some of its blissful ignorance. It doesn't know in advance which objective cranks might produce these proposal side-effects. After the fact, it doesn't know anything about where the ProposalProcessing requests are coming from.
+
+### Details
+
+This workflow replaces the sequential, synchrohous processessing of queued proposals with an async model. It is now possible (and in practical terms, likely) that a ledger channel with multiple queued proposals may not have those proposals processed sequentially by the engine at the exclusion of other incoming messages.
+
+IE, if channel `L` contains queued proposals `X` and `Y`, then the crank which returns `X` to the engine along the `proposalsToProcess` channel may find that the engine already has incoming messages on one of the other incoming channels (`peerMessages`, `chainEvents`, `clientAPIcalls`), and similarly for the `X`-induced crank which returns `Y`. In these cases, the engine processes events in no specific order.
+
+This is **OK** because no "competing" incoming event should alter the **readiness** of proposals `X` and `Y` for processing. It is possibly **desirable** because it anticipates a future async engine, which may seek write-access to the ledger channel in order to add to its ProposalQueue. Under the previous model, the ledger channel would be locked for the duration of the proposal queue clearing.
