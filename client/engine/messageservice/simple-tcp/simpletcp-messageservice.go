@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	CONN_TYPE = "tcp"
-	DELIMETER = '\n'
+	CONN_TYPE   = "tcp"
+	DELIMETER   = '\n'
+	BUFFER_SIZE = 1_000_000
 )
 
 // SimpleTCPMessageService is a rudimentary message service that uses TCP to send and receive messages
@@ -35,8 +36,8 @@ func NewSimpleTCPMessageService(myUrl string, peers map[types.Address]string) *S
 		panic(err)
 	}
 	h := &SimpleTCPMessageService{
-		in:    make(chan protocols.Message, 5),
-		out:   make(chan protocols.Message, 5),
+		in:    make(chan protocols.Message, BUFFER_SIZE),
+		out:   make(chan protocols.Message, BUFFER_SIZE),
 		peers: peers,
 
 		listener: l,
