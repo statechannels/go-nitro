@@ -17,6 +17,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	nc "github.com/statechannels/go-nitro/crypto"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
@@ -30,7 +31,7 @@ import (
 // The output shiviz.log can be pasted into https://bestchai.bitbucket.io/shiviz/ to visualize the messages which are sent.
 func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 
-	prettyPrintDict := make(map[string]string)
+	prettyPrintDict := safesync.Map[string]{}
 
 	// Increase numRetrievalClients to simulate multiple retrieval clients all wanting to pay the same retrieval provider through the same hub
 	const numRetrievalClients = 3
@@ -50,14 +51,14 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 
 	// Setup singleton (instrumented) clients
 	retrievalProvider, retrievalProviderStore := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
-	prettyPrintDict[retrievalProvider.Address.String()] = "RP"
+	prettyPrintDict.Store(retrievalProvider.Address.String(), "RP")
 
 	paymentHub, paymentHubStore := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
-	prettyPrintDict[paymentHub.Address.String()] = "PH"
+	prettyPrintDict.Store(paymentHub.Address.String(), "PH")
 
 	// Connect RP to PH
 	lID := directlyFundALedgerChannel(t, retrievalProvider, paymentHub)
-	prettyPrintDict[lID.String()] = "L"
+	prettyPrintDict.Store(lID.String(), "L")
 
 	// Setup a number of RCs, each with a ledger connection to PH
 	retrievalClients := make([]client.Client, numRetrievalClients)
@@ -65,9 +66,9 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	for i := range retrievalClients {
 		secretKey, _ := nc.GeneratePrivateKeyAndAddress()
 		retrievalClients[i], rcStores[i] = setupClient(secretKey, chain, broker, logDestination, 0)
-		prettyPrintDict[retrievalClients[i].Address.String()] = "RC" + fmt.Sprint(i)
+		prettyPrintDict.Store(retrievalClients[i].Address.String(), "RC"+fmt.Sprint(i))
 		lID := directlyFundALedgerChannel(t, retrievalClients[i], paymentHub)
-		prettyPrintDict[lID.String()] = "L" + fmt.Sprint(i)
+		prettyPrintDict.Store(lID.String(), "L"+fmt.Sprint(i))
 	}
 
 	// Switch to instrumented clients
@@ -98,7 +99,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 
 	// All Retrieval Clients try to start a virtual channel with the retrievalProvider, through the Payment Hub
 	for i, client := range retrievalClients {
-		go createVirtualChannelWithRetrievalProvider(client, retrievalProvider, prettyPrintDict, i)
+		go createVirtualChannelWithRetrievalProvider(client, retrievalProvider, &prettyPrintDict, i)
 	}
 
 	// HACK: wait a second for stuff to happen (be better to wait for objectives to finish)
@@ -113,7 +114,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	combineLogs(t, vectorClockLogDir, "shiviz.log", retrievalProvider, paymentHub, retrievalClients)
 
 	// prettify log
-	prettify(t, vectorClockLogDir, "shiviz.log", prettyPrintDict)
+	prettify(t, vectorClockLogDir, "shiviz.log", &prettyPrintDict)
 
 }
 
@@ -155,23 +156,25 @@ func combineLogs(t *testing.T, logDir string, combinedLogsFilename string, RP cl
 }
 
 // prettify replaces addresses and destinations using the supplied prettyPrintDict
-func prettify(t *testing.T, logDir string, combinedLogsFilename string, prettyPrintDict map[string]string) {
+func prettify(t *testing.T, logDir string, combinedLogsFilename string, prettyPrintDict *safesync.Map[string]) {
 	input, err := ioutil.ReadFile(path.Join(logDir, combinedLogsFilename))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	output := string(input)
-	for key := range prettyPrintDict {
-		output = strings.Replace(string(output), key, prettyPrintDict[key], -1)
+	replaceFun := func(key string, value string) bool {
+		output = strings.Replace(string(output), key, value, -1)
+		return true
 	}
+	prettyPrintDict.Range(replaceFun)
 
 	if err = ioutil.WriteFile(path.Join(logDir, combinedLogsFilename)+"_pretty", []byte(output), 0666); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func createVirtualChannelWithRetrievalProvider(c client.Client, retrievalProvider client.Client, prettyPrintDict map[string]string, i int) {
+func createVirtualChannelWithRetrievalProvider(c client.Client, retrievalProvider client.Client, prettyPrintDict *safesync.Map[string], i int) {
 	withRetrievalProvider := virtualfund.ObjectiveRequest{
 		CounterParty: *retrievalProvider.Address,
 		Intermediary: irene.Address(),
@@ -186,5 +189,5 @@ func createVirtualChannelWithRetrievalProvider(c client.Client, retrievalProvide
 		ChallengeDuration: big.NewInt(0),
 		Nonce:             rand.Int63(),
 	}
-	prettyPrintDict[c.CreateVirtualChannel(withRetrievalProvider).ChannelId.String()] = "V" + fmt.Sprint(i)
+	prettyPrintDict.Store(c.CreateVirtualChannel(withRetrievalProvider).ChannelId.String(), "V"+fmt.Sprint(i))
 }
