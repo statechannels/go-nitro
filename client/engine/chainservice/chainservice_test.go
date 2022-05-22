@@ -1,9 +1,9 @@
 package chainservice
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
@@ -50,11 +50,11 @@ func TestChainService(t *testing.T) {
 		Deposit:   testDeposit,
 		Type:      protocols.DepositTransactionType,
 	}
-
 	cc.in <- testTx
 
+	// Pause to allow the chain service to submit the transaction to the chain.
+	time.Sleep(10 * time.Millisecond)
 	sim.Commit()
 
-	event := <-cc.out
-	fmt.Println(event)
+	<-cc.out
 }
