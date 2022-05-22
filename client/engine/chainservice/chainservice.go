@@ -95,6 +95,22 @@ func (cc ChainConnection) listenForTx() {
 	}
 }
 
+// handleTx responds to the given tx.
+func (cc ChainConnection) handleTx(tx protocols.ChainTransaction) {
+	switch tx.Type {
+	case protocols.DepositTransactionType:
+		for address, amount := range tx.Deposit {
+			cc.to.Value = amount
+			_, err := cc.na.Deposit(cc.to, address, tx.ChannelId, big.NewInt(0), amount)
+			if err != nil {
+				panic(err)
+			}
+		}
+	default:
+		panic("unexpected chain transaction")
+	}
+}
+
 func (cc ChainConnection) listenForEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, to *bind.TransactOpts, ep EventProducer) {
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{naAddress},
@@ -113,25 +129,8 @@ func (cc ChainConnection) listenForEvents(na *NitroAdjudicator.NitroAdjudicator,
 
 			// send dummy event
 			event := DepositedEvent{}
-			attemptSend(cc.out, event)
+			cc.out <- event
 		}
-	}
-}
-
-// handleTx responds to the given tx.
-func (cc ChainConnection) handleTx(tx protocols.ChainTransaction) {
-	switch tx.Type {
-	case protocols.DepositTransactionType:
-		for address, amount := range tx.Deposit {
-			cc.to.Value = amount
-			tx, err := cc.na.Deposit(cc.to, address, tx.ChannelId, big.NewInt(0), amount)
-			if err != nil {
-				panic(err)
-			}
-			fmt.Printf("Transaction pending: %v", tx)
-		}
-	default:
-		panic("unexpected chain transaction")
 	}
 }
 
