@@ -52,8 +52,8 @@ func TestVirtualFundIntegration(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
 
-	clientA, _ := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
-	clientB, _ := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
+	clientB, storeB := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
 	clientI, _ := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
 
 	cIds := openVirtualChannels(t, clientA, clientB, clientI, 1)
@@ -63,4 +63,22 @@ func TestVirtualFundIntegration(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		clientA.MakePayment(cId, bob.Destination(), big.NewInt(1))
 	}
+
+	chA, ok := storeA.GetChannelById(cId)
+	if !ok {
+		t.Fatal()
+	}
+	ss, _ := chA.LatestSignedState()
+
+	t.Log(ss.State().TurnNum)
+
+	chB, ok := storeB.GetChannelById(cId)
+	if !ok {
+		t.Fatal()
+	}
+
+	ss, _ = chB.LatestSignedState()
+
+	t.Log(ss.State().TurnNum)
+
 }

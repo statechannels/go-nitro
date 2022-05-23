@@ -254,6 +254,10 @@ func (e *Engine) handlePayment(entry protocols.ObjectivePayload[state.SignedStat
 	if !ok {
 		return errors.New("cannot handle payment for unknown channel")
 	}
+	err := e.store.SetChannel(ch)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -301,6 +305,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 
 		se := protocols.SideEffects{MessagesToSend: []protocols.Message{msg}}
 		e.executeSideEffects(se)
+		e.store.SetChannel(ch)
 
 		return ObjectiveChangeEvent{}, nil
 	}
