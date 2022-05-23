@@ -260,6 +260,7 @@ func (e *Engine) handlePayment(entry protocols.ObjectivePayload[state.SignedStat
 		return errors.New("cannot handle payment ")
 	}
 
+	// TODO verify payment benefits me! and otherwise preserves value
 	counterSigned, err := ch.SignAndAddState(entry.Payload.State(), e.store.GetChannelSecretKey()) // countersign payment
 	if err != nil {
 		return err

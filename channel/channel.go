@@ -264,7 +264,13 @@ func (c *Channel) AddSignedState(ss state.SignedState) bool {
 	}
 
 	// Update latest supported state
+	// TODO: for a virtual payment channel, we may need to change this.
+	// We may want to consider a signature from JUST Alice or JUST (Alice and Bob) sufficient
+	// The whole idea is to cut Irene out of the critical path
 	if c.SignedStateForTurnNum[s.TurnNum].HasAllSignatures() {
+		c.latestSupportedStateTurnNum = s.TurnNum
+	} else if c.PostFundComplete() && c.SignedStateForTurnNum[s.TurnNum].HasAliceAndBobSignatures() {
+		// Virtual channel rules
 		c.latestSupportedStateTurnNum = s.TurnNum
 	}
 
