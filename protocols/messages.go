@@ -138,17 +138,6 @@ func CreatePaymentMessage(ss state.SignedState, to types.Address) Message {
 	return message
 }
 
-// CreatePaymentMessage creates a message containing the signed state, for a single recipient
-func CreateReceiptMessage(ss state.SignedState, to types.Address) Message {
-
-	message := Message{To: to, Payloads: []MessagePayload{{
-		ObjectiveId: "receipt", // TODO this is a magic value
-		SignedState: ss,
-	}}}
-
-	return message
-}
-
 // Merge accepts a SideEffects struct that is merged into the the existing SideEffects.
 func (se *SideEffects) Merge(other SideEffects) {
 
