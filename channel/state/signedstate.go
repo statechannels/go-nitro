@@ -81,17 +81,9 @@ func (ss SignedState) HasAllSignatures() bool {
 }
 
 // HasAllSignatures returns true if every participant has a valid signature.
-func (ss SignedState) HasAliceAndBobSignatures() bool {
-
+func (ss SignedState) HasAliceSignature() bool {
 	_, aliceSigned := ss.sigs[0]
-	_, bobSigned := ss.sigs[uint(len(ss.state.Participants)-1)]
-
-	if aliceSigned && bobSigned {
-		return true
-	}
-
-	return false
-
+	return aliceSigned
 }
 
 // GetParticipantSignature returns the signature for the participant specified by participantIndex

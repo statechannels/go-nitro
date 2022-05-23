@@ -269,8 +269,8 @@ func (c *Channel) AddSignedState(ss state.SignedState) bool {
 	// The whole idea is to cut Irene out of the critical path
 	if c.SignedStateForTurnNum[s.TurnNum].HasAllSignatures() {
 		c.latestSupportedStateTurnNum = s.TurnNum
-	} else if c.PostFundComplete() && c.SignedStateForTurnNum[s.TurnNum].HasAliceAndBobSignatures() {
-		// Virtual channel rules
+	} else if c.PostFundComplete() && c.SignedStateForTurnNum[s.TurnNum].HasAliceSignature() {
+		// Virtual channel rules. Simplex channel (Alice pays Bob)
 		c.latestSupportedStateTurnNum = s.TurnNum
 	}
 
