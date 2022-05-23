@@ -117,7 +117,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 
 }
 
-// combineLogs runs the GoVector CLI utility
+// combineLogs combines the logs into one file, and deletes them
 func combineLogs(t *testing.T, logDir string, combinedLogsFilename string, RP client.Client, PH client.Client, retrievalClients []client.Client) {
 	_, filename, _, _ := runtime.Caller(1)
 	logDir = path.Join(path.Dir(filename), logDir)
@@ -132,12 +132,14 @@ func combineLogs(t *testing.T, logDir string, combinedLogsFilename string, RP cl
 	if err != nil {
 		t.Fatal(err)
 	}
+	os.Remove(path.Join(logDir, RP.Address.String()+"-Log.txt"))
 	output += string(input)
 	output += "\n"
 	input, err = ioutil.ReadFile(path.Join(logDir, PH.Address.String()+"-Log.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	os.Remove(path.Join(logDir, PH.Address.String()+"-Log.txt"))
 	output += string(input)
 	output += "\n"
 	for i := range retrievalClients {
@@ -145,6 +147,7 @@ func combineLogs(t *testing.T, logDir string, combinedLogsFilename string, RP cl
 		if err != nil {
 			t.Fatal(err)
 		}
+		os.Remove(path.Join(logDir, retrievalClients[i].Address.String()+"-Log.txt"))
 		output += string(input)
 	}
 
