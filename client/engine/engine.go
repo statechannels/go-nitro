@@ -286,7 +286,7 @@ func (e *Engine) handleReceipt(entry protocols.ObjectivePayload[state.SignedStat
 	if !ok {
 		return errors.New("cannot handle receipt for unknown channel")
 	}
-	ok = ch.AddStateWithSignature(entry.Payload.State(), entry.Payload.Signatures()[0]) // There should only be one signature TODO tidy up
+	ok = ch.AddStateWithSignature(entry.Payload.State(), entry.Payload.Signatures()[2]) // There should only be one signature from Bob
 	if !ok {
 		return errors.New("cannot handle receipt")
 	}
