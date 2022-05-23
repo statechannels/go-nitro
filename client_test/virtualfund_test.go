@@ -60,5 +60,7 @@ func TestVirtualFundIntegration(t *testing.T) {
 
 	cId := cIds[0] // just pick a a channel
 
-	clientA.MakePayment(cId, bob.Destination(), big.NewInt(1))
+	for i := 0; i < 100; i++ {
+		clientA.MakePayment(cId, bob.Destination(), big.NewInt(1))
+	}
 }
