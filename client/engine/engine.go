@@ -22,6 +22,7 @@ import (
 )
 
 const PAYMENT = "payment"
+const RECEIPT = "receipt"
 
 // ErrUnhandledChainEvent is an engine error when the the engine cannot process a chain event
 type ErrUnhandledChainEvent struct {
@@ -176,6 +177,10 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 			err := e.handlePayment(entry)
 			return ObjectiveChangeEvent{}, err
 		}
+		if entry.ObjectiveId == RECEIPT {
+			err := e.handleReceipt(entry)
+			return ObjectiveChangeEvent{}, err
+		}
 
 		objective, err := e.getOrCreateObjective(entry.ObjectiveId, entry.Payload)
 		if err != nil {
@@ -252,7 +257,37 @@ func (e *Engine) handlePayment(entry protocols.ObjectivePayload[state.SignedStat
 	}
 	ok = ch.AddStateWithSignature(entry.Payload.State(), entry.Payload.Signatures()[0]) // There should only be one signature TODO tidy up
 	if !ok {
-		return errors.New("cannot handle payment for unknown channel")
+		return errors.New("cannot handle payment ")
+	}
+
+	counterSigned, err := ch.SignAndAddState(entry.Payload.State(), e.store.GetChannelSecretKey()) // countersign payment
+	if err != nil {
+		return err
+	}
+
+	payer := ch.Participants[0] // TODO get this from the signature or from a new field on the payload
+
+	msg := protocols.CreateReceiptMessage(counterSigned, payer)
+
+	se := protocols.SideEffects{MessagesToSend: []protocols.Message{msg}}
+	e.executeSideEffects(se)
+
+	err = e.store.SetChannel(ch)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (e *Engine) handleReceipt(entry protocols.ObjectivePayload[state.SignedState]) error {
+	cId := entry.Payload.ChannelId()
+	ch, ok := e.store.GetChannelById(cId)
+	if !ok {
+		return errors.New("cannot handle receipt for unknown channel")
+	}
+	ok = ch.AddStateWithSignature(entry.Payload.State(), entry.Payload.Signatures()[0]) // There should only be one signature TODO tidy up
+	if !ok {
+		return errors.New("cannot handle receipt")
 	}
 	err := e.store.SetChannel(ch)
 	if err != nil {
