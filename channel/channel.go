@@ -330,6 +330,8 @@ func (c *Channel) MakePayment(payee types.Destination, amount *big.Int, secretKe
 
 	r := s.Clone()
 
+	r.TurnNum++
+
 	r.Outcome = o
 
 	ss, err := c.SignAndAddState(r, secretKey)
@@ -342,7 +344,7 @@ func (c *Channel) MakePayment(payee types.Destination, amount *big.Int, secretKe
 		return protocols.Message{}, err
 	}
 
-	message := protocols.CreateSignedStateMessage(ss, address)
+	message := protocols.CreatePaymentMessage(ss, address)
 
 	return message, nil
 }

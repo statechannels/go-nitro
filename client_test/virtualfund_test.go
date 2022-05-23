@@ -21,7 +21,7 @@ func openVirtualChannels(t *testing.T, clientA client.Client, clientB client.Cli
 	objectiveIds := make([]protocols.ObjectiveId, numOfChannels)
 	channelIds := make([]types.Destination, numOfChannels)
 	for i := 0; i < int(numOfChannels); i++ {
-		outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
+		outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 100, 1)
 		request := virtualfund.ObjectiveRequest{
 			CounterParty:      bob.Address(),
 			Intermediary:      irene.Address(),
@@ -56,5 +56,9 @@ func TestVirtualFundIntegration(t *testing.T) {
 	clientB, _ := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
 	clientI, _ := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
 
-	openVirtualChannels(t, clientA, clientB, clientI, 1)
+	cIds := openVirtualChannels(t, clientA, clientB, clientI, 1)
+
+	cId := cIds[0] // just pick a a channel
+
+	clientA.MakePayment(cId, bob.Destination(), big.NewInt(1))
 }

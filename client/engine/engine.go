@@ -21,6 +21,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+const PAYMENT = "payment"
+
 // ErrUnhandledChainEvent is an engine error when the the engine cannot process a chain event
 type ErrUnhandledChainEvent struct {
 	event     chainservice.Event
@@ -170,6 +172,11 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 	for _, entry := range message.SignedStates() {
 
+		if entry.ObjectiveId == PAYMENT {
+			err := e.handlePayment(entry)
+			return ObjectiveChangeEvent{}, err
+		}
+
 		objective, err := e.getOrCreateObjective(entry.ObjectiveId, entry.Payload)
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
@@ -235,6 +242,19 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 	}
 	return allCompleted, nil
 
+}
+
+func (e *Engine) handlePayment(entry protocols.ObjectivePayload[state.SignedState]) error {
+	cId := entry.Payload.ChannelId()
+	ch, ok := e.store.GetChannelById(cId)
+	if !ok {
+		return errors.New("cannot handle payment for unknown channel")
+	}
+	ok = ch.AddStateWithSignature(entry.Payload.State(), entry.Payload.Signatures()[0]) // There should only be one signature TODO tidy up
+	if !ok {
+		return errors.New("cannot handle payment for unknown channel")
+	}
+	return nil
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
