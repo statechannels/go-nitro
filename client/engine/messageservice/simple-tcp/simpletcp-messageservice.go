@@ -118,8 +118,6 @@ func (s *SimpleTCPMessageService) listenForIncoming() {
 		}
 		s.out <- m
 
-		conn.Close()
-
 	}
 
 }
