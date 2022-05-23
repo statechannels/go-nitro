@@ -8,6 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/client/engine/store"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
@@ -60,25 +61,28 @@ func TestVirtualFundIntegration(t *testing.T) {
 
 	cId := cIds[0] // just pick a a channel
 
+	printBalances(t, storeA, storeB, cId)
 	for i := 0; i < 100; i++ {
 		clientA.MakePayment(cId, bob.Destination(), big.NewInt(1))
 	}
+	printBalances(t, storeA, storeB, cId)
+}
 
+func printBalances(t *testing.T, storeA store.Store, storeB store.Store, cId types.Destination) {
 	chA, ok := storeA.GetChannelById(cId)
 	if !ok {
 		t.Fatal()
 	}
 	ss, _ := chA.LatestSignedState()
-
-	t.Log(ss.State().TurnNum)
-
-	chB, ok := storeB.GetChannelById(cId)
+	aBal := ss.State().Outcome.TotalAllocatedFor(alice.Destination())[types.Address{0}]
+	bBal := ss.State().Outcome.TotalAllocatedFor(bob.Destination())[types.Address{0}]
+	t.Log("Alice reports Alice:" + aBal.String() + " Bob:" + bBal.String())
+	chB, ok := storeA.GetChannelById(cId)
 	if !ok {
 		t.Fatal()
 	}
-
 	ss, _ = chB.LatestSignedState()
-
-	t.Log(ss.State().TurnNum)
-
+	aBal = ss.State().Outcome.TotalAllocatedFor(alice.Destination())[types.Address{0}]
+	bBal = ss.State().Outcome.TotalAllocatedFor(bob.Destination())[types.Address{0}]
+	t.Log("Alice reports Alice:" + aBal.String() + " Bob:" + bBal.String())
 }
