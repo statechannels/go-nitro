@@ -127,6 +127,16 @@ func CreateSignedStateMessages(id ObjectiveId, ss state.SignedState, myIndex uin
 	return messages
 }
 
+// CreateSignedStateMessage creates a message containing the signed state, for a single recipient
+func CreateSignedStateMessage(ss state.SignedState, to types.Address) Message {
+
+	message := Message{To: to, Payloads: []MessagePayload{{
+		SignedState: ss,
+	}}}
+
+	return message
+}
+
 // Merge accepts a SideEffects struct that is merged into the the existing SideEffects.
 func (se *SideEffects) Merge(other SideEffects) {
 

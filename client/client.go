@@ -119,3 +119,17 @@ func (c *Client) CloseDirectChannel(channelId types.Destination) protocols.Objec
 	return objectiveRequest.Id(*c.Address)
 
 }
+
+// MakePayment attempts to send a payment of amount to payee via channel channelId.
+func (c *Client) MakePayment(channelId types.Destination, payee types.Destination, amount *big.Int) {
+
+	request := engine.APIEvent{
+		PaymentToSend: engine.PaymentRequest{
+			ChannelId: channelId, Payee: payee, Amount: amount,
+		}}
+
+	c.engine.FromAPI <- request
+
+	return // TODO return information about the success/failure of the payment
+
+}

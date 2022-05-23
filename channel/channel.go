@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -299,4 +300,49 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 		panic("could not add signed state to channel")
 	}
 	return ss, nil
+}
+
+// MakePayment makes a payment
+//
+// TODO assumes a single asset (native asset)
+func (c *Channel) MakePayment(payee types.Destination, amount *big.Int, secretKey *[]byte) (protocols.Message, error) {
+	s, err := c.LatestSupportedState()
+
+	if err != nil {
+		return protocols.Message{}, err
+	}
+
+	if !c.PostFundComplete() {
+		return protocols.Message{}, errors.New("Channel not ready")
+	}
+
+	// TODO check channel is sufficiently funded?
+
+	o := s.Outcome.Clone()
+
+	// TODO check asset is as expects
+
+	err = o.MakePayment(c.MyDestination(), payee, amount)
+
+	if err != nil {
+		return protocols.Message{}, err
+	}
+
+	r := s.Clone()
+
+	r.Outcome = o
+
+	ss, err := c.SignAndAddState(r, secretKey)
+	if err != nil {
+		return protocols.Message{}, err
+	}
+
+	address, err := payee.ToAddress()
+	if err != nil {
+		return protocols.Message{}, err
+	}
+
+	message := protocols.CreateSignedStateMessage(ss, address)
+
+	return message, nil
 }

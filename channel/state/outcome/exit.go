@@ -2,6 +2,7 @@ package outcome
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -241,4 +242,39 @@ func (e Exit) DivertToGuarantee(
 	}
 
 	return f, nil
+}
+
+// MakePayment mutates the receiver, deducting amount from payer and adding it to payee.
+//
+// TODO assumes one asset (native asset)
+func (e Exit) MakePayment(payer types.Destination, payee types.Destination, amount *big.Int) error {
+
+	sae := e[0]
+
+	foundPayer := false
+	for _, allocation := range sae.Allocations {
+		if allocation.Destination == payer {
+			allocation.Amount.Sub(allocation.Amount, amount)
+			foundPayer = true
+			break
+		}
+	}
+
+	if !foundPayer {
+		return errors.New("could not find payer")
+	}
+
+	foundPayee := false
+	for _, allocation := range sae.Allocations {
+		if allocation.Destination == payee {
+			allocation.Amount.Add(allocation.Amount, amount)
+			foundPayee = true
+			break
+		}
+	}
+	if !foundPayee {
+		return errors.New("could not find payee")
+	}
+
+	return nil
 }

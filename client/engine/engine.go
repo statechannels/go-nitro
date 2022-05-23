@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -17,6 +18,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // ErrUnhandledChainEvent is an engine error when the the engine cannot process a chain event
@@ -49,11 +51,18 @@ type Engine struct {
 	logger *log.Logger
 }
 
+type PaymentRequest struct {
+	ChannelId types.Destination
+	Payee     types.Destination
+	Amount    *big.Int
+}
+
 // APIEvent is an internal representation of an API call
 type APIEvent struct {
 	ObjectiveToSpawn   protocols.ObjectiveRequest
 	ObjectiveToReject  protocols.ObjectiveId
 	ObjectiveToApprove protocols.ObjectiveId
+	PaymentToSend      PaymentRequest
 }
 
 // ObjectiveChangeEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
@@ -260,6 +269,22 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 //  - Reject an existing objective (if not null)
 //  - Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error) {
+	if req := apiEvent.PaymentToSend; (req != PaymentRequest{}) {
+		ch, ok := e.store.GetChannelById(req.ChannelId)
+		if !ok {
+			return ObjectiveChangeEvent{}, errors.New("Cannot make payment -- could not find channel")
+		}
+		msg, err := ch.MakePayment(req.Payee, req.Amount, e.store.GetChannelSecretKey())
+		if !ok {
+			return ObjectiveChangeEvent{}, fmt.Errorf("Cannot make payment: %w", err)
+		}
+
+		se := protocols.SideEffects{MessagesToSend: []protocols.Message{msg}}
+		e.executeSideEffects(se)
+
+		return ObjectiveChangeEvent{}, nil
+	}
+
 	if apiEvent.ObjectiveToSpawn != nil {
 
 		switch request := (apiEvent.ObjectiveToSpawn).(type) {
