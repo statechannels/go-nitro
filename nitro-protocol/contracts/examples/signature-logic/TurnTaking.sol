@@ -18,8 +18,12 @@ contract TurnTaking {
     ) internal pure {
         require(fixedPart.participants.length == signedVariableParts.length, 'Invalid amount of variable parts');
         
+        uint48 turnNum = signedVariableParts[0].variablePart.turnNum;
+
         for (uint i = 0; i < signedVariableParts.length; i++) {
             _requireSignedByMover(fixedPart, signedVariableParts[i]);
+            _requireHasTurnNum(signedVariableParts[i].variablePart, turnNum);
+            turnNum++;
         }
     }
 
@@ -75,6 +79,22 @@ contract TurnTaking {
     ) internal pure {
         address recovered = _recoverSigner(stateHash, sig);
         require(signer == recovered, 'Invalid signer');
+    }
+
+    /**
+     * @notice Require supplied variable part has specified turn number.    
+     * @dev Require supplied variable part has specified turn number.
+     * @param variablePart Variable part to check turn number of.
+     * @param turnNum Turn number to compare with.
+     */
+    function _requireHasTurnNum(
+        INitroTypes.VariablePart memory variablePart,
+        uint48 turnNum
+    ) internal pure {
+        require(
+            variablePart.turnNum == turnNum,
+            'Wrong variablePart.turnNum'
+        );
     }
 
     /**
