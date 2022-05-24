@@ -3,7 +3,7 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import '../interfaces/IForceMoveApp.sol';
-import './examples/signature-logic/TurnTaking.sol';
+import '../examples/signature-logic/TurnTaking.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
 /**
