@@ -2,12 +2,12 @@
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
+import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 import './interfaces/IForceMoveApp.sol';
 import './examples/signature-logic/TurnTaking.sol';
-import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
 /**
- * @dev The CountingApp contracts complies with the ForceMoveApp interface and allows only for a simple counter to be incremented. Used for testing purposes.
+ * @dev The CountingApp contracts complies with the ForceMoveApp and TurnTaking interfaces and allows only for a simple counter to be incremented. Used for testing purposes.
  */
 contract CountingApp is IForceMoveApp, TurnTaking {
     struct CountingAppData {
