@@ -3,7 +3,6 @@ package chainservice // import "github.com/statechannels/go-nitro/client/chainse
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math/big"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -84,7 +84,7 @@ func NewChainConnection(na *NitroAdjudicator.NitroAdjudicator, naAddress common.
 	cc.to = to
 
 	go cc.listenForTx()
-	go cc.listenForEvents(na, naAddress, to, ep)
+	go cc.listenForEvents(na, naAddress, ep)
 
 	return cc
 }
@@ -111,7 +111,7 @@ func (cc ChainConnection) handleTx(tx protocols.ChainTransaction) {
 	}
 }
 
-func (cc ChainConnection) listenForEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, to *bind.TransactOpts, ep EventProducer) {
+func (cc ChainConnection) listenForEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, ep EventProducer) {
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{naAddress},
 	}
@@ -124,12 +124,28 @@ func (cc ChainConnection) listenForEvents(na *NitroAdjudicator.NitroAdjudicator,
 		select {
 		case err := <-sub.Err():
 			log.Fatal(err)
-		case vLog := <-logs:
-			fmt.Println(vLog) // pointer to event log
+		case chainEvent := <-logs:
+			depositedTopic := crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
+			switch chainEvent.Topics[0] {
+			case depositedTopic:
+				nad, err := na.ParseDeposited(chainEvent)
+				if err != nil {
+					log.Fatal(err)
+				}
 
-			// send dummy event
-			event := DepositedEvent{}
-			cc.out <- event
+				holdings := types.Funds{}
+				holdings[nad.Asset] = nad.DestinationHoldings
+				event := DepositedEvent{
+					CommonEvent: CommonEvent{
+						channelID: nad.Destination,
+					},
+					Holdings: holdings,
+				}
+				cc.out <- event
+			// TODO introduce the remaining events
+			default:
+				panic("Unknown chain event")
+			}
 		}
 	}
 }

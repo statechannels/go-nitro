@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/google/go-cmp/cmp"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -45,8 +46,9 @@ func TestChainService(t *testing.T) {
 	testDeposit := types.Funds{
 		common.HexToAddress("0x00"): big.NewInt(1),
 	}
+	channelID := types.Destination(common.HexToHash(`4ebd366d014a173765ba1e50f284c179ade31f20441bec41664712aac6cc461d`))
 	testTx := protocols.ChainTransaction{
-		ChannelId: types.Destination(common.HexToHash(`4ebd366d014a173765ba1e50f284c179ade31f20441bec41664712aac6cc461d`)),
+		ChannelId: channelID,
 		Deposit:   testDeposit,
 		Type:      protocols.DepositTransactionType,
 	}
@@ -56,5 +58,9 @@ func TestChainService(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 	sim.Commit()
 
-	<-cc.out
+	expectedEvent := DepositedEvent{CommonEvent: CommonEvent{channelID: channelID}, Holdings: testDeposit}
+	receivedEvent := <-cc.out
+	if diff := cmp.Diff(expectedEvent, receivedEvent, cmp.AllowUnexported(CommonEvent{})); diff != "" {
+		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
+	}
 }
