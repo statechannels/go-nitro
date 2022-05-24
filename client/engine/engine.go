@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -19,7 +18,6 @@ import (
 	"github.com/statechannels/go-nitro/protocols/remit"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
-	"github.com/statechannels/go-nitro/types"
 )
 
 // ErrUnhandledChainEvent is an engine error when the the engine cannot process a chain event
@@ -50,12 +48,6 @@ type Engine struct {
 	store store.Store // A Store for persisting and restoring important data
 
 	logger *log.Logger
-}
-
-type PaymentRequest struct {
-	ChannelId types.Destination
-	Payee     types.Destination
-	Amount    *big.Int
 }
 
 // APIEvent is an internal representation of an API call
