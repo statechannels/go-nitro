@@ -455,6 +455,12 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 		e.store.DestroyConsensusChannel(ddfo.C.Id)
 		return &ddfo, nil
+	case remit.IsRemitObjective(id):
+		ro, err := remit.ConstructObjectiveFromState(ss.State(), e.store.GetChannelById)
+		if err != nil {
+			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message: %w", err)
+		}
+		return &ro, nil
 
 	default:
 		return &directfund.Objective{}, errors.New("cannot handle unimplemented objective type")

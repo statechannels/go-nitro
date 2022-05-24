@@ -128,10 +128,10 @@ func CreateSignedStateMessages(id ObjectiveId, ss state.SignedState, myIndex uin
 }
 
 // CreatePaymentMessage creates a message containing the signed state, for a single recipient
-func CreatePaymentMessage(ss state.SignedState, to types.Address) Message {
+func CreatePaymentMessage(id ObjectiveId, ss state.SignedState, to types.Address) Message {
 
 	message := Message{To: to, Payloads: []MessagePayload{{
-		ObjectiveId: "payment", // TODO this is a magic value
+		ObjectiveId: id,
 		SignedState: ss,
 	}}}
 

@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -62,18 +64,28 @@ type ObjectiveRequest struct {
 // Id returns the objective id for the request.
 func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
 
-	return protocols.ObjectiveId(ObjectivePrefix + r.CId.String() + ":" + r.Payer.String() + "=>" + r.Payee.String() + r.Amount.String())
+	return protocols.ObjectiveId(ObjectivePrefix + r.CId.String() + ":" + r.Payer.String() + "=>" + r.Payee.String())
 }
 
 func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
-
 	n := o.clone()
-	msg, err := n.C.MakePayment(n.payee, n.amount, secretKey)
-	if err != nil {
-		return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("Cannot make payment: %w", err)
-	}
-	se := protocols.SideEffects{MessagesToSend: []protocols.Message{msg}}
+	se := protocols.SideEffects{}
+	if o.payer == o.C.MyDestination() {
 
+		ss, err := n.C.MakePayment(n.payee, n.amount, secretKey)
+		if err != nil {
+			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("Cannot make payment: %w", err)
+		}
+
+		payeeAddress, err := o.payee.ToAddress()
+
+		if err != nil {
+			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("Cannot make payment: %w", err)
+		}
+
+		msg := protocols.CreatePaymentMessage(o.Id(), ss, payeeAddress)
+		se.MessagesToSend = []protocols.Message{msg}
+	}
 	return &n, se, WaitingForNothing, nil
 
 }
@@ -99,7 +111,7 @@ func (o *Objective) GetStatus() protocols.ObjectiveStatus {
 }
 
 func (o *Objective) Id() protocols.ObjectiveId {
-	return protocols.ObjectiveId(ObjectivePrefix + o.C.Id.String() + ":" + o.payer.String() + "=>" + o.payee.String() + o.amount.String())
+	return protocols.ObjectiveId(ObjectivePrefix + o.C.Id.String() + ":" + o.payer.String() + "=>" + o.payee.String())
 }
 
 // clone returns a deep copy of the receiver.
@@ -185,4 +197,29 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 
 func (o *Objective) Related() []protocols.Storable {
 	return []protocols.Storable{o.C}
+}
+
+// IsRemitObjective inspects a objective id and returns true if the objective id is for a direct fund objective.
+func IsRemitObjective(id protocols.ObjectiveId) bool {
+	return strings.HasPrefix(string(id), ObjectivePrefix)
+}
+
+// ConstructObjectiveFromState takes in a state and constructs an objective from it.
+func ConstructObjectiveFromState(
+	s state.State,
+	getChannel GetChannelByIdFunction,
+) (Objective, error) {
+	ch, ok := getChannel(s.ChannelId())
+
+	if !ok {
+		return Objective{}, errors.New("could not find channel")
+	}
+
+	o := Objective{
+		C:      ch,
+		payer:  types.AddressToDestination(ch.Participants[0]), // TODO these fields are only correct given certain assumptions
+		payee:  ch.MyDestination(),
+		amount: big.NewInt(0), // TODO this field is incorrect
+	}
+	return o, nil
 }
