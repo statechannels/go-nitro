@@ -37,12 +37,11 @@ func TestChainService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	sim.Commit()
 
-	cc := NewChainConnection(na, naAddress, auth, sim)
+	cc := NewEthChainService(na, naAddress, auth, sim)
 
-	// Prepare test data to trigger MockChainService
+	// Prepare test data to trigger EthChainService
 	testDeposit := types.Funds{
 		common.HexToAddress("0x00"): big.NewInt(1),
 	}
@@ -52,14 +51,17 @@ func TestChainService(t *testing.T) {
 		Deposit:   testDeposit,
 		Type:      protocols.DepositTransactionType,
 	}
+
+	// Submit transactiom
 	cc.in <- testTx
 
-	// Pause to allow the chain service to submit the transaction to the chain.
+	// Pause to allow the chain service to submit the transaction to the chain. Otherwise a block can be mined before the transaction is submitted.
 	time.Sleep(10 * time.Millisecond)
 	sim.Commit()
 
-	expectedEvent := DepositedEvent{CommonEvent: CommonEvent{channelID: channelID}, Holdings: testDeposit}
+	// Check that the recieved event matches the expected event
 	receivedEvent := <-cc.out
+	expectedEvent := DepositedEvent{CommonEvent: CommonEvent{channelID: channelID}, Holdings: testDeposit}
 	if diff := cmp.Diff(expectedEvent, receivedEvent, cmp.AllowUnexported(CommonEvent{})); diff != "" {
 		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 	}
