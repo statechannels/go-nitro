@@ -12,6 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/remit"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
@@ -124,9 +125,13 @@ func (c *Client) CloseDirectChannel(channelId types.Destination) protocols.Objec
 func (c *Client) MakePayment(channelId types.Destination, payee types.Destination, amount *big.Int) {
 
 	request := engine.APIEvent{
-		PaymentToSend: engine.PaymentRequest{
-			ChannelId: channelId, Payee: payee, Amount: amount,
-		}}
+		ObjectiveToSpawn: remit.ObjectiveRequest{
+			CId:    channelId,
+			Payer:  types.AddressToDestination(*c.Address),
+			Payee:  payee,
+			Amount: amount,
+		},
+	}
 
 	c.engine.FromAPI <- request
 

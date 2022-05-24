@@ -16,6 +16,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/remit"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
@@ -64,7 +65,6 @@ type APIEvent struct {
 	ObjectiveToSpawn   protocols.ObjectiveRequest
 	ObjectiveToReject  protocols.ObjectiveId
 	ObjectiveToApprove protocols.ObjectiveId
-	PaymentToSend      PaymentRequest
 }
 
 // ObjectiveChangeEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
@@ -293,22 +293,6 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 //  - Reject an existing objective (if not null)
 //  - Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error) {
-	if req := apiEvent.PaymentToSend; (req != PaymentRequest{}) {
-		ch, ok := e.store.GetChannelById(req.ChannelId)
-		if !ok {
-			return ObjectiveChangeEvent{}, errors.New("Cannot make payment -- could not find channel")
-		}
-		msg, err := ch.MakePayment(req.Payee, req.Amount, e.store.GetChannelSecretKey())
-		if !ok {
-			return ObjectiveChangeEvent{}, fmt.Errorf("Cannot make payment: %w", err)
-		}
-
-		se := protocols.SideEffects{MessagesToSend: []protocols.Message{msg}}
-		e.executeSideEffects(se)
-		e.store.SetChannel(ch)
-
-		return ObjectiveChangeEvent{}, nil
-	}
 
 	if apiEvent.ObjectiveToSpawn != nil {
 
@@ -343,7 +327,12 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 			e.store.DestroyConsensusChannel(request.ChannelId)
 			return e.attemptProgress(&ddfo)
-
+		case remit.ObjectiveRequest:
+			ro, err := remit.NewObjective(request, true, e.store.GetChannelById)
+			if err != nil {
+				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+			}
+			return e.attemptProgress(&ro)
 		default:
 			return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)
 		}

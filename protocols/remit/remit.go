@@ -2,6 +2,8 @@ package remit
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel"
@@ -10,6 +12,10 @@ import (
 )
 
 const ObjectivePrefix = "Remit-"
+
+const (
+	WaitingForNothing protocols.WaitingFor = "WaitingForNothing" // This protocol finishes immediately
+)
 
 type Objective struct {
 	Status protocols.ObjectiveStatus
@@ -21,10 +27,66 @@ type Objective struct {
 	amount *big.Int
 }
 
-func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+// GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
+type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel, ok bool)
+
+func NewObjective(r ObjectiveRequest, preApprove bool, getChannel GetChannelByIdFunction) (Objective, error) {
+	c, ok := getChannel(r.CId)
+	if !ok {
+		return Objective{}, errors.New("could not find channel")
+	}
+
+	o := Objective{
+		Status: protocols.Unapproved,
+		C:      c,
+		payer:  r.Payer,
+		payee:  r.Payee,
+		amount: r.Amount,
+	}
+
+	if preApprove {
+		o.Status = protocols.Approved
+	}
+	return o, nil
 }
 
-func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {}
+type ObjectiveRequest struct {
+	CId types.Destination
+
+	Payer types.Destination
+	Payee types.Destination
+
+	Amount *big.Int
+}
+
+// Id returns the objective id for the request.
+func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
+
+	return protocols.ObjectiveId(ObjectivePrefix + r.CId.String() + ":" + r.Payer.String() + "=>" + r.Payee.String() + r.Amount.String())
+}
+
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+
+	n := o.clone()
+	msg, err := n.C.MakePayment(n.payee, n.amount, secretKey)
+	if err != nil {
+		return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("Cannot make payment: %w", err)
+	}
+	se := protocols.SideEffects{MessagesToSend: []protocols.Message{msg}}
+
+	return &n, se, WaitingForNothing, nil
+
+}
+
+func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+	if o.Id() != event.ObjectiveId {
+		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+	}
+
+	updated := o.clone()
+	updated.C.AddSignedState(event.SignedState)
+	return &updated, nil
+}
 
 // OwnsChannel returns the channel that the objective is funding.
 func (o *Objective) OwnsChannel() types.Destination {
