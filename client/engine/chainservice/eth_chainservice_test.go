@@ -16,7 +16,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-func TestChainService(t *testing.T) {
+func TestEthChainService(t *testing.T) {
 	// Setup transacting EOA
 	key, _ := crypto.GenerateKey()
 	auth := bind.NewKeyedTransactor(key)
@@ -65,4 +65,7 @@ func TestChainService(t *testing.T) {
 	if diff := cmp.Diff(expectedEvent, receivedEvent, cmp.AllowUnexported(CommonEvent{})); diff != "" {
 		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 	}
+
+	// Not sure if this is necessary
+	sim.Close()
 }
