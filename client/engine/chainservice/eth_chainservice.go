@@ -21,8 +21,17 @@ type eventSource interface {
 	SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- ethTypes.Log) (ethereum.Subscription, error)
 }
 
+type TransactionWithStatusChan struct {
+	protocols.ChainTransaction
+	done chan struct{}
+}
+
+func (twsc *TransactionWithStatusChan) sendDone() {
+	twsc.done <- struct{}{}
+}
+
 type EthChainService struct {
-	in  chan protocols.ChainTransaction
+	in  chan TransactionWithStatusChan
 	out chan Event
 }
 
@@ -30,7 +39,7 @@ type EthChainService struct {
 // and listens to events from an eventSource
 func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, to *bind.TransactOpts, es eventSource) EthChainService {
 	ecs := EthChainService{}
-	ecs.in = make(chan protocols.ChainTransaction)
+	ecs.in = make(chan TransactionWithStatusChan)
 	ecs.out = make(chan Event)
 
 	go ecs.submitTxs(na, to)
@@ -39,7 +48,13 @@ func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.
 	return ecs
 }
 
-func (cc EthChainService) In() chan<- protocols.ChainTransaction {
+func (cc *EthChainService) Input(tx protocols.ChainTransaction) chan struct{} {
+	c := make(chan struct{})
+	cc.in <- TransactionWithStatusChan{ChainTransaction: tx, done: c}
+	return c
+}
+
+func (cc EthChainService) In() chan<- TransactionWithStatusChan {
 	return cc.in
 }
 
@@ -54,16 +69,18 @@ func (cc EthChainService) submitTxs(na *NitroAdjudicator.NitroAdjudicator, to *b
 }
 
 // submitTx responds to the given tx.
-func (cc EthChainService) submitTx(na *NitroAdjudicator.NitroAdjudicator, to *bind.TransactOpts, tx protocols.ChainTransaction) {
+func (cc EthChainService) submitTx(na *NitroAdjudicator.NitroAdjudicator, to *bind.TransactOpts, tx TransactionWithStatusChan) {
 	switch tx.Type {
 	case protocols.DepositTransactionType:
 		for address, amount := range tx.Deposit {
 			to.Value = amount
 			// TODO do not assume that the channel holds 0 funds
 			_, err := na.Deposit(to, address, tx.ChannelId, big.NewInt(0), amount)
+
 			if err != nil {
 				panic(err)
 			}
+			go tx.sendDone()
 		}
 	// TODO handle other transaction types
 	default:
