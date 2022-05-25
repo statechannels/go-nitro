@@ -32,9 +32,9 @@ func TestVirtualFundWithSimpleP2PMessageService(t *testing.T) {
 	chain := chainservice.NewMockChain()
 
 	peers := map[types.Address]simplep2p.PeerInfo{
-		alice.Address(): simplep2p.GeneratePeerInfo(alice.Address(), 3005),
-		bob.Address():   simplep2p.GeneratePeerInfo(bob.Address(), 3006),
-		irene.Address(): simplep2p.GeneratePeerInfo(irene.Address(), 3007),
+		alice.Address(): simplep2p.GeneratePeerInfo(alice.Address(), 3010),
+		bob.Address():   simplep2p.GeneratePeerInfo(bob.Address(), 3011),
+		irene.Address(): simplep2p.GeneratePeerInfo(irene.Address(), 3012),
 	}
 
 	clientA, msgA := setupClientWithSimpleP2P(alice.PrivateKey, chain, peers, logDestination)
