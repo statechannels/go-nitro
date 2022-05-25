@@ -189,6 +189,7 @@ func (s *P2PMessageService) In() chan<- protocols.Message {
 
 // Close closes the SimpleTCPMessageService
 func (s *P2PMessageService) Close() {
+	s.p2pHost.Close()
 	close(s.quit)
 
 }
