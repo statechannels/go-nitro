@@ -143,4 +143,6 @@ func TestChallenge(t *testing.T) {
 		t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(expectedOnChainStatus[:]))
 	}
 
+	// Not sure if this is necessary
+	sim.Close()
 }
