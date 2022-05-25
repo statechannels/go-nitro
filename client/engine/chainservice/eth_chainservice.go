@@ -69,12 +69,12 @@ func (cc EthChainService) submitTx(na *NitroAdjudicator.NitroAdjudicator, to *bi
 	}
 }
 
-func (cc EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, ep eventSource) {
+func (cc EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, es eventSource) {
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{naAddress},
 	}
 	logs := make(chan ethTypes.Log)
-	sub, err := ep.SubscribeFilterLogs(context.Background(), query, logs)
+	sub, err := es.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil {
 		log.Fatal(err)
 	}
