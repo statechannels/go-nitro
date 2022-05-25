@@ -22,8 +22,7 @@ func TestEthChainService(t *testing.T) {
 	auth := bind.NewKeyedTransactor(key)
 	auth.GasPrice = big.NewInt(10000000000)
 	address := auth.From
-	balance := new(big.Int)
-	balance.SetString("10000000000000000000", 10) // 10 eth in wei
+	balance, _ := new(big.Int).SetString("10000000000000000000", 10) // 10 eth in wei
 
 	// Setup "blockchain"
 	gAlloc := map[common.Address]core.GenesisAccount{
