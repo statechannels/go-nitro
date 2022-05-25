@@ -15,6 +15,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
+
 type eventSource interface {
 	SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- ethTypes.Log) (ethereum.Subscription, error)
 }
@@ -83,7 +85,6 @@ func (cc EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicat
 		case err := <-sub.Err():
 			log.Fatal(err)
 		case chainEvent := <-logs:
-			depositedTopic := crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
 			switch chainEvent.Topics[0] {
 			case depositedTopic:
 				nad, err := na.ParseDeposited(chainEvent)
