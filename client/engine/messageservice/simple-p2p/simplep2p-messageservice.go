@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
+	"io"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -102,7 +104,10 @@ func NewP2PMessageService(me PeerInfo, peers map[types.Address]PeerInfo) *P2PMes
 
 				// Create a buffer stream for non blocking read and write.
 				raw, err := reader.ReadString(DELIMETER)
-
+				// TODO: If the stream has been closed we just bail for now
+				if errors.Is(err, io.EOF) {
+					return
+				}
 				h.checkError(err)
 				m, err := protocols.DeserializeMessage(raw)
 				h.checkError(err)
@@ -189,7 +194,8 @@ func (s *P2PMessageService) In() chan<- protocols.Message {
 
 // Close closes the SimpleTCPMessageService
 func (s *P2PMessageService) Close() {
-	s.p2pHost.Close()
+
 	close(s.quit)
+	s.p2pHost.Close()
 
 }
