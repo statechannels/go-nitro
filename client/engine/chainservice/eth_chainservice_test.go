@@ -3,7 +3,6 @@ package chainservice
 import (
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
@@ -52,10 +51,9 @@ func TestEthChainService(t *testing.T) {
 	}
 
 	// Submit transactiom
-	cc.in <- testTx
+	done := cc.Input(testTx)
+	<-done
 
-	// Pause to allow the chain service to submit the transaction to the chain. Otherwise a block can be mined before the transaction is submitted.
-	time.Sleep(10 * time.Millisecond)
 	sim.Commit()
 
 	// Check that the recieved event matches the expected event
