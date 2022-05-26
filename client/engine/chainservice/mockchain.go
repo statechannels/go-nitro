@@ -84,9 +84,8 @@ func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 	case protocols.DepositTransactionType:
 		event = DepositedEvent{
 			CommonEvent: CommonEvent{
-				channelID:          tx.ChannelId,
-				AdjudicationStatus: protocols.AdjudicationStatus{TurnNumRecord: 0},
-				BlockNum:           mc.blockNum},
+				channelID: tx.ChannelId,
+				BlockNum:  mc.blockNum},
 
 			Holdings: mc.holdings[tx.ChannelId],
 		}
@@ -94,9 +93,8 @@ func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 		mc.holdings[tx.ChannelId] = types.Funds{}
 		event = AllocationUpdatedEvent{
 			CommonEvent: CommonEvent{
-				channelID:          tx.ChannelId,
-				AdjudicationStatus: protocols.AdjudicationStatus{TurnNumRecord: 0},
-				BlockNum:           mc.blockNum},
+				channelID: tx.ChannelId,
+				BlockNum:  mc.blockNum},
 
 			Holdings: mc.holdings[tx.ChannelId],
 		}
