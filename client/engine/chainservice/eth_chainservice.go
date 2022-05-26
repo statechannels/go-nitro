@@ -48,6 +48,7 @@ func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.
 	return ecs
 }
 
+// SendTransaction sends the transaction and blocks until it has been submitted.
 func (cc *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
 	c := make(chan struct{})
 	cc.in <- TransactionWithStatusChan{ChainTransaction: tx, done: c}
