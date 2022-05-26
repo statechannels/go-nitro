@@ -25,10 +25,10 @@ type Client struct {
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
-func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer) Client {
+func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker engine.PolicyMaker) Client {
 	c := Client{}
 	c.Address = store.GetAddress()
-	c.engine = engine.New(messageService, chainservice, store, logDestination)
+	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 
 	// Start the engine in a go routine

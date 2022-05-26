@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/statechannels/go-nitro/client"
+	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -79,12 +80,14 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 		chainservice.NewSimpleChainService(chain, bob.Address()),
 		retrievalProviderStore,
 		logDestination,
+		&engine.PermissivePolicy{},
 	)
 	paymentHub = client.New(
 		messageservice.NewVectorClockTestMessageService(irene.Address(), broker, 0, vectorClockLogDir),
 		chainservice.NewSimpleChainService(chain, irene.Address()),
 		paymentHubStore,
 		logDestination,
+		&engine.PermissivePolicy{},
 	)
 	for i := range retrievalClients {
 		retrievalClients[i] =
@@ -93,8 +96,8 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 				chainservice.NewSimpleChainService(chain, *retrievalClients[i].Address),
 				rcStores[i],
 				logDestination,
+				&engine.PermissivePolicy{},
 			)
-
 	}
 
 	// All Retrieval Clients try to start a virtual channel with the retrievalProvider, through the Payment Hub
