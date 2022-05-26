@@ -51,8 +51,7 @@ func TestEthChainService(t *testing.T) {
 	}
 
 	// Submit transactiom
-	done := cc.Input(testTx)
-	<-done
+	cc.SendTransaction(testTx)
 
 	sim.Commit()
 

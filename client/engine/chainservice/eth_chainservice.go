@@ -48,10 +48,11 @@ func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.
 	return ecs
 }
 
-func (cc *EthChainService) Input(tx protocols.ChainTransaction) chan struct{} {
+func (cc *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
 	c := make(chan struct{})
 	cc.in <- TransactionWithStatusChan{ChainTransaction: tx, done: c}
-	return c
+	<-c
+	return
 }
 
 func (cc EthChainService) In() chan<- TransactionWithStatusChan {
