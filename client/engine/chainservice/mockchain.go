@@ -39,7 +39,7 @@ func NewMockChainWithTransactionListener(transactionListener chan protocols.Chai
 
 	mc := MockChain{}
 	mc.out = make(map[types.Address]chan Event)
-	mc.in = make(chan protocols.ChainTransaction)
+	mc.in = make(chan protocols.ChainTransaction, 1000)
 	mc.holdings = make(map[types.Destination]types.Funds)
 	mc.transListener = transactionListener
 	mc.blockNum = 1
@@ -51,7 +51,7 @@ func NewMockChainWithTransactionListener(transactionListener chan protocols.Chai
 // Subscribe inserts a go chan (for the supplied address) into the MockChain.
 func (mc *MockChain) Subscribe(a types.Address) {
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	mc.out[a] = make(chan Event, 10)
+	mc.out[a] = make(chan Event, 1000)
 }
 
 // Run starts a listener for transactions on the MockChain's in chan.
