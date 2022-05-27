@@ -32,17 +32,16 @@ func NewVectorClockTestMessageService(
 	vctms := VectorClockTestMessageService{
 		TestMessageService: TestMessageService{
 			address:   address,
-			in:        make(chan protocols.Message, 5),
 			out:       make(chan protocols.Message, 5),
 			maxDelay:  maxDelay,
 			fromPeers: make(chan []byte, 5),
+			broker:    broker,
 		},
 		goveclogger: govec.InitGoVector(address.String(), logDir+"/"+address.String(), govec.GetDefaultConfig()),
 	}
 
 	vctms.connect(broker)
 	go vctms.routeFromPeers()
-	go vctms.routeToPeers(broker)
 
 	return vctms
 }
@@ -50,13 +49,13 @@ func NewVectorClockTestMessageService(
 // dispatchMessage is responsible for dispatching a message to the appropriate peer message service.
 // If there is a mean delay it will wait a random amount of time(based on meanDelay) before sending the message.
 // Messages sends are intercepted by the vector clock logger, which runs the vector clock algorithm and wraps the message accordingly.
-func (t VectorClockTestMessageService) dispatchMessage(message protocols.Message, b Broker) {
+func (t VectorClockTestMessageService) dispatchMessage(message protocols.Message) {
 	if t.maxDelay > 0 {
 		randomDelay := time.Duration(rand.Int63n(t.maxDelay.Nanoseconds()))
 		time.Sleep(randomDelay)
 	}
 
-	peer, ok := b.services[message.To]
+	peer, ok := t.broker.services[message.To]
 	if ok {
 		// To mimic a proper message service, we serialize and then
 		// deserialize the message
@@ -102,11 +101,9 @@ func summarizeMessageSend(msg protocols.Message) string {
 	return summary
 }
 
-// routeToPeers listens for messages from the engine, and dispatches them
-func (vctms VectorClockTestMessageService) routeToPeers(b Broker) {
-	for message := range vctms.in {
-		go vctms.dispatchMessage(message, b)
-	}
+// Send dispatches messages
+func (vctms VectorClockTestMessageService) Send(msg protocols.Message) {
+	vctms.dispatchMessage(msg)
 }
 
 // routeFromPeers listens for messages from peers, deserializes them and feeds them to the engine.

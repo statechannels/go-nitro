@@ -22,12 +22,13 @@ type TestMessageService struct {
 	address types.Address
 
 	// connection to Engine:
-	in       chan protocols.Message // for receiving messages from engine
 	out      chan protocols.Message // for sending message to engine
 	maxDelay time.Duration          // the max delay for messages
 
 	// connection with Peers:
 	fromPeers chan []byte // for receiving serialized messages from peers
+
+	broker Broker
 }
 
 // A Broker manages a mapping from identifying address to a TestMessageService,
@@ -51,16 +52,14 @@ func NewBroker() Broker {
 func NewTestMessageService(address types.Address, broker Broker, maxDelay time.Duration) TestMessageService {
 	tms := TestMessageService{
 		address:   address,
-		in:        make(chan protocols.Message, 5),
 		out:       make(chan protocols.Message, 5),
 		maxDelay:  maxDelay,
 		fromPeers: make(chan []byte, 5),
+		broker:    broker,
 	}
 
 	tms.connect(broker)
 	go tms.routeFromPeers()
-	go tms.routeToPeers(broker)
-
 	return tms
 }
 
@@ -68,19 +67,15 @@ func (t TestMessageService) Out() <-chan protocols.Message {
 	return t.out
 }
 
-func (t TestMessageService) In() chan<- protocols.Message {
-	return t.in
-}
-
 // dispatchMessage is responsible for dispatching a message to the appropriate peer message service.
 // If there is a mean delay it will wait a random amount of time(based on meanDelay) before sending the message.
-func (t TestMessageService) dispatchMessage(message protocols.Message, b Broker) {
+func (t TestMessageService) dispatchMessage(message protocols.Message) {
 	if t.maxDelay > 0 {
 		randomDelay := time.Duration(rand.Int63n(t.maxDelay.Nanoseconds()))
 		time.Sleep(randomDelay)
 	}
 
-	peer, ok := b.services[message.To]
+	peer, ok := t.broker.services[message.To]
 	if ok {
 		// To mimic a proper message service, we serialize and then
 		// deserialize the message
@@ -101,11 +96,9 @@ func (tms TestMessageService) connect(b Broker) {
 	b.services[tms.address] = tms
 }
 
-// routeToPeers listens for messages from the engine, and dispatches them
-func (tms TestMessageService) routeToPeers(b Broker) {
-	for message := range tms.in {
-		go tms.dispatchMessage(message, b)
-	}
+// Send dispatches messages
+func (tms TestMessageService) Send(msg protocols.Message) {
+	tms.dispatchMessage(msg)
 }
 
 // routeFromPeers listens for messages from peers, deserializes them and feeds them to the engine
