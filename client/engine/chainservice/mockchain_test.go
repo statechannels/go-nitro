@@ -26,7 +26,6 @@ func TestDeposit(t *testing.T) {
 	mcsA := NewSimpleChainService(&chain, a)
 	mcsB := NewSimpleChainService(&chain, b)
 
-	inA := mcsA.In()
 	outA := mcsA.Out()
 
 	// Prepare test data to trigger MockChainService
@@ -40,7 +39,7 @@ func TestDeposit(t *testing.T) {
 	}
 
 	// Send one transaction into one of the SimpleChainServices and receive one event from it.
-	inA <- testTx
+	mcsA.Send(testTx)
 	event := <-outA
 
 	if event.ChannelID() != testTx.ChannelId {
@@ -51,7 +50,7 @@ func TestDeposit(t *testing.T) {
 	}
 
 	// Send the transaction again and receive another event
-	inA <- testTx
+	mcsA.Send(testTx)
 	event = <-outA
 
 	// The expectation is that the MockChainService remembered the previous deposit and added this one to it:
