@@ -16,7 +16,7 @@ type MockChain struct {
 
 	transListener chan protocols.ChainTransaction   // this is used to broadcast transactions that have been received
 	holdings      map[types.Destination]types.Funds // holdings tracks funds for each channel
-	blockNum      uint64
+	blockNum      *uint64
 }
 
 // Out returns the out chan for a particular ChainService, and narrows the type so that external consumers may only receive on it.
@@ -33,7 +33,8 @@ func NewMockChain() MockChain {
 	mc := MockChain{}
 	mc.out = make(map[types.Address]chan Event)
 	mc.holdings = make(map[types.Destination]types.Funds)
-	mc.blockNum = 1
+	mc.blockNum = new(uint64)
+	*mc.blockNum = 1
 
 	return mc
 }
@@ -47,7 +48,7 @@ func (mc MockChain) SubscribeToEvents(a types.Address) <-chan Event {
 
 // handleTx responds to the given tx.
 func (mc MockChain) SendTransaction(tx protocols.ChainTransaction) {
-	mc.blockNum++
+	*mc.blockNum++
 
 	if tx.Deposit.IsNonZero() {
 		mc.holdings[tx.ChannelId] = mc.holdings[tx.ChannelId].Add(tx.Deposit)
@@ -58,7 +59,7 @@ func (mc MockChain) SendTransaction(tx protocols.ChainTransaction) {
 		event = DepositedEvent{
 			CommonEvent: CommonEvent{
 				channelID: tx.ChannelId,
-				BlockNum:  mc.blockNum},
+				BlockNum:  *mc.blockNum},
 
 			Holdings: mc.holdings[tx.ChannelId],
 		}
@@ -67,7 +68,7 @@ func (mc MockChain) SendTransaction(tx protocols.ChainTransaction) {
 		event = AllocationUpdatedEvent{
 			CommonEvent: CommonEvent{
 				channelID: tx.ChannelId,
-				BlockNum:  mc.blockNum},
+				BlockNum:  *mc.blockNum},
 
 			Holdings: mc.holdings[tx.ChannelId],
 		}
