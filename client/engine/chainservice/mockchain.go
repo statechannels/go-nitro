@@ -14,9 +14,8 @@ import (
 type MockChain struct {
 	out map[types.Address]chan Event // out is a mapping with a chan for each connected ChainService, used to send Events to that service
 
-	transListener chan protocols.ChainTransaction   // this is used to broadcast transactions that have been received
-	holdings      map[types.Destination]types.Funds // holdings tracks funds for each channel
-	blockNum      *uint64                           // MockChain is often passed around by value. The pointer allows for shared state.
+	holdings map[types.Destination]types.Funds // holdings tracks funds for each channel
+	blockNum *uint64                           // MockChain is often passed around by value. The pointer allows for shared state.
 }
 
 // Out returns the out chan for a particular ChainService, and narrows the type so that external consumers may only receive on it.
