@@ -46,6 +46,6 @@ type ChainEventHandler interface {
 type ChainService interface {
 	// Out returns a chan for receiving events from the chain service
 	Out() <-chan Event
-	// Send is for sending transactions with the message service
+	// Send is for sending transactions with the chain service
 	Send(protocols.ChainTransaction)
 }
