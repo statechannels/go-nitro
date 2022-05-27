@@ -11,8 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/internal/testactors"
-	actors "github.com/statechannels/go-nitro/internal/testactors"
+	ta "github.com/statechannels/go-nitro/internal/testactors"
 	. "github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -30,8 +29,8 @@ type testData struct {
 	followerLedgers ledgerLookup
 }
 
-var alice, p1, bob actors.Actor = actors.Alice, actors.Irene, actors.Bob
-var allActors []actors.Actor = []actors.Actor{alice, p1, bob}
+var alice, p1, bob ta.Actor = ta.Alice, ta.Irene, ta.Bob
+var allActors []ta.Actor = []ta.Actor{alice, p1, bob}
 
 // newTestData returns new copies of consistent test data each time it is called
 func newTestData() testData {
@@ -89,7 +88,7 @@ func newTestData() testData {
 
 type Tester func(t *testing.T)
 
-func testNew(a actors.Actor) Tester {
+func testNew(a ta.Actor) Tester {
 	return func(t *testing.T) {
 		td := newTestData()
 		lookup := td.leaderLedgers
@@ -123,7 +122,7 @@ func testNew(a actors.Actor) Tester {
 
 // diffFromCorrectConnection compares the guarantee stored on a connection with
 // the guarantee we expect, given the expected left and right actors
-func diffFromCorrectConnection(c *Connection, left, right actors.Actor) string {
+func diffFromCorrectConnection(c *Connection, left, right ta.Actor) string {
 	td := newTestData()
 	vPreFund := td.vPreFund
 
@@ -148,7 +147,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func testCloneAs(my actors.Actor) Tester {
+func testCloneAs(my ta.Actor) Tester {
 	return func(t *testing.T) {
 		td := newTestData()
 		vPreFund := td.vPreFund
@@ -477,7 +476,7 @@ func assertSupportedPrefund(o *Objective, t *testing.T) {
 }
 
 // assertOneProposalSent fails the test instantly if the supplied side effects does not contain a message for the supplied actor with the supplied expected signed proposal.
-func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to actors.Actor) {
+func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to ta.Actor) {
 	numProposals := 0
 	for _, msg := range ses.MessagesToSend {
 		if len(msg.SignedProposals()) > 0 {
@@ -496,7 +495,7 @@ func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus
 }
 
 // assertMessageSentTo asserts that ses contains a message
-func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
+func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to ta.Actor) {
 	found := false
 	for _, msg := range ses.MessagesToSend {
 		toAddress := to.Address()

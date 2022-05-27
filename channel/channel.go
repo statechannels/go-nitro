@@ -32,9 +32,8 @@ type Channel struct {
 // New constructs a new Channel from the supplied state.
 func New(s state.State, myIndex uint) (*Channel, error) {
 	c := Channel{}
-	var err error
+	var err error = s.Validate()
 
-	err = s.Validate()
 	if err != nil {
 		return &c, err
 	}
@@ -196,7 +195,7 @@ func (c Channel) LatestSupportedState() (state.State, error) {
 // LatestSignedState fetches the state with the largest turn number signed by at least one participant.
 func (c Channel) LatestSignedState() (state.SignedState, error) {
 	if len(c.SignedStateForTurnNum) == 0 {
-		return state.SignedState{}, errors.New("No states are signed")
+		return state.SignedState{}, errors.New("no states are signed")
 	}
 	latestTurn := uint64(0)
 	for k := range c.SignedStateForTurnNum {

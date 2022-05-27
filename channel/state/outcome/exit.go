@@ -235,7 +235,7 @@ func (e Exit) DivertToGuarantee(
 		newAllocations, err := sae.Allocations.DivertToGuarantee(leftDestination, rightDestination, leftAmount, rightAmount, guaranteeDestination)
 
 		if err != nil {
-			return Exit{}, fmt.Errorf("Could not divert to guarantee: %w", err)
+			return Exit{}, fmt.Errorf("could not divert to guarantee: %w", err)
 		}
 		f[i].Allocations = newAllocations
 	}
