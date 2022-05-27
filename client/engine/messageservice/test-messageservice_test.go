@@ -23,7 +23,7 @@ var aToB protocols.Message = protocols.Message{
 func TestConnect(t *testing.T) {
 	bobOut := bobMS.Out()
 
-	aliceMS.in <- aToB
+	aliceMS.Send(aToB)
 
 	got := <-bobOut
 
