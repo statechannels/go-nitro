@@ -9,22 +9,16 @@ import (
 type simpleChainService struct {
 	out chan Event                      // out is the chan used to send Events to the engine
 	in  chan protocols.ChainTransaction // in is the chan used to receive Transactions from the engine
-
-	address types.Address // address is used to subscribe to the MockChain's Out chan
-	chain   *MockChain
 }
 
 // NewSimpleChainService returns a SimpleChainService which is listening for transactions and events.
 func NewSimpleChainService(mc *MockChain, address types.Address) ChainService {
 	mcs := simpleChainService{}
 	mcs.out = make(chan Event)
-	mcs.in = make(chan protocols.ChainTransaction)
-	mcs.chain = mc
-	mcs.chain.Subscribe(address)
-	mcs.address = address
+	mcs.in = mc.in
+	mc.Subscribe(address)
 
-	go mcs.forwardEvents()
-	go mcs.forwardTransactions()
+	go mcs.forwardEvents(mc, address)
 
 	return mcs
 }
@@ -39,16 +33,9 @@ func (mcs simpleChainService) In() chan<- protocols.ChainTransaction {
 	return mcs.in
 }
 
-// forwardTransactions pipes transactions to the MockChain
-func (mcs simpleChainService) forwardTransactions() {
-	for tx := range mcs.in {
-		mcs.chain.In() <- tx
-	}
-}
-
 // forwardEvents pipes events from the MockChain
-func (mcs simpleChainService) forwardEvents() {
-	for event := range mcs.chain.Out(mcs.address) {
+func (mcs simpleChainService) forwardEvents(mc *MockChain, address types.Address) {
+	for event := range mc.Out(address) {
 		mcs.out <- event
 	}
 }
