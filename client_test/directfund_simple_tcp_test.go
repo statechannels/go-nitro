@@ -19,7 +19,6 @@ func setupClientWithSimpleTCP(pk []byte, chain chainservice.MockChain, peers map
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	messageservice := simpletcp.NewSimpleTCPMessageService(peers[myAddress], peers)
 	storeA := store.NewMemStore(pk)
-	chain.SubscribeToEvents(myAddress)
 	return client.New(messageservice, chain, storeA, logDestination), messageservice
 }
 

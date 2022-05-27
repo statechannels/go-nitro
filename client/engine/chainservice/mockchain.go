@@ -21,26 +21,18 @@ type MockChain struct {
 
 // Out returns the out chan for a particular ChainService, and narrows the type so that external consumers may only receive on it.
 func (mc MockChain) EventFeed(a types.Address) (<-chan Event, error) {
-	feed := mc.out[a]
-	if feed == nil {
+	feed, ok := mc.out[a]
+	if !ok {
 		return nil, fmt.Errorf("no subscription for address %v", a)
 	}
-	return mc.out[a], nil
+	return feed, nil
 }
 
 // NewMockChain returns a new MockChain.
 func NewMockChain() MockChain {
-	return NewMockChainWithTransactionListener(nil)
-}
-
-// NewMockChainWithTransactionListener returns a new MockChain with the supplied transaction listener.
-// The transaction listener will receive all transactions that are sent to the MockChain.
-func NewMockChainWithTransactionListener(transactionListener chan protocols.ChainTransaction) MockChain {
-
 	mc := MockChain{}
 	mc.out = make(map[types.Address]chan Event)
 	mc.holdings = make(map[types.Destination]types.Funds)
-	mc.transListener = transactionListener
 	mc.blockNum = 1
 
 	return mc
