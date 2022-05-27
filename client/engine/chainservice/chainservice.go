@@ -44,8 +44,10 @@ type ChainEventHandler interface {
 }
 
 type ChainService interface {
-	// Out returns a chan for receiving events from the chain service
-	Out() <-chan Event
-	// Send is for sending transactions with the chain service
-	Send(protocols.ChainTransaction)
+	// EventFeed returns a chan for receiving events from the chain service. An error is returned if no subscription exists
+	EventFeed(types.Address) (<-chan Event, error)
+	// SubscribeToEvents creates and returs a subscription channel.
+	SubscribeToEvents(types.Address) <-chan Event
+	// SendTransaction is for sending transactions with the chain service
+	SendTransaction(protocols.ChainTransaction)
 }
