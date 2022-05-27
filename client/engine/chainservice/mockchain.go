@@ -1,6 +1,7 @@
 package chainservice
 
 import (
+	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -10,7 +11,7 @@ import (
 //
 // It keeps a record of of holdings and adjudication status for each channel, accepts transactions and emits events.
 type MockChain struct {
-	out map[types.Address]chan Event    // out is a mapping with a chan for each connected ChainService, used to send Events to that service
+	out safesync.Map[chan Event]        // out is a mapping with a chan for each connected ChainService, used to send Events to that service
 	in  chan protocols.ChainTransaction // in is the chan used to receive Transactions from multiple ChainServices
 
 	transListener chan protocols.ChainTransaction   // this is used to broadcast transactions that have been received
@@ -19,43 +20,47 @@ type MockChain struct {
 }
 
 // Out returns the out chan for a particular ChainService, and narrows the type so that external consumers may only receive on it.
-func (mc MockChain) Out(a types.Address) <-chan Event {
-	return mc.out[a]
+func (mc *MockChain) Out(a types.Address) <-chan Event {
+	c, ok := mc.out.Load(a.String())
+	if !ok {
+		panic("no chan for that address")
+	}
+	return c
 }
 
 // In returns the in chan but narrows the type so that external consumers may only send on it.
-func (mc MockChain) In() chan<- protocols.ChainTransaction {
+func (mc *MockChain) In() chan<- protocols.ChainTransaction {
 	return mc.in
 }
 
 // NewMockChain returns a new MockChain.
-func NewMockChain() MockChain {
+func NewMockChain() *MockChain {
 	return NewMockChainWithTransactionListener(nil)
 }
 
 // NewMockChainWithTransactionListener returns a new MockChain with the supplied transaction listener.
 // The transaction listener will receive all transactions that are sent to the MockChain.
-func NewMockChainWithTransactionListener(transactionListener chan protocols.ChainTransaction) MockChain {
+func NewMockChainWithTransactionListener(transactionListener chan protocols.ChainTransaction) *MockChain {
 
 	mc := MockChain{}
-	mc.out = make(map[types.Address]chan Event)
+	mc.out = safesync.Map[chan Event]{}
 	mc.in = make(chan protocols.ChainTransaction)
 	mc.holdings = make(map[types.Destination]types.Funds)
 	mc.transListener = transactionListener
 	mc.blockNum = 1
 
 	go mc.Run()
-	return mc
+	return &mc
 }
 
 // Subscribe inserts a go chan (for the supplied address) into the MockChain.
 func (mc *MockChain) Subscribe(a types.Address) {
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	mc.out[a] = make(chan Event, 10)
+	mc.out.Store(a.String(), make(chan Event, 10))
 }
 
 // Run starts a listener for transactions on the MockChain's in chan.
-func (mc MockChain) Run() {
+func (mc *MockChain) Run() {
 	for tx := range mc.in {
 		mc.sendToTransListener(tx)
 		mc.blockNum++
@@ -75,7 +80,7 @@ func (mc *MockChain) sendToTransListener(tx protocols.ChainTransaction) {
 }
 
 // handleTx responds to the given tx.
-func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
+func (mc *MockChain) handleTx(tx protocols.ChainTransaction) {
 	if tx.Deposit.IsNonZero() {
 		mc.holdings[tx.ChannelId] = mc.holdings[tx.ChannelId].Add(tx.Deposit)
 	}
@@ -102,10 +107,10 @@ func (mc MockChain) handleTx(tx protocols.ChainTransaction) {
 		panic("unexpected chain transaction")
 	}
 
-	for _, out := range mc.out {
-		attemptSend(out, event)
-	}
-
+	mc.out.Range(func(key string, value chan Event) bool {
+		attemptSend(value, event)
+		return true
+	})
 }
 
 // attemptSend sends event to the supplied chan, and drops it if the chan is full
