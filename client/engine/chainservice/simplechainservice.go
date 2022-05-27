@@ -33,7 +33,7 @@ func (mcs simpleChainService) Out() <-chan Event {
 
 // Send pipes transactions to the MockChain
 func (mcs simpleChainService) Send(tx protocols.ChainTransaction) {
-	mcs.chain.In() <- tx // TODO block until this has been successful / convert chain.In to a sync call
+	mcs.chain.In() <- tx // TODO convert chain.In to a sync call
 }
 
 // forwardEvents pipes events from the MockChain
