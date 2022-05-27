@@ -13,9 +13,12 @@ type Event interface {
 
 // CommonEvent declares fields shared by all chain events
 type CommonEvent struct {
-	channelID          types.Destination
-	AdjudicationStatus protocols.AdjudicationStatus
-	BlockNum           uint64
+	channelID types.Destination
+	BlockNum  uint64
+}
+
+func (ce CommonEvent) ChannelID() types.Destination {
+	return ce.channelID
 }
 
 // DepositedEvent is an internal representation of the deposited blockchain event
@@ -24,18 +27,10 @@ type DepositedEvent struct {
 	Holdings types.Funds // indexed by asset
 }
 
-func (de DepositedEvent) ChannelID() types.Destination {
-	return de.channelID
-}
-
 // AllocationUpdated is an internal representation of the AllocatonUpdated blockchain event
 type AllocationUpdatedEvent struct {
 	CommonEvent
 	Holdings types.Funds // indexed by asset
-}
-
-func (de AllocationUpdatedEvent) ChannelID() types.Destination {
-	return de.channelID
 }
 
 // todo implement other event types
