@@ -310,6 +310,7 @@ func (o *Objective) clone() Objective {
 	cClone := o.C.Clone()
 	clone.C = cClone
 	clone.finalTurnNum = o.finalTurnNum
+	clone.transactionSubmitted = o.transactionSubmitted
 
 	return clone
 }

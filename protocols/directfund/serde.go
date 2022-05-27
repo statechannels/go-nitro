@@ -18,6 +18,7 @@ type jsonObjective struct {
 	MyDepositTarget          types.Funds
 	FullyFundedThreshold     types.Funds
 	LatestBlockNumber        uint64
+	TransactionSumbmitted    bool
 }
 
 // MarshalJSON returns a JSON representation of the DirectFundObjective
@@ -32,6 +33,7 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 		o.myDepositTarget,
 		o.fullyFundedThreshold,
 		o.latestBlockNumber,
+		o.transactionSubmitted,
 	}
 	return json.Marshal(jsonDFO)
 }
@@ -61,6 +63,7 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.myDepositTarget = jsonDFO.MyDepositTarget
 	o.myDepositSafetyThreshold = jsonDFO.MyDepositSafetyThreshold
 	o.latestBlockNumber = jsonDFO.LatestBlockNumber
+	o.transactionSubmitted = jsonDFO.TransactionSumbmitted
 
 	return nil
 }

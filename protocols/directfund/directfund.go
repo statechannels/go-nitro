@@ -397,6 +397,7 @@ func (o *Objective) clone() Objective {
 	clone.myDepositTarget = o.myDepositTarget.Clone()
 	clone.fullyFundedThreshold = o.fullyFundedThreshold.Clone()
 	clone.latestBlockNumber = o.latestBlockNumber
+	clone.transactionSubmitted = o.transactionSubmitted
 	return clone
 }
 
