@@ -37,7 +37,7 @@ func TestVirtualDefundIntegrationWithMessageDelay(t *testing.T) {
 
 	const MAX_MESSAGE_DELAY = time.Millisecond * 100
 	// Since we are delaying messages we allow for enough time to complete the objective
-	const OBJECTIVE_TIMEOUT = time.Second * 3
+	const OBJECTIVE_TIMEOUT = time.Second * 5
 
 	runVirtualDefundIntegrationTest(t, MAX_MESSAGE_DELAY, OBJECTIVE_TIMEOUT, logDestination)
 
