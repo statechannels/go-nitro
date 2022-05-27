@@ -38,11 +38,10 @@ type Engine struct {
 	fromMsg    <-chan protocols.Message
 	fromLedger chan consensus_channel.Proposal
 
-	// outbound go channels
-	toMsg   chan<- protocols.Message
-	toChain chan<- protocols.ChainTransaction
-
 	toApi chan ObjectiveChangeEvent
+
+	msg   messageservice.MessageService
+	chain chainservice.ChainService
 
 	store store.Store // A Store for persisting and restoring important data
 
@@ -80,10 +79,10 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.fromChain = chain.Out()
 	e.fromMsg = msg.Out()
 
+	e.chain = chain
+	e.msg = msg
+
 	e.toApi = make(chan ObjectiveChangeEvent, 100)
-	// bind to outbound chans
-	e.toChain = chain.In()
-	e.toMsg = msg.In()
 
 	// initialize a Logger
 	logPrefix := e.store.GetAddress().String()[0:8] + ": "
@@ -325,11 +324,11 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	for _, message := range sideEffects.MessagesToSend {
 		e.logger.Printf("Sending message %+v", protocols.SummarizeMessage(message))
-		e.toMsg <- message
+		e.msg.Send(message)
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
 		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId)
-		e.toChain <- tx
+		e.chain.Send(tx)
 	}
 	for _, proposal := range sideEffects.ProposalsToProcess {
 		e.fromLedger <- proposal
