@@ -44,6 +44,7 @@ type ChainEventHandler interface {
 }
 
 type ChainService interface {
-	Out() <-chan Event
-	In() chan<- protocols.ChainTransaction
+	EventFeed(types.Address) (<-chan Event, error)
+	SubscribeToEvents(types.Address) <-chan Event
+	SendTransaction(protocols.ChainTransaction)
 }

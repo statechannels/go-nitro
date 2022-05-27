@@ -40,7 +40,7 @@ type Engine struct {
 
 	// outbound go channels
 	toMsg   chan<- protocols.Message
-	toChain chan<- protocols.ChainTransaction
+	toChain func(protocols.ChainTransaction)
 
 	toApi chan ObjectiveChangeEvent
 
@@ -77,12 +77,12 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	// bind to inbound chans
 	e.FromAPI = make(chan APIEvent)
-	e.fromChain = chain.Out()
+	e.fromChain = chain.SubscribeToEvents(*e.store.GetAddress())
 	e.fromMsg = msg.Out()
 
 	e.toApi = make(chan ObjectiveChangeEvent, 100)
 	// bind to outbound chans
-	e.toChain = chain.In()
+	e.toChain = chain.SendTransaction
 	e.toMsg = msg.In()
 
 	// initialize a Logger
@@ -329,7 +329,7 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
 		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId)
-		e.toChain <- tx
+		e.toChain(tx)
 	}
 	for _, proposal := range sideEffects.ProposalsToProcess {
 		e.fromLedger <- proposal
