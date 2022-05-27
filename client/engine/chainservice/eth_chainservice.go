@@ -53,7 +53,6 @@ func (cc *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
 	c := make(chan struct{})
 	cc.in <- TransactionWithStatusChan{ChainTransaction: tx, done: c}
 	<-c
-	return
 }
 
 func (cc EthChainService) In() chan<- TransactionWithStatusChan {
