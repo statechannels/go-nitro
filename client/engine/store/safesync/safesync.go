@@ -3,7 +3,7 @@ package safesync
 
 import "sync"
 
-// Map wraps sync.Map in order to provide type safety
+// Map wraps sync.Map in order to provide type safety. The supplied type parameter T applies to the values in the map (not the keys).
 type Map[T any] struct {
 	m sync.Map
 }
