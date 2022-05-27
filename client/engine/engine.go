@@ -76,7 +76,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	// bind to inbound chans
 	e.FromAPI = make(chan APIEvent)
-	e.fromChain = chain.Out()
+	e.fromChain = chain.SubscribeToEvents(*e.store.GetAddress())
 	e.fromMsg = msg.Out()
 
 	e.chain = chain
@@ -328,7 +328,7 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
 		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId)
-		e.chain.Send(tx)
+		e.chain.SendTransaction(tx)
 	}
 	for _, proposal := range sideEffects.ProposalsToProcess {
 		e.fromLedger <- proposal

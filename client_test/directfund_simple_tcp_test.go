@@ -17,10 +17,9 @@ import (
 // setupClientWithSimpleTCP is a helper function that contructs a client and returns the new client and its store.
 func setupClientWithSimpleTCP(pk []byte, chain *chainservice.MockChain, peers map[types.Address]string, logDestination io.Writer, meanMessageDelay time.Duration) (client.Client, *simpletcp.SimpleTCPMessageService) {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
-	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := simpletcp.NewSimpleTCPMessageService(peers[myAddress], peers)
 	storeA := store.NewMemStore(pk)
-	return client.New(messageservice, chainservice, storeA, logDestination), messageservice
+	return client.New(messageservice, chain, storeA, logDestination), messageservice
 }
 
 func TestSimpleTCPMessageService(t *testing.T) {
