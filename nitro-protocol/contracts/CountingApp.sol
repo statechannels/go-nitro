@@ -40,7 +40,7 @@ contract CountingApp is IForceMoveApp, TurnTaking {
 
         for (uint i = 1; i < signedVariableParts.length; i++) {
             _requireIncrementedCounter(signedVariableParts[i], signedVariableParts[i-1]);
-            _requireOutcomeEquals(signedVariableParts[i], signedVariableParts[i-1]);
+            _requireEqualOutcomes(signedVariableParts[i], signedVariableParts[i-1]);
         }
 
         return signedVariableParts[signedVariableParts.length - 1].variablePart;
@@ -68,7 +68,7 @@ contract CountingApp is IForceMoveApp, TurnTaking {
      * @param a First SignedVariablePart.
      * @param b Second SignedVariablePart.
      */
-    function _requireOutcomeEquals(
+    function _requireEqualOutcomes(
         SignedVariablePart memory a,
         SignedVariablePart memory b
     ) internal pure {
