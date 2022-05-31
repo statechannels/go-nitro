@@ -7,7 +7,7 @@ import '../interfaces/IForceMoveApp.sol';
 import {TurnTaking} from '../examples/signature-logic/TurnTaking.sol';
 
 /**
- * @dev The SingleAssetPayments contract complies with the ForceMoveApp and TurnTaking interfaces and implements a simple payment channel with a single asset type only.
+ * @dev The SingleAssetPayments contract complies with the ForceMoveApp interfaces and TurnTaking logic and implements a simple payment channel with a single asset type only.
  */
 contract SingleAssetPayments is IForceMoveApp {
     /**
