@@ -214,6 +214,10 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 				updated.C.OnChainFunding = e.Holdings.Clone()
 			}
 		}
+	case chainservice.DepositedEvent:
+		// TODO: This is a workaround for https://github.com/statechannels/go-nitro/issues/735
+		// Eventually we should handle this by checking block numbers
+		return o, nil
 	default:
 		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
 	}
