@@ -51,9 +51,7 @@ type Engine struct {
 
 // APIEvent is an internal representation of an API call
 type APIEvent struct {
-	ObjectiveToSpawn   protocols.ObjectiveRequest
-	ObjectiveToReject  protocols.ObjectiveId
-	ObjectiveToApprove protocols.ObjectiveId
+	ObjectiveToSpawn protocols.ObjectiveRequest
 }
 
 // ObjectiveChangeEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
@@ -300,23 +298,6 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 
 	}
 
-	if apiEvent.ObjectiveToReject != `` {
-		objective, err := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
-		if err != nil {
-			return ObjectiveChangeEvent{}, err
-		}
-		updatedProtocol := objective.Reject()
-		err = e.store.SetObjective(updatedProtocol)
-		return ObjectiveChangeEvent{}, err
-	}
-	if apiEvent.ObjectiveToApprove != `` {
-		objective, err := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
-		if err != nil {
-			return ObjectiveChangeEvent{}, err
-		}
-		updatedObjective := objective.Approve()
-		return e.attemptProgress(updatedObjective)
-	}
 	return ObjectiveChangeEvent{}, nil
 
 }
