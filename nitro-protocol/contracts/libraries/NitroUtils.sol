@@ -9,25 +9,14 @@ library NitroUtils {
     // Signature methods:
     // *****************
 
+    /**
+     * @notice Check if supplied participantIndex bit is set to 1 in signedBy bit mask.
+     * @dev Check if supplied partitipationIndex bit is set to 1 in signedBy bit mask.
+     * @param signedBy Bit mask field to check.
+     * @param participantIndex Bit to check.
+     */
     function isSignedBy(uint256 signedBy, uint8 participantIndex) internal pure returns (bool) {
         return ((signedBy >> participantIndex) % 2 == 1);
-    }
-
-    // This function can be used inside validTransition
-    // To recover the legacy "turn taking" semantics
-    function isRoundRobin(
-        uint256 nParticipants,
-        uint48 turnNumB,
-        uint256 signedByFrom,
-        uint256 signedByTo
-    ) internal pure returns (bool) {
-        require(
-            turnNumB > 0 &&
-                isSignedBy(signedByFrom, uint8((turnNumB - 1) % nParticipants)) &&
-                isSignedBy(signedByTo, uint8(turnNumB % nParticipants)),
-            'roundRobin violation'
-        );
-        return true;
     }
 
     /**
