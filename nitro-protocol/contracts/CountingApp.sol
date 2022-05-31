@@ -4,12 +4,12 @@ pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 import './interfaces/IForceMoveApp.sol';
-import './examples/signature-logic/TurnTaking.sol';
+import {TurnTaking} from './examples/signature-logic/TurnTaking.sol';
 
 /**
  * @dev The CountingApp contracts complies with the ForceMoveApp and TurnTaking interfaces and allows only for a simple counter to be incremented. Used for testing purposes.
  */
-contract CountingApp is IForceMoveApp, TurnTaking {
+contract CountingApp is IForceMoveApp {
     struct CountingAppData {
         uint256 counter;
     }
@@ -36,7 +36,7 @@ contract CountingApp is IForceMoveApp, TurnTaking {
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
     ) external pure override returns (VariablePart memory) {
-        _requireValidTurnTaking(fixedPart, signedVariableParts);
+        TurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts);
 
         for (uint i = 1; i < signedVariableParts.length; i++) {
             _requireIncrementedCounter(signedVariableParts[i], signedVariableParts[i-1]);
