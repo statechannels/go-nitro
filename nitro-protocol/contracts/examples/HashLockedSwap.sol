@@ -3,8 +3,8 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
+import {TurnTaking} from '../libraries/signature-logic/TurnTaking.sol';
 import '../interfaces/IForceMoveApp.sol';
-import {TurnTaking} from '../examples/signature-logic/TurnTaking.sol';
 
 /**
  * @dev The HashLockedSwap contract complies with the ForceMoveApp interfaces and TurnTaking logic and implements a HashLockedSwaped payment.

@@ -3,6 +3,7 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
+import {NitroUtils} from '../NitroUtils.sol';
 import '../../interfaces/INitroTypes.sol';
 
 library TurnTaking {
@@ -38,9 +39,14 @@ library TurnTaking {
         INitroTypes.SignedVariablePart memory signedVariablePart
     ) internal pure {
         require(signedVariablePart.sigs.length == 1, 'sigs.length != 1');
+        require(
+            NitroUtils.isSignedBy(signedVariablePart.signedBy, uint8(signedVariablePart.variablePart.turnNum % fixedPart.participants.length)),
+            'invalid signedBy'
+        );
+
         _requireSignedBy(
-            _hashState(
-                _getChannelId(fixedPart),
+            NitroUtils.hashState(
+                NitroUtils.getChannelId(fixedPart),
                 signedVariablePart.variablePart.appData,
                 signedVariablePart.variablePart.outcome,
                 signedVariablePart.variablePart.turnNum,
@@ -77,7 +83,7 @@ library TurnTaking {
         INitroTypes.Signature memory sig,
         address signer
     ) internal pure {
-        address recovered = _recoverSigner(stateHash, sig);
+        address recovered = NitroUtils.recoverSigner(stateHash, sig);
         require(signer == recovered, 'Invalid signer');
     }
 
@@ -95,68 +101,5 @@ library TurnTaking {
             variablePart.turnNum == turnNum,
             'Wrong variablePart.turnNum'
         );
-    }
-
-    /**
-     * @notice Given a digest and ethereum digital signature, recover the signer
-     * @dev Given a digest and digital signature, recover the signer
-     * @param _d message digest
-     * @param sig ethereum digital signature
-     * @return signer
-     */
-    function _recoverSigner(bytes32 _d, INitroTypes.Signature memory sig) internal pure returns (address) {
-        bytes32 prefixedHash = keccak256(abi.encodePacked('\x19Ethereum Signed Message:\n32', _d));
-        address a = ecrecover(prefixedHash, sig.v, sig.r, sig.s);
-        require(a != address(0), 'Invalid signature');
-        return (a);
-    }
-
-    /**
-     * @notice Computes the hash of the state corresponding to the input data.
-     * @dev Computes the hash of the state corresponding to the input data.
-     * @param turnNum Turn number
-     * @param isFinal Is the state final?
-     * @param channelId Unique identifier for the channel
-     * @param appData Application specific data.
-     * @param outcome Outcome structure.
-     * @return The stateHash
-     */
-    function _hashState(
-        bytes32 channelId,
-        bytes memory appData,
-        Outcome.SingleAssetExit[] memory outcome,
-        uint48 turnNum,
-        bool isFinal
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(channelId, appData, outcome, turnNum, isFinal));
-    }
-
-    /**
-     * @notice Computes the unique id of a channel.
-     * @dev Computes the unique id of a channel.
-     * @param fixedPart Part of the state that does not change
-     * @return channelId
-     */
-    function _getChannelId(INitroTypes.FixedPart memory fixedPart) internal pure returns (bytes32 channelId) {
-        require(fixedPart.chainId == getChainID(), 'Incorrect chainId');
-        channelId = keccak256(
-            abi.encode(
-                getChainID(),
-                fixedPart.participants,
-                fixedPart.channelNonce,
-                fixedPart.appDefinition,
-                fixedPart.challengeDuration
-            )
-        );
-    }
-
-    function getChainID() public pure returns (uint256) {
-        uint256 id;
-        /* solhint-disable no-inline-assembly */
-        assembly {
-            id := chainid()
-        }
-        /* solhint-disable no-inline-assembly */
-        return id;
     }
 }
