@@ -37,7 +37,7 @@ library TurnTaking {
         INitroTypes.FixedPart memory fixedPart,
         INitroTypes.SignedVariablePart memory signedVariablePart
     ) internal pure {
-        require(signedVariablePart.sigs.length == 1, 'Too many signatures');
+        require(signedVariablePart.sigs.length == 1, 'sigs.length != 1');
         _requireSignedBy(
             _hashState(
                 _getChannelId(fixedPart),
