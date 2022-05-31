@@ -20,7 +20,7 @@ contract HashLockedSwap is IForceMoveApp, TurnTaking {
         SignedVariablePart[] calldata signedVariableParts
     ) external pure override returns (VariablePart memory) {
         // is this the first and only swap?
-        require(signedVariableParts.length == 2, 'excess states');
+        require(signedVariableParts.length == 2, 'signedVariableParts.length != 2');
         require(signedVariableParts[1].variablePart.turnNum == 4, 'latest turn number != 4');
 
         _requireValidTurnTaking(fixedPart, signedVariableParts);
@@ -29,14 +29,13 @@ contract HashLockedSwap is IForceMoveApp, TurnTaking {
         // Assumptions:
         //  - single asset in this channel
         //  - two parties in this channel
-        //  - not a "guarantee" channel (c.f. Nitro paper)
         Outcome.Allocation[] memory allocationsA = decode2PartyAllocation(signedVariableParts[0].variablePart.outcome);
         Outcome.Allocation[] memory allocationsB = decode2PartyAllocation(signedVariableParts[1].variablePart.outcome);
         bytes memory preImage = abi.decode(signedVariableParts[1].variablePart.appData, (AppData)).preImage;
         bytes32 h = abi.decode(signedVariableParts[0].variablePart.appData, (AppData)).h;
 
         // is the preimage correct?
-        require(sha256(preImage) == h, 'Incorrect preimage');
+        require(sha256(preImage) == h, 'incorrect preimage');
         // NOTE ON GAS COSTS
         // The gas cost of hashing depends on the choice of hash function
         // and the length of the the preImage.
@@ -70,7 +69,7 @@ contract HashLockedSwap is IForceMoveApp, TurnTaking {
 
         allocations = assetOutcome.allocations; // TODO should we check each allocation is a "simple" one?
 
-        // Throws unless there are exactly 3 allocations
-        require(allocations.length == 2, 'allocation.length != 3');
+        // Throws unless there are exactly 2 allocations
+        require(allocations.length == 2, 'allocation.length != 2');
     }
 }
