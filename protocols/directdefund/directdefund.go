@@ -34,7 +34,9 @@ type Objective struct {
 	Status               protocols.ObjectiveStatus
 	C                    *channel.Channel
 	finalTurnNum         uint64
-	transactionSubmitted bool // whether a transition for the objective has been submitted or not
+	transactionSubmitted bool   // whether a transition for the objective has been submitted or not
+	latestBlockNumber    uint64 // the latest block number we've seen
+
 }
 
 // isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
@@ -209,9 +211,10 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 	switch e := event.(type) {
 	case chainservice.AllocationUpdatedEvent:
 		{
-			// todo: check block number
-			if e.Holdings != nil {
+
+			if e.Holdings != nil && e.BlockNum > updated.latestBlockNumber {
 				updated.C.OnChainFunding = e.Holdings.Clone()
+				updated.latestBlockNumber = e.BlockNum
 			}
 		}
 	default:
@@ -311,7 +314,7 @@ func (o *Objective) clone() Objective {
 	clone.C = cClone
 	clone.finalTurnNum = o.finalTurnNum
 	clone.transactionSubmitted = o.transactionSubmitted
-
+	clone.latestBlockNumber = o.latestBlockNumber
 	return clone
 }
 

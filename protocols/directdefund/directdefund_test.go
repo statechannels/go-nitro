@@ -281,11 +281,23 @@ func TestCrankBob(t *testing.T) {
 		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
-	// The third crank. Bob is expected to enter the terminal state of the defunding protocol.
-	updated, err = updated.(*Objective).UpdateWithChainEvent(chainservice.AllocationUpdatedEvent{Holdings: types.Funds{}})
-
+	highBlockNum := uint64(200)
+	updated, err = updated.(*Objective).UpdateWithChainEvent(chainservice.AllocationUpdatedEvent{Holdings: types.Funds{}, CommonEvent: chainservice.CommonEvent{BlockNum: highBlockNum}})
 	if err != nil {
 		t.Error(err)
+	}
+
+	if updated.(*Objective).latestBlockNumber != uint64(highBlockNum) {
+		t.Error("Latest block number not updated as expected", updated.(*Objective).latestBlockNumber, highBlockNum)
+	}
+
+	// Update with stale funding information should be ignored
+	lowBlockNum := uint64(100)
+
+	updated, _ = updated.(*Objective).UpdateWithChainEvent(chainservice.AllocationUpdatedEvent{Holdings: types.Funds{}, CommonEvent: chainservice.CommonEvent{BlockNum: uint64(lowBlockNum)}})
+
+	if updated.(*Objective).latestBlockNumber == uint64(lowBlockNum) {
+		t.Error("latestBlockNumber was updated to stale block number", updated.(*Objective).latestBlockNumber, lowBlockNum)
 	}
 
 	_, se, wf, err = updated.Crank(&bob.PrivateKey)
@@ -300,11 +312,12 @@ func TestCrankBob(t *testing.T) {
 	if diff := cmp.Diff(expectedSE, se); diff != "" {
 		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
+
 }
 
 func TestMarshalJSON(t *testing.T) {
 	ddfo, _ := newTestObjective()
-
+	ddfo.latestBlockNumber = 123
 	encodedDdfo, err := json.Marshal(ddfo)
 
 	if err != nil {
@@ -325,6 +338,10 @@ func TestMarshalJSON(t *testing.T) {
 	}
 	if got.C.Id != ddfo.C.Id {
 		t.Fatalf("expected channel Id %s but got %s", ddfo.C.Id, got.C.Id)
+	}
+	if got.latestBlockNumber != ddfo.latestBlockNumber {
+		t.Fatalf("expected latestBlockNumber %d but got %d",
+			ddfo.latestBlockNumber, got.latestBlockNumber)
 	}
 }
 func TestApproveReject(t *testing.T) {

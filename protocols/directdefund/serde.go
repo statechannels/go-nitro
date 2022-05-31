@@ -15,6 +15,7 @@ type jsonObjective struct {
 	C                     types.Destination
 	FinalTurnNum          uint64
 	TransactionSumbmitted bool
+	LatestBlockNumber     uint64
 }
 
 // MarshalJSON returns a JSON representation of the DirectDefundObjective
@@ -27,6 +28,7 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 		o.C.Id,
 		o.finalTurnNum,
 		o.transactionSubmitted,
+		o.latestBlockNumber,
 	}
 
 	return json.Marshal(jsonDDFO)
@@ -55,6 +57,7 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.C.Id = jsonDDFO.C
 	o.finalTurnNum = jsonDDFO.FinalTurnNum
 	o.transactionSubmitted = jsonDDFO.TransactionSumbmitted
+	o.latestBlockNumber = jsonDDFO.LatestBlockNumber
 
 	return nil
 }
