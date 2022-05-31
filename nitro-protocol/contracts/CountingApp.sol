@@ -7,7 +7,7 @@ import './interfaces/IForceMoveApp.sol';
 import {TurnTaking} from './examples/signature-logic/TurnTaking.sol';
 
 /**
- * @dev The CountingApp contracts complies with the ForceMoveApp and TurnTaking interfaces and allows only for a simple counter to be incremented. Used for testing purposes.
+ * @dev The CountingApp contract complies with the ForceMoveApp interface and TurnTaking logic and allows only for a simple counter to be incremented. Used for testing purposes.
  */
 contract CountingApp is IForceMoveApp {
     struct CountingAppData {
