@@ -19,9 +19,12 @@ contract HashLockedSwap is IForceMoveApp, TurnTaking {
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
     ) external pure override returns (VariablePart memory) {
+        VariablePart memory from = signedVariableParts[0].variablePart;
+        VariablePart memory to = signedVariableParts[1].variablePart;
+
         // is this the first and only swap?
         require(signedVariableParts.length == 2, 'signedVariableParts.length != 2');
-        require(signedVariableParts[1].variablePart.turnNum == 4, 'latest turn number != 4');
+        require(to.turnNum == 4, 'latest turn number != 4');
 
         _requireValidTurnTaking(fixedPart, signedVariableParts);
 
@@ -29,10 +32,10 @@ contract HashLockedSwap is IForceMoveApp, TurnTaking {
         // Assumptions:
         //  - single asset in this channel
         //  - two parties in this channel
-        Outcome.Allocation[] memory allocationsA = decode2PartyAllocation(signedVariableParts[0].variablePart.outcome);
-        Outcome.Allocation[] memory allocationsB = decode2PartyAllocation(signedVariableParts[1].variablePart.outcome);
-        bytes memory preImage = abi.decode(signedVariableParts[1].variablePart.appData, (AppData)).preImage;
-        bytes32 h = abi.decode(signedVariableParts[0].variablePart.appData, (AppData)).h;
+        Outcome.Allocation[] memory allocationsA = decode2PartyAllocation(from.outcome);
+        Outcome.Allocation[] memory allocationsB = decode2PartyAllocation(to.outcome);
+        bytes32 h = abi.decode(from.appData, (AppData)).h;
+        bytes memory preImage = abi.decode(to.appData, (AppData)).preImage;
 
         // is the preimage correct?
         require(sha256(preImage) == h, 'incorrect preimage');
