@@ -60,7 +60,7 @@ library NitroUtils {
         );
     }
 
-    function getChainID() public pure returns (uint256) {
+    function getChainID() internal pure returns (uint256) {
         uint256 id;
         /* solhint-disable no-inline-assembly */
         assembly {
