@@ -2,8 +2,9 @@
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import './ForceMove.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
+import {NitroUtils} from './libraries/NitroUtils.sol';
+import './ForceMove.sol';
 import './MultiAssetHolder.sol';
 
 /**
@@ -42,7 +43,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
     ) public {
         // checks
         _requireChannelFinalized(channelId);
-        _requireMatchingFingerprint(stateHash, _hashOutcome(outcome), channelId);
+        _requireMatchingFingerprint(stateHash, NitroUtils.hashOutcome(outcome), channelId);
 
         // computation
         bool allocatesOnlyZerosForAllAssets = true;
@@ -84,7 +85,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         if (allocatesOnlyZerosForAllAssets) {
             delete statusOf[channelId];
         } else {
-            _updateFingerprint(channelId, stateHash, _hashOutcome(outcome));
+            _updateFingerprint(channelId, stateHash, NitroUtils.hashOutcome(outcome));
         }
 
         // interactions

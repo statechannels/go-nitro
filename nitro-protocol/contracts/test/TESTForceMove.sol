@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
+
+import {NitroUtils} from '../libraries/NitroUtils.sol';
 import '../ForceMove.sol';
 
 /**
@@ -30,7 +32,7 @@ contract TESTForceMove is ForceMove {
      * @return signer
      */
     function recoverSigner(bytes32 _d, Signature memory sig) public pure returns (address) {
-        return _recoverSigner(_d, sig);
+        return NitroUtils.recoverSigner(_d, sig);
     }
 
     // public setter for statusOf
