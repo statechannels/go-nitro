@@ -21,8 +21,8 @@ import (
 
 // The API for recording metrics.
 type MetricsApi interface {
-	RecordPoint(name string, value float64, tags map[string]string)
-	StartTimer(name string, tags map[string]string)
+	RecordPoint(category string, value float64, tags map[string]string)
+	StartTimer(category string, name string, tags map[string]string)
 	StopTimer(name string)
 }
 
@@ -279,8 +279,8 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
-			e.metricsRecorder.RecordPoint("virtualfund-objective-created", 1, map[string]string{"wallet": e.store.GetAddress().String()})
-			e.metricsRecorder.StartTimer(string(vfo.Id()), map[string]string{"wallet": e.store.GetAddress().String()})
+
+			e.metricsRecorder.StartTimer("virtualfund-completion", string(vfo.Id()), map[string]string{"wallet": e.store.GetAddress().String()})
 			return e.attemptProgress(&vfo)
 
 		case virtualdefund.ObjectiveRequest:
@@ -288,8 +288,8 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
-			e.metricsRecorder.RecordPoint("virtualdefund-objective-created", 1, map[string]string{"wallet": e.store.GetAddress().String()})
-			e.metricsRecorder.StartTimer(string(vdfo.Id()), map[string]string{"wallet": e.store.GetAddress().String()})
+
+			e.metricsRecorder.StartTimer("virtualdefund-completion", string(vdfo.Id()), map[string]string{"wallet": e.store.GetAddress().String()})
 			return e.attemptProgress(&vdfo)
 
 		case directfund.ObjectiveRequest:
@@ -297,8 +297,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
-			e.metricsRecorder.RecordPoint("directfund-objective-created", 1, map[string]string{"wallet": e.store.GetAddress().String()})
-			e.metricsRecorder.StartTimer(string(dfo.Id()), map[string]string{"wallet": e.store.GetAddress().String()})
+
 			return e.attemptProgress(&dfo)
 
 		case directdefund.ObjectiveRequest:
@@ -308,8 +307,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			}
 			// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 			e.store.DestroyConsensusChannel(request.ChannelId)
-			e.metricsRecorder.RecordPoint("directdefund-objective-created", 1, map[string]string{"wallet": e.store.GetAddress().String()})
-			e.metricsRecorder.StartTimer(string(ddfo.Id()), map[string]string{"wallet": e.store.GetAddress().String()})
+
 			return e.attemptProgress(&ddfo)
 
 		default:

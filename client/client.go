@@ -128,6 +128,6 @@ func (c *Client) CloseDirectChannel(channelId types.Destination) protocols.Objec
 type NoOpMetricsApi struct {
 }
 
-func (n *NoOpMetricsApi) StopTimer(name string)                                          {}
-func (n *NoOpMetricsApi) RecordPoint(name string, value float64, tags map[string]string) {}
-func (n *NoOpMetricsApi) StartTimer(name string, tags map[string]string)                 {}
+func (n *NoOpMetricsApi) StopTimer(name string)                                           {}
+func (n *NoOpMetricsApi) RecordPoint(name string, value float64, tags map[string]string)  {}
+func (n *NoOpMetricsApi) StartTimer(category string, name string, tags map[string]string) {}
