@@ -4,12 +4,12 @@ pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 import '../interfaces/IForceMoveApp.sol';
-import '../examples/signature-logic/TurnTaking.sol';
+import {TurnTaking} from '../examples/signature-logic/TurnTaking.sol';
 
 /**
  * @dev The SingleAssetPayments contract complies with the ForceMoveApp and TurnTaking interfaces and implements a simple payment channel with a single asset type only.
  */
-contract SingleAssetPayments is IForceMoveApp, TurnTaking {
+contract SingleAssetPayments is IForceMoveApp {
     /**
      * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel.
      * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel.
@@ -21,7 +21,7 @@ contract SingleAssetPayments is IForceMoveApp, TurnTaking {
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
     ) external pure override returns (VariablePart memory) {
-        _requireValidTurnTaking(fixedPart, signedVariableParts);
+        TurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts);
 
         for (uint256 i = 0; i < signedVariableParts.length; i++) {
             _requireValidOutcome(fixedPart.participants.length, signedVariableParts[i].variablePart.outcome);

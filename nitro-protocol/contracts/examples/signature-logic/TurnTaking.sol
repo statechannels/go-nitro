@@ -5,14 +5,14 @@ pragma experimental ABIEncoderV2;
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 import '../../interfaces/INitroTypes.sol';
 
-contract TurnTaking {
+library TurnTaking {
     /**
      * @notice Require supplied arguments to comply with turn taking logic, i.e. each participant signed the one state, they were mover for.
      * @dev Require supplied arguments to comply with turn taking logic, i.e. each participant signed the one state, they were mover for.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param signedVariableParts An ordered array of structs, each struct describing dynamic properties of the state channel and must be signed by corresponding moving participant.
      */
-    function _requireValidTurnTaking(
+    function requireValidTurnTaking(
         INitroTypes.FixedPart memory fixedPart,
         INitroTypes.SignedVariablePart[] memory signedVariableParts
     ) internal pure {
@@ -21,8 +21,8 @@ contract TurnTaking {
         uint48 turnNum = signedVariableParts[0].variablePart.turnNum;
 
         for (uint i = 0; i < signedVariableParts.length; i++) {
-            _requireSignedByMover(fixedPart, signedVariableParts[i]);
-            _requireHasTurnNum(signedVariableParts[i].variablePart, turnNum);
+            requireSignedByMover(fixedPart, signedVariableParts[i]);
+            requireHasTurnNum(signedVariableParts[i].variablePart, turnNum);
             turnNum++;
         }
     }
@@ -33,7 +33,7 @@ contract TurnTaking {
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param signedVariablePart A struct describing dynamic properties of the state channel, that must be signed by moving participant.
      */
-    function _requireSignedByMover(
+    function requireSignedByMover(
         INitroTypes.FixedPart memory fixedPart,
         INitroTypes.SignedVariablePart memory signedVariablePart
     ) internal pure {
@@ -87,7 +87,7 @@ contract TurnTaking {
      * @param variablePart Variable part to check turn number of.
      * @param turnNum Turn number to compare with.
      */
-    function _requireHasTurnNum(
+    function requireHasTurnNum(
         INitroTypes.VariablePart memory variablePart,
         uint48 turnNum
     ) internal pure {

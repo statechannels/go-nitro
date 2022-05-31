@@ -4,12 +4,12 @@ pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 import '../interfaces/IForceMoveApp.sol';
-import '../examples/signature-logic/TurnTaking.sol';
+import {TurnTaking} from '../examples/signature-logic/TurnTaking.sol';
 
 /**
  * @dev The HashLockedSwap contract complies with the ForceMoveApp and TurnTaking interfaces and implements a HashLockedSwaped payment
  */
-contract HashLockedSwap is IForceMoveApp, TurnTaking {
+contract HashLockedSwap is IForceMoveApp {
     struct AppData {
         bytes32 h;
         bytes preImage;
@@ -26,7 +26,7 @@ contract HashLockedSwap is IForceMoveApp, TurnTaking {
         require(signedVariableParts.length == 2, 'signedVariableParts.length != 2');
         require(to.turnNum == 4, 'latest turn number != 4');
 
-        _requireValidTurnTaking(fixedPart, signedVariableParts);
+        TurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts);
 
         // Decode variables.
         // Assumptions:
