@@ -22,17 +22,17 @@ type Client struct {
 	engine              engine.Engine // The core business logic of the client
 	Address             *types.Address
 	completedObjectives chan protocols.ObjectiveId
-	metricRecorder      engine.MetricsApi
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
-func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, metricsRecorder engine.MetricsApi) Client {
+func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, metricsApi engine.MetricsApi) Client {
 	c := Client{}
 	c.Address = store.GetAddress()
-	if metricsRecorder == nil {
-		c.metricRecorder = &NoOpMetricsApi{}
+	if metricsApi == nil {
+		metricsApi = &engine.NoOpMetricsApi{}
 	}
-	c.engine = engine.New(messageService, chainservice, store, logDestination, metricsRecorder)
+
+	c.engine = engine.New(messageService, chainservice, store, logDestination, metricsApi)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 
 	// Start the engine in a go routine
@@ -123,11 +123,3 @@ func (c *Client) CloseDirectChannel(channelId types.Destination) protocols.Objec
 	return objectiveRequest.Id(*c.Address)
 
 }
-
-// NoOpMetricsApi implements the MetricsAPI interface but does nothing.
-type NoOpMetricsApi struct {
-}
-
-func (n *NoOpMetricsApi) StopTimer(name string)                                           {}
-func (n *NoOpMetricsApi) RecordPoint(name string, value float64, tags map[string]string)  {}
-func (n *NoOpMetricsApi) StartTimer(category string, name string, tags map[string]string) {}

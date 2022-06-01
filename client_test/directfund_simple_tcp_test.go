@@ -20,7 +20,7 @@ func setupClientWithSimpleTCP(pk []byte, chain *chainservice.MockChain, peers ma
 	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := simpletcp.NewSimpleTCPMessageService(peers[myAddress], peers)
 	storeA := store.NewMemStore(pk)
-	return client.New(messageservice, chainservice, storeA, logDestination), messageservice
+	return client.New(messageservice, chainservice, storeA, logDestination, nil), messageservice
 }
 
 func TestSimpleTCPMessageService(t *testing.T) {

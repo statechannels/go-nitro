@@ -70,7 +70,7 @@ func setupClient(pk []byte, chain *chainservice.MockChain, msgBroker messageserv
 	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
 	storeA := store.NewMemStore(pk)
-	return client.New(messageservice, chainservice, storeA, logDestination), storeA
+	return client.New(messageservice, chainservice, storeA, logDestination, nil), storeA
 }
 
 func truncateLog(logFile string) {

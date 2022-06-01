@@ -79,12 +79,14 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 		chainservice.NewSimpleChainService(chain, bob.Address()),
 		retrievalProviderStore,
 		logDestination,
+		nil,
 	)
 	paymentHub = client.New(
 		messageservice.NewVectorClockTestMessageService(irene.Address(), broker, 0, vectorClockLogDir),
 		chainservice.NewSimpleChainService(chain, irene.Address()),
 		paymentHubStore,
 		logDestination,
+		nil,
 	)
 	for i := range retrievalClients {
 		retrievalClients[i] =
@@ -93,6 +95,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 				chainservice.NewSimpleChainService(chain, *retrievalClients[i].Address),
 				rcStores[i],
 				logDestination,
+				nil,
 			)
 
 	}
