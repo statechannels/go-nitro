@@ -134,6 +134,9 @@ func (e *Engine) Run() {
 			for _, obj := range res.CompletedObjectives {
 				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
 				e.metricsRecorder.MarkOperationStop(string(obj.Id()))
+				if vdfo, ok := obj.(*virtualdefund.Objective); ok {
+					e.metricsRecorder.MarkOperationStop(vdfo.VId().String())
+				}
 			}
 			e.toApi <- res
 		}
@@ -276,7 +279,8 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 
-			e.metricsRecorder.MarkOperationStart("virtualfund-objective", string(vfo.Id()), map[string]string{"wallet": e.store.GetAddress().String()})
+			e.metricsRecorder.MarkOperationStart("virtualfund-objective", string(vfo.Id()), *e.store.GetAddress())
+			e.metricsRecorder.MarkOperationStart("virtual-payment", vfo.V.Id.String(), *e.store.GetAddress())
 			return e.attemptProgress(&vfo)
 
 		case virtualdefund.ObjectiveRequest:
@@ -285,7 +289,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 
-			e.metricsRecorder.MarkOperationStart("virtualdefund-objective", string(vdfo.Id()), map[string]string{"wallet": e.store.GetAddress().String()})
+			e.metricsRecorder.MarkOperationStart("virtualdefund-objective", string(vdfo.Id()), *e.store.GetAddress())
 			return e.attemptProgress(&vdfo)
 
 		case directfund.ObjectiveRequest:
@@ -293,7 +297,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
-			e.metricsRecorder.MarkOperationStart("directfund-objective", string(dfo.Id()), map[string]string{"wallet": e.store.GetAddress().String()})
+			e.metricsRecorder.MarkOperationStart("directfund-objective", string(dfo.Id()), *e.store.GetAddress())
 			return e.attemptProgress(&dfo)
 
 		case directdefund.ObjectiveRequest:
@@ -301,7 +305,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
-			e.metricsRecorder.MarkOperationStart("directdefund-objective", string(ddfo.Id()), map[string]string{"wallet": e.store.GetAddress().String()})
+			e.metricsRecorder.MarkOperationStart("directdefund-objective", string(ddfo.Id()), *e.store.GetAddress())
 			// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 			e.store.DestroyConsensusChannel(request.ChannelId)
 
@@ -375,7 +379,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	var sideEffects protocols.SideEffects
 	var waitingFor protocols.WaitingFor
 
-	additionalData := map[string]string{"wallet": e.store.GetAddress().String()}
+	additionalData := *e.store.GetAddress()
 	e.metricsRecorder.RecordOperationDuration("crank", func() {
 		crankedObjective, sideEffects, waitingFor, err = objective.Crank(secretKey)
 	},
