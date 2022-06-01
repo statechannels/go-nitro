@@ -21,67 +21,38 @@ type eventSource interface {
 	SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- ethTypes.Log) (ethereum.Subscription, error)
 }
 
-type TransactionWithStatusChan struct {
-	protocols.ChainTransaction
-	done chan struct{}
-}
-
-func (twsc *TransactionWithStatusChan) sendDone() {
-	twsc.done <- struct{}{}
-}
-
 type EthChainService struct {
-	in  chan TransactionWithStatusChan
 	out chan Event
+	na  *NitroAdjudicator.NitroAdjudicator
+	to  *bind.TransactOpts
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
 func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, to *bind.TransactOpts, es eventSource) EthChainService {
 	ecs := EthChainService{}
-	ecs.in = make(chan TransactionWithStatusChan)
 	ecs.out = make(chan Event)
+	ecs.na = na
+	ecs.to = to
 
-	go ecs.submitTxs(na, to)
 	go ecs.listenForLogEvents(na, naAddress, es)
 
 	return ecs
 }
 
 // SendTransaction sends the transaction and blocks until it has been submitted.
-func (cc *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
-	c := make(chan struct{})
-	cc.in <- TransactionWithStatusChan{ChainTransaction: tx, done: c}
-	<-c
-}
-
-func (cc EthChainService) In() chan<- TransactionWithStatusChan {
-	return cc.in
-}
-
-func (cc EthChainService) Out(a types.Address) <-chan Event {
-	return cc.out
-}
-
-func (cc EthChainService) submitTxs(na *NitroAdjudicator.NitroAdjudicator, to *bind.TransactOpts) {
-	for tx := range cc.in {
-		cc.submitTx(na, to, tx)
-	}
-}
-
-// submitTx responds to the given tx.
-func (cc EthChainService) submitTx(na *NitroAdjudicator.NitroAdjudicator, to *bind.TransactOpts, tx TransactionWithStatusChan) {
+func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
 	switch tx.Type {
 	case protocols.DepositTransactionType:
 		for address, amount := range tx.Deposit {
-			to.Value = amount
+			// TODO clone to before modifying
+			ecs.to.Value = amount
 			// TODO do not assume that the channel holds 0 funds
-			_, err := na.Deposit(to, address, tx.ChannelId, big.NewInt(0), amount)
+			_, err := ecs.na.Deposit(ecs.to, address, tx.ChannelId, big.NewInt(0), amount)
 
 			if err != nil {
 				panic(err)
 			}
-			go tx.sendDone()
 		}
 	// TODO handle other transaction types
 	default:
@@ -89,7 +60,11 @@ func (cc EthChainService) submitTx(na *NitroAdjudicator.NitroAdjudicator, to *bi
 	}
 }
 
-func (cc EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, es eventSource) {
+func (cc EthChainService) SubscribeToEvents(a types.Address) <-chan Event {
+	return cc.out
+}
+
+func (ecs EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, es eventSource) {
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{naAddress},
 	}
@@ -119,7 +94,7 @@ func (cc EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicat
 					},
 					Holdings: holdings,
 				}
-				cc.out <- event
+				ecs.out <- event
 			// TODO introduce the remaining events
 			default:
 				panic("Unknown chain event")
