@@ -40,8 +40,8 @@ library TurnTaking {
     ) internal pure {
         require(signedVariablePart.sigs.length == 1, 'sigs.length != 1');
         require(
-            NitroUtils.isSignedBy(signedVariablePart.signedBy, uint8(signedVariablePart.variablePart.turnNum % fixedPart.participants.length)),
-            'invalid signedBy'
+            NitroUtils.isSignedOnlyBy(signedVariablePart.signedBy, uint8(signedVariablePart.variablePart.turnNum % fixedPart.participants.length)),
+            'Invalid signedBy'
         );
 
         _requireSignedBy(
@@ -107,16 +107,13 @@ library TurnTaking {
      * @notice Validate input for turn taking logic.
      * @dev Validate input for turn taking logic.
      * @param numParticipants Number of participants in a channel.
-     * @param numState Number of states submitted.
+     * @param numStates Number of states submitted.
      */
     function _requireValidInput(
         uint256 numParticipants,
         uint256 numStates
     ) internal pure {
-        require(
-            (fixedPart.participants.length >= signedVariableParts.length) && (signedVariableParts.length > 0),
-            'Insufficient or excess states'
-        );
+        require((numParticipants >= numStates) && (numStates > 0), 'Insufficient or excess states');
 
         // no more than 255 participants
         require(numParticipants <= type(uint8).max, 'Too many participants'); // type(uint8).max = 2**8 - 1 = 255
