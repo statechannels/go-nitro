@@ -1,9 +1,9 @@
 import {Contract, Wallet, ethers} from 'ethers';
 const {arrayify, id} = ethers.utils;
 
-import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
-import {getTestProvider, setupContract} from '../../test-helpers';
-import {sign} from '../../../src/signatures';
+import ForceMoveArtifact from '../../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
+import {getTestProvider, setupContract} from '../../../test-helpers';
+import {sign} from '../../../../src/signatures';
 const provider = getTestProvider();
 let ForceMove: Contract;
 
