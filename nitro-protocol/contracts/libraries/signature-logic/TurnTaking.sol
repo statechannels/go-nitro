@@ -17,7 +17,7 @@ library TurnTaking {
         INitroTypes.FixedPart memory fixedPart,
         INitroTypes.SignedVariablePart[] memory signedVariableParts
     ) internal pure {
-        require(fixedPart.participants.length == signedVariableParts.length, 'Invalid amount of variable parts');
+        _requireValidInput(fixedPart.participants.length, signedVariableParts.length);
         
         uint48 turnNum = signedVariableParts[0].variablePart.turnNum;
 
@@ -58,6 +58,22 @@ library TurnTaking {
     }
 
     /**
+     * @notice Require supplied variable part has specified turn number.    
+     * @dev Require supplied variable part has specified turn number.
+     * @param variablePart Variable part to check turn number of.
+     * @param turnNum Turn number to compare with.
+     */
+    function requireHasTurnNum(
+        INitroTypes.VariablePart memory variablePart,
+        uint48 turnNum
+    ) internal pure {
+        require(
+            variablePart.turnNum == turnNum,
+            'Wrong variablePart.turnNum'
+        );
+    }
+
+    /**
      * @notice Find moving participant address based on state turn number.
      * @dev Find moving participant address based on state turn number.
      * @param participants Array of participant addresses.
@@ -88,18 +104,21 @@ library TurnTaking {
     }
 
     /**
-     * @notice Require supplied variable part has specified turn number.    
-     * @dev Require supplied variable part has specified turn number.
-     * @param variablePart Variable part to check turn number of.
-     * @param turnNum Turn number to compare with.
+     * @notice Validate input for turn taking logic.
+     * @dev Validate input for turn taking logic.
+     * @param numParticipants Number of participants in a channel.
+     * @param numState Number of states submitted.
      */
-    function requireHasTurnNum(
-        INitroTypes.VariablePart memory variablePart,
-        uint48 turnNum
+    function _requireValidInput(
+        uint256 numParticipants,
+        uint256 numStates
     ) internal pure {
         require(
-            variablePart.turnNum == turnNum,
-            'Wrong variablePart.turnNum'
+            (fixedPart.participants.length >= signedVariableParts.length) && (signedVariableParts.length > 0),
+            'Insufficient or excess states'
         );
+
+        // no more than 255 participants
+        require(numParticipants <= type(uint8).max, 'Too many participants'); // type(uint8).max = 2**8 - 1 = 255
     }
 }
