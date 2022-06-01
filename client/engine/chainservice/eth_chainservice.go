@@ -24,17 +24,17 @@ type eventSource interface {
 
 type EthChainService struct {
 	ChainServiceBase
-	na *NitroAdjudicator.NitroAdjudicator
-	to *bind.TransactOpts
+	na       *NitroAdjudicator.NitroAdjudicator
+	txSigner *bind.TransactOpts
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, to *bind.TransactOpts, es eventSource) *EthChainService {
+func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, txSigner *bind.TransactOpts, es eventSource) *EthChainService {
 	ecs := EthChainService{ChainServiceBase: NewChainServiceBase()}
 	ecs.out = safesync.Map[chan Event]{}
 	ecs.na = na
-	ecs.to = to
+	ecs.txSigner = txSigner
 
 	go ecs.listenForLogEvents(na, naAddress, es)
 
@@ -46,10 +46,15 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
 	switch tx.Type {
 	case protocols.DepositTransactionType:
 		for address, amount := range tx.Deposit {
-			// TODO clone to before modifying
-			ecs.to.Value = amount
+			txOpt := bind.TransactOpts{
+				From:     ecs.txSigner.From,
+				Nonce:    ecs.txSigner.Nonce,
+				Signer:   ecs.txSigner.Signer,
+				GasPrice: big.NewInt(10000000000),
+				Value:    amount}
+
 			// TODO do not assume that the channel holds 0 funds
-			_, err := ecs.na.Deposit(ecs.to, address, tx.ChannelId, big.NewInt(0), amount)
+			_, err := ecs.na.Deposit(&txOpt, address, tx.ChannelId, big.NewInt(0), amount)
 
 			if err != nil {
 				panic(err)
