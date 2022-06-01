@@ -29,16 +29,6 @@ export interface FixedPart {
   appDefinition: Address;
   challengeDuration: Uint48;
 }
-/**
- * Extracts the FixedPart of a state
- * @param state a State
- * @returns the FixedPart, which does not ordinarily change during state channel updates
- */
-export function getFixedPart(state: State): FixedPart {
-  const {appDefinition, challengeDuration, channel} = state;
-  const {chainId, participants, channelNonce} = channel;
-  return {chainId, participants, channelNonce, appDefinition, challengeDuration};
-}
 
 /**
  * The part of a State which usually changes during state channel updates
@@ -57,6 +47,7 @@ export interface VariablePart {
 export interface SignedVariablePart {
   variablePart: VariablePart;
   sigs: Signature[];
+  signedBy: Uint256;
 }
 
 /**
@@ -71,6 +62,17 @@ export function getVariablePart(state: State): VariablePart {
     turnNum: state.turnNum,
     isFinal: state.isFinal,
   };
+}
+
+/**
+ * Extracts the FixedPart of a state
+ * @param state a State
+ * @returns the FixedPart, which does not ordinarily change during state channel updates
+ */
+export function getFixedPart(state: State): FixedPart {
+  const {appDefinition, challengeDuration, channel} = state;
+  const {chainId, participants, channelNonce} = channel;
+  return {chainId, participants, channelNonce, appDefinition, challengeDuration};
 }
 
 /**
