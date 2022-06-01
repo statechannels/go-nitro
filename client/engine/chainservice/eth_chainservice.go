@@ -11,6 +11,7 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
+	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -22,22 +23,22 @@ type eventSource interface {
 }
 
 type EthChainService struct {
-	out chan Event
-	na  *NitroAdjudicator.NitroAdjudicator
-	to  *bind.TransactOpts
+	ChainServiceBase
+	na *NitroAdjudicator.NitroAdjudicator
+	to *bind.TransactOpts
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, to *bind.TransactOpts, es eventSource) EthChainService {
-	ecs := EthChainService{}
-	ecs.out = make(chan Event)
+func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, to *bind.TransactOpts, es eventSource) *EthChainService {
+	ecs := EthChainService{ChainServiceBase: NewChainServiceBase()}
+	ecs.out = safesync.Map[chan Event]{}
 	ecs.na = na
 	ecs.to = to
 
 	go ecs.listenForLogEvents(na, naAddress, es)
 
-	return ecs
+	return &ecs
 }
 
 // SendTransaction sends the transaction and blocks until it has been submitted.
@@ -60,11 +61,7 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
 	}
 }
 
-func (cc EthChainService) SubscribeToEvents(a types.Address) <-chan Event {
-	return cc.out
-}
-
-func (ecs EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, es eventSource) {
+func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, es eventSource) {
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{naAddress},
 	}
@@ -94,7 +91,7 @@ func (ecs EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudica
 					},
 					Holdings: holdings,
 				}
-				ecs.out <- event
+				ecs.broadcast(event)
 			// TODO introduce the remaining events
 			default:
 				panic("Unknown chain event")

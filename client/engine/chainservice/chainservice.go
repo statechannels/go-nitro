@@ -2,6 +2,9 @@
 package chainservice // import "github.com/statechannels/go-nitro/client/chainservice"
 
 import (
+	"fmt"
+
+	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -50,4 +53,44 @@ type ChainService interface {
 	SubscribeToEvents(types.Address) <-chan Event
 	// SendTransaction is for sending transactions with the chain service
 	SendTransaction(protocols.ChainTransaction)
+}
+
+type ChainServiceBase struct {
+	out safesync.Map[chan Event]
+}
+
+func NewChainServiceBase() ChainServiceBase {
+	return ChainServiceBase{out: safesync.Map[chan Event]{}}
+}
+
+// Subscribe inserts a go chan (for the supplied address) into the ChainService.
+func (csb *ChainServiceBase) SubscribeToEvents(a types.Address) <-chan Event {
+	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
+	c := make(chan Event, 10)
+	csb.out.Store(a.String(), c)
+	return c
+}
+
+// EventFeed returns the out chan for a particular ChainService, and narrows the type so that external consumers may only receive on it.
+func (csb *ChainServiceBase) EventFeed(a types.Address) (<-chan Event, error) {
+	c, ok := csb.out.Load(a.String())
+	if !ok {
+		return nil, fmt.Errorf("no subscription for address %v", a)
+	}
+	return c, nil
+}
+
+func (csb *ChainServiceBase) broadcast(event Event) {
+	csb.out.Range(func(_ string, channel chan Event) bool {
+		attemptSend(channel, event)
+		return true
+	})
+}
+
+// attemptSend sends event to the supplied chan, and drops it if the chan is full
+func attemptSend(out chan Event, event Event) {
+	select {
+	case out <- event:
+	default:
+	}
 }
