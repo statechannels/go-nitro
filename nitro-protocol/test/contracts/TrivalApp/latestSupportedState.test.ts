@@ -66,7 +66,7 @@ describe('latestSupportedState', () => {
     for (let i = 0; i < 5; i++) {
       const from: SignedVariablePart = getRandomSignedVariablePart();
       const to: SignedVariablePart = getRandomSignedVariablePart();
-      const latestSupportedState = await trivialApp.latestSupportedApp(getMockedFixedPart(), [
+      const latestSupportedState = await trivialApp.latestSupportedState(getMockedFixedPart(), [
         from,
         to,
       ]);
@@ -94,7 +94,7 @@ describe('latestSupportedState', () => {
     const from: SignedVariablePart = mockSigs(getVariablePart(fromState));
     const to: SignedVariablePart = mockSigs(getVariablePart(toState));
 
-    const latestSupportedState = await trivialApp.latestSupportedApp(getFixedPart(fromState), [
+    const latestSupportedState = await trivialApp.latestSupportedState(getFixedPart(fromState), [
       from,
       to,
     ]);
