@@ -50,13 +50,14 @@ func TestEthChainService(t *testing.T) {
 		Type:      protocols.DepositTransactionType,
 	}
 
+	out := cc.SubscribeToEvents(address)
 	// Submit transactiom
 	cc.SendTransaction(testTx)
 
 	sim.Commit()
 
 	// Check that the recieved event matches the expected event
-	receivedEvent := <-cc.out
+	receivedEvent := <-out
 	expectedEvent := DepositedEvent{CommonEvent: CommonEvent{channelID: channelID}, Holdings: testDeposit}
 	if diff := cmp.Diff(expectedEvent, receivedEvent, cmp.AllowUnexported(CommonEvent{})); diff != "" {
 		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
