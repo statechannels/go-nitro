@@ -20,6 +20,16 @@ library NitroUtils {
     }
 
     /**
+     * @notice Check if supplied participantIndex is the only bit set to 1 in signedBy bit mask.
+     * @dev Check if supplied participantIndex is the only bit set to 1 in signedBy bit mask.
+     * @param signedBy Bit mask field to check.
+     * @param participantIndex Bit to check.
+     */
+    function isSignedOnlyBy(uint256 signedBy, uint8 participantIndex) internal pure returns (bool) {
+        return (signedBy == (2 ** participantIndex));
+    }
+
+    /**
      * @notice Given a digest and ethereum digital signature, recover the signer
      * @dev Given a digest and digital signature, recover the signer
      * @param _d message digest
