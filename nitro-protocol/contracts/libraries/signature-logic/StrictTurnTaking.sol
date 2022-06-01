@@ -6,7 +6,7 @@ import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFo
 import {NitroUtils} from '../NitroUtils.sol';
 import '../../interfaces/INitroTypes.sol';
 
-library TurnTaking {
+library StrictTurnTaking {
     /**
      * @notice Require supplied arguments to comply with turn taking logic, i.e. each participant signed the one state, they were mover for.
      * @dev Require supplied arguments to comply with turn taking logic, i.e. each participant signed the one state, they were mover for.

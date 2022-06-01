@@ -3,7 +3,7 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
-import {TurnTaking} from './libraries/signature-logic/TurnTaking.sol';
+import {StrictTurnTaking} from './libraries/signature-logic/StrictTurnTaking.sol';
 import './interfaces/IForceMoveApp.sol';
 
 /**
@@ -36,7 +36,7 @@ contract CountingApp is IForceMoveApp {
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
     ) external pure override returns (VariablePart memory) {
-        TurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts);
+        StrictTurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts);
 
         for (uint i = 1; i < signedVariableParts.length; i++) {
             _requireIncrementedCounter(signedVariableParts[i], signedVariableParts[i-1]);
