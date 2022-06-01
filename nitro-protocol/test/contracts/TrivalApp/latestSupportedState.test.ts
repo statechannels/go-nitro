@@ -2,8 +2,14 @@ import {Contract, Wallet, ethers, utils} from 'ethers';
 
 import TrivialAppArtifact from '../../../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
 import {Channel} from '../../../src/contract/channel';
-import {validTransition} from '../../../src/contract/force-move-app';
-import {State, VariablePart} from '../../../src/contract/state';
+import {
+  FixedPart,
+  getFixedPart,
+  getVariablePart,
+  SignedVariablePart,
+  State,
+  VariablePart,
+} from '../../../src/contract/state';
 import {getRandomNonce, getTestProvider, setupContract} from '../../test-helpers';
 
 const provider = getTestProvider();
@@ -13,32 +19,58 @@ function computeSaltedHash(salt: string, num: number) {
   return utils.solidityKeccak256(['bytes32', 'uint256'], [salt, num]);
 }
 
-function getRandomVariablePart(): VariablePart {
+function getRandomSignedVariablePart(): SignedVariablePart {
   const randomNum = Math.floor(Math.random() * 100);
   const salt = ethers.constants.MaxUint256.toHexString();
   const hash = computeSaltedHash(salt, randomNum);
 
-  const variablePart: VariablePart = {
-    outcome: [],
-    appData: hash,
-    turnNum: 1,
-    isFinal: false,
+  const signedVariablePart: SignedVariablePart = {
+    variablePart: {
+      outcome: [],
+      appData: hash,
+      turnNum: 1,
+      isFinal: false,
+    },
+    sigs: [],
+    signedBy: '0',
   };
-  return variablePart;
+  return signedVariablePart;
+}
+
+function getMockedFixedPart(): FixedPart {
+  const fixedPart: FixedPart = {
+    chainId: '',
+    participants: [],
+    channelNonce: 0,
+    appDefinition: '',
+    challengeDuration: 0,
+  };
+  return fixedPart;
+}
+
+function mockSigs(vp: VariablePart): SignedVariablePart {
+  return {
+    variablePart: vp,
+    sigs: [],
+    signedBy: '0',
+  };
 }
 
 beforeAll(async () => {
   trivialApp = setupContract(provider, TrivialAppArtifact, process.env.TRIVIAL_APP_ADDRESS);
 });
 
-describe('validTransition', () => {
+describe('latestSupportedState', () => {
   it('Transitions between random VariableParts are valid', async () => {
     expect.assertions(5);
     for (let i = 0; i < 5; i++) {
-      const from: VariablePart = getRandomVariablePart();
-      const to: VariablePart = getRandomVariablePart();
-      const isValidFromCall = await trivialApp.validTransition(from, to, 0);
-      expect(isValidFromCall).toBe(true);
+      const from: SignedVariablePart = getRandomSignedVariablePart();
+      const to: SignedVariablePart = getRandomSignedVariablePart();
+      const latestSupportedState = await trivialApp.latestSupportedApp(getMockedFixedPart(), [
+        from,
+        to,
+      ]);
+      expect(latestSupportedState).toBe(to);
     }
   });
 
@@ -59,9 +91,13 @@ describe('validTransition', () => {
     };
     const toState: State = {...fromState, turnNum: 2};
 
-    expect(
-      // Use the helper function, which accepts States instead of VariableParts
-      await validTransition(fromState, toState, trivialApp)
-    ).toBe(true);
+    const from: SignedVariablePart = mockSigs(getVariablePart(fromState));
+    const to: SignedVariablePart = mockSigs(getVariablePart(toState));
+
+    const latestSupportedState = await trivialApp.latestSupportedApp(getFixedPart(fromState), [
+      from,
+      to,
+    ]);
+    expect(latestSupportedState).toBe(to);
   });
 });
