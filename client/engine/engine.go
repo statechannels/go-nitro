@@ -338,22 +338,13 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 
 }
 
-func (e *Engine) recordSideEffectsMetrics(sideEffects protocols.SideEffects) {
-
-	for _, tx := range sideEffects.TransactionsToSubmit {
-		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId)
-		e.chain.Send(tx)
-	}
-	for _, proposal := range sideEffects.ProposalsToProcess {
-		e.fromLedger <- proposal
-	}
-}
-
 // executeSideEffects executes the SideEffects declared by cranking an Objective
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	for _, message := range sideEffects.MessagesToSend {
 
 		e.logger.Printf("Sending message %+v", protocols.SummarizeMessage(message))
+		e.metricsRecorder.RecordMetric("message-proposals", float64(len(message.SignedProposals())), *e.store.GetAddress())
+		e.metricsRecorder.RecordMetric("message-states", float64(len(message.SignedStates())), *e.store.GetAddress())
 		e.msg.Send(message)
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
