@@ -178,8 +178,12 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 				}
 			} else {
 				objective = objective.Reject()
+				err = e.store.SetObjective(objective)
+				if err != nil {
+					return ObjectiveChangeEvent{}, err
+				}
+
 				allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
-				// TODO: store rejected objective in the store
 				// TODO: send rejection notice
 				return allCompleted, nil
 			}
