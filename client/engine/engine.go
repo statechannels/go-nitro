@@ -118,7 +118,7 @@ func (e *Engine) Run() {
 
 		// Handle errors
 		if err != nil {
-			e.logger.Panic(err)
+			e.logger.Panic(fmt.Errorf("%s, error in run loop: %w", e.store.GetAddress(), err))
 			// TODO do not panic if in production.
 			// TODO report errors back to the consuming application
 		}
