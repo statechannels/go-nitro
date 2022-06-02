@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -13,6 +14,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -37,6 +39,68 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, response.Id)
 	return response.ChannelId
 }
+
+
+type RejectingPolicyMaker struct {}
+func (pm *RejectingPolicyMaker) ShouldApprove(obj protocols.Objective) bool {
+	return false
+}
+
+func TestWhenObjectiveIsRejected(t *testing.T) {
+
+	// Setup logging
+	logFile := "test_direct_fund.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
+
+	chain := chainservice.NewMockChain()
+	broker := messageservice.NewBroker()
+
+	meanMessageDelay := time.Duration(0)
+	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, meanMessageDelay)
+	var (
+		clientB client.Client
+		storeB store.Store
+	)
+	{
+		chainservice := chainservice.NewSimpleChainService(chain, bob.Address())
+		messageservice := messageservice.NewTestMessageService(bob.Address(), broker, meanMessageDelay)
+		storeB = store.NewMemStore(bob.PrivateKey)
+		clientB = client.New(messageservice, chainservice, storeB, logDestination, &RejectingPolicyMaker{})
+	}
+
+	outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), ledgerChannelDeposit, ledgerChannelDeposit)
+
+	request := directfund.ObjectiveRequest{
+		CounterParty:      bob.Address(),
+		Outcome:           outcome,
+		AppDefinition:     types.Address{},
+		AppData:           types.Bytes{},
+		ChallengeDuration: big.NewInt(0),
+		Nonce:             rand.Int63(),
+	}
+
+	response := clientA.CreateDirectChannel(request)
+
+	waitTimeForCompletedObjectiveIds(t, &clientB, time.Second, response.Id)
+
+	obj, _ := storeA.GetObjectiveById(response.Id)
+
+	if obj.GetStatus() != protocols.Approved {
+		t.Error("expected objective to be in progress")
+		t.FailNow()
+	}
+
+	obj, _ = storeB.GetObjectiveById(response.Id)
+
+	if obj.GetStatus() != protocols.Rejected {
+		t.Error("expected objective to be rejected")
+		t.FailNow()
+	}
+
+	t.Logf("%+v", response)
+}
+
 func TestDirectFund(t *testing.T) {
 
 	// Setup logging
