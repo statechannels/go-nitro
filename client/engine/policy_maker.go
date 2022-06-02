@@ -2,7 +2,7 @@ package engine
 
 import "github.com/statechannels/go-nitro/protocols"
 
-// PolicyMaker is used to decide whether to approve an objective
+// PolicyMaker is used to decide whether to approve or reject an objective
 type PolicyMaker interface {
 	ShouldApprove(o protocols.Objective) bool
 }

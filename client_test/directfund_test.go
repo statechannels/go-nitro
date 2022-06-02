@@ -40,8 +40,8 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 	return response.ChannelId
 }
 
+type RejectingPolicyMaker struct{}
 
-type RejectingPolicyMaker struct {}
 func (pm *RejectingPolicyMaker) ShouldApprove(obj protocols.Objective) bool {
 	return false
 }
@@ -60,7 +60,7 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, meanMessageDelay)
 	var (
 		clientB client.Client
-		storeB store.Store
+		storeB  store.Store
 	)
 	{
 		chainservice := chainservice.NewSimpleChainService(chain, bob.Address())
