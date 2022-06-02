@@ -131,6 +131,7 @@ func NewObjective(request ObjectiveRequest,
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
 func ConstructObjectiveFromState(
 	initialState state.State,
+	preapprove bool,
 	myAddress types.Address,
 	getChannel GetChannelByIdFunction,
 	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
@@ -153,7 +154,7 @@ func ConstructObjectiveFromState(
 	}
 	return NewObjective(
 		ObjectiveRequest{channelId, paidToBob},
-		true,
+		preapprove,
 		myAddress,
 		getChannel,
 		getTwoPartyConsensusLedger)

@@ -87,6 +87,8 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	logPrefix := e.store.GetAddress().String()[0:8] + ": "
 	e.logger = log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
 
+	e.policymaker = policymaker
+
 	e.logger.Println("Constructed Engine")
 
 	return e
@@ -163,10 +165,25 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
+
+		if objective.GetStatus() == protocols.Unapproved {
+			e.logger.Printf("%+v", e.policymaker)
+			if e.policymaker.ShouldApprove(objective) {
+				objective = objective.Approve()
+			} else {
+				objective = objective.Reject()
+				allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
+				// TODO: store rejected objective in the store
+				// TODO: send rejection notice
+				return allCompleted, nil
+			}
+		}
+
 		if objective.GetStatus() == protocols.Completed {
 			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
 			continue
 		}
+
 		event := protocols.ObjectiveEvent{
 			ObjectiveId:    entry.ObjectiveId,
 			SignedProposal: consensus_channel.SignedProposal{},
@@ -406,23 +423,23 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 
 	switch {
 	case directfund.IsDirectFundObjective(id):
-		dfo, err := directfund.ConstructFromState(true, ss.State(), *e.store.GetAddress())
+		dfo, err := directfund.ConstructFromState(false, ss.State(), *e.store.GetAddress())
 
 		return &dfo, err
 	case virtualfund.IsVirtualFundObjective(id):
-		vfo, err := virtualfund.ConstructObjectiveFromState(ss.State(), *e.store.GetAddress(), e.store.GetConsensusChannel)
+		vfo, err := virtualfund.ConstructObjectiveFromState(ss.State(), false, *e.store.GetAddress(), e.store.GetConsensusChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
-		vdfo, err := virtualdefund.ConstructObjectiveFromState(ss.State(), *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
+		vdfo, err := virtualdefund.ConstructObjectiveFromState(ss.State(), false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
 		return &vdfo, nil
 	case directdefund.IsDirectDefundObjective(id):
-		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), e.store.GetConsensusChannelById)
+		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), false, e.store.GetConsensusChannelById)
 		if err != nil {
 			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message: %w", err)
 		}

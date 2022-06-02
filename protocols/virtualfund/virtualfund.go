@@ -501,6 +501,7 @@ type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
 func ConstructObjectiveFromState(
 	initialState state.State,
+	preapprove bool,
 	myAddress types.Address,
 	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
 ) (Objective, error) {
@@ -541,7 +542,7 @@ func ConstructObjectiveFromState(
 	}
 
 	return constructFromState(
-		true, // TODO ensure objective in only approved if the application has given permission somehow
+		preapprove,
 		initialState,
 		myAddress,
 		leftC,

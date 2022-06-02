@@ -115,12 +115,9 @@ func NewObjective(
 // ConstructObjectiveFromState takes in a state and constructs an objective from it.
 func ConstructObjectiveFromState(
 	s state.State,
+	preapprove bool,
 	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
-	preApprove := true
-	// TODO: do not blindly preapprove
-	// See https://github.com/statechannels/go-nitro/issues/213
-
 	// Implicit in the wire protocol is that the message signalling
 	// closure of a channel includes an isFinal state (in the 0 slot of the message)
 	//
@@ -137,7 +134,7 @@ func ConstructObjectiveFromState(
 	request := ObjectiveRequest{
 		ChannelId: cId,
 	}
-	return NewObjective(request, preApprove, getConsensusChannel)
+	return NewObjective(request, preapprove, getConsensusChannel)
 }
 
 // Public methods on the DirectDefundingObjective
