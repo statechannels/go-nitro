@@ -170,6 +170,12 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 			e.logger.Printf("%+v", e.policymaker)
 			if e.policymaker.ShouldApprove(objective) {
 				objective = objective.Approve()
+
+				ddfo, ok := objective.(*directdefund.Objective)
+				if ok {
+					// If we just approved a direct defund objective, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
+					e.store.DestroyConsensusChannel(ddfo.C.Id)
+				}
 			} else {
 				objective = objective.Reject()
 				allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
@@ -443,8 +449,6 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		if err != nil {
 			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message: %w", err)
 		}
-		// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
-		e.store.DestroyConsensusChannel(ddfo.C.Id)
 		return &ddfo, nil
 
 	default:
