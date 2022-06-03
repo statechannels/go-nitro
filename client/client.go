@@ -47,15 +47,15 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 func (c *Client) handleEngineEvents() {
 	for update := range c.engine.ToApi() {
 
+		for _, new := range update.NewFromPeers {
+			c.newFromPeers <- new.Id()
+		}
 		for _, completed := range update.CompletedObjectives {
 
 			c.completedObjectives <- completed.Id()
 
 		}
 
-		for _, new := range update.NewFromPeers {
-			c.newFromPeers <- new.Id()
-		}
 	}
 }
 
