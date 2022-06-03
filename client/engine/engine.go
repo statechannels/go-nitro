@@ -59,6 +59,9 @@ type APIEvent struct {
 type ObjectiveChangeEvent struct {
 	// These are objectives that are now completed
 	CompletedObjectives []protocols.Objective
+
+	// These are objectives that have just been created by receiving a message from a peer
+	NewFromPeers []protocols.Objective
 }
 
 type CompletedObjectiveEvent struct {
@@ -125,7 +128,7 @@ func (e *Engine) Run() {
 		}
 
 		// Only send out an event if there are changes
-		if len(res.CompletedObjectives) > 0 {
+		if len(res.CompletedObjectives) > 0 || len(res.NewFromPeers) > 0 {
 			for _, obj := range res.CompletedObjectives {
 				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
 			}
@@ -156,14 +159,19 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (ObjectiveC
 func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent, error) {
 
 	e.logger.Printf("Handling inbound message %+v", protocols.SummarizeMessage(message))
-	allCompleted := ObjectiveChangeEvent{}
+	changes := ObjectiveChangeEvent{}
 
 	for _, entry := range message.SignedStates() {
 
-		objective, err := e.getOrCreateObjective(entry.ObjectiveId, entry.Payload)
+		objective, isNew, err := e.getOrCreateObjective(entry.ObjectiveId, entry.Payload)
+
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
+		if isNew {
+			changes.NewFromPeers = append(changes.NewFromPeers, objective)
+		}
+
 		if objective.GetStatus() == protocols.Completed {
 			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
 			continue
@@ -182,7 +190,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+		changes.CompletedObjectives = append(changes.CompletedObjectives, progressEvent.CompletedObjectives...)
 
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
@@ -216,14 +224,14 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 			return ObjectiveChangeEvent{}, err
 		}
 
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+		changes.CompletedObjectives = append(changes.CompletedObjectives, progressEvent.CompletedObjectives...)
 
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
 
 	}
-	return allCompleted, nil
+	return changes, nil
 
 }
 
@@ -395,27 +403,27 @@ func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 }
 
 // getOrCreateObjective creates the objective if the supplied message is a proposal. Otherwise, it attempts to get the objective from the store.
-func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedState) (protocols.Objective, error) {
+func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedState) (o protocols.Objective, isNew bool, err error) {
 
 	objective, err := e.store.GetObjectiveById(id)
 
 	if err == nil {
-		return objective, nil
+		return objective, false, nil
 	} else if errors.Is(err, store.ErrNoSuchObjective) {
 
 		newObj, err := e.constructObjectiveFromMessage(id, ss)
 		if err != nil {
-			return nil, fmt.Errorf("error constructing objective from message: %w", err)
+			return nil, false, fmt.Errorf("error constructing objective from message: %w", err)
 		}
 		err = e.store.SetObjective(newObj)
 		if err != nil {
-			return nil, fmt.Errorf("error setting objective in store: %w", err)
+			return nil, false, fmt.Errorf("error setting objective in store: %w", err)
 		}
 		e.logger.Printf("Created new objective from  message %s", newObj.Id())
-		return newObj, nil
+		return newObj, true, nil
 
 	} else {
-		return nil, fmt.Errorf("unexpected error getting/creating objective %s: %w", id, err)
+		return nil, false, fmt.Errorf("unexpected error getting/creating objective %s: %w", id, err)
 	}
 }
 

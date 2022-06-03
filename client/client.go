@@ -22,6 +22,7 @@ type Client struct {
 	engine              engine.Engine // The core business logic of the client
 	Address             *types.Address
 	completedObjectives chan protocols.ObjectiveId
+	newFromPeers        chan protocols.ObjectiveId
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -30,7 +31,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.Address = store.GetAddress()
 	c.engine = engine.New(messageService, chainservice, store, logDestination)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
-
+	c.newFromPeers = make(chan protocols.ObjectiveId, 100)
 	// Start the engine in a go routine
 	go c.engine.Run()
 
@@ -52,6 +53,9 @@ func (c *Client) handleEngineEvents() {
 
 		}
 
+		for _, new := range update.NewFromPeers {
+			c.newFromPeers <- new.Id()
+		}
 	}
 }
 
@@ -60,6 +64,11 @@ func (c *Client) handleEngineEvents() {
 // CompletedObjectives returns a chan that receives a objective id whenever that objective is completed
 func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 	return c.completedObjectives
+}
+
+// NewObjectivesFromPeers returns any new objectives that have been sent to the client from a peer.
+func (c *Client) NewObjectivesFromPeers() <-chan protocols.ObjectiveId {
+	return c.newFromPeers
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
