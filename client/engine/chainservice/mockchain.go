@@ -18,7 +18,7 @@ type MockChain struct {
 
 // NewMockChain returns a new MockChain.
 func NewMockChain() *MockChain {
-	mc := MockChain{ChainServiceBase: NewChainServiceBase()}
+	mc := MockChain{ChainServiceBase: newChainServiceBase()}
 	mc.holdings = make(map[types.Destination]types.Funds)
 	mc.blockNum = new(uint64)
 	*mc.blockNum = 1
