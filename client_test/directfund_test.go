@@ -63,10 +63,9 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 		storeB  store.Store
 	)
 	{
-		chainservice := chainservice.NewSimpleChainService(chain, bob.Address())
 		messageservice := messageservice.NewTestMessageService(bob.Address(), broker, meanMessageDelay)
 		storeB = store.NewMemStore(bob.PrivateKey)
-		clientB = client.New(messageservice, chainservice, storeB, logDestination, &RejectingPolicyMaker{})
+		clientB = client.New(messageservice, chain, storeB, logDestination, &RejectingPolicyMaker{})
 	}
 
 	outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), ledgerChannelDeposit, ledgerChannelDeposit)

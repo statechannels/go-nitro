@@ -10,23 +10,26 @@ import (
 )
 
 func TestDeposit(t *testing.T) {
-	// The MockChain and SimpleChainService should work together to react to a deposit transaction for a given channel by:
-	//  - sending an event with updated holdings for that channel to all SimpleChainServices which are subscribed
+	// The MockChain should react to a deposit transaction for a given channel by sending an event with updated holdings for that channel to all subsribers
 
 	var a = types.Address(common.HexToAddress(`a`))
 	var b = types.Address(common.HexToAddress(`b`))
 
-	// Construct MockChain and tell it the addresses of the SimpleChainServices which will subscribe to it.
+	// Construct MockChain and tell it the subscriber addresses.
 	// This is not super elegant but gets around data races -- the constructor will make channels and then run a listener which will send on them.
 	var chain = NewMockChain()
-	chain.Subscribe(a)
-	chain.Subscribe(b)
+	chain.SubscribeToEvents(a)
+	chain.SubscribeToEvents(b)
 
-	// Construct SimpleChainServices
-	mcsA := NewSimpleChainService(chain, a)
-	mcsB := NewSimpleChainService(chain, b)
+	eventFeedA, err := chain.EventFeed(a)
+	if err != nil {
+		t.Fatalf("subscription for address a failed")
+	}
 
-	outA := mcsA.Out()
+	eventFeedB, err := chain.EventFeed(b)
+	if err != nil {
+		t.Fatalf("subscription for address b failed")
+	}
 
 	// Prepare test data to trigger MockChainService
 	testDeposit := types.Funds{
@@ -38,9 +41,9 @@ func TestDeposit(t *testing.T) {
 		Type:      protocols.DepositTransactionType,
 	}
 
-	// Send one transaction into one of the SimpleChainServices and receive one event from it.
-	mcsA.Send(testTx)
-	event := <-outA
+	// Send one transaction and receive one event from it.
+	chain.SendTransaction(testTx)
+	event := <-eventFeedA
 
 	if event.ChannelID() != testTx.ChannelId {
 		t.Fatalf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, event.ChannelID())
@@ -50,8 +53,8 @@ func TestDeposit(t *testing.T) {
 	}
 
 	// Send the transaction again and receive another event
-	mcsA.Send(testTx)
-	event = <-outA
+	chain.SendTransaction(testTx)
+	event = <-eventFeedA
 
 	// The expectation is that the MockChainService remembered the previous deposit and added this one to it:
 	expectedHoldings := testTx.Deposit.Add(testTx.Deposit)
@@ -64,7 +67,7 @@ func TestDeposit(t *testing.T) {
 	}
 
 	// Pull an event out of the other mock chain service and check that
-	eventB := <-mcsB.Out()
+	eventB := <-eventFeedB
 
 	if eventB.ChannelID() != testTx.ChannelId {
 		t.Fatalf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, eventB.ChannelID())
@@ -74,7 +77,7 @@ func TestDeposit(t *testing.T) {
 	}
 
 	// Pull another event out of the other mock chain service and check that
-	eventB = <-mcsB.Out()
+	eventB = <-eventFeedB
 
 	if eventB.ChannelID() != testTx.ChannelId {
 		t.Fatalf(`channelId mismatch: expected %v but got %v`, testTx.ChannelId, eventB.ChannelID())
