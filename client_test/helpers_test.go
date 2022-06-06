@@ -66,7 +66,7 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 }
 
 // setupClient is a helper function that contructs a client and returns the new client and its store.
-func setupClient(pk []byte, chain *chainservice.MockChain, msgBroker messageservice.Broker, logDestination io.Writer, meanMessageDelay time.Duration) (client.Client, store.Store) {
+func setupClient(pk []byte, chain chainservice.ChainService, msgBroker messageservice.Broker, logDestination io.Writer, meanMessageDelay time.Duration) (client.Client, store.Store) {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
 	storeA := store.NewMemStore(pk)
