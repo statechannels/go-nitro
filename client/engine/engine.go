@@ -43,16 +43,15 @@ type Engine struct {
 	msg   messageservice.MessageService
 	chain chainservice.ChainService
 
-	store store.Store // A Store for persisting and restoring important data
+	store       store.Store // A Store for persisting and restoring important data
+	policymaker PolicyMaker // A PolicyMaker decides whether to approve or reject objectives
 
 	logger *log.Logger
 }
 
 // APIEvent is an internal representation of an API call
 type APIEvent struct {
-	ObjectiveToSpawn   protocols.ObjectiveRequest
-	ObjectiveToReject  protocols.ObjectiveId
-	ObjectiveToApprove protocols.ObjectiveId
+	ObjectiveToSpawn protocols.ObjectiveRequest
 }
 
 // ObjectiveChangeEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
@@ -69,7 +68,7 @@ type CompletedObjectiveEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer) Engine {
+func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker PolicyMaker) Engine {
 	e := Engine{}
 
 	e.store = store
@@ -87,6 +86,8 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	// initialize a Logger
 	logPrefix := e.store.GetAddress().String()[0:8] + ": "
 	e.logger = log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
+
+	e.policymaker = policymaker
 
 	e.logger.Println("Constructed Engine")
 
@@ -119,7 +120,7 @@ func (e *Engine) Run() {
 
 		// Handle errors
 		if err != nil {
-			e.logger.Panic(err)
+			e.logger.Panic(fmt.Errorf("%s, error in run loop: %w", e.store.GetAddress(), err))
 			// TODO do not panic if in production.
 			// TODO report errors back to the consuming application
 		}
@@ -164,10 +165,35 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
+
+		if objective.GetStatus() == protocols.Unapproved {
+			e.logger.Printf("%+v", e.policymaker)
+			if e.policymaker.ShouldApprove(objective) {
+				objective = objective.Approve()
+
+				ddfo, ok := objective.(*directdefund.Objective)
+				if ok {
+					// If we just approved a direct defund objective, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
+					e.store.DestroyConsensusChannel(ddfo.C.Id)
+				}
+			} else {
+				objective = objective.Reject()
+				err = e.store.SetObjective(objective)
+				if err != nil {
+					return ObjectiveChangeEvent{}, err
+				}
+
+				allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
+				// TODO: send rejection notice
+				return allCompleted, nil
+			}
+		}
+
 		if objective.GetStatus() == protocols.Completed {
 			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
 			continue
 		}
+
 		event := protocols.ObjectiveEvent{
 			ObjectiveId:    entry.ObjectiveId,
 			SignedProposal: consensus_channel.SignedProposal{},
@@ -299,23 +325,6 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 
 	}
 
-	if apiEvent.ObjectiveToReject != `` {
-		objective, err := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
-		if err != nil {
-			return ObjectiveChangeEvent{}, err
-		}
-		updatedProtocol := objective.Reject()
-		err = e.store.SetObjective(updatedProtocol)
-		return ObjectiveChangeEvent{}, err
-	}
-	if apiEvent.ObjectiveToApprove != `` {
-		objective, err := e.store.GetObjectiveById(apiEvent.ObjectiveToReject)
-		if err != nil {
-			return ObjectiveChangeEvent{}, err
-		}
-		updatedObjective := objective.Approve()
-		return e.attemptProgress(updatedObjective)
-	}
 	return ObjectiveChangeEvent{}, nil
 
 }
@@ -394,7 +403,7 @@ func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 	return nil
 }
 
-// getOrCreateObjective creates the objective if the supplied message is a proposal. Otherwise, it attempts to get the objective from the store.
+// getOrCreateObjective retrieves the objective from the store. if the objective does not exist, it creates the objective using the supplied signed state, and stores it in the store
 func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedState) (protocols.Objective, error) {
 
 	objective, err := e.store.GetObjectiveById(id)
@@ -424,28 +433,26 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 
 	switch {
 	case directfund.IsDirectFundObjective(id):
-		dfo, err := directfund.ConstructFromState(true, ss.State(), *e.store.GetAddress())
+		dfo, err := directfund.ConstructFromState(false, ss.State(), *e.store.GetAddress())
 
 		return &dfo, err
 	case virtualfund.IsVirtualFundObjective(id):
-		vfo, err := virtualfund.ConstructObjectiveFromState(ss.State(), *e.store.GetAddress(), e.store.GetConsensusChannel)
+		vfo, err := virtualfund.ConstructObjectiveFromState(ss.State(), false, *e.store.GetAddress(), e.store.GetConsensusChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
-		vdfo, err := virtualdefund.ConstructObjectiveFromState(ss.State(), *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
+		vdfo, err := virtualdefund.ConstructObjectiveFromState(ss.State(), false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
 		return &vdfo, nil
 	case directdefund.IsDirectDefundObjective(id):
-		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), e.store.GetConsensusChannelById)
+		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), false, e.store.GetConsensusChannelById)
 		if err != nil {
 			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message: %w", err)
 		}
-		// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
-		e.store.DestroyConsensusChannel(ddfo.C.Id)
 		return &ddfo, nil
 
 	default:

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/statechannels/go-nitro/client"
+	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	simpletcp "github.com/statechannels/go-nitro/client/engine/messageservice/simple-tcp"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -19,7 +20,7 @@ func setupClientWithSimpleTCP(pk []byte, chain *chainservice.MockChain, peers ma
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	messageservice := simpletcp.NewSimpleTCPMessageService(peers[myAddress], peers)
 	storeA := store.NewMemStore(pk)
-	return client.New(messageservice, chain, storeA, logDestination), messageservice
+	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}), messageservice
 }
 
 func TestSimpleTCPMessageService(t *testing.T) {

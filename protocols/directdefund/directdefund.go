@@ -24,7 +24,6 @@ const (
 const ObjectivePrefix = "DirectDefunding-"
 
 var (
-	ErrNotApproved             = errors.New("objective not approved")
 	ErrChannelUpdateInProgress = errors.New("can only defund a channel when the latest state is supported or when the channel has a final state")
 	ErrNoFinalState            = errors.New("cannot spawn direct defund objective without a final state")
 )
@@ -116,12 +115,9 @@ func NewObjective(
 // ConstructObjectiveFromState takes in a state and constructs an objective from it.
 func ConstructObjectiveFromState(
 	s state.State,
+	preapprove bool,
 	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
-	preApprove := true
-	// TODO: do not blindly preapprove
-	// See https://github.com/statechannels/go-nitro/issues/213
-
 	// Implicit in the wire protocol is that the message signalling
 	// closure of a channel includes an isFinal state (in the 0 slot of the message)
 	//
@@ -138,7 +134,7 @@ func ConstructObjectiveFromState(
 	request := ObjectiveRequest{
 		ChannelId: cId,
 	}
-	return NewObjective(request, preApprove, getConsensusChannel)
+	return NewObjective(request, preapprove, getConsensusChannel)
 }
 
 // Public methods on the DirectDefundingObjective
@@ -228,7 +224,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	sideEffects := protocols.SideEffects{}
 
 	if updated.Status != protocols.Approved {
-		return &updated, sideEffects, WaitingForNothing, ErrNotApproved
+		return &updated, sideEffects, WaitingForNothing, protocols.ErrNotApproved
 	}
 
 	latestSignedState, err := updated.C.LatestSignedState()

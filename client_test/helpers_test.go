@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/statechannels/go-nitro/client"
+	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -69,7 +70,7 @@ func setupClient(pk []byte, chain *chainservice.MockChain, msgBroker messageserv
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
 	storeA := store.NewMemStore(pk)
-	return client.New(messageservice, chain, storeA, logDestination), storeA
+	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}), storeA
 }
 
 func truncateLog(logFile string) {

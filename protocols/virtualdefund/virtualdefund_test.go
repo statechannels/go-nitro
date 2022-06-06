@@ -169,7 +169,7 @@ func TestConstructObjectiveFromState(t *testing.T) {
 
 	getChannel, getConsensusChannel := generateStoreGetters(alice.Role, vId, data.vInitial)
 
-	got, err := ConstructObjectiveFromState(data.vFinal, alice.Address(), getChannel, getConsensusChannel)
+	got, err := ConstructObjectiveFromState(data.vFinal, true, alice.Address(), getChannel, getConsensusChannel)
 	if err != nil {
 		t.Fatal(err)
 	}
