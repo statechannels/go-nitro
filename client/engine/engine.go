@@ -403,7 +403,7 @@ func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 	return nil
 }
 
-// getOrCreateObjective retrieves the objective from the store. if the objective does not exist, it creates the objective if the supplied signed state, and stores it in the store
+// getOrCreateObjective retrieves the objective from the store. if the objective does not exist, it creates the objective using the supplied signed state, and stores it in the store
 func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedState) (protocols.Objective, error) {
 
 	objective, err := e.store.GetObjectiveById(id)
