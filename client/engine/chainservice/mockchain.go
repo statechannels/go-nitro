@@ -39,11 +39,7 @@ func NewMockChainWithTransactionListener(txListener chan protocols.ChainTransact
 func (mc *MockChain) SendTransaction(tx protocols.ChainTransaction) {
 	*mc.blockNum++
 	if mc.txListener != nil {
-		// Send to txListener and ignore if the chan is full
-		select {
-		case mc.txListener <- tx:
-		default:
-		}
+		mc.txListener <- tx
 	}
 	if tx.Deposit.IsNonZero() {
 		mc.holdings[tx.ChannelId] = mc.holdings[tx.ChannelId].Add(tx.Deposit)
