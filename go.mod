@@ -6,6 +6,12 @@ require (
 	github.com/DistributedClocks/GoVector v0.0.0-20210402100930-db949c81a0af
 	github.com/ethereum/go-ethereum v1.10.8
 	github.com/google/go-cmp v0.5.6
+	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
+)
+
+require (
+	github.com/go-kit/kit v0.9.0 // indirect
+	google.golang.org/protobuf v1.25.0 // indirect
 )
 
 require (
