@@ -59,7 +59,8 @@ type ChainServiceBase struct {
 	out safesync.Map[chan Event]
 }
 
-func NewChainServiceBase() ChainServiceBase {
+// newChainServiceBase constructs a ChainServiceBase. Only implementations of ChainService interface should call the constructor.
+func newChainServiceBase() ChainServiceBase {
 	return ChainServiceBase{out: safesync.Map[chan Event]{}}
 }
 

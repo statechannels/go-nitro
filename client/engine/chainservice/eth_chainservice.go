@@ -31,7 +31,7 @@ type EthChainService struct {
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
 func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, txSigner *bind.TransactOpts, es eventSource) *EthChainService {
-	ecs := EthChainService{ChainServiceBase: NewChainServiceBase()}
+	ecs := EthChainService{ChainServiceBase: newChainServiceBase()}
 	ecs.out = safesync.Map[chan Event]{}
 	ecs.na = na
 	ecs.txSigner = txSigner
