@@ -33,6 +33,12 @@ brew install golangci-lint
 brew upgrade golangci-lint
 ```
 
+### Install [staticcheck](http://staticcheck.io)
+
+```
+go install honnef.co/go/tools/cmd/staticcheck@latest
+```
+
 ### Make sure GOPATH is set:
 
 ```
@@ -66,6 +72,12 @@ and navigate to http://localhost:6060/pkg/github.com/statechannels/go-nitro/
 # Pre PR checks:
 
 Please execute the following on any branch that's ready for review or merge.
+
+### staticcheck:
+
+```
+staticcheck ./...
+```
 
 ### format:
 
