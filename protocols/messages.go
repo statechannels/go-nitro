@@ -3,6 +3,7 @@ package protocols
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"sort"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -102,6 +103,22 @@ func (m Message) Serialize() (string, error) {
 type jsonMessage struct {
 	To       types.Address
 	Payloads []messagePayload
+}
+
+// MarshalJSON provides a custom json marshaler that avoids marshaling empty structs
+func (p *messagePayload) MarshalJSON() ([]byte, error) {
+	m := make(map[string]interface{})
+	m["ObjectiveId"] = p.ObjectiveId
+	switch p.Type() {
+	case SignedStatePayload:
+		m["SignedState"] = p.SignedState
+	case SignedProposalPayload:
+		m["SignedProposal"] = p.SignedProposal
+	default:
+		return []byte{}, fmt.Errorf("Unknown payload type")
+	}
+
+	return json.Marshal(m)
 }
 
 // DeserializeMessage deserializes the passed string into a protocols.Message.
