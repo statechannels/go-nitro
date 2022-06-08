@@ -3,6 +3,7 @@ package consensus_channel
 import (
 	"errors"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -191,6 +192,20 @@ func TestConsensusChannel(t *testing.T) {
 		}
 	}
 
+	testEmptyProposalClone := func(t *testing.T) {
+		add := Add{}
+		clonedAdd := add.Clone()
+		if !reflect.DeepEqual(add, clonedAdd) {
+			t.Fatalf("cloned add is not equal to original")
+		}
+		remove := Remove{}
+		clonedRemove := remove.Clone()
+
+		if !reflect.DeepEqual(remove, clonedRemove) {
+			t.Fatalf("cloned remove is not equal to original")
+		}
+	}
+	t.Run(`TestEmptyProposalClone`, testEmptyProposalClone)
 	t.Run(`TestApplyingAddProposalToVars`, testApplyingAddProposalToVars)
 	t.Run(`TestApplyingRemoveProposalToVars`, testApplyingRemoveProposalToVars)
 	t.Run(`TestConsensusChannelFunctionality`, testConsensusChannelFunctionality)

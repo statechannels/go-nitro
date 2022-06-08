@@ -659,7 +659,7 @@ type Add struct {
 
 // Clone returns a deep copy of the receiver.
 func (a *Add) Clone() Add {
-	if a == nil {
+	if a == nil || a.LeftDeposit == nil {
 		return Add{}
 	}
 	return Add{
