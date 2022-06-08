@@ -24,7 +24,10 @@ type Message struct {
 	payloads []messagePayload
 }
 
-// messagePayload is an objective id and EITHER a SignedState or SignedProposal. This package is expected to validate a message payload when it is received
+// messagePayload is an objective id and EITHER a SignedState or SignedProposal. This package guarantees that a payload has only one value by:
+//  - validating messages that are deserialized from JSON
+//  - providing message constructors which create valid messages
+
 type messagePayload struct {
 	ObjectiveId    ObjectiveId
 	SignedState    state.SignedState
@@ -121,12 +124,26 @@ func (p *messagePayload) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// ErrInvalidPayload is returned when the payload has too many values
+var ErrInvalidPayload = fmt.Errorf("payload has too many values")
+
 // DeserializeMessage deserializes the passed string into a protocols.Message.
 func DeserializeMessage(s string) (Message, error) {
 	msg := jsonMessage{}
 	err := json.Unmarshal([]byte(s), &msg)
 
-	// TODO: validation
+	for _, p := range msg.Payloads {
+		numPresent := 0
+		if p.hasProposal() {
+			numPresent += 1
+		}
+		if p.hasState() {
+			numPresent += 1
+		}
+		if numPresent != 1 {
+			return Message{}, ErrInvalidPayload
+		}
+	}
 
 	return Message{To: msg.To, payloads: msg.Payloads}, err
 }
