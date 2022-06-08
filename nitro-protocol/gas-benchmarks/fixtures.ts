@@ -98,6 +98,7 @@ class TestChannel {
         {
           variablePart: getVariablePart(state),
           sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
+          signedBy: '0',
         },
       ],
       challengeSignature: signChallengeMessage([{state} as SignedState], Alice.privateKey),
@@ -119,6 +120,7 @@ class TestChannel {
         {
           variablePart: getVariablePart(state),
           sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
+          signedBy: '0',
         },
       ],
     };
