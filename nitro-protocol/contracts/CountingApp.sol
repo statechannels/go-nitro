@@ -3,11 +3,11 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
-import {StrictTurnTaking} from './libraries/signature-logic/StrictTurnTaking.sol';
+import {ShortcuttingTurnTaking} from './libraries/signature-logic/ShortcuttingTurnTaking.sol';
 import './interfaces/IForceMoveApp.sol';
 
 /**
- * @dev The CountingApp contract complies with the ForceMoveApp interface and TurnTaking logic and allows only for a simple counter to be incremented. Used for testing purposes.
+ * @dev The CountingApp contract complies with the ForceMoveApp interface and shortcutting turn taking logic and allows only for a simple counter to be incremented. Used for testing purposes.
  */
 contract CountingApp is IForceMoveApp {
     struct CountingAppData {
@@ -36,7 +36,7 @@ contract CountingApp is IForceMoveApp {
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
     ) external pure override returns (VariablePart memory) {
-        StrictTurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts);
+        ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts);
 
         for (uint i = 1; i < signedVariableParts.length; i++) {
             _requireIncrementedCounter(signedVariableParts[i], signedVariableParts[i-1]);

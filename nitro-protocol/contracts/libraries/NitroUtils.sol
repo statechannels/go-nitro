@@ -30,10 +30,10 @@ library NitroUtils {
     }
 
     /**
-     * @notice Given a digest and ethereum digital signature, recover the signer
-     * @dev Given a digest and digital signature, recover the signer
-     * @param _d message digest
-     * @param sig ethereum digital signature
+     * @notice Given a digest and ethereum digital signature, recover the signer.
+     * @dev Given a digest and digital signature, recover the signer.
+     * @param _d message digest.
+     * @param sig ethereum digital signature.
      * @return signer
      */
     function recoverSigner(bytes32 _d, INitroTypes.Signature memory sig)
@@ -45,6 +45,45 @@ library NitroUtils {
         address a = ecrecover(prefixedHash, sig.v, sig.r, sig.s);
         require(a != address(0), 'Invalid signature');
         return (a);
+    }
+
+    /**
+     * @notice Count number of bits set to '1', specifying the number of participants which have signed the state.
+     * @dev Count number of bits set to '1', specifying the number of participants which have signed the state.
+     * @param signedBy Bit mask field specifying which participants have signed the state.
+     * @return amount of signers, which have signed the state.
+     */
+    function getSignersAmount(uint256 signedBy) internal pure returns (uint8) {
+        uint8 amount = 0;
+
+        for (; signedBy > 0; amount++) {
+            signedBy &= signedBy - 1;
+        }
+
+        return amount;
+    }
+
+    /**
+     * @notice Determine indices of participants who have signed the state.
+     * @dev Determine indices of participants who have signed the state.
+     * @param signedBy Bit mask field specifying which participants have signed the state.
+     * @return signerIndices
+     */
+    function getSignerIndices(uint256 signedBy) internal pure returns (uint8[] memory) {
+        uint8[] memory signerIndices = new uint8[](getSignersAmount(signedBy));
+        uint8 signerNum = 0;
+        uint8 acceptedSigners = 0;
+
+        while (signedBy > 0) {
+            if (signedBy % 2 == 1) {
+                signerIndices[acceptedSigners] = signerNum;
+                acceptedSigners++;
+            }
+            signedBy = signedBy >> 1;
+            signerNum++;
+        }
+        
+        return signerIndices;
     }
 
     // *****************
