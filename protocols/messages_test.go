@@ -33,7 +33,7 @@ func TestMessage(t *testing.T) {
 
 	msg := Message{
 		To: types.Address{'a'},
-		Payloads: []MessagePayload{{
+		payloads: []messagePayload{{
 			ObjectiveId: `say-hello-to-my-little-friend`,
 			SignedState: state.NewSignedState(state.TestState),
 		}, {

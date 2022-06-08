@@ -10,38 +10,38 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type PayloadType string
+
 const (
 	SignedStatePayload    PayloadType = "SignedStatePayload"
 	SignedProposalPayload PayloadType = "SignedProposalPayload"
 )
 
-type PayloadType string
-
 // Message is an object to be sent across the wire. It can contain a proposal and signed states, and is addressed to a counterparty.
 type Message struct {
 	To       types.Address
-	Payloads []MessagePayload
+	payloads []messagePayload
 }
 
-// MessagePayload is an objective id and EITHER a SignedState or SignedProposal.
-type MessagePayload struct {
+// messagePayload is an objective id and EITHER a SignedState or SignedProposal. This package is expected to validate a message payload when it is received
+type messagePayload struct {
 	ObjectiveId    ObjectiveId
 	SignedState    state.SignedState
 	SignedProposal consensus_channel.SignedProposal
 }
 
 // hasState returns true if the payload contains a signed state.
-func (p MessagePayload) hasState() bool {
+func (p messagePayload) hasState() bool {
 	return !p.SignedState.State().Equal(state.State{})
 }
 
 // hasProposal returns true if the payload contains a signed proposal.
-func (p MessagePayload) hasProposal() bool {
+func (p messagePayload) hasProposal() bool {
 	return p.SignedProposal.Proposal != consensus_channel.Proposal{}
 }
 
 // Type returns the type of the payload, either a SignedProposal or SignedState.
-func (p MessagePayload) Type() PayloadType {
+func (p messagePayload) Type() PayloadType {
 	switch {
 	case p.hasProposal() && !p.hasState():
 		return SignedProposalPayload
@@ -64,7 +64,7 @@ type ObjectivePayload[T PayloadValue] struct {
 // The states are sorted by channel id then turnNum.
 func (m Message) SignedStates() []ObjectivePayload[state.SignedState] {
 	signedStates := make([]ObjectivePayload[state.SignedState], 0)
-	for _, p := range m.Payloads {
+	for _, p := range m.payloads {
 		if p.Type() == SignedStatePayload {
 			entry := ObjectivePayload[state.SignedState]{p.SignedState, p.ObjectiveId}
 			signedStates = append(signedStates, entry)
@@ -80,7 +80,7 @@ func (m Message) SignedStates() []ObjectivePayload[state.SignedState] {
 // The proposals are sorted by ledger id then turnNum.
 func (m Message) SignedProposals() []ObjectivePayload[consensus_channel.SignedProposal] {
 	signedProposals := make([]ObjectivePayload[consensus_channel.SignedProposal], 0)
-	for _, p := range m.Payloads {
+	for _, p := range m.payloads {
 		if p.Type() == SignedProposalPayload {
 			entry := ObjectivePayload[consensus_channel.SignedProposal]{p.SignedProposal, p.ObjectiveId}
 			signedProposals = append(signedProposals, entry)
@@ -94,15 +94,24 @@ func (m Message) SignedProposals() []ObjectivePayload[consensus_channel.SignedPr
 
 // Serialize serializes the message into a string.
 func (m Message) Serialize() (string, error) {
-	bytes, err := json.Marshal(m)
+	bytes, err := json.Marshal(jsonMessage{m.To, m.payloads})
 	return string(bytes), err
+}
+
+// jsonMessage is a private struct with public members, allowing a Message to be easily serialized
+type jsonMessage struct {
+	To       types.Address
+	Payloads []messagePayload
 }
 
 // DeserializeMessage deserializes the passed string into a protocols.Message.
 func DeserializeMessage(s string) (Message, error) {
-	msg := Message{}
+	msg := jsonMessage{}
 	err := json.Unmarshal([]byte(s), &msg)
-	return msg, err
+
+	// TODO: validation
+
+	return Message{To: msg.To, payloads: msg.Payloads}, err
 }
 
 // CreateSignedStateMessages creates a set of messages containing the signed state.
@@ -116,12 +125,12 @@ func CreateSignedStateMessages(id ObjectiveId, ss state.SignedState, myIndex uin
 		if uint(i) == myIndex {
 			continue
 		}
-		payload := MessagePayload{
+		payload := messagePayload{
 			ObjectiveId: id,
 			SignedState: ss,
 		}
 
-		message := Message{To: participant, Payloads: []MessagePayload{payload}}
+		message := Message{To: participant, payloads: []messagePayload{payload}}
 		messages = append(messages, message)
 	}
 	return messages
@@ -219,10 +228,10 @@ func SummarizeProposal(oId ObjectiveId, sp consensus_channel.SignedProposal) Pro
 // It contains the provided signed proposals and any proposals in the proposal queue.
 func CreateSignedProposalMessage(recipient types.Address, proposals ...consensus_channel.SignedProposal) Message {
 
-	payloads := make([]MessagePayload, len(proposals))
+	payloads := make([]messagePayload, len(proposals))
 	for i, sp := range proposals {
 		id := getProposalObjectiveId(sp.Proposal)
-		payloads[i] = MessagePayload{
+		payloads[i] = messagePayload{
 			ObjectiveId:    id,
 			SignedProposal: sp,
 		}
@@ -230,7 +239,7 @@ func CreateSignedProposalMessage(recipient types.Address, proposals ...consensus
 
 	return Message{
 		To:       recipient,
-		Payloads: payloads,
+		payloads: payloads,
 	}
 }
 

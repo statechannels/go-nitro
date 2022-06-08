@@ -126,7 +126,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func compareSideEffect(a, b protocols.SideEffects) string {
-	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}, consensus_channel.Add{}, consensus_channel.Remove{}, consensus_channel.Guarantee{}))
+	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}, consensus_channel.Add{}, consensus_channel.Remove{}, consensus_channel.Guarantee{}, protocols.Message{}))
 }
 
 func TestCrankAlice(t *testing.T) {
@@ -156,13 +156,8 @@ func TestCrankAlice(t *testing.T) {
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
 
 	expectedSE := protocols.SideEffects{
-		MessagesToSend: []protocols.Message{{
-			To: bob.Address(),
-			Payloads: []protocols.MessagePayload{{
-				ObjectiveId: o.Id(),
-				SignedState: finalStateSignedByAlice,
-			}},
-		}}}
+		MessagesToSend: protocols.CreateSignedStateMessages(o.Id(), finalStateSignedByAlice, 0),
+	}
 
 	if diff := compareSideEffect(expectedSE, se); diff != "" {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
@@ -247,11 +242,8 @@ func TestCrankBob(t *testing.T) {
 	// Create the state we expect Bob to send
 	finalStateSignedByBob, _ := signedTestState(finalState, []bool{false, true})
 	expectedSE := protocols.SideEffects{
-		MessagesToSend: []protocols.Message{{
-			To: alice.Address(),
-			Payloads: []protocols.MessagePayload{{ObjectiveId: updated.Id(),
-				SignedState: finalStateSignedByBob,
-			}}}}}
+		MessagesToSend: protocols.CreateSignedStateMessages(updated.Id(), finalStateSignedByBob, 1),
+	}
 
 	if diff := compareSideEffect(expectedSE, se); diff != "" {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
