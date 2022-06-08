@@ -7,7 +7,7 @@ import {StrictTurnTaking} from '../libraries/signature-logic/StrictTurnTaking.so
 import '../interfaces/IForceMoveApp.sol';
 
 /**
- * @dev The HashLockedSwap contract complies with the ForceMoveApp interfaces and TurnTaking logic and implements a HashLockedSwaped payment.
+ * @dev The HashLockedSwap contract complies with the ForceMoveApp interfaces and strict turn taking logic and implements a HashLockedSwaped payment.
  */
 contract HashLockedSwap is IForceMoveApp {
     struct AppData {
