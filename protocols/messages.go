@@ -117,7 +117,7 @@ func (p *messagePayload) MarshalJSON() ([]byte, error) {
 	case SignedProposalPayload:
 		m["SignedProposal"] = p.SignedProposal
 	default:
-		return []byte{}, fmt.Errorf("Unknown payload type")
+		return []byte{}, fmt.Errorf("unknown payload type")
 	}
 
 	return json.Marshal(m)
