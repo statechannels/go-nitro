@@ -47,13 +47,12 @@ func (p messagePayload) hasProposal() bool {
 // Type returns the type of the payload, either a SignedProposal or SignedState.
 func (p messagePayload) Type() PayloadType {
 	switch {
-	case p.hasProposal() && !p.hasState():
+	case p.hasProposal():
 		return SignedProposalPayload
-	case !p.hasProposal() && p.hasState():
+	case p.hasState():
 		return SignedStatePayload
-	case p.hasProposal() && p.hasState():
-		panic("payload has both state and proposal %v")
 	default:
+		// This package guarantees that payloads have exactly one state or proposal
 		panic("payload has neither state nor proposal")
 	}
 }
