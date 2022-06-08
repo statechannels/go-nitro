@@ -25,7 +25,7 @@ library ShortcuttingTurnTaking {
 
         _requireValidInput(nParticipants, signedVariableParts);
         
-        // Difference between a turn number of the last state, which haf a last participant as a mover, and supplied largest turn number
+        // Difference between a turn number of the last state, which have a last participant as a mover, and supplied largest turn number
         uint256 roundRobinShift = (largestTurnNum - 1) % nParticipants;
         uint48 prevTurnNum = 0;
 
@@ -41,7 +41,7 @@ library ShortcuttingTurnTaking {
      * @dev Given a state, checks the validity of the supplied signatures. Valid means each signature correspond to a participant, who is either a mover for this state or was a mover for some preceding state.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param signedVariablePart A struct describing dynamic properties of the state channel, that must be signed either by a participant, who is either a mover for this state or was a mover for some preceding state.
-     * @param roundRobinShift Difference between a turn number of the last state, which haf a last participant as a mover, and supplied largest turn number.
+     * @param roundRobinShift Difference between a turn number of the last state, which have a last participant as a mover, and supplied largest turn number.
      */
     function requireValidSignatures(
         INitroTypes.FixedPart memory fixedPart,
@@ -49,7 +49,7 @@ library ShortcuttingTurnTaking {
         uint256 roundRobinShift
     ) internal pure {
         require(signedVariablePart.sigs.length > 0, 'Insufficient signatures');
-        require(signedVariablePart.sigs.length == NitroUtils.getSignersAmount(signedVariablePart.signedBy), 'Insufficient signatures');
+        require(signedVariablePart.sigs.length == NitroUtils.getSignersAmount(signedVariablePart.signedBy), 'Insufficient or excess signatures');
 
         _requireAcceptableSigsOrder(signedVariablePart.signedBy, signedVariablePart.variablePart.turnNum, roundRobinShift, fixedPart.participants.length);
 
@@ -75,7 +75,7 @@ library ShortcuttingTurnTaking {
      * @dev Given a declaration of which participant have signed the supplied state, check if this declaration is acceptable. Acceptable means there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array.
      * @param signedBy Bit mask field specifying which participants have signed the state.
      * @param turnNum Turn number of the state to check.
-     * @param shift Difference between a turn number of the last state, which haf a last participant as a mover, and supplied largest turn number.
+     * @param shift Difference between a turn number of the last state, which have a last participant as a mover, and supplied largest turn number.
      * @param nParticipants Number of participants in a channel.
      */
     function _requireAcceptableSigsOrder(
