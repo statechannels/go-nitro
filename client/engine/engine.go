@@ -167,7 +167,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		}
 
 		if objective.GetStatus() == protocols.Unapproved {
-			e.logger.Printf("%+v", e.policymaker)
+			e.logger.Printf("Policymaker is %+v", e.policymaker)
 			if e.policymaker.ShouldApprove(objective) {
 				objective = objective.Approve()
 
