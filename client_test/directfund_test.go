@@ -7,10 +7,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
+	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/internal/testdata"
@@ -107,11 +113,39 @@ func TestDirectFund(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	chain := chainservice.NewMockChain()
+	// Setup chain service
+
+	// Setup transacting EOA
+	keyA, _ := crypto.GenerateKey()
+	authA, _ := bind.NewKeyedTransactorWithChainID(keyA, big.NewInt(1337)) // 1337 according to docs on SimulatedBackend
+	keyB, _ := crypto.GenerateKey()
+	authB, _ := bind.NewKeyedTransactorWithChainID(keyB, big.NewInt(1337)) // 1337 according to docs on SimulatedBackend
+	balance, _ := new(big.Int).SetString("10000000000000000000", 10)       // 10 eth in wei
+
+	// Setup "blockchain"
+	gAlloc := map[common.Address]core.GenesisAccount{
+		authA.From: {Balance: balance},
+		authB.From: {Balance: balance},
+	}
+	blockGasLimit := uint64(4712388)
+	sim := backends.NewSimulatedBackend(gAlloc, blockGasLimit)
+
+	// Deploy Adjudicator
+	naAddress, _, na, err := NitroAdjudicator.DeployNitroAdjudicator(authA, sim)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sim.Commit()
+
+	chainA := chainservice.NewEthChainService(na, naAddress, authA, sim)
+	chainB := chainservice.NewEthChainService(na, naAddress, authA, sim)
+
+	// End chain service setup
+
 	broker := messageservice.NewBroker()
 
-	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
-	clientB, storeB := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	clientA, storeA := setupClient(alice.PrivateKey, chainA, broker, logDestination, 0)
+	clientB, storeB := setupClient(bob.PrivateKey, chainB, broker, logDestination, 0)
 
 	directlyFundALedgerChannel(t, clientA, clientB)
 

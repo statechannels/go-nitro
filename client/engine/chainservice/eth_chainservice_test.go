@@ -36,7 +36,7 @@ func TestEthChainService(t *testing.T) {
 	}
 	sim.Commit()
 
-	cc := NewEthChainService(na, naAddress, auth, sim)
+	acs := NewAutomineChainService(sim, na, naAddress, auth, sim)
 
 	// Prepare test data to trigger EthChainService
 	testDeposit := types.Funds{
@@ -49,11 +49,9 @@ func TestEthChainService(t *testing.T) {
 		Type:      protocols.DepositTransactionType,
 	}
 
-	out := cc.SubscribeToEvents(address)
+	out := acs.SubscribeToEvents(address)
 	// Submit transactiom
-	cc.SendTransaction(testTx)
-
-	sim.Commit()
+	acs.SendTransaction(testTx)
 
 	// Check that the recieved event matches the expected event
 	receivedEvent := <-out
