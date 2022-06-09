@@ -118,7 +118,7 @@ func (o *MetricsRecorder) RecordObjectiveCompleted(id protocols.ObjectiveId) {
 	elapsed := time.Since(start)
 	oType := strings.Split(string(id), "-")[0]
 
-	timer := o.metrics.Timer(o.addMyAddress("objective_complete_time") + fmt.Sprintf(",id=%s,type=%s", string(id), oType))
+	timer := o.metrics.Timer(o.addMyAddress("objective_complete_time") + fmt.Sprintf(",type=%s", oType))
 	timer.Update(elapsed)
 	o.metrics.Counter(o.addMyAddress("objective_complete_count")).Inc(1)
 	o.metrics.Counter(o.addMyAddress("active_objective_count")).Dec(1)
