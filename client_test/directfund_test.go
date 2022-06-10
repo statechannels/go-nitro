@@ -100,6 +100,7 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 	t.Logf("%+v", response)
 }
 
+// TestDirectFund uses the geth simulated backend
 func TestDirectFund(t *testing.T) {
 
 	// Setup logging
