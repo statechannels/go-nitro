@@ -35,7 +35,7 @@ func TestEthChainService(t *testing.T) {
 
 	// Check that the recieved event matches the expected event
 	receivedEvent := <-out
-	expectedEvent := DepositedEvent{CommonEvent: CommonEvent{channelID: channelID}, Holdings: testDeposit}
+	expectedEvent := DepositedEvent{CommonEvent: CommonEvent{channelID: channelID, BlockNum: 2}, Holdings: testDeposit}
 	if diff := cmp.Diff(expectedEvent, receivedEvent, cmp.AllowUnexported(CommonEvent{})); diff != "" {
 		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 	}
