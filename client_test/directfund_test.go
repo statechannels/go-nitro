@@ -137,8 +137,8 @@ func TestDirectFund(t *testing.T) {
 	}
 	sim.Commit()
 
-	chainA := chainservice.NewAutomineChainService(sim, sim, na, naAddress, authA)
-	chainB := chainservice.NewAutomineChainService(sim, sim, na, naAddress, authB)
+	chainA := chainservice.NewSimulatedBackendChaneService(sim, sim, na, naAddress, authA)
+	chainB := chainservice.NewSimulatedBackendChaneService(sim, sim, na, naAddress, authB)
 
 	// End chain service setup
 
