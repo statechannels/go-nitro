@@ -38,12 +38,12 @@ func (ecs *SimulatedBackendChaneService) SendTransaction(tx protocols.ChainTrans
 	ecs.sim.Commit()
 }
 
+// SetupSimulatedBackend deploys the Nitro Adjudicator to the SimulatedBackend and sets up Ethereum accounts
 func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, *NitroAdjudicator.NitroAdjudicator,
 	common.Address, []*bind.TransactOpts, error) {
 	accounts := make([]*bind.TransactOpts, numAccounts)
 	genesisAlloc := make(map[common.Address]core.GenesisAccount)
 
-	// TODO return error
 	balance, success := new(big.Int).SetString("10000000000000000000", 10) // 10 eth in wei
 	if !success {
 		return nil, nil, common.Address{}, accounts, ErrUnableToAssignBigInt
