@@ -75,7 +75,7 @@ Please execute the following on any branch that's ready for review or merge.
 
 ### staticcheck:
 
-```
+```shell
 staticcheck ./...
 ```
 
