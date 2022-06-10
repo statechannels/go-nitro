@@ -4,39 +4,19 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/go-cmp/cmp"
-	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
 func TestEthChainService(t *testing.T) {
-	// Setup transacting EOA
-	key, _ := crypto.GenerateKey()
-	auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337)) // 1337 according to docs on SimulatedBackend
-	address := auth.From
-	balance, _ := new(big.Int).SetString("10000000000000000000", 10) // 10 eth in wei
-
-	// Setup "blockchain"
-	gAlloc := map[common.Address]core.GenesisAccount{
-		address: {Balance: balance},
-	}
-	blockGasLimit := uint64(4712388)
-	sim := backends.NewSimulatedBackend(gAlloc, blockGasLimit)
-
-	// Deploy Adjudicator
-	naAddress, _, na, err := NitroAdjudicator.DeployNitroAdjudicator(auth, sim)
+	sim, na, naAddress, ethAccounts, err := SetupSimulatedBackend(1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sim.Commit()
 
-	acs := NewSimulatedBackendChaneService(sim, sim, na, naAddress, auth)
+	acs := NewSimulatedBackendChaneService(sim, sim, na, naAddress, ethAccounts[0])
 
 	// Prepare test data to trigger EthChainService
 	testDeposit := types.Funds{
@@ -49,7 +29,7 @@ func TestEthChainService(t *testing.T) {
 		Type:      protocols.DepositTransactionType,
 	}
 
-	out := acs.SubscribeToEvents(address)
+	out := acs.SubscribeToEvents(ethAccounts[0].From)
 	// Submit transactiom
 	acs.SendTransaction(testTx)
 
