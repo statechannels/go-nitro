@@ -45,7 +45,7 @@ func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.
 func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
 	switch tx.Type {
 	case protocols.DepositTransactionType:
-		for address, amount := range tx.Deposit {
+		for tokenAddress, amount := range tx.Deposit {
 			txOpt := bind.TransactOpts{
 				From:     ecs.txSigner.From,
 				Nonce:    ecs.txSigner.Nonce,
@@ -53,8 +53,12 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
 				GasPrice: big.NewInt(10000000000),
 				Value:    amount}
 
-			// TODO do not assume that the channel holds 0 funds
-			_, err := ecs.na.Deposit(&txOpt, address, tx.ChannelId, big.NewInt(0), amount)
+			holdings, err := ecs.na.Holdings(&bind.CallOpts{}, tokenAddress, tx.ChannelId)
+			if err != nil {
+				panic(err)
+			}
+
+			_, err = ecs.na.Deposit(&txOpt, tokenAddress, tx.ChannelId, holdings, amount)
 
 			if err != nil {
 				panic(err)
