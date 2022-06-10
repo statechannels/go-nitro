@@ -19,8 +19,8 @@ type AutomineChainService struct {
 
 // NewAutomineChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewAutomineChainService(sim transactionProcessor, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address,
-	txSigner *bind.TransactOpts, es eventSource) *AutomineChainService {
+func NewAutomineChainService(sim transactionProcessor, es eventSource, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address,
+	txSigner *bind.TransactOpts) *AutomineChainService {
 	return &AutomineChainService{sim: sim, EthChainService: NewEthChainService(na, naAddress, txSigner, es)}
 }
 

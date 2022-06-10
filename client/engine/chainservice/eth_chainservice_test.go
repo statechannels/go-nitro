@@ -36,7 +36,7 @@ func TestEthChainService(t *testing.T) {
 	}
 	sim.Commit()
 
-	acs := NewAutomineChainService(sim, na, naAddress, auth, sim)
+	acs := NewAutomineChainService(sim, sim, na, naAddress, auth)
 
 	// Prepare test data to trigger EthChainService
 	testDeposit := types.Funds{

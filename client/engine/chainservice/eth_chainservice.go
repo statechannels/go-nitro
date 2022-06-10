@@ -93,6 +93,7 @@ func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudic
 				event := DepositedEvent{
 					CommonEvent: CommonEvent{
 						channelID: nad.Destination,
+						BlockNum:  chainEvent.BlockNumber,
 					},
 					Holdings: holdings,
 				}
