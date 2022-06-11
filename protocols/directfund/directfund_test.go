@@ -181,7 +181,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func compareSideEffect(a, b protocols.SideEffects) string {
-	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}, consensus_channel.Add{}, consensus_channel.Guarantee{}, consensus_channel.Remove{}))
+	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}, consensus_channel.Add{}, consensus_channel.Guarantee{}, consensus_channel.Remove{}, protocols.Message{}))
 }
 
 func TestCrank(t *testing.T) {
@@ -198,27 +198,14 @@ func TestCrank(t *testing.T) {
 	preFundSS := state.NewSignedState(s.C.PreFundState())
 	_ = preFundSS.AddSignature(correctSignatureByAliceOnPreFund)
 	expectedPreFundSideEffects := protocols.SideEffects{
-		MessagesToSend: []protocols.Message{
-			{
-				To: bob.Address(),
-				Payloads: []protocols.MessagePayload{{
-					ObjectiveId: s.Id(),
-					SignedState: preFundSS,
-				}},
-			}}}
+		MessagesToSend: protocols.CreateSignedStateMessages(s.Id(), preFundSS, 0),
+	}
 
 	postFundSS := state.NewSignedState(s.C.PostFundState())
 	_ = postFundSS.AddSignature(correctSignatureByAliceOnPostFund)
 	expectedPostFundSideEffects := protocols.SideEffects{
-		MessagesToSend: []protocols.Message{
-			{
-				To: bob.Address(),
-				Payloads: []protocols.MessagePayload{{
-					ObjectiveId: s.Id(),
-					SignedState: postFundSS,
-				}},
-			},
-		}}
+		MessagesToSend: protocols.CreateSignedStateMessages(s.Id(), postFundSS, 0),
+	}
 	expectedFundingSideEffects := protocols.SideEffects{
 		TransactionsToSubmit: []protocols.ChainTransaction{{
 			Type:      protocols.DepositTransactionType,
