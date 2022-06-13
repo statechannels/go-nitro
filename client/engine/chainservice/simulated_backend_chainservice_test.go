@@ -40,6 +40,5 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
-	// Not sure if this is necessary
 	sim.Close()
 }
