@@ -37,7 +37,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	receivedEvent := <-out
 	expectedEvent := DepositedEvent{CommonEvent: CommonEvent{channelID: channelID, BlockNum: 2}, Holdings: testDeposit}
 	if diff := cmp.Diff(expectedEvent, receivedEvent, cmp.AllowUnexported(CommonEvent{})); diff != "" {
-		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
+		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
 	// Not sure if this is necessary
