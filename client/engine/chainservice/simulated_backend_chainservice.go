@@ -32,7 +32,7 @@ func NewSimulatedBackendChainService(sim transactionProcessor, es eventSource, n
 	return &SimulatedBackendChainService{sim: sim, EthChainService: NewEthChainService(na, naAddress, txSigner, es)}
 }
 
-// SendTransaction sends the transaction and blocks until it has been submitted.
+// SendTransaction sends the transaction and blocks until it has been mined.
 func (ecs *SimulatedBackendChainService) SendTransaction(tx protocols.ChainTransaction) {
 	ecs.EthChainService.SendTransaction(tx)
 	ecs.sim.Commit()
