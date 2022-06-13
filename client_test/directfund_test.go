@@ -113,8 +113,8 @@ func TestDirectFund(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	chainA := chainservice.NewSimulatedBackendChainService(sim, sim, na, naAddress, ethAccounts[0])
-	chainB := chainservice.NewSimulatedBackendChainService(sim, sim, na, naAddress, ethAccounts[1])
+	chainA := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[0])
+	chainB := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[1])
 	// End chain service setup
 
 	broker := messageservice.NewBroker()

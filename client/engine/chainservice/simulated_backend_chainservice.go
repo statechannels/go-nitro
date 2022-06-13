@@ -16,6 +16,7 @@ import (
 var ErrUnableToAssignBigInt = errors.New("simulated_backend_chainservice: unable to assign BigInt")
 
 type transactionProcessor interface {
+	eventSource
 	Commit()
 }
 
@@ -27,9 +28,9 @@ type SimulatedBackendChainService struct {
 
 // NewSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewSimulatedBackendChainService(sim transactionProcessor, es eventSource, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address,
+func NewSimulatedBackendChainService(sim transactionProcessor, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address,
 	txSigner *bind.TransactOpts) *SimulatedBackendChainService {
-	return &SimulatedBackendChainService{sim: sim, EthChainService: NewEthChainService(na, naAddress, txSigner, es)}
+	return &SimulatedBackendChainService{sim: sim, EthChainService: NewEthChainService(na, naAddress, txSigner, sim)}
 }
 
 // SendTransaction sends the transaction and blocks until it has been mined.
