@@ -16,7 +16,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cs := NewSimulatedBackendChainService(sim, sim, na, naAddress, ethAccounts[0])
+	cs := NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[0])
 
 	// Prepare test data to trigger EthChainService
 	testDeposit := types.Funds{
