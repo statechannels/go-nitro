@@ -38,7 +38,7 @@ func (ecs *SimulatedBackendChainService) SendTransaction(tx protocols.ChainTrans
 	ecs.sim.Commit()
 }
 
-// SetupSimulatedBackend deploys the Nitro Adjudicator to the SimulatedBackend and sets up Ethereum accounts
+// SetupSimulatedBackend creates a new SimulatedBackend with the supplied number of transacting accounts, deploys the Nitro Adjudicator and returns both.
 func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, *NitroAdjudicator.NitroAdjudicator,
 	common.Address, []*bind.TransactOpts, error) {
 	accounts := make([]*bind.TransactOpts, numAccounts)
