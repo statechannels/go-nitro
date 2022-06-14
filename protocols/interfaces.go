@@ -9,24 +9,39 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// TransactionType is an enumeration of possible chain transactions
-type TransactionType string
-
-const (
-	DepositTransactionType     TransactionType = "Deposit"
-	WithdrawAllTransactionType TransactionType = "Withdraw"
-)
-
 var (
 	ErrNotApproved = errors.New("objective not approved")
 )
 
-// ChainTransaction is an object to be sent to a blockchain provider.
-type ChainTransaction struct {
-	// TODO support other transaction types (deposit, challenge, respond, conclude)
-	Type      TransactionType
-	ChannelId types.Destination
-	Deposit   types.Funds
+// ChainTransaction defines the interface that every transaction must implement
+type ChainTransaction interface {
+	ChannelId() types.Destination
+}
+
+// ChainTransactionBase is a convenience struct that is embedded in other transaction structs. It is exported only to allow cmp.Diff to compare transactions
+type ChainTransactionBase struct {
+	channelId types.Destination
+}
+
+func (cct ChainTransactionBase) ChannelId() types.Destination {
+	return cct.channelId
+}
+
+type DepositTransaction struct {
+	ChainTransaction
+	Deposit types.Funds
+}
+
+func NewDepositTransaction(channelId types.Destination, deposit types.Funds) DepositTransaction {
+	return DepositTransaction{ChainTransaction: ChainTransactionBase{channelId: channelId}, Deposit: deposit}
+}
+
+type WithdrawAllTransaction struct {
+	ChainTransaction
+}
+
+func NewWithdrawAllTransaction(channelId types.Destination) WithdrawAllTransaction {
+	return WithdrawAllTransaction{ChainTransaction: ChainTransactionBase{channelId: channelId}}
 }
 
 // SideEffects are effects to be executed by an imperative shell

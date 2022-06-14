@@ -43,22 +43,23 @@ func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.
 
 // SendTransaction sends the transaction and blocks until it has been submitted.
 func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
-	switch tx.Type {
-	case protocols.DepositTransactionType:
-		for tokenAddress, amount := range tx.Deposit {
-			txOpt := bind.TransactOpts{
-				From:     ecs.txSigner.From,
-				Nonce:    ecs.txSigner.Nonce,
-				Signer:   ecs.txSigner.Signer,
-				GasPrice: big.NewInt(10000000000),
-				Value:    amount}
-
-			holdings, err := ecs.na.Holdings(&bind.CallOpts{}, tokenAddress, tx.ChannelId)
+	txOpt := bind.TransactOpts{
+		From:     ecs.txSigner.From,
+		Nonce:    ecs.txSigner.Nonce,
+		Signer:   ecs.txSigner.Signer,
+		GasPrice: big.NewInt(10000000000),
+	}
+	switch tx.(type) {
+	case protocols.DepositTransaction:
+		depositTx := tx.(protocols.DepositTransaction)
+		for tokenAddress, amount := range depositTx.Deposit {
+			txOpt.Value = amount
+			holdings, err := ecs.na.Holdings(&bind.CallOpts{}, tokenAddress, depositTx.ChannelId())
 			if err != nil {
 				panic(err)
 			}
 
-			_, err = ecs.na.Deposit(&txOpt, tokenAddress, tx.ChannelId, holdings, amount)
+			_, err = ecs.na.Deposit(&txOpt, tokenAddress, depositTx.ChannelId(), holdings, amount)
 
 			if err != nil {
 				panic(err)

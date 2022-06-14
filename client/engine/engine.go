@@ -356,7 +356,7 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 		e.metrics.RecordOutgoingMessage(message)
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
-		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId)
+		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId())
 		e.chain.SendTransaction(tx)
 	}
 	for _, proposal := range sideEffects.ProposalsToProcess {
