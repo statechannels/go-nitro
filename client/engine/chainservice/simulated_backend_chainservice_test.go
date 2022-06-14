@@ -23,11 +23,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		common.HexToAddress("0x00"): big.NewInt(1),
 	}
 	channelID := types.Destination(common.HexToHash(`4ebd366d014a173765ba1e50f284c179ade31f20441bec41664712aac6cc461d`))
-	testTx := protocols.ChainTransaction{
-		ChannelId: channelID,
-		Deposit:   testDeposit,
-		Type:      protocols.DepositTransactionType,
-	}
+	testTx := protocols.NewDepositTransaction(channelID, testDeposit)
 
 	out := cs.SubscribeToEvents(ethAccounts[0].From)
 	// Submit transactiom

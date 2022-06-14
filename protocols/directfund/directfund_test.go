@@ -207,14 +207,10 @@ func TestCrank(t *testing.T) {
 		MessagesToSend: protocols.CreateSignedStateMessages(s.Id(), postFundSS, 0),
 	}
 	expectedFundingSideEffects := protocols.SideEffects{
-		TransactionsToSubmit: []protocols.ChainTransaction{{
-			Type:      protocols.DepositTransactionType,
-			ChannelId: s.C.Id,
-			Deposit: types.Funds{
+		TransactionsToSubmit: []protocols.ChainTransaction{
+			protocols.NewDepositTransaction(s.C.Id, types.Funds{
 				testState.Outcome[0].Asset: testState.Outcome[0].Allocations[0].Amount,
-			},
-		}},
-	}
+			})}}
 	// END test data preparation
 
 	// Assert that cranking an unapproved objective returns an error
@@ -270,7 +266,7 @@ func TestCrank(t *testing.T) {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
 	}
 
-	if diff := cmp.Diff(expectedFundingSideEffects, sideEffects); diff != "" {
+	if diff := cmp.Diff(expectedFundingSideEffects, sideEffects, cmp.AllowUnexported(expectedFundingSideEffects, protocols.ChainTransactionBase{})); diff != "" {
 		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
