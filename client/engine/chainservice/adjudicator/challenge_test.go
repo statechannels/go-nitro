@@ -101,10 +101,10 @@ func TestChallenge(t *testing.T) {
 	tx, err := na.Challenge(
 		auth,
 		IForceMoveFixedPart(s.FixedPart()),
-		[]IForceMoveAppVariablePart{convertVariablePart(s.VariablePart())},
-		[]IForceMoveSignature{convertSignature(aSig), convertSignature(bSig)},
+		[]IForceMoveAppVariablePart{ConvertVariablePart(s.VariablePart())},
+		[]IForceMoveSignature{ConvertSignature(aSig), ConvertSignature(bSig)},
 		[]uint8{0, 0},
-		convertSignature(challengerSig),
+		ConvertSignature(challengerSig),
 	)
 	if err != nil {
 		t.Fatal(err)

@@ -65,7 +65,19 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
 				panic(err)
 			}
 		}
-	// TODO handle other transaction types
+	case protocols.WithdrawAllTransaction:
+		withdrawTx := tx.(protocols.WithdrawAllTransaction)
+
+		state := withdrawTx.SignedState.State()
+		signatures := withdrawTx.SignedState.Signatures()
+		nitroFixedPart := NitroAdjudicator.IForceMoveFixedPart(state.FixedPart())
+		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(state.VariablePart())
+		nitroSignatures := []NitroAdjudicator.IForceMoveSignature{NitroAdjudicator.ConvertSignature(signatures[0]), NitroAdjudicator.ConvertSignature(signatures[1])}
+
+		_, err := ecs.na.ConcludeAndTransferAllAssets(&txOpt, nitroFixedPart, nitroVariablePart, 1, []uint8{0, 0}, nitroSignatures)
+		if err != nil {
+			panic(err)
+		}
 	default:
 		panic("unexpected chain transaction")
 	}

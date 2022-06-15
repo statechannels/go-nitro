@@ -8,7 +8,7 @@ import (
 	nc "github.com/statechannels/go-nitro/crypto"
 )
 
-func convertVariablePart(vp state.VariablePart) IForceMoveAppVariablePart {
+func ConvertVariablePart(vp state.VariablePart) IForceMoveAppVariablePart {
 	return IForceMoveAppVariablePart{
 		AppData: vp.AppData,
 		TurnNum: big.NewInt(int64(vp.TurnNum)),
@@ -38,7 +38,7 @@ func convertAllocations(as outcome.Allocations) []ExitFormatAllocation {
 	return b
 }
 
-func convertSignature(s nc.Signature) IForceMoveSignature {
+func ConvertSignature(s nc.Signature) IForceMoveSignature {
 	sig := IForceMoveSignature{
 		V: s.V,
 	}

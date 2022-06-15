@@ -38,10 +38,11 @@ func NewDepositTransaction(channelId types.Destination, deposit types.Funds) Dep
 
 type WithdrawAllTransaction struct {
 	ChainTransaction
+	SignedState state.SignedState
 }
 
-func NewWithdrawAllTransaction(channelId types.Destination) WithdrawAllTransaction {
-	return WithdrawAllTransaction{ChainTransaction: ChainTransactionBase{channelId: channelId}}
+func NewWithdrawAllTransaction(channelId types.Destination, signedState state.SignedState) WithdrawAllTransaction {
+	return WithdrawAllTransaction{SignedState: signedState, ChainTransaction: ChainTransactionBase{channelId: channelId}}
 }
 
 // SideEffects are effects to be executed by an imperative shell
