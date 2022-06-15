@@ -205,10 +205,6 @@ describe('challenge', () => {
           challengeSignature = correctChallengeSignature;
       }
 
-      // REMOVE ----------------------------------------------------------------------------------------------------------------
-      // signedVariableParts.forEach(svp => console.log(svp.signedBy));
-      // console.log(fixedPart.participants.length, signedVariableParts.length);
-
       // Set current channelStorageHashes value
       await (await ForceMove.setStatus(channelId, initialFingerprint)).wait();
 
@@ -273,9 +269,9 @@ describe('challenge with transaction generator', () => {
   // FIX: even if dropping channel status before each test, turn nums from prev tests are saved and can cause reverts
   it.each`
     description                                     | appData   | outcome                            | turnNums  | challenger
-    ${'challenge(0,1) accepted'}                    | ${[0, 1]} | ${[]}                              | ${[0, 1]} | ${1}
-    ${'challenge(1,2) accepted'}                    | ${[0, 1]} | ${[]}                              | ${[1, 2]} | ${0}
-    ${'challenge(2,3) accepted, MAX_OUTCOME_ITEMS'} | ${[0, 1]} | ${largeOutcome(MAX_OUTCOME_ITEMS)} | ${[2, 3]} | ${0}
+    ${'challenge(0,1) accepted'}                    | ${[0, 1]} | ${[]}                              | ${[1, 2]} | ${1}
+    ${'challenge(1,2) accepted'}                    | ${[0, 1]} | ${[]}                              | ${[2, 3]} | ${0}
+    ${'challenge(2,3) accepted, MAX_OUTCOME_ITEMS'} | ${[0, 1]} | ${largeOutcome(MAX_OUTCOME_ITEMS)} | ${[3, 4]} | ${0}
   `('$description', async ({appData, turnNums, challenger}) => {
     const transactionRequest: ethers.providers.TransactionRequest = createChallengeTransaction(
       [
