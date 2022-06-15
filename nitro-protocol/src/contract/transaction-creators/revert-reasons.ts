@@ -7,6 +7,7 @@ export const NO_ONGOING_CHALLENGE = 'No ongoing challenge.';
 export const TURN_NUM_RECORD_DECREASED = 'turnNumRecord decreased.';
 export const TURN_NUM_RECORD_NOT_INCREASED = 'turnNumRecord not increased.';
 export const UNACCEPTABLE_WHO_SIGNED_WHAT = 'Unacceptable whoSignedWhat array';
+export const MOVER_SIGNED_EARLIER_STATE = 'Mover signed earlier state than theirs';
 export const WHO_SIGNED_WHAT_WRONG_LENGTH = '|whoSignedWhat|!=nParticipants';
 export const WRONG_CHANNEL_STORAGE = 'status(ChannelData)!=storage';
 export const INVALID_SIGNATURE = 'Invalid signature';

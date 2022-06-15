@@ -1,6 +1,7 @@
 import {expectRevert} from '@statechannels/devtools';
 import {ethers, Contract, Wallet} from 'ethers';
 const {HashZero} = ethers.constants;
+const {defaultAbiCoder} = ethers.utils;
 import {it} from '@jest/globals';
 
 import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
@@ -8,21 +9,20 @@ import {Channel, getChannelId} from '../../../src/contract/channel';
 import {channelDataToStatus} from '../../../src/contract/channel-storage';
 import {Outcome} from '../../../src/contract/outcome';
 import {getFixedPart, getVariablePart, State} from '../../../src/contract/state';
-import {concludeArgs} from '../../../src/contract/transaction-creators/force-move';
 import {
   CHANNEL_FINALIZED,
-  UNACCEPTABLE_WHO_SIGNED_WHAT,
+  MOVER_SIGNED_EARLIER_STATE,
 } from '../../../src/contract/transaction-creators/revert-reasons';
 import {
   clearedChallengeFingerprint,
   finalizedFingerprint,
-  getPlaceHolderContractAddress,
+  getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
   ongoingChallengeFingerprint,
   setupContract,
 } from '../../test-helpers';
-import {signState, signStates} from '../../../src';
+import {bindSignatures, signStates} from '../../../src';
 
 const provider = getTestProvider();
 let ForceMove: Contract;
@@ -42,7 +42,7 @@ for (let i = 0; i < nParticipants; i++) {
 }
 beforeAll(async () => {
   ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
-  appDefinition = getPlaceHolderContractAddress();
+  appDefinition = getCountingAppContractAddress();
 });
 
 const acceptsWhenOpenIf =
@@ -66,15 +66,15 @@ const reverts3 = 'It reverts when the outcome is already finalized';
 
 const threeStates = {
   whoSignedWhat: [0, 1, 2],
-  appData: [HashZero, HashZero, HashZero],
+  appData: [0, 1, 2],
 };
 const oneState = {
   whoSignedWhat: [0, 0, 0],
-  appData: [HashZero],
+  appData: [0],
 };
 const unsupported = {
   whoSignedWhat: [0, 0, 0],
-  appData: [HashZero, HashZero, HashZero],
+  appData: [0, 0, 0],
 };
 const turnNumRecord = 5;
 const channelOpen = clearedChallengeFingerprint(turnNumRecord);
@@ -94,14 +94,13 @@ describe('conclude', () => {
     ${accepts5} | ${challengeOngoing} | ${turnNumRecord + 4}             | ${oneState}    | ${undefined}
     ${accepts6} | ${channelOpen}      | ${turnNumRecord - 1}             | ${oneState}    | ${undefined}
     ${accepts7} | ${challengeOngoing} | ${turnNumRecord - 1}             | ${oneState}    | ${undefined}
-    ${reverts1} | ${channelOpen}      | ${turnNumRecord + nParticipants} | ${unsupported} | ${UNACCEPTABLE_WHO_SIGNED_WHAT}
-    ${reverts2} | ${challengeOngoing} | ${turnNumRecord + nParticipants} | ${unsupported} | ${UNACCEPTABLE_WHO_SIGNED_WHAT}
+    ${reverts1} | ${channelOpen}      | ${turnNumRecord + nParticipants} | ${unsupported} | ${MOVER_SIGNED_EARLIER_STATE}
+    ${reverts2} | ${challengeOngoing} | ${turnNumRecord + nParticipants} | ${unsupported} | ${MOVER_SIGNED_EARLIER_STATE}
     ${reverts3} | ${finalized}        | ${turnNumRecord + 1}             | ${oneState}    | ${CHANNEL_FINALIZED}
   `(
     '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, largestTurnNum, support, reasonString}) => {
       const channel: Channel = {chainId, participants, channelNonce};
-      const channelId = getChannelId({...channel, appDefinition, challengeDuration});
       const {appData, whoSignedWhat} = support;
       const numStates = appData.length;
 
@@ -112,20 +111,25 @@ describe('conclude', () => {
           channel,
           outcome,
           appDefinition,
-          appData: appData[i - 1], // Because isFinal = true...
-          // ... this field is irrelevant as long as the signatures are correct
+          appData: defaultAbiCoder.encode(['uint256'], [appData[i - 1]]),
           challengeDuration,
           turnNum: largestTurnNum + i - numStates,
         });
       }
+
+      const channelId = getChannelId({...channel, appDefinition, challengeDuration});
+      const variableParts = states.map(state => getVariablePart(state));
+      const fixedPart = getFixedPart(states[0]);
+
       // Call public wrapper to set state (only works on test contract)
       await (await ForceMove.setStatus(channelId, initialFingerprint)).wait();
       expect(await ForceMove.statusOf(channelId)).toEqual(initialFingerprint);
 
       // Sign the states
-      const sigs = await signStates(states, wallets, whoSignedWhat);
+      const signatures = await signStates(states, wallets, whoSignedWhat);
+      const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
 
-      const tx = ForceMove.conclude(...concludeArgs(states, sigs, whoSignedWhat));
+      const tx = ForceMove.conclude(fixedPart, signedVariableParts);
       if (reasonString) {
         await expectRevert(() => tx, reasonString);
       } else {
@@ -147,26 +151,4 @@ describe('conclude', () => {
       }
     }
   );
-
-  it('Reverts to prevent an underflow', async () => {
-    const channel: Channel = {chainId, participants, channelNonce};
-    const state: State = {
-      isFinal: true,
-      channel,
-      outcome,
-      appDefinition,
-      appData: '0x00',
-      challengeDuration,
-      turnNum: 0,
-    };
-    const signature = signState(state, wallets[0].privateKey).signature;
-    const tx = ForceMove.conclude(
-      getFixedPart(state),
-      getVariablePart(state),
-      2,
-      [0, 0, 0],
-      [signature, signature, signature] // enough to clear the input type validation
-    );
-    await expect(() => tx).rejects.toThrow('largestTurnNum too low');
-  });
 });
