@@ -10,12 +10,11 @@ import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.s
 import {Channel, getChannelId} from '../../../src/contract/channel';
 import {channelDataToStatus} from '../../../src/contract/channel-storage';
 import {Outcome} from '../../../src/contract/outcome';
-import {FixedPart, State} from '../../../src/contract/state';
-import {checkpointArgs} from '../../../src/contract/transaction-creators/force-move';
+import {getFixedPart, getVariablePart, State} from '../../../src/contract/state';
 import {
   CHANNEL_FINALIZED,
   TURN_NUM_RECORD_NOT_INCREASED,
-  UNACCEPTABLE_WHO_SIGNED_WHAT,
+  MOVER_SIGNED_EARLIER_STATE,
 } from '../../../src/contract/transaction-creators/revert-reasons';
 import {COUNTING_APP_INVALID_TRANSITION} from '../../revert-reasons';
 import {
@@ -24,7 +23,7 @@ import {
   getTestProvider,
   setupContract,
 } from '../../test-helpers';
-import {signStates} from '../../../src';
+import {bindSignatures, signStates} from '../../../src';
 
 import {testParams} from './types';
 
@@ -95,22 +94,14 @@ describe('checkpoint', () => {
     ${accepts3} | ${turnNumRecord + 4} | ${valid}             | ${future}    | ${undefined}
     ${reverts1} | ${turnNumRecord}     | ${valid}             | ${never}     | ${TURN_NUM_RECORD_NOT_INCREASED}
     ${reverts2} | ${turnNumRecord + 1} | ${invalidTransition} | ${never}     | ${COUNTING_APP_INVALID_TRANSITION}
-    ${reverts3} | ${turnNumRecord + 1} | ${unsupported}       | ${never}     | ${UNACCEPTABLE_WHO_SIGNED_WHAT}
+    ${reverts3} | ${turnNumRecord + 1} | ${unsupported}       | ${never}     | ${MOVER_SIGNED_EARLIER_STATE}
     ${reverts4} | ${turnNumRecord}     | ${valid}             | ${future}    | ${TURN_NUM_RECORD_NOT_INCREASED}
     ${reverts5} | ${turnNumRecord + 1} | ${invalidTransition} | ${future}    | ${COUNTING_APP_INVALID_TRANSITION}
-    ${reverts6} | ${turnNumRecord + 1} | ${unsupported}       | ${future}    | ${UNACCEPTABLE_WHO_SIGNED_WHAT}
+    ${reverts6} | ${turnNumRecord + 1} | ${unsupported}       | ${future}    | ${MOVER_SIGNED_EARLIER_STATE}
     ${reverts7} | ${turnNumRecord + 1} | ${valid}             | ${past}      | ${CHANNEL_FINALIZED}
   `('$description', async ({largestTurnNum, support, finalizesAt, reason}: testParams) => {
     const {appDatas, whoSignedWhat} = support;
     const channel: Channel = {chainId, channelNonce, participants};
-    const fixedPart: FixedPart = {
-      chainId,
-      channelNonce,
-      participants,
-      appDefinition,
-      challengeDuration,
-    };
-    const channelId = getChannelId(fixedPart);
 
     const states = appDatas.map((data, idx) => ({
       turnNum: largestTurnNum - appDatas.length + 1 + idx,
@@ -121,6 +112,14 @@ describe('checkpoint', () => {
       appData: defaultAbiCoder.encode(['uint256'], [data]),
       appDefinition,
     }));
+
+    const variableParts = states.map(state => getVariablePart(state));
+    const fixedPart = getFixedPart(states[0]);
+    const channelId = getChannelId(fixedPart);
+
+    // Sign the states
+    const signatures = await signStates(states, wallets, whoSignedWhat);
+    const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
 
     const isOpen = !!finalizesAt;
     const outcome = isOpen ? [] : defaultOutcome;
@@ -150,9 +149,7 @@ describe('checkpoint', () => {
     await (await ForceMove.setStatus(channelId, fingerprint)).wait();
     expect(await ForceMove.statusOf(channelId)).toEqual(fingerprint);
 
-    const signatures = await signStates(states, wallets, whoSignedWhat);
-
-    const tx = ForceMove.checkpoint(...checkpointArgs({states, signatures, whoSignedWhat}));
+    const tx = ForceMove.checkpoint(fixedPart, signedVariableParts);
     if (reason) {
       await expectRevert(() => tx, reason);
     } else {
