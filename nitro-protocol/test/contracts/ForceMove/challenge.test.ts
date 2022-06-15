@@ -29,7 +29,7 @@ import {COUNTING_APP_INVALID_TRANSITION} from '../../revert-reasons';
 import {
   clearedChallengeFingerprint,
   finalizedFingerprint,
-  getPlaceHolderContractAddress,
+  getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
   largeOutcome,
@@ -54,7 +54,7 @@ const wallets = new Array(3);
 const challengeDuration = 86400; // 1 day
 const outcome: Outcome = [{allocations: [], asset: Wallet.createRandom().address, metadata: '0x'}];
 
-const appDefinition = getPlaceHolderContractAddress();
+const appDefinition = getCountingAppContractAddress();
 const keys = [
   '0x8624ebe7364bb776f891ca339f0aaa820cc64cc9fca6a28eec71e6d8fc950f29',
   '0x275a2e2cd9314f53b42246694034a80119963097e3adf495fbf6d821dc8b6c8e',
@@ -83,7 +83,7 @@ async function createSignedCountingAppState(
     {
       turnNum,
       isFinal: false,
-      appDefinition: getPlaceHolderContractAddress(),
+      appDefinition: getCountingAppContractAddress(),
       appData: defaultAbiCoder.encode(['uint256'], [appData]),
       outcome,
       channel,

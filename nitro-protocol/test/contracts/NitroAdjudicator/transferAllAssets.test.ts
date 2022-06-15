@@ -6,7 +6,7 @@ import {Channel, getChannelId} from '../../../src/contract/channel';
 import {hashOutcome, Outcome} from '../../../src/contract/outcome';
 import {
   computeOutcome,
-  getPlaceHolderContractAddress,
+  getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
   OutcomeShortHand,
@@ -62,7 +62,7 @@ for (let i = 0; i < 3; i++) {
 }
 
 beforeAll(async () => {
-  appDefinition = getPlaceHolderContractAddress();
+  appDefinition = getCountingAppContractAddress();
 });
 
 const description =

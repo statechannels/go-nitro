@@ -14,7 +14,7 @@ import {
   WRONG_CHANNEL_STORAGE,
 } from '../../../src/contract/transaction-creators/revert-reasons';
 import {
-  getPlaceHolderContractAddress,
+  getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
   setupContract,
@@ -40,7 +40,7 @@ const nonParticipant = Wallet.createRandom();
 
 beforeAll(async () => {
   ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
-  appDefinition = getPlaceHolderContractAddress();
+  appDefinition = getCountingAppContractAddress();
 });
 
 // Scenarios are synonymous with channelNonce:

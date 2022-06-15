@@ -6,7 +6,7 @@ const {AddressZero} = ethers.constants;
 import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
 import {Channel, getChannelId} from '../../../src/contract/channel';
 import {
-  getPlaceHolderContractAddress,
+  getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
   setupContract,
@@ -45,7 +45,7 @@ for (let i = 0; i < 3; i++) {
 
 beforeAll(async () => {
   signer0Address = await signer0.getAddress();
-  appDefinition = getPlaceHolderContractAddress();
+  appDefinition = getCountingAppContractAddress();
 });
 
 const description0 = 'Deposits Tokens (expectedHeld = 0)';
