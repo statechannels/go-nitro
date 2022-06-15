@@ -17,6 +17,7 @@ import (
 )
 
 var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
+var allocationUpdatedTopic = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256)"))
 
 type eventSource interface {
 	SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- ethTypes.Log) (ethereum.Subscription, error)
@@ -115,7 +116,14 @@ func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudic
 					Holdings: holdings,
 				}
 				ecs.broadcast(event)
-			// TODO introduce the remaining events
+			case allocationUpdatedTopic:
+				au, err := na.ParseAllocationUpdated(chainEvent)
+				if err != nil {
+					panic(err)
+				}
+
+				event := AllocationUpdatedEvent{CommonEvent: CommonEvent{channelID: au.ChannelId, BlockNum: chainEvent.BlockNumber}, Holdings: types.Funds{}}
+				ecs.broadcast(event)
 			default:
 				panic("Unknown chain event")
 			}
