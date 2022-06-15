@@ -19,7 +19,7 @@ import {
 } from '../../../src/contract/transaction-creators/revert-reasons';
 import {COUNTING_APP_INVALID_TRANSITION} from '../../revert-reasons';
 import {
-  getPlaceHolderContractAddress,
+  getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
   setupContract,
@@ -45,7 +45,7 @@ for (let i = 0; i < 3; i++) {
 }
 beforeAll(async () => {
   ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
-  appDefinition = getPlaceHolderContractAddress();
+  appDefinition = getCountingAppContractAddress();
 });
 
 const valid = {

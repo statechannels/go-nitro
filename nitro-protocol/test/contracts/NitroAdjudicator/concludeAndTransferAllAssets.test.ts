@@ -8,7 +8,7 @@ import {Outcome} from '../../../src/contract/outcome';
 import {FixedPart, getFixedPart, getVariablePart, State} from '../../../src/contract/state';
 import {
   computeOutcome,
-  getPlaceHolderContractAddress,
+  getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
   OutcomeShortHand,
@@ -90,7 +90,7 @@ for (let i = 0; i < 3; i++) {
 beforeAll(async () => {
   addresses.ETH = MAGIC_ADDRESS_INDICATING_ETH;
   addresses.ERC20 = token.address;
-  appDefinition = getPlaceHolderContractAddress();
+  appDefinition = getCountingAppContractAddress();
   // Preload At and Bt with TOK
   await (await token.transfer('0x' + addresses.At.slice(26), BigNumber.from(1))).wait();
   await (await token.transfer('0x' + addresses.Bt.slice(26), BigNumber.from(1))).wait();
