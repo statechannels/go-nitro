@@ -17,7 +17,7 @@ import {
   replaceAddressesAndBigNumberify,
   setupContract,
 } from '../../test-helpers';
-import {signStates, channelDataToStatus} from '../../../src';
+import {signStates, channelDataToStatus, bindSignatures} from '../../../src';
 import {MAGIC_ADDRESS_INDICATING_ETH, NITRO_MAX_GAS} from '../../../src/transactions';
 import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
 import {Token} from '../../../typechain-types/Token';
@@ -208,16 +208,16 @@ describe('concludeAndTransferAllAssets', () => {
         });
       }
 
+      const variableParts = states.map(state => getVariablePart(state));
+
       // Sign the states
-      const sigs = await signStates(states, wallets, whoSignedWhat);
+      const signatures = await signStates(states, wallets, whoSignedWhat);
+      const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
 
       // Form transaction
       const tx = testNitroAdjudicator.concludeAndTransferAllAssets(
         getFixedPart(states[0]),
-        getVariablePart(states[0]),
-        numStates,
-        whoSignedWhat,
-        sigs,
+        signedVariableParts,
         {gasLimit: NITRO_MAX_GAS}
       );
 
