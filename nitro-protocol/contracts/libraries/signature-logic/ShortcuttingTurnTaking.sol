@@ -31,7 +31,11 @@ library ShortcuttingTurnTaking {
 
         for (uint i = 0; i < signedVariableParts.length; i++) {
             requireValidSignatures(fixedPart, signedVariableParts[i], roundRobinShift);
-            requireIncreasedTurnNum(prevTurnNum, signedVariableParts[i].variablePart.turnNum);
+            
+            if (i != 0) {
+                requireIncreasedTurnNum(prevTurnNum, signedVariableParts[i].variablePart.turnNum);
+            }
+
             prevTurnNum = signedVariableParts[i].variablePart.turnNum;
         }
     }
@@ -95,8 +99,8 @@ library ShortcuttingTurnTaking {
     }
 
     /**
-     * @notice Require supplied prevTurnNum is greater than newTurnNum.    
-     * @dev Require supplied prevTurnNum is greater than newTurnNum.    
+     * @notice Require supplied newTurnNum is greater than prevTurnNum.    
+     * @dev Require supplied newTurnNum is greater than prevTurnNum.    
      * @param prevTurnNum Previous turn number.
      * @param newTurnNum New turn number.
      */
