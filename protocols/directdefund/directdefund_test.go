@@ -183,7 +183,7 @@ func TestCrankAlice(t *testing.T) {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
 	}
 
-	expectedSE = protocols.SideEffects{TransactionsToSubmit: []protocols.ChainTransaction{protocols.NewWithdrawAllTransaction(o.C.Id)}}
+	expectedSE = protocols.SideEffects{TransactionsToSubmit: []protocols.ChainTransaction{protocols.NewWithdrawAllTransaction(o.C.Id, finalStateSignedByAliceBob)}}
 
 	if diff := cmp.Diff(expectedSE, se, cmp.AllowUnexported(expectedSE, protocols.ChainTransactionBase{})); diff != "" {
 		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)

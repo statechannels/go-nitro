@@ -260,7 +260,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 		// The first participant in the channel submits the withdrawAll transaction
 		if updated.C.MyIndex == 0 {
-			withdrawAll := protocols.NewWithdrawAllTransaction(updated.C.Id)
+			withdrawAll := protocols.NewWithdrawAllTransaction(updated.C.Id, latestSignedState)
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
 			updated.transactionSubmitted = true
 		}
