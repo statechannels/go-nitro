@@ -49,3 +49,24 @@ describe('isSignedBy', () => {
     expect(await NitroUtils.isSignedBy(0b001     ,1)).toBe(false);
   });
 });
+
+describe('isSignedOnlyBy', () => {
+  // prettier-ignore
+  it('returns true when only that participant bit is set', async () => {
+    expect(await NitroUtils.isSignedOnlyBy(0b001     ,0)).toBe(true);
+    expect(await NitroUtils.isSignedOnlyBy(0b10000000,7)).toBe(true);
+    expect(await NitroUtils.isSignedOnlyBy(8         ,3)).toBe(true);
+  });
+  // prettier-ignore
+  it('returns false when that participant bit is not set', async () => {
+    expect(await NitroUtils.isSignedOnlyBy(0b011     ,0)).toBe(false);
+    expect(await NitroUtils.isSignedOnlyBy(0b10010000,7)).toBe(false);
+    expect(await NitroUtils.isSignedOnlyBy(9         ,3)).toBe(false);
+    expect(await NitroUtils.isSignedOnlyBy(0b101     ,0)).toBe(false);
+    expect(await NitroUtils.isSignedOnlyBy(0b101     ,2)).toBe(false);
+    expect(await NitroUtils.isSignedOnlyBy(0b101     ,1)).toBe(false);
+    expect(await NitroUtils.isSignedOnlyBy(0b001     ,3)).toBe(false);
+    expect(await NitroUtils.isSignedOnlyBy(0b001     ,2)).toBe(false);
+    expect(await NitroUtils.isSignedOnlyBy(0b001     ,1)).toBe(false);
+  });
+});

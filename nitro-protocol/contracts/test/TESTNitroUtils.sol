@@ -33,4 +33,14 @@ contract TESTNitroUtils {
     }
 
 
+    /**
+     * @notice Check if supplied participantIndex is the only bit set to 1 in signedBy bit mask.
+     * @dev Check if supplied participantIndex is the only bit set to 1 in signedBy bit mask.
+     * @param signedBy Bit mask field to check.
+     * @param participantIndex Bit to check.
+     */
+    function isSignedOnlyBy(uint256 signedBy, uint8 participantIndex) public pure returns (bool) {
+        return NitroUtils.isSignedOnlyBy(signedBy,participantIndex);
+    }
+
 }
