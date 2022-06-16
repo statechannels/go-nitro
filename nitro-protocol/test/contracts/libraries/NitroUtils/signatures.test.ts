@@ -31,3 +31,12 @@ describe('_recoverSigner', () => {
     expect(await NitroUtils.recoverSigner(msgHash, sig)).toEqual(wallet.address);
   });
 });
+
+describe('isSignedBy', () => {
+  it('returns true when a participant bit is set', async () => {
+    expect(await NitroUtils.isSignedBy(0b101, 0)).toBe(true);
+  });
+  it('returns false when a participant bit is not set', async () => {
+    expect(await NitroUtils.isSignedBy(0b101, 1)).toBe(false);
+  });
+});
