@@ -25,15 +25,7 @@ contract TESTForceMove is ForceMove {
         return _isAddressInArray(suspect, addresses);
     }
 
-    /**
-     * @dev Wrapper for otherwise internal function. Given a digest and digital signature, recover the signer
-     * @param _d message digest
-     * @param sig ethereum digital signature
-     * @return signer
-     */
-    function recoverSigner(bytes32 _d, Signature memory sig) public pure returns (address) {
-        return NitroUtils.recoverSigner(_d, sig);
-    }
+
 
     // public setter for statusOf
 

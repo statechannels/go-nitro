@@ -1,11 +1,11 @@
 import {Contract, Wallet, ethers} from 'ethers';
 const {arrayify, id} = ethers.utils;
 
-import ForceMoveArtifact from '../../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
+import NitroUtilsArtifact from '../../../../artifacts/contracts/test/TESTNitroUtils.sol/TESTNitroUtils.json';
 import {getTestProvider, setupContract} from '../../../test-helpers';
 import {sign} from '../../../../src/signatures';
 const provider = getTestProvider();
-let ForceMove: Contract;
+let NitroUtils: Contract;
 
 const participants = ['', '', ''];
 const wallets = new Array(3);
@@ -17,7 +17,7 @@ for (let i = 0; i < 3; i++) {
 }
 
 beforeAll(async () => {
-  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
+  NitroUtils = setupContract(provider, NitroUtilsArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
 });
 
 describe('_recoverSigner', () => {
@@ -28,6 +28,6 @@ describe('_recoverSigner', () => {
     const msgHash = id('Hello World');
     const msgHashBytes = arrayify(msgHash);
     const sig = await sign(wallet, msgHashBytes);
-    expect(await ForceMove.recoverSigner(msgHash, sig)).toEqual(wallet.address);
+    expect(await NitroUtils.recoverSigner(msgHash, sig)).toEqual(wallet.address);
   });
 });
