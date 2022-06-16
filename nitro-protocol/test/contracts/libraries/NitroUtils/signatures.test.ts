@@ -33,10 +33,19 @@ describe('_recoverSigner', () => {
 });
 
 describe('isSignedBy', () => {
+  // prettier-ignore
   it('returns true when a participant bit is set', async () => {
-    expect(await NitroUtils.isSignedBy(0b101, 0)).toBe(true);
+    expect(await NitroUtils.isSignedBy(0b101     ,0)).toBe(true);
+    expect(await NitroUtils.isSignedBy(0b101     ,2)).toBe(true);
+    expect(await NitroUtils.isSignedBy(0b001     ,0)).toBe(true);
+    expect(await NitroUtils.isSignedBy(0b10000000,7)).toBe(true);
+    expect(await NitroUtils.isSignedBy(8         ,3)).toBe(true);
   });
+  // prettier-ignore
   it('returns false when a participant bit is not set', async () => {
-    expect(await NitroUtils.isSignedBy(0b101, 1)).toBe(false);
+    expect(await NitroUtils.isSignedBy(0b101     ,1)).toBe(false);
+    expect(await NitroUtils.isSignedBy(0b001     ,3)).toBe(false);
+    expect(await NitroUtils.isSignedBy(0b001     ,2)).toBe(false);
+    expect(await NitroUtils.isSignedBy(0b001     ,1)).toBe(false);
   });
 });
