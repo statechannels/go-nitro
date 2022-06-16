@@ -43,4 +43,15 @@ contract TESTNitroUtils {
         return NitroUtils.isSignedOnlyBy(signedBy,participantIndex);
     }
 
+    /**
+     * @notice Count number of bits set to '1', specifying the number of participants which have signed the state.
+     * @dev Count number of bits set to '1', specifying the number of participants which have signed the state.
+     * @param signedBy Bit mask field specifying which participants have signed the state.
+     * @return amount of signers, which have signed the state.
+     */
+    function getSignersAmount(uint256 signedBy) public pure returns (uint8) {
+        return NitroUtils.getSignersAmount(signedBy);
+    }
+
+
 }

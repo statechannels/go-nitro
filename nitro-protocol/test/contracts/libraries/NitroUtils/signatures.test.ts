@@ -70,3 +70,14 @@ describe('isSignedOnlyBy', () => {
     expect(await NitroUtils.isSignedOnlyBy(0b001     ,1)).toBe(false);
   });
 });
+
+describe('getSignersAmount', () => {
+  // prettier-ignore
+  it('counts the number of signers correctly', async () => {
+    expect(await NitroUtils.getSignersAmount(0b001)).toEqual(1)
+    expect(await NitroUtils.getSignersAmount(0b011)).toEqual(2)
+    expect(await NitroUtils.getSignersAmount(0b101)).toEqual(2)
+    expect(await NitroUtils.getSignersAmount(0b111)).toEqual(3)
+    expect(await NitroUtils.getSignersAmount(0b000)).toEqual(0)
+  });
+});
