@@ -22,5 +22,15 @@ contract TESTNitroUtils {
         return NitroUtils.recoverSigner(_d, sig);
     }
 
+    /**
+     * @notice Check if supplied participantIndex bit is set to 1 in signedBy bit mask.
+     * @dev Check if supplied partitipationIndex bit is set to 1 in signedBy bit mask.
+     * @param signedBy Bit mask field to check.
+     * @param participantIndex Bit to check.
+     */
+    function isSignedBy(uint256 signedBy, uint8 participantIndex) public pure returns (bool) {
+        return NitroUtils.isSignedBy(signedBy,participantIndex);
+    }
+
 
 }
