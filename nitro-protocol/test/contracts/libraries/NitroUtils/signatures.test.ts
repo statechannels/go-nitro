@@ -4,8 +4,9 @@ const {arrayify, id} = ethers.utils;
 import NitroUtilsArtifact from '../../../../artifacts/contracts/test/TESTNitroUtils.sol/TESTNitroUtils.json';
 import {getTestProvider, setupContract} from '../../../test-helpers';
 import {sign} from '../../../../src/signatures';
+import {TESTNitroUtils} from '../../../../typechain-types';
 const provider = getTestProvider();
-let NitroUtils: Contract;
+let NitroUtils: Contract & TESTNitroUtils;
 
 const participants = ['', '', ''];
 const wallets = new Array(3);
@@ -17,7 +18,11 @@ for (let i = 0; i < 3; i++) {
 }
 
 beforeAll(async () => {
-  NitroUtils = setupContract(provider, NitroUtilsArtifact, process.env.TEST_NITRO_UTILS_ADDRESS);
+  NitroUtils = setupContract(
+    provider,
+    NitroUtilsArtifact,
+    process.env.TEST_NITRO_UTILS_ADDRESS
+  ) as Contract & TESTNitroUtils;
 });
 
 describe('_recoverSigner', () => {
@@ -79,5 +84,16 @@ describe('getSignersAmount', () => {
     expect(await NitroUtils.getSignersAmount(0b101)).toEqual(2)
     expect(await NitroUtils.getSignersAmount(0b111)).toEqual(3)
     expect(await NitroUtils.getSignersAmount(0b000)).toEqual(0)
+  });
+});
+
+describe('getSignerIndices', () => {
+  // prettier-ignore
+  it('returns the correct indices', async () => {
+    expect(await NitroUtils.getSignerIndices(0b001)).toEqual([0])
+    expect(await NitroUtils.getSignerIndices(0b011)).toEqual([0,1])
+    expect(await NitroUtils.getSignerIndices(0b101)).toEqual([0,2])
+    expect(await NitroUtils.getSignerIndices(0b111)).toEqual([0,1,2])
+    expect(await NitroUtils.getSignerIndices(0b000)).toEqual([])
   });
 });

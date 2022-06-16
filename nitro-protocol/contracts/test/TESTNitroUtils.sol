@@ -53,5 +53,13 @@ contract TESTNitroUtils {
         return NitroUtils.getSignersAmount(signedBy);
     }
 
-
+    /**
+     * @notice Determine indices of participants who have signed the state.
+     * @dev Determine indices of participants who have signed the state.
+     * @param signedBy Bit mask field specifying which participants have signed the state.
+     * @return signerIndices
+     */
+    function getSignerIndices(uint256 signedBy) public pure returns (uint8[] memory) {
+        return NitroUtils.getSignerIndices(signedBy);
+    }
 }
