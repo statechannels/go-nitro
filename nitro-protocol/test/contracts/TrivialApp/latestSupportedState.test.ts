@@ -10,7 +10,13 @@ import {
   State,
   VariablePart,
 } from '../../../src/contract/state';
-import {getRandomNonce, getTestProvider, setupContract} from '../../test-helpers';
+import {
+  deepEquals,
+  getRandomNonce,
+  getTestProvider,
+  parseVariablePartEventResult,
+  setupContract,
+} from '../../test-helpers';
 
 const provider = getTestProvider();
 let trivialApp: Contract;
@@ -39,10 +45,10 @@ function getRandomSignedVariablePart(): SignedVariablePart {
 
 function getMockedFixedPart(): FixedPart {
   const fixedPart: FixedPart = {
-    chainId: '',
-    participants: [],
+    chainId: process.env.CHAIN_NETWORK_ID,
+    participants: [Wallet.createRandom().address, Wallet.createRandom().address],
     channelNonce: 0,
-    appDefinition: '',
+    appDefinition: trivialApp.address,
     challengeDuration: 0,
   };
   return fixedPart;
@@ -70,7 +76,9 @@ describe('latestSupportedState', () => {
         from,
         to,
       ]);
-      expect(latestSupportedState).toBe(to);
+      expect(deepEquals(parseVariablePartEventResult(latestSupportedState), to.variablePart)).toBe(
+        true
+      );
     }
   });
 
@@ -98,6 +106,8 @@ describe('latestSupportedState', () => {
       from,
       to,
     ]);
-    expect(latestSupportedState).toBe(to);
+    expect(deepEquals(parseVariablePartEventResult(latestSupportedState), to.variablePart)).toBe(
+      true
+    );
   });
 });
