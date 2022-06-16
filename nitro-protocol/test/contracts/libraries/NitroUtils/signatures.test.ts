@@ -17,7 +17,7 @@ for (let i = 0; i < 3; i++) {
 }
 
 beforeAll(async () => {
-  NitroUtils = setupContract(provider, NitroUtilsArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
+  NitroUtils = setupContract(provider, NitroUtilsArtifact, process.env.TEST_NITRO_UTILS_ADDRESS);
 });
 
 describe('_recoverSigner', () => {

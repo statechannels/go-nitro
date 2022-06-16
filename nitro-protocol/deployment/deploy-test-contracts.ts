@@ -55,8 +55,8 @@ export async function deploy(): Promise<Record<string, string>> {
   const SINGLE_ASSET_PAYMENT_ADDRESS = (await singleAssetPaymentsFactory.deploy()).address;
   const TEST_NITRO_ADJUDICATOR_ADDRESS = (await testNitroAdjudicatorFactory.deploy()).address;
   const TRIVIAL_APP_ADDRESS = (await trivialAppFactory.deploy()).address;
-  const TEST_FORCE_MOVE_ADDRESS = (await testNitroUtilsFactory.deploy()).address;
-  const TEST_NITRO_UTILS_ADDRESS = (await testForceMoveFactory.deploy()).address;
+  const TEST_FORCE_MOVE_ADDRESS = (await testForceMoveFactory.deploy()).address;
+  const TEST_NITRO_UTILS_ADDRESS = (await testNitroUtilsFactory.deploy()).address;
   const EMBEDDED_APPLICATION_ADDRESS = (await embeddedApplicationFactory.deploy()).address;
   const CONSENSUS_APP_ADDRESS = await (await consensusAppFactory.deploy()).address;
 
