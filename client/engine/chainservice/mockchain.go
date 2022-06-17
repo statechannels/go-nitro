@@ -42,11 +42,10 @@ func (mc *MockChain) SendTransaction(tx protocols.ChainTransaction) {
 		mc.txListener <- tx
 	}
 	var event Event
-	switch tx.(type) {
+	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
-		depositTx := tx.(protocols.DepositTransaction)
-		if depositTx.Deposit.IsNonZero() {
-			mc.holdings[tx.ChannelId()] = mc.holdings[tx.ChannelId()].Add(depositTx.Deposit)
+		if tx.Deposit.IsNonZero() {
+			mc.holdings[tx.ChannelId()] = mc.holdings[tx.ChannelId()].Add(tx.Deposit)
 		}
 		event = DepositedEvent{
 			CommonEvent: CommonEvent{
