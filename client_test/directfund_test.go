@@ -31,7 +31,7 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 		AppDefinition:     types.Address{},
 		AppData:           types.Bytes{},
 		ChallengeDuration: big.NewInt(0),
-		Nonce:             rand.Int63(),
+		Nonce:             int64(rand.Int31()),
 	}
 	response := alpha.CreateDirectChannel(request)
 

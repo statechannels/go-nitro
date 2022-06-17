@@ -19,10 +19,6 @@ type actor struct {
 	PrivateKey []byte
 }
 
-func (a actor) Destination() types.Destination {
-	return types.AddressToDestination(a.Address)
-}
-
 // actors namespaces the actors exported for test consumption
 type actors struct {
 	Alice actor
