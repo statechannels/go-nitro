@@ -54,7 +54,7 @@ func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Add
 
 	objective, err := ConstructFromState(preApprove,
 		state.State{
-			ChainId:           big.NewInt(9001), // TODO https://github.com/statechannels/go-nitro/issues/601
+			ChainId:           big.NewInt(1337), // TODO https://github.com/statechannels/go-nitro/issues/601
 			Participants:      []types.Address{myAddress, request.CounterParty},
 			ChannelNonce:      big.NewInt(request.Nonce),
 			AppDefinition:     request.AppDefinition,
@@ -435,7 +435,7 @@ type ObjectiveResponse struct {
 
 // Response computes and returns the appropriate response from the request.
 func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
-	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
+	fixedPart := state.FixedPart{ChainId: big.NewInt(1337), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
 		Participants:      []types.Address{myAddress, r.CounterParty},
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}

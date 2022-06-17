@@ -25,11 +25,19 @@ func TestDirectDefund(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	chain := chainservice.NewMockChain()
+	// Setup chain service
+	sim, na, naAddress, ethAccounts, err := chainservice.SetupSimulatedBackend(2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	chainA := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[0])
+	chainB := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[1])
+	// End chain service setup
+
 	broker := messageservice.NewBroker()
 
-	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
-	clientB, storeB := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	clientA, storeA := setupClient(alice.PrivateKey, chainA, broker, logDestination, 0)
+	clientB, storeB := setupClient(bob.PrivateKey, chainB, broker, logDestination, 0)
 
 	channelId := directlyFundALedgerChannel(t, clientA, clientB)
 	directlyDefundALedgerChannel(t, clientA, clientB, channelId)
