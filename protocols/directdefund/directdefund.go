@@ -210,6 +210,8 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 				updated.C.OnChainFunding = e.Holdings.Clone()
 			}
 		}
+	case chainservice.ConcludedEvent:
+		break
 	default:
 		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
 	}
