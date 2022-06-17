@@ -109,7 +109,6 @@ func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudic
 
 				holdings := types.Funds{}
 				holdings[nad.Asset] = nad.DestinationHoldings
-				// TODO fill out other event fields once the event data structure is settled.
 				event := DepositedEvent{
 					CommonEvent: CommonEvent{
 						channelID: nad.Destination,
@@ -124,6 +123,7 @@ func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudic
 					panic(err)
 				}
 
+				// TODO set Holdings based on chain event
 				event := AllocationUpdatedEvent{CommonEvent: CommonEvent{channelID: au.ChannelId, BlockNum: chainEvent.BlockNumber}, Holdings: types.Funds{}}
 				ecs.broadcast(event)
 			case concludedTopic:
