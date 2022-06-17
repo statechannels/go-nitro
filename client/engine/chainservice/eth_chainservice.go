@@ -51,17 +51,16 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) *ethT
 		Signer:   ecs.txSigner.Signer,
 		GasPrice: big.NewInt(10000000000),
 	}
-	switch tx.(type) {
+	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
-		depositTx := tx.(protocols.DepositTransaction)
-		for tokenAddress, amount := range depositTx.Deposit {
+		for tokenAddress, amount := range tx.Deposit {
 			txOpt.Value = amount
-			holdings, err := ecs.na.Holdings(&bind.CallOpts{}, tokenAddress, depositTx.ChannelId())
+			holdings, err := ecs.na.Holdings(&bind.CallOpts{}, tokenAddress, tx.ChannelId())
 			if err != nil {
 				panic(err)
 			}
 
-			ethTx, err := ecs.na.Deposit(&txOpt, tokenAddress, depositTx.ChannelId(), holdings, amount)
+			ethTx, err := ecs.na.Deposit(&txOpt, tokenAddress, tx.ChannelId(), holdings, amount)
 
 			if err != nil {
 				panic(err)
@@ -69,10 +68,8 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) *ethT
 			return ethTx
 		}
 	case protocols.WithdrawAllTransaction:
-		withdrawTx := tx.(protocols.WithdrawAllTransaction)
-
-		state := withdrawTx.SignedState.State()
-		signatures := withdrawTx.SignedState.Signatures()
+		state := tx.SignedState.State()
+		signatures := tx.SignedState.Signatures()
 		nitroFixedPart := NitroAdjudicator.IForceMoveFixedPart(state.FixedPart())
 		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(state.VariablePart())
 		nitroSignatures := []NitroAdjudicator.IForceMoveSignature{NitroAdjudicator.ConvertSignature(signatures[0]), NitroAdjudicator.ConvertSignature(signatures[1])}
