@@ -258,10 +258,9 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	}
 
 	// Withdrawal of funds
-	if !updated.fullyWithdrawn() && !updated.transactionSubmitted {
-
+	if !updated.fullyWithdrawn() {
 		// The first participant in the channel submits the withdrawAll transaction
-		if updated.C.MyIndex == 0 {
+		if updated.C.MyIndex == 0 && !updated.transactionSubmitted {
 			withdrawAll := protocols.NewWithdrawAllTransaction(updated.C.Id, latestSignedState)
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
 			updated.transactionSubmitted = true
