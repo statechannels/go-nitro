@@ -1,6 +1,7 @@
 package chainservice
 
 import (
+	"context"
 	"errors"
 	"math/big"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	"github.com/statechannels/go-nitro/protocols"
@@ -18,6 +20,7 @@ var ErrUnableToAssignBigInt = errors.New("simulated_backend_chainservice: unable
 type transactionProcessor interface {
 	eventSource
 	Commit()
+	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 }
 
 // SimulatedBackendChainService extends EthChainService to automatically mine a block for every transaction
@@ -34,9 +37,9 @@ func NewSimulatedBackendChainService(sim transactionProcessor, na *NitroAdjudica
 }
 
 // SendTransaction sends the transaction and blocks until it has been mined.
-func (ecs *SimulatedBackendChainService) SendTransaction(tx protocols.ChainTransaction) {
-	ecs.EthChainService.SendTransaction(tx)
-	ecs.sim.Commit()
+func (sbcs *SimulatedBackendChainService) SendTransaction(tx protocols.ChainTransaction) {
+	sbcs.EthChainService.SendTransaction(tx)
+	sbcs.sim.Commit()
 }
 
 // SetupSimulatedBackend creates a new SimulatedBackend with the supplied number of transacting accounts, deploys the Nitro Adjudicator and returns both.

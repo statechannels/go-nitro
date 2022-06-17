@@ -16,8 +16,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
 var allocationUpdatedTopic = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256)"))
+var concludedTopic = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
+var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
 
 type eventSource interface {
 	SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- ethTypes.Log) (ethereum.Subscription, error)
@@ -43,7 +44,7 @@ func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.
 }
 
 // SendTransaction sends the transaction and blocks until it has been submitted.
-func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
+func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) *ethTypes.Transaction {
 	txOpt := bind.TransactOpts{
 		From:     ecs.txSigner.From,
 		Nonce:    ecs.txSigner.Nonce,
@@ -60,11 +61,12 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
 				panic(err)
 			}
 
-			_, err = ecs.na.Deposit(&txOpt, tokenAddress, depositTx.ChannelId(), holdings, amount)
+			ethTx, err := ecs.na.Deposit(&txOpt, tokenAddress, depositTx.ChannelId(), holdings, amount)
 
 			if err != nil {
 				panic(err)
 			}
+			return ethTx
 		}
 	case protocols.WithdrawAllTransaction:
 		withdrawTx := tx.(protocols.WithdrawAllTransaction)
@@ -75,13 +77,16 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) {
 		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(state.VariablePart())
 		nitroSignatures := []NitroAdjudicator.IForceMoveSignature{NitroAdjudicator.ConvertSignature(signatures[0]), NitroAdjudicator.ConvertSignature(signatures[1])}
 
-		_, err := ecs.na.ConcludeAndTransferAllAssets(&txOpt, nitroFixedPart, nitroVariablePart, 1, []uint8{0, 0}, nitroSignatures)
+		ethTx, err := ecs.na.ConcludeAndTransferAllAssets(&txOpt, nitroFixedPart, nitroVariablePart, 1, []uint8{0, 0}, nitroSignatures)
 		if err != nil {
 			panic(err)
 		}
+		return ethTx
+
 	default:
 		panic("unexpected chain transaction")
 	}
+	return nil
 }
 
 func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, es eventSource) {
@@ -123,6 +128,14 @@ func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudic
 				}
 
 				event := AllocationUpdatedEvent{CommonEvent: CommonEvent{channelID: au.ChannelId, BlockNum: chainEvent.BlockNumber}, Holdings: types.Funds{}}
+				ecs.broadcast(event)
+			case concludedTopic:
+				ce, err := na.ParseConcluded(chainEvent)
+				if err != nil {
+					panic(err)
+				}
+
+				event := ConcludedEvent{CommonEvent: CommonEvent{channelID: ce.ChannelId, BlockNum: chainEvent.BlockNumber}}
 				ecs.broadcast(event)
 			default:
 				panic("Unknown chain event")

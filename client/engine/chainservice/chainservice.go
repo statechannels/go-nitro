@@ -36,6 +36,10 @@ type AllocationUpdatedEvent struct {
 	Holdings types.Funds // indexed by asset
 }
 
+type ConcludedEvent struct {
+	CommonEvent
+}
+
 // todo implement other event types
 // Concluded
 // ChallengeRegistered
