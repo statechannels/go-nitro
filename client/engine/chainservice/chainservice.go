@@ -36,6 +36,7 @@ type AllocationUpdatedEvent struct {
 	Holdings types.Funds // indexed by asset
 }
 
+// ConcludedEvent is an internal representation of the Concluded blockchain event
 type ConcludedEvent struct {
 	CommonEvent
 }
