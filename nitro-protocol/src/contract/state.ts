@@ -36,7 +36,7 @@ export interface FixedPart {
 export interface VariablePart {
   outcome: Outcome;
   appData: Bytes; // any encoded app-related type encoded once more as bytes
-  //(e.g. if in SC App uint256 is used, firstly enode appData as uint256, then as bytes)
+  //(e.g. if in SC App uint256 is used, firstly encode appData as uint256, then as bytes)
   turnNum: Uint48;
   isFinal: boolean;
 }
