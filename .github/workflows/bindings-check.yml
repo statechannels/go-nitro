@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd ./nitro-protocol
-          npm install
+          npm ci --legacy-peer-deps
 
       - name: make bin folder
         run: |
