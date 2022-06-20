@@ -15,6 +15,17 @@ contract HashLockedSwap is IForceMoveApp {
         bytes preImage;
     }
 
+    /**
+     * @notice Decodes the appData.
+     * @dev Decodes the appData.
+     * @param appDataBytes The abi.encode of a AppData struct describing the application-specific data.
+     * @return AppData struct containing the application-specific data.
+     */
+    function appData(bytes memory appDataBytes) internal pure returns (AppData memory) {
+        bytes memory decodedAppData = abi.decode(appDataBytes, (bytes));
+        return abi.decode(decodedAppData, (AppData));
+    }
+
     function latestSupportedState(
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
@@ -34,8 +45,8 @@ contract HashLockedSwap is IForceMoveApp {
         //  - two parties in this channel
         Outcome.Allocation[] memory allocationsA = decode2PartyAllocation(from.outcome);
         Outcome.Allocation[] memory allocationsB = decode2PartyAllocation(to.outcome);
-        bytes32 h = abi.decode(from.appData, (AppData)).h;
-        bytes memory preImage = abi.decode(to.appData, (AppData)).preImage;
+        bytes32 h = appData(from.appData).h;
+        bytes memory preImage = appData(to.appData).preImage;
 
         // is the preimage correct?
         require(sha256(preImage) == h, 'incorrect preimage');
