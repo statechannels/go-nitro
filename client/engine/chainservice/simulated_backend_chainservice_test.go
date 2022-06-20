@@ -10,33 +10,15 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
-type actor struct {
-	Address    types.Address
-	PrivateKey []byte
-}
-
-// actors namespaces the actors exported for test consumption
-type actors struct {
-	Alice actor
-	Bob   actor
-}
-
-// Actors is the endpoint for tests to consume constructed statechannel
-// network participants (public-key secret-key pairs)
-var Actors actors = actors{
-	Alice: actor{
-		common.HexToAddress(`0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE`),
-		common.Hex2Bytes(`2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d`),
-	},
-	Bob: actor{
-		common.HexToAddress(`0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94`),
-		common.Hex2Bytes(`0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4`),
-	},
-}
+var (
+	Alice = testactors.Alice
+	Bob   = testactors.Bob
+)
 
 var concludeOutcome = outcome.Exit{
 	outcome.SingleAssetExit{
@@ -57,8 +39,8 @@ var concludeOutcome = outcome.Exit{
 var concludeState = state.State{
 	ChainId: big.NewInt(1337),
 	Participants: []types.Address{
-		Actors.Alice.Address,
-		Actors.Bob.Address,
+		Alice.Address(),
+		Bob.Address(),
 	},
 	ChannelNonce:      big.NewInt(37140676580),
 	AppDefinition:     types.Address{},
@@ -100,8 +82,8 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 
 func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	// Generate Signatures
-	aSig, _ := concludeState.Sign(Actors.Alice.PrivateKey)
-	bSig, _ := concludeState.Sign(Actors.Bob.PrivateKey)
+	aSig, _ := concludeState.Sign(Alice.PrivateKey)
+	bSig, _ := concludeState.Sign(Bob.PrivateKey)
 
 	sim, na, naAddress, ethAccounts, err := SetupSimulatedBackend(1)
 	if err != nil {
