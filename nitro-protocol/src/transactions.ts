@@ -16,8 +16,9 @@ export const NITRO_MAX_GAS = 6_000_000; // should be below the block gas limit, 
 // ganache:  6721975 (hardcoded but can be overriden via config)
 
 /**
- * Marshalls the supplied signedStates into an ethereum transaction for the checkpoint method. Automatically computes whosignedWhat, sigs, etc.
+ * Marshalls the supplied signedStates into an ethereum transaction for the challenge method. Automatically computes signedVariableParts, etc.
  * @param signedStates an array of signed states
+ * @param challengePrivateKey private key of the challenger
  * @returns An ethers TransactionRequest. This can be launched with `await signer.sendTransaction({to: adjudicator.address, ...txRequest}`)
  */
 export function createChallengeTransaction(
@@ -35,26 +36,7 @@ export function createChallengeTransaction(
 }
 
 /**
- * Marshalls the supplied signedStates into an ethereum transaction for the checkpoint method. Automatically computes whosignedWhat, sigs, etc.
- * @param signedStates an array of signed states
- * @returns An ethers TransactionRequest. This can be launched with `await signer.sendTransaction({to: adjudicator.address, ...txRequest}`)
- */
-export function createRespondTransaction(
-  challengeState: State,
-  response: SignedState
-): providers.TransactionRequest {
-  if (!challengeState) {
-    throw new Error('No active challenge in challenge state');
-  }
-  return forceMoveTrans.createRespondTransaction({
-    challengeState,
-    responseState: response.state,
-    responseSignature: response.signature,
-  });
-}
-
-/**
- * Marshalls the supplied signedStates into an ethereum transaction for the checkpoint method. Automatically computes whosignedWhat, sigs, etc.
+ * Marshalls the supplied signedStates into an ethereum transaction for the checkpoint method. Automatically computes signedVariableParts, etc.
  * @param signedStates an array of signed states
  * @returns An ethers TransactionRequest. This can be launched with `await signer.sendTransaction({to: adjudicator.address, ...txRequest}`)
  */
@@ -70,7 +52,7 @@ export function createCheckpointTransaction(
 }
 
 /**
- * Marshalls the supplied signedStates into an ethereum transaction for the checkpoint method. Automatically computes whosignedWhat, sigs, etc.
+ * Marshalls the supplied signedStates into an ethereum transaction for the conclude and transfer all assets method. Automatically computes signedVariableParts, etc.
  * @param signedStates an array of signed states
  * @returns An ethers TransactionRequest. This can be launched with `await signer.sendTransaction({to: adjudicator.address, ...txRequest}`)
  */
@@ -86,8 +68,8 @@ export function createConcludeAndTransferAllAssetsTransaction(
 }
 
 /**
- * Marshalls the supplied signedStates into an ethereum transaction for the checkpoint method. Automatically computes whosignedWhat, sigs, etc.
- * @param signedStates an array of signed states
+ * Marshalls the supplied signedStates into an ethereum transaction for the transfer all assets method. Automatically computes signedVariableParts, etc.
+ * @param state last state in the channel
  * @returns An ethers TransactionRequest. This can be launched with `await signer.sendTransaction({to: adjudicator.address, ...txRequest}`)
  */
 export function createTransferAllAssetsTransaction(state: State): providers.TransactionRequest {
@@ -95,8 +77,8 @@ export function createTransferAllAssetsTransaction(state: State): providers.Tran
 }
 
 /**
- * Marshalls the supplied signedStates into an ethereum transaction for the checkpoint method. Automatically computes whosignedWhat, sigs, etc.
- * @param signedStates an array of signed states
+ * Marshalls the supplied signedStates into an ethereum transaction for the conclude method. Automatically computes signedVariableParts, etc.
+ * @param conclusionProof an array of signed states
  * @returns An ethers TransactionRequest. This can be launched with `await signer.sendTransaction({to: adjudicator.address, ...txRequest}`)
  */
 export function createConcludeTransaction(
@@ -107,7 +89,7 @@ export function createConcludeTransaction(
 }
 
 /**
- * Marshalls the supplied signedStates into the signature arguments  used in most on chain methods.]
+ * Marshalls the supplied signedStates into the signature arguments used in most on chain methods.
  * Currently we assume each signedState is a unique combination of state/signature
  * So if multiple participants sign a state we expect a SignedState for each participant
  * @param signedStates an array of signed states

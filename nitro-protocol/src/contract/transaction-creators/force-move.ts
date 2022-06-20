@@ -53,27 +53,6 @@ export function createChallengeTransaction(
   return {data};
 }
 
-interface RespondArgs {
-  challengeState: State;
-  responseState: State;
-  responseSignature: Signature;
-}
-export function respondArgs({
-  challengeState,
-  responseState,
-  responseSignature,
-}: // eslint-disable-next-line @typescript-eslint/no-explicit-any
-RespondArgs): any[] {
-  const fixedPart = getFixedPart(responseState);
-  const variablePartAB = [getVariablePart(challengeState), getVariablePart(responseState)];
-  return [fixedPart, variablePartAB, responseSignature];
-}
-
-export function createRespondTransaction(args: RespondArgs): ethers.providers.TransactionRequest {
-  const data = ForceMoveContractInterface.encodeFunctionData('respond', respondArgs(args));
-  return {data};
-}
-
 export function createCheckpointTransaction({
   states,
   signatures,
@@ -91,8 +70,9 @@ export function createCheckpointTransaction({
 export function checkpointArgs({states, signatures, whoSignedWhat}: CheckpointData): any[] {
   const fixedPart = getFixedPart(states[0]);
   const variableParts = states.map(s => getVariablePart(s));
+  const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
 
-  return [fixedPart, variableParts, signatures, whoSignedWhat];
+  return [fixedPart, signedVariableParts];
 }
 
 export function createConcludeTransaction(
@@ -124,11 +104,10 @@ export function concludeArgs(
     );
   }
 
-  const lastState = states.reduce((s1, s2) => (s1.turnNum >= s2.turnNum ? s1 : s2), states[0]);
-  const fixedPart = getFixedPart(lastState);
-  const latestVariablePart = getVariablePart(lastState);
+  const fixedPart = getFixedPart(states[0]);
 
-  const numStates = states.length;
+  const variableParts = states.map(s => getVariablePart(s));
+  const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
 
-  return [fixedPart, latestVariablePart, numStates, whoSignedWhat, signatures];
+  return [fixedPart, signedVariableParts];
 }
