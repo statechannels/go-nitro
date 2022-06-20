@@ -9,7 +9,6 @@ import {
   createCheckpointTransaction,
   createConcludeTransaction,
   createChallengeTransaction,
-  createRespondTransaction,
   createSignatureArguments,
   MAX_TX_DATA_SIZE,
 } from '../../src/transactions';
@@ -24,16 +23,6 @@ const channel: Channel = {
   chainId: '0x1',
   channelNonce: getRandomNonce('transactions'),
   participants: [walletA.address, walletB.address], // 2 participants is the most common usecase
-};
-
-const challengeState = {
-  channel,
-  turnNum: 0,
-  isFinal: false,
-  appDefinition: ethers.constants.AddressZero,
-  appData: '0x00',
-  outcome: [],
-  challengeDuration: 0x0,
 };
 
 const state: State = {
@@ -137,24 +126,7 @@ describe('transaction-generators', () => {
     }
   );
 
-  describe('respond transactions', () => {
-    it('creates a transaction', async () => {
-      const transactionRequest: ethers.providers.TransactionRequest = createRespondTransaction(
-        challengeState,
-        signedStateA
-      );
-
-      expect(transactionRequest.data).toBeDefined();
-    });
-
-    it('throws an error when there is no challenge state', async () => {
-      expect(() => {
-        createRespondTransaction(null as unknown as State, signedStateA);
-      }).toThrow();
-    });
-  });
-
-  describe('respond with checkpoint transactions', () => {
+  describe('checkpoint transactions', () => {
     it('creates a transaction when there is a challenge state', async () => {
       const transactionRequest: ethers.providers.TransactionRequest = createCheckpointTransaction([
         signedStateA,
