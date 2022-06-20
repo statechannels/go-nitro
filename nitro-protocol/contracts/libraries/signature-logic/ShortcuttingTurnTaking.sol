@@ -53,7 +53,7 @@ library ShortcuttingTurnTaking {
         uint256 roundRobinShift
     ) internal pure {
         require(signedVariablePart.sigs.length > 0, 'Insufficient signatures');
-        require(signedVariablePart.sigs.length == NitroUtils.getSignersAmount(signedVariablePart.signedBy), 'Insufficient or excess signatures');
+        require(signedVariablePart.sigs.length == NitroUtils.getSignersAmount(signedVariablePart.signedBy), '|sigs| != |signedBy|');
 
         _requireAcceptableSigsOrder(signedVariablePart.signedBy, signedVariablePart.variablePart.turnNum, roundRobinShift, fixedPart.participants.length);
 
@@ -93,7 +93,7 @@ library ShortcuttingTurnTaking {
         for (uint256 i = 0; i < signerIndices.length; i++) {
             require(
                 (signerIndices[i] + nParticipants - shift) % nParticipants <= (turnNum - shift) % nParticipants,
-                'Mover signed earlier state than theirs'
+                'Unacceptable sigs order'
             );
         }
     }
@@ -150,11 +150,11 @@ library ShortcuttingTurnTaking {
 
         for (uint256 i = 0; i < signedVariableParts.length; i++) {
             uint256 hasTwoSigs = signedSoFar & signedVariableParts[i].signedBy;
-            require(hasTwoSigs == 0, 'Too many signatures from one participant');
+            require(hasTwoSigs == 0, 'Excess sigs from one participant');
             
             signedSoFar |= signedVariableParts[i].signedBy;
         }
 
-        require(signedSoFar == 2**nParticipants - 1, 'Lacking some participant signature');
+        require(signedSoFar == 2**nParticipants - 1, 'Lacking participant signature');
     }
 }

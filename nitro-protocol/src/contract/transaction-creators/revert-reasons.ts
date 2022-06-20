@@ -18,4 +18,4 @@ export const RESPONSE_UNAUTHORIZED = 'Signer not authorized mover';
 export const WRONG_REFUTATION_SIGNATURE = 'Refutation state not signed by challenger';
 
 // Turn Taking
-export const MOVER_SIGNED_EARLIER_STATE = 'Mover signed earlier state than theirs';
+export const MOVER_SIGNED_EARLIER_STATE = 'Unacceptable sigs order';
