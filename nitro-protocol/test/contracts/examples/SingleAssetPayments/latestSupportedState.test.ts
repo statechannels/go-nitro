@@ -15,7 +15,7 @@ import {
   replaceAddressesAndBigNumberify,
   setupContract,
 } from '../../../test-helpers';
-import {bindSignatures, Channel, signStates} from '../../../../src';
+import {AssetOutcomeShortHand, bindSignatures, Channel, signStates} from '../../../../src';
 import {MOVER_SIGNED_EARLIER_STATE} from '../../../../src/contract/transaction-creators/revert-reasons';
 
 const provider = getTestProvider();
@@ -84,21 +84,21 @@ describe('validTransition', () => {
       isValid: boolean;
       isAllocation: boolean[];
       numAssets: number[];
-      balancesA: any;
+      balancesA: AssetOutcomeShortHand;
       turnNumB: number;
-      balancesB: any;
+      balancesB: AssetOutcomeShortHand;
       whoSignedWhat: number[];
       reason?: string;
     }) => {
       const channel: Channel = {chainId, channelNonce, participants};
 
       const turnNumA = turnNumB - 1;
-      balancesA = replaceAddressesAndBigNumberify(balancesA, addresses);
+      balancesA = replaceAddressesAndBigNumberify(balancesA, addresses) as AssetOutcomeShortHand;
       const allocationsA: Allocation[] = [];
       Object.keys(balancesA).forEach(key =>
         allocationsA.push({
           destination: key,
-          amount: balancesA[key].toHexString(),
+          amount: balancesA[key].toString(),
           allocationType: isAllocation[0] ? AllocationType.simple : AllocationType.guarantee,
           metadata: isAllocation[0] ? '0x' : encodeGuaranteeData(guaranteeDestinations),
         })
@@ -111,13 +111,13 @@ describe('validTransition', () => {
         outcomeA.push(outcomeA[0]);
       }
 
-      balancesB = replaceAddressesAndBigNumberify(balancesB, addresses);
+      balancesB = replaceAddressesAndBigNumberify(balancesB, addresses) as AssetOutcomeShortHand;
       const allocationsB: Allocation[] = [];
 
       Object.keys(balancesB).forEach(key =>
         allocationsB.push({
           destination: key,
-          amount: balancesB[key].toHexString(),
+          amount: balancesB[key].toString(),
           allocationType: isAllocation[1] ? AllocationType.simple : AllocationType.guarantee,
           metadata: isAllocation[1] ? '0x' : encodeGuaranteeData(guaranteeDestinations),
         })

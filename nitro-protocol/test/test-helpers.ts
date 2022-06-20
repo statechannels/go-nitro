@@ -101,7 +101,7 @@ export const parseOutcomeEventResult = (eventOutcomeResult: any[]): Outcome => {
     if (eventAllocations.length != 0) {
       eventAllocations.forEach((eventAllocation: any[]) => {
         const destination: string = eventAllocation[0];
-        const amount: string = eventAllocation[1]['_hex'];
+        const amount: string = BigNumber.from(eventAllocation[1]['_hex']).toString();
         const allocationType: number = eventAllocation[2];
         const metadata: string = eventAllocation[3];
 
