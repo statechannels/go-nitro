@@ -3,6 +3,7 @@ package consensus_channel
 import (
 	"errors"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -13,11 +14,8 @@ import (
 
 func TestConsensusChannel(t *testing.T) {
 	existingChannel := types.Destination{1}
-	aBal := uint64(200)
-	bBal := uint64(300)
-	vAmount := uint64(5)
 
-	proposal := add(10, vAmount, targetChannel, alice, bob)
+	proposal := add(vAmount, targetChannel, alice, bob)
 
 	outcome := func() LedgerOutcome {
 		return makeOutcome(
@@ -53,13 +51,13 @@ func TestConsensusChannel(t *testing.T) {
 	}
 
 	clone2 := vars.Outcome.clone()
-	clone2.left.amount.SetInt64(111)
+	clone2.leader.amount.SetInt64(111)
 	if f1 != fingerprint(vars) {
 		t.Fatal("vars shares data with clone")
 	}
 
 	clone3 := vars.Outcome.clone()
-	clone3.right.amount.SetInt64(111)
+	clone3.follower.amount.SetInt64(111)
 	if f1 != fingerprint(vars) {
 		t.Fatal("vars shares data with clone")
 	}
@@ -91,7 +89,6 @@ func TestConsensusChannel(t *testing.T) {
 
 		// Proposing the same change again should fail
 		duplicateProposal := proposal
-		duplicateProposal.turnNum += 1
 		err = vars.Add(duplicateProposal)
 
 		if !errors.Is(err, ErrDuplicateGuarantee) {
@@ -101,7 +98,7 @@ func TestConsensusChannel(t *testing.T) {
 		// Proposing a change that depletes a balance should fail
 		vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
 		largeProposal := proposal
-		leftAmount := big.NewInt(0).Set(vars.Outcome.left.amount)
+		leftAmount := big.NewInt(0).Set(vars.Outcome.leader.amount)
 		largeProposal.amount = leftAmount.Add(leftAmount, big.NewInt(1))
 		largeProposal.LeftDeposit = largeProposal.amount
 		err = vars.Add(largeProposal)
@@ -116,7 +113,7 @@ func TestConsensusChannel(t *testing.T) {
 
 		vars := Vars{TurnNum: startingTurnNum, Outcome: outcome()}
 		aAmount, bAmount := uint64(2), uint64(3)
-		proposal := remove(10, existingChannel, aAmount, bAmount)
+		proposal := remove(existingChannel, aAmount)
 		err := vars.Remove(proposal)
 
 		if err != nil {
@@ -138,7 +135,7 @@ func TestConsensusChannel(t *testing.T) {
 
 		// Proposing the same change again should fail since the guarantee has been removed
 		duplicateProposal := proposal
-		duplicateProposal.turnNum += 1
+
 		err = vars.Remove(duplicateProposal)
 
 		if !errors.Is(err, ErrGuaranteeNotFound) {
@@ -148,28 +145,14 @@ func TestConsensusChannel(t *testing.T) {
 		// Proposing a remove that cannot be afforded by the guarantee should fail
 		vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
 		largeProposal := Remove{
-			turnNum:     10,
-			Target:      existingChannel,
-			LeftAmount:  big.NewInt(5),
-			RightAmount: big.NewInt(5),
+			Target:     existingChannel,
+			LeftAmount: big.NewInt(10),
 		}
 		err = vars.Remove(largeProposal)
-		if !errors.Is(err, ErrInvalidAmounts) {
-			t.Fatalf("expected error when adding too large a guarantee: %v", err)
+		if !errors.Is(err, ErrInvalidAmount) {
+			t.Fatalf("expected error when recovering too large much from a guarantee: %v", err)
 		}
 
-		// Proposing a remove that does allocate all guarantee funds should fail
-		vars = Vars{TurnNum: startingTurnNum, Outcome: outcome()}
-		smallProposal := Remove{
-			turnNum:     10,
-			Target:      existingChannel,
-			LeftAmount:  big.NewInt(0),
-			RightAmount: big.NewInt(0),
-		}
-		err = vars.Remove(smallProposal)
-		if !errors.Is(err, ErrInvalidAmounts) {
-			t.Fatalf("expected error when adding too large a guarantee: %v", err)
-		}
 	}
 
 	initialVars := Vars{Outcome: outcome(), TurnNum: 0}
@@ -209,6 +192,20 @@ func TestConsensusChannel(t *testing.T) {
 		}
 	}
 
+	testEmptyProposalClone := func(t *testing.T) {
+		add := Add{}
+		clonedAdd := add.Clone()
+		if !reflect.DeepEqual(add, clonedAdd) {
+			t.Fatalf("cloned add is not equal to original")
+		}
+		remove := Remove{}
+		clonedRemove := remove.Clone()
+
+		if !reflect.DeepEqual(remove, clonedRemove) {
+			t.Fatalf("cloned remove is not equal to original")
+		}
+	}
+	t.Run(`TestEmptyProposalClone`, testEmptyProposalClone)
 	t.Run(`TestApplyingAddProposalToVars`, testApplyingAddProposalToVars)
 	t.Run(`TestApplyingRemoveProposalToVars`, testApplyingRemoveProposalToVars)
 	t.Run(`TestConsensusChannelFunctionality`, testConsensusChannelFunctionality)

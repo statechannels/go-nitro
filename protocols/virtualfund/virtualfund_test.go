@@ -11,6 +11,8 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -20,7 +22,7 @@ func TestMarshalJSON(t *testing.T) {
 
 	vPreFund := state.State{
 		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{alice.Address, p1.Address, bob.Address}, // A single hop virtual channel
+		Participants:      []types.Address{alice.Address(), p1.Address(), bob.Address()}, // A single hop virtual channel
 		ChannelNonce:      big.NewInt(0),
 		AppDefinition:     types.Address{},
 		ChallengeDuration: big.NewInt(45),
@@ -48,7 +50,7 @@ func TestMarshalJSON(t *testing.T) {
 	vfo, err := constructFromState(
 		false,
 		vPreFund,
-		alice.Address,
+		alice.Address(),
 		nil,
 		right,
 	)
@@ -114,4 +116,29 @@ func TestMarshalJSON(t *testing.T) {
 		t.Fatalf("expected bob initial balance of %v but found %v", vfo.b0, got.a0)
 	}
 
+}
+
+func TestApproveReject(t *testing.T) {
+	td := newTestData()
+	lookup := td.leaderLedgers
+	vPreFund := td.vPreFund
+
+	// Assert that a valid set of constructor args does not result in an error
+	o, err := constructFromState(
+		false,
+		vPreFund,
+		alice.Address(),
+		lookup[alice.Destination()].left,
+		lookup[alice.Destination()].right,
+	)
+	testhelpers.Ok(t, err)
+
+	approved := o.Approve()
+	if approved.GetStatus() != protocols.Approved {
+		t.Errorf("Expected approved status, got %v", approved.GetStatus())
+	}
+	rejected := o.Reject()
+	if rejected.GetStatus() != protocols.Rejected {
+		t.Errorf("Expected rejceted status, got %v", approved.GetStatus())
+	}
 }

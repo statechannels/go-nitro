@@ -6,13 +6,15 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
-var ErrNotFollower = fmt.Errorf("method may only be called by channel follower")
-var ErrNoProposals = fmt.Errorf("no proposals in the queue")
-var ErrUnsupportedQueuedProposal = fmt.Errorf("only Add proposal is supported for queued proposals")
-var ErrUnsupportedExpectedProposal = fmt.Errorf("only Add proposal is supported for expected update")
-var ErrNonMatchingProposals = fmt.Errorf("expected proposal does not match first proposal in the queue")
-var ErrInvalidProposalSignature = fmt.Errorf("invalid signature for proposal")
-var ErrInvalidTurnNum = fmt.Errorf("the proposal turn number is not the next turn number")
+var (
+	ErrNotFollower                 = fmt.Errorf("method may only be called by channel follower")
+	ErrNoProposals                 = fmt.Errorf("no proposals in the queue")
+	ErrUnsupportedQueuedProposal   = fmt.Errorf("only Add proposal is supported for queued proposals")
+	ErrUnsupportedExpectedProposal = fmt.Errorf("only Add proposal is supported for expected update")
+	ErrNonMatchingProposals        = fmt.Errorf("expected proposal does not match first proposal in the queue")
+	ErrInvalidProposalSignature    = fmt.Errorf("invalid signature for proposal")
+	ErrInvalidTurnNum              = fmt.Errorf("the proposal turn number is not the next turn number")
+)
 
 // NewFollowerChannel constructs a new FollowerChannel
 func NewFollowerChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
@@ -37,7 +39,7 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 
 	p := c.proposalQueue[0].Proposal
 
-	if !p.equal(&expectedProposal) {
+	if !p.Equal(&expectedProposal) {
 		return SignedProposal{}, ErrNonMatchingProposals
 	}
 
@@ -63,7 +65,7 @@ func (c *ConsensusChannel) SignNextProposal(expectedProposal Proposal, sk []byte
 	}
 	c.proposalQueue = c.proposalQueue[1:]
 
-	return SignedProposal{signature, signed.Proposal}, nil
+	return SignedProposal{signature, signed.Proposal, vars.TurnNum}, nil
 }
 
 // followerReceive is called by the follower to validate a proposal from the leader and add it to the proposal queue
@@ -82,7 +84,7 @@ func (c *ConsensusChannel) followerReceive(p SignedProposal) error {
 		return fmt.Errorf("could not generate the current proposal: %w", err)
 	}
 
-	if p.Proposal.TurnNum() != vars.TurnNum+1 {
+	if p.TurnNum != vars.TurnNum+1 {
 		return ErrInvalidTurnNum
 	}
 	// Add the incoming proposal to the vars

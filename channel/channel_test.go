@@ -1,6 +1,7 @@
 package channel
 
 import (
+	"encoding/json"
 	"errors"
 	"math/big"
 	"reflect"
@@ -9,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -23,14 +25,9 @@ func TestChannel(t *testing.T) {
 
 	s := state.TestState.Clone()
 
-	_, err1 := New(s, 0)
-	s.TurnNum = 0
 	c, err2 := New(s, 0)
 
 	testNew := func(t *testing.T) {
-		if err1 == nil {
-			t.Error(`expected error constructing with a non turnNum=0 state, but got none`)
-		}
 		if err2 != nil {
 			t.Error(err2)
 		}
@@ -175,8 +172,8 @@ func TestChannel(t *testing.T) {
 		}
 
 		// It should properly update the latestSupportedStateNum
-		if myC.latestSupportedStateTurnNum != 0 {
-			t.Fatalf("Expected latestSupportedStateTurnNum of 0 but got %d", myC.latestSupportedStateTurnNum)
+		if myC.latestSupportedStateTurnNum != s.TurnNum {
+			t.Fatalf("Expected latestSupportedStateTurnNum of %d but got %d", s.TurnNum, myC.latestSupportedStateTurnNum)
 
 		}
 		// verify the signatures
@@ -191,51 +188,6 @@ func TestChannel(t *testing.T) {
 				t.Fatalf("Expected to find signature %x at index 0, but got %x", wantSig, gotSig)
 			}
 		}
-	}
-
-	testAddSignedStates := func(t *testing.T) {
-		myC, _ := New(s, 0)
-
-		ss := state.NewSignedState(s)
-		sigA, err := ss.State().Sign(alicePrivateKey)
-		if err != nil {
-			t.Error(err)
-		}
-		sigB, err := ss.State().Sign(bobPrivateKey)
-		if err != nil {
-			t.Error(err)
-		}
-		err = ss.AddSignature(sigA)
-		if err != nil {
-			t.Error(err)
-		}
-		err = ss.AddSignature(sigB)
-		if err != nil {
-			t.Error(err)
-		}
-		if ok := myC.AddSignedStates([]state.SignedState{ss}); !ok {
-			t.Error("AddSignedStates returned false")
-		}
-
-		// It should properly update the latestSupportedStateNum
-		got := myC.latestSupportedStateTurnNum
-		if got != 0 {
-			t.Fatalf("Expected latestSupportedStateTurnNum of 0 but got %d", got)
-		}
-
-		// verify the signatures
-		expectedSigs := []state.Signature{sigA, sigB}
-		for i := range myC.Participants {
-			gotSig, err := myC.SignedStateForTurnNum[s.TurnNum].GetParticipantSignature(uint(i))
-			if err != nil {
-				panic(err)
-			}
-			wantSig := expectedSigs[i]
-			if !gotSig.Equal(wantSig) {
-				t.Fatalf("Expected to find signature %x at index 0, but got %x", wantSig, gotSig)
-			}
-		}
-
 	}
 
 	testAddStateWithSignature := func(t *testing.T) {
@@ -292,10 +244,8 @@ func TestChannel(t *testing.T) {
 			t.Error(err)
 		}
 		expectedSignedState := state.NewSignedState(c.PostFundState())
-		err = expectedSignedState.Sign(&alicePrivateKey)
-		if err != nil {
-			t.Error(err)
-		}
+		testhelpers.SignState(&expectedSignedState, &alicePrivateKey)
+
 		if diff := cmp.Diff(expectedSignedState, latestSignedState, cmp.AllowUnexported(expectedSignedState)); diff != "" {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
 		}
@@ -330,10 +280,7 @@ func TestChannel(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		err = expectedSignedState.Sign(&bobPrivateKey)
-		if err != nil {
-			t.Error(err)
-		}
+		testhelpers.SignState(&expectedSignedState, &bobPrivateKey)
 
 		if diff := compareStates(latestSignedState, expectedSignedState); diff != "" {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
@@ -353,47 +300,8 @@ func TestChannel(t *testing.T) {
 	t.Run(`TestLatestSignedState`, testLatestSignedState)
 	t.Run(`TestTotal`, testTotal)
 	t.Run(`TestAddStateWithSignature`, testAddStateWithSignature)
-	t.Run(`TestAddSignedStates`, testAddSignedStates)
 	t.Run(`TestAddSignedState`, testAddSignedState)
 
-}
-
-func TestTwoPartyLedger(t *testing.T) {
-	compareChannels := func(a, b *TwoPartyLedger) string {
-		return cmp.Diff(*a, *b, cmp.AllowUnexported(*a, big.Int{}, state.SignedState{}, Channel{}))
-	}
-
-	s := state.TestState.Clone()
-	s.TurnNum = 0
-	testClone := func(t *testing.T) {
-		r, err := NewTwoPartyLedger(s, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-		c := r.Clone()
-		if diff := compareChannels(r, c); diff != "" {
-			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
-		}
-
-		r.latestSupportedStateTurnNum++
-		if reflect.DeepEqual(r.Channel, c.Channel) {
-			t.Error("Clone: modifying the clone should not modify the original")
-		}
-
-		r.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
-		if r.Participants[0] == c.Participants[0] {
-			t.Error("Clone: modifying the clone should not modify the original")
-		}
-
-		var nilTwoPartyLedger *TwoPartyLedger
-		clone := nilTwoPartyLedger.Clone()
-		if clone != nil {
-			t.Fatal("Tried to clone a TwoPartyLedger via a nil pointer, but got something not nil")
-		}
-
-	}
-
-	t.Run(`TestClone`, testClone)
 }
 
 func TestSingleHopVirtualChannel(t *testing.T) {
@@ -432,4 +340,41 @@ func TestSingleHopVirtualChannel(t *testing.T) {
 
 	}
 	t.Run(`TestClone`, testClone)
+}
+
+func TestSerde(t *testing.T) {
+
+	ss := state.NewSignedState(state.TestState)
+	signedStateForTurnNum := make(map[uint64]state.SignedState)
+	signedStateForTurnNum[0] = ss
+
+	someChannel := Channel{
+		Id:                          types.Destination{1},
+		MyIndex:                     1,
+		FixedPart:                   state.TestState.FixedPart(),
+		SignedStateForTurnNum:       signedStateForTurnNum,
+		latestSupportedStateTurnNum: 2,
+	}
+
+	someChannelJSON := `{"Id":"0x0100000000000000000000000000000000000000000000000000000000000000","MyIndex":1,"OnChainFunding":null,"ChainId":9001,"Participants":["0xf5a1bb5607c9d079e46d1b3dc33f257d937b43bd","0x760bf27cd45036a6c486802d30b5d90cffbe31fe"],"ChannelNonce":37140676580,"AppDefinition":"0x5e29e5ab8ef33f050c7cc10b5a0456d975c5f88d","ChallengeDuration":60,"SignedStateForTurnNum":{"0":{"State":{"ChainId":9001,"Participants":["0xf5a1bb5607c9d079e46d1b3dc33f257d937b43bd","0x760bf27cd45036a6c486802d30b5d90cffbe31fe"],"ChannelNonce":37140676580,"AppDefinition":"0x5e29e5ab8ef33f050c7cc10b5a0456d975c5f88d","ChallengeDuration":60,"AppData":"","Outcome":[{"Asset":"0x0000000000000000000000000000000000000000","Metadata":null,"Allocations":[{"Destination":"0x000000000000000000000000f5a1bb5607c9d079e46d1b3dc33f257d937b43bd","Amount":5,"AllocationType":0,"Metadata":null},{"Destination":"0x000000000000000000000000ee18ff1575055691009aa246ae608132c57a422c","Amount":5,"AllocationType":0,"Metadata":null}]}],"TurnNum":5,"IsFinal":false},"Sigs":{}}},"LatestSupportedStateTurnNum":2}`
+
+	// Marshalling
+	got, err := json.Marshal(someChannel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != someChannelJSON {
+		t.Fatalf("incorrect json marshaling, expected %v got \n%v", someChannelJSON, string(got))
+	}
+
+	//Unmarshalling
+	var c Channel
+	err = json.Unmarshal([]byte(someChannelJSON), &c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(c, someChannel) {
+		t.Fatalf("incorrect json unmarshaling, expected \n%+v got \n%+v", someChannel, got)
+	}
 }

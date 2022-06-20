@@ -12,7 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// Class containing states and metadata, and exposing convenience methods.
+// Channel contains states and metadata and exposes convenience methods.
 type Channel struct {
 	Id      types.Destination
 	MyIndex uint
@@ -23,21 +23,23 @@ type Channel struct {
 	// Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain
 	// It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
 
-	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
-
-	SignedStateForTurnNum map[uint64]state.SignedState // this stores up to 1 state per turn number.
+	SignedStateForTurnNum map[uint64]state.SignedState
 	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
+
+	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
 }
 
 // New constructs a new Channel from the supplied state.
 func New(s state.State, myIndex uint) (*Channel, error) {
 	c := Channel{}
-	if s.TurnNum != PreFundTurnNum {
-		return &c, errors.New(`channel must be constructed with TurnNum=0 state`)
+	var err error = s.Validate()
+
+	if err != nil {
+		return &c, err
 	}
 
-	var err error
-	c.Id, err = s.ChannelId()
+	c.Id = s.ChannelId()
+
 	if err != nil {
 		return &c, err
 	}
@@ -115,11 +117,6 @@ func (c Channel) MyDestination() types.Destination {
 	return types.AddressToDestination(c.Participants[c.MyIndex])
 }
 
-// TheirDestination returns the destination of the ledger counterparty
-func (lc TwoPartyLedger) TheirDestination() types.Destination {
-	return types.AddressToDestination(lc.Participants[(lc.MyIndex+1)%2])
-}
-
 // Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.
 func (c *Channel) Clone() *Channel {
 	if c == nil {
@@ -140,6 +137,11 @@ func (c Channel) PreFundState() state.State {
 	return c.SignedStateForTurnNum[PreFundTurnNum].State()
 }
 
+// SignedPreFundState returns the signed pre fund setup state for the channel.
+func (c Channel) SignedPreFundState() state.SignedState {
+	return c.SignedStateForTurnNum[PreFundTurnNum]
+}
+
 // PostFundState() returns the post fund setup state for the channel.
 func (c Channel) PostFundState() state.State {
 	return c.SignedStateForTurnNum[PostFundTurnNum].State()
@@ -149,10 +151,9 @@ func (c Channel) PostFundState() state.State {
 // SignedPostFundState() returns the SIGNED post fund setup state for the channel.
 func (c Channel) SignedPostFundState() state.SignedState {
 	return c.SignedStateForTurnNum[PostFundTurnNum]
-
 }
 
-// PreFundSignedByMe() returns true if I have signed the pre fund setup state, false otherwise.
+// PreFundSignedByMe returns true if the calling client has signed the pre fund setup state, false otherwise.
 func (c Channel) PreFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[PreFundTurnNum]; ok {
 		if c.SignedStateForTurnNum[PreFundTurnNum].HasSignatureForParticipant(c.MyIndex) {
@@ -162,7 +163,7 @@ func (c Channel) PreFundSignedByMe() bool {
 	return false
 }
 
-// PostFundSignedByMe() returns true if I have signed the post fund setup state, false otherwise.
+// PostFundSignedByMe returns true if the calling client has signed the post fund setup state, false otherwise.
 func (c Channel) PostFundSignedByMe() bool {
 	if _, ok := c.SignedStateForTurnNum[PostFundTurnNum]; ok {
 		if c.SignedStateForTurnNum[PostFundTurnNum].HasSignatureForParticipant(c.MyIndex) {
@@ -182,7 +183,8 @@ func (c Channel) PostFundComplete() bool {
 	return c.SignedStateForTurnNum[PostFundTurnNum].HasAllSignatures()
 }
 
-// LatestSupportedState returns the latest supported state.
+// LatestSupportedState returns the latest supported state. A state is supported if it is signed
+// by all participants.
 func (c Channel) LatestSupportedState() (state.State, error) {
 	if c.latestSupportedStateTurnNum == MaxTurnNum {
 		return state.State{}, errors.New(`no state is yet supported`)
@@ -190,10 +192,10 @@ func (c Channel) LatestSupportedState() (state.State, error) {
 	return c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State(), nil
 }
 
-// LatestSignedState fetches the state with the largest turn number signed by any participant
+// LatestSignedState fetches the state with the largest turn number signed by at least one participant.
 func (c Channel) LatestSignedState() (state.SignedState, error) {
 	if len(c.SignedStateForTurnNum) == 0 {
-		return state.SignedState{}, errors.New("No states are signed")
+		return state.SignedState{}, errors.New("no states are signed")
 	}
 	latestTurn := uint64(0)
 	for k := range c.SignedStateForTurnNum {
@@ -239,7 +241,7 @@ func (c *Channel) AddSignedState(ss state.SignedState) bool {
 
 	s := ss.State()
 
-	if cId, err := s.ChannelId(); cId != c.Id || err != nil {
+	if cId := s.ChannelId(); cId != c.Id {
 		// Channel mismatch
 		return false
 	}
@@ -267,19 +269,6 @@ func (c *Channel) AddSignedState(ss state.SignedState) bool {
 	// TODO update support
 
 	return true
-}
-
-// AddSignedStates adds each signed state in the passed slice. It returns true if all signed states were added successfully, false otherwise.
-// If one or more signed states fails to be added, this does not prevent other signed states from being added.
-func (c *Channel) AddSignedStates(sss []state.SignedState) bool {
-	allOk := true
-	for _, ss := range sss {
-		ok := c.AddSignedState(ss)
-		if !ok {
-			allOk = false
-		}
-	}
-	return allOk
 }
 
 // SignAndAddPrefund signs and adds the prefund state for the channel, returning a state.SignedState suitable for sending to peers.

@@ -49,8 +49,8 @@ func TestCloneSignature(t *testing.T) {
 
 func TestChannelId(t *testing.T) {
 	want := correctChannelId
-	got, error := TestState.ChannelId()
-	checkErrorAndTestForEqualBytes(t, error, "channelId", got.Bytes(), want.Bytes())
+	got := TestState.ChannelId()
+	checkErrorAndTestForEqualBytes(t, nil, "channelId", got.Bytes(), want.Bytes())
 }
 
 func TestHash(t *testing.T) {

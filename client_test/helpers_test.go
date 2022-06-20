@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/statechannels/go-nitro/client"
+	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -16,7 +17,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 )
 
-const defaultTimeout = time.Second
+const defaultTimeout = 10 * time.Second
 
 // waitWithTimeoutForCompletedObjectiveIds waits up to the given timeout for completed objectives and returns when the all objective ids provided have been completed.
 // If the timeout lapses and the objectives have not all completed, the parent test will be failed.
@@ -31,8 +32,8 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 
 			// If all objectives are completed we can send the all done signal and return
 			isDone := true
-			for _, objectiveCompleted := range completed {
-				isDone = isDone && objectiveCompleted
+			for _, id := range ids {
+				isDone = isDone && completed[id]
 			}
 			if isDone {
 				allDone <- struct{}{}
@@ -64,24 +65,14 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 	}
 }
 
-// setupClient is a helper function that contructs a client and returns the new client and message service.
-func setupClient(pk []byte, chain chainservice.MockChain, msgBroker messageservice.Broker, logDestination io.Writer, meanMessageDelay time.Duration) (client.Client, store.Store) {
+// setupClient is a helper function that contructs a client and returns the new client and its store.
+func setupClient(pk []byte, chain chainservice.ChainService, msgBroker messageservice.Broker, logDestination io.Writer, meanMessageDelay time.Duration) (client.Client, store.Store) {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
-	chain.Subscribe(myAddress)
-	chainservice := chainservice.NewSimpleChainService(chain, myAddress)
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
-	storeA := store.NewMockStore(pk)
-	return client.New(messageservice, chainservice, storeA, logDestination), storeA
+	storeA := store.NewMemStore(pk)
+	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}), storeA
 }
 
-func flushToFileCleanupFn(w io.Reader, fileName string) func() {
-	return func() {
-		truncateLog(fileName)
-		ld := newLogWriter(fileName)
-		_, _ = ld.ReadFrom(w)
-		ld.Close()
-	}
-}
 func truncateLog(logFile string) {
 	logDestination := newLogWriter(logFile)
 

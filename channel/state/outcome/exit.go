@@ -26,7 +26,7 @@ func (s SingleAssetExit) Equal(r SingleAssetExit) bool {
 
 }
 
-// Clone returns a deep clone of the reciever.
+// Clone returns a deep clone of the receiver.
 func (s SingleAssetExit) Clone() SingleAssetExit {
 	return SingleAssetExit{
 		Asset:       s.Asset,
@@ -62,7 +62,7 @@ func (a Exit) Equal(b Exit) bool {
 	return true
 }
 
-// Clone returns a deep clone of the reciever.
+// Clone returns a deep clone of the receiver.
 func (e Exit) Clone() Exit {
 	clone := make(Exit, len(e))
 	for i, sae := range e {
@@ -235,7 +235,7 @@ func (e Exit) DivertToGuarantee(
 		newAllocations, err := sae.Allocations.DivertToGuarantee(leftDestination, rightDestination, leftAmount, rightAmount, guaranteeDestination)
 
 		if err != nil {
-			return Exit{}, fmt.Errorf("Could not divert to guarantee: %w", err)
+			return Exit{}, fmt.Errorf("could not divert to guarantee: %w", err)
 		}
 		f[i].Allocations = newAllocations
 	}

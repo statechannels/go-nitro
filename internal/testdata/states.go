@@ -42,9 +42,9 @@ var testOutcome = createLongOutcome(
 var testVirtualState = state.State{
 	ChainId: chainId,
 	Participants: []types.Address{
-		testactors.Alice.Address,
-		testactors.Irene.Address,
-		testactors.Bob.Address,
+		testactors.Alice.Address(),
+		testactors.Irene.Address(),
+		testactors.Bob.Address(),
 	},
 	ChannelNonce:      big.NewInt(1234789),
 	AppDefinition:     someAppDefinition,
@@ -61,8 +61,8 @@ var testVirtualState = state.State{
 var testState = state.State{
 	ChainId: chainId,
 	Participants: []types.Address{
-		testactors.Alice.Address,
-		testactors.Bob.Address,
+		testactors.Alice.Address(),
+		testactors.Bob.Address(),
 	},
 	ChannelNonce:      big.NewInt(37140676580),
 	AppDefinition:     someAppDefinition,
@@ -81,7 +81,7 @@ func createLedgerState(client, hub types.Address, clientBalance, hubBalance uint
 	}
 	state.Outcome = Outcomes.Create(client, hub, clientBalance, hubBalance)
 	state.AppDefinition = types.Address{} // ledger channel running the consensus app
-	state.TurnNum = 0                     // a requirement for channel.NewTwoPartyLedger
+	state.TurnNum = 0
 
 	return state
 }

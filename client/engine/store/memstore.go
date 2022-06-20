@@ -3,93 +3,54 @@ package store
 import (
 	"encoding/json"
 	"fmt"
-	"sync"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
-type MockStore struct {
-	objectives         syncMap[[]byte]
-	channels           syncMap[[]byte]
-	consensusChannels  syncMap[[]byte]
-	channelToObjective syncMap[protocols.ObjectiveId]
+type MemStore struct {
+	objectives         safesync.Map[[]byte]
+	channels           safesync.Map[[]byte]
+	consensusChannels  safesync.Map[[]byte]
+	channelToObjective safesync.Map[protocols.ObjectiveId]
 
-	key     []byte        // the signing key of the store's engine
-	address types.Address // the (Ethereum) address associated to the signing key
+	key     string // the signing key of the store's engine
+	address string // the (Ethereum) address associated to the signing key
 }
 
-// syncMap wraps sync.Map in order to provide type safety
-type syncMap[T any] struct {
-	m sync.Map
-}
+func NewMemStore(key []byte) Store {
+	ms := MemStore{}
+	ms.key = common.Bytes2Hex(key)
+	ms.address = crypto.GetAddressFromSecretKeyBytes(key).String()
 
-// Load returns the value stored in the map for a key, or nil if no
-// value is present.
-// The ok result indicates whether value was found in the map.
-func (o *syncMap[T]) Load(id string) (value T, ok bool) {
-	data, ok := o.m.Load(id)
-
-	if !ok {
-		var result T
-		return result, false
-	}
-
-	value = data.(T)
-
-	return value, ok
-}
-
-// Store sets the value for a key.
-func (o *syncMap[T]) Store(key string, data T) {
-	o.m.Store(key, data)
-}
-
-// Range calls f sequentially for each key and value present in the map.
-// If f returns false, range stops the iteration.
-//
-// Range does not necessarily correspond to any consistent snapshot of the Map's
-// contents: no key will be visited more than once, but if the value for any key
-// is stored or deleted concurrently, Range may reflect any mapping for that key
-// from any point during the Range call.
-//
-// Range may be O(N) with the number of elements in the map even if f returns
-// false after a constant number of calls.
-func (o *syncMap[T]) Range(f func(key string, value T) bool) {
-	untypedF := func(key, value interface{}) bool {
-		return f(key.(string), value.(T))
-	}
-	o.m.Range(untypedF)
-}
-
-func NewMockStore(key []byte) Store {
-	ms := MockStore{}
-	ms.key = key
-	ms.address = crypto.GetAddressFromSecretKeyBytes(key)
-
-	ms.objectives = syncMap[[]byte]{}
-	ms.channels = syncMap[[]byte]{}
-	ms.consensusChannels = syncMap[[]byte]{}
-	ms.channelToObjective = syncMap[protocols.ObjectiveId]{}
+	ms.objectives = safesync.Map[[]byte]{}
+	ms.channels = safesync.Map[[]byte]{}
+	ms.consensusChannels = safesync.Map[[]byte]{}
+	ms.channelToObjective = safesync.Map[protocols.ObjectiveId]{}
 
 	return &ms
 }
 
-func (ms *MockStore) GetAddress() *types.Address {
-	return &ms.address
+func (ms *MemStore) GetAddress() *types.Address {
+	address := common.HexToAddress(ms.address)
+	return &address
 }
 
-func (ms *MockStore) GetChannelSecretKey() *[]byte {
-	return &ms.key
+func (ms *MemStore) GetChannelSecretKey() *[]byte {
+	val := common.Hex2Bytes(ms.key)
+	return &val
 }
 
-func (ms *MockStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Objective, error) {
+func (ms *MemStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Objective, error) {
 	// todo: locking
 	objJSON, ok := ms.objectives.Load(string(id))
 
@@ -112,7 +73,7 @@ func (ms *MockStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Objec
 	return obj, nil
 }
 
-func (ms *MockStore) SetObjective(obj protocols.Objective) error {
+func (ms *MemStore) SetObjective(obj protocols.Objective) error {
 	// todo: locking
 	objJSON, err := obj.MarshalJSON()
 
@@ -141,7 +102,7 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 
 	// Objective ownership can only be transferred if the channel is not owned by another objective
 	prevOwner, isOwned := ms.channelToObjective.Load(obj.OwnsChannel().String())
-	if obj.GetStatus() == protocols.Approved {
+	if status := obj.GetStatus(); status == protocols.Approved {
 		if !isOwned {
 			ms.channelToObjective.Store(obj.OwnsChannel().String(), obj.Id())
 		}
@@ -154,7 +115,7 @@ func (ms *MockStore) SetObjective(obj protocols.Objective) error {
 }
 
 // SetChannel sets the channel in the store.
-func (ms *MockStore) SetChannel(ch *channel.Channel) error {
+func (ms *MemStore) SetChannel(ch *channel.Channel) error {
 	chJSON, err := ch.MarshalJSON()
 
 	if err != nil {
@@ -165,8 +126,13 @@ func (ms *MockStore) SetChannel(ch *channel.Channel) error {
 	return nil
 }
 
+// DestroyChannel deletes the channel with id id.
+func (ms *MemStore) DestroyChannel(id types.Destination) {
+	ms.channels.Delete(id.String())
+}
+
 // SetConsensusChannel sets the channel in the store.
-func (ms *MockStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel) error {
+func (ms *MemStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel) error {
 	chJSON, err := ch.MarshalJSON()
 
 	if err != nil {
@@ -177,8 +143,13 @@ func (ms *MockStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel)
 	return nil
 }
 
+// DestroyChannel deletes the channel with id id.
+func (ms *MemStore) DestroyConsensusChannel(id types.Destination) {
+	ms.consensusChannels.Delete(id.String())
+}
+
 // GetChannelById retrieves the channel with the supplied id, if it exists.
-func (ms *MockStore) GetChannelById(id types.Destination) (c *channel.Channel, ok bool) {
+func (ms *MemStore) GetChannelById(id types.Destination) (c *channel.Channel, ok bool) {
 	ch, err := ms.getChannelById(id)
 
 	if err != nil {
@@ -189,7 +160,7 @@ func (ms *MockStore) GetChannelById(id types.Destination) (c *channel.Channel, o
 }
 
 // getChannelById returns the stored channel
-func (ms *MockStore) getChannelById(id types.Destination) (channel.Channel, error) {
+func (ms *MemStore) getChannelById(id types.Destination) (channel.Channel, error) {
 	chJSON, ok := ms.channels.Load(id.String())
 
 	if !ok {
@@ -206,11 +177,9 @@ func (ms *MockStore) getChannelById(id types.Destination) (channel.Channel, erro
 	return ch, nil
 }
 
-// GetTwoPartyLedger returns a ledger channel between the two parties if it exists.
-func (ms *MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty types.Address) (*channel.TwoPartyLedger, bool) {
-	var ledger *channel.TwoPartyLedger
-	var ok bool
-
+// GetChannelsByParticipant returns any channels that include the given participant
+func (ms *MemStore) GetChannelsByParticipant(participant types.Address) []*channel.Channel {
+	toReturn := []*channel.Channel{}
 	ms.channels.Range(func(key string, chJSON []byte) bool {
 
 		var ch channel.Channel
@@ -220,23 +189,22 @@ func (ms *MockStore) GetTwoPartyLedger(firstParty types.Address, secondParty typ
 			return true // channel not found, continue looking
 		}
 
-		if len(ch.Participants) == 2 {
-			// TODO: Should order matter?
-			if ch.Participants[0] == firstParty && ch.Participants[1] == secondParty {
-				ledger = &channel.TwoPartyLedger{Channel: ch}
-				ok = true
-				return false // we have found the target channel: break the Range loop
+		participants := ch.FixedPart.Participants
+		for _, p := range participants {
+			if p == participant {
+				toReturn = append(toReturn, &ch)
 			}
+
 		}
 
 		return true // channel not found: continue looking
 	})
 
-	return ledger, ok
+	return toReturn
 }
 
 // GetConsensusChannelById returns a ConsensusChannel with the given channel id
-func (ms *MockStore) GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
+func (ms *MemStore) GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
 
 	chJSON, ok := ms.consensusChannels.Load(id.String())
 
@@ -256,7 +224,7 @@ func (ms *MockStore) GetConsensusChannelById(id types.Destination) (channel *con
 
 // GetConsensusChannel returns a ConsensusChannel between the calling client and
 // the supplied counterparty, if such channel exists
-func (ms *MockStore) GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
+func (ms *MemStore) GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
 
 	ms.consensusChannels.Range(func(key string, chJSON []byte) bool {
 
@@ -282,7 +250,7 @@ func (ms *MockStore) GetConsensusChannel(counterparty types.Address) (channel *c
 	return
 }
 
-func (ms *MockStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
+func (ms *MemStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
 	// todo: locking
 	id, found := ms.channelToObjective.Load(channelId.String())
 	if !found {
@@ -293,10 +261,10 @@ func (ms *MockStore) GetObjectiveByChannelId(channelId types.Destination) (proto
 	return objective, err == nil
 }
 
-// populateChannelData fetches stored Channel data relevent to the given
+// populateChannelData fetches stored Channel data relevant to the given
 // objective and attaches it to the objective. The channel data is attached
 // in-place of the objectives existing channel pointers.
-func (ms *MockStore) populateChannelData(obj protocols.Objective) error {
+func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 	id := obj.Id()
 
 	switch o := obj.(type) {
@@ -352,6 +320,29 @@ func (ms *MockStore) populateChannelData(obj protocols.Objective) error {
 		}
 
 		return nil
+	case *virtualdefund.Objective:
+
+		zeroAddress := types.Destination{}
+
+		if o.ToMyLeft != nil &&
+			o.ToMyLeft.Id != zeroAddress {
+
+			left, err := ms.GetConsensusChannelById(o.ToMyLeft.Id)
+			if err != nil {
+				return fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
+			}
+			o.ToMyLeft = left
+		}
+
+		if o.ToMyRight != nil &&
+			o.ToMyRight.Id != zeroAddress {
+			right, err := ms.GetConsensusChannelById(o.ToMyRight.Id)
+			if err != nil {
+				return fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
+			}
+			o.ToMyRight = right
+		}
+		return nil
 	default:
 		return fmt.Errorf("objective %s did not correctly represent a known Objective type", id)
 	}
@@ -376,12 +367,16 @@ func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective
 		vfo := virtualfund.Objective{}
 		err := vfo.UnmarshalJSON(data)
 		return &vfo, err
+	case virtualdefund.IsVirtualDefundObjective(id):
+		dvfo := virtualdefund.Objective{}
+		err := dvfo.UnmarshalJSON(data)
+		return &dvfo, err
 	default:
 		return nil, fmt.Errorf("objective id %s does not correspond to a known Objective type", id)
 
 	}
 }
 
-func (ms *MockStore) ReleaseChannelFromOwnership(channelId types.Destination) {
-	ms.channelToObjective.m.Delete(channelId.String())
+func (ms *MemStore) ReleaseChannelFromOwnership(channelId types.Destination) {
+	ms.channelToObjective.Delete(channelId.String())
 }

@@ -2,18 +2,18 @@ package directdefund
 
 import (
 	"encoding/json"
-	"errors"
 	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
-	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -22,7 +22,7 @@ var alice, bob testactors.Actor = testactors.Alice, testactors.Bob
 
 var testState = state.State{
 	ChainId:           big.NewInt(9001),
-	Participants:      []types.Address{alice.Address, bob.Address},
+	Participants:      []types.Address{alice.Address(), bob.Address()},
 	ChannelNonce:      big.NewInt(37140676580),
 	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
 	ChallengeDuration: big.NewInt(60),
@@ -67,68 +67,32 @@ func signedTestState(s state.State, toSign []bool) (state.SignedState, error) {
 	return ss, nil
 }
 
-// newChannelFromSignedState constructs a new Channel from the signed state.
-func newChannelFromSignedState(ss state.SignedState, myIndex uint) (*channel.Channel, error) {
-	s := ss.State()
-	prefund := s.Clone()
-	prefund.TurnNum = 0
-	c, err := channel.New(prefund, myIndex)
-	if err != nil {
-		return c, err
-	}
+// newTestObjective returns a directdefund Objective constructed with a MockConsensusChannel.
+func newTestObjective() (Objective, error) {
+	cc, _ := testdata.Channels.MockConsensusChannel(alice.Address())
 
-	sss := make([]state.SignedState, 1)
-	sss[0] = ss
-	allOk := c.AddSignedStates(sss)
-	if !allOk {
-		return c, errors.New("Unable to add a state to channel")
+	getConsensusChannel := func(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
+		return cc, nil
 	}
-	c.OnChainFunding = map[common.Address]*big.Int{types.Address{}: big.NewInt(1)}
-	return c, nil
-}
-
-func newTestObjective(signByBob bool) (Objective, error) {
-	o := Objective{}
-
-	toSign := []bool{true, true}
-	if !signByBob {
-		toSign = []bool{true, false}
-	}
-	ss, err := signedTestState(testState, toSign)
-	if err != nil {
-		return o, err
-	}
-
-	testChannel, err := newChannelFromSignedState(ss, 0)
-	if err != nil {
-		return o, err
-	}
-
-	getChannel := func(id types.Destination) (channel *channel.Channel, ok bool) {
-		return testChannel, true
-	}
-
+	request := ObjectiveRequest{ChannelId: cc.Id}
 	// Assert that valid constructor args do not result in error
-	o, err = NewObjective(true, testChannel.Id, getChannel)
+	o, err := NewObjective(request, true, getConsensusChannel)
 	if err != nil {
-		return o, err
+		return Objective{}, err
 	}
 	return o, nil
 }
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
-	if _, err := newTestObjective(false); err == nil {
-		t.Error("expected an error constructing the defund objective from a state without signatures from all participant, but got nil")
-	}
 
-	if _, err := newTestObjective(true); err != nil {
+	if _, err := newTestObjective(); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestUpdate(t *testing.T) {
-	o, _ := newTestObjective(true)
+	o, _ := newTestObjective()
 
 	// Prepare an event with a mismatched channelId
 	e := protocols.ObjectiveEvent{
@@ -144,7 +108,7 @@ func TestUpdate(t *testing.T) {
 	s.TurnNum = 3
 	e.ObjectiveId = o.Id()
 	ss, _ := signedTestState(s, []bool{true, false})
-	e.SignedStates = []state.SignedState{ss}
+	e.SignedState = ss
 
 	if _, err := o.Update(e); err.Error() != "direct defund objective can only be updated with final states" {
 		t.Error(err)
@@ -154,22 +118,22 @@ func TestUpdate(t *testing.T) {
 	s.TurnNum = 4
 	s.IsFinal = true
 	ss, _ = signedTestState(s, []bool{true, false})
-	e.SignedStates = []state.SignedState{ss}
+	e.SignedState = ss
 
-	if _, err := o.Update(e); err.Error() != "expected state with turn number 3, received turn number 4" {
+	if _, err := o.Update(e); err.Error() != "expected state with turn number 2, received turn number 4" {
 		t.Error(err)
 	}
 }
 
 func compareSideEffect(a, b protocols.SideEffects) string {
-	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}))
+	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}, consensus_channel.Add{}, consensus_channel.Remove{}, consensus_channel.Guarantee{}, protocols.Message{}))
 }
 
 func TestCrankAlice(t *testing.T) {
 	// The starting channel state is:
 	//  - Channel has a non-final consensus state
 	//  - Channel has funds
-	o, _ := newTestObjective(true)
+	o, _ := newTestObjective()
 
 	// The first crank. Alice is expected to create and sign a final state
 	updated, se, wf, err := o.Crank(&alice.PrivateKey)
@@ -183,21 +147,17 @@ func TestCrankAlice(t *testing.T) {
 	}
 
 	// Create the state we expect Alice to send
-	finalState := testState.Clone()
-	finalState.TurnNum = 3
+	finalState, err := o.C.LatestSupportedState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	finalState.TurnNum = 2
 	finalState.IsFinal = true
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
 
 	expectedSE := protocols.SideEffects{
-		MessagesToSend: []protocols.Message{{
-			To:          bob.Address,
-			ObjectiveId: o.Id(),
-			SignedStates: []state.SignedState{
-				finalStateSignedByAlice,
-			},
-			SignedProposals: []consensus_channel.SignedProposal{},
-		},
-		}}
+		MessagesToSend: protocols.CreateSignedStateMessages(o.Id(), finalStateSignedByAlice, 0),
+	}
 
 	if diff := compareSideEffect(expectedSE, se); diff != "" {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
@@ -205,15 +165,18 @@ func TestCrankAlice(t *testing.T) {
 
 	// The second update and crank. Alice is expected to create a withdrawAll transaction
 	finalStateSignedByAliceBob, _ := signedTestState(finalState, []bool{true, true})
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{finalStateSignedByAliceBob}}
+	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedState: finalStateSignedByAliceBob}
 
 	updated, err = updated.Update(e)
 	if err != nil {
 		t.Error(err)
 	}
-	_, se, wf, err = updated.Crank(&alice.PrivateKey)
+	updated, se, wf, err = updated.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
+	}
+	if !updated.(*Objective).transactionSubmitted {
+		t.Fatalf("Expected transactionSubmitted flag to be set to true")
 	}
 
 	if wf != WaitingForWithdraw {
@@ -251,25 +214,25 @@ func TestCrankBob(t *testing.T) {
 	//  - Channel has a non-final non-consensus state
 	//  - Channel has funds
 
-	o, _ := newTestObjective(true)
+	o, _ := newTestObjective()
 	o.C.MyIndex = 1
 
 	// Update the objective with Alice's final state
 	finalState := testState.Clone()
-	finalState.TurnNum = 3
+	finalState.TurnNum = 2
 	finalState.IsFinal = true
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedStates: []state.SignedState{finalStateSignedByAlice}}
+	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedState: finalStateSignedByAlice}
 	updated, err := o.Update(e)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// The first crank. Bob is expected to create and sign a final state
 	updated, se, wf, err := updated.Crank(&bob.PrivateKey)
 
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if wf != WaitingForWithdraw {
@@ -279,15 +242,8 @@ func TestCrankBob(t *testing.T) {
 	// Create the state we expect Bob to send
 	finalStateSignedByBob, _ := signedTestState(finalState, []bool{false, true})
 	expectedSE := protocols.SideEffects{
-		MessagesToSend: []protocols.Message{{
-			To:          alice.Address,
-			ObjectiveId: updated.Id(),
-			SignedStates: []state.SignedState{
-				finalStateSignedByBob,
-			},
-			SignedProposals: []consensus_channel.SignedProposal{},
-		},
-		}}
+		MessagesToSend: protocols.CreateSignedStateMessages(updated.Id(), finalStateSignedByBob, 1),
+	}
 
 	if diff := compareSideEffect(expectedSE, se); diff != "" {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
@@ -298,9 +254,13 @@ func TestCrankBob(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, se, wf, err = updated.Crank(&bob.PrivateKey)
+	updated, se, wf, err = updated.Crank(&bob.PrivateKey)
 	if err != nil {
 		t.Error(err)
+	}
+
+	if updated.(*Objective).transactionSubmitted {
+		t.Fatalf("Expected transactionSubmitted flag to be set to false")
 	}
 
 	if wf != WaitingForWithdraw {
@@ -335,7 +295,7 @@ func TestCrankBob(t *testing.T) {
 }
 
 func TestMarshalJSON(t *testing.T) {
-	ddfo, _ := newTestObjective(true)
+	ddfo, _ := newTestObjective()
 
 	encodedDdfo, err := json.Marshal(ddfo)
 
@@ -357,5 +317,18 @@ func TestMarshalJSON(t *testing.T) {
 	}
 	if got.C.Id != ddfo.C.Id {
 		t.Fatalf("expected channel Id %s but got %s", ddfo.C.Id, got.C.Id)
+	}
+}
+func TestApproveReject(t *testing.T) {
+	o, err := newTestObjective()
+	testhelpers.Ok(t, err)
+
+	approved := o.Approve()
+	if approved.GetStatus() != protocols.Approved {
+		t.Errorf("Expected approved status, got %v", approved.GetStatus())
+	}
+	rejected := o.Reject()
+	if rejected.GetStatus() != protocols.Rejected {
+		t.Errorf("Expected rejceted status, got %v", approved.GetStatus())
 	}
 }

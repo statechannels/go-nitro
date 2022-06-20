@@ -6,47 +6,32 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
-var ErrNotLeader = fmt.Errorf("method may only be called by the channel leader")
+var (
+	ErrNotLeader              = fmt.Errorf("method may only be called by the channel leader")
+	ErrProposalQueueExhausted = fmt.Errorf("proposal queue exhausted")
+	ErrWrongSigner            = fmt.Errorf("proposal incorrectly signed")
+)
 
 // NewLeaderChannel constructs a new LeaderChannel
 func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
 	return newConsensusChannel(fp, Leader, turnNum, outcome, signatures)
 }
 
-// IsProposed returns true if a proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
-//
-// Specific clarification: If the current outcome already includes g, IsProposed returns false.
-func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
-	latest, err := c.latestProposedVars()
-	if err != nil {
-		return false, err
-	}
-
-	return latest.Outcome.includes(g) && !c.Includes(g), nil
-}
-
-// Propose is called by the Leader and receives a proposal to add a guarantee,
+// Propose is called by the Leader and receives a proposal to add or remove a guarantee,
 // and generates and stores a SignedProposal in the queue, returning the
 // resulting SignedProposal
-//
-// Note: the TurnNum on add is ignored; the correct turn number is computed
-// and applied by c
 func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal, error) {
 	if c.MyIndex != Leader {
 		return SignedProposal{}, ErrNotLeader
 	}
 
-	// TODO: the Propose API should be less confusing!
-	// Currently, the TurnNum is ignored, and Propose could easily
-	// return the same ChannelId that it's been passed
-	proposal.ChannelID = c.Id
-
+	if proposal.LedgerID != c.Id {
+		return SignedProposal{}, ErrIncorrectChannelID
+	}
 	vars, err := c.latestProposedVars()
 	if err != nil {
 		return SignedProposal{}, fmt.Errorf("unable to construct latest proposed vars: %w", err)
 	}
-
-	proposal.SetTurnNum(vars.TurnNum + 1)
 
 	err = vars.HandleProposal(proposal)
 	if err != nil {
@@ -58,7 +43,7 @@ func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal
 		return SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
 	}
 
-	signed := SignedProposal{Proposal: proposal, Signature: signature}
+	signed := SignedProposal{Proposal: proposal, Signature: signature, TurnNum: vars.TurnNum}
 
 	c.proposalQueue = append(c.proposalQueue, signed)
 	return signed, nil
@@ -90,8 +75,7 @@ func (c *ConsensusChannel) leaderReceive(countersigned SignedProposal) error {
 		TurnNum: c.current.TurnNum,
 		Outcome: c.current.Outcome.clone(),
 	}
-
-	consensusTurnNum := countersigned.Proposal.TurnNum()
+	consensusTurnNum := countersigned.TurnNum
 
 	if consensusTurnNum <= consensusCandidate.TurnNum {
 		// We've already seen this proposal; return early
@@ -130,6 +114,3 @@ func (c *ConsensusChannel) leaderReceive(countersigned SignedProposal) error {
 
 	return ErrProposalQueueExhausted
 }
-
-var ErrProposalQueueExhausted = fmt.Errorf("proposal queue exhausted")
-var ErrWrongSigner = fmt.Errorf("proposal incorrectly signed")

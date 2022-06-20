@@ -13,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -21,7 +22,7 @@ var alice, bob testactors.Actor = testactors.Alice, testactors.Bob
 
 var testState = state.State{
 	ChainId:           big.NewInt(9001),
-	Participants:      []types.Address{alice.Address, bob.Address},
+	Participants:      []types.Address{alice.Address(), bob.Address()},
 	ChannelNonce:      big.NewInt(37140676580),
 	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
 	ChallengeDuration: big.NewInt(60),
@@ -47,28 +48,48 @@ var testState = state.State{
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
+
+	getByParticipant := func(id types.Address) []*channel.Channel {
+		return []*channel.Channel{}
+	}
+	getByConsensus := func(id types.Address) (*consensus_channel.ConsensusChannel, bool) {
+		return nil, false
+	}
+	request := ObjectiveRequest{
+
+		CounterParty:      testState.Participants[1],
+		AppDefinition:     testState.AppDefinition,
+		AppData:           testState.AppData,
+		ChallengeDuration: testState.ChallengeDuration,
+		Outcome:           testState.Outcome,
+		Nonce:             testState.ChannelNonce.Int64(),
+	}
 	// Assert that valid constructor args do not result in error
-	if _, err := constructFromState(false, testState, testState.Participants[0]); err != nil {
+	if _, err := NewObjective(request, false, testState.Participants[0], getByParticipant, getByConsensus); err != nil {
 		t.Error(err)
 	}
 
-	// Construct a final state
-	finalState := testState.Clone()
-	finalState.IsFinal = true
-
-	if _, err := constructFromState(false, finalState, testState.Participants[0]); err == nil {
-		t.Error("expected an error when constructing with an intial state marked final, but got nil")
+	getByParticipantHasChannel := func(id types.Address) []*channel.Channel {
+		c, _ := channel.New(testState, 0)
+		return []*channel.Channel{c}
 	}
 
-	nonParticipant := common.HexToAddress("0x5b53f71453aeCb03D837bfe170570d40aE736CB4")
-	if _, err := constructFromState(false, testState, nonParticipant); err == nil {
-		t.Error("expected an error when constructing with a participant not in the channel, but got nil")
+	if _, err := NewObjective(request, false, testState.Participants[0], getByParticipantHasChannel, getByConsensus); err == nil {
+		t.Errorf("Expected an error when constructing with an objective when an existing channel exists")
 	}
+
+	getByConsensusHasChannel := func(id types.Address) (*consensus_channel.ConsensusChannel, bool) {
+		return nil, true
+	}
+	if _, err := NewObjective(request, false, testState.Participants[0], getByParticipant, getByConsensusHasChannel); err == nil {
+		t.Errorf("Expected an error when constructing with an objective when an existing channel consensus channel exists")
+	}
+
 }
 
 func TestConstructFromState(t *testing.T) {
 	// Assert that valid constructor args do not result in error
-	if _, err := constructFromState(false, testState, testState.Participants[0]); err != nil {
+	if _, err := ConstructFromState(false, testState, testState.Participants[0]); err != nil {
 		t.Error(err)
 	}
 
@@ -76,18 +97,18 @@ func TestConstructFromState(t *testing.T) {
 	finalState := testState.Clone()
 	finalState.IsFinal = true
 
-	if _, err := constructFromState(false, finalState, testState.Participants[0]); err == nil {
-		t.Error("expected an error when constructing with an intial state marked final, but got nil")
+	if _, err := ConstructFromState(false, finalState, testState.Participants[0]); err == nil {
+		t.Error("expected an error when constructing with an initial state marked final, but got nil")
 	}
 
 	nonParticipant := common.HexToAddress("0x5b53f71453aeCb03D837bfe170570d40aE736CB4")
-	if _, err := constructFromState(false, testState, nonParticipant); err == nil {
+	if _, err := ConstructFromState(false, testState, nonParticipant); err == nil {
 		t.Error("expected an error when constructing with a participant not in the channel, but got nil")
 	}
 }
 func TestUpdate(t *testing.T) {
 	// Construct various variables for use in TestUpdate
-	var s, _ = constructFromState(false, testState, testState.Participants[0])
+	var s, _ = ConstructFromState(false, testState, testState.Participants[0])
 
 	var stateToSign state.State = s.C.PreFundState()
 	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.PrivateKey)
@@ -105,7 +126,6 @@ func TestUpdate(t *testing.T) {
 	// and make a new Sigs map.
 	// This prepares us for the rest of the test. We will reuse the same event multiple times
 	e.ObjectiveId = s.Id()
-	e.SignedStates = make([]state.SignedState, 0)
 
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
@@ -114,7 +134,7 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	e.SignedStates = append(e.SignedStates, ss)
+	e.SignedState = ss
 	updatedObjective, err := s.Update(e)
 	if err != nil {
 		t.Error(err)
@@ -161,13 +181,13 @@ func TestUpdate(t *testing.T) {
 }
 
 func compareSideEffect(a, b protocols.SideEffects) string {
-	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}))
+	return cmp.Diff(a, b, cmp.AllowUnexported(a, state.SignedState{}, consensus_channel.Add{}, consensus_channel.Guarantee{}, consensus_channel.Remove{}, protocols.Message{}))
 }
 
 func TestCrank(t *testing.T) {
 
 	// BEGIN test data preparation
-	var s, _ = constructFromState(false, testState, testState.Participants[0])
+	var s, _ = ConstructFromState(false, testState, testState.Participants[0])
 	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.PrivateKey)
 	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.PrivateKey)
 
@@ -178,30 +198,14 @@ func TestCrank(t *testing.T) {
 	preFundSS := state.NewSignedState(s.C.PreFundState())
 	_ = preFundSS.AddSignature(correctSignatureByAliceOnPreFund)
 	expectedPreFundSideEffects := protocols.SideEffects{
-		MessagesToSend: []protocols.Message{
-			{
-				To:          bob.Address,
-				ObjectiveId: s.Id(),
-				SignedStates: []state.SignedState{
-					preFundSS,
-				},
-				SignedProposals: []consensus_channel.SignedProposal{},
-			},
-		}}
+		MessagesToSend: protocols.CreateSignedStateMessages(s.Id(), preFundSS, 0),
+	}
 
 	postFundSS := state.NewSignedState(s.C.PostFundState())
 	_ = postFundSS.AddSignature(correctSignatureByAliceOnPostFund)
 	expectedPostFundSideEffects := protocols.SideEffects{
-		MessagesToSend: []protocols.Message{
-			{
-				To:          bob.Address,
-				ObjectiveId: s.Id(),
-				SignedStates: []state.SignedState{
-					postFundSS,
-				},
-				SignedProposals: []consensus_channel.SignedProposal{},
-			},
-		}}
+		MessagesToSend: protocols.CreateSignedStateMessages(s.Id(), postFundSS, 0),
+	}
 	expectedFundingSideEffects := protocols.SideEffects{
 		TransactionsToSubmit: []protocols.ChainTransaction{{
 			Type:      protocols.DepositTransactionType,
@@ -254,7 +258,11 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the first "deposit"
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
-	_, sideEffects, waitingFor, err = o.Crank(&alice.PrivateKey)
+	updated, sideEffects, waitingFor, err := o.Crank(&alice.PrivateKey)
+
+	if !updated.(*Objective).transactionSubmitted {
+		t.Fatalf("Expected transactionSubmitted flag to be set to true")
+	}
 	if err != nil {
 		t.Error(err)
 	}
@@ -300,7 +308,7 @@ func TestClone(t *testing.T) {
 		return cmp.Diff(&a, &b, cmp.AllowUnexported(Objective{}, channel.Channel{}, big.Int{}, state.SignedState{}))
 	}
 
-	var s, _ = constructFromState(false, testState, testState.Participants[0])
+	var s, _ = ConstructFromState(false, testState, testState.Participants[0])
 
 	clone := s.clone()
 
@@ -310,7 +318,7 @@ func TestClone(t *testing.T) {
 }
 
 func TestMarshalJSON(t *testing.T) {
-	dfo, _ := constructFromState(false, testState, testState.Participants[0])
+	dfo, _ := ConstructFromState(false, testState, testState.Participants[0])
 
 	encodedDfo, err := json.Marshal(dfo)
 
@@ -340,5 +348,19 @@ func TestMarshalJSON(t *testing.T) {
 	}
 	if got.C.Id != dfo.C.Id {
 		t.Fatalf("expected channel Id %s but got %s", dfo.C.Id, got.C.Id)
+	}
+}
+
+func TestApproveReject(t *testing.T) {
+	o, err := ConstructFromState(false, testState, testState.Participants[0])
+	testhelpers.Ok(t, err)
+
+	approved := o.Approve()
+	if approved.GetStatus() != protocols.Approved {
+		t.Errorf("Expected approved status, got %v", approved.GetStatus())
+	}
+	rejected := o.Reject()
+	if rejected.GetStatus() != protocols.Rejected {
+		t.Errorf("Expected rejceted status, got %v", approved.GetStatus())
 	}
 }

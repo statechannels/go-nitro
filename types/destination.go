@@ -4,7 +4,8 @@ import (
 	"errors"
 )
 
-// IsExternal returns true if the destination has the 12 leading bytes as zero, false otherwise
+// IsExternal returns true if the destination is a blockchain address, and false
+// if it is a state channel ID.
 func (d Destination) IsExternal() bool {
 	for _, b := range d[0:12] {
 		if b != 0 {
@@ -22,9 +23,7 @@ func (d Destination) ToAddress() (Address, error) {
 	}
 
 	address := Address{}
-	for i, b := range d[12:] {
-		address[i] = b
-	}
+	copy(address[:], d[12:])
 	return address, nil
 }
 
@@ -36,6 +35,7 @@ func (d Destination) Bytes() []byte {
 	return Bytes32(d).Bytes()
 }
 
+// AddressToDestinaion left-pads the blockchain address with zeros.
 func AddressToDestination(a Address) Destination {
 	d := Destination{0}
 	for i := range a {

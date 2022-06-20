@@ -1,103 +1,22 @@
 package virtualdefund
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/internal/testactors"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
 )
 
 var alice = ta.Alice
 var bob = ta.Bob
 var irene = ta.Irene
 var allActors = []ta.Actor{alice, irene, bob}
-
-// makeOutcome creates an outcome allocating to alice and bob
-func makeOutcome(aliceAmount uint, bobAmount uint) outcome.SingleAssetExit {
-	return outcome.SingleAssetExit{
-		Allocations: outcome.Allocations{
-			outcome.Allocation{
-				Destination: alice.Destination(),
-				Amount:      big.NewInt(int64(aliceAmount)),
-			},
-			outcome.Allocation{
-				Destination: bob.Destination(),
-				Amount:      big.NewInt(int64(bobAmount)),
-			},
-		},
-	}
-}
-
-type testdata struct {
-	vFixed         state.FixedPart
-	vFinal         state.State
-	initialOutcome outcome.SingleAssetExit
-	finalOutcome   outcome.SingleAssetExit
-	paid           uint
-}
-
-// generateTestData generates some test data that can be used in a test
-func generateTestData() testdata {
-	vFixed := state.FixedPart{
-		ChainId:           big.NewInt(9001),
-		Participants:      []types.Address{alice.Address, irene.Address, bob.Address}, // A single hop virtual channel
-		ChannelNonce:      big.NewInt(0),
-		AppDefinition:     types.Address{},
-		ChallengeDuration: big.NewInt(45),
-	}
-
-	initialOutcome := makeOutcome(7, 2)
-	finalOutcome := makeOutcome(6, 3)
-	paid := uint(1)
-
-	vFinal := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{finalOutcome}, TurnNum: FinalTurnNum})
-
-	return testdata{vFixed, vFinal, initialOutcome, finalOutcome, paid}
-}
-
-// signByOthers signs the state by every participant except my
-func signByOthers(my ta.Actor, signedState state.SignedState) state.SignedState {
-	if my.Role != 0 {
-		_ = signedState.Sign(&alice.PrivateKey)
-	}
-
-	if my.Role != 1 {
-		_ = signedState.Sign(&irene.PrivateKey)
-	}
-
-	if my.Role != 2 {
-		_ = signedState.Sign(&bob.PrivateKey)
-	}
-	return signedState
-}
-
-// assertStateSentToEveryone asserts that ses contains a message for every participant but from
-func assertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected state.SignedState, from testactors.Actor) {
-	for _, a := range allActors {
-		if a.Role != from.Role {
-			assertStateSentTo(t, ses, expected, a)
-		}
-	}
-}
-
-// assertStateSentTo asserts that ses contains a message for the participant
-func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
-	for _, msg := range ses.MessagesToSend {
-		if bytes.Equal(msg.To[:], to.Address[:]) {
-			for _, ss := range msg.SignedStates {
-				testhelpers.Equals(t, ss, expected)
-			}
-		}
-	}
-}
 
 func TestUpdate(t *testing.T) {
 	for _, my := range allActors {
@@ -115,17 +34,28 @@ func TestCrank(t *testing.T) {
 
 func TestInvalidUpdate(t *testing.T) {
 	data := generateTestData()
-	virtualDefund := newObjective(false, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), 0)
+	vId := data.vFinal.ChannelId()
+	request := ObjectiveRequest{
+		ChannelId: vId,
+		PaidToBob: big.NewInt(int64(data.paid)),
+	}
+
+	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vFinal)
+
+	virtualDefund, err := NewObjective(request, false, alice.Address(), getChannel, getConsensusChannel)
+	if err != nil {
+		t.Fatal(err)
+	}
 	invalidFinal := data.vFinal.Clone()
 	invalidFinal.ChannelNonce = big.NewInt(5)
 
 	signedFinal := state.NewSignedState(invalidFinal)
 
-	// Sign the final state by other participant
-	signByOthers(alice, signedFinal)
+	// Sign the final state by some other participant
+	signStateByOthers(alice, signedFinal)
 
-	e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}
-	_, err := virtualDefund.Update(e)
+	e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedState: signedFinal}
+	_, err = virtualDefund.Update(e)
 	if err.Error() != "event channelId out of scope of objective" {
 		t.Errorf("Expected error for channelId being out of scope, got %v", err)
 	}
@@ -135,14 +65,26 @@ func TestInvalidUpdate(t *testing.T) {
 func testUpdateAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
-		virtualDefund := newObjective(false, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), my.Role)
+		vId := data.vFinal.ChannelId()
+		request := ObjectiveRequest{
+			ChannelId: vId,
+			PaidToBob: big.NewInt(int64(data.paid)),
+		}
+
+		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
+
+		virtualDefund, err := NewObjective(request, false, my.Address(), getChannel, getConsensusChannel)
+		if err != nil {
+			t.Fatal(err)
+		}
 		signedFinal := state.NewSignedState(data.vFinal)
 		// Sign the final state by some other participant
-		signByOthers(my, signedFinal)
+		signStateByOthers(my, signedFinal)
 
-		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedStates: []state.SignedState{signedFinal}}
+		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedState: signedFinal}
 
 		updatedObj, err := virtualDefund.Update(e)
+		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
 		for _, a := range allActors {
 			if a.Role != my.Role {
@@ -151,15 +93,24 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 				testhelpers.Assert(t, isZero(updated.Signatures[a.Role]), "expected signature for current participant %s to be zero", a.Name)
 			}
 		}
-		testhelpers.Ok(t, err)
+
 	}
 }
 
 func testCrankAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
-		virtualDefund := newObjective(true, data.vFixed, data.initialOutcome, big.NewInt(int64(data.paid)), my.Role)
+		vId := data.vFinal.ChannelId()
+		request := ObjectiveRequest{
+			ChannelId: vId,
+			PaidToBob: big.NewInt(int64(data.paid)),
+		}
 
+		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
+		virtualDefund, err := NewObjective(request, true, my.Address(), getChannel, getConsensusChannel)
+		if err != nil {
+			t.Fatal(err)
+		}
 		updatedObj, se, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
@@ -174,11 +125,11 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 
 		testhelpers.Equals(t, waitingFor, WaitingForCompleteFinal)
 		signedByMe := state.NewSignedState(data.vFinal)
-		_ = signedByMe.Sign(&my.PrivateKey)
-		assertStateSentToEveryone(t, se, signedByMe, my)
+		testhelpers.SignState(&signedByMe, &my.PrivateKey)
+		testhelpers.AssertStateSentToEveryone(t, se, signedByMe, my, allActors)
 
 		// Update the signatures on the objective so the final state is fully signed
-		signedByOthers := signByOthers(my, state.NewSignedState(data.vFinal))
+		signedByOthers := signStateByOthers(my, state.NewSignedState(data.vFinal))
 		for i, sig := range signedByOthers.Signatures() {
 			if uint(i) != my.Role {
 				updated.Signatures[i] = sig
@@ -189,16 +140,74 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		updated = updatedObj.(*Objective)
 		testhelpers.Ok(t, err)
 
-		testhelpers.Equals(t, waitingFor, WaitingForCompleteLedgerDefunding)
+		testhelpers.Equals(t, WaitingForCompleteLedgerDefunding, waitingFor)
 
-		testhelpers.Assert(t, len(se.MessagesToSend) == 0, "expected no messages to send")
+		checkForLeaderProposals(t, se, updated, data)
 
-		// Check idempotency
+		proposals := generateProposalsResponses(my.Role, vId, updated, data)
+		for _, p := range proposals {
+			e := protocols.ObjectiveEvent{ObjectiveId: updated.Id(), SignedProposal: p}
+			updatedObj, err = updated.Update(e)
+			testhelpers.Ok(t, err)
+			updated = updatedObj.(*Objective)
+		}
+
 		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 		updated = updatedObj.(*Objective)
 		testhelpers.Ok(t, err)
-		testhelpers.Assert(t, len(se.MessagesToSend) == 0, "expected no messages to send")
-		testhelpers.Equals(t, waitingFor, WaitingForCompleteLedgerDefunding)
 
+		testhelpers.Equals(t, waitingFor, WaitingForNothing)
+		checkForFollowerProposals(t, se, updated, data)
+
+	}
+
+}
+
+func TestConstructObjectiveFromState(t *testing.T) {
+	data := generateTestData()
+	vId := data.vFinal.ChannelId()
+
+	getChannel, getConsensusChannel := generateStoreGetters(alice.Role, vId, data.vInitial)
+
+	got, err := ConstructObjectiveFromState(data.vFinal, true, alice.Address(), getChannel, getConsensusChannel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	left, right := generateLedgers(alice.Role, vId)
+	want := Objective{
+		Status:         protocols.Approved,
+		InitialOutcome: data.vInitial.Outcome[0],
+		PaidToBob:      big.NewInt(int64(data.paid)),
+		VFixed:         data.vFinal.FixedPart(),
+		Signatures:     [3]state.Signature{},
+		ToMyLeft:       left,
+		ToMyRight:      right,
+	}
+	if diff := cmp.Diff(want, got, cmp.AllowUnexported(big.Int{}, consensus_channel.ConsensusChannel{}, consensus_channel.LedgerOutcome{}, consensus_channel.Guarantee{})); diff != "" {
+		t.Errorf("objective mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestApproveReject(t *testing.T) {
+	data := generateTestData()
+	vId := data.vFinal.ChannelId()
+	request := ObjectiveRequest{
+		ChannelId: vId,
+		PaidToBob: big.NewInt(int64(data.paid)),
+	}
+
+	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vInitial)
+
+	virtualDefund, err := NewObjective(request, false, alice.Address(), getChannel, getConsensusChannel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	approved := virtualDefund.Approve()
+	if approved.GetStatus() != protocols.Approved {
+		t.Errorf("Expected approved status, got %v", approved.GetStatus())
+	}
+	rejected := virtualDefund.Reject()
+	if rejected.GetStatus() != protocols.Rejected {
+		t.Errorf("Expected rejceted status, got %v", approved.GetStatus())
 	}
 }

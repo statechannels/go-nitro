@@ -2,11 +2,17 @@
 package testhelpers
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"testing"
+
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/protocols"
 )
 
 // Copied from https://github.com/benbjohnson/testing
@@ -45,5 +51,55 @@ func Equals(tb testing.TB, want, got interface{}) {
 		_, file, line, _ := runtime.Caller(1)
 		fmt.Printf(makeRed+"%s:%d:\n\n\texp: %#v\n\n\tgot: %#v"+makeBlack, filepath.Base(file), line, want, got)
 		tb.FailNow()
+	}
+}
+
+// AssertStateSentToEveryone asserts that ses contains a message for every participant but from
+func AssertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected state.SignedState, from testactors.Actor, allActors []testactors.Actor) {
+	for _, a := range allActors {
+		if a.Role != from.Role {
+			AssertStateSentTo(t, ses, expected, a)
+		}
+	}
+}
+
+// AssertStateSentTo asserts that ses contains a message for the participant
+func AssertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
+	for _, msg := range ses.MessagesToSend {
+		toAddress := to.Address()
+		if bytes.Equal(msg.To[:], toAddress[:]) {
+			for _, ss := range msg.SignedStates() {
+				Equals(t, ss.Payload, expected)
+			}
+		}
+	}
+}
+
+func AssertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to testactors.Actor) {
+
+	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
+
+	found := false
+
+	msg := ses.MessagesToSend[0]
+	for _, p := range msg.SignedProposals() {
+		found = found || p.Payload.Proposal.Equal(&sp.Proposal) && p.Payload.TurnNum == sp.TurnNum
+	}
+	toAddress := to.Address()
+	Assert(t, found, "proposal %+v not found in signed proposals %+v", sp.Proposal, msg.SignedProposals())
+	Assert(t, bytes.Equal(msg.To[:], toAddress[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address().String())
+
+}
+
+// SignState generates a signature on the signed state with the supplied key, and adds that signature.
+// If an error occurs the function panics
+func SignState(ss *state.SignedState, secretKey *[]byte) {
+	sig, err := ss.State().Sign(*secretKey)
+	if err != nil {
+		panic(fmt.Errorf("SignAndAdd failed to sign the state: %w", err))
+	}
+	err = ss.AddSignature(sig)
+	if err != nil {
+		panic(fmt.Errorf("SignAndAdd failed to sign the state: %w", err))
 	}
 }

@@ -24,10 +24,10 @@ func TestReceive(t *testing.T) {
 		t.Fatal("unable to construct channel")
 	}
 
-	proposal := Proposal{ChannelID: channel.Id, ToAdd: add(1, vAmount, targetChannel, alice, bob)}
+	proposal := Proposal{LedgerID: channel.Id, ToAdd: add(vAmount, targetChannel, alice, bob)}
 
 	// Create a proposal with an incorrect signature
-	badSigProposal := SignedProposal{bobsSig, proposal}
+	badSigProposal := SignedProposal{bobsSig, proposal, 1}
 	err = channel.Receive(badSigProposal)
 	if !errors.Is(ErrInvalidProposalSignature, err) {
 		t.Fatalf("expected %v, but got %v", ErrInvalidProposalSignature, err)
@@ -50,7 +50,7 @@ func TestReceive(t *testing.T) {
 
 	// Generate a second proposal(removal)
 	latestProposed, _ := channel.latestProposedVars()
-	secondProposal := Proposal{ChannelID: channel.Id, ToRemove: remove(2, channel1Id, 2, 3)}
+	secondProposal := Proposal{LedgerID: channel.Id, ToRemove: remove(channel1Id, 2)}
 	anotherValid := createSignedProposal(latestProposed, secondProposal, fp(), alice.PrivateKey)
 	err = channel.Receive(anotherValid)
 	if err != nil {
@@ -92,7 +92,7 @@ func TestFollowerChannel(t *testing.T) {
 	}
 
 	amountAdded := uint64(5)
-	proposal := Proposal{ChannelID: channel.Id, ToAdd: add(1, amountAdded, targetChannel, alice, bob)}
+	proposal := Proposal{LedgerID: channel.Id, ToAdd: add(amountAdded, targetChannel, alice, bob)}
 
 	_, err = channel.SignNextProposal(proposal, bob.PrivateKey)
 	if !errors.Is(ErrNoProposals, err) {
@@ -105,7 +105,7 @@ func TestFollowerChannel(t *testing.T) {
 		Signature: state.Signature{},
 	}
 	channel.proposalQueue = []SignedProposal{signedProposal}
-	proposal2 := Proposal{ChannelID: channel.Id, ToAdd: add(1, amountAdded+1, targetChannel, alice, bob)}
+	proposal2 := Proposal{LedgerID: channel.Id, ToAdd: add(amountAdded+1, targetChannel, alice, bob)}
 
 	_, err = channel.SignNextProposal(proposal2, bob.PrivateKey)
 	if !errors.Is(ErrNonMatchingProposals, err) {
@@ -164,8 +164,8 @@ func TestFollowerIncorrectlyAddressedProposals(t *testing.T) {
 	leaderCh, _ := NewLeaderChannel(fp(), 0, ledgerOutcome(), sigs)
 	followerCh, _ := NewFollowerChannel(fp(), 0, ledgerOutcome(), sigs)
 
-	someProposal, _ := leaderCh.Propose(Proposal{ToAdd: add(1, 1, types.Destination{}, alice, bob)}, alice.PrivateKey)
-	someProposal.Proposal.ChannelID = types.Destination{} // alter the ChannelID so that it doesn't match
+	someProposal, _ := leaderCh.Propose(Proposal{ToAdd: add(1, types.Destination{}, alice, bob)}, alice.PrivateKey)
+	someProposal.Proposal.LedgerID = types.Destination{} // alter the ChannelID so that it doesn't match
 
 	err := followerCh.Receive(someProposal)
 

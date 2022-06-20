@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/statechannels/go-nitro/channel"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
@@ -14,42 +14,38 @@ import (
 )
 
 type channelCollection struct {
-	// MockTwoPartyLedger constructs and returns a ledger channel
-	MockTwoPartyLedger   virtualfund.GetTwoPartyLedgerFunction
+	// MockConsensusChannel constructs and returns a ledger channel
 	MockConsensusChannel virtualfund.GetTwoPartyConsensusLedgerFunction
 }
 
 var Channels channelCollection = channelCollection{
-	MockTwoPartyLedger:   mockTwoPartyLedger,
 	MockConsensusChannel: mockConsensusChannel,
-}
-
-func mockTwoPartyLedger(firstParty, secondParty types.Address) (ledger *channel.TwoPartyLedger, ok bool) {
-	ledger, err := channel.NewTwoPartyLedger(createLedgerState(
-		firstParty,
-		secondParty,
-		100,
-		100,
-	), 0) // todo: make myIndex configurable
-	if err != nil {
-		panic(fmt.Errorf("error mocking a twoPartyLedger: %w", err))
-	}
-	return ledger, true
 }
 
 func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool) {
 	ts := testState.Clone()
-	request := directfund.ObjectiveRequest{
-		MyAddress:         ts.Participants[0],
-		CounterParty:      ts.Participants[1],
-		AppData:           ts.AppData,
-		AppDefinition:     ts.AppDefinition,
-		ChallengeDuration: ts.ChallengeDuration,
-		Nonce:             ts.ChannelNonce.Int64(),
-		Outcome:           ts.Outcome,
+	ts.TurnNum = 0
+	testObj, err := directfund.ConstructFromState(true, ts, ts.Participants[0])
+
+	if err != nil {
+		return &consensus_channel.ConsensusChannel{}, false
 	}
-	testObj, _ := directfund.NewObjective(request, false)
-	cc, _ := testObj.CreateConsensusChannel()
+
+	// Manually progress the extended state by collecting postfund signatures
+	correctSignatureByAliceOnPostFund, _ := testObj.C.PostFundState().Sign(testactors.Alice.PrivateKey)
+	correctSignatureByBobOnPostFund, _ := testObj.C.PostFundState().Sign(testactors.Bob.PrivateKey)
+	testObj.C.AddStateWithSignature(testObj.C.PostFundState(), correctSignatureByAliceOnPostFund)
+	testObj.C.AddStateWithSignature(testObj.C.PostFundState(), correctSignatureByBobOnPostFund)
+
+	cc, err := testObj.CreateConsensusChannel()
+	cc.OnChainFunding = types.Funds{
+		common.HexToAddress("0x00"): big.NewInt(2),
+	}
+
+	if err != nil {
+		panic(err)
+	}
+
 	return cc, true
 }
 
@@ -96,45 +92,6 @@ func (l LedgerNetwork) GetLedgerLookup(seeker types.Address) virtualfund.GetTwoP
 	}
 }
 
-// createLedgerNetwork returns active, funded consensus_channels connecting the supplied
-// actors according the the supplied edge list.
-//
-// Edges specify actors via their indices in the actors slice,
-// and each edge is ordered [leader, follower].
-func createLedgerNetwork(actors []testactors.Actor, edges [][2]int) LedgerNetwork {
-	// naive connectedness check: does not detect, eg
-	// a--b  c--d (no path from a to c or d, etc)
-	for i, a := range actors {
-		connected := false
-		for _, edge := range edges {
-			if edge[0] == i || edge[1] == i {
-				connected = true
-			}
-		}
-		if !connected {
-			panic(fmt.Sprintf("actor %v is not connected in the test network", a))
-		}
-	}
-
-	var ret LedgerNetwork
-
-	for _, edge := range edges {
-		if edge[0] > len(actors)-1 ||
-			edge[1] > len(actors)-1 ||
-			edge[0] == edge[1] {
-			panic(fmt.Sprintf("malformed ledger network edge list: %v", edge))
-		}
-		leader := actors[edge[0]]
-		follower := actors[edge[1]]
-
-		testLedger := createTestLedger(leader, follower)
-
-		ret.ledgers = append(ret.ledgers, testLedger)
-	}
-
-	return ret
-}
-
 // createLedgerPath returns active, funded consensus_channels connecting the supplied
 // actors in left-to-right fashion from actors[0] to actors[len(actors)-1]. The
 // leftmost actor in each consensuschannel is the channel's leader.
@@ -158,8 +115,8 @@ func createLedgerPath(actors []testactors.Actor) LedgerNetwork {
 
 func createTestLedger(leader, follower testactors.Actor) TestLedger {
 	fp := testState.Clone().FixedPart()
-	fp.Participants[0] = leader.Address
-	fp.Participants[1] = follower.Address
+	fp.Participants[0] = leader.Address()
+	fp.Participants[1] = follower.Address()
 
 	outcome := consensus_channel.NewLedgerOutcome(
 		types.Address{}, // the zero asset

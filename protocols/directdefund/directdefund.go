@@ -4,11 +4,12 @@ package directdefund // import "github.com/statechannels/go-nitro/directfund"
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -22,15 +23,17 @@ const (
 
 const ObjectivePrefix = "DirectDefunding-"
 
-// errors
-var ErrNotApproved = errors.New("objective not approved")
-var ErrChannelUpdateInProgress = errors.New("can only defund a channel when the latest state is supported or when the channel has a final state")
+var (
+	ErrChannelUpdateInProgress = errors.New("can only defund a channel when the latest state is supported or when the channel has a final state")
+	ErrNoFinalState            = errors.New("cannot spawn direct defund objective without a final state")
+)
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
-	Status       protocols.ObjectiveStatus
-	C            *channel.Channel
-	finalTurnNum uint64
+	Status               protocols.ObjectiveStatus
+	C                    *channel.Channel
+	finalTurnNum         uint64
+	transactionSubmitted bool // whether a transition for the objective has been submitted or not
 }
 
 // isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
@@ -52,20 +55,28 @@ func isInConsensusOrFinalState(c *channel.Channel) (bool, error) {
 	return cmp.Equal(latestSS.State(), latestSupportedState), nil
 }
 
-// GetChannelByIdFunction specifies a function that can be used to retreive channels from a store.
+// GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel, ok bool)
+
+// GetConsensusChannel describes functions which return a ConsensusChannel ledger channel for a channel id.
+type GetConsensusChannel func(channelId types.Destination) (ledger *consensus_channel.ConsensusChannel, err error)
 
 // NewObjective initiates an Objective with the supplied channel
 func NewObjective(
+	request ObjectiveRequest,
 	preApprove bool,
-	channelId types.Destination,
-	getChannel GetChannelByIdFunction,
+	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
-	c, ok := getChannel(channelId)
-
-	if !ok {
-		return Objective{}, fmt.Errorf("could not find channel %s", channelId)
+	cc, err := getConsensusChannel(request.ChannelId)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not find channel %s; %w", request.ChannelId, err)
 	}
+
+	c, err := CreateChannelFromConsensusChannel(*cc)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not create Channel from ConsensusChannel; %w", err)
+	}
+
 	// We choose to disallow creating an objective if the channel has an in-progress update.
 	// We allow the creation of of an objective if the channel has some final states.
 	// In the future, we can add a restriction that only defund objectives can add final states to the channel.
@@ -101,39 +112,39 @@ func NewObjective(
 	return init, nil
 }
 
-var ErrNoFinalState = errors.New("Cannot spawn direct defund objective without a final state")
-
-// ConstructObjectiveFromMessage takes in a message and constructs an objective from it.
-func ConstructObjectiveFromMessage(
-	m protocols.Message,
-	getChannel GetChannelByIdFunction,
+// ConstructObjectiveFromState takes in a state and constructs an objective from it.
+func ConstructObjectiveFromState(
+	s state.State,
+	preapprove bool,
+	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
-	preApprove := true
-	// TODO: do not blindly preapprove
-	// See https://github.com/statechannels/go-nitro/issues/213
-
 	// Implicit in the wire protocol is that the message signalling
 	// closure of a channel includes an isFinal state (in the 0 slot of the message)
 	//
-	if !m.SignedStates[0].State().IsFinal {
+	if !s.IsFinal {
 		return Objective{}, ErrNoFinalState
 	}
 
-	cId, err := m.SignedStates[0].State().ChannelId()
+	err := s.FixedPart().Validate()
 	if err != nil {
 		return Objective{}, err
 	}
-	return NewObjective(preApprove, cId, getChannel)
+
+	cId := s.ChannelId()
+	request := ObjectiveRequest{
+		ChannelId: cId,
+	}
+	return NewObjective(request, preapprove, getConsensusChannel)
 }
 
 // Public methods on the DirectDefundingObjective
 
 // Id returns the unique id of the objective
-func (o Objective) Id() protocols.ObjectiveId {
+func (o *Objective) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + o.C.Id.String())
 }
 
-func (o Objective) Approve() protocols.Objective {
+func (o *Objective) Approve() protocols.Objective {
 	updated := o.clone()
 	// todo: consider case of o.Status == Rejected
 	updated.Status = protocols.Approved
@@ -141,7 +152,7 @@ func (o Objective) Approve() protocols.Objective {
 	return &updated
 }
 
-func (o Objective) Reject() protocols.Objective {
+func (o *Objective) Reject() protocols.Objective {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
 	return &updated
@@ -157,30 +168,31 @@ func (ddo Objective) GetStatus() protocols.ObjectiveStatus {
 	return ddo.Status
 }
 
-func (o Objective) Related() []protocols.Storable {
+func (o *Objective) Related() []protocols.Storable {
 	return []protocols.Storable{o.C}
 }
 
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectDefundingObjective,
 // and returns the updated objective
-func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if o.Id() != event.ObjectiveId {
-		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
-	if len(event.SignedStates) > 0 {
-		for _, ss := range event.SignedStates {
-			if !ss.State().IsFinal {
-				return &o, errors.New("direct defund objective can only be updated with final states")
-			}
-			if o.finalTurnNum != ss.State().TurnNum {
-				return &o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, ss.State().TurnNum)
-			}
+	if len(event.SignedState.Signatures()) != 0 {
+
+		if !event.SignedState.State().IsFinal {
+			return o, errors.New("direct defund objective can only be updated with final states")
 		}
+		if o.finalTurnNum != event.SignedState.State().TurnNum {
+			return o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, event.SignedState.State().TurnNum)
+		}
+	} else {
+		return o, fmt.Errorf("event does not contain a signed state")
 	}
 
 	updated := o.clone()
-	updated.C.AddSignedStates(event.SignedStates)
+	updated.C.AddSignedState(event.SignedState)
 
 	return &updated, nil
 }
@@ -188,34 +200,36 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 // UpdateWithChainEvent updates the objective with observed on-chain data.
 //
 // Only Allocation Updated events are currently handled.
-func (o Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
+func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
 	updated := o.clone()
-	de, ok := event.(chainservice.AllocationUpdatedEvent)
-	if !ok {
+	switch e := event.(type) {
+	case chainservice.AllocationUpdatedEvent:
+		{
+			// todo: check block number
+			if e.Holdings != nil {
+				updated.C.OnChainFunding = e.Holdings.Clone()
+			}
+		}
+	default:
 		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
 	}
-	// todo: check block number
-	if de.Holdings != nil {
-		updated.C.OnChainFunding = de.Holdings.Clone()
-	}
-
 	return &updated, nil
 
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
-func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
 
 	if updated.Status != protocols.Approved {
-		return &updated, sideEffects, WaitingForNothing, ErrNotApproved
+		return &updated, sideEffects, WaitingForNothing, protocols.ErrNotApproved
 	}
 
 	latestSignedState, err := updated.C.LatestSignedState()
 	if err != nil {
-		return &updated, sideEffects, WaitingForNothing, errors.New("The channel must contain at least one signed state to crank the defund objective")
+		return &updated, sideEffects, WaitingForNothing, errors.New("the channel must contain at least one signed state to crank the defund objective")
 	}
 
 	// Finalize and sign a state if no supported, finalized state exists
@@ -242,17 +256,19 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	}
 
 	// Withdrawal of funds
-	if !updated.fullyWithdrawn() {
-		// TODO #314: before submiting a withdrawal transaction, we should check if a withdrawal transaction has already been submitted
+	if !updated.fullyWithdrawn() && !updated.transactionSubmitted {
+
 		// The first participant in the channel submits the withdrawAll transaction
 		if updated.C.MyIndex == 0 {
 			withdrawAll := protocols.ChainTransaction{Type: protocols.WithdrawAllTransactionType, ChannelId: updated.C.Id}
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
+			updated.transactionSubmitted = true
 		}
 		// Every participant waits for all channel funds to be distributed, even if the participant has no funds in the channel
 		return &updated, sideEffects, WaitingForWithdraw, nil
 	}
 
+	updated.Status = protocols.Completed
 	return &updated, sideEffects, WaitingForNothing, nil
 }
 
@@ -263,24 +279,34 @@ func IsDirectDefundObjective(id protocols.ObjectiveId) bool {
 
 //  Private methods on the DirectDefundingObjective
 
-// fullyWithdrawn returns true if the channel contains no assets on chain
-func (o Objective) fullyWithdrawn() bool {
-	for _, holdings := range o.C.OnChainFunding {
-		if holdings.Cmp(big.NewInt(0)) != 0 {
-			return false
-		}
+// CreateChannelFromConsensusChannel creates a Channel with (an appropriate latest supported state) from the supplied ConsensusChannel.
+func CreateChannelFromConsensusChannel(cc consensus_channel.ConsensusChannel) (*channel.Channel, error) {
+
+	c, err := channel.New(cc.ConsensusVars().AsState(cc.SupportedSignedState().State().FixedPart()), uint(cc.MyIndex))
+
+	if err != nil {
+		return &channel.Channel{}, err
 	}
-	return true
+	c.OnChainFunding = cc.OnChainFunding.Clone()
+	c.AddSignedState(cc.SupportedSignedState())
+
+	return c, nil
+}
+
+// fullyWithdrawn returns true if the channel contains no assets on chain
+func (o *Objective) fullyWithdrawn() bool {
+	return !o.C.OnChainFunding.IsNonZero()
 }
 
 // clone returns a deep copy of the receiver.
-func (o Objective) clone() Objective {
+func (o *Objective) clone() Objective {
 	clone := Objective{}
 	clone.Status = o.Status
 
 	cClone := o.C.Clone()
 	clone.C = cClone
 	clone.finalTurnNum = o.finalTurnNum
+	clone.transactionSubmitted = o.transactionSubmitted
 
 	return clone
 }
@@ -291,6 +317,6 @@ type ObjectiveRequest struct {
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id() protocols.ObjectiveId {
+func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
 }

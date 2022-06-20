@@ -74,7 +74,7 @@ func TestChallenge(t *testing.T) {
 
 	// Setup transacting EOA
 	key, _ := crypto.GenerateKey()
-	auth := bind.NewKeyedTransactor(key)
+	auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337)) // 1337 according to godoc on backends.NewSimulatedBackend
 	auth.GasPrice = big.NewInt(10000000000)
 	address := auth.From
 	balance := new(big.Int)
@@ -126,7 +126,7 @@ func TestChallenge(t *testing.T) {
 
 	// Generate expectation
 	expectedFinalizesAt := big.NewInt(0).Add(challengeTime, s.ChallengeDuration)
-	cId, _ := s.ChannelId()
+	cId := s.ChannelId()
 	expectedOnChainStatus, err := generateStatus(s, expectedFinalizesAt)
 	if err != nil {
 		t.Fatal(err)
@@ -143,4 +143,6 @@ func TestChallenge(t *testing.T) {
 		t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(expectedOnChainStatus[:]))
 	}
 
+	// Not sure if this is necessary
+	sim.Close()
 }

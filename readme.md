@@ -17,13 +17,13 @@ The following roadmap gives an idea of the various packages that compose the `go
 ```bash
 ├── abi ✅                     # types for abi encoding and decoding.
 ├── channel ✅                 # query the latest supported state of a channel
-│   ├── consensus_channel 🚧   # manage a running ledger channel.
+│   ├── consensus_channel ✅    # manage a running ledger channel.
 │   └── state ✅               # generate and recover signatures on state updates
 │       ├── outcome ✅         # define how funds are dispersed when a channel closes
 ├── client 🚧                  # exposes an API to the consuming application
-│   └── engine 🚧              # coordinate the client components, runs the protocols
+│   └── engine ✅              # coordinate the client components, runs the protocols
 │       ├── chainservice 🚧    # watch the chain and submit transactions
-│       ├── messageservice 🚧  # send and recieves messages from peers
+│       ├── messageservice ✅  # send and receives messages from peers
 │       └── store 🚧           # store keys, state updates and other critical data
 ├── client_test 🚧             # integration tests involving multiple clients
 ├── crypto  ✅                 # create Ethereum accounts, create & recover signatures
@@ -36,7 +36,7 @@ The following roadmap gives an idea of the various packages that compose the `go
 │   ├── direct-fund ✅         # fund a channel on-chain
 │   ├── direct-defund ✅       # defund a channel on-chain
 │   ├── virtual-fund ✅        # fund a channel off-chain through one or more intermediaries
-│   └── virtual-defund 🚧      # defund a channel off-chain through one or more intermediaries
+│   └── virtual-defund ✅      # defund a channel off-chain through one or more intermediaries
 └── types ✅                   # basic types and utility methods
 ```
 
@@ -45,7 +45,8 @@ Milestones that we hope to hit in the coming weeks:
 | --------------------------------------|--- | --------|
 | Directly Fund an (Alice, Bob) Channel | mock | ✅ |
 | Virtually Fund an (Alice, Bob) Channel through a single Intermediary | mock | ✅ |
-| Virtually Fund an (Alice, Bob) and an (Alice, Brian) Channel through a single Intermediary | mock | 🟡|
+| Virtually Fund an (Alice, Bob) and an (Alice, Brian) Channel through a single Intermediary | mock | ✅ |
+| Virtually Defund an (Alice, Bob) Channel through a single Intermediary | mock | ✅ |
 | Stream micropayments fron Alice to Bob | mock | |
 | Directly Fund an (Alice, Bob) Channel | production | |
 

@@ -2,6 +2,7 @@ package protocols
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -16,6 +17,10 @@ const (
 	WithdrawAllTransactionType TransactionType = "Withdraw"
 )
 
+var (
+	ErrNotApproved = errors.New("objective not approved")
+)
+
 // ChainTransaction is an object to be sent to a blockchain provider.
 type ChainTransaction struct {
 	// TODO support other transaction types (deposit, challenge, respond, conclude)
@@ -28,6 +33,7 @@ type ChainTransaction struct {
 type SideEffects struct {
 	MessagesToSend       []Message
 	TransactionsToSubmit []ChainTransaction
+	ProposalsToProcess   []consensus_channel.Proposal
 }
 
 // WaitingFor is an enumerable "pause-point" computed from an Objective. It describes how the objective is blocked on actions by third parties (i.e. co-participants or the blockchain).
@@ -43,9 +49,9 @@ type AdjudicationStatus struct {
 
 // ObjectiveEvent holds information used to update an Objective. Some fields may be nil.
 type ObjectiveEvent struct {
-	ObjectiveId     ObjectiveId
-	SignedStates    []state.SignedState
-	SignedProposals []consensus_channel.SignedProposal
+	ObjectiveId    ObjectiveId
+	SignedState    state.SignedState
+	SignedProposal consensus_channel.SignedProposal
 }
 
 // Storable is an object that can be stored by the store.
@@ -88,9 +94,10 @@ const (
 	Unapproved ObjectiveStatus = iota
 	Approved
 	Rejected
+	Completed
 )
 
 // ObjectiveRequest is a request to create a new objective.
 type ObjectiveRequest interface {
-	Id() ObjectiveId
+	Id(types.Address) ObjectiveId
 }

@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -23,12 +22,10 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 	// Since we are delaying messages we allow for enough time to complete the objective
 	const OBJECTIVE_TIMEOUT = time.Second * 2
 
-	// This test fails due to https://github.com/statechannels/go-nitro/issues/366
-	t.Skip()
-
 	// Setup logging
-	logDestination := &bytes.Buffer{}
-	t.Cleanup(flushToFileCleanupFn(logDestination, "virtual_fund_message_delay_test.log"))
+	logFile := "test_virtual_fund_with_message_delays.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
@@ -40,7 +37,7 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)
 
-	ids := createVirtualChannels(clientA, bob.Address, irene.Address, 5)
+	ids := createVirtualChannels(clientA, bob.Address(), irene.Address(), 5)
 	waitTimeForCompletedObjectiveIds(t, &clientA, OBJECTIVE_TIMEOUT, ids...)
 	waitTimeForCompletedObjectiveIds(t, &clientB, OBJECTIVE_TIMEOUT, ids...)
 	waitTimeForCompletedObjectiveIds(t, &clientI, OBJECTIVE_TIMEOUT, ids...)
@@ -54,7 +51,7 @@ func createVirtualChannels(client client.Client, counterParty types.Address, int
 	for i := uint(0); i < amountOfChannels; i++ {
 		outcome := td.Outcomes.Create(*client.Address, counterParty, 1, 1)
 		request := virtualfund.ObjectiveRequest{
-			MyAddress:         *client.Address,
+
 			CounterParty:      counterParty,
 			Intermediary:      intermediary,
 			Outcome:           outcome,
@@ -64,7 +61,7 @@ func createVirtualChannels(client client.Client, counterParty types.Address, int
 			Nonce:             rand.Int63(),
 		}
 
-		ids[i] = client.CreateVirtualChannel(request)
+		ids[i] = client.CreateVirtualChannel(request).Id
 	}
 	return ids
 }

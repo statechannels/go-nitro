@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/types"
 )
 
 type SignedState struct {
@@ -17,19 +18,6 @@ type SignedState struct {
 // The signedState returned will have no signatures.
 func NewSignedState(s State) SignedState {
 	return SignedState{s, make(map[uint]Signature, len(s.Participants))}
-}
-
-// Sign generates a signature on the receiver's state with the supplied key, and adds that signature.
-func (ss SignedState) Sign(secretKey *[]byte) error {
-	sig, err := ss.state.Sign(*secretKey)
-	if err != nil {
-		return fmt.Errorf("SignAndAdd failed to sign the state: %w", err)
-	}
-	err = ss.AddSignature(sig)
-	if err != nil {
-		return fmt.Errorf("SignAndAdd failed to sign the state: %w", err)
-	}
-	return nil
 }
 
 // AddSignature adds a participant's signature to the SignedState.
@@ -102,7 +90,7 @@ func (ss SignedState) GetParticipantSignature(participantIndex uint) (crypto.Sig
 	}
 }
 
-// Merge checks the passed SignedState's state and the reciever's state for equality, andd adds each signature from the former to the latter.
+// Merge checks the passed SignedState's state and the receiver's state for equality, and adds each signature from the former to the latter.
 func (ss SignedState) Merge(ss2 SignedState) error {
 	if !ss.state.Equal(ss2.state) {
 		return errors.New(`cannot merge signed states with distinct state hashes`)
@@ -162,4 +150,17 @@ func (ss *SignedState) UnmarshalJSON(j []byte) error {
 	ss.sigs = rr.Sigs
 	return err
 
+}
+
+// ChannelId returns the channel id of the state.
+func (ss SignedState) ChannelId() types.Destination {
+	cId := ss.state.ChannelId()
+	return cId
+}
+
+// SortInfo returns the channel id and turn number of the state, so the state can be easily sorted.
+func (ss SignedState) SortInfo() (types.Destination, uint64) {
+	cId := ss.State().ChannelId()
+	turnNum := ss.State().TurnNum
+	return cId, turnNum
 }

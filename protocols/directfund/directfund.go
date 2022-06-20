@@ -30,9 +30,6 @@ func FundOnChainEffect(cId types.Destination, asset string, amount types.Funds) 
 	return "deposit" + amount.String() + "into" + cId.String()
 }
 
-// errors
-var ErrNotApproved = errors.New("objective not approved")
-
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
 	Status protocols.ObjectiveStatus
@@ -42,15 +39,23 @@ type Objective struct {
 	myDepositTarget          types.Funds // I want to get the on chain holdings up to this much
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
 	latestBlockNumber        uint64      // the latest block number we've seen
+	transactionSubmitted     bool        // whether a transition for the objective has been submitted or not
 }
 
-// NewObjective creates a new direct funding objective from a given request.
-func NewObjective(request ObjectiveRequest, preApprove bool) (Objective, error) {
+// GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
+type GetChannelsByParticipantFunction func(participant types.Address) []*channel.Channel
 
-	objective, err := constructFromState(preApprove,
+// GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
+// the calling client and the given counterparty, if such a channel exists.
+type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
+
+// NewObjective creates a new direct funding objective from a given request.
+func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
+
+	objective, err := ConstructFromState(preApprove,
 		state.State{
-			ChainId:           big.NewInt(0), // TODO
-			Participants:      []types.Address{request.MyAddress, request.CounterParty},
+			ChainId:           big.NewInt(9001), // TODO https://github.com/statechannels/go-nitro/issues/601
+			Participants:      []types.Address{myAddress, request.CounterParty},
 			ChannelNonce:      big.NewInt(request.Nonce),
 			AppDefinition:     request.AppDefinition,
 			ChallengeDuration: request.ChallengeDuration,
@@ -59,21 +64,47 @@ func NewObjective(request ObjectiveRequest, preApprove bool) (Objective, error) 
 			TurnNum:           0,
 			IsFinal:           false,
 		},
-		request.MyAddress,
+		myAddress,
 	)
 	if err != nil {
 		return Objective{}, fmt.Errorf("could not create new objective: %w", err)
 	}
+	if channelsExistWithCounterparty(request.CounterParty, getChannels, getTwoPartyConsensusLedger) {
+		return Objective{}, fmt.Errorf("a channel already exists with counterparty %s", request.CounterParty)
+	}
 	return objective, nil
 }
 
-// constructFromState initiates a Objective with data calculated from
+// channelsExistWithCounterparty returns true if a channel or consensus_channel exists with the counterparty
+func channelsExistWithCounterparty(counterparty types.Address, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) bool {
+	// check for any channels that may be in the process of direct funding
+	channels := getChannels(counterparty)
+
+	for _, c := range channels {
+		// We only want to find directly funded channels that would have two participants
+		if len(c.Participants) == 2 {
+			return true
+		}
+	}
+
+	_, ok := getTwoPartyConsensusLedger(counterparty)
+
+	return ok
+}
+
+// ConstructFromState initiates a Objective with data calculated from
 // the supplied initialState and client address
-func constructFromState(
+func ConstructFromState(
 	preApprove bool,
 	initialState state.State,
 	myAddress types.Address,
 ) (Objective, error) {
+	var err error
+
+	err = initialState.FixedPart().Validate()
+	if err != nil {
+		return Objective{}, err
+	}
 	if initialState.TurnNum != 0 {
 		return Objective{}, errors.New("cannot construct direct fund objective without prefund state")
 	}
@@ -82,7 +113,6 @@ func constructFromState(
 	}
 
 	var init = Objective{}
-	var err error
 
 	if preApprove {
 		init.Status = protocols.Approved
@@ -124,12 +154,12 @@ func constructFromState(
 }
 
 // OwnsChannel returns the channel that the objective is funding.
-func (dfo Objective) OwnsChannel() types.Destination {
+func (dfo *Objective) OwnsChannel() types.Destination {
 	return dfo.C.Id
 }
 
 // GetStatus returns the status of the objective.
-func (dfo Objective) GetStatus() protocols.ObjectiveStatus {
+func (dfo *Objective) GetStatus() protocols.ObjectiveStatus {
 	return dfo.Status
 }
 
@@ -156,10 +186,15 @@ func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChan
 	}
 	assetExit := signedPostFund.State().Outcome[0]
 	turnNum := signedPostFund.State().TurnNum
-	outcome := consensus_channel.FromExit(assetExit)
+	outcome, err := consensus_channel.FromExit(assetExit)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create ledger outcome from channel exit: %w", err)
+	}
 
 	if ledger.MyIndex == uint(consensus_channel.Leader) {
 		con, err := consensus_channel.NewLeaderChannel(ledger.FixedPart, turnNum, outcome, signatures)
+		con.OnChainFunding = ledger.OnChainFunding.Clone() // Copy OnChainFunding so we don't lose this information
 		if err != nil {
 			return nil, fmt.Errorf("could not create consensus channel as leader: %w", err)
 		}
@@ -167,6 +202,7 @@ func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChan
 
 	} else {
 		con, err := consensus_channel.NewFollowerChannel(ledger.FixedPart, turnNum, outcome, signatures)
+		con.OnChainFunding = ledger.OnChainFunding.Clone() // Copy OnChainFunding so we don't lose this information
 		if err != nil {
 			return nil, fmt.Errorf("could not create consensus channel as follower: %w", err)
 		}
@@ -177,11 +213,11 @@ func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChan
 
 // Public methods on the DirectFundingObjectiveState
 
-func (o Objective) Id() protocols.ObjectiveId {
+func (o *Objective) Id() protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + o.C.Id.String())
 }
 
-func (o Objective) Approve() protocols.Objective {
+func (o *Objective) Approve() protocols.Objective {
 	updated := o.clone()
 	// todo: consider case of s.Status == Rejected
 	updated.Status = protocols.Approved
@@ -189,7 +225,7 @@ func (o Objective) Approve() protocols.Objective {
 	return &updated
 }
 
-func (o Objective) Reject() protocols.Objective {
+func (o *Objective) Reject() protocols.Objective {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
 	return &updated
@@ -197,13 +233,13 @@ func (o Objective) Reject() protocols.Objective {
 
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
 // and returns the updated state
-func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
+func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if o.Id() != event.ObjectiveId {
-		return &o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
 	}
 
 	updated := o.clone()
-	updated.C.AddSignedStates(event.SignedStates)
+	updated.C.AddSignedState(event.SignedState)
 
 	return &updated, nil
 }
@@ -211,7 +247,7 @@ func (o Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, 
 // UpdateWithChainEvent updates the objective with observed on-chain data.
 //
 // Only Channel Deposit events are currently handled.
-func (o Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
+func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
 	updated := o.clone()
 
 	de, ok := event.(chainservice.DepositedEvent)
@@ -230,13 +266,13 @@ func (o Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Obj
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
-func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return &updated, protocols.SideEffects{}, WaitingForNothing, ErrNotApproved
+		return &updated, protocols.SideEffects{}, WaitingForNothing, protocols.ErrNotApproved
 	}
 
 	// Prefunding
@@ -262,8 +298,9 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 		return &updated, sideEffects, WaitingForMyTurnToFund, nil
 	}
 
-	if !fundingComplete && safeToDeposit && amountToDeposit.IsNonZero() {
+	if !fundingComplete && safeToDeposit && amountToDeposit.IsNonZero() && !updated.transactionSubmitted {
 		deposit := protocols.ChainTransaction{Type: protocols.DepositTransactionType, ChannelId: updated.C.Id, Deposit: amountToDeposit}
+		updated.transactionSubmitted = true
 		sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, deposit)
 	}
 
@@ -288,17 +325,18 @@ func (o Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Side
 	}
 
 	// Completion
+	updated.Status = protocols.Completed
 	return &updated, sideEffects, WaitingForNothing, nil
 }
 
-func (o Objective) Related() []protocols.Storable {
+func (o *Objective) Related() []protocols.Storable {
 	return []protocols.Storable{o.C}
 }
 
 //  Private methods on the DirectFundingObjectiveState
 
 // fundingComplete returns true if the recorded OnChainHoldings are greater than or equal to the threshold for being fully funded.
-func (o Objective) fundingComplete() bool {
+func (o *Objective) fundingComplete() bool {
 	for asset, threshold := range o.fullyFundedThreshold {
 		chainHolding, ok := o.C.OnChainFunding[asset]
 
@@ -315,7 +353,7 @@ func (o Objective) fundingComplete() bool {
 }
 
 // safeToDeposit returns true if the recorded OnChainHoldings are greater than or equal to the threshold for safety.
-func (o Objective) safeToDeposit() bool {
+func (o *Objective) safeToDeposit() bool {
 	for asset, safetyThreshold := range o.myDepositSafetyThreshold {
 
 		chainHolding, ok := o.C.OnChainFunding[asset]
@@ -333,7 +371,7 @@ func (o Objective) safeToDeposit() bool {
 }
 
 // amountToDeposit computes the appropriate amount to deposit given the current recorded OnChainHoldings
-func (o Objective) amountToDeposit() types.Funds {
+func (o *Objective) amountToDeposit() types.Funds {
 	deposits := make(types.Funds, len(o.C.OnChainFunding))
 
 	for asset, target := range o.myDepositTarget {
@@ -348,7 +386,7 @@ func (o Objective) amountToDeposit() types.Funds {
 }
 
 // clone returns a deep copy of the receiver.
-func (o Objective) clone() Objective {
+func (o *Objective) clone() Objective {
 	clone := Objective{}
 	clone.Status = o.Status
 
@@ -359,6 +397,7 @@ func (o Objective) clone() Objective {
 	clone.myDepositTarget = o.myDepositTarget.Clone()
 	clone.fullyFundedThreshold = o.fullyFundedThreshold.Clone()
 	clone.latestBlockNumber = o.latestBlockNumber
+	clone.transactionSubmitted = o.transactionSubmitted
 	return clone
 }
 
@@ -367,28 +406,8 @@ func IsDirectFundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
 
-// ConstructObjectiveFromMessage takes in a message and constructs a direct funding objective from it.
-func ConstructObjectiveFromMessage(m protocols.Message, myAddress types.Address) (Objective, error) {
-
-	if len(m.SignedStates) == 0 {
-		return Objective{}, errors.New("expected at least one signed state in the message")
-	}
-	initialState := m.SignedStates[0].State()
-
-	objective, err := constructFromState(
-		true, // TODO ensure objective in only approved if the application has given permission somehow
-		initialState,
-		myAddress,
-	)
-	if err != nil {
-		return Objective{}, fmt.Errorf("could not create new objective: %w", err)
-	}
-	return objective, nil
-}
-
 // ObjectiveRequest represents a request to create a new direct funding objective.
 type ObjectiveRequest struct {
-	MyAddress         types.Address
 	CounterParty      types.Address
 	AppDefinition     types.Address
 	AppData           types.Bytes
@@ -398,13 +417,13 @@ type ObjectiveRequest struct {
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id() protocols.ObjectiveId {
-	fixedPart := state.FixedPart{ChainId: big.NewInt(0), // TODO
-		Participants:      []types.Address{r.MyAddress, r.CounterParty},
+func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
+	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
+		Participants:      []types.Address{myAddress, r.CounterParty},
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}
 
-	channelId, _ := fixedPart.ChannelId()
+	channelId := fixedPart.ChannelId()
 	return protocols.ObjectiveId(ObjectivePrefix + channelId.String())
 }
 
@@ -415,13 +434,13 @@ type ObjectiveResponse struct {
 }
 
 // Response computes and returns the appropriate response from the request.
-func (r ObjectiveRequest) Response() ObjectiveResponse {
-	fixedPart := state.FixedPart{ChainId: big.NewInt(0), // TODO
-		Participants:      []types.Address{r.MyAddress, r.CounterParty},
+func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
+	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
+		Participants:      []types.Address{myAddress, r.CounterParty},
 		ChannelNonce:      big.NewInt(r.Nonce),
 		ChallengeDuration: r.ChallengeDuration}
 
-	channelId, _ := fixedPart.ChannelId()
+	channelId := fixedPart.ChannelId()
 
 	return ObjectiveResponse{
 		Id:        protocols.ObjectiveId(ObjectivePrefix + channelId.String()),

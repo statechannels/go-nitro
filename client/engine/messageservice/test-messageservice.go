@@ -10,7 +10,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// TestMessageService is an implementaion of the MessageService interface
+// TestMessageService is an implementation of the MessageService interface
 // for use in multi-engine test environments.
 //
 // It allows for individual nitro-clients / engines to:
@@ -22,9 +22,13 @@ type TestMessageService struct {
 	address types.Address
 
 	// connection to Engine:
-	in       chan protocols.Message // for recieving messages from engine
 	out      chan protocols.Message // for sending message to engine
 	maxDelay time.Duration          // the max delay for messages
+
+	// connection with Peers:
+	fromPeers chan []byte // for receiving serialized messages from peers
+
+	broker Broker
 }
 
 // A Broker manages a mapping from identifying address to a TestMessageService,
@@ -47,13 +51,15 @@ func NewBroker() Broker {
 // Messages will be handled with a random delay between 0 and maxDelay
 func NewTestMessageService(address types.Address, broker Broker, maxDelay time.Duration) TestMessageService {
 	tms := TestMessageService{
-		address:  address,
-		in:       make(chan protocols.Message, 5),
-		out:      make(chan protocols.Message, 5),
-		maxDelay: maxDelay,
+		address:   address,
+		out:       make(chan protocols.Message, 5),
+		maxDelay:  maxDelay,
+		fromPeers: make(chan []byte, 5),
+		broker:    broker,
 	}
 
 	tms.connect(broker)
+	go tms.routeFromPeers()
 	return tms
 }
 
@@ -61,20 +67,15 @@ func (t TestMessageService) Out() <-chan protocols.Message {
 	return t.out
 }
 
-func (t TestMessageService) In() chan<- protocols.Message {
-	return t.in
-}
-
 // dispatchMessage is responsible for dispatching a message to the appropriate peer message service.
 // If there is a mean delay it will wait a random amount of time(based on meanDelay) before sending the message.
-// It serializes and deserializes a message to mimic a real message service.
-func (t TestMessageService) dispatchMessage(message protocols.Message, b Broker) {
+func (t TestMessageService) dispatchMessage(message protocols.Message) {
 	if t.maxDelay > 0 {
 		randomDelay := time.Duration(rand.Int63n(t.maxDelay.Nanoseconds()))
 		time.Sleep(randomDelay)
 	}
 
-	peerChan, ok := b.services[message.To]
+	peer, ok := t.broker.services[message.To]
 	if ok {
 		// To mimic a proper message service, we serialize and then
 		// deserialize the message
@@ -83,28 +84,32 @@ func (t TestMessageService) dispatchMessage(message protocols.Message, b Broker)
 		if err != nil {
 			panic(`could not serialize message`)
 		}
-		deserializedMsg, err := protocols.DeserializeMessage(serializedMsg)
-		if err != nil {
-			panic(`could not deserialize message`)
-		}
-		peerChan.out <- deserializedMsg
+		peer.fromPeers <- []byte(serializedMsg)
 	} else {
 		panic(fmt.Sprintf("client %v has no connection to client %v",
 			t.address, message.To))
 	}
 }
 
-// connect creates a gochan for message service to send messages to the given peer.
-func (t TestMessageService) connect(b Broker) {
-	go func() {
-		for message := range t.in {
+// connect registers the message service with the broker
+func (tms TestMessageService) connect(b Broker) {
+	b.services[tms.address] = tms
+}
 
-			go t.dispatchMessage(message, b)
+// Send dispatches messages
+func (tms TestMessageService) Send(msg protocols.Message) {
+	tms.dispatchMessage(msg)
+}
+
+// routeFromPeers listens for messages from peers, deserializes them and feeds them to the engine
+func (tms TestMessageService) routeFromPeers() {
+	for message := range tms.fromPeers {
+		msg, err := protocols.DeserializeMessage(string(message))
+		if err != nil {
+			panic(fmt.Errorf("could not deserialize message :%w", err))
 		}
-
-	}()
-
-	b.services[t.address] = t
+		tms.out <- msg
+	}
 }
 
 // ┌──────────┐toMsg       in┌───────────┐
@@ -112,17 +117,16 @@ func (t TestMessageService) connect(b Broker) {
 // │  Engine  │              │  Message  │
 // │          │fromMsg    out│  Service  │
 // │    A     │  ◄───────────┤    A      │
-// └──────────┘              └────┬──────┘
-//                                │toPeers[B]
+// └──────────┘              └───────────┘
 //                                │
 //                                │
-//                     ┌──────────┘
-//                     │
-//                     │
-//                     │
-// ┌──────────┐toMsg   │   in┌───────────┐
-// │          │  ──────┼────►|           │
-// │  Engine  │        │     │  Message  │
-// │          │fromMsg │  out│  Service  │
-// │    B     │  ◄─────┴─────┤    B      │
+//                                │
+//                                │
+//                                │
+//                                v fromPeers
+// ┌──────────┐toMsg       in┌───────────┐
+// │          │  ───────────►|           │
+// │  Engine  │              │  Message  │
+// │          │fromMsg    out│  Service  │
+// │    B     │  ◄───────────┤    B      │
 // └──────────┘              └───────────┘

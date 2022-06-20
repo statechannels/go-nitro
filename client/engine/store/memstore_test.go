@@ -7,7 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
-	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	cc "github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -27,22 +26,22 @@ func compareObjectives(a, b protocols.Objective) string {
 		channel.Channel{},
 		big.Int{},
 		state.SignedState{},
-		consensus_channel.ConsensusChannel{},
-		consensus_channel.Vars{},
-		consensus_channel.LedgerOutcome{},
-		consensus_channel.Balance{},
+		cc.ConsensusChannel{},
+		cc.Vars{},
+		cc.LedgerOutcome{},
+		cc.Balance{},
 	))
 }
 
-func TestNewMockStore(t *testing.T) {
+func TestNewMemStore(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
-	store.NewMockStore(sk)
+	store.NewMemStore(sk)
 }
 
 func TestSetGetObjective(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
-	ms := store.NewMockStore(sk)
+	ms := store.NewMemStore(sk)
 
 	id := protocols.ObjectiveId("404")
 	got, err := ms.GetObjectiveById(id)
@@ -82,7 +81,7 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
-	ms := store.NewMockStore(sk)
+	ms := store.NewMemStore(sk)
 
 	dfo := td.Objectives.Directfund.GenericDFO()
 
@@ -91,7 +90,7 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 		t.Errorf("error setting objective %v: %s", dfo, err.Error())
 	}
 
-	got, ok := ms.GetObjectiveByChannelId(dfo.C.Id)
+	_, ok := ms.GetObjectiveByChannelId(dfo.C.Id)
 	if ok {
 		t.Error("when an unapproved objective is stored, the objective should not own the channel")
 	}
@@ -101,7 +100,7 @@ func TestGetObjectiveByChannelId(t *testing.T) {
 	if err := ms.SetObjective(&dfo); err != nil {
 		t.Errorf("error setting objective %v: %s", dfo, err.Error())
 	}
-	got, ok = ms.GetObjectiveByChannelId(dfo.C.Id)
+	got, ok := ms.GetObjectiveByChannelId(dfo.C.Id)
 
 	if !ok {
 		t.Errorf("expected to find the inserted objective, but didn't")
@@ -119,7 +118,7 @@ func TestGetChannelSecretKey(t *testing.T) {
 	sk := common.Hex2Bytes("caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634")
 	pk := common.HexToAddress("0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD")
 
-	ms := store.NewMockStore(sk)
+	ms := store.NewMemStore(sk)
 	key := ms.GetChannelSecretKey()
 
 	msg := []byte("sign this")
@@ -135,16 +134,16 @@ func TestGetChannelSecretKey(t *testing.T) {
 func TestConsensusChannelStore(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
-	ms := store.NewMockStore(sk)
+	ms := store.NewMemStore(sk)
 
-	got, ok := ms.GetConsensusChannel(ta.Alice.Address)
+	got, ok := ms.GetConsensusChannel(ta.Alice.Address())
 	if ok {
 		t.Fatalf("expected not to find the a consensus channel, but found %v", got)
 	}
 
 	fp := td.Objectives.Directfund.GenericDFO().C.FixedPart // TODO replace with testdata not nested under GenericDFO
-	fp.Participants[0] = ta.Alice.Address
-	fp.Participants[1] = ta.Bob.Address
+	fp.Participants[0] = ta.Alice.Address()
+	fp.Participants[1] = ta.Bob.Address()
 	asset := types.Address{}
 	left := cc.NewBalance(ta.Alice.Destination(), big.NewInt(6))
 	right := cc.NewBalance(ta.Bob.Destination(), big.NewInt(4))
@@ -152,12 +151,12 @@ func TestConsensusChannelStore(t *testing.T) {
 	existingGuarantee := cc.NewGuarantee(big.NewInt(1), types.Destination{1}, left.AsAllocation().Destination, right.AsAllocation().Destination)
 	outcome := cc.NewLedgerOutcome(asset, left, right, []cc.Guarantee{existingGuarantee})
 
-	initialVars := consensus_channel.Vars{Outcome: *outcome, TurnNum: 0}
+	initialVars := cc.Vars{Outcome: *outcome, TurnNum: 0}
 
 	aliceSig, _ := initialVars.AsState(fp).Sign(ta.Alice.PrivateKey)
 	bobsSig, _ := initialVars.AsState(fp).Sign(ta.Bob.PrivateKey)
 
-	leader, err := consensus_channel.NewLeaderChannel(
+	leader, err := cc.NewLeaderChannel(
 		fp,
 		0,
 		*outcome,
@@ -169,7 +168,7 @@ func TestConsensusChannelStore(t *testing.T) {
 
 	// Generate a new proposal so we test that the proposal queue is being fetched properly
 	proposedGuarantee := cc.NewGuarantee(big.NewInt(1), types.Destination{2}, left.AsAllocation().Destination, right.AsAllocation().Destination)
-	proposal := cc.NewAddProposal(types.Destination{3}, 2, proposedGuarantee, big.NewInt(1))
+	proposal := cc.NewAddProposal(leader.Id, proposedGuarantee, big.NewInt(1))
 	_, err = leader.Propose(proposal, ta.Alice.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
@@ -195,4 +194,20 @@ func TestConsensusChannelStore(t *testing.T) {
 	if diff := cmp.Diff(*got, want, cmp.AllowUnexported(cc.ConsensusChannel{}, big.Int{}, cc.LedgerOutcome{}, cc.Balance{}, cc.Guarantee{}, cc.Add{}, cc.Proposal{}, cc.Remove{})); diff != "" {
 		t.Fatalf("fetched result different than expected %s", diff)
 	}
+}
+
+func TestGetChannelsByParticipant(t *testing.T) {
+	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
+
+	ms := store.NewMemStore(sk)
+	c := td.Objectives.Directfund.GenericDFO().C
+	want := []*channel.Channel{c}
+	_ = ms.SetChannel(c)
+
+	got := ms.GetChannelsByParticipant(c.Participants[0])
+
+	if diff := cmp.Diff(got, want, cmp.AllowUnexported(channel.Channel{}, big.Int{}, state.SignedState{})); diff != "" {
+		t.Fatalf("fetched result different than expected %s", diff)
+	}
+
 }

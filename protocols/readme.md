@@ -9,9 +9,9 @@ The following table shows some example objectives and their implemetation status
 | Objective type                             | Implemented |
 | ------------------------------------------ | ----------- |
 | `direct-fund`                              | x           |
-| `direct-defund`                            |             |
+| `direct-defund`                            | x           |
 | [`virtual-fund`](./virtual-fund/readme.md) | x           |
-| `virtual-defund`                           |             |
+| `virtual-defund`                           | x           |
 | `challenge`                                |             |
 
 The set of objectives comprises the functional core of a go-nitro client. They expose only _pure_ functions -- but otherwise take on as much responsibility as possible, leaving only a small amount of responsibility to an imperative shell.

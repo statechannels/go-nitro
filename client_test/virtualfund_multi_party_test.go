@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -13,11 +12,12 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// TestMultiPartyVirtualFundIntegration tests the scenario where Alice creates virtual channels with Bob and Brian using Irene as the intermediary.
-func TestMultiPartyVirtualFundIntegration(t *testing.T) {
-	t.Skip()
-	logDestination := &bytes.Buffer{}
-	t.Cleanup(flushToFileCleanupFn(logDestination, "virtualfund_multiparty_client_test.log"))
+// TestVirtualFundMultiParty tests the scenario where Alice creates virtual channels with Bob and Brian using Irene as the intermediary.
+func TestVirtualFundMultiParty(t *testing.T) {
+
+	logFile := "test_virtual_fund_multi_party.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
 	broker := messageservice.NewBroker()
@@ -31,12 +31,11 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 	directlyFundALedgerChannel(t, clientIrene, clientBob)
 	directlyFundALedgerChannel(t, clientIrene, clientBrian)
 	withBobRequest := virtualfund.ObjectiveRequest{
-		MyAddress:    alice.Address,
-		CounterParty: bob.Address,
-		Intermediary: irene.Address,
+		CounterParty: bob.Address(),
+		Intermediary: irene.Address(),
 		Outcome: td.Outcomes.Create(
-			alice.Address,
-			bob.Address,
+			alice.Address(),
+			bob.Address(),
 			1,
 			1,
 		),
@@ -46,12 +45,11 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 		Nonce:             rand.Int63(),
 	}
 	withBrianRequest := virtualfund.ObjectiveRequest{
-		MyAddress:    alice.Address,
-		CounterParty: brian.Address,
-		Intermediary: irene.Address,
+		CounterParty: brian.Address(),
+		Intermediary: irene.Address(),
 		Outcome: td.Outcomes.Create(
-			alice.Address,
-			brian.Address,
+			alice.Address(),
+			brian.Address(),
 			1,
 			1,
 		),
@@ -60,8 +58,8 @@ func TestMultiPartyVirtualFundIntegration(t *testing.T) {
 		ChallengeDuration: big.NewInt(0),
 		Nonce:             rand.Int63(),
 	}
-	id := clientAlice.CreateVirtualChannel(withBobRequest)
-	id2 := clientAlice.CreateVirtualChannel(withBrianRequest)
+	id := clientAlice.CreateVirtualChannel(withBobRequest).Id
+	id2 := clientAlice.CreateVirtualChannel(withBrianRequest).Id
 
 	waitTimeForCompletedObjectiveIds(t, &clientBob, defaultTimeout, id)
 	waitTimeForCompletedObjectiveIds(t, &clientBrian, defaultTimeout, id2)

@@ -13,7 +13,6 @@ import (
 // making it suitable for serialization
 // embedded structs are moved to name fields for easier serialization
 type jsonAdd struct {
-	TurnNum     uint64
 	Guarantee   Guarantee
 	LeftDeposit *big.Int
 }
@@ -21,7 +20,7 @@ type jsonAdd struct {
 // MarshalJSON returns a JSON representation of the Add
 func (a Add) MarshalJSON() ([]byte, error) {
 	jsonA := jsonAdd{
-		a.turnNum, a.Guarantee, a.LeftDeposit,
+		a.Guarantee, a.LeftDeposit,
 	}
 	return json.Marshal(jsonA)
 }
@@ -35,9 +34,38 @@ func (a *Add) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("error unmarshaling guarantee data: %w", err)
 	}
 
-	a.turnNum = jsonA.TurnNum
 	a.Guarantee = jsonA.Guarantee
 	a.LeftDeposit = jsonA.LeftDeposit
+
+	return nil
+}
+
+// jsonRemove replaces Remove's private fields with public ones,
+// making it suitable for serialization
+// embedded structs are moved to name fields for easier serialization
+type jsonRemove struct {
+	Target     types.Destination
+	LeftAmount *big.Int
+}
+
+// MarshalJSON returns a JSON representation of the Remove
+func (r Remove) MarshalJSON() ([]byte, error) {
+	jsonR := jsonRemove(r)
+
+	return json.Marshal(jsonR)
+}
+
+// UnmarshalJSON populates the receiver with the
+// json-encoded data
+func (r *Remove) UnmarshalJSON(data []byte) error {
+	var jsonR jsonRemove
+	err := json.Unmarshal(data, &jsonR)
+	if err != nil {
+		return fmt.Errorf("error unmarshaling remove data: %w", err)
+	}
+
+	r.Target = jsonR.Target
+	r.LeftAmount = jsonR.LeftAmount
 
 	return nil
 }
@@ -45,9 +73,9 @@ func (a *Add) UnmarshalJSON(data []byte) error {
 // jsonProposal replaces Proposal's private fields with public ones,
 // making it suitable for serialization
 type jsonProposal struct {
-	ChannelID types.Destination
-	ToAdd     Add
-	ToRemove  Remove
+	LedgerID types.Destination
+	ToAdd    Add
+	ToRemove Remove
 }
 
 // MarshalJSON returns a JSON representation of the Proposal
@@ -66,7 +94,7 @@ func (p *Proposal) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("error unmarshaling guarantee data: %w", err)
 	}
 
-	p.ChannelID = jsonP.ChannelID
+	p.LedgerID = jsonP.LedgerID
 	p.ToAdd = jsonP.ToAdd
 	p.ToRemove = jsonP.ToRemove
 
@@ -141,8 +169,8 @@ func (g *Guarantee) UnmarshalJSON(data []byte) error {
 // making it suitable for serialization
 type jsonLedgerOutcome struct {
 	AssetAddress types.Address // Address of the asset type
-	Left         Balance       // Balance of participants[0]
-	Right        Balance       // Balance of participants[1]
+	Leader       Balance       // Balance of participants[0]
+	Follower     Balance       // Balance of participants[1]
 	Guarantees   map[types.Destination]Guarantee
 }
 
@@ -150,8 +178,8 @@ type jsonLedgerOutcome struct {
 func (l LedgerOutcome) MarshalJSON() ([]byte, error) {
 	jsonLo := jsonLedgerOutcome{
 		AssetAddress: l.assetAddress,
-		Left:         l.left,
-		Right:        l.right,
+		Leader:       l.leader,
+		Follower:     l.follower,
 		Guarantees:   l.guarantees,
 	}
 	return json.Marshal(jsonLo)
@@ -167,8 +195,8 @@ func (l *LedgerOutcome) UnmarshalJSON(data []byte) error {
 	}
 
 	l.assetAddress = jsonLo.AssetAddress
-	l.left = jsonLo.Left
-	l.right = jsonLo.Right
+	l.leader = jsonLo.Leader
+	l.follower = jsonLo.Follower
 	l.guarantees = jsonLo.Guarantees
 
 	return nil
@@ -177,21 +205,23 @@ func (l *LedgerOutcome) UnmarshalJSON(data []byte) error {
 // jsonConsensusChannel replaces ConsensusChannel's private fields with public ones,
 // making it suitable for serialization
 type jsonConsensusChannel struct {
-	Id            types.Destination
-	MyIndex       ledgerIndex
-	FP            state.FixedPart
-	Current       SignedVars
-	ProposalQueue []SignedProposal
+	Id             types.Destination
+	OnChainFunding types.Funds
+	MyIndex        ledgerIndex
+	FP             state.FixedPart
+	Current        SignedVars
+	ProposalQueue  []SignedProposal
 }
 
 // MarshalJSON returns a JSON representation of the ConsensusChannel
 func (c ConsensusChannel) MarshalJSON() ([]byte, error) {
 	jsonCh := jsonConsensusChannel{
-		MyIndex:       c.MyIndex,
-		FP:            c.fp,
-		Id:            c.Id,
-		Current:       c.current,
-		ProposalQueue: c.proposalQueue,
+		MyIndex:        c.MyIndex,
+		FP:             c.fp,
+		Id:             c.Id,
+		OnChainFunding: c.OnChainFunding,
+		Current:        c.current,
+		ProposalQueue:  c.proposalQueue,
 	}
 	return json.Marshal(jsonCh)
 }
@@ -206,6 +236,7 @@ func (c *ConsensusChannel) UnmarshalJSON(data []byte) error {
 	}
 
 	c.Id = jsonCh.Id
+	c.OnChainFunding = jsonCh.OnChainFunding
 	c.MyIndex = jsonCh.MyIndex
 	c.fp = jsonCh.FP
 	c.current = jsonCh.Current

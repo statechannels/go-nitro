@@ -3,6 +3,7 @@ package client // import "github.com/statechannels/go-nitro/client"
 
 import (
 	"io"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -11,6 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -23,10 +25,10 @@ type Client struct {
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
-func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer) Client {
+func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker engine.PolicyMaker) Client {
 	c := Client{}
 	c.Address = store.GetAddress()
-	c.engine = engine.New(messageService, chainservice, store, logDestination)
+	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 
 	// Start the engine in a go routine
@@ -61,7 +63,7 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
-func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequest) protocols.ObjectiveId {
+func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequest) virtualfund.ObjectiveResponse {
 
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objectiveRequest,
@@ -69,7 +71,24 @@ func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequ
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objectiveRequest.Id()
+	return objectiveRequest.Response(*c.Address)
+}
+
+// CloseVirtualChannel attempts to close and defund the given virtually funded channel.
+func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big.Int) protocols.ObjectiveId {
+
+	objectiveRequest := virtualdefund.ObjectiveRequest{
+		ChannelId: channelId,
+		PaidToBob: paidToBob,
+	}
+	apiEvent := engine.APIEvent{
+		ObjectiveToSpawn: objectiveRequest,
+	}
+	// Send the event to the engine
+	c.engine.FromAPI <- apiEvent
+
+	return objectiveRequest.Id(*c.Address)
+
 }
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty
@@ -81,7 +100,7 @@ func (c *Client) CreateDirectChannel(objectiveRequest directfund.ObjectiveReques
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objectiveRequest.Response()
+	return objectiveRequest.Response(*c.Address)
 
 }
 
@@ -97,6 +116,6 @@ func (c *Client) CloseDirectChannel(channelId types.Destination) protocols.Objec
 	// Send the event to the engine
 	c.engine.FromAPI <- apiEvent
 
-	return objectiveRequest.Id()
+	return objectiveRequest.Id(*c.Address)
 
 }
