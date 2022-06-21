@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -228,10 +229,18 @@ func (o *Objective) Approve() protocols.Objective {
 }
 
 // Approve returns a rejected copy of the objective.
-func (o *Objective) Reject() protocols.Objective {
+func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
-	return &updated
+	peers := []common.Address{}
+	for i, peer := range(o.VFixed.Participants) {
+		if i != int(o.MyRole) {
+			peers = append(peers, peer)
+		}
+	}
+	messages := protocols.CreateRejectionNoticeMessage(o.Id(), peers...)
+
+	return &updated, protocols.SideEffects{MessagesToSend: messages}
 }
 
 // OwnsChannel returns the channel that the objective is funding.

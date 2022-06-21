@@ -191,7 +191,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 					e.store.DestroyConsensusChannel(ddfo.C.Id)
 				}
 			} else {
-				objective = objective.Reject()
+				objective, _ := objective.Reject()
 				err = e.store.SetObjective(objective)
 				if err != nil {
 					return ObjectiveChangeEvent{}, err
@@ -199,6 +199,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 				allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
 				// TODO: send rejection notice
+				// eg. e.executeSideEffects(sideEffects)
 				return allCompleted, nil
 			}
 		}

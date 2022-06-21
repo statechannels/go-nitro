@@ -327,8 +327,12 @@ func TestApproveReject(t *testing.T) {
 	if approved.GetStatus() != protocols.Approved {
 		t.Errorf("Expected approved status, got %v", approved.GetStatus())
 	}
-	rejected := o.Reject()
+	rejected, sideEffects := o.Reject()
 	if rejected.GetStatus() != protocols.Rejected {
 		t.Errorf("Expected rejceted status, got %v", approved.GetStatus())
 	}
+	if len(sideEffects.MessagesToSend) != 1 {
+		t.Errorf("Expected to send one message")
+	}
+
 }
