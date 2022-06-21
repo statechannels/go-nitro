@@ -18,8 +18,8 @@ contract ConsensusApp is IForceMoveApp {
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
     ) external pure override returns (VariablePart memory) {
-        require(signedVariableParts.length == 1, "|signedVariableParts|!=1");
-        require(NitroUtils.getSignersAmount(signedVariableParts[0].signedBy) == fixedPart.participants.length, "require everyone to sign");
+        require(signedVariableParts.length == 1, '|signedVariableParts|!=1');
+        require(NitroUtils.getSignersAmount(signedVariableParts[0].signedBy) == fixedPart.participants.length, 'require everyone to sign');
         return signedVariableParts[0].variablePart;
     }
 }
