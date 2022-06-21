@@ -88,6 +88,11 @@ type Objective interface {
 // ObjectiveId is a unique identifier for an Objective.
 type ObjectiveId string
 
+// SortInfo needs to be implemented so that RejectionNotices can be received.
+func (id ObjectiveId) SortInfo() (channelID types.Destination, turnNum uint64) {
+	return
+}
+
 type ObjectiveStatus int8
 
 const (

@@ -14,8 +14,9 @@ import (
 type PayloadType string
 
 const (
-	SignedStatePayload    PayloadType = "SignedStatePayload"
-	SignedProposalPayload PayloadType = "SignedProposalPayload"
+	SignedStatePayload     PayloadType = "SignedStatePayload"
+	SignedProposalPayload  PayloadType = "SignedProposalPayload"
+	RejectionNoticePayload PayloadType = "RejectionNoticePayload"
 )
 
 // Message is an object to be sent across the wire. It can contain a proposal and signed states, and is addressed to a counterparty.
@@ -32,6 +33,7 @@ type messagePayload struct {
 	ObjectiveId    ObjectiveId
 	SignedState    state.SignedState
 	SignedProposal consensus_channel.SignedProposal
+	Rejected       bool
 }
 
 // hasState returns true if the payload contains a signed state.
@@ -44,12 +46,19 @@ func (p messagePayload) hasProposal() bool {
 	return p.SignedProposal.Proposal != consensus_channel.Proposal{}
 }
 
+// hasRejection returns true if the payload indicates that the objective is rejected
+func (p messagePayload) hasRejection() bool {
+	return p.Rejected
+}
+
 // Type returns the type of the payload, either a SignedProposal or SignedState.
 func (p messagePayload) Type() PayloadType {
 	if p.hasProposal() {
 		return SignedProposalPayload
-	} else {
+	} else if p.hasState() {
 		return SignedStatePayload
+	} else {
+		return RejectionNoticePayload
 	}
 }
 
@@ -176,7 +185,7 @@ func (se *SideEffects) Merge(other SideEffects) {
 // PayloadValue is a type constraint that specifies a payload is either a SignedProposal or SignedState.
 // It includes functions to get basic info to allow sorting.
 type PayloadValue interface {
-	state.SignedState | consensus_channel.SignedProposal
+	state.SignedState | consensus_channel.SignedProposal | ObjectiveId
 	SortInfo() (channelID types.Destination, turnNum uint64)
 }
 
@@ -270,6 +279,23 @@ func CreateSignedProposalMessage(recipient types.Address, proposals ...consensus
 		To:       recipient,
 		payloads: payloads,
 	}
+}
+
+// CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
+// It contains the provided signed proposals and any proposals in the proposal queue.
+func CreateRejectionNoticeMessage(oId ObjectiveId, recipients ...types.Address) []Message {
+	messages := make([]Message, len(recipients))
+	for i, recipient := range recipients {
+		payload := messagePayload{
+			ObjectiveId: oId,
+			Rejected:    true,
+		}
+		payloads := []messagePayload{payload}
+		messages[i] = Message{To: recipient, payloads: payloads}
+
+	}
+
+	return messages
 }
 
 // getProposalObjectiveId returns the objectiveId for a proposal.
