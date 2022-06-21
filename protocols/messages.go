@@ -100,6 +100,20 @@ func (m Message) SignedProposals() []ObjectivePayload[consensus_channel.SignedPr
 	return signedProposals
 }
 
+// SignedProposals returns a slice of signed proposals with their objectiveId that were contained in the message.
+// The proposals are sorted by ledger id then turnNum.
+func (m Message) RejectedObjectives() []ObjectivePayload[ObjectiveId] {
+	rejectedObjectives := make([]ObjectivePayload[ObjectiveId], 0)
+	for _, p := range m.payloads {
+		if p.Type() == RejectionNoticePayload {
+			entry := ObjectivePayload[ObjectiveId]{p.ObjectiveId, p.ObjectiveId}
+			rejectedObjectives = append(rejectedObjectives, entry)
+		}
+	}
+
+	return rejectedObjectives
+}
+
 // Serialize serializes the message into a string.
 func (m Message) Serialize() (string, error) {
 	bytes, err := json.Marshal(jsonMessage{m.To, m.payloads})
@@ -121,6 +135,8 @@ func (p *messagePayload) MarshalJSON() ([]byte, error) {
 		m["SignedState"] = p.SignedState
 	case SignedProposalPayload:
 		m["SignedProposal"] = p.SignedProposal
+	case RejectionNoticePayload:
+		m["Rejected"] = p.Rejected
 	default:
 		return []byte{}, fmt.Errorf("unknown payload type")
 	}
@@ -142,6 +158,9 @@ func DeserializeMessage(s string) (Message, error) {
 			numPresent += 1
 		}
 		if p.hasState() {
+			numPresent += 1
+		}
+		if p.hasRejection() {
 			numPresent += 1
 		}
 		if numPresent != 1 {
@@ -227,6 +246,7 @@ type MessageSummary struct {
 	To        string
 	Proposals []ProposalSummary
 	States    []StateSummary
+	Rejected  []ObjectiveId
 }
 
 // SummarizeMessage returns a MessageSummary for the provided message.
@@ -246,8 +266,12 @@ func SummarizeMessage(m Message) MessageSummary {
 			TurnNum:     s.Payload.State().TurnNum,
 		}
 	}
+	rejectedObjectives := []ObjectiveId{}
+	for _, p := range m.RejectedObjectives() {
+		rejectedObjectives = append(rejectedObjectives, p.ObjectiveId)
+	}
 
-	return MessageSummary{To: m.To.String(), Proposals: proposals, States: states}
+	return MessageSummary{To: m.To.String(), Proposals: proposals, States: states, Rejected: rejectedObjectives}
 }
 
 // SummarizeProposal returns a ProposalSummary for the provided signed proposal.

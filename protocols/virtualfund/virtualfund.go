@@ -285,7 +285,7 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
 	participants := []common.Address{}
-	for i, peer := range(o.V.Participants) {
+	for i, peer := range o.V.Participants {
 		if i != int(o.MyRole) {
 			participants = append(participants, peer)
 		}
