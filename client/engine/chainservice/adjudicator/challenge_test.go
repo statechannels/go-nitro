@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	ConsensusApp "github.com/statechannels/go-nitro/client/engine/chainservice/consensusapp"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -46,31 +47,7 @@ var Actors actors = actors{
 
 var turnNum = uint64(0)
 
-var s = state.State{
-	ChainId: big.NewInt(1337),
-	Participants: []types.Address{
-		Actors.Alice.Address,
-		Actors.Bob.Address,
-	},
-	ChannelNonce:      big.NewInt(37140676580),
-	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
-	ChallengeDuration: big.NewInt(60),
-	AppData:           []byte{},
-	Outcome:           outcome.Exit{},
-	TurnNum:           turnNum,
-	IsFinal:           false,
-}
-
 func TestChallenge(t *testing.T) {
-
-	// Generate Signatures
-	aSig, _ := s.Sign(Actors.Alice.PrivateKey)
-	bSig, _ := s.Sign(Actors.Bob.PrivateKey)
-	challengerSig, err := SignChallengeMessage(s, Actors.Alice.PrivateKey)
-
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	// Setup transacting EOA
 	key, _ := crypto.GenerateKey()
@@ -94,6 +71,37 @@ func TestChallenge(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Deploy ConsensusApp
+	consensusAppAddress, _, _, err := ConsensusApp.DeployConsensusApp(auth, sim)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var s = state.State{
+		ChainId: big.NewInt(1337),
+		Participants: []types.Address{
+			Actors.Alice.Address,
+			Actors.Bob.Address,
+		},
+		ChannelNonce:      big.NewInt(37140676580),
+		AppDefinition:     consensusAppAddress,
+		ChallengeDuration: big.NewInt(60),
+		AppData:           []byte{},
+		Outcome:           outcome.Exit{},
+		TurnNum:           turnNum,
+		IsFinal:           false,
+	}
+
+	// Generate Signatures
+	aSig, _ := s.Sign(Actors.Alice.PrivateKey)
+	bSig, _ := s.Sign(Actors.Bob.PrivateKey)
+	challengerSig, err := SignChallengeMessage(s, Actors.Alice.PrivateKey)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Mine a block
 	sim.Commit()
 
@@ -111,6 +119,7 @@ func TestChallenge(t *testing.T) {
 		convertSignature(challengerSig),
 	)
 	if err != nil {
+		t.Log(tx)
 		t.Fatal(err)
 	}
 
