@@ -100,10 +100,14 @@ func TestChallenge(t *testing.T) {
 	// Fire off a Challenge tx
 	tx, err := na.Challenge(
 		auth,
-		IForceMoveFixedPart(s.FixedPart()),
-		[]IForceMoveAppVariablePart{convertVariablePart(s.VariablePart())},
-		[]IForceMoveSignature{convertSignature(aSig), convertSignature(bSig)},
-		[]uint8{0, 0},
+		INitroTypesFixedPart(s.FixedPart()),
+		[]INitroTypesSignedVariablePart{
+			{
+				convertVariablePart(s.VariablePart()),
+				[]INitroTypesSignature{convertSignature(aSig), convertSignature(bSig)},
+				big.NewInt(0b11),
+			},
+		},
 		convertSignature(challengerSig),
 	)
 	if err != nil {
