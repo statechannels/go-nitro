@@ -99,8 +99,7 @@ describe('latestSupportedState', () => {
     await expectRevert(() => consensusApp.latestSupportedState(fixedPart, [signedVariablePart]));
   });
 
-  it.skip('A single state signed by less than everyone is NOT considered supported, even if we claim it is signed by everyone', async () => {
-    // TODO unskip this test (it is critical)
+  it('A single state signed by less than everyone is NOT considered supported, even if we claim it is signed by everyone', async () => {
     expect.assertions(1);
 
     const signedVariablePart: SignedVariablePart = {
