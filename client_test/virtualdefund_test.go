@@ -5,16 +5,20 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -123,5 +127,69 @@ func checkIreneBobLedgerOutcome(t *testing.T, vId types.Destination, outcome con
 	expectedFollowerBalance := consensus_channel.NewBalance(bob.Destination(), big.NewInt(int64(ledgerChannelDeposit+totalPaidToBob)))
 	if diff := cmp.Diff(expectedFollowerBalance, outcome.Follower()); diff != "" {
 		t.Errorf("Unexpected follower balance: %s", diff)
+	}
+}
+
+func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
+
+	// Setup logging
+	logFile := "test_rejected_virtualdefund_fund.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
+
+	chain := chainservice.NewMockChain()
+	broker := messageservice.NewBroker()
+
+	meanMessageDelay := time.Duration(0)
+	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, meanMessageDelay)
+	var (
+		clientB client.Client
+		storeB  store.Store
+	)
+	{
+		messageservice := messageservice.NewTestMessageService(bob.Address(), broker, meanMessageDelay)
+		storeB = store.NewMemStore(bob.PrivateKey)
+		clientB = client.New(messageservice, chain, storeB, logDestination, &RejectingPolicyMaker{}, nil)
+	}
+	clientI, storeI := setupClient(irene.PrivateKey, chain, broker, logDestination, meanMessageDelay)
+
+	directlyFundALedgerChannel(t, clientA, clientI)
+	directlyFundALedgerChannel(t, clientB, clientI)
+
+	outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
+	request := virtualfund.ObjectiveRequest{
+		CounterParty:      bob.Address(),
+		Intermediary:      irene.Address(),
+		Outcome:           outcome,
+		AppDefinition:     types.Address{},
+		AppData:           types.Bytes{},
+		ChallengeDuration: big.NewInt(0),
+		Nonce:             rand.Int63(),
+	}
+	response := clientA.CreateVirtualChannel(request)
+
+	waitTimeForCompletedObjectiveIds(t, &clientA, time.Second, response.Id)
+	waitTimeForCompletedObjectiveIds(t, &clientB, time.Second, response.Id)
+	waitTimeForCompletedObjectiveIds(t, &clientI, time.Second, response.Id)
+
+	obj, _ := storeA.GetObjectiveById(response.Id)
+
+	if obj.GetStatus() != protocols.Rejected {
+		t.Error("expected objective to be rejected")
+		t.FailNow()
+	}
+
+	obj, _ = storeB.GetObjectiveById(response.Id)
+
+	if obj.GetStatus() != protocols.Rejected {
+		t.Error("expected objective to be rejected")
+		t.FailNow()
+	}
+
+	obj, _ = storeI.GetObjectiveById(response.Id)
+
+	if obj.GetStatus() != protocols.Rejected {
+		t.Error("expected objective to be rejected")
+		t.FailNow()
 	}
 }

@@ -206,6 +206,10 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
 			continue
 		}
+		if objective.GetStatus() == protocols.Rejected {
+			e.logger.Printf("Ignoring payload for rejected objective  %s", objective.Id())
+			continue
+		}
 
 		event := protocols.ObjectiveEvent{
 			ObjectiveId:    entry.ObjectiveId,

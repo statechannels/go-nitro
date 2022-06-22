@@ -93,8 +93,6 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 		t.Error("expected objective to be rejected")
 		t.FailNow()
 	}
-
-	t.Logf("%+v", response)
 }
 
 // TestDirectFund uses the geth simulated backend
