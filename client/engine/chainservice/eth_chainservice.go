@@ -20,8 +20,9 @@ var allocationUpdatedTopic = crypto.Keccak256Hash([]byte("AllocationUpdated(byte
 var concludedTopic = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
 var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
 
-type eventSource interface {
+type ethChain interface {
 	SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- ethTypes.Log) (ethereum.Subscription, error)
+	TransactionByHash(ctx context.Context, txHash common.Hash) (*ethTypes.Transaction, bool, error)
 }
 
 type EthChainService struct {
@@ -32,13 +33,13 @@ type EthChainService struct {
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewEthChainService(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, txSigner *bind.TransactOpts, es eventSource) *EthChainService {
+func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, txSigner *bind.TransactOpts) *EthChainService {
 	ecs := EthChainService{ChainServiceBase: newChainServiceBase()}
 	ecs.out = safesync.Map[chan Event]{}
 	ecs.na = na
 	ecs.txSigner = txSigner
 
-	go ecs.listenForLogEvents(na, naAddress, es)
+	go ecs.listenForLogEvents(na, naAddress, chain)
 
 	return &ecs
 }
@@ -86,12 +87,12 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) *ethT
 	return nil
 }
 
-func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, es eventSource) {
+func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, chain ethChain) {
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{naAddress},
 	}
 	logs := make(chan ethTypes.Log)
-	sub, err := es.SubscribeFilterLogs(context.Background(), query, logs)
+	sub, err := chain.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -123,8 +124,14 @@ func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudic
 					panic(err)
 				}
 
-				// TODO set Holdings based on chain event
-				event := AllocationUpdatedEvent{CommonEvent: CommonEvent{channelID: au.ChannelId, BlockNum: chainEvent.BlockNumber}, Holdings: types.Funds{}}
+				tx, pending, err := chain.TransactionByHash(context.Background(), chainEvent.TxHash)
+				if pending || err != nil {
+					panic("Expected transacion to be part of the chain")
+				}
+
+				assetAddress, amount := getChainHoldings(na, tx, au)
+				holdings := types.Funds{assetAddress: amount}
+				event := AllocationUpdatedEvent{CommonEvent: CommonEvent{channelID: au.ChannelId, BlockNum: chainEvent.BlockNumber}, Holdings: holdings}
 				ecs.broadcast(event)
 			case concludedTopic:
 				ce, err := na.ParseConcluded(chainEvent)

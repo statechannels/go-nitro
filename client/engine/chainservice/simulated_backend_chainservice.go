@@ -1,7 +1,6 @@
 package chainservice
 
 import (
-	"context"
 	"errors"
 	"math/big"
 
@@ -9,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	"github.com/statechannels/go-nitro/protocols"
@@ -17,23 +15,22 @@ import (
 
 var ErrUnableToAssignBigInt = errors.New("simulated_backend_chainservice: unable to assign BigInt")
 
-type transactionProcessor interface {
-	eventSource
+type simulatedChain interface {
+	ethChain
 	Commit()
-	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 }
 
 // SimulatedBackendChainService extends EthChainService to automatically mine a block for every transaction
 type SimulatedBackendChainService struct {
 	*EthChainService
-	sim transactionProcessor
+	sim simulatedChain
 }
 
 // NewSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewSimulatedBackendChainService(sim transactionProcessor, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address,
+func NewSimulatedBackendChainService(sim simulatedChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address,
 	txSigner *bind.TransactOpts) *SimulatedBackendChainService {
-	return &SimulatedBackendChainService{sim: sim, EthChainService: NewEthChainService(na, naAddress, txSigner, sim)}
+	return &SimulatedBackendChainService{sim: sim, EthChainService: NewEthChainService(sim, na, naAddress, txSigner)}
 }
 
 // SendTransaction sends the transaction and blocks until it has been mined.
