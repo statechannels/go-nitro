@@ -53,23 +53,26 @@ library ShortcuttingTurnTaking {
         uint256 roundRobinShift
     ) internal pure {
         require(signedVariablePart.sigs.length > 0, 'Insufficient signatures');
-        require(signedVariablePart.sigs.length == NitroUtils.getSignersAmount(signedVariablePart.signedBy), '|sigs| != |signedBy|');
+        require(signedVariablePart.sigs.length == NitroUtils.getClaimedSignersNum(signedVariablePart.signedBy), '|sigs| != |signedBy|');
 
         _requireAcceptableSigsOrder(signedVariablePart.signedBy, signedVariablePart.variablePart.turnNum, roundRobinShift, fixedPart.participants.length);
 
-        uint8[] memory signerIndices = NitroUtils.getSignerIndices(signedVariablePart.signedBy);
+        uint8[] memory signerIndices = NitroUtils.getClaimedSignersIndices(signedVariablePart.signedBy);
 
         for (uint256 i = 0; i < signerIndices.length; i++) {
-            _requireSignedBy(
-                NitroUtils.hashState(
-                    NitroUtils.getChannelId(fixedPart),
-                    signedVariablePart.variablePart.appData,
-                    signedVariablePart.variablePart.outcome,
-                    signedVariablePart.variablePart.turnNum,
-                    signedVariablePart.variablePart.isFinal
+            require(
+                NitroUtils.isSignedBy(
+                    NitroUtils.hashState(
+                        NitroUtils.getChannelId(fixedPart),
+                        signedVariablePart.variablePart.appData,
+                        signedVariablePart.variablePart.outcome,
+                        signedVariablePart.variablePart.turnNum,
+                        signedVariablePart.variablePart.isFinal
+                    ),
+                    signedVariablePart.sigs[i],
+                    fixedPart.participants[signerIndices[i]]
                 ),
-                signedVariablePart.sigs[i],
-                fixedPart.participants[signerIndices[i]]
+                'Invalid signer'
             );
         }
     }
@@ -88,7 +91,7 @@ library ShortcuttingTurnTaking {
         uint256 shift,
         uint256 nParticipants
     ) internal pure {
-        uint8[] memory signerIndices = NitroUtils.getSignerIndices(signedBy);
+        uint8[] memory signerIndices = NitroUtils.getClaimedSignersIndices(signedBy);
 
         for (uint256 i = 0; i < signerIndices.length; i++) {
             require(
@@ -109,22 +112,6 @@ library ShortcuttingTurnTaking {
         uint48 newTurnNum
     ) internal pure {
         require(prevTurnNum < newTurnNum, 'turnNum not increased');
-    }
-
-    /**
-     * @notice Require supplied stateHash is signed by signer.
-     * @dev Require supplied stateHash is signed by signer.
-     * @param stateHash State hash to check.
-     * @param sig Signed state signature.
-     * @param signer Address which must have signed the state.
-     */
-    function _requireSignedBy(
-        bytes32 stateHash,
-        INitroTypes.Signature memory sig,
-        address signer
-    ) internal pure {
-        address recovered = NitroUtils.recoverSigner(stateHash, sig);
-        require(signer == recovered, 'Invalid signer');
     }
 
     /**

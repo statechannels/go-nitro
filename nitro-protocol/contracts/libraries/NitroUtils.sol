@@ -10,12 +10,29 @@ library NitroUtils {
     // *****************
 
     /**
+     * @notice Require supplied stateHash is signed by signer.
+     * @dev Require supplied stateHash is signed by signer.
+     * @param stateHash State hash to check.
+     * @param sig Signed state signature.
+     * @param signer Address which must have signed the state.
+     * @return true if signer with sig has signed stateHash.
+     */
+    function isSignedBy(
+        bytes32 stateHash,
+        INitroTypes.Signature memory sig,
+        address signer
+    ) internal pure returns (bool) {
+        return signer == NitroUtils.recoverSigner(stateHash, sig);
+    }
+
+    /**
      * @notice Check if supplied participantIndex bit is set to 1 in signedBy bit mask.
      * @dev Check if supplied partitipationIndex bit is set to 1 in signedBy bit mask.
      * @param signedBy Bit mask field to check.
      * @param participantIndex Bit to check.
+     * @return true if supplied partitipationIndex bit is set to 1 in signedBy bit mask.
      */
-    function isSignedBy(uint256 signedBy, uint8 participantIndex) internal pure returns (bool) {
+    function isClaimedSignedBy(uint256 signedBy, uint8 participantIndex) internal pure returns (bool) {
         return ((signedBy >> participantIndex) % 2 == 1);
     }
 
@@ -24,8 +41,9 @@ library NitroUtils {
      * @dev Check if supplied participantIndex is the only bit set to 1 in signedBy bit mask.
      * @param signedBy Bit mask field to check.
      * @param participantIndex Bit to check.
+     * @return true if supplied partitipationIndex bit is the only bit set to 1 in signedBy bit mask.
      */
-    function isSignedOnlyBy(uint256 signedBy, uint8 participantIndex) internal pure returns (bool) {
+    function isClaimedSignedOnlyBy(uint256 signedBy, uint8 participantIndex) internal pure returns (bool) {
         return (signedBy == (2 ** participantIndex));
     }
 
@@ -53,7 +71,7 @@ library NitroUtils {
      * @param signedBy Bit mask field specifying which participants have signed the state.
      * @return amount of signers, which have signed the state.
      */
-    function getSignersAmount(uint256 signedBy) internal pure returns (uint8) {
+    function getClaimedSignersNum(uint256 signedBy) internal pure returns (uint8) {
         uint8 amount = 0;
 
         for (; signedBy > 0; amount++) {
@@ -69,8 +87,8 @@ library NitroUtils {
      * @param signedBy Bit mask field specifying which participants have signed the state.
      * @return signerIndices
      */
-    function getSignerIndices(uint256 signedBy) internal pure returns (uint8[] memory) {
-        uint8[] memory signerIndices = new uint8[](getSignersAmount(signedBy));
+    function getClaimedSignersIndices(uint256 signedBy) internal pure returns (uint8[] memory) {
+        uint8[] memory signerIndices = new uint8[](getClaimedSignersNum(signedBy));
         uint8 signerNum = 0;
         uint8 acceptedSigners = 0;
 

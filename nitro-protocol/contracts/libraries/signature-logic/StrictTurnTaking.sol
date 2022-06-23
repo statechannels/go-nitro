@@ -22,7 +22,7 @@ library StrictTurnTaking {
         uint48 turnNum = signedVariableParts[0].variablePart.turnNum;
 
         for (uint i = 0; i < signedVariableParts.length; i++) {
-            requireSignedByMover(fixedPart, signedVariableParts[i]);
+            isSignedByMover(fixedPart, signedVariableParts[i]);
             requireHasTurnNum(signedVariableParts[i].variablePart, turnNum);
             turnNum++;
         }
@@ -34,26 +34,29 @@ library StrictTurnTaking {
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param signedVariablePart A struct describing dynamic properties of the state channel, that must be signed by moving participant.
      */
-    function requireSignedByMover(
+    function isSignedByMover(
         INitroTypes.FixedPart memory fixedPart,
         INitroTypes.SignedVariablePart memory signedVariablePart
     ) internal pure {
         require(signedVariablePart.sigs.length == 1, 'sigs.length != 1');
         require(
-            NitroUtils.isSignedOnlyBy(signedVariablePart.signedBy, uint8(signedVariablePart.variablePart.turnNum % fixedPart.participants.length)),
+            NitroUtils.isClaimedSignedOnlyBy(signedVariablePart.signedBy, uint8(signedVariablePart.variablePart.turnNum % fixedPart.participants.length)),
             'Invalid signedBy'
         );
 
-        _requireSignedBy(
-            NitroUtils.hashState(
-                NitroUtils.getChannelId(fixedPart),
-                signedVariablePart.variablePart.appData,
-                signedVariablePart.variablePart.outcome,
-                signedVariablePart.variablePart.turnNum,
-                signedVariablePart.variablePart.isFinal
+        require(
+            NitroUtils.isSignedBy(
+                NitroUtils.hashState(
+                    NitroUtils.getChannelId(fixedPart),
+                    signedVariablePart.variablePart.appData,
+                    signedVariablePart.variablePart.outcome,
+                    signedVariablePart.variablePart.turnNum,
+                    signedVariablePart.variablePart.isFinal
+                ),
+                signedVariablePart.sigs[0],
+                _moverAddress(fixedPart.participants, signedVariablePart.variablePart.turnNum)
             ),
-            signedVariablePart.sigs[0],
-            _moverAddress(fixedPart.participants, signedVariablePart.variablePart.turnNum)
+            'Invalid signer'
         );
     }
 
@@ -85,22 +88,6 @@ library StrictTurnTaking {
         uint48 turnNum
     ) internal pure returns (address) {
         return participants[turnNum % participants.length];
-    }
-
-    /**
-     * @notice Require supplied stateHash is signed by signer.
-     * @dev Require supplied stateHash is signed by signer.
-     * @param stateHash State hash to check.
-     * @param sig Signed state signature.
-     * @param signer Address which must have signed the state.
-     */
-    function _requireSignedBy(
-        bytes32 stateHash,
-        INitroTypes.Signature memory sig,
-        address signer
-    ) internal pure {
-        address recovered = NitroUtils.recoverSigner(stateHash, sig);
-        require(signer == recovered, 'Invalid signer');
     }
 
     /**
