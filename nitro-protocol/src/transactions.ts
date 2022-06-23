@@ -52,6 +52,18 @@ export function createCheckpointTransaction(
 }
 
 /**
+ * Marshalls the supplied signedStates into an ethereum transaction for the conclude method. Automatically computes signedVariableParts, etc.
+ * @param conclusionProof an array of signed states
+ * @returns An ethers TransactionRequest. This can be launched with `await signer.sendTransaction({to: adjudicator.address, ...txRequest}`)
+ */
+export function createConcludeTransaction(
+  conclusionProof: SignedState[]
+): providers.TransactionRequest {
+  const {states, signatures, whoSignedWhat} = createSignatureArguments(conclusionProof);
+  return forceMoveTrans.createConcludeTransaction(states, signatures, whoSignedWhat);
+}
+
+/**
  * Marshalls the supplied signedStates into an ethereum transaction for the conclude and transfer all assets method. Automatically computes signedVariableParts, etc.
  * @param signedStates an array of signed states
  * @returns An ethers TransactionRequest. This can be launched with `await signer.sendTransaction({to: adjudicator.address, ...txRequest}`)
@@ -74,18 +86,6 @@ export function createConcludeAndTransferAllAssetsTransaction(
  */
 export function createTransferAllAssetsTransaction(state: State): providers.TransactionRequest {
   return nitroAdjudicatorTrans.createTransferAllAssetsTransaction(state);
-}
-
-/**
- * Marshalls the supplied signedStates into an ethereum transaction for the conclude method. Automatically computes signedVariableParts, etc.
- * @param conclusionProof an array of signed states
- * @returns An ethers TransactionRequest. This can be launched with `await signer.sendTransaction({to: adjudicator.address, ...txRequest}`)
- */
-export function createConcludeTransaction(
-  conclusionProof: SignedState[]
-): providers.TransactionRequest {
-  const {states, signatures, whoSignedWhat} = createSignatureArguments(conclusionProof);
-  return forceMoveTrans.createConcludeTransaction(states, signatures, whoSignedWhat);
 }
 
 /**
