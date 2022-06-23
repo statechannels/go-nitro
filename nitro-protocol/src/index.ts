@@ -147,10 +147,6 @@ export {State, VariablePart, getVariablePart, getFixedPart, hashState} from './c
 
 export * from './signatures';
 export * from './transactions';
-export {
-  createERC20DepositTransaction,
-  createETHDepositTransaction,
-} from './contract/transaction-creators/multi-asset-holder';
 
 // types
 export {Uint256, Bytes32} from './contract/types';
