@@ -28,7 +28,7 @@ func getChainHolding(na *NitroAdjudicator.NitroAdjudicator, tx *types.Transactio
 func assetAddressForIndex(na *NitroAdjudicator.NitroAdjudicator, tx *types.Transaction, index *big.Int) (common.Address, error) {
 	abi, err := NitroAdjudicator.NitroAdjudicatorMetaData.GetAbi()
 	if err != nil {
-		return common.Address{}, errors.New("Unable to get ABI for a bound contract")
+		return common.Address{}, errors.New("unable to get ABI for a bound contract")
 	}
 	params, err := decodeTxParams(abi, tx.Data())
 	if err != nil {
