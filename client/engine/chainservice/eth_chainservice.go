@@ -129,7 +129,10 @@ func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudic
 					panic("Expected transacion to be part of the chain")
 				}
 
-				assetAddress, amount := getChainHoldings(na, tx, au)
+				assetAddress, amount, err := getChainHolding(na, tx, au)
+				if err != nil {
+					panic(err)
+				}
 				holdings := types.Funds{assetAddress: amount}
 				event := AllocationUpdatedEvent{CommonEvent: CommonEvent{channelID: au.ChannelId, BlockNum: chainEvent.BlockNumber}, Holdings: holdings}
 				ecs.broadcast(event)
