@@ -31,6 +31,7 @@ type DepositedEvent struct {
 }
 
 // AllocationUpdated is an internal representation of the AllocatonUpdated blockchain event
+// Holdings is a map of all assets that were updated by a transaction, NOT a map of all assets for a channel
 type AllocationUpdatedEvent struct {
 	CommonEvent
 	Holdings types.Funds // indexed by asset
