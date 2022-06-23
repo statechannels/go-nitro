@@ -207,7 +207,9 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 		{
 			// todo: check block number
 			if e.Holdings != nil {
-				updated.C.OnChainFunding = e.Holdings.Clone()
+				for assetAddress, amount := range e.Holdings {
+					updated.C.OnChainFunding[assetAddress] = amount
+				}
 			}
 		}
 	case chainservice.ConcludedEvent:
