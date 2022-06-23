@@ -2,6 +2,7 @@ import {constants, providers, Signature} from 'ethers';
 
 import {State} from './contract/state';
 import * as forceMoveTrans from './contract/transaction-creators/force-move';
+import * as multiAssetHolderTrans from './contract/transaction-creators/multi-asset-holder';
 import * as nitroAdjudicatorTrans from './contract/transaction-creators/nitro-adjudicator';
 import {getStateSignerAddress, SignedState} from './signatures';
 
@@ -61,6 +62,43 @@ export function createConcludeTransaction(
 ): providers.TransactionRequest {
   const {states, signatures, whoSignedWhat} = createSignatureArguments(conclusionProof);
   return forceMoveTrans.createConcludeTransaction(states, signatures, whoSignedWhat);
+}
+
+/**
+ * Marshalls the supplied destination, expectedHeld and amount into an ethereum transaction for the deposit ETH method.
+ * @param destination The channelId to deposit into
+ * @param expectedHeld The amount you expect to have already been deposited
+ * @param amount The amount you intend to deposit
+ * @returns the transaction request
+ */
+export function createETHDepositTransaction(
+  destination: string,
+  expectedHeld: string,
+  amount: string
+): providers.TransactionRequest {
+  return multiAssetHolderTrans.createETHDepositTransaction(destination, expectedHeld, amount);
+}
+
+/**
+ * Marshalls the supplied tokenAddress, destination, expectedHeld and amount into an ethereum transaction for the deposit ERC20 token method.
+ * @param tokenAddress The ERC20 token contract address
+ * @param destination The channelId to deposit into
+ * @param expectedHeld The amount you expect to have already been deposited
+ * @param amount The amount you intend to deposit
+ * @returns the transaction request
+ */
+export function createERC20DepositTransaction(
+  tokenAddress: string,
+  destination: string,
+  expectedHeld: string,
+  amount: string
+): providers.TransactionRequest {
+  return multiAssetHolderTrans.createERC20DepositTransaction(
+    tokenAddress,
+    destination,
+    expectedHeld,
+    amount
+  );
 }
 
 /**
