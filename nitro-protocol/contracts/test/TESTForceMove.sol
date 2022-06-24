@@ -25,8 +25,6 @@ contract TESTForceMove is ForceMove {
         return _isAddressInArray(suspect, addresses);
     }
 
-
-
     // public setter for statusOf
 
     /**

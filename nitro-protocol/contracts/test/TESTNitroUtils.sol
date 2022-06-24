@@ -5,12 +5,10 @@ pragma experimental ABIEncoderV2;
 import '../interfaces/INitroTypes.sol';
 import {NitroUtils} from '../libraries/NitroUtils.sol';
 
-
 /**
  * @dev This contract extends the NitroUtils contract to enable it to be more easily unit-tested. It exposes public or external functions call into internal functions. It should not be deployed in a production environment.
  */
 contract TESTNitroUtils {
-
 
     /**
      * @dev Wrapper for otherwise internal function. Given a digest and digital signature, recover the signer
@@ -31,7 +29,6 @@ contract TESTNitroUtils {
     function isClaimedSignedBy(uint256 signedBy, uint8 participantIndex) public pure returns (bool) {
         return NitroUtils.isClaimedSignedBy(signedBy,participantIndex);
     }
-
 
     /**
      * @notice Check if supplied participantIndex is the only bit set to 1 in signedBy bit mask.
