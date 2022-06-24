@@ -7,13 +7,13 @@ import './interfaces/IForceMoveApp.sol';
 import './libraries/NitroUtils.sol';
 
 /**
- * @dev The ConsensusApp contracts complies with the ForceMoveApp interface and requires all participants to have signed a single state.
+ * @dev The ConsensusApp contracts complies with the ForceMoveApp interface and requires all participants to hace signed a single state.
  */
 contract ConsensusApp is IForceMoveApp {
     /**
      * @notice Encodes consensus app rules.
      * @dev Encodes consensus app rules.
-     * @return lastest supported state.
+     * @return last variable part.
      */
     function latestSupportedState(
         FixedPart calldata fixedPart,
