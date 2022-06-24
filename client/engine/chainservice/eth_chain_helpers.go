@@ -34,6 +34,8 @@ func assetAddressForIndex(na *NitroAdjudicator.NitroAdjudicator, tx *types.Trans
 	if err != nil {
 		return common.Address{}, err
 	}
+	// TODO remove the assumption that the tx incudes latestVariablePart parameter
+	// 	concludeAndTransferAllAssets includes this parameter, but transferAllAssets, transfer, and claim do not.
 	variablePart := params["latestVariablePart"].(struct {
 		Outcome []struct {
 			Asset       common.Address "json:\"asset\""
