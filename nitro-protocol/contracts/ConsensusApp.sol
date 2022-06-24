@@ -13,7 +13,7 @@ contract ConsensusApp is IForceMoveApp {
     /**
      * @notice Encodes consensus app rules.
      * @dev Encodes consensus app rules.
-     * @return last variable part.
+     * @return lastest supported state.
      */
     function latestSupportedState(
         FixedPart calldata fixedPart,
