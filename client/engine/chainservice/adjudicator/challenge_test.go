@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	ConsensusApp "github.com/statechannels/go-nitro/client/engine/chainservice/consensusapp"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -46,43 +47,25 @@ var Actors actors = actors{
 
 var turnNum = uint64(0)
 
-var s = state.State{
-	ChainId: big.NewInt(1337),
-	Participants: []types.Address{
-		Actors.Alice.Address,
-		Actors.Bob.Address,
-	},
-	ChannelNonce:      big.NewInt(37140676580),
-	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
-	ChallengeDuration: big.NewInt(60),
-	AppData:           []byte{},
-	Outcome:           outcome.Exit{},
-	TurnNum:           turnNum,
-	IsFinal:           false,
-}
-
 func TestChallenge(t *testing.T) {
-
-	// Generate Signatures
-	aSig, _ := s.Sign(Actors.Alice.PrivateKey)
-	bSig, _ := s.Sign(Actors.Bob.PrivateKey)
-	challengerSig, err := SignChallengeMessage(s, Actors.Alice.PrivateKey)
-
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	// Setup transacting EOA
 	key, _ := crypto.GenerateKey()
 	auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337)) // 1337 according to godoc on backends.NewSimulatedBackend
 	auth.GasPrice = big.NewInt(10000000000)
 	address := auth.From
-	balance := new(big.Int)
-	balance.SetString("10000000000000000000", 10) // 10 eth in wei
+
+	// Setup a second transacting EOA
+	key2, _ := crypto.GenerateKey()
+	auth2, _ := bind.NewKeyedTransactorWithChainID(key2, big.NewInt(1337)) // 1337 according to godoc on backends.NewSimulatedBackend
+	address2 := auth2.From
 
 	// Setup "blockchain"
+	balance := new(big.Int)
+	balance.SetString("10000000000000000000", 10) // 10 eth in wei
 	gAlloc := map[common.Address]core.GenesisAccount{
-		address: {Balance: balance},
+		address:  {Balance: balance},
+		address2: {Balance: balance},
 	}
 	blockGasLimit := uint64(4712388)
 	sim := backends.NewSimulatedBackend(gAlloc, blockGasLimit)
@@ -97,16 +80,58 @@ func TestChallenge(t *testing.T) {
 	// Mine a block
 	sim.Commit()
 
+	// Deploy ConsensusApp
+	consensusAppAddress, _, _, err := ConsensusApp.DeployConsensusApp(auth2, sim)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Mine a block
+	sim.Commit()
+
+	var s = state.State{
+		ChainId: big.NewInt(1337),
+		Participants: []types.Address{
+			Actors.Alice.Address,
+			Actors.Bob.Address,
+		},
+		ChannelNonce:      big.NewInt(37140676580),
+		AppDefinition:     consensusAppAddress,
+		ChallengeDuration: big.NewInt(60),
+		AppData:           []byte{},
+		Outcome:           outcome.Exit{},
+		TurnNum:           turnNum,
+		IsFinal:           false,
+	}
+
+	// Generate Signatures
+	aSig, _ := s.Sign(Actors.Alice.PrivateKey)
+	bSig, _ := s.Sign(Actors.Bob.PrivateKey)
+	challengerSig, err := SignChallengeMessage(s, Actors.Alice.PrivateKey)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Mine a block
+	sim.Commit()
+
 	// Fire off a Challenge tx
 	tx, err := na.Challenge(
 		auth,
-		IForceMoveFixedPart(s.FixedPart()),
-		[]IForceMoveAppVariablePart{convertVariablePart(s.VariablePart())},
-		[]IForceMoveSignature{convertSignature(aSig), convertSignature(bSig)},
-		[]uint8{0, 0},
+		INitroTypesFixedPart(s.FixedPart()),
+		[]INitroTypesSignedVariablePart{
+			{
+				convertVariablePart(s.VariablePart()),
+				[]INitroTypesSignature{convertSignature(aSig), convertSignature(bSig)},
+				big.NewInt(0b11),
+			},
+		},
 		convertSignature(challengerSig),
 	)
 	if err != nil {
+		t.Log(tx)
 		t.Fatal(err)
 	}
 
