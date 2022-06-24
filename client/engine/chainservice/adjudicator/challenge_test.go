@@ -54,12 +54,18 @@ func TestChallenge(t *testing.T) {
 	auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337)) // 1337 according to godoc on backends.NewSimulatedBackend
 	auth.GasPrice = big.NewInt(10000000000)
 	address := auth.From
-	balance := new(big.Int)
-	balance.SetString("10000000000000000000", 10) // 10 eth in wei
+
+	// Setup a second transacting EOA
+	key2, _ := crypto.GenerateKey()
+	auth2, _ := bind.NewKeyedTransactorWithChainID(key2, big.NewInt(1337)) // 1337 according to godoc on backends.NewSimulatedBackend
+	address2 := auth2.From
 
 	// Setup "blockchain"
+	balance := new(big.Int)
+	balance.SetString("10000000000000000000", 10) // 10 eth in wei
 	gAlloc := map[common.Address]core.GenesisAccount{
-		address: {Balance: balance},
+		address:  {Balance: balance},
+		address2: {Balance: balance},
 	}
 	blockGasLimit := uint64(4712388)
 	sim := backends.NewSimulatedBackend(gAlloc, blockGasLimit)
@@ -71,12 +77,18 @@ func TestChallenge(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Mine a block
+	sim.Commit()
+
 	// Deploy ConsensusApp
-	consensusAppAddress, _, _, err := ConsensusApp.DeployConsensusApp(auth, sim)
+	consensusAppAddress, _, _, err := ConsensusApp.DeployConsensusApp(auth2, sim)
 
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Mine a block
+	sim.Commit()
 
 	var s = state.State{
 		ChainId: big.NewInt(1337),
