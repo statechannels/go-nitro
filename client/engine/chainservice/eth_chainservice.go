@@ -55,9 +55,10 @@ func (ecs *EthChainService) defaultTxOpts() bind.TransactOpts {
 }
 
 // SendTransaction sends the transaction and blocks until it has been submitted.
-func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) *ethTypes.Transaction {
+func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) []*ethTypes.Transaction {
 	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
+		ethTxs := []*ethTypes.Transaction{}
 		for tokenAddress, amount := range tx.Deposit {
 			txOpts := ecs.defaultTxOpts()
 			ethTokenAddress := common.Address{}
@@ -70,12 +71,12 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) *ethT
 			}
 
 			ethTx, err := ecs.na.Deposit(&txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
-
 			if err != nil {
 				panic(err)
 			}
-			return ethTx
+			ethTxs = append(ethTxs, ethTx)
 		}
+		return ethTxs
 	case protocols.WithdrawAllTransaction:
 		state := tx.SignedState.State()
 		signatures := tx.SignedState.Signatures()
@@ -88,7 +89,7 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) *ethT
 		if err != nil {
 			panic(err)
 		}
-		return ethTx
+		return []*ethTypes.Transaction{ethTx}
 
 	default:
 		panic("unexpected chain transaction")
