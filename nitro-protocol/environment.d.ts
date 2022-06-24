@@ -15,6 +15,7 @@ declare global {
       EMBEDDED_APPLICATION_ADDRESS: string;
       SINGLE_ASSET_PAYMENT_ADDRESS: string;
       TRIVIAL_APP_ADDRESS: string;
+      TEST_NITRO_UTILS_ADDRESS: string;
       TEST_FORCE_MOVE_ADDRESS: string;
       TEST_NITRO_ADJUDICATOR_ADDRESS: string;
       TEST_TOKEN_ADDRESS: string;
