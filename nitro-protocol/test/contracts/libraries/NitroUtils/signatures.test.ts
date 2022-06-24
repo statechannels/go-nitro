@@ -37,63 +37,63 @@ describe('_recoverSigner', () => {
   });
 });
 
-describe('isSignedBy', () => {
+describe('isClaimedSignedBy', () => {
   // prettier-ignore
   it('returns true when a participant bit is set', async () => {
-    expect(await NitroUtils.isSignedBy(0b101     ,0)).toBe(true);
-    expect(await NitroUtils.isSignedBy(0b101     ,2)).toBe(true);
-    expect(await NitroUtils.isSignedBy(0b001     ,0)).toBe(true);
-    expect(await NitroUtils.isSignedBy(0b10000000,7)).toBe(true);
-    expect(await NitroUtils.isSignedBy(8         ,3)).toBe(true);
+    expect(await NitroUtils.isClaimedSignedBy(0b101     ,0)).toBe(true);
+    expect(await NitroUtils.isClaimedSignedBy(0b101     ,2)).toBe(true);
+    expect(await NitroUtils.isClaimedSignedBy(0b001     ,0)).toBe(true);
+    expect(await NitroUtils.isClaimedSignedBy(0b10000000,7)).toBe(true);
+    expect(await NitroUtils.isClaimedSignedBy(8         ,3)).toBe(true);
   });
   // prettier-ignore
   it('returns false when a participant bit is not set', async () => {
-    expect(await NitroUtils.isSignedBy(0b101     ,1)).toBe(false);
-    expect(await NitroUtils.isSignedBy(0b001     ,3)).toBe(false);
-    expect(await NitroUtils.isSignedBy(0b001     ,2)).toBe(false);
-    expect(await NitroUtils.isSignedBy(0b001     ,1)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedBy(0b101     ,1)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedBy(0b001     ,3)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedBy(0b001     ,2)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedBy(0b001     ,1)).toBe(false);
   });
 });
 
-describe('isSignedOnlyBy', () => {
+describe('isClaimedSignedOnlyBy', () => {
   // prettier-ignore
   it('returns true when only that participant bit is set', async () => {
-    expect(await NitroUtils.isSignedOnlyBy(0b001     ,0)).toBe(true);
-    expect(await NitroUtils.isSignedOnlyBy(0b10000000,7)).toBe(true);
-    expect(await NitroUtils.isSignedOnlyBy(8         ,3)).toBe(true);
+    expect(await NitroUtils.isClaimedSignedOnlyBy(0b001     ,0)).toBe(true);
+    expect(await NitroUtils.isClaimedSignedOnlyBy(0b10000000,7)).toBe(true);
+    expect(await NitroUtils.isClaimedSignedOnlyBy(8         ,3)).toBe(true);
   });
   // prettier-ignore
   it('returns false when that participant bit is not set', async () => {
-    expect(await NitroUtils.isSignedOnlyBy(0b011     ,0)).toBe(false);
-    expect(await NitroUtils.isSignedOnlyBy(0b10010000,7)).toBe(false);
-    expect(await NitroUtils.isSignedOnlyBy(9         ,3)).toBe(false);
-    expect(await NitroUtils.isSignedOnlyBy(0b101     ,0)).toBe(false);
-    expect(await NitroUtils.isSignedOnlyBy(0b101     ,2)).toBe(false);
-    expect(await NitroUtils.isSignedOnlyBy(0b101     ,1)).toBe(false);
-    expect(await NitroUtils.isSignedOnlyBy(0b001     ,3)).toBe(false);
-    expect(await NitroUtils.isSignedOnlyBy(0b001     ,2)).toBe(false);
-    expect(await NitroUtils.isSignedOnlyBy(0b001     ,1)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedOnlyBy(0b011     ,0)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedOnlyBy(0b10010000,7)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedOnlyBy(9         ,3)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedOnlyBy(0b101     ,0)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedOnlyBy(0b101     ,2)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedOnlyBy(0b101     ,1)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedOnlyBy(0b001     ,3)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedOnlyBy(0b001     ,2)).toBe(false);
+    expect(await NitroUtils.isClaimedSignedOnlyBy(0b001     ,1)).toBe(false);
   });
 });
 
-describe('getSignersAmount', () => {
+describe('getClaimedSignersNum', () => {
   // prettier-ignore
   it('counts the number of signers correctly', async () => {
-    expect(await NitroUtils.getSignersAmount(0b001)).toEqual(1)
-    expect(await NitroUtils.getSignersAmount(0b011)).toEqual(2)
-    expect(await NitroUtils.getSignersAmount(0b101)).toEqual(2)
-    expect(await NitroUtils.getSignersAmount(0b111)).toEqual(3)
-    expect(await NitroUtils.getSignersAmount(0b000)).toEqual(0)
+    expect(await NitroUtils.getClaimedSignersNum(0b001)).toEqual(1)
+    expect(await NitroUtils.getClaimedSignersNum(0b011)).toEqual(2)
+    expect(await NitroUtils.getClaimedSignersNum(0b101)).toEqual(2)
+    expect(await NitroUtils.getClaimedSignersNum(0b111)).toEqual(3)
+    expect(await NitroUtils.getClaimedSignersNum(0b000)).toEqual(0)
   });
 });
 
-describe('getSignerIndices', () => {
+describe('getClaimedSignersIndices', () => {
   // prettier-ignore
   it('returns the correct indices', async () => {
-    expect(await NitroUtils.getSignerIndices(0b001)).toEqual([0])
-    expect(await NitroUtils.getSignerIndices(0b011)).toEqual([0,1])
-    expect(await NitroUtils.getSignerIndices(0b101)).toEqual([0,2])
-    expect(await NitroUtils.getSignerIndices(0b111)).toEqual([0,1,2])
-    expect(await NitroUtils.getSignerIndices(0b000)).toEqual([])
+    expect(await NitroUtils.getClaimedSignersIndices(0b001)).toEqual([0])
+    expect(await NitroUtils.getClaimedSignersIndices(0b011)).toEqual([0,1])
+    expect(await NitroUtils.getClaimedSignersIndices(0b101)).toEqual([0,2])
+    expect(await NitroUtils.getClaimedSignersIndices(0b111)).toEqual([0,1,2])
+    expect(await NitroUtils.getClaimedSignersIndices(0b000)).toEqual([])
   });
 });

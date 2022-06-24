@@ -28,8 +28,8 @@ contract TESTNitroUtils {
      * @param signedBy Bit mask field to check.
      * @param participantIndex Bit to check.
      */
-    function isSignedBy(uint256 signedBy, uint8 participantIndex) public pure returns (bool) {
-        return NitroUtils.isSignedBy(signedBy,participantIndex);
+    function isClaimedSignedBy(uint256 signedBy, uint8 participantIndex) public pure returns (bool) {
+        return NitroUtils.isClaimedSignedBy(signedBy,participantIndex);
     }
 
 
@@ -39,8 +39,8 @@ contract TESTNitroUtils {
      * @param signedBy Bit mask field to check.
      * @param participantIndex Bit to check.
      */
-    function isSignedOnlyBy(uint256 signedBy, uint8 participantIndex) public pure returns (bool) {
-        return NitroUtils.isSignedOnlyBy(signedBy,participantIndex);
+    function isClaimedSignedOnlyBy(uint256 signedBy, uint8 participantIndex) public pure returns (bool) {
+        return NitroUtils.isClaimedSignedOnlyBy(signedBy,participantIndex);
     }
 
     /**
@@ -49,8 +49,8 @@ contract TESTNitroUtils {
      * @param signedBy Bit mask field specifying which participants have signed the state.
      * @return amount of signers, which have signed the state.
      */
-    function getSignersAmount(uint256 signedBy) public pure returns (uint8) {
-        return NitroUtils.getSignersAmount(signedBy);
+    function getClaimedSignersNum(uint256 signedBy) public pure returns (uint8) {
+        return NitroUtils.getClaimedSignersNum(signedBy);
     }
 
     /**
@@ -59,7 +59,7 @@ contract TESTNitroUtils {
      * @param signedBy Bit mask field specifying which participants have signed the state.
      * @return signerIndices
      */
-    function getSignerIndices(uint256 signedBy) public pure returns (uint8[] memory) {
-        return NitroUtils.getSignerIndices(signedBy);
+    function getClaimedSignersIndices(uint256 signedBy) public pure returns (uint8[] memory) {
+        return NitroUtils.getClaimedSignersIndices(signedBy);
     }
 }
