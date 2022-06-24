@@ -44,24 +44,32 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, n
 	return &ecs
 }
 
-// SendTransaction sends the transaction and blocks until it has been submitted.
-func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) *ethTypes.Transaction {
-	txOpt := bind.TransactOpts{
+// defaultTxOpts return transaction options suitable for most transaction submissions
+func (ecs *EthChainService) defaultTxOpts() bind.TransactOpts {
+	return bind.TransactOpts{
 		From:     ecs.txSigner.From,
 		Nonce:    ecs.txSigner.Nonce,
 		Signer:   ecs.txSigner.Signer,
 		GasPrice: big.NewInt(10000000000),
 	}
+}
+
+// SendTransaction sends the transaction and blocks until it has been submitted.
+func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) *ethTypes.Transaction {
 	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
 		for tokenAddress, amount := range tx.Deposit {
-			txOpt.Value = amount
+			txOpts := ecs.defaultTxOpts()
+			ethTokenAddress := common.Address{}
+			if tokenAddress == ethTokenAddress {
+				txOpts.Value = amount
+			}
 			holdings, err := ecs.na.Holdings(&bind.CallOpts{}, tokenAddress, tx.ChannelId())
 			if err != nil {
 				panic(err)
 			}
 
-			ethTx, err := ecs.na.Deposit(&txOpt, tokenAddress, tx.ChannelId(), holdings, amount)
+			ethTx, err := ecs.na.Deposit(&txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
 
 			if err != nil {
 				panic(err)
@@ -75,7 +83,8 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) *ethT
 		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(state.VariablePart())
 		nitroSignatures := []NitroAdjudicator.IForceMoveSignature{NitroAdjudicator.ConvertSignature(signatures[0]), NitroAdjudicator.ConvertSignature(signatures[1])}
 
-		ethTx, err := ecs.na.ConcludeAndTransferAllAssets(&txOpt, nitroFixedPart, nitroVariablePart, 1, []uint8{0, 0}, nitroSignatures)
+		txOpts := ecs.defaultTxOpts()
+		ethTx, err := ecs.na.ConcludeAndTransferAllAssets(&txOpts, nitroFixedPart, nitroVariablePart, 1, []uint8{0, 0}, nitroSignatures)
 		if err != nil {
 			panic(err)
 		}
