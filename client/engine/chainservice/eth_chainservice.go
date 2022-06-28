@@ -44,7 +44,7 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, n
 	return &ecs
 }
 
-// defaultTxOpts return transaction options suitable for most transaction submissions
+// defaultTxOpts returns transaction options suitable for most transaction submissions
 func (ecs *EthChainService) defaultTxOpts() bind.TransactOpts {
 	return bind.TransactOpts{
 		From:     ecs.txSigner.From,
