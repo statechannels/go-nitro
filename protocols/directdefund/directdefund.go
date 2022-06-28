@@ -72,6 +72,10 @@ func NewObjective(
 		return Objective{}, fmt.Errorf("could not find channel %s; %w", request.ChannelId, err)
 	}
 
+	if len(cc.FundingTargets()) != 0 {
+		return Objective{}, fmt.Errorf("ledger channel has running guarantees")
+	}
+
 	c, err := CreateChannelFromConsensusChannel(*cc)
 	if err != nil {
 		return Objective{}, fmt.Errorf("could not create Channel from ConsensusChannel; %w", err)
