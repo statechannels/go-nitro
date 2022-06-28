@@ -52,6 +52,7 @@ var concludeState = state.State{
 }
 
 func TestDepositSimulatedBackendChainService(t *testing.T) {
+	one := big.NewInt(1)
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
 	if err != nil {
 		t.Fatal(err)
@@ -59,9 +60,15 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 
 	cs := NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[0])
 
+	_, err = bindings.Token.Contract.Approve(ethAccounts[0], bindings.Adjudicator.Address, one)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Prepare test data to trigger EthChainService
 	testDeposit := types.Funds{
-		common.HexToAddress("0x00"): big.NewInt(1),
+		common.HexToAddress("0x00"): one,
+		bindings.Token.Address:      one,
 	}
 	channelID := types.Destination(common.HexToHash(`4ebd366d014a173765ba1e50f284c179ade31f20441bec41664712aac6cc461d`))
 	testTx := protocols.NewDepositTransaction(channelID, testDeposit)
@@ -70,11 +77,13 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 	// Submit transactiom
 	cs.SendTransaction(testTx)
 
-	// Check that the recieved event matches the expected event
-	receivedEvent := <-out
-	expectedEvent := DepositedEvent{CommonEvent: CommonEvent{channelID: channelID, BlockNum: 2}, Holdings: testDeposit}
-	if diff := cmp.Diff(expectedEvent, receivedEvent, cmp.AllowUnexported(CommonEvent{})); diff != "" {
-		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
+	// Check that the recieved events matches the expected event
+	for address, amount := range testDeposit {
+		receivedEvent := <-out
+		expectedEvent := DepositedEvent{CommonEvent: CommonEvent{channelID: channelID, BlockNum: 2}, Holdings: types.Funds{address: amount}}
+		if diff := cmp.Diff(expectedEvent, receivedEvent, cmp.AllowUnexported(CommonEvent{})); diff != "" {
+			t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
+		}
 	}
 
 	sim.Close()
