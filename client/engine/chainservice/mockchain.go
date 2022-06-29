@@ -42,33 +42,35 @@ func (mc *MockChain) SendTransaction(tx protocols.ChainTransaction) {
 	if mc.txListener != nil {
 		mc.txListener <- tx
 	}
-	var event Event
 	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
 		if tx.Deposit.IsNonZero() {
 			mc.holdings[tx.ChannelId()] = mc.holdings[tx.ChannelId()].Add(tx.Deposit)
 		}
-		event = DepositedEvent{
-			CommonEvent: CommonEvent{
-				channelID: tx.ChannelId(),
-				BlockNum:  *mc.blockNum},
-
-			Holdings: mc.holdings[tx.ChannelId()],
+		for address, amount := range tx.Deposit {
+			event := DepositedEvent{
+				CommonEvent: CommonEvent{
+					channelID: tx.ChannelId(),
+					BlockNum:  *mc.blockNum},
+				Asset:           address,
+				AmountDeposited: amount,
+				NowHeld:         mc.holdings[tx.ChannelId()][address],
+			}
+			mc.broadcast(event)
 		}
 	case protocols.WithdrawAllTransaction:
 		for assetAddress := range mc.holdings[tx.ChannelId()] {
-			event = AllocationUpdatedEvent{
+			event := AllocationUpdatedEvent{
 				CommonEvent: CommonEvent{
 					channelID: tx.ChannelId(),
 					BlockNum:  *mc.blockNum},
 				AssetAddress: assetAddress,
 				AssetAmount:  common.Big0,
 			}
+			mc.broadcast(event)
 		}
 		mc.holdings[tx.ChannelId()] = types.Funds{}
 	default:
 		panic("unexpected chain transaction")
 	}
-
-	mc.broadcast(event)
 }

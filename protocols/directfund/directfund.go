@@ -254,8 +254,8 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 	if !ok {
 		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
 	}
-	if de.Holdings != nil && de.BlockNum > updated.latestBlockNumber {
-		updated.C.OnChainFunding = de.Holdings.Clone()
+	if de.BlockNum > updated.latestBlockNumber {
+		updated.C.OnChainFunding[de.Asset] = de.NowHeld
 		updated.latestBlockNumber = de.BlockNum
 	}
 

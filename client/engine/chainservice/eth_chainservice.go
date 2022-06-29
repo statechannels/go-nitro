@@ -117,14 +117,14 @@ func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudic
 					log.Fatal(err)
 				}
 
-				holdings := types.Funds{}
-				holdings[nad.Asset] = nad.DestinationHoldings
 				event := DepositedEvent{
 					CommonEvent: CommonEvent{
 						channelID: nad.Destination,
 						BlockNum:  chainEvent.BlockNumber,
 					},
-					Holdings: holdings,
+					Asset:           nad.Asset,
+					AmountDeposited: nad.AmountDeposited,
+					NowHeld:         nad.DestinationHoldings,
 				}
 				ecs.broadcast(event)
 			case allocationUpdatedTopic:
