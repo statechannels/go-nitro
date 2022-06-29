@@ -32,13 +32,14 @@ func TestDirectDefund(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	// Setup chain service
-	sim, na, naAddress, ethAccounts, err := chainservice.SetupSimulatedBackend(3)
+	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(3)
 	if err != nil {
 		t.Fatal(err)
 	}
-	chainA := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[0])
-	chainI := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[1])
-	chainB := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[2])
+
+	chainA := chainservice.NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[0])
+	chainI := chainservice.NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[1])
+	chainB := chainservice.NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[2])
 	// End chain service setup
 
 	broker := messageservice.NewBroker()
