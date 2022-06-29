@@ -94,7 +94,6 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) []*et
 	default:
 		panic("unexpected chain transaction")
 	}
-	return nil
 }
 
 func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, chain ethChain) {

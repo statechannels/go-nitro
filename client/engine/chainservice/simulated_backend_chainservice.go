@@ -10,10 +10,21 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
+	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
 	"github.com/statechannels/go-nitro/protocols"
 )
 
 var ErrUnableToAssignBigInt = errors.New("simulated_backend_chainservice: unable to assign BigInt")
+
+type binding[T any] struct {
+	Address  common.Address
+	Contract *T
+}
+
+type bindings struct {
+	Adjudicator binding[NitroAdjudicator.NitroAdjudicator]
+	Token       binding[Token.Token]
+}
 
 type simulatedChain interface {
 	ethChain
@@ -40,14 +51,14 @@ func (sbcs *SimulatedBackendChainService) SendTransaction(tx protocols.ChainTran
 }
 
 // SetupSimulatedBackend creates a new SimulatedBackend with the supplied number of transacting accounts, deploys the Nitro Adjudicator and returns both.
-func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, *NitroAdjudicator.NitroAdjudicator,
-	common.Address, []*bind.TransactOpts, error) {
+func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, bindings, []*bind.TransactOpts, error) {
 	accounts := make([]*bind.TransactOpts, numAccounts)
 	genesisAlloc := make(map[common.Address]core.GenesisAccount)
+	contractBindings := bindings{}
 
 	balance, success := new(big.Int).SetString("10000000000000000000", 10) // 10 eth in wei
 	if !success {
-		return nil, nil, common.Address{}, accounts, ErrUnableToAssignBigInt
+		return nil, contractBindings, accounts, ErrUnableToAssignBigInt
 	}
 
 	var err error
@@ -56,20 +67,27 @@ func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, *Nit
 		key, _ := crypto.GenerateKey()
 		accounts[i], err = bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337)) // 1337 according to docs on SimulatedBackend
 		if err != nil {
-			return nil, nil, common.Address{}, accounts, err
+			return nil, contractBindings, accounts, err
 		}
 		genesisAlloc[accounts[i].From] = core.GenesisAccount{Balance: balance}
 	}
 
 	// Setup "blockchain"
-	blockGasLimit := uint64(4712388)
+	blockGasLimit := uint64(15_000_000)
 	sim := backends.NewSimulatedBackend(genesisAlloc, blockGasLimit)
 
 	// Deploy Adjudicator
 	naAddress, _, na, err := NitroAdjudicator.DeployNitroAdjudicator(accounts[0], sim)
 	if err != nil {
-		return nil, nil, common.Address{}, accounts, err
+		return nil, contractBindings, accounts, err
 	}
+
+	tokenAddress, _, tokenBinding, err := Token.DeployToken(accounts[0], sim, accounts[0].From)
+	if err != nil {
+		return nil, contractBindings, accounts, err
+	}
+
+	contractBindings = bindings{Adjudicator: binding[NitroAdjudicator.NitroAdjudicator]{naAddress, na}, Token: binding[Token.Token]{tokenAddress, tokenBinding}}
 	sim.Commit()
-	return sim, na, naAddress, accounts, nil
+	return sim, contractBindings, accounts, nil
 }

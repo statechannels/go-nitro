@@ -109,12 +109,12 @@ func TestDirectFund(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	// Setup chain service
-	sim, na, naAddress, ethAccounts, err := chainservice.SetupSimulatedBackend(2)
+	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	chainA := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[0])
-	chainB := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[1])
+	chainA := chainservice.NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[0])
+	chainB := chainservice.NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[1])
 	// End chain service setup
 
 	broker := messageservice.NewBroker()

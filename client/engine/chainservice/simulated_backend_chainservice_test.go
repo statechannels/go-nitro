@@ -52,12 +52,12 @@ var concludeState = state.State{
 }
 
 func TestDepositSimulatedBackendChainService(t *testing.T) {
-	sim, na, naAddress, ethAccounts, err := SetupSimulatedBackend(1)
+	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cs := NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[0])
+	cs := NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[0])
 
 	// Prepare test data to trigger EthChainService
 	testDeposit := types.Funds{
@@ -85,11 +85,11 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	aSig, _ := concludeState.Sign(Alice.PrivateKey)
 	bSig, _ := concludeState.Sign(Bob.PrivateKey)
 
-	sim, na, naAddress, ethAccounts, err := SetupSimulatedBackend(1)
+	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cs := NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[0])
+	cs := NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[0])
 	out := cs.SubscribeToEvents(ethAccounts[0].From)
 
 	// Fund channel
@@ -133,7 +133,7 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	}
 
 	// Inspect state of chain (call StatusOf)
-	statusOnChain, err := na.StatusOf(&bind.CallOpts{}, cId)
+	statusOnChain, err := bindings.Adjudicator.Contract.StatusOf(&bind.CallOpts{}, cId)
 	if err != nil {
 		t.Fatal(err)
 	}
