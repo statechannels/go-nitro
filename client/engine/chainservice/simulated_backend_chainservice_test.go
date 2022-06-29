@@ -78,12 +78,18 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 	cs.SendTransaction(testTx)
 
 	// Check that the recieved events matches the expected event
-	for address, amount := range testDeposit {
+	for i := 0; i < 2; i++ {
 		receivedEvent := <-out
-		expectedEvent := DepositedEvent{CommonEvent: CommonEvent{channelID: channelID, BlockNum: 2}, Holdings: types.Funds{address: amount}}
-		if diff := cmp.Diff(expectedEvent, receivedEvent, cmp.AllowUnexported(CommonEvent{})); diff != "" {
+		dEvent := receivedEvent.(DepositedEvent)
+		expectedEvent := DepositedEvent{CommonEvent: CommonEvent{channelID: channelID, BlockNum: 2}, Asset: dEvent.Asset, NowHeld: testDeposit[dEvent.Asset], AmountDeposited: testDeposit[dEvent.Asset]}
+		if diff := cmp.Diff(expectedEvent, dEvent, cmp.AllowUnexported(CommonEvent{}, big.Int{})); diff != "" {
 			t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 		}
+		delete(testDeposit, dEvent.Asset)
+	}
+
+	if len(testDeposit) != 0 {
+		t.Fatalf("Mismatch between the deposit transaction and the received events")
 	}
 
 	sim.Close()

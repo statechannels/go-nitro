@@ -29,7 +29,9 @@ func (ce CommonEvent) ChannelID() types.Destination {
 // DepositedEvent is an internal representation of the deposited blockchain event
 type DepositedEvent struct {
 	CommonEvent
-	Holdings types.Funds // indexed by asset
+	Asset           common.Address
+	AmountDeposited *big.Int
+	NowHeld         *big.Int
 }
 
 // AllocationUpdated is an internal representation of the AllocatonUpdated blockchain event
