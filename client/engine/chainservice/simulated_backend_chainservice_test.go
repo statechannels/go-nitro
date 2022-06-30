@@ -60,7 +60,6 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 
 	cs := NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[0])
 
-	_, err = bindings.Token.Contract.Approve(ethAccounts[0], bindings.Adjudicator.Address, one)
 	if err != nil {
 		t.Fatal(err)
 	}
