@@ -73,7 +73,7 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 	return c.completedObjectives
 }
 
-// FailedObjectives returns a chan that receives a objective id whenever that objective has failed
+// FailedObjectives returns a chan that receives an objective id whenever that objective has failed
 func (c *Client) FailedObjectives() <-chan protocols.ObjectiveId {
 	return c.failedObjectives
 }
