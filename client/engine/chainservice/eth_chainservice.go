@@ -45,8 +45,8 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, n
 }
 
 // defaultTxOpts returns transaction options suitable for most transaction submissions
-func (ecs *EthChainService) defaultTxOpts() bind.TransactOpts {
-	return bind.TransactOpts{
+func (ecs *EthChainService) defaultTxOpts() *bind.TransactOpts {
+	return &bind.TransactOpts{
 		From:     ecs.txSigner.From,
 		Nonce:    ecs.txSigner.Nonce,
 		Signer:   ecs.txSigner.Signer,
@@ -70,7 +70,7 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) []*et
 				panic(err)
 			}
 
-			ethTx, err := ecs.na.Deposit(&txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
+			ethTx, err := ecs.na.Deposit(txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
 			if err != nil {
 				panic(err)
 			}
@@ -84,8 +84,7 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) []*et
 		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(state.VariablePart())
 		nitroSignatures := []NitroAdjudicator.IForceMoveSignature{NitroAdjudicator.ConvertSignature(signatures[0]), NitroAdjudicator.ConvertSignature(signatures[1])}
 
-		txOpts := ecs.defaultTxOpts()
-		ethTx, err := ecs.na.ConcludeAndTransferAllAssets(&txOpts, nitroFixedPart, nitroVariablePart, 1, []uint8{0, 0}, nitroSignatures)
+		ethTx, err := ecs.na.ConcludeAndTransferAllAssets(ecs.defaultTxOpts(), nitroFixedPart, nitroVariablePart, 1, []uint8{0, 0}, nitroSignatures)
 		if err != nil {
 			panic(err)
 		}
