@@ -59,7 +59,7 @@ func (c *Client) handleEngineEvents() {
 
 		}
 
-		for _, erred := range update.ErredObjectives {
+		for _, erred := range update.FailedObjectives {
 			c.failedObjectives <- erred
 		}
 

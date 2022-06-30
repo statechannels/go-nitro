@@ -61,7 +61,7 @@ type ObjectiveChangeEvent struct {
 	// These are objectives that are now completed
 	CompletedObjectives []protocols.Objective
 	// These are objectives that have failed
-	ErredObjectives []protocols.ObjectiveId
+	FailedObjectives []protocols.ObjectiveId
 }
 
 type CompletedObjectiveEvent struct {
@@ -339,7 +339,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
 			ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
 			if err != nil {
-				return ObjectiveChangeEvent{ErredObjectives: []protocols.ObjectiveId{request.Id(e.metrics.me)}}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+				return ObjectiveChangeEvent{FailedObjectives: []protocols.ObjectiveId{request.Id(e.metrics.me)}}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 			// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 			e.store.DestroyConsensusChannel(request.ChannelId)
