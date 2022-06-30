@@ -26,6 +26,7 @@ const ObjectivePrefix = "DirectDefunding-"
 var (
 	ErrChannelUpdateInProgress = errors.New("can only defund a channel when the latest state is supported or when the channel has a final state")
 	ErrNoFinalState            = errors.New("cannot spawn direct defund objective without a final state")
+	ErrNotEmpty                = errors.New("ledger channel has running guarantees")
 )
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
@@ -70,6 +71,10 @@ func NewObjective(
 	cc, err := getConsensusChannel(request.ChannelId)
 	if err != nil {
 		return Objective{}, fmt.Errorf("could not find channel %s; %w", request.ChannelId, err)
+	}
+
+	if len(cc.FundingTargets()) != 0 {
+		return Objective{}, ErrNotEmpty
 	}
 
 	c, err := CreateChannelFromConsensusChannel(*cc)
