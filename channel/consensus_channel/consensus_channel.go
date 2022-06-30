@@ -217,7 +217,7 @@ func (c *ConsensusChannel) Follower() common.Address {
 	return c.fp.Participants[Follower]
 }
 
-// FundeingTargets returns a list of channels funded by the ConsensusChannel
+// FundingTargets returns a list of channels funded by the ConsensusChannel
 func (c *ConsensusChannel) FundingTargets() []types.Destination {
 	return c.current.Outcome.fundingTargets()
 }
