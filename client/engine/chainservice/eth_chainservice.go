@@ -11,6 +11,7 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
+	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
 	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 )
@@ -20,14 +21,16 @@ var concludedTopic = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
 var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
 
 type ethChain interface {
-	SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- ethTypes.Log) (ethereum.Subscription, error)
-	TransactionByHash(ctx context.Context, txHash common.Hash) (*ethTypes.Transaction, bool, error)
+	bind.ContractBackend
+	ethereum.TransactionReader
 }
 
 type EthChainService struct {
 	ChainServiceBase
-	na       *NitroAdjudicator.NitroAdjudicator
-	txSigner *bind.TransactOpts
+	chain     ethChain
+	na        *NitroAdjudicator.NitroAdjudicator
+	naAddress common.Address
+	txSigner  *bind.TransactOpts
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
@@ -35,10 +38,12 @@ type EthChainService struct {
 func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, txSigner *bind.TransactOpts) *EthChainService {
 	ecs := EthChainService{ChainServiceBase: newChainServiceBase()}
 	ecs.out = safesync.Map[chan Event]{}
+	ecs.chain = chain
 	ecs.na = na
+	ecs.naAddress = naAddress
 	ecs.txSigner = txSigner
 
-	go ecs.listenForLogEvents(na, naAddress, chain)
+	go ecs.listenForLogEvents()
 
 	return &ecs
 }
@@ -63,6 +68,15 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) []*et
 			ethTokenAddress := common.Address{}
 			if tokenAddress == ethTokenAddress {
 				txOpts.Value = amount
+			} else {
+				tokenTransactor, err := Token.NewTokenTransactor(tokenAddress, ecs.chain)
+				if err != nil {
+					panic(err)
+				}
+				_, err = tokenTransactor.Approve(ecs.defaultTxOpts(), ecs.naAddress, amount)
+				if err != nil {
+					panic(err)
+				}
 			}
 			holdings, err := ecs.na.Holdings(&bind.CallOpts{}, tokenAddress, tx.ChannelId())
 			if err != nil {
@@ -94,12 +108,12 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) []*et
 	}
 }
 
-func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, chain ethChain) {
+func (ecs *EthChainService) listenForLogEvents() {
 	query := ethereum.FilterQuery{
-		Addresses: []common.Address{naAddress},
+		Addresses: []common.Address{ecs.naAddress},
 	}
 	logs := make(chan ethTypes.Log)
-	sub, err := chain.SubscribeFilterLogs(context.Background(), query, logs)
+	sub, err := ecs.chain.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -110,7 +124,7 @@ func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudic
 		case chainEvent := <-logs:
 			switch chainEvent.Topics[0] {
 			case depositedTopic:
-				nad, err := na.ParseDeposited(chainEvent)
+				nad, err := ecs.na.ParseDeposited(chainEvent)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -126,24 +140,24 @@ func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudic
 				}
 				ecs.broadcast(event)
 			case allocationUpdatedTopic:
-				au, err := na.ParseAllocationUpdated(chainEvent)
+				au, err := ecs.na.ParseAllocationUpdated(chainEvent)
 				if err != nil {
 					panic(err)
 				}
 
-				tx, pending, err := chain.TransactionByHash(context.Background(), chainEvent.TxHash)
+				tx, pending, err := ecs.chain.TransactionByHash(context.Background(), chainEvent.TxHash)
 				if pending || err != nil {
 					panic("Expected transacion to be part of the chain")
 				}
 
-				assetAddress, amount, err := getChainHolding(na, tx, au)
+				assetAddress, amount, err := getChainHolding(ecs.na, tx, au)
 				if err != nil {
 					panic(err)
 				}
 				event := AllocationUpdatedEvent{CommonEvent: CommonEvent{channelID: au.ChannelId, BlockNum: chainEvent.BlockNumber}, AssetAddress: assetAddress, AssetAmount: amount}
 				ecs.broadcast(event)
 			case concludedTopic:
-				ce, err := na.ParseConcluded(chainEvent)
+				ce, err := ecs.na.ParseConcluded(chainEvent)
 				if err != nil {
 					panic(err)
 				}
