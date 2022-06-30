@@ -41,7 +41,7 @@ func TestDeposit(t *testing.T) {
 	chain.SendTransaction(testTx)
 	event := <-eventFeedA
 
-	receivedEventIsValid(t, event, testTx.Deposit, testTx.ChannelId())
+	checkReceivedEventIsValid(t, event, testTx.Deposit, testTx.ChannelId())
 
 	// Send the transaction again and receive another event
 	chain.SendTransaction(testTx)
@@ -50,18 +50,18 @@ func TestDeposit(t *testing.T) {
 	// The expectation is that the MockChainService remembered the previous deposit and added this one to it:
 	expectedHoldings := testTx.Deposit.Add(testTx.Deposit)
 
-	receivedEventIsValid(t, event, expectedHoldings, testTx.ChannelId())
+	checkReceivedEventIsValid(t, event, expectedHoldings, testTx.ChannelId())
 
 	// Pull an event out of the other mock chain service and check that
 	eventB := <-eventFeedB
-	receivedEventIsValid(t, eventB, testTx.Deposit, testTx.ChannelId())
+	checkReceivedEventIsValid(t, eventB, testTx.Deposit, testTx.ChannelId())
 
 	// Pull another event out of the other mock chain service and check that
 	eventB = <-eventFeedB
-	receivedEventIsValid(t, eventB, expectedHoldings, testTx.ChannelId())
+	checkReceivedEventIsValid(t, eventB, expectedHoldings, testTx.ChannelId())
 }
 
-func receivedEventIsValid(t *testing.T, receivedEvent Event, holdings types.Funds, channelId types.Destination) {
+func checkReceivedEventIsValid(t *testing.T, receivedEvent Event, holdings types.Funds, channelId types.Destination) {
 	if receivedEvent.ChannelID() != channelId {
 		t.Fatalf(`channelId mismatch: expected %v but got %v`, channelId, receivedEvent.ChannelID())
 	}
