@@ -7,7 +7,7 @@ import {ShortcuttingTurnTaking} from '../libraries/signature-logic/ShortcuttingT
 import '../interfaces/IForceMoveApp.sol';
 
 /**
- * @dev The SingleAssetPayments contract complies with the ForceMoveApp interfaces and shortcutting turn taking logic and implements a simple payment channel with a single asset type only.
+ * @dev The SingleAssetPayments contract complies with the ForceMoveApp interface, uses shortcutting turn taking logic and implements a simple payment channel with a single asset type only.
  */
 contract SingleAssetPayments is IForceMoveApp {
     /**
