@@ -22,8 +22,7 @@ contract HashLockedSwap is IForceMoveApp {
      * @return AppData struct containing the application-specific data.
      */
     function appData(bytes memory appDataBytes) internal pure returns (AppData memory) {
-        bytes memory decodedAppData = abi.decode(appDataBytes, (bytes));
-        return abi.decode(decodedAppData, (AppData));
+        return abi.decode(appDataBytes, (AppData));
     }
 
     function latestSupportedState(

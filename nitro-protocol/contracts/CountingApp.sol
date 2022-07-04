@@ -21,8 +21,7 @@ contract CountingApp is IForceMoveApp {
      * @return A CountingAppData struct containing the application-specific data.
      */
     function appData(bytes memory appDataBytes) internal pure returns (CountingAppData memory) {
-        bytes memory decodedAppData = abi.decode(appDataBytes, (bytes));
-        return abi.decode(decodedAppData, (CountingAppData));
+        return abi.decode(appDataBytes, (CountingAppData));
     }
 
     /**

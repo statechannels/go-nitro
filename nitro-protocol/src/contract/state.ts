@@ -58,7 +58,7 @@ export interface SignedVariablePart {
 export function getVariablePart(state: State): VariablePart {
   return {
     outcome: state.outcome,
-    appData: encodeAppData(state.appData),
+    appData: state.appData,
     turnNum: state.turnNum,
     isFinal: state.isFinal,
   };
@@ -108,7 +108,6 @@ export function encodeState(state: State): Bytes {
   const {turnNum, isFinal, appData, outcome} = state;
   const channelId = getChannelId(getFixedPart(state));
 
-  const appDataBytes = encodeAppData(appData);
   return utils.defaultAbiCoder.encode(
     [
       'bytes32',
@@ -133,7 +132,7 @@ export function encodeState(state: State): Bytes {
       'uint256',
       'bool',
     ],
-    [channelId, appDataBytes, outcome, turnNum, isFinal]
+    [channelId, appData, outcome, turnNum, isFinal]
   );
 }
 
