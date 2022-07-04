@@ -34,11 +34,7 @@ for (let i = 0; i < 3; i++) {
 const channel: Channel = {chainId, channelNonce: 8, participants};
 
 beforeAll(async () => {
-  consensusApp = setupContract(
-    provider,
-    ConsensusAppArtifact,
-    process.env.CONSENSUS_APP_ADDRESS as string
-  );
+  consensusApp = setupContract(provider, ConsensusAppArtifact, process.env.CONSENSUS_APP_ADDRESS);
 });
 
 const state: State = {
@@ -48,7 +44,7 @@ const state: State = {
   challengeDuration,
   outcome: [],
   appData: HashZero,
-  appDefinition: process.env.CONSENSUS_APP_ADDRESS as string,
+  appDefinition: process.env.CONSENSUS_APP_ADDRESS,
 };
 
 const fixedPart = getFixedPart(state);

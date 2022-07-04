@@ -11,6 +11,7 @@ declare global {
       // These contract addresses get defined in the global jest setup
       NITRO_ADJUDICATOR_ADDRESS: string;
       COUNTING_APP_ADDRESS: string;
+      CONSENSUS_APP_ADDRESS: string;
       HASH_LOCK_ADDRESS: string;
       EMBEDDED_APPLICATION_ADDRESS: string;
       SINGLE_ASSET_PAYMENT_ADDRESS: string;
