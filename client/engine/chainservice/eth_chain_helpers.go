@@ -57,12 +57,12 @@ func assetAddressForIndex(na *NitroAdjudicator.NitroAdjudicator, tx *types.Trans
 }
 
 func decodeTxParams(abi *abi.ABI, data []byte) (map[string]interface{}, error) {
-	v := map[string]interface{}{}
 	m, err := abi.MethodById(data[:4])
 	if err != nil {
 		return map[string]interface{}{}, err
 
 	}
+	v := map[string]interface{}{}
 	if err := m.Inputs.UnpackIntoMap(v, data[4:]); err != nil {
 		return map[string]interface{}{}, err
 	}
