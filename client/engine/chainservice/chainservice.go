@@ -43,7 +43,6 @@ type ConcludedEvent struct {
 }
 
 // todo implement other event types
-// Concluded
 // ChallengeRegistered
 // ChallengeCleared
 
