@@ -127,10 +127,13 @@ library ShortcuttingTurnTaking {
         uint256 numStates = signedVariableParts.length;
         require((nParticipants >= numStates) && (numStates > 0), 'Insufficient or excess states');
 
+        uint256 largestTurnNum = signedVariableParts[signedVariableParts.length - 1].variablePart.turnNum;
+        require(largestTurnNum + 1 >= nParticipants, 'largestTurnNum too low');
+
         // no more than 255 participants
         require(nParticipants <= type(uint8).max, 'Too many participants'); // type(uint8).max = 2**8 - 1 = 255
 
-        uint256 turnNumDelta = signedVariableParts[signedVariableParts.length - 1].variablePart.turnNum - signedVariableParts[0].variablePart.turnNum;
+        uint256 turnNumDelta = largestTurnNum - signedVariableParts[0].variablePart.turnNum;
         require(turnNumDelta <= nParticipants, 'Only one round-robin allowed');
 
         uint256 signedSoFar = 0;
