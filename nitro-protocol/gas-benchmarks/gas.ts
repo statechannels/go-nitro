@@ -63,11 +63,11 @@ export const gasRequiredTo: GasRequiredTo = {
   },
   ETHexit: {
     // We completely liquidate the channel (paying out both parties)
-    satp: 154_925,
+    satp: 153_532,
   },
   ERC20exit: {
     // We completely liquidate the channel (paying out both parties)
-    satp: 145_327,
+    satp: 143_934,
   },
   ETHexitSad: {
     // Scenario: Counterparty Bob goes offline
@@ -75,9 +75,9 @@ export const gasRequiredTo: GasRequiredTo = {
     // challenge + timeout       ⬛ -> (X) -> 👩
     // transferAllAssets         ⬛ --------> 👩
     satp: {
-      challenge: 116_057,
-      transferAllAssets: 110_061,
-      total: 226_118,
+      challenge: 114_012,
+      transferAllAssets: 110_049,
+      total: 224_061,
     },
   },
   ETHexitSadLedgerFunded: {
@@ -87,11 +87,11 @@ export const gasRequiredTo: GasRequiredTo = {
       // challenge X, L and timeout  ⬛ -> (L) -> (X) -> 👩
       // transferAllAssetsL          ⬛ --------> (X) -> 👩
       // transferAllAssetsX          ⬛ ---------------> 👩
-      challengeX: 116_057,
-      challengeL: 107_467,
+      challengeX: 114_012,
+      challengeL: 105_412,
       transferAllAssetsL: 58_970,
-      transferAllAssetsX: 110_061,
-      total: 392_555,
+      transferAllAssetsX: 110_049,
+      total: 388_443,
     },
   },
   ETHexitSadVirtualFunded: {
