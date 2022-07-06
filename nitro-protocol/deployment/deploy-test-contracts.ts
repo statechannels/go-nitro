@@ -10,6 +10,8 @@ import hashLockedSwapArtifact from '../artifacts/contracts/examples/HashLockedSw
 import testForceMoveArtifact from '../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
 import testNitroUtilsArtifact from '../artifacts/contracts/test/TESTNitroUtils.sol/TESTNitroUtils.json';
 import testNitroAdjudicatorArtifact from '../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
+import testShortcuttingTurnTakingArtifact from '../artifacts/contracts/test/TESTShortcuttingTurnTaking.sol/TESTShortcuttingTurnTaking.json';
+
 import tokenArtifact from '../artifacts/contracts/Token.sol/Token.json';
 import trivialAppArtifact from '../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
 import embeddedApplicationArtifact from '../artifacts/contracts/examples/EmbeddedApplication.sol/EmbeddedApplication.json';
@@ -27,6 +29,7 @@ const [
   testForceMoveFactory,
   testNitroUtilsFactory,
   testNitroAdjudicatorFactory,
+  testShortcuttingTurnTakingFactory,
   tokenFactory,
   trivialAppFactory,
   embeddedApplicationFactory,
@@ -39,6 +42,7 @@ const [
   testForceMoveArtifact,
   testNitroUtilsArtifact,
   testNitroAdjudicatorArtifact,
+  testShortcuttingTurnTakingArtifact,
   tokenArtifact,
   trivialAppArtifact,
   embeddedApplicationArtifact,
@@ -59,6 +63,9 @@ export async function deploy(): Promise<Record<string, string>> {
   const TEST_NITRO_UTILS_ADDRESS = (await testNitroUtilsFactory.deploy()).address;
   const EMBEDDED_APPLICATION_ADDRESS = (await embeddedApplicationFactory.deploy()).address;
   const CONSENSUS_APP_ADDRESS = await (await consensusAppFactory.deploy()).address;
+  const TEST_SHORTCUTTING_TURN_TAKING_ADDRESS = await (
+    await testShortcuttingTurnTakingFactory.deploy()
+  ).address;
 
   const TEST_TOKEN_ADDRESS = (
     await tokenFactory.deploy(new Wallet(TEST_ACCOUNTS[0].privateKey).address)
@@ -75,5 +82,6 @@ export async function deploy(): Promise<Record<string, string>> {
     TEST_NITRO_ADJUDICATOR_ADDRESS,
     TEST_TOKEN_ADDRESS,
     CONSENSUS_APP_ADDRESS,
+    TEST_SHORTCUTTING_TURN_TAKING_ADDRESS,
   };
 }
