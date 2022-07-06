@@ -9,12 +9,7 @@ import {
   SignedVariablePart,
   State,
 } from '../../../src/contract/state';
-import {
-  deepEquals,
-  getTestProvider,
-  parseVariablePartEventResult,
-  setupContract,
-} from '../../test-helpers';
+import {getTestProvider, parseVariablePartEventResult, setupContract} from '../../test-helpers';
 const {HashZero} = ethers.constants;
 
 const provider = getTestProvider();
@@ -66,7 +61,7 @@ describe('latestSupportedState', () => {
     const latestSupportedState = await consensusApp.latestSupportedState(fixedPart, [
       signedVariablePart,
     ]);
-    expect(deepEquals(parseVariablePartEventResult(latestSupportedState), variablePart)).toBe(true);
+    expect(parseVariablePartEventResult(latestSupportedState)).toEqual(variablePart);
   });
 
   it('Submitting more than one state does NOT constitute a support proof', async () => {

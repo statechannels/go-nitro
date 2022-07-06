@@ -11,7 +11,6 @@ import {
   VariablePart,
 } from '../../../src/contract/state';
 import {
-  deepEquals,
   getRandomNonce,
   getTestProvider,
   parseVariablePartEventResult,
@@ -76,9 +75,7 @@ describe('latestSupportedState', () => {
         from,
         to,
       ]);
-      expect(deepEquals(parseVariablePartEventResult(latestSupportedState), to.variablePart)).toBe(
-        true
-      );
+      expect(parseVariablePartEventResult(latestSupportedState)).toEqual(to.variablePart);
     }
   });
 
@@ -106,8 +103,6 @@ describe('latestSupportedState', () => {
       from,
       to,
     ]);
-    expect(deepEquals(parseVariablePartEventResult(latestSupportedState), to.variablePart)).toBe(
-      true
-    );
+    expect(parseVariablePartEventResult(latestSupportedState)).toEqual(to.variablePart);
   });
 });
