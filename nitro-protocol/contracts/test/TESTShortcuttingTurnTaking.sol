@@ -12,8 +12,8 @@ contract TESTShortcuttingTurnTaking {
     function requireValidTurnTaking(
         INitroTypes.FixedPart memory fixedPart,
         INitroTypes.SignedVariablePart[] memory signedVariableParts
-    ) public pure {
+    ) public pure returns (bool) {
         ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts);
+        return true;
     }
-
 }
