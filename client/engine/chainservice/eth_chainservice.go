@@ -159,7 +159,7 @@ func (ecs *EthChainService) listenForLogEvents() {
 				if err != nil {
 					panic(err)
 				}
-				event := AllocationUpdatedEvent{CommonEvent: CommonEvent{channelID: au.ChannelId, BlockNum: chainEvent.BlockNumber}, AssetAddress: assetAddress, AssetAmount: amount}
+				event := NewAllocationUpdatedEvent(au.ChannelId, chainEvent.BlockNumber, assetAddress, amount)
 				ecs.broadcast(event)
 			case concludedTopic:
 				ce, err := ecs.na.ParseConcluded(chainEvent)
