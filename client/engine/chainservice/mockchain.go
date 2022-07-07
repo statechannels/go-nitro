@@ -60,13 +60,7 @@ func (mc *MockChain) SendTransaction(tx protocols.ChainTransaction) {
 		}
 	case protocols.WithdrawAllTransaction:
 		for assetAddress := range mc.holdings[tx.ChannelId()] {
-			event := AllocationUpdatedEvent{
-				CommonEvent: CommonEvent{
-					channelID: tx.ChannelId(),
-					BlockNum:  *mc.blockNum},
-				AssetAddress: assetAddress,
-				AssetAmount:  common.Big0,
-			}
+			event := NewAllocationUpdatedEvent(tx.ChannelId(), *mc.blockNum, assetAddress, common.Big0)
 			mc.broadcast(event)
 		}
 		mc.holdings[tx.ChannelId()] = types.Funds{}

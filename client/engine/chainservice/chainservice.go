@@ -26,6 +26,11 @@ func (ce CommonEvent) ChannelID() types.Destination {
 	return ce.channelID
 }
 
+type asset struct {
+	AssetAddress common.Address
+	AssetAmount  *big.Int
+}
+
 // DepositedEvent is an internal representation of the deposited blockchain event
 type DepositedEvent struct {
 	CommonEvent
@@ -38,13 +43,16 @@ type DepositedEvent struct {
 // The event includes the token address and amount at the block that generated the event
 type AllocationUpdatedEvent struct {
 	CommonEvent
-	AssetAddress common.Address
-	AssetAmount  *big.Int
+	asset
 }
 
 // ConcludedEvent is an internal representation of the Concluded blockchain event
 type ConcludedEvent struct {
 	CommonEvent
+}
+
+func NewAllocationUpdatedEvent(channelId types.Destination, blockNum uint64, assetAddress common.Address, assetAmount *big.Int) AllocationUpdatedEvent {
+	return AllocationUpdatedEvent{CommonEvent{channelId, blockNum}, asset{AssetAddress: assetAddress, AssetAmount: assetAmount}}
 }
 
 // todo implement other event types
