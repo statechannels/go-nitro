@@ -12,7 +12,7 @@ import '../../interfaces/INitroTypes.sol';
 library ShortcuttingTurnTaking {
     /**
      * @notice Require supplied arguments to comply with shortcutting turn taking logic, i.e. there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array..
-     * @dev Require supplied arguments to comply with shortcutting turn taking logic, i.e. there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array..
+     * @dev Require supplied arguments to comply with shortcutting turn t   aking logic, i.e. there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array..
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param signedVariableParts An ordered array of structs, each struct describing dynamic properties of the state channel and must be signed by corresponding moving participant.
      */
@@ -21,17 +21,19 @@ library ShortcuttingTurnTaking {
         INitroTypes.SignedVariablePart[] memory signedVariableParts
     ) internal pure {
         uint256 nParticipants = fixedPart.participants.length;
-        uint48 largestTurnNum = signedVariableParts[signedVariableParts.length - 1].variablePart.turnNum;
+        uint48 largestTurnNum = signedVariableParts[signedVariableParts.length - 1]
+            .variablePart
+            .turnNum;
 
         _requireValidInput(nParticipants, signedVariableParts);
-        
+
         // Difference between a turn number of the last state, which have a last participant as a mover, and supplied largest turn number
         uint256 roundRobinShift = (largestTurnNum + 1) % nParticipants;
         uint48 prevTurnNum = 0;
 
-        for (uint i = 0; i < signedVariableParts.length; i++) {
+        for (uint256 i = 0; i < signedVariableParts.length; i++) {
             requireValidSignatures(fixedPart, signedVariableParts[i], roundRobinShift);
-            
+
             if (i != 0) {
                 requireIncreasedTurnNum(prevTurnNum, signedVariableParts[i].variablePart.turnNum);
             }
@@ -53,11 +55,22 @@ library ShortcuttingTurnTaking {
         uint256 roundRobinShift
     ) internal pure {
         require(signedVariablePart.sigs.length > 0, 'Insufficient signatures');
-        require(signedVariablePart.sigs.length == NitroUtils.getClaimedSignersNum(signedVariablePart.signedBy), '|sigs| != |signedBy|');
+        require(
+            signedVariablePart.sigs.length ==
+                NitroUtils.getClaimedSignersNum(signedVariablePart.signedBy),
+            '|sigs| != |signedBy|'
+        );
 
-        _requireAcceptableSigsOrder(signedVariablePart.signedBy, signedVariablePart.variablePart.turnNum, roundRobinShift, fixedPart.participants.length);
+        _requireAcceptableSigsOrder(
+            signedVariablePart.signedBy,
+            signedVariablePart.variablePart.turnNum,
+            roundRobinShift,
+            fixedPart.participants.length
+        );
 
-        uint8[] memory signerIndices = NitroUtils.getClaimedSignersIndices(signedVariablePart.signedBy);
+        uint8[] memory signerIndices = NitroUtils.getClaimedSignersIndices(
+            signedVariablePart.signedBy
+        );
 
         for (uint256 i = 0; i < signerIndices.length; i++) {
             require(
@@ -95,22 +108,20 @@ library ShortcuttingTurnTaking {
 
         for (uint256 i = 0; i < signerIndices.length; i++) {
             require(
-                (signerIndices[i] + nParticipants - shift) % nParticipants <= (turnNum - shift) % nParticipants,
+                (signerIndices[i] + nParticipants - shift) % nParticipants <=
+                    (turnNum - shift) % nParticipants,
                 'Unacceptable sigs order'
             );
         }
     }
 
     /**
-     * @notice Require supplied newTurnNum is greater than prevTurnNum.    
-     * @dev Require supplied newTurnNum is greater than prevTurnNum.    
+     * @notice Require supplied newTurnNum is greater than prevTurnNum.
+     * @dev Require supplied newTurnNum is greater than prevTurnNum.
      * @param prevTurnNum Previous turn number.
      * @param newTurnNum New turn number.
      */
-    function requireIncreasedTurnNum(
-        uint48 prevTurnNum,
-        uint48 newTurnNum
-    ) internal pure {
+    function requireIncreasedTurnNum(uint48 prevTurnNum, uint48 newTurnNum) internal pure {
         require(prevTurnNum < newTurnNum, 'turnNum not increased');
     }
 
@@ -130,7 +141,9 @@ library ShortcuttingTurnTaking {
         // no more than 255 participants
         require(nParticipants <= type(uint8).max, 'Too many participants'); // type(uint8).max = 2**8 - 1 = 255
 
-        uint256 turnNumDelta = signedVariableParts[signedVariableParts.length - 1].variablePart.turnNum - signedVariableParts[0].variablePart.turnNum;
+        uint256 turnNumDelta = signedVariableParts[signedVariableParts.length - 1]
+            .variablePart
+            .turnNum - signedVariableParts[0].variablePart.turnNum;
         require(turnNumDelta <= nParticipants, 'Only one round-robin allowed');
 
         uint256 signedSoFar = 0;
@@ -138,7 +151,7 @@ library ShortcuttingTurnTaking {
         for (uint256 i = 0; i < signedVariableParts.length; i++) {
             uint256 hasTwoSigs = signedSoFar & signedVariableParts[i].signedBy;
             require(hasTwoSigs == 0, 'Excess sigs from one participant');
-            
+
             signedSoFar |= signedVariableParts[i].signedBy;
         }
 
