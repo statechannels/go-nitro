@@ -204,14 +204,8 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 	updated := o.clone()
 	switch e := event.(type) {
 	case chainservice.AllocationUpdatedEvent:
-		{
-			// todo: check block number
-			if e.Holdings != nil {
-				for assetAddress, amount := range e.Holdings {
-					updated.C.OnChainFunding[assetAddress] = amount
-				}
-			}
-		}
+		// todo: check block number
+		updated.C.OnChainFunding[e.AssetAddress] = e.AssetAmount
 	case chainservice.ConcludedEvent:
 		break
 	default:
