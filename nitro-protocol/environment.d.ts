@@ -19,6 +19,7 @@ declare global {
       TEST_FORCE_MOVE_ADDRESS: string;
       TEST_NITRO_ADJUDICATOR_ADDRESS: string;
       TEST_TOKEN_ADDRESS: string;
+      TEST_SHORTCUTTING_TURN_TAKING_ADDRESS: string;
     }
   }
 }
