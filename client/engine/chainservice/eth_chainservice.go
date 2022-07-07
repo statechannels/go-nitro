@@ -134,15 +134,7 @@ func (ecs *EthChainService) listenForLogEvents() {
 					log.Fatal(err)
 				}
 
-				event := DepositedEvent{
-					CommonEvent: CommonEvent{
-						channelID: nad.Destination,
-						BlockNum:  chainEvent.BlockNumber,
-					},
-					Asset:           nad.Asset,
-					AmountDeposited: nad.AmountDeposited,
-					NowHeld:         nad.DestinationHoldings,
-				}
+				event := NewDepositedEvent(nad.Destination, chainEvent.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
 				ecs.broadcast(event)
 			case allocationUpdatedTopic:
 				au, err := ecs.na.ParseAllocationUpdated(chainEvent)

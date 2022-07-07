@@ -65,11 +65,11 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		receivedEvent := <-out
 		dEvent := receivedEvent.(DepositedEvent)
-		expectedEvent := DepositedEvent{CommonEvent: CommonEvent{channelID: channelID, BlockNum: 2}, Asset: dEvent.Asset, NowHeld: testDeposit[dEvent.Asset], AmountDeposited: testDeposit[dEvent.Asset]}
-		if diff := cmp.Diff(expectedEvent, dEvent, cmp.AllowUnexported(CommonEvent{}, big.Int{})); diff != "" {
+		expectedEvent := NewDepositedEvent(channelID, 2, dEvent.AssetAddress, testDeposit[dEvent.AssetAddress], testDeposit[dEvent.AssetAddress])
+		if diff := cmp.Diff(expectedEvent, dEvent, cmp.AllowUnexported(DepositedEvent{}, CommonEvent{}, big.Int{})); diff != "" {
 			t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 		}
-		delete(testDeposit, dEvent.Asset)
+		delete(testDeposit, dEvent.AssetAddress)
 	}
 
 	if len(testDeposit) != 0 {

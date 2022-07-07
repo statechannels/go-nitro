@@ -34,9 +34,8 @@ type asset struct {
 // DepositedEvent is an internal representation of the deposited blockchain event
 type DepositedEvent struct {
 	CommonEvent
-	Asset           common.Address
-	AmountDeposited *big.Int
-	NowHeld         *big.Int
+	asset
+	NowHeld *big.Int
 }
 
 // AllocationUpdated is an internal representation of the AllocatonUpdated blockchain event
@@ -49,6 +48,10 @@ type AllocationUpdatedEvent struct {
 // ConcludedEvent is an internal representation of the Concluded blockchain event
 type ConcludedEvent struct {
 	CommonEvent
+}
+
+func NewDepositedEvent(channelId types.Destination, blockNum uint64, assetAddress common.Address, assetAmount *big.Int, nowHeld *big.Int) DepositedEvent {
+	return DepositedEvent{CommonEvent{channelId, blockNum}, asset{AssetAddress: assetAddress, AssetAmount: assetAmount}, nowHeld}
 }
 
 func NewAllocationUpdatedEvent(channelId types.Destination, blockNum uint64, assetAddress common.Address, assetAmount *big.Int) AllocationUpdatedEvent {

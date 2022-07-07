@@ -48,14 +48,7 @@ func (mc *MockChain) SendTransaction(tx protocols.ChainTransaction) {
 			mc.holdings[tx.ChannelId()] = mc.holdings[tx.ChannelId()].Add(tx.Deposit)
 		}
 		for address, amount := range tx.Deposit {
-			event := DepositedEvent{
-				CommonEvent: CommonEvent{
-					channelID: tx.ChannelId(),
-					BlockNum:  *mc.blockNum},
-				Asset:           address,
-				AmountDeposited: amount,
-				NowHeld:         mc.holdings[tx.ChannelId()][address],
-			}
+			event := NewDepositedEvent(tx.ChannelId(), *mc.blockNum, address, amount, mc.holdings[tx.ChannelId()][address])
 			mc.broadcast(event)
 		}
 	case protocols.WithdrawAllTransaction:
