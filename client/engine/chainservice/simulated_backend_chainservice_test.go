@@ -66,7 +66,7 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 		receivedEvent := <-out
 		dEvent := receivedEvent.(DepositedEvent)
 		expectedEvent := NewDepositedEvent(channelID, 2, dEvent.AssetAddress, testDeposit[dEvent.AssetAddress], testDeposit[dEvent.AssetAddress])
-		if diff := cmp.Diff(expectedEvent, dEvent, cmp.AllowUnexported(DepositedEvent{}, CommonEvent{}, big.Int{})); diff != "" {
+		if diff := cmp.Diff(expectedEvent, dEvent, cmp.AllowUnexported(DepositedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 			t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 		}
 		delete(testDeposit, dEvent.AssetAddress)
@@ -131,8 +131,8 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 
 	// Check that the recieved event matches the expected event
 	concludedEvent := <-out
-	expectedEvent := ConcludedEvent{CommonEvent: CommonEvent{channelID: cId, BlockNum: 3}}
-	if diff := cmp.Diff(expectedEvent, concludedEvent, cmp.AllowUnexported(CommonEvent{})); diff != "" {
+	expectedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, BlockNum: 3}}
+	if diff := cmp.Diff(expectedEvent, concludedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
@@ -140,7 +140,7 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	allocationUpdatedEvent := <-out
 	expectedEvent2 := NewAllocationUpdatedEvent(cId, 3, common.Address{}, new(big.Int).SetInt64(1))
 
-	if diff := cmp.Diff(expectedEvent2, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, CommonEvent{}, big.Int{})); diff != "" {
+	if diff := cmp.Diff(expectedEvent2, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
