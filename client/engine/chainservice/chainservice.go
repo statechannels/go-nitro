@@ -3,7 +3,9 @@ package chainservice // import "github.com/statechannels/go-nitro/client/chainse
 
 import (
 	"fmt"
+	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -31,10 +33,11 @@ type DepositedEvent struct {
 }
 
 // AllocationUpdated is an internal representation of the AllocatonUpdated blockchain event
-// Holdings is a map of all assets that were updated by a transaction, NOT a map of all assets for a channel
+// The event includes the token address and amount at the block that generated the event
 type AllocationUpdatedEvent struct {
 	CommonEvent
-	Holdings types.Funds // indexed by asset
+	AssetAddress common.Address
+	AssetAmount  *big.Int
 }
 
 // ConcludedEvent is an internal representation of the Concluded blockchain event

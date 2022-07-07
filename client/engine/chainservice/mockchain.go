@@ -1,6 +1,7 @@
 package chainservice
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -55,14 +56,16 @@ func (mc *MockChain) SendTransaction(tx protocols.ChainTransaction) {
 			Holdings: mc.holdings[tx.ChannelId()],
 		}
 	case protocols.WithdrawAllTransaction:
-		mc.holdings[tx.ChannelId()] = types.Funds{}
-		event = AllocationUpdatedEvent{
-			CommonEvent: CommonEvent{
-				channelID: tx.ChannelId(),
-				BlockNum:  *mc.blockNum},
-
-			Holdings: mc.holdings[tx.ChannelId()],
+		for assetAddress := range mc.holdings[tx.ChannelId()] {
+			event = AllocationUpdatedEvent{
+				CommonEvent: CommonEvent{
+					channelID: tx.ChannelId(),
+					BlockNum:  *mc.blockNum},
+				AssetAddress: assetAddress,
+				AssetAmount:  common.Big0,
+			}
 		}
+		mc.holdings[tx.ChannelId()] = types.Funds{}
 	default:
 		panic("unexpected chain transaction")
 	}

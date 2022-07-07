@@ -133,8 +133,7 @@ func (ecs *EthChainService) listenForLogEvents(na *NitroAdjudicator.NitroAdjudic
 				if err != nil {
 					panic(err)
 				}
-				holdings := types.Funds{assetAddress: amount}
-				event := AllocationUpdatedEvent{CommonEvent: CommonEvent{channelID: au.ChannelId, BlockNum: chainEvent.BlockNumber}, Holdings: holdings}
+				event := AllocationUpdatedEvent{CommonEvent: CommonEvent{channelID: au.ChannelId, BlockNum: chainEvent.BlockNumber}, AssetAddress: assetAddress, AssetAmount: amount}
 				ecs.broadcast(event)
 			case concludedTopic:
 				ce, err := na.ParseConcluded(chainEvent)

@@ -270,7 +270,7 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The third crank. Bob is expected to enter the terminal state of the defunding protocol.
-	updated, err = updated.(*Objective).UpdateWithChainEvent(chainservice.AllocationUpdatedEvent{Holdings: types.Funds{types.Address{}: new(big.Int).SetInt64(0)}})
+	updated, err = updated.(*Objective).UpdateWithChainEvent(chainservice.AllocationUpdatedEvent{AssetAddress: types.Address{}, AssetAmount: common.Big0})
 
 	if err != nil {
 		t.Error(err)
