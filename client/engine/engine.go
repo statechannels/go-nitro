@@ -12,6 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -221,7 +222,11 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 			SignedProposal: consensus_channel.SignedProposal{},
 			SignedState:    entry.Payload,
 		}
-		updatedObjective, err := objective.Update(event)
+		var updatedObjective protocols.Objective
+
+		e.metrics.RecordDuration("objective_update", func() {
+			updatedObjective, err = objective.Update(event)
+		})
 		if err != nil {
 			return ObjectiveChangeEvent{}, err
 		}
@@ -357,16 +362,20 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
-	for _, message := range sideEffects.MessagesToSend {
+	e.metrics.RecordDuration("send_messages", func() {
+		for _, message := range sideEffects.MessagesToSend {
 
-		e.logger.Printf("Sending message %+v", protocols.SummarizeMessage(message))
-		e.msg.Send(message)
-		e.metrics.RecordOutgoingMessage(message)
-	}
-	for _, tx := range sideEffects.TransactionsToSubmit {
-		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId())
-		e.chain.SendTransaction(tx)
-	}
+			e.logger.Printf("Sending message %+v", protocols.SummarizeMessage(message))
+			e.msg.Send(message)
+			e.metrics.RecordOutgoingMessage(message)
+		}
+	})
+	e.metrics.RecordDuration("send_transactions", func() {
+		for _, tx := range sideEffects.TransactionsToSubmit {
+			e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId())
+			e.chain.SendTransaction(tx)
+		}
+	})
 	for _, proposal := range sideEffects.ProposalsToProcess {
 		e.fromLedger <- proposal
 	}
@@ -381,85 +390,100 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 // 	5. It updates progress metadata in the store
 func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent, err error) {
 
-	secretKey := e.store.GetChannelSecretKey()
-	var crankedObjective protocols.Objective
-	var sideEffects protocols.SideEffects
-	var waitingFor protocols.WaitingFor
+	e.metrics.RecordDuration("attempt_progress", func() {
+		secretKey := e.store.GetChannelSecretKey()
+		var crankedObjective protocols.Objective
+		var sideEffects protocols.SideEffects
+		var waitingFor protocols.WaitingFor
 
-	e.metrics.RecordDuration("crank", func() {
-		crankedObjective, sideEffects, waitingFor, err = objective.Crank(secretKey)
-	})
+		e.metrics.RecordDuration("crank", func() {
+			crankedObjective, sideEffects, waitingFor, err = objective.Crank(secretKey)
+		})
 
-	if err != nil {
-		return
-	}
-
-	err = e.store.SetObjective(crankedObjective)
-
-	if err != nil {
-		return
-	}
-
-	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
-
-	// If our protocol is waiting for nothing then we know the objective is complete
-	// TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
-	// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
-	if waitingFor == "WaitingForNothing" {
-		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
-		e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
-		err = e.spawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
 		if err != nil {
 			return
 		}
-	}
-	e.executeSideEffects(sideEffects)
+
+		e.metrics.RecordDuration("set_objective", func() {
+			err = e.store.SetObjective(crankedObjective)
+
+			if err != nil {
+				return
+			}
+		})
+
+		e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
+
+		// If our protocol is waiting for nothing then we know the objective is complete
+		// TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
+		// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
+		if waitingFor == "WaitingForNothing" {
+			outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
+			e.metrics.RecordDuration("release_and_spawn", func() {
+				e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
+				err = e.spawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
+				if err != nil {
+					return
+				}
+			})
+		}
+
+		e.metrics.RecordDuration("execute_side_effects", func() {
+			e.executeSideEffects(sideEffects)
+		})
+	})
 	return
 }
 
 // spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective if it is a directfund.Objective.
 //
 // The associated Channel will remain in the store.
-func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
-	if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
-		c, err := dfo.CreateConsensusChannel()
-		if err != nil {
-			return fmt.Errorf("could not create consensus channel for objective %s: %w", crankedObjective.Id(), err)
+func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) (err error) {
+	e.metrics.RecordDuration("spawn_consensus", func() {
+		if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
+			c, cErr := dfo.CreateConsensusChannel()
+			if cErr != nil {
+				err = fmt.Errorf("could not create consensus channel for objective %s: %w", crankedObjective.Id(), cErr)
+			}
+			sErr := e.store.SetConsensusChannel(c)
+			if sErr != nil {
+				err = fmt.Errorf("could not store consensus channel for objective %s: %w", crankedObjective.Id(), cErr)
+			}
+			// Destroy the channel since the consensus channel takes over governance:
+			e.store.DestroyChannel(c.Id)
 		}
-		err = e.store.SetConsensusChannel(c)
-		if err != nil {
-			return fmt.Errorf("could not store consensus channel for objective %s: %w", crankedObjective.Id(), err)
-		}
-		// Destroy the channel since the consensus channel takes over governance:
-		e.store.DestroyChannel(c.Id)
-	}
+	})
 	return nil
 }
 
 // getOrCreateObjective retrieves the objective from the store. if the objective does not exist, it creates the objective using the supplied signed state, and stores it in the store
-func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedState) (protocols.Objective, error) {
+func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedState) (objective protocols.Objective, err error) {
+	e.metrics.RecordDuration("get_or_create_objective", func() {
+		objective, err = e.store.GetObjectiveById(id)
 
-	objective, err := e.store.GetObjectiveById(id)
+		if err == nil {
+			return
+		} else if errors.Is(err, store.ErrNoSuchObjective) {
+			err = nil
+			newObj, setErr := e.constructObjectiveFromMessage(id, ss)
+			if setErr != nil {
+				err = fmt.Errorf("error constructing objective from message: %w", setErr)
+				return
+			}
+			e.metrics.RecordObjectiveStarted(newObj.Id())
+			setErr = e.store.SetObjective(newObj)
+			if setErr != nil {
+				err = fmt.Errorf("error setting objective in store: %w", setErr)
+				return
+			}
+			e.logger.Printf("Created new objective from  message %s", newObj.Id())
+			objective = newObj
 
-	if err == nil {
-		return objective, nil
-	} else if errors.Is(err, store.ErrNoSuchObjective) {
-
-		newObj, err := e.constructObjectiveFromMessage(id, ss)
-		if err != nil {
-			return nil, fmt.Errorf("error constructing objective from message: %w", err)
+		} else {
+			err = fmt.Errorf("unexpected error getting/creating objective %s: %w", id, err)
 		}
-		e.metrics.RecordObjectiveStarted(newObj.Id())
-		err = e.store.SetObjective(newObj)
-		if err != nil {
-			return nil, fmt.Errorf("error setting objective in store: %w", err)
-		}
-		e.logger.Printf("Created new objective from  message %s", newObj.Id())
-		return newObj, nil
-
-	} else {
-		return nil, fmt.Errorf("unexpected error getting/creating objective %s: %w", id, err)
-	}
+	})
+	return
 }
 
 // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied message.
