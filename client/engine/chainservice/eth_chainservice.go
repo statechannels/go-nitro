@@ -159,7 +159,7 @@ func (ecs *EthChainService) listenForLogEvents() {
 					panic(err)
 				}
 
-				event := ConcludedEvent{CommonEvent: CommonEvent{channelID: ce.ChannelId, BlockNum: chainEvent.BlockNumber}}
+				event := ConcludedEvent{commonEvent: commonEvent{channelID: ce.ChannelId, BlockNum: chainEvent.BlockNumber}}
 				ecs.broadcast(event)
 			default:
 				panic("Unknown chain event")
