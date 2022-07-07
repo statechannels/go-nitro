@@ -94,7 +94,7 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 
 	// Fund channel
 	testDeposit := types.Funds{
-		common.HexToAddress("0x00"): big.NewInt(2),
+		common.HexToAddress("0x00"): big.NewInt(3),
 	}
 	cId := concludeState.ChannelId()
 
@@ -126,20 +126,9 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	expectedEvent2 := AllocationUpdatedEvent{
 		CommonEvent:  CommonEvent{channelID: cId, BlockNum: 3},
 		AssetAddress: common.Address{},
-		AssetAmount:  new(big.Int).SetInt64(0)}
+		AssetAmount:  new(big.Int).SetInt64(1)}
 
-	// Typically, this custom comparator would not be needed. In the allocationUpdatedEvent, AssetAmount is
-	// initialized via a go-ethereum function call. This initialization results in a zero value different than the
-	// initialization in test code and we see a diff of
-	// &big.Int{
-	//	 neg: false,
-	//   - abs: nil,
-	//   + abs: big.nat{},
-	// },
-	opt := cmp.Comparer(func(a, b *big.Int) bool {
-		return a.Cmp(b) == 0
-	})
-	if diff := cmp.Diff(expectedEvent2, allocationUpdatedEvent, cmp.AllowUnexported(CommonEvent{}), opt); diff != "" {
+	if diff := cmp.Diff(expectedEvent2, allocationUpdatedEvent, cmp.AllowUnexported(CommonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
