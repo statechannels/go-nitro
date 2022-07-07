@@ -92,7 +92,25 @@ describe('requireValidTurnTaking', () => {
         }
       })
     );
+  });
+  it('permits consensus proofs', async () => {
+    await Promise.all(
+      // TODO we shpould support ideally [0, 1, 2, 3, 4, 5, 6, 7]
+      [6].map(async (turnNum: number) => {
+        const consensusState = {...state, turnNum};
+        const variableParts = [consensusState].map(getVariablePart);
+        const fixedPart = getFixedPart(state);
 
-    // it('permits consensus proofs', async () => {});
+        // Sign the states
+        const sigs = wallets.map((w: Wallet) => signState(consensusState, w.privateKey).signature);
+        const signedVariableParts = bindSignatures(variableParts, sigs, [0, 0, 0]);
+
+        const result = await TESTShortcuttingTurnTaking.requireValidTurnTaking(
+          fixedPart,
+          signedVariableParts
+        );
+        expect(result).toBe(true);
+      })
+    );
   });
 });
