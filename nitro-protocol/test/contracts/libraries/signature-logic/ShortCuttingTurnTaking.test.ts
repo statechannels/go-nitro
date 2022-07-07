@@ -1,3 +1,4 @@
+import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, constants} from 'ethers';
 
 import TESTShortcuttingTurnTakingArtifact from '../../../../artifacts/contracts/test/TESTShortcuttingTurnTaking.sol/TESTShortcuttingTurnTaking.json';
@@ -38,17 +39,6 @@ const state: State = {
   appDefinition: process.env.CONSENSUS_APP_ADDRESS as string,
 };
 
-const states = [state, {...state, turnNum: 7}, {...state, turnNum: 8}];
-const variableParts = states.map(getVariablePart);
-const fixedPart = getFixedPart(state);
-
-// Sign the states
-const sigs = wallets.map(
-  (w: Wallet, idx: number) => signState(states[idx], w.privateKey).signature
-);
-
-const signedVariableParts = bindSignatures(variableParts, sigs, [0, 1, 2]);
-
 beforeAll(async () => {
   TESTShortcuttingTurnTaking = setupContract(
     provider,
@@ -57,12 +47,52 @@ beforeAll(async () => {
   ) as Contract & TESTShortcuttingTurnTaking;
 });
 
-describe('_recoverSigner', () => {
-  it('permits round robin signing', async () => {
-    const result = await TESTShortcuttingTurnTaking.requireValidTurnTaking(
-      fixedPart,
-      signedVariableParts
+describe('requireValidTurnTaking', () => {
+  it('handles round robin signing', async () => {
+    interface TestCase {
+      turnNums: number[];
+      allowed: boolean;
+    }
+    const testcases: TestCase[] = [
+      {turnNums: [0, 1, 2], allowed: true},
+      {turnNums: [3, 4, 5], allowed: true},
+      {turnNums: [6, 7, 8], allowed: true},
+      {turnNums: [9, 10, 11], allowed: true},
+      {turnNums: [5, 6, 7], allowed: false},
+      {turnNums: [1, 2, 3], allowed: false},
+      {turnNums: [0, 1, 3], allowed: false},
+    ];
+
+    await Promise.all(
+      testcases.map(async (testcase: TestCase) => {
+        const states = [
+          {...state, turnNum: testcase.turnNums[0]},
+          {...state, turnNum: testcase.turnNums[1]},
+          {...state, turnNum: testcase.turnNums[2]},
+        ];
+        const variableParts = states.map(getVariablePart);
+        const fixedPart = getFixedPart(state);
+
+        // Sign the states
+        const sigs = wallets.map(
+          (w: Wallet, idx: number) => signState(states[idx], w.privateKey).signature
+        );
+        const signedVariableParts = bindSignatures(variableParts, sigs, [0, 1, 2]);
+
+        if (testcase.allowed == true) {
+          const result = await TESTShortcuttingTurnTaking.requireValidTurnTaking(
+            fixedPart,
+            signedVariableParts
+          );
+          expect(result).toBe(true);
+        } else {
+          await expectRevert(async () =>
+            TESTShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts)
+          );
+        }
+      })
     );
-    expect(result).toBe(true);
+
+    // it('permits consensus proofs', async () => {});
   });
 });
