@@ -25,7 +25,7 @@ library ShortcuttingTurnTaking {
 
         _requireValidInput(nParticipants, signedVariableParts);
         
-        // Difference between a turn number of the last state, which have a last participant as a mover, and supplied largest turn number
+        // The difference between the support proof candidate turn number (aka largestTurnNum) and the round robin cycle last turn number.
         uint256 roundRobinShift = (largestTurnNum + 1) % nParticipants;
         uint48 prevTurnNum = 0;
 
