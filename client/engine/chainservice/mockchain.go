@@ -11,7 +11,7 @@ import (
 //
 // It keeps a record of of holdings and adjudication status for each channel, accepts transactions and emits events.
 type MockChain struct {
-	ChainServiceBase
+	chainServiceBase
 
 	holdings   map[types.Destination]types.Funds // holdings tracks funds for each channel
 	blockNum   *uint64                           // MockChain is often passed around by value. The pointer allows for shared state.
@@ -20,7 +20,7 @@ type MockChain struct {
 
 // NewMockChain returns a new MockChain.
 func NewMockChain() *MockChain {
-	mc := MockChain{ChainServiceBase: newChainServiceBase()}
+	mc := MockChain{chainServiceBase: newChainServiceBase()}
 	mc.holdings = make(map[types.Destination]types.Funds)
 	mc.blockNum = new(uint64)
 	*mc.blockNum = 1
