@@ -47,7 +47,7 @@ interface IForceMoveApp2 {
 }
 
 library ForceMoveAppUtilities {
-    function isSignedBy(uint256 signedBy, uint8 participantIndex) internal pure returns (bool) {
+    function isClaimedSignedBy(uint256 signedBy, uint8 participantIndex) internal pure returns (bool) {
         return ((signedBy >> participantIndex) % 2 == 1);
     }
 
@@ -61,8 +61,8 @@ library ForceMoveAppUtilities {
     ) internal pure returns (bool) {
         require(
             turnNumB > 0 &&
-                isSignedBy(signedByFrom, uint8((turnNumB - 1) % nParticipants)) &&
-                isSignedBy(signedByTo, uint8(turnNumB % nParticipants)),
+                isClaimedSignedBy(signedByFrom, uint8((turnNumB - 1) % nParticipants)) &&
+                isClaimedSignedBy(signedByTo, uint8(turnNumB % nParticipants)),
             'roundRobin violation'
         );
         return true;
@@ -164,8 +164,8 @@ contract EmbeddedApplication is
         uint256 signedByTo // Who has signed the "to" state?
     ) public pure override returns (bool) {
         // parameter wrangling
-        bool signedByA = ForceMoveAppUtilities.isSignedBy(signedByTo, 0);
-        bool signedByB = ForceMoveAppUtilities.isSignedBy(signedByTo, 1);
+        bool signedByA = ForceMoveAppUtilities.isClaimedSignedBy(signedByTo, 0);
+        bool signedByB = ForceMoveAppUtilities.isClaimedSignedBy(signedByTo, 1);
         AppData memory fromAppData = abi.decode(from.appData, (AppData));
         AppData memory toAppData = abi.decode(to.appData, (AppData));
         Outcome.Allocation[] memory fromAllocations = decode3PartyAllocation(from.outcome);

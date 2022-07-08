@@ -2,11 +2,12 @@
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import './interfaces/IForceMoveApp.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
+import {ShortcuttingTurnTaking} from './libraries/signature-logic/ShortcuttingTurnTaking.sol';
+import './interfaces/IForceMoveApp.sol';
 
 /**
- * @dev The CountingApp contracts complies with the ForceMoveApp interface and allows only for a simple counter to be incremented. Used for testing purposes.
+ * @dev The CountingApp contract complies with the ForceMoveApp interface and shortcutting turn taking logic and allows only for a simple counter to be incremented. Used for testing purposes.
  */
 contract CountingApp is IForceMoveApp {
     struct CountingAppData {
@@ -20,8 +21,7 @@ contract CountingApp is IForceMoveApp {
      * @return A CountingAppData struct containing the application-specific data.
      */
     function appData(bytes memory appDataBytes) internal pure returns (CountingAppData memory) {
-        bytes memory decodedAppData = abi.decode(appDataBytes, (bytes));
-        return abi.decode(decodedAppData, (CountingAppData));
+        return abi.decode(appDataBytes, (CountingAppData));
     }
 
     /**
@@ -35,7 +35,45 @@ contract CountingApp is IForceMoveApp {
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
     ) external pure override returns (VariablePart memory) {
-        // TODO see https://github.com/statechannels/go-nitro/issues/558
+        ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts);
+
+        for (uint i = 1; i < signedVariableParts.length; i++) {
+            _requireIncrementedCounter(signedVariableParts[i], signedVariableParts[i-1]);
+            _requireEqualOutcomes(signedVariableParts[i], signedVariableParts[i-1]);
+        }
+
         return signedVariableParts[signedVariableParts.length - 1].variablePart;
+    }
+
+    /**
+     * @notice Checks that counter encoded in first variable part equals an incremented counter in second variable part.
+     * @dev Checks that counter encoded in first variable part equals an incremented counter in second variable part.
+     * @param b SignedVariablePart with incremented counter.
+     * @param a SignedVariablePart with counter before incrementing.
+     */
+    function _requireIncrementedCounter(
+        SignedVariablePart memory b,
+        SignedVariablePart memory a
+    ) internal pure {
+        require(
+            appData(b.variablePart.appData).counter == appData(a.variablePart.appData).counter + 1,
+            'Counter must be incremented'
+        );
+    }
+
+    /**
+     * @notice Checks that supplied signed variable parts contain the same outcome.
+     * @dev Checks that supplied signed variable parts contain the same outcome.
+     * @param a First SignedVariablePart.
+     * @param b Second SignedVariablePart.
+     */
+    function _requireEqualOutcomes(
+        SignedVariablePart memory a,
+        SignedVariablePart memory b
+    ) internal pure {
+        require(
+            Outcome.exitsEqual(a.variablePart.outcome, b.variablePart.outcome),
+            'Outcome must not change'
+        );
     }
 }

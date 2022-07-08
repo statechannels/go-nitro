@@ -8,11 +8,12 @@ import nitroAdjudicatorArtifact from '../artifacts/contracts/NitroAdjudicator.so
 import singleAssetPaymentsArtifact from '../artifacts/contracts/examples/SingleAssetPayments.sol/SingleAssetPayments.json';
 import hashLockedSwapArtifact from '../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
 import testForceMoveArtifact from '../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
+import testNitroUtilsArtifact from '../artifacts/contracts/test/TESTNitroUtils.sol/TESTNitroUtils.json';
 import testNitroAdjudicatorArtifact from '../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 import tokenArtifact from '../artifacts/contracts/Token.sol/Token.json';
 import trivialAppArtifact from '../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
 import embeddedApplicationArtifact from '../artifacts/contracts/examples/EmbeddedApplication.sol/EmbeddedApplication.json';
-
+import consensusAppArtifact from '../artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
 const rpcEndPoint = 'http://localhost:' + process.env.GANACHE_PORT;
 const provider = new providers.JsonRpcProvider(rpcEndPoint);
 
@@ -24,20 +25,24 @@ const [
   singleAssetPaymentsFactory,
   hashLockedSwapFactory,
   testForceMoveFactory,
+  testNitroUtilsFactory,
   testNitroAdjudicatorFactory,
   tokenFactory,
   trivialAppFactory,
   embeddedApplicationFactory,
+  consensusAppFactory,
 ] = [
   countingAppArtifact,
   nitroAdjudicatorArtifact,
   singleAssetPaymentsArtifact,
   hashLockedSwapArtifact,
   testForceMoveArtifact,
+  testNitroUtilsArtifact,
   testNitroAdjudicatorArtifact,
   tokenArtifact,
   trivialAppArtifact,
   embeddedApplicationArtifact,
+  consensusAppArtifact,
 ].map(artifact =>
   new ContractFactory(artifact.abi, artifact.bytecode).connect(provider.getSigner(0))
 );
@@ -51,7 +56,9 @@ export async function deploy(): Promise<Record<string, string>> {
   const TEST_NITRO_ADJUDICATOR_ADDRESS = (await testNitroAdjudicatorFactory.deploy()).address;
   const TRIVIAL_APP_ADDRESS = (await trivialAppFactory.deploy()).address;
   const TEST_FORCE_MOVE_ADDRESS = (await testForceMoveFactory.deploy()).address;
+  const TEST_NITRO_UTILS_ADDRESS = (await testNitroUtilsFactory.deploy()).address;
   const EMBEDDED_APPLICATION_ADDRESS = (await embeddedApplicationFactory.deploy()).address;
+  const CONSENSUS_APP_ADDRESS = await (await consensusAppFactory.deploy()).address;
 
   const TEST_TOKEN_ADDRESS = (
     await tokenFactory.deploy(new Wallet(TEST_ACCOUNTS[0].privateKey).address)
@@ -64,7 +71,9 @@ export async function deploy(): Promise<Record<string, string>> {
     SINGLE_ASSET_PAYMENT_ADDRESS,
     TRIVIAL_APP_ADDRESS,
     TEST_FORCE_MOVE_ADDRESS,
+    TEST_NITRO_UTILS_ADDRESS,
     TEST_NITRO_ADJUDICATOR_ADDRESS,
     TEST_TOKEN_ADDRESS,
+    CONSENSUS_APP_ADDRESS,
   };
 }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
+
 import '../ForceMove.sol';
 
 /**
@@ -21,16 +22,6 @@ contract TESTForceMove is ForceMove {
         returns (bool)
     {
         return _isAddressInArray(suspect, addresses);
-    }
-
-    /**
-     * @dev Wrapper for otherwise internal function. Given a digest and digital signature, recover the signer
-     * @param _d message digest
-     * @param sig ethereum digital signature
-     * @return signer
-     */
-    function recoverSigner(bytes32 _d, Signature memory sig) public pure returns (address) {
-        return _recoverSigner(_d, sig);
     }
 
     // public setter for statusOf

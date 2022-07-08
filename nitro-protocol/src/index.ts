@@ -6,23 +6,21 @@
  * Building your state channel application contract against our interface:
  *
  * ```solidity
- * pragma solidity ^0.7.0;
+ * pragma solidity 0.7.6;
  * pragma experimental ABIEncoderV2;
  *
- * import '@statechannels/nitro-protocol/contracts/interfaces/IForceMoveApp.sol';
- * import '@statechannels/nitro-protocol/contracts/Outcome.sol';
+ * import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
+ * import '@statechannels/go-nitro/nitro-protocol/contracts/interfaces/IForceMoveApp.sol';
  *
  * contract MyStateChannelApp is IForceMoveApp {
- *   function validTransition(
- *     VariablePart memory a,
- *     VariablePart memory b,
- *     uint256 turnNumB,
- *     uint256 nParticipants
- *   ) public override pure returns (bool) {
+ *   function latestSupportedState(
+ *     FixedPart fixedPart,
+ *     SignedVariablePart[] calldata signedVariableParts
+ *   ) external override pure returns (VariablePart memory) {
 
 *     // Your logic ...
  *
- *     return true;
+ *     return signedVariableParts[signedVariableParts.length - 1].variablePart;
  *   }
  * }
  * ```
@@ -149,15 +147,8 @@ export {State, VariablePart, getVariablePart, getFixedPart, hashState} from './c
 
 export * from './signatures';
 export * from './transactions';
-export {
-  createERC20DepositTransaction,
-  createETHDepositTransaction,
-} from './contract/transaction-creators/multi-asset-holder';
 
 // types
 export {Uint256, Bytes32} from './contract/types';
-
-// validTransition
-export * from './valid-transition';
 
 export * from './channel-mode';

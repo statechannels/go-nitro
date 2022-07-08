@@ -3,6 +3,7 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
+import {NitroUtils} from './libraries/NitroUtils.sol';
 import './interfaces/IForceMove.sol';
 import './interfaces/IForceMoveApp.sol';
 import './StatusManager.sol';
@@ -39,7 +40,7 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @dev Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct decribing the properties of the state channel that may change with each state update.
+     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update.
      * @param challengerSig The signature of a participant on the keccak256 of the abi.encode of (supportedStateHash, 'forceMove').
      */
     function challenge(
@@ -47,7 +48,7 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart[] memory signedVariableParts,
         Signature memory challengerSig
     ) external override {
-        bytes32 channelId = _getChannelId(fixedPart);
+        bytes32 channelId = NitroUtils.getChannelId(fixedPart);
         uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
 
         if (_mode(channelId) == ChannelMode.Open) {
@@ -83,7 +84,7 @@ contract ForceMove is IForceMove, StatusManager {
                 largestTurnNum,
                 uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
                 supportedStateHash,
-                _hashOutcome(_lastVariablePart(signedVariableParts).outcome)
+                NitroUtils.hashOutcome(_lastVariablePart(signedVariableParts).outcome)
             )
         );
     }
@@ -92,13 +93,13 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
      * @dev Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct decribing the properties of the state channel that may change with each state update.
+     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update.
      */
     function checkpoint(
         FixedPart memory fixedPart,
         SignedVariablePart[] memory signedVariableParts
     ) external override {
-        bytes32 channelId = _getChannelId(fixedPart);
+        bytes32 channelId = NitroUtils.getChannelId(fixedPart);
         uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
 
         // checks
@@ -133,7 +134,7 @@ contract ForceMove is IForceMove, StatusManager {
         FixedPart memory fixedPart,
         SignedVariablePart[] memory signedVariableParts
     ) internal returns (bytes32 channelId) {
-        channelId = _getChannelId(fixedPart);
+        channelId = NitroUtils.getChannelId(fixedPart);
         _requireChannelNotFinalized(channelId);
 
         // checks
@@ -145,20 +146,14 @@ contract ForceMove is IForceMove, StatusManager {
                 0,
                 uint48(block.timestamp), //solhint-disable-line not-rely-on-time
                 bytes32(0),
-                _hashOutcome(_lastVariablePart(signedVariableParts).outcome)
+                NitroUtils.hashOutcome(_lastVariablePart(signedVariableParts).outcome)
             )
         );
         emit Concluded(channelId, uint48(block.timestamp)); //solhint-disable-line not-rely-on-time
     }
 
     function getChainID() public pure returns (uint256) {
-        uint256 id;
-        /* solhint-disable no-inline-assembly */
-        assembly {
-            id := chainid()
-        }
-        /* solhint-disable no-inline-assembly */
-        return id;
+        return NitroUtils.getChainID();
     }
 
     // *****************
@@ -177,7 +172,7 @@ contract ForceMove is IForceMove, StatusManager {
         address[] memory participants,
         Signature memory challengerSignature
     ) internal pure {
-        address challenger = _recoverSigner(
+        address challenger = NitroUtils.recoverSigner(
             keccak256(abi.encode(supportedStateHash, 'forceMove')),
             challengerSignature
         );
@@ -205,20 +200,6 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Given a digest and ethereum digital signature, recover the signer
-     * @dev Given a digest and digital signature, recover the signer
-     * @param _d message digest
-     * @param sig ethereum digital signature
-     * @return signer
-     */
-    function _recoverSigner(bytes32 _d, Signature memory sig) internal pure returns (address) {
-        bytes32 prefixedHash = keccak256(abi.encodePacked('\x19Ethereum Signed Message:\n32', _d));
-        address a = ecrecover(prefixedHash, sig.v, sig.r, sig.s);
-        require(a != address(0), 'Invalid signature');
-        return (a);
-    }
-
-    /**
      * @notice Check that the submitted data constitute a support proof.
      * @dev Check that the submitted data constitute a support proof.
      * @param fixedPart Fixed Part of the states in the support proof.
@@ -237,7 +218,7 @@ contract ForceMove is IForceMove, StatusManager {
         // enforcing the latest supported state being in the last slot of the array
         _requireVariablePartIsLast(latestVariablePart, signedVariableParts);
 
-        return _hashState(
+        return NitroUtils.hashState(
             channelId,
             latestVariablePart.appData,
             latestVariablePart.outcome,
@@ -257,69 +238,12 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart[] memory signedVariableParts
     ) internal pure {
         require(
-            _bytesEqual(
+            NitroUtils.bytesEqual(
                 abi.encode(signedVariableParts[signedVariableParts.length - 1].variablePart),
                 abi.encode(variablePart)
             ),
             'variablePart not the last.'
         );
-    }
-
-    /**
-     * @notice Check for equality of two byte strings
-     * @dev Check for equality of two byte strings
-     * @param _preBytes One bytes string
-     * @param _postBytes The other bytes string
-     * @return true if the bytes are identical, false otherwise.
-     */
-    function _bytesEqual(bytes memory _preBytes, bytes memory _postBytes)
-        internal
-        pure
-        returns (bool)
-    {
-        // copied from https://www.npmjs.com/package/solidity-bytes-utils/v/0.1.1
-        bool success = true;
-
-        /* solhint-disable no-inline-assembly */
-        assembly {
-            let length := mload(_preBytes)
-
-            // if lengths don't match the arrays are not equal
-            switch eq(length, mload(_postBytes))
-            case 1 {
-                // cb is a circuit breaker in the for loop since there's
-                //  no said feature for inline assembly loops
-                // cb = 1 - don't breaker
-                // cb = 0 - break
-                let cb := 1
-
-                let mc := add(_preBytes, 0x20)
-                let end := add(mc, length)
-
-                for {
-                    let cc := add(_postBytes, 0x20)
-                    // the next line is the loop condition:
-                    // while(uint256(mc < end) + cb == 2)
-                } eq(add(lt(mc, end), cb), 2) {
-                    mc := add(mc, 0x20)
-                    cc := add(cc, 0x20)
-                } {
-                    // if any of these checks fails then arrays are not equal
-                    if iszero(eq(mload(mc), mload(cc))) {
-                        // unsuccess:
-                        success := 0
-                        cb := 0
-                    }
-                }
-            }
-            default {
-                // unsuccess:
-                success := 0
-            }
-        }
-        /* solhint-disable no-inline-assembly */
-
-        return success;
     }
 
     /**
@@ -386,59 +310,6 @@ contract ForceMove is IForceMove, StatusManager {
      */
     function _matchesStatus(ChannelData memory data, bytes32 s) internal pure returns (bool) {
         return _generateStatus(data) == s;
-    }
-
-    /**
-     * @notice Computes the hash of the state corresponding to the input data.
-     * @dev Computes the hash of the state corresponding to the input data.
-     * @param turnNum Turn number
-     * @param isFinal Is the state final?
-     * @param channelId Unique identifier for the channel
-     * @param appData Application specific data.
-     * @param outcome Outcome structure.
-     * @return The stateHash
-     */
-    function _hashState(
-        bytes32 channelId,
-        bytes memory appData,
-        Outcome.SingleAssetExit[] memory outcome,
-        uint48 turnNum,
-        bool isFinal
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(channelId, appData, outcome, turnNum, isFinal));
-    }
-
-    /**
-     * @notice Hashes the outcome structure. Internal helper.
-     * @dev Hashes the outcome structure. Internal helper.
-     * @param outcome Outcome structure to encode hash.
-     * @return bytes32 Hash of encoded outcome structure.
-     */
-    function _hashOutcome(Outcome.SingleAssetExit[] memory outcome)
-        internal
-        pure
-        returns (bytes32)
-    {
-        return keccak256(Outcome.encodeExit(outcome));
-    }
-
-    /**
-     * @notice Computes the unique id of a channel.
-     * @dev Computes the unique id of a channel.
-     * @param fixedPart Part of the state that does not change
-     * @return channelId
-     */
-    function _getChannelId(FixedPart memory fixedPart) internal pure returns (bytes32 channelId) {
-        require(fixedPart.chainId == getChainID(), 'Incorrect chainId');
-        channelId = keccak256(
-            abi.encode(
-                getChainID(),
-                fixedPart.participants,
-                fixedPart.channelNonce,
-                fixedPart.appDefinition,
-                fixedPart.challengeDuration
-            )
-        );
     }
 
     /**
