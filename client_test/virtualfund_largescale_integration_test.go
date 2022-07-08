@@ -81,6 +81,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 		retrievalProviderStore,
 		logDestination,
 		&engine.PermissivePolicy{},
+		nil,
 	)
 	paymentHub = client.New(
 		messageservice.NewVectorClockTestMessageService(irene.Address(), broker, 0, vectorClockLogDir),
@@ -88,6 +89,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 		paymentHubStore,
 		logDestination,
 		&engine.PermissivePolicy{},
+		nil,
 	)
 	for i := range retrievalClients {
 		retrievalClients[i] =
@@ -97,6 +99,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 				rcStores[i],
 				logDestination,
 				&engine.PermissivePolicy{},
+				nil,
 			)
 	}
 

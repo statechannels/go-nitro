@@ -31,7 +31,7 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 		AppDefinition:     types.Address{},
 		AppData:           types.Bytes{},
 		ChallengeDuration: big.NewInt(0),
-		Nonce:             rand.Int63(),
+		Nonce:             int64(rand.Int31()),
 	}
 	response := alpha.CreateDirectChannel(request)
 
@@ -65,7 +65,7 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 	{
 		messageservice := messageservice.NewTestMessageService(bob.Address(), broker, meanMessageDelay)
 		storeB = store.NewMemStore(bob.PrivateKey)
-		clientB = client.New(messageservice, chain, storeB, logDestination, &RejectingPolicyMaker{})
+		clientB = client.New(messageservice, chain, storeB, logDestination, &RejectingPolicyMaker{}, nil)
 	}
 
 	outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), ledgerChannelDeposit, ledgerChannelDeposit)
@@ -109,12 +109,12 @@ func TestDirectFund(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	// Setup chain service
-	sim, na, naAddress, ethAccounts, err := chainservice.SetupSimulatedBackend(2)
+	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	chainA := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[0])
-	chainB := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[1])
+	chainA := chainservice.NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[0])
+	chainB := chainservice.NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[1])
 	// End chain service setup
 
 	broker := messageservice.NewBroker()

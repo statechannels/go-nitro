@@ -26,6 +26,7 @@ const ObjectivePrefix = "DirectDefunding-"
 var (
 	ErrChannelUpdateInProgress = errors.New("can only defund a channel when the latest state is supported or when the channel has a final state")
 	ErrNoFinalState            = errors.New("cannot spawn direct defund objective without a final state")
+	ErrNotEmpty                = errors.New("ledger channel has running guarantees")
 )
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
@@ -70,6 +71,10 @@ func NewObjective(
 	cc, err := getConsensusChannel(request.ChannelId)
 	if err != nil {
 		return Objective{}, fmt.Errorf("could not find channel %s; %w", request.ChannelId, err)
+	}
+
+	if len(cc.FundingTargets()) != 0 {
+		return Objective{}, ErrNotEmpty
 	}
 
 	c, err := CreateChannelFromConsensusChannel(*cc)
@@ -204,12 +209,10 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 	updated := o.clone()
 	switch e := event.(type) {
 	case chainservice.AllocationUpdatedEvent:
-		{
-			// todo: check block number
-			if e.Holdings != nil {
-				updated.C.OnChainFunding = e.Holdings.Clone()
-			}
-		}
+		// todo: check block number
+		updated.C.OnChainFunding[e.AssetAddress] = e.AssetAmount
+	case chainservice.ConcludedEvent:
+		break
 	default:
 		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
 	}
@@ -256,11 +259,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	}
 
 	// Withdrawal of funds
-	if !updated.fullyWithdrawn() && !updated.transactionSubmitted {
-
+	if !updated.fullyWithdrawn() {
 		// The first participant in the channel submits the withdrawAll transaction
-		if updated.C.MyIndex == 0 {
-			withdrawAll := protocols.ChainTransaction{Type: protocols.WithdrawAllTransactionType, ChannelId: updated.C.Id}
+		if updated.C.MyIndex == 0 && !updated.transactionSubmitted {
+			withdrawAll := protocols.NewWithdrawAllTransaction(updated.C.Id, latestSignedState)
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
 			updated.transactionSubmitted = true
 		}
