@@ -45,7 +45,9 @@ var Actors actors = actors{
 	},
 }
 
-var turnNum = uint64(0)
+// TODO https://github.com/statechannels/go-nitro/issues/785
+// This test should cover several different turn numbers, including pre and post fund tun numbers.
+var turnNum = uint64(2)
 
 func TestChallenge(t *testing.T) {
 
