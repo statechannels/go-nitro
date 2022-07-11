@@ -69,7 +69,6 @@ func (ecs *EthChainService) defaultTxOpts() *bind.TransactOpts {
 func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error {
 	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
-		ethTxs := []*ethTypes.Transaction{}
 		for tokenAddress, amount := range tx.Deposit {
 			txOpts := ecs.defaultTxOpts()
 			ethTokenAddress := common.Address{}
@@ -90,11 +89,10 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 				return err
 			}
 
-			ethTx, err := ecs.na.Deposit(txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
+			_, err = ecs.na.Deposit(txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
 			if err != nil {
 				return err
 			}
-			ethTxs = append(ethTxs, ethTx)
 		}
 		return nil
 	case protocols.WithdrawAllTransaction:
