@@ -46,9 +46,9 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, n
 	ecs.consensusAppAddress = caAddress
 	ecs.txSigner = txSigner
 
-	go ecs.listenForLogEvents()
+	err := ecs.subcribeToEvents()
 
-	return &ecs, nil
+	return &ecs, err
 }
 
 // defaultTxOpts returns transaction options suitable for most transaction submissions
@@ -114,15 +114,21 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 	}
 }
 
-func (ecs *EthChainService) listenForLogEvents() {
+func (ecs *EthChainService) subcribeToEvents() error {
+	// Subsribe to Adjudicator events
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
 	}
 	logs := make(chan ethTypes.Log)
 	sub, err := ecs.chain.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	go ecs.listenForLogEvents(sub, logs)
+	return nil
+}
+
+func (ecs *EthChainService) listenForLogEvents(sub ethereum.Subscription, logs chan ethTypes.Log) {
 	for {
 		select {
 		case err := <-sub.Err():
