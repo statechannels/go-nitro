@@ -357,7 +357,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 }
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective
-func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
+func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	for _, message := range sideEffects.MessagesToSend {
 
 		e.logger.Printf("Sending message %+v", protocols.SummarizeMessage(message))
@@ -366,11 +366,15 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
 		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId())
-		e.chain.SendTransaction(tx)
+		err := e.chain.SendTransaction(tx)
+		if err != nil {
+			return err
+		}
 	}
 	for _, proposal := range sideEffects.ProposalsToProcess {
 		e.fromLedger <- proposal
 	}
+	return nil
 }
 
 // attemptProgress takes a "live" objective in memory and performs the following actions:
@@ -414,7 +418,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 			return
 		}
 	}
-	e.executeSideEffects(sideEffects)
+	err = e.executeSideEffects(sideEffects)
 	return
 }
 
