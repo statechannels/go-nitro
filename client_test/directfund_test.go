@@ -113,11 +113,11 @@ func TestDirectFund(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	chainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0])
+	chainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
 	if err != nil {
 		t.Fatal(err)
 	}
-	chainB, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[1])
+	chainB, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[1], logDestination)
 	if err != nil {
 		t.Fatal(err)
 	}

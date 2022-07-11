@@ -36,6 +36,12 @@ var concludeOutcome = outcome.Exit{
 	},
 }
 
+type NoopLogger struct{}
+
+func (l NoopLogger) Write(p []byte) (n int, err error) {
+	return 0, nil
+}
+
 func TestDepositSimulatedBackendChainService(t *testing.T) {
 	one := big.NewInt(1)
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
@@ -43,7 +49,7 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cs, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[0])
+	cs, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], NoopLogger{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +97,7 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cs, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[0])
+	cs, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], NoopLogger{})
 	if err != nil {
 		t.Fatal(err)
 	}
