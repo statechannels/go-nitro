@@ -38,13 +38,20 @@ func TestDeposit(t *testing.T) {
 	testTx := protocols.NewDepositTransaction(types.Destination(common.HexToHash(`4ebd366d014a173765ba1e50f284c179ade31f20441bec41664712aac6cc461d`)), testDeposit)
 
 	// Send one transaction and receive one event from it.
-	chain.SendTransaction(testTx)
+	err = chain.SendTransaction(testTx)
+	if err != nil {
+		t.Error(err)
+	}
 	event := <-eventFeedA
 
 	checkReceivedEventIsValid(t, event, testTx.Deposit, testTx.ChannelId())
 
 	// Send the transaction again and receive another event
-	chain.SendTransaction(testTx)
+	err = chain.SendTransaction(testTx)
+	if err != nil {
+		t.Error(err)
+	}
+
 	event = <-eventFeedA
 
 	// The expectation is that the MockChainService remembered the previous deposit and added this one to it:

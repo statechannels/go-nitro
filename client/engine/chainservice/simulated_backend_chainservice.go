@@ -52,9 +52,13 @@ func NewSimulatedBackendChainService(sim simulatedChain, bindings bindings,
 }
 
 // SendTransaction sends the transaction and blocks until it has been mined.
-func (sbcs *SimulatedBackendChainService) SendTransaction(tx protocols.ChainTransaction) {
-	sbcs.EthChainService.SendTransaction(tx)
+func (sbcs *SimulatedBackendChainService) SendTransaction(tx protocols.ChainTransaction) error {
+	err := sbcs.EthChainService.SendTransaction(tx)
+	if err != nil {
+		return err
+	}
 	sbcs.sim.Commit()
+	return nil
 }
 
 // SetupSimulatedBackend creates a new SimulatedBackend with the supplied number of transacting accounts, deploys the Nitro Adjudicator and returns both.

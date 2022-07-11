@@ -1,6 +1,8 @@
 package chainservice
 
 import (
+	"fmt"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -37,7 +39,7 @@ func NewMockChainWithTransactionListener(txListener chan protocols.ChainTransact
 }
 
 // SendTransaction responds to the given tx.
-func (mc *MockChain) SendTransaction(tx protocols.ChainTransaction) {
+func (mc *MockChain) SendTransaction(tx protocols.ChainTransaction) error {
 	*mc.blockNum++
 	if mc.txListener != nil {
 		mc.txListener <- tx
@@ -58,8 +60,9 @@ func (mc *MockChain) SendTransaction(tx protocols.ChainTransaction) {
 		}
 		mc.holdings[tx.ChannelId()] = types.Funds{}
 	default:
-		panic("unexpected chain transaction")
+		return fmt.Errorf("unexpected transaction type %T", tx)
 	}
+	return nil
 }
 
 // GetConsensusAppAddress returns the zero address, since the mock chain will not run any application logic.

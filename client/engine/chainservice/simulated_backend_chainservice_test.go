@@ -59,7 +59,10 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 
 	out := cs.SubscribeToEvents(ethAccounts[0].From)
 	// Submit transactiom
-	cs.SendTransaction(testTx)
+	err = cs.SendTransaction(testTx)
+	if err != nil {
+		t.Error(err)
+	}
 
 	// Check that the recieved events matches the expected event
 	for i := 0; i < 2; i++ {
@@ -114,7 +117,10 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	cId := concludeState.ChannelId()
 
 	depositTx := protocols.NewDepositTransaction(cId, testDeposit)
-	cs.SendTransaction(depositTx)
+	err = cs.SendTransaction(depositTx)
+	if err != nil {
+		t.Error(err)
+	}
 	<-out
 
 	signedConcludeState := state.NewSignedState(concludeState)
@@ -127,8 +133,10 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 		t.Fatal(err)
 	}
 	concludeTx := protocols.NewWithdrawAllTransaction(cId, signedConcludeState)
-	cs.SendTransaction(concludeTx)
-
+	err = cs.SendTransaction(concludeTx)
+	if err != nil {
+		t.Error(err)
+	}
 	// Check that the recieved event matches the expected event
 	concludedEvent := <-out
 	expectedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, BlockNum: 3}}
