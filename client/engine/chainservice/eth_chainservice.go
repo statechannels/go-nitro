@@ -3,6 +3,7 @@ package chainservice
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"math/big"
 
@@ -33,11 +34,12 @@ type EthChainService struct {
 	naAddress           common.Address
 	consensusAppAddress common.Address
 	txSigner            *bind.TransactOpts
+	logger              *log.Logger
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, caAddress common.Address, txSigner *bind.TransactOpts) (*EthChainService, error) {
+func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, caAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer) (*EthChainService, error) {
 	ecs := EthChainService{chainServiceBase: newChainServiceBase()}
 	ecs.out = safesync.Map[chan Event]{}
 	ecs.chain = chain
@@ -45,6 +47,9 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, n
 	ecs.naAddress = naAddress
 	ecs.consensusAppAddress = caAddress
 	ecs.txSigner = txSigner
+
+	logPrefix := "chainservice " + txSigner.From.String() + ": "
+	ecs.logger = log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
 
 	err := ecs.subcribeToEvents()
 

@@ -2,6 +2,7 @@ package chainservice
 
 import (
 	"errors"
+	"io"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -43,12 +44,13 @@ type SimulatedBackendChainService struct {
 // NewSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
 func NewSimulatedBackendChainService(sim simulatedChain, bindings bindings,
-	txSigner *bind.TransactOpts) (ChainService, error) {
+	txSigner *bind.TransactOpts, logDestination io.Writer) (ChainService, error) {
 	ethChainService, err := NewEthChainService(sim,
 		bindings.Adjudicator.Contract,
 		bindings.Adjudicator.Address,
 		bindings.ConsensusApp.Address,
-		txSigner)
+		txSigner,
+		logDestination)
 
 	if err != nil {
 		return &SimulatedBackendChainService{}, err
