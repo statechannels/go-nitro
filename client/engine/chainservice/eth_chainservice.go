@@ -3,7 +3,6 @@ package chainservice
 import (
 	"context"
 	"log"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -53,10 +52,9 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, n
 // defaultTxOpts returns transaction options suitable for most transaction submissions
 func (ecs *EthChainService) defaultTxOpts() *bind.TransactOpts {
 	return &bind.TransactOpts{
-		From:     ecs.txSigner.From,
-		Nonce:    ecs.txSigner.Nonce,
-		Signer:   ecs.txSigner.Signer,
-		GasPrice: big.NewInt(10000000000),
+		From:   ecs.txSigner.From,
+		Nonce:  ecs.txSigner.Nonce,
+		Signer: ecs.txSigner.Signer,
 	}
 }
 

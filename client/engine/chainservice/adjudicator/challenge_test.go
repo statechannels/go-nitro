@@ -54,7 +54,6 @@ func TestChallenge(t *testing.T) {
 	// Setup transacting EOA
 	key, _ := crypto.GenerateKey()
 	auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337)) // 1337 according to godoc on backends.NewSimulatedBackend
-	auth.GasPrice = big.NewInt(10000000000)
 	address := auth.From
 
 	// Setup a second transacting EOA
