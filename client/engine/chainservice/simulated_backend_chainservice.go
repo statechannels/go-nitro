@@ -43,12 +43,17 @@ type SimulatedBackendChainService struct {
 // NewSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
 func NewSimulatedBackendChainService(sim simulatedChain, bindings bindings,
-	txSigner *bind.TransactOpts) ChainService {
-	return &SimulatedBackendChainService{sim: sim, EthChainService: NewEthChainService(sim,
+	txSigner *bind.TransactOpts) (ChainService, error) {
+	ethChainService, err := NewEthChainService(sim,
 		bindings.Adjudicator.Contract,
 		bindings.Adjudicator.Address,
 		bindings.ConsensusApp.Address,
-		txSigner)}
+		txSigner)
+
+	if err != nil {
+		return &SimulatedBackendChainService{}, err
+	}
+	return &SimulatedBackendChainService{sim: sim, EthChainService: ethChainService}, nil
 }
 
 // SendTransaction sends the transaction and blocks until it has been mined.

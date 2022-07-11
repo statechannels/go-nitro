@@ -37,7 +37,7 @@ type EthChainService struct {
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, caAddress common.Address, txSigner *bind.TransactOpts) *EthChainService {
+func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, caAddress common.Address, txSigner *bind.TransactOpts) (*EthChainService, error) {
 	ecs := EthChainService{chainServiceBase: newChainServiceBase()}
 	ecs.out = safesync.Map[chan Event]{}
 	ecs.chain = chain
@@ -48,7 +48,7 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, n
 
 	go ecs.listenForLogEvents()
 
-	return &ecs
+	return &ecs, nil
 }
 
 // defaultTxOpts returns transaction options suitable for most transaction submissions
