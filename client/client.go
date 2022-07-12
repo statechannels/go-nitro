@@ -22,14 +22,21 @@ type Client struct {
 	engine              engine.Engine // The core business logic of the client
 	Address             *types.Address
 	completedObjectives chan protocols.ObjectiveId
+	failedObjectives    chan protocols.ObjectiveId
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
-func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker engine.PolicyMaker) Client {
+func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker engine.PolicyMaker, metricsApi engine.MetricsApi) Client {
 	c := Client{}
 	c.Address = store.GetAddress()
-	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker)
+	// If a metrics API is not provided we used the no-op version which does nothing.
+	if metricsApi == nil {
+		metricsApi = &engine.NoOpMetrics{}
+	}
+
+	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
+	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 
 	// Start the engine in a go routine
 	go c.engine.Run()
@@ -52,6 +59,10 @@ func (c *Client) handleEngineEvents() {
 
 		}
 
+		for _, erred := range update.FailedObjectives {
+			c.failedObjectives <- erred
+		}
+
 	}
 }
 
@@ -60,6 +71,11 @@ func (c *Client) handleEngineEvents() {
 // CompletedObjectives returns a chan that receives a objective id whenever that objective is completed
 func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 	return c.completedObjectives
+}
+
+// FailedObjectives returns a chan that receives an objective id whenever that objective has failed
+func (c *Client) FailedObjectives() <-chan protocols.ObjectiveId {
+	return c.failedObjectives
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
