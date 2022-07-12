@@ -27,7 +27,7 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	chain := chainservice.NewMockChain()
+	chain := chainservice.NewMockChainService()
 	broker := messageservice.NewBroker()
 
 	clientA, _ := setupClient(alice.PrivateKey, chain, broker, logDestination, MAX_MESSAGE_DELAY)

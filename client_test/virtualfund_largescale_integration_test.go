@@ -47,7 +47,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	// Setup central services
-	chain := chainservice.NewMockChain()
+	chain := chainservice.NewMockChainService()
 	broker := messageservice.NewBroker()
 
 	// Setup singleton (instrumented) clients
@@ -73,7 +73,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	}
 
 	// Switch to instrumented clients
-	chain = chainservice.NewMockChain()
+	chain = chainservice.NewMockChainService()
 	broker = messageservice.NewBroker()
 	retrievalProvider = client.New(
 		messageservice.NewVectorClockTestMessageService(bob.Address(), broker, 0, vectorClockLogDir),

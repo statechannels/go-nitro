@@ -19,7 +19,7 @@ func TestVirtualFundMultiParty(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	chain := chainservice.NewMockChain()
+	chain := chainservice.NewMockChainService()
 	broker := messageservice.NewBroker()
 
 	clientAlice, _ := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)

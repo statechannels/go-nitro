@@ -14,7 +14,7 @@ func TestVirtualFundWithSimpleTCPMessageService(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	chain := chainservice.NewMockChain()
+	chain := chainservice.NewMockChainService()
 
 	peers := map[types.Address]string{
 		alice.Address(): "localhost:3005",
