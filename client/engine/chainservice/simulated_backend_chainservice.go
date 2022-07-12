@@ -13,6 +13,7 @@ import (
 	ConsensusApp "github.com/statechannels/go-nitro/client/engine/chainservice/consensusapp"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 var ErrUnableToAssignBigInt = errors.New("simulated_backend_chainservice: unable to assign BigInt")
@@ -41,9 +42,13 @@ type SimulatedBackendChainService struct {
 
 // NewSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewSimulatedBackendChainService(sim simulatedChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address,
-	txSigner *bind.TransactOpts) *SimulatedBackendChainService {
-	return &SimulatedBackendChainService{sim: sim, EthChainService: NewEthChainService(sim, na, naAddress, txSigner)}
+func NewSimulatedBackendChainService(sim simulatedChain, bindings bindings,
+	txSigner *bind.TransactOpts) ChainService {
+	return &SimulatedBackendChainService{sim: sim, EthChainService: NewEthChainService(sim,
+		bindings.Adjudicator.Contract,
+		bindings.Adjudicator.Address,
+		bindings.ConsensusApp.Address,
+		txSigner)}
 }
 
 // SendTransaction sends the transaction and blocks until it has been mined.
@@ -103,4 +108,8 @@ func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, bind
 	}
 	sim.Commit()
 	return sim, contractBindings, accounts, nil
+}
+
+func (sbcs *SimulatedBackendChainService) GetConsensusAppAddress() types.Address {
+	return sbcs.consensusAppAddress
 }

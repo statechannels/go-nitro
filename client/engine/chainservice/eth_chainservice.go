@@ -27,20 +27,22 @@ type ethChain interface {
 
 type EthChainService struct {
 	ChainServiceBase
-	chain     ethChain
-	na        *NitroAdjudicator.NitroAdjudicator
-	naAddress common.Address
-	txSigner  *bind.TransactOpts
+	chain               ethChain
+	na                  *NitroAdjudicator.NitroAdjudicator
+	naAddress           common.Address
+	consensusAppAddress common.Address
+	txSigner            *bind.TransactOpts
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, txSigner *bind.TransactOpts) *EthChainService {
+func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, caAddress common.Address, txSigner *bind.TransactOpts) *EthChainService {
 	ecs := EthChainService{ChainServiceBase: newChainServiceBase()}
 	ecs.out = safesync.Map[chan Event]{}
 	ecs.chain = chain
 	ecs.na = na
 	ecs.naAddress = naAddress
+	ecs.consensusAppAddress = caAddress
 	ecs.txSigner = txSigner
 
 	go ecs.listenForLogEvents()
