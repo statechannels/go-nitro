@@ -33,25 +33,33 @@ func assetAddressForIndex(na *NitroAdjudicator.NitroAdjudicator, tx *types.Trans
 	if err != nil {
 		return common.Address{}, err
 	}
-	// TODO remove the assumption that the tx incudes latestVariablePart parameter
+	// TODO remove the assumption that the tx incudes signedVariableParts parameter
 	// 	concludeAndTransferAllAssets includes this parameter, but transferAllAssets, transfer, and claim do not.
 	//  https://github.com/statechannels/go-nitro/issues/759
-	variablePart := params["latestVariablePart"].(struct {
-		Outcome []struct {
-			Asset       common.Address "json:\"asset\""
-			Metadata    []uint8        "json:\"metadata\""
-			Allocations []struct {
-				Destination    [32]uint8 "json:\"destination\""
-				Amount         *big.Int  "json:\"amount\""
-				AllocationType uint8     "json:\"allocationType\""
-				Metadata       []uint8   "json:\"metadata\""
-			} "json:\"allocations\""
-		} "json:\"outcome\""
-		AppData []uint8  "json:\"appData\""
-		TurnNum *big.Int "json:\"turnNum\""
-		IsFinal bool     "json:\"isFinal\""
+	signedVariableParts := params["signedVariableParts"].([]struct {
+		VariablePart struct {
+			Outcome []struct {
+				Asset       common.Address "json:\"asset\""
+				Metadata    []uint8        "json:\"metadata\""
+				Allocations []struct {
+					Destination    [32]uint8 "json:\"destination\""
+					Amount         *big.Int  "json:\"amount\""
+					AllocationType uint8     "json:\"allocationType\""
+					Metadata       []uint8   "json:\"metadata\""
+				} "json:\"allocations\""
+			} "json:\"outcome\""
+			AppData []uint8  "json:\"appData\""
+			TurnNum *big.Int "json:\"turnNum\""
+			IsFinal bool     "json:\"isFinal\""
+		} "json:\"variablePart\""
+		Sigs []struct {
+			V uint8     "json:\"v\""
+			R [32]uint8 "json:\"r\""
+			S [32]uint8 "json:\"s\""
+		} "json:\"sigs\""
+		SignedBy *big.Int "json:\"signedBy\""
 	})
-	return variablePart.Outcome[index.Int64()].Asset, nil
+	return signedVariableParts[len(signedVariableParts)-1].VariablePart.Outcome[index.Int64()].Asset, nil
 
 }
 
