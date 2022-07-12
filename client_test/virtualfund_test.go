@@ -49,7 +49,7 @@ func TestVirtualFundIntegration(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	chain := chainservice.NewMockChain()
+	chain := chainservice.NewMockChainService()
 	broker := messageservice.NewBroker()
 
 	clientA, _ := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)

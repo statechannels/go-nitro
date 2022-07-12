@@ -13,7 +13,7 @@ func TestDeposit(t *testing.T) {
 	// The MockChain should react to a deposit transaction for a given channel by sending an event with updated holdings for that channel
 
 	// Construct MockChain
-	var chain = NewMockChain()
+	var chain = NewMockChainService()
 	eventFeed := chain.EventFeed()
 
 	// Prepare test data to trigger MockChainService

@@ -45,7 +45,7 @@ func TestVirtualDefundIntegrationWithMessageDelay(t *testing.T) {
 
 // runVirtualDefundIntegrationTest runs a virtual defund integration test using the provided message delay, objective timeout and log destination
 func runVirtualDefundIntegrationTest(t *testing.T, messageDelay time.Duration, objectiveTimeout time.Duration, logDestination io.Writer) {
-	chain := chainservice.NewMockChain()
+	chain := chainservice.NewMockChainService()
 	broker := messageservice.NewBroker()
 
 	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, messageDelay)
