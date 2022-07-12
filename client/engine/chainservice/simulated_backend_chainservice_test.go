@@ -43,7 +43,7 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cs := NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[0])
+	cs := NewSimulatedBackendChainService(sim, bindings, ethAccounts[0])
 
 	if err != nil {
 		t.Fatal(err)
@@ -85,7 +85,7 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cs := NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[0])
+	cs := NewSimulatedBackendChainService(sim, bindings, ethAccounts[0])
 	out := cs.SubscribeToEvents(ethAccounts[0].From)
 
 	var concludeState = state.State{
