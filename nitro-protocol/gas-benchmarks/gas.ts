@@ -28,15 +28,15 @@ type Path =
 export const gasRequiredTo: GasRequiredTo = {
   deployInfrastructureContracts: {
     satp: {
-      NitroAdjudicator: 4_172_725, // Singleton
+      NitroAdjudicator: 3_577_883, // Singleton
     },
   },
   directlyFundAChannelWithETHFirst: {
-    satp: 47_797,
+    satp: 47_740,
   },
   directlyFundAChannelWithETHSecond: {
     // meaning the second participant in the channel
-    satp: 30_709,
+    satp: 30_652,
   },
   directlyFundAChannelWithERC20First: {
     // The depositor begins with zero tokens approved for the AssetHolder
@@ -48,7 +48,7 @@ export const gasRequiredTo: GasRequiredTo = {
       // ^^^^^
       // In principle this only needs to be done once per account
       // (the cost may be amortized over several deposits into this AssetHolder)
-      deposit: 71_280,
+      deposit: 71_223,
     },
   },
   directlyFundAChannelWithERC20Second: {
@@ -58,16 +58,16 @@ export const gasRequiredTo: GasRequiredTo = {
       // ^^^^^
       // In principle this only needs to be done once per account
       // (the cost may be amortized over several deposits into this AssetHolder)
-      deposit: 54_192,
+      deposit: 54_135,
     },
   },
   ETHexit: {
     // We completely liquidate the channel (paying out both parties)
-    satp: 138_819,
+    satp: 153_532,
   },
   ERC20exit: {
     // We completely liquidate the channel (paying out both parties)
-    satp: 129_193,
+    satp: 143_934,
   },
   ETHexitSad: {
     // Scenario: Counterparty Bob goes offline
@@ -75,9 +75,9 @@ export const gasRequiredTo: GasRequiredTo = {
     // challenge + timeout       ⬛ -> (X) -> 👩
     // transferAllAssets         ⬛ --------> 👩
     satp: {
-      challenge: 102_143,
-      transferAllAssets: 110_078,
-      total: 212_221,
+      challenge: 114_012,
+      transferAllAssets: 110_049,
+      total: 224_061,
     },
   },
   ETHexitSadLedgerFunded: {
@@ -87,11 +87,11 @@ export const gasRequiredTo: GasRequiredTo = {
       // challenge X, L and timeout  ⬛ -> (L) -> (X) -> 👩
       // transferAllAssetsL          ⬛ --------> (X) -> 👩
       // transferAllAssetsX          ⬛ ---------------> 👩
-      challengeX: 102_143,
-      challengeL: 97_516,
-      transferAllAssetsL: 58_975,
-      transferAllAssetsX: 110_078,
-      total: 368_712,
+      challengeX: 114_012,
+      challengeL: 105_412,
+      transferAllAssetsL: 58_970,
+      transferAllAssetsX: 110_049,
+      total: 388_443,
     },
   },
   ETHexitSadVirtualFunded: {

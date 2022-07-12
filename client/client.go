@@ -110,6 +110,10 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big
 // CreateDirectChannel creates a directly funded channel with the given counterparty
 func (c *Client) CreateDirectChannel(objectiveRequest directfund.ObjectiveRequest) directfund.ObjectiveResponse {
 
+	// This next line overwrites the requested application address with the consensus app address.
+	// TODO remove this behaviour
+	objectiveRequest.AppDefinition = c.engine.GetConsensusAppAddress()
+
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objectiveRequest,
 	}

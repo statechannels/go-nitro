@@ -3,7 +3,8 @@ import {Contract, Wallet, ethers} from 'ethers';
 
 import {getRandomNonce, getTestProvider, setupContract} from '../../test-helpers';
 import NitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
-import {getVariablePart, State, Channel} from '../../../src';
+import {getVariablePart, State, Channel, getFixedPart} from '../../../src';
+import {FixedPart, SignedVariablePart} from '../../../src/contract/state';
 
 const provider = getTestProvider();
 
@@ -17,7 +18,7 @@ beforeAll(async () => {
 });
 
 describe('null app', () => {
-  it('should revert when validTransition is called', async () => {
+  it('should revert when latestSupportedState is called', async () => {
     const channel: Channel = {
       participants: [Wallet.createRandom().address, Wallet.createRandom().address],
       chainId: process.env.CHAIN_NETWORK_ID,
@@ -34,12 +35,20 @@ describe('null app', () => {
     };
     const toState: State = {...fromState, turnNum: 2};
 
+    const fixedPart: FixedPart = getFixedPart(fromState);
+    const from: SignedVariablePart = {
+      variablePart: getVariablePart(fromState),
+      sigs: [],
+      signedBy: '0',
+    };
+    const to: SignedVariablePart = {
+      variablePart: getVariablePart(toState),
+      sigs: [],
+      signedBy: '0',
+    };
+
     await expectRevert(async () => {
-      await NitroAdjudicator.validTransition(
-        0,
-        [getVariablePart(fromState), getVariablePart(toState)],
-        ethers.constants.AddressZero
-      );
+      await NitroAdjudicator.latestSupportedState(fixedPart, [from, to]);
     }, 'VM Exception while processing transaction: revert');
   });
 });

@@ -7,7 +7,7 @@ import {LogDescription} from '@ethersproject/abi';
 import {ChallengeClearedEvent, ChallengeRegisteredStruct} from '../src/contract/challenge';
 import {channelDataToStatus} from '../src/contract/channel-storage';
 import {Outcome} from '../src/contract/outcome';
-import {Bytes32} from '../src';
+import {Bytes32, VariablePart} from '../src';
 
 // Interfaces
 
@@ -52,7 +52,7 @@ export function setupContract(
   return new ethers.Contract(address, artifact.abi, provider.getSigner(0));
 }
 
-export function getPlaceHolderContractAddress(): string {
+export function getCountingAppContractAddress(): string {
   return process.env.COUNTING_APP_ADDRESS;
 }
 
@@ -101,7 +101,7 @@ export const parseOutcomeEventResult = (eventOutcomeResult: any[]): Outcome => {
     if (eventAllocations.length != 0) {
       eventAllocations.forEach((eventAllocation: any[]) => {
         const destination: string = eventAllocation[0];
-        const amount: string = eventAllocation[1]['_hex'];
+        const amount: string = BigNumber.from(eventAllocation[1]['_hex']).toString();
         const allocationType: number = eventAllocation[2];
         const metadata: string = eventAllocation[3];
 
@@ -113,6 +113,16 @@ export const parseOutcomeEventResult = (eventOutcomeResult: any[]): Outcome => {
   });
 
   return outcome;
+};
+
+export const parseVariablePartEventResult = (vpEventResult: any[]): VariablePart => {
+  vpEventResult = Array.from(vpEventResult);
+  return {
+    outcome: parseOutcomeEventResult(vpEventResult[0]),
+    appData: vpEventResult[1],
+    turnNum: vpEventResult[2],
+    isFinal: vpEventResult[3],
+  };
 };
 
 export const newChallengeRegisteredEvent = (

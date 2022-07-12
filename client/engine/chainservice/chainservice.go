@@ -63,6 +63,8 @@ type ChainService interface {
 	SubscribeToEvents(types.Address) <-chan Event
 	// SendTransaction is for sending transactions with the chain service
 	SendTransaction(protocols.ChainTransaction)
+	// GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
+	GetConsensusAppAddress() types.Address
 }
 
 type ChainServiceBase struct {

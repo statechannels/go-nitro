@@ -1,4 +1,5 @@
 import {utils} from 'ethers';
+import {Signature} from '@ethersproject/bytes';
 import {ParamType} from 'ethers/lib/utils';
 
 import {Channel, getChannelId} from './channel';
@@ -28,16 +29,6 @@ export interface FixedPart {
   appDefinition: Address;
   challengeDuration: Uint48;
 }
-/**
- * Extracts the FixedPart of a state
- * @param state a State
- * @returns the FixedPart, which does not ordinarily change during state channel updates
- */
-export function getFixedPart(state: State): FixedPart {
-  const {appDefinition, challengeDuration, channel} = state;
-  const {chainId, participants, channelNonce} = channel;
-  return {chainId, participants, channelNonce, appDefinition, challengeDuration};
-}
 
 /**
  * The part of a State which usually changes during state channel updates
@@ -45,9 +36,17 @@ export function getFixedPart(state: State): FixedPart {
 export interface VariablePart {
   outcome: Outcome;
   appData: Bytes; // any encoded app-related type encoded once more as bytes
-  //(e.g. if in SC App uint256 is used, firstly enode appData as uint256, then as bytes)
   turnNum: Uint48;
   isFinal: boolean;
+}
+
+/**
+ * Variable part with its signatures created by participants
+ */
+export interface SignedVariablePart {
+  variablePart: VariablePart;
+  sigs: Signature[];
+  signedBy: Uint256;
 }
 
 /**
@@ -58,10 +57,21 @@ export interface VariablePart {
 export function getVariablePart(state: State): VariablePart {
   return {
     outcome: state.outcome,
-    appData: encodeAppData(state.appData),
+    appData: state.appData,
     turnNum: state.turnNum,
     isFinal: state.isFinal,
   };
+}
+
+/**
+ * Extracts the FixedPart of a state
+ * @param state a State
+ * @returns the FixedPart, which does not ordinarily change during state channel updates
+ */
+export function getFixedPart(state: State): FixedPart {
+  const {appDefinition, challengeDuration, channel} = state;
+  const {chainId, participants, channelNonce} = channel;
+  return {chainId, participants, channelNonce, appDefinition, challengeDuration};
 }
 
 /**
@@ -97,7 +107,6 @@ export function encodeState(state: State): Bytes {
   const {turnNum, isFinal, appData, outcome} = state;
   const channelId = getChannelId(getFixedPart(state));
 
-  const appDataBytes = encodeAppData(appData);
   return utils.defaultAbiCoder.encode(
     [
       'bytes32',
@@ -122,7 +131,7 @@ export function encodeState(state: State): Bytes {
       'uint256',
       'bool',
     ],
-    [channelId, appDataBytes, outcome, turnNum, isFinal]
+    [channelId, appData, outcome, turnNum, isFinal]
   );
 }
 

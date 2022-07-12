@@ -27,20 +27,22 @@ type ethChain interface {
 
 type EthChainService struct {
 	ChainServiceBase
-	chain     ethChain
-	na        *NitroAdjudicator.NitroAdjudicator
-	naAddress common.Address
-	txSigner  *bind.TransactOpts
+	chain               ethChain
+	na                  *NitroAdjudicator.NitroAdjudicator
+	naAddress           common.Address
+	consensusAppAddress common.Address
+	txSigner            *bind.TransactOpts
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, txSigner *bind.TransactOpts) *EthChainService {
+func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, caAddress common.Address, txSigner *bind.TransactOpts) *EthChainService {
 	ecs := EthChainService{ChainServiceBase: newChainServiceBase()}
 	ecs.out = safesync.Map[chan Event]{}
 	ecs.chain = chain
 	ecs.na = na
 	ecs.naAddress = naAddress
+	ecs.consensusAppAddress = caAddress
 	ecs.txSigner = txSigner
 
 	go ecs.listenForLogEvents()
@@ -93,11 +95,15 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) []*et
 	case protocols.WithdrawAllTransaction:
 		state := tx.SignedState.State()
 		signatures := tx.SignedState.Signatures()
-		nitroFixedPart := NitroAdjudicator.IForceMoveFixedPart(state.FixedPart())
+		nitroFixedPart := NitroAdjudicator.INitroTypesFixedPart(state.FixedPart())
 		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(state.VariablePart())
-		nitroSignatures := []NitroAdjudicator.IForceMoveSignature{NitroAdjudicator.ConvertSignature(signatures[0]), NitroAdjudicator.ConvertSignature(signatures[1])}
-
-		ethTx, err := ecs.na.ConcludeAndTransferAllAssets(ecs.defaultTxOpts(), nitroFixedPart, nitroVariablePart, 1, []uint8{0, 0}, nitroSignatures)
+		nitroSignatures := []NitroAdjudicator.INitroTypesSignature{NitroAdjudicator.ConvertSignature(signatures[0]), NitroAdjudicator.ConvertSignature(signatures[1])}
+		nitroSignedVariableParts := []NitroAdjudicator.INitroTypesSignedVariablePart{{
+			VariablePart: nitroVariablePart,
+			Sigs:         nitroSignatures,
+			SignedBy:     big.NewInt(0b11),
+		}}
+		ethTx, err := ecs.na.ConcludeAndTransferAllAssets(ecs.defaultTxOpts(), nitroFixedPart, nitroSignedVariableParts)
 		if err != nil {
 			panic(err)
 		}

@@ -10,8 +10,10 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
+	ConsensusApp "github.com/statechannels/go-nitro/client/engine/chainservice/consensusapp"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 var ErrUnableToAssignBigInt = errors.New("simulated_backend_chainservice: unable to assign BigInt")
@@ -22,8 +24,9 @@ type binding[T any] struct {
 }
 
 type bindings struct {
-	Adjudicator binding[NitroAdjudicator.NitroAdjudicator]
-	Token       binding[Token.Token]
+	Adjudicator  binding[NitroAdjudicator.NitroAdjudicator]
+	Token        binding[Token.Token]
+	ConsensusApp binding[ConsensusApp.ConsensusApp]
 }
 
 type simulatedChain interface {
@@ -39,9 +42,13 @@ type SimulatedBackendChainService struct {
 
 // NewSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewSimulatedBackendChainService(sim simulatedChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address,
-	txSigner *bind.TransactOpts) *SimulatedBackendChainService {
-	return &SimulatedBackendChainService{sim: sim, EthChainService: NewEthChainService(sim, na, naAddress, txSigner)}
+func NewSimulatedBackendChainService(sim simulatedChain, bindings bindings,
+	txSigner *bind.TransactOpts) ChainService {
+	return &SimulatedBackendChainService{sim: sim, EthChainService: NewEthChainService(sim,
+		bindings.Adjudicator.Contract,
+		bindings.Adjudicator.Address,
+		bindings.ConsensusApp.Address,
+		txSigner)}
 }
 
 // SendTransaction sends the transaction and blocks until it has been mined.
@@ -82,12 +89,27 @@ func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, bind
 		return nil, contractBindings, accounts, err
 	}
 
+	// Deploy ConsensusApp
+	consensusAppAddress, _, ca, err := ConsensusApp.DeployConsensusApp(accounts[0], sim)
+	if err != nil {
+		return nil, contractBindings, accounts, err
+	}
+
+	// Deploy a test ERC20 Token Contract
 	tokenAddress, _, tokenBinding, err := Token.DeployToken(accounts[0], sim, accounts[0].From)
 	if err != nil {
 		return nil, contractBindings, accounts, err
 	}
 
-	contractBindings = bindings{Adjudicator: binding[NitroAdjudicator.NitroAdjudicator]{naAddress, na}, Token: binding[Token.Token]{tokenAddress, tokenBinding}}
+	contractBindings = bindings{
+		Adjudicator:  binding[NitroAdjudicator.NitroAdjudicator]{naAddress, na},
+		Token:        binding[Token.Token]{tokenAddress, tokenBinding},
+		ConsensusApp: binding[ConsensusApp.ConsensusApp]{consensusAppAddress, ca},
+	}
 	sim.Commit()
 	return sim, contractBindings, accounts, nil
+}
+
+func (sbcs *SimulatedBackendChainService) GetConsensusAppAddress() types.Address {
+	return sbcs.consensusAppAddress
 }

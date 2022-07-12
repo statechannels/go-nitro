@@ -37,9 +37,9 @@ func TestDirectDefund(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	chainA := chainservice.NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[0])
-	chainI := chainservice.NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[1])
-	chainB := chainservice.NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[2])
+	chainA := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0])
+	chainI := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[1])
+	chainB := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[2])
 	// End chain service setup
 
 	broker := messageservice.NewBroker()

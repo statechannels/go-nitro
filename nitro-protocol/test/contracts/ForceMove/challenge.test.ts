@@ -18,12 +18,18 @@ import {
   TURN_NUM_RECORD_NOT_INCREASED,
 } from '../../../src/contract/transaction-creators/revert-reasons';
 import {Outcome, SignedState} from '../../../src/index';
-import {signChallengeMessage, signData, signState, signStates} from '../../../src/signatures';
+import {
+  bindSignatures,
+  signChallengeMessage,
+  signData,
+  signState,
+  signStates,
+} from '../../../src/signatures';
 import {COUNTING_APP_INVALID_TRANSITION} from '../../revert-reasons';
 import {
   clearedChallengeFingerprint,
   finalizedFingerprint,
-  getPlaceHolderContractAddress,
+  getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
   largeOutcome,
@@ -48,7 +54,7 @@ const wallets = new Array(3);
 const challengeDuration = 86400; // 1 day
 const outcome: Outcome = [{allocations: [], asset: Wallet.createRandom().address, metadata: '0x'}];
 
-const appDefinition = getPlaceHolderContractAddress();
+const appDefinition = getCountingAppContractAddress();
 const keys = [
   '0x8624ebe7364bb776f891ca339f0aaa820cc64cc9fca6a28eec71e6d8fc950f29',
   '0x275a2e2cd9314f53b42246694034a80119963097e3adf495fbf6d821dc8b6c8e',
@@ -77,7 +83,7 @@ async function createSignedCountingAppState(
     {
       turnNum,
       isFinal: false,
-      appDefinition: getPlaceHolderContractAddress(),
+      appDefinition: getCountingAppContractAddress(),
       appData: defaultAbiCoder.encode(['uint256'], [appData]),
       outcome,
       channel,
@@ -136,9 +142,9 @@ describe('challenge', () => {
     description  | initialFingerprint           | stateData      | challengeSignatureType | reasonString
     ${accepts1}  | ${empty}                     | ${oneState}    | ${'correct'}           | ${undefined}
     ${accepts2}  | ${empty}                     | ${threeStates} | ${'correct'}           | ${undefined}
-    ${accepts3}  | ${openAtFive}                | ${oneState}    | ${'correct'}           | ${undefined}
-    ${accepts3}  | ${openAtLargestTurnNum}      | ${oneState}    | ${'correct'}           | ${undefined}
-    ${accepts4}  | ${openAtFive}                | ${threeStates} | ${'correct'}           | ${undefined}
+    ${accepts3}  | ${openAtFive}                | ${threeStates} | ${'correct'}           | ${undefined}
+    ${accepts3}  | ${openAtLargestTurnNum}      | ${threeStates} | ${'correct'}           | ${undefined}
+    ${accepts4}  | ${openAtFive}                | ${oneState}    | ${'correct'}           | ${undefined}
     ${accepts5}  | ${challengeAtFive}           | ${oneState}    | ${'correct'}           | ${undefined}
     ${accepts6}  | ${challengeAtFive}           | ${threeStates} | ${'correct'}           | ${undefined}
     ${reverts1}  | ${openAtTwenty}              | ${oneState}    | ${'correct'}           | ${TURN_NUM_RECORD_DECREASED}
@@ -148,7 +154,7 @@ describe('challenge', () => {
     ${reverts4}  | ${challengeAtTwenty}         | ${oneState}    | ${'correct'}           | ${TURN_NUM_RECORD_NOT_INCREASED}
     ${reverts4}  | ${challengeAtLargestTurnNum} | ${oneState}    | ${'correct'}           | ${TURN_NUM_RECORD_NOT_INCREASED}
     ${reverts5}  | ${finalizedAtFive}           | ${oneState}    | ${'correct'}           | ${CHANNEL_FINALIZED}
-    ${reverts6}  | ${finalizedAtFive}           | ${fourStates}  | ${'correct'}           | ${INVALID_NUMBER_OF_STATES}
+    ${reverts6}  | ${empty}                     | ${fourStates}  | ${'correct'}           | ${INVALID_NUMBER_OF_STATES}
   `(
     '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, stateData, challengeSignatureType, reasonString}) => {
@@ -174,6 +180,8 @@ describe('challenge', () => {
 
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
+      const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
+
       const challengeState: SignedState = {
         state: states[states.length - 1],
         signature: {v: 0, r: '', s: '', _vs: '', recoveryParam: 0},
@@ -200,13 +208,7 @@ describe('challenge', () => {
       // Set current channelStorageHashes value
       await (await ForceMove.setStatus(channelId, initialFingerprint)).wait();
 
-      const tx = ForceMove.challenge(
-        fixedPart,
-        variableParts,
-        signatures,
-        whoSignedWhat,
-        challengeSignature
-      );
+      const tx = ForceMove.challenge(fixedPart, signedVariableParts, challengeSignature);
       if (reasonString) {
         await expectRevert(() => tx, reasonString);
       } else {
@@ -220,7 +222,7 @@ describe('challenge', () => {
           finalizesAt: eventFinalizesAt,
           isFinal: eventIsFinal,
           fixedPart: eventFixedPart,
-          variableParts: eventVariableParts,
+          signedVariableParts: eventSignedVariableParts,
         } = event.args;
 
         // Check this information is enough to respond
@@ -235,11 +237,13 @@ describe('challenge', () => {
         expect(eventFixedPart[4]).toEqual(fixedPart.challengeDuration);
         expect(eventIsFinal).toEqual(isFinalCount > 0);
         expect(
-          parseOutcomeEventResult(eventVariableParts[eventVariableParts.length - 1][0])
-        ).toEqual(variableParts[variableParts.length - 1].outcome);
-        expect(eventVariableParts[eventVariableParts.length - 1][1]).toEqual(
-          variableParts[variableParts.length - 1].appData
-        );
+          parseOutcomeEventResult(
+            eventSignedVariableParts[eventSignedVariableParts.length - 1].variablePart.outcome
+          )
+        ).toEqual(signedVariableParts[signedVariableParts.length - 1].variablePart.outcome);
+        expect(
+          eventSignedVariableParts[eventSignedVariableParts.length - 1].variablePart.appData
+        ).toEqual(signedVariableParts[signedVariableParts.length - 1].variablePart.appData);
 
         const expectedChannelStorage: ChannelData = {
           turnNumRecord: largestTurnNum,
@@ -265,9 +269,9 @@ describe('challenge with transaction generator', () => {
   // FIX: even if dropping channel status before each test, turn nums from prev tests are saved and can cause reverts
   it.each`
     description                                     | appData   | outcome                            | turnNums  | challenger
-    ${'challenge(0,1) accepted'}                    | ${[0, 0]} | ${[]}                              | ${[0, 1]} | ${1}
-    ${'challenge(1,2) accepted'}                    | ${[0, 0]} | ${[]}                              | ${[1, 2]} | ${0}
-    ${'challenge(3,4) accepted, MAX_OUTCOME_ITEMS'} | ${[0, 1]} | ${largeOutcome(MAX_OUTCOME_ITEMS)} | ${[3, 4]} | ${0}
+    ${'challenge(0,1) accepted'}                    | ${[0, 1]} | ${[]}                              | ${[1, 2]} | ${1}
+    ${'challenge(1,2) accepted'}                    | ${[0, 1]} | ${[]}                              | ${[2, 3]} | ${0}
+    ${'challenge(2,3) accepted, MAX_OUTCOME_ITEMS'} | ${[0, 1]} | ${largeOutcome(MAX_OUTCOME_ITEMS)} | ${[3, 4]} | ${0}
   `('$description', async ({appData, turnNums, challenger}) => {
     const transactionRequest: ethers.providers.TransactionRequest = createChallengeTransaction(
       [
