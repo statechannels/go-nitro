@@ -74,3 +74,8 @@ func (mc *MockChain) SendTransaction(tx protocols.ChainTransaction) {
 		panic("unexpected chain transaction")
 	}
 }
+
+// GetConsensusAppAddress returns the zero address, since the mock chain will not run any application logic.
+func (mc *MockChain) GetConsensusAppAddress() types.Address {
+	return types.Address{}
+}
