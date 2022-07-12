@@ -8,11 +8,11 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// MockChain provides an interface which simulates a blockchain network. It is designed for use as a central service which multiple
+// MockChainService provides an interface which simulates a blockchain network. It is designed for use as a central service which multiple
 // ChainServices connect to with Go chans.
 //
 // It keeps a record of of holdings and adjudication status for each channel, accepts transactions and emits events.
-type MockChain struct {
+type MockChainService struct {
 	chainServiceBase
 
 	holdings   map[types.Destination]types.Funds // holdings tracks funds for each channel
@@ -20,9 +20,9 @@ type MockChain struct {
 	txListener chan protocols.ChainTransaction   // this is used to broadcast transactions that have been received
 }
 
-// NewMockChain returns a new MockChain.
-func NewMockChain() *MockChain {
-	mc := MockChain{chainServiceBase: newChainServiceBase()}
+// NewMockChainService returns a new MockChain.
+func NewMockChainService() *MockChainService {
+	mc := MockChainService{chainServiceBase: newChainServiceBase()}
 	mc.holdings = make(map[types.Destination]types.Funds)
 	mc.blockNum = new(uint64)
 	*mc.blockNum = 1
@@ -32,14 +32,14 @@ func NewMockChain() *MockChain {
 
 // NewMockChainWithTransactionListener returns a new mock chain that will send transactions to the supplied chan.
 // This lets us easily rebroadcast transactions to other mock chains.
-func NewMockChainWithTransactionListener(txListener chan protocols.ChainTransaction) *MockChain {
-	mc := NewMockChain()
+func NewMockChainWithTransactionListener(txListener chan protocols.ChainTransaction) *MockChainService {
+	mc := NewMockChainService()
 	mc.txListener = txListener
 	return mc
 }
 
 // SendTransaction responds to the given tx.
-func (mc *MockChain) SendTransaction(tx protocols.ChainTransaction) error {
+func (mc *MockChainService) SendTransaction(tx protocols.ChainTransaction) error {
 	*mc.blockNum++
 	if mc.txListener != nil {
 		mc.txListener <- tx
