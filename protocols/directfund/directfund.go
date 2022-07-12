@@ -54,7 +54,7 @@ func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Add
 
 	objective, err := ConstructFromState(preApprove,
 		state.State{
-			ChainId:           big.NewInt(1337), // TODO https://github.com/statechannels/go-nitro/issues/601
+			ChainId:           big.NewInt(9001), // TODO https://github.com/statechannels/go-nitro/issues/601
 			Participants:      []types.Address{myAddress, request.CounterParty},
 			ChannelNonce:      big.NewInt(request.Nonce),
 			AppDefinition:     request.AppDefinition,
@@ -254,8 +254,8 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 	if !ok {
 		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
 	}
-	if de.BlockNum > updated.latestBlockNumber {
-		updated.C.OnChainFunding[de.Asset] = de.NowHeld
+	if de.Holdings != nil && de.BlockNum > updated.latestBlockNumber {
+		updated.C.OnChainFunding = de.Holdings.Clone()
 		updated.latestBlockNumber = de.BlockNum
 	}
 
@@ -299,7 +299,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	}
 
 	if !fundingComplete && safeToDeposit && amountToDeposit.IsNonZero() && !updated.transactionSubmitted {
-		deposit := protocols.NewDepositTransaction(updated.C.Id, amountToDeposit)
+		deposit := protocols.ChainTransaction{Type: protocols.DepositTransactionType, ChannelId: updated.C.Id, Deposit: amountToDeposit}
 		updated.transactionSubmitted = true
 		sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, deposit)
 	}
@@ -435,13 +435,10 @@ type ObjectiveResponse struct {
 
 // Response computes and returns the appropriate response from the request.
 func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
-	fixedPart := state.FixedPart{
-		ChainId:           big.NewInt(1337), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
+	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
 		Participants:      []types.Address{myAddress, r.CounterParty},
 		ChannelNonce:      big.NewInt(r.Nonce),
-		ChallengeDuration: r.ChallengeDuration,
-		AppDefinition:     r.AppDefinition,
-	}
+		ChallengeDuration: r.ChallengeDuration}
 
 	channelId := fixedPart.ChannelId()
 

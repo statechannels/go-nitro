@@ -1,7 +1,6 @@
 package chainservice
 
 import (
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -42,40 +41,31 @@ func (mc *MockChain) SendTransaction(tx protocols.ChainTransaction) {
 	if mc.txListener != nil {
 		mc.txListener <- tx
 	}
-	switch tx := tx.(type) {
-	case protocols.DepositTransaction:
-		if tx.Deposit.IsNonZero() {
-			mc.holdings[tx.ChannelId()] = mc.holdings[tx.ChannelId()].Add(tx.Deposit)
+	if tx.Deposit.IsNonZero() {
+		mc.holdings[tx.ChannelId] = mc.holdings[tx.ChannelId].Add(tx.Deposit)
+	}
+	var event Event
+	switch tx.Type {
+	case protocols.DepositTransactionType:
+		event = DepositedEvent{
+			CommonEvent: CommonEvent{
+				channelID: tx.ChannelId,
+				BlockNum:  *mc.blockNum},
+
+			Holdings: mc.holdings[tx.ChannelId],
 		}
-		for address, amount := range tx.Deposit {
-			event := DepositedEvent{
-				CommonEvent: CommonEvent{
-					channelID: tx.ChannelId(),
-					BlockNum:  *mc.blockNum},
-				Asset:           address,
-				AmountDeposited: amount,
-				NowHeld:         mc.holdings[tx.ChannelId()][address],
-			}
-			mc.broadcast(event)
+	case protocols.WithdrawAllTransactionType:
+		mc.holdings[tx.ChannelId] = types.Funds{}
+		event = AllocationUpdatedEvent{
+			CommonEvent: CommonEvent{
+				channelID: tx.ChannelId,
+				BlockNum:  *mc.blockNum},
+
+			Holdings: mc.holdings[tx.ChannelId],
 		}
-	case protocols.WithdrawAllTransaction:
-		for assetAddress := range mc.holdings[tx.ChannelId()] {
-			event := AllocationUpdatedEvent{
-				CommonEvent: CommonEvent{
-					channelID: tx.ChannelId(),
-					BlockNum:  *mc.blockNum},
-				AssetAddress: assetAddress,
-				AssetAmount:  common.Big0,
-			}
-			mc.broadcast(event)
-		}
-		mc.holdings[tx.ChannelId()] = types.Funds{}
 	default:
 		panic("unexpected chain transaction")
 	}
-}
 
-// GetConsensusAppAddress returns the zero address, since the mock chain will not run any application logic.
-func (mc *MockChain) GetConsensusAppAddress() types.Address {
-	return types.Address{}
+	mc.broadcast(event)
 }

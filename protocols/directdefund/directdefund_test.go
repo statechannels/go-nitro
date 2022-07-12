@@ -183,9 +183,13 @@ func TestCrankAlice(t *testing.T) {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
 	}
 
-	expectedSE = protocols.SideEffects{TransactionsToSubmit: []protocols.ChainTransaction{protocols.NewWithdrawAllTransaction(o.C.Id, finalStateSignedByAliceBob)}}
+	expectedSE = protocols.SideEffects{TransactionsToSubmit: []protocols.ChainTransaction{{
+		Type:      protocols.WithdrawAllTransactionType,
+		ChannelId: o.C.Id,
+		Deposit:   types.Funds{},
+	}}}
 
-	if diff := cmp.Diff(expectedSE, se, cmp.AllowUnexported(expectedSE, state.SignedState{}, protocols.ChainTransactionBase{})); diff != "" {
+	if diff := cmp.Diff(expectedSE, se); diff != "" {
 		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 
@@ -270,7 +274,7 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The third crank. Bob is expected to enter the terminal state of the defunding protocol.
-	updated, err = updated.(*Objective).UpdateWithChainEvent(chainservice.AllocationUpdatedEvent{AssetAddress: types.Address{}, AssetAmount: common.Big0})
+	updated, err = updated.(*Objective).UpdateWithChainEvent(chainservice.AllocationUpdatedEvent{Holdings: types.Funds{}})
 
 	if err != nil {
 		t.Error(err)

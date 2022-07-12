@@ -17,7 +17,6 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
-	"github.com/statechannels/go-nitro/types"
 )
 
 // ErrUnhandledChainEvent is an engine error when the the engine cannot process a chain event
@@ -48,8 +47,6 @@ type Engine struct {
 	policymaker PolicyMaker // A PolicyMaker decides whether to approve or reject objectives
 
 	logger *log.Logger
-
-	metrics *MetricsRecorder
 }
 
 // APIEvent is an internal representation of an API call
@@ -61,8 +58,6 @@ type APIEvent struct {
 type ObjectiveChangeEvent struct {
 	// These are objectives that are now completed
 	CompletedObjectives []protocols.Objective
-	// These are objectives that have failed
-	FailedObjectives []protocols.ObjectiveId
 }
 
 type CompletedObjectiveEvent struct {
@@ -73,7 +68,7 @@ type CompletedObjectiveEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker PolicyMaker, metricsApi MetricsApi) Engine {
+func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker PolicyMaker) Engine {
 	e := Engine{}
 
 	e.store = store
@@ -96,10 +91,6 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	e.logger.Println("Constructed Engine")
 
-	if metricsApi == nil {
-		metricsApi = &NoOpMetrics{}
-	}
-	e.metrics = NewMetricsRecorder(*e.store.GetAddress(), metricsApi)
 	return e
 }
 
@@ -114,30 +105,17 @@ func (e *Engine) Run() {
 		var err error
 		select {
 		case apiEvent := <-e.FromAPI:
-			e.metrics.RecordDuration("handle_api_event", func() {
-				e.metrics.RecordQueueLength("incoming_api_events", len(e.fromMsg))
-				res, err = e.handleAPIEvent(apiEvent)
+			res, err = e.handleAPIEvent(apiEvent)
 
-				if errors.Is(err, directdefund.ErrNotEmpty) {
-					// communicate failure to client & swallow error
-					e.toApi <- res
-					err = nil
-				}
-			})
 		case chainEvent := <-e.fromChain:
-			e.metrics.RecordQueueLength("incoming_chain_events", len(e.fromMsg))
-			e.metrics.RecordDuration("handle_chain_event", func() {
-				res, err = e.handleChainEvent(chainEvent)
-			})
+
+			res, err = e.handleChainEvent(chainEvent)
+
 		case message := <-e.fromMsg:
-			e.metrics.RecordQueueLength("incoming_messages", len(e.fromMsg))
-			e.metrics.RecordDuration("handle_message", func() {
-				res, err = e.handleMessage(message)
-			})
+			res, err = e.handleMessage(message)
+
 		case proposal := <-e.fromLedger:
-			e.metrics.RecordDuration("handle_proposal", func() {
-				res, err = e.handleProposal(proposal)
-			})
+			res, err = e.handleProposal(proposal)
 		}
 
 		// Handle errors
@@ -151,7 +129,6 @@ func (e *Engine) Run() {
 		if len(res.CompletedObjectives) > 0 {
 			for _, obj := range res.CompletedObjectives {
 				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
-				e.metrics.RecordObjectiveCompleted(obj.Id())
 			}
 			e.toApi <- res
 		}
@@ -313,7 +290,6 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 		switch request := (apiEvent.ObjectiveToSpawn).(type) {
 
 		case virtualfund.ObjectiveRequest:
-			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
 			vfo, err := virtualfund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetConsensusChannel)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
@@ -321,7 +297,6 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			return e.attemptProgress(&vfo)
 
 		case virtualdefund.ObjectiveRequest:
-			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
 			vdfo, err := virtualdefund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
@@ -329,7 +304,6 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			return e.attemptProgress(&vdfo)
 
 		case directfund.ObjectiveRequest:
-			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
 			dfo, err := directfund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
@@ -337,10 +311,9 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			return e.attemptProgress(&dfo)
 
 		case directdefund.ObjectiveRequest:
-			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
 			ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
 			if err != nil {
-				return ObjectiveChangeEvent{FailedObjectives: []protocols.ObjectiveId{request.Id(*e.store.GetAddress())}}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 			// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 			e.store.DestroyConsensusChannel(request.ChannelId)
@@ -359,13 +332,11 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 // executeSideEffects executes the SideEffects declared by cranking an Objective
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 	for _, message := range sideEffects.MessagesToSend {
-
 		e.logger.Printf("Sending message %+v", protocols.SummarizeMessage(message))
 		e.msg.Send(message)
-		e.metrics.RecordOutgoingMessage(message)
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
-		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId())
+		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId)
 		e.chain.SendTransaction(tx)
 	}
 	for _, proposal := range sideEffects.ProposalsToProcess {
@@ -383,13 +354,8 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) {
 func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent, err error) {
 
 	secretKey := e.store.GetChannelSecretKey()
-	var crankedObjective protocols.Objective
-	var sideEffects protocols.SideEffects
-	var waitingFor protocols.WaitingFor
 
-	e.metrics.RecordDuration("crank", func() {
-		crankedObjective, sideEffects, waitingFor, err = objective.Crank(secretKey)
-	})
+	crankedObjective, sideEffects, waitingFor, err := objective.Crank(secretKey)
 
 	if err != nil {
 		return
@@ -450,7 +416,6 @@ func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedS
 		if err != nil {
 			return nil, fmt.Errorf("error constructing objective from message: %w", err)
 		}
-		e.metrics.RecordObjectiveStarted(newObj.Id())
 		err = e.store.SetObjective(newObj)
 		if err != nil {
 			return nil, fmt.Errorf("error setting objective in store: %w", err)
@@ -518,9 +483,4 @@ func getProposalObjectiveId(p consensus_channel.Proposal) protocols.ObjectiveId 
 			panic("invalid proposal type")
 		}
 	}
-}
-
-// GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
-func (e *Engine) GetConsensusAppAddress() types.Address {
-	return e.chain.GetConsensusAppAddress()
 }

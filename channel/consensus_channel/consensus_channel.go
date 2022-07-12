@@ -217,11 +217,6 @@ func (c *ConsensusChannel) Follower() common.Address {
 	return c.fp.Participants[Follower]
 }
 
-// FundingTargets returns a list of channels funded by the ConsensusChannel
-func (c *ConsensusChannel) FundingTargets() []types.Destination {
-	return c.current.Outcome.fundingTargets()
-}
-
 func (c *ConsensusChannel) Accept(p SignedProposal) error {
 	panic("UNIMPLEMENTED")
 }
@@ -504,17 +499,6 @@ func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 			Allocations: allocations,
 		},
 	}
-}
-
-// fundingTargets returns a list of channels funded by the LedgerOutcome
-func (o *LedgerOutcome) fundingTargets() []types.Destination {
-	targets := []types.Destination{}
-
-	for dest := range o.guarantees {
-		targets = append(targets, dest)
-	}
-
-	return targets
 }
 
 // Vars stores the turn number and outcome for a state in a consensus channel.

@@ -125,12 +125,12 @@ func TestChallenge(t *testing.T) {
 		INitroTypesFixedPart(s.FixedPart()),
 		[]INitroTypesSignedVariablePart{
 			{
-				ConvertVariablePart(s.VariablePart()),
-				[]INitroTypesSignature{ConvertSignature(aSig), ConvertSignature(bSig)},
+				convertVariablePart(s.VariablePart()),
+				[]INitroTypesSignature{convertSignature(aSig), convertSignature(bSig)},
 				big.NewInt(0b11),
 			},
 		},
-		ConvertSignature(challengerSig),
+		convertSignature(challengerSig),
 	)
 	if err != nil {
 		t.Log(tx)
