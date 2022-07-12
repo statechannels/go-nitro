@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
+	ConsensusApp "github.com/statechannels/go-nitro/client/engine/chainservice/consensusapp"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
 	"github.com/statechannels/go-nitro/protocols"
 )
@@ -22,8 +23,9 @@ type binding[T any] struct {
 }
 
 type bindings struct {
-	Adjudicator binding[NitroAdjudicator.NitroAdjudicator]
-	Token       binding[Token.Token]
+	Adjudicator  binding[NitroAdjudicator.NitroAdjudicator]
+	Token        binding[Token.Token]
+	ConsensusApp binding[ConsensusApp.ConsensusApp]
 }
 
 type simulatedChain interface {
@@ -82,12 +84,23 @@ func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, bind
 		return nil, contractBindings, accounts, err
 	}
 
+	// Deploy ConsensusApp
+	consensusAppAddress, _, ca, err := ConsensusApp.DeployConsensusApp(accounts[0], sim)
+	if err != nil {
+		return nil, contractBindings, accounts, err
+	}
+
+	// Deploy a test ERC20 Token Contract
 	tokenAddress, _, tokenBinding, err := Token.DeployToken(accounts[0], sim, accounts[0].From)
 	if err != nil {
 		return nil, contractBindings, accounts, err
 	}
 
-	contractBindings = bindings{Adjudicator: binding[NitroAdjudicator.NitroAdjudicator]{naAddress, na}, Token: binding[Token.Token]{tokenAddress, tokenBinding}}
+	contractBindings = bindings{
+		Adjudicator:  binding[NitroAdjudicator.NitroAdjudicator]{naAddress, na},
+		Token:        binding[Token.Token]{tokenAddress, tokenBinding},
+		ConsensusApp: binding[ConsensusApp.ConsensusApp]{consensusAppAddress, ca},
+	}
 	sim.Commit()
 	return sim, contractBindings, accounts, nil
 }

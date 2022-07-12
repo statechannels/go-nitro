@@ -36,21 +36,6 @@ var concludeOutcome = outcome.Exit{
 	},
 }
 
-var concludeState = state.State{
-	ChainId: big.NewInt(1337),
-	Participants: []types.Address{
-		Alice.Address(),
-		Bob.Address(),
-	},
-	ChannelNonce:      big.NewInt(37140676580),
-	AppDefinition:     types.Address{},
-	ChallengeDuration: &big.Int{},
-	AppData:           []byte{},
-	Outcome:           concludeOutcome,
-	TurnNum:           uint64(2),
-	IsFinal:           true,
-}
-
 func TestDepositSimulatedBackendChainService(t *testing.T) {
 	one := big.NewInt(1)
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
@@ -95,9 +80,6 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 }
 
 func TestConcludeSimulatedBackendChainService(t *testing.T) {
-	// Generate Signatures
-	aSig, _ := concludeState.Sign(Alice.PrivateKey)
-	bSig, _ := concludeState.Sign(Bob.PrivateKey)
 
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
 	if err != nil {
@@ -105,6 +87,25 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	}
 	cs := NewSimulatedBackendChainService(sim, bindings.Adjudicator.Contract, bindings.Adjudicator.Address, ethAccounts[0])
 	out := cs.SubscribeToEvents(ethAccounts[0].From)
+
+	var concludeState = state.State{
+		ChainId: big.NewInt(1337),
+		Participants: []types.Address{
+			Alice.Address(),
+			Bob.Address(),
+		},
+		ChannelNonce:      big.NewInt(37140676580),
+		AppDefinition:     bindings.ConsensusApp.Address,
+		ChallengeDuration: &big.Int{},
+		AppData:           []byte{},
+		Outcome:           concludeOutcome,
+		TurnNum:           uint64(2),
+		IsFinal:           true,
+	}
+
+	// Generate Signatures
+	aSig, _ := concludeState.Sign(Alice.PrivateKey)
+	bSig, _ := concludeState.Sign(Bob.PrivateKey)
 
 	// Fund channel
 	testDeposit := types.Funds{
