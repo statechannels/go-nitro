@@ -96,8 +96,12 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) []*et
 		nitroFixedPart := NitroAdjudicator.INitroTypesFixedPart(state.FixedPart())
 		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(state.VariablePart())
 		nitroSignatures := []NitroAdjudicator.INitroTypesSignature{NitroAdjudicator.ConvertSignature(signatures[0]), NitroAdjudicator.ConvertSignature(signatures[1])}
-
-		ethTx, err := ecs.na.ConcludeAndTransferAllAssets(ecs.defaultTxOpts(), nitroFixedPart, nitroVariablePart, 1, []uint8{0, 0}, nitroSignatures)
+		nitroSignedVariableParts := []NitroAdjudicator.INitroTypesSignedVariablePart{{
+			VariablePart: nitroVariablePart,
+			Sigs:         nitroSignatures,
+			SignedBy:     big.NewInt(0b11),
+		}}
+		ethTx, err := ecs.na.ConcludeAndTransferAllAssets(ecs.defaultTxOpts(), nitroFixedPart, nitroSignedVariableParts)
 		if err != nil {
 			panic(err)
 		}
