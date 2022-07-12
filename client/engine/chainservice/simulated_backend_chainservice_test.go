@@ -66,7 +66,7 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 	channelID := types.Destination(common.HexToHash(`4ebd366d014a173765ba1e50f284c179ade31f20441bec41664712aac6cc461d`))
 	testTx := protocols.NewDepositTransaction(channelID, testDeposit)
 
-	out := cs.SubscribeToEvents(ethAccounts[0].From)
+	out := cs.EventFeed()
 	// Submit transactiom
 	err = cs.SendTransaction(testTx)
 	if err != nil {
@@ -101,7 +101,7 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := cs.SubscribeToEvents(ethAccounts[0].From)
+	out := cs.EventFeed()
 
 	var concludeState = state.State{
 		ChainId: big.NewInt(1337),
