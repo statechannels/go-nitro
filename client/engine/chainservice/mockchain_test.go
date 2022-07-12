@@ -10,26 +10,11 @@ import (
 )
 
 func TestDeposit(t *testing.T) {
-	// The MockChain should react to a deposit transaction for a given channel by sending an event with updated holdings for that channel to all subsribers
+	// The MockChain should react to a deposit transaction for a given channel by sending an event with updated holdings for that channel
 
-	var a = types.Address(common.HexToAddress(`a`))
-	var b = types.Address(common.HexToAddress(`b`))
-
-	// Construct MockChain and tell it the subscriber addresses.
-	// This is not super elegant but gets around data races -- the constructor will make channels and then run a listener which will send on them.
+	// Construct MockChain
 	var chain = NewMockChain()
-	chain.SubscribeToEvents(a)
-	chain.SubscribeToEvents(b)
-
-	eventFeedA, err := chain.EventFeed(a)
-	if err != nil {
-		t.Fatalf("subscription for address a failed")
-	}
-
-	eventFeedB, err := chain.EventFeed(b)
-	if err != nil {
-		t.Fatalf("subscription for address b failed")
-	}
+	eventFeed := chain.EventFeed()
 
 	// Prepare test data to trigger MockChainService
 	testDeposit := types.Funds{
@@ -38,11 +23,11 @@ func TestDeposit(t *testing.T) {
 	testTx := protocols.NewDepositTransaction(types.Destination(common.HexToHash(`4ebd366d014a173765ba1e50f284c179ade31f20441bec41664712aac6cc461d`)), testDeposit)
 
 	// Send one transaction and receive one event from it.
-	err = chain.SendTransaction(testTx)
+	err := chain.SendTransaction(testTx)
 	if err != nil {
 		t.Error(err)
 	}
-	event := <-eventFeedA
+	event := <-eventFeed
 
 	checkReceivedEventIsValid(t, event, testTx.Deposit, testTx.ChannelId())
 
@@ -52,20 +37,12 @@ func TestDeposit(t *testing.T) {
 		t.Error(err)
 	}
 
-	event = <-eventFeedA
+	event = <-eventFeed
 
 	// The expectation is that the MockChainService remembered the previous deposit and added this one to it:
 	expectedHoldings := testTx.Deposit.Add(testTx.Deposit)
 
 	checkReceivedEventIsValid(t, event, expectedHoldings, testTx.ChannelId())
-
-	// Pull an event out of the other mock chain service and check that
-	eventB := <-eventFeedB
-	checkReceivedEventIsValid(t, eventB, testTx.Deposit, testTx.ChannelId())
-
-	// Pull another event out of the other mock chain service and check that
-	eventB = <-eventFeedB
-	checkReceivedEventIsValid(t, eventB, expectedHoldings, testTx.ChannelId())
 }
 
 func checkReceivedEventIsValid(t *testing.T, receivedEvent Event, holdings types.Funds, channelId types.Destination) {

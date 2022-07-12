@@ -2,11 +2,9 @@
 package chainservice // import "github.com/statechannels/go-nitro/client/chainservice"
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -68,10 +66,8 @@ type ChainEventHandler interface {
 }
 
 type ChainService interface {
-	// EventFeed returns a chan for receiving events from the chain service. An error is returned if no subscription exists
-	EventFeed(types.Address) (<-chan Event, error)
-	// SubscribeToEvents creates and returs a subscription channel.
-	SubscribeToEvents(types.Address) <-chan Event
+	// EventFeed returns a chan for receiving events from the chain service.
+	EventFeed() <-chan Event
 	// SendTransaction is for sending transactions with the chain service
 	SendTransaction(protocols.ChainTransaction) error
 	// GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
@@ -79,42 +75,23 @@ type ChainService interface {
 }
 
 type chainServiceBase struct {
-	out safesync.Map[chan Event]
+	out chan Event
 }
 
 // newChainServiceBase constructs a ChainServiceBase. Only implementations of ChainService interface should call the constructor.
 func newChainServiceBase() chainServiceBase {
-	return chainServiceBase{out: safesync.Map[chan Event]{}}
-}
-
-// Subscribe inserts a go chan (for the supplied address) into the ChainService.
-func (csb *chainServiceBase) SubscribeToEvents(a types.Address) <-chan Event {
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	c := make(chan Event, 10)
-	csb.out.Store(a.String(), c)
-	return c
+	return chainServiceBase{out: make(chan Event, 10)}
 }
 
-// EventFeed returns the out chan for a particular ChainService, and narrows the type so that external consumers may only receive on it.
-func (csb *chainServiceBase) EventFeed(a types.Address) (<-chan Event, error) {
-	c, ok := csb.out.Load(a.String())
-	if !ok {
-		return nil, fmt.Errorf("no subscription for address %v", a)
-	}
-	return c, nil
+// EventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
+func (csb *chainServiceBase) EventFeed() <-chan Event {
+	return csb.out
 }
 
 func (csb *chainServiceBase) broadcast(event Event) {
-	csb.out.Range(func(_ string, channel chan Event) bool {
-		attemptSend(channel, event)
-		return true
-	})
-}
-
-// attemptSend sends event to the supplied chan, and drops it if the chan is full
-func attemptSend(out chan Event, event Event) {
 	select {
-	case out <- event:
+	case csb.out <- event:
 	default:
 	}
 }

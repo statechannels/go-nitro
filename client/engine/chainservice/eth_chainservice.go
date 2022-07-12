@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
-	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 )
 
@@ -41,7 +40,6 @@ type EthChainService struct {
 // and listens to events from an eventSource
 func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, caAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer) (*EthChainService, error) {
 	ecs := EthChainService{chainServiceBase: newChainServiceBase()}
-	ecs.out = safesync.Map[chan Event]{}
 	ecs.chain = chain
 	ecs.na = na
 	ecs.naAddress = naAddress
