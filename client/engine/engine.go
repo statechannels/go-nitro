@@ -80,7 +80,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	// bind to inbound chans
 	e.FromAPI = make(chan APIEvent)
-	e.fromChain = chain.SubscribeToEvents(*e.store.GetAddress())
+	e.fromChain = chain.EventFeed()
 	e.fromMsg = msg.Out()
 
 	e.chain = chain
