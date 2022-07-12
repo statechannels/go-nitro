@@ -17,6 +17,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // ErrUnhandledChainEvent is an engine error when the the engine cannot process a chain event
@@ -517,4 +518,9 @@ func getProposalObjectiveId(p consensus_channel.Proposal) protocols.ObjectiveId 
 			panic("invalid proposal type")
 		}
 	}
+}
+
+// GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
+func (e *Engine) GetConsensusAppAddress() types.Address {
+	return e.chain.GetConsensusAppAddress()
 }
