@@ -212,8 +212,9 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart[] memory signedVariableParts,
         bytes32 channelId
     ) internal pure returns (bytes32) {
+
         VariablePart memory latestVariablePart = IForceMoveApp(fixedPart.appDefinition)
-            .latestSupportedState(fixedPart, signedVariableParts);
+            .latestSupportedState(fixedPart, recoverVariableParts(fixedPart,signedVariableParts));
 
         // enforcing the latest supported state being in the last slot of the array
         _requireVariablePartIsLast(latestVariablePart, signedVariableParts);
@@ -225,6 +226,30 @@ contract ForceMove is IForceMove, StatusManager {
             latestVariablePart.turnNum,
             latestVariablePart.isFinal
         );
+    }
+
+
+// TODO natspec
+    function recoverVariableParts(
+        FixedPart memory fixedPart,
+        SignedVariablePart[] memory signedVariableParts
+    ) internal pure returns (RecoveredVariablePart[] memory) {
+        RecoveredVariablePart[] memory recoveredVariableParts = new RecoveredVariablePart[](signedVariableParts.length);
+        for (uint256 i = 0; i < signedVariableParts.length; i++) {
+            recoveredVariableParts[i] = recoverVariablePart(fixedPart, signedVariableParts[i]);
+        }
+        return recoveredVariableParts;
+    }
+
+// TODO natspec
+    function recoverVariablePart(
+        FixedPart memory fixedPart,
+        SignedVariablePart memory signedVariablePart
+    ) internal pure returns (RecoveredVariablePart memory) {
+        return RecoveredVariablePart({
+            variablePart: signedVariablePart.variablePart,
+            signedBy: 2**fixedPart.participants.length - 1 // TODO do this properly. loop over participants and over states
+    });
     }
 
     /**
