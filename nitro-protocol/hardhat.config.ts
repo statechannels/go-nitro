@@ -6,6 +6,7 @@ import '@typechain/hardhat';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 import 'hardhat-deploy';
+import 'hardhat-watcher';
 
 dotenv.config();
 
@@ -22,7 +23,7 @@ task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
-const config: HardhatUserConfig = {
+const config: HardhatUserConfig & {watcher: any} = {
   solidity: {
     compilers: [
       {
@@ -58,12 +59,12 @@ const config: HardhatUserConfig = {
     deploy: 'hardhat-deploy',
     deployments: 'hardhat-deployments',
   },
-  // watcher: {
-  //   compilation: {
-  //     tasks: ['compile'],
-  //     verbose: true,
-  //   },
-  // },
+  watcher: {
+    compilation: {
+      tasks: ['compile'],
+      verbose: true,
+    },
+  },
   networks: {
     hardhat: {
       chainId: 31337,

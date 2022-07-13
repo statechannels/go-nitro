@@ -32,7 +32,7 @@ contract MyStateChannelApp is IForceMoveApp {
     VariablePart memory b,
     uint256 turnNumB,
     uint256 nParticipants
-  ) public override pure returns (bool) {
+  ) public pure override returns (bool) {
     Outcome.OutcomeItem[] memory outcomeA = abi.decode(a.outcome, (Outcome.OutcomeItem[]));
     Outcome.OutcomeItem[] memory outcomeB = abi.decode(b.outcome, (Outcome.OutcomeItem[]));
 
@@ -41,44 +41,43 @@ contract MyStateChannelApp is IForceMoveApp {
     return true;
   }
 }
+
 ```
 
 ### Import precompiled artifacts for deployment/testing
 
 ```typescript
-const { NitroAdjudicatorArtifact, TrivialAppArtifact, TokenArtifact } =
-  require("@statechannels/nitro-protocol").ContractArtifacts;
+const {NitroAdjudicatorArtifact, TrivialAppArtifact, TokenArtifact} =
+  require('@statechannels/nitro-protocol').ContractArtifacts;
 ```
 
 ### Import typescript types
 
 ```typescript
-import { Channel } from "@statechannels/nitro-protocol";
+import {Channel} from '@statechannels/nitro-protocol';
 
 const channel: Channel = {
-  chainId: "0x1",
+  chainId: '0x1',
   channelNonce: 0,
-  participants: ["0xalice...", "0xbob..."],
+  participants: ['0xalice...', '0xbob...'],
 };
 ```
 
 ### Import javascript helper functions
 
 ```typescript
-import { getChannelId } from "@statechannels/nitro-protocol";
+import {getChannelId} from '@statechannels/nitro-protocol';
 
 const channelId = getChannelId(channel);
 ```
 
 ## Development (GitHub)
 
-We use [etherlime](https://etherlime.gitbook.io/) for smart contract development.
+We use hardhat to develop smart contracts. You can run the solidity compiler in watch mode like this:
 
-To get started:
-
-1. Download the repo, `cd` into the directory and run `yarn install`
-2. Run `yarn install`.
-3. Run `yarn test`.
+```
+npx hardhat watch compilation
+```
 
 ## Documentation website (GitHub)
 
