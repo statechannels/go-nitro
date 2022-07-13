@@ -47,14 +47,16 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	// Setup central services
-	chain := chainservice.NewMockChainService()
+	chain := chainservice.NewMockChainImpl()
+	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
+	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 	broker := messageservice.NewBroker()
 
 	// Setup singleton (instrumented) clients
-	retrievalProvider, retrievalProviderStore := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
+	retrievalProvider, retrievalProviderStore := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, 0)
 	prettyPrintDict.Store(retrievalProvider.Address.String(), "RP")
 
-	paymentHub, paymentHubStore := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
+	paymentHub, paymentHubStore := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
 	prettyPrintDict.Store(paymentHub.Address.String(), "PH")
 
 	// Connect RP to PH
@@ -65,37 +67,40 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	retrievalClients := make([]client.Client, numRetrievalClients)
 	rcStores := make([]store.Store, numRetrievalClients)
 	for i := range retrievalClients {
-		secretKey, _ := nc.GeneratePrivateKeyAndAddress()
-		retrievalClients[i], rcStores[i] = setupClient(secretKey, chain, broker, logDestination, 0)
+		secretKey, address := nc.GeneratePrivateKeyAndAddress()
+		chainService := chainservice.NewMockChainService(chain, address)
+		retrievalClients[i], rcStores[i] = setupClient(secretKey, chainService, broker, logDestination, 0)
 		prettyPrintDict.Store(retrievalClients[i].Address.String(), "RC"+fmt.Sprint(i))
 		lID := directlyFundALedgerChannel(t, retrievalClients[i], paymentHub)
 		prettyPrintDict.Store(lID.String(), "L"+fmt.Sprint(i))
 	}
 
 	// Switch to instrumented clients
-	chain = chainservice.NewMockChainService()
+	chainService := chainservice.NewMockChainService(chain, bob.Address())
 	broker = messageservice.NewBroker()
 	retrievalProvider = client.New(
 		messageservice.NewVectorClockTestMessageService(bob.Address(), broker, 0, vectorClockLogDir),
-		chain,
+		chainService,
 		retrievalProviderStore,
 		logDestination,
 		&engine.PermissivePolicy{},
 		nil,
 	)
+	chainService = chainservice.NewMockChainService(chain, irene.Address())
 	paymentHub = client.New(
 		messageservice.NewVectorClockTestMessageService(irene.Address(), broker, 0, vectorClockLogDir),
-		chain,
+		chainService,
 		paymentHubStore,
 		logDestination,
 		&engine.PermissivePolicy{},
 		nil,
 	)
 	for i := range retrievalClients {
+		chainService = chainservice.NewMockChainService(chain, *retrievalClients[i].Address)
 		retrievalClients[i] =
 			client.New(
 				messageservice.NewVectorClockTestMessageService(*retrievalClients[i].Address, broker, 0, vectorClockLogDir),
-				chain,
+				chainService,
 				rcStores[i],
 				logDestination,
 				&engine.PermissivePolicy{},

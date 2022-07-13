@@ -30,14 +30,16 @@ func TestSimpleTCPMessageService(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	chain := chainservice.NewMockChainService()
+	chain := chainservice.NewMockChainImpl()
+	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
+	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 
 	peers := map[types.Address]string{
 		alice.Address(): "localhost:3005",
 		bob.Address():   "localhost:3006",
 	}
-	clientA, msA := setupClientWithSimpleTCP(alice.PrivateKey, chain, peers, logDestination, 0)
-	clientB, msB := setupClientWithSimpleTCP(bob.PrivateKey, chain, peers, logDestination, 0)
+	clientA, msA := setupClientWithSimpleTCP(alice.PrivateKey, chainServiceA, peers, logDestination, 0)
+	clientB, msB := setupClientWithSimpleTCP(bob.PrivateKey, chainServiceB, peers, logDestination, 0)
 	defer msA.Close()
 	defer msB.Close()
 	directlyFundALedgerChannel(t, clientA, clientB)
