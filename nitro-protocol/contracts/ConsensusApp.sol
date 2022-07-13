@@ -2,7 +2,6 @@
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import {ShortcuttingTurnTaking} from './libraries/signature-logic/ShortcuttingTurnTaking.sol';
 import './interfaces/IForceMoveApp.sol';
 import './libraries/NitroUtils.sol';
 
