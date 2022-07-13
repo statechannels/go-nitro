@@ -161,6 +161,14 @@ library NitroUtils {
         return keccak256(abi.encode(channelId, appData, outcome, turnNum, isFinal));
     }
 
+// TODO natspec
+    function hashState(
+        INitroTypes.FixedPart memory fp,
+        INitroTypes.VariablePart memory vp
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encode(getChannelId(fp), vp.appData, vp.outcome, vp.turnNum, vp.isFinal));
+    }
+
     /**
      * @notice Hashes the outcome structure. Internal helper.
      * @dev Hashes the outcome structure. Internal helper.
