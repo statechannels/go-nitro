@@ -91,17 +91,17 @@ func NewMockChainService(chain MockChain, address common.Address) *MockChainServ
 
 // NewMockChainWithTransactionListener returns a new mock chain that will send transactions to the supplied chan.
 // This lets us easily rebroadcast transactions to other mock chains.
-// func NewMockChainWithTransactionListener(txListener chan protocols.ChainTransaction) *MockChainService {
-// 	mc := NewMockChainService()
-// 	mc.txListener = txListener
-// 	return mc
-// }
+func NewMockChainWithTransactionListener(chain MockChain, address common.Address, txListener chan protocols.ChainTransaction) *MockChainService {
+	mc := NewMockChainService(chain, address)
+	mc.txListener = txListener
+	return mc
+}
 
 // SendTransaction responds to the given tx.
 func (mc *MockChainService) SendTransaction(tx protocols.ChainTransaction) error {
-	// if mc.txListener != nil {
-	// 	mc.txListener <- tx
-	// }
+	if mc.txListener != nil {
+		mc.txListener <- tx
+	}
 
 	return mc.chain.SubmitTransaction(tx)
 }
