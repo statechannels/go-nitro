@@ -246,10 +246,18 @@ contract ForceMove is IForceMove, StatusManager {
         FixedPart memory fixedPart,
         SignedVariablePart memory signedVariablePart
     ) internal pure returns (RecoveredVariablePart memory) {
-        return RecoveredVariablePart({
+        RecoveredVariablePart memory rvp = RecoveredVariablePart({
             variablePart: signedVariablePart.variablePart,
-            signedBy: 2**fixedPart.participants.length - 1 // TODO do this properly. loop over participants and over states
+            signedBy: 0
     });
+            for (uint256 i = 0; i < fixedPart.participants.length; i++) {
+                for (uint256 j=0; j < signedVariablePart.sigs.length; j++) {
+                    if (NitroUtils.isSignedBy(NitroUtils.hashState(fixedPart,signedVariablePart.variablePart), signedVariablePart.sigs[j], fixedPart.participants[i])) {
+                        rvp.signedBy += 2**j; //  check each participant against each signature
+                    }
+                }
+            }
+        return rvp;
     }
 
     /**
