@@ -57,7 +57,6 @@ func assetAddressForIndex(na *NitroAdjudicator.NitroAdjudicator, tx *types.Trans
 			R [32]uint8 "json:\"r\""
 			S [32]uint8 "json:\"s\""
 		} "json:\"sigs\""
-		SignedBy *big.Int "json:\"signedBy\""
 	})
 	return signedVariableParts[len(signedVariableParts)-1].VariablePart.Outcome[index.Int64()].Asset, nil
 
