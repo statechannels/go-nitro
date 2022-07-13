@@ -45,12 +45,15 @@ func TestVirtualDefundIntegrationWithMessageDelay(t *testing.T) {
 
 // runVirtualDefundIntegrationTest runs a virtual defund integration test using the provided message delay, objective timeout and log destination
 func runVirtualDefundIntegrationTest(t *testing.T, messageDelay time.Duration, objectiveTimeout time.Duration, logDestination io.Writer) {
-	chain := chainservice.NewMockChainService()
+	chain := chainservice.NewMockChainImpl()
+	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
+	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
+	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 	broker := messageservice.NewBroker()
 
-	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, messageDelay)
-	clientB, storeB := setupClient(bob.PrivateKey, chain, broker, logDestination, messageDelay)
-	clientI, storeI := setupClient(irene.PrivateKey, chain, broker, logDestination, messageDelay)
+	clientA, storeA := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, messageDelay)
+	clientB, storeB := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, messageDelay)
+	clientI, storeI := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, messageDelay)
 
 	numOfVirtualChannels := uint(5)
 	paidToBob := uint(1)

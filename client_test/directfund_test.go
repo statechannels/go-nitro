@@ -53,11 +53,13 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	chain := chainservice.NewMockChainService()
+	chain := chainservice.NewMockChainImpl()
+	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
+	chainServiceB := chainservice.NewMockChainService(chain, alice.Address())
 	broker := messageservice.NewBroker()
 
 	meanMessageDelay := time.Duration(0)
-	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, meanMessageDelay)
+	clientA, storeA := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, meanMessageDelay)
 	var (
 		clientB client.Client
 		storeB  store.Store
@@ -65,7 +67,7 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 	{
 		messageservice := messageservice.NewTestMessageService(bob.Address(), broker, meanMessageDelay)
 		storeB = store.NewMemStore(bob.PrivateKey)
-		clientB = client.New(messageservice, chain, storeB, logDestination, &RejectingPolicyMaker{}, nil)
+		clientB = client.New(messageservice, chainServiceB, storeB, logDestination, &RejectingPolicyMaker{}, nil)
 	}
 
 	outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), ledgerChannelDeposit, ledgerChannelDeposit)
