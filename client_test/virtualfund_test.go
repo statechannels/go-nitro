@@ -49,12 +49,15 @@ func TestVirtualFundIntegration(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	chain := chainservice.NewMockChainService()
+	chain := chainservice.NewMockChainImpl()
+	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
+	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
+	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 	broker := messageservice.NewBroker()
 
-	clientA, _ := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
-	clientB, _ := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
-	clientI, _ := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
+	clientA, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, 0)
+	clientB, _ := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, 0)
+	clientI, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
 
 	openVirtualChannels(t, clientA, clientB, clientI, 1)
 }

@@ -27,12 +27,15 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	chain := chainservice.NewMockChainService()
+	chain := chainservice.NewMockChainImpl()
+	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
+	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
+	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 	broker := messageservice.NewBroker()
 
-	clientA, _ := setupClient(alice.PrivateKey, chain, broker, logDestination, MAX_MESSAGE_DELAY)
-	clientB, _ := setupClient(bob.PrivateKey, chain, broker, logDestination, MAX_MESSAGE_DELAY)
-	clientI, _ := setupClient(irene.PrivateKey, chain, broker, logDestination, MAX_MESSAGE_DELAY)
+	clientA, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, MAX_MESSAGE_DELAY)
+	clientB, _ := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, MAX_MESSAGE_DELAY)
+	clientI, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, MAX_MESSAGE_DELAY)
 
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)
