@@ -11,19 +11,19 @@ library StrictTurnTaking {
      * @notice Require supplied arguments to comply with turn taking logic, i.e. each participant signed the one state, they were mover for.
      * @dev Require supplied arguments to comply with turn taking logic, i.e. each participant signed the one state, they were mover for.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariableParts An ordered array of structs, each struct describing dynamic properties of the state channel and must be signed by corresponding moving participant.
+     * @param recoveredVariableParts An ordered array of structs, each struct describing dynamic properties of the state channel and must be signed by corresponding moving participant.
      */
     function requireValidTurnTaking(
         INitroTypes.FixedPart memory fixedPart,
-        INitroTypes.SignedVariablePart[] memory signedVariableParts
+        INitroTypes.RecoveredVariablePart[] memory recoveredVariableParts
     ) internal pure {
-        _requireValidInput(fixedPart.participants.length, signedVariableParts.length);
+        _requireValidInput(fixedPart.participants.length, recoveredVariableParts.length);
         
-        uint48 turnNum = signedVariableParts[0].variablePart.turnNum;
+        uint48 turnNum = recoveredVariableParts[0].variablePart.turnNum;
 
-        for (uint i = 0; i < signedVariableParts.length; i++) {
-            isSignedByMover(fixedPart, signedVariableParts[i]);
-            requireHasTurnNum(signedVariableParts[i].variablePart, turnNum);
+        for (uint i = 0; i < recoveredVariableParts.length; i++) {
+            isSignedByMover(fixedPart, recoveredVariableParts[i]);
+            requireHasTurnNum(recoveredVariableParts[i].variablePart, turnNum);
             turnNum++;
         }
     }
@@ -32,31 +32,15 @@ library StrictTurnTaking {
      * @notice Require supplied state is signed by its corresponding moving participant.
      * @dev Require supplied state is signed by its corresponding moving participant.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariablePart A struct describing dynamic properties of the state channel, that must be signed by moving participant.
+     * @param recoveredVariablePart A struct describing dynamic properties of the state channel, that must be signed by moving participant.
      */
     function isSignedByMover(
         INitroTypes.FixedPart memory fixedPart,
-        INitroTypes.SignedVariablePart memory signedVariablePart
+        INitroTypes.RecoveredVariablePart memory recoveredVariablePart
     ) internal pure {
-        require(signedVariablePart.sigs.length == 1, 'sigs.length != 1');
         require(
-            NitroUtils.isClaimedSignedOnlyBy(signedVariablePart.signedBy, uint8(signedVariablePart.variablePart.turnNum % fixedPart.participants.length)),
+            NitroUtils.isClaimedSignedOnlyBy(recoveredVariablePart.signedBy, uint8(recoveredVariablePart.variablePart.turnNum % fixedPart.participants.length)),
             'Invalid signedBy'
-        );
-
-        require(
-            NitroUtils.isSignedBy(
-                NitroUtils.hashState(
-                    NitroUtils.getChannelId(fixedPart),
-                    signedVariablePart.variablePart.appData,
-                    signedVariablePart.variablePart.outcome,
-                    signedVariablePart.variablePart.turnNum,
-                    signedVariablePart.variablePart.isFinal
-                ),
-                signedVariablePart.sigs[0],
-                _moverAddress(fixedPart.participants, signedVariablePart.variablePart.turnNum)
-            ),
-            'Invalid signer'
         );
     }
 
