@@ -13,11 +13,11 @@ interface IForceMoveApp is INitroTypes {
      * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel.
      * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel.
      * @param fixedPart Fixed part of the state channel.
-     * @param signedVariableParts Array of variable parts with signatures to find the latest of.
+     * @param recoveredVariableParts Array of recovered variable parts to find the latest of.
      * @return VariablePart Latest supported by application variable part from supplied array.
      */    
     function latestSupportedState(
         FixedPart calldata fixedPart,
-        SignedVariablePart[] calldata signedVariableParts
+        RecoveredVariablePart[] calldata recoveredVariableParts
     ) external pure returns (VariablePart memory);
 }
