@@ -51,6 +51,7 @@
     "hardhat": "^2.10.0",
     "hardhat-deploy": "^0.10.4",
     "hardhat-gas-reporter": "^1.0.7",
+    "hardhat-watcher": "^2.3.0",
     "jest": "^27.5.1",
     "lodash.isequal": "^4.5.0",
     "lodash.pick": "^4.4.0",
