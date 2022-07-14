@@ -33,7 +33,7 @@ contract HashLockedSwap is IForceMoveApp {
         VariablePart memory to = recoveredVariableParts[1].variablePart;
 
         // is this the first and only swap?
-        require(recoveredVariableParts.length == 2, 'recoveredVariableParts.length != 2');
+        require(recoveredVariableParts.length == 2, 'recoveredVariableParts.length!=2');
         require(to.turnNum == 4, 'latest turn number != 4');
 
         StrictTurnTaking.requireValidTurnTaking(fixedPart, recoveredVariableParts);
