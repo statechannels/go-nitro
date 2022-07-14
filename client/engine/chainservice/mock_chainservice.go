@@ -75,21 +75,15 @@ func (mc *MockChainImpl) SubscribeToEvents(a types.Address) <-chan Event {
 
 // MockChainService adheres to the ChainService interface. The constructor accepts a MockChain, which allows multiple clients to share the same, in-memory chain.
 type MockChainService struct {
-	chainServiceBase
 	chain      MockChain
 	txListener chan protocols.ChainTransaction // this is used to broadcast transactions that have been received
+	eventFeed  <-chan Event
 }
 
 // NewMockChainService returns a new MockChainService.
 func NewMockChainService(chain MockChain, address common.Address) *MockChainService {
-	mc := MockChainService{chainServiceBase: newChainServiceBase()}
-	mc.chain = chain
-	in := chain.SubscribeToEvents(address)
-	go func() {
-		for e := range in {
-			mc.out <- e
-		}
-	}()
+	mc := MockChainService{chain: chain}
+	mc.eventFeed = chain.SubscribeToEvents(address)
 	return &mc
 }
 
@@ -113,4 +107,8 @@ func (mc *MockChainService) SendTransaction(tx protocols.ChainTransaction) error
 // GetConsensusAppAddress returns the zero address, since the mock chain will not run any application logic.
 func (mc *MockChainService) GetConsensusAppAddress() types.Address {
 	return types.Address{}
+}
+
+func (mc *MockChainService) EventFeed() <-chan Event {
+	return mc.eventFeed
 }

@@ -27,30 +27,25 @@ type ethChain interface {
 }
 
 type EthChainService struct {
-	chainServiceBase
 	chain               ethChain
 	na                  *NitroAdjudicator.NitroAdjudicator
 	naAddress           common.Address
 	consensusAppAddress common.Address
 	txSigner            *bind.TransactOpts
+	out                 chan Event
 	logger              *log.Logger
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, naAddress common.Address, caAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer) (*EthChainService, error) {
-	ecs := EthChainService{chainServiceBase: newChainServiceBase()}
-	ecs.chain = chain
-	ecs.na = na
-	ecs.naAddress = naAddress
-	ecs.consensusAppAddress = caAddress
-	ecs.txSigner = txSigner
-
+func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
+	naAddress common.Address, caAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer) (*EthChainService, error) {
 	logPrefix := "chainservice " + txSigner.From.String() + ": "
-	ecs.logger = log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
+	logger := log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
+	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
+	ecs := EthChainService{chain, na, naAddress, caAddress, txSigner, make(chan Event, 10), logger}
 
 	err := ecs.subcribeToEvents()
-
 	return &ecs, err
 }
 
@@ -144,7 +139,7 @@ func (ecs *EthChainService) listenForLogEvents(sub ethereum.Subscription, logs c
 				}
 
 				event := NewDepositedEvent(nad.Destination, chainEvent.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
-				ecs.broadcast(event)
+				ecs.out <- event
 			case allocationUpdatedTopic:
 				au, err := ecs.na.ParseAllocationUpdated(chainEvent)
 				if err != nil {
@@ -164,7 +159,7 @@ func (ecs *EthChainService) listenForLogEvents(sub ethereum.Subscription, logs c
 					ecs.logger.Printf("error in getChainHoldings: %v", err)
 				}
 				event := NewAllocationUpdatedEvent(au.ChannelId, chainEvent.BlockNumber, assetAddress, amount)
-				ecs.broadcast(event)
+				ecs.out <- event
 			case concludedTopic:
 				ce, err := ecs.na.ParseConcluded(chainEvent)
 				if err != nil {
@@ -172,10 +167,15 @@ func (ecs *EthChainService) listenForLogEvents(sub ethereum.Subscription, logs c
 				}
 
 				event := ConcludedEvent{commonEvent: commonEvent{channelID: ce.ChannelId, BlockNum: chainEvent.BlockNumber}}
-				ecs.broadcast(event)
+				ecs.out <- event
 			default:
 				ecs.logger.Printf("Unknown chain event")
 			}
 		}
 	}
+}
+
+// EventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
+func (ecs *EthChainService) EventFeed() <-chan Event {
+	return ecs.out
 }
