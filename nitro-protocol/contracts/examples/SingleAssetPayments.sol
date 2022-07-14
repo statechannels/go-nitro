@@ -3,7 +3,7 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
-import {ShortcuttingTurnTaking} from '../libraries/signature-logic/ShortcuttingTurnTaking.sol';
+import {StrictTurnTaking} from '../libraries/signature-logic/StrictTurnTaking.sol';
 import '../interfaces/IForceMoveApp.sol';
 
 /**
@@ -14,28 +14,28 @@ contract SingleAssetPayments is IForceMoveApp {
      * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel.
      * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel.
      * @param fixedPart Fixed part of the state channel.
-     * @param signedVariableParts Array of variable parts to find the latest of.
+     * @param recoveredVariableParts Array of variable parts to find the latest of.
      * @return VariablePart Latest supported by application variable part from supplied array.
      */    
     function latestSupportedState(
         FixedPart calldata fixedPart,
-        SignedVariablePart[] calldata signedVariableParts
+        RecoveredVariablePart[] calldata recoveredVariableParts
     ) external pure override returns (VariablePart memory) {
-        ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts);
+        StrictTurnTaking.requireValidTurnTaking(fixedPart, recoveredVariableParts);
 
-        for (uint256 i = 0; i < signedVariableParts.length; i++) {
-            _requireValidOutcome(fixedPart.participants.length, signedVariableParts[i].variablePart.outcome);
+        for (uint256 i = 0; i < recoveredVariableParts.length; i++) {
+            _requireValidOutcome(fixedPart.participants.length, recoveredVariableParts[i].variablePart.outcome);
 
             if (i > 0) {
                 _requireValidTransition(
                     fixedPart.participants.length,
-                    signedVariableParts[i-1].variablePart,
-                    signedVariableParts[i].variablePart
+                    recoveredVariableParts[i-1].variablePart,
+                    recoveredVariableParts[i].variablePart
                 );
             }
         }
 
-        return signedVariableParts[signedVariableParts.length - 1].variablePart;
+        return recoveredVariableParts[recoveredVariableParts.length - 1].variablePart;
     }
 
     /**

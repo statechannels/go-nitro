@@ -27,16 +27,16 @@ contract HashLockedSwap is IForceMoveApp {
 
     function latestSupportedState(
         FixedPart calldata fixedPart,
-        SignedVariablePart[] calldata signedVariableParts
+        RecoveredVariablePart[] calldata recoveredVariableParts
     ) external pure override returns (VariablePart memory) {
-        VariablePart memory from = signedVariableParts[0].variablePart;
-        VariablePart memory to = signedVariableParts[1].variablePart;
+        VariablePart memory from = recoveredVariableParts[0].variablePart;
+        VariablePart memory to = recoveredVariableParts[1].variablePart;
 
         // is this the first and only swap?
-        require(signedVariableParts.length == 2, 'signedVariableParts.length != 2');
+        require(recoveredVariableParts.length == 2, 'recoveredVariableParts.length != 2');
         require(to.turnNum == 4, 'latest turn number != 4');
 
-        StrictTurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts);
+        StrictTurnTaking.requireValidTurnTaking(fixedPart, recoveredVariableParts);
 
         // Decode variables.
         // Assumptions:
@@ -70,7 +70,7 @@ contract HashLockedSwap is IForceMoveApp {
             'amounts must be permuted'
         );
 
-        return signedVariableParts[1].variablePart;
+        return recoveredVariableParts[1].variablePart;
     }
 
     function decode2PartyAllocation(Outcome.SingleAssetExit[] memory outcome)
@@ -80,7 +80,7 @@ contract HashLockedSwap is IForceMoveApp {
     {
         Outcome.SingleAssetExit memory assetOutcome = outcome[0];
 
-        allocations = assetOutcome.allocations; // TODO should we check each allocation is a "simple" one?
+        allocations = assetOutcome.allocations; // TODO should we check each  allocation is a "simple" one?
 
         // Throws unless there are exactly 2 allocations
         require(allocations.length == 2, 'allocation.length != 2');
