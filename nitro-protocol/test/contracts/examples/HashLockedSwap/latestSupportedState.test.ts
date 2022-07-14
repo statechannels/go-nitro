@@ -5,13 +5,7 @@ import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
 import HashLockedSwapArtifact from '../../../../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
-import {
-  bindSignatures,
-  bindSignaturesWithSignedByBitfield,
-  Bytes32,
-  Channel,
-  signStates,
-} from '../../../../src';
+import {bindSignaturesWithSignedByBitfield, Bytes32, Channel, signStates} from '../../../../src';
 import {Outcome} from '../../../../src/contract/outcome';
 import {getFixedPart, getVariablePart} from '../../../../src/contract/state';
 import {Bytes} from '../../../../src/contract/types';
