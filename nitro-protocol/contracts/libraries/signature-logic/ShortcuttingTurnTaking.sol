@@ -7,7 +7,7 @@ import {NitroUtils} from '../NitroUtils.sol';
 import '../../interfaces/INitroTypes.sol';
 
 /**
- * @dev Signatures in `sigs` part of `RecoveredVariablePart` must be in ascending order relative to participant index, which has created the signature.
+ * @dev Signatures implied by `signedBy` part of `RecoveredVariablePart` must be in ascending order relative to participant index, which has created the signature.
  */
 library ShortcuttingTurnTaking {
     /**

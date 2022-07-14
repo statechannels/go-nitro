@@ -161,7 +161,13 @@ library NitroUtils {
         return keccak256(abi.encode(channelId, appData, outcome, turnNum, isFinal));
     }
 
-// TODO natspec
+    /**
+     * @notice Computes the hash of the state corresponding to the input data.
+     * @dev Computes the hash of the state corresponding to the input data.
+     * @param fp The FixedPart of the state
+     * @param vp The VariablePart of the state
+     * @return The stateHash
+     */
     function hashState(
         INitroTypes.FixedPart memory fp,
         INitroTypes.VariablePart memory vp
