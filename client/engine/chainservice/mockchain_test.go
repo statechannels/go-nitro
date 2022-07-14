@@ -40,7 +40,7 @@ func TestDeposit(t *testing.T) {
 	// Send one transaction and receive one event from it.
 	err = chain.SendTransaction(testTx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	event := <-eventFeedA
 
@@ -49,7 +49,7 @@ func TestDeposit(t *testing.T) {
 	// Send the transaction again and receive another event
 	err = chain.SendTransaction(testTx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	event = <-eventFeedA
