@@ -107,10 +107,7 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 			SignedBy:     big.NewInt(0b11),
 		}}
 		_, err := ecs.na.ConcludeAndTransferAllAssets(ecs.defaultTxOpts(), nitroFixedPart, nitroSignedVariableParts)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 
 	default:
 		return fmt.Errorf("unexpected transaction type %T", tx)
