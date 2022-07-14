@@ -17,7 +17,6 @@ import {
 } from '../../../test-helpers';
 import {
   AssetOutcomeShortHand,
-  bindSignatures,
   bindSignaturesWithSignedByBitfield,
   Channel,
   signStates,
