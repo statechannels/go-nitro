@@ -73,25 +73,3 @@ type ChainService interface {
 	// GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
 	GetConsensusAppAddress() types.Address
 }
-
-type chainServiceBase struct {
-	out chan Event
-}
-
-// newChainServiceBase constructs a ChainServiceBase. Only implementations of ChainService interface should call the constructor.
-func newChainServiceBase() chainServiceBase {
-	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	return chainServiceBase{out: make(chan Event, 10)}
-}
-
-// EventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
-func (csb *chainServiceBase) EventFeed() <-chan Event {
-	return csb.out
-}
-
-func (csb *chainServiceBase) broadcast(event Event) {
-	select {
-	case csb.out <- event:
-	default:
-	}
-}
