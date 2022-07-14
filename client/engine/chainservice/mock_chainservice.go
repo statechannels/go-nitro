@@ -9,17 +9,23 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// MockChain is an in-memory "chain" that accepts transactions and broadcasts events
 type MockChain interface {
-	SubmitTransaction(protocols.ChainTransaction) error
-	SubscribeToEvents(a types.Address) <-chan Event
+	SubmitTransaction(protocols.ChainTransaction) error // unlike an ethereum blockchain, Mockhain accepts go-nitro protocols.ChainTransaction
+	SubscribeToEvents(a types.Address) <-chan Event     // returns a channel that produces all chain Events
 }
 
+// MockChainImpl mimicks the Ethereum blockchain by keeping track of block numbers and account balances.
 type MockChainImpl struct {
 	blockNum uint64
-	holdings map[types.Destination]types.Funds // holdings tracks funds for each channel
-	out      safesync.Map[chan Event]
+	// holdings tracks funds for each channel.
+	holdings map[types.Destination]types.Funds
+	// out maps addresses to an Event channel. Given that MockChainServices only subscribe
+	// (and never unsubscribe) to events, this can be converted to a list.
+	out safesync.Map[chan Event]
 }
 
+// NewMockChainImpl creates a new MockChainImpl
 func NewMockChainImpl() *MockChainImpl {
 	chain := MockChainImpl{}
 	chain.blockNum = 1
@@ -28,6 +34,7 @@ func NewMockChainImpl() *MockChainImpl {
 	return &chain
 }
 
+// SubmitTransaction updates internal state and brodcasts events
 func (mc *MockChainImpl) SubmitTransaction(tx protocols.ChainTransaction) error {
 	mc.blockNum++
 	switch tx := tx.(type) {
@@ -58,6 +65,7 @@ func (mc *MockChainImpl) broadcastEvent(event Event) {
 	})
 }
 
+// SubscribeToEvents creates, stores, and returns a new Event channel
 func (mc *MockChainImpl) SubscribeToEvents(a types.Address) <-chan Event {
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	c := make(chan Event, 10)
@@ -65,18 +73,14 @@ func (mc *MockChainImpl) SubscribeToEvents(a types.Address) <-chan Event {
 	return c
 }
 
-// MockChainService provides an interface which simulates a blockchain network. It is designed for use as a central service which multiple
-// ChainServices connect to with Go chans.
-//
-// It keeps a record of of holdings and adjudication status for each channel, accepts transactions and emits events.
+// MockChainService adheres to the ChainService interface. The constructor accepts a MockChain, which allows multiple clients to share the same, in-memory chain.
 type MockChainService struct {
 	chainServiceBase
-
 	chain      MockChain
 	txListener chan protocols.ChainTransaction // this is used to broadcast transactions that have been received
 }
 
-// NewMockChainService returns a new MockChain.
+// NewMockChainService returns a new MockChainService.
 func NewMockChainService(chain MockChain, address common.Address) *MockChainService {
 	mc := MockChainService{chainServiceBase: newChainServiceBase()}
 	mc.chain = chain
@@ -89,8 +93,8 @@ func NewMockChainService(chain MockChain, address common.Address) *MockChainServ
 	return &mc
 }
 
-// NewMockChainWithTransactionListener returns a new mock chain that will send transactions to the supplied chan.
-// This lets us easily rebroadcast transactions to other mock chains.
+// NewMockChainWithTransactionListener returns a new MockChainService that will send transactions to the supplied chan.
+// This lets us easily rebroadcast transactions to other MockChainServices.
 func NewMockChainWithTransactionListener(chain MockChain, address common.Address, txListener chan protocols.ChainTransaction) *MockChainService {
 	mc := NewMockChainService(chain, address)
 	mc.txListener = txListener
