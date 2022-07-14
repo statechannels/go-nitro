@@ -3,7 +3,7 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
-import {StrictTurnTaking} from '../libraries/signature-logic/StrictTurnTaking.sol';
+import {ShortcuttingTurnTaking} from '../libraries/signature-logic/ShortcuttingTurnTaking.sol';
 import '../interfaces/IForceMoveApp.sol';
 
 /**
@@ -21,7 +21,7 @@ contract SingleAssetPayments is IForceMoveApp {
         FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata recoveredVariableParts
     ) external pure override returns (VariablePart memory) {
-        StrictTurnTaking.requireValidTurnTaking(fixedPart, recoveredVariableParts);
+        ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, recoveredVariableParts);
 
         for (uint256 i = 0; i < recoveredVariableParts.length; i++) {
             _requireValidOutcome(fixedPart.participants.length, recoveredVariableParts[i].variablePart.outcome);
