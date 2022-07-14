@@ -3,6 +3,7 @@ package chainservice
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // MockChainService adheres to the ChainService interface. The constructor accepts a MockChain, which allows multiple clients to share the same, in-memory chain.
