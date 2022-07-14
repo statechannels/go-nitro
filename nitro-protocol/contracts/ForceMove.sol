@@ -229,7 +229,13 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
 
-// TODO natspec
+    /**
+     * @notice Recover signatures for each variable part in the supplied array.
+     * @dev Recover signatures for each variable part in the supplied array.
+     * @param fixedPart Fixed Part of the states in the support proof.
+     * @param signedVariableParts Signed variable parts of the states in the support proof.
+     * @return An array of recoveredVariableParts, identical to the supplied signedVariableParts array but with the signatures replaced with a signedBy bitmask.
+     */
     function recoverVariableParts(
         FixedPart memory fixedPart,
         SignedVariablePart[] memory signedVariableParts
@@ -241,7 +247,14 @@ contract ForceMove is IForceMove, StatusManager {
         return recoveredVariableParts;
     }
 
-// TODO natspec
+
+    /**
+     * @notice Recover signatures for a variable part.
+     * @dev Recover signatures for a variable part.
+     * @param fixedPart Fixed Part of the states in the support proof.
+     * @param signedVariablePart A signed variable part.
+     * @return An RecoveredVariableParts, identical to the supplied signedVariablePart  but with the signatures replaced with a signedBy bitmask.
+     */
     function recoverVariablePart(
         FixedPart memory fixedPart,
         SignedVariablePart memory signedVariablePart
@@ -250,10 +263,11 @@ contract ForceMove is IForceMove, StatusManager {
             variablePart: signedVariablePart.variablePart,
             signedBy: 0
     });
+            //  Check each participant against each signature
             for (uint256 i = 0; i < fixedPart.participants.length; i++) {
                 for (uint256 j=0; j < signedVariablePart.sigs.length; j++) {
                     if (NitroUtils.isSignedBy(NitroUtils.hashState(fixedPart,signedVariablePart.variablePart), signedVariablePart.sigs[j], fixedPart.participants[i])) {
-                        rvp.signedBy += 2**j; //  check each participant against each signature
+                        rvp.signedBy += 2**j; 
                     }
                 }
             }
