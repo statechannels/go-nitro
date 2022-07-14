@@ -46,6 +46,13 @@ export interface VariablePart {
 export interface SignedVariablePart {
   variablePart: VariablePart;
   sigs: Signature[];
+}
+
+/**
+ * Variable part with a signedBy bitfield.
+ */
+export interface RecoveredVariablePart {
+  variablePart: VariablePart;
   signedBy: Uint256;
 }
 
