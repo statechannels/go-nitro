@@ -6,7 +6,7 @@ import {
   FixedPart,
   getFixedPart,
   getVariablePart,
-  SignedVariablePart,
+  RecoveredVariablePart,
   State,
   VariablePart,
 } from '../../../src/contract/state';
@@ -24,22 +24,21 @@ function computeSaltedHash(salt: string, num: number) {
   return utils.solidityKeccak256(['bytes32', 'uint256'], [salt, num]);
 }
 
-function getRandomSignedVariablePart(): SignedVariablePart {
+function getRandomRecoveredVariablePart(): RecoveredVariablePart {
   const randomNum = Math.floor(Math.random() * 100);
   const salt = ethers.constants.MaxUint256.toHexString();
   const hash = computeSaltedHash(salt, randomNum);
 
-  const signedVariablePart: SignedVariablePart = {
+  const recoveredVariablePart: RecoveredVariablePart = {
     variablePart: {
       outcome: [],
       appData: hash,
       turnNum: 1,
       isFinal: false,
     },
-    sigs: [],
     signedBy: '0',
   };
-  return signedVariablePart;
+  return recoveredVariablePart;
 }
 
 function getMockedFixedPart(): FixedPart {
@@ -53,10 +52,9 @@ function getMockedFixedPart(): FixedPart {
   return fixedPart;
 }
 
-function mockSigs(vp: VariablePart): SignedVariablePart {
+function mockSigs(vp: VariablePart): RecoveredVariablePart {
   return {
     variablePart: vp,
-    sigs: [],
     signedBy: '0',
   };
 }
@@ -69,8 +67,8 @@ describe('latestSupportedState', () => {
   it('Transitions between random VariableParts are valid', async () => {
     expect.assertions(5);
     for (let i = 0; i < 5; i++) {
-      const from: SignedVariablePart = getRandomSignedVariablePart();
-      const to: SignedVariablePart = getRandomSignedVariablePart();
+      const from: RecoveredVariablePart = getRandomRecoveredVariablePart();
+      const to: RecoveredVariablePart = getRandomRecoveredVariablePart();
       const latestSupportedState = await trivialApp.latestSupportedState(getMockedFixedPart(), [
         from,
         to,
@@ -96,8 +94,8 @@ describe('latestSupportedState', () => {
     };
     const toState: State = {...fromState, turnNum: 2};
 
-    const from: SignedVariablePart = mockSigs(getVariablePart(fromState));
-    const to: SignedVariablePart = mockSigs(getVariablePart(toState));
+    const from: RecoveredVariablePart = mockSigs(getVariablePart(fromState));
+    const to: RecoveredVariablePart = mockSigs(getVariablePart(toState));
 
     const latestSupportedState = await trivialApp.latestSupportedState(getFixedPart(fromState), [
       from,
