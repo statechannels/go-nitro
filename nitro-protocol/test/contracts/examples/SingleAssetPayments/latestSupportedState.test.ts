@@ -15,7 +15,13 @@ import {
   replaceAddressesAndBigNumberify,
   setupContract,
 } from '../../../test-helpers';
-import {AssetOutcomeShortHand, bindSignatures, Channel, signStates} from '../../../../src';
+import {
+  AssetOutcomeShortHand,
+  bindSignatures,
+  bindSignaturesWithSignedByBitfield,
+  Channel,
+  signStates,
+} from '../../../../src';
 import {MOVER_SIGNED_EARLIER_STATE} from '../../../../src/contract/transaction-creators/revert-reasons';
 
 const provider = getTestProvider();
@@ -156,19 +162,23 @@ describe('validTransition', () => {
 
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
-      const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
+      const recoveredVariableParts = bindSignaturesWithSignedByBitfield(
+        variableParts,
+        signatures,
+        whoSignedWhat
+      );
 
       if (isValid) {
         const latestSupportedState = await singleAssetPayments.latestSupportedState(
           fixedPart,
-          signedVariableParts
+          recoveredVariableParts
         );
         expect(parseVariablePartEventResult(latestSupportedState)).toEqual(
           variableParts[variableParts.length - 1]
         );
       } else {
         await expectRevert(
-          () => singleAssetPayments.latestSupportedState(fixedPart, signedVariableParts),
+          () => singleAssetPayments.latestSupportedState(fixedPart, recoveredVariableParts),
           reason
         );
       }
