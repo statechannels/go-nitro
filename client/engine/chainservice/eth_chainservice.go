@@ -3,6 +3,7 @@ package chainservice
 import (
 	"context"
 	"log"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
