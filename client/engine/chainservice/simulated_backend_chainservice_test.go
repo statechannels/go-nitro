@@ -70,7 +70,7 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 	// Submit transactiom
 	err = cs.SendTransaction(testTx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// Check that the recieved events matches the expected event
@@ -131,7 +131,7 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	depositTx := protocols.NewDepositTransaction(cId, testDeposit)
 	err = cs.SendTransaction(depositTx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	<-out
 
@@ -147,7 +147,7 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	concludeTx := protocols.NewWithdrawAllTransaction(cId, signedConcludeState)
 	err = cs.SendTransaction(concludeTx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	// Check that the recieved event matches the expected event
 	concludedEvent := <-out
