@@ -34,7 +34,7 @@ func (pm ReceiptManager) Register(channelId types.Destination, sender common.Add
 	voucher := Voucher{channelId: channelId, amount: big.NewInt(0)}
 	data := &PaymentStatus{sender, balance, voucher}
 	if _, ok := pm.channels[channelId]; ok {
-		return fmt.Errorf("Channel already registered")
+		return fmt.Errorf("channel already registered")
 	}
 
 	pm.channels[channelId] = data

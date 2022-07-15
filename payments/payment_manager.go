@@ -31,7 +31,7 @@ func NewPaymentManager(signer common.Address) *PaymentManager {
 func (pm PaymentManager) Register(channelId types.Destination, startingBalance *big.Int) error {
 	balance := &Balance{&big.Int{}, &big.Int{}}
 	if _, ok := pm.channels[channelId]; ok {
-		return fmt.Errorf("Channel already registered")
+		return fmt.Errorf("channel already registered")
 	}
 
 	balance.Remaining.Set(startingBalance)
