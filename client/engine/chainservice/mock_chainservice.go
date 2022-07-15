@@ -8,13 +8,13 @@ import (
 
 // MockChainService adheres to the ChainService interface. The constructor accepts a MockChain, which allows multiple clients to share the same, in-memory chain.
 type MockChainService struct {
-	chain      MockChain
+	chain      *MockChainImpl
 	txListener chan protocols.ChainTransaction // this is used to broadcast transactions that have been received
 	eventFeed  <-chan Event
 }
 
 // NewMockChainService returns a new MockChainService.
-func NewMockChainService(chain MockChain, address common.Address) *MockChainService {
+func NewMockChainService(chain *MockChainImpl, address common.Address) *MockChainService {
 	mc := MockChainService{chain: chain}
 	mc.eventFeed = chain.SubscribeToEvents(address)
 	return &mc
@@ -22,7 +22,7 @@ func NewMockChainService(chain MockChain, address common.Address) *MockChainServ
 
 // NewMockChainWithTransactionListener returns a new MockChainService that will send transactions to the supplied chan.
 // This lets us easily rebroadcast transactions to other MockChainServices.
-func NewMockChainWithTransactionListener(chain MockChain, address common.Address, txListener chan protocols.ChainTransaction) *MockChainService {
+func NewMockChainWithTransactionListener(chain *MockChainImpl, address common.Address, txListener chan protocols.ChainTransaction) *MockChainService {
 	mc := NewMockChainService(chain, address)
 	mc.txListener = txListener
 	return mc

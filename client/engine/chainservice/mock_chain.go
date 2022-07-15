@@ -9,13 +9,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// MockChain is an in-memory "chain" that accepts transactions and broadcasts events
-type MockChain interface {
-	SubmitTransaction(protocols.ChainTransaction) error // unlike an ethereum blockchain, Mockhain accepts go-nitro protocols.ChainTransaction
-	SubscribeToEvents(a types.Address) <-chan Event     // returns a channel that produces all chain Events
-}
-
-// MockChainImpl mimicks the Ethereum blockchain by keeping track of block numbers and account balances.
+// MockChainImpl mimicks the Ethereum blockchain by keeping track of block numbers and account balances in memory
+// MockChain accepts transactions and broadcasts events.
 type MockChainImpl struct {
 	blockNum uint64
 	// holdings tracks funds for each channel.
@@ -35,6 +30,7 @@ func NewMockChainImpl() *MockChainImpl {
 }
 
 // SubmitTransaction updates internal state and brodcasts events
+// unlike an ethereum blockchain, Mockhain accepts go-nitro protocols.ChainTransaction
 func (mc *MockChainImpl) SubmitTransaction(tx protocols.ChainTransaction) error {
 	mc.blockNum++
 	switch tx := tx.(type) {
@@ -65,7 +61,7 @@ func (mc *MockChainImpl) broadcastEvent(event Event) {
 	})
 }
 
-// SubscribeToEvents creates, stores, and returns a new Event channel
+// SubscribeToEvents creates, stores, and returns a new Event channel that produces all chain Events
 func (mc *MockChainImpl) SubscribeToEvents(a types.Address) <-chan Event {
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	c := make(chan Event, 10)
