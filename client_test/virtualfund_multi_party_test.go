@@ -19,7 +19,7 @@ func TestVirtualFundMultiParty(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	chain := chainservice.NewMockChainImpl()
+	chain := chainservice.NewMockChain()
 	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
 	chainServiceBo := chainservice.NewMockChainService(chain, bob.Address())
 	chainServiceBr := chainservice.NewMockChainService(chain, brian.Address())

@@ -45,7 +45,7 @@ func TestVirtualDefundIntegrationWithMessageDelay(t *testing.T) {
 
 // runVirtualDefundIntegrationTest runs a virtual defund integration test using the provided message delay, objective timeout and log destination
 func runVirtualDefundIntegrationTest(t *testing.T, messageDelay time.Duration, objectiveTimeout time.Duration, logDestination io.Writer) {
-	chain := chainservice.NewMockChainImpl()
+	chain := chainservice.NewMockChain()
 	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())

@@ -15,7 +15,7 @@ func TestDeposit(t *testing.T) {
 	var b = types.Address(common.HexToAddress(`b`))
 
 	// Construct MockChain
-	chain := NewMockChainImpl()
+	chain := NewMockChain()
 	chainServiceA := NewMockChainService(chain, a)
 	chainServiceB := NewMockChainService(chain, b)
 
