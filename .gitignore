@@ -19,3 +19,6 @@ artifacts
 
 # OSX specific files
 .DS_Store
+
+
+nitro-protocol/hardhat-network-output.log
