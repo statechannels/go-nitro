@@ -53,7 +53,7 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	chain := chainservice.NewMockChainImpl()
+	chain := chainservice.NewMockChain()
 	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
 	chainServiceB := chainservice.NewMockChainService(chain, alice.Address())
 	broker := messageservice.NewBroker()

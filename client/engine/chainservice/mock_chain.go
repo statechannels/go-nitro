@@ -9,9 +9,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// MockChainImpl mimicks the Ethereum blockchain by keeping track of block numbers and account balances in memory
+// MockChain mimicks the Ethereum blockchain by keeping track of block numbers and account balances in memory
 // MockChain accepts transactions and broadcasts events.
-type MockChainImpl struct {
+type MockChain struct {
 	blockNum uint64
 	// holdings tracks funds for each channel.
 	holdings map[types.Destination]types.Funds
@@ -20,9 +20,9 @@ type MockChainImpl struct {
 	out safesync.Map[chan Event]
 }
 
-// NewMockChainImpl creates a new MockChainImpl
-func NewMockChainImpl() *MockChainImpl {
-	chain := MockChainImpl{}
+// NewMockChain creates a new MockChain
+func NewMockChain() *MockChain {
+	chain := MockChain{}
 	chain.blockNum = 1
 	chain.holdings = make(map[types.Destination]types.Funds)
 	chain.out = safesync.Map[chan Event]{}
@@ -31,7 +31,7 @@ func NewMockChainImpl() *MockChainImpl {
 
 // SubmitTransaction updates internal state and brodcasts events
 // unlike an ethereum blockchain, Mockhain accepts go-nitro protocols.ChainTransaction
-func (mc *MockChainImpl) SubmitTransaction(tx protocols.ChainTransaction) error {
+func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 	mc.blockNum++
 	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
@@ -54,7 +54,7 @@ func (mc *MockChainImpl) SubmitTransaction(tx protocols.ChainTransaction) error 
 	return nil
 }
 
-func (mc *MockChainImpl) broadcastEvent(event Event) {
+func (mc *MockChain) broadcastEvent(event Event) {
 	mc.out.Range(func(_ string, channel chan Event) bool {
 		channel <- event
 		return true
@@ -62,7 +62,7 @@ func (mc *MockChainImpl) broadcastEvent(event Event) {
 }
 
 // SubscribeToEvents creates, stores, and returns a new Event channel that produces all chain Events
-func (mc *MockChainImpl) SubscribeToEvents(a types.Address) <-chan Event {
+func (mc *MockChain) SubscribeToEvents(a types.Address) <-chan Event {
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	c := make(chan Event, 10)
 	mc.out.Store(a.String(), c)

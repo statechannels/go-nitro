@@ -47,7 +47,7 @@ func TestLargeScaleVirtualFundIntegration(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	// Setup central services
-	chain := chainservice.NewMockChainImpl()
+	chain := chainservice.NewMockChain()
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 	broker := messageservice.NewBroker()
