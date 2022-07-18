@@ -266,19 +266,19 @@ contract ForceMove is IForceMove, StatusManager {
 
     uint8 signers =  NitroUtils.getClaimedSignersNum(signedVariablePart.claimedSignedBy);
 
-    require(signers ==  signedVariablePart.sigs.length, "bad total claimedSignedBy");
+    require(signers ==  signedVariablePart.sigs.length, 'bad total claimedSignedBy');
 
     for (uint256 j=0; j < signedVariablePart.sigs.length; j++) {
         address signer = NitroUtils.recoverSigner(NitroUtils.hashState(fixedPart,signedVariablePart.variablePart),signedVariablePart.sigs[j]);
         for (uint8 k=0; k < fixedPart.participants.length; k++) {
             if (fixedPart.participants[k]==signer) {
-                require(NitroUtils.isClaimedSignedBy(signedVariablePart.claimedSignedBy,k));
+                require(NitroUtils.isClaimedSignedBy(signedVariablePart.claimedSignedBy,k),'sig not in claimedSignedBy');
                 signers--;
             }
         }
     }
 
-    require(signers==0,"inconsistent claimedSignedBy");
+    require(signers==0,'inconsistent claimedSignedBy');
     return rvp;
     }
 
