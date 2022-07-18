@@ -261,20 +261,25 @@ contract ForceMove is IForceMove, StatusManager {
     ) internal pure returns (RecoveredVariablePart memory) {
         RecoveredVariablePart memory rvp = RecoveredVariablePart({
             variablePart: signedVariablePart.variablePart,
-            signedBy: 0
+            signedBy: signedVariablePart.claimedSignedBy
     });
-            //  For each signature
-            for (uint256 j=0; j < signedVariablePart.sigs.length; j++) {
-                bytes32 stateHash = NitroUtils.hashState(fixedPart,signedVariablePart.variablePart);
-                // Check each participant to see if they signed it
-                for (uint256 i = 0; i < fixedPart.participants.length; i++) {
-                    if (NitroUtils.recoverSigner(stateHash, signedVariablePart.sigs[j]) == fixedPart.participants[i]) {
-                        rvp.signedBy += 2**i; 
-                        break; // Once we have found a match, assuming distinct participants, no-one else signed it.
-                    }
-                }
+
+    uint8 signers =  NitroUtils.getClaimedSignersNum(signedVariablePart.claimedSignedBy);
+
+    require(signers ==  signedVariablePart.sigs.length, "bad total claimedSignedBy");
+
+    for (uint256 j=0; j < signedVariablePart.sigs.length; j++) {
+        address signer = NitroUtils.recoverSigner(NitroUtils.hashState(fixedPart,signedVariablePart.variablePart),signedVariablePart.sigs[j]);
+        for (uint8 k=0; k < fixedPart.participants.length; k++) {
+            if (fixedPart.participants[k]==signer) {
+                require(NitroUtils.isClaimedSignedBy(signedVariablePart.claimedSignedBy,k));
+                signers--;
             }
-        return rvp;
+        }
+    }
+
+    require(signers==0,"inconsistent claimedSignedBy");
+    return rvp;
     }
 
     /**

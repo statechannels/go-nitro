@@ -21,6 +21,7 @@ interface INitroTypes {
     struct SignedVariablePart {
         VariablePart variablePart;
         Signature[] sigs;
+        uint256 claimedSignedBy; // bitmask 
     }
 
     struct RecoveredVariablePart {
