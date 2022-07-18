@@ -85,11 +85,16 @@ export function bindSignatures(
       ({
         variablePart: vp,
         sigs: [],
+        claimedSignedBy: '0',
       } as SignedVariablePart)
   );
 
   for (let i = 0; i < signatures.length; i++) {
     signedVariableParts[whoSignedWhat[i]].sigs.push(signatures[i]);
+
+    const updatedSignedBy =
+      Number(signedVariableParts[whoSignedWhat[i]].claimedSignedBy) | (2 ** i);
+    signedVariableParts[whoSignedWhat[i]].claimedSignedBy = updatedSignedBy.toString();
   }
 
   return signedVariableParts;
