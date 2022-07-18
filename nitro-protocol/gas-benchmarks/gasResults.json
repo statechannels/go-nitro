@@ -1,0 +1,50 @@
+{
+  "deployInfrastructureContracts": {
+    "satp": {
+      "NitroAdjudicator": 3577883
+    }
+  },
+  "directlyFundAChannelWithETHFirst": {
+    "satp": 47740
+  },
+  "directlyFundAChannelWithETHSecond": {
+    "satp": 30652
+  },
+  "directlyFundAChannelWithERC20First": {
+    "satp": {
+      "approve": 46383,
+      "deposit": 71223
+    }
+  },
+  "directlyFundAChannelWithERC20Second": {
+    "satp": {
+      "approve": 46383,
+      "deposit": 54135
+    }
+  },
+  "ETHexit": {
+    "satp": 153532
+  },
+  "ERC20exit": {
+    "satp": 143934
+  },
+  "ETHexitSad": {
+    "satp": {
+      "challenge": 114012,
+      "transferAllAssets": 110049,
+      "total": 224061
+    }
+  },
+  "ETHexitSadLedgerFunded": {
+    "satp": {
+      "challengeX": 114012,
+      "challengeL": 105412,
+      "transferAllAssetsL": 58970,
+      "transferAllAssetsX": 110049,
+      "total": 388443
+    }
+  },
+  "ETHexitSadVirtualFunded": {
+    "satp": {}
+  }
+}
