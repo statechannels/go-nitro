@@ -126,6 +126,7 @@ func TestChallenge(t *testing.T) {
 			{
 				ConvertVariablePart(s.VariablePart()),
 				[]INitroTypesSignature{ConvertSignature(aSig), ConvertSignature(bSig)},
+				big.NewInt(0b11),
 			},
 		},
 		ConvertSignature(challengerSig),
