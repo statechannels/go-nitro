@@ -249,15 +249,17 @@ export async function waitForChallengesToTimeOut(finalizesAtArray: number[]): Pr
 }
 
 /**
- * Constructs a support proof for the supplied channel, calls challenge,
- * and asserts the expected gas
- * @returns The proof and finalizesAt
+ * Constructs a support proof for the supplied channel and calls challenge
+ * @returns Challenge transaction, the proof and finalizesAt
  */
-export async function challengeChannelAndExpectGas(
+export async function challengeChannel(
   channel: TestChannel,
-  asset: string,
-  expectedGas: number
-): Promise<{proof: ReturnType<typeof channel.counterSignedSupportProof>; finalizesAt: number}> {
+  asset: string
+): Promise<{
+  challengeTx: ethers.ContractTransaction;
+  proof: ReturnType<typeof channel.counterSignedSupportProof>;
+  finalizesAt: number;
+}> {
   const proof = channel.counterSignedSupportProof(channel.someState(asset)); // TODO use a nontrivial app with a state transition
 
   const challengeTx = await nitroAdjudicator.challenge(
@@ -265,10 +267,9 @@ export async function challengeChannelAndExpectGas(
     proof.signedVariableParts,
     proof.challengeSignature
   );
-  await expect(challengeTx).toConsumeGas(expectedGas);
 
   const finalizesAt = await getFinalizesAtFromTransactionHash(challengeTx.hash);
-  return {proof, finalizesAt};
+  return {challengeTx, proof, finalizesAt};
 }
 
 interface ETHBalances {
@@ -326,7 +327,7 @@ export async function assertEthBalancesAndHoldings(
  * Gas used by a transaction supplied.
  */
 export async function gasUsed(
-  txRes: any // TransactionResponse
+  txRes: ethers.ContractTransaction // TransactionResponse
 ): Promise<number> {
   const {gasUsed: gasUsedBN} = await txRes.wait();
   return (gasUsedBN as BigNumber).toNumber();
