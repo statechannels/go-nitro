@@ -46,6 +46,7 @@ export interface VariablePart {
 export interface SignedVariablePart {
   variablePart: VariablePart;
   sigs: Signature[];
+  claimedSignedBy: Uint256;
 }
 
 /**
