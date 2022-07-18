@@ -63,7 +63,7 @@ export const gasRequiredTo: GasRequiredTo = {
   },
   ETHexit: {
     // We completely liquidate the channel (paying out both parties)
-    satp: 122_262,
+    satp: 172_262,
   },
   ERC20exit: {
     // We completely liquidate the channel (paying out both parties)
@@ -76,8 +76,8 @@ export const gasRequiredTo: GasRequiredTo = {
     // transferAllAssets         ⬛ --------> 👩
     satp: {
       challenge: 132_381,
-      transferAllAssets: 60_030,
-      total: 192_411,
+      transferAllAssets: 110_030,
+      total: 242_411,
     },
   },
   ETHexitSadLedgerFunded: {
@@ -90,8 +90,8 @@ export const gasRequiredTo: GasRequiredTo = {
       challengeX: 132_381,
       challengeL: 122_822,
       transferAllAssetsL: 58_955,
-      transferAllAssetsX: 60_030,
-      total: 374_188,
+      transferAllAssetsX: 110_030,
+      total: 424_188,
     },
   },
   ETHexitSadVirtualFunded: {
