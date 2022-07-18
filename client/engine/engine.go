@@ -85,7 +85,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	e.chain = chain
 	e.msg = msg
-
+	e.fromLedger = make(chan consensus_channel.Proposal, 100)
 	e.toApi = make(chan ObjectiveChangeEvent, 100)
 
 	// initialize a Logger
