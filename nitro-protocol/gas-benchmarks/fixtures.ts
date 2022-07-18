@@ -4,6 +4,7 @@ import {Wallet} from '@ethersproject/wallet';
 import {AllocationType} from '@statechannels/exit-format';
 
 import {
+  bindSignatures,
   convertAddressToBytes32,
   getChannelId,
   getFixedPart,
@@ -94,12 +95,11 @@ class TestChannel {
   } {
     return {
       fixedPart: getFixedPart(state),
-      signedVariableParts: [
-        {
-          variablePart: getVariablePart(state),
-          sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
-        },
-      ],
+      signedVariableParts: bindSignatures(
+        [getVariablePart(state)],
+        this.wallets.map(w => signState(state, w.privateKey).signature),
+        this.wallets.map(() => 0)
+      ),
       challengeSignature: signChallengeMessage([{state} as SignedState], Alice.privateKey),
       outcome: state.outcome,
       stateHash: hashState(state),
@@ -115,12 +115,11 @@ class TestChannel {
   } {
     return {
       fixedPart: getFixedPart(state),
-      signedVariableParts: [
-        {
-          variablePart: getVariablePart(state),
-          sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
-        },
-      ],
+      signedVariableParts: bindSignatures(
+        [getVariablePart(state)],
+        this.wallets.map(w => signState(state, w.privateKey).signature),
+        this.wallets.map(() => 0)
+      ),
     };
   }
 
