@@ -321,3 +321,13 @@ export async function assertEthBalancesAndHoldings(
     }),
   ]);
 }
+
+/**
+ * Gas used by a transaction supplied.
+ */
+export async function gasUsed(
+  txRes: any // TransactionResponse
+): Promise<number> {
+  const {gasUsed: gasUsedBN} = await txRes.wait();
+  return (gasUsedBN as BigNumber).toNumber();
+}
