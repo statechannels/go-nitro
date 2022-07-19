@@ -377,6 +377,7 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 			return err
 		}
 	}
+	e.metrics.RecordQueueLength("side_effect_proposals", len(sideEffects.ProposalsToProcess))
 	for _, proposal := range sideEffects.ProposalsToProcess {
 		e.fromLedger <- proposal
 	}
