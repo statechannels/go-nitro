@@ -100,13 +100,20 @@ func (m Message) SignedProposals() []ObjectivePayload[consensus_channel.SignedPr
 	return signedProposals
 }
 
-// SignedProposals returns a slice of signed proposals with their objectiveId that were contained in the message.
-// The proposals are sorted by ledger id then turnNum.
-func (m Message) RejectedObjectives() []ObjectivePayload[ObjectiveId] {
-	rejectedObjectives := make([]ObjectivePayload[ObjectiveId], 0)
+// rejectedObjective is a placeholder type that holds no value, but implements the PayloadValue interface.
+// This allows the RejectedObjectives function to use the generic ObjectivePayload type.
+type rejectedObjective struct{}
+
+func (o rejectedObjective) SortInfo() (channelID types.Destination, turnNum uint64) {
+	return
+}
+
+// RejectedObjectives returns a slice of rejected objectives
+func (m Message) RejectedObjectives() []ObjectivePayload[rejectedObjective] {
+	rejectedObjectives := make([]ObjectivePayload[rejectedObjective], 0)
 	for _, p := range m.payloads {
 		if p.Type() == RejectionNoticePayload {
-			entry := ObjectivePayload[ObjectiveId]{p.ObjectiveId, p.ObjectiveId}
+			entry := ObjectivePayload[rejectedObjective]{rejectedObjective{}, p.ObjectiveId}
 			rejectedObjectives = append(rejectedObjectives, entry)
 		}
 	}
@@ -201,10 +208,11 @@ func (se *SideEffects) Merge(other SideEffects) {
 
 }
 
-// PayloadValue is a type constraint that specifies a payload is either a SignedProposal or SignedState.
+// PayloadValue is a type constraint that specifies a payload is either a SignedProposal, SignedState,
+// or RejectedObjective
 // It includes functions to get basic info to allow sorting.
 type PayloadValue interface {
-	state.SignedState | consensus_channel.SignedProposal | ObjectiveId
+	state.SignedState | consensus_channel.SignedProposal | rejectedObjective
 	SortInfo() (channelID types.Destination, turnNum uint64)
 }
 
