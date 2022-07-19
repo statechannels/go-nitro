@@ -278,8 +278,9 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 			continue
 		}
 
-		// We assume the peer who rejected the objective, so we ignore the side effects.
-		// (We could also forward side effects at this point, introducing some redundant messages.)
+		// we are rejecting due to a counterparty message notifying us of their rejection. We 		
+		// do not need to send a message back to that counterparty, and furthermore we assume that
+		// counterparty has already notified all other interested parties. We can therefore ignore the side effects
 		objective, _ = objective.Reject()
 		err = e.store.SetObjective(objective)
 		if err != nil {
