@@ -11,6 +11,9 @@ import 'hardhat-watcher';
 
 dotenv.config();
 
+const infuraToken = process.env.INFURA_TOKEN;
+const goerliDeployerPK = process.env.GOERLI_DEPLOYER_PK;
+
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
@@ -70,15 +73,10 @@ const config: HardhatUserConfig & {watcher: any} = {
     hardhat: {
       chainId: 31337,
     },
-    ropsten: {
-      url: process.env.ROPSTEN_URL || '',
-      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-      chainId: 3,
-    },
-    rinkeby: {
-      url: process.env.RINKEBY_URL || '',
-      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-      chainId: 4,
+    goerli: {
+      url: infuraToken ? 'https://goerli.infura.io/v3/' + infuraToken : '',
+      accounts: goerliDeployerPK ? [goerliDeployerPK] : [],
+      chainId: 5,
     },
   },
 };
