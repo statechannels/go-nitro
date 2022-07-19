@@ -228,7 +228,7 @@ func (o *Objective) Approve() protocols.Objective {
 	return &updated
 }
 
-// Approve returns a rejected copy of the objective.
+// Reject returns a rejected copy of the objective.
 func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
