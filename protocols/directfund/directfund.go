@@ -404,16 +404,23 @@ func (o *Objective) clone() Objective {
 // IsDirectFundObjective inspects a objective id and returns true if the objective id is for a direct fund objective.
 func IsDirectFundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)
+
 }
 
 // ObjectiveRequest represents a request to create a new direct funding objective.
-type ObjectiveRequest struct {
+// There is no AppDefinition, since we currently only support full consensus rules for direct channels.
+type ObjectiveRequestWithoutAppDefinition struct {
 	CounterParty      types.Address
-	AppDefinition     types.Address
 	AppData           types.Bytes
 	ChallengeDuration *types.Uint256
 	Outcome           outcome.Exit
 	Nonce             int64
+}
+
+// ObjectiveRequest represents a request to create a new direct funding objective.
+type ObjectiveRequest struct {
+	ObjectiveRequestWithoutAppDefinition
+	AppDefinition types.Address
 }
 
 // Id returns the objective id for the request.

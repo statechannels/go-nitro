@@ -5,7 +5,6 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -109,12 +108,12 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big
 }
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty.
-// If the supplied objectiveRequest.AppDefinition is zero, the channel will run under full consensus rules.
-func (c *Client) CreateDirectChannel(objectiveRequest directfund.ObjectiveRequest) directfund.ObjectiveResponse {
+// The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition).
+func (c *Client) CreateDirectChannel(request directfund.ObjectiveRequestWithoutAppDefinition) directfund.ObjectiveResponse {
 
-	// This next line overwrites the requested application address with the consensus app address.
-	if (objectiveRequest.AppDefinition == common.Address{}) {
-		objectiveRequest.AppDefinition = c.engine.GetConsensusAppAddress()
+	objectiveRequest := directfund.ObjectiveRequest{
+		ObjectiveRequestWithoutAppDefinition: request,
+		AppDefinition:                        c.engine.GetConsensusAppAddress(),
 	}
 
 	apiEvent := engine.APIEvent{
