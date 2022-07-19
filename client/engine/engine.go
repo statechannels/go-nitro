@@ -110,12 +110,17 @@ func (e *Engine) ToApi() <-chan ObjectiveChangeEvent {
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
 func (e *Engine) Run() {
 	for {
+		e.metrics.RecordQueueLength("ledger_proposal_queue", len(e.fromLedger))
+		e.metrics.RecordQueueLength("incoming_chain_events", len(e.fromChain))
+		e.metrics.RecordQueueLength("incoming_api_events", len(e.FromAPI))
+		e.metrics.RecordQueueLength("incoming_message_events", len(e.fromMsg))
 		var res ObjectiveChangeEvent
 		var err error
 		select {
 		case apiEvent := <-e.FromAPI:
+
 			e.metrics.RecordDuration("handle_api_event", func() {
-				e.metrics.RecordQueueLength("incoming_api_events", len(e.fromMsg))
+
 				res, err = e.handleAPIEvent(apiEvent)
 
 				if errors.Is(err, directdefund.ErrNotEmpty) {
@@ -125,16 +130,17 @@ func (e *Engine) Run() {
 				}
 			})
 		case chainEvent := <-e.fromChain:
-			e.metrics.RecordQueueLength("incoming_chain_events", len(e.fromMsg))
+
 			e.metrics.RecordDuration("handle_chain_event", func() {
 				res, err = e.handleChainEvent(chainEvent)
 			})
 		case message := <-e.fromMsg:
-			e.metrics.RecordQueueLength("incoming_messages", len(e.fromMsg))
+
 			e.metrics.RecordDuration("handle_message", func() {
 				res, err = e.handleMessage(message)
 			})
 		case proposal := <-e.fromLedger:
+
 			e.metrics.RecordDuration("handle_proposal", func() {
 				res, err = e.handleProposal(proposal)
 			})
