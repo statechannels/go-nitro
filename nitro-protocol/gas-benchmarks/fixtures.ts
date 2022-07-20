@@ -2,6 +2,7 @@ import {BigNumber, BigNumberish, constants, ContractReceipt, ethers} from 'ether
 import {Signature} from '@ethersproject/bytes';
 import {Wallet} from '@ethersproject/wallet';
 import {AllocationType} from '@statechannels/exit-format';
+import {takeSnapshot} from '@nomicfoundation/hardhat-network-helpers';
 
 import {
   convertAddressToBytes32,
@@ -20,7 +21,7 @@ import {
 } from '../src/contract/outcome';
 import {FixedPart, getVariablePart, hashState, SignedVariablePart} from '../src/contract/state';
 
-import {nitroAdjudicator, provider, trivialAppAddress} from './vanillaSetup';
+import {nitroAdjudicator, provider, trivialAppAddress} from './localSetup';
 
 export const chainId = '0x7a69'; // 31337 in hex (hardhat network default)
 
@@ -37,7 +38,7 @@ export const amountForAlice = BigNumber.from(5).toHexString();
 export const amountForBob = BigNumber.from(5).toHexString();
 export const amountForAliceAndBob = BigNumber.from(amountForAlice).add(amountForBob).toHexString();
 
-class TestChannel {
+export class TestChannel {
   constructor(
     channelNonce: number,
     wallets: ethers.Wallet[],
@@ -242,6 +243,7 @@ export async function getFinalizesAtFromTransactionHash(hash: string): Promise<n
   const receipt = (await provider.getTransactionReceipt(hash)) as ContractReceipt;
   return nitroAdjudicator.interface.decodeEventLog('ChallengeRegistered', receipt.logs[0].data)[2];
 }
+
 export async function waitForChallengesToTimeOut(finalizesAtArray: number[]): Promise<void> {
   const finalizesAt = Math.max(...finalizesAtArray);
   await provider.send('evm_setNextBlockTimestamp', [finalizesAt + 1]);
@@ -331,4 +333,15 @@ export async function gasUsed(
 ): Promise<number> {
   const {gasUsed: gasUsedBN} = await txRes.wait();
   return (gasUsedBN as BigNumber).toNumber();
+}
+
+// Take a snapshot of the state, execute supplied function and revert the state to the taken snapshot.
+export async function executeAndRevert(fnc: () => void) {
+  //const snapshotId = await provider.send('evm_snapshot', []);
+  const snapshot = await takeSnapshot();
+
+  await fnc();
+
+  await snapshot.restore();
+  //await provider.send('evm_revert', [snapshotId]);
 }
