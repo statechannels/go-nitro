@@ -42,7 +42,7 @@ type Connection struct {
 // insertGuaranteeInfo mutates the receiver Connection struct.
 func (c *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) error {
 
-	c.GuaranteeInfo = GuaranteeInfo{
+	guaranteeInfo := GuaranteeInfo{
 		Left:                 left,
 		Right:                right,
 		LeftAmount:           a0,
@@ -52,14 +52,16 @@ func (c *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds, vId typ
 
 	// Check that the guarantee metadata can be encoded. This allows us to avoid clunky error-return-chains for getExpectedGuarantees
 	metadata := outcome.GuaranteeMetadata{
-		Left:  c.GuaranteeInfo.Left,
-		Right: c.GuaranteeInfo.Right,
+		Left:  guaranteeInfo.Left,
+		Right: guaranteeInfo.Right,
 	}
-	_, err := metadata.Encode()
-	if err != nil {
+
+	if _, err := metadata.Encode(); err != nil {
 		return err
 	}
 
+	// the metadata can be encoded, so update the connection's guarantee
+	c.GuaranteeInfo = guaranteeInfo
 	return nil
 }
 
