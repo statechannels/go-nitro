@@ -2,17 +2,17 @@ import {writeFileSync} from 'fs';
 
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../src/transactions';
 
-import {waitForChallengesToTimeOut, challengeChannel, Y, X, LforX, gasUsed} from './fixtures';
+import {
+  waitForChallengesToTimeOut,
+  challengeChannel,
+  Y,
+  X,
+  LforX,
+  gasUsed,
+  executeAndRevert,
+} from './fixtures';
 import {emptyGasResults} from './gas';
-import {deployContracts, nitroAdjudicator, provider, token} from './localSetup';
-
-async function executeAndRevert(fnc: () => void) {
-  const snapshotId = await provider.send('evm_snapshot', []);
-
-  await fnc();
-
-  await provider.send('evm_revert', [snapshotId]);
-}
+import {deployContracts, nitroAdjudicator, token} from './localSetup';
 
 /**
  * Ensures the asset holding contract always has a nonzero token balance.

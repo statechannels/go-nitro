@@ -1,13 +1,12 @@
 import {exec} from 'child_process';
 import {promises, existsSync, truncateSync} from 'fs';
 
-import {providers} from 'ethers';
 import waitOn from 'wait-on';
 import kill from 'tree-kill';
 import {BigNumber} from '@ethersproject/bignumber';
 import {SnapshotRestorer, takeSnapshot} from '@nomicfoundation/hardhat-network-helpers';
 
-import {deployContracts, setSetupProvider} from './localSetup';
+import {deployContracts} from './localSetup';
 import {TestChannel, challengeChannel} from './fixtures';
 
 declare global {
@@ -29,9 +28,6 @@ const hardhatProcess = exec('npx hardhat node --no-deploy --port 9546', (error, 
 });
 const hardhatProcessExited = new Promise(resolve => hardhatProcess.on('exit', resolve));
 const hardhatProcessClosed = new Promise(resolve => hardhatProcess.on('close', resolve));
-
-const provider = new providers.JsonRpcProvider(hardHatNetworkEndpoint);
-setSetupProvider(provider);
 
 let snapshot: SnapshotRestorer;
 

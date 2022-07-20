@@ -1,4 +1,4 @@
-import {Contract, ContractFactory, providers, utils} from 'ethers';
+import {Contract, ContractFactory, utils} from 'ethers';
 import hre from 'hardhat';
 
 import {NitroAdjudicator} from '../typechain-types/NitroAdjudicator';
@@ -8,15 +8,11 @@ import nitroAdjudicatorArtifact from '../artifacts/contracts/NitroAdjudicator.so
 import tokenArtifact from '../artifacts/contracts/Token.sol/Token.json';
 import trivialAppArtifact from '../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
 
-export let provider = hre.ethers.provider;
-
-export function setSetupProvider(newProvider: providers.JsonRpcProvider) {
-  provider = newProvider;
-}
-
 export let nitroAdjudicator: NitroAdjudicator & Contract;
 export let token: Token & Contract;
 export let trivialApp: TrivialApp & Contract;
+
+const provider = hre.ethers.provider;
 
 const tokenFactory = new ContractFactory(tokenArtifact.abi, tokenArtifact.bytecode).connect(
   provider.getSigner(0)
