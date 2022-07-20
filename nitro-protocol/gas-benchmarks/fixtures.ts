@@ -1,3 +1,4 @@
+import hre from 'hardhat';
 import {BigNumber, BigNumberish, constants, ContractReceipt, ethers} from 'ethers';
 import {Signature} from '@ethersproject/bytes';
 import {Wallet} from '@ethersproject/wallet';
@@ -21,7 +22,7 @@ import {
 } from '../src/contract/outcome';
 import {FixedPart, getVariablePart, hashState, SignedVariablePart} from '../src/contract/state';
 
-import {nitroAdjudicator, provider, trivialAppAddress} from './localSetup';
+import {nitroAdjudicator, trivialAppAddress} from './localSetup';
 
 export const chainId = '0x7a69'; // 31337 in hex (hardhat network default)
 
@@ -240,12 +241,14 @@ export const LforJ = new TestChannel(
 
 // Utils
 export async function getFinalizesAtFromTransactionHash(hash: string): Promise<number> {
+  const provider = hre.ethers.provider;
   const receipt = (await provider.getTransactionReceipt(hash)) as ContractReceipt;
   return nitroAdjudicator.interface.decodeEventLog('ChallengeRegistered', receipt.logs[0].data)[2];
 }
 
 export async function waitForChallengesToTimeOut(finalizesAtArray: number[]): Promise<void> {
   const finalizesAt = Math.max(...finalizesAtArray);
+  const provider = hre.ethers.provider;
   await provider.send('evm_setNextBlockTimestamp', [finalizesAt + 1]);
   await provider.send('evm_mine', []);
 }
