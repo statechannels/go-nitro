@@ -25,7 +25,7 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 	// Set up an outcome that requires both participants to deposit
 	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, ledgerChannelDeposit, ledgerChannelDeposit)
 
-	request := directfund.ObjectiveRequestWithoutAppDefinition{
+	request := directfund.ObjectiveRequestForConsensusApp{
 		CounterParty:      *beta.Address,
 		Outcome:           outcome,
 		AppData:           types.Bytes{},
@@ -71,7 +71,7 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 
 	outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), ledgerChannelDeposit, ledgerChannelDeposit)
 
-	request := directfund.ObjectiveRequestWithoutAppDefinition{
+	request := directfund.ObjectiveRequestForConsensusApp{
 		CounterParty:      bob.Address(),
 		Outcome:           outcome,
 		AppData:           types.Bytes{},

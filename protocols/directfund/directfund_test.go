@@ -56,7 +56,7 @@ func TestNew(t *testing.T) {
 		return nil, false
 	}
 	request := ObjectiveRequest{
-		ObjectiveRequestWithoutAppDefinition: ObjectiveRequestWithoutAppDefinition{
+		ObjectiveRequestForConsensusApp: ObjectiveRequestForConsensusApp{
 			CounterParty:      testState.Participants[1],
 			AppData:           testState.AppData,
 			ChallengeDuration: testState.ChallengeDuration,
