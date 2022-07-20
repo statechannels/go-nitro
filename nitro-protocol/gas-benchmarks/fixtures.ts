@@ -221,7 +221,6 @@ export const J = new TestChannel(
 );
 
 /** Ledger channel between Alice and Ingid, with Guarantee targeting joint channel J */
-
 export const LforJ = new TestChannel(
   7,
   [Alice, Bob],
@@ -329,7 +328,7 @@ export async function assertEthBalancesAndHoldings(
 }
 
 /**
- * Gas used by a transaction supplied.
+ * Calculates the gas used by a transaction supplied.
  */
 export async function gasUsed(
   txRes: ethers.ContractTransaction // TransactionResponse
@@ -338,13 +337,11 @@ export async function gasUsed(
   return (gasUsedBN as BigNumber).toNumber();
 }
 
-// Take a snapshot of the state, execute supplied function and revert the state to the taken snapshot.
+/**
+ * Takes a snapshot of the state, execute supplied function and revert the state to the taken snapshot.
+ */
 export async function executeAndRevert(fnc: () => void) {
-  //const snapshotId = await provider.send('evm_snapshot', []);
   const snapshot = await takeSnapshot();
-
   await fnc();
-
   await snapshot.restore();
-  //await provider.send('evm_revert', [snapshotId]);
 }
