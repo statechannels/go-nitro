@@ -1,11 +1,10 @@
-import {readFileSync} from 'fs';
+import {readFileSync, existsSync} from 'fs';
 
 import {encodeOutcome} from '../src';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../src/transactions';
 
 import {
   waitForChallengesToTimeOut,
-  challengeChannelAndExpectGas,
   Y,
   X,
   LforX,
@@ -17,6 +16,7 @@ import {
   amountForAliceAndBob,
 } from './fixtures';
 import {GasResults} from './gas';
+import {challengeChannelAndExpectGas} from './jestSetup';
 import {nitroAdjudicator, token} from './localSetup';
 
 /**
@@ -34,9 +34,13 @@ async function addResidualTokenBalance(asset: string) {
   await (await nitroAdjudicator.deposit(asset, Y.channelId, 0, 1)).wait();
 }
 
-const gasRequiredTo = JSON.parse(
-  readFileSync(__dirname + '/gasResults.json', 'utf-8')
-) as GasResults;
+let gasRequiredTo: GasResults;
+
+if (existsSync(__dirname + '/gasResults.json')) {
+  gasRequiredTo = JSON.parse(readFileSync(__dirname + '/gasResults.json', 'utf-8')) as GasResults;
+} else {
+  throw new Error('Error: file "gasResults.json" with previous benchmark results must exist');
+}
 
 describe('Consumes the expected gas for deployments', () => {
   it(`when deploying the NitroAdjudicator`, async () => {
@@ -90,6 +94,7 @@ describe('Consumes the expected gas for deposits', () => {
     );
   });
 });
+
 describe('Consumes the expected gas for happy-path exits', () => {
   it(`when exiting a directly funded (with ETH) channel`, async () => {
     // begin setup
