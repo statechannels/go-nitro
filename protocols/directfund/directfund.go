@@ -406,11 +406,10 @@ func IsDirectFundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
 
-// ObjectiveRequestWithoutAppDefinition represents a request to create a new direct funding objective.
+// ObjectiveRequestForConsensusApp represents a request to create a new direct funding objective.
 // There is no AppDefinition, since we currently only support full consensus rules for direct channels.
-type ObjectiveRequestWithoutAppDefinition struct {
+type ObjectiveRequestForConsensusApp struct {
 	CounterParty      types.Address
-	AppData           types.Bytes
 	ChallengeDuration *types.Uint256
 	Outcome           outcome.Exit
 	Nonce             int64
@@ -418,8 +417,9 @@ type ObjectiveRequestWithoutAppDefinition struct {
 
 // ObjectiveRequest represents a request to create a new direct funding objective.
 type ObjectiveRequest struct {
-	ObjectiveRequestWithoutAppDefinition
+	ObjectiveRequestForConsensusApp
 	AppDefinition types.Address
+	AppData       types.Bytes
 }
 
 // Id returns the objective id for the request.

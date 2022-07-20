@@ -109,11 +109,11 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big
 
 // CreateDirectChannel creates a directly funded channel with the given counterparty.
 // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition).
-func (c *Client) CreateDirectChannel(request directfund.ObjectiveRequestWithoutAppDefinition) directfund.ObjectiveResponse {
+func (c *Client) CreateDirectChannel(request directfund.ObjectiveRequestForConsensusApp) directfund.ObjectiveResponse {
 
 	objectiveRequest := directfund.ObjectiveRequest{
-		ObjectiveRequestWithoutAppDefinition: request,
-		AppDefinition:                        c.engine.GetConsensusAppAddress(),
+		ObjectiveRequestForConsensusApp: request,
+		AppDefinition:                   c.engine.GetConsensusAppAddress(),
 	}
 
 	apiEvent := engine.APIEvent{
