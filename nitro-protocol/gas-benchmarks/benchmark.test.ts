@@ -34,13 +34,13 @@ async function addResidualTokenBalance(asset: string) {
   await (await nitroAdjudicator.deposit(asset, Y.channelId, 0, 1)).wait();
 }
 
-let gasRequiredTo: GasResults;
-
-if (existsSync(__dirname + '/gasResults.json')) {
-  gasRequiredTo = JSON.parse(readFileSync(__dirname + '/gasResults.json', 'utf-8')) as GasResults;
-} else {
-  throw new Error('Error: file "gasResults.json" with previous benchmark results must exist');
+if (!existsSync(__dirname + '/gasResults.json')) {
+  throw new Error('Error: file "gasResults.json" with previous benchmark results does not exist');
 }
+
+const gasRequiredTo = JSON.parse(
+  readFileSync(__dirname + '/gasResults.json', 'utf-8')
+) as GasResults;
 
 describe('Consumes the expected gas for deployments', () => {
   it(`when deploying the NitroAdjudicator`, async () => {
