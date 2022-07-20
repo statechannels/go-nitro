@@ -28,11 +28,10 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 	request := directfund.ObjectiveRequestForConsensusApp{
 		CounterParty:      *beta.Address,
 		Outcome:           outcome,
-		AppData:           types.Bytes{},
 		ChallengeDuration: big.NewInt(0),
 		Nonce:             int64(rand.Int31()),
 	}
-	response := alpha.CreateDirectChannel(request)
+	response := alpha.CreateLedgerChannel(request)
 
 	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, response.Id)
 	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, response.Id)
@@ -74,12 +73,11 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 	request := directfund.ObjectiveRequestForConsensusApp{
 		CounterParty:      bob.Address(),
 		Outcome:           outcome,
-		AppData:           types.Bytes{},
 		ChallengeDuration: big.NewInt(0),
 		Nonce:             rand.Int63(),
 	}
 
-	response := clientA.CreateDirectChannel(request)
+	response := clientA.CreateLedgerChannel(request)
 
 	waitTimeForCompletedObjectiveIds(t, &clientB, time.Second, response.Id)
 
