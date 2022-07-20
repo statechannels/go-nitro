@@ -1,11 +1,11 @@
-import {writeFileSync} from 'fs';
+import {readFileSync} from 'fs';
 
 import {encodeOutcome} from '../src';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../src/transactions';
 
 import {
   waitForChallengesToTimeOut,
-  challengeChannel,
+  challengeChannelAndExpectGas,
   Y,
   X,
   LforX,
@@ -15,10 +15,9 @@ import {
   amountForAlice,
   amountForBob,
   amountForAliceAndBob,
-  gasUsed,
 } from './fixtures';
-import {gasRequiredTo} from './gas';
-import {nitroAdjudicator, token} from './vanillaSetup';
+import {GasResults} from './gas';
+import {nitroAdjudicator, token} from './localSetup';
 
 /**
  * Ensures the asset holding contract always has a nonzero token balance.
@@ -35,22 +34,22 @@ async function addResidualTokenBalance(asset: string) {
   await (await nitroAdjudicator.deposit(asset, Y.channelId, 0, 1)).wait();
 }
 
-afterAll(async () => {
-  writeFileSync(__dirname + '/gasResults.json', JSON.stringify(gasRequiredTo, null, 2));
-});
+const gasRequiredTo = JSON.parse(
+  readFileSync(__dirname + '/gasResults.json', 'utf-8')
+) as GasResults;
 
 describe('Consumes the expected gas for deployments', () => {
   it(`when deploying the NitroAdjudicator`, async () => {
-    gasRequiredTo.deployInfrastructureContracts.satp.NitroAdjudicator = await gasUsed(
-      await nitroAdjudicator.deployTransaction
+    await expect(await nitroAdjudicator.deployTransaction).toConsumeGas(
+      gasRequiredTo.deployInfrastructureContracts.satp.NitroAdjudicator
     );
   });
 });
 describe('Consumes the expected gas for deposits', () => {
   it(`when directly funding a channel with ETH (first deposit)`, async () => {
-    gasRequiredTo.directlyFundAChannelWithETHFirst.satp = await gasUsed(
+    await expect(
       await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 5, {value: 5})
-    );
+    ).toConsumeGas(gasRequiredTo.directlyFundAChannelWithETHFirst.satp);
   });
 
   it(`when directly funding a channel with ETH (second deposit)`, async () => {
@@ -60,20 +59,20 @@ describe('Consumes the expected gas for deposits', () => {
     });
     await (await setupTX).wait();
     // end setup
-    gasRequiredTo.directlyFundAChannelWithETHSecond.satp = await gasUsed(
+    await expect(
       await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 5, 5, {value: 5})
-    );
+    ).toConsumeGas(gasRequiredTo.directlyFundAChannelWithETHSecond.satp);
   });
 
   it(`when directly funding a channel with an ERC20 (first deposit)`, async () => {
     // begin setup
     await (await token.transfer(nitroAdjudicator.address, 1)).wait(); // The asset holder already has some tokens (for other channels)
     // end setup
-    gasRequiredTo.directlyFundAChannelWithERC20First.satp.approve = await gasUsed(
-      await token.increaseAllowance(nitroAdjudicator.address, 100)
+    await expect(await token.increaseAllowance(nitroAdjudicator.address, 100)).toConsumeGas(
+      gasRequiredTo.directlyFundAChannelWithERC20First.satp.approve
     );
-    gasRequiredTo.directlyFundAChannelWithERC20First.satp.deposit = await gasUsed(
-      await nitroAdjudicator.deposit(token.address, X.channelId, 0, 5)
+    await expect(await nitroAdjudicator.deposit(token.address, X.channelId, 0, 5)).toConsumeGas(
+      gasRequiredTo.directlyFundAChannelWithERC20First.satp.deposit
     );
   });
 
@@ -83,11 +82,11 @@ describe('Consumes the expected gas for deposits', () => {
     await (await nitroAdjudicator.deposit(token.address, X.channelId, 0, 5)).wait(); // The asset holder already has some tokens *for this channel*
     await (await token.decreaseAllowance(nitroAdjudicator.address, 95)).wait(); // reset allowance to zero
     // end setup
-    gasRequiredTo.directlyFundAChannelWithERC20Second.satp.approve = await gasUsed(
-      await token.increaseAllowance(nitroAdjudicator.address, 100)
+    await expect(await token.increaseAllowance(nitroAdjudicator.address, 100)).toConsumeGas(
+      gasRequiredTo.directlyFundAChannelWithERC20Second.satp.approve
     );
-    gasRequiredTo.directlyFundAChannelWithERC20Second.satp.deposit = await gasUsed(
-      await nitroAdjudicator.deposit(token.address, X.channelId, 5, 5)
+    await expect(await nitroAdjudicator.deposit(token.address, X.channelId, 5, 5)).toConsumeGas(
+      gasRequiredTo.directlyFundAChannelWithERC20Second.satp.deposit
     );
   });
 });
@@ -98,8 +97,8 @@ describe('Consumes the expected gas for happy-path exits', () => {
       await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
     ).wait();
     // end setup
-    gasRequiredTo.ETHexit.satp = await gasUsed(
-      await X.concludeAndTransferAllAssetsTx(MAGIC_ADDRESS_INDICATING_ETH)
+    await expect(await X.concludeAndTransferAllAssetsTx(MAGIC_ADDRESS_INDICATING_ETH)).toConsumeGas(
+      gasRequiredTo.ETHexit.satp
     );
   });
 
@@ -109,8 +108,8 @@ describe('Consumes the expected gas for happy-path exits', () => {
     await (await nitroAdjudicator.deposit(token.address, X.channelId, 0, 10)).wait();
     await addResidualTokenBalance(token.address);
     // end setup
-    gasRequiredTo.ERC20exit.satp = await gasUsed(
-      await X.concludeAndTransferAllAssetsTx(token.address)
+    await expect(await X.concludeAndTransferAllAssetsTx(token.address)).toConsumeGas(
+      gasRequiredTo.ERC20exit.satp
     );
   });
 });
@@ -123,25 +122,26 @@ describe('Consumes the expected gas for sad-path exits', () => {
     ).wait();
     // end setup
     // initially                 ⬛ ->  X  -> 👩
-    const {challengeTx, proof, finalizesAt} = await challengeChannel(
+    const {proof, finalizesAt} = await challengeChannelAndExpectGas(
       X,
-      MAGIC_ADDRESS_INDICATING_ETH
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHexitSad.satp.challenge
     );
-    gasRequiredTo.ETHexitSad.satp.challenge = await gasUsed(challengeTx);
     // begin wait
     await waitForChallengesToTimeOut([finalizesAt]);
     // end wait
-    // challenge + timeout       ⬛ -> (X) -> 👩\
-    gasRequiredTo.ETHexitSad.satp.transferAllAssets = await gasUsed(
+    // challenge + timeout       ⬛ -> (X) -> 👩
+    await expect(
       await nitroAdjudicator.transferAllAssets(
         X.channelId,
         proof.outcome, // outcome,
         proof.stateHash // stateHash
       )
-    );
+    ).toConsumeGas(gasRequiredTo.ETHexitSad.satp.transferAllAssets);
     // transferAllAssets ⬛ --------> 👩
-    gasRequiredTo.ETHexitSad.satp.total =
-      gasRequiredTo.ETHexitSad.satp.challenge + gasRequiredTo.ETHexitSad.satp.transferAllAssets;
+    expect(
+      gasRequiredTo.ETHexitSad.satp.challenge + gasRequiredTo.ETHexitSad.satp.transferAllAssets
+    ).toEqual(gasRequiredTo.ETHexitSad.satp.total);
   });
 
   it(`when exiting a ledger funded (with ETH) channel`, async () => {
@@ -153,47 +153,45 @@ describe('Consumes the expected gas for sad-path exits', () => {
     ).wait();
     // end setup
     // initially                   ⬛ ->  L  ->  X  -> 👩
-    const {
-      challengeTx: ledgerChallengeTx,
-      proof: ledgerProof,
-      finalizesAt: ledgerFinalizesAt,
-    } = await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
-    gasRequiredTo.ETHexitSadLedgerFunded.satp.challengeL = await gasUsed(ledgerChallengeTx);
-
-    const {challengeTx, proof, finalizesAt} = await challengeChannel(
-      X,
-      MAGIC_ADDRESS_INDICATING_ETH
+    const {proof: ledgerProof, finalizesAt: ledgerFinalizesAt} = await challengeChannelAndExpectGas(
+      LforX,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHexitSadLedgerFunded.satp.challengeL
     );
-    gasRequiredTo.ETHexitSadLedgerFunded.satp.challengeX = await gasUsed(challengeTx);
-
+    const {proof, finalizesAt} = await challengeChannelAndExpectGas(
+      X,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHexitSadLedgerFunded.satp.challengeX
+    );
     // begin wait
     await waitForChallengesToTimeOut([ledgerFinalizesAt, finalizesAt]); // just go to the max one
     // end wait
     // challenge X, L and timeout  ⬛ -> (L) -> (X) -> 👩
-    gasRequiredTo.ETHexitSadLedgerFunded.satp.transferAllAssetsL = await gasUsed(
+    await expect(
       await nitroAdjudicator.transferAllAssets(
         LforX.channelId,
         ledgerProof.outcome, // outcome
         ledgerProof.stateHash // stateHash
       )
-    );
+    ).toConsumeGas(gasRequiredTo.ETHexitSadLedgerFunded.satp.transferAllAssetsL);
     // transferAllAssetsL  ⬛ --------> (X) -> 👩
-    gasRequiredTo.ETHexitSadLedgerFunded.satp.transferAllAssetsX = await gasUsed(
+    await expect(
       await nitroAdjudicator.transferAllAssets(
         X.channelId,
         proof.outcome, // outcome
         proof.stateHash // stateHash
       )
-    );
+    ).toConsumeGas(gasRequiredTo.ETHexitSadLedgerFunded.satp.transferAllAssetsX);
     // transferAllAssetsX  ⬛ ---------------> 👩
 
     // meta-test here to confirm the total recorded in gas.ts is up to date
     // with the recorded costs of each step
-    gasRequiredTo.ETHexitSadLedgerFunded.satp.total =
+    expect(
       gasRequiredTo.ETHexitSadLedgerFunded.satp.challengeL +
-      gasRequiredTo.ETHexitSadLedgerFunded.satp.transferAllAssetsL +
-      gasRequiredTo.ETHexitSadLedgerFunded.satp.challengeX +
-      gasRequiredTo.ETHexitSadLedgerFunded.satp.transferAllAssetsX;
+        gasRequiredTo.ETHexitSadLedgerFunded.satp.transferAllAssetsL +
+        gasRequiredTo.ETHexitSadLedgerFunded.satp.challengeX +
+        gasRequiredTo.ETHexitSadLedgerFunded.satp.transferAllAssetsX
+    ).toEqual(gasRequiredTo.ETHexitSadLedgerFunded.satp.total);
   });
 
   // TODO unskip this test when the contracts are satp compatible
@@ -207,28 +205,24 @@ describe('Consumes the expected gas for sad-path exits', () => {
     // end setup
     // initially                   ⬛ ->  L  ->  J  ->  X  -> 👩
     // challenge L
-    const {
-      challengeTx: ledgerChallengeTx,
-      proof: ledgerProof,
-      finalizesAt: ledgerFinalizesAt,
-    } = await challengeChannel(LforJ, MAGIC_ADDRESS_INDICATING_ETH);
-    gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeL = await gasUsed(ledgerChallengeTx);
-
-    // challenge J
-    const {
-      challengeTx: jointChallengeTx,
-      proof: jointProof,
-      finalizesAt: jointChannelFinalizesAt,
-    } = await challengeChannel(J, MAGIC_ADDRESS_INDICATING_ETH);
-    gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeJ = await gasUsed(jointChallengeTx);
-
-    // challenge X
-    const {challengeTx, proof, finalizesAt} = await challengeChannel(
-      X,
-      MAGIC_ADDRESS_INDICATING_ETH
+    const {proof: ledgerProof, finalizesAt: ledgerFinalizesAt} = await challengeChannelAndExpectGas(
+      LforJ,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeL
     );
-    gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeX = await gasUsed(challengeTx);
-
+    // challenge J
+    const {proof: jointProof, finalizesAt: jointChannelFinalizesAt} =
+      await challengeChannelAndExpectGas(
+        J,
+        MAGIC_ADDRESS_INDICATING_ETH,
+        gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeJ
+      );
+    // challenge X
+    const {proof, finalizesAt} = await challengeChannelAndExpectGas(
+      X,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeX
+    );
     // begin wait
     await waitForChallengesToTimeOut([ledgerFinalizesAt, jointChannelFinalizesAt, finalizesAt]);
     // end wait
@@ -237,8 +231,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
       {Alice: 0, Bob: 0, Ingrid: 0},
       {LforJ: amountForAliceAndBob, J: 0, X: 0}
     );
-
-    gasRequiredTo.ETHexitSadVirtualFunded.satp.claimL = await gasUsed(
+    await expect(
       await nitroAdjudicator.claim({
         sourceChannelId: LforJ.channelId,
         sourceStateHash: ledgerProof.stateHash,
@@ -250,20 +243,19 @@ describe('Consumes the expected gas for sad-path exits', () => {
         targetAssetIndex: 0,
         targetAllocationIndicesToPayout: [], // meaning "all"
       })
-    );
+    ).toConsumeGas(gasRequiredTo.ETHexitSadVirtualFunded.satp.claimL);
     // claimL                      ⬛ ---------------> (X) -> 👩
     await assertEthBalancesAndHoldings(
       {Alice: 0, Bob: 0, Ingrid: 0},
       {LforJ: 0, J: 0, X: amountForAliceAndBob}
     );
-
-    gasRequiredTo.ETHexitSadVirtualFunded.satp.transferAllAssetsX = await gasUsed(
+    await expect(
       await nitroAdjudicator.transferAllAssets(
         X.channelId,
         proof.outcome, // outcomeBytes
         proof.stateHash // stateHash
       )
-    );
+    ).toConsumeGas(gasRequiredTo.ETHexitSadVirtualFunded.satp.transferAllAssetsX);
     // transferAllAssetsX          ⬛ ----------------------> 👩
     await assertEthBalancesAndHoldings(
       {Alice: amountForAlice, Bob: amountForBob, Ingrid: 0},
@@ -272,9 +264,10 @@ describe('Consumes the expected gas for sad-path exits', () => {
 
     // meta-test here to confirm the total recorded in gas.ts is up to date
     // with the recorded costs of each step
-    gasRequiredTo.ETHexitSadVirtualFunded.satp.total =
+    expect(
       (Object.values(gasRequiredTo.ETHexitSadVirtualFunded.satp) as number[]).reduce(
         (a, b) => a + b
-      ) - gasRequiredTo.ETHexitSadVirtualFunded.satp.total;
+      ) - gasRequiredTo.ETHexitSadVirtualFunded.satp.total
+    ).toEqual(gasRequiredTo.ETHexitSadVirtualFunded.satp.total);
   });
 });
