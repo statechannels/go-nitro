@@ -23,6 +23,6 @@ jobs:
       - name: Run eslint (including prettier)
         run: npm run lint:check
       - name: Run gas benchmarks
-        run: npm run test:gas
+        run: npm run benchmark:diff
       - name: Run tests
         run: npm test
