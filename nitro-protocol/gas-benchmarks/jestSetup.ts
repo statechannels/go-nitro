@@ -5,6 +5,7 @@ import {providers} from 'ethers';
 import waitOn from 'wait-on';
 import kill from 'tree-kill';
 import {BigNumber} from '@ethersproject/bignumber';
+import {SnapshotRestorer, takeSnapshot} from '@nomicfoundation/hardhat-network-helpers';
 
 import {deployContracts, setSetupProvider} from './localSetup';
 import {TestChannel, challengeChannel} from './fixtures';
@@ -32,19 +33,19 @@ const hardhatProcessClosed = new Promise(resolve => hardhatProcess.on('close', r
 const provider = new providers.JsonRpcProvider(hardHatNetworkEndpoint);
 setSetupProvider(provider);
 
-let snapshotId = 0;
+let snapshot: SnapshotRestorer;
 
 beforeAll(async () => {
   await waitOn({resources: [hardHatNetworkEndpoint]});
 
   await deployContracts();
 
-  snapshotId = await provider.send('evm_snapshot', []);
+  snapshot = await takeSnapshot();
 });
 
 beforeEach(async () => {
-  await provider.send('evm_revert', [snapshotId]);
-  snapshotId = await provider.send('evm_snapshot', []);
+  await snapshot.restore();
+  snapshot = await takeSnapshot();
 });
 
 afterAll(async () => {
@@ -90,7 +91,6 @@ expect.extend({
     }
   },
 });
-
 
 /**
  * Constructs a support proof for the supplied channel, calls challenge,
