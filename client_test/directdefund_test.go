@@ -19,7 +19,7 @@ import (
 
 func directlyDefundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client, channelId types.Destination) {
 
-	id := alpha.CloseDirectChannel(channelId)
+	id := alpha.CloseLedgerChannel(channelId)
 	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, id)
 	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, id)
 
@@ -106,7 +106,7 @@ func TestDirectDefund(t *testing.T) {
 
 		waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, response.Id)
 
-		clientA.CloseDirectChannel(ddfoTarget)
+		clientA.CloseLedgerChannel(ddfoTarget)
 
 		select {
 		case <-time.After(time.Second * 10):

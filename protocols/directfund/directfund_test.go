@@ -58,12 +58,12 @@ func TestNew(t *testing.T) {
 	request := ObjectiveRequest{
 		ObjectiveRequestForConsensusApp: ObjectiveRequestForConsensusApp{
 			CounterParty:      testState.Participants[1],
-			AppData:           testState.AppData,
 			ChallengeDuration: testState.ChallengeDuration,
 			Outcome:           testState.Outcome,
 			Nonce:             testState.ChannelNonce.Int64(),
 		},
 		AppDefinition: testState.AppDefinition,
+		AppData:       testState.AppData,
 	}
 	// Assert that valid constructor args do not result in error
 	if _, err := NewObjective(request, false, testState.Participants[0], getByParticipant, getByConsensus); err != nil {

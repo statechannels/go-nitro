@@ -107,13 +107,14 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big
 
 }
 
-// CreateDirectChannel creates a directly funded channel with the given counterparty.
-// The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition).
-func (c *Client) CreateDirectChannel(request directfund.ObjectiveRequestForConsensusApp) directfund.ObjectiveResponse {
+// CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
+// The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
+func (c *Client) CreateLedgerChannel(request directfund.ObjectiveRequestForConsensusApp) directfund.ObjectiveResponse {
 
 	objectiveRequest := directfund.ObjectiveRequest{
 		ObjectiveRequestForConsensusApp: request,
 		AppDefinition:                   c.engine.GetConsensusAppAddress(),
+		// Appdata implicitly zero
 	}
 
 	apiEvent := engine.APIEvent{
@@ -126,8 +127,8 @@ func (c *Client) CreateDirectChannel(request directfund.ObjectiveRequestForConse
 
 }
 
-// CloseDirectChannel attempts to close and defund the given directly funded channel.
-func (c *Client) CloseDirectChannel(channelId types.Destination) protocols.ObjectiveId {
+// CloseLedgerChannel attempts to close and defund the given directly funded channel.
+func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.ObjectiveId {
 
 	objectiveRequest := directdefund.ObjectiveRequest{
 		ChannelId: channelId,
