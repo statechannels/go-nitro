@@ -78,12 +78,14 @@ Over time, the development streams will become more coupled.
 We now use `solc` and `abigen` to generate Go bindings from our `*.sol` source files. This is achieved by running the `generate_adjudicator_bindings.sh` script at the top level of the repo. Because our `*.sol` files depend on external projects via `node_modules`, to run this script successfully you must:
 
 - have successfully run `npm install` in the `nitro-protocol` directory.
-- have [solc](https://docs.soliditylang.org/en/v0.8.13/installing-solidity.html) installed at the correct version (currently 0.7.4, see the CI or linting config for a hint if you think it may have changed)
+- have [solc](https://docs.soliditylang.org/en/v0.8.13/installing-solidity.html) installed at the correct version (currently 0.7.6, see the CI or linting config for a hint if you think it may have changed)
 - have [abigen](https://geth.ethereum.org/docs/install-and-build/installing-geth) (a tool shipped with go-ethereum) installed.
 
 The resulting Go bindings file is _checked-in_ to the repository. Although it is auto-generated from on-chain source code, it effectively forms part of the off-chain source code.
 
 If you alter the contracts, you should regenerate the bindings file at check it in. A github action will run which will check that you have done this correctly.
+
+TIP: if you find that the github action still reports a mismatch despite regenerating the bindings, this may be due to the action using the "test merge" of your PR (rather than the tip of your branch). Try rebasing your branch. 
 
 ## Contributing
 

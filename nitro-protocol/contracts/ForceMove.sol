@@ -3,6 +3,7 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
+import {NitroUtils} from './libraries/NitroUtils.sol';
 import './interfaces/IForceMove.sol';
 import './interfaces/IForceMoveApp.sol';
 import './StatusManager.sol';
@@ -39,28 +40,16 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @dev Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param variableParts An ordered array of structs, each decribing the properties of the state channel that may change with each state update. Length is from 1 to the number of participants (inclusive).
-     * @param sigs An array of signatures that support the state with the `largestTurnNum`. There must be one for each participant, e.g.: [sig-from-p0, sig-from-p1, ...]
-     * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
+     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update.
      * @param challengerSig The signature of a participant on the keccak256 of the abi.encode of (supportedStateHash, 'forceMove').
      */
     function challenge(
         FixedPart memory fixedPart,
-        IForceMoveApp.VariablePart[] memory variableParts,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat,
+        SignedVariablePart[] memory signedVariableParts,
         Signature memory challengerSig
     ) external override {
-        // input type validation
-        requireValidInput(
-            fixedPart.participants.length,
-            variableParts.length,
-            sigs.length,
-            whoSignedWhat.length
-        );
-
-        bytes32 channelId = _getChannelId(fixedPart);
-        uint48 largestTurnNum = _lastVariablePart(variableParts).turnNum;
+        bytes32 channelId = NitroUtils.getChannelId(fixedPart);
+        uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
 
         if (_mode(channelId) == ChannelMode.Open) {
             _requireNonDecreasedTurnNumber(channelId, largestTurnNum);
@@ -71,11 +60,9 @@ contract ForceMove is IForceMove, StatusManager {
             _requireChannelNotFinalized(channelId);
         }
         bytes32 supportedStateHash = _requireStateSupportedBy(
-            variableParts,
-            channelId,
             fixedPart,
-            sigs,
-            whoSignedWhat
+            signedVariableParts,
+            channelId
         );
 
         _requireChallengerIsParticipant(supportedStateHash, fixedPart.participants, challengerSig);
@@ -87,11 +74,9 @@ contract ForceMove is IForceMove, StatusManager {
             largestTurnNum,
             uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
             // This could overflow, so don't join a channel with a huge challengeDuration
-            _lastVariablePart(variableParts).isFinal,
+            _lastVariablePart(signedVariableParts).isFinal,
             fixedPart,
-            variableParts,
-            sigs,
-            whoSignedWhat
+            signedVariableParts
         );
 
         statusOf[channelId] = _generateStatus(
@@ -99,103 +84,28 @@ contract ForceMove is IForceMove, StatusManager {
                 largestTurnNum,
                 uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
                 supportedStateHash,
-                _hashOutcome(_lastVariablePart(variableParts).outcome)
+                NitroUtils.hashOutcome(_lastVariablePart(signedVariableParts).outcome)
             )
         );
-    }
-
-    /**
-     * @notice Repsonds to an ongoing challenge registered against a state channel.
-     * @dev Repsonds to an ongoing challenge registered against a state channel.
-     * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param variablePartAB An pair of structs, each decribing the properties of the state channel that may change with each state update (for the challenge state and for the response state).
-     * @param sig The responder's signature on the `responseStateHash`.
-     */
-    function respond(
-        FixedPart memory fixedPart,
-        IForceMoveApp.VariablePart[2] memory variablePartAB,
-        // variablePartAB[0] = challengeVariablePart
-        // variablePartAB[1] = responseVariablePart
-        Signature memory sig
-    ) external override {
-        // No need to validate fixedPart.participants.length here, as that validation would have happened during challenge
-
-        bytes32 channelId = _getChannelId(fixedPart);
-        (uint48 turnNumRecord, uint48 finalizesAt, ) = _unpackStatus(channelId);
-
-        bytes32 challengeStateHash = _hashState(
-            channelId,
-            variablePartAB[0].appData,
-            variablePartAB[0].outcome,
-            turnNumRecord,
-            variablePartAB[0].isFinal
-        );
-
-        bytes32 responseStateHash = _hashState(
-            channelId,
-            variablePartAB[1].appData,
-            variablePartAB[1].outcome,
-            turnNumRecord + 1,
-            variablePartAB[1].isFinal
-        );
-
-        // checks
-
-        _requireSpecificChallenge(
-            ChannelData(
-                turnNumRecord,
-                finalizesAt,
-                challengeStateHash,
-                _hashOutcome(variablePartAB[0].outcome)
-            ),
-            channelId
-        );
-
-        require(
-            _recoverSigner(responseStateHash, sig) ==
-                fixedPart.participants[(turnNumRecord + 1) % fixedPart.participants.length],
-            'Signer not authorized mover'
-        );
-
-        _requireValidTransition(
-            fixedPart.participants.length,
-            variablePartAB,
-            fixedPart.appDefinition
-        );
-
-        // effects
-        _clearChallenge(channelId, turnNumRecord + 1);
     }
 
     /**
      * @notice Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
      * @dev Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param variableParts An ordered array of structs, each decribing the properties of the state channel that may change with each state update.
-     * @param sigs An array of signatures that support the state with the `largestTurnNum`: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
-     * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
+     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update.
      */
-    function checkpoint(
-        FixedPart memory fixedPart,
-        IForceMoveApp.VariablePart[] memory variableParts,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat
-    ) external override {
-        // input type validation
-        requireValidInput(
-            fixedPart.participants.length,
-            variableParts.length,
-            sigs.length,
-            whoSignedWhat.length
-        );
-
-        bytes32 channelId = _getChannelId(fixedPart);
-        uint48 largestTurnNum = _lastVariablePart(variableParts).turnNum;
+    function checkpoint(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
+        external
+        override
+    {
+        bytes32 channelId = NitroUtils.getChannelId(fixedPart);
+        uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
 
         // checks
         _requireChannelNotFinalized(channelId);
         _requireIncreasedTurnNumber(channelId, largestTurnNum);
-        _requireStateSupportedBy(variableParts, channelId, fixedPart, sigs, whoSignedWhat);
+        _requireStateSupportedBy(fixedPart, signedVariableParts, channelId);
 
         // effects
         _clearChallenge(channelId, largestTurnNum);
@@ -205,76 +115,30 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
      * @dev Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param latestVariablePart Latest variable part in finalization proof. Must have the largest turnNum and the same appData and outcome as all other variable parts in finalization proof.
-     * @param numStates The number of states in the finalization proof.
-     * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
-     * @param sigs An array of signatures that support the state with the `largestTurnNum`: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
+     * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
      */
-    function conclude(
-        FixedPart memory fixedPart,
-        IForceMoveApp.VariablePart memory latestVariablePart,
-        uint8 numStates,
-        uint8[] memory whoSignedWhat,
-        Signature[] memory sigs
-    ) external override {
-        _conclude(fixedPart, latestVariablePart, numStates, whoSignedWhat, sigs);
+    function conclude(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
+        external
+        override
+    {
+        _conclude(fixedPart, signedVariableParts);
     }
 
     /**
      * @notice Finalizes a channel by providing a finalization proof. Internal method.
      * @dev Finalizes a channel by providing a finalization proof. Internal method.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param latestVariablePart Latest variable part in finalization proof. Must have the largest turnNum and the same appData and outcome as all other variable parts in finalization proof.
-     * @param numStates The number of states in the finalization proof.
-     * @param whoSignedWhat An array denoting which participant has signed which state: `participant[i]` signed the state with index `whoSignedWhat[i]`.
-     * @param sigs An array of signatures that support the state with the `largestTurnNum`:: one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
+     * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
      */
-    function _conclude(
-        FixedPart memory fixedPart,
-        IForceMoveApp.VariablePart memory latestVariablePart,
-        uint8 numStates,
-        uint8[] memory whoSignedWhat,
-        Signature[] memory sigs
-    ) internal returns (bytes32 channelId) {
-        channelId = _getChannelId(fixedPart);
+    function _conclude(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
+        internal
+        returns (bytes32 channelId)
+    {
+        channelId = NitroUtils.getChannelId(fixedPart);
         _requireChannelNotFinalized(channelId);
 
-        // input type validation
-        requireValidInput(
-            fixedPart.participants.length,
-            numStates,
-            sigs.length,
-            whoSignedWhat.length
-        );
-
-        require(latestVariablePart.turnNum + 1 >= numStates, 'largestTurnNum too low');
-        // ^^ SW-C101: prevent underflow
-
-        // By construction, the following states form a valid transition
-        bytes32[] memory stateHashes = new bytes32[](numStates);
-        for (uint48 i = 0; i < numStates; i++) {
-            stateHashes[i] = _hashState(
-                channelId,
-                latestVariablePart.appData,
-                latestVariablePart.outcome,
-                latestVariablePart.turnNum + (i + 1) - numStates, // turnNum
-                // ^^ SW-C101: It is not easy to use SafeMath here, since we are not using uint256s
-                // Instead, we are protected by the require statement above
-                true // isFinal
-            );
-        }
-
         // checks
-        require(
-            _validSignatures(
-                latestVariablePart.turnNum,
-                fixedPart.participants,
-                stateHashes,
-                sigs,
-                whoSignedWhat
-            ),
-            'Invalid signatures / !isFinal'
-        );
+        _requireStateSupportedBy(fixedPart, signedVariableParts, channelId);
 
         // effects
         statusOf[channelId] = _generateStatus(
@@ -282,45 +146,14 @@ contract ForceMove is IForceMove, StatusManager {
                 0,
                 uint48(block.timestamp), //solhint-disable-line not-rely-on-time
                 bytes32(0),
-                _hashOutcome(latestVariablePart.outcome)
+                NitroUtils.hashOutcome(_lastVariablePart(signedVariableParts).outcome)
             )
         );
         emit Concluded(channelId, uint48(block.timestamp)); //solhint-disable-line not-rely-on-time
     }
 
     function getChainID() public pure returns (uint256) {
-        uint256 id;
-        /* solhint-disable no-inline-assembly */
-        assembly {
-            id := chainid()
-        }
-        /* solhint-disable no-inline-assembly */
-        return id;
-    }
-
-    /**
-     * @notice Validates input for several external methods.
-     * @dev Validates input for several external methods.
-     * @param numParticipants Length of the participants array
-     * @param numStates Number of states submitted
-     * @param numSigs Number of signatures submitted
-     * @param numWhoSignedWhats whoSignedWhat.length
-     */
-    function requireValidInput(
-        uint256 numParticipants,
-        uint256 numStates,
-        uint256 numSigs,
-        uint256 numWhoSignedWhats
-    ) public pure returns (bool) {
-        require((numParticipants >= numStates) && (numStates > 0), 'Insufficient or excess states');
-        require(
-            (numSigs == numParticipants) && (numWhoSignedWhats == numParticipants),
-            'Bad |signatures|v|whoSignedWhat|'
-        );
-        require(numParticipants <= type(uint8).max, 'Too many participants!'); // type(uint8).max = 2**8 - 1 = 255
-        // no more than 255 participants
-        // max index for participants is 254
-        return true;
+        return NitroUtils.getChainID();
     }
 
     // *****************
@@ -339,7 +172,7 @@ contract ForceMove is IForceMove, StatusManager {
         address[] memory participants,
         Signature memory challengerSignature
     ) internal pure {
-        address challenger = _recoverSigner(
+        address challenger = NitroUtils.recoverSigner(
             keccak256(abi.encode(supportedStateHash, 'forceMove')),
             challengerSignature
         );
@@ -367,273 +200,103 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Given an array of state hashes, checks the validity of the supplied signatures. Valid means there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array.
-     * @dev Given an array of state hashes, checks the validity of the supplied signatures. Valid means there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array.
-     * @param largestTurnNum The largest turn number of the submitted states; will overwrite the stored value of `turnNumRecord`.
-     * @param participants A list of addresses representing the participants of a channel.
-     * @param stateHashes Array of keccak256(State) submitted in support of a state,
-     * @param sigs Array of Signatures, one for each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
-     * @param whoSignedWhat participant[i] signed stateHashes[whoSignedWhat[i]]
-     * @return true if the signatures are valid, false otherwise
-     */
-    function _validSignatures(
-        uint48 largestTurnNum,
-        address[] memory participants,
-        bytes32[] memory stateHashes,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat // whoSignedWhat[i] is the index of the state in stateHashes that was signed by participants[i]
-    ) internal pure returns (bool) {
-        uint256 nParticipants = participants.length;
-        uint256 nStates = stateHashes.length;
-
-        require(
-            _acceptableWhoSignedWhat(whoSignedWhat, largestTurnNum, nParticipants, nStates),
-            'Unacceptable whoSignedWhat array'
-        );
-        for (uint256 i = 0; i < nParticipants; i++) {
-            address signer = _recoverSigner(stateHashes[whoSignedWhat[i]], sigs[i]);
-            if (signer != participants[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * @notice Given a declaration of which state in the support proof was signed by which participant, check if this declaration is acceptable. Acceptable means there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array.
-     * @dev Given a declaration of which state in the support proof was signed by which participant, check if this declaration is acceptable. Acceptable means there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array.
-     * @param whoSignedWhat participant[i] signed stateHashes[whoSignedWhat[i]]
-     * @param largestTurnNum Largest turnNum of the support proof
-     * @param nParticipants Number of participants in the channel
-     * @param nStates Number of states in the support proof
-     * @return true if whoSignedWhat is acceptable, false otherwise
-     */
-    function _acceptableWhoSignedWhat(
-        uint8[] memory whoSignedWhat,
-        uint48 largestTurnNum,
-        uint256 nParticipants,
-        uint256 nStates
-    ) internal pure returns (bool) {
-        require(whoSignedWhat.length == nParticipants, '|whoSignedWhat|!=nParticipants');
-        for (uint256 i = 0; i < nParticipants; i++) {
-            uint256 offset = (nParticipants + largestTurnNum - i) % nParticipants;
-            // offset is the difference between the index of participant[i] and the index of the participant who owns the largesTurnNum state
-            // the additional nParticipants in the dividend ensures offset always positive
-            if (whoSignedWhat[i] + offset + 1 < nStates) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * @notice Given a digest and ethereum digital signature, recover the signer
-     * @dev Given a digest and digital signature, recover the signer
-     * @param _d message digest
-     * @param sig ethereum digital signature
-     * @return signer
-     */
-    function _recoverSigner(bytes32 _d, Signature memory sig) internal pure returns (address) {
-        bytes32 prefixedHash = keccak256(abi.encodePacked('\x19Ethereum Signed Message:\n32', _d));
-        address a = ecrecover(prefixedHash, sig.v, sig.r, sig.s);
-        require(a != address(0), 'Invalid signature');
-        return (a);
-    }
-
-    /**
      * @notice Check that the submitted data constitute a support proof.
      * @dev Check that the submitted data constitute a support proof.
-     * @param variableParts Variable parts of the states in the support proof
+     * @param fixedPart Fixed Part of the states in the support proof.
+     * @param signedVariableParts Signed variable parts of the states in the support proof.
      * @param channelId Unique identifier for a channel.
-     * @param fixedPart Fixed Part of the states in the support proof
-     * @param sigs A signature from each participant, in participant order (e.g. [sig of participant[0], sig of participant[1], ...]).
-     * @param whoSignedWhat participant[i] signed stateHashes[whoSignedWhat[i]]
      * @return The hash of the latest state in the proof, if supported, else reverts.
      */
     function _requireStateSupportedBy(
-        IForceMoveApp.VariablePart[] memory variableParts,
-        bytes32 channelId,
         FixedPart memory fixedPart,
-        Signature[] memory sigs,
-        uint8[] memory whoSignedWhat
+        SignedVariablePart[] memory signedVariableParts,
+        bytes32 channelId
     ) internal pure returns (bytes32) {
-        bytes32[] memory stateHashes = _requireValidTransitionChain(
-            variableParts,
-            channelId,
-            fixedPart
-        );
+        VariablePart memory latestVariablePart = IForceMoveApp(fixedPart.appDefinition)
+            .latestSupportedState(fixedPart, recoverVariableParts(fixedPart, signedVariableParts));
 
-        require(
-            _validSignatures(
-                _lastVariablePart(variableParts).turnNum,
-                fixedPart.participants,
-                stateHashes,
-                sigs,
-                whoSignedWhat
-            ),
-            'Invalid signatures'
-        );
+        // enforcing the latest supported state being in the last slot of the array
+        _requireVariablePartIsLast(latestVariablePart, signedVariableParts);
 
-        return stateHashes[stateHashes.length - 1];
-    }
-
-    /**
-     * @notice Check that the submitted states form a chain of valid transitions
-     * @dev Check that the submitted states form a chain of valid transitions
-     * @param variableParts Variable parts of the states in the support proof
-     * @param channelId Unique identifier for a channel.
-     * @param fixedPart Fixed Part of the states in the support proof
-     * @return true if every state is a validTransition from its predecessor, false otherwise.
-     */
-    function _requireValidTransitionChain(
-        // returns stateHashes array if valid
-        // else, reverts
-        IForceMoveApp.VariablePart[] memory variableParts,
-        bytes32 channelId,
-        FixedPart memory fixedPart
-    ) internal pure returns (bytes32[] memory) {
-        bytes32[] memory stateHashes = new bytes32[](variableParts.length);
-
-        for (uint48 i = 0; i < variableParts.length; i++) {
-            stateHashes[i] = _hashState(
+        return
+            NitroUtils.hashState(
                 channelId,
-                variableParts[i].appData,
-                variableParts[i].outcome,
-                variableParts[i].turnNum,
-                variableParts[i].isFinal
+                latestVariablePart.appData,
+                latestVariablePart.outcome,
+                latestVariablePart.turnNum,
+                latestVariablePart.isFinal
             );
-            if (i < variableParts.length - 1) {
-                _requireValidTransition(
-                    fixedPart.participants.length,
-                    [variableParts[i], variableParts[i + 1]],
-                    fixedPart.appDefinition
-                );
-            }
-        }
-        return stateHashes;
-    }
-
-    enum IsValidTransition {
-        True,
-        NeedToCheckApp
     }
 
     /**
-    * @notice Check that the submitted pair of states form a valid transition
-    * @dev Check that the submitted pair of states form a valid transition
-    * @param nParticipants Number of participants in the channel.
-    transition
-    * @param ab Variable parts of each of the pair of states
-    * @return true if the later state is a validTransition from its predecessor, false otherwise.
-    */
-    function _requireValidProtocolTransition(
-        uint256 nParticipants,
-        IForceMoveApp.VariablePart[2] memory ab // [a,b]
-    ) internal pure returns (IsValidTransition) {
-        // a separate check on the signatures for the submitted states implies that the following fields are equal for a and b:
-        // chainId, participants, channelNonce, appDefinition, challengeDuration
-        // and that the b.turnNum = a.turnNum + 1
-        if (ab[1].isFinal) {
-            require(Outcome.exitsEqual(ab[1].outcome, ab[0].outcome), 'Outcome change verboten');
-        } else {
-            require(!ab[0].isFinal, 'isFinal retrograde');
-            if (ab[1].turnNum < 2 * nParticipants) {
-                require(
-                    Outcome.exitsEqual(ab[1].outcome, ab[0].outcome),
-                    'Outcome change forbidden'
-                );
-                require(_bytesEqual(ab[1].appData, ab[0].appData), 'appData change forbidden');
-            } else {
-                return IsValidTransition.NeedToCheckApp;
-            }
-        }
-        return IsValidTransition.True;
-    }
-
-    /**
-    * @notice Check that the submitted pair of states form a valid transition
-    * @dev Check that the submitted pair of states form a valid transition
-    * @param nParticipants Number of participants in the channel.
-    transition
-    * @param ab Variable parts of each of the pair of states
-    * @param appDefinition Address of deployed contract containing application-specific validTransition function.
-    * @return true if the later state is a validTransition from its predecessor, false otherwise.
-    */
-    function _requireValidTransition(
-        uint256 nParticipants,
-        IForceMoveApp.VariablePart[2] memory ab, // [a,b]
-        address appDefinition
-    ) internal pure returns (bool) {
-        IsValidTransition isValidProtocolTransition = _requireValidProtocolTransition(
-            nParticipants,
-            ab // [a,b]
-        );
-
-        if (isValidProtocolTransition == IsValidTransition.NeedToCheckApp) {
-            require(
-                IForceMoveApp(appDefinition).validTransition(ab[0], ab[1], nParticipants),
-                'Invalid ForceMoveApp Transition'
-            );
-        }
-
-        return true;
-    }
-
-    /**
-     * @notice Check for equality of two byte strings
-     * @dev Check for equality of two byte strings
-     * @param _preBytes One bytes string
-     * @param _postBytes The other bytes string
-     * @return true if the bytes are identical, false otherwise.
+     * @notice Recover signatures for each variable part in the supplied array.
+     * @dev Recover signatures for each variable part in the supplied array.
+     * @param fixedPart Fixed Part of the states in the support proof.
+     * @param signedVariableParts Signed variable parts of the states in the support proof.
+     * @return An array of recoveredVariableParts, identical to the supplied signedVariableParts array but with the signatures replaced with a signedBy bitmask.
      */
-    function _bytesEqual(bytes memory _preBytes, bytes memory _postBytes)
-        internal
-        pure
-        returns (bool)
-    {
-        // copied from https://www.npmjs.com/package/solidity-bytes-utils/v/0.1.1
-        bool success = true;
+    function recoverVariableParts(
+        FixedPart memory fixedPart,
+        SignedVariablePart[] memory signedVariableParts
+    ) internal pure returns (RecoveredVariablePart[] memory) {
+        RecoveredVariablePart[] memory recoveredVariableParts = new RecoveredVariablePart[](
+            signedVariableParts.length
+        );
+        for (uint256 i = 0; i < signedVariableParts.length; i++) {
+            recoveredVariableParts[i] = recoverVariablePart(fixedPart, signedVariableParts[i]);
+        }
+        return recoveredVariableParts;
+    }
 
-        /* solhint-disable no-inline-assembly */
-        assembly {
-            let length := mload(_preBytes)
-
-            // if lengths don't match the arrays are not equal
-            switch eq(length, mload(_postBytes))
-            case 1 {
-                // cb is a circuit breaker in the for loop since there's
-                //  no said feature for inline assembly loops
-                // cb = 1 - don't breaker
-                // cb = 0 - break
-                let cb := 1
-
-                let mc := add(_preBytes, 0x20)
-                let end := add(mc, length)
-
-                for {
-                    let cc := add(_postBytes, 0x20)
-                    // the next line is the loop condition:
-                    // while(uint256(mc < end) + cb == 2)
-                } eq(add(lt(mc, end), cb), 2) {
-                    mc := add(mc, 0x20)
-                    cc := add(cc, 0x20)
-                } {
-                    // if any of these checks fails then arrays are not equal
-                    if iszero(eq(mload(mc), mload(cc))) {
-                        // unsuccess:
-                        success := 0
-                        cb := 0
-                    }
+    /**
+     * @notice Recover signatures for a variable part.
+     * @dev Recover signatures for a variable part.
+     * @param fixedPart Fixed Part of the states in the support proof.
+     * @param signedVariablePart A signed variable part.
+     * @return An RecoveredVariableParts, identical to the supplied signedVariablePart  but with the signatures replaced with a signedBy bitmask.
+     */
+    function recoverVariablePart(
+        FixedPart memory fixedPart,
+        SignedVariablePart memory signedVariablePart
+    ) internal pure returns (RecoveredVariablePart memory) {
+        RecoveredVariablePart memory rvp = RecoveredVariablePart({
+            variablePart: signedVariablePart.variablePart,
+            signedBy: 0
+        });
+        //  For each signature
+        for (uint256 j = 0; j < signedVariablePart.sigs.length; j++) {
+            bytes32 stateHash = NitroUtils.hashState(fixedPart, signedVariablePart.variablePart);
+            // Check each participant to see if they signed it
+            for (uint256 i = 0; i < fixedPart.participants.length; i++) {
+                if (
+                    NitroUtils.recoverSigner(stateHash, signedVariablePart.sigs[j]) ==
+                    fixedPart.participants[i]
+                ) {
+                    rvp.signedBy += 2**i;
+                    break; // Once we have found a match, assuming distinct participants, no-one else signed it.
                 }
             }
-            default {
-                // unsuccess:
-                success := 0
-            }
         }
-        /* solhint-disable no-inline-assembly */
+        return rvp;
+    }
 
-        return success;
+    /**
+     * @notice Check whether supplied variablePart is in the last slot if variableParts.
+     * @dev Check whether supplied variablePart is in the last slot if variableParts.
+     * @param variablePart VariablePart to be in the last slot.
+     * @param signedVariableParts SignedVariableParts the last slot of to check.
+     */
+    function _requireVariablePartIsLast(
+        VariablePart memory variablePart,
+        SignedVariablePart[] memory signedVariableParts
+    ) internal pure {
+        require(
+            NitroUtils.bytesEqual(
+                abi.encode(signedVariableParts[signedVariableParts.length - 1].variablePart),
+                abi.encode(variablePart)
+            ),
+            'variablePart not the last.'
+        );
     }
 
     /**
@@ -675,26 +338,6 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Checks that a given ChannelData struct matches the challenge stored on chain, and that the channel is in Challenge mode.
-     * @dev Checks that a given ChannelData struct matches the challenge stored on chain, and that the channel is in Challenge mode.
-     * @param data A given ChannelData data structure.
-     * @param channelId Unique identifier for a channel.
-     */
-    function _requireSpecificChallenge(ChannelData memory data, bytes32 channelId) internal view {
-        _requireMatchingStorage(data, channelId);
-        _requireOngoingChallenge(channelId);
-    }
-
-    /**
-     * @notice Checks that a given channel is in the Challenge mode.
-     * @dev Checks that a given channel is in the Challenge mode.
-     * @param channelId Unique identifier for a channel.
-     */
-    function _requireOngoingChallenge(bytes32 channelId) internal view {
-        require(_mode(channelId) == ChannelMode.Challenge, 'No ongoing challenge.');
-    }
-
-    /**
      * @notice Checks that a given channel is NOT in the Finalized mode.
      * @dev Checks that a given channel is in the Challenge mode.
      * @param channelId Unique identifier for a channel.
@@ -713,16 +356,6 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Checks that a given ChannelData struct matches the challenge stored on chain.
-     * @dev Checks that a given ChannelData struct matches the challenge stored on chain.
-     * @param data A given ChannelData data structure.
-     * @param channelId Unique identifier for a channel.
-     */
-    function _requireMatchingStorage(ChannelData memory data, bytes32 channelId) internal view {
-        require(_matchesStatus(data, statusOf[channelId]), 'status(ChannelData)!=storage');
-    }
-
-    /**
      * @notice Checks that a given ChannelData struct matches a supplied bytes32 when formatted for storage.
      * @dev Checks that a given ChannelData struct matches a supplied bytes32 when formatted for storage.
      * @param data A given ChannelData data structure.
@@ -733,69 +366,16 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Computes the hash of the state corresponding to the input data.
-     * @dev Computes the hash of the state corresponding to the input data.
-     * @param turnNum Turn number
-     * @param isFinal Is the state final?
-     * @param channelId Unique identifier for the channel
-     * @param appData Application specific data.
-     * @param outcome Outcome structure.
-     * @return The stateHash
-     */
-    function _hashState(
-        bytes32 channelId,
-        bytes memory appData,
-        Outcome.SingleAssetExit[] memory outcome,
-        uint48 turnNum,
-        bool isFinal
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(channelId, appData, outcome, turnNum, isFinal));
-    }
-
-    /**
-     * @notice Hashes the outcome structure. Internal helper.
-     * @dev Hashes the outcome structure. Internal helper.
-     * @param outcome Outcome structure to encode hash.
-     * @return bytes32 Hash of encoded outcome structure.
-     */
-    function _hashOutcome(Outcome.SingleAssetExit[] memory outcome)
-        internal
-        pure
-        returns (bytes32)
-    {
-        return keccak256(Outcome.encodeExit(outcome));
-    }
-
-    /**
-     * @notice Computes the unique id of a channel.
-     * @dev Computes the unique id of a channel.
-     * @param fixedPart Part of the state that does not change
-     * @return channelId
-     */
-    function _getChannelId(FixedPart memory fixedPart) internal pure returns (bytes32 channelId) {
-        require(fixedPart.chainId == getChainID(), 'Incorrect chainId');
-        channelId = keccak256(
-            abi.encode(
-                getChainID(),
-                fixedPart.participants,
-                fixedPart.channelNonce,
-                fixedPart.appDefinition,
-                fixedPart.challengeDuration
-            )
-        );
-    }
-
-    /**
-     * @notice Returns the last VariablePart from array.
-     * @dev Returns the last VariablePart from array.
-     * @param variableParts Array of VariableParts.
+     * @notice Returns the last VariablePart from array of SignedVariableParts.
+     * @dev Returns the last VariablePart from array of SignedVariableParts.
+     * @param signedVariableParts Array of SignedVariableParts.
      * @return VariablePart Last VariablePart from array.
      */
-    function _lastVariablePart(IForceMoveApp.VariablePart[] memory variableParts)
+    function _lastVariablePart(SignedVariablePart[] memory signedVariableParts)
         internal
         pure
-        returns (IForceMoveApp.VariablePart memory)
+        returns (VariablePart memory)
     {
-        return variableParts[variableParts.length - 1];
+        return signedVariableParts[signedVariableParts.length - 1].variablePart;
     }
 }

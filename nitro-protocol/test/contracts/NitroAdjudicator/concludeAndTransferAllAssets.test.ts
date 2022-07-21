@@ -8,7 +8,7 @@ import {Outcome} from '../../../src/contract/outcome';
 import {FixedPart, getFixedPart, getVariablePart, State} from '../../../src/contract/state';
 import {
   computeOutcome,
-  getPlaceHolderContractAddress,
+  getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
   OutcomeShortHand,
@@ -17,7 +17,7 @@ import {
   replaceAddressesAndBigNumberify,
   setupContract,
 } from '../../test-helpers';
-import {signStates, channelDataToStatus} from '../../../src';
+import {signStates, channelDataToStatus, bindSignatures} from '../../../src';
 import {MAGIC_ADDRESS_INDICATING_ETH, NITRO_MAX_GAS} from '../../../src/transactions';
 import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
 import {Token} from '../../../typechain-types/Token';
@@ -90,7 +90,7 @@ for (let i = 0; i < 3; i++) {
 beforeAll(async () => {
   addresses.ETH = MAGIC_ADDRESS_INDICATING_ETH;
   addresses.ERC20 = token.address;
-  appDefinition = getPlaceHolderContractAddress();
+  appDefinition = getCountingAppContractAddress();
   // Preload At and Bt with TOK
   await (await token.transfer('0x' + addresses.At.slice(26), BigNumber.from(1))).wait();
   await (await token.transfer('0x' + addresses.Bt.slice(26), BigNumber.from(1))).wait();
@@ -208,16 +208,16 @@ describe('concludeAndTransferAllAssets', () => {
         });
       }
 
+      const variableParts = states.map(state => getVariablePart(state));
+
       // Sign the states
-      const sigs = await signStates(states, wallets, whoSignedWhat);
+      const signatures = await signStates(states, wallets, whoSignedWhat);
+      const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
 
       // Form transaction
       const tx = testNitroAdjudicator.concludeAndTransferAllAssets(
         getFixedPart(states[0]),
-        getVariablePart(states[0]),
-        numStates,
-        whoSignedWhat,
-        sigs,
+        signedVariableParts,
         {gasLimit: NITRO_MAX_GAS}
       );
 

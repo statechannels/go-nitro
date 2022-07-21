@@ -56,13 +56,14 @@ func TestNew(t *testing.T) {
 		return nil, false
 	}
 	request := ObjectiveRequest{
-
-		CounterParty:      testState.Participants[1],
-		AppDefinition:     testState.AppDefinition,
-		AppData:           testState.AppData,
-		ChallengeDuration: testState.ChallengeDuration,
-		Outcome:           testState.Outcome,
-		Nonce:             testState.ChannelNonce.Int64(),
+		ObjectiveRequestForConsensusApp: ObjectiveRequestForConsensusApp{
+			CounterParty:      testState.Participants[1],
+			ChallengeDuration: testState.ChallengeDuration,
+			Outcome:           testState.Outcome,
+			Nonce:             testState.ChannelNonce.Int64(),
+		},
+		AppDefinition: testState.AppDefinition,
+		AppData:       testState.AppData,
 	}
 	// Assert that valid constructor args do not result in error
 	if _, err := NewObjective(request, false, testState.Participants[0], getByParticipant, getByConsensus); err != nil {
@@ -150,7 +151,7 @@ func TestUpdate(t *testing.T) {
 		common.Address{}: big.NewInt(3),
 	}
 	highBlockNum := uint64(200)
-	updatedObjective, err = s.UpdateWithChainEvent(chainservice.DepositedEvent{Holdings: newFunding, CommonEvent: chainservice.CommonEvent{BlockNum: highBlockNum}})
+	updatedObjective, err = s.UpdateWithChainEvent(chainservice.NewDepositedEvent(types.Destination{}, highBlockNum, common.Address{}, big.NewInt(3), big.NewInt(3)))
 	if err != nil {
 		t.Error(err)
 	}
@@ -167,7 +168,7 @@ func TestUpdate(t *testing.T) {
 	staleFunding[common.Address{}] = big.NewInt(2)
 	lowBlockNum := uint64(100)
 
-	updatedObjective, _ = updated.UpdateWithChainEvent(chainservice.DepositedEvent{Holdings: staleFunding, CommonEvent: chainservice.CommonEvent{BlockNum: uint64(lowBlockNum)}})
+	updatedObjective, _ = updated.UpdateWithChainEvent(chainservice.NewDepositedEvent(types.Destination{}, uint64(lowBlockNum), common.Address{}, big.NewInt(2), big.NewInt(2)))
 
 	updated = updatedObjective.(*Objective)
 
@@ -207,14 +208,10 @@ func TestCrank(t *testing.T) {
 		MessagesToSend: protocols.CreateSignedStateMessages(s.Id(), postFundSS, 0),
 	}
 	expectedFundingSideEffects := protocols.SideEffects{
-		TransactionsToSubmit: []protocols.ChainTransaction{{
-			Type:      protocols.DepositTransactionType,
-			ChannelId: s.C.Id,
-			Deposit: types.Funds{
+		TransactionsToSubmit: []protocols.ChainTransaction{
+			protocols.NewDepositTransaction(s.C.Id, types.Funds{
 				testState.Outcome[0].Asset: testState.Outcome[0].Allocations[0].Amount,
-			},
-		}},
-	}
+			})}}
 	// END test data preparation
 
 	// Assert that cranking an unapproved objective returns an error
@@ -270,7 +267,7 @@ func TestCrank(t *testing.T) {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
 	}
 
-	if diff := cmp.Diff(expectedFundingSideEffects, sideEffects); diff != "" {
+	if diff := cmp.Diff(expectedFundingSideEffects, sideEffects, cmp.AllowUnexported(expectedFundingSideEffects, protocols.ChainTransactionBase{})); diff != "" {
 		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
 

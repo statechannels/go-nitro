@@ -25,15 +25,13 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 	// Set up an outcome that requires both participants to deposit
 	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, ledgerChannelDeposit, ledgerChannelDeposit)
 
-	request := directfund.ObjectiveRequest{
+	request := directfund.ObjectiveRequestForConsensusApp{
 		CounterParty:      *beta.Address,
 		Outcome:           outcome,
-		AppDefinition:     types.Address{},
-		AppData:           types.Bytes{},
 		ChallengeDuration: big.NewInt(0),
-		Nonce:             rand.Int63(),
+		Nonce:             int64(rand.Int31()),
 	}
-	response := alpha.CreateDirectChannel(request)
+	response := alpha.CreateLedgerChannel(request)
 
 	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, response.Id)
 	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, response.Id)
@@ -54,29 +52,29 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
+	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
+	chainServiceB := chainservice.NewMockChainService(chain, alice.Address())
 	broker := messageservice.NewBroker()
 
 	meanMessageDelay := time.Duration(0)
-	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, meanMessageDelay)
+	clientA, storeA := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, meanMessageDelay)
 	var storeB store.Store
 	{
 		messageservice := messageservice.NewTestMessageService(bob.Address(), broker, meanMessageDelay)
 		storeB = store.NewMemStore(bob.PrivateKey)
-		_ = client.New(messageservice, chain, storeB, logDestination, &RejectingPolicyMaker{}, nil)
+		_ = client.New(messageservice, chainServiceB, storeB, logDestination, &RejectingPolicyMaker{}, nil)
 	}
 
 	outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), ledgerChannelDeposit, ledgerChannelDeposit)
 
-	request := directfund.ObjectiveRequest{
+	request := directfund.ObjectiveRequestForConsensusApp{
 		CounterParty:      bob.Address(),
 		Outcome:           outcome,
-		AppDefinition:     types.Address{},
-		AppData:           types.Bytes{},
 		ChallengeDuration: big.NewInt(0),
 		Nonce:             rand.Int63(),
 	}
 
-	response := clientA.CreateDirectChannel(request)
+	response := clientA.CreateLedgerChannel(request)
 
 	waitTimeForCompletedObjectiveIds(t, &clientA, time.Second, response.Id)
 
@@ -104,12 +102,18 @@ func TestDirectFund(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	// Setup chain service
-	sim, na, naAddress, ethAccounts, err := chainservice.SetupSimulatedBackend(2)
+	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	chainA := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[0])
-	chainB := chainservice.NewSimulatedBackendChainService(sim, na, naAddress, ethAccounts[1])
+	chainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	chainB, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[1], logDestination)
+	if err != nil {
+		t.Fatal(err)
+	}
 	// End chain service setup
 
 	broker := messageservice.NewBroker()

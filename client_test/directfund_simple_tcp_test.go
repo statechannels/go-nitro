@@ -16,7 +16,7 @@ import (
 )
 
 // setupClientWithSimpleTCP is a helper function that contructs a client and returns the new client and its store.
-func setupClientWithSimpleTCP(pk []byte, chain *chainservice.MockChain, peers map[types.Address]string, logDestination io.Writer, meanMessageDelay time.Duration) (client.Client, *simpletcp.SimpleTCPMessageService) {
+func setupClientWithSimpleTCP(pk []byte, chain *chainservice.MockChainService, peers map[types.Address]string, logDestination io.Writer, meanMessageDelay time.Duration) (client.Client, *simpletcp.SimpleTCPMessageService) {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	messageservice := simpletcp.NewSimpleTCPMessageService(peers[myAddress], peers)
 	storeA := store.NewMemStore(pk)
@@ -31,13 +31,15 @@ func TestSimpleTCPMessageService(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
+	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
+	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 
 	peers := map[types.Address]string{
 		alice.Address(): "localhost:3005",
 		bob.Address():   "localhost:3006",
 	}
-	clientA, msA := setupClientWithSimpleTCP(alice.PrivateKey, chain, peers, logDestination, 0)
-	clientB, msB := setupClientWithSimpleTCP(bob.PrivateKey, chain, peers, logDestination, 0)
+	clientA, msA := setupClientWithSimpleTCP(alice.PrivateKey, chainServiceA, peers, logDestination, 0)
+	clientB, msB := setupClientWithSimpleTCP(bob.PrivateKey, chainServiceB, peers, logDestination, 0)
 	defer msA.Close()
 	defer msB.Close()
 	directlyFundALedgerChannel(t, clientA, clientB)

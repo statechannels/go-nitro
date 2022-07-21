@@ -2,50 +2,85 @@
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import '../interfaces/IForceMoveApp.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
+import {ShortcuttingTurnTaking} from '../libraries/signature-logic/ShortcuttingTurnTaking.sol';
+import '../interfaces/IForceMoveApp.sol';
 
 /**
- * @dev The SingleAssetPayments contract complies with the ForceMoveApp interface and implements a simple payment channel with a single asset type only.
+ * @dev The SingleAssetPayments contract complies with the ForceMoveApp interface, uses shortcutting turn taking logic and implements a simple payment channel with a single asset type only.
  */
 contract SingleAssetPayments is IForceMoveApp {
     /**
-     * @notice Encodes the payment channel update rules.
-     * @dev Encodes the payment channel update rules.
-     * @param a State being transitioned from.
-     * @param b State being transitioned to.
-     * @param nParticipants Number of participants in this state channel.
-     * @return true if the transition conforms to the rules, false otherwise.
+     * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel.
+     * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel.
+     * @param fixedPart Fixed part of the state channel.
+     * @param recoveredVariableParts Array of variable parts to find the latest of.
+     * @return VariablePart Latest supported by application variable part from supplied array.
      */
-    function validTransition(
-        VariablePart memory a,
-        VariablePart memory b,
-        uint256 nParticipants
-    ) public pure override returns (bool) {
-        // Throws if more than one asset
-        require(a.outcome.length == 1, 'outcomeA: Only one asset allowed');
-        require(b.outcome.length == 1, 'outcomeB: Only one asset allowed');
+    function latestSupportedState(
+        FixedPart calldata fixedPart,
+        RecoveredVariablePart[] calldata recoveredVariableParts
+    ) external pure override returns (VariablePart memory) {
+        ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, recoveredVariableParts);
 
-        Outcome.SingleAssetExit memory assetOutcomeA = a.outcome[0];
-        Outcome.SingleAssetExit memory assetOutcomeB = b.outcome[0];
+        for (uint256 i = 0; i < recoveredVariableParts.length; i++) {
+            _requireValidOutcome(
+                fixedPart.participants.length,
+                recoveredVariableParts[i].variablePart.outcome
+            );
+
+            if (i > 0) {
+                _requireValidTransition(
+                    fixedPart.participants.length,
+                    recoveredVariableParts[i - 1].variablePart,
+                    recoveredVariableParts[i].variablePart
+                );
+            }
+        }
+
+        return recoveredVariableParts[recoveredVariableParts.length - 1].variablePart;
+    }
+
+    /**
+     * @notice Require specific rules in outcome are followed.
+     * @dev Require specific rules in outcome are followed.
+     * @param nParticipants Number of participants in a channel.
+     * @param outcome Outcome to check.
+     */
+    function _requireValidOutcome(uint256 nParticipants, Outcome.SingleAssetExit[] memory outcome)
+        internal
+        pure
+    {
+        // Throws if more than one asset
+        require(outcome.length == 1, 'outcome: Only one asset allowed');
 
         // Throws unless that allocation has exactly n outcomes
-        Outcome.Allocation[] memory allocationsA = assetOutcomeA.allocations;
-        Outcome.Allocation[] memory allocationsB = assetOutcomeB.allocations;
+        Outcome.Allocation[] memory allocations = outcome[0].allocations;
 
-        require(allocationsA.length == nParticipants, '|AllocationA|!=|participants|');
-        require(allocationsB.length == nParticipants, '|AllocationB|!=|participants|');
+        require(allocations.length == nParticipants, '|Allocation|!=|participants|');
 
         for (uint256 i = 0; i < nParticipants; i++) {
             require(
-                allocationsA[i].allocationType == uint8(Outcome.AllocationType.simple),
-                'not a simple allocation'
-            );
-            require(
-                allocationsB[i].allocationType == uint8(Outcome.AllocationType.simple),
+                allocations[i].allocationType == uint8(Outcome.AllocationType.simple),
                 'not a simple allocation'
             );
         }
+    }
+
+    /**
+     * @notice Require specific rules in variable parts are followed when progressing state.
+     * @dev Require specific rules in variable parts are followed when progressing state.
+     * @param nParticipants Number of participants in a channel.
+     * @param a Variable part to progress from.
+     * @param b Variable part to progress to.
+     */
+    function _requireValidTransition(
+        uint256 nParticipants,
+        VariablePart memory a,
+        VariablePart memory b
+    ) internal pure {
+        Outcome.Allocation[] memory allocationsA = a.outcome[0].allocations;
+        Outcome.Allocation[] memory allocationsB = b.outcome[0].allocations;
 
         // Interprets the nth outcome as benefiting participant n
         // checks the destinations have not changed
@@ -69,7 +104,5 @@ contract SingleAssetPayments is IForceMoveApp {
             }
         }
         require(allocationSumA == allocationSumB, 'Total allocated cannot change');
-
-        return true;
     }
 }

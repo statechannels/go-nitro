@@ -19,6 +19,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
+
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -50,11 +51,14 @@ func TestVirtualDefundIntegrationWithMessageDelay(t *testing.T) {
 // runVirtualDefundIntegrationTest runs a virtual defund integration test using the provided message delay, objective timeout and log destination
 func runVirtualDefundIntegrationTest(t *testing.T, messageDelay time.Duration, objectiveTimeout time.Duration, logDestination io.Writer) {
 	chain := chainservice.NewMockChain()
+	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
+	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
+	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 	broker := messageservice.NewBroker()
 
-	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, messageDelay)
-	clientB, storeB := setupClient(bob.PrivateKey, chain, broker, logDestination, messageDelay)
-	clientI, storeI := setupClient(irene.PrivateKey, chain, broker, logDestination, messageDelay)
+	clientA, storeA := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, messageDelay)
+	clientB, storeB := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, messageDelay)
+	clientI, storeI := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, messageDelay)
 
 	numOfVirtualChannels := uint(5)
 	paidToBob := uint(1)
@@ -138,10 +142,13 @@ func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
+	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
+	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
+	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 	broker := messageservice.NewBroker()
 
 	meanMessageDelay := time.Duration(0)
-	clientA, storeA := setupClient(alice.PrivateKey, chain, broker, logDestination, meanMessageDelay)
+	clientA, storeA := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, meanMessageDelay)
 	var (
 		clientB client.Client
 		storeB  store.Store
@@ -149,9 +156,9 @@ func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
 	{
 		messageservice := messageservice.NewTestMessageService(bob.Address(), broker, meanMessageDelay)
 		storeB = store.NewMemStore(bob.PrivateKey)
-		clientB = client.New(messageservice, chain, storeB, logDestination, &RejectingPolicyMaker{}, nil)
+		clientB = client.New(messageservice, chainServiceB, storeB, logDestination, &RejectingPolicyMaker{}, nil)
 	}
-	clientI, storeI := setupClient(irene.PrivateKey, chain, broker, logDestination, meanMessageDelay)
+	clientI, storeI := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, meanMessageDelay)
 
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientB, clientI)

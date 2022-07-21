@@ -1,16 +1,14 @@
 import {exec} from 'child_process';
 import {promises, existsSync, truncateSync} from 'fs';
 
-import {ContractFactory, Contract} from '@ethersproject/contracts';
-import {providers} from 'ethers';
 import waitOn from 'wait-on';
 import kill from 'tree-kill';
 import {BigNumber} from '@ethersproject/bignumber';
+import {SnapshotRestorer, takeSnapshot} from '@nomicfoundation/hardhat-network-helpers';
 
-import nitroAdjudicatorArtifact from '../artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
-import tokenArtifact from '../artifacts/contracts/Token.sol/Token.json';
-import {NitroAdjudicator} from '../typechain-types/NitroAdjudicator';
-import {Token} from '../typechain-types/Token';
+import {deployContracts} from './localSetup';
+import {TestChannel, challengeChannel} from './fixtures';
+
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
@@ -19,9 +17,6 @@ declare global {
     }
   }
 }
-
-export let nitroAdjudicator: NitroAdjudicator & Contract;
-export let token: Token & Contract;
 
 const logFile = './hardhat-network-output.log';
 const hardHatNetworkEndpoint = 'http://localhost:9546'; // the port should be unique
@@ -34,29 +29,19 @@ const hardhatProcess = exec('npx hardhat node --no-deploy --port 9546', (error, 
 const hardhatProcessExited = new Promise(resolve => hardhatProcess.on('exit', resolve));
 const hardhatProcessClosed = new Promise(resolve => hardhatProcess.on('close', resolve));
 
-export const provider = new providers.JsonRpcProvider(hardHatNetworkEndpoint);
-
-let snapshotId = 0;
-
-const tokenFactory = new ContractFactory(tokenArtifact.abi, tokenArtifact.bytecode).connect(
-  provider.getSigner(0)
-);
-
-const nitroAdjudicatorFactory = new ContractFactory(
-  nitroAdjudicatorArtifact.abi,
-  nitroAdjudicatorArtifact.bytecode
-).connect(provider.getSigner(0));
+let snapshot: SnapshotRestorer;
 
 beforeAll(async () => {
   await waitOn({resources: [hardHatNetworkEndpoint]});
-  nitroAdjudicator = (await nitroAdjudicatorFactory.deploy()) as NitroAdjudicator & Contract;
-  token = (await tokenFactory.deploy(provider.getSigner(0).getAddress())) as Token & Contract;
-  snapshotId = await provider.send('evm_snapshot', []);
+
+  await deployContracts();
+
+  snapshot = await takeSnapshot();
 });
 
 beforeEach(async () => {
-  await provider.send('evm_revert', [snapshotId]);
-  snapshotId = await provider.send('evm_snapshot', []);
+  await snapshot.restore();
+  snapshot = await takeSnapshot();
 });
 
 afterAll(async () => {
@@ -102,3 +87,20 @@ expect.extend({
     }
   },
 });
+
+/**
+ * Constructs a support proof for the supplied channel, calls challenge,
+ * and asserts the expected gas
+ * @returns The proof and finalizesAt
+ */
+export async function challengeChannelAndExpectGas(
+  channel: TestChannel,
+  asset: string,
+  expectedGas: number
+): Promise<{proof: ReturnType<typeof channel.counterSignedSupportProof>; finalizesAt: number}> {
+  const {challengeTx, proof, finalizesAt} = await challengeChannel(channel, asset);
+
+  await expect(challengeTx).toConsumeGas(expectedGas);
+
+  return {proof, finalizesAt};
+}

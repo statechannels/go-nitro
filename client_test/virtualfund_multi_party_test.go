@@ -20,12 +20,16 @@ func TestVirtualFundMultiParty(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
+	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
+	chainServiceBo := chainservice.NewMockChainService(chain, bob.Address())
+	chainServiceBr := chainservice.NewMockChainService(chain, brian.Address())
+	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 	broker := messageservice.NewBroker()
 
-	clientAlice, _ := setupClient(alice.PrivateKey, chain, broker, logDestination, 0)
-	clientBob, _ := setupClient(bob.PrivateKey, chain, broker, logDestination, 0)
-	clientBrian, _ := setupClient(brian.PrivateKey, chain, broker, logDestination, 0)
-	clientIrene, _ := setupClient(irene.PrivateKey, chain, broker, logDestination, 0)
+	clientAlice, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, 0)
+	clientBob, _ := setupClient(bob.PrivateKey, chainServiceBo, broker, logDestination, 0)
+	clientBrian, _ := setupClient(brian.PrivateKey, chainServiceBr, broker, logDestination, 0)
+	clientIrene, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
 
 	directlyFundALedgerChannel(t, clientAlice, clientIrene)
 	directlyFundALedgerChannel(t, clientIrene, clientBob)

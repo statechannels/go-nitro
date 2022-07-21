@@ -2,7 +2,14 @@ import {Wallet, utils, Signature} from 'ethers';
 
 import {hashChallengeMessage} from './contract/challenge';
 import {getChannelId} from './contract/channel';
-import {getFixedPart, hashState, State} from './contract/state';
+import {
+  getFixedPart,
+  hashState,
+  RecoveredVariablePart,
+  SignedVariablePart,
+  State,
+  VariablePart,
+} from './contract/state';
 
 /**
  * A {@link State} along with a {@link Signature} on it
@@ -63,6 +70,54 @@ export async function signStates(
   const stateHashes = states.map(s => hashState(s));
   const promises = wallets.map(async (w, i) => await sign(w, stateHashes[whoSignedWhat[i]]));
   return Promise.all(promises);
+}
+
+/**
+ * Maps supplied signatures to variable parts, using whoSignedWhat.
+ */
+export function bindSignatures(
+  variableParts: VariablePart[],
+  signatures: Signature[],
+  whoSignedWhat: number[]
+): SignedVariablePart[] {
+  const signedVariableParts = variableParts.map(
+    vp =>
+      ({
+        variablePart: vp,
+        sigs: [],
+      } as SignedVariablePart)
+  );
+
+  for (let i = 0; i < signatures.length; i++) {
+    signedVariableParts[whoSignedWhat[i]].sigs.push(signatures[i]);
+  }
+
+  return signedVariableParts;
+}
+
+/**
+ * Maps supplied signatures to variable parts, using whoSignedWhat.
+ */
+export function bindSignaturesWithSignedByBitfield(
+  variableParts: VariablePart[],
+  signatures: Signature[],
+  whoSignedWhat: number[]
+): RecoveredVariablePart[] {
+  const recoveredVariableParts = variableParts.map(
+    vp =>
+      ({
+        variablePart: vp,
+
+        signedBy: '0',
+      } as RecoveredVariablePart)
+  );
+
+  for (let i = 0; i < signatures.length; i++) {
+    const updatedSignedBy = Number(recoveredVariableParts[whoSignedWhat[i]].signedBy) | (2 ** i);
+    recoveredVariableParts[whoSignedWhat[i]].signedBy = updatedSignedBy.toString();
+  }
+
+  return recoveredVariableParts;
 }
 
 /**

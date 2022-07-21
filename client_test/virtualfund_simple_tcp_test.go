@@ -15,6 +15,9 @@ func TestVirtualFundWithSimpleTCPMessageService(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
+	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
+	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
+	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 
 	peers := map[types.Address]string{
 		alice.Address(): "localhost:3005",
@@ -22,9 +25,9 @@ func TestVirtualFundWithSimpleTCPMessageService(t *testing.T) {
 		irene.Address(): "localhost:3007",
 	}
 
-	clientA, msgA := setupClientWithSimpleTCP(alice.PrivateKey, chain, peers, logDestination, 0)
-	clientB, msgB := setupClientWithSimpleTCP(bob.PrivateKey, chain, peers, logDestination, 0)
-	clientI, msgI := setupClientWithSimpleTCP(irene.PrivateKey, chain, peers, logDestination, 0)
+	clientA, msgA := setupClientWithSimpleTCP(alice.PrivateKey, chainServiceA, peers, logDestination, 0)
+	clientB, msgB := setupClientWithSimpleTCP(bob.PrivateKey, chainServiceB, peers, logDestination, 0)
+	clientI, msgI := setupClientWithSimpleTCP(irene.PrivateKey, chainServiceI, peers, logDestination, 0)
 	defer msgA.Close()
 	defer msgB.Close()
 	defer msgI.Close()

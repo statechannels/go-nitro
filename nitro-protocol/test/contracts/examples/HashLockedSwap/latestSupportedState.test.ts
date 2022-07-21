@@ -1,13 +1,13 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
-import {Contract, ethers, utils} from 'ethers';
+import {Contract, ethers, utils, Wallet} from 'ethers';
 import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
 import HashLockedSwapArtifact from '../../../../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
-import {Bytes32} from '../../../../src';
+import {bindSignaturesWithSignedByBitfield, Bytes32, Channel, signStates} from '../../../../src';
 import {Outcome} from '../../../../src/contract/outcome';
-import {VariablePart} from '../../../../src/contract/state';
+import {getFixedPart, getVariablePart} from '../../../../src/contract/state';
 import {Bytes} from '../../../../src/contract/types';
 import {
   getTestProvider,
@@ -15,6 +15,8 @@ import {
   replaceAddressesAndBigNumberify,
   setupContract,
   AssetOutcomeShortHand,
+  getRandomNonce,
+  parseVariablePartEventResult,
 } from '../../../test-helpers';
 
 // Utilities
@@ -31,14 +33,23 @@ function encodeHashLockedSwapData(data: HashLockedSwapData): string {
 
 let hashTimeLock: Contract;
 
-const numParticipants = 2;
 const addresses = {
   // Participants
   Sender: randomExternalDestination(),
   Receiver: randomExternalDestination(),
 };
+const participants = ['', ''];
+const wallets = new Array(2);
 const provider = getTestProvider();
+const chainId = process.env.CHAIN_NETWORK_ID;
+const challengeDuration = 0x100;
+const whoSignedWhat = [1, 0];
 
+// Populate wallets and participants array
+for (let i = 0; i < 2; i++) {
+  wallets[i] = Wallet.createRandom();
+  participants[i] = wallets[i].address;
+}
 beforeAll(async () => {
   hashTimeLock = setupContract(provider, HashLockedSwapArtifact, process.env.HASH_LOCK_ADDRESS);
 });
@@ -47,7 +58,7 @@ const preImage = '0xdeadbeef';
 const conditionalPayment: HashLockedSwapData = {
   h: utils.sha256(preImage),
   // ^^^^ important field (SENDER)
-  preImage: '0x',
+  preImage: HashZero,
 };
 
 const correctPreImage: HashLockedSwapData = {
@@ -63,6 +74,8 @@ const incorrectPreImage: HashLockedSwapData = {
 };
 
 describe('validTransition', () => {
+  let channelNonce = getRandomNonce('HashLockedSwap');
+  beforeEach(() => (channelNonce += 1));
   it.each`
     isValid  | dataA                 | balancesA                   | turnNumB | dataB                | balancesB                   | description
     ${true}  | ${conditionalPayment} | ${{Sender: 1, Receiver: 0}} | ${4}     | ${correctPreImage}   | ${{Sender: 0, Receiver: 1}} | ${'Receiver unlocks the conditional payment'}
@@ -84,6 +97,8 @@ describe('validTransition', () => {
       dataB: HashLockedSwapData;
       balancesB: AssetOutcomeShortHand;
     }) => {
+      const channel: Channel = {chainId, channelNonce, participants};
+
       const turnNumA = turnNumB - 1;
       balancesA = replaceAddressesAndBigNumberify(balancesA, addresses) as AssetOutcomeShortHand;
       const allocationsA: Allocation[] = [];
@@ -102,12 +117,6 @@ describe('validTransition', () => {
           metadata: '0x',
         },
       ];
-      const variablePartA: VariablePart = {
-        outcome: outcomeA,
-        appData: encodeHashLockedSwapData(dataA),
-        turnNum: turnNumA,
-        isFinal: false,
-      };
       balancesB = replaceAddressesAndBigNumberify(balancesB, addresses) as AssetOutcomeShortHand;
       const allocationsB: Allocation[] = [];
       Object.keys(balancesB).forEach(key =>
@@ -121,24 +130,49 @@ describe('validTransition', () => {
       const outcomeB: Outcome = [
         {asset: ethers.constants.AddressZero, allocations: allocationsB, metadata: '0x'},
       ];
-      const variablePartB: VariablePart = {
-        outcome: outcomeB,
-        appData: encodeHashLockedSwapData(dataB),
-        turnNum: turnNumB,
-        isFinal: false,
-      };
+      const states = [
+        {
+          turnNum: turnNumA,
+          isFinal: false,
+          channel,
+          challengeDuration,
+          outcome: outcomeA,
+          appData: encodeHashLockedSwapData(dataA),
+          appDefinition: hashTimeLock.address,
+        },
+        {
+          turnNum: turnNumB,
+          isFinal: false,
+          channel,
+          challengeDuration,
+          outcome: outcomeB,
+          appData: encodeHashLockedSwapData(dataB),
+          appDefinition: hashTimeLock.address,
+        },
+      ];
+      const fixedPart = getFixedPart(states[0]);
+      const variableParts = states.map(s => getVariablePart(s));
+
+      // Sign the states
+      const signatures = await signStates(states, wallets, whoSignedWhat);
+      const recoveredVariableParts = bindSignaturesWithSignedByBitfield(
+        variableParts,
+        signatures,
+        whoSignedWhat
+      );
 
       if (isValid) {
-        const isValidFromCall = await hashTimeLock.validTransition(
-          variablePartA,
-          variablePartB,
-          numParticipants
+        const latestSupportedState = await hashTimeLock.latestSupportedState(
+          fixedPart,
+          recoveredVariableParts
         );
-        expect(isValidFromCall).toBe(true);
+        expect(parseVariablePartEventResult(latestSupportedState)).toStrictEqual(
+          variableParts[variableParts.length - 1]
+        );
       } else {
         await expectRevert(
-          () => hashTimeLock.validTransition(variablePartA, variablePartB, numParticipants),
-          'Incorrect preimage'
+          () => hashTimeLock.latestSupportedState(fixedPart, recoveredVariableParts),
+          'incorrect preimage'
         );
       }
     }

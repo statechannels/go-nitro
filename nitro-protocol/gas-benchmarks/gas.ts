@@ -1,4 +1,4 @@
-type GasRequiredTo = Record<
+export type GasResults = Record<
   Path,
   {
     satp: any;
@@ -25,18 +25,18 @@ type Path =
 //  C    channel not yet on chain
 // (C)   channel finalized on chain
 // 👩    Alice's external destination (e.g. her EOA)
-export const gasRequiredTo: GasRequiredTo = {
+export const emptyGasResults: GasResults = {
   deployInfrastructureContracts: {
     satp: {
-      NitroAdjudicator: 4_172_725, // Singleton
+      NitroAdjudicator: 0, // Singleton
     },
   },
   directlyFundAChannelWithETHFirst: {
-    satp: 47_797,
+    satp: 0,
   },
   directlyFundAChannelWithETHSecond: {
     // meaning the second participant in the channel
-    satp: 30_709,
+    satp: 0,
   },
   directlyFundAChannelWithERC20First: {
     // The depositor begins with zero tokens approved for the AssetHolder
@@ -44,30 +44,30 @@ export const gasRequiredTo: GasRequiredTo = {
     // The depositor retains a nonzero balance of tokens after depositing
     // The depositor retains some tokens approved for the AssetHolder after depositing
     satp: {
-      approve: 46_383,
+      approve: 0,
       // ^^^^^
       // In principle this only needs to be done once per account
       // (the cost may be amortized over several deposits into this AssetHolder)
-      deposit: 71_280,
+      deposit: 0,
     },
   },
   directlyFundAChannelWithERC20Second: {
     // meaning the second participant in the channel
     satp: {
-      approve: 46_383,
+      approve: 0,
       // ^^^^^
       // In principle this only needs to be done once per account
       // (the cost may be amortized over several deposits into this AssetHolder)
-      deposit: 54_192,
+      deposit: 0,
     },
   },
   ETHexit: {
     // We completely liquidate the channel (paying out both parties)
-    satp: 138_819,
+    satp: 0,
   },
   ERC20exit: {
     // We completely liquidate the channel (paying out both parties)
-    satp: 129_193,
+    satp: 0,
   },
   ETHexitSad: {
     // Scenario: Counterparty Bob goes offline
@@ -75,33 +75,32 @@ export const gasRequiredTo: GasRequiredTo = {
     // challenge + timeout       ⬛ -> (X) -> 👩
     // transferAllAssets         ⬛ --------> 👩
     satp: {
-      challenge: 102_143,
-      transferAllAssets: 110_078,
-      total: 212_221,
+      challenge: 0,
+      transferAllAssets: 0,
+      total: 0,
     },
   },
   ETHexitSadLedgerFunded: {
     // Scenario: Counterparty Bob goes offline
+    // initially                   ⬛ ->  L  ->  X  -> 👩
+    // challenge X, L and timeout  ⬛ -> (L) -> (X) -> 👩
+    // transferAllAssetsL          ⬛ --------> (X) -> 👩
+    // transferAllAssetsX          ⬛ ---------------> 👩
     satp: {
-      // initially                   ⬛ ->  L  ->  X  -> 👩
-      // challenge X, L and timeout  ⬛ -> (L) -> (X) -> 👩
-      // transferAllAssetsL          ⬛ --------> (X) -> 👩
-      // transferAllAssetsX          ⬛ ---------------> 👩
-      challengeX: 102_143,
-      challengeL: 97_516,
-      transferAllAssetsL: 58_975,
-      transferAllAssetsX: 110_078,
-      total: 368_712,
+      challengeX: 0,
+      challengeL: 0,
+      transferAllAssetsL: 0,
+      transferAllAssetsX: 0,
+      total: 0,
     },
   },
   ETHexitSadVirtualFunded: {
     // Scenario: Intermediary Ingrid goes offline
-    satp: {
-      // initially                   ⬛ ->  L  ->  V  -> 👩
-      // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👩
-      // reclaim L                   ⬛ -- (L) --------> 👩
-      // transferAllAssetsL          ⬛ ---------------> 👩
-      // TODO
-    },
+    // initially                   ⬛ ->  L  ->  V  -> 👩
+    // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👩
+    // reclaim L                   ⬛ -- (L) --------> 👩
+    // transferAllAssetsL          ⬛ ---------------> 👩
+    // TODO
+    satp: {},
   },
 };

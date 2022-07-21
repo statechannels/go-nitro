@@ -22,6 +22,7 @@ type Client struct {
 	engine              engine.Engine // The core business logic of the client
 	Address             *types.Address
 	completedObjectives chan protocols.ObjectiveId
+	failedObjectives    chan protocols.ObjectiveId
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -35,6 +36,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 
 	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
+	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 
 	// Start the engine in a go routine
 	go c.engine.Run()
@@ -57,6 +59,10 @@ func (c *Client) handleEngineEvents() {
 
 		}
 
+		for _, erred := range update.FailedObjectives {
+			c.failedObjectives <- erred
+		}
+
 	}
 }
 
@@ -65,6 +71,11 @@ func (c *Client) handleEngineEvents() {
 // CompletedObjectives returns a chan that receives a objective id whenever that objective is completed
 func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 	return c.completedObjectives
+}
+
+// FailedObjectives returns a chan that receives an objective id whenever that objective has failed
+func (c *Client) FailedObjectives() <-chan protocols.ObjectiveId {
+	return c.failedObjectives
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
@@ -96,8 +107,15 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big
 
 }
 
-// CreateDirectChannel creates a directly funded channel with the given counterparty
-func (c *Client) CreateDirectChannel(objectiveRequest directfund.ObjectiveRequest) directfund.ObjectiveResponse {
+// CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
+// The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
+func (c *Client) CreateLedgerChannel(request directfund.ObjectiveRequestForConsensusApp) directfund.ObjectiveResponse {
+
+	objectiveRequest := directfund.ObjectiveRequest{
+		ObjectiveRequestForConsensusApp: request,
+		AppDefinition:                   c.engine.GetConsensusAppAddress(),
+		// Appdata implicitly zero
+	}
 
 	apiEvent := engine.APIEvent{
 		ObjectiveToSpawn: objectiveRequest,
@@ -109,8 +127,8 @@ func (c *Client) CreateDirectChannel(objectiveRequest directfund.ObjectiveReques
 
 }
 
-// CloseDirectChannel attempts to close and defund the given directly funded channel.
-func (c *Client) CloseDirectChannel(channelId types.Destination) protocols.ObjectiveId {
+// CloseLedgerChannel attempts to close and defund the given directly funded channel.
+func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.ObjectiveId {
 
 	objectiveRequest := directdefund.ObjectiveRequest{
 		ChannelId: channelId,

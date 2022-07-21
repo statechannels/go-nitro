@@ -1,7 +1,9 @@
+import hre from 'hardhat';
 import {BigNumber, BigNumberish, constants, ContractReceipt, ethers} from 'ethers';
 import {Signature} from '@ethersproject/bytes';
 import {Wallet} from '@ethersproject/wallet';
 import {AllocationType} from '@statechannels/exit-format';
+import {takeSnapshot} from '@nomicfoundation/hardhat-network-helpers';
 
 import {
   convertAddressToBytes32,
@@ -18,9 +20,9 @@ import {
   Outcome,
   SimpleAllocation,
 } from '../src/contract/outcome';
-import {FixedPart, getVariablePart, hashState, VariablePart} from '../src/contract/state';
+import {FixedPart, getVariablePart, hashState, SignedVariablePart} from '../src/contract/state';
 
-import {nitroAdjudicator, provider} from './vanillaSetup';
+import {nitroAdjudicator, trivialAppAddress} from './localSetup';
 
 export const chainId = '0x7a69'; // 31337 in hex (hardhat network default)
 
@@ -37,7 +39,7 @@ export const amountForAlice = BigNumber.from(5).toHexString();
 export const amountForBob = BigNumber.from(5).toHexString();
 export const amountForAliceAndBob = BigNumber.from(amountForAlice).add(amountForBob).toHexString();
 
-class TestChannel {
+export class TestChannel {
   constructor(
     channelNonce: number,
     wallets: ethers.Wallet[],
@@ -48,7 +50,7 @@ class TestChannel {
       chainId,
       channelNonce,
       participants: wallets.map(w => w.address),
-      appDefinition: '0x8504FcA6e1e73947850D66D032435AC931892116',
+      appDefinition: trivialAppAddress, // TODO adjust this to point to an appropriate (deployed) application, according to the channel type
       challengeDuration: 600,
     };
     this.allocations = allocations;
@@ -66,7 +68,7 @@ class TestChannel {
   someState(asset: string): State {
     return {
       challengeDuration: 600,
-      appDefinition: '0x8504FcA6e1e73947850D66D032435AC931892116',
+      appDefinition: trivialAppAddress, // TODO adjust this to point to an appropriate (deployed) application, according to the channel type
       channel: this.fixedPart,
       turnNum: 6,
       isFinal: false,
@@ -87,20 +89,19 @@ class TestChannel {
     state: State
   ): {
     fixedPart: FixedPart;
-    variableParts: VariablePart[];
-    isFinalCount: number;
-    whoSignedWhat: number[];
-    signatures: Signature[];
+    signedVariableParts: SignedVariablePart[];
     challengeSignature: Signature;
     outcome: Outcome;
     stateHash: string;
   } {
     return {
       fixedPart: getFixedPart(state),
-      variableParts: [getVariablePart(state)],
-      isFinalCount: 0,
-      whoSignedWhat: this.wallets.map(() => 0),
-      signatures: this.wallets.map(w => signState(state, w.privateKey).signature),
+      signedVariableParts: [
+        {
+          variablePart: getVariablePart(state),
+          sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
+        },
+      ],
       challengeSignature: signChallengeMessage([{state} as SignedState], Alice.privateKey),
       outcome: state.outcome,
       stateHash: hashState(state),
@@ -112,19 +113,16 @@ class TestChannel {
     state: State
   ): {
     fixedPart: FixedPart;
-    latestVariablePart: VariablePart;
-    outcome: Outcome;
-    numStates: 1;
-    whoSignedWhat: number[];
-    sigs: Signature[];
+    signedVariableParts: SignedVariablePart[];
   } {
     return {
       fixedPart: getFixedPart(state),
-      latestVariablePart: getVariablePart(state),
-      outcome: state.outcome,
-      numStates: 1,
-      whoSignedWhat: this.wallets.map(() => 0),
-      sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
+      signedVariableParts: [
+        {
+          variablePart: getVariablePart(state),
+          sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
+        },
+      ],
     };
   }
 
@@ -132,10 +130,7 @@ class TestChannel {
     const fP = this.supportProof(this.finalState(asset));
     return await nitroAdjudicator.concludeAndTransferAllAssets(
       fP.fixedPart,
-      fP.latestVariablePart,
-      fP.numStates,
-      fP.whoSignedWhat,
-      fP.sigs
+      fP.signedVariableParts
     );
   }
 
@@ -143,9 +138,7 @@ class TestChannel {
     const proof = this.counterSignedSupportProof(this.someState(asset));
     return await nitroAdjudicator.challenge(
       proof.fixedPart,
-      proof.variableParts,
-      proof.signatures,
-      proof.whoSignedWhat,
+      proof.signedVariableParts,
       proof.challengeSignature
     );
   }
@@ -226,7 +219,6 @@ export const J = new TestChannel(
 );
 
 /** Ledger channel between Alice and Ingid, with Guarantee targeting joint channel J */
-
 export const LforJ = new TestChannel(
   7,
   [Alice, Bob],
@@ -246,38 +238,40 @@ export const LforJ = new TestChannel(
 
 // Utils
 export async function getFinalizesAtFromTransactionHash(hash: string): Promise<number> {
+  const provider = hre.ethers.provider;
   const receipt = (await provider.getTransactionReceipt(hash)) as ContractReceipt;
   return nitroAdjudicator.interface.decodeEventLog('ChallengeRegistered', receipt.logs[0].data)[2];
 }
+
 export async function waitForChallengesToTimeOut(finalizesAtArray: number[]): Promise<void> {
   const finalizesAt = Math.max(...finalizesAtArray);
+  const provider = hre.ethers.provider;
   await provider.send('evm_setNextBlockTimestamp', [finalizesAt + 1]);
   await provider.send('evm_mine', []);
 }
 
 /**
- * Constructs a support proof for the supplied channel, calls challenge,
- * and asserts the expected gas
- * @returns The proof and finalizesAt
+ * Constructs a support proof for the supplied channel and calls challenge
+ * @returns Challenge transaction, the proof and finalizesAt
  */
-export async function challengeChannelAndExpectGas(
+export async function challengeChannel(
   channel: TestChannel,
-  asset: string,
-  expectedGas: number
-): Promise<{proof: ReturnType<typeof channel.counterSignedSupportProof>; finalizesAt: number}> {
+  asset: string
+): Promise<{
+  challengeTx: ethers.ContractTransaction;
+  proof: ReturnType<typeof channel.counterSignedSupportProof>;
+  finalizesAt: number;
+}> {
   const proof = channel.counterSignedSupportProof(channel.someState(asset)); // TODO use a nontrivial app with a state transition
 
   const challengeTx = await nitroAdjudicator.challenge(
     proof.fixedPart,
-    proof.variableParts,
-    proof.signatures,
-    proof.whoSignedWhat,
+    proof.signedVariableParts,
     proof.challengeSignature
   );
-  await expect(challengeTx).toConsumeGas(expectedGas);
 
   const finalizesAt = await getFinalizesAtFromTransactionHash(challengeTx.hash);
-  return {proof, finalizesAt};
+  return {challengeTx, proof, finalizesAt};
 }
 
 interface ETHBalances {
@@ -329,4 +323,23 @@ export async function assertEthBalancesAndHoldings(
       ).toBe(true);
     }),
   ]);
+}
+
+/**
+ * Calculates the gas used by a transaction supplied.
+ */
+export async function gasUsed(
+  txRes: ethers.ContractTransaction // TransactionResponse
+): Promise<number> {
+  const {gasUsed: gasUsedBN} = await txRes.wait();
+  return (gasUsedBN as BigNumber).toNumber();
+}
+
+/**
+ * Takes a snapshot of the state, execute supplied function and revert the state to the taken snapshot.
+ */
+export async function executeAndRevert(fnc: () => void) {
+  const snapshot = await takeSnapshot();
+  await fnc();
+  await snapshot.restore();
 }

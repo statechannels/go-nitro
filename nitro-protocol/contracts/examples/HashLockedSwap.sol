@@ -2,11 +2,12 @@
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import '../interfaces/IForceMoveApp.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
+import {StrictTurnTaking} from '../libraries/signature-logic/StrictTurnTaking.sol';
+import '../interfaces/IForceMoveApp.sol';
 
 /**
- * @dev The HashLockedSwap contract complies with the ForceMoveApp interface and implements a HashLockedSwaped payment
+ * @dev The HashLockedSwap contract complies with the ForceMoveApp interface, uses strict turn taking logic and implements a HashLockedSwapped payment.
  */
 contract HashLockedSwap is IForceMoveApp {
     struct AppData {
@@ -14,26 +15,40 @@ contract HashLockedSwap is IForceMoveApp {
         bytes preImage;
     }
 
-    function validTransition(
-        VariablePart memory a,
-        VariablePart memory b,
-        uint256
-    ) public pure override returns (bool) {
+    /**
+     * @notice Decodes the appData.
+     * @dev Decodes the appData.
+     * @param appDataBytes The abi.encode of a AppData struct describing the application-specific data.
+     * @return AppData struct containing the application-specific data.
+     */
+    function appData(bytes memory appDataBytes) internal pure returns (AppData memory) {
+        return abi.decode(appDataBytes, (AppData));
+    }
+
+    function latestSupportedState(
+        FixedPart calldata fixedPart,
+        RecoveredVariablePart[] calldata recoveredVariableParts
+    ) external pure override returns (VariablePart memory) {
+        VariablePart memory from = recoveredVariableParts[0].variablePart;
+        VariablePart memory to = recoveredVariableParts[1].variablePart;
+
         // is this the first and only swap?
-        require(b.turnNum == 4, 'b.turnNum != 4');
+        require(recoveredVariableParts.length == 2, 'recoveredVariableParts.length!=2');
+        require(to.turnNum == 4, 'latest turn number != 4');
+
+        StrictTurnTaking.requireValidTurnTaking(fixedPart, recoveredVariableParts);
 
         // Decode variables.
         // Assumptions:
         //  - single asset in this channel
         //  - two parties in this channel
-        //  - not a "guarantee" channel (c.f. Nitro paper)
-        Outcome.Allocation[] memory allocationsA = decode2PartyAllocation(a.outcome);
-        Outcome.Allocation[] memory allocationsB = decode2PartyAllocation(b.outcome);
-        bytes memory preImage = abi.decode(b.appData, (AppData)).preImage;
-        bytes32 h = abi.decode(a.appData, (AppData)).h;
+        Outcome.Allocation[] memory allocationsA = decode2PartyAllocation(from.outcome);
+        Outcome.Allocation[] memory allocationsB = decode2PartyAllocation(to.outcome);
+        bytes32 h = appData(from.appData).h;
+        bytes memory preImage = appData(to.appData).preImage;
 
         // is the preimage correct?
-        require(sha256(preImage) == h, 'Incorrect preimage');
+        require(sha256(preImage) == h, 'incorrect preimage');
         // NOTE ON GAS COSTS
         // The gas cost of hashing depends on the choice of hash function
         // and the length of the the preImage.
@@ -55,7 +70,7 @@ contract HashLockedSwap is IForceMoveApp {
             'amounts must be permuted'
         );
 
-        return true;
+        return recoveredVariableParts[1].variablePart;
     }
 
     function decode2PartyAllocation(Outcome.SingleAssetExit[] memory outcome)
@@ -65,9 +80,9 @@ contract HashLockedSwap is IForceMoveApp {
     {
         Outcome.SingleAssetExit memory assetOutcome = outcome[0];
 
-        allocations = assetOutcome.allocations; // TODO should we check each allocation is a "simple" one?
+        allocations = assetOutcome.allocations; // TODO should we check each  allocation is a "simple" one?
 
-        // Throws unless there are exactly 3 allocations
-        require(allocations.length == 2, 'allocation.length != 3');
+        // Throws unless there are exactly 2 allocations
+        require(allocations.length == 2, 'allocation.length != 2');
     }
 }
