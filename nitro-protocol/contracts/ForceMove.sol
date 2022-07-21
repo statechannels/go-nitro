@@ -212,8 +212,9 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart[] memory signedVariableParts,
         bytes32 channelId
     ) internal pure returns (bytes32) {
+
         VariablePart memory latestVariablePart = IForceMoveApp(fixedPart.appDefinition)
-            .latestSupportedState(fixedPart, signedVariableParts);
+            .latestSupportedState(fixedPart, recoverVariableParts(fixedPart,signedVariableParts));
 
         // enforcing the latest supported state being in the last slot of the array
         _requireVariablePartIsLast(latestVariablePart, signedVariableParts);
@@ -225,6 +226,55 @@ contract ForceMove is IForceMove, StatusManager {
             latestVariablePart.turnNum,
             latestVariablePart.isFinal
         );
+    }
+
+
+    /**
+     * @notice Recover signatures for each variable part in the supplied array.
+     * @dev Recover signatures for each variable part in the supplied array.
+     * @param fixedPart Fixed Part of the states in the support proof.
+     * @param signedVariableParts Signed variable parts of the states in the support proof.
+     * @return An array of recoveredVariableParts, identical to the supplied signedVariableParts array but with the signatures replaced with a signedBy bitmask.
+     */
+    function recoverVariableParts(
+        FixedPart memory fixedPart,
+        SignedVariablePart[] memory signedVariableParts
+    ) internal pure returns (RecoveredVariablePart[] memory) {
+        RecoveredVariablePart[] memory recoveredVariableParts = new RecoveredVariablePart[](signedVariableParts.length);
+        for (uint256 i = 0; i < signedVariableParts.length; i++) {
+            recoveredVariableParts[i] = recoverVariablePart(fixedPart, signedVariableParts[i]);
+        }
+        return recoveredVariableParts;
+    }
+
+
+    /**
+     * @notice Recover signatures for a variable part.
+     * @dev Recover signatures for a variable part.
+     * @param fixedPart Fixed Part of the states in the support proof.
+     * @param signedVariablePart A signed variable part.
+     * @return An RecoveredVariableParts, identical to the supplied signedVariablePart  but with the signatures replaced with a signedBy bitmask.
+     */
+    function recoverVariablePart(
+        FixedPart memory fixedPart,
+        SignedVariablePart memory signedVariablePart
+    ) internal pure returns (RecoveredVariablePart memory) {
+        RecoveredVariablePart memory rvp = RecoveredVariablePart({
+            variablePart: signedVariablePart.variablePart,
+            signedBy: 0
+    });
+            //  For each signature
+            for (uint256 j=0; j < signedVariablePart.sigs.length; j++) {
+                bytes32 stateHash = NitroUtils.hashState(fixedPart,signedVariablePart.variablePart);
+                // Check each participant to see if they signed it
+                for (uint256 i = 0; i < fixedPart.participants.length; i++) {
+                    if (NitroUtils.recoverSigner(stateHash, signedVariablePart.sigs[j]) == fixedPart.participants[i]) {
+                        rvp.signedBy += 2**i; 
+                        break; // Once we have found a match, assuming distinct participants, no-one else signed it.
+                    }
+                }
+            }
+        return rvp;
     }
 
     /**

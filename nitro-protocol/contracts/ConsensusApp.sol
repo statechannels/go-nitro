@@ -2,7 +2,6 @@
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import {ShortcuttingTurnTaking} from './libraries/signature-logic/ShortcuttingTurnTaking.sol';
 import './interfaces/IForceMoveApp.sol';
 import './libraries/NitroUtils.sol';
 
@@ -17,10 +16,10 @@ contract ConsensusApp is IForceMoveApp {
      */
     function latestSupportedState(
         FixedPart calldata fixedPart,
-        SignedVariablePart[] calldata signedVariableParts
+        RecoveredVariablePart[] calldata recoveredVariableParts
     ) external pure override returns (VariablePart memory) {
-        require(signedVariableParts.length == 1, '|signedVariableParts|!=1');
-        ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, signedVariableParts);
-        return signedVariableParts[0].variablePart;
+        require(recoveredVariableParts.length == 1, '|signedVariableParts|!=1');
+        require(NitroUtils.getClaimedSignersNum(recoveredVariableParts[0].signedBy) == fixedPart.participants.length, '!unanimous');
+        return recoveredVariableParts[0].variablePart;
     }
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -97,7 +96,6 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 		nitroSignedVariableParts := []NitroAdjudicator.INitroTypesSignedVariablePart{{
 			VariablePart: nitroVariablePart,
 			Sigs:         nitroSignatures,
-			SignedBy:     big.NewInt(0b11),
 		}}
 		_, err := ecs.na.ConcludeAndTransferAllAssets(ecs.defaultTxOpts(), nitroFixedPart, nitroSignedVariableParts)
 		return err

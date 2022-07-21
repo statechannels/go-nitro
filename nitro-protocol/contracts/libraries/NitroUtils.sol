@@ -162,6 +162,20 @@ library NitroUtils {
     }
 
     /**
+     * @notice Computes the hash of the state corresponding to the input data.
+     * @dev Computes the hash of the state corresponding to the input data.
+     * @param fp The FixedPart of the state
+     * @param vp The VariablePart of the state
+     * @return The stateHash
+     */
+    function hashState(
+        INitroTypes.FixedPart memory fp,
+        INitroTypes.VariablePart memory vp
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encode(getChannelId(fp), vp.appData, vp.outcome, vp.turnNum, vp.isFinal));
+    }
+
+    /**
      * @notice Hashes the outcome structure. Internal helper.
      * @dev Hashes the outcome structure. Internal helper.
      * @param outcome Outcome structure to encode hash.

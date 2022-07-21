@@ -15,6 +15,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
+
 	"github.com/statechannels/go-nitro/types"
 )
 

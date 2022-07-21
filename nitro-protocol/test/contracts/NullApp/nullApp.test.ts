@@ -39,12 +39,10 @@ describe('null app', () => {
     const from: SignedVariablePart = {
       variablePart: getVariablePart(fromState),
       sigs: [],
-      signedBy: '0',
     };
     const to: SignedVariablePart = {
       variablePart: getVariablePart(toState),
       sigs: [],
-      signedBy: '0',
     };
 
     await expectRevert(async () => {

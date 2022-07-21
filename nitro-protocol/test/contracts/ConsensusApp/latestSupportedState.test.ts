@@ -2,11 +2,11 @@ import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers, BigNumber} from 'ethers';
 
 import ConsensusAppArtifact from '../../../artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
-import {Channel, signState} from '../../../src';
+import {bindSignaturesWithSignedByBitfield, Channel, signState} from '../../../src';
 import {
   getFixedPart,
   getVariablePart,
-  SignedVariablePart,
+  RecoveredVariablePart,
   State,
 } from '../../../src/contract/state';
 import {getTestProvider, parseVariablePartEventResult, setupContract} from '../../test-helpers';
@@ -49,17 +49,16 @@ const variablePart = getVariablePart(state);
 const sigs = wallets.map((w: Wallet) => signState(state, w.privateKey).signature);
 
 describe('latestSupportedState', () => {
+  const recoveredVariablePart: RecoveredVariablePart = bindSignaturesWithSignedByBitfield(
+    [variablePart],
+    sigs,
+    [0, 0, 0]
+  )[0];
   it('A single state signed by everyone is considered supported', async () => {
     expect.assertions(1);
 
-    const signedVariablePart: SignedVariablePart = {
-      variablePart,
-      signedBy: BigNumber.from(0b111).toHexString(),
-      sigs,
-    };
-
     const latestSupportedState = await consensusApp.latestSupportedState(fixedPart, [
-      signedVariablePart,
+      recoveredVariablePart,
     ]);
     expect(parseVariablePartEventResult(latestSupportedState)).toEqual(variablePart);
   });
@@ -67,38 +66,18 @@ describe('latestSupportedState', () => {
   it('Submitting more than one state does NOT constitute a support proof', async () => {
     expect.assertions(1);
 
-    const signedVariablePart: SignedVariablePart = {
-      variablePart,
-      signedBy: BigNumber.from(0b011).toHexString(),
-      sigs: sigs.slice(0, 1),
-    };
-
     await expectRevert(() =>
-      consensusApp.latestSupportedState(fixedPart, [signedVariablePart, signedVariablePart])
+      consensusApp.latestSupportedState(fixedPart, [recoveredVariablePart, recoveredVariablePart])
     );
   });
 
   it('A single state signed by less than everyone is NOT considered supported', async () => {
     expect.assertions(1);
 
-    const signedVariablePart: SignedVariablePart = {
+    const recoveredVariablePart: RecoveredVariablePart = {
       variablePart,
       signedBy: BigNumber.from(0b011).toHexString(),
-      sigs: sigs.slice(0, 1),
     };
-
-    await expectRevert(() => consensusApp.latestSupportedState(fixedPart, [signedVariablePart]));
-  });
-
-  it('A single state signed by less than everyone is NOT considered supported, even if we claim it is signed by everyone', async () => {
-    expect.assertions(1);
-
-    const signedVariablePart: SignedVariablePart = {
-      variablePart,
-      signedBy: BigNumber.from(0b111).toHexString(),
-      sigs: sigs.slice(0, 1),
-    };
-
-    await expectRevert(() => consensusApp.latestSupportedState(fixedPart, [signedVariablePart]));
+    await expectRevert(() => consensusApp.latestSupportedState(fixedPart, [recoveredVariablePart]));
   });
 });

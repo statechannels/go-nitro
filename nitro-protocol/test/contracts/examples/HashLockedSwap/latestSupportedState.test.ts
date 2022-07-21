@@ -5,7 +5,7 @@ import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
 import HashLockedSwapArtifact from '../../../../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
-import {bindSignatures, Bytes32, Channel, signStates} from '../../../../src';
+import {bindSignaturesWithSignedByBitfield, Bytes32, Channel, signStates} from '../../../../src';
 import {Outcome} from '../../../../src/contract/outcome';
 import {getFixedPart, getVariablePart} from '../../../../src/contract/state';
 import {Bytes} from '../../../../src/contract/types';
@@ -155,19 +155,23 @@ describe('validTransition', () => {
 
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
-      const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
+      const recoveredVariableParts = bindSignaturesWithSignedByBitfield(
+        variableParts,
+        signatures,
+        whoSignedWhat
+      );
 
       if (isValid) {
         const latestSupportedState = await hashTimeLock.latestSupportedState(
           fixedPart,
-          signedVariableParts
+          recoveredVariableParts
         );
         expect(parseVariablePartEventResult(latestSupportedState)).toStrictEqual(
           variableParts[variableParts.length - 1]
         );
       } else {
         await expectRevert(
-          () => hashTimeLock.latestSupportedState(fixedPart, signedVariableParts),
+          () => hashTimeLock.latestSupportedState(fixedPart, recoveredVariableParts),
           'incorrect preimage'
         );
       }
