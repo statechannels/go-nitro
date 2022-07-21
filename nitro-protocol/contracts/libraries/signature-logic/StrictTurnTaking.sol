@@ -18,10 +18,10 @@ library StrictTurnTaking {
         INitroTypes.RecoveredVariablePart[] memory recoveredVariableParts
     ) internal pure {
         _requireValidInput(fixedPart.participants.length, recoveredVariableParts.length);
-        
+
         uint48 turnNum = recoveredVariableParts[0].variablePart.turnNum;
 
-        for (uint i = 0; i < recoveredVariableParts.length; i++) {
+        for (uint256 i = 0; i < recoveredVariableParts.length; i++) {
             isSignedByMover(fixedPart, recoveredVariableParts[i]);
             requireHasTurnNum(recoveredVariableParts[i].variablePart, turnNum);
             turnNum++;
@@ -39,25 +39,25 @@ library StrictTurnTaking {
         INitroTypes.RecoveredVariablePart memory recoveredVariablePart
     ) internal pure {
         require(
-            NitroUtils.isClaimedSignedOnlyBy(recoveredVariablePart.signedBy, uint8(recoveredVariablePart.variablePart.turnNum % fixedPart.participants.length)),
+            NitroUtils.isClaimedSignedOnlyBy(
+                recoveredVariablePart.signedBy,
+                uint8(recoveredVariablePart.variablePart.turnNum % fixedPart.participants.length)
+            ),
             'Invalid signedBy'
         );
     }
 
     /**
-     * @notice Require supplied variable part has specified turn number.    
+     * @notice Require supplied variable part has specified turn number.
      * @dev Require supplied variable part has specified turn number.
      * @param variablePart Variable part to check turn number of.
      * @param turnNum Turn number to compare with.
      */
-    function requireHasTurnNum(
-        INitroTypes.VariablePart memory variablePart,
-        uint48 turnNum
-    ) internal pure {
-        require(
-            variablePart.turnNum == turnNum,
-            'Wrong variablePart.turnNum'
-        );
+    function requireHasTurnNum(INitroTypes.VariablePart memory variablePart, uint48 turnNum)
+        internal
+        pure
+    {
+        require(variablePart.turnNum == turnNum, 'Wrong variablePart.turnNum');
     }
 
     /**
@@ -67,10 +67,11 @@ library StrictTurnTaking {
      * @param turnNum State turn number.
      * @return address Moving partitipant address.
      */
-    function _moverAddress(
-        address[] memory participants,
-        uint48 turnNum
-    ) internal pure returns (address) {
+    function _moverAddress(address[] memory participants, uint48 turnNum)
+        internal
+        pure
+        returns (address)
+    {
         return participants[turnNum % participants.length];
     }
 
@@ -80,10 +81,7 @@ library StrictTurnTaking {
      * @param numParticipants Number of participants in a channel.
      * @param numStates Number of states submitted.
      */
-    function _requireValidInput(
-        uint256 numParticipants,
-        uint256 numStates
-    ) internal pure {
+    function _requireValidInput(uint256 numParticipants, uint256 numStates) internal pure {
         require((numParticipants >= numStates) && (numStates > 0), 'Insufficient or excess states');
 
         // no more than 255 participants

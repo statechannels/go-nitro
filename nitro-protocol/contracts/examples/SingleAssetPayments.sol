@@ -16,7 +16,7 @@ contract SingleAssetPayments is IForceMoveApp {
      * @param fixedPart Fixed part of the state channel.
      * @param recoveredVariableParts Array of variable parts to find the latest of.
      * @return VariablePart Latest supported by application variable part from supplied array.
-     */    
+     */
     function latestSupportedState(
         FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata recoveredVariableParts
@@ -24,12 +24,15 @@ contract SingleAssetPayments is IForceMoveApp {
         ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, recoveredVariableParts);
 
         for (uint256 i = 0; i < recoveredVariableParts.length; i++) {
-            _requireValidOutcome(fixedPart.participants.length, recoveredVariableParts[i].variablePart.outcome);
+            _requireValidOutcome(
+                fixedPart.participants.length,
+                recoveredVariableParts[i].variablePart.outcome
+            );
 
             if (i > 0) {
                 _requireValidTransition(
                     fixedPart.participants.length,
-                    recoveredVariableParts[i-1].variablePart,
+                    recoveredVariableParts[i - 1].variablePart,
                     recoveredVariableParts[i].variablePart
                 );
             }
@@ -44,10 +47,10 @@ contract SingleAssetPayments is IForceMoveApp {
      * @param nParticipants Number of participants in a channel.
      * @param outcome Outcome to check.
      */
-    function _requireValidOutcome(
-        uint256 nParticipants,
-        Outcome.SingleAssetExit[] memory outcome
-    ) internal pure {
+    function _requireValidOutcome(uint256 nParticipants, Outcome.SingleAssetExit[] memory outcome)
+        internal
+        pure
+    {
         // Throws if more than one asset
         require(outcome.length == 1, 'outcome: Only one asset allowed');
 

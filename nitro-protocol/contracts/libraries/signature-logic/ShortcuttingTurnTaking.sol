@@ -21,19 +21,24 @@ library ShortcuttingTurnTaking {
         INitroTypes.RecoveredVariablePart[] memory recoveredVariableParts
     ) internal pure {
         uint256 nParticipants = fixedPart.participants.length;
-        uint48 largestTurnNum = recoveredVariableParts[recoveredVariableParts.length - 1].variablePart.turnNum;
+        uint48 largestTurnNum = recoveredVariableParts[recoveredVariableParts.length - 1]
+            .variablePart
+            .turnNum;
 
         _requireValidInput(nParticipants, recoveredVariableParts);
-        
+
         // The difference between the support proof candidate turn number (aka largestTurnNum) and the round robin cycle last turn number.
         uint256 roundRobinShift = (largestTurnNum + 1) % nParticipants;
         uint48 prevTurnNum = 0;
 
-        for (uint i = 0; i < recoveredVariableParts.length; i++) {
+        for (uint256 i = 0; i < recoveredVariableParts.length; i++) {
             requireValidSignatures(fixedPart, recoveredVariableParts[i], roundRobinShift);
-            
+
             if (i != 0) {
-                requireIncreasedTurnNum(prevTurnNum, recoveredVariableParts[i].variablePart.turnNum);
+                requireIncreasedTurnNum(
+                    prevTurnNum,
+                    recoveredVariableParts[i].variablePart.turnNum
+                );
             }
 
             prevTurnNum = recoveredVariableParts[i].variablePart.turnNum;
@@ -52,15 +57,27 @@ library ShortcuttingTurnTaking {
         INitroTypes.RecoveredVariablePart memory recoveredVariablePart,
         uint256 roundRobinShift
     ) internal pure {
+        require(
+            NitroUtils.getClaimedSignersNum(recoveredVariablePart.signedBy) > 0,
+            'Insufficient signatures'
+        );
 
-        require(NitroUtils.getClaimedSignersNum(recoveredVariablePart.signedBy) > 0, 'Insufficient signatures');
+        _requireAcceptableSigsOrder(
+            recoveredVariablePart.signedBy,
+            recoveredVariablePart.variablePart.turnNum,
+            roundRobinShift,
+            fixedPart.participants.length
+        );
 
-        _requireAcceptableSigsOrder(recoveredVariablePart.signedBy, recoveredVariablePart.variablePart.turnNum, roundRobinShift, fixedPart.participants.length);
-
-        uint8[] memory signerIndices = NitroUtils.getClaimedSignersIndices(recoveredVariablePart.signedBy);
+        uint8[] memory signerIndices = NitroUtils.getClaimedSignersIndices(
+            recoveredVariablePart.signedBy
+        );
 
         for (uint256 i = 0; i < signerIndices.length; i++) {
-            require(NitroUtils.isClaimedSignedBy(recoveredVariablePart.signedBy,signerIndices[i]),'Invalid signer');
+            require(
+                NitroUtils.isClaimedSignedBy(recoveredVariablePart.signedBy, signerIndices[i]),
+                'Invalid signer'
+            );
         }
     }
 
@@ -82,22 +99,20 @@ library ShortcuttingTurnTaking {
 
         for (uint256 i = 0; i < signerIndices.length; i++) {
             require(
-                (signerIndices[i] + nParticipants - shift) % nParticipants <= (turnNum - shift) % nParticipants,
+                (signerIndices[i] + nParticipants - shift) % nParticipants <=
+                    (turnNum - shift) % nParticipants,
                 'Unacceptable sigs order'
             );
         }
     }
 
     /**
-     * @notice Require supplied newTurnNum is greater than prevTurnNum.    
-     * @dev Require supplied newTurnNum is greater than prevTurnNum.    
+     * @notice Require supplied newTurnNum is greater than prevTurnNum.
+     * @dev Require supplied newTurnNum is greater than prevTurnNum.
      * @param prevTurnNum Previous turn number.
      * @param newTurnNum New turn number.
      */
-    function requireIncreasedTurnNum(
-        uint48 prevTurnNum,
-        uint48 newTurnNum
-    ) internal pure {
+    function requireIncreasedTurnNum(uint48 prevTurnNum, uint48 newTurnNum) internal pure {
         require(prevTurnNum < newTurnNum, 'turnNum not increased');
     }
 
@@ -114,7 +129,9 @@ library ShortcuttingTurnTaking {
         uint256 numStates = recoveredVariableParts.length;
         require((nParticipants >= numStates) && (numStates > 0), 'Insufficient or excess states');
 
-        uint256 largestTurnNum = recoveredVariableParts[recoveredVariableParts.length - 1].variablePart.turnNum;
+        uint256 largestTurnNum = recoveredVariableParts[recoveredVariableParts.length - 1]
+            .variablePart
+            .turnNum;
         require(largestTurnNum + 1 >= nParticipants, 'largestTurnNum too low');
 
         // no more than 255 participants
@@ -128,7 +145,7 @@ library ShortcuttingTurnTaking {
         for (uint256 i = 0; i < recoveredVariableParts.length; i++) {
             uint256 hasTwoSigs = signedSoFar & recoveredVariableParts[i].signedBy;
             require(hasTwoSigs == 0, 'Excess sigs from one participant');
-            
+
             signedSoFar |= recoveredVariableParts[i].signedBy;
         }
 
