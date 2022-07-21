@@ -265,15 +265,15 @@ contract ForceMove is IForceMove, StatusManager {
         });
         //  For each signature
         for (uint256 j = 0; j < signedVariablePart.sigs.length; j++) {
-            bytes32 stateHash = NitroUtils.hashState(fixedPart, signedVariablePart.variablePart);
+            address signer = NitroUtils.recoverSigner(
+                NitroUtils.hashState(fixedPart, signedVariablePart.variablePart),
+                signedVariablePart.sigs[j]
+            );
             // Check each participant to see if they signed it
             for (uint256 i = 0; i < fixedPart.participants.length; i++) {
-                if (
-                    NitroUtils.recoverSigner(stateHash, signedVariablePart.sigs[j]) ==
-                    fixedPart.participants[i]
-                ) {
+                if (signer == fixedPart.participants[i]) {
                     rvp.signedBy += 2**i;
-                    break; // Once we have found a match, assuming distinct participants, no-one else signed it.
+                    break; // Once we have found a match, assuming distinct participants, no-one else signed it
                 }
             }
         }
