@@ -1,21 +1,29 @@
-### Benchmarking options
-
-Benchmarking is separated into two parts: checking the difference between current gas spendings and the previous ones (stored in `gasResults.json`) and updating `gasResults.json` with current benchmark results. This is done via `npm run benchmark:diff` and `npm run benchmark:update` respectively, whereas `npm run benchmark` will invoke both of them, thus showing benchmark difference and updating `gasResults.json` simultaneously.
-
 ### Benchmarking strategy
 
-We want to have deterministic benchmark tests that always see a consistent blockchain state and do not interfere with each other.
+To gauge the efficiency of our smart contract(s) implementation, we have gas consumption figures which are easy to refer to -- they are committed in [`./gasResults.json`](./gasResults.json).
 
-To achieve that, we spin up a local hardhat instance. After each test _case_, we revert the blockchain to a snapshot. That snapshot just contains deployed contracts, and has mined no other transactions. Test are run with `maxConcurrency = 1`. For maximum efficiency, you should therefore run tests in a single file to prevent having to restart hardhat.
+In order for these figures to be reliable, we want to have a deterministic process for generating them: we have defined several scenarios of interest and arrange for the relevant transactions to be applied to a consistent blockchain state without interfering with each other.
 
-### Showing benchmarks diff
-
-To get color-coded gas spending difference between current on-chain implementation and the previous one we use testing with `jest`. Tests are located in `benchmark.test.ts` file, which can only be invoked with specification of `../config/jest/jest.gas-benchmarks.config.js`as a config. This is done for `jestSetup.ts` to be called after `jest` has started, but before tests are executed. Basically `jestSetup.ts` set up snapshot reverting rules, extends `jest` with `toConsumeGas` check method and defining `challengeChannelAndExpectGas` function, which is used in tests. It is worth mentioning that `jestSetup.ts` also uses results from `localSetup.ts`, so latest file is also gets executed.
-
-Functions from `fixtures.ts` are used in tests.
+To achieve that, we spin up a local hardhat instance. After each test _case_, we revert the blockchain to a snapshot. That snapshot contains deployed contracts, and has mined no other transactions.
 
 ### Updating benchmark results file
 
-The logic to update `gasResults.json` file is similar to `benchmark.test.ts`, except that write benchmark results instead of comparing them. Thus, we do not need the `jest` and all setup happens in `localSetup.ts`.
+Any change to the smart contract source code (i.e. the set of `.sol` files) is likely to lead to an increase or decrease in gas consumption. Run
 
-Functions from `fixtures.ts` are used in the script.
+`npm run benchmark:update`
+
+to update [`./gasResults.json`](./gasResults.json) with the figures that describe the updated smart contract implementation. Failing to do this will result in a continuous integration failure on your pull request, and you will not be able to merge your changes into `main`.
+
+### Showing benchmarks diff
+
+The continuous integration suite will regenerate the gas consumption figures (in memory) and report a failure if they do not match those committed in [`./gasResults.json`](./gasResults.json). You can run this process yourself with:
+
+```
+npm run benchmark:diff
+```
+
+Running this command will provide a color-coded report showing the difference in gas consumption between the current smart contract implementation and the implementation which `npm run benchmark:update` was previously run with.
+
+You can also use `npm run benchmark` will invoke both commands, thus showing benchmark difference and then updating `gasResults.json` (if necessary).
+
+Test are run with `maxConcurrency = 1`. For maximum efficiency, tests are run in a single file to prevent having to restart hardhat.
