@@ -27,10 +27,8 @@ interface IForceMove is INitroTypes {
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update.
      */
-    function checkpoint(
-        FixedPart memory fixedPart,
-        SignedVariablePart[] memory signedVariableParts
-    ) external;
+    function checkpoint(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
+        external;
 
     /**
      * @notice Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
@@ -38,10 +36,8 @@ interface IForceMove is INitroTypes {
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
      */
-    function conclude(
-        FixedPart memory fixedPart,
-        SignedVariablePart[] memory signedVariableParts
-    ) external;
+    function conclude(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
+        external;
 
     // events
 

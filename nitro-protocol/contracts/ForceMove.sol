@@ -95,10 +95,10 @@ contract ForceMove is IForceMove, StatusManager {
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update.
      */
-    function checkpoint(
-        FixedPart memory fixedPart,
-        SignedVariablePart[] memory signedVariableParts
-    ) external override {
+    function checkpoint(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
+        external
+        override
+    {
         bytes32 channelId = NitroUtils.getChannelId(fixedPart);
         uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
 
@@ -117,10 +117,10 @@ contract ForceMove is IForceMove, StatusManager {
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
      */
-    function conclude(
-        FixedPart memory fixedPart,
-        SignedVariablePart[] memory signedVariableParts
-    ) external override {
+    function conclude(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
+        external
+        override
+    {
         _conclude(fixedPart, signedVariableParts);
     }
 
@@ -130,10 +130,10 @@ contract ForceMove is IForceMove, StatusManager {
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
      */
-    function _conclude(
-        FixedPart memory fixedPart,
-        SignedVariablePart[] memory signedVariableParts
-    ) internal returns (bytes32 channelId) {
+    function _conclude(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
+        internal
+        returns (bytes32 channelId)
+    {
         channelId = NitroUtils.getChannelId(fixedPart);
         _requireChannelNotFinalized(channelId);
 
@@ -212,22 +212,21 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart[] memory signedVariableParts,
         bytes32 channelId
     ) internal pure returns (bytes32) {
-
         VariablePart memory latestVariablePart = IForceMoveApp(fixedPart.appDefinition)
-            .latestSupportedState(fixedPart, recoverVariableParts(fixedPart,signedVariableParts));
+            .latestSupportedState(fixedPart, recoverVariableParts(fixedPart, signedVariableParts));
 
         // enforcing the latest supported state being in the last slot of the array
         _requireVariablePartIsLast(latestVariablePart, signedVariableParts);
 
-        return NitroUtils.hashState(
-            channelId,
-            latestVariablePart.appData,
-            latestVariablePart.outcome,
-            latestVariablePart.turnNum,
-            latestVariablePart.isFinal
-        );
+        return
+            NitroUtils.hashState(
+                channelId,
+                latestVariablePart.appData,
+                latestVariablePart.outcome,
+                latestVariablePart.turnNum,
+                latestVariablePart.isFinal
+            );
     }
-
 
     /**
      * @notice Recover signatures for each variable part in the supplied array.
@@ -240,13 +239,14 @@ contract ForceMove is IForceMove, StatusManager {
         FixedPart memory fixedPart,
         SignedVariablePart[] memory signedVariableParts
     ) internal pure returns (RecoveredVariablePart[] memory) {
-        RecoveredVariablePart[] memory recoveredVariableParts = new RecoveredVariablePart[](signedVariableParts.length);
+        RecoveredVariablePart[] memory recoveredVariableParts = new RecoveredVariablePart[](
+            signedVariableParts.length
+        );
         for (uint256 i = 0; i < signedVariableParts.length; i++) {
             recoveredVariableParts[i] = recoverVariablePart(fixedPart, signedVariableParts[i]);
         }
         return recoveredVariableParts;
     }
-
 
     /**
      * @notice Recover signatures for a variable part.
@@ -262,18 +262,21 @@ contract ForceMove is IForceMove, StatusManager {
         RecoveredVariablePart memory rvp = RecoveredVariablePart({
             variablePart: signedVariablePart.variablePart,
             signedBy: 0
-    });
-            //  For each signature
-            for (uint256 j=0; j < signedVariablePart.sigs.length; j++) {
-                bytes32 stateHash = NitroUtils.hashState(fixedPart,signedVariablePart.variablePart);
-                // Check each participant to see if they signed it
-                for (uint256 i = 0; i < fixedPart.participants.length; i++) {
-                    if (NitroUtils.recoverSigner(stateHash, signedVariablePart.sigs[j]) == fixedPart.participants[i]) {
-                        rvp.signedBy += 2**i; 
-                        break; // Once we have found a match, assuming distinct participants, no-one else signed it.
-                    }
+        });
+        //  For each signature
+        for (uint256 j = 0; j < signedVariablePart.sigs.length; j++) {
+            bytes32 stateHash = NitroUtils.hashState(fixedPart, signedVariablePart.variablePart);
+            // Check each participant to see if they signed it
+            for (uint256 i = 0; i < fixedPart.participants.length; i++) {
+                if (
+                    NitroUtils.recoverSigner(stateHash, signedVariablePart.sigs[j]) ==
+                    fixedPart.participants[i]
+                ) {
+                    rvp.signedBy += 2**i;
+                    break; // Once we have found a match, assuming distinct participants, no-one else signed it.
                 }
             }
+        }
         return rvp;
     }
 

@@ -30,16 +30,16 @@ contract CountingApp is IForceMoveApp {
      * @param fixedPart Fixed part of the state channel.
      * @param recoveredVariableParts Array of variable parts to find the latest of.
      * @return VariablePart Latest supported by application variable part from supplied array.
-     */    
+     */
     function latestSupportedState(
         FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata recoveredVariableParts
     ) external pure override returns (VariablePart memory) {
         ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, recoveredVariableParts);
 
-        for (uint i = 1; i < recoveredVariableParts.length; i++) {
-            _requireIncrementedCounter(recoveredVariableParts[i], recoveredVariableParts[i-1]);
-            _requireEqualOutcomes(recoveredVariableParts[i], recoveredVariableParts[i-1]);
+        for (uint256 i = 1; i < recoveredVariableParts.length; i++) {
+            _requireIncrementedCounter(recoveredVariableParts[i], recoveredVariableParts[i - 1]);
+            _requireEqualOutcomes(recoveredVariableParts[i], recoveredVariableParts[i - 1]);
         }
 
         return recoveredVariableParts[recoveredVariableParts.length - 1].variablePart;
@@ -67,10 +67,10 @@ contract CountingApp is IForceMoveApp {
      * @param a First RecoveredVariablePart.
      * @param b Second RecoveredVariablePart.
      */
-    function _requireEqualOutcomes(
-        RecoveredVariablePart memory a,
-        RecoveredVariablePart memory b
-    ) internal pure {
+    function _requireEqualOutcomes(RecoveredVariablePart memory a, RecoveredVariablePart memory b)
+        internal
+        pure
+    {
         require(
             Outcome.exitsEqual(a.variablePart.outcome, b.variablePart.outcome),
             'Outcome must not change'

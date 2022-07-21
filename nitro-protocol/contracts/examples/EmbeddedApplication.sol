@@ -47,7 +47,11 @@ interface IForceMoveApp2 {
 }
 
 library ForceMoveAppUtilities {
-    function isClaimedSignedBy(uint256 signedBy, uint8 participantIndex) internal pure returns (bool) {
+    function isClaimedSignedBy(uint256 signedBy, uint8 participantIndex)
+        internal
+        pure
+        returns (bool)
+    {
         return ((signedBy >> participantIndex) % 2 == 1);
     }
 

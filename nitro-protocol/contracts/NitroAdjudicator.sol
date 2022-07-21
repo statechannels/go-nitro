@@ -21,10 +21,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         FixedPart memory fixedPart,
         SignedVariablePart[] memory signedVariableParts
     ) public {
-        bytes32 channelId = _conclude(
-            fixedPart,
-            signedVariableParts
-        );
+        bytes32 channelId = _conclude(fixedPart, signedVariableParts);
 
         transferAllAssets(channelId, _lastVariablePart(signedVariableParts).outcome, bytes32(0));
     }
@@ -98,14 +95,18 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
      * @param fixedPart Fixed part of the state channel.
      * @param signedVariableParts Array of variable parts to find the latest of.
      * @return VariablePart Latest supported by application variable part from supplied array.
-     */    
+     */
     function latestSupportedState(
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata signedVariableParts
     ) external pure returns (VariablePart memory) {
         // To avoid `Stack to deep` error, signedVariableParts are copied to `memory` array explicitly
         SignedVariablePart[] memory _signedVariableParts = signedVariableParts;
-        return IForceMoveApp(fixedPart.appDefinition).latestSupportedState(fixedPart,  recoverVariableParts(fixedPart,_signedVariableParts));
+        return
+            IForceMoveApp(fixedPart.appDefinition).latestSupportedState(
+                fixedPart,
+                recoverVariableParts(fixedPart, _signedVariableParts)
+            );
     }
 
     /**

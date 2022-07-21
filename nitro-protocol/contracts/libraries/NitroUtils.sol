@@ -32,7 +32,11 @@ library NitroUtils {
      * @param participantIndex Bit to check.
      * @return true if supplied partitipationIndex bit is set to 1 in signedBy bit mask.
      */
-    function isClaimedSignedBy(uint256 signedBy, uint8 participantIndex) internal pure returns (bool) {
+    function isClaimedSignedBy(uint256 signedBy, uint8 participantIndex)
+        internal
+        pure
+        returns (bool)
+    {
         return ((signedBy >> participantIndex) % 2 == 1);
     }
 
@@ -43,8 +47,12 @@ library NitroUtils {
      * @param participantIndex Bit to check.
      * @return true if supplied partitipationIndex bit is the only bit set to 1 in signedBy bit mask.
      */
-    function isClaimedSignedOnlyBy(uint256 signedBy, uint8 participantIndex) internal pure returns (bool) {
-        return (signedBy == (2 ** participantIndex));
+    function isClaimedSignedOnlyBy(uint256 signedBy, uint8 participantIndex)
+        internal
+        pure
+        returns (bool)
+    {
+        return (signedBy == (2**participantIndex));
     }
 
     /**
@@ -100,7 +108,7 @@ library NitroUtils {
             signedBy = signedBy >> 1;
             signerNum++;
         }
-        
+
         return signerIndices;
     }
 
@@ -114,7 +122,11 @@ library NitroUtils {
      * @param fixedPart Part of the state that does not change
      * @return channelId
      */
-    function getChannelId(INitroTypes.FixedPart memory fixedPart) internal pure returns (bytes32 channelId) {
+    function getChannelId(INitroTypes.FixedPart memory fixedPart)
+        internal
+        pure
+        returns (bytes32 channelId)
+    {
         require(fixedPart.chainId == getChainID(), 'Incorrect chainId');
         channelId = keccak256(
             abi.encode(
@@ -168,11 +180,13 @@ library NitroUtils {
      * @param vp The VariablePart of the state
      * @return The stateHash
      */
-    function hashState(
-        INitroTypes.FixedPart memory fp,
-        INitroTypes.VariablePart memory vp
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(getChannelId(fp), vp.appData, vp.outcome, vp.turnNum, vp.isFinal));
+    function hashState(INitroTypes.FixedPart memory fp, INitroTypes.VariablePart memory vp)
+        internal
+        pure
+        returns (bytes32)
+    {
+        return
+            keccak256(abi.encode(getChannelId(fp), vp.appData, vp.outcome, vp.turnNum, vp.isFinal));
     }
 
     /**
@@ -181,11 +195,7 @@ library NitroUtils {
      * @param outcome Outcome structure to encode hash.
      * @return bytes32 Hash of encoded outcome structure.
      */
-    function hashOutcome(Outcome.SingleAssetExit[] memory outcome)
-        internal
-        pure
-        returns (bytes32)
-    {
+    function hashOutcome(Outcome.SingleAssetExit[] memory outcome) internal pure returns (bytes32) {
         return keccak256(Outcome.encodeExit(outcome));
     }
 
