@@ -206,8 +206,10 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 				}
 
 				allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
-				e.executeSideEffects(sideEffects)
-				return allCompleted, nil
+				err = e.executeSideEffects(sideEffects)
+				// An error would mean we failed to send a message. But the objective is still "completed".
+				// So, we should return allCompleted even if there was an error.
+				return allCompleted, err
 			}
 		}
 
@@ -287,7 +289,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 			continue
 		}
 
-		// we are rejecting due to a counterparty message notifying us of their rejection. We 		
+		// we are rejecting due to a counterparty message notifying us of their rejection. We
 		// do not need to send a message back to that counterparty, and furthermore we assume that
 		// counterparty has already notified all other interested parties. We can therefore ignore the side effects
 		objective, _ = objective.Reject()
