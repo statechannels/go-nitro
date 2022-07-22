@@ -42,7 +42,7 @@ interface AllocationT {
 
 const testcase1: TestCase = {
   inputs: {
-    indexOfTargetInSource: 1,
+    indexOfTargetInSource: 2,
     sourceAllocations: [
       {
         destination: Alice,

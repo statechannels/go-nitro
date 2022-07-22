@@ -69,8 +69,49 @@ export function computeReclaimEffects(
   targetAllocations: ExitFormat.Allocation[], // we must index this with a JS number that is less than 2**32 - 1
   indexOfTargetInSource: number
 ): ExitFormat.Allocation[] {
-  // TODO replace with proper implementation
-  return sourceAllocations;
+  const newSourceAllocations: ExitFormat.Allocation[] = []; // will be one slot shorter than sourceAllocations
+  const guarantee = sourceAllocations[indexOfTargetInSource];
+
+  if (guarantee.allocationType != AllocationType.guarantee) {
+    throw Error('not a guarantee');
+  }
+
+  const [left, right] = decodeGuaranteeData(guarantee.metadata);
+
+  let foundLeft = false;
+  let foundRight = false;
+
+  let k = 0;
+  for (let i = 0; i < sourceAllocations.length; i++) {
+    if (i == indexOfTargetInSource) {
+      continue;
+    }
+    newSourceAllocations[k] = sourceAllocations[i];
+
+    // copy each element except the indexOfTargetInSource element
+    if (sourceAllocations[i].destination == left) {
+      newSourceAllocations[k].amount = BigNumber.from(sourceAllocations[i].amount)
+        .add(targetAllocations[0].amount)
+        .toHexString();
+      foundLeft = true;
+    }
+    if (sourceAllocations[i].destination == right) {
+      newSourceAllocations[k].amount = BigNumber.from(sourceAllocations[i].amount)
+        .add(targetAllocations[1].amount)
+        .toHexString();
+      foundRight = true;
+    }
+    k++;
+  }
+
+  if (!foundLeft) {
+    throw Error('could not find left');
+  }
+
+  if (!foundRight) {
+    throw Error('could not find right');
+  }
+  return newSourceAllocations;
 }
 
 /**
