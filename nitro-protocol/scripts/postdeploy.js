@@ -1,4 +1,5 @@
-import {writeFileSync} from 'fs';
+// eslint-disable-next-line no-undef
+const {writeFileSync} = require('fs');
 
 // eslint-disable-next-line no-undef
 const jsonPath = __dirname + '/../addresses.json';
