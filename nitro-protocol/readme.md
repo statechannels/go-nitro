@@ -94,12 +94,12 @@ To add a new version of the docs, follow the instructions at https://docusaurus.
 
 ## Deploying contracts
 
-### For the rinkeby testnet:
+### For the goerli testnet:
 
-After succesfully deploying you should see some changes to `addresses.json`. Please raise a pull request with this updated file.
+After successfully deploying you should see some changes to `addresses.json`. Please raise a pull request with this updated file.
 
 ```
-INFURA_TOKEN=[your token here] RINKEBY_DEPLOYER_PK=[private key used for rinkeby deploy] yarn contract:deploy-rinkeby
+INFURA_TOKEN=[your token here] RINKEBY_DEPLOYER_PK=[private key used for rinkeby deploy] yarn contract:deploy-goerli
 ```
 
 ### For mainnet
