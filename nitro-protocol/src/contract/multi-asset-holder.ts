@@ -76,7 +76,7 @@ export function computeReclaimEffects(
     throw Error('not a guarantee');
   }
 
-  const [left, right] = decodeGuaranteeData(guarantee.metadata);
+  const {left, right} = decodeGuaranteeData(guarantee.metadata);
 
   let foundTarget = false;
   let foundLeft = false;

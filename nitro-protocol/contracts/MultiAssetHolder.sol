@@ -345,7 +345,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             'not a guarantee'
         );
 
-        bytes32[] memory decodedGuaranteeData = decodeGuaranteeData(guarantee.metadata); // This is [left, right] TODO make this explicit using a struct
+        Guarantee memory guaranteeData = decodeGuaranteeData(guarantee.metadata); // This is [left, right] TODO make this explicit using a struct
 
         bool foundTarget = false;
         bool foundLeft = false;
@@ -364,11 +364,11 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
                 metadata: sourceAllocations[i].metadata
             });
 
-            if (sourceAllocations[i].destination == decodedGuaranteeData[0]) {
+            if (sourceAllocations[i].destination == guaranteeData.left) {
                 newSourceAllocations[k].amount += targetAllocations[0].amount;
                 foundLeft = true;
             }
-            if (sourceAllocations[i].destination == decodedGuaranteeData[1]) {
+            if (sourceAllocations[i].destination == guaranteeData.right) {
                 newSourceAllocations[k].amount += targetAllocations[1].amount;
                 foundRight = true;
             }
@@ -532,7 +532,13 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         return a > b ? b : a;
     }
 
-    function decodeGuaranteeData(bytes memory data) internal pure returns (bytes32[] memory) {
-        return abi.decode(data, (bytes32[]));
+    struct Guarantee {
+        // TODO absorb into exit format
+        bytes32 left;
+        bytes32 right;
+    }
+
+    function decodeGuaranteeData(bytes memory data) internal pure returns (Guarantee memory) {
+        return abi.decode(data, (Guarantee));
     }
 }

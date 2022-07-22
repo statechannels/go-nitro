@@ -60,7 +60,7 @@ const testcase1: TestCase = {
         destination: constants.HashZero,
         amount: '0x06',
         allocationType: AllocationType.guarantee,
-        metadata: encodeGuaranteeData([Alice, Bob]),
+        metadata: encodeGuaranteeData({left: Alice, right: Bob}),
       },
     ],
     targetAllocations: [

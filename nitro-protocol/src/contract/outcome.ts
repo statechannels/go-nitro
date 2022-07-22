@@ -1,4 +1,4 @@
-import {defaultAbiCoder} from '@ethersproject/abi';
+import {defaultAbiCoder, ParamType} from '@ethersproject/abi';
 import * as ExitFormat from '@statechannels/exit-format';
 import {BytesLike, constants, utils} from 'ethers';
 
@@ -54,12 +54,17 @@ export function hashOutcome(outcome: Outcome): Bytes32 {
   return utils.keccak256(encodedOutcome);
 }
 
-export function encodeGuaranteeData(destinations: string[]): BytesLike {
-  return defaultAbiCoder.encode(['bytes32[]'], [destinations]);
+interface Guarantee {
+  left: Bytes32;
+  right: Bytes32;
 }
 
-export function decodeGuaranteeData(data: BytesLike): string[] {
-  return defaultAbiCoder.decode(['bytes32[]'], data)[0];
+export function encodeGuaranteeData(guarantee: Guarantee): BytesLike {
+  return defaultAbiCoder.encode(['tuple(bytes32 left, bytes32 right)'], [guarantee]);
+}
+
+export function decodeGuaranteeData(data: BytesLike): Guarantee {
+  return defaultAbiCoder.decode(['tuple(bytes32 left, bytes32 right)'], data)[0];
 }
 
 //
@@ -77,13 +82,13 @@ const exampleGuaranteeOutcome1: GuaranteeOutcome = [
         destination: '0xjointchannel1',
         amount: '0xa',
         allocationType: ExitFormat.AllocationType.guarantee,
-        metadata: encodeGuaranteeData([B_ADDRESS, A_ADDRESS]),
+        metadata: encodeGuaranteeData({left: B_ADDRESS, right: A_ADDRESS}),
       },
       {
         destination: '0xjointchannel2',
         amount: '0xa',
         allocationType: ExitFormat.AllocationType.guarantee,
-        metadata: encodeGuaranteeData([A_ADDRESS, B_ADDRESS]),
+        metadata: encodeGuaranteeData({left: A_ADDRESS, right: B_ADDRESS}),
       },
     ],
   },
