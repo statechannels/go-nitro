@@ -88,7 +88,12 @@ export function computeReclaimEffects(
       foundTarget = true;
       continue;
     }
-    newSourceAllocations[k] = sourceAllocations[i];
+    newSourceAllocations[k] = {
+      destination: sourceAllocations[i].destination,
+      amount: sourceAllocations[i].amount,
+      allocationType: sourceAllocations[i].allocationType,
+      metadata: sourceAllocations[i].metadata,
+    };
 
     // copy each element except the indexOfTargetInSource element
     if (sourceAllocations[i].destination == left) {
