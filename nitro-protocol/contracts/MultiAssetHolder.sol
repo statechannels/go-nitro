@@ -249,8 +249,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     function reclaim(ClaimArgs memory claimArgs) external override {
         (
             Outcome.SingleAssetExit[] memory sourceOutcome,
-            Outcome.SingleAssetExit[] memory targetOutcome,
-            address asset
+            Outcome.SingleAssetExit[] memory targetOutcome
         ) = _apply_reclaim_checks(claimArgs); // view
 
         Outcome.Allocation[] memory newSourceAllocations;
@@ -270,7 +269,6 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
 
         _apply_reclaim_effects(
             claimArgs,
-            asset,
             sourceOutcome,
             newSourceAllocations
         );
@@ -284,8 +282,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         view
         returns (
             Outcome.SingleAssetExit[] memory sourceOutcome,
-            Outcome.SingleAssetExit[] memory targetOutcome,
-            address asset
+            Outcome.SingleAssetExit[] memory targetOutcome
         )
     {
         (
@@ -312,7 +309,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
 
         sourceOutcome = Outcome.decodeExit(sourceOutcomeBytes);
         targetOutcome = Outcome.decodeExit(targetOutcomeBytes);
-        asset = sourceOutcome[sourceAssetIndex].asset;
+        address asset = sourceOutcome[sourceAssetIndex].asset;
         require(
             sourceOutcome[sourceAssetIndex].allocations[targetAssetIndex].allocationType ==
                 uint8(Outcome.AllocationType.guarantee),
@@ -349,14 +346,12 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
      */
     function _apply_reclaim_effects(
         ClaimArgs memory claimArgs,
-        address asset,
         Outcome.SingleAssetExit[] memory sourceOutcome,
         Outcome.Allocation[] memory newSourceAllocations
     ) internal {
-        (bytes32 sourceChannelId, uint256 sourceAssetIndex, uint256 targetAssetIndex) = (
+        (bytes32 sourceChannelId, uint256 sourceAssetIndex) = (
             claimArgs.sourceChannelId,
-            claimArgs.sourceAssetIndex,
-            claimArgs.targetAssetIndex
+            claimArgs.sourceAssetIndex
         );
 
         // store fingerprint of modified source outcome
