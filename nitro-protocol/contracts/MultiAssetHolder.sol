@@ -267,11 +267,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             ); // pure
         }
 
-        _apply_reclaim_effects(
-            claimArgs,
-            sourceOutcome,
-            newSourceAllocations
-        );
+        _apply_reclaim_effects(claimArgs, sourceOutcome, newSourceAllocations);
     }
 
     /**
@@ -337,8 +333,53 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         Outcome.Allocation[] memory sourceAllocations,
         Outcome.Allocation[] memory targetAllocations,
         uint256 indexOfTargetInSource
-    ) public pure returns (Outcome.Allocation[] memory newSourceAllocations) {
-        return sourceAllocations; // TODO compute this properly
+    ) public pure returns (Outcome.Allocation[] memory) {
+        Outcome.Allocation[] memory newSourceAllocations = new Outcome.Allocation[](
+            sourceAllocations.length - 1
+        );
+
+        Outcome.Allocation memory guarantee = sourceAllocations[indexOfTargetInSource];
+
+        require(
+            guarantee.allocationType == uint8(Outcome.AllocationType.guarantee),
+            'not a guarantee'
+        );
+
+        bytes32[] memory decodedGuaranteeData = decodeGuaranteeData(guarantee.metadata); // This is [left, right] TODO make this explicit using a struct
+
+        bool foundTarget = false;
+        bool foundLeft = false;
+        bool foundRight = false;
+
+        uint256 k = 0;
+        for (uint256 i = 0; i < sourceAllocations.length; i++) {
+            if (i == indexOfTargetInSource) {
+                foundTarget = true;
+                continue;
+            }
+            newSourceAllocations[k] = Outcome.Allocation({
+                destination: sourceAllocations[i].destination,
+                amount: sourceAllocations[i].amount,
+                allocationType: sourceAllocations[i].allocationType,
+                metadata: sourceAllocations[i].metadata
+            });
+
+            if (sourceAllocations[i].destination == decodedGuaranteeData[0]) {
+                newSourceAllocations[k].amount += targetAllocations[0].amount;
+                foundLeft = true;
+            }
+            if (sourceAllocations[i].destination == decodedGuaranteeData[1]) {
+                newSourceAllocations[k].amount += targetAllocations[1].amount;
+                foundRight = true;
+            }
+            k++;
+        }
+
+        require(foundTarget, 'could not find target');
+        require(foundLeft, 'could not find left');
+        require(foundRight, 'could not find right');
+
+        return newSourceAllocations;
     }
 
     /**

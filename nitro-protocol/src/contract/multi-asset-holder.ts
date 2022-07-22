@@ -78,12 +78,14 @@ export function computeReclaimEffects(
 
   const [left, right] = decodeGuaranteeData(guarantee.metadata);
 
+  let foundTarget = false;
   let foundLeft = false;
   let foundRight = false;
 
   let k = 0;
   for (let i = 0; i < sourceAllocations.length; i++) {
     if (i == indexOfTargetInSource) {
+      foundTarget = true;
       continue;
     }
     newSourceAllocations[k] = sourceAllocations[i];
@@ -102,6 +104,10 @@ export function computeReclaimEffects(
       foundRight = true;
     }
     k++;
+  }
+
+  if (!foundTarget) {
+    throw Error('could not find target');
   }
 
   if (!foundLeft) {
