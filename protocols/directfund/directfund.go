@@ -225,10 +225,14 @@ func (o *Objective) Approve() protocols.Objective {
 	return &updated
 }
 
-func (o *Objective) Reject() protocols.Objective {
+func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 	updated := o.clone()
+
 	updated.Status = protocols.Rejected
-	return &updated
+	peer := o.C.Participants[1-o.C.MyIndex]
+
+	sideEffects := protocols.SideEffects{MessagesToSend: protocols.CreateRejectionNoticeMessage(o.Id(), peer)}
+	return &updated, sideEffects
 }
 
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,

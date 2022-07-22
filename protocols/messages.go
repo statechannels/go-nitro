@@ -14,8 +14,9 @@ import (
 type PayloadType string
 
 const (
-	SignedStatePayload    PayloadType = "SignedStatePayload"
-	SignedProposalPayload PayloadType = "SignedProposalPayload"
+	SignedStatePayload     PayloadType = "SignedStatePayload"
+	SignedProposalPayload  PayloadType = "SignedProposalPayload"
+	RejectionNoticePayload PayloadType = "RejectionNoticePayload"
 )
 
 // Message is an object to be sent across the wire. It can contain a proposal and signed states, and is addressed to a counterparty.
@@ -32,6 +33,7 @@ type messagePayload struct {
 	ObjectiveId    ObjectiveId
 	SignedState    state.SignedState
 	SignedProposal consensus_channel.SignedProposal
+	Rejected       bool
 }
 
 // hasState returns true if the payload contains a signed state.
@@ -44,12 +46,19 @@ func (p messagePayload) hasProposal() bool {
 	return p.SignedProposal.Proposal != consensus_channel.Proposal{}
 }
 
+// hasRejection returns true if the payload indicates that the objective is rejected
+func (p messagePayload) hasRejection() bool {
+	return p.Rejected
+}
+
 // Type returns the type of the payload, either a SignedProposal or SignedState.
 func (p messagePayload) Type() PayloadType {
 	if p.hasProposal() {
 		return SignedProposalPayload
-	} else {
+	} else if p.hasState() {
 		return SignedStatePayload
+	} else {
+		return RejectionNoticePayload
 	}
 }
 
@@ -91,6 +100,27 @@ func (m Message) SignedProposals() []ObjectivePayload[consensus_channel.SignedPr
 	return signedProposals
 }
 
+// rejectedObjective is a placeholder type that holds no value, but implements the PayloadValue interface.
+// This allows the RejectedObjectives function to use the generic ObjectivePayload type.
+type rejectedObjective struct{}
+
+func (o rejectedObjective) SortInfo() (channelID types.Destination, turnNum uint64) {
+	return
+}
+
+// RejectedObjectives returns a slice of rejected objectives
+func (m Message) RejectedObjectives() []ObjectivePayload[rejectedObjective] {
+	rejectedObjectives := make([]ObjectivePayload[rejectedObjective], 0)
+	for _, p := range m.payloads {
+		if p.Type() == RejectionNoticePayload {
+			entry := ObjectivePayload[rejectedObjective]{rejectedObjective{}, p.ObjectiveId}
+			rejectedObjectives = append(rejectedObjectives, entry)
+		}
+	}
+
+	return rejectedObjectives
+}
+
 // Serialize serializes the message into a string.
 func (m Message) Serialize() (string, error) {
 	bytes, err := json.Marshal(jsonMessage{m.To, m.payloads})
@@ -112,6 +142,8 @@ func (p *messagePayload) MarshalJSON() ([]byte, error) {
 		m["SignedState"] = p.SignedState
 	case SignedProposalPayload:
 		m["SignedProposal"] = p.SignedProposal
+	case RejectionNoticePayload:
+		m["Rejected"] = p.Rejected
 	default:
 		return []byte{}, fmt.Errorf("unknown payload type")
 	}
@@ -133,6 +165,9 @@ func DeserializeMessage(s string) (Message, error) {
 			numPresent += 1
 		}
 		if p.hasState() {
+			numPresent += 1
+		}
+		if p.hasRejection() {
 			numPresent += 1
 		}
 		if numPresent != 1 {
@@ -173,10 +208,11 @@ func (se *SideEffects) Merge(other SideEffects) {
 
 }
 
-// PayloadValue is a type constraint that specifies a payload is either a SignedProposal or SignedState.
+// PayloadValue is a type constraint that specifies a payload is either a SignedProposal, SignedState,
+// or RejectedObjective
 // It includes functions to get basic info to allow sorting.
 type PayloadValue interface {
-	state.SignedState | consensus_channel.SignedProposal
+	state.SignedState | consensus_channel.SignedProposal | rejectedObjective
 	SortInfo() (channelID types.Destination, turnNum uint64)
 }
 
@@ -218,6 +254,7 @@ type MessageSummary struct {
 	To        string
 	Proposals []ProposalSummary
 	States    []StateSummary
+	Rejected  []ObjectiveId
 }
 
 // SummarizeMessage returns a MessageSummary for the provided message.
@@ -237,8 +274,12 @@ func SummarizeMessage(m Message) MessageSummary {
 			TurnNum:     s.Payload.State().TurnNum,
 		}
 	}
+	rejectedObjectives := []ObjectiveId{}
+	for _, p := range m.RejectedObjectives() {
+		rejectedObjectives = append(rejectedObjectives, p.ObjectiveId)
+	}
 
-	return MessageSummary{To: m.To.String(), Proposals: proposals, States: states}
+	return MessageSummary{To: m.To.String(), Proposals: proposals, States: states, Rejected: rejectedObjectives}
 }
 
 // SummarizeProposal returns a ProposalSummary for the provided signed proposal.
@@ -270,6 +311,23 @@ func CreateSignedProposalMessage(recipient types.Address, proposals ...consensus
 		To:       recipient,
 		payloads: payloads,
 	}
+}
+
+// CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
+// It contains the provided signed proposals and any proposals in the proposal queue.
+func CreateRejectionNoticeMessage(oId ObjectiveId, recipients ...types.Address) []Message {
+	messages := make([]Message, len(recipients))
+	for i, recipient := range recipients {
+		payload := messagePayload{
+			ObjectiveId: oId,
+			Rejected:    true,
+		}
+		payloads := []messagePayload{payload}
+		messages[i] = Message{To: recipient, payloads: payloads}
+
+	}
+
+	return messages
 }
 
 // getProposalObjectiveId returns the objectiveId for a proposal.
