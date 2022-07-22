@@ -100,23 +100,23 @@ const testCases: TestCase[][] = [[testcase1]];
 
 describe('computeReClaimEffects', () => {
   it.each(testCases)('off chain method matches expectation', (testCase: TestCase) => {
-    const newSourceAllocations = computeReclaimEffects(
+    const offChainNewSourceAllocations = computeReclaimEffects(
       testCase.inputs.sourceAllocations,
       testCase.inputs.targetAllocations,
       testCase.inputs.indexOfTargetInSource
     );
 
-    expect(newSourceAllocations).toMatchObject(testCase.outputs.newSourceAllocations);
+    expect(offChainNewSourceAllocations).toMatchObject(testCase.outputs.newSourceAllocations);
   });
 
   it.each(testCases)('on chain method matches expectation', async (testCase: TestCase) => {
-    const newSourceAllocations = await testNitroAdjudicator.compute_reclaim_effects(
+    const onChainNewSourceAllocations = await testNitroAdjudicator.compute_reclaim_effects(
       testCase.inputs.sourceAllocations,
       testCase.inputs.targetAllocations,
       testCase.inputs.indexOfTargetInSource
     );
 
-    expect(newSourceAllocations.map(convertAmountToHexString)).toMatchObject(
+    expect(onChainNewSourceAllocations.map(convertAmountToHexString)).toMatchObject(
       testCase.outputs.newSourceAllocations
     );
   });
