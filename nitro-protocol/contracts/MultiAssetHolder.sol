@@ -410,23 +410,6 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     }
 
     /**
-     * @dev Applies precomputed side effects for claim that interact with external contracts. "Executes" the supplied exit (pays out the money).
-     */
-    function _apply_claim_interactions(
-        Outcome.SingleAssetExit memory singleAssetExit,
-        Outcome.Allocation[] memory exitAllocations
-    ) internal {
-        // create a new tuple to avoid mutating singleAssetExit
-        _executeSingleAssetExit(
-            Outcome.SingleAssetExit(
-                singleAssetExit.asset,
-                singleAssetExit.metadata,
-                exitAllocations
-            )
-        );
-    }
-
-    /**
      * @notice Executes a single asset exit by paying out the asset and calling external contracts, as well as updating the holdings stored in this contract.
      * @dev Executes a single asset exit by paying out the asset and calling external contracts, as well as updating the holdings stored in this contract.
      * @param singleAssetExit The single asset exit to be paid out.
