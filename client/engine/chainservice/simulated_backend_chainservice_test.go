@@ -54,10 +54,6 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// Prepare test data to trigger EthChainService
 	testDeposit := types.Funds{
 		common.HexToAddress("0x00"): one,

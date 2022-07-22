@@ -1,11 +1,14 @@
 {
-  "1337": [
+  "5": [
     {
-      "name": "localhost",
-      "chainId": "1337",
+      "name": "goerli",
+      "chainId": "5",
       "contracts": {
         "NitroAdjudicator": {
-          "address": "0xB88334AE1bEbA89dA2f886daC6C4D5C6dC658143"
+          "address": "0xC03FFfF41F98086129242f16b366985d92c63D1B"
+        },
+        "Token": {
+          "address": "0xFc5eeC0FC4c97fe6b6BDEd926f5947308ef0d922"
         }
       }
     }
