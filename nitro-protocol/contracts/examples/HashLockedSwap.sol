@@ -80,7 +80,7 @@ contract HashLockedSwap is IForceMoveApp {
     {
         Outcome.SingleAssetExit memory assetOutcome = outcome[0];
 
-        allocations = assetOutcome.allocations; // TODO should we check each  allocation is a "simple" one?
+        allocations = assetOutcome.allocations; // TODO should we check each allocation is a "simple" one?
 
         // Throws unless there are exactly 2 allocations
         require(allocations.length == 2, 'allocation.length != 2');

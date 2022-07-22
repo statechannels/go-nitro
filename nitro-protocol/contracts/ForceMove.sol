@@ -233,7 +233,7 @@ contract ForceMove is IForceMove, StatusManager {
      * @dev Recover signatures for each variable part in the supplied array.
      * @param fixedPart Fixed Part of the states in the support proof.
      * @param signedVariableParts Signed variable parts of the states in the support proof.
-     * @return An array of recoveredVariableParts, identical to the supplied signedVariableParts array but with the signatures replaced with a signedBy bitmask.
+     * @return An array of recoveredVariableParts, identical to the supplied signedVariableParts array, but with the signatures replaced with a signedBy bitmask.
      */
     function recoverVariableParts(
         FixedPart memory fixedPart,
@@ -253,7 +253,7 @@ contract ForceMove is IForceMove, StatusManager {
      * @dev Recover signatures for a variable part.
      * @param fixedPart Fixed Part of the states in the support proof.
      * @param signedVariablePart A signed variable part.
-     * @return An RecoveredVariableParts, identical to the supplied signedVariablePart  but with the signatures replaced with a signedBy bitmask.
+     * @return RecoveredVariablePart, identical to the supplied signedVariablePart, but with the signatures replaced with a signedBy bitmask.
      */
     function recoverVariablePart(
         FixedPart memory fixedPart,
@@ -265,15 +265,15 @@ contract ForceMove is IForceMove, StatusManager {
         });
         //  For each signature
         for (uint256 j = 0; j < signedVariablePart.sigs.length; j++) {
-            bytes32 stateHash = NitroUtils.hashState(fixedPart, signedVariablePart.variablePart);
+            address signer = NitroUtils.recoverSigner(
+                NitroUtils.hashState(fixedPart, signedVariablePart.variablePart),
+                signedVariablePart.sigs[j]
+            );
             // Check each participant to see if they signed it
             for (uint256 i = 0; i < fixedPart.participants.length; i++) {
-                if (
-                    NitroUtils.recoverSigner(stateHash, signedVariablePart.sigs[j]) ==
-                    fixedPart.participants[i]
-                ) {
+                if (signer == fixedPart.participants[i]) {
                     rvp.signedBy += 2**i;
-                    break; // Once we have found a match, assuming distinct participants, no-one else signed it.
+                    break; // Once we have found a match, assuming distinct participants, no-one else signed it
                 }
             }
         }
