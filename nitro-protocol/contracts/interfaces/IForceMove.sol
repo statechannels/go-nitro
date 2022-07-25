@@ -67,8 +67,8 @@ interface IForceMove is INitroTypes {
         uint48 finalizesAt,
         bool isFinal,
         FixedPart fixedPart,
-        SignedVariablePart[] memory proof,
-        SignedVariablePart memory candidate
+        SignedVariablePart[] proof,
+        SignedVariablePart candidate
     );
 
     /**

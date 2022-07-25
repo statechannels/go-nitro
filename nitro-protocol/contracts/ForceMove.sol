@@ -138,7 +138,7 @@ contract ForceMove is IForceMove, StatusManager {
     function _conclude(
         FixedPart memory fixedPart,
         SignedVariablePart[] memory proof,
-        SignedVariablePart[] memory candidate
+        SignedVariablePart memory candidate
     ) internal returns (bytes32 channelId) {
         channelId = NitroUtils.getChannelId(fixedPart);
         _requireChannelNotFinalized(channelId);
@@ -217,10 +217,10 @@ contract ForceMove is IForceMove, StatusManager {
         FixedPart memory fixedPart,
         SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate
-    ) internal pure returns (bytes32) {
+    ) internal pure {
         IForceMoveApp(fixedPart.appDefinition).requireStateSupported(
             fixedPart,
-            recoverVariableParts(fixedPart, signedVariableParts),
+            recoverVariableParts(fixedPart, proof),
             recoverVariablePart(fixedPart, candidate)
         );
     }

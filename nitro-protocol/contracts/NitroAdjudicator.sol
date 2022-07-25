@@ -25,7 +25,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
     ) public {
         bytes32 channelId = _conclude(fixedPart, proof, candidate);
 
-        transferAllAssets(channelId, candidate.outcome, bytes32(0));
+        transferAllAssets(channelId, candidate.variablePart.outcome, bytes32(0));
     }
 
     /**
@@ -102,7 +102,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata proof,
         SignedVariablePart calldata candidate
-    ) external pure returns (VariablePart memory) {
+    ) external pure {
         // To avoid `Stack to deep` error, signedVariableParts are copied to `memory` array explicitly
         SignedVariablePart[] memory _proof = proof;
         return
