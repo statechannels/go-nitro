@@ -10,35 +10,45 @@ import '../interfaces/IForceMoveApp.sol';
  * @dev The SingleAssetPayments contract complies with the ForceMoveApp interface, uses shortcutting turn taking logic and implements a simple payment channel with a single asset type only.
  */
 contract SingleAssetPayments is IForceMoveApp {
-    /**
-     * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel.
-     * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel.
+     /**
+     * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
+     * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
      * @param fixedPart Fixed part of the state channel.
-     * @param recoveredVariableParts Array of variable parts to find the latest of.
-     * @return VariablePart Latest supported by application variable part from supplied array.
+     * @param proof Array of recovered variable parts which constitutes a support proof for the candidate.
+     * @param candidate Recovered variable part the proof was supplied for.
      */
-    function latestSupportedState(
+    function requireStateSupported(
         FixedPart calldata fixedPart,
-        RecoveredVariablePart[] calldata recoveredVariableParts
-    ) external pure override returns (VariablePart memory) {
-        ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, recoveredVariableParts);
+        RecoveredVariablePart[] calldata proof,
+        RecoveredVariablePart calldata candidate
+    ) external pure override {
+        ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate);
 
-        for (uint256 i = 0; i < recoveredVariableParts.length; i++) {
+        for (uint256 i = 0; i < proof.length; i++) {
             _requireValidOutcome(
                 fixedPart.participants.length,
-                recoveredVariableParts[i].variablePart.outcome
+                proof[i].variablePart.outcome
             );
 
             if (i > 0) {
                 _requireValidTransition(
                     fixedPart.participants.length,
-                    recoveredVariableParts[i - 1].variablePart,
-                    recoveredVariableParts[i].variablePart
+                    proof[i - 1].variablePart,
+                    proof[i].variablePart
                 );
             }
         }
 
-        return recoveredVariableParts[recoveredVariableParts.length - 1].variablePart;
+        _requireValidOutcome(
+            fixedPart.participants.length,
+            candidate.variablePart.outcome
+        );
+
+        _requireValidTransition(
+            fixedPart.participants.length,
+            proof[proof.length - 1].variablePart,
+            candidate.variablePart
+        );
     }
 
     /**
