@@ -40,16 +40,18 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @dev Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update.
+     * @param proof An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update. The proof is a validation for the supplied candidate.
+     * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to. The candidate state is supported by proof states.
      * @param challengerSig The signature of a participant on the keccak256 of the abi.encode of (supportedStateHash, 'forceMove').
      */
     function challenge(
         FixedPart memory fixedPart,
-        SignedVariablePart[] memory signedVariableParts,
+        SignedVariablePart[] memory proof,
+        SignedVariablePart memory candidate,
         Signature memory challengerSig
     ) external override {
         bytes32 channelId = NitroUtils.getChannelId(fixedPart);
-        uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
+        uint48 largestTurnNum = candidate.variablePart.turnNum;
 
         if (_mode(channelId) == ChannelMode.Open) {
             _requireNonDecreasedTurnNumber(channelId, largestTurnNum);
@@ -59,24 +61,22 @@ contract ForceMove is IForceMove, StatusManager {
             // This should revert.
             _requireChannelNotFinalized(channelId);
         }
-        bytes32 supportedStateHash = _requireStateSupportedBy(
-            fixedPart,
-            signedVariableParts,
-            channelId
-        );
 
+        _requireStateSupported(fixedPart, proof, candidate);
+
+        bytes32 supportedStateHash = NitroUtils.hashState(fixedPart, candidate.variablePart);
         _requireChallengerIsParticipant(supportedStateHash, fixedPart.participants, challengerSig);
 
         // effects
-
         emit ChallengeRegistered(
             channelId,
             largestTurnNum,
             uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
-            // This could overflow, so don't join a channel with a huge challengeDuration
-            _lastVariablePart(signedVariableParts).isFinal,
+            // ^^^ This could overflow, so don't join a channel with a huge challengeDuration
+            candidate.variablePart.isFinal,
             fixedPart,
-            signedVariableParts
+            proof,
+            candidate
         );
 
         statusOf[channelId] = _generateStatus(
@@ -84,28 +84,30 @@ contract ForceMove is IForceMove, StatusManager {
                 largestTurnNum,
                 uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
                 supportedStateHash,
-                NitroUtils.hashOutcome(_lastVariablePart(signedVariableParts).outcome)
+                NitroUtils.hashOutcome(candidate.variablePart.outcome)
             )
         );
     }
 
     /**
-     * @notice Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
-     * @dev Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
+     * @notice Overwrites the `turnNumRecord` stored against a channel by providing a proof with higher turn number.
+     * @dev Overwrites the `turnNumRecord` stored against a channel by providing a proof with higher turn number.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update.
+     * @param proof An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update. The proof is a validation for the supplied candidate.
+     * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to. The candidate state is supported by proof states.
      */
-    function checkpoint(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
-        external
-        override
-    {
+    function checkpoint(
+        FixedPart memory fixedPart,
+        SignedVariablePart[] memory proof,
+        SignedVariablePart memory candidate
+    ) external override {
         bytes32 channelId = NitroUtils.getChannelId(fixedPart);
-        uint48 largestTurnNum = _lastVariablePart(signedVariableParts).turnNum;
+        uint48 largestTurnNum = candidate.variablePart.turnNum;
 
         // checks
         _requireChannelNotFinalized(channelId);
         _requireIncreasedTurnNumber(channelId, largestTurnNum);
-        _requireStateSupportedBy(fixedPart, signedVariableParts, channelId);
+        _requireStateSupported(fixedPart, proof, candidate);
 
         // effects
         _clearChallenge(channelId, largestTurnNum);
@@ -115,30 +117,34 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
      * @dev Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
+     * @param proof An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update. The proof is a validation for the supplied candidate.
+     * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to. The candidate state is supported by proof states.
      */
-    function conclude(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
-        external
-        override
-    {
-        _conclude(fixedPart, signedVariableParts);
+    function conclude(
+        FixedPart memory fixedPart,
+        SignedVariablePart[] memory proof,
+        SignedVariablePart memory candidate
+    ) external override {
+        _conclude(fixedPart, proof, candidate);
     }
 
     /**
      * @notice Finalizes a channel by providing a finalization proof. Internal method.
      * @dev Finalizes a channel by providing a finalization proof. Internal method.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
+     * @param proof An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update. The proof is a validation for the supplied candidate.
+     * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to. The candidate state is supported by proof states.
      */
-    function _conclude(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
-        internal
-        returns (bytes32 channelId)
-    {
+    function _conclude(
+        FixedPart memory fixedPart,
+        SignedVariablePart[] memory proof,
+        SignedVariablePart[] memory candidate
+    ) internal returns (bytes32 channelId) {
         channelId = NitroUtils.getChannelId(fixedPart);
         _requireChannelNotFinalized(channelId);
 
         // checks
-        _requireStateSupportedBy(fixedPart, signedVariableParts, channelId);
+        _requireStateSupported(fixedPart, proof, candidate);
 
         // effects
         statusOf[channelId] = _generateStatus(
@@ -146,9 +152,10 @@ contract ForceMove is IForceMove, StatusManager {
                 0,
                 uint48(block.timestamp), //solhint-disable-line not-rely-on-time
                 bytes32(0),
-                NitroUtils.hashOutcome(_lastVariablePart(signedVariableParts).outcome)
+                NitroUtils.hashOutcome(candidate.variablePart.outcome)
             )
         );
+
         emit Concluded(channelId, uint48(block.timestamp)); //solhint-disable-line not-rely-on-time
     }
 
@@ -200,32 +207,22 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Check that the submitted data constitute a support proof.
-     * @dev Check that the submitted data constitute a support proof.
+     * @notice Check that the submitted data constitute a support proof, revert if not.
+     * @dev Check that the submitted data constitute a support proof, revert if not.
      * @param fixedPart Fixed Part of the states in the support proof.
-     * @param signedVariableParts Signed variable parts of the states in the support proof.
-     * @param channelId Unique identifier for a channel.
-     * @return The hash of the latest state in the proof, if supported, else reverts.
+     * @param proof Variable parts of the states with signatures in the support proof. The proof is a validation for the supplied candidate.
+     * @param candidate Variable part of the state to change to. The candidate state is supported by proof states.
      */
-    function _requireStateSupportedBy(
+    function _requireStateSupported(
         FixedPart memory fixedPart,
-        SignedVariablePart[] memory signedVariableParts,
-        bytes32 channelId
+        SignedVariablePart[] memory proof,
+        SignedVariablePart memory candidate
     ) internal pure returns (bytes32) {
-        VariablePart memory latestVariablePart = IForceMoveApp(fixedPart.appDefinition)
-            .latestSupportedState(fixedPart, recoverVariableParts(fixedPart, signedVariableParts));
-
-        // enforcing the latest supported state being in the last slot of the array
-        _requireVariablePartIsLast(latestVariablePart, signedVariableParts);
-
-        return
-            NitroUtils.hashState(
-                channelId,
-                latestVariablePart.appData,
-                latestVariablePart.outcome,
-                latestVariablePart.turnNum,
-                latestVariablePart.isFinal
-            );
+        IForceMoveApp(fixedPart.appDefinition).requireStateSupported(
+            fixedPart,
+            recoverVariableParts(fixedPart, signedVariableParts),
+            recoverVariablePart(fixedPart, candidate)
+        );
     }
 
     /**
@@ -278,25 +275,6 @@ contract ForceMove is IForceMove, StatusManager {
             }
         }
         return rvp;
-    }
-
-    /**
-     * @notice Check whether supplied variablePart is in the last slot if variableParts.
-     * @dev Check whether supplied variablePart is in the last slot if variableParts.
-     * @param variablePart VariablePart to be in the last slot.
-     * @param signedVariableParts SignedVariableParts the last slot of to check.
-     */
-    function _requireVariablePartIsLast(
-        VariablePart memory variablePart,
-        SignedVariablePart[] memory signedVariableParts
-    ) internal pure {
-        require(
-            NitroUtils.bytesEqual(
-                abi.encode(signedVariableParts[signedVariableParts.length - 1].variablePart),
-                abi.encode(variablePart)
-            ),
-            'variablePart not the last.'
-        );
     }
 
     /**
@@ -363,19 +341,5 @@ contract ForceMove is IForceMove, StatusManager {
      */
     function _matchesStatus(ChannelData memory data, bytes32 s) internal pure returns (bool) {
         return _generateStatus(data) == s;
-    }
-
-    /**
-     * @notice Returns the last VariablePart from array of SignedVariableParts.
-     * @dev Returns the last VariablePart from array of SignedVariableParts.
-     * @param signedVariableParts Array of SignedVariableParts.
-     * @return VariablePart Last VariablePart from array.
-     */
-    function _lastVariablePart(SignedVariablePart[] memory signedVariableParts)
-        internal
-        pure
-        returns (VariablePart memory)
-    {
-        return signedVariableParts[signedVariableParts.length - 1].variablePart;
     }
 }
