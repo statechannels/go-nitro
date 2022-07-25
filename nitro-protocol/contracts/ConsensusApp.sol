@@ -10,20 +10,22 @@ import './libraries/NitroUtils.sol';
  */
 contract ConsensusApp is IForceMoveApp {
     /**
-     * @notice Encodes consensus app rules.
-     * @dev Encodes consensus app rules.
-     * @return last variable part.
+     * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel.
+     * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel.
+     * @param fixedPart Fixed part of the state channel.
+     * @param proof Array of recovered variable parts which constitutes a support proof for the candidate.
+     * @param candidate Recovered variable part the proof was supplied for.
      */
-    function latestSupportedState(
+    function requireStateSupported(
         FixedPart calldata fixedPart,
-        RecoveredVariablePart[] calldata recoveredVariableParts
-    ) external pure override returns (VariablePart memory) {
-        require(recoveredVariableParts.length == 1, '|signedVariableParts|!=1');
+        RecoveredVariablePart[] calldata proof,
+        RecoveredVariablePart calldata candidate
+    ) external pure override {
+        require(proof.length == 0, '|proof|!=0');
         require(
-            NitroUtils.getClaimedSignersNum(recoveredVariableParts[0].signedBy) ==
+            NitroUtils.getClaimedSignersNum(candidate.signedBy) ==
                 fixedPart.participants.length,
             '!unanimous'
         );
-        return recoveredVariableParts[0].variablePart;
     }
 }
