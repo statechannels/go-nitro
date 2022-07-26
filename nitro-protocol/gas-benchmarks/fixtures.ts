@@ -226,11 +226,10 @@ export const LforJ = new TestChannel(
     {
       destination: J.channelId,
       amount: amountForAliceAndBob,
-      metadata: encodeGuaranteeData([
-        X.channelId,
-        convertAddressToBytes32(Alice.address),
-        convertAddressToBytes32(Ingrid.address),
-      ]),
+      metadata: encodeGuaranteeData({
+        left: convertAddressToBytes32(Alice.address),
+        right: convertAddressToBytes32(Ingrid.address),
+      }),
       allocationType: AllocationType.guarantee,
     },
   ]

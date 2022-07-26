@@ -60,7 +60,6 @@ interface IMultiAssetHolder {
         bytes32 targetStateHash;
         bytes targetOutcomeBytes;
         uint256 targetAssetIndex;
-        uint256[] targetAllocationIndicesToPayout;
     }
 
     /**
@@ -68,7 +67,7 @@ interface IMultiAssetHolder {
      * @dev Transfers as many funds escrowed against `sourceChannelId` as can be afforded for the destinations specified by indices in the beneficiaries of the __target__ of the channel at indexOfTargetInSource.
      * @param claimArgs arguments used in the claim function. Used to avoid stack too deep error.
      */
-    function claim(ClaimArgs memory claimArgs) external;
+    function reclaim(ClaimArgs memory claimArgs) external;
 
     /**
      * @dev Indicates that `amountDeposited` has been deposited into `destination`.

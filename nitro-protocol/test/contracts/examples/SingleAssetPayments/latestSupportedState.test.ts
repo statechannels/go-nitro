@@ -32,7 +32,7 @@ const addresses = {
   B: randomExternalDestination(),
   C: randomExternalDestination(),
 };
-const guaranteeDestinations = [addresses.A];
+const guaranteeData = {left: addresses.A, right: addresses.B};
 
 const participants = ['', '', ''];
 const wallets = new Array(3);
@@ -105,7 +105,7 @@ describe('validTransition', () => {
           destination: key,
           amount: balancesA[key].toString(),
           allocationType: isAllocation[0] ? AllocationType.simple : AllocationType.guarantee,
-          metadata: isAllocation[0] ? '0x' : encodeGuaranteeData(guaranteeDestinations),
+          metadata: isAllocation[0] ? '0x' : encodeGuaranteeData(guaranteeData),
         })
       );
       const outcomeA: Outcome = [
@@ -124,7 +124,7 @@ describe('validTransition', () => {
           destination: key,
           amount: balancesB[key].toString(),
           allocationType: isAllocation[1] ? AllocationType.simple : AllocationType.guarantee,
-          metadata: isAllocation[1] ? '0x' : encodeGuaranteeData(guaranteeDestinations),
+          metadata: isAllocation[1] ? '0x' : encodeGuaranteeData(guaranteeData),
         })
       );
 
