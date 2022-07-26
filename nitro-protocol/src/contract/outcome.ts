@@ -1,4 +1,4 @@
-import {defaultAbiCoder, ParamType} from '@ethersproject/abi';
+import {defaultAbiCoder} from '@ethersproject/abi';
 import * as ExitFormat from '@statechannels/exit-format';
 import {BytesLike, constants, utils} from 'ethers';
 

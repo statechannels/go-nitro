@@ -1,4 +1,3 @@
-import {expectRevert} from '@statechannels/devtools';
 import {Contract, constants, BigNumber} from 'ethers';
 import {it} from '@jest/globals';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
@@ -7,21 +6,12 @@ import {
   getTestProvider,
   randomChannelId,
   randomExternalDestination,
-  replaceAddressesAndBigNumberify,
   setupContract,
-  AssetOutcomeShortHand,
 } from '../../test-helpers';
 import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
-import {
-  channelDataToStatus,
-  convertAddressToBytes32,
-  convertBytes32ToAddress,
-  encodeOutcome,
-  hashOutcome,
-  Outcome,
-} from '../../../src';
+import {channelDataToStatus, encodeOutcome, hashOutcome, Outcome} from '../../../src';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../src/transactions';
 import {encodeGuaranteeData} from '../../../src/contract/outcome';
 const provider = getTestProvider();
