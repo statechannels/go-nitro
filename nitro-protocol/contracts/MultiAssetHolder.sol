@@ -307,8 +307,9 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         targetOutcome = Outcome.decodeExit(targetOutcomeBytes);
         address asset = sourceOutcome[sourceAssetIndex].asset;
         require(
-            sourceOutcome[sourceAssetIndex].allocations[claimArgs.indexOfTargetInSource].allocationType ==
-                uint8(Outcome.AllocationType.guarantee),
+            sourceOutcome[sourceAssetIndex]
+                .allocations[claimArgs.indexOfTargetInSource]
+                .allocationType == uint8(Outcome.AllocationType.guarantee),
             'not a guarantee allocation'
         );
 
