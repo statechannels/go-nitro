@@ -54,7 +54,7 @@ export function hashOutcome(outcome: Outcome): Bytes32 {
   return utils.keccak256(encodedOutcome);
 }
 
-interface Guarantee {
+export interface Guarantee {
   left: Bytes32;
   right: Bytes32;
 }
@@ -64,7 +64,8 @@ export function encodeGuaranteeData(guarantee: Guarantee): BytesLike {
 }
 
 export function decodeGuaranteeData(data: BytesLike): Guarantee {
-  return defaultAbiCoder.decode(['tuple(bytes32 left, bytes32 right)'], data)[0];
+  const result = defaultAbiCoder.decode(['tuple(bytes32 left, bytes32 right)'], data);
+  return {left: result[0][0], right: result[0][1]};
 }
 
 //
