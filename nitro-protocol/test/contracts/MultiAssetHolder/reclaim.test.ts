@@ -65,7 +65,7 @@ describe('reclaim', () => {
     await (
       await testNitroAdjudicator.setStatusFromChannelData(targetId, {
         turnNumRecord: 99,
-        finalizesAt: 0,
+        finalizesAt: 1,
         stateHash: constants.HashZero, // not realistic, but OK for purpose of this test
         outcomeHash: vOutcomeHash,
       })
@@ -101,7 +101,7 @@ describe('reclaim', () => {
     await (
       await testNitroAdjudicator.setStatusFromChannelData(sourceId, {
         turnNumRecord: 99,
-        finalizesAt: 0,
+        finalizesAt: 1,
         stateHash: constants.HashZero, // not realistic, but OK for purpose of this test
         outcomeHash: lOutcomeHash,
       })
@@ -131,26 +131,42 @@ describe('reclaim', () => {
     // assert on updated ledger channel
 
     // Check new outcomeHash
-    const allocationAfter: Allocation[] = [];
+    const allocationAfter: Allocation[] = [
+      {
+        destination: Alice,
+        amount: BigNumber.from(17).toHexString(),
+        allocationType: AllocationType.simple,
+        metadata: '0x',
+      },
+      {
+        destination: Irene,
+        amount: BigNumber.from(13).toHexString(),
+        allocationType: AllocationType.simple,
+        metadata: '0x',
+      },
+    ];
+
     const outcomeAfter: Outcome = [
       {asset: MAGIC_ADDRESS_INDICATING_ETH, allocations: allocationAfter, metadata: '0x'},
     ];
     const expectedStatusAfter = channelDataToStatus({
       turnNumRecord: 99,
-      finalizesAt: 0,
+      finalizesAt: 1,
       // stateHash will be set to HashZero by this helper fn
       // if state property of this object is undefined
       outcome: outcomeAfter,
     });
+
     expect(await testNitroAdjudicator.statusOf(sourceId)).toEqual(expectedStatusAfter);
 
     // assert that virtual channel did not change.
 
-    expect(await testNitroAdjudicator.statusOf(targetId)).toEqual({
-      turnNumRecord: 99,
-      finalizesAt: 0,
-      stateHash: constants.HashZero, // not realistic, but OK for purpose of this test
-      outcomeHash: vOutcomeHash,
-    });
+    expect(await testNitroAdjudicator.statusOf(targetId)).toEqual(
+      channelDataToStatus({
+        turnNumRecord: 99,
+        finalizesAt: 1,
+        outcome: vOutcome,
+      })
+    );
   });
 });
