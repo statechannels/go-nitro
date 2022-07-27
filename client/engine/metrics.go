@@ -25,16 +25,6 @@ type MetricsApi interface {
 	//   requests_received,tag1=value1,tag2=value2,tag3=value3
 	RecordPoint(name string, value float64)
 
-	// Counter creates a measurement of counter type. The returned type is an
-	// alias of go-metrics' Counter type. Refer to godocs there for details.
-	//
-	// The format of the metric name is a comma-separated list, where the first
-	// element is the metric name, and optionally, an unbounded list of
-	// key-value pairs. Example:
-	//
-	//   requests_received,tag1=value1,tag2=value2,tag3=value3
-	Counter(name string) metrics.Counter
-
 	// Timer creates a measurement of timer type.
 	// The returned type is an alias of go-metrics' Timer type. Refer to
 	// godocs there for details.
@@ -60,10 +50,6 @@ type MetricsApi interface {
 
 // NewNoOpMetrics returns a MetricsApi that does nothing.
 type NoOpMetrics struct{}
-
-func (n *NoOpMetrics) Counter(name string) metrics.Counter {
-	return metrics.NilCounter{}
-}
 
 func (n *NoOpMetrics) Timer(name string) metrics.Timer {
 	return metrics.NilTimer{}
@@ -118,7 +104,6 @@ func (o *MetricsRecorder) RecordFunctionDuration() func() {
 // RecordObjectiveStarted records metrics about the start of an objective
 // This should be called when an objective is first created
 func (o *MetricsRecorder) RecordObjectiveStarted(id protocols.ObjectiveId) {
-	o.metrics.Counter(o.addMyAddress("active_objective_count")).Inc(1)
 	o.startTimes[id] = time.Now()
 }
 
@@ -132,8 +117,6 @@ func (o *MetricsRecorder) RecordObjectiveCompleted(id protocols.ObjectiveId) {
 
 	timer := o.metrics.Timer(o.addMyAddress("objective_complete_time") + fmt.Sprintf(",type=%s", oType))
 	timer.Update(elapsed)
-	o.metrics.Counter(o.addMyAddress("objective_complete_count")).Inc(1)
-	o.metrics.Counter(o.addMyAddress("active_objective_count")).Dec(1)
 
 	delete(o.startTimes, id)
 
