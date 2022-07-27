@@ -178,7 +178,6 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (ObjectiveC
 //  - attempts progress on the target Objective,
 //  - attempts progress on related objectives which may have become unblocked.
 func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent, error) {
-
 	e.logger.Printf("Handling inbound message %+v", protocols.SummarizeMessage(message))
 	allCompleted := ObjectiveChangeEvent{}
 
@@ -200,20 +199,26 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 					e.store.DestroyConsensusChannel(ddfo.C.Id)
 				}
 			} else {
-				objective = objective.Reject()
+				objective, sideEffects := objective.Reject()
 				err = e.store.SetObjective(objective)
 				if err != nil {
 					return ObjectiveChangeEvent{}, err
 				}
 
 				allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
-				// TODO: send rejection notice
-				return allCompleted, nil
+				err = e.executeSideEffects(sideEffects)
+				// An error would mean we failed to send a message. But the objective is still "completed".
+				// So, we should return allCompleted even if there was an error.
+				return allCompleted, err
 			}
 		}
 
 		if objective.GetStatus() == protocols.Completed {
 			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
+			continue
+		}
+		if objective.GetStatus() == protocols.Rejected {
+			e.logger.Printf("Ignoring payload for rejected objective  %s", objective.Id())
 			continue
 		}
 
@@ -271,6 +276,29 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 			return ObjectiveChangeEvent{}, err
 		}
 
+	}
+
+	for _, entry := range message.RejectedObjectives() {
+		objective, err := e.store.GetObjectiveById(entry.ObjectiveId)
+
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+		if objective.GetStatus() == protocols.Rejected {
+			e.logger.Printf("Ignoring payload for rejected objective  %s", objective.Id())
+			continue
+		}
+
+		// we are rejecting due to a counterparty message notifying us of their rejection. We
+		// do not need to send a message back to that counterparty, and furthermore we assume that
+		// counterparty has already notified all other interested parties. We can therefore ignore the side effects
+		objective, _ = objective.Reject()
+		err = e.store.SetObjective(objective)
+		if err != nil {
+			return ObjectiveChangeEvent{}, err
+		}
+
+		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
 	}
 	return allCompleted, nil
 

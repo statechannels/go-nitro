@@ -58,14 +58,11 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 
 	meanMessageDelay := time.Duration(0)
 	clientA, storeA := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, meanMessageDelay)
-	var (
-		clientB client.Client
-		storeB  store.Store
-	)
+	var storeB store.Store
 	{
 		messageservice := messageservice.NewTestMessageService(bob.Address(), broker, meanMessageDelay)
 		storeB = store.NewMemStore(bob.PrivateKey)
-		clientB = client.New(messageservice, chainServiceB, storeB, logDestination, &RejectingPolicyMaker{}, nil)
+		_ = client.New(messageservice, chainServiceB, storeB, logDestination, &RejectingPolicyMaker{}, nil)
 	}
 
 	outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), ledgerChannelDeposit, ledgerChannelDeposit)
@@ -79,12 +76,12 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 
 	response := clientA.CreateLedgerChannel(request)
 
-	waitTimeForCompletedObjectiveIds(t, &clientB, time.Second, response.Id)
+	waitTimeForCompletedObjectiveIds(t, &clientA, time.Second, response.Id)
 
 	obj, _ := storeA.GetObjectiveById(response.Id)
 
-	if obj.GetStatus() != protocols.Approved {
-		t.Error("expected objective to be in progress")
+	if obj.GetStatus() != protocols.Rejected {
+		t.Error("expected objective to be rejected")
 		t.FailNow()
 	}
 
@@ -94,8 +91,6 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 		t.Error("expected objective to be rejected")
 		t.FailNow()
 	}
-
-	t.Logf("%+v", response)
 }
 
 // TestDirectFund uses the geth simulated backend
