@@ -27,7 +27,7 @@ func NewReceiptManager() *ReceiptManager {
 	return &ReceiptManager{channels}
 }
 
-// Register registers a channel for use, given the
+// Register registers a channel for use, given the sender and starting balance of the channel
 func (pm ReceiptManager) Register(channelId types.Destination, sender common.Address, startingBalance *big.Int) error {
 	balance := &big.Int{}
 	balance.Set(startingBalance)
