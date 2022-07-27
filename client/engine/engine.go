@@ -112,10 +112,14 @@ func (e *Engine) Run() {
 	for {
 		var res ObjectiveChangeEvent
 		var err error
+
+		e.metrics.RecordQueueLength("api_events_queue", len(e.FromAPI))
+		e.metrics.RecordQueueLength("chain_events_queue", len(e.fromChain))
+		e.metrics.RecordQueueLength("messages_queue", len(e.fromMsg))
+		e.metrics.RecordQueueLength("proposal_queue", len(e.fromLedger))
+
 		select {
 		case apiEvent := <-e.FromAPI:
-
-			e.metrics.RecordQueueLength("incoming_api_events", len(e.fromMsg))
 			res, err = e.handleAPIEvent(apiEvent)
 
 			if errors.Is(err, directdefund.ErrNotEmpty) {
@@ -125,12 +129,8 @@ func (e *Engine) Run() {
 			}
 
 		case chainEvent := <-e.fromChain:
-			e.metrics.RecordQueueLength("incoming_chain_events", len(e.fromMsg))
-
 			res, err = e.handleChainEvent(chainEvent)
-
 		case message := <-e.fromMsg:
-			e.metrics.RecordQueueLength("incoming_messages", len(e.fromMsg))
 			res, err = e.handleMessage(message)
 		case proposal := <-e.fromLedger:
 			res, err = e.handleProposal(proposal)
@@ -477,7 +477,7 @@ func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 // getOrCreateObjective retrieves the objective from the store. if the objective does not exist, it creates the objective using the supplied signed state, and stores it in the store
 func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedState) (protocols.Objective, error) {
 	defer e.metrics.RecordFunctionDuration()()
-	
+
 	objective, err := e.store.GetObjectiveById(id)
 
 	if err == nil {
