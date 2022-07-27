@@ -114,30 +114,26 @@ func (e *Engine) Run() {
 		var err error
 		select {
 		case apiEvent := <-e.FromAPI:
-			e.metrics.RecordDuration("handle_api_event", func() {
-				e.metrics.RecordQueueLength("incoming_api_events", len(e.fromMsg))
-				res, err = e.handleAPIEvent(apiEvent)
 
-				if errors.Is(err, directdefund.ErrNotEmpty) {
-					// communicate failure to client & swallow error
-					e.toApi <- res
-					err = nil
-				}
-			})
+			e.metrics.RecordQueueLength("incoming_api_events", len(e.fromMsg))
+			res, err = e.handleAPIEvent(apiEvent)
+
+			if errors.Is(err, directdefund.ErrNotEmpty) {
+				// communicate failure to client & swallow error
+				e.toApi <- res
+				err = nil
+			}
+
 		case chainEvent := <-e.fromChain:
 			e.metrics.RecordQueueLength("incoming_chain_events", len(e.fromMsg))
-			e.metrics.RecordDuration("handle_chain_event", func() {
-				res, err = e.handleChainEvent(chainEvent)
-			})
+
+			res, err = e.handleChainEvent(chainEvent)
+
 		case message := <-e.fromMsg:
 			e.metrics.RecordQueueLength("incoming_messages", len(e.fromMsg))
-			e.metrics.RecordDuration("handle_message", func() {
-				res, err = e.handleMessage(message)
-			})
+			res, err = e.handleMessage(message)
 		case proposal := <-e.fromLedger:
-			e.metrics.RecordDuration("handle_proposal", func() {
-				res, err = e.handleProposal(proposal)
-			})
+			res, err = e.handleProposal(proposal)
 		}
 
 		// Handle errors
@@ -163,6 +159,8 @@ func (e *Engine) Run() {
 // a running ledger channel by pulling its corresponding objective
 // from the store and attempting progress.
 func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (ObjectiveChangeEvent, error) {
+	defer e.metrics.RecordFunctionDuration()()
+
 	id := getProposalObjectiveId(proposal)
 	obj, err := e.store.GetObjectiveById(id)
 	if err != nil {
@@ -178,6 +176,8 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (ObjectiveC
 //   - attempts progress on the target Objective,
 //   - attempts progress on related objectives which may have become unblocked.
 func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent, error) {
+	defer e.metrics.RecordFunctionDuration()()
+
 	e.logger.Printf("Handling inbound message %+v", protocols.SummarizeMessage(message))
 	allCompleted := ObjectiveChangeEvent{}
 
@@ -310,6 +310,7 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 //   - generates an updated objective, and
 //   - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChangeEvent, error) {
+	defer e.metrics.RecordFunctionDuration()()
 	e.logger.Printf("handling chain event %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
 	if !ok {
@@ -336,6 +337,7 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 //   - Reject an existing objective (if not null)
 //   - Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error) {
+	defer e.metrics.RecordFunctionDuration()()
 	if apiEvent.ObjectiveToSpawn != nil {
 
 		switch request := (apiEvent.ObjectiveToSpawn).(type) {
@@ -386,6 +388,8 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
+	defer e.metrics.RecordFunctionDuration()()
+
 	for _, message := range sideEffects.MessagesToSend {
 
 		e.logger.Printf("Sending message %+v", protocols.SummarizeMessage(message))
@@ -413,15 +417,14 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 //  4. It executes any side effects that were declared during cranking
 //  5. It updates progress metadata in the store
 func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent, err error) {
+	defer e.metrics.RecordFunctionDuration()()
 
 	secretKey := e.store.GetChannelSecretKey()
 	var crankedObjective protocols.Objective
 	var sideEffects protocols.SideEffects
 	var waitingFor protocols.WaitingFor
 
-	e.metrics.RecordDuration("crank", func() {
-		crankedObjective, sideEffects, waitingFor, err = objective.Crank(secretKey)
-	})
+	crankedObjective, sideEffects, waitingFor, err = objective.Crank(secretKey)
 
 	if err != nil {
 		return
@@ -454,6 +457,8 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 //
 // The associated Channel will remain in the store.
 func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
+	defer e.metrics.RecordFunctionDuration()()
+
 	if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
 		c, err := dfo.CreateConsensusChannel()
 		if err != nil {
@@ -471,7 +476,8 @@ func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 
 // getOrCreateObjective retrieves the objective from the store. if the objective does not exist, it creates the objective using the supplied signed state, and stores it in the store
 func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedState) (protocols.Objective, error) {
-
+	defer e.metrics.RecordFunctionDuration()()
+	
 	objective, err := e.store.GetObjectiveById(id)
 
 	if err == nil {
@@ -497,6 +503,7 @@ func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedS
 
 // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied message.
 func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss state.SignedState) (protocols.Objective, error) {
+	defer e.metrics.RecordFunctionDuration()()
 
 	switch {
 	case directfund.IsDirectFundObjective(id):
