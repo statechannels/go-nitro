@@ -528,7 +528,6 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     }
 
     struct Guarantee {
-        // TODO absorb into exit format
         bytes32 left;
         bytes32 right;
     }
