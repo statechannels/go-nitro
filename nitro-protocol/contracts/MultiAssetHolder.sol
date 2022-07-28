@@ -384,7 +384,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     }
 
     /**
-     * @dev Applies precomputed side effects for claim. Updates the holdings of the source channel. Updates the fingerprint of the outcome for the source and the target channel. Emits an event for each channel.
+     * @dev Updates the fingerprint of the outcome for the source channel and emit an event for it.
      */
     function _apply_reclaim_effects(
         ClaimArgs memory claimArgs,
