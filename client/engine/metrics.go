@@ -78,7 +78,7 @@ func NewMetricsRecorder(me types.Address, metrics MetricsApi) *MetricsRecorder {
 	}
 }
 
-// RecordMessageReceived records the duration of the function
+// RecordFunctionDuration records the duration of the function
 // It should be called at the start of the function like so  `defer e.metrics.RecordFunctionDuration()()`
 func (o *MetricsRecorder) RecordFunctionDuration() func() {
 	start := time.Now()
@@ -86,10 +86,10 @@ func (o *MetricsRecorder) RecordFunctionDuration() func() {
 
 		elapsed := time.Since(start)
 
-		// Skip this function, and fetch the PC  for its parent.
+		// Skip this function, and fetch the PC for its parent.
 		pc, _, _, _ := runtime.Caller(1)
 
-		// Retrieve a function object this functions parent.
+		// Retrieve a function object this function's parent.
 		funcObj := runtime.FuncForPC(pc)
 
 		// Use a regex to strip out the module path
