@@ -79,12 +79,12 @@ func (rm *ReceiptManager) Receive(voucher Voucher) (*big.Int, error) {
 
 // Balance returns the balance of the channel
 func (rm *ReceiptManager) Balance(channelId types.Destination) (Balance, error) {
-	balance := Balance{&big.Int{}, &big.Int{}}
 	data, ok := rm.channels[channelId]
 	if !ok {
-		return balance, fmt.Errorf("channel not found")
+		return Balance{}, fmt.Errorf("channel not found")
 	}
 
+	balance := Balance{&big.Int{}, &big.Int{}}
 	balance.Paid.Set(data.largestVoucher.amount)
 	balance.Remaining.Sub(data.startingBalance, data.largestVoucher.amount)
 	return balance, nil

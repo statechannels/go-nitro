@@ -83,11 +83,12 @@ func (pm *PaymentManager) Pay(channelId types.Destination, amount *big.Int, pk [
 
 // Balance returns the balance of the channel
 func (pm *PaymentManager) Balance(channelId types.Destination) (Balance, error) {
-	balance := Balance{&big.Int{}, &big.Int{}}
 	stored, ok := pm.channels[channelId]
 	if !ok {
-		return balance, fmt.Errorf("channel not found")
+		return Balance{}, fmt.Errorf("channel not found")
 	}
+
+	balance := Balance{&big.Int{}, &big.Int{}}
 	balance.Paid.Set(stored.Paid)
 	balance.Remaining.Set(stored.Remaining)
 
