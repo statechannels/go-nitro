@@ -41,15 +41,14 @@ interface IMultiAssetHolder {
     ) external;
 
     /**
-     * @param sourceChannelId Unique identifier for a guarantor state channel.
-     * @param sourceStateHash Hash of the state stored when the guarantor channel finalized.
-     * @param sourceOutcomeBytes The abi.encode of guarantor channel outcome
+     * @param sourceChannelId Id of a ledger channel containing a guarantee.
+     * @param sourceStateHash Hash of the state stored when the source channel finalized.
+     * @param sourceOutcomeBytes The abi.encode of source channel outcome
      * @param sourceAssetIndex the index of the targetted asset in the source outcome.
      * @param indexOfTargetInSource The index of the guarantee allocation to the target channel in the source outcome.
      * @param targetStateHash Hash of the state stored when the target channel finalized.
      * @param targetOutcomeBytes The abi.encode of target channel outcome
      * @param targetAssetIndex the index of the targetted asset in the target outcome.
-     * @param targetAllocationIndicesToPayout Array with each entry denoting the index of a destination (in the target channel) to transfer funds to. Should be in increasing order. An empty array indicates "all"
      */
     struct ClaimArgs {
         bytes32 sourceChannelId;
