@@ -98,7 +98,7 @@ const testcase1: TestCase = {
 
 const testCases: TestCase[][] = [[testcase1]];
 
-describe('computeReClaimEffects', () => {
+describe('computeReclaimEffects', () => {
   it.each(testCases)('off chain method matches expectation', (testCase: TestCase) => {
     const offChainNewSourceAllocations = computeReclaimEffects(
       testCase.inputs.sourceAllocations,

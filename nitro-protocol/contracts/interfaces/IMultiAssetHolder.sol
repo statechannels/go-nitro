@@ -63,8 +63,8 @@ interface IMultiAssetHolder {
     }
 
     /**
-     * @notice Transfers as many funds escrowed against `sourceChannelId` as can be afforded for the destinations specified by indices in the beneficiaries of the __target__ of the channel at indexOfTargetInSource.
-     * @dev Transfers as many funds escrowed against `sourceChannelId` as can be afforded for the destinations specified by indices in the beneficiaries of the __target__ of the channel at indexOfTargetInSource.
+     * @notice Reclaim moves money from a target channel back into a ledger channel which is guaranteeing it. The guarantee is removed from the ledger channel.
+     * @dev Reclaim moves money from a target channel back into a ledger channel which is guaranteeing it. The guarantee is removed from the ledger channel.
      * @param claimArgs arguments used in the claim function. Used to avoid stack too deep error.
      */
     function reclaim(ClaimArgs memory claimArgs) external;

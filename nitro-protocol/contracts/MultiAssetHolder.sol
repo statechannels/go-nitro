@@ -271,7 +271,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     }
 
     /**
-     * @dev Checks that targetAllocationIndicesToPayout are increasing; that the source and target channels are finalized; that the supplied outcomes match the stored fingerprints; that the asset is identical in source and target. Computes and returns: the decoded outcomes, the asset being targetted; the number of assets held against the guarantor.
+     * @dev Checks that the source and target channels are finalized; that the supplied outcomes match the stored fingerprints; that the asset is identical in source and target. Computes and returns the decoded outcomes.
      */
     function _apply_reclaim_checks(ClaimArgs memory claimArgs)
         internal
@@ -328,7 +328,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     }
 
     /**
-     * @dev Computes side effects for the claim function. Rreturns updated allocations for the source, computed by finding the guarantee in the source for the target, and moving money out of the guarantee and back into the ledger channel as regular allocations for the participants.
+     * @dev Computes side effects for the claim function. Returns updated allocations for the source, computed by finding the guarantee in the source for the target, and moving money out of the guarantee and back into the ledger channel as regular allocations for the participants.
      */
     function compute_reclaim_effects(
         Outcome.Allocation[] memory sourceAllocations,
@@ -336,7 +336,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         uint256 indexOfTargetInSource
     ) public pure returns (Outcome.Allocation[] memory) {
         Outcome.Allocation[] memory newSourceAllocations = new Outcome.Allocation[](
-            sourceAllocations.length - 1
+            sourceAllocations.length - 1 // is one slot shorter as we remove the guarantee
         );
 
         Outcome.Allocation memory guarantee = sourceAllocations[indexOfTargetInSource];

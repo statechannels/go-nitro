@@ -24,7 +24,8 @@ const testNitroAdjudicator: TESTNitroAdjudicator & Contract = setupContract(
 
 // Amounts are valueString representations of wei
 describe('reclaim', () => {
-  it('handles a simpe case as expected', async () => {
+// TODO: add a test case to show off a multihop reclaim, where we have Alice, Irene, Ivan and Bob. 
+  it('handles a simple case as expected', async () => {
     const targetId = randomChannelId();
     const sourceId = randomChannelId();
     const Alice = randomExternalDestination();
