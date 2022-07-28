@@ -340,13 +340,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         );
 
         Outcome.Allocation memory guarantee = sourceAllocations[indexOfTargetInSource];
-
-        require(
-            guarantee.allocationType == uint8(Outcome.AllocationType.guarantee),
-            'not a guarantee'
-        );
-
-        Guarantee memory guaranteeData = decodeGuaranteeData(guarantee.metadata); // This is [left, right] TODO make this explicit using a struct
+        Guarantee memory guaranteeData = decodeGuaranteeData(guarantee.metadata);
 
         bool foundTarget = false;
         bool foundLeft = false;
