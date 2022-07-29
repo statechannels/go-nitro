@@ -25,6 +25,8 @@ library ShortcuttingTurnTaking {
         uint256 nParticipants = fixedPart.participants.length;
         uint48 largestTurnNum = candidate.variablePart.turnNum;
 
+        uint256 test = proof.length;
+
         _requireValidInput(nParticipants, proof, candidate);
 
         // The difference between the support proof candidate turn number (aka largestTurnNum) and the round robin cycle last turn number.
@@ -145,8 +147,11 @@ library ShortcuttingTurnTaking {
         // no more than 255 participants
         require(nParticipants <= type(uint8).max, 'Too many participants'); // type(uint8).max = 2**8 - 1 = 255
 
-        uint256 turnNumDelta = largestTurnNum - proof[0].variablePart.turnNum;
-        require(turnNumDelta <= nParticipants, 'Only one round-robin allowed');
+        // when proof.length = 0, turnNumDelta is always = 0 and thus <= nParticipants
+        if (proof.length != 0) {
+            uint256 turnNumDelta = largestTurnNum - proof[0].variablePart.turnNum;
+            require(turnNumDelta <= nParticipants, 'Only one round-robin allowed');
+        }
 
         uint256 signedSoFar = 0;
         uint256 hasTwoSigs = 0;
