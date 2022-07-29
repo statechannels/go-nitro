@@ -8,7 +8,12 @@ const {defaultAbiCoder} = ethers.utils;
 import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
 import {Channel, getChannelId} from '../../../src/contract/channel';
 import {channelDataToStatus, ChannelData} from '../../../src/contract/channel-storage';
-import {getFixedPart, getVariablePart, State} from '../../../src/contract/state';
+import {
+  getFixedPart,
+  getVariablePart,
+  separateProofAndCandidate,
+  State,
+} from '../../../src/contract/state';
 import {
   CHALLENGER_NON_PARTICIPANT,
   CHANNEL_FINALIZED,
@@ -92,6 +97,7 @@ async function createSignedCountingAppState(
     wallets[turnNum % channel.participants.length].privateKey
   );
 }
+
 beforeAll(async () => {
   ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
 });
@@ -180,7 +186,9 @@ describe('challenge', () => {
 
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
-      const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
+      const {proof, candidate} = separateProofAndCandidate(
+        bindSignatures(variableParts, signatures, whoSignedWhat)
+      );
 
       const challengeState: SignedState = {
         state: states[states.length - 1],
@@ -208,11 +216,13 @@ describe('challenge', () => {
       // Set current channelStorageHashes value
       await (await ForceMove.setStatus(channelId, initialFingerprint)).wait();
 
-      const tx = ForceMove.challenge(fixedPart, signedVariableParts, challengeSignature);
+      const tx = ForceMove.challenge(fixedPart, proof, candidate, challengeSignature);
       if (reasonString) {
         await expectRevert(() => tx, reasonString);
       } else {
+        console.log(await tx);
         const receipt = await (await tx).wait();
+        console.log(receipt);
         const event = receipt.events.pop();
 
         // Catch ChallengeRegistered event
@@ -222,7 +232,8 @@ describe('challenge', () => {
           finalizesAt: eventFinalizesAt,
           isFinal: eventIsFinal,
           fixedPart: eventFixedPart,
-          signedVariableParts: eventSignedVariableParts,
+          proof: eventProof,
+          candidate: eventCandidate,
         } = event.args;
 
         // Check this information is enough to respond
@@ -235,15 +246,22 @@ describe('challenge', () => {
         expect(eventFixedPart[2]).toEqual(fixedPart.channelNonce);
         expect(eventFixedPart[3]).toEqual(fixedPart.appDefinition);
         expect(eventFixedPart[4]).toEqual(fixedPart.challengeDuration);
+
         expect(eventIsFinal).toEqual(isFinalCount > 0);
-        expect(
-          parseOutcomeEventResult(
-            eventSignedVariableParts[eventSignedVariableParts.length - 1].variablePart.outcome
-          )
-        ).toEqual(signedVariableParts[signedVariableParts.length - 1].variablePart.outcome);
-        expect(
-          eventSignedVariableParts[eventSignedVariableParts.length - 1].variablePart.appData
-        ).toEqual(signedVariableParts[signedVariableParts.length - 1].variablePart.appData);
+
+        if (proof.length > 0) {
+          expect(
+            parseOutcomeEventResult(eventProof[eventProof.length - 1].variablePart.outcome)
+          ).toEqual(proof[proof.length - 1].variablePart.outcome);
+          expect(eventProof[eventProof.length - 1].variablePart.appData).toEqual(
+            proof[proof.length - 1].variablePart.appData
+          );
+        }
+
+        expect(parseOutcomeEventResult(eventCandidate.variablePart.outcome)).toEqual(
+          candidate.variablePart.outcome
+        );
+        expect(eventCandidate.variablePart.appData).toEqual(candidate.variablePart.appData);
 
         const expectedChannelStorage: ChannelData = {
           turnNumRecord: largestTurnNum,
