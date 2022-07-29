@@ -41,15 +41,14 @@ interface IMultiAssetHolder {
     ) external;
 
     /**
-     * @param sourceChannelId Unique identifier for a guarantor state channel.
-     * @param sourceStateHash Hash of the state stored when the guarantor channel finalized.
-     * @param sourceOutcomeBytes The abi.encode of guarantor channel outcome
+     * @param sourceChannelId Id of a ledger channel containing a guarantee.
+     * @param sourceStateHash Hash of the state stored when the source channel finalized.
+     * @param sourceOutcomeBytes The abi.encode of source channel outcome
      * @param sourceAssetIndex the index of the targetted asset in the source outcome.
      * @param indexOfTargetInSource The index of the guarantee allocation to the target channel in the source outcome.
      * @param targetStateHash Hash of the state stored when the target channel finalized.
      * @param targetOutcomeBytes The abi.encode of target channel outcome
      * @param targetAssetIndex the index of the targetted asset in the target outcome.
-     * @param targetAllocationIndicesToPayout Array with each entry denoting the index of a destination (in the target channel) to transfer funds to. Should be in increasing order. An empty array indicates "all"
      */
     struct ClaimArgs {
         bytes32 sourceChannelId;
@@ -60,15 +59,14 @@ interface IMultiAssetHolder {
         bytes32 targetStateHash;
         bytes targetOutcomeBytes;
         uint256 targetAssetIndex;
-        uint256[] targetAllocationIndicesToPayout;
     }
 
     /**
-     * @notice Transfers as many funds escrowed against `sourceChannelId` as can be afforded for the destinations specified by indices in the beneficiaries of the __target__ of the channel at indexOfTargetInSource.
-     * @dev Transfers as many funds escrowed against `sourceChannelId` as can be afforded for the destinations specified by indices in the beneficiaries of the __target__ of the channel at indexOfTargetInSource.
+     * @notice Reclaim moves money from a target channel back into a ledger channel which is guaranteeing it. The guarantee is removed from the ledger channel.
+     * @dev Reclaim moves money from a target channel back into a ledger channel which is guaranteeing it. The guarantee is removed from the ledger channel.
      * @param claimArgs arguments used in the claim function. Used to avoid stack too deep error.
      */
-    function claim(ClaimArgs memory claimArgs) external;
+    function reclaim(ClaimArgs memory claimArgs) external;
 
     /**
      * @dev Indicates that `amountDeposited` has been deposited into `destination`.
@@ -84,12 +82,21 @@ interface IMultiAssetHolder {
     );
 
     /**
-     * @dev Indicates the assetOutcome for this channelId and assetIndex has changed due to a transfer or claim. Includes sufficient data to compute:
+     * @dev Indicates the assetOutcome for this channelId and assetIndex has changed due to a transfer. Includes sufficient data to compute:
      * - the new assetOutcome
      * - the new holdings for this channelId and any others that were transferred to
      * - the payouts to external destinations
+     * when combined with the calldata of the transaction causing this event to be emitted.
      * @param channelId The channelId of the funds being withdrawn.
      * @param initialHoldings holdings[asset][channelId] **before** the allocations were updated. The asset in question can be inferred from the calldata of the transaction (it might be "all assets")
      */
     event AllocationUpdated(bytes32 indexed channelId, uint256 assetIndex, uint256 initialHoldings);
+
+    /**
+     * @dev Indicates the assetOutcome for this channelId and assetIndex has changed due to a reclaim. Includes sufficient data to compute:
+     * - the new assetOutcome
+     * when combined with the calldata of the transaction causing this event to be emitted.
+     * @param channelId The channelId of the funds being withdrawn.
+     */
+    event Reclaimed(bytes32 indexed channelId, uint256 assetIndex);
 }

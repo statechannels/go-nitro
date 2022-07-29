@@ -64,126 +64,65 @@ export function convertAddressToBytes32(address: string): string {
  * @param allocation
  * @param indices
  */
-export function computeClaimEffectsAndInteractions(
-  initialHoldings: string,
+export function computeReclaimEffects(
   sourceAllocations: ExitFormat.Allocation[], // we must index this with a JS number that is less than 2**32 - 1
   targetAllocations: ExitFormat.Allocation[], // we must index this with a JS number that is less than 2**32 - 1
-  indexOfTargetInSource: number,
-  targetAllocationIndicesToPayout: number[]
-): {
-  newSourceAllocations: ExitFormat.Allocation[];
-  newTargetAllocations: ExitFormat.Allocation[];
-  exitAllocations: ExitFormat.Allocation[];
-  totalPayouts: string;
-} {
-  let totalPayouts = BigNumber.from(0);
-  let k = 0;
+  indexOfTargetInSource: number
+): ExitFormat.Allocation[] {
+  const newSourceAllocations: ExitFormat.Allocation[] = []; // will be one slot shorter than sourceAllocations
+  const guarantee = sourceAllocations[indexOfTargetInSource];
 
-  // copy allocations
-  const newSourceAllocations: ExitFormat.Allocation[] = [];
-  const newTargetAllocations: ExitFormat.Allocation[] = [];
-  const exitAllocations: ExitFormat.Allocation[] = [];
+  if (guarantee.allocationType != AllocationType.guarantee) {
+    throw Error('not a guarantee');
+  }
+
+  const {left, right} = decodeGuaranteeData(guarantee.metadata);
+
+  let foundTarget = false;
+  let foundLeft = false;
+  let foundRight = false;
+
+  let k = 0;
   for (let i = 0; i < sourceAllocations.length; i++) {
-    newSourceAllocations.push({
+    if (i == indexOfTargetInSource) {
+      foundTarget = true;
+      continue;
+    }
+    newSourceAllocations[k] = {
       destination: sourceAllocations[i].destination,
       amount: sourceAllocations[i].amount,
-      metadata: sourceAllocations[i].metadata,
       allocationType: sourceAllocations[i].allocationType,
-    });
-  }
-  for (let i = 0; i < targetAllocations.length; i++) {
-    newTargetAllocations.push({
-      destination: targetAllocations[i].destination,
-      amount: targetAllocations[i].amount,
-      metadata: targetAllocations[i].metadata,
-      allocationType: targetAllocations[i].allocationType,
-    });
-    exitAllocations.push({
-      destination: targetAllocations[i].destination,
-      amount: '0x00',
-      metadata: targetAllocations[i].metadata,
-      allocationType: targetAllocations[i].allocationType,
-    });
-  }
+      metadata: sourceAllocations[i].metadata,
+    };
 
-  let sourceSurplus = BigNumber.from(initialHoldings);
-  for (
-    let sourceAllocationIndex = 0;
-    sourceAllocationIndex < indexOfTargetInSource;
-    sourceAllocationIndex++
-  ) {
-    if (BigNumber.from(sourceSurplus).isZero()) break;
-    const affordsForDestination = min(
-      BigNumber.from(sourceAllocations[sourceAllocationIndex].amount),
-      sourceSurplus
-    );
-    sourceSurplus = sourceSurplus.sub(affordsForDestination);
-  }
-
-  let targetSurplus = min(
-    sourceSurplus,
-    BigNumber.from(sourceAllocations[indexOfTargetInSource].amount)
-  );
-
-  if (sourceAllocations[indexOfTargetInSource].allocationType !== AllocationType.guarantee)
-    throw Error('not a guarantee allocation');
-
-  const guaranteeDestinations = decodeGuaranteeData(
-    sourceAllocations[indexOfTargetInSource].metadata
-  );
-
-  // for each guarantee destination
-  for (let j = 0; j < guaranteeDestinations.length; j++) {
-    if (targetSurplus.isZero()) break;
-    for (let i = 0; i < newTargetAllocations.length; i++) {
-      if (targetSurplus.isZero()) break;
-      // search for it in the allocation
-      if (
-        BigNumber.from(guaranteeDestinations[j]).eq(
-          BigNumber.from(newTargetAllocations[i].destination)
-        )
-      ) {
-        // if we find it, compute new amount
-        const affordsForDestination = min(
-          BigNumber.from(newTargetAllocations[i].amount),
-          targetSurplus
-        );
-        // decrease surplus by the current amount regardless of hitting a specified index
-        targetSurplus = targetSurplus.sub(affordsForDestination);
-        if (
-          targetAllocationIndicesToPayout.length === 0 ||
-          (k < targetAllocationIndicesToPayout.length && targetAllocationIndicesToPayout[k] === i)
-        ) {
-          // only if specified in supplied indices, or we if we are doing "all"
-          // reduce the current allocationItem.amount
-          newTargetAllocations[i].amount = BigNumber.from(newTargetAllocations[i].amount)
-            .sub(affordsForDestination)
-            .toHexString();
-          newSourceAllocations[indexOfTargetInSource].amount = BigNumber.from(
-            newSourceAllocations[indexOfTargetInSource].amount
-          )
-            .sub(affordsForDestination)
-            .toHexString();
-
-          // increase the relevant exit allocation
-          exitAllocations[i].amount = BigNumber.from(exitAllocations[i].amount)
-            .add(affordsForDestination)
-            .toHexString();
-          totalPayouts = totalPayouts.add(affordsForDestination);
-          // move on to the next supplied index
-          ++k;
-        }
-        break;
-      }
+    // copy each element except the indexOfTargetInSource element
+    if (sourceAllocations[i].destination == left) {
+      newSourceAllocations[k].amount = BigNumber.from(sourceAllocations[i].amount)
+        .add(targetAllocations[0].amount)
+        .toHexString();
+      foundLeft = true;
     }
+    if (sourceAllocations[i].destination == right) {
+      newSourceAllocations[k].amount = BigNumber.from(sourceAllocations[i].amount)
+        .add(targetAllocations[1].amount)
+        .toHexString();
+      foundRight = true;
+    }
+    k++;
   }
 
-  return {
-    newSourceAllocations,
-    newTargetAllocations,
-    exitAllocations,
-    totalPayouts: totalPayouts.toHexString(),
-  };
+  if (!foundTarget) {
+    throw Error('could not find target');
+  }
+
+  if (!foundLeft) {
+    throw Error('could not find left');
+  }
+
+  if (!foundRight) {
+    throw Error('could not find right');
+  }
+  return newSourceAllocations;
 }
 
 /**

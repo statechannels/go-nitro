@@ -242,22 +242,17 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     }
 
     /**
-     * @notice Transfers as many funds escrowed against `sourceChannelId` as can be afforded for the destinations specified by targetAllocationIndicesToPayout in the beneficiaries of the __target__ of the channel at indexOfTargetInSource.
-     * @dev Transfers as many funds escrowed against `sourceChannelId` as can be afforded for the destinations specified by targetAllocationIndicesToPayout in the beneficiaries of the __target__ of the channel at indexOfTargetInSource.
+     * @notice Reclaim moves money from a target channel back into a ledger channel which is guaranteeing it. The guarantee is removed from the ledger channel.
+     * @dev Reclaim moves money from a target channel back into a ledger channel which is guaranteeing it. The guarantee is removed from the ledger channel.
      * @param claimArgs arguments used in the claim function. Used to avoid stack too deep error.
      */
-    function claim(ClaimArgs memory claimArgs) external override {
+    function reclaim(ClaimArgs memory claimArgs) external override {
         (
             Outcome.SingleAssetExit[] memory sourceOutcome,
-            Outcome.SingleAssetExit[] memory targetOutcome,
-            address asset,
-            uint256 initialAssetHoldings
-        ) = _apply_claim_checks(claimArgs); // view
+            Outcome.SingleAssetExit[] memory targetOutcome
+        ) = _apply_reclaim_checks(claimArgs); // view
 
         Outcome.Allocation[] memory newSourceAllocations;
-        Outcome.Allocation[] memory newTargetAllocations;
-        Outcome.Allocation[] memory exitAllocations;
-        uint256 totalPayouts;
         {
             Outcome.Allocation[] memory sourceAllocations = sourceOutcome[
                 claimArgs.sourceAssetIndex
@@ -265,48 +260,25 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             Outcome.Allocation[] memory targetAllocations = targetOutcome[
                 claimArgs.targetAssetIndex
             ].allocations;
-            (
-                newSourceAllocations,
-                newTargetAllocations,
-                exitAllocations,
-                totalPayouts
-            ) = compute_claim_effects_and_interactions(
-                initialAssetHoldings,
+            newSourceAllocations = compute_reclaim_effects(
                 sourceAllocations,
                 targetAllocations,
-                claimArgs.indexOfTargetInSource,
-                claimArgs.targetAllocationIndicesToPayout
+                claimArgs.indexOfTargetInSource
             ); // pure
         }
 
-        _apply_claim_effects(
-            claimArgs,
-            asset,
-            sourceOutcome,
-            newSourceAllocations,
-            sourceOutcome[claimArgs.sourceAssetIndex]
-                .allocations[claimArgs.indexOfTargetInSource]
-                .destination, // targetChannelId
-            targetOutcome,
-            newTargetAllocations,
-            initialAssetHoldings,
-            totalPayouts
-        );
-
-        _apply_claim_interactions(targetOutcome[claimArgs.targetAssetIndex], exitAllocations);
+        _apply_reclaim_effects(claimArgs, sourceOutcome, newSourceAllocations);
     }
 
     /**
-     * @dev Checks that targetAllocationIndicesToPayout are increasing; that the source and target channels are finalized; that the supplied outcomes match the stored fingerprints; that the asset is identical in source and target. Computes and returns: the decoded outcomes, the asset being targetted; the number of assets held against the guarantor.
+     * @dev Checks that the source and target channels are finalized; that the supplied outcomes match the stored fingerprints; that the asset is identical in source and target. Computes and returns the decoded outcomes.
      */
-    function _apply_claim_checks(ClaimArgs memory claimArgs)
+    function _apply_reclaim_checks(ClaimArgs memory claimArgs)
         internal
         view
         returns (
             Outcome.SingleAssetExit[] memory sourceOutcome,
-            Outcome.SingleAssetExit[] memory targetOutcome,
-            address asset,
-            uint256 initialAssetHoldings
+            Outcome.SingleAssetExit[] memory targetOutcome
         )
     {
         (
@@ -323,8 +295,6 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
                 claimArgs.targetAssetIndex
             );
 
-        _requireIncreasingIndices(claimArgs.targetAllocationIndicesToPayout); // This assumption is relied on by compute_transfer_effects_and_interactions
-
         // source checks
         _requireChannelFinalized(sourceChannelId);
         _requireMatchingFingerprint(
@@ -335,14 +305,14 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
 
         sourceOutcome = Outcome.decodeExit(sourceOutcomeBytes);
         targetOutcome = Outcome.decodeExit(targetOutcomeBytes);
-        asset = sourceOutcome[sourceAssetIndex].asset;
+        address asset = sourceOutcome[sourceAssetIndex].asset;
         require(
-            sourceOutcome[sourceAssetIndex].allocations[targetAssetIndex].allocationType ==
-                uint8(Outcome.AllocationType.guarantee),
+            sourceOutcome[sourceAssetIndex]
+                .allocations[claimArgs.indexOfTargetInSource]
+                .allocationType == uint8(Outcome.AllocationType.guarantee),
             'not a guarantee allocation'
         );
 
-        initialAssetHoldings = holdings[asset][sourceChannelId];
         bytes32 targetChannelId = sourceOutcome[sourceAssetIndex]
             .allocations[claimArgs.indexOfTargetInSource]
             .destination;
@@ -358,127 +328,67 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     }
 
     /**
-     * @dev Computes side effects for the claim function. First, computes the amount the source channel can afford for the target. Then, computes and returns updated allocations for the source and for the target, as well as exit allocations (to be paid out). It does this by walking the target allocations, testing against the guarantee in the source, and conditionally siphoning money out. See the Nitro paper.
+     * @dev Computes side effects for the claim function. Returns updated allocations for the source, computed by finding the guarantee in the source for the target, and moving money out of the guarantee and back into the ledger channel as regular allocations for the participants.
      */
-    function compute_claim_effects_and_interactions(
-        uint256 initialHoldings,
+    function compute_reclaim_effects(
         Outcome.Allocation[] memory sourceAllocations,
         Outcome.Allocation[] memory targetAllocations,
-        uint256 indexOfTargetInSource,
-        uint256[] memory targetAllocationIndicesToPayout
-    )
-        public
-        pure
-        returns (
-            Outcome.Allocation[] memory newSourceAllocations,
-            Outcome.Allocation[] memory newTargetAllocations,
-            Outcome.Allocation[] memory exitAllocations,
-            uint256 totalPayouts
-        )
-    {
-        // `targetAllocationIndicesToPayout == []` means "pay out to all"
-
-        totalPayouts = 0;
-        uint256 k = 0; // indexes the `targetAllocationIndicesToPayout` array
-        //  We rely on the assumption that the targetAllocationIndicesToPayout are strictly increasing.
-        //  This allows us to iterate over the destinations in order once, continuing until we hit the first index, then the second etc.
-        //  If the targetAllocationIndicesToPayout were to decrease, we would have to start from the beginning: doing a full search for each index.
-
-        // copy allocations
-        newSourceAllocations = new Outcome.Allocation[](sourceAllocations.length);
-        newTargetAllocations = new Outcome.Allocation[](targetAllocations.length);
-        exitAllocations = new Outcome.Allocation[](targetAllocations.length);
-        for (uint256 i = 0; i < sourceAllocations.length; i++) {
-            newSourceAllocations[i].destination = sourceAllocations[i].destination;
-            newSourceAllocations[i].amount = sourceAllocations[i].amount;
-            newSourceAllocations[i].metadata = sourceAllocations[i].metadata;
-            newSourceAllocations[i].allocationType = sourceAllocations[i].allocationType;
-        }
-        for (uint256 i = 0; i < targetAllocations.length; i++) {
-            newTargetAllocations[i].destination = targetAllocations[i].destination;
-            newTargetAllocations[i].amount = targetAllocations[i].amount;
-            newTargetAllocations[i].metadata = targetAllocations[i].metadata;
-            newTargetAllocations[i].allocationType = targetAllocations[i].allocationType;
-            exitAllocations[i].destination = targetAllocations[i].destination;
-            exitAllocations[i].amount = 0; // default to zero
-            exitAllocations[i].metadata = targetAllocations[i].metadata;
-            exitAllocations[i].allocationType = targetAllocations[i].allocationType;
-        }
-
-        // compute how much the source can afford for the target
-        uint256 sourceSurplus = initialHoldings;
-        for (
-            uint256 sourceAllocationIndex;
-            sourceAllocationIndex < indexOfTargetInSource;
-            sourceAllocationIndex++
-        ) {
-            if (sourceSurplus == 0) break;
-            uint256 affordsForDestination = min(
-                sourceAllocations[sourceAllocationIndex].amount,
-                sourceSurplus
-            );
-            sourceSurplus -= affordsForDestination;
-        }
-
-        uint256 targetSurplus = min(sourceSurplus, sourceAllocations[indexOfTargetInSource].amount);
-
-        bytes32[] memory guaranteeDestinations = decodeGuaranteeData(
-            sourceAllocations[indexOfTargetInSource].metadata
+        uint256 indexOfTargetInSource
+    ) public pure returns (Outcome.Allocation[] memory) {
+        Outcome.Allocation[] memory newSourceAllocations = new Outcome.Allocation[](
+            sourceAllocations.length - 1 // is one slot shorter as we remove the guarantee
         );
 
-        for (uint256 j = 0; j < guaranteeDestinations.length; j++) {
-            if (targetSurplus == 0) break;
-            for (uint256 i = 0; i < newTargetAllocations.length; i++) {
-                if (targetSurplus == 0) break;
-                // search for it in the allocation
-                if (guaranteeDestinations[j] == newTargetAllocations[i].destination) {
-                    // if we find it, compute new amount
-                    uint256 affordsForDestination = min(targetAllocations[i].amount, targetSurplus);
-                    // decrease surplus by the current amount regardless of hitting a specified index
-                    targetSurplus -= affordsForDestination;
-                    if (
-                        (targetAllocationIndicesToPayout.length == 0) ||
-                        ((k < targetAllocationIndicesToPayout.length) &&
-                            (targetAllocationIndicesToPayout[k] == i))
-                    ) {
-                        // only if specified in supplied targetAllocationIndicesToPayout, or we if we are doing "all"
-                        // reduce the new allocationItem.amount in target and source
-                        newTargetAllocations[i].amount -= affordsForDestination;
-                        newSourceAllocations[indexOfTargetInSource].amount -= affordsForDestination;
-                        // increase the relevant exit allocation
-                        exitAllocations[i].amount = affordsForDestination;
-                        totalPayouts += affordsForDestination;
-                        // move on to the next supplied index
-                        ++k;
-                    }
-                    break; // start again with the next guarantee destination
-                }
+        Outcome.Allocation memory guarantee = sourceAllocations[indexOfTargetInSource];
+        Guarantee memory guaranteeData = decodeGuaranteeData(guarantee.metadata);
+
+        bool foundTarget = false;
+        bool foundLeft = false;
+        bool foundRight = false;
+
+        uint256 k = 0;
+        for (uint256 i = 0; i < sourceAllocations.length; i++) {
+            if (i == indexOfTargetInSource) {
+                foundTarget = true;
+                continue;
             }
+            newSourceAllocations[k] = Outcome.Allocation({
+                destination: sourceAllocations[i].destination,
+                amount: sourceAllocations[i].amount,
+                allocationType: sourceAllocations[i].allocationType,
+                metadata: sourceAllocations[i].metadata
+            });
+
+            if (sourceAllocations[i].destination == guaranteeData.left) {
+                newSourceAllocations[k].amount += targetAllocations[0].amount;
+                foundLeft = true;
+            }
+            if (sourceAllocations[i].destination == guaranteeData.right) {
+                newSourceAllocations[k].amount += targetAllocations[1].amount;
+                foundRight = true;
+            }
+            k++;
         }
+
+        require(foundTarget, 'could not find target');
+        require(foundLeft, 'could not find left');
+        require(foundRight, 'could not find right');
+
+        return newSourceAllocations;
     }
 
     /**
-     * @dev Applies precomputed side effects for claim. Updates the holdings of the source channel. Updates the fingerprint of the outcome for the source and the target channel. Emits an event for each channel.
+     * @dev Updates the fingerprint of the outcome for the source channel and emit an event for it.
      */
-    function _apply_claim_effects(
+    function _apply_reclaim_effects(
         ClaimArgs memory claimArgs,
-        address asset,
         Outcome.SingleAssetExit[] memory sourceOutcome,
-        Outcome.Allocation[] memory newSourceAllocations,
-        bytes32 targetChannelId,
-        Outcome.SingleAssetExit[] memory targetOutcome,
-        Outcome.Allocation[] memory newTargetAllocations,
-        uint256 initialHoldings,
-        uint256 totalPayouts
+        Outcome.Allocation[] memory newSourceAllocations
     ) internal {
-        (bytes32 sourceChannelId, uint256 sourceAssetIndex, uint256 targetAssetIndex) = (
+        (bytes32 sourceChannelId, uint256 sourceAssetIndex) = (
             claimArgs.sourceChannelId,
-            claimArgs.sourceAssetIndex,
-            claimArgs.targetAssetIndex
+            claimArgs.sourceAssetIndex
         );
-
-        // update holdings
-        holdings[asset][sourceChannelId] -= totalPayouts;
 
         // store fingerprint of modified source outcome
         sourceOutcome[sourceAssetIndex].allocations = newSourceAllocations;
@@ -488,36 +398,10 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             keccak256(abi.encode(sourceOutcome))
         );
 
-        // store fingerprint of modified target outcome
-        targetOutcome[targetAssetIndex].allocations = newTargetAllocations;
-        _updateFingerprint(
-            targetChannelId,
-            claimArgs.targetStateHash,
-            keccak256(abi.encode(targetOutcome))
-        );
-
         // emit the information needed to compute the new source outcome stored in the fingerprint
-        emit AllocationUpdated(sourceChannelId, sourceAssetIndex, initialHoldings);
+        emit Reclaimed(claimArgs.sourceChannelId, claimArgs.sourceAssetIndex);
 
-        // emit the information needed to compute the new target outcome stored in the fingerprint
-        emit AllocationUpdated(targetChannelId, targetAssetIndex, initialHoldings);
-    }
-
-    /**
-     * @dev Applies precomputed side effects for claim that interact with external contracts. "Executes" the supplied exit (pays out the money).
-     */
-    function _apply_claim_interactions(
-        Outcome.SingleAssetExit memory singleAssetExit,
-        Outcome.Allocation[] memory exitAllocations
-    ) internal {
-        // create a new tuple to avoid mutating singleAssetExit
-        _executeSingleAssetExit(
-            Outcome.SingleAssetExit(
-                singleAssetExit.asset,
-                singleAssetExit.metadata,
-                exitAllocations
-            )
-        );
+        // Note: no changes are made to the target channel.
     }
 
     /**
@@ -643,7 +527,12 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         return a > b ? b : a;
     }
 
-    function decodeGuaranteeData(bytes memory data) internal pure returns (bytes32[] memory) {
-        return abi.decode(data, (bytes32[]));
+    struct Guarantee {
+        bytes32 left;
+        bytes32 right;
+    }
+
+    function decodeGuaranteeData(bytes memory data) internal pure returns (Guarantee memory) {
+        return abi.decode(data, (Guarantee));
     }
 }
