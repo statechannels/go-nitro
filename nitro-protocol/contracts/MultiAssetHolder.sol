@@ -399,7 +399,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         );
 
         // emit the information needed to compute the new source outcome stored in the fingerprint
-        // emit AllocationUpdated(sourceChannelId, sourceAssetIndex); // TODO what do we really need here?
+        emit Reclaimed(claimArgs.sourceChannelId,claimArgs.sourceAssetIndex);
 
         // Note: no changes are made to the target channel.
     }
