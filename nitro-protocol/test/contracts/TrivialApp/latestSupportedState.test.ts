@@ -1,6 +1,7 @@
-import {Contract, Wallet, ethers, utils} from 'ethers';
+import {Contract, Wallet, ethers, utils, BigNumber} from 'ethers';
 
 import TrivialAppArtifact from '../../../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
+import {NITRO_MAX_GAS} from '../../../src';
 import {Channel} from '../../../src/contract/channel';
 import {
   FixedPart,
@@ -10,12 +11,7 @@ import {
   State,
   VariablePart,
 } from '../../../src/contract/state';
-import {
-  getRandomNonce,
-  getTestProvider,
-  parseVariablePartEventResult,
-  setupContract,
-} from '../../test-helpers';
+import {getRandomNonce, getTestProvider, setupContract} from '../../test-helpers';
 
 const provider = getTestProvider();
 let trivialApp: Contract;
@@ -63,17 +59,22 @@ beforeAll(async () => {
   trivialApp = setupContract(provider, TrivialAppArtifact, process.env.TRIVIAL_APP_ADDRESS);
 });
 
-describe('latestSupportedState', () => {
+describe('requireStateSupported', () => {
   it('Transitions between random VariableParts are valid', async () => {
     expect.assertions(5);
     for (let i = 0; i < 5; i++) {
       const from: RecoveredVariablePart = getRandomRecoveredVariablePart();
       const to: RecoveredVariablePart = getRandomRecoveredVariablePart();
-      const latestSupportedState = await trivialApp.latestSupportedState(getMockedFixedPart(), [
-        from,
-        to,
-      ]);
-      expect(parseVariablePartEventResult(latestSupportedState)).toEqual(to.variablePart);
+      const requireStateSupported = await trivialApp.requireStateSupported(
+        getMockedFixedPart(),
+        [from],
+        to
+      );
+      expect(
+        BigNumber.from((await requireStateSupported.wait()).gasUsed).lt(
+          BigNumber.from(NITRO_MAX_GAS)
+        )
+      ).toBe(true);
     }
   });
 
@@ -97,10 +98,10 @@ describe('latestSupportedState', () => {
     const from: RecoveredVariablePart = mockSigs(getVariablePart(fromState));
     const to: RecoveredVariablePart = mockSigs(getVariablePart(toState));
 
-    const latestSupportedState = await trivialApp.latestSupportedState(getFixedPart(fromState), [
-      from,
-      to,
-    ]);
-    expect(parseVariablePartEventResult(latestSupportedState)).toEqual(to.variablePart);
+    const tx = trivialApp.requireStateSupported(getFixedPart(fromState), [from], to);
+
+    expect(
+      BigNumber.from((await (await tx).wait()).gasUsed).lt(BigNumber.from(NITRO_MAX_GAS))
+    ).toBe(true);
   });
 });
