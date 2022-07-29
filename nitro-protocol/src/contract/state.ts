@@ -57,6 +57,21 @@ export interface RecoveredVariablePart {
 }
 
 /**
+ * Separates signedVariableParts into proof and candidate.
+ * @param svps Array of SignedVariablePart.
+ * @returns proof and candidate.
+ */
+export function separateProofAndCandidate(svps: SignedVariablePart[]): {
+  proof: SignedVariablePart[];
+  candidate: SignedVariablePart;
+} {
+  const proof = svps.slice(0, -1);
+  const candidate = svps.at(-1) as SignedVariablePart;
+
+  return {proof, candidate};
+}
+
+/**
  * Extracts the VariablePart of a state
  * @param state a State
  * @returns the VariablePart, which usually changes during state channel updates
