@@ -16,6 +16,8 @@ export const INVALID_NUMBER_OF_STATES = 'Insufficient or excess states';
 export const CHALLENGER_NON_PARTICIPANT = 'Challenger is not a participant';
 export const RESPONSE_UNAUTHORIZED = 'Signer not authorized mover';
 export const WRONG_REFUTATION_SIGNATURE = 'Refutation state not signed by challenger';
+export const NONFINAL_STATE = 'State must be final';
+export const MUST_SUBMIT_EXACTLY_1_STATE = 'Must submit exactly 1 state';
 
 // Turn Taking
 export const MOVER_SIGNED_EARLIER_STATE = 'Unacceptable sigs order';

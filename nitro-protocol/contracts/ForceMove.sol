@@ -141,10 +141,20 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart memory candidate
     ) internal returns (bytes32 channelId) {
         channelId = NitroUtils.getChannelId(fixedPart);
-        _requireChannelNotFinalized(channelId);
 
         // checks
-        _requireStateSupported(fixedPart, proof, candidate);
+        _requireChannelNotFinalized(channelId);
+        require(proof.length == 0, 'Must submit exactly 1 state');
+        require(candidate.variablePart.isFinal, 'State must be final');
+        RecoveredVariablePart memory recoveredVariablePart = recoverVariablePart(
+            fixedPart,
+            candidate
+        );
+        require(
+            NitroUtils.getClaimedSignersNum(recoveredVariablePart.signedBy) ==
+                fixedPart.participants.length,
+            '!unaninmous'
+        );
 
         // effects
         statusOf[channelId] = _generateStatus(
