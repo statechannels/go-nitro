@@ -9,30 +9,30 @@ import (
 )
 
 type (
-	// PaymentStatus stores the status of payments for a given payment channel.
-	PaymentStatus struct {
+	// paymentStatus stores the status of payments for a given payment channel.
+	paymentStatus struct {
 		channelSender   common.Address
 		startingBalance *big.Int
 		largestVoucher  Voucher
 	}
 
-	// ReceiptManager receives vouchers, validates them, and stores the most valuable voucher
-	ReceiptManager struct {
-		channels map[types.Destination]*PaymentStatus
+	// receiptManager receives vouchers, validates them, and stores the most valuable voucher
+	receiptManager struct {
+		channels map[types.Destination]*paymentStatus
 	}
 )
 
-func NewReceiptManager() *ReceiptManager {
-	channels := make(map[types.Destination]*PaymentStatus)
-	return &ReceiptManager{channels}
+func NewReceiptManager() ReceiptManager {
+	channels := make(map[types.Destination]*paymentStatus)
+	return &receiptManager{channels}
 }
 
 // Register registers a channel for use, given the sender and starting balance of the channel
-func (pm ReceiptManager) Register(channelId types.Destination, sender common.Address, startingBalance *big.Int) error {
+func (pm receiptManager) Register(channelId types.Destination, sender common.Address, startingBalance *big.Int) error {
 	balance := &big.Int{}
 	balance.Set(startingBalance)
 	voucher := Voucher{channelId: channelId, amount: big.NewInt(0)}
-	data := &PaymentStatus{sender, balance, voucher}
+	data := &paymentStatus{sender, balance, voucher}
 	if _, ok := pm.channels[channelId]; ok {
 		return fmt.Errorf("channel already registered")
 	}
@@ -43,12 +43,12 @@ func (pm ReceiptManager) Register(channelId types.Destination, sender common.Add
 }
 
 // Remove deletes the channel's status
-func (pm *ReceiptManager) Remove(channelId types.Destination) {
+func (pm *receiptManager) Remove(channelId types.Destination) {
 	delete(pm.channels, channelId)
 }
 
 // Receive validates the incoming voucher, and returns the total amount received so far
-func (rm *ReceiptManager) Receive(voucher Voucher) (*big.Int, error) {
+func (rm *receiptManager) Receive(voucher Voucher) (*big.Int, error) {
 	status, ok := rm.channels[voucher.channelId]
 	if !ok {
 		return &big.Int{}, fmt.Errorf("channel not registered")
@@ -78,7 +78,7 @@ func (rm *ReceiptManager) Receive(voucher Voucher) (*big.Int, error) {
 }
 
 // Balance returns the balance of the channel
-func (rm *ReceiptManager) Balance(channelId types.Destination) (Balance, error) {
+func (rm *receiptManager) Balance(channelId types.Destination) (Balance, error) {
 	data, ok := rm.channels[channelId]
 	if !ok {
 		return Balance{}, fmt.Errorf("channel not found")
