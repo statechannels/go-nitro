@@ -18,7 +18,7 @@ beforeAll(async () => {
 });
 
 describe('null app', () => {
-  it('should revert when latestSupportedState is called', async () => {
+  it('should revert when requireStateSupported is called', async () => {
     const channel: Channel = {
       participants: [Wallet.createRandom().address, Wallet.createRandom().address],
       chainId: process.env.CHAIN_NETWORK_ID,
@@ -46,7 +46,7 @@ describe('null app', () => {
     };
 
     await expectRevert(async () => {
-      await NitroAdjudicator.latestSupportedState(fixedPart, [from, to]);
+      await NitroAdjudicator.requireStateSupported(fixedPart, [from], to);
     }, 'VM Exception while processing transaction: revert');
   });
 });
