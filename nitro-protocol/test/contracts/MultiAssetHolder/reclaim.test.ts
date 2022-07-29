@@ -24,7 +24,7 @@ const testNitroAdjudicator: TESTNitroAdjudicator & Contract = setupContract(
 
 // Amounts are valueString representations of wei
 describe('reclaim', () => {
-// TODO: add a test case to show off a multihop reclaim, where we have Alice, Irene, Ivan and Bob. 
+  // TODO: add a test case to show off a multihop reclaim, where we have Alice, Irene, Ivan and Bob.
   it('handles a simple case as expected', async () => {
     const targetId = randomChannelId();
     const sourceId = randomChannelId();
@@ -117,7 +117,17 @@ describe('reclaim', () => {
     // Compile event expectations
 
     // Check that each expectedEvent is contained as a subset of the properies of each *corresponding* event: i.e. the order matters!
-    expect(eventsFromTx).toMatchObject([]);
+    const expectedEvents = [
+      {
+        event: 'Reclaimed',
+        args: {
+          channelId: sourceId,
+          assetIndex: BigNumber.from(0),
+        },
+      },
+    ];
+
+    expect(eventsFromTx).toMatchObject(expectedEvents);
 
     // assert on updated ledger channel
 
