@@ -10,6 +10,7 @@ import {
   getFixedPart,
   getVariablePart,
   separateProofAndCandidate,
+  SignedVariablePart,
   State,
 } from '../../../src/contract/state';
 import {
@@ -225,8 +226,10 @@ describe('concludeAndTransferAllAssets', () => {
       // Form transaction
       const tx = testNitroAdjudicator.concludeAndTransferAllAssets(
         getFixedPart(states[0]),
-        proof,
-        candidate,
+        proof as SignedVariablePart[],
+        candidate as SignedVariablePart,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         {gasLimit: NITRO_MAX_GAS}
       );
 
