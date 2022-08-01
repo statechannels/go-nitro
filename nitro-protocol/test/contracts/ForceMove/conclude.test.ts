@@ -8,7 +8,12 @@ import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.s
 import {Channel, getChannelId} from '../../../src/contract/channel';
 import {channelDataToStatus} from '../../../src/contract/channel-storage';
 import {Outcome} from '../../../src/contract/outcome';
-import {getFixedPart, getVariablePart, separateProofAndCandidate, State} from '../../../src/contract/state';
+import {
+  getFixedPart,
+  getVariablePart,
+  separateProofAndCandidate,
+  State,
+} from '../../../src/contract/state';
 import {
   CHANNEL_FINALIZED,
   MOVER_SIGNED_EARLIER_STATE,

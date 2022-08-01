@@ -89,19 +89,19 @@ export class TestChannel {
     state: State
   ): {
     fixedPart: FixedPart;
-    signedVariableParts: SignedVariablePart[];
+    proof: SignedVariablePart[];
+    candidate: SignedVariablePart;
     challengeSignature: Signature;
     outcome: Outcome;
     stateHash: string;
   } {
     return {
       fixedPart: getFixedPart(state),
-      signedVariableParts: [
-        {
-          variablePart: getVariablePart(state),
-          sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
-        },
-      ],
+      proof: [],
+      candidate: {
+        variablePart: getVariablePart(state),
+        sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
+      },
       challengeSignature: signChallengeMessage([{state} as SignedState], Alice.privateKey),
       outcome: state.outcome,
       stateHash: hashState(state),
@@ -113,16 +113,16 @@ export class TestChannel {
     state: State
   ): {
     fixedPart: FixedPart;
-    signedVariableParts: SignedVariablePart[];
+    proof: SignedVariablePart[];
+    candidate: SignedVariablePart;
   } {
     return {
       fixedPart: getFixedPart(state),
-      signedVariableParts: [
-        {
-          variablePart: getVariablePart(state),
-          sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
-        },
-      ],
+      proof: [],
+      candidate: {
+        variablePart: getVariablePart(state),
+        sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
+      },
     };
   }
 
@@ -130,7 +130,8 @@ export class TestChannel {
     const fP = this.supportProof(this.finalState(asset));
     return await nitroAdjudicator.concludeAndTransferAllAssets(
       fP.fixedPart,
-      fP.signedVariableParts
+      fP.proof,
+      fP.candidate
     );
   }
 
@@ -138,7 +139,8 @@ export class TestChannel {
     const proof = this.counterSignedSupportProof(this.someState(asset));
     return await nitroAdjudicator.challenge(
       proof.fixedPart,
-      proof.signedVariableParts,
+      proof.proof,
+      proof.candidate,
       proof.challengeSignature
     );
   }
@@ -237,6 +239,8 @@ export const LforJ = new TestChannel(
 
 // Utils
 export async function getFinalizesAtFromTransactionHash(hash: string): Promise<number> {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
   const provider = hre.ethers.provider;
   const receipt = (await provider.getTransactionReceipt(hash)) as ContractReceipt;
   return nitroAdjudicator.interface.decodeEventLog('ChallengeRegistered', receipt.logs[0].data)[2];
@@ -244,6 +248,8 @@ export async function getFinalizesAtFromTransactionHash(hash: string): Promise<n
 
 export async function waitForChallengesToTimeOut(finalizesAtArray: number[]): Promise<void> {
   const finalizesAt = Math.max(...finalizesAtArray);
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
   const provider = hre.ethers.provider;
   await provider.send('evm_setNextBlockTimestamp', [finalizesAt + 1]);
   await provider.send('evm_mine', []);
@@ -265,7 +271,8 @@ export async function challengeChannel(
 
   const challengeTx = await nitroAdjudicator.challenge(
     proof.fixedPart,
-    proof.signedVariableParts,
+    proof.proof,
+    proof.candidate,
     proof.challengeSignature
   );
 

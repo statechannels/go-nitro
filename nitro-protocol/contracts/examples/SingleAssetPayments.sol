@@ -10,7 +10,7 @@ import '../interfaces/IForceMoveApp.sol';
  * @dev The SingleAssetPayments contract complies with the ForceMoveApp interface, uses shortcutting turn taking logic and implements a simple payment channel with a single asset type only.
  */
 contract SingleAssetPayments is IForceMoveApp {
-     /**
+    /**
      * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
      * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
      * @param fixedPart Fixed part of the state channel.
@@ -25,10 +25,7 @@ contract SingleAssetPayments is IForceMoveApp {
         ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate);
 
         for (uint256 i = 0; i < proof.length; i++) {
-            _requireValidOutcome(
-                fixedPart.participants.length,
-                proof[i].variablePart.outcome
-            );
+            _requireValidOutcome(fixedPart.participants.length, proof[i].variablePart.outcome);
 
             if (i > 0) {
                 _requireValidTransition(
@@ -39,10 +36,7 @@ contract SingleAssetPayments is IForceMoveApp {
             }
         }
 
-        _requireValidOutcome(
-            fixedPart.participants.length,
-            candidate.variablePart.outcome
-        );
+        _requireValidOutcome(fixedPart.participants.length, candidate.variablePart.outcome);
 
         _requireValidTransition(
             fixedPart.participants.length,

@@ -23,8 +23,7 @@ contract ConsensusApp is IForceMoveApp {
     ) external pure override {
         require(proof.length == 0, '|proof|!=0');
         require(
-            NitroUtils.getClaimedSignersNum(candidate.signedBy) ==
-                fixedPart.participants.length,
+            NitroUtils.getClaimedSignersNum(candidate.signedBy) == fixedPart.participants.length,
             '!unanimous'
         );
     }

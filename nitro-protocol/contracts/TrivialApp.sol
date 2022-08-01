@@ -16,5 +16,5 @@ contract TrivialApp is IForceMoveApp {
         FixedPart calldata, // fixedPart, unused
         RecoveredVariablePart[] calldata, // proof, unused
         RecoveredVariablePart calldata // candidate, unused
-    ) external pure override {}
+    ) external pure override {} //solhint-disable-line no-empty-blocks
 }

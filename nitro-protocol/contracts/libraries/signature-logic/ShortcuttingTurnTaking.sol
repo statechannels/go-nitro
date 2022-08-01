@@ -25,8 +25,6 @@ library ShortcuttingTurnTaking {
         uint256 nParticipants = fixedPart.participants.length;
         uint48 largestTurnNum = candidate.variablePart.turnNum;
 
-        uint256 test = proof.length;
-
         _requireValidInput(nParticipants, proof, candidate);
 
         // The difference between the support proof candidate turn number (aka largestTurnNum) and the round robin cycle last turn number.
@@ -38,10 +36,7 @@ library ShortcuttingTurnTaking {
             requireValidSignatures(fixedPart, proof[i], roundRobinShift);
 
             if (i != 0) {
-                requireIncreasedTurnNum(
-                    prevTurnNum,
-                    proof[i].variablePart.turnNum
-                );
+                requireIncreasedTurnNum(prevTurnNum, proof[i].variablePart.turnNum);
             }
 
             prevTurnNum = proof[i].variablePart.turnNum;
@@ -49,10 +44,7 @@ library ShortcuttingTurnTaking {
 
         // validating the candidate
         requireValidSignatures(fixedPart, candidate, roundRobinShift);
-        requireIncreasedTurnNum(
-            prevTurnNum,
-            candidate.variablePart.turnNum
-        );
+        requireIncreasedTurnNum(prevTurnNum, candidate.variablePart.turnNum);
     }
 
     /**
