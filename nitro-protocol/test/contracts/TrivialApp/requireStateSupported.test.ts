@@ -1,7 +1,6 @@
-import {Contract, Wallet, ethers, utils, BigNumber} from 'ethers';
+import {Contract, Wallet, ethers, utils} from 'ethers';
 
 import TrivialAppArtifact from '../../../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
-import {NITRO_MAX_GAS} from '../../../src';
 import {Channel} from '../../../src/contract/channel';
 import {
   FixedPart,
@@ -70,11 +69,9 @@ describe('requireStateSupported', () => {
         [from],
         to
       );
-      expect(
-        BigNumber.from((await requireStateSupported.wait()).gasUsed).lt(
-          BigNumber.from(NITRO_MAX_GAS)
-        )
-      ).toBe(true);
+      // As 'requireStateSupported' method is constant (view or pure), it returns an object/array with returned values
+      // which in this case should be empty
+      expect(requireStateSupported.length).toBe(0);
     }
   });
 
@@ -98,10 +95,14 @@ describe('requireStateSupported', () => {
     const from: RecoveredVariablePart = mockSigs(getVariablePart(fromState));
     const to: RecoveredVariablePart = mockSigs(getVariablePart(toState));
 
-    const tx = trivialApp.requireStateSupported(getFixedPart(fromState), [from], to);
+    const requireStateSupported = await trivialApp.requireStateSupported(
+      getFixedPart(fromState),
+      [from],
+      to
+    );
 
-    expect(
-      BigNumber.from((await (await tx).wait()).gasUsed).lt(BigNumber.from(NITRO_MAX_GAS))
-    ).toBe(true);
+    // As 'requireStateSupported' method is constant (view or pure), it returns an object/array with returned values
+    // which in this case should be empty
+    expect(requireStateSupported.length).toBe(0);
   });
 });
