@@ -7,7 +7,11 @@ const {HashZero} = ethers.constants;
 import HashLockedSwapArtifact from '../../../../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
 import {bindSignaturesWithSignedByBitfield, Bytes32, Channel, signStates} from '../../../../src';
 import {Outcome} from '../../../../src/contract/outcome';
-import {getFixedPart, getVariablePart} from '../../../../src/contract/state';
+import {
+  getFixedPart,
+  getVariablePart,
+  separateProofAndCandidate,
+} from '../../../../src/contract/state';
 import {Bytes} from '../../../../src/contract/types';
 import {
   getTestProvider,
@@ -16,7 +20,6 @@ import {
   setupContract,
   AssetOutcomeShortHand,
   getRandomNonce,
-  parseVariablePartEventResult,
 } from '../../../test-helpers';
 
 // Utilities
@@ -73,7 +76,7 @@ const incorrectPreImage: HashLockedSwapData = {
   h: HashZero,
 };
 
-describe('validTransition', () => {
+describe('requireStateSupported', () => {
   let channelNonce = getRandomNonce('HashLockedSwap');
   beforeEach(() => (channelNonce += 1));
   it.each`
@@ -155,23 +158,22 @@ describe('validTransition', () => {
 
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
-      const recoveredVariableParts = bindSignaturesWithSignedByBitfield(
-        variableParts,
-        signatures,
-        whoSignedWhat
+      const {proof, candidate} = separateProofAndCandidate(
+        bindSignaturesWithSignedByBitfield(variableParts, signatures, whoSignedWhat)
       );
 
       if (isValid) {
-        const latestSupportedState = await hashTimeLock.latestSupportedState(
+        const requireStateSupported = await hashTimeLock.requireStateSupported(
           fixedPart,
-          recoveredVariableParts
+          proof,
+          candidate
         );
-        expect(parseVariablePartEventResult(latestSupportedState)).toStrictEqual(
-          variableParts[variableParts.length - 1]
-        );
+        // As 'requireStateSupported' method is constant (view or pure), it returns an object/array with returned values
+        // which in this case should be empty
+        expect(requireStateSupported.length).toBe(0);
       } else {
         await expectRevert(
-          () => hashTimeLock.latestSupportedState(fixedPart, recoveredVariableParts),
+          () => hashTimeLock.requireStateSupported(fixedPart, proof, candidate),
           'incorrect preimage'
         );
       }
