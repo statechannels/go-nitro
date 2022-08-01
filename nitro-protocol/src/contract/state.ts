@@ -61,9 +61,9 @@ export interface RecoveredVariablePart {
  * @param svps Array of SignedVariablePart.
  * @returns proof and candidate.
  */
-export function separateProofAndCandidate(svps: SignedVariablePart[]): {
-  proof: SignedVariablePart[];
-  candidate: SignedVariablePart;
+export function separateProofAndCandidate(svps: SignedVariablePart[] | RecoveredVariablePart[]): {
+  proof: SignedVariablePart[] | RecoveredVariablePart[];
+  candidate: SignedVariablePart | RecoveredVariablePart;
 } {
   const proof = svps.slice(0, -1);
   const candidate = svps.at(-1) as SignedVariablePart;
