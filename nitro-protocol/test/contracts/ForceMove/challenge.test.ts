@@ -220,9 +220,7 @@ describe('challenge', () => {
       if (reasonString) {
         await expectRevert(() => tx, reasonString);
       } else {
-        console.log(await tx);
         const receipt = await (await tx).wait();
-        console.log(receipt);
         const event = receipt.events.pop();
 
         // Catch ChallengeRegistered event
