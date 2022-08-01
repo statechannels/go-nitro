@@ -52,7 +52,7 @@ export async function deploy(): Promise<Record<string, string>> {
   const COUNTING_APP_ADDRESS = (await countingAppFactory.deploy()).address;
 
   const HASH_LOCK_ADDRESS = (await hashLockedSwapFactory.deploy()).address;
-  const SINGLE_ASSET_PAYMENT_ADDRESS = (await singleAssetPaymentsFactory.deploy()).address;
+  const SINGLE_ASSET_PAYMENTS_ADDRESS = (await singleAssetPaymentsFactory.deploy()).address;
   const TEST_NITRO_ADJUDICATOR_ADDRESS = (await testNitroAdjudicatorFactory.deploy()).address;
   const TRIVIAL_APP_ADDRESS = (await trivialAppFactory.deploy()).address;
   const TEST_FORCE_MOVE_ADDRESS = (await testForceMoveFactory.deploy()).address;
@@ -68,7 +68,7 @@ export async function deploy(): Promise<Record<string, string>> {
     COUNTING_APP_ADDRESS,
     HASH_LOCK_ADDRESS,
     EMBEDDED_APPLICATION_ADDRESS,
-    SINGLE_ASSET_PAYMENT_ADDRESS,
+    SINGLE_ASSET_PAYMENTS_ADDRESS,
     TRIVIAL_APP_ADDRESS,
     TEST_FORCE_MOVE_ADDRESS,
     TEST_NITRO_UTILS_ADDRESS,
