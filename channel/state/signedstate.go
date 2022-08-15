@@ -23,8 +23,8 @@ func NewSignedState(s State) SignedState {
 // AddSignature adds a participant's signature to the SignedState.
 //
 // An error is returned if
-//  - the signer is not a participant, or
-//  - OR the signature was already stored
+//   - the signer is not a participant, or
+//   - OR the signature was already stored
 func (ss SignedState) AddSignature(sig Signature) error {
 	signer, err := ss.state.RecoverSigner(sig)
 	if err != nil {
