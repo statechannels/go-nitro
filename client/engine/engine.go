@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -50,6 +52,9 @@ type Engine struct {
 	logger *log.Logger
 
 	metrics *MetricsRecorder
+
+	pm payments.PaymentManager
+	rm payments.ReceiptManager
 }
 
 // APIEvent is an internal representation of an API call
@@ -93,6 +98,9 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.logger = log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
 
 	e.policymaker = policymaker
+
+	e.rm = payments.NewReceiptManager()
+	e.pm = payments.NewPaymentManager(*e.store.GetAddress())
 
 	e.logger.Println("Constructed Engine")
 
@@ -348,6 +356,11 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 			if err != nil {
 				return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
+
+			err = e.registerVirtualChannelWithManagers(vfo)
+			if err != nil {
+				return ObjectiveChangeEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
+			}
 			return e.attemptProgress(&vfo)
 
 		case virtualdefund.ObjectiveRequest:
@@ -453,6 +466,25 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Object
 	return
 }
 
+func (e Engine) registerVirtualChannelWithManagers(vfo virtualfund.Objective) error {
+	prefund := vfo.V.PreFundState()
+	startingBalance := big.NewInt(0)
+	// TODO: Assumes one asset for now
+	startingBalance.Set(prefund.Outcome[0].Allocations[0].Amount)
+
+	switch vfo.MyRole {
+	case 0:
+		return e.pm.Register(vfo.V.Id, startingBalance)
+	case 2:
+
+		return e.rm.Register(vfo.V.Id, *e.store.GetAddress(), startingBalance)
+	default:
+		// The intermediary does not need to use the payment or receipt manager
+		return nil
+	}
+
+}
+
 // spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective if it is a directfund.Objective.
 //
 // The associated Channel will remain in the store.
@@ -485,6 +517,7 @@ func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedS
 	} else if errors.Is(err, store.ErrNoSuchObjective) {
 
 		newObj, err := e.constructObjectiveFromMessage(id, ss)
+
 		if err != nil {
 			return nil, fmt.Errorf("error constructing objective from message: %w", err)
 		}
@@ -514,6 +547,10 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		vfo, err := virtualfund.ConstructObjectiveFromState(ss.State(), false, *e.store.GetAddress(), e.store.GetConsensusChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
+		}
+		err = e.registerVirtualChannelWithManagers(vfo)
+		if err != nil {
+			return &virtualfund.Objective{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
