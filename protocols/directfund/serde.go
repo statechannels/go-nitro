@@ -22,10 +22,8 @@ type jsonObjective struct {
 }
 
 // MarshalJSON returns a JSON representation of the DirectFundObjective
-//
 // NOTE: Marshal -> Unmarshal is a lossy process. All channel data
-//
-//	(other than Id) from the field C is discarded
+// (other than Id) from the field C is discarded
 func (o Objective) MarshalJSON() ([]byte, error) {
 	jsonDFO := jsonObjective{
 		o.Status,
@@ -41,10 +39,8 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON populates the calling DirectFundObjective with the
 // json-encoded data
-//
 // NOTE: Marshal -> Unmarshal is a lossy process. All channel data
-//
-//	(other than Id) from the field C is discarded
+// (other than Id) from the field C is discarded
 func (o *Objective) UnmarshalJSON(data []byte) error {
 	if string(data) == "null" {
 		return nil
