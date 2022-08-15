@@ -118,16 +118,19 @@ func TestChallenge(t *testing.T) {
 	// Mine a block
 	sim.Commit()
 
+	// Construct support proof
+	candidate := INitroTypesSignedVariablePart{
+		ConvertVariablePart(s.VariablePart()),
+		[]INitroTypesSignature{ConvertSignature(aSig), ConvertSignature(bSig)},
+	}
+	proof := make([]INitroTypesSignedVariablePart, 0)
+
 	// Fire off a Challenge tx
 	tx, err := na.Challenge(
 		auth,
 		INitroTypesFixedPart(s.FixedPart()),
-		[]INitroTypesSignedVariablePart{
-			{
-				ConvertVariablePart(s.VariablePart()),
-				[]INitroTypesSignature{ConvertSignature(aSig), ConvertSignature(bSig)},
-			},
-		},
+		proof,
+		candidate,
 		ConvertSignature(challengerSig),
 	)
 	if err != nil {
