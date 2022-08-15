@@ -18,9 +18,8 @@ type jsonConnection struct {
 }
 
 // MarshalJSON returns a JSON representation of the Connection
-//
 // NOTE: Marshal -> Unmarshal is a lossy process. All channel data
-//       other than the ID is dropped
+// other than the ID is dropped
 func (c Connection) MarshalJSON() ([]byte, error) {
 	jsonC := jsonConnection{c.Channel.Id, c.GuaranteeInfo}
 	bytes, err := json.Marshal(jsonC)
@@ -36,7 +35,8 @@ func (c Connection) MarshalJSON() ([]byte, error) {
 // json-encoded data
 //
 // NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
-//       (other than Id) is discarded
+//
+//	(other than Id) is discarded
 func (c *Connection) UnmarshalJSON(data []byte) error {
 	c.Channel = &consensus_channel.ConsensusChannel{}
 
@@ -76,9 +76,8 @@ type jsonObjective struct {
 }
 
 // MarshalJSON returns a JSON representation of the VirtualFundObjective
-//
 // NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
-//       the virtual and ledger channels (other than Ids) is discarded
+// the virtual and ledger channels (other than Ids) is discarded
 func (o Objective) MarshalJSON() ([]byte, error) {
 	var left []byte
 	var right []byte
@@ -121,7 +120,8 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 // json-encoded data
 //
 // NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
-//       the virtual and ledger channels (other than Ids) is discarded
+//
+//	the virtual and ledger channels (other than Ids) is discarded
 func (o *Objective) UnmarshalJSON(data []byte) error {
 	if string(data) == "null" {
 		return nil

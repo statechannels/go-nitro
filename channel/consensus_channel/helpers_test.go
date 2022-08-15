@@ -51,9 +51,9 @@ func makeOutcome(leader, follower Balance, guarantees ...Guarantee) LedgerOutcom
 }
 
 // ledgerOutcome constructs the LedgerOutcome with items
-//  - alice: 200,
-//  - bob: 300,
-//  - guarantee(target: 1, left: alice, right: bob, amount: 5)
+//   - alice: 200,
+//   - bob: 300,
+//   - guarantee(target: 1, left: alice, right: bob, amount: 5)
 func ledgerOutcome() LedgerOutcome {
 	return makeOutcome(
 		allocation(alice, aBal),

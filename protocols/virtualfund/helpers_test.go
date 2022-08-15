@@ -10,9 +10,9 @@ import (
 )
 
 // prepareConsensusChannel prepares a consensus channel with a consensus outcome
-//  - allocating 6 to leader
-//  - allocating 4 to follower
-//  - including the given guarantees
+//   - allocating 6 to leader
+//   - allocating 4 to follower
+//   - including the given guarantees
 func prepareConsensusChannel(role uint, leader, follower testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
 	return prepareConsensusChannelHelper(role, leader, follower, 6, 4, 1, guarantees...)
 }
