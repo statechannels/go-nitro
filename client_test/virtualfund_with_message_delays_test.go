@@ -48,6 +48,7 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 }
 
 // createVirtualChannels creates a number of virtual channels between the given parties and returns the objective ids.
+//
 //nolint:unused // unused due to skipped test
 func createVirtualChannels(client client.Client, counterParty types.Address, intermediary types.Address, amountOfChannels uint) []protocols.ObjectiveId {
 	ids := make([]protocols.ObjectiveId, amountOfChannels)

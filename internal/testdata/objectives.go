@@ -31,7 +31,8 @@ type vfoCollection struct {
 // objective generating utility functions
 //
 // eg, a test wanting an Irene-Ivan ledger creation objective could import via
-//     testdata.Objectives.twopartyledgers.irene_ivan
+//
+//	testdata.Objectives.twopartyledgers.irene_ivan
 var Objectives objectiveCollection = objectiveCollection{
 	Directfund: dfoCollection{
 		GenericDFO: genericDFO,

@@ -442,9 +442,9 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 // FromExit creates a new LedgerOutcome from the given SingleAssetExit.
 //
 // It makes the following assumptions about the exit:
-//  - The first alloction entry is for the ledger leader
-//  - The second alloction entry is for the ledger follower
-//  - All other allocations are guarantees
+//   - The first alloction entry is for the ledger leader
+//   - The second alloction entry is for the ledger follower
+//   - All other allocations are guarantees
 func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 
 	var (
@@ -478,9 +478,9 @@ func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 }
 
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
-//  - the "leader" balance is first
-//  - the "follower" balance is second
-//  - guarantees follow, sorted according to their target destinations
+//   - the "leader" balance is first
+//   - the "follower" balance is second
+//   - guarantees follow, sorted according to their target destinations
 func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 	// The first items are [leader, follower] balances
 	allocations := outcome.Allocations{o.leader.AsAllocation(), o.follower.AsAllocation()}
@@ -746,14 +746,14 @@ func (vars *Vars) HandleProposal(p Proposal) error {
 }
 
 // Add mutates Vars by
-//  - increasing the turn number by 1
-//  - including the guarantee
-//  - adjusting balances accordingly
+//   - increasing the turn number by 1
+//   - including the guarantee
+//   - adjusting balances accordingly
 //
 // An error is returned if:
-//  - the turn number is not incremented
-//  - the balances are incorrectly adjusted, or the deposits are too large
-//  - the guarantee is already included in vars.Outcome
+//   - the turn number is not incremented
+//   - the balances are incorrectly adjusted, or the deposits are too large
+//   - the guarantee is already included in vars.Outcome
 //
 // If an error is returned, the original vars is not mutated.
 func (vars *Vars) Add(p Add) error {
@@ -794,14 +794,14 @@ func (vars *Vars) Add(p Add) error {
 }
 
 // Remove mutates Vars by
-//  - increasing the turn number by 1
-//  - removing the guarantee for the Target channel
-//  - adjusting balances accordingly based on LeftAmount and RightAmount
+//   - increasing the turn number by 1
+//   - removing the guarantee for the Target channel
+//   - adjusting balances accordingly based on LeftAmount and RightAmount
 //
 // An error is returned if:
-//  - the turn number is not incremented
-//  - a guarantee is not found for the target
-//  - the amounts are too large for the guarantee amount
+//   - the turn number is not incremented
+//   - a guarantee is not found for the target
+//   - the amounts are too large for the guarantee amount
 //
 // If an error is returned, the original vars is not mutated.
 func (vars *Vars) Remove(p Remove) error {

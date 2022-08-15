@@ -173,10 +173,10 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (ObjectiveC
 
 // handleMessage handles a Message from a peer go-nitro Wallet.
 // It:
-//  - reads an objective from the store,
-//  - generates an updated objective,
-//  - attempts progress on the target Objective,
-//  - attempts progress on related objectives which may have become unblocked.
+//   - reads an objective from the store,
+//   - generates an updated objective,
+//   - attempts progress on the target Objective,
+//   - attempts progress on related objectives which may have become unblocked.
 func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent, error) {
 	e.logger.Printf("Handling inbound message %+v", protocols.SummarizeMessage(message))
 	allCompleted := ObjectiveChangeEvent{}
@@ -306,9 +306,9 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 // handleChainEvent handles a Chain Event from the blockchain.
 // It:
-//  - reads an objective from the store,
-//  - generates an updated objective, and
-//  - attempts progress.
+//   - reads an objective from the store,
+//   - generates an updated objective, and
+//   - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChangeEvent, error) {
 	e.logger.Printf("handling chain event %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
@@ -332,9 +332,9 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 
 // handleAPIEvent handles an API Event (triggered by a client API call).
 // It will attempt to perform all of the following:
-//  - Spawn a new, approved objective (if not null)
-//  - Reject an existing objective (if not null)
-//  - Approve an existing objective (if not null)
+//   - Spawn a new, approved objective (if not null)
+//   - Reject an existing objective (if not null)
+//   - Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error) {
 	if apiEvent.ObjectiveToSpawn != nil {
 
@@ -407,11 +407,11 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 
 // attemptProgress takes a "live" objective in memory and performs the following actions:
 //
-// 	1. It pulls the secret key from the store
-// 	2. It cranks the objective with that key
-// 	3. It commits the cranked objective to the store
-// 	4. It executes any side effects that were declared during cranking
-// 	5. It updates progress metadata in the store
+//  1. It pulls the secret key from the store
+//  2. It cranks the objective with that key
+//  3. It commits the cranked objective to the store
+//  4. It executes any side effects that were declared during cranking
+//  5. It updates progress metadata in the store
 func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing ObjectiveChangeEvent, err error) {
 
 	secretKey := e.store.GetChannelSecretKey()

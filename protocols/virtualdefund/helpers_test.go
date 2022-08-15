@@ -70,9 +70,9 @@ func generateGuarantee(left, right ta.Actor, vId types.Destination) consensus_ch
 }
 
 // prepareConsensusChannel prepares a consensus channel with a consensus outcome
-//  - allocating 0 to left
-//  - allocating 0 to right
-//  - including the given guarantees
+//   - allocating 0 to left
+//   - allocating 0 to right
+//   - including the given guarantees
 func prepareConsensusChannel(role uint, left, right ta.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
 	fp := state.FixedPart{
 		ChainId:           big.NewInt(9001),
