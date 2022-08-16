@@ -103,12 +103,10 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         SignedVariablePart[] calldata proof,
         SignedVariablePart calldata candidate
     ) external pure {
-        // To avoid `Stack to deep` error, signedVariableParts are copied to `memory` array explicitly
-        SignedVariablePart[] memory _proof = proof;
         return
             IForceMoveApp(fixedPart.appDefinition).requireStateSupported(
                 fixedPart,
-                recoverVariableParts(fixedPart, _proof),
+                recoverVariableParts(fixedPart, proof),
                 recoverVariablePart(fixedPart, candidate)
             );
     }
