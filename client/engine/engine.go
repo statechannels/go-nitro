@@ -315,6 +315,24 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
 	}
+
+	for _, voucher := range message.Vouchers() {
+
+		c, ok := e.store.GetChannelById(voucher.ChannelId())
+		if !ok {
+			return ObjectiveChangeEvent{}, fmt.Errorf("could not get channel from the store %s", c.Id)
+		}
+		recipient := c.Participants[2]
+		if recipient != *e.store.GetAddress() {
+			return ObjectiveChangeEvent{}, fmt.Errorf("not the recipient in channel %s", c.Id)
+		}
+		// TODO: return the amount we paid?
+		_, err := e.rm.Receive(voucher)
+		if err != nil {
+			return ObjectiveChangeEvent{}, fmt.Errorf("error accepting payment voucher: %w", err)
+		}
+
+	}
 	return allCompleted, nil
 
 }
