@@ -57,9 +57,16 @@ type Engine struct {
 	rm payments.ReceiptManager
 }
 
+// PaymentRequest represents a request from the API to make a payment using a channel
+type PaymentRequest struct {
+	ChannelId types.Destination
+	Amount    *big.Int
+}
+
 // APIEvent is an internal representation of an API call
 type APIEvent struct {
 	ObjectiveToSpawn protocols.ObjectiveRequest
+	PaymentToMake    PaymentRequest
 }
 
 // ObjectiveChangeEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
@@ -346,6 +353,7 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (ObjectiveChang
 //   - Approve an existing objective (if not null)
 func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
+
 	if apiEvent.ObjectiveToSpawn != nil {
 
 		switch request := (apiEvent.ObjectiveToSpawn).(type) {
@@ -395,6 +403,31 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (ObjectiveChangeEvent, error)
 
 	}
 
+	zeroAddress := types.Destination{}
+	// TODO: Should this live in the payment manager?
+	if cId := apiEvent.PaymentToMake.ChannelId; cId != zeroAddress {
+		voucher, err := e.pm.Pay(
+			cId,
+			apiEvent.PaymentToMake.Amount,
+			*e.store.GetChannelSecretKey())
+		if err != nil {
+			return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
+		}
+		c, ok := e.store.GetChannelById(cId)
+		if !ok {
+			return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
+		}
+		sender, recipient := c.Participants[0], c.Participants[2]
+		if sender != *e.store.GetAddress() {
+			return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
+		}
+		se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, recipient)}
+		err = e.executeSideEffects(se)
+		if err != nil {
+			return ObjectiveChangeEvent{}, fmt.Errorf("handleAPIEvent: Error sending payment voucher: %w", err)
+		}
+
+	}
 	return ObjectiveChangeEvent{}, nil
 
 }
