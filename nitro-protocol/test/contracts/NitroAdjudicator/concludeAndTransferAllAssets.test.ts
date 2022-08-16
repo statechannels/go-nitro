@@ -226,8 +226,8 @@ describe('concludeAndTransferAllAssets', () => {
       // Form transaction
       const tx = testNitroAdjudicator.concludeAndTransferAllAssets(
         getFixedPart(states[0]),
-        proof as SignedVariablePart[],
-        candidate as SignedVariablePart,
+        proof,
+        candidate,
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         {gasLimit: NITRO_MAX_GAS}

@@ -57,16 +57,21 @@ export interface RecoveredVariablePart {
 }
 
 /**
- * Separates signedVariableParts into proof and candidate.
- * @param svps Array of SignedVariablePart.
- * @returns proof and candidate.
+ * Separates supplied array into proof and candidate.
+ * @param svps Array of SignedVariableParts or RecoveredVariableParts.
+ * @returns proof and candidate, of the same type as input.
  */
-export function separateProofAndCandidate(svps: SignedVariablePart[] | RecoveredVariablePart[]): {
-  proof: SignedVariablePart[] | RecoveredVariablePart[];
-  candidate: SignedVariablePart | RecoveredVariablePart;
+export function separateProofAndCandidate<T = SignedVariablePart | RecoveredVariablePart>(
+  svps: T[]
+): {
+  proof: T[];
+  candidate: T;
 } {
   const proof = svps.slice(0, -1);
-  const candidate = svps.at(-1) as SignedVariablePart;
+  const candidate = svps.at(-1);
+  if (candidate == undefined) {
+    throw Error('insufficient length array');
+  }
 
   return {proof, candidate};
 }
