@@ -356,6 +356,21 @@ func CreateRejectionNoticeMessage(oId ObjectiveId, recipients ...types.Address) 
 	return messages
 }
 
+// CreateVoucherMessage returns a signed voucher message for each of the recipients provided.
+func CreateVoucherMessage(voucher payments.Voucher, recipients ...types.Address) []Message {
+	messages := make([]Message, len(recipients))
+	for i, recipient := range recipients {
+		payload := messagePayload{
+			Voucher: voucher,
+		}
+		payloads := []messagePayload{payload}
+		messages[i] = Message{To: recipient, payloads: payloads}
+
+	}
+
+	return messages
+}
+
 // getProposalObjectiveId returns the objectiveId for a proposal.
 func getProposalObjectiveId(p consensus_channel.Proposal) ObjectiveId {
 	switch p.Type() {
