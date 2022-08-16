@@ -142,3 +142,13 @@ func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.Objec
 	return objectiveRequest.Id(*c.Address)
 
 }
+
+// Pay will send a signed voucher to the payee that they can redeem for the given amount.
+func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
+
+	apiEvent := engine.APIEvent{
+		PaymentToMake: engine.PaymentRequest{ChannelId: channelId, Amount: amount},
+	}
+	// Send the event to the engine
+	c.engine.FromAPI <- apiEvent
+}
