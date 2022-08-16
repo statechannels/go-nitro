@@ -228,8 +228,6 @@ describe('concludeAndTransferAllAssets', () => {
         getFixedPart(states[0]),
         proof,
         candidate,
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
         {gasLimit: NITRO_MAX_GAS}
       );
 
