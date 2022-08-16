@@ -3,7 +3,6 @@ package client_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"os"
@@ -140,14 +139,14 @@ func combineLogs(t *testing.T, logDir string, combinedLogsFilename string, RP cl
 
 	// we want RP leftmost
 	// we want PH immediately to the right of RP
-	input, err := ioutil.ReadFile(path.Join(logDir, RP.Address.String()+"-Log.txt"))
+	input, err := os.ReadFile(path.Join(logDir, RP.Address.String()+"-Log.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	os.Remove(path.Join(logDir, RP.Address.String()+"-Log.txt"))
 	output += string(input)
 	output += "\n"
-	input, err = ioutil.ReadFile(path.Join(logDir, PH.Address.String()+"-Log.txt"))
+	input, err = os.ReadFile(path.Join(logDir, PH.Address.String()+"-Log.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +154,7 @@ func combineLogs(t *testing.T, logDir string, combinedLogsFilename string, RP cl
 	output += string(input)
 	output += "\n"
 	for i := range retrievalClients {
-		input, err := ioutil.ReadFile(path.Join(logDir, retrievalClients[i].Address.String()+"-Log.txt"))
+		input, err := os.ReadFile(path.Join(logDir, retrievalClients[i].Address.String()+"-Log.txt"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -163,7 +162,7 @@ func combineLogs(t *testing.T, logDir string, combinedLogsFilename string, RP cl
 		output += string(input)
 	}
 
-	if err = ioutil.WriteFile(path.Join(logDir, combinedLogsFilename), []byte(output), 0666); err != nil {
+	if err = os.WriteFile(path.Join(logDir, combinedLogsFilename), []byte(output), 0666); err != nil {
 		t.Fatal(err)
 	}
 
@@ -171,7 +170,7 @@ func combineLogs(t *testing.T, logDir string, combinedLogsFilename string, RP cl
 
 // prettify replaces addresses and destinations using the supplied prettyPrintDict
 func prettify(t *testing.T, logDir string, combinedLogsFilename string, prettyPrintDict *safesync.Map[string]) {
-	input, err := ioutil.ReadFile(path.Join(logDir, combinedLogsFilename))
+	input, err := os.ReadFile(path.Join(logDir, combinedLogsFilename))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +182,7 @@ func prettify(t *testing.T, logDir string, combinedLogsFilename string, prettyPr
 	}
 	prettyPrintDict.Range(replaceFun)
 
-	if err = ioutil.WriteFile(path.Join(logDir, combinedLogsFilename)+"_pretty", []byte(output), 0666); err != nil {
+	if err = os.WriteFile(path.Join(logDir, combinedLogsFilename)+"_pretty", []byte(output), 0666); err != nil {
 		t.Fatal(err)
 	}
 }

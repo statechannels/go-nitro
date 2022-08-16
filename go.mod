@@ -1,6 +1,6 @@
 module github.com/statechannels/go-nitro
 
-go 1.18
+go 1.19
 
 require (
 	github.com/DistributedClocks/GoVector v0.0.0-20210402100930-db949c81a0af
