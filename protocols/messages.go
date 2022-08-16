@@ -8,6 +8,7 @@ import (
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -17,6 +18,7 @@ const (
 	SignedStatePayload     PayloadType = "SignedStatePayload"
 	SignedProposalPayload  PayloadType = "SignedProposalPayload"
 	RejectionNoticePayload PayloadType = "RejectionNoticePayload"
+	VoucherPayload         PayloadType = "VoucherPayload"
 )
 
 // Message is an object to be sent across the wire. It can contain a proposal and signed states, and is addressed to a counterparty.
@@ -33,6 +35,7 @@ type messagePayload struct {
 	ObjectiveId    ObjectiveId
 	SignedState    state.SignedState
 	SignedProposal consensus_channel.SignedProposal
+	Voucher        payments.Voucher
 	Rejected       bool
 }
 
@@ -51,12 +54,19 @@ func (p messagePayload) hasRejection() bool {
 	return p.Rejected
 }
 
+// hasVoucher returns true if the payload contains a voucher.
+func (p messagePayload) hasVoucher() bool {
+	return !p.Voucher.Equal(payments.Voucher{})
+}
+
 // Type returns the type of the payload, either a SignedProposal or SignedState.
 func (p messagePayload) Type() PayloadType {
 	if p.hasProposal() {
 		return SignedProposalPayload
 	} else if p.hasState() {
 		return SignedStatePayload
+	} else if p.hasVoucher() {
+		return VoucherPayload
 	} else {
 		return RejectionNoticePayload
 	}
@@ -66,6 +76,17 @@ func (p messagePayload) Type() PayloadType {
 type ObjectivePayload[T PayloadValue] struct {
 	Payload     T
 	ObjectiveId ObjectiveId
+}
+
+// Vouchers returns the collection of vouchers in the message
+func (m Message) Vouchers() []payments.Voucher {
+	var vouchers []payments.Voucher
+	for _, p := range m.payloads {
+		if p.hasVoucher() {
+			vouchers = append(vouchers, p.Voucher)
+		}
+	}
+	return vouchers
 }
 
 // SignedStates returns a slice of signed states with their objectiveId that were contained in the message.
@@ -144,6 +165,8 @@ func (p *messagePayload) MarshalJSON() ([]byte, error) {
 		m["SignedProposal"] = p.SignedProposal
 	case RejectionNoticePayload:
 		m["Rejected"] = p.Rejected
+	case VoucherPayload:
+		m["Voucher"] = p.Voucher
 	default:
 		return []byte{}, fmt.Errorf("unknown payload type")
 	}
@@ -165,6 +188,9 @@ func DeserializeMessage(s string) (Message, error) {
 			numPresent += 1
 		}
 		if p.hasState() {
+			numPresent += 1
+		}
+		if p.hasVoucher() {
 			numPresent += 1
 		}
 		if p.hasRejection() {
@@ -212,7 +238,7 @@ func (se *SideEffects) Merge(other SideEffects) {
 // or RejectedObjective
 // It includes functions to get basic info to allow sorting.
 type PayloadValue interface {
-	state.SignedState | consensus_channel.SignedProposal | rejectedObjective
+	state.SignedState | consensus_channel.SignedProposal | rejectedObjective | payments.Voucher
 	SortInfo() (channelID types.Destination, turnNum uint64)
 }
 

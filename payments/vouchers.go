@@ -2,6 +2,7 @@ package payments
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -45,4 +46,18 @@ func (v Voucher) recoverSigner() (types.Address, error) {
 		return types.Address{}, error
 	}
 	return nitroCrypto.RecoverEthereumMessageSigner(h[:], v.signature)
+}
+
+// Equal returns true if the two vouchers have the same channel id, amount and signaturesß
+func (v Voucher) Equal(other Voucher) bool {
+	return v.channelId == other.channelId && v.amount.Cmp(other.amount) == 0 && v.signature.Equal(other.signature)
+}
+
+// NewVoucher constructs a voucher with the given channel id and amount
+func NewVoucher(channelId types.Destination, amount *big.Int) Voucher {
+	v := Voucher{
+		channelId: channelId,
+		amount:    amount,
+	}
+	return v
 }
