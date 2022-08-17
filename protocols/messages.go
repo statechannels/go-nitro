@@ -56,7 +56,7 @@ func (p messagePayload) hasRejection() bool {
 
 // hasVoucher returns true if the payload contains a voucher.
 func (p messagePayload) hasVoucher() bool {
-	return !p.Voucher.Equal(payments.Voucher{})
+	return !(&p.Voucher).Equal(&payments.Voucher{})
 }
 
 // Type returns the type of the payload, either a SignedProposal or SignedState.

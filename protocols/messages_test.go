@@ -49,7 +49,7 @@ func TestMessage(t *testing.T) {
 
 			{
 
-				Voucher: payments.NewVoucher(types.Destination{'d'}, big.NewInt(123)),
+				Voucher: *payments.NewVoucher(types.Destination{'d'}, big.NewInt(123)),
 			},
 		},
 	}
