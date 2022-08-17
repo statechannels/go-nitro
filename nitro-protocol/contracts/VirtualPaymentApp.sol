@@ -10,7 +10,6 @@ import './interfaces/INitroTypes.sol';
  * @dev The VirtualPaymentApp contract complies with the ForceMoveApp interface and allows payments to be made virtually from Alice to Bob (participants[0] to participants[1]).
  */
 contract VirtualPaymentApp is IForceMoveApp {
-
     struct SignedVoucher {
         bytes32 channelId;
         uint256 amount;
@@ -29,8 +28,7 @@ contract VirtualPaymentApp is IForceMoveApp {
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
     ) external pure override {
-
-        // This channel has only 4 states which can be supported: 
+        // This channel has only 4 states which can be supported:
         // 0 prefund
         // 1 postfund
         // 2 redemption
@@ -40,54 +38,71 @@ contract VirtualPaymentApp is IForceMoveApp {
 
         if (proof.length == 0) {
             require(
-                NitroUtils.getClaimedSignersNum(candidate.signedBy) == fixedPart.participants.length,
+                NitroUtils.getClaimedSignersNum(candidate.signedBy) ==
+                    fixedPart.participants.length,
                 '!unanimous; |proof|=0'
             );
             if (candidate.variablePart.turnNum == 0) return; // prefund
             if (candidate.variablePart.turnNum == 1) return; // postfund
-            if (candidate.variablePart.turnNum == 3) { // final (note: there is a core protocol escape hatch for this, too, so it could be removed)
-                require(candidate.variablePart.isFinal, "!final; turnNum=3 && |proof|=0");
+            if (candidate.variablePart.turnNum == 3) {
+                // final (note: there is a core protocol escape hatch for this, too, so it could be removed)
+                require(candidate.variablePart.isFinal, '!final; turnNum=3 && |proof|=0');
                 return;
-            } 
-            revert("bad candidate turnNum");
+            }
+            revert('bad candidate turnNum');
         }
-
 
         // State 2 can be supported via a forced transition from state 1:
         //
         //      (2)_B     [redemption state signed by Bob, includes a voucher signed by Alice. The outcome may be updated in favour of Bob]
         //      ^
-        //      | 
-        //      (1)_AIB   [fully signed postfund] 
+        //      |
+        //      (1)_AIB   [fully signed postfund]
 
         if (proof.length == 1) {
-
             // TODO factor into RequireIsProofOfUnanimousConsensusOnPostFund
             RecoveredVariablePart memory postfund = proof[0];
-            require(postfund.variablePart.turnNum == 1, "bad proof[0].turnNum; |proof|=1");
+            require(postfund.variablePart.turnNum == 1, 'bad proof[0].turnNum; |proof|=1');
             require(
                 NitroUtils.getClaimedSignersNum(postfund.signedBy) == fixedPart.participants.length,
                 'postfund !unanimous; |proof|=1'
             );
 
-            require(NitroUtils.isClaimedSignedBy(candidate.signedBy, 2),"redemption not signed by Bob");
+            require(
+                NitroUtils.isClaimedSignedBy(candidate.signedBy, 2),
+                'redemption not signed by Bob'
+            );
 
-            require(candidate.variablePart.turnNum == 2, "invalid transition; |proof|=1");
-            SignedVoucher memory voucher = abi.decode(candidate.variablePart.appData,(SignedVoucher));
+            require(candidate.variablePart.turnNum == 2, 'invalid transition; |proof|=1');
+            SignedVoucher memory voucher = abi.decode(
+                candidate.variablePart.appData,
+                (SignedVoucher)
+            );
 
             // TODO factor into ValidateVoucher
-            address signer = 
-                NitroUtils.recoverSigner(keccak256(abi.encode(voucher.channelId,voucher.amount)), voucher.signature);
+            address signer = NitroUtils.recoverSigner(
+                keccak256(abi.encode(voucher.channelId, voucher.amount)),
+                voucher.signature
+            );
             require(signer == fixedPart.participants[0]);
-            require(voucher.channelId==NitroUtils.getChannelId(fixedPart), "voucher not for this channel");
-
+            require(
+                voucher.channelId == NitroUtils.getChannelId(fixedPart),
+                'voucher not for this channel'
+            );
 
             // TODO remove assumption about single asset, and factor into CheckAliceAndBobOutcomes (don't use magic indices, potentially validate destinations)
             // we want to be sure that the voucher amount wasn't greater than alice's original balance. This should be handled by the underflow protection which is now a part of solidity.
-            require(candidate.variablePart.outcome[0].allocations[0].amount == postfund.variablePart.outcome[0].allocations[0].amount - voucher.amount, "Alice not adjusted correctly");
-            require(candidate.variablePart.outcome[0].allocations[1].amount == voucher.amount, "Bob not adjusted correctly");
+            require(
+                candidate.variablePart.outcome[0].allocations[0].amount ==
+                    postfund.variablePart.outcome[0].allocations[0].amount - voucher.amount,
+                'Alice not adjusted correctly'
+            );
+            require(
+                candidate.variablePart.outcome[0].allocations[1].amount == voucher.amount,
+                'Bob not adjusted correctly'
+            );
             return;
         }
-        revert("bad proof length");
-}
+        revert('bad proof length');
+    }
 }
