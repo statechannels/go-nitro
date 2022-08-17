@@ -79,9 +79,11 @@ contract VirtualPaymentApp is IForceMoveApp {
             address signer = 
                 NitroUtils.recoverSigner(keccak256(abi.encode(voucher.channelId,voucher.amount)), voucher.signature);
             require(signer == fixedPart.participants[0]);
+            require(voucher.channelId==NitroUtils.getChannelId(fixedPart), "voucher not for this channel");
 
 
             // TODO remove assumption about single asset, and factor into CheckAliceAndBobOutcomes (don't use magic indices, potentially validate destinations)
+            // we want to be sure that the voucher amount wasn't greater than alice's original balance. This should be handled by the underflow protection which is now a part of solidity.
             require(candidate.variablePart.outcome[0].allocations[0].amount == postfund.variablePart.outcome[0].allocations[0].amount - voucher.amount, "Alice not adjusted correctly");
             require(candidate.variablePart.outcome[0].allocations[1].amount == voucher.amount, "Bob not adjusted correctly");
             return;
