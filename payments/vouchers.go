@@ -66,3 +66,19 @@ func NewVoucher(channelId types.Destination, amount *big.Int) *Voucher {
 	}
 	return &v
 }
+
+// Payment contains information about a payment made using a voucher
+// It is suitable to return to the user.
+type Payment struct {
+	ChannelId types.Destination
+	Amount    *big.Int
+	Sender    types.Address
+}
+
+func (v *Voucher) ToPayment(sender types.Address) Payment {
+	return Payment{
+		ChannelId: v.channelId,
+		Amount:    v.amount,
+		Sender:    sender,
+	}
+}

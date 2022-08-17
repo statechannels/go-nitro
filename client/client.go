@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -23,6 +24,7 @@ type Client struct {
 	Address             *types.Address
 	completedObjectives chan protocols.ObjectiveId
 	failedObjectives    chan protocols.ObjectiveId
+	receivedPayments    chan payments.Payment
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -37,7 +39,8 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
-
+	// Using a larger buffer since payments can be sent frequently.
+	c.receivedPayments = make(chan payments.Payment, 1000)
 	// Start the engine in a go routine
 	go c.engine.Run()
 
@@ -63,6 +66,11 @@ func (c *Client) handleEngineEvents() {
 			c.failedObjectives <- erred
 		}
 
+		for _, payment := range update.ReceivedPayments {
+
+			c.receivedPayments <- payment
+		}
+
 	}
 }
 
@@ -76,6 +84,11 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 // FailedObjectives returns a chan that receives an objective id whenever that objective has failed
 func (c *Client) FailedObjectives() <-chan protocols.ObjectiveId {
 	return c.failedObjectives
+}
+
+// ReceivedPayments returns a chan that receives an a voucher every time a payment is received.
+func (c *Client) ReceivedPayments() <-chan payments.Payment {
+	return c.receivedPayments
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
