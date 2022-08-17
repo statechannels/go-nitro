@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.7.6;
+pragma experimental ABIEncoderV2;
+
+import './interfaces/IForceMoveApp.sol';
+import './libraries/NitroUtils.sol';
+import './interfaces/INitroTypes.sol';
+
+/**
+ * @dev The VirtualPaymentApp contract complies with the ForceMoveApp interface and allows payments to be made virtually from Alice to Bob (participants[0] to participants[1]).
+ */
+contract VirtualPaymentApp is IForceMoveApp {
+
+    struct SignedVoucher {
+        bytes32 channelId;
+        uint256 amount;
+        INitroTypes.Signature signature;
+    }
+
+    /**
+     * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel.
+     * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel.
+     * @param fixedPart Fixed part of the state channel.
+     * @param proof Array of recovered variable parts which constitutes a support proof for the candidate.
+     * @param candidate Recovered variable part the proof was supplied for.
+     */
+    function requireStateSupported(
+        FixedPart calldata fixedPart,
+        RecoveredVariablePart[] calldata proof,
+        RecoveredVariablePart calldata candidate
+    ) external pure override {
+
+        // This channel has only 4 states which can be supported: 
+        // 0 prefund
+        // 1 postfund
+        // 2 redemption
+        // 3 final
+
+        // states 0,1,3 can be supported via unanimous consensus:
+
+        if (proof.length == 0) {
+            require(
+                NitroUtils.getClaimedSignersNum(candidate.signedBy) == fixedPart.participants.length,
+                '!unanimous; |proof|=0'
+            );
+            if (candidate.variablePart.turnNum == 0) return; // prefund
+            if (candidate.variablePart.turnNum == 1) return; // postfund
+            if (candidate.variablePart.turnNum == 3) { // final (note: there is a core protocol escape hatch for this, too, so it could be removed)
+                require(candidate.variablePart.isFinal, "!final; turnNum=3 && |proof|=0");
+                return;
+            } 
+            revert("bad candidate turnNum");
+        }
+
+
+        // State 2 can be supported via a forced transition from state 1:
+        //
+        //      (2)_B     [redemption state signed by Bob, includes a voucher signed by Alice. The outcome may be updated in favour of Bob]
+        //      ^
+        //      | 
+        //      (1)_AIB   [fully signed postfund] 
+
+        if (proof.length == 1) {
+
+            // TODO factor into RequireIsProofOfUnanimousConsensusOnPostFund
+            RecoveredVariablePart memory postfund = proof[0];
+            require(postfund.variablePart.turnNum == 1, "bad proof[0].turnNum; |proof|=1");
+            require(
+                NitroUtils.getClaimedSignersNum(postfund.signedBy) == fixedPart.participants.length,
+                'postfund !unanimous; |proof|=1'
+            );
+
+            require(NitroUtils.isClaimedSignedBy(candidate.signedBy, 2),"redemption not signed by Bob");
+
+            require(candidate.variablePart.turnNum == 2, "invalid transition; |proof|=1");
+            SignedVoucher memory voucher = abi.decode(candidate.variablePart.appData,(SignedVoucher));
+
+            // TODO factor into ValidateVoucher
+            address signer = 
+                NitroUtils.recoverSigner(keccak256(abi.encode(voucher.channelId,voucher.amount)), voucher.signature);
+            require(signer == fixedPart.participants[0]);
+
+
+            // TODO remove assumption about single asset, and factor into CheckAliceAndBobOutcomes (don't use magic indices, potentially validate destinations)
+            require(candidate.variablePart.outcome[0].allocations[0].amount == postfund.variablePart.outcome[0].allocations[0].amount - voucher.amount, "Alice not adjusted correctly");
+            require(candidate.variablePart.outcome[0].allocations[1].amount == voucher.amount, "Bob not adjusted correctly");
+            return;
+        }
+        revert("bad proof length");
+}
+}
