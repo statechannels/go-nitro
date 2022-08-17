@@ -14,7 +14,7 @@ contract VirtualPaymentApp is IForceMoveApp {
     struct SignedVoucher {
         bytes32 channelId;
         uint256 amount;
-        INitroTypes.Signature signature;
+        INitroTypes.Signature signature; // signature on abi.encode(channelId,amount)
     }
 
     /**
