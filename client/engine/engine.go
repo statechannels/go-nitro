@@ -533,8 +533,7 @@ func (e Engine) registerVirtualChannelWithManagers(vfo virtualfund.Objective) er
 	case 0:
 		return e.pm.Register(vfo.V.Id, startingBalance)
 	case 2:
-
-		return e.rm.Register(vfo.V.Id, *e.store.GetAddress(), startingBalance)
+		return e.rm.Register(vfo.V.Id, prefund.Participants[0], startingBalance)
 	default:
 		// The intermediary does not need to use the payment or receipt manager
 		return nil
