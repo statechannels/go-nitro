@@ -1,15 +1,16 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers, BigNumber, Signature} from 'ethers';
-import {defaultAbiCoder, keccak256, ParamType} from 'ethers/lib/utils';
 
 import VirtualPaymentAppArtifact from '../../../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 import {
   bindSignaturesWithSignedByBitfield,
   Channel,
   convertAddressToBytes32,
+  encodeVoucherAmountAndSignature,
   getChannelId,
-  sign,
   signState,
+  signVoucher,
+  Voucher,
 } from '../../../src';
 import {
   getFixedPart,
@@ -224,71 +225,20 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
       };
 
       // construct voucher, sign it, and encode it into the appdata
-      interface VoucherAmountAndSignature {
-        amount: string;
-        signature: Signature;
-      }
+
       const fixedPart = getFixedPart(proofState);
       const channelId = getChannelId(fixedPart);
       const amount = BigNumber.from(7).toHexString();
-
-      const voucherTy = {
-        type: 'tuple',
-        components: [
-          {name: 'channelId', type: 'bytes32'},
-          {
-            name: 'amount',
-            type: 'uint256',
-          },
-        ],
-      } as ParamType;
-
-      const voucherAmountAndSignature: VoucherAmountAndSignature = {
+      const voucher: Voucher = {
+        channelId: tc.voucherForThisChannel
+          ? channelId
+          : convertAddressToBytes32(MAGIC_ETH_ADDRESS),
         amount,
-        signature: await sign(
-          wallets[0],
-          keccak256(
-            defaultAbiCoder.encode(
-              [voucherTy],
-              [
-                {
-                  channelId: tc.voucherForThisChannel
-                    ? channelId
-                    : convertAddressToBytes32(MAGIC_ETH_ADDRESS),
-
-                  amount,
-                },
-              ]
-            )
-          )
-        ),
       };
 
-      if (!tc.voucherSignedByAlice)
-        voucherAmountAndSignature.signature.s = voucherAmountAndSignature.signature.r; // corrupt the signature
-
-      const voucherAmountAndSignatureTy = {
-        type: 'tuple',
-        components: [
-          {
-            name: 'amount',
-            type: 'uint256',
-          },
-          {
-            type: 'tuple',
-            name: 'signature',
-            components: [
-              {name: 'v', type: 'uint8'},
-              {name: 'r', type: 'bytes32'},
-              {name: 's', type: 'bytes32'},
-            ],
-          } as ParamType,
-        ],
-      } as ParamType;
-      const encodedVoucher = defaultAbiCoder.encode(
-        [voucherAmountAndSignatureTy],
-        [voucherAmountAndSignature]
-      );
+      const signature = await signVoucher(voucher, wallets[0]);
+      if (!tc.voucherSignedByAlice) signature.s = signature.r; // corrupt the signature
+      const encodedVoucherAmountAndSignature = encodeVoucherAmountAndSignature(amount, signature);
 
       const candidateState: State = {
         ...proofState,
@@ -299,7 +249,7 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
           },
         }),
         turnNum: tc.candidateTurnNum,
-        appData: encodedVoucher,
+        appData: encodedVoucherAmountAndSignature,
       };
 
       const candidateVariablePart = getVariablePart(candidateState);
