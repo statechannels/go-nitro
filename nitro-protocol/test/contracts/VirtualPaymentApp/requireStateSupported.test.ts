@@ -1,8 +1,15 @@
 import {expectRevert} from '@statechannels/devtools';
-import {Contract, Wallet, ethers, BigNumber} from 'ethers';
+import {Contract, Wallet, ethers, BigNumber, Signature} from 'ethers';
+import {defaultAbiCoder, hashMessage, ParamType} from 'ethers/lib/utils';
 
 import VirtualPaymentAppArtifact from '../../../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
-import {bindSignaturesWithSignedByBitfield, Channel, signState} from '../../../src';
+import {
+  bindSignaturesWithSignedByBitfield,
+  Channel,
+  getChannelId,
+  sign,
+  signState,
+} from '../../../src';
 import {
   getFixedPart,
   getVariablePart,
@@ -36,7 +43,7 @@ beforeAll(async () => {
   );
 });
 
-describe('requireStateSupported (unanimous consensus route)', () => {
+describe('requireStateSupported (lone candidate route)', () => {
   interface TestCase {
     turnNum: number;
     isFinal: boolean;
@@ -89,3 +96,124 @@ describe('requireStateSupported (unanimous consensus route)', () => {
     });
   });
 });
+
+describe('requireStateSupported (candidate plus single proof state route)', () => {
+  interface TestCase {
+    proofTurnNum: number;
+    candidateTurnNum: number;
+    unanimityOnProof: boolean;
+    bobSignedCandidate: boolean;
+    voucherForThisChannel: boolean;
+    voucherSignedByAlice: boolean;
+    aliceAdjusiedCorrectly: boolean;
+    bobAdjustedCorrectly: boolean;
+    revertString?: string;
+  }
+
+  const testcases: TestCase[] = [
+    {
+      proofTurnNum: 1,
+      candidateTurnNum: 2,
+      unanimityOnProof: true,
+      bobSignedCandidate: true,
+      voucherForThisChannel: true,
+      voucherSignedByAlice: true,
+      aliceAdjusiedCorrectly: true,
+      bobAdjustedCorrectly: true,
+      revertString: undefined,
+    },
+  ];
+
+  testcases.map(async tc => {
+    it(`${
+      tc.revertString ? 'reverts        ' : 'does not revert'
+    } for a redemption transition with ${tc}`, async () => {
+      const proofState: State = {
+        turnNum: tc.proofTurnNum,
+        isFinal: false,
+        channel,
+        challengeDuration,
+        outcome: [],
+        appData: HashZero,
+        appDefinition: process.env.VIRTUAL_PAYMENT_APP_ADDRESS,
+      };
+
+      // construct voucher, sign it, and encode it into the appdata
+      interface Voucher {
+        channelId: string;
+        amount: string;
+        sig: Signature;
+      }
+      const fixedPart = getFixedPart(proofState);
+
+      const channelId = getChannelId(fixedPart);
+      const amount = BigNumber.from(7).toHexString();
+      const voucher: Voucher = {
+        channelId,
+        amount,
+        sig: await sign(
+          wallets[0],
+          hashMessage(defaultAbiCoder.encode(['bytes32', 'uint256'], [channelId, amount]))
+        ),
+      };
+
+      const voucherTy = {
+        type: 'tuple',
+        components: [
+          {name: 'channelId', type: 'bytes32'},
+          {
+            name: 'amount',
+            type: 'uint256',
+          },
+          {
+            type: 'tuple',
+            name: 'sig',
+            components: [
+              {name: 'v', type: 'uint8'},
+              {name: 'r', type: 'bytes32'},
+              {name: 's', type: 'bytes32'},
+            ],
+          } as ParamType,
+        ],
+      } as ParamType;
+      const encodedVoucher = defaultAbiCoder.encode([voucherTy], [voucher]);
+
+      const candidateState: State = {
+        ...proofState,
+        turnNum: tc.candidateTurnNum,
+        appData: encodedVoucher,
+      };
+
+      const candidateVariablePart = getVariablePart(candidateState);
+      const proofVariablePart = getVariablePart(proofState);
+
+      // Sign the proof state (everyone)
+      const proofSigs = wallets.map((w: Wallet) => signState(proofState, w.privateKey).signature);
+      const proof: RecoveredVariablePart[] = bindSignaturesWithSignedByBitfield(
+        [proofVariablePart],
+        proofSigs,
+        [0, 0, 0]
+      );
+
+      // Sign the candidate state (just Bob)
+      const candidate: RecoveredVariablePart = {
+        variablePart: candidateVariablePart,
+        signedBy: BigNumber.from(0b100).toHexString(), // 0b100 signed by Bob obly
+      };
+
+      if (tc.revertString) {
+        await expectRevert(
+          () => virtualPaymentApp.requireStateSupported(fixedPart, proof, candidate),
+          tc.revertString
+        );
+      } else {
+        await virtualPaymentApp.requireStateSupported(fixedPart, proof, candidate);
+      }
+    });
+  });
+});
+
+// TODO
+// describe('requireStateSupported (longer proof state route)', () => {});
+
+// TODO we do not actually need to generate any signatures in tests like this. All we need is the signedBy bitfield declaration.
