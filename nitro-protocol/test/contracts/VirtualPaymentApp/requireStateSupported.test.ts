@@ -127,6 +127,83 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
       aliceAdjustedCorrectly: true,
       bobAdjustedCorrectly: true,
       revertString: undefined,
+    }, // valid voucher redemption
+    {
+      proofTurnNum: 0, // incorrect
+      candidateTurnNum: 2,
+      unanimityOnProof: true,
+      bobSignedCandidate: true,
+      voucherForThisChannel: true,
+      voucherSignedByAlice: true,
+      aliceAdjustedCorrectly: true,
+      bobAdjustedCorrectly: true,
+      revertString: 'bad proof[0].turnNum; |proof|=1',
+    },
+    {
+      proofTurnNum: 1,
+      candidateTurnNum: 2,
+      unanimityOnProof: false, // incorrect
+      bobSignedCandidate: true,
+      voucherForThisChannel: true,
+      voucherSignedByAlice: true,
+      aliceAdjustedCorrectly: true,
+      bobAdjustedCorrectly: true,
+      revertString: 'postfund !unanimous; |proof|=1',
+    },
+    {
+      proofTurnNum: 1,
+      candidateTurnNum: 2,
+      unanimityOnProof: true,
+      bobSignedCandidate: false, // incorrect
+      voucherForThisChannel: true,
+      voucherSignedByAlice: true,
+      aliceAdjustedCorrectly: true,
+      bobAdjustedCorrectly: true,
+      revertString: 'redemption not signed by Bob',
+    }, // valid voucher redemption
+    {
+      proofTurnNum: 1,
+      candidateTurnNum: 2,
+      unanimityOnProof: true,
+      bobSignedCandidate: true,
+      voucherForThisChannel: true,
+      voucherSignedByAlice: false, // incorrect
+      aliceAdjustedCorrectly: true,
+      bobAdjustedCorrectly: true,
+      revertString: 'irrelevant voucher',
+    }, // valid voucher redemption
+    {
+      proofTurnNum: 1,
+      candidateTurnNum: 2,
+      unanimityOnProof: true,
+      bobSignedCandidate: true,
+      voucherForThisChannel: false, // incorrect
+      voucherSignedByAlice: true,
+      aliceAdjustedCorrectly: true,
+      bobAdjustedCorrectly: true,
+      revertString: 'irrelevant voucher',
+    },
+    {
+      proofTurnNum: 1,
+      candidateTurnNum: 2,
+      unanimityOnProof: true,
+      bobSignedCandidate: true,
+      voucherForThisChannel: true,
+      voucherSignedByAlice: true,
+      aliceAdjustedCorrectly: false, // incorrect
+      bobAdjustedCorrectly: true,
+      revertString: 'Alice not adjusted correctly',
+    },
+    {
+      proofTurnNum: 1,
+      candidateTurnNum: 2,
+      unanimityOnProof: true,
+      bobSignedCandidate: true,
+      voucherForThisChannel: true,
+      voucherSignedByAlice: true,
+      aliceAdjustedCorrectly: true,
+      bobAdjustedCorrectly: false,
+      revertString: 'Bob not adjusted correctly',
     },
   ];
 
@@ -147,13 +224,11 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
       };
 
       // construct voucher, sign it, and encode it into the appdata
-      interface SignedVoucher {
-        channelId: string;
+      interface VoucherAmountAndSignature {
         amount: string;
         signature: Signature;
       }
       const fixedPart = getFixedPart(proofState);
-
       const channelId = getChannelId(fixedPart);
       const amount = BigNumber.from(7).toHexString();
 
@@ -168,21 +243,33 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
         ],
       } as ParamType;
 
-      const voucher: SignedVoucher = {
-        channelId: tc.voucherForThisChannel ? channelId : MAGIC_ETH_ADDRESS,
+      const voucherAmountAndSignature: VoucherAmountAndSignature = {
         amount,
         signature: await sign(
           wallets[0],
-          keccak256(defaultAbiCoder.encode([voucherTy], [{channelId, amount}]))
+          keccak256(
+            defaultAbiCoder.encode(
+              [voucherTy],
+              [
+                {
+                  channelId: tc.voucherForThisChannel
+                    ? channelId
+                    : convertAddressToBytes32(MAGIC_ETH_ADDRESS),
+
+                  amount,
+                },
+              ]
+            )
+          )
         ),
       };
 
-      if (!tc.voucherSignedByAlice) voucher.signature.s = voucher.signature.r; // corrupt the signature
+      if (!tc.voucherSignedByAlice)
+        voucherAmountAndSignature.signature.s = voucherAmountAndSignature.signature.r; // corrupt the signature
 
-      const signedVoucherTy = {
+      const voucherAmountAndSignatureTy = {
         type: 'tuple',
         components: [
-          {name: 'channelId', type: 'bytes32'},
           {
             name: 'amount',
             type: 'uint256',
@@ -198,7 +285,10 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
           } as ParamType,
         ],
       } as ParamType;
-      const encodedVoucher = defaultAbiCoder.encode([signedVoucherTy], [voucher]);
+      const encodedVoucher = defaultAbiCoder.encode(
+        [voucherAmountAndSignatureTy],
+        [voucherAmountAndSignature]
+      );
 
       const candidateState: State = {
         ...proofState,
