@@ -28,7 +28,6 @@ const participants = ['', '', ''];
 const wallets = new Array(3);
 const chainId = process.env.CHAIN_NETWORK_ID;
 const challengeDuration = 0x100;
-
 const MAGIC_ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 // Populate wallets and participants array
@@ -37,6 +36,7 @@ for (let i = 0; i < 3; i++) {
   participants[i] = wallets[i].address;
 }
 const channel: Channel = {chainId, channelNonce: 8, participants};
+
 const baseState: State = {
   turnNum: 0,
   isFinal: false,
@@ -46,6 +46,8 @@ const baseState: State = {
   appData: HashZero,
   appDefinition: process.env.VIRTUAL_PAYMENT_APP_ADDRESS,
 };
+const fixedPart = getFixedPart(baseState);
+const channelId = getChannelId(fixedPart);
 
 const alice = convertAddressToBytes32(participants[0]); // NOTE these desinations do not necessarily need to be related to participant addresses
 const bob = convertAddressToBytes32(participants[2]);
@@ -84,17 +86,12 @@ describe('requireStateSupported (lone candidate route)', () => {
         isFinal: tc.isFinal,
       };
 
-      const fixedPart = getFixedPart(state);
       const variablePart = getVariablePart(state);
 
-      // Sign the states
-      const sigs = wallets.map((w: Wallet) => signState(state, w.privateKey).signature);
-
-      const candidate: RecoveredVariablePart = bindSignaturesWithSignedByBitfield(
-        [variablePart],
-        sigs,
-        [0, 0, 0]
-      )[0];
+      const candidate: RecoveredVariablePart = {
+        variablePart,
+        signedBy: BigNumber.from(0b111).toHexString(),
+      };
 
       if (tc.revertString) {
         await expectRevert(
@@ -225,10 +222,7 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
         }),
       };
 
-      // construct voucher, sign it, and encode it into the appdata
-
-      const fixedPart = getFixedPart(proofState);
-      const channelId = getChannelId(fixedPart);
+      // construct voucher with the (in)appropriate channelId
       const amount = BigNumber.from(7).toHexString();
       const voucher: Voucher = {
         channelId: tc.voucherForThisChannel
@@ -237,10 +231,12 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
         amount,
       };
 
+      // make an (in)valid signature
       const signature = await signVoucher(voucher, wallets[0]);
-      if (!tc.voucherSignedByAlice) signature.s = signature.r; // corrupt the signature
-      const encodedVoucherAmountAndSignature = encodeVoucherAmountAndSignature(amount, signature);
+      if (!tc.voucherSignedByAlice) signature.s = signature.r; // (conditionally) corrupt the signature
 
+      // embed voucher into candidate state
+      const encodedVoucherAmountAndSignature = encodeVoucherAmountAndSignature(amount, signature);
       const candidateState: State = {
         ...proofState,
         outcome: computeOutcome({
@@ -253,20 +249,17 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
         appData: encodedVoucherAmountAndSignature,
       };
 
-      const candidateVariablePart = getVariablePart(candidateState);
-      const proofVariablePart = getVariablePart(proofState);
-
       // Sign the proof state (should be everyone)
       const proof: RecoveredVariablePart[] = [
         {
-          variablePart: proofVariablePart,
+          variablePart: getVariablePart(proofState),
           signedBy: BigNumber.from(tc.unanimityOnProof ? 0b111 : 0b101).toHexString(),
         },
       ];
 
-      // Sign the candidate state (just Bob)
+      // Sign the candidate state (should be just Bob)
       const candidate: RecoveredVariablePart = {
-        variablePart: candidateVariablePart,
+        variablePart: getVariablePart(candidateState),
         signedBy: BigNumber.from(tc.bobSignedCandidate ? 0b100 : 0b000).toHexString(), // 0b100 signed by Bob obly
       };
 
@@ -284,27 +277,12 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
 
 describe('requireStateSupported (longer proof state route)', () => {
   it(`reverts for |support|>1`, async () => {
-    const state: State = {
-      turnNum: 2,
-      isFinal: false,
-      channel,
-      challengeDuration,
-      outcome: [],
-      appData: HashZero,
-      appDefinition: process.env.VIRTUAL_PAYMENT_APP_ADDRESS,
+    const variablePart = getVariablePart(baseState);
+
+    const candidate: RecoveredVariablePart = {
+      variablePart,
+      signedBy: BigNumber.from(0b111).toHexString(),
     };
-
-    const fixedPart = getFixedPart(state);
-    const variablePart = getVariablePart(state);
-
-    // Sign the states
-    const sigs = wallets.map((w: Wallet) => signState(state, w.privateKey).signature);
-
-    const candidate: RecoveredVariablePart = bindSignaturesWithSignedByBitfield(
-      [variablePart],
-      sigs,
-      [0, 0, 0]
-    )[0];
 
     await expectRevert(
       () => virtualPaymentApp.requireStateSupported(fixedPart, [candidate, candidate], candidate),
@@ -312,5 +290,3 @@ describe('requireStateSupported (longer proof state route)', () => {
     );
   });
 });
-
-// TODO we do not actually need to generate any signatures in tests like this. All we need is the signedBy bitfield declaration.
