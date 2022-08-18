@@ -5,6 +5,7 @@ pragma experimental ABIEncoderV2;
 import './interfaces/IForceMoveApp.sol';
 import './libraries/NitroUtils.sol';
 import './interfaces/INitroTypes.sol';
+import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
 /**
  * @dev The VirtualPaymentApp contract complies with the ForceMoveApp interface and allows payments to be made virtually from Alice to Bob (participants[0] to participants[1]).
@@ -13,6 +14,11 @@ contract VirtualPaymentApp is IForceMoveApp {
     struct VoucherAmountAndSignature {
         uint256 amount;
         INitroTypes.Signature signature; // signature on abi.encode(channelId,amount)
+    }
+
+    enum AllocationIndices {
+        Alice, // payer
+        Bob // beneficiary, initial allocation is zero
     }
 
     /**
@@ -48,7 +54,7 @@ contract VirtualPaymentApp is IForceMoveApp {
                 require(candidate.variablePart.isFinal, '!final; turnNum=3 && |proof|=0');
                 return;
             }
-            revert('bad candidate turnNum');
+            revert('bad candidate turnNum; |proof|=0');
         }
 
         // State 2 can be supported via a forced transition from state 1:
@@ -60,26 +66,16 @@ contract VirtualPaymentApp is IForceMoveApp {
 
         if (proof.length == 1) {
             requireProofOfUnanimousConsensusOnPostFund(proof[0], fixedPart.participants.length);
-
-            require(candidate.variablePart.turnNum == 2, 'invalid transition; |proof|=1');
-
+            require(candidate.variablePart.turnNum == 2, 'bad candidate turnNum; |proof|=1');
             require(
                 NitroUtils.isClaimedSignedBy(candidate.signedBy, 2),
                 'redemption not signed by Bob'
             );
-
-            requireValidVoucher(candidate.variablePart.appData, fixedPart);
-
-            // TODO remove assumption about single asset, and factor into CheckAliceAndBobOutcomes (don't use magic indices, potentially validate destinations)
-            // we want to be sure that the voucher amount wasn't greater than alice's original balance. This should be handled by the underflow protection which is now a part of solidity.
-            require(
-                candidate.variablePart.outcome[0].allocations[0].amount ==
-                    proof[0].variablePart.outcome[0].allocations[0].amount - voucher.amount,
-                'Alice not adjusted correctly'
-            );
-            require(
-                candidate.variablePart.outcome[0].allocations[1].amount == voucher.amount,
-                'Bob not adjusted correctly'
+            uint256 voucherAmount = requireValidVoucher(candidate.variablePart.appData, fixedPart);
+            requireCorrectAdjustments(
+                proof[0].variablePart.outcome,
+                candidate.variablePart.outcome,
+                voucherAmount
             );
             return;
         }
@@ -97,7 +93,11 @@ contract VirtualPaymentApp is IForceMoveApp {
         );
     }
 
-    function requireValidVoucher(bytes memory appData, FixedPart memory fixedPart) internal pure {
+    function requireValidVoucher(bytes memory appData, FixedPart memory fixedPart)
+        internal
+        pure
+        returns (uint256)
+    {
         VoucherAmountAndSignature memory voucher = abi.decode(appData, (VoucherAmountAndSignature));
 
         address signer = NitroUtils.recoverSigner(
@@ -105,5 +105,30 @@ contract VirtualPaymentApp is IForceMoveApp {
             voucher.signature
         );
         require(signer == fixedPart.participants[0], 'irrelevant voucher'); // could be incorrect channelId or incorrect signature
+        return voucher.amount;
+    }
+
+    function requireCorrectAdjustments(
+        Outcome.SingleAssetExit[] memory oldOutcome,
+        Outcome.SingleAssetExit[] memory newOutcome,
+        uint256 voucherAmount
+    ) internal pure {
+        require(
+            oldOutcome.length == 1 &&
+                newOutcome.length == 1 &&
+                oldOutcome[0].asset == address(0) &&
+                newOutcome[0].asset == address(0),
+            'only native asset allowed'
+        );
+
+        require(
+            newOutcome[0].allocations[uint256(AllocationIndices.Alice)].amount ==
+                oldOutcome[0].allocations[uint256(AllocationIndices.Alice)].amount - voucherAmount,
+            'Alice not adjusted correctly'
+        );
+        require(
+            newOutcome[0].allocations[uint256(AllocationIndices.Bob)].amount == voucherAmount,
+            'Bob not adjusted correctly'
+        );
     }
 }
