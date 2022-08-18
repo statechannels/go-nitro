@@ -84,7 +84,7 @@ contract VirtualPaymentApp is IForceMoveApp {
                 keccak256(abi.encode(voucher.channelId, voucher.amount)),
                 voucher.signature
             );
-            require(signer == fixedPart.participants[0]);
+            require(signer == fixedPart.participants[0], 'voucher not signed by Alice');
             require(
                 voucher.channelId == NitroUtils.getChannelId(fixedPart),
                 'voucher not for this channel'
