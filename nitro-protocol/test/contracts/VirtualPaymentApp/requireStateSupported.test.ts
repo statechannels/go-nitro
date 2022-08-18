@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers, BigNumber, Signature} from 'ethers';
-import {defaultAbiCoder, hashMessage, ParamType} from 'ethers/lib/utils';
+import {defaultAbiCoder, keccak256, ParamType} from 'ethers/lib/utils';
 
 import VirtualPaymentAppArtifact from '../../../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 import {
@@ -139,23 +139,15 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
       };
 
       // construct voucher, sign it, and encode it into the appdata
-      interface Voucher {
+      interface SignedVoucher {
         channelId: string;
         amount: string;
-        sig: Signature;
+        signature: Signature;
       }
       const fixedPart = getFixedPart(proofState);
 
       const channelId = getChannelId(fixedPart);
       const amount = BigNumber.from(7).toHexString();
-      const voucher: Voucher = {
-        channelId,
-        amount,
-        sig: await sign(
-          wallets[0],
-          hashMessage(defaultAbiCoder.encode(['bytes32', 'uint256'], [channelId, amount]))
-        ),
-      };
 
       const voucherTy = {
         type: 'tuple',
@@ -165,9 +157,29 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
             name: 'amount',
             type: 'uint256',
           },
+        ],
+      } as ParamType;
+
+      const voucher: SignedVoucher = {
+        channelId,
+        amount,
+        signature: await sign(
+          wallets[0],
+          keccak256(defaultAbiCoder.encode([voucherTy], [{channelId, amount}]))
+        ),
+      };
+
+      const signedVoucherTy = {
+        type: 'tuple',
+        components: [
+          {name: 'channelId', type: 'bytes32'},
+          {
+            name: 'amount',
+            type: 'uint256',
+          },
           {
             type: 'tuple',
-            name: 'sig',
+            name: 'signature',
             components: [
               {name: 'v', type: 'uint8'},
               {name: 'r', type: 'bytes32'},
@@ -176,7 +188,7 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
           } as ParamType,
         ],
       } as ParamType;
-      const encodedVoucher = defaultAbiCoder.encode([voucherTy], [voucher]);
+      const encodedVoucher = defaultAbiCoder.encode([signedVoucherTy], [voucher]);
 
       const candidateState: State = {
         ...proofState,
