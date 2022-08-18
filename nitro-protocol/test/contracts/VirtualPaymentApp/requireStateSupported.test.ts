@@ -331,7 +331,35 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
   });
 });
 
-// TODO
-// describe('requireStateSupported (longer proof state route)', () => {});
+describe('requireStateSupported (longer proof state route)', () => {
+  it(`reverts for |support|>1`, async () => {
+    const state: State = {
+      turnNum: 2,
+      isFinal: false,
+      channel,
+      challengeDuration,
+      outcome: [],
+      appData: HashZero,
+      appDefinition: process.env.VIRTUAL_PAYMENT_APP_ADDRESS,
+    };
+
+    const fixedPart = getFixedPart(state);
+    const variablePart = getVariablePart(state);
+
+    // Sign the states
+    const sigs = wallets.map((w: Wallet) => signState(state, w.privateKey).signature);
+
+    const candidate: RecoveredVariablePart = bindSignaturesWithSignedByBitfield(
+      [variablePart],
+      sigs,
+      [0, 0, 0]
+    )[0];
+
+    await expectRevert(
+      () => virtualPaymentApp.requireStateSupported(fixedPart, [candidate, candidate], candidate),
+      'bad proof length'
+    );
+  });
+});
 
 // TODO we do not actually need to generate any signatures in tests like this. All we need is the signedBy bitfield declaration.
