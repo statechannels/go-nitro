@@ -128,3 +128,22 @@ func (vm *VoucherManager) Balance(channelId types.Destination) (Balance, error) 
 	return data.currentBalance, nil
 
 }
+
+// Voucher returns the latest sent voucher for a channel
+func (vm *VoucherManager) Voucher(channelId types.Destination, pk []byte) (Voucher, error) {
+
+	bal, err := vm.Balance(channelId)
+	voucher := Voucher{Amount: &big.Int{}}
+	if err != nil {
+		return voucher, fmt.Errorf("unable to get balance to construct voucher: %w", err)
+	}
+	voucher.Amount.Set(bal.Paid)
+	voucher.ChannelId = channelId
+
+	if err := voucher.Sign(pk); err != nil {
+		return Voucher{}, err
+	}
+
+	return voucher, nil
+
+}

@@ -316,7 +316,8 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
 	}
 
-	for _, voucher := range message.Vouchers() {
+	for _, voucherPayload := range message.Vouchers() {
+		voucher := voucherPayload.Payload
 
 		// TODO: return the amount we paid?
 		_, err := e.vm.Receive(voucher)
@@ -385,7 +386,10 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
 
 		case virtualdefund.ObjectiveRequest:
 			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
-			vdfo, err := virtualdefund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
+			getVoucher := func(cId types.Destination) (payments.Voucher, error) {
+				return e.vm.Voucher(cId, *e.store.GetChannelSecretKey())
+			}
+			vdfo, err := virtualdefund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel, getVoucher)
 			if err != nil {
 				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
@@ -589,11 +593,8 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
-		vdfo, err := virtualdefund.ConstructObjectiveFromState(ss.State(), false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
-		if err != nil {
-			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
-		}
-		return &vdfo, nil
+		return &virtualfund.Objective{}, fmt.Errorf("cannot construct virtual defund from a state. We expect a voucher first.")
+
 	case directdefund.IsDirectDefundObjective(id):
 		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), false, e.store.GetConsensusChannelById)
 		if err != nil {

@@ -119,7 +119,7 @@ func waitTimeForReceivedVoucher(t *testing.T, client *client.Client, timeout tim
 				incomplete = append(incomplete, v)
 			}
 		}
-		t.Fatalf("Objective ids %s failed to complete on client %s within %s", incomplete, client.Address, timeout)
+		t.Fatalf("Voucher %+v failed to be received on client %s within %s", incomplete, client.Address, timeout)
 	case <-allDone:
 		return
 	}

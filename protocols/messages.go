@@ -79,11 +79,12 @@ type ObjectivePayload[T PayloadValue] struct {
 }
 
 // Vouchers returns the collection of vouchers in the message
-func (m Message) Vouchers() []payments.Voucher {
-	var vouchers []payments.Voucher
+func (m Message) Vouchers() []ObjectivePayload[payments.Voucher] {
+	vouchers := make([]ObjectivePayload[payments.Voucher], 0)
 	for _, p := range m.payloads {
 		if p.hasVoucher() {
-			vouchers = append(vouchers, p.Voucher)
+			entry := ObjectivePayload[payments.Voucher]{p.Voucher, p.ObjectiveId}
+			vouchers = append(vouchers, entry)
 		}
 	}
 	return vouchers

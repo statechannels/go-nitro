@@ -11,11 +11,13 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
 const (
+	WaitingForLatestVoucher           protocols.WaitingFor = "WaitingForLatestVoucher"
 	WaitingForCompleteFinal           protocols.WaitingFor = "WaitingForCompleteFinal"           // Round 1
 	WaitingForCompleteLedgerDefunding protocols.WaitingFor = "WaitingForCompleteLedgerDefunding" // Round 2
 	WaitingForNothing                 protocols.WaitingFor = "WaitingForNothing"                 // Finished
@@ -31,9 +33,6 @@ type Objective struct {
 	// InitialOutcome is the initial outcome of the virtual channel
 	InitialOutcome outcome.SingleAssetExit
 
-	// PaidToBob is the amount that should be paid from Alice (participant 0) to Bob (participant 2)
-	PaidToBob *big.Int
-
 	// VFixed is the fixed channel information for the virtual channel
 	VFixed state.FixedPart
 
@@ -41,6 +40,11 @@ type Objective struct {
 	// Signatures are ordered by participant order: Signatures[0] is Alice's signature, Signatures[1] is Irene's signature, Signatures[2] is Bob's signature
 	// Signatures gets updated as participants sign and send states to each other.
 	Signatures [3]state.Signature
+
+	Vouchers [3]payments.Voucher
+
+	// TODO: Do we need this? If so it should probably be private
+	VoucherSent bool
 
 	ToMyLeft  *consensus_channel.ConsensusChannel
 	ToMyRight *consensus_channel.ConsensusChannel
@@ -55,6 +59,9 @@ type Objective struct {
 const ObjectivePrefix = "VirtualDefund-"
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
+type GetVoucherByChannelIdFunction func(cId types.Destination) (voucher payments.Voucher, err error)
+
+// GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel, ok bool)
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
@@ -66,7 +73,9 @@ func NewObjective(request ObjectiveRequest,
 	preApprove bool,
 	myAddress types.Address,
 	getChannel GetChannelByIdFunction,
-	getConsensusChannel GetTwoPartyConsensusLedgerFunction) (Objective, error) {
+	getConsensusChannel GetTwoPartyConsensusLedgerFunction,
+	getVoucher GetVoucherByChannelIdFunction,
+) (Objective, error) {
 	var status protocols.ObjectiveStatus
 
 	if preApprove {
@@ -115,67 +124,58 @@ func NewObjective(request ObjectiveRequest,
 		return Objective{}, fmt.Errorf("client address not found in an expected participant index")
 
 	}
+
+	var latestVoucher payments.Voucher
+	if myAddress == alice {
+		var err error
+		latestVoucher, err = getVoucher(request.ChannelId)
+		if err != nil {
+			return Objective{}, fmt.Errorf("could not get the latest voucher for channel %s: %w", request.ChannelId, err)
+		}
+	}
+	vouchers := [3]payments.Voucher{}
+	vouchers[V.MyIndex] = latestVoucher
 	return Objective{
 		Status:         status,
-		InitialOutcome: initialOutcome,
-		PaidToBob:      request.PaidToBob,
-		VFixed:         V.FixedPart,
-		Signatures:     [3]state.Signature{},
-		MyRole:         V.MyIndex,
-		ToMyLeft:       toMyLeft,
-		ToMyRight:      toMyRight,
+		InitialOutcome: initialOutcome, VFixed: V.FixedPart,
+		Signatures: [3]state.Signature{},
+		MyRole:     V.MyIndex,
+		ToMyLeft:   toMyLeft,
+		ToMyRight:  toMyRight,
+		Vouchers:   vouchers,
 	}, nil
 
 }
 
-// ConstructObjectiveFromState takes in a message and constructs an objective from it.
+// ConstructObjectiveFromVoucher takes in a message and constructs an objective from it.
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
-func ConstructObjectiveFromState(
-	initialState state.State,
+func ConstructObjectiveFromVoucher(
+	fixedPart state.FixedPart,
+	initialVoucher payments.Voucher,
 	preapprove bool,
 	myAddress types.Address,
 	getChannel GetChannelByIdFunction,
 	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
+	getVoucher GetVoucherByChannelIdFunction,
 ) (Objective, error) {
 
-	err := initialState.FixedPart().Validate()
+	err := fixedPart.Validate()
 	if err != nil {
 		return Objective{}, err
 	}
 
-	channelId := initialState.ChannelId()
+	channelId := fixedPart.ChannelId()
 
-	// TODO: Because there is no payment system we are not able to query or verify how much was paid.
-	// So the current behaviour is as follows:
-	// - whomever calls CloseVirtualChannel gets to set paidToBob however they like
-	// - the responder will go along with it
-	paidToBob, err := calculatePaidToBob(initialState, getChannel)
 	if err != nil {
 		return Objective{}, err
 	}
 	return NewObjective(
-		ObjectiveRequest{channelId, paidToBob},
+		ObjectiveRequest{channelId},
 		preapprove,
 		myAddress,
 		getChannel,
-		getTwoPartyConsensusLedger)
-}
-
-// calculatePaidToBob determines the amount paid to bob by comparing the prefund setup state and the proposed final state.
-func calculatePaidToBob(proposedFinalState state.State, getChannel GetChannelByIdFunction) (*big.Int, error) {
-	if !proposedFinalState.IsFinal {
-		return big.NewInt(0), fmt.Errorf("expected final state")
-	}
-	cId := proposedFinalState.ChannelId()
-	c, found := getChannel(cId)
-	pf := c.PreFundState()
-
-	if !found {
-		return big.NewInt(0), fmt.Errorf("could not find channel %s", cId)
-	}
-	initialBobAmount := pf.Outcome[0].Allocations[1].Amount
-	finalBobAmount := proposedFinalState.Outcome[0].Allocations[1].Amount
-	return big.NewInt(0).Sub(finalBobAmount, initialBobAmount), nil
+		getTwoPartyConsensusLedger,
+		getVoucher)
 }
 
 // IsVirtualDefundObjective inspects a objective id and returns true if the objective id is for a virtualdefund objective.
@@ -203,12 +203,24 @@ func (o *Objective) finalState() state.State {
 	return state.StateFromFixedAndVariablePart(o.VFixed, vp)
 }
 
+// Returns the proposal with the largest amount
+func (o *Objective) LargestProposal() *payments.Voucher {
+	largest := big.NewInt(0)
+	index := 0
+	for i, v := range o.Vouchers {
+		if v.Amount.Cmp(largest) > 0 {
+			index = i
+			largest = v.Amount
+		}
+	}
+	return &o.Vouchers[index]
+}
+
 // finalOutcome returns the outcome for the final state calculated from the InitialOutcome and PaidToBob
 func (o *Objective) finalOutcome() outcome.SingleAssetExit {
 	finalOutcome := o.InitialOutcome.Clone()
-
-	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.PaidToBob)
-	finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.PaidToBob)
+	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.LargestProposal().Amount)
+	finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.LargestProposal().Amount)
 
 	return finalOutcome
 }
@@ -275,7 +287,10 @@ func (o *Objective) clone() Objective {
 
 	clone.VFixed = o.VFixed.Clone()
 	clone.InitialOutcome = o.InitialOutcome.Clone()
-	clone.PaidToBob = big.NewInt(0).Set(o.PaidToBob)
+
+	for i, v := range o.Vouchers {
+		clone.Vouchers[i] = *v.Clone()
+	}
 
 	clone.Signatures = [3]state.Signature{}
 	for i, s := range o.Signatures {
@@ -290,6 +305,7 @@ func (o *Objective) clone() Objective {
 	if o.ToMyRight != nil {
 		clone.ToMyRight = o.ToMyRight
 	}
+	clone.VoucherSent = o.VoucherSent
 
 	return clone
 }
@@ -302,6 +318,23 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	// Input validation
 	if updated.Status != protocols.Approved {
 		return &updated, sideEffects, WaitingForNothing, protocols.ErrNotApproved
+	}
+
+	if !updated.VoucherSent {
+
+		vMsgs := protocols.CreateVoucherMessage(updated.Vouchers[o.MyRole], updated.VFixed.Participants...)
+		// We send out the state we think is the final state
+		sMsgs := protocols.CreateSignedStateMessages(
+			updated.Id(),
+			state.NewSignedState(updated.finalState()),
+			updated.MyRole)
+		msgs := append(vMsgs, sMsgs...)
+		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, msgs...)
+		updated.VoucherSent = true
+	}
+
+	if !updated.haveAllVouchers() {
+		return &updated, sideEffects, WaitingForLatestVoucher, nil
 	}
 
 	// Signing of the final state
@@ -443,6 +476,16 @@ func (o *Objective) signedByMe() bool {
 
 }
 
+func (o *Objective) haveAllVouchers() bool {
+
+	for _, v := range o.Vouchers {
+		if v.IsZero() {
+			return false
+		}
+	}
+	return true
+}
+
 // isRightDefunded returns whether the ledger channel ToMyRight has been defunded
 // If ToMyRight==nil then we return true
 func (o *Objective) isRightDefunded() bool {
@@ -516,6 +559,8 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 						return o, fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
 					}
 				}
+				updated.Signatures[i] = incomingSig
+
 				// Otherwise we validate the incoming signature and update our signatures
 				isValid, err := updated.validateSignature(incomingSig, i)
 				if isValid {
@@ -524,6 +569,7 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 				} else {
 					return o, fmt.Errorf("failed to validate signature: %w", err)
 				}
+
 			}
 		}
 	}
@@ -558,6 +604,26 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 			return o, fmt.Errorf("error incorporating signed proposal %+v into objective: %w", protocols.SummarizeProposal(event.ObjectiveId, sp), err)
 		}
 	}
+
+	if !event.Voucher.IsZero() {
+		signer, err := event.Voucher.RecoverSigner()
+		if err != nil {
+			return o, fmt.Errorf("error recovering voucher signer: %w", err)
+		}
+		// This logic assumes a single hop virtual channel.
+		// Currently this is the only type of virtual channel supported.
+		alice := updated.VFixed.Participants[0]
+		intermediary := updated.VFixed.Participants[1]
+		bob := updated.VFixed.Participants[2]
+		switch {
+		case signer == alice:
+			updated.Vouchers[0] = event.Voucher
+		case signer == intermediary:
+			updated.Vouchers[1] = event.Voucher
+		case signer == bob:
+			updated.Vouchers[2] = event.Voucher
+		}
+	}
 	return &updated, nil
 
 }
@@ -571,7 +637,6 @@ func isZero(sig state.Signature) bool {
 // ObjectiveRequest represents a request to create a new direct defund objective.
 type ObjectiveRequest struct {
 	ChannelId types.Destination
-	PaidToBob *big.Int
 }
 
 // Id returns the objective id for the request.

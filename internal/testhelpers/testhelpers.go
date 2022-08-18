@@ -12,6 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 )
 
@@ -77,6 +78,9 @@ func AssertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.S
 
 func AssertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to testactors.Actor) {
 
+	if len(ses.MessagesToSend) != 1 {
+		fmt.Printf("%+v\n", ses.MessagesToSend)
+	}
 	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
 
 	found := false
@@ -101,5 +105,26 @@ func SignState(ss *state.SignedState, secretKey *[]byte) {
 	err = ss.AddSignature(sig)
 	if err != nil {
 		panic(fmt.Errorf("SignAndAdd failed to sign the state: %w", err))
+	}
+}
+
+// AssertVoucherSentToEveryone asserts that ses contains a message for every participant but from
+func AssertVoucherSentToEveryone(t *testing.T, ses protocols.SideEffects, expected payments.Voucher, from testactors.Actor, allActors []testactors.Actor) {
+	for _, a := range allActors {
+		if a.Role != from.Role {
+			AssertVoucherSentTo(t, ses, expected, a)
+		}
+	}
+}
+
+// AssertVoucherSentTo asserts that ses contains a message for the participant
+func AssertVoucherSentTo(t *testing.T, ses protocols.SideEffects, expected payments.Voucher, to testactors.Actor) {
+	for _, msg := range ses.MessagesToSend {
+		toAddress := to.Address()
+		if bytes.Equal(msg.To[:], toAddress[:]) {
+			for _, v := range msg.Vouchers() {
+				Equals(t, v, expected)
+			}
+		}
 	}
 }

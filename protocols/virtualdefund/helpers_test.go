@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	. "github.com/statechannels/go-nitro/internal/testhelpers"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -233,8 +234,8 @@ func makeOutcome(aliceAmount uint, bobAmount uint) outcome.SingleAssetExit {
 type testdata struct {
 	vInitial state.State
 	vFinal   state.State
-
-	paid uint
+	voucher  payments.Voucher
+	paid     uint
 	// finalAliceAmount is the amount we expect to be allocated in the ledger to Alice after defunding is complete
 	finalAliceAmount uint
 	// finalBobAmount is the amount we expect to be allocated in the ledger to Bob after defunding is complete
@@ -265,10 +266,11 @@ func generateTestData() testdata {
 	initialOutcome := makeOutcome(finalAliceAmount+paid, finalBobAmount-paid)
 	finalOutcome := makeOutcome(finalAliceAmount, finalBobAmount)
 
+	voucher, _ := payments.NewSignedVoucher(vFixed.ChannelId(), big.NewInt(1), alice.PrivateKey)
 	vInitial := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{initialOutcome}, TurnNum: 1})
 	vFinal := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{finalOutcome}, TurnNum: FinalTurnNum})
 
-	return testdata{vInitial, vFinal, paid, finalAliceAmount, finalBobAmount}
+	return testdata{vInitial, vFinal, *voucher, paid, finalAliceAmount, finalBobAmount}
 }
 
 // signStateByOthers signs the state by every participant except me

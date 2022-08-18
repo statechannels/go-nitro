@@ -74,3 +74,41 @@ func (v *Voucher) RecoverSigner() (types.Address, error) {
 func (v *Voucher) Equal(other *Voucher) bool {
 	return v.ChannelId == other.ChannelId && v.Amount.Cmp(other.Amount) == 0 && v.Signature.Equal(other.Signature)
 }
+
+// IsZero returns true if the voucher is the default zero value
+func (v *Voucher) IsZero() bool {
+	return v.Equal(&Voucher{})
+}
+
+func (v *Voucher) Clone() *Voucher {
+	var amount *big.Int
+	if v.Amount != nil {
+		amount = new(big.Int).Set(v.Amount)
+	}
+	signature := state.CloneSignature(v.Signature)
+	return &Voucher{
+		ChannelId: v.ChannelId,
+		Amount:    amount,
+		Signature: signature,
+	}
+}
+
+func (v Voucher) SortInfo() (types.Destination, uint64) {
+	return v.ChannelId, 0
+}
+
+// NewVoucher constructs a voucher with the given channel id and amount
+func NewVoucher(channelId types.Destination, amount *big.Int) *Voucher {
+	v := Voucher{
+		ChannelId: channelId,
+		Amount:    amount,
+	}
+	return &v
+}
+
+// NewSignedVoucher constructs a voucher with the given channel id and amount signed by the provided private key
+func NewSignedVoucher(channelId types.Destination, amount *big.Int, pk []byte) (*Voucher, error) {
+	v := NewVoucher(channelId, amount)
+	err := v.Sign(pk)
+	return v, err
+}

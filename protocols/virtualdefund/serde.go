@@ -3,11 +3,11 @@ package virtualdefund
 import (
 	"encoding/json"
 	"fmt"
-	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 )
 
@@ -18,7 +18,8 @@ type jsonObjective struct {
 	VFixed         state.FixedPart
 	InitialOutcome outcome.SingleAssetExit
 	Signatures     [3]state.Signature
-	PaidToBob      *big.Int
+	Vouchers       [3]payments.Voucher
+	VoucherSent    bool
 	ToMyLeft       []byte
 	ToMyRight      []byte
 
@@ -55,12 +56,13 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 		Status:         o.Status,
 		VFixed:         o.VFixed,
 		Signatures:     o.Signatures,
-		PaidToBob:      o.PaidToBob,
 		InitialOutcome: o.InitialOutcome,
 		ToMyLeft:       left,
 		ToMyRight:      right,
 		MyRole:         o.MyRole,
+		VoucherSent:    o.VoucherSent,
 	}
+
 	return json.Marshal(jsonVFO)
 }
 
@@ -91,7 +93,8 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.Signatures = jsonVFO.Signatures
 	o.InitialOutcome = jsonVFO.InitialOutcome
 	o.VFixed = jsonVFO.VFixed
-	o.PaidToBob = jsonVFO.PaidToBob
+	o.Vouchers = jsonVFO.Vouchers
+	o.VoucherSent = jsonVFO.VoucherSent
 
 	return nil
 }

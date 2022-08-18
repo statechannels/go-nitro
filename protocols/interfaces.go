@@ -6,6 +6,7 @@ import (
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -68,6 +69,7 @@ type ObjectiveEvent struct {
 	ObjectiveId    ObjectiveId
 	SignedState    state.SignedState
 	SignedProposal consensus_channel.SignedProposal
+	Voucher        payments.Voucher
 }
 
 // Storable is an object that can be stored by the store.
