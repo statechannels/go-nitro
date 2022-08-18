@@ -59,37 +59,22 @@ contract VirtualPaymentApp is IForceMoveApp {
         //      (1)_AIB   [fully signed postfund]
 
         if (proof.length == 1) {
-            // TODO factor into RequireIsProofOfUnanimousConsensusOnPostFund
-            RecoveredVariablePart memory postfund = proof[0];
-            require(postfund.variablePart.turnNum == 1, 'bad proof[0].turnNum; |proof|=1');
-            require(
-                NitroUtils.getClaimedSignersNum(postfund.signedBy) == fixedPart.participants.length,
-                'postfund !unanimous; |proof|=1'
-            );
+            requireProofOfUnanimousConsensusOnPostFund(proof[0], fixedPart.participants.length);
+
+            require(candidate.variablePart.turnNum == 2, 'invalid transition; |proof|=1');
 
             require(
                 NitroUtils.isClaimedSignedBy(candidate.signedBy, 2),
                 'redemption not signed by Bob'
             );
 
-            require(candidate.variablePart.turnNum == 2, 'invalid transition; |proof|=1');
-            VoucherAmountAndSignature memory voucher = abi.decode(
-                candidate.variablePart.appData,
-                (VoucherAmountAndSignature)
-            );
-
-            // TODO factor into ValidateVoucher
-            address signer = NitroUtils.recoverSigner(
-                keccak256(abi.encode(NitroUtils.getChannelId(fixedPart), voucher.amount)),
-                voucher.signature
-            );
-            require(signer == fixedPart.participants[0], 'irrelevant voucher'); // could be incorrect channelId or incorrect signature
+            requireValidVoucher(candidate.variablePart.appData, fixedPart);
 
             // TODO remove assumption about single asset, and factor into CheckAliceAndBobOutcomes (don't use magic indices, potentially validate destinations)
             // we want to be sure that the voucher amount wasn't greater than alice's original balance. This should be handled by the underflow protection which is now a part of solidity.
             require(
                 candidate.variablePart.outcome[0].allocations[0].amount ==
-                    postfund.variablePart.outcome[0].allocations[0].amount - voucher.amount,
+                    proof[0].variablePart.outcome[0].allocations[0].amount - voucher.amount,
                 'Alice not adjusted correctly'
             );
             require(
@@ -99,5 +84,26 @@ contract VirtualPaymentApp is IForceMoveApp {
             return;
         }
         revert('bad proof length');
+    }
+
+    function requireProofOfUnanimousConsensusOnPostFund(
+        RecoveredVariablePart memory rVP,
+        uint256 numParticipants
+    ) internal pure {
+        require(rVP.variablePart.turnNum == 1, 'bad proof[0].turnNum; |proof|=1');
+        require(
+            NitroUtils.getClaimedSignersNum(rVP.signedBy) == numParticipants,
+            'postfund !unanimous; |proof|=1'
+        );
+    }
+
+    function requireValidVoucher(bytes memory appData, FixedPart memory fixedPart) internal pure {
+        VoucherAmountAndSignature memory voucher = abi.decode(appData, (VoucherAmountAndSignature));
+
+        address signer = NitroUtils.recoverSigner(
+            keccak256(abi.encode(NitroUtils.getChannelId(fixedPart), voucher.amount)),
+            voucher.signature
+        );
+        require(signer == fixedPart.participants[0], 'irrelevant voucher'); // could be incorrect channelId or incorrect signature
     }
 }
