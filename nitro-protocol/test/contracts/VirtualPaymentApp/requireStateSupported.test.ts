@@ -1,5 +1,5 @@
 import {expectRevert} from '@statechannels/devtools';
-import {Contract, Wallet, ethers, BigNumber, Signature} from 'ethers';
+import {Contract, Wallet, ethers, BigNumber} from 'ethers';
 
 import VirtualPaymentAppArtifact from '../../../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 import {
@@ -36,11 +36,19 @@ for (let i = 0; i < 3; i++) {
   wallets[i] = Wallet.createRandom();
   participants[i] = wallets[i].address;
 }
+const channel: Channel = {chainId, channelNonce: 8, participants};
+const baseState: State = {
+  turnNum: 0,
+  isFinal: false,
+  channel,
+  challengeDuration,
+  outcome: [],
+  appData: HashZero,
+  appDefinition: process.env.VIRTUAL_PAYMENT_APP_ADDRESS,
+};
 
 const alice = convertAddressToBytes32(participants[0]); // NOTE these desinations do not necessarily need to be related to participant addresses
 const bob = convertAddressToBytes32(participants[2]);
-
-const channel: Channel = {chainId, channelNonce: 8, participants};
 
 beforeAll(async () => {
   virtualPaymentApp = setupContract(
@@ -71,13 +79,9 @@ describe('requireStateSupported (lone candidate route)', () => {
       tc.isFinal ? 'final' : 'nonfinal'
     } state with turnNum ${tc.turnNum}`, async () => {
       const state: State = {
+        ...baseState,
         turnNum: tc.turnNum,
         isFinal: tc.isFinal,
-        channel,
-        challengeDuration,
-        outcome: [],
-        appData: HashZero,
-        appDefinition: process.env.VIRTUAL_PAYMENT_APP_ADDRESS,
       };
 
       const fixedPart = getFixedPart(state);
@@ -213,15 +217,12 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
       tc.revertString ? 'reverts        ' : 'does not revert'
     } for a redemption transition with ${JSON.stringify(tc)}`, async () => {
       const proofState: State = {
+        ...baseState,
         turnNum: tc.proofTurnNum,
         isFinal: false,
-        channel,
-        challengeDuration,
         outcome: computeOutcome({
           [MAGIC_ETH_ADDRESS]: {[alice]: 10, [bob]: 10},
         }),
-        appData: HashZero,
-        appDefinition: process.env.VIRTUAL_PAYMENT_APP_ADDRESS,
       };
 
       // construct voucher, sign it, and encode it into the appdata
