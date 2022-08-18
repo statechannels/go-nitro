@@ -10,8 +10,7 @@ import './interfaces/INitroTypes.sol';
  * @dev The VirtualPaymentApp contract complies with the ForceMoveApp interface and allows payments to be made virtually from Alice to Bob (participants[0] to participants[1]).
  */
 contract VirtualPaymentApp is IForceMoveApp {
-    struct SignedVoucher {
-        bytes32 channelId;
+    struct VoucherAmountAndSignature {
         uint256 amount;
         INitroTypes.Signature signature; // signature on abi.encode(channelId,amount)
     }
@@ -74,21 +73,17 @@ contract VirtualPaymentApp is IForceMoveApp {
             );
 
             require(candidate.variablePart.turnNum == 2, 'invalid transition; |proof|=1');
-            SignedVoucher memory voucher = abi.decode(
+            VoucherAmountAndSignature memory voucher = abi.decode(
                 candidate.variablePart.appData,
-                (SignedVoucher)
+                (VoucherAmountAndSignature)
             );
 
             // TODO factor into ValidateVoucher
             address signer = NitroUtils.recoverSigner(
-                keccak256(abi.encode(voucher.channelId, voucher.amount)),
+                keccak256(abi.encode(NitroUtils.getChannelId(fixedPart), voucher.amount)),
                 voucher.signature
             );
-            require(signer == fixedPart.participants[0], 'voucher not signed by Alice');
-            require(
-                voucher.channelId == NitroUtils.getChannelId(fixedPart),
-                'voucher not for this channel'
-            );
+            require(signer == fixedPart.participants[0], 'irrelevant voucher'); // could be incorrect channelId or incorrect signature
 
             // TODO remove assumption about single asset, and factor into CheckAliceAndBobOutcomes (don't use magic indices, potentially validate destinations)
             // we want to be sure that the voucher amount wasn't greater than alice's original balance. This should be handled by the underflow protection which is now a part of solidity.
