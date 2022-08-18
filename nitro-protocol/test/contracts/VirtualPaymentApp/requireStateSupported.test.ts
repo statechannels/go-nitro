@@ -1,5 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers, BigNumber} from 'ethers';
+import {Test} from 'mocha';
 
 import VirtualPaymentAppArtifact from '../../../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 import {
@@ -64,20 +65,20 @@ describe('requireStateSupported (lone candidate route)', () => {
   interface TestCase {
     turnNum: number;
     isFinal: boolean;
-    revertString?: string;
+    reason?: string;
   }
 
   const testcases: TestCase[] = [
-    {turnNum: 0, isFinal: false, revertString: undefined},
-    {turnNum: 1, isFinal: false, revertString: undefined},
-    {turnNum: 2, isFinal: false, revertString: 'bad candidate turnNum'},
-    {turnNum: 3, isFinal: false, revertString: '!final; turnNum=3 && |proof|=0'},
-    {turnNum: 3, isFinal: true, revertString: undefined},
-    {turnNum: 4, isFinal: false, revertString: 'bad candidate turnNum'},
+    {turnNum: 0, isFinal: false, reason: undefined},
+    {turnNum: 1, isFinal: false, reason: undefined},
+    {turnNum: 2, isFinal: false, reason: 'bad candidate turnNum'},
+    {turnNum: 3, isFinal: false, reason: '!final; turnNum=3 && |proof|=0'},
+    {turnNum: 3, isFinal: true, reason: undefined},
+    {turnNum: 4, isFinal: false, reason: 'bad candidate turnNum'},
   ];
 
   testcases.map(async tc => {
-    it(`${tc.revertString ? 'reverts        ' : 'does not revert'} for unaninmous consensus on ${
+    it(`${tc.reason ? 'reverts        ' : 'does not revert'} for unaninmous consensus on ${
       tc.isFinal ? 'final' : 'nonfinal'
     } state with turnNum ${tc.turnNum}`, async () => {
       const state: State = {
@@ -93,10 +94,10 @@ describe('requireStateSupported (lone candidate route)', () => {
         signedBy: BigNumber.from(0b111).toHexString(),
       };
 
-      if (tc.revertString) {
+      if (tc.reason) {
         await expectRevert(
           () => virtualPaymentApp.requireStateSupported(fixedPart, [], candidate),
-          tc.revertString
+          tc.reason
         );
       } else {
         await virtualPaymentApp.requireStateSupported(fixedPart, [], candidate);
@@ -115,103 +116,35 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
     voucherSignedByAlice: boolean;
     aliceAdjustedCorrectly: boolean;
     bobAdjustedCorrectly: boolean;
-    revertString?: string;
+    reason?: string;
   }
 
+  const vVR: TestCase = {
+    // valid voucher redemption
+    proofTurnNum: 1,
+    candidateTurnNum: 2,
+    unanimityOnProof: true,
+    bobSignedCandidate: true,
+    voucherForThisChannel: true,
+    voucherSignedByAlice: true,
+    aliceAdjustedCorrectly: true,
+    bobAdjustedCorrectly: true,
+    reason: undefined,
+  };
   const testcases: TestCase[] = [
-    {
-      proofTurnNum: 1,
-      candidateTurnNum: 2,
-      unanimityOnProof: true,
-      bobSignedCandidate: true,
-      voucherForThisChannel: true,
-      voucherSignedByAlice: true,
-      aliceAdjustedCorrectly: true,
-      bobAdjustedCorrectly: true,
-      revertString: undefined,
-    }, // valid voucher redemption
-    {
-      proofTurnNum: 0, // incorrect
-      candidateTurnNum: 2,
-      unanimityOnProof: true,
-      bobSignedCandidate: true,
-      voucherForThisChannel: true,
-      voucherSignedByAlice: true,
-      aliceAdjustedCorrectly: true,
-      bobAdjustedCorrectly: true,
-      revertString: 'bad proof[0].turnNum; |proof|=1',
-    },
-    {
-      proofTurnNum: 1,
-      candidateTurnNum: 2,
-      unanimityOnProof: false, // incorrect
-      bobSignedCandidate: true,
-      voucherForThisChannel: true,
-      voucherSignedByAlice: true,
-      aliceAdjustedCorrectly: true,
-      bobAdjustedCorrectly: true,
-      revertString: 'postfund !unanimous; |proof|=1',
-    },
-    {
-      proofTurnNum: 1,
-      candidateTurnNum: 2,
-      unanimityOnProof: true,
-      bobSignedCandidate: false, // incorrect
-      voucherForThisChannel: true,
-      voucherSignedByAlice: true,
-      aliceAdjustedCorrectly: true,
-      bobAdjustedCorrectly: true,
-      revertString: 'redemption not signed by Bob',
-    }, // valid voucher redemption
-    {
-      proofTurnNum: 1,
-      candidateTurnNum: 2,
-      unanimityOnProof: true,
-      bobSignedCandidate: true,
-      voucherForThisChannel: true,
-      voucherSignedByAlice: false, // incorrect
-      aliceAdjustedCorrectly: true,
-      bobAdjustedCorrectly: true,
-      revertString: 'irrelevant voucher',
-    }, // valid voucher redemption
-    {
-      proofTurnNum: 1,
-      candidateTurnNum: 2,
-      unanimityOnProof: true,
-      bobSignedCandidate: true,
-      voucherForThisChannel: false, // incorrect
-      voucherSignedByAlice: true,
-      aliceAdjustedCorrectly: true,
-      bobAdjustedCorrectly: true,
-      revertString: 'irrelevant voucher',
-    },
-    {
-      proofTurnNum: 1,
-      candidateTurnNum: 2,
-      unanimityOnProof: true,
-      bobSignedCandidate: true,
-      voucherForThisChannel: true,
-      voucherSignedByAlice: true,
-      aliceAdjustedCorrectly: false, // incorrect
-      bobAdjustedCorrectly: true,
-      revertString: 'Alice not adjusted correctly',
-    },
-    {
-      proofTurnNum: 1,
-      candidateTurnNum: 2,
-      unanimityOnProof: true,
-      bobSignedCandidate: true,
-      voucherForThisChannel: true,
-      voucherSignedByAlice: true,
-      aliceAdjustedCorrectly: true,
-      bobAdjustedCorrectly: false,
-      revertString: 'Bob not adjusted correctly',
-    },
+    vVR,
+    {...vVR, proofTurnNum: 0, reason: 'bad proof[0].turnNum; |proof|=1'},
+    {...vVR, unanimityOnProof: false, reason: 'postfund !unanimous; |proof|=1'},
+    {...vVR, bobSignedCandidate: false, reason: 'redemption not signed by Bob'},
+    {...vVR, voucherSignedByAlice: false, reason: 'irrelevant voucher'},
+    {...vVR, voucherForThisChannel: false, reason: 'irrelevant voucher'},
+    {...vVR, aliceAdjustedCorrectly: false, reason: 'Alice not adjusted correctly'},
+    {...vVR, bobAdjustedCorrectly: false, reason: 'Bob not adjusted correctly'},
   ];
 
   testcases.map(async tc => {
     it(`${
-      tc.revertString ? 'reverts        ' : 'does not revert'
+      tc.reason ? 'reverts        ' : 'does not revert'
     } for a redemption transition with ${JSON.stringify(tc)}`, async () => {
       const proofState: State = {
         ...baseState,
@@ -263,10 +196,10 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
         signedBy: BigNumber.from(tc.bobSignedCandidate ? 0b100 : 0b000).toHexString(), // 0b100 signed by Bob obly
       };
 
-      if (tc.revertString) {
+      if (tc.reason) {
         await expectRevert(
           () => virtualPaymentApp.requireStateSupported(fixedPart, proof, candidate),
-          tc.revertString
+          tc.reason
         );
       } else {
         await virtualPaymentApp.requireStateSupported(fixedPart, proof, candidate);
