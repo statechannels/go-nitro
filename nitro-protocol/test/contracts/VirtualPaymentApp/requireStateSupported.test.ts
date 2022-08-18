@@ -1,15 +1,12 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers, BigNumber} from 'ethers';
-import {Test} from 'mocha';
 
 import VirtualPaymentAppArtifact from '../../../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 import {
-  bindSignaturesWithSignedByBitfield,
   Channel,
   convertAddressToBytes32,
   encodeVoucherAmountAndSignature,
   getChannelId,
-  signState,
   signVoucher,
   Voucher,
 } from '../../../src';
