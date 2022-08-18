@@ -6,6 +6,7 @@ import VirtualPaymentAppArtifact from '../../../artifacts/contracts/VirtualPayme
 import {
   bindSignaturesWithSignedByBitfield,
   Channel,
+  convertAddressToBytes32,
   getChannelId,
   sign,
   signState,
@@ -16,7 +17,7 @@ import {
   RecoveredVariablePart,
   State,
 } from '../../../src/contract/state';
-import {getTestProvider, setupContract} from '../../test-helpers';
+import {computeOutcome, getTestProvider, setupContract} from '../../test-helpers';
 const {HashZero} = ethers.constants;
 
 const provider = getTestProvider();
@@ -27,11 +28,16 @@ const wallets = new Array(3);
 const chainId = process.env.CHAIN_NETWORK_ID;
 const challengeDuration = 0x100;
 
+const MAGIC_ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
+
 // Populate wallets and participants array
 for (let i = 0; i < 3; i++) {
   wallets[i] = Wallet.createRandom();
   participants[i] = wallets[i].address;
 }
+
+const alice = convertAddressToBytes32(participants[0]); // NOTE these desinations do not necessarily need to be related to participant addresses
+const bob = convertAddressToBytes32(participants[2]);
 
 const channel: Channel = {chainId, channelNonce: 8, participants};
 
@@ -105,7 +111,7 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
     bobSignedCandidate: boolean;
     voucherForThisChannel: boolean;
     voucherSignedByAlice: boolean;
-    aliceAdjusiedCorrectly: boolean;
+    aliceAdjustedCorrectly: boolean;
     bobAdjustedCorrectly: boolean;
     revertString?: string;
   }
@@ -118,7 +124,7 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
       bobSignedCandidate: true,
       voucherForThisChannel: true,
       voucherSignedByAlice: true,
-      aliceAdjusiedCorrectly: true,
+      aliceAdjustedCorrectly: true,
       bobAdjustedCorrectly: true,
       revertString: undefined,
     },
@@ -127,13 +133,15 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
   testcases.map(async tc => {
     it(`${
       tc.revertString ? 'reverts        ' : 'does not revert'
-    } for a redemption transition with ${tc}`, async () => {
+    } for a redemption transition with ${JSON.stringify(tc)}`, async () => {
       const proofState: State = {
         turnNum: tc.proofTurnNum,
         isFinal: false,
         channel,
         challengeDuration,
-        outcome: [],
+        outcome: computeOutcome({
+          [MAGIC_ETH_ADDRESS]: {[alice]: 10, [bob]: 10},
+        }),
         appData: HashZero,
         appDefinition: process.env.VIRTUAL_PAYMENT_APP_ADDRESS,
       };
@@ -192,6 +200,9 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
 
       const candidateState: State = {
         ...proofState,
+        outcome: computeOutcome({
+          [MAGIC_ETH_ADDRESS]: {[alice]: 3, [bob]: 7},
+        }),
         turnNum: tc.candidateTurnNum,
         appData: encodedVoucher,
       };
