@@ -113,6 +113,9 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
     voucherSignedByAlice: boolean;
     aliceAdjustedCorrectly: boolean;
     bobAdjustedCorrectly: boolean;
+    nativeAsset: boolean;
+    multipleAssets: boolean;
+    aliceUnderflow: boolean;
     reason?: string;
   }
 
@@ -126,6 +129,9 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
     voucherSignedByAlice: true,
     aliceAdjustedCorrectly: true,
     bobAdjustedCorrectly: true,
+    nativeAsset: true,
+    multipleAssets: false,
+    aliceUnderflow: false,
     reason: undefined,
   };
   const testcases: TestCase[] = [
@@ -137,6 +143,9 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
     {...vVR, voucherForThisChannel: false, reason: 'irrelevant voucher'},
     {...vVR, aliceAdjustedCorrectly: false, reason: 'Alice not adjusted correctly'},
     {...vVR, bobAdjustedCorrectly: false, reason: 'Bob not adjusted correctly'},
+    {...vVR, nativeAsset: false, reason: 'only native asset allowed'},
+    {...vVR, multipleAssets: true, reason: 'only native asset allowed'},
+    {...vVR, aliceUnderflow: true, reason: 'underflow'},
   ];
 
   testcases.map(async tc => {
@@ -153,7 +162,10 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
       };
 
       // construct voucher with the (in)appropriate channelId
-      const amount = BigNumber.from(7).toHexString();
+      const amount = tc.aliceUnderflow
+        ? BigNumber.from(999_999_999_999).toHexString() // much larger than Alice's original balance
+        : BigNumber.from(7).toHexString();
+
       const voucher: Voucher = {
         channelId: tc.voucherForThisChannel
           ? channelId
@@ -178,6 +190,11 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
         turnNum: tc.candidateTurnNum,
         appData: encodedVoucherAmountAndSignature,
       };
+
+      if (!tc.nativeAsset)
+        candidateState.outcome[0].asset = process.env.VIRTUAL_PAYMENT_APP_ADDRESS;
+
+      if (tc.multipleAssets) candidateState.outcome.push(candidateState.outcome[0]);
 
       // Sign the proof state (should be everyone)
       const proof: RecoveredVariablePart[] = [
