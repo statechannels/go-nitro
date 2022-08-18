@@ -169,13 +169,15 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
       } as ParamType;
 
       const voucher: SignedVoucher = {
-        channelId,
+        channelId: tc.voucherForThisChannel ? channelId : MAGIC_ETH_ADDRESS,
         amount,
         signature: await sign(
           wallets[0],
           keccak256(defaultAbiCoder.encode([voucherTy], [{channelId, amount}]))
         ),
       };
+
+      if (!tc.voucherSignedByAlice) voucher.signature.s = voucher.signature.r; // corrupt the signature
 
       const signedVoucherTy = {
         type: 'tuple',
@@ -201,7 +203,10 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
       const candidateState: State = {
         ...proofState,
         outcome: computeOutcome({
-          [MAGIC_ETH_ADDRESS]: {[alice]: 3, [bob]: 7},
+          [MAGIC_ETH_ADDRESS]: {
+            [alice]: tc.aliceAdjustedCorrectly ? 3 : 2,
+            [bob]: tc.bobAdjustedCorrectly ? 7 : 99,
+          },
         }),
         turnNum: tc.candidateTurnNum,
         appData: encodedVoucher,
@@ -210,18 +215,18 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
       const candidateVariablePart = getVariablePart(candidateState);
       const proofVariablePart = getVariablePart(proofState);
 
-      // Sign the proof state (everyone)
-      const proofSigs = wallets.map((w: Wallet) => signState(proofState, w.privateKey).signature);
-      const proof: RecoveredVariablePart[] = bindSignaturesWithSignedByBitfield(
-        [proofVariablePart],
-        proofSigs,
-        [0, 0, 0]
-      );
+      // Sign the proof state (should be everyone)
+      const proof: RecoveredVariablePart[] = [
+        {
+          variablePart: proofVariablePart,
+          signedBy: BigNumber.from(tc.unanimityOnProof ? 0b111 : 0b101).toHexString(),
+        },
+      ];
 
       // Sign the candidate state (just Bob)
       const candidate: RecoveredVariablePart = {
         variablePart: candidateVariablePart,
-        signedBy: BigNumber.from(0b100).toHexString(), // 0b100 signed by Bob obly
+        signedBy: BigNumber.from(tc.bobSignedCandidate ? 0b100 : 0b000).toHexString(), // 0b100 signed by Bob obly
       };
 
       if (tc.revertString) {
