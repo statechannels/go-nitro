@@ -122,6 +122,11 @@ contract VirtualPaymentApp is IForceMoveApp {
         );
 
         require(
+            voucherAmount <= oldOutcome[0].allocations[uint256(AllocationIndices.Alice)].amount,
+            'underflow'
+        ); // TODO this check may be unecessary in a future version of solidity
+
+        require(
             newOutcome[0].allocations[uint256(AllocationIndices.Alice)].amount ==
                 oldOutcome[0].allocations[uint256(AllocationIndices.Alice)].amount - voucherAmount,
             'Alice not adjusted correctly'
