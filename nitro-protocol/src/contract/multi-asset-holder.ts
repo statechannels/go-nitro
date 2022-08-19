@@ -69,8 +69,6 @@ export function computeReclaimEffects(
   targetAllocations: ExitFormat.Allocation[], // we must index this with a JS number that is less than 2**32 - 1
   indexOfTargetInSource: number
 ): ExitFormat.Allocation[] {
-  console.log(sourceAllocations);
-  console.log(targetAllocations);
   const newSourceAllocations: ExitFormat.Allocation[] = []; // will be one slot shorter than sourceAllocations
   const guarantee = sourceAllocations[indexOfTargetInSource];
 
