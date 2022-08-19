@@ -220,11 +220,23 @@ export const V = new TestChannel(
   ]
 );
 
-/** Ledger channel between Alice and Ingid, with Guarantee targeting virtual channel V */
+/** Ledger channel between Alice and Ingrid, with Guarantee targeting virtual channel V */
 export const LforV = new TestChannel(
   7,
   [Alice, Ingrid],
   [
+    {
+      destination: convertAddressToBytes32(Alice.address),
+      amount: '0x0',
+      metadata: '0x',
+      allocationType: AllocationType.simple,
+    },
+    {
+      destination: convertAddressToBytes32(Ingrid.address),
+      amount: '0x0',
+      metadata: '0x',
+      allocationType: AllocationType.simple,
+    },
     {
       destination: V.channelId,
       amount: amountForAliceAndBob,
@@ -299,6 +311,7 @@ export async function assertEthBalancesAndHoldings(
   ethBalances: Partial<ETHBalances>,
   ethHoldings: Partial<ETHHoldings>
 ): Promise<void> {
+  const provider = hre.ethers.provider;
   const internalDestinations: {[Property in keyof ETHHoldings]: string} = {
     LforV: LforV.channelId,
     V: V.channelId,
