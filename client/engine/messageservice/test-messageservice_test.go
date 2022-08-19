@@ -16,6 +16,7 @@ var testId protocols.ObjectiveId = "VirtualDefund-0x0000000000000000000000000000
 
 var aToB protocols.Message = protocols.CreateSignedProposalMessage(
 	bobMS.address,
+	aliceMS.address,
 	consensus_channel.SignedProposal{
 		Proposal: consensus_channel.Proposal{LedgerID: types.Destination{1}},
 		TurnNum:  1,

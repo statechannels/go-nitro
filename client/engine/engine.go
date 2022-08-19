@@ -78,6 +78,13 @@ type EngineEvent struct {
 	ReceivedVouchers []payments.Voucher
 }
 
+// Merge merges change event other into e
+func (e *EngineEvent) Merge(other *EngineEvent) {
+	e.CompletedObjectives = append(e.CompletedObjectives, other.CompletedObjectives...)
+	e.FailedObjectives = append(e.FailedObjectives, other.FailedObjectives...)
+	e.ReceivedVouchers = append(e.ReceivedVouchers, other.ReceivedVouchers...)
+}
+
 type CompletedObjectiveEvent struct {
 	Id protocols.ObjectiveId
 }
@@ -184,6 +191,61 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 	return e.attemptProgress(obj)
 }
 
+// updateObjective handles updating and cranking the objective and dispatching any side effects
+func (e *Engine) updateObjective(objective protocols.Objective, event protocols.ObjectiveEvent) (EngineEvent, error) {
+	changeEvent := EngineEvent{}
+	if objective.GetStatus() == protocols.Unapproved {
+		e.logger.Printf("Policymaker is %+v", e.policymaker)
+		if e.policymaker.ShouldApprove(objective) {
+			objective = objective.Approve()
+
+			ddfo, ok := objective.(*directdefund.Objective)
+			if ok {
+				// If we just approved a direct defund objective, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
+				e.store.DestroyConsensusChannel(ddfo.C.Id)
+			}
+		} else {
+			objective, sideEffects := objective.Reject()
+			err := e.store.SetObjective(objective)
+			if err != nil {
+				return EngineEvent{}, err
+			}
+
+			changeEvent.CompletedObjectives = append(changeEvent.CompletedObjectives, objective)
+			err = e.executeSideEffects(sideEffects)
+			// An error would mean we failed to send a message. But the objective is still "completed".
+			// So, we should return allCompleted even if there was an error.
+			return changeEvent, err
+		}
+	}
+
+	if objective.GetStatus() == protocols.Completed {
+		e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
+		return changeEvent, nil
+	}
+	if objective.GetStatus() == protocols.Rejected {
+		e.logger.Printf("Ignoring payload for rejected objective  %s", objective.Id())
+		return changeEvent, nil
+	}
+
+	updatedObjective, err := objective.Update(event)
+	if err != nil {
+		return EngineEvent{}, err
+	}
+
+	progressEvent, err := e.attemptProgress(updatedObjective)
+	if err != nil {
+		return EngineEvent{}, err
+	}
+	changeEvent.CompletedObjectives = append(changeEvent.CompletedObjectives, progressEvent.CompletedObjectives...)
+
+	if err != nil {
+		return EngineEvent{}, err
+	}
+
+	return changeEvent, nil
+}
+
 // handleMessage handles a Message from a peer go-nitro Wallet.
 // It:
 //   - reads an objective from the store,
@@ -203,59 +265,16 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			return EngineEvent{}, err
 		}
 
-		if objective.GetStatus() == protocols.Unapproved {
-			e.logger.Printf("Policymaker is %+v", e.policymaker)
-			if e.policymaker.ShouldApprove(objective) {
-				objective = objective.Approve()
-
-				ddfo, ok := objective.(*directdefund.Objective)
-				if ok {
-					// If we just approved a direct defund objective, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
-					e.store.DestroyConsensusChannel(ddfo.C.Id)
-				}
-			} else {
-				objective, sideEffects := objective.Reject()
-				err = e.store.SetObjective(objective)
-				if err != nil {
-					return EngineEvent{}, err
-				}
-
-				allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
-				err = e.executeSideEffects(sideEffects)
-				// An error would mean we failed to send a message. But the objective is still "completed".
-				// So, we should return allCompleted even if there was an error.
-				return allCompleted, err
-			}
-		}
-
-		if objective.GetStatus() == protocols.Completed {
-			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
-			continue
-		}
-		if objective.GetStatus() == protocols.Rejected {
-			e.logger.Printf("Ignoring payload for rejected objective  %s", objective.Id())
-			continue
-		}
-
 		event := protocols.ObjectiveEvent{
 			ObjectiveId:    entry.ObjectiveId,
 			SignedProposal: consensus_channel.SignedProposal{},
 			SignedState:    entry.Payload,
 		}
-		updatedObjective, err := objective.Update(event)
+		stateEvents, err := e.updateObjective(objective, event)
 		if err != nil {
 			return EngineEvent{}, err
 		}
-
-		progressEvent, err := e.attemptProgress(updatedObjective)
-		if err != nil {
-			return EngineEvent{}, err
-		}
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
-
-		if err != nil {
-			return EngineEvent{}, err
-		}
+		allCompleted.Merge(&stateEvents)
 
 	}
 
@@ -265,31 +284,17 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if err != nil {
 			return EngineEvent{}, err
 		}
-		if objective.GetStatus() == protocols.Completed {
-			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
-			continue
-		}
-
 		event := protocols.ObjectiveEvent{
 			ObjectiveId:    entry.ObjectiveId,
 			SignedProposal: entry.Payload,
 			SignedState:    state.SignedState{},
 		}
-		updatedObjective, err := objective.Update(event)
-		if err != nil {
-			return EngineEvent{}, err
-		}
-
-		progressEvent, err := e.attemptProgress(updatedObjective)
-		if err != nil {
-			return EngineEvent{}, err
-		}
-
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+		proposalEvents, err := e.updateObjective(objective, event)
 
 		if err != nil {
 			return EngineEvent{}, err
 		}
+		allCompleted.Merge(&proposalEvents)
 
 	}
 
@@ -316,15 +321,31 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
 	}
 
-	for _, voucherPayload := range message.Vouchers() {
-		voucher := voucherPayload.Payload
+	for _, entry := range message.Vouchers() {
+		// An empty objectiveId indicates a voucher sent as a payment.
+		if entry.ObjectiveId == "" {
 
-		// TODO: return the amount we paid?
-		_, err := e.vm.Receive(voucher)
+			_, err := e.vm.Receive(entry.Payload)
+			if err != nil {
+				return EngineEvent{}, fmt.Errorf("error accepting payment voucher: %w", err)
+			}
+			allCompleted.ReceivedVouchers = append(allCompleted.ReceivedVouchers, entry.Payload)
 
-		allCompleted.ReceivedVouchers = append(allCompleted.ReceivedVouchers, voucher)
-		if err != nil {
-			return EngineEvent{}, fmt.Errorf("error accepting payment voucher: %w", err)
+		} else {
+
+			objective, err := e.getOrCreateObjectiveFromVoucher(entry.ObjectiveId, entry.Payload)
+			if err != nil {
+				return EngineEvent{}, err
+			}
+			event := protocols.ObjectiveEvent{
+				ObjectiveId: entry.ObjectiveId,
+				Voucher:     entry.Payload,
+			}
+			e, err := e.updateObjective(objective, event)
+			if err != nil {
+				return EngineEvent{}, fmt.Errorf("could not update objective: %w", err)
+			}
+			allCompleted.Merge(&e)
 		}
 
 	}
@@ -436,7 +457,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
 		if payer != *e.store.GetAddress() {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
 		}
-		se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
+		se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payer, protocols.EmptyId(), payee)}
 		err = e.executeSideEffects(se)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Error sending payment voucher: %w", err)
@@ -571,6 +592,39 @@ func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedS
 	} else {
 		return nil, fmt.Errorf("unexpected error getting/creating objective %s: %w", id, err)
 	}
+}
+
+func (e *Engine) getOrCreateObjectiveFromVoucher(id protocols.ObjectiveId, v payments.Voucher) (protocols.Objective, error) {
+	defer e.metrics.RecordFunctionDuration()()
+	if !virtualdefund.IsVirtualDefundObjective(id) {
+		return nil, fmt.Errorf("only virtual defund objectives can be constructed from a voucher")
+	}
+	objective, err := e.store.GetObjectiveById(id)
+
+	if err == nil {
+		return objective, nil
+	} else if errors.Is(err, store.ErrNoSuchObjective) {
+
+		getOurVoucher := func(cId types.Destination) (payments.Voucher, error) {
+			return e.vm.Voucher(cId, *e.store.GetChannelSecretKey())
+		}
+
+		c, ok := e.store.GetChannelById(v.ChannelId)
+		if !ok {
+			return nil, fmt.Errorf("could not find channel for voucher channel id %s", v.ChannelId)
+		}
+
+		vdfo, err := virtualdefund.ConstructObjectiveFromVoucher(c.FixedPart, v, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel, getOurVoucher)
+		if err != nil {
+			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
+		}
+
+		return &vdfo, nil
+	} else {
+
+		return nil, fmt.Errorf("unexpected error getting/creating objective %s: %w", id, err)
+	}
+
 }
 
 // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied message.

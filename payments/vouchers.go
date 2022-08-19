@@ -72,15 +72,24 @@ func (v *Voucher) RecoverSigner() (types.Address, error) {
 
 // Equal returns true if the two vouchers have the same channel id, amount and signatures
 func (v *Voucher) Equal(other *Voucher) bool {
-	return v.ChannelId == other.ChannelId && v.Amount.Cmp(other.Amount) == 0 && v.Signature.Equal(other.Signature)
-}
-
-// IsZero returns true if the voucher is the default zero value
-func (v *Voucher) IsZero() bool {
-	return v.Equal(&Voucher{})
+	if v == nil || other == nil {
+		return v == nil && other == nil
+	}
+	// TODO: This deals with nil amounts but it's awkward
+	vAmount, otherAmount := big.NewInt(0), big.NewInt(0)
+	if v.Amount != nil {
+		vAmount.Set(v.Amount)
+	}
+	if other.Amount != nil {
+		otherAmount.Set(other.Amount)
+	}
+	return v.ChannelId == other.ChannelId && vAmount.Cmp(otherAmount) == 0 && v.Signature.Equal(other.Signature)
 }
 
 func (v *Voucher) Clone() *Voucher {
+	if v == nil {
+		return nil
+	}
 	var amount *big.Int
 	if v.Amount != nil {
 		amount = new(big.Int).Set(v.Amount)

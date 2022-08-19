@@ -109,10 +109,11 @@ func SignState(ss *state.SignedState, secretKey *[]byte) {
 }
 
 // AssertVoucherSentToEveryone asserts that ses contains a message for every participant but from
-func AssertVoucherSentToEveryone(t *testing.T, ses protocols.SideEffects, expected payments.Voucher, from testactors.Actor, allActors []testactors.Actor) {
+func AssertVoucherSentToEveryone(t *testing.T, ses protocols.SideEffects, expected *payments.Voucher, from testactors.Actor, allActors []testactors.Actor) {
+
 	for _, a := range allActors {
 		if a.Role != from.Role {
-			AssertVoucherSentTo(t, ses, expected, a)
+			AssertVoucherSentTo(t, ses, *expected, a)
 		}
 	}
 }
@@ -123,7 +124,7 @@ func AssertVoucherSentTo(t *testing.T, ses protocols.SideEffects, expected payme
 		toAddress := to.Address()
 		if bytes.Equal(msg.To[:], toAddress[:]) {
 			for _, v := range msg.Vouchers() {
-				Equals(t, v, expected)
+				Equals(t, v.Payload, expected)
 			}
 		}
 	}

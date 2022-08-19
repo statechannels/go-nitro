@@ -74,13 +74,14 @@ func (t TestMessageService) dispatchMessage(message protocols.Message) {
 		randomDelay := time.Duration(rand.Int63n(t.maxDelay.Nanoseconds()))
 		time.Sleep(randomDelay)
 	}
-
+	// fmt.Printf("%+v\n", message)
 	peer, ok := t.broker.services[message.To]
 	if ok {
 		// To mimic a proper message service, we serialize and then
 		// deserialize the message
 
 		serializedMsg, err := message.Serialize()
+		// fmt.Printf("%+v\n", serializedMsg)
 		if err != nil {
 			panic(`could not serialize message`)
 		}

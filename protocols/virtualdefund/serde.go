@@ -93,7 +93,12 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.Signatures = jsonVFO.Signatures
 	o.InitialOutcome = jsonVFO.InitialOutcome
 	o.VFixed = jsonVFO.VFixed
-	o.Vouchers = jsonVFO.Vouchers
+
+	vouchers := [3]*payments.Voucher{}
+	for i := range vouchers {
+		vouchers[i] = &jsonVFO.Vouchers[i]
+	}
+	o.Vouchers = vouchers
 	o.VoucherSent = jsonVFO.VoucherSent
 
 	return nil

@@ -287,6 +287,7 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
 	participants := []common.Address{}
+	me := o.V.Participants[o.V.MyIndex]
 	for i, peer := range o.V.Participants {
 		if i != int(o.MyRole) {
 			participants = append(participants, peer)
@@ -294,7 +295,7 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 
 	}
 
-	messages := protocols.CreateRejectionNoticeMessage(o.Id(), participants...)
+	messages := protocols.CreateRejectionNoticeMessage(o.Id(), me, participants...)
 	sideEffects := protocols.SideEffects{MessagesToSend: messages}
 	return &updated, sideEffects
 }
@@ -598,7 +599,7 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 	}
 
 	recipient := ledger.Follower()
-	message := protocols.CreateSignedProposalMessage(recipient, connection.Channel.ProposalQueue()...)
+	message := protocols.CreateSignedProposalMessage(recipient, o.V.Participants[o.MyRole], connection.Channel.ProposalQueue()...)
 	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	return sideEffects, nil
@@ -621,7 +622,7 @@ func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.Side
 
 	// message sideEffect
 	recipient := ledger.Leader()
-	message := protocols.CreateSignedProposalMessage(recipient, sp)
+	message := protocols.CreateSignedProposalMessage(recipient, o.V.Participants[o.MyRole], sp)
 	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 	return sideEffects, nil
 }

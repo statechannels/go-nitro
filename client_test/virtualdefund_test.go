@@ -61,8 +61,8 @@ func runVirtualDefundIntegrationTest(t *testing.T, messageDelay time.Duration, o
 	clientI, storeI := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, messageDelay)
 
 	numOfVirtualChannels := uint(5)
-	paidToBob := uint(1)
-	totalPaidToBob := paidToBob * numOfVirtualChannels
+	//paidToBob := uint(1)
+	totalPaidToBob := uint(0) //paidToBob * numOfVirtualChannels
 
 	cIds := openVirtualChannels(t, clientA, clientB, clientI, numOfVirtualChannels)
 

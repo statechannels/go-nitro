@@ -70,6 +70,7 @@ type ObjectiveEvent struct {
 	SignedState    state.SignedState
 	SignedProposal consensus_channel.SignedProposal
 	Voucher        payments.Voucher
+	From           types.Address
 }
 
 // Storable is an object that can be stored by the store.
@@ -118,4 +119,8 @@ const (
 // ObjectiveRequest is a request to create a new objective.
 type ObjectiveRequest interface {
 	Id(types.Address) ObjectiveId
+}
+
+func EmptyId() ObjectiveId {
+	return ObjectiveId("")
 }

@@ -82,7 +82,11 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		}
 		virtualDefund, err := NewObjective(request, false, my.Address(), getChannel, getConsensusChannel, voucherFetch)
 		testhelpers.Ok(t, err)
-		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), Voucher: data.voucher}
+		from := alice.Address()
+		if my.Address() == alice.Address() {
+			from = bob.Address()
+		}
+		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), From: from, Voucher: data.voucher}
 
 		updatedObj, err := virtualDefund.Update(e)
 		testhelpers.Ok(t, err)
@@ -113,7 +117,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		vId := data.vFinal.ChannelId()
 		request := ObjectiveRequest{}
 
-		aliceVoucher := payments.NewVoucher(vId, big.NewInt(int64(data.paid)))
+		aliceVoucher, _ := payments.NewSignedVoucher(vId, big.NewInt(int64(data.paid)), alice.PrivateKey)
 
 		voucherFetch := func(types.Destination) (payments.Voucher, error) {
 			return payments.Voucher{}, nil
@@ -139,7 +143,10 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		testhelpers.Equals(t, WaitingForLatestVoucher, waitingFor)
 		testhelpers.AssertVoucherSentToEveryone(t, se, updated.Vouchers[updated.MyRole], my, allActors)
 
-		//TODO: set the rest of the propsosals
+		// Set all the vouchers. This mimics all the parties exchanging the latest voucher they have.
+		for i := range updated.Vouchers {
+			updated.Vouchers[i] = aliceVoucher.Clone()
+		}
 
 		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 		testhelpers.Ok(t, err)
@@ -212,7 +219,7 @@ func TestConstructObjectiveFromState(t *testing.T) {
 	want := Objective{
 		Status:         protocols.Approved,
 		InitialOutcome: data.vInitial.Outcome[0],
-		Vouchers:       [3]payments.Voucher{}, // TODO: We expect the largest voucher we have to be there
+		Vouchers:       [3]*payments.Voucher{voucher.Clone()}, // TODO: We expect the largest voucher we have to be there
 		VFixed:         data.vFinal.FixedPart(),
 		Signatures:     [3]state.Signature{},
 		ToMyLeft:       left,

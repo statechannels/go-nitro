@@ -41,7 +41,7 @@ type Objective struct {
 	// Signatures gets updated as participants sign and send states to each other.
 	Signatures [3]state.Signature
 
-	Vouchers [3]payments.Voucher
+	Vouchers [3]*payments.Voucher
 
 	// TODO: Do we need this? If so it should probably be private
 	VoucherSent bool
@@ -125,16 +125,20 @@ func NewObjective(request ObjectiveRequest,
 
 	}
 
-	var latestVoucher payments.Voucher
+	// If we can't find any vouchers we use an unsigned voucher of 0
+	// TODO: We have a "zero" voucher and now a voucher with amount 0
+	latestVoucher := *payments.NewVoucher(request.ChannelId, big.NewInt(0))
 	if myAddress == alice {
 		var err error
 		latestVoucher, err = getVoucher(request.ChannelId)
 		if err != nil {
 			return Objective{}, fmt.Errorf("could not get the latest voucher for channel %s: %w", request.ChannelId, err)
 		}
+
 	}
-	vouchers := [3]payments.Voucher{}
-	vouchers[V.MyIndex] = latestVoucher
+
+	vouchers := [3]*payments.Voucher{}
+	vouchers[V.MyIndex] = &latestVoucher
 	return Objective{
 		Status:         status,
 		InitialOutcome: initialOutcome, VFixed: V.FixedPart,
@@ -204,23 +208,27 @@ func (o *Objective) finalState() state.State {
 }
 
 // Returns the proposal with the largest amount
-func (o *Objective) LargestProposal() *payments.Voucher {
+func (o *Objective) LargestProposalAmount() *big.Int {
 	largest := big.NewInt(0)
-	index := 0
-	for i, v := range o.Vouchers {
-		if v.Amount.Cmp(largest) > 0 {
-			index = i
+
+	for _, v := range o.Vouchers {
+		amount := big.NewInt(0)
+		if v != nil && v.Amount != nil {
+			amount.Set(v.Amount)
+		}
+		if amount.Cmp(largest) > 0 {
+
 			largest = v.Amount
 		}
 	}
-	return &o.Vouchers[index]
+	return largest
 }
 
 // finalOutcome returns the outcome for the final state calculated from the InitialOutcome and PaidToBob
 func (o *Objective) finalOutcome() outcome.SingleAssetExit {
 	finalOutcome := o.InitialOutcome.Clone()
-	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.LargestProposal().Amount)
-	finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.LargestProposal().Amount)
+	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.LargestProposalAmount())
+	finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.LargestProposalAmount())
 
 	return finalOutcome
 }
@@ -250,7 +258,8 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 			peers = append(peers, peer)
 		}
 	}
-	messages := protocols.CreateRejectionNoticeMessage(o.Id(), peers...)
+	me := o.VFixed.Participants[o.MyRole]
+	messages := protocols.CreateRejectionNoticeMessage(o.Id(), me, peers...)
 
 	return &updated, protocols.SideEffects{MessagesToSend: messages}
 }
@@ -289,7 +298,7 @@ func (o *Objective) clone() Objective {
 	clone.InitialOutcome = o.InitialOutcome.Clone()
 
 	for i, v := range o.Vouchers {
-		clone.Vouchers[i] = *v.Clone()
+		clone.Vouchers[i] = v.Clone()
 	}
 
 	clone.Signatures = [3]state.Signature{}
@@ -322,14 +331,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	if !updated.VoucherSent {
 
-		vMsgs := protocols.CreateVoucherMessage(updated.Vouchers[o.MyRole], updated.VFixed.Participants...)
-		// We send out the state we think is the final state
-		sMsgs := protocols.CreateSignedStateMessages(
-			updated.Id(),
-			state.NewSignedState(updated.finalState()),
-			updated.MyRole)
-		msgs := append(vMsgs, sMsgs...)
-		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, msgs...)
+		myAddress := updated.VFixed.Participants[updated.MyRole]
+		vMsgs := protocols.CreateVoucherMessage(*updated.Vouchers[o.MyRole], myAddress, updated.Id(), updated.VFixed.Participants...)
+
+		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, vMsgs...)
 		updated.VoucherSent = true
 	}
 
@@ -431,7 +436,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
 		}
 		recipient := ledger.Follower()
-		message := protocols.CreateSignedProposalMessage(recipient, ledger.ProposalQueue()...)
+		message := protocols.CreateSignedProposalMessage(recipient, o.VFixed.Participants[o.MyRole], ledger.ProposalQueue()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	} else {
@@ -450,7 +455,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 
 			// messaging sideEffect
 			recipient := ledger.Leader()
-			message := protocols.CreateSignedProposalMessage(recipient, sp)
+			message := protocols.CreateSignedProposalMessage(recipient, o.VFixed.Participants[o.MyRole], sp)
 			sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 		}
 	}
@@ -477,9 +482,9 @@ func (o *Objective) signedByMe() bool {
 }
 
 func (o *Objective) haveAllVouchers() bool {
-
+	fmt.Printf("%s: %+v\n", o.VFixed.Participants[o.MyRole], o.Vouchers)
 	for _, v := range o.Vouchers {
-		if v.IsZero() {
+		if v == nil {
 			return false
 		}
 	}
@@ -605,23 +610,19 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 		}
 	}
 
-	if !event.Voucher.IsZero() {
-		signer, err := event.Voucher.RecoverSigner()
-		if err != nil {
-			return o, fmt.Errorf("error recovering voucher signer: %w", err)
-		}
-		// This logic assumes a single hop virtual channel.
-		// Currently this is the only type of virtual channel supported.
+	if event.Voucher.ChannelId == o.VId() {
+
 		alice := updated.VFixed.Participants[0]
 		intermediary := updated.VFixed.Participants[1]
 		bob := updated.VFixed.Participants[2]
+
 		switch {
-		case signer == alice:
-			updated.Vouchers[0] = event.Voucher
-		case signer == intermediary:
-			updated.Vouchers[1] = event.Voucher
-		case signer == bob:
-			updated.Vouchers[2] = event.Voucher
+		case event.From == alice:
+			updated.Vouchers[0] = event.Voucher.Clone()
+		case event.From == intermediary:
+			updated.Vouchers[1] = event.Voucher.Clone()
+		case event.From == bob:
+			updated.Vouchers[2] = event.Voucher.Clone()
 		}
 	}
 	return &updated, nil
