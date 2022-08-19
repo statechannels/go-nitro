@@ -147,6 +147,7 @@ export {State, VariablePart, getVariablePart, getFixedPart, hashState} from './c
 
 export * from './signatures';
 export * from './transactions';
+export * from './contract/vouchers';
 
 // types
 export {Uint256, Bytes32} from './contract/types';

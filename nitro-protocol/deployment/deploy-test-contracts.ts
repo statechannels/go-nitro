@@ -14,6 +14,7 @@ import tokenArtifact from '../artifacts/contracts/Token.sol/Token.json';
 import trivialAppArtifact from '../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
 import embeddedApplicationArtifact from '../artifacts/contracts/examples/EmbeddedApplication.sol/EmbeddedApplication.json';
 import consensusAppArtifact from '../artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
+import virtualPaymentAppArtifact from '../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 const rpcEndPoint = 'http://localhost:' + process.env.GANACHE_PORT;
 const provider = new providers.JsonRpcProvider(rpcEndPoint);
 
@@ -31,6 +32,7 @@ const [
   trivialAppFactory,
   embeddedApplicationFactory,
   consensusAppFactory,
+  virtualPaymentAppFactory,
 ] = [
   countingAppArtifact,
   nitroAdjudicatorArtifact,
@@ -43,6 +45,7 @@ const [
   trivialAppArtifact,
   embeddedApplicationArtifact,
   consensusAppArtifact,
+  virtualPaymentAppArtifact,
 ].map(artifact =>
   new ContractFactory(artifact.abi, artifact.bytecode).connect(provider.getSigner(0))
 );
@@ -59,6 +62,7 @@ export async function deploy(): Promise<Record<string, string>> {
   const TEST_NITRO_UTILS_ADDRESS = (await testNitroUtilsFactory.deploy()).address;
   const EMBEDDED_APPLICATION_ADDRESS = (await embeddedApplicationFactory.deploy()).address;
   const CONSENSUS_APP_ADDRESS = await (await consensusAppFactory.deploy()).address;
+  const VIRTUAL_PAYMENT_APP_ADDRESS = await (await virtualPaymentAppFactory.deploy()).address;
 
   const TEST_TOKEN_ADDRESS = (
     await tokenFactory.deploy(new Wallet(TEST_ACCOUNTS[0].privateKey).address)
@@ -75,5 +79,6 @@ export async function deploy(): Promise<Record<string, string>> {
     TEST_NITRO_ADJUDICATOR_ADDRESS,
     TEST_TOKEN_ADDRESS,
     CONSENSUS_APP_ADDRESS,
+    VIRTUAL_PAYMENT_APP_ADDRESS,
   };
 }
