@@ -104,7 +104,7 @@ contract VirtualPaymentApp is IForceMoveApp {
             keccak256(abi.encode(NitroUtils.getChannelId(fixedPart), voucher.amount)),
             voucher.signature
         );
-        require(signer == fixedPart.participants[0], 'irrelevant voucher'); // could be incorrect channelId or incorrect signature
+        require(signer == fixedPart.participants[0], 'invalid signature for voucher'); // could be incorrect channelId or incorrect signature
         return voucher.amount;
     }
 
