@@ -69,6 +69,8 @@ export function computeReclaimEffects(
   targetAllocations: ExitFormat.Allocation[], // we must index this with a JS number that is less than 2**32 - 1
   indexOfTargetInSource: number
 ): ExitFormat.Allocation[] {
+  console.log(sourceAllocations);
+  console.log(targetAllocations);
   const newSourceAllocations: ExitFormat.Allocation[] = []; // will be one slot shorter than sourceAllocations
   const guarantee = sourceAllocations[indexOfTargetInSource];
 
@@ -96,13 +98,13 @@ export function computeReclaimEffects(
     };
 
     // copy each element except the indexOfTargetInSource element
-    if (sourceAllocations[i].destination == left) {
+    if (sourceAllocations[i].destination.toLowerCase() == left.toLowerCase()) {
       newSourceAllocations[k].amount = BigNumber.from(sourceAllocations[i].amount)
         .add(targetAllocations[0].amount)
         .toHexString();
       foundLeft = true;
     }
-    if (sourceAllocations[i].destination == right) {
+    if (sourceAllocations[i].destination.toLowerCase() == right.toLowerCase()) {
       newSourceAllocations[k].amount = BigNumber.from(sourceAllocations[i].amount)
         .add(targetAllocations[1].amount)
         .toHexString();
