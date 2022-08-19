@@ -51,12 +51,12 @@ contract ForceMove is IForceMove, StatusManager {
         Signature memory challengerSig
     ) external override {
         bytes32 channelId = NitroUtils.getChannelId(fixedPart);
-        uint48 largestTurnNum = candidate.variablePart.turnNum;
+        uint48 candidateTurnNum = candidate.variablePart.turnNum;
 
         if (_mode(channelId) == ChannelMode.Open) {
-            _requireNonDecreasedTurnNumber(channelId, largestTurnNum);
+            _requireNonDecreasedTurnNumber(channelId, candidateTurnNum);
         } else if (_mode(channelId) == ChannelMode.Challenge) {
-            _requireIncreasedTurnNumber(channelId, largestTurnNum);
+            _requireIncreasedTurnNumber(channelId, candidateTurnNum);
         } else {
             // This should revert.
             _requireChannelNotFinalized(channelId);
@@ -70,7 +70,7 @@ contract ForceMove is IForceMove, StatusManager {
         // effects
         emit ChallengeRegistered(
             channelId,
-            largestTurnNum,
+            candidateTurnNum,
             uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
             // ^^^ This could overflow, so don't join a channel with a huge challengeDuration
             candidate.variablePart.isFinal,
@@ -81,7 +81,7 @@ contract ForceMove is IForceMove, StatusManager {
 
         statusOf[channelId] = _generateStatus(
             ChannelData(
-                largestTurnNum,
+                candidateTurnNum,
                 uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
                 supportedStateHash,
                 NitroUtils.hashOutcome(candidate.variablePart.outcome)
@@ -102,15 +102,15 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart memory candidate
     ) external override {
         bytes32 channelId = NitroUtils.getChannelId(fixedPart);
-        uint48 largestTurnNum = candidate.variablePart.turnNum;
+        uint48 candidateTurnNum = candidate.variablePart.turnNum;
 
         // checks
         _requireChannelNotFinalized(channelId);
-        _requireIncreasedTurnNumber(channelId, largestTurnNum);
+        _requireIncreasedTurnNumber(channelId, candidateTurnNum);
         _requireStateSupported(fixedPart, proof, candidate);
 
         // effects
-        _clearChallenge(channelId, largestTurnNum);
+        _clearChallenge(channelId, candidateTurnNum);
     }
 
     /**
