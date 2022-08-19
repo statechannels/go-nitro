@@ -19,7 +19,7 @@ library StrictTurnTaking {
         INitroTypes.RecoveredVariablePart[] memory proof,
         INitroTypes.RecoveredVariablePart memory candidate
     ) internal pure {
-        _requireValidInput(fixedPart.participants.length, proof.length);
+        _requireValidInput(fixedPart.participants.length, proof.length + 1);
 
         uint48 turnNum = proof[0].variablePart.turnNum;
 
@@ -84,10 +84,10 @@ library StrictTurnTaking {
      * @notice Validate input for turn taking logic.
      * @dev Validate input for turn taking logic.
      * @param numParticipants Number of participants in a channel.
-     * @param numProofStates Number of proof states submitted.
+     * @param numStates Number of states submitted.
      */
-    function _requireValidInput(uint256 numParticipants, uint256 numProofStates) internal pure {
-        require(numParticipants - 1 >= numProofStates, 'Excess proof states');
+    function _requireValidInput(uint256 numParticipants, uint256 numStates) internal pure {
+        require((numParticipants >= numStates) && (numStates > 1), 'Insufficient or excess states');
 
         // no more than 255 participants
         require(numParticipants <= type(uint8).max, 'Too many participants'); // type(uint8).max = 2**8 - 1 = 255
