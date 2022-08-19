@@ -100,7 +100,11 @@ export const emptyGasResults: GasResults = {
     // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👩
     // reclaim L                   ⬛ -- (L) --------> 👩
     // transferAllAssetsL          ⬛ ---------------> 👩
-    // TODO
-    satp: {},
+    satp: {
+      challengeL: 0,
+      challengeV: 0,
+      reclaimL: 0,
+      transferAllAssetsL: 0,
+    },
   },
 };
