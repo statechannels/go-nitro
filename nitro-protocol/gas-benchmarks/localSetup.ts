@@ -43,7 +43,7 @@ export const consensusAppAddress = utils.getContractAddress({
 
 export const virtualPaymentAppAddress = utils.getContractAddress({
   from: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // ASSUME: deployed by hardhat account 0
-  nonce: 0, // ASSUME: this contract deployed in this account's second ever transaction}
+  nonce: 1, // ASSUME: this contract deployed in this account's second ever transaction}
 });
 
 export async function deployContracts() {
