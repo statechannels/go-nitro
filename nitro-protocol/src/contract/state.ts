@@ -57,6 +57,26 @@ export interface RecoveredVariablePart {
 }
 
 /**
+ * Separates supplied array into proof and candidate.
+ * @param svps Array of SignedVariableParts or RecoveredVariableParts.
+ * @returns proof and candidate, of the same type as input.
+ */
+export function separateProofAndCandidate<T = SignedVariablePart | RecoveredVariablePart>(
+  svps: T[]
+): {
+  proof: T[];
+  candidate: T;
+} {
+  const proof = svps.slice(0, -1);
+  const candidate = svps.at(-1);
+  if (candidate == undefined) {
+    throw Error('insufficient length array');
+  }
+
+  return {proof, candidate};
+}
+
+/**
  * Extracts the VariablePart of a state
  * @param state a State
  * @returns the VariablePart, which usually changes during state channel updates

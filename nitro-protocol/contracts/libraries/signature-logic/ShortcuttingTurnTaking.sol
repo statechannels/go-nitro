@@ -14,35 +14,37 @@ library ShortcuttingTurnTaking {
      * @notice Require supplied arguments to comply with shortcutting turn taking logic, i.e. there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array..
      * @dev Require supplied arguments to comply with shortcutting turn taking logic, i.e. there is a signature for each participant, either on the hash of the state for which they are a mover, or on the hash of a state that appears after that state in the array..
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param recoveredVariableParts An ordered array of structs, each struct describing dynamic properties of the state channel and must be signed by corresponding moving participant.
+     * @param proof Array of recovered variable parts which constitutes a support proof for the candidate. The proof is a validation for the supplied candidate.
+     * @param candidate Recovered variable part the proof was supplied for. The candidate state is supported by proof states.
      */
     function requireValidTurnTaking(
         INitroTypes.FixedPart memory fixedPart,
-        INitroTypes.RecoveredVariablePart[] memory recoveredVariableParts
+        INitroTypes.RecoveredVariablePart[] memory proof,
+        INitroTypes.RecoveredVariablePart memory candidate
     ) internal pure {
         uint256 nParticipants = fixedPart.participants.length;
-        uint48 largestTurnNum = recoveredVariableParts[recoveredVariableParts.length - 1]
-            .variablePart
-            .turnNum;
+        uint48 largestTurnNum = candidate.variablePart.turnNum;
 
-        _requireValidInput(nParticipants, recoveredVariableParts);
+        _requireValidInput(nParticipants, proof, candidate);
 
         // The difference between the support proof candidate turn number (aka largestTurnNum) and the round robin cycle last turn number.
         uint256 roundRobinShift = (largestTurnNum + 1) % nParticipants;
         uint48 prevTurnNum = 0;
 
-        for (uint256 i = 0; i < recoveredVariableParts.length; i++) {
-            requireValidSignatures(fixedPart, recoveredVariableParts[i], roundRobinShift);
+        // validating the proof
+        for (uint256 i = 0; i < proof.length; i++) {
+            requireValidSignatures(fixedPart, proof[i], roundRobinShift);
 
             if (i != 0) {
-                requireIncreasedTurnNum(
-                    prevTurnNum,
-                    recoveredVariableParts[i].variablePart.turnNum
-                );
+                requireIncreasedTurnNum(prevTurnNum, proof[i].variablePart.turnNum);
             }
 
-            prevTurnNum = recoveredVariableParts[i].variablePart.turnNum;
+            prevTurnNum = proof[i].variablePart.turnNum;
         }
+
+        // validating the candidate
+        requireValidSignatures(fixedPart, candidate, roundRobinShift);
+        requireIncreasedTurnNum(prevTurnNum, candidate.variablePart.turnNum);
     }
 
     /**
@@ -120,34 +122,43 @@ library ShortcuttingTurnTaking {
      * @notice Validate input for turn taking logic.
      * @dev Validate input for turn taking logic.
      * @param nParticipants Number of participants in a channel.
-     * @param recoveredVariableParts Variable parts submitted.
+     * @param proof Array of recovered variable parts which constitutes a support proof for the candidate. The proof is a validation for the supplied candidate.
+     * @param candidate Recovered variable part the proof was supplied for. The candidate state is supported by proof states.
      */
     function _requireValidInput(
         uint256 nParticipants,
-        INitroTypes.RecoveredVariablePart[] memory recoveredVariableParts
+        INitroTypes.RecoveredVariablePart[] memory proof,
+        INitroTypes.RecoveredVariablePart memory candidate
     ) internal pure {
-        uint256 numStates = recoveredVariableParts.length;
+        uint256 numStates = proof.length + 1;
         require((nParticipants >= numStates) && (numStates > 0), 'Insufficient or excess states');
 
-        uint256 largestTurnNum = recoveredVariableParts[recoveredVariableParts.length - 1]
-            .variablePart
-            .turnNum;
+        uint256 largestTurnNum = candidate.variablePart.turnNum;
         require(largestTurnNum + 1 >= nParticipants, 'largestTurnNum too low');
 
         // no more than 255 participants
         require(nParticipants <= type(uint8).max, 'Too many participants'); // type(uint8).max = 2**8 - 1 = 255
 
-        uint256 turnNumDelta = largestTurnNum - recoveredVariableParts[0].variablePart.turnNum;
-        require(turnNumDelta <= nParticipants, 'Only one round-robin allowed');
+        // when proof.length = 0, turnNumDelta is always = 0 and thus <= nParticipants
+        if (proof.length != 0) {
+            uint256 turnNumDelta = largestTurnNum - proof[0].variablePart.turnNum;
+            require(turnNumDelta <= nParticipants, 'Only one round-robin allowed');
+        }
 
         uint256 signedSoFar = 0;
+        uint256 hasTwoSigs = 0;
 
-        for (uint256 i = 0; i < recoveredVariableParts.length; i++) {
-            uint256 hasTwoSigs = signedSoFar & recoveredVariableParts[i].signedBy;
+        // processing the proof
+        for (uint256 i = 0; i < proof.length; i++) {
+            hasTwoSigs = signedSoFar & proof[i].signedBy;
             require(hasTwoSigs == 0, 'Excess sigs from one participant');
-
-            signedSoFar |= recoveredVariableParts[i].signedBy;
+            signedSoFar |= proof[i].signedBy;
         }
+
+        // processing candidate
+        hasTwoSigs = signedSoFar & candidate.signedBy;
+        require(hasTwoSigs == 0, 'Excess sigs from one participant');
+        signedSoFar |= candidate.signedBy;
 
         require(signedSoFar == 2**nParticipants - 1, 'Lacking participant signature');
     }

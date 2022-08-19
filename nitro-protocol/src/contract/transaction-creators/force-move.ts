@@ -2,7 +2,7 @@ import {Signature, ethers} from 'ethers';
 
 import ForceMoveArtifact from '../../../artifacts/contracts/ForceMove.sol/ForceMove.json';
 import {bindSignatures, signChallengeMessage} from '../../signatures';
-import {getFixedPart, getVariablePart, State} from '../state';
+import {getFixedPart, getVariablePart, separateProofAndCandidate, State} from '../state';
 
 // https://github.com/ethers-io/ethers.js/issues/602#issuecomment-574671078
 export const ForceMoveContractInterface = new ethers.utils.Interface(ForceMoveArtifact.abi);
@@ -33,7 +33,9 @@ export function createChallengeTransaction(
 
   const fixedPart = getFixedPart(states[0]);
   const variableParts = states.map(s => getVariablePart(s));
-  const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
+  const {proof, candidate} = separateProofAndCandidate(
+    bindSignatures(variableParts, signatures, whoSignedWhat)
+  );
 
   // Q: Is there a reason why createForceMoveTransaction accepts a State[] and a Signature[]
   // Argument rather than a SignedState[] argument?
@@ -47,7 +49,8 @@ export function createChallengeTransaction(
 
   const data = ForceMoveContractInterface.encodeFunctionData('challenge', [
     fixedPart,
-    signedVariableParts,
+    proof,
+    candidate,
     challengerSignature,
   ]);
   return {data};
@@ -70,9 +73,11 @@ export function createCheckpointTransaction({
 export function checkpointArgs({states, signatures, whoSignedWhat}: CheckpointData): any[] {
   const fixedPart = getFixedPart(states[0]);
   const variableParts = states.map(s => getVariablePart(s));
-  const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
+  const {proof, candidate} = separateProofAndCandidate(
+    bindSignatures(variableParts, signatures, whoSignedWhat)
+  );
 
-  return [fixedPart, signedVariableParts];
+  return [fixedPart, proof, candidate];
 }
 
 export function createConcludeTransaction(
@@ -107,7 +112,9 @@ export function concludeArgs(
   const fixedPart = getFixedPart(states[0]);
 
   const variableParts = states.map(s => getVariablePart(s));
-  const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
+  const {proof, candidate} = separateProofAndCandidate(
+    bindSignatures(variableParts, signatures, whoSignedWhat)
+  );
 
-  return [fixedPart, signedVariableParts];
+  return [fixedPart, proof, candidate];
 }

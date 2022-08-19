@@ -1,9 +1,9 @@
 import {utils, providers, Signature, constants} from 'ethers';
 
 import NitroAdjudicatorArtifact from '../../../artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
-import {getChannelId, hashState} from '../../';
+import {bindSignatures, getChannelId, hashState} from '../../';
 import {encodeOutcome} from '../outcome';
-import {encodeAppData, getFixedPart, State} from '../state';
+import {getFixedPart, getVariablePart, separateProofAndCandidate, State} from '../state';
 
 // https://github.com/ethers-io/ethers.js/issues/602#issuecomment-574671078
 const NitroAdjudicatorContractInterface = new utils.Interface(NitroAdjudicatorArtifact.abi);
@@ -25,24 +25,13 @@ export function concludeAndTransferAllAssetsArgs(
     );
   }
 
-  const lastState = states.reduce((s1, s2) => (s1.turnNum >= s2.turnNum ? s1 : s2), states[0]);
-  const largestTurnNum = lastState.turnNum;
-  const fixedPart = getFixedPart(lastState);
+  const fixedPart = getFixedPart(states[0]);
+  const variableParts = states.map(s => getVariablePart(s));
+  const {proof, candidate} = separateProofAndCandidate(
+    bindSignatures(variableParts, signatures, whoSignedWhat)
+  );
 
-  const outcomeBytes = encodeOutcome(lastState.outcome);
-  const appDataBytes = encodeAppData(lastState.appData);
-
-  const numStates = states.length;
-
-  return [
-    largestTurnNum,
-    fixedPart,
-    appDataBytes,
-    outcomeBytes,
-    numStates,
-    whoSignedWhat,
-    signatures,
-  ];
+  return [fixedPart, proof, candidate];
 }
 
 export function createConcludeAndTransferAllAssetsTransaction(

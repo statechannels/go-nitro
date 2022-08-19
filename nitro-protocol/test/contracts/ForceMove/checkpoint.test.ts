@@ -10,7 +10,12 @@ import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.s
 import {Channel, getChannelId} from '../../../src/contract/channel';
 import {channelDataToStatus} from '../../../src/contract/channel-storage';
 import {Outcome} from '../../../src/contract/outcome';
-import {getFixedPart, getVariablePart, State} from '../../../src/contract/state';
+import {
+  getFixedPart,
+  getVariablePart,
+  separateProofAndCandidate,
+  State,
+} from '../../../src/contract/state';
 import {
   CHANNEL_FINALIZED,
   TURN_NUM_RECORD_NOT_INCREASED,
@@ -119,7 +124,9 @@ describe('checkpoint', () => {
 
     // Sign the states
     const signatures = await signStates(states, wallets, whoSignedWhat);
-    const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
+    const {proof, candidate} = separateProofAndCandidate(
+      bindSignatures(variableParts, signatures, whoSignedWhat)
+    );
 
     const isOpen = !!finalizesAt;
     const outcome = isOpen ? [] : defaultOutcome;
@@ -149,7 +156,7 @@ describe('checkpoint', () => {
     await (await ForceMove.setStatus(channelId, fingerprint)).wait();
     expect(await ForceMove.statusOf(channelId)).toEqual(fingerprint);
 
-    const tx = ForceMove.checkpoint(fixedPart, signedVariableParts);
+    const tx = ForceMove.checkpoint(fixedPart, proof, candidate);
     if (reason) {
       await expectRevert(() => tx, reason);
     } else {

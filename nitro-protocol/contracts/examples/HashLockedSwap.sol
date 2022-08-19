@@ -25,18 +25,27 @@ contract HashLockedSwap is IForceMoveApp {
         return abi.decode(appDataBytes, (AppData));
     }
 
-    function latestSupportedState(
+    /**
+     * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
+     * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
+     * @param fixedPart Fixed part of the state channel.
+     * @param proof Array of recovered variable parts which constitutes a support proof for the candidate.
+     * @param candidate Recovered variable part the proof was supplied for.
+     */
+    function requireStateSupported(
         FixedPart calldata fixedPart,
-        RecoveredVariablePart[] calldata recoveredVariableParts
-    ) external pure override returns (VariablePart memory) {
-        VariablePart memory from = recoveredVariableParts[0].variablePart;
-        VariablePart memory to = recoveredVariableParts[1].variablePart;
+        RecoveredVariablePart[] calldata proof,
+        RecoveredVariablePart calldata candidate
+    ) external pure override {
+        VariablePart memory to = candidate.variablePart;
 
         // is this the first and only swap?
-        require(recoveredVariableParts.length == 2, 'recoveredVariableParts.length!=2');
+        require(proof.length == 1, 'proof.length!=1');
         require(to.turnNum == 4, 'latest turn number != 4');
 
-        StrictTurnTaking.requireValidTurnTaking(fixedPart, recoveredVariableParts);
+        VariablePart memory from = proof[0].variablePart;
+
+        StrictTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate);
 
         // Decode variables.
         // Assumptions:
@@ -69,8 +78,6 @@ contract HashLockedSwap is IForceMoveApp {
                 allocationsA[1].amount == allocationsB[0].amount,
             'amounts must be permuted'
         );
-
-        return recoveredVariableParts[1].variablePart;
     }
 
     function decode2PartyAllocation(Outcome.SingleAssetExit[] memory outcome)

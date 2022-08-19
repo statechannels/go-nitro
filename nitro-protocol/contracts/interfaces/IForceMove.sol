@@ -12,32 +12,42 @@ interface IForceMove is INitroTypes {
      * @notice Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @dev Registers a challenge against a state channel. A challenge will either prompt another participant into clearing the challenge (via one of the other methods), or cause the channel to finalize at a specific time.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update.
+     * @param proof Additional proof material (in the form of an array of signed states) which completes the support proof.
+     * @param candidate A candidate state (along with signatures) which is being claimed to be supported.
      * @param challengerSig The signature of a participant on the keccak256 of the abi.encode of (supportedStateHash, 'forceMove').
      */
     function challenge(
         FixedPart memory fixedPart,
-        SignedVariablePart[] memory signedVariableParts,
+        SignedVariablePart[] memory proof,
+        SignedVariablePart memory candidate,
         Signature memory challengerSig
     ) external;
 
     /**
-     * @notice Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
-     * @dev Overwrites the `turnNumRecord` stored against a channel by providing a state with higher turn number, supported by a signature from each participant.
+     * @notice Overwrites the `turnNumRecord` stored against a channel by providing a candidate with higher turn number.
+     * @dev Overwrites the `turnNumRecord` stored against a channel by providing a candidate with higher turn number.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update.
+     * @param proof Additional proof material (in the form of an array of signed states) which completes the support proof.
+     * @param candidate A candidate state (along with signatures) which is being claimed to be supported.
      */
-    function checkpoint(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
-        external;
+    function checkpoint(
+        FixedPart memory fixedPart,
+        SignedVariablePart[] memory proof,
+        SignedVariablePart memory candidate
+    ) external;
 
     /**
      * @notice Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
      * @dev Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
+     * @param proof Additional proof material (in the form of an array of signed states) which completes the support proof.
+     * @param candidate A candidate state (along with signatures) which is being claimed to be supported.
      */
-    function conclude(FixedPart memory fixedPart, SignedVariablePart[] memory signedVariableParts)
-        external;
+    function conclude(
+        FixedPart memory fixedPart,
+        SignedVariablePart[] memory proof,
+        SignedVariablePart memory candidate
+    ) external;
 
     // events
 
@@ -48,7 +58,8 @@ interface IForceMove is INitroTypes {
      * @param finalizesAt The unix timestamp when `channelId` will finalize.
      * @param isFinal Boolean denoting whether the challenge state is final.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariableParts An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update.
+     * @param proof Additional proof material (in the form of an array of signed states) which completes the support proof.
+     * @param candidate A candidate state (along with signatures) which is being claimed to be supported.
      */
     event ChallengeRegistered(
         bytes32 indexed channelId,
@@ -56,7 +67,8 @@ interface IForceMove is INitroTypes {
         uint48 finalizesAt,
         bool isFinal,
         FixedPart fixedPart,
-        SignedVariablePart[] signedVariableParts
+        SignedVariablePart[] proof,
+        SignedVariablePart candidate
     );
 
     /**

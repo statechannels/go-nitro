@@ -9,7 +9,7 @@ import {
   RecoveredVariablePart,
   State,
 } from '../../../src/contract/state';
-import {getTestProvider, parseVariablePartEventResult, setupContract} from '../../test-helpers';
+import {getTestProvider, setupContract} from '../../test-helpers';
 const {HashZero} = ethers.constants;
 
 const provider = getTestProvider();
@@ -48,36 +48,34 @@ const variablePart = getVariablePart(state);
 // Sign the states
 const sigs = wallets.map((w: Wallet) => signState(state, w.privateKey).signature);
 
-describe('latestSupportedState', () => {
-  const recoveredVariablePart: RecoveredVariablePart = bindSignaturesWithSignedByBitfield(
+describe('requireStateSupported', () => {
+  const candidate: RecoveredVariablePart = bindSignaturesWithSignedByBitfield(
     [variablePart],
     sigs,
     [0, 0, 0]
   )[0];
   it('A single state signed by everyone is considered supported', async () => {
     expect.assertions(1);
+    const txResult = await consensusApp.requireStateSupported(fixedPart, [], candidate);
 
-    const latestSupportedState = await consensusApp.latestSupportedState(fixedPart, [
-      recoveredVariablePart,
-    ]);
-    expect(parseVariablePartEventResult(latestSupportedState)).toEqual(variablePart);
+    // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
+    // which in this case should be empty
+    expect(txResult.length).toBe(0);
   });
 
   it('Submitting more than one state does NOT constitute a support proof', async () => {
     expect.assertions(1);
 
-    await expectRevert(() =>
-      consensusApp.latestSupportedState(fixedPart, [recoveredVariablePart, recoveredVariablePart])
-    );
+    await expectRevert(() => consensusApp.requireStateSupported(fixedPart, [candidate], candidate));
   });
 
   it('A single state signed by less than everyone is NOT considered supported', async () => {
     expect.assertions(1);
 
-    const recoveredVariablePart: RecoveredVariablePart = {
+    const candidate: RecoveredVariablePart = {
       variablePart,
       signedBy: BigNumber.from(0b011).toHexString(),
     };
-    await expectRevert(() => consensusApp.latestSupportedState(fixedPart, [recoveredVariablePart]));
+    await expectRevert(() => consensusApp.requireStateSupported(fixedPart, [], candidate));
   });
 });

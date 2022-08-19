@@ -8,7 +8,12 @@ import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.s
 import {Channel, getChannelId} from '../../../src/contract/channel';
 import {channelDataToStatus} from '../../../src/contract/channel-storage';
 import {Outcome} from '../../../src/contract/outcome';
-import {getFixedPart, getVariablePart, State} from '../../../src/contract/state';
+import {
+  getFixedPart,
+  getVariablePart,
+  separateProofAndCandidate,
+  State,
+} from '../../../src/contract/state';
 import {
   CHANNEL_FINALIZED,
   MOVER_SIGNED_EARLIER_STATE,
@@ -127,9 +132,11 @@ describe('conclude', () => {
 
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
-      const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
+      const {proof, candidate} = separateProofAndCandidate(
+        bindSignatures(variableParts, signatures, whoSignedWhat)
+      );
 
-      const tx = ForceMove.conclude(fixedPart, signedVariableParts);
+      const tx = ForceMove.conclude(fixedPart, proof, candidate);
       if (reasonString) {
         await expectRevert(() => tx, reasonString);
       } else {

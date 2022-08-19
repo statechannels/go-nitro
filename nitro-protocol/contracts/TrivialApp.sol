@@ -11,12 +11,10 @@ contract TrivialApp is IForceMoveApp {
     /**
      * @notice Encodes trivial rules.
      * @dev Encodes trivial rules.
-     * @return last variable part.
      */
-    function latestSupportedState(
+    function requireStateSupported(
         FixedPart calldata, // fixedPart, unused
-        RecoveredVariablePart[] calldata recoveredVariableParts
-    ) external pure override returns (VariablePart memory) {
-        return recoveredVariableParts[recoveredVariableParts.length - 1].variablePart;
-    }
+        RecoveredVariablePart[] calldata, // proof, unused
+        RecoveredVariablePart calldata // candidate, unused
+    ) external pure override {} //solhint-disable-line no-empty-blocks
 }

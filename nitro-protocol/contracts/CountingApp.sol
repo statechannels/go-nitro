@@ -28,21 +28,28 @@ contract CountingApp is IForceMoveApp {
      * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel.
      * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel.
      * @param fixedPart Fixed part of the state channel.
-     * @param recoveredVariableParts Array of variable parts to find the latest of.
-     * @return VariablePart Latest supported by application variable part from supplied array.
+     * @param proof Array of recovered variable parts which constitutes a support proof for the candidate.
+     * @param candidate Recovered variable part the proof was supplied for.
      */
-    function latestSupportedState(
+    function requireStateSupported(
         FixedPart calldata fixedPart,
-        RecoveredVariablePart[] calldata recoveredVariableParts
-    ) external pure override returns (VariablePart memory) {
-        ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, recoveredVariableParts);
+        RecoveredVariablePart[] calldata proof,
+        RecoveredVariablePart calldata candidate
+    ) external pure override {
+        // TODO: replace with StrictTurnTaking
+        ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate);
 
-        for (uint256 i = 1; i < recoveredVariableParts.length; i++) {
-            _requireIncrementedCounter(recoveredVariableParts[i], recoveredVariableParts[i - 1]);
-            _requireEqualOutcomes(recoveredVariableParts[i], recoveredVariableParts[i - 1]);
+        // TODO: require(proof.length != 0)
+        if (proof.length != 0) {
+            // validate the proof
+            for (uint256 i = 1; i < proof.length; i++) {
+                _requireIncrementedCounter(proof[i], proof[i - 1]);
+                _requireEqualOutcomes(proof[i], proof[i - 1]);
+            }
+
+            _requireIncrementedCounter(candidate, proof[proof.length - 1]);
+            _requireEqualOutcomes(candidate, proof[proof.length - 1]);
         }
-
-        return recoveredVariableParts[recoveredVariableParts.length - 1].variablePart;
     }
 
     /**

@@ -6,11 +6,14 @@ import {it} from '@jest/globals';
 const {HashZero} = ethers.constants;
 import SingleAssetPaymentsArtifact from '../../../../artifacts/contracts/examples/SingleAssetPayments.sol/SingleAssetPayments.json';
 import {encodeGuaranteeData, Outcome} from '../../../../src/contract/outcome';
-import {getFixedPart, getVariablePart} from '../../../../src/contract/state';
+import {
+  getFixedPart,
+  getVariablePart,
+  separateProofAndCandidate,
+} from '../../../../src/contract/state';
 import {
   getRandomNonce,
   getTestProvider,
-  parseVariablePartEventResult,
   randomExternalDestination,
   replaceAddressesAndBigNumberify,
   setupContract,
@@ -49,7 +52,7 @@ beforeAll(async () => {
   singleAssetPayments = setupContract(
     provider,
     SingleAssetPaymentsArtifact,
-    process.env.SINGLE_ASSET_PAYMENT_ADDRESS
+    process.env.SINGLE_ASSET_PAYMENTS_ADDRESS
   );
 });
 
@@ -62,8 +65,8 @@ const reason2 = 'not a simple allocation';
 const reason3 = 'Total allocated cannot change';
 const reason4 = 'outcome: Only one asset allowed';
 
-describe('validTransition', () => {
-  let channelNonce = getRandomNonce('HashLockedSwap');
+describe('requireStateSupported', () => {
+  let channelNonce = getRandomNonce('SingleAssetPayments');
   beforeEach(() => (channelNonce += 1));
   it.each`
     isValid  | numAssets | isAllocation      | balancesA             | turnNumB | balancesB             | whoSignedWhat     | reason       | description
@@ -167,17 +170,21 @@ describe('validTransition', () => {
         whoSignedWhat
       );
 
+      const {proof, candidate} = separateProofAndCandidate(recoveredVariableParts);
+
       if (isValid) {
-        const latestSupportedState = await singleAssetPayments.latestSupportedState(
+        const txResult = await singleAssetPayments.requireStateSupported(
           fixedPart,
-          recoveredVariableParts
+          proof,
+          candidate
         );
-        expect(parseVariablePartEventResult(latestSupportedState)).toEqual(
-          variableParts[variableParts.length - 1]
-        );
+
+        // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
+        // which in this case should be empty
+        expect(txResult.length).toBe(0);
       } else {
         await expectRevert(
-          () => singleAssetPayments.latestSupportedState(fixedPart, recoveredVariableParts),
+          () => singleAssetPayments.requireStateSupported(fixedPart, proof, candidate),
           reason
         );
       }

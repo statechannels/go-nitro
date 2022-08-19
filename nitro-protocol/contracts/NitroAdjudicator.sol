@@ -15,15 +15,17 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
      * @notice Finalizes a channel by providing a finalization proof, and liquidates all assets for the channel.
      * @dev Finalizes a channel by providing a finalization proof, and liquidates all assets for the channel.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param signedVariableParts An array of signed variable parts. All variable parts have to be marked `final`.
+     * @param proof Variable parts of the states with signatures in the support proof. The proof is a validation for the supplied candidate.
+     * @param candidate Variable part of the state to change to. The candidate state is supported by proof states.
      */
     function concludeAndTransferAllAssets(
         FixedPart memory fixedPart,
-        SignedVariablePart[] memory signedVariableParts
+        SignedVariablePart[] memory proof,
+        SignedVariablePart memory candidate
     ) public {
-        bytes32 channelId = _conclude(fixedPart, signedVariableParts);
+        bytes32 channelId = _conclude(fixedPart, proof, candidate);
 
-        transferAllAssets(channelId, _lastVariablePart(signedVariableParts).outcome, bytes32(0));
+        transferAllAssets(channelId, candidate.variablePart.outcome, bytes32(0));
     }
 
     /**
@@ -93,19 +95,19 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
      * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel.
      * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel.
      * @param fixedPart Fixed part of the state channel.
-     * @param signedVariableParts Array of variable parts to find the latest of.
-     * @return VariablePart Latest supported by application variable part from supplied array.
+     * @param proof Variable parts of the states with signatures in the support proof. The proof is a validation for the supplied candidate.
+     * @param candidate Variable part of the state to change to. The candidate state is supported by proof states.
      */
-    function latestSupportedState(
+    function requireStateSupported(
         FixedPart calldata fixedPart,
-        SignedVariablePart[] calldata signedVariableParts
-    ) external pure returns (VariablePart memory) {
-        // To avoid `Stack to deep` error, signedVariableParts are copied to `memory` array explicitly
-        SignedVariablePart[] memory _signedVariableParts = signedVariableParts;
+        SignedVariablePart[] calldata proof,
+        SignedVariablePart calldata candidate
+    ) external pure {
         return
-            IForceMoveApp(fixedPart.appDefinition).latestSupportedState(
+            IForceMoveApp(fixedPart.appDefinition).requireStateSupported(
                 fixedPart,
-                recoverVariableParts(fixedPart, _signedVariableParts)
+                recoverVariableParts(fixedPart, proof),
+                recoverVariablePart(fixedPart, candidate)
             );
     }
 

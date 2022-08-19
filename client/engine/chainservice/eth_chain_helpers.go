@@ -33,10 +33,10 @@ func assetAddressForIndex(na *NitroAdjudicator.NitroAdjudicator, tx *types.Trans
 	if err != nil {
 		return common.Address{}, err
 	}
-	// TODO remove the assumption that the tx incudes signedVariableParts parameter
+	// TODO remove the assumption that the tx incudes a candidate parameter
 	// 	concludeAndTransferAllAssets includes this parameter, but transferAllAssets, transfer, and claim do not.
 	//  https://github.com/statechannels/go-nitro/issues/759
-	signedVariableParts := params["signedVariableParts"].([]struct {
+	candidate := params["candidate"].(struct {
 		VariablePart struct {
 			Outcome []struct {
 				Asset       common.Address "json:\"asset\""
@@ -58,7 +58,7 @@ func assetAddressForIndex(na *NitroAdjudicator.NitroAdjudicator, tx *types.Trans
 			S [32]uint8 "json:\"s\""
 		} "json:\"sigs\""
 	})
-	return signedVariableParts[len(signedVariableParts)-1].VariablePart.Outcome[index.Int64()].Asset, nil
+	return candidate.VariablePart.Outcome[index.Int64()].Asset, nil
 
 }
 

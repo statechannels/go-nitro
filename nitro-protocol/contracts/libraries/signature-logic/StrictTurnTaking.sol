@@ -11,21 +11,28 @@ library StrictTurnTaking {
      * @notice Require supplied arguments to comply with turn taking logic, i.e. each participant signed the one state, they were mover for.
      * @dev Require supplied arguments to comply with turn taking logic, i.e. each participant signed the one state, they were mover for.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param recoveredVariableParts An ordered array of structs, each struct describing dynamic properties of the state channel and must be signed by corresponding moving participant.
+     * @param proof Array of recovered variable parts which constitutes a support proof for the candidate. The proof is a validation for the supplied candidate.
+     * @param candidate Recovered variable part the proof was supplied for. The candidate state is supported by proof states.
      */
     function requireValidTurnTaking(
         INitroTypes.FixedPart memory fixedPart,
-        INitroTypes.RecoveredVariablePart[] memory recoveredVariableParts
+        INitroTypes.RecoveredVariablePart[] memory proof,
+        INitroTypes.RecoveredVariablePart memory candidate
     ) internal pure {
-        _requireValidInput(fixedPart.participants.length, recoveredVariableParts.length);
+        _requireValidInput(fixedPart.participants.length, proof.length + 1);
 
-        uint48 turnNum = recoveredVariableParts[0].variablePart.turnNum;
+        uint48 turnNum = proof[0].variablePart.turnNum;
 
-        for (uint256 i = 0; i < recoveredVariableParts.length; i++) {
-            isSignedByMover(fixedPart, recoveredVariableParts[i]);
-            requireHasTurnNum(recoveredVariableParts[i].variablePart, turnNum);
+        // validating the proof
+        for (uint256 i = 0; i < proof.length; i++) {
+            isSignedByMover(fixedPart, proof[i]);
+            requireHasTurnNum(proof[i].variablePart, turnNum);
             turnNum++;
         }
+
+        // validating the candidate
+        isSignedByMover(fixedPart, candidate);
+        requireHasTurnNum(candidate.variablePart, turnNum);
     }
 
     /**
@@ -82,7 +89,7 @@ library StrictTurnTaking {
      * @param numStates Number of states submitted.
      */
     function _requireValidInput(uint256 numParticipants, uint256 numStates) internal pure {
-        require((numParticipants >= numStates) && (numStates > 0), 'Insufficient or excess states');
+        require((numParticipants >= numStates) && (numStates > 1), 'Insufficient or excess states');
 
         // no more than 255 participants
         require(numParticipants <= type(uint8).max, 'Too many participants'); // type(uint8).max = 2**8 - 1 = 255

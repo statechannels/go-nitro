@@ -5,7 +5,13 @@ import {it} from '@jest/globals';
 import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
 import {Channel, getChannelId} from '../../../src/contract/channel';
 import {Outcome} from '../../../src/contract/outcome';
-import {FixedPart, getFixedPart, getVariablePart, State} from '../../../src/contract/state';
+import {
+  FixedPart,
+  getFixedPart,
+  getVariablePart,
+  separateProofAndCandidate,
+  State,
+} from '../../../src/contract/state';
 import {
   computeOutcome,
   getCountingAppContractAddress,
@@ -212,12 +218,15 @@ describe('concludeAndTransferAllAssets', () => {
 
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
-      const signedVariableParts = bindSignatures(variableParts, signatures, whoSignedWhat);
+      const {proof, candidate} = separateProofAndCandidate(
+        bindSignatures(variableParts, signatures, whoSignedWhat)
+      );
 
       // Form transaction
       const tx = testNitroAdjudicator.concludeAndTransferAllAssets(
         getFixedPart(states[0]),
-        signedVariableParts,
+        proof,
+        candidate,
         {gasLimit: NITRO_MAX_GAS}
       );
 

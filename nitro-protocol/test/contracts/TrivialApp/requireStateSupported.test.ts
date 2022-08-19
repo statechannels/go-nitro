@@ -10,12 +10,7 @@ import {
   State,
   VariablePart,
 } from '../../../src/contract/state';
-import {
-  getRandomNonce,
-  getTestProvider,
-  parseVariablePartEventResult,
-  setupContract,
-} from '../../test-helpers';
+import {getRandomNonce, getTestProvider, setupContract} from '../../test-helpers';
 
 const provider = getTestProvider();
 let trivialApp: Contract;
@@ -63,17 +58,17 @@ beforeAll(async () => {
   trivialApp = setupContract(provider, TrivialAppArtifact, process.env.TRIVIAL_APP_ADDRESS);
 });
 
-describe('latestSupportedState', () => {
+describe('requireStateSupported', () => {
   it('Transitions between random VariableParts are valid', async () => {
     expect.assertions(5);
     for (let i = 0; i < 5; i++) {
       const from: RecoveredVariablePart = getRandomRecoveredVariablePart();
       const to: RecoveredVariablePart = getRandomRecoveredVariablePart();
-      const latestSupportedState = await trivialApp.latestSupportedState(getMockedFixedPart(), [
-        from,
-        to,
-      ]);
-      expect(parseVariablePartEventResult(latestSupportedState)).toEqual(to.variablePart);
+      const txResult = await trivialApp.requireStateSupported(getMockedFixedPart(), [from], to);
+
+      // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
+      // which in this case should be empty
+      expect(txResult.length).toBe(0);
     }
   });
 
@@ -97,10 +92,10 @@ describe('latestSupportedState', () => {
     const from: RecoveredVariablePart = mockSigs(getVariablePart(fromState));
     const to: RecoveredVariablePart = mockSigs(getVariablePart(toState));
 
-    const latestSupportedState = await trivialApp.latestSupportedState(getFixedPart(fromState), [
-      from,
-      to,
-    ]);
-    expect(parseVariablePartEventResult(latestSupportedState)).toEqual(to.variablePart);
+    const txResult = await trivialApp.requireStateSupported(getFixedPart(fromState), [from], to);
+
+    // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
+    // which in this case should be empty
+    expect(txResult.length).toBe(0);
   });
 });
