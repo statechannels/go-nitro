@@ -64,14 +64,11 @@ describe('requireStateSupported', () => {
     for (let i = 0; i < 5; i++) {
       const from: RecoveredVariablePart = getRandomRecoveredVariablePart();
       const to: RecoveredVariablePart = getRandomRecoveredVariablePart();
-      const requireStateSupported = await trivialApp.requireStateSupported(
-        getMockedFixedPart(),
-        [from],
-        to
-      );
-      // As 'requireStateSupported' method is constant (view or pure), it returns an object/array with returned values
+      const txResult = await trivialApp.requireStateSupported(getMockedFixedPart(), [from], to);
+
+      // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
       // which in this case should be empty
-      expect(requireStateSupported.length).toBe(0);
+      expect(txResult.length).toBe(0);
     }
   });
 
@@ -95,14 +92,10 @@ describe('requireStateSupported', () => {
     const from: RecoveredVariablePart = mockSigs(getVariablePart(fromState));
     const to: RecoveredVariablePart = mockSigs(getVariablePart(toState));
 
-    const requireStateSupported = await trivialApp.requireStateSupported(
-      getFixedPart(fromState),
-      [from],
-      to
-    );
+    const txResult = await trivialApp.requireStateSupported(getFixedPart(fromState), [from], to);
 
-    // As 'requireStateSupported' method is constant (view or pure), it returns an object/array with returned values
+    // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
     // which in this case should be empty
-    expect(requireStateSupported.length).toBe(0);
+    expect(txResult.length).toBe(0);
   });
 });

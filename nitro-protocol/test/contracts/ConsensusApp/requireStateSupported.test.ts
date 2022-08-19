@@ -56,15 +56,11 @@ describe('requireStateSupported', () => {
   )[0];
   it('A single state signed by everyone is considered supported', async () => {
     expect.assertions(1);
+    const txResult = await consensusApp.requireStateSupported(fixedPart, [], candidate);
 
-    const requireStateSupported = await consensusApp.requireStateSupported(
-      fixedPart,
-      [],
-      candidate
-    );
-    // As 'requireStateSupported' method is constant (view or pure), it returns an object/array with returned values
+    // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
     // which in this case should be empty
-    expect(requireStateSupported.length).toBe(0);
+    expect(txResult.length).toBe(0);
   });
 
   it('Submitting more than one state does NOT constitute a support proof', async () => {

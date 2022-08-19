@@ -163,14 +163,11 @@ describe('requireStateSupported', () => {
       );
 
       if (isValid) {
-        const requireStateSupported = await hashTimeLock.requireStateSupported(
-          fixedPart,
-          proof,
-          candidate
-        );
-        // As 'requireStateSupported' method is constant (view or pure), it returns an object/array with returned values
+        const txResult = await hashTimeLock.requireStateSupported(fixedPart, proof, candidate);
+
+        // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
         // which in this case should be empty
-        expect(requireStateSupported.length).toBe(0);
+        expect(txResult.length).toBe(0);
       } else {
         await expectRevert(
           () => hashTimeLock.requireStateSupported(fixedPart, proof, candidate),

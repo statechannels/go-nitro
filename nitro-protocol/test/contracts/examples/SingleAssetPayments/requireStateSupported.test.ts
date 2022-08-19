@@ -173,14 +173,15 @@ describe('requireStateSupported', () => {
       const {proof, candidate} = separateProofAndCandidate(recoveredVariableParts);
 
       if (isValid) {
-        const requireStateSupported = await singleAssetPayments.requireStateSupported(
+        const txResult = await singleAssetPayments.requireStateSupported(
           fixedPart,
           proof,
           candidate
         );
-        // As 'requireStateSupported' method is constant (view or pure), it returns an object/array with returned values
+
+        // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
         // which in this case should be empty
-        expect(requireStateSupported.length).toBe(0);
+        expect(txResult.length).toBe(0);
       } else {
         await expectRevert(
           () => singleAssetPayments.requireStateSupported(fixedPart, proof, candidate),
