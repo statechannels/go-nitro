@@ -12,8 +12,8 @@ interface IForceMoveApp is INitroTypes {
      * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
      * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
      * @param fixedPart Fixed part of the state channel.
-     * @param proof Array of recovered variable parts which constitutes a support proof for the candidate.
-     * @param candidate Recovered variable part the proof was supplied for.
+     * @param proof Array of recovered variable parts which constitutes a support proof for the candidate. May be omitted when `candidate` constitutes a support proof itself.
+     * @param candidate Recovered variable part the proof was supplied for. Also may constitute a support proof itself.
      */
     function requireStateSupported(
         FixedPart calldata fixedPart,
