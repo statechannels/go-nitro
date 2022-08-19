@@ -1,6 +1,7 @@
 import {readFileSync, existsSync} from 'fs';
 
-import {encodeOutcome} from '../src';
+import {encodeOutcome, Outcome} from '../src';
+import {computeReclaimEffects} from '../src/contract/multi-asset-holder';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../src/transactions';
 
 import {
@@ -222,7 +223,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
     );
 
     // begin wait
-    await waitForChallengesToTimeOut([ledgerFinalizesAt, vFinalizesAt, ledgerFinalizesAt]);
+    await waitForChallengesToTimeOut([ledgerFinalizesAt, vFinalizesAt]);
     // end wait
     // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👩
     await assertEthBalancesAndHoldings(
@@ -235,27 +236,43 @@ describe('Consumes the expected gas for sad-path exits', () => {
         sourceStateHash: ledgerProof.stateHash,
         sourceOutcomeBytes: encodeOutcome(ledgerProof.outcome),
         sourceAssetIndex: 0,
-        indexOfTargetInSource: 0,
+        indexOfTargetInSource: 2,
         targetStateHash: vProof.stateHash,
         targetOutcomeBytes: encodeOutcome(vProof.outcome),
         targetAssetIndex: 0,
       })
     ).toConsumeGas(gasRequiredTo.ETHexitSadVirtualFunded.satp.reclaimL);
-    // reclaim L                   ⬛ -- (L) --------> 👩
+    // reclaim L                   ⬛ -- (L) --------> 👩.
+
     await assertEthBalancesAndHoldings(
       {Alice: 0, Bob: 0, Ingrid: 0},
       {LforV: amountForAliceAndBob, V: 0}
     );
+
+    // track change to ledger outcome caused by calling reclaim
+    const updatedAllocations = computeReclaimEffects(
+      ledgerProof.outcome[0].allocations,
+      vProof.outcome[0].allocations,
+      2
+    );
+    const updatedOutcome: Outcome = [
+      {
+        ...ledgerProof.outcome[0],
+        allocations: updatedAllocations,
+      },
+    ];
+
     await expect(
       await nitroAdjudicator.transferAllAssets(
         LforV.channelId,
-        ledgerProof.outcome, // outcomeBytes
+        updatedOutcome,
         ledgerProof.stateHash // stateHash
       )
     ).toConsumeGas(gasRequiredTo.ETHexitSadVirtualFunded.satp.transferAllAssetsL);
     // transferAllAssetsL          ⬛ ---------------> 👩
+
     await assertEthBalancesAndHoldings(
-      {Alice: amountForAlice, Bob: amountForBob, Ingrid: 0},
+      {Alice: amountForAlice, Bob: 0, Ingrid: amountForBob},
       {LforV: 0, V: 0}
     );
 
