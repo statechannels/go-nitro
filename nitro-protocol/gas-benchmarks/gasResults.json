@@ -1,7 +1,7 @@
 {
   "deployInfrastructureContracts": {
     "satp": {
-      "NitroAdjudicator": 3369229
+      "NitroAdjudicator": 3430524
     }
   },
   "directlyFundAChannelWithETHFirst": {
@@ -23,10 +23,10 @@
     }
   },
   "ETHexit": {
-    "satp": 147740
+    "satp": 141446
   },
   "ERC20exit": {
-    "satp": 138130
+    "satp": 131836
   },
   "ETHexitSad": {
     "satp": {

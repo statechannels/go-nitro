@@ -16,7 +16,8 @@ import {
 } from '../../../src/contract/state';
 import {
   CHANNEL_FINALIZED,
-  MOVER_SIGNED_EARLIER_STATE,
+  MUST_SUBMIT_EXACTLY_1_STATE,
+  NONFINAL_STATE,
 } from '../../../src/contract/transaction-creators/revert-reasons';
 import {
   clearedChallengeFingerprint,
@@ -52,7 +53,7 @@ beforeAll(async () => {
 
 const acceptsWhenOpenIf =
   'It accepts when the channel is open, and sets the channel storage correctly, if ';
-const accepts1 = acceptsWhenOpenIf + 'passed n states, and the slot is empty';
+
 const accepts2 = acceptsWhenOpenIf + 'passed one state, and the slot is empty';
 const accepts3 = acceptsWhenOpenIf + 'the largestTurnNum is large enough';
 const accepts6 =
@@ -61,13 +62,14 @@ const accepts7 = acceptsWhenOpenIf + 'the largest turn number is not large enoug
 
 const acceptsWhenChallengeOngoingIf =
   'It accepts when there is an ongoing challenge, and sets the channel storage correctly, if ';
-const accepts4 = acceptsWhenChallengeOngoingIf + 'passed n states';
 const accepts5 = acceptsWhenChallengeOngoingIf + 'passed one state';
 
-const reverts1 = 'It reverts when the channel is open, but the final state is not supported';
+const reverts1 = 'It reverts when the channel is open, but more than one state is supplied';
 const reverts2 =
-  'It reverts when there is an ongoing challenge, but the final state is not supported';
+  'It reverts when there is an ongoing challenge,  but more than one state is supplied';
 const reverts3 = 'It reverts when the outcome is already finalized';
+const reverts4 = 'It reverts when the states is not final';
+const reverts5 = 'It reverts when passed n states, and the slot is empty';
 
 const threeStates = {
   whoSignedWhat: [0, 1, 2],
@@ -76,10 +78,6 @@ const threeStates = {
 const oneState = {
   whoSignedWhat: [0, 0, 0],
   appData: [0],
-};
-const unsupported = {
-  whoSignedWhat: [0, 0, 0],
-  appData: [0, 0, 0],
 };
 const turnNumRecord = 5;
 const channelOpen = clearedChallengeFingerprint(turnNumRecord);
@@ -90,21 +88,21 @@ let channelNonce = getRandomNonce('conclude');
 describe('conclude', () => {
   beforeEach(() => (channelNonce += 1));
   it.each`
-    description | initialFingerprint  | largestTurnNum                   | support        | reasonString
-    ${accepts1} | ${HashZero}         | ${turnNumRecord - nParticipants} | ${threeStates} | ${undefined}
-    ${accepts2} | ${HashZero}         | ${turnNumRecord - 1}             | ${oneState}    | ${undefined}
-    ${accepts2} | ${HashZero}         | ${turnNumRecord + 1}             | ${oneState}    | ${undefined}
-    ${accepts3} | ${channelOpen}      | ${turnNumRecord + 2}             | ${oneState}    | ${undefined}
-    ${accepts4} | ${challengeOngoing} | ${turnNumRecord + 3}             | ${oneState}    | ${undefined}
-    ${accepts5} | ${challengeOngoing} | ${turnNumRecord + 4}             | ${oneState}    | ${undefined}
-    ${accepts6} | ${channelOpen}      | ${turnNumRecord - 1}             | ${oneState}    | ${undefined}
-    ${accepts7} | ${challengeOngoing} | ${turnNumRecord - 1}             | ${oneState}    | ${undefined}
-    ${reverts1} | ${channelOpen}      | ${turnNumRecord + nParticipants} | ${unsupported} | ${MOVER_SIGNED_EARLIER_STATE}
-    ${reverts2} | ${challengeOngoing} | ${turnNumRecord + nParticipants} | ${unsupported} | ${MOVER_SIGNED_EARLIER_STATE}
-    ${reverts3} | ${finalized}        | ${turnNumRecord + 1}             | ${oneState}    | ${CHANNEL_FINALIZED}
+    description | initialFingerprint  | isFinal  | largestTurnNum                   | support        | reasonString
+    ${accepts2} | ${HashZero}         | ${true}  | ${turnNumRecord - 1}             | ${oneState}    | ${undefined}
+    ${accepts2} | ${HashZero}         | ${true}  | ${turnNumRecord + 1}             | ${oneState}    | ${undefined}
+    ${accepts3} | ${channelOpen}      | ${true}  | ${turnNumRecord + 2}             | ${oneState}    | ${undefined}
+    ${accepts5} | ${challengeOngoing} | ${true}  | ${turnNumRecord + 4}             | ${oneState}    | ${undefined}
+    ${accepts6} | ${channelOpen}      | ${true}  | ${turnNumRecord - 1}             | ${oneState}    | ${undefined}
+    ${accepts7} | ${challengeOngoing} | ${true}  | ${turnNumRecord - 1}             | ${oneState}    | ${undefined}
+    ${reverts1} | ${channelOpen}      | ${true}  | ${turnNumRecord + nParticipants} | ${threeStates} | ${MUST_SUBMIT_EXACTLY_1_STATE}
+    ${reverts2} | ${challengeOngoing} | ${true}  | ${turnNumRecord + nParticipants} | ${threeStates} | ${MUST_SUBMIT_EXACTLY_1_STATE}
+    ${reverts3} | ${finalized}        | ${true}  | ${turnNumRecord + 1}             | ${oneState}    | ${CHANNEL_FINALIZED}
+    ${reverts4} | ${HashZero}         | ${false} | ${turnNumRecord - 1}             | ${oneState}    | ${NONFINAL_STATE}
+    ${reverts5} | ${HashZero}         | ${true}  | ${turnNumRecord - nParticipants} | ${threeStates} | ${MUST_SUBMIT_EXACTLY_1_STATE}
   `(
     '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
-    async ({initialFingerprint, largestTurnNum, support, reasonString}) => {
+    async ({initialFingerprint, isFinal, largestTurnNum, support, reasonString}) => {
       const channel: Channel = {chainId, participants, channelNonce};
       const {appData, whoSignedWhat} = support;
       const numStates = appData.length;
@@ -112,7 +110,7 @@ describe('conclude', () => {
       const states: State[] = [];
       for (let i = 1; i <= numStates; i++) {
         states.push({
-          isFinal: true,
+          isFinal,
           channel,
           outcome,
           appDefinition,
