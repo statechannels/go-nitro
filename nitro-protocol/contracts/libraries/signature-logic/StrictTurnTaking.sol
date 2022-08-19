@@ -23,14 +23,16 @@ library StrictTurnTaking {
 
         uint48 turnNum = proof[0].variablePart.turnNum;
 
+        // validating the proof
         for (uint256 i = 0; i < proof.length; i++) {
-            isSignedByMover(fixedPart, (i < proof.length ? proof[i] : candidate));
-            requireHasTurnNum(
-                i < proof.length ? proof[i].variablePart : candidate.variablePart,
-                turnNum
-            );
+            isSignedByMover(fixedPart, proof[i]);
+            requireHasTurnNum(proof[i].variablePart, turnNum);
             turnNum++;
         }
+
+        // validating the candidate
+        isSignedByMover(fixedPart, candidate);
+        requireHasTurnNum(candidate.variablePart, turnNum);
     }
 
     /**
