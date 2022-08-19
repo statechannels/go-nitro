@@ -22,7 +22,7 @@ import {
 } from '../src/contract/outcome';
 import {FixedPart, getVariablePart, hashState, SignedVariablePart} from '../src/contract/state';
 
-import {nitroAdjudicator, trivialAppAddress} from './localSetup';
+import {nitroAdjudicator, consensusAppAddress} from './localSetup';
 
 export const chainId = '0x7a69'; // 31337 in hex (hardhat network default)
 
@@ -43,18 +43,21 @@ export class TestChannel {
   constructor(
     channelNonce: number,
     wallets: ethers.Wallet[],
-    allocations: Array<GuaranteeAllocation | SimpleAllocation>
+    allocations: Array<GuaranteeAllocation | SimpleAllocation>,
+    appDefinition?: string
   ) {
     this.wallets = wallets;
+    this.appDefinition = appDefinition ?? consensusAppAddress;
     this.fixedPart = {
       chainId,
       channelNonce,
       participants: wallets.map(w => w.address),
-      appDefinition: trivialAppAddress, // TODO adjust this to point to an appropriate (deployed) application, according to the channel type
+      appDefinition: this.appDefinition,
       challengeDuration: 600,
     };
     this.allocations = allocations;
   }
+  appDefinition: string;
   wallets: ethers.Wallet[];
   fixedPart: FixedPart;
   private allocations: Array<GuaranteeAllocation | SimpleAllocation>;
@@ -68,7 +71,7 @@ export class TestChannel {
   someState(asset: string): State {
     return {
       challengeDuration: 600,
-      appDefinition: trivialAppAddress, // TODO adjust this to point to an appropriate (deployed) application, according to the channel type
+      appDefinition: this.appDefinition,
       channel: this.fixedPart,
       turnNum: 6,
       isFinal: false,
