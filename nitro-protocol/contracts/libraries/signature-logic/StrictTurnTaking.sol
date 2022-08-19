@@ -25,7 +25,10 @@ library StrictTurnTaking {
 
         for (uint256 i = 0; i < proof.length; i++) {
             isSignedByMover(fixedPart, (i < proof.length ? proof[i] : candidate));
-            requireHasTurnNum((i < proof.length ? proof[i].variablePart : candidate.variablePart), turnNum);
+            requireHasTurnNum(
+                i < proof.length ? proof[i].variablePart : candidate.variablePart,
+                turnNum
+            );
             turnNum++;
         }
     }

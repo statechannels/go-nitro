@@ -32,10 +32,19 @@ library ShortcuttingTurnTaking {
         uint48 prevTurnNum = 0;
 
         for (uint256 i = 0; i < proof.length; i++) {
-            requireValidSignatures(fixedPart, (i < proof.length ? proof[i] : candidate), roundRobinShift);
+            requireValidSignatures(
+                fixedPart,
+                i < proof.length ? proof[i] : candidate,
+                roundRobinShift
+            );
 
             if (i != 0) {
-                requireIncreasedTurnNum(prevTurnNum, (i < proof.length ? proof[i].variablePart.turnNum : candidate.variablePart.turnNum));
+                requireIncreasedTurnNum(
+                    prevTurnNum,
+                    i < proof.length
+                        ? proof[i].variablePart.turnNum
+                        : candidate.variablePart.turnNum
+                );
             }
 
             prevTurnNum = proof[i].variablePart.turnNum;

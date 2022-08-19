@@ -10,7 +10,6 @@ import {
   getFixedPart,
   getVariablePart,
   separateProofAndCandidate,
-  SignedVariablePart,
   State,
 } from '../../../src/contract/state';
 import {
