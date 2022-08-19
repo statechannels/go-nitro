@@ -25,24 +25,17 @@ contract SingleAssetPayments is IForceMoveApp {
         ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate);
 
         for (uint256 i = 0; i < proof.length; i++) {
-            _requireValidOutcome(fixedPart.participants.length, proof[i].variablePart.outcome);
+            _requireValidOutcome(
+                fixedPart.participants.length,
+                i < proof.length ? proof[i].variablePart.outcome : candidate.variablePart.outcome
+            );
 
-            if (i > 0) {
-                _requireValidTransition(
-                    fixedPart.participants.length,
-                    proof[i - 1].variablePart,
-                    proof[i].variablePart
-                );
-            }
+            _requireValidTransition(
+                fixedPart.participants.length,
+                proof[i].variablePart,
+                i < proof.length - 1 ? proof[i + 1].variablePart : candidate.variablePart
+            );
         }
-
-        _requireValidOutcome(fixedPart.participants.length, candidate.variablePart.outcome);
-
-        _requireValidTransition(
-            fixedPart.participants.length,
-            proof[proof.length - 1].variablePart,
-            candidate.variablePart
-        );
     }
 
     /**
