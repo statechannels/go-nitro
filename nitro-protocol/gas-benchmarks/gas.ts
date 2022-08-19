@@ -105,6 +105,7 @@ export const emptyGasResults: GasResults = {
       challengeV: 0,
       reclaimL: 0,
       transferAllAssetsL: 0,
+      total: 0,
     },
   },
 };
