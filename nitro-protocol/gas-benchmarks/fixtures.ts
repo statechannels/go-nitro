@@ -200,33 +200,33 @@ export const LforX = new TestChannel(
   ]
 );
 
-/** Joint channel between Alice, Bob, and Ingrid, funding application channel X */
-export const J = new TestChannel(
+/** Virtual payment channel between Alice and Bob with Ingrid as intermediary*/
+export const V = new TestChannel(
   5,
-  [Alice, Bob, Ingrid],
+  [Alice, Ingrid, Bob],
   [
     {
-      destination: X.channelId,
-      amount: amountForAliceAndBob,
+      destination: convertAddressToBytes32(Alice.address),
+      amount: amountForAlice,
       metadata: '0x',
       allocationType: AllocationType.simple,
     },
     {
-      destination: convertAddressToBytes32(Ingrid.address),
-      amount: amountForAliceAndBob,
+      destination: convertAddressToBytes32(Bob.address),
+      amount: amountForBob,
       metadata: '0x',
       allocationType: AllocationType.simple,
     },
   ]
 );
 
-/** Ledger channel between Alice and Ingid, with Guarantee targeting joint channel J */
-export const LforJ = new TestChannel(
+/** Ledger channel between Alice and Ingid, with Guarantee targeting virtual channel V */
+export const LforV = new TestChannel(
   7,
-  [Alice, Bob],
+  [Alice, Ingrid],
   [
     {
-      destination: J.channelId,
+      destination: V.channelId,
       amount: amountForAliceAndBob,
       metadata: encodeGuaranteeData({
         left: convertAddressToBytes32(Alice.address),
@@ -287,8 +287,8 @@ interface ETHBalances {
 }
 
 interface ETHHoldings {
-  LforJ: BigNumberish;
-  J: BigNumberish;
+  LforV: BigNumberish;
+  V: BigNumberish;
   X: BigNumberish;
 }
 
@@ -300,8 +300,8 @@ export async function assertEthBalancesAndHoldings(
   ethHoldings: Partial<ETHHoldings>
 ): Promise<void> {
   const internalDestinations: {[Property in keyof ETHHoldings]: string} = {
-    LforJ: LforJ.channelId,
-    J: J.channelId,
+    LforV: LforV.channelId,
+    V: V.channelId,
     X: X.channelId,
   };
   const externalDestinations: {[Property in keyof ETHBalances]: string} = {
