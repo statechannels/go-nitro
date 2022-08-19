@@ -22,7 +22,7 @@ import {
 } from '../src/contract/outcome';
 import {FixedPart, getVariablePart, hashState, SignedVariablePart} from '../src/contract/state';
 
-import {nitroAdjudicator, consensusAppAddress} from './localSetup';
+import {nitroAdjudicator, consensusAppAddress, virtualPaymentAppAddress} from './localSetup';
 
 export const chainId = '0x7a69'; // 31337 in hex (hardhat network default)
 
@@ -220,7 +220,8 @@ export const V = new TestChannel(
       metadata: '0x',
       allocationType: AllocationType.simple,
     },
-  ]
+  ],
+  virtualPaymentAppAddress
 );
 
 /** Ledger channel between Alice and Ingrid, with Guarantee targeting virtual channel V */
@@ -283,7 +284,6 @@ export async function challengeChannel(
   finalizesAt: number;
 }> {
   const proof = channel.counterSignedSupportProof(channel.someState(asset)); // TODO use a nontrivial app with a state transition
-
   const challengeTx = await nitroAdjudicator.challenge(
     proof.fixedPart,
     proof.proof,
