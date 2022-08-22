@@ -24,7 +24,7 @@ import {
   Channel,
   signStates,
 } from '../../../../src';
-import {MOVER_SIGNED_EARLIER_STATE} from '../../../../src/contract/transaction-creators/revert-reasons';
+import {SIGNED_BY_NON_MOVER} from '../../../../src/contract/transaction-creators/revert-reasons';
 
 const provider = getTestProvider();
 let singleAssetPayments: Contract;
@@ -33,17 +33,16 @@ const addresses = {
   // Participants
   A: randomExternalDestination(),
   B: randomExternalDestination(),
-  C: randomExternalDestination(),
 };
 const guaranteeData = {left: addresses.A, right: addresses.B};
 
-const participants = ['', '', ''];
-const wallets = new Array(3);
+const participants = ['', ''];
+const wallets = new Array(2);
 const chainId = process.env.CHAIN_NETWORK_ID;
 const challengeDuration = 0x100;
 
 // Populate wallets and participants array
-for (let i = 0; i < 3; i++) {
+for (let i = 0; i < 2; i++) {
   wallets[i] = Wallet.createRandom();
   participants[i] = wallets[i].address;
 }
@@ -56,11 +55,10 @@ beforeAll(async () => {
   );
 });
 
-const whoSignedWhatA = [1, 0, 0];
-const whoSignedWhatB = [0, 1, 0];
-const whoSignedWhatC = [0, 0, 1];
+const whoSignedWhatA = [1, 0];
+const whoSignedWhatB = [0, 1];
 
-const reason1 = MOVER_SIGNED_EARLIER_STATE;
+const reason1 = SIGNED_BY_NON_MOVER;
 const reason2 = 'not a simple allocation';
 const reason3 = 'Total allocated cannot change';
 const reason4 = 'outcome: Only one asset allowed';
@@ -69,18 +67,16 @@ describe('requireStateSupported', () => {
   let channelNonce = getRandomNonce('SingleAssetPayments');
   beforeEach(() => (channelNonce += 1));
   it.each`
-    isValid  | numAssets | isAllocation      | balancesA             | turnNumB | balancesB             | whoSignedWhat     | reason       | description
-    ${true}  | ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1, C: 1}} | ${3}     | ${{A: 0, B: 2, C: 1}} | ${whoSignedWhatA} | ${undefined} | ${'A pays B 1 wei'}
-    ${true}  | ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1, C: 1}} | ${4}     | ${{A: 1, B: 0, C: 2}} | ${whoSignedWhatB} | ${undefined} | ${'B pays C 1 wei'}
-    ${true}  | ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1, C: 1}} | ${5}     | ${{A: 1, B: 2, C: 0}} | ${whoSignedWhatC} | ${undefined} | ${'C pays B 1 wei'}
-    ${false} | ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1, C: 1}} | ${5}     | ${{A: 0, B: 2, C: 1}} | ${whoSignedWhatA} | ${reason1}   | ${'A pays B 1 wei (not their move)'}
-    ${false} | ${[1, 1]} | ${[false, false]} | ${{A: 1, B: 1, C: 1}} | ${3}     | ${{A: 0, B: 2, C: 1}} | ${whoSignedWhatA} | ${reason2}   | ${'Guarantee'}
-    ${false} | ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1, C: 1}} | ${3}     | ${{A: 1, B: 2, C: 1}} | ${whoSignedWhatA} | ${reason3}   | ${'Total amounts increase'}
-    ${false} | ${[2, 2]} | ${[true, true]}   | ${{A: 1, B: 1, C: 1}} | ${3}     | ${{A: 2, B: 0, C: 1}} | ${whoSignedWhatA} | ${reason4}   | ${'More than one asset'}
+    numAssets | isAllocation      | balancesA       | turnNumB | balancesB       | whoSignedWhat     | reason       | description
+    ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${4}     | ${{A: 0, B: 2}} | ${whoSignedWhatA} | ${undefined} | ${'A pays B 1 wei'}
+    ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${3}     | ${{A: 2, B: 0}} | ${whoSignedWhatB} | ${undefined} | ${'B pays A 1 wei'}
+    ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${3}     | ${{A: 0, B: 2}} | ${whoSignedWhatA} | ${reason1}   | ${'A pays B 1 wei (not their move)'}
+    ${[1, 1]} | ${[false, false]} | ${{A: 1, B: 1}} | ${4}     | ${{A: 0, B: 2}} | ${whoSignedWhatA} | ${reason2}   | ${'Guarantee'}
+    ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${4}     | ${{A: 1, B: 2}} | ${whoSignedWhatA} | ${reason3}   | ${'Total amounts increase'}
+    ${[2, 2]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${4}     | ${{A: 2, B: 0}} | ${whoSignedWhatA} | ${reason4}   | ${'More than one asset'}
   `(
     '$description',
     async ({
-      isValid,
       isAllocation,
       numAssets,
       balancesA,
@@ -89,7 +85,6 @@ describe('requireStateSupported', () => {
       whoSignedWhat,
       reason,
     }: {
-      isValid: boolean;
       isAllocation: boolean[];
       numAssets: number[];
       balancesA: AssetOutcomeShortHand;
@@ -172,7 +167,12 @@ describe('requireStateSupported', () => {
 
       const {proof, candidate} = separateProofAndCandidate(recoveredVariableParts);
 
-      if (isValid) {
+      if (reason) {
+        await expectRevert(
+          () => singleAssetPayments.requireStateSupported(fixedPart, proof, candidate),
+          reason
+        );
+      } else {
         const txResult = await singleAssetPayments.requireStateSupported(
           fixedPart,
           proof,
@@ -182,11 +182,6 @@ describe('requireStateSupported', () => {
         // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
         // which in this case should be empty
         expect(txResult.length).toBe(0);
-      } else {
-        await expectRevert(
-          () => singleAssetPayments.requireStateSupported(fixedPart, proof, candidate),
-          reason
-        );
       }
     }
   );

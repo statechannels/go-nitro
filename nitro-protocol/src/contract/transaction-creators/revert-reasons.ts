@@ -20,4 +20,4 @@ export const NONFINAL_STATE = 'State must be final';
 export const MUST_SUBMIT_EXACTLY_1_STATE = 'Must submit exactly 1 state';
 
 // Turn Taking
-export const MOVER_SIGNED_EARLIER_STATE = 'Unacceptable sigs order';
+export const SIGNED_BY_NON_MOVER = 'Invalid signedBy';
