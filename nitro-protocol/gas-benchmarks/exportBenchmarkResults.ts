@@ -1,3 +1,4 @@
+import {BigNumber} from 'ethers';
 import {writeFileSync} from 'fs';
 
 import {encodeOutcome, Outcome} from '../src';
@@ -17,6 +18,7 @@ import {
   Alice,
   Bob,
   challengeVirtualPaymentChannelWithVoucher,
+  paymentAmount,
 } from './fixtures';
 import {emptyGasResults} from './gas';
 import {deployContracts, nitroAdjudicator, token} from './localSetup';
@@ -280,7 +282,7 @@ async function main() {
     } = await challengeVirtualPaymentChannelWithVoucher(
       V,
       MAGIC_ADDRESS_INDICATING_ETH,
-      5,
+      BigNumber.from(paymentAmount).toNumber(),
       Alice,
       Bob
     );

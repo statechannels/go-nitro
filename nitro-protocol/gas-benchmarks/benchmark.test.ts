@@ -1,5 +1,7 @@
 import {readFileSync, existsSync} from 'fs';
 
+import {BigNumber} from 'ethers';
+
 import {encodeOutcome, Outcome} from '../src';
 import {computeReclaimEffects} from '../src/contract/multi-asset-holder';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../src/transactions';
@@ -18,6 +20,7 @@ import {
   challengeVirtualPaymentChannelWithVoucher,
   Alice,
   Bob,
+  paymentAmount,
 } from './fixtures';
 import {GasResults} from './gas';
 import {challengeChannelAndExpectGas} from './jestSetup';
@@ -218,8 +221,8 @@ describe('Consumes the expected gas for sad-path exits', () => {
       MAGIC_ADDRESS_INDICATING_ETH,
       gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeL
     );
-    // challenge V ... TODO by submitting a voucher! TODO should this be Bob?
 
+    // challenge V ... TODO by submitting a voucher! TODO should this be Bob?
     const {
       stateHash: vStateHash,
       outcome: vOutcome,
@@ -228,7 +231,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
     } = await challengeVirtualPaymentChannelWithVoucher(
       V,
       MAGIC_ADDRESS_INDICATING_ETH,
-      5,
+      BigNumber.from(paymentAmount).toNumber(),
       Alice,
       Bob
     );
@@ -285,7 +288,11 @@ describe('Consumes the expected gas for sad-path exits', () => {
     // transferAllAssetsL          ⬛ ---------------> 👩
 
     await assertEthBalancesAndHoldings(
-      {Alice: amountForAlice, Bob: 0, Ingrid: amountForBob},
+      {
+        Alice: BigNumber.from(amountForAlice).sub(BigNumber.from(paymentAmount)),
+        Bob: BigNumber.from(paymentAmount),
+        Ingrid: amountForBob,
+      },
       {LforV: 0, V: 0}
     );
 

@@ -42,6 +42,7 @@ export const participants = [Alice.address, Bob.address];
 
 export const amountForAlice = BigNumber.from(5).toHexString();
 export const amountForBob = BigNumber.from(5).toHexString();
+export const paymentAmount = BigNumber.from(1).toHexString();
 export const amountForAliceAndBob = BigNumber.from(amountForAlice).add(amountForBob).toHexString();
 
 export class TestChannel {
