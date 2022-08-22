@@ -67,7 +67,9 @@ export class TestChannel {
   fixedPart: FixedPart;
   private allocations: Array<GuaranteeAllocation | SimpleAllocation>;
   outcome(asset: string) {
-    const outcome: Outcome = [{asset, allocations: this.allocations, metadata: '0x'}];
+    const outcome: Outcome = [
+      {asset, allocations: Array.from(this.allocations, a => ({...a})), metadata: '0x'},
+    ];
     return outcome;
   }
   get channelId() {
@@ -400,12 +402,13 @@ export async function challengeVirtualPaymentChannelWithVoucher(
   const voucherSignature = await signVoucher(voucher, payerWallet);
   redemption.appData = encodeVoucherAmountAndSignature(voucher.amount, voucherSignature);
   redemption.turnNum = 2;
-  redemption.outcome = {...postFund.outcome};
+
   const outcome = channel.outcome(MAGIC_ADDRESS_INDICATING_ETH);
   outcome[0].allocations[0].amount = BigNumber.from(outcome[0].allocations[0].amount)
     .sub(amount)
     .toHexString();
-  outcome[0].allocations[0].amount = BigNumber.from(amount).toHexString();
+  outcome[0].allocations[1].amount = BigNumber.from(amount).toHexString();
+  redemption.outcome = outcome;
 
   const candidate: SignedVariablePart = {
     variablePart: getVariablePart(redemption),
