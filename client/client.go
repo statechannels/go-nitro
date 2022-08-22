@@ -24,7 +24,7 @@ type Client struct {
 	Address             *types.Address
 	completedObjectives chan protocols.ObjectiveId
 	failedObjectives    chan protocols.ObjectiveId
-	receivedPayments    chan payments.Payment
+	receivedVouchers    chan payments.Voucher
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -40,7 +40,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
-	c.receivedPayments = make(chan payments.Payment, 1000)
+	c.receivedVouchers = make(chan payments.Voucher, 1000)
 	// Start the engine in a go routine
 	go c.engine.Run()
 
@@ -68,7 +68,7 @@ func (c *Client) handleEngineEvents() {
 
 		for _, payment := range update.ReceivedPayments {
 
-			c.receivedPayments <- payment
+			c.receivedVouchers <- payment
 		}
 
 	}
@@ -87,8 +87,8 @@ func (c *Client) FailedObjectives() <-chan protocols.ObjectiveId {
 }
 
 // ReceivedPayments returns a chan that receives an a voucher every time a payment is received.
-func (c *Client) ReceivedPayments() <-chan payments.Payment {
-	return c.receivedPayments
+func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
+	return c.receivedVouchers
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.

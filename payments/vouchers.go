@@ -11,9 +11,14 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// Returns the channel id of the voucher
+// ChannelId returns the channel id of the voucher
 func (v Voucher) ChannelId() types.Destination {
 	return v.channelId
+}
+
+// Amount returns the amount of the voucher
+func (v Voucher) Amount() *big.Int {
+	return v.amount
 }
 
 func (v *Voucher) hash() (types.Bytes32, error) {
@@ -65,20 +70,4 @@ func NewVoucher(channelId types.Destination, amount *big.Int) *Voucher {
 		amount:    amount,
 	}
 	return &v
-}
-
-// Payment contains information about a payment made using a voucher
-// It is suitable to return to the user.
-type Payment struct {
-	ChannelId types.Destination
-	Amount    *big.Int
-	Sender    types.Address
-}
-
-func (v *Voucher) ToPayment(sender types.Address) Payment {
-	return Payment{
-		ChannelId: v.channelId,
-		Amount:    v.amount,
-		Sender:    sender,
-	}
 }

@@ -77,7 +77,7 @@ type ObjectiveChangeEvent struct {
 	// These are objectives that have failed
 	FailedObjectives []protocols.ObjectiveId
 
-	ReceivedPayments []payments.Payment
+	ReceivedPayments []payments.Voucher
 }
 
 type CompletedObjectiveEvent struct {
@@ -325,15 +325,14 @@ func (e *Engine) handleMessage(message protocols.Message) (ObjectiveChangeEvent,
 		if !ok {
 			return ObjectiveChangeEvent{}, fmt.Errorf("could not get channel from the store %s", c.Id)
 		}
-		sender, recipient := c.Participants[0], c.Participants[2]
+		recipient := c.Participants[2]
 		if recipient != *e.store.GetAddress() {
 			return ObjectiveChangeEvent{}, fmt.Errorf("not the recipient in channel %s", c.Id)
 		}
 		// TODO: return the amount we paid?
 		_, err := e.rm.Receive(voucher)
 
-		payment := voucher.ToPayment(sender)
-		allCompleted.ReceivedPayments = append(allCompleted.ReceivedPayments, payment)
+		allCompleted.ReceivedPayments = append(allCompleted.ReceivedPayments, voucher)
 		if err != nil {
 			return ObjectiveChangeEvent{}, fmt.Errorf("error accepting payment voucher: %w", err)
 		}
