@@ -209,9 +209,15 @@ describe('Consumes the expected gas for sad-path exits', () => {
   it(`when exiting a virtual funded (with ETH) channel`, async () => {
     // begin setup
     await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforV.channelId, 0, 10, {
-        value: 10,
-      })
+      await nitroAdjudicator.deposit(
+        MAGIC_ADDRESS_INDICATING_ETH,
+        LforV.channelId,
+        0,
+        amountForAliceAndBob,
+        {
+          value: amountForAliceAndBob,
+        }
+      )
     ).wait();
     // end setup
     // initially                   ⬛ ->  L  ->  V  -> 👩
@@ -222,7 +228,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
       gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeL
     );
 
-    // challenge V ... TODO by submitting a voucher! TODO should this be Bob?
+    // challenge V with a voucher
     const {
       stateHash: vStateHash,
       outcome: vOutcome,
@@ -289,9 +295,8 @@ describe('Consumes the expected gas for sad-path exits', () => {
 
     await assertEthBalancesAndHoldings(
       {
-        Alice: BigNumber.from(amountForAlice).sub(BigNumber.from(paymentAmount)),
-        Bob: BigNumber.from(paymentAmount),
-        Ingrid: amountForBob,
+        Alice: BigNumber.from(amountForAlice).sub(BigNumber.from(paymentAmount)), // Alice has been adjusted down
+        Ingrid: BigNumber.from(amountForBob).add(BigNumber.from(paymentAmount)), // Igrid recoups the money she will give to Bob in the other ledger channel
       },
       {LforV: 0, V: 0}
     );

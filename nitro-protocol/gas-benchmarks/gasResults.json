@@ -23,25 +23,25 @@
     }
   },
   "ETHexit": {
-    "satp": 141446
+    "satp": 109734
   },
   "ERC20exit": {
-    "satp": 131836
+    "satp": 111924
   },
   "ETHexitSad": {
     "satp": {
-      "challenge": 111299,
-      "transferAllAssets": 110019,
-      "total": 221318
+      "challenge": 111275,
+      "transferAllAssets": 78319,
+      "total": 189594
     }
   },
   "ETHexitSadLedgerFunded": {
     "satp": {
-      "challengeX": 111299,
+      "challengeX": 111275,
       "challengeL": 105269,
       "transferAllAssetsL": 58944,
-      "transferAllAssetsX": 110019,
-      "total": 385531
+      "transferAllAssetsX": 78319,
+      "total": 353807
     }
   },
   "ETHexitSadVirtualFunded": {
@@ -49,8 +49,8 @@
       "challengeL": 119696,
       "challengeV": 178764,
       "reclaimL": 59265,
-      "transferAllAssetsL": 114819,
-      "total": 472544
+      "transferAllAssetsL": 110019,
+      "total": 467744
     }
   }
 }

@@ -1,5 +1,6 @@
-import {BigNumber} from 'ethers';
 import {writeFileSync} from 'fs';
+
+import {BigNumber} from 'ethers';
 
 import {encodeOutcome, Outcome} from '../src';
 import {computeReclaimEffects} from '../src/contract/multi-asset-holder';

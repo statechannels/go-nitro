@@ -40,8 +40,8 @@ export const Ingrid = new Wallet(
 );
 export const participants = [Alice.address, Bob.address];
 
-export const amountForAlice = BigNumber.from(5).toHexString();
-export const amountForBob = BigNumber.from(5).toHexString();
+export const amountForAlice = BigNumber.from(10).toHexString();
+export const amountForBob = BigNumber.from(0).toHexString();
 export const paymentAmount = BigNumber.from(1).toHexString();
 export const amountForAliceAndBob = BigNumber.from(amountForAlice).add(amountForBob).toHexString();
 
@@ -224,7 +224,7 @@ export const V = new TestChannel(
     },
     {
       destination: convertAddressToBytes32(Bob.address),
-      amount: amountForBob,
+      amount: amountForBob, // TODO this should be a unidirectional payment channel, i.e. Bob starts with nothing!
       metadata: '0x',
       allocationType: AllocationType.simple,
     },

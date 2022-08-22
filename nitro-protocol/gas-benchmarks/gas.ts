@@ -95,7 +95,8 @@ export const emptyGasResults: GasResults = {
     },
   },
   ETHexitSadVirtualFunded: {
-    // Scenario: Intermediary Ingrid goes offline
+    // Scenario: Bob redeems a voucher on chain so that he can reclaim his money in his ledger channel
+    // Alice then calls reclaim to recover her remaining funds
     // initially                   ⬛ ->  L  ->  V  -> 👩
     // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👩
     // reclaim L                   ⬛ -- (L) --------> 👩
