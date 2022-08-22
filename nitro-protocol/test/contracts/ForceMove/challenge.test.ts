@@ -105,15 +105,14 @@ beforeAll(async () => {
 // Scenarios are synonymous with channelNonce:
 
 const acceptsWhenOpen = 'It accepts for an open channel, and updates storage correctly, ';
-const accepts1 = acceptsWhenOpen + 'when the slot is empty, 1 state submitted';
-const accepts2 = acceptsWhenOpen + 'when the slot is empty, 3 states submitted';
-const accepts3 = acceptsWhenOpen + 'when the slot is not empty, 3 states submitted';
-const accepts4 = acceptsWhenOpen + 'when the slot is not empty, 1 state submitted';
+const accepts1 = acceptsWhenOpen + 'when the slot is empty, 3 states submitted';
+const accepts2 = acceptsWhenOpen + 'when the slot is not empty, 3 states submitted';
+const accepts3 =
+  acceptsWhenOpen + 'when the slot is not empty, 3 states submitted, open at largestTurnNum';
 
 const acceptsWhenChallengePresent =
   'It accepts when a challenge is present, and updates storage correctly, ';
-const accepts5 = acceptsWhenChallengePresent + 'when the turnNumRecord increases, 1 state';
-const accepts6 = acceptsWhenChallengePresent + 'when the turnNumRecord increases, 3 states';
+const accepts4 = acceptsWhenChallengePresent + 'when the turnNumRecord increases, 3 states';
 
 const revertsWhenOpenIf = 'It reverts for an open channel if ';
 const reverts1 = revertsWhenOpenIf + 'the turnNumRecord does not increase';
@@ -123,7 +122,8 @@ const reverts3 = revertsWhenOpenIf + 'the states do not form a validTransition c
 
 const reverts4 = 'It reverts when a challenge is present if the turnNumRecord does not increase';
 const reverts5 = 'It reverts when the channel is finalized';
-const reverts6 = 'It reverts when too many states are submitted';
+const reverts6 = 'It reverts when too few states are submitted';
+const reverts7 = 'It reverts when too many states are submitted';
 
 describe('challenge', () => {
   const threeStates = {appDatas: [0, 1, 2], whoSignedWhat: [0, 1, 2]};
@@ -146,21 +146,19 @@ describe('challenge', () => {
   beforeEach(() => (channelNonce += 1));
   it.each`
     description  | initialFingerprint           | stateData      | challengeSignatureType | reasonString
-    ${accepts1}  | ${empty}                     | ${oneState}    | ${'correct'}           | ${undefined}
-    ${accepts2}  | ${empty}                     | ${threeStates} | ${'correct'}           | ${undefined}
-    ${accepts3}  | ${openAtFive}                | ${threeStates} | ${'correct'}           | ${undefined}
+    ${accepts1}  | ${empty}                     | ${threeStates} | ${'correct'}           | ${undefined}
+    ${accepts2}  | ${openAtFive}                | ${threeStates} | ${'correct'}           | ${undefined}
     ${accepts3}  | ${openAtLargestTurnNum}      | ${threeStates} | ${'correct'}           | ${undefined}
-    ${accepts4}  | ${openAtFive}                | ${oneState}    | ${'correct'}           | ${undefined}
-    ${accepts5}  | ${challengeAtFive}           | ${oneState}    | ${'correct'}           | ${undefined}
-    ${accepts6}  | ${challengeAtFive}           | ${threeStates} | ${'correct'}           | ${undefined}
-    ${reverts1}  | ${openAtTwenty}              | ${oneState}    | ${'correct'}           | ${TURN_NUM_RECORD_DECREASED}
-    ${reverts2a} | ${empty}                     | ${oneState}    | ${'incorrect'}         | ${CHALLENGER_NON_PARTICIPANT}
-    ${reverts2b} | ${empty}                     | ${oneState}    | ${'invalid'}           | ${INVALID_SIGNATURE}
+    ${accepts4}  | ${challengeAtFive}           | ${threeStates} | ${'correct'}           | ${undefined}
+    ${reverts1}  | ${openAtTwenty}              | ${threeStates} | ${'correct'}           | ${TURN_NUM_RECORD_DECREASED}
+    ${reverts2a} | ${empty}                     | ${threeStates} | ${'incorrect'}         | ${CHALLENGER_NON_PARTICIPANT}
+    ${reverts2b} | ${empty}                     | ${threeStates} | ${'invalid'}           | ${INVALID_SIGNATURE}
     ${reverts3}  | ${empty}                     | ${invalid}     | ${'correct'}           | ${COUNTING_APP_INVALID_TRANSITION}
-    ${reverts4}  | ${challengeAtTwenty}         | ${oneState}    | ${'correct'}           | ${TURN_NUM_RECORD_NOT_INCREASED}
-    ${reverts4}  | ${challengeAtLargestTurnNum} | ${oneState}    | ${'correct'}           | ${TURN_NUM_RECORD_NOT_INCREASED}
-    ${reverts5}  | ${finalizedAtFive}           | ${oneState}    | ${'correct'}           | ${CHANNEL_FINALIZED}
-    ${reverts6}  | ${empty}                     | ${fourStates}  | ${'correct'}           | ${INVALID_NUMBER_OF_STATES}
+    ${reverts4}  | ${challengeAtTwenty}         | ${threeStates} | ${'correct'}           | ${TURN_NUM_RECORD_NOT_INCREASED}
+    ${reverts4}  | ${challengeAtLargestTurnNum} | ${threeStates} | ${'correct'}           | ${TURN_NUM_RECORD_NOT_INCREASED}
+    ${reverts5}  | ${finalizedAtFive}           | ${threeStates} | ${'correct'}           | ${CHANNEL_FINALIZED}
+    ${reverts6}  | ${empty}                     | ${oneState}    | ${'correct'}           | ${INVALID_NUMBER_OF_STATES}
+    ${reverts7}  | ${empty}                     | ${fourStates}  | ${'correct'}           | ${INVALID_NUMBER_OF_STATES}
   `(
     '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, stateData, challengeSignatureType, reasonString}) => {
