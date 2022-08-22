@@ -89,7 +89,7 @@ expect.extend({
         message: () =>
           `expected to consume ${format(benchmark)} gas, but actually consumed ${format(
             gasUsed
-          )} gas (${diffStr}, ${diffPercent}). Consider updating the appropriate number in gas.ts!`,
+          )} gas (${diffStr}, ${diffPercent}). Consider running npm run benchmark:update`,
         pass: false,
       };
     }
