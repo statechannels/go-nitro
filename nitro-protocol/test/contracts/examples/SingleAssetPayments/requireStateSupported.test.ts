@@ -67,20 +67,20 @@ describe('requireStateSupported', () => {
   let channelNonce = getRandomNonce('SingleAssetPayments');
   beforeEach(() => (channelNonce += 1));
   it.each`
-    numAssets | isAllocation      | balancesA       | turnNumB | balancesB       | whoSignedWhat     | reason       | description
-    ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${4}     | ${{A: 0, B: 2}} | ${whoSignedWhatA} | ${undefined} | ${'A pays B 1 wei'}
-    ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${3}     | ${{A: 2, B: 0}} | ${whoSignedWhatB} | ${undefined} | ${'B pays A 1 wei'}
-    ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${3}     | ${{A: 0, B: 2}} | ${whoSignedWhatA} | ${reason1}   | ${'A pays B 1 wei (not their move)'}
-    ${[1, 1]} | ${[false, false]} | ${{A: 1, B: 1}} | ${4}     | ${{A: 0, B: 2}} | ${whoSignedWhatA} | ${reason2}   | ${'Guarantee'}
-    ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${4}     | ${{A: 1, B: 2}} | ${whoSignedWhatA} | ${reason3}   | ${'Total amounts increase'}
-    ${[2, 2]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${4}     | ${{A: 2, B: 0}} | ${whoSignedWhatA} | ${reason4}   | ${'More than one asset'}
+    numAssets | isAllocation      | balancesA       | turnNums  | balancesB       | whoSignedWhat     | reason       | description
+    ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${[3, 4]} | ${{A: 0, B: 2}} | ${whoSignedWhatA} | ${undefined} | ${'A pays B 1 wei'}
+    ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${[2, 3]} | ${{A: 2, B: 0}} | ${whoSignedWhatB} | ${undefined} | ${'B pays A 1 wei'}
+    ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${[2, 3]} | ${{A: 0, B: 2}} | ${whoSignedWhatA} | ${reason1}   | ${'A pays B 1 wei (not their move)'}
+    ${[1, 1]} | ${[false, false]} | ${{A: 1, B: 1}} | ${[3, 4]} | ${{A: 0, B: 2}} | ${whoSignedWhatA} | ${reason2}   | ${'Guarantee'}
+    ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${[3, 4]} | ${{A: 1, B: 2}} | ${whoSignedWhatA} | ${reason3}   | ${'Total amounts increase'}
+    ${[2, 2]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${[3, 4]} | ${{A: 2, B: 0}} | ${whoSignedWhatA} | ${reason4}   | ${'More than one asset'}
   `(
     '$description',
     async ({
       isAllocation,
       numAssets,
       balancesA,
-      turnNumB,
+      turnNums,
       balancesB,
       whoSignedWhat,
       reason,
@@ -88,14 +88,13 @@ describe('requireStateSupported', () => {
       isAllocation: boolean[];
       numAssets: number[];
       balancesA: AssetOutcomeShortHand;
-      turnNumB: number;
+      turnNums: number[];
       balancesB: AssetOutcomeShortHand;
       whoSignedWhat: number[];
       reason?: string;
     }) => {
       const channel: Channel = {chainId, channelNonce, participants};
 
-      const turnNumA = turnNumB - 1;
       balancesA = replaceAddressesAndBigNumberify(balancesA, addresses) as AssetOutcomeShortHand;
       const allocationsA: Allocation[] = [];
       Object.keys(balancesA).forEach(key =>
@@ -136,7 +135,7 @@ describe('requireStateSupported', () => {
 
       const states = [
         {
-          turnNum: turnNumA,
+          turnNum: turnNums[0],
           isFinal: false,
           channel,
           challengeDuration,
@@ -145,7 +144,7 @@ describe('requireStateSupported', () => {
           appDefinition: singleAssetPayments.address,
         },
         {
-          turnNum: turnNumB,
+          turnNum: turnNums[1],
           isFinal: false,
           channel,
           challengeDuration,
