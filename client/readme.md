@@ -11,15 +11,16 @@ The flow of data through the client is shown in this diagram:
    - the `message` service
    - the `chain` service.
 2. The engine reads channels and objectives from the `store`, and computes updates and side effects.
-3. The updates arre committed to the `store`.
-4. The side effects are sent on go channels to:
+3. The engine reads payments the `payment manager`, and computes updates and side effects.
+4. The updates are committed to the `store`.
+5. The side effects are sent on go channels to:
    - the `message` service
    - the `chain` service
    - _back_ to the `engine` (e.g. when an update declares further progress can be made)
-5. The consuming application is informed about updates
+6. The consuming application is informed about updates
 
 The `chain` and `message` services are responsible for communicating with the blockchain and with counterparties (respectively).
 
 ---
 
-[Click here to edit the diagram](https://excalidraw.com/#json=boyMvd14JkaqjD3cRSg0s,xnxQRDKynDM-h28-cWq2mA)
+[Click here to edit the diagram](https://excalidraw.com/#json=eudWpYVNSU6KbkGFFZIvf,6zd-MrLFwRyo5mft3fm1XA)
