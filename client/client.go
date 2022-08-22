@@ -86,7 +86,7 @@ func (c *Client) FailedObjectives() <-chan protocols.ObjectiveId {
 	return c.failedObjectives
 }
 
-// ReceivedPayments returns a chan that receives an a voucher every time a payment is received.
+// ReceivedVouchers returns a chan that receives a voucher every time we receive a payment voucher
 func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 	return c.receivedVouchers
 }
