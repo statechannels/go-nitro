@@ -66,7 +66,7 @@ func (c *Client) handleEngineEvents() {
 			c.failedObjectives <- erred
 		}
 
-		for _, payment := range update.ReceivedPayments {
+		for _, payment := range update.ReceivedVouchers {
 
 			c.receivedVouchers <- payment
 		}
