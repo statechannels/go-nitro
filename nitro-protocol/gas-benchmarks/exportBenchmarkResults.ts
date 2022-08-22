@@ -1,7 +1,7 @@
 import {writeFileSync} from 'fs';
+
 import {encodeOutcome, Outcome} from '../src';
 import {computeReclaimEffects} from '../src/contract/multi-asset-holder';
-
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../src/transactions';
 
 import {
@@ -14,10 +14,9 @@ import {
   executeAndRevert,
   LforV,
   V,
-  assertEthBalancesAndHoldings,
-  amountForAliceAndBob,
-  amountForAlice,
-  amountForBob,
+  Alice,
+  Bob,
+  challengeVirtualPaymentChannelWithVoucher,
 } from './fixtures';
 import {emptyGasResults} from './gas';
 import {deployContracts, nitroAdjudicator, token} from './localSetup';
@@ -272,13 +271,20 @@ async function main() {
     } = await challengeChannel(LforV, MAGIC_ADDRESS_INDICATING_ETH);
     gasResults.ETHexitSadVirtualFunded.satp.challengeL = await gasUsed(ledgerChallengeTx);
 
-    // challenge V ... TODO by submitting a voucher! TODO should this be Bob?
+    // challenge V ...
     const {
-      challengeTx: virtualChallengeTx,
-      proof: vProof,
+      stateHash: vStateHash,
+      outcome: vOutcome,
+      gasUsed: vGasUsed,
       finalizesAt: vFinalizesAt,
-    } = await challengeChannel(V, MAGIC_ADDRESS_INDICATING_ETH);
-    gasResults.ETHexitSadVirtualFunded.satp.challengeV = await gasUsed(virtualChallengeTx);
+    } = await challengeVirtualPaymentChannelWithVoucher(
+      V,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      5,
+      Alice,
+      Bob
+    );
+    gasResults.ETHexitSadVirtualFunded.satp.challengeV = vGasUsed;
 
     // begin wait
     await waitForChallengesToTimeOut([ledgerFinalizesAt, vFinalizesAt]);
@@ -292,8 +298,8 @@ async function main() {
         sourceOutcomeBytes: encodeOutcome(ledgerProof.outcome),
         sourceAssetIndex: 0,
         indexOfTargetInSource: 2,
-        targetStateHash: vProof.stateHash,
-        targetOutcomeBytes: encodeOutcome(vProof.outcome),
+        targetStateHash: vStateHash,
+        targetOutcomeBytes: encodeOutcome(vOutcome),
         targetAssetIndex: 0,
       })
     );
@@ -302,7 +308,7 @@ async function main() {
     // track change to ledger outcome caused by calling reclaim
     const updatedAllocations = computeReclaimEffects(
       ledgerProof.outcome[0].allocations,
-      vProof.outcome[0].allocations,
+      vOutcome[0].allocations,
       2
     );
     const updatedOutcome: Outcome = [

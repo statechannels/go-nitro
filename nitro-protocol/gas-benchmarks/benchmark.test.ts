@@ -15,6 +15,9 @@ import {
   amountForBob,
   amountForAliceAndBob,
   V,
+  challengeVirtualPaymentChannelWithVoucher,
+  Alice,
+  Bob,
 } from './fixtures';
 import {GasResults} from './gas';
 import {challengeChannelAndExpectGas} from './jestSetup';
@@ -216,11 +219,21 @@ describe('Consumes the expected gas for sad-path exits', () => {
       gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeL
     );
     // challenge V ... TODO by submitting a voucher! TODO should this be Bob?
-    const {proof: vProof, finalizesAt: vFinalizesAt} = await challengeChannelAndExpectGas(
+
+    const {
+      stateHash: vStateHash,
+      outcome: vOutcome,
+      gasUsed: vGasUsed,
+      finalizesAt: vFinalizesAt,
+    } = await challengeVirtualPaymentChannelWithVoucher(
       V,
       MAGIC_ADDRESS_INDICATING_ETH,
-      gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeV
+      5,
+      Alice,
+      Bob
     );
+
+    expect(vGasUsed).toEqual(gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeV);
 
     // begin wait
     await waitForChallengesToTimeOut([ledgerFinalizesAt, vFinalizesAt]);
@@ -237,8 +250,8 @@ describe('Consumes the expected gas for sad-path exits', () => {
         sourceOutcomeBytes: encodeOutcome(ledgerProof.outcome),
         sourceAssetIndex: 0,
         indexOfTargetInSource: 2,
-        targetStateHash: vProof.stateHash,
-        targetOutcomeBytes: encodeOutcome(vProof.outcome),
+        targetStateHash: vStateHash,
+        targetOutcomeBytes: encodeOutcome(vOutcome),
         targetAssetIndex: 0,
       })
     ).toConsumeGas(gasRequiredTo.ETHexitSadVirtualFunded.satp.reclaimL);
@@ -252,7 +265,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
     // track change to ledger outcome caused by calling reclaim
     const updatedAllocations = computeReclaimEffects(
       ledgerProof.outcome[0].allocations,
-      vProof.outcome[0].allocations,
+      vOutcome[0].allocations,
       2
     );
     const updatedOutcome: Outcome = [
