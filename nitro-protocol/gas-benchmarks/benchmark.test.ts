@@ -210,6 +210,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
     // begin setup
     await (
       await nitroAdjudicator.deposit(
+        // This deposit represents what in reality would likely be two deposits (one from Bob, one from Ingrid)
         MAGIC_ADDRESS_INDICATING_ETH,
         LforV.channelId,
         0,
@@ -220,7 +221,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
       )
     ).wait();
     // end setup
-    // initially                   ⬛ ->  L  ->  V  -> 👩
+    // initially                   ⬛ ->  L  ->  V  -> 👨
     // challenge L
     const {proof: ledgerProof, finalizesAt: ledgerFinalizesAt} = await challengeChannelAndExpectGas(
       LforV,
@@ -247,7 +248,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
     // begin wait
     await waitForChallengesToTimeOut([ledgerFinalizesAt, vFinalizesAt]);
     // end wait
-    // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👩
+    // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👨
     await assertEthBalancesAndHoldings(
       {Alice: 0, Bob: 0, Ingrid: 0},
       {LforV: amountForAliceAndBob, V: 0}
@@ -264,7 +265,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
         targetAssetIndex: 0,
       })
     ).toConsumeGas(gasRequiredTo.ETHexitSadVirtualFunded.satp.reclaimL);
-    // reclaim L                   ⬛ -- (L) --------> 👩.
+    // reclaim L                   ⬛ -- (L) --------> 👨
 
     await assertEthBalancesAndHoldings(
       {Alice: 0, Bob: 0, Ingrid: 0},
@@ -291,12 +292,12 @@ describe('Consumes the expected gas for sad-path exits', () => {
         ledgerProof.stateHash // stateHash
       )
     ).toConsumeGas(gasRequiredTo.ETHexitSadVirtualFunded.satp.transferAllAssetsL);
-    // transferAllAssetsL          ⬛ ---------------> 👩
+    // transferAllAssetsL          ⬛ ---------------> 👨
 
     await assertEthBalancesAndHoldings(
       {
-        Alice: BigNumber.from(amountForAlice).sub(BigNumber.from(paymentAmount)), // Alice has been adjusted down
-        Ingrid: BigNumber.from(amountForBob).add(BigNumber.from(paymentAmount)), // Igrid recoups the money she will give to Bob in the other ledger channel
+        Bob: BigNumber.from(paymentAmount), // Bob gets his paymennt
+        Ingrid: BigNumber.from(amountForAlice).sub(BigNumber.from(paymentAmount)), // Ingrid is adjusted down, she will be compensated in the other ledger channel
       },
       {LforV: 0, V: 0}
     );

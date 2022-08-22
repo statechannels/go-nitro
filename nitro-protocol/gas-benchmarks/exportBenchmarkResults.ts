@@ -265,7 +265,7 @@ async function main() {
       })
     ).wait();
     // end setup
-    // initially                   ⬛ ->  L  ->  V  -> 👩
+    // initially                   ⬛ ->  L  ->  V  -> 👨
     // challenge L
     const {
       challengeTx: ledgerChallengeTx,
@@ -292,7 +292,7 @@ async function main() {
     // begin wait
     await waitForChallengesToTimeOut([ledgerFinalizesAt, vFinalizesAt]);
     // end wait
-    // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👩
+    // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👨
 
     gasResults.ETHexitSadVirtualFunded.satp.reclaimL = await gasUsed(
       await nitroAdjudicator.reclaim({
@@ -306,7 +306,7 @@ async function main() {
         targetAssetIndex: 0,
       })
     );
-    // reclaim L                   ⬛ -- (L) --------> 👩
+    // reclaim L                   ⬛ -- (L) --------> 👨
 
     // track change to ledger outcome caused by calling reclaim
     const updatedAllocations = computeReclaimEffects(
@@ -327,7 +327,7 @@ async function main() {
         ledgerProof.stateHash // stateHash
       )
     );
-    // transferAllAssetsL          ⬛ ---------------> 👩
+    // transferAllAssetsL          ⬛ ---------------> 👨
 
     // record total
     gasResults.ETHexitSadVirtualFunded.satp.total =

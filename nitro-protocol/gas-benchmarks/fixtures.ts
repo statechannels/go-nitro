@@ -113,7 +113,10 @@ export class TestChannel {
         variablePart: getVariablePart(state),
         sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
       },
-      challengeSignature: signChallengeMessage([{state} as SignedState], Alice.privateKey),
+      challengeSignature: signChallengeMessage(
+        [{state} as SignedState],
+        this.wallets[0].privateKey
+      ),
       outcome: state.outcome,
       stateHash: hashState(state),
     };
@@ -224,7 +227,7 @@ export const V = new TestChannel(
     },
     {
       destination: convertAddressToBytes32(Bob.address),
-      amount: amountForBob, // TODO this should be a unidirectional payment channel, i.e. Bob starts with nothing!
+      amount: '0x0', // This is a unidirectional payment channel, i.e. Bob starts with nothing!
       metadata: '0x',
       allocationType: AllocationType.simple,
     },
@@ -235,10 +238,10 @@ export const V = new TestChannel(
 /** Ledger channel between Alice and Ingrid, with Guarantee targeting virtual channel V */
 export const LforV = new TestChannel(
   7,
-  [Alice, Ingrid],
+  [Bob, Ingrid],
   [
     {
-      destination: convertAddressToBytes32(Alice.address),
+      destination: convertAddressToBytes32(Bob.address),
       amount: '0x0',
       metadata: '0x',
       allocationType: AllocationType.simple,
@@ -253,8 +256,8 @@ export const LforV = new TestChannel(
       destination: V.channelId,
       amount: amountForAliceAndBob,
       metadata: encodeGuaranteeData({
-        left: convertAddressToBytes32(Alice.address),
-        right: convertAddressToBytes32(Ingrid.address),
+        left: convertAddressToBytes32(Ingrid.address),
+        right: convertAddressToBytes32(Bob.address),
       }),
       allocationType: AllocationType.guarantee,
     },
