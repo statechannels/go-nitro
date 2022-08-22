@@ -6,13 +6,18 @@ import {AllocationType} from '@statechannels/exit-format';
 import {takeSnapshot} from '@nomicfoundation/hardhat-network-helpers';
 
 import {
+  Bytes32,
   convertAddressToBytes32,
+  encodeVoucherAmountAndSignature,
   getChannelId,
   getFixedPart,
+  MAGIC_ADDRESS_INDICATING_ETH,
   signChallengeMessage,
   SignedState,
   signState,
+  signVoucher,
   State,
+  Voucher,
 } from '../src';
 import {
   encodeGuaranteeData,
@@ -364,4 +369,69 @@ export async function executeAndRevert(fnc: () => void) {
   const snapshot = await takeSnapshot();
   await fnc();
   await snapshot.restore();
+}
+
+/**
+ * Constructs a support proof for the supplied channel which includes a payment voucher, and calls challenge,
+ * @returns The proof, finalizesAt and gas consumed
+ */
+export async function challengeVirtualPaymentChannelWithVoucher(
+  channel: TestChannel,
+  asset: string,
+  amount: number,
+  payerWallet: Wallet,
+  challengerWallet: Wallet
+): Promise<{
+  stateHash: Bytes32;
+  outcome: Outcome;
+  finalizesAt: number;
+  gasUsed: number;
+}> {
+  const postFund = channel.someState(asset);
+  postFund.appData = '0x';
+  postFund.turnNum = 1;
+
+  const proof = [channel.counterSignedSupportProof(postFund).candidate];
+  const redemption = channel.someState(asset);
+  const voucher: Voucher = {
+    channelId: channel.channelId,
+    amount: BigNumber.from(amount).toHexString(),
+  };
+  const voucherSignature = await signVoucher(voucher, payerWallet);
+  redemption.appData = encodeVoucherAmountAndSignature(voucher.amount, voucherSignature);
+  redemption.turnNum = 2;
+  redemption.outcome = {...postFund.outcome};
+  const outcome = channel.outcome(MAGIC_ADDRESS_INDICATING_ETH);
+  outcome[0].allocations[0].amount = BigNumber.from(outcome[0].allocations[0].amount)
+    .sub(amount)
+    .toHexString();
+  outcome[0].allocations[0].amount = BigNumber.from(amount).toHexString();
+
+  const candidate: SignedVariablePart = {
+    variablePart: getVariablePart(redemption),
+    sigs: [signState(redemption, challengerWallet.privateKey).signature],
+  };
+
+  const challengeSignature = signChallengeMessage(
+    [{state: redemption} as SignedState],
+    challengerWallet.privateKey
+  );
+
+  const challengeTx = await nitroAdjudicator.challenge(
+    channel.fixedPart,
+    proof,
+    candidate,
+    challengeSignature
+  );
+
+  const finalizesAt = await getFinalizesAtFromTransactionHash(challengeTx.hash);
+
+  const gasUsed = (await challengeTx.wait()).gasUsed.toNumber();
+
+  return {
+    stateHash: hashState(redemption),
+    finalizesAt,
+    outcome: redemption.outcome,
+    gasUsed,
+  };
 }

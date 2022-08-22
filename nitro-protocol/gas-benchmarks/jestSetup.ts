@@ -8,7 +8,13 @@ import {SnapshotRestorer, takeSnapshot} from '@nomicfoundation/hardhat-network-h
 
 import {deployContracts} from './localSetup';
 import {TestChannel, challengeChannel, getFinalizesAtFromTransactionHash} from './fixtures';
-import {encodeVoucherAmountAndSignature, signChallengeMessage, SignedState, signVoucher, Voucher} from '../src';
+import {
+  encodeVoucherAmountAndSignature,
+  signChallengeMessage,
+  SignedState,
+  signVoucher,
+  Voucher,
+} from '../src';
 import {Wallet} from 'ethers';
 
 declare global {
@@ -105,49 +111,4 @@ export async function challengeChannelAndExpectGas(
   await expect(challengeTx).toConsumeGas(expectedGas);
 
   return {proof, finalizesAt};
-}
-
-/**
- * Constructs a support proof for the supplied channel which includes a payment voucher, calls challenge,
- * and asserts the expected gas.
- * @returns The proof and finalizesAt
- */
-export async function challengeVirtualPaymentChannelWithVoucher(
-  channel: TestChannel,
-  asset: string,
-  amount: number,
-  payerWallet: Wallet,
-  challengerWallet:Wallet,
-  expectedGas: number
-): Promise<{proof: ReturnType<typeof channel.counterSignedSupportProof>; finalizesAt: number}> {
-  const postFund = channel.someState(asset);
-  postFund.appData = '0x';
-  postFund.turnNum = 1;
-
-  const redemption = channel.someState(asset);
-  const voucher: Voucher = {
-    channelId: channel.channelId,
-    amount: BigNumber.from(amount).toHexString(),
-  };
-  const voucherSignature = await signVoucher(voucher, payerWallet);
-
-  redemption.appData = encodeVoucherAmountAndSignature(voucher.amount, voucherSignature);
-  redemption.turnNum = 2;
-  redemption.outcome = []; // TODO
-
-  challengeSignature: signChallengeMessage([{state:redemption} as SignedState], challengerWallet.privateKey),
-
-  // TODO na not in scope
-  const challengeTx = await nitroAdjudicator.challenge(
-    channel.fixedPart,
-    [postFund],
-    redemption,
-    challengeSignature
-  );
-
-  const finalizesAt = await getFinalizesAtFromTransactionHash(challengeTx.hash);
-
-  await expect(challengeTx).toConsumeGas(expectedGas);
-
-  return { stateHash: hashState(redemption),finalizesAt, outcome: redemption.outcome};
 }
