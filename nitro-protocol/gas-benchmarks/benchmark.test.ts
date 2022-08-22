@@ -14,7 +14,6 @@ import {
   LforV,
   assertEthBalancesAndHoldings,
   amountForAlice,
-  amountForBob,
   amountForAliceAndBob,
   V,
   challengeVirtualPaymentChannelWithVoucher,

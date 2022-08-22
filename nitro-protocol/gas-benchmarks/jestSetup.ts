@@ -7,15 +7,7 @@ import {BigNumber} from '@ethersproject/bignumber';
 import {SnapshotRestorer, takeSnapshot} from '@nomicfoundation/hardhat-network-helpers';
 
 import {deployContracts} from './localSetup';
-import {TestChannel, challengeChannel, getFinalizesAtFromTransactionHash} from './fixtures';
-import {
-  encodeVoucherAmountAndSignature,
-  signChallengeMessage,
-  SignedState,
-  signVoucher,
-  Voucher,
-} from '../src';
-import {Wallet} from 'ethers';
+import {TestChannel, challengeChannel} from './fixtures';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
