@@ -425,9 +425,8 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineChangeEvent, error) {
 
 	}
 
-	zeroAddress := types.Destination{}
 	// TODO: Should this live in the payment manager?
-	if cId := apiEvent.PaymentToMake.ChannelId; cId != zeroAddress {
+	if cId := apiEvent.PaymentToMake.ChannelId; cId != (types.Destination{}) {
 		voucher, err := e.pm.Pay(
 			cId,
 			apiEvent.PaymentToMake.Amount,
