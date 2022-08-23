@@ -94,6 +94,10 @@ func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
 		return &big.Int{}, fmt.Errorf("channel not registered")
 	}
 
+	// We only care about vouchers when we are the recipient of the payment
+	if status.channelReceiver != vm.me {
+		return &big.Int{}, nil
+	}
 	received := &big.Int{}
 	received.Set(voucher.Amount)
 	if types.Gt(received, status.startingBalance) {
