@@ -324,7 +324,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineChangeEvent, er
 		if !ok {
 			return EngineChangeEvent{}, fmt.Errorf("could not get channel from the store %s", c.Id)
 		}
-		recipient := c.Participants[2]
+		recipient := payments.GetPaymentReceiver(c.Participants)
 		if recipient != *e.store.GetAddress() {
 			return EngineChangeEvent{}, fmt.Errorf("not the recipient in channel %s", c.Id)
 		}
@@ -438,7 +438,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineChangeEvent, error) {
 		if !ok {
 			return EngineChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
 		}
-		sender, recipient := c.Participants[0], c.Participants[2]
+		sender, recipient := payments.GetPaymentSender(c.Participants), payments.GetPaymentReceiver(c.Participants)
 		if sender != *e.store.GetAddress() {
 			return EngineChangeEvent{}, fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
 		}
@@ -530,7 +530,7 @@ func (e Engine) registerPaymentChannelWithManagers(vfo virtualfund.Objective) er
 	case 0:
 		return e.pm.Register(vfo.V.Id, startingBalance)
 	case uint(len(vfo.V.Participants) - 1):
-		return e.rm.Register(vfo.V.Id, postfund.Participants[0], startingBalance)
+		return e.rm.Register(vfo.V.Id, payments.GetPaymentSender(postfund.Participants), startingBalance)
 	default:
 		// The intermediaries does not need to use the payment or receipt manager
 		return nil
