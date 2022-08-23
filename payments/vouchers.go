@@ -11,6 +11,16 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// ChannelId returns the channel id of the voucher
+func (v Voucher) ChannelId() types.Destination {
+	return v.channelId
+}
+
+// Amount returns the amount of the voucher
+func (v Voucher) Amount() *big.Int {
+	return v.amount
+}
+
 func (v *Voucher) hash() (types.Bytes32, error) {
 	encoded, err := abi.Arguments{
 		{Type: nitroAbi.Destination},

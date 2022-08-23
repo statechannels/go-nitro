@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -23,6 +24,7 @@ type Client struct {
 	Address             *types.Address
 	completedObjectives chan protocols.ObjectiveId
 	failedObjectives    chan protocols.ObjectiveId
+	receivedVouchers    chan payments.Voucher
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -37,7 +39,8 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
-
+	// Using a larger buffer since payments can be sent frequently.
+	c.receivedVouchers = make(chan payments.Voucher, 1000)
 	// Start the engine in a go routine
 	go c.engine.Run()
 
@@ -63,6 +66,11 @@ func (c *Client) handleEngineEvents() {
 			c.failedObjectives <- erred
 		}
 
+		for _, payment := range update.ReceivedVouchers {
+
+			c.receivedVouchers <- payment
+		}
+
 	}
 }
 
@@ -76,6 +84,11 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 // FailedObjectives returns a chan that receives an objective id whenever that objective has failed
 func (c *Client) FailedObjectives() <-chan protocols.ObjectiveId {
 	return c.failedObjectives
+}
+
+// ReceivedVouchers returns a chan that receives a voucher every time we receive a payment voucher
+func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
+	return c.receivedVouchers
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
@@ -141,4 +154,14 @@ func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.Objec
 
 	return objectiveRequest.Id(*c.Address)
 
+}
+
+// Pay will send a signed voucher to the payee that they can redeem for the given amount.
+func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
+
+	apiEvent := engine.APIEvent{
+		PaymentToMake: engine.PaymentRequest{ChannelId: channelId, Amount: amount},
+	}
+	// Send the event to the engine
+	c.engine.FromAPI <- apiEvent
 }

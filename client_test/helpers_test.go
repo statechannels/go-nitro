@@ -1,8 +1,10 @@
 package client_test
 
 import (
+	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,6 +17,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 const defaultTimeout = 10 * time.Second
@@ -60,6 +63,63 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 			}
 		}
 		t.Fatalf("Objective ids %s failed to complete on client %s within %s", incompleteIds, client.Address, timeout)
+	case <-allDone:
+		return
+	}
+}
+
+type BasicVoucherInfo struct {
+	Amount    *big.Int
+	ChannelId types.Destination
+}
+
+func (b BasicVoucherInfo) id() string {
+	return fmt.Sprintf("%s-%s", b.ChannelId.String(), b.Amount.String())
+}
+
+// waitTimeForReceivedVoucher waits up to the given timeout to receiver vouchers specified and returns when the all the vouchers specified have been returned.
+// If the timeout lapses and not all of the vouchers have been received, the parent test will be failed.
+// This function assumes that channelId-amount pairs are unique and can be used as a key.
+func waitTimeForReceivedVoucher(t *testing.T, client *client.Client, timeout time.Duration, vouchers ...BasicVoucherInfo) {
+
+	waitAndSendOn := func(received map[string]bool, allDone chan interface{}) {
+
+		// We continue to consume vouchers from the chan until all have been completed
+		for got := range client.ReceivedVouchers() {
+			b := BasicVoucherInfo{got.Amount(), got.ChannelId()}
+			// Mark the voucher as received
+			received[b.id()] = true
+
+			// If all the vouchers have been received we can send the all done signal and return
+			isDone := true
+			for _, v := range vouchers {
+				isDone = isDone && received[v.id()]
+			}
+			if isDone {
+				allDone <- struct{}{}
+				return
+
+			}
+		}
+
+	}
+
+	allDone := make(chan interface{})
+	// Create a map to keep track of received vouchers
+	completed := make(map[string]bool)
+
+	go waitAndSendOn(completed, allDone)
+
+	select {
+	case <-time.After(timeout):
+		incomplete := make([]BasicVoucherInfo, 0)
+		for _, v := range vouchers {
+			isDone := completed[v.id()]
+			if !isDone {
+				incomplete = append(incomplete, v)
+			}
+		}
+		t.Fatalf("Objective ids %s failed to complete on client %s within %s", incomplete, client.Address, timeout)
 	case <-allDone:
 		return
 	}
