@@ -11,7 +11,7 @@ The flow of data through the client is shown in this diagram:
    - the `message` service
    - the `chain` service.
 2. The engine reads channels and objectives from the `store`, and computes updates and side effects.
-3. The engine reads payments the `payment manager`, and computes updates and side effects.
+3. The engine gets payment info from the `payment manager`, and computes updates and side effects.
 4. The updates are committed to the `store`.
 5. The side effects are sent on go channels to:
    - the `message` service
@@ -23,4 +23,4 @@ The `chain` and `message` services are responsible for communicating with the bl
 
 ---
 
-[Click here to edit the diagram](https://excalidraw.com/#json=eudWpYVNSU6KbkGFFZIvf,6zd-MrLFwRyo5mft3fm1XA)
+[Click here to edit the diagram](https://excalidraw.com/#json=8yRbfXLrLq5sWPp5JD2hQ,l4-oScoyZV6QxGINus0qCQ)
