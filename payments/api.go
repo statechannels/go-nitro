@@ -30,10 +30,9 @@ type (
 		Paid      *big.Int
 	}
 
-	// PaymentManager can be used to make a payment for a given channel, issuing a new, signed voucher to be sent to the receiver
-	PaymentManager interface {
+	VoucherManager interface {
 		// Register registers a channel with a starting balance
-		Register(channelId types.Destination, startingBalance *big.Int) error
+		Register(channelId types.Destination, sender common.Address, startingBalance *big.Int) error
 
 		// Remove deletes the channel from the manager
 		Remove(channelId types.Destination)
@@ -41,17 +40,6 @@ type (
 		// Pay will deduct amount from balance and add it to paid, returning a signed voucher for the
 		// total amount paid.
 		Pay(channelId types.Destination, amount *big.Int, pk []byte) (Voucher, error)
-
-		// Balance returns the balance of the channel
-		Balance(channelId types.Destination) (Balance, error)
-	}
-
-	ReceiptManager interface {
-		// Register registers a channel with a starting balance
-		Register(channelId types.Destination, sender common.Address, startingBalance *big.Int) error
-
-		// Remove deletes the channel from the manager
-		Remove(channelId types.Destination)
 
 		// Receive validates the incoming voucher, and returns the total amount received so far
 		Receive(voucher Voucher) (amountReceived *big.Int, err error)

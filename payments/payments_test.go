@@ -48,12 +48,12 @@ func TestPaymentManager(t *testing.T) {
 	}
 
 	// Happy path: Payment manager can register channels and make payments
-	paymentMgr := NewPaymentManager(testactors.Alice.Address())
+	paymentMgr := NewVoucherManager(testactors.Alice.Address())
 
 	_, err := paymentMgr.Pay(channelId, payment, testactors.Alice.PrivateKey)
 	Assert(t, err != nil, "channel must be registered to make payments")
 
-	Ok(t, paymentMgr.Register(channelId, deposit))
+	Ok(t, paymentMgr.Register(channelId, testactors.Alice.Address(), deposit))
 	Equals(t, startingBalance, getBalance(paymentMgr))
 
 	firstVoucher, err := paymentMgr.Pay(channelId, payment, testactors.Alice.PrivateKey)
@@ -66,7 +66,7 @@ func TestPaymentManager(t *testing.T) {
 	Equals(t, testactors.Alice.Address(), signer)
 
 	// Happy path: receipt manager can receive vouchers
-	receiptMgr := NewReceiptManager()
+	receiptMgr := NewVoucherManager(testactors.Bob.Address())
 
 	_, err = receiptMgr.Receive(firstVoucher)
 	Assert(t, err != nil, "channel must be registered to receive vouchers")
@@ -77,7 +77,7 @@ func TestPaymentManager(t *testing.T) {
 	received, err := receiptMgr.Receive(firstVoucher)
 	Ok(t, err)
 	Equals(t, received, payment)
-
+	Equals(t, onePaymentMade, getBalance(receiptMgr))
 	// Receiving a voucher is idempotent
 	received, err = receiptMgr.Receive(firstVoucher)
 	Ok(t, err)
@@ -97,7 +97,7 @@ func TestPaymentManager(t *testing.T) {
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
 	// re-registering a channel doesn't reset its balance
-	err = paymentMgr.Register(channelId, deposit)
+	err = paymentMgr.Register(channelId, testactors.Alice.Address(), deposit)
 	Assert(t, err != nil, "expected register to fail")
 	Equals(t, twoPaymentsMade, getBalance(paymentMgr))
 

@@ -53,8 +53,7 @@ type Engine struct {
 
 	metrics *MetricsRecorder
 
-	pm payments.PaymentManager
-	rm payments.ReceiptManager
+	vm payments.VoucherManager
 }
 
 // PaymentRequest represents a request from the API to make a payment using a channel
@@ -108,8 +107,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	e.policymaker = policymaker
 
-	e.rm = payments.NewReceiptManager()
-	e.pm = payments.NewPaymentManager(*e.store.GetAddress())
+	e.vm = payments.NewVoucherManager(*store.GetAddress())
 
 	e.logger.Println("Constructed Engine")
 
@@ -329,7 +327,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			return EngineEvent{}, fmt.Errorf("not the recipient in channel %s", c.Id)
 		}
 		// TODO: return the amount we paid?
-		_, err := e.rm.Receive(voucher)
+		_, err := e.vm.Receive(voucher)
 
 		allCompleted.ReceivedVouchers = append(allCompleted.ReceivedVouchers, voucher)
 		if err != nil {
@@ -427,7 +425,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
 
 	// TODO: Should this live in the payment manager?
 	if cId := apiEvent.PaymentToMake.ChannelId; cId != (types.Destination{}) {
-		voucher, err := e.pm.Pay(
+		voucher, err := e.vm.Pay(
 			cId,
 			apiEvent.PaymentToMake.Amount,
 			*e.store.GetChannelSecretKey())
@@ -526,15 +524,7 @@ func (e Engine) registerPaymentChannelWithManagers(vfo virtualfund.Objective) er
 	// TODO: Assumes one asset for now
 	startingBalance.Set(postfund.Outcome[0].Allocations[0].Amount)
 
-	switch vfo.MyRole {
-	case 0:
-		return e.pm.Register(vfo.V.Id, startingBalance)
-	case uint(len(vfo.V.Participants) - 1):
-		return e.rm.Register(vfo.V.Id, payments.GetPaymentSender(postfund.Participants), startingBalance)
-	default:
-		// The intermediaries does not need to use the payment or receipt manager
-		return nil
-	}
+	return e.vm.Register(vfo.V.Id, payments.GetPaymentSender(postfund.Participants), startingBalance)
 
 }
 
