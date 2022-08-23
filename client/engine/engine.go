@@ -387,7 +387,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineChangeEvent, error) {
 				return EngineChangeEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 
-			err = e.registerVirtualChannelWithManagers(vfo)
+			err = e.registerPaymentChannelWithManagers(vfo)
 			if err != nil {
 				return EngineChangeEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
 			}
@@ -521,7 +521,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	return
 }
 
-func (e Engine) registerVirtualChannelWithManagers(vfo virtualfund.Objective) error {
+func (e Engine) registerPaymentChannelWithManagers(vfo virtualfund.Objective) error {
 	prefund := vfo.V.PreFundState()
 	startingBalance := big.NewInt(0)
 	// TODO: Assumes one asset for now
@@ -602,7 +602,7 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
-		err = e.registerVirtualChannelWithManagers(vfo)
+		err = e.registerPaymentChannelWithManagers(vfo)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
 		}
