@@ -529,10 +529,10 @@ func (e Engine) registerPaymentChannelWithManagers(vfo virtualfund.Objective) er
 	switch vfo.MyRole {
 	case 0:
 		return e.pm.Register(vfo.V.Id, startingBalance)
-	case 2:
+	case uint(len(vfo.V.Participants) - 1):
 		return e.rm.Register(vfo.V.Id, postfund.Participants[0], startingBalance)
 	default:
-		// The intermediary does not need to use the payment or receipt manager
+		// The intermediaries does not need to use the payment or receipt manager
 		return nil
 	}
 
