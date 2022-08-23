@@ -3,10 +3,11 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
-import {NitroUtils} from '../NitroUtils.sol';
-import '../../interfaces/INitroTypes.sol';
+import {NitroUtils} from '../libraries/NitroUtils.sol';
+import '../interfaces/INitroTypes.sol';
 
 /**
+ * @notice NOTE: Development of this signature logic was discontinued, but may be renewed in future. Use at your own risk.
  * @dev Signatures implied by `signedBy` part of `RecoveredVariablePart` must be in ascending order relative to participant index, which has created the signature.
  */
 library ShortcuttingTurnTaking {

@@ -3,7 +3,7 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
-import {ShortcuttingTurnTaking} from './libraries/signature-logic/ShortcuttingTurnTaking.sol';
+import './libraries/signature-logic/StrictTurnTaking.sol';
 import './interfaces/IForceMoveApp.sol';
 
 /**
@@ -36,20 +36,18 @@ contract CountingApp is IForceMoveApp {
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
     ) external pure override {
-        // TODO: replace with StrictTurnTaking
-        ShortcuttingTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate);
+        StrictTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate);
 
-        // TODO: require(proof.length != 0)
-        if (proof.length != 0) {
-            // validate the proof
-            for (uint256 i = 1; i < proof.length; i++) {
-                _requireIncrementedCounter(proof[i], proof[i - 1]);
-                _requireEqualOutcomes(proof[i], proof[i - 1]);
-            }
+        require(proof.length != 0, '|proof| = 0');
 
-            _requireIncrementedCounter(candidate, proof[proof.length - 1]);
-            _requireEqualOutcomes(candidate, proof[proof.length - 1]);
+        // validate the proof
+        for (uint256 i = 1; i < proof.length; i++) {
+            _requireIncrementedCounter(proof[i], proof[i - 1]);
+            _requireEqualOutcomes(proof[i], proof[i - 1]);
         }
+
+        _requireIncrementedCounter(candidate, proof[proof.length - 1]);
+        _requireEqualOutcomes(candidate, proof[proof.length - 1]);
     }
 
     /**

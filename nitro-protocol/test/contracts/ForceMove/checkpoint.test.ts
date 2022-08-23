@@ -19,7 +19,7 @@ import {
 import {
   CHANNEL_FINALIZED,
   TURN_NUM_RECORD_NOT_INCREASED,
-  MOVER_SIGNED_EARLIER_STATE,
+  SIGNED_BY_NON_MOVER,
 } from '../../../src/contract/transaction-creators/revert-reasons';
 import {COUNTING_APP_INVALID_TRANSITION} from '../../revert-reasons';
 import {
@@ -35,15 +35,16 @@ import {testParams} from './types';
 const provider = getTestProvider();
 let ForceMove: Contract;
 const chainId = process.env.CHAIN_NETWORK_ID;
-const participants = ['', '', ''];
-const wallets = new Array(3);
+const participantsNum = 3;
+const participants = new Array(participantsNum).fill('');
+const wallets = new Array(participantsNum);
 const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
 const defaultOutcome: Outcome = [{asset, allocations: [], metadata: '0x'}];
 let appDefinition: string;
 
 // Populate wallets and participants array
-for (let i = 0; i < 3; i++) {
+for (let i = 0; i < participantsNum; i++) {
   wallets[i] = Wallet.createRandom();
   participants[i] = wallets[i].address;
 }
@@ -53,8 +54,8 @@ beforeAll(async () => {
 });
 
 const valid = {
-  whoSignedWhat: [0, 0, 0],
-  appDatas: [0],
+  whoSignedWhat: [0, 1, 2],
+  appDatas: [0, 1, 2],
 };
 const invalidTransition = {
   whoSignedWhat: [0, 1, 2],
@@ -93,17 +94,17 @@ describe('checkpoint', () => {
   let channelNonce = getRandomNonce('checkpoint');
   beforeEach(() => (channelNonce += 1));
   it.each`
-    description | largestTurnNum       | support              | finalizesAt  | reason
-    ${accepts1} | ${turnNumRecord + 1} | ${valid}             | ${undefined} | ${undefined}
-    ${accepts2} | ${turnNumRecord + 3} | ${valid}             | ${never}     | ${undefined}
-    ${accepts3} | ${turnNumRecord + 4} | ${valid}             | ${future}    | ${undefined}
-    ${reverts1} | ${turnNumRecord}     | ${valid}             | ${never}     | ${TURN_NUM_RECORD_NOT_INCREASED}
-    ${reverts2} | ${turnNumRecord + 1} | ${invalidTransition} | ${never}     | ${COUNTING_APP_INVALID_TRANSITION}
-    ${reverts3} | ${turnNumRecord + 1} | ${unsupported}       | ${never}     | ${MOVER_SIGNED_EARLIER_STATE}
-    ${reverts4} | ${turnNumRecord}     | ${valid}             | ${future}    | ${TURN_NUM_RECORD_NOT_INCREASED}
-    ${reverts5} | ${turnNumRecord + 1} | ${invalidTransition} | ${future}    | ${COUNTING_APP_INVALID_TRANSITION}
-    ${reverts6} | ${turnNumRecord + 1} | ${unsupported}       | ${future}    | ${MOVER_SIGNED_EARLIER_STATE}
-    ${reverts7} | ${turnNumRecord + 1} | ${valid}             | ${past}      | ${CHANNEL_FINALIZED}
+    description | largestTurnNum                         | support              | finalizesAt  | reason
+    ${accepts1} | ${turnNumRecord + 1}                   | ${valid}             | ${undefined} | ${undefined}
+    ${accepts2} | ${turnNumRecord + 1}                   | ${valid}             | ${never}     | ${undefined}
+    ${accepts3} | ${turnNumRecord + 1 + participantsNum} | ${valid}             | ${future}    | ${undefined}
+    ${reverts1} | ${turnNumRecord}                       | ${valid}             | ${never}     | ${TURN_NUM_RECORD_NOT_INCREASED}
+    ${reverts2} | ${turnNumRecord + 1}                   | ${invalidTransition} | ${never}     | ${COUNTING_APP_INVALID_TRANSITION}
+    ${reverts3} | ${turnNumRecord + 1}                   | ${unsupported}       | ${never}     | ${SIGNED_BY_NON_MOVER}
+    ${reverts4} | ${turnNumRecord}                       | ${valid}             | ${future}    | ${TURN_NUM_RECORD_NOT_INCREASED}
+    ${reverts5} | ${turnNumRecord + 1}                   | ${invalidTransition} | ${future}    | ${COUNTING_APP_INVALID_TRANSITION}
+    ${reverts6} | ${turnNumRecord + 1}                   | ${unsupported}       | ${future}    | ${SIGNED_BY_NON_MOVER}
+    ${reverts7} | ${turnNumRecord + 1}                   | ${valid}             | ${past}      | ${CHANNEL_FINALIZED}
   `('$description', async ({largestTurnNum, support, finalizesAt, reason}: testParams) => {
     const {appDatas, whoSignedWhat} = support;
     const channel: Channel = {chainId, channelNonce, participants};

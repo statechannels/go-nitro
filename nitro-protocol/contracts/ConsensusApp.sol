@@ -3,10 +3,10 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import './interfaces/IForceMoveApp.sol';
-import './libraries/NitroUtils.sol';
+import './libraries/signature-logic/Consensus.sol';
 
 /**
- * @dev The ConsensusApp contracts complies with the ForceMoveApp interface and requires all participants to hace signed a single state.
+ * @dev The ConsensusApp contracts complies with the ForceMoveApp interface and uses consensus signatures logic.
  */
 contract ConsensusApp is IForceMoveApp {
     /**
@@ -21,10 +21,6 @@ contract ConsensusApp is IForceMoveApp {
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
     ) external pure override {
-        require(proof.length == 0, '|proof|!=0');
-        require(
-            NitroUtils.getClaimedSignersNum(candidate.signedBy) == fixedPart.participants.length,
-            '!unanimous'
-        );
+        Consensus.requireConsensus(fixedPart, proof, candidate);
     }
 }
