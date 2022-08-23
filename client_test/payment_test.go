@@ -60,11 +60,7 @@ func TestPayments(t *testing.T) {
 	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, ids...)
 	clientA.Pay(r.ChannelId, big.NewInt(5))
 
-	payment := <-clientB.ReceivedVouchers()
-
-	if payment.Amount().Cmp(big.NewInt(5)) != 0 {
-
-		t.Errorf("Expected payment amount to be 5, got %v", payment.Amount())
-	}
+	expected := BasicVoucherInfo{big.NewInt(5), r.ChannelId}
+	waitTimeForReceivedVoucher(t, &clientB, defaultTimeout, expected)
 
 }
