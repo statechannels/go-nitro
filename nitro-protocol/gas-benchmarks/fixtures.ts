@@ -235,7 +235,7 @@ export const V = new TestChannel(
   virtualPaymentAppAddress
 );
 
-/** Ledger channel between Alice and Ingrid, with Guarantee targeting virtual channel V */
+/** Ledger channel between Bob and Ingrid, with Guarantee targeting virtual channel V */
 export const LforV = new TestChannel(
   7,
   [Bob, Ingrid],
@@ -379,7 +379,7 @@ export async function executeAndRevert(fnc: () => void) {
 
 /**
  * Constructs a support proof for the supplied channel which includes a payment voucher, and calls challenge,
- * @returns The proof, finalizesAt and gas consumed
+ * @returns The state hash, outcome, finalizesAt and gas consumed
  */
 export async function challengeVirtualPaymentChannelWithVoucher(
   channel: TestChannel,
