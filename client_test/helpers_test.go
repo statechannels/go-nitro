@@ -86,7 +86,7 @@ func waitTimeForReceivedVoucher(t *testing.T, client *client.Client, timeout tim
 
 		// We continue to consume vouchers from the chan until all have been completed
 		for got := range client.ReceivedVouchers() {
-			b := BasicVoucherInfo{got.Amount(), got.ChannelId()}
+			b := BasicVoucherInfo{got.Amount, got.ChannelId}
 			// Mark the voucher as received
 			received[b.id()] = true
 

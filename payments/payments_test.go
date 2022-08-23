@@ -22,8 +22,8 @@ func TestPaymentManager(t *testing.T) {
 	testVoucher := func(cId types.Destination, amount *big.Int, actor testactors.Actor) Voucher {
 		payment := &big.Int{}
 		payment.Set(amount)
-		voucher := Voucher{channelId: cId, amount: payment}
-		_ = voucher.sign(actor.PrivateKey)
+		voucher := Voucher{ChannelId: cId, Amount: payment}
+		_ = voucher.Sign(actor.PrivateKey)
 		return voucher
 	}
 
@@ -61,7 +61,7 @@ func TestPaymentManager(t *testing.T) {
 	Equals(t, testVoucher(channelId, payment, testactors.Alice), firstVoucher)
 	Equals(t, onePaymentMade, getBalance(paymentMgr))
 
-	signer, err := firstVoucher.recoverSigner()
+	signer, err := firstVoucher.RecoverSigner()
 	Ok(t, err)
 	Equals(t, testactors.Alice.Address(), signer)
 
@@ -127,7 +127,7 @@ func TestPaymentManager(t *testing.T) {
 
 	// Receiving a voucher with the wrong signature fails
 	voucher := testVoucher(channelId, payment, testactors.Alice)
-	voucher.amount = triplePayment
+	voucher.Amount = triplePayment
 	_, err = receiptMgr.Receive(voucher)
 	Assert(t, err != nil, "expected an error")
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))

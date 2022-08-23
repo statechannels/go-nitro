@@ -31,7 +31,7 @@ func NewReceiptManager() ReceiptManager {
 func (pm receiptManager) Register(channelId types.Destination, sender common.Address, startingBalance *big.Int) error {
 	balance := &big.Int{}
 	balance.Set(startingBalance)
-	voucher := Voucher{channelId: channelId, amount: big.NewInt(0)}
+	voucher := Voucher{ChannelId: channelId, Amount: big.NewInt(0)}
 	data := &paymentStatus{sender, balance, voucher}
 	if _, ok := pm.channels[channelId]; ok {
 		return fmt.Errorf("channel already registered")
@@ -49,23 +49,23 @@ func (pm *receiptManager) Remove(channelId types.Destination) {
 
 // Receive validates the incoming voucher, and returns the total amount received so far
 func (rm *receiptManager) Receive(voucher Voucher) (*big.Int, error) {
-	status, ok := rm.channels[voucher.channelId]
+	status, ok := rm.channels[voucher.ChannelId]
 	if !ok {
 		return &big.Int{}, fmt.Errorf("channel not registered")
 	}
 
 	received := &big.Int{}
-	received.Set(voucher.amount)
+	received.Set(voucher.Amount)
 	if types.Gt(received, status.startingBalance) {
 		return &big.Int{}, fmt.Errorf("channel has insufficient funds")
 	}
 
-	receivedSoFar := status.largestVoucher.amount
+	receivedSoFar := status.largestVoucher.Amount
 	if !types.Gt(received, receivedSoFar) {
 		return receivedSoFar, nil
 	}
 
-	signer, err := voucher.recoverSigner()
+	signer, err := voucher.RecoverSigner()
 	if err != nil {
 		return &big.Int{}, err
 	}
@@ -85,7 +85,7 @@ func (rm *receiptManager) Balance(channelId types.Destination) (Balance, error) 
 	}
 
 	balance := Balance{&big.Int{}, &big.Int{}}
-	balance.Paid.Set(data.largestVoucher.amount)
-	balance.Remaining.Sub(data.startingBalance, data.largestVoucher.amount)
+	balance.Paid.Set(data.largestVoucher.Amount)
+	balance.Remaining.Sub(data.startingBalance, data.largestVoucher.Amount)
 	return balance, nil
 }

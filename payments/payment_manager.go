@@ -41,7 +41,7 @@ func (pm *paymentManager) Remove(channelId types.Destination) {
 // total amount paid.
 func (pm *paymentManager) Pay(channelId types.Destination, amount *big.Int, pk []byte) (Voucher, error) {
 	balance, ok := pm.channels[channelId]
-	voucher := Voucher{amount: &big.Int{}}
+	voucher := Voucher{Amount: &big.Int{}}
 	if !ok {
 		return voucher, fmt.Errorf("channel not found")
 	}
@@ -52,16 +52,16 @@ func (pm *paymentManager) Pay(channelId types.Destination, amount *big.Int, pk [
 	balance.Remaining.Sub(balance.Remaining, amount)
 	balance.Paid.Add(balance.Paid, amount)
 
-	voucher.amount.Set(balance.Paid)
-	voucher.channelId = channelId
+	voucher.Amount.Set(balance.Paid)
+	voucher.ChannelId = channelId
 
-	if err := voucher.sign(pk); err != nil {
+	if err := voucher.Sign(pk); err != nil {
 		return Voucher{}, err
 	}
 
 	// question: is there a more efficient way to validate the signature against the purported signer?
 	// (is this validation even necessary? it's more of a failsafe than an important feature)
-	signer, err := voucher.recoverSigner()
+	signer, err := voucher.RecoverSigner()
 	if err != nil {
 		return Voucher{}, err
 	}

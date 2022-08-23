@@ -32,7 +32,6 @@ func addProposal() consensus_channel.SignedProposal {
 }
 
 func TestMessage(t *testing.T) {
-
 	msg := Message{
 		To: types.Address{'a'},
 		payloads: []messagePayload{{
@@ -49,7 +48,7 @@ func TestMessage(t *testing.T) {
 
 			{
 
-				Voucher: *payments.NewVoucher(types.Destination{'d'}, big.NewInt(123)),
+				Voucher: payments.Voucher{ChannelId: types.Destination{'d'}, Amount: big.NewInt(123), Signature: state.Signature{}},
 			},
 		},
 	}

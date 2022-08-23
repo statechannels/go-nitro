@@ -2,7 +2,6 @@ package payments
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -11,21 +10,11 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// ChannelId returns the channel id of the voucher
-func (v Voucher) ChannelId() types.Destination {
-	return v.channelId
-}
-
-// Amount returns the amount of the voucher
-func (v Voucher) Amount() *big.Int {
-	return v.amount
-}
-
-func (v *Voucher) hash() (types.Bytes32, error) {
+func (v *Voucher) Hash() (types.Bytes32, error) {
 	encoded, err := abi.Arguments{
 		{Type: nitroAbi.Destination},
 		{Type: nitroAbi.Uint256},
-	}.Pack(v.channelId, v.amount)
+	}.Pack(v.ChannelId, v.Amount)
 
 	if err != nil {
 		return types.Bytes32{}, fmt.Errorf("failed to encode voucher: %w", err)
@@ -33,8 +22,8 @@ func (v *Voucher) hash() (types.Bytes32, error) {
 	return crypto.Keccak256Hash(encoded), nil
 }
 
-func (v *Voucher) sign(pk []byte) error {
-	hash, err := v.hash()
+func (v *Voucher) Sign(pk []byte) error {
+	hash, err := v.Hash()
 	if err != nil {
 		return err
 	}
@@ -45,29 +34,20 @@ func (v *Voucher) sign(pk []byte) error {
 		return err
 	}
 
-	v.signature = sig
+	v.Signature = sig
 
 	return nil
 }
 
-func (v *Voucher) recoverSigner() (types.Address, error) {
-	h, error := v.hash()
+func (v *Voucher) RecoverSigner() (types.Address, error) {
+	h, error := v.Hash()
 	if error != nil {
 		return types.Address{}, error
 	}
-	return nitroCrypto.RecoverEthereumMessageSigner(h[:], v.signature)
+	return nitroCrypto.RecoverEthereumMessageSigner(h[:], v.Signature)
 }
 
 // Equal returns true if the two vouchers have the same channel id, amount and signatures
 func (v *Voucher) Equal(other *Voucher) bool {
-	return v.channelId == other.channelId && v.amount.Cmp(other.amount) == 0 && v.signature.Equal(other.signature)
-}
-
-// NewVoucher constructs a voucher with the given channel id and amount
-func NewVoucher(channelId types.Destination, amount *big.Int) *Voucher {
-	v := Voucher{
-		channelId: channelId,
-		amount:    amount,
-	}
-	return &v
+	return v.ChannelId == other.ChannelId && v.Amount.Cmp(other.Amount) == 0 && v.Signature.Equal(other.Signature)
 }
