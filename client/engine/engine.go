@@ -524,7 +524,7 @@ func (e Engine) registerPaymentChannelWithManagers(vfo virtualfund.Objective) er
 	// TODO: Assumes one asset for now
 	startingBalance.Set(postfund.Outcome[0].Allocations[0].Amount)
 
-	return e.vm.Register(vfo.V.Id, payments.GetPaymentSender(postfund.Participants), startingBalance)
+	return e.vm.Register(vfo.V.Id, payments.GetPaymentSender(postfund.Participants), payments.GetPaymentReceiver(postfund.Participants), startingBalance)
 
 }
 

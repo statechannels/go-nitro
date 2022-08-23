@@ -12,6 +12,7 @@ type (
 	// paymentStatus stores the status of payments for a given payment channel.
 	paymentStatus struct {
 		channelSender   common.Address
+		channelReceiver common.Address
 		startingBalance *big.Int
 		largestVoucher  Voucher
 		currentBalance  Balance
@@ -31,11 +32,11 @@ func NewVoucherManager(me types.Address) VoucherManager {
 }
 
 // Register registers a channel for use, given the sender and starting balance of the channel
-func (vm voucherManager) Register(channelId types.Destination, sender common.Address, startingBalance *big.Int) error {
+func (vm voucherManager) Register(channelId types.Destination, sender common.Address, receiver common.Address, startingBalance *big.Int) error {
 
 	balance := Balance{big.NewInt(0).Set(startingBalance), &big.Int{}}
 	voucher := Voucher{ChannelId: channelId, Amount: big.NewInt(0)}
-	data := &paymentStatus{sender, big.NewInt(0).Set(startingBalance), voucher, balance}
+	data := &paymentStatus{sender, receiver, big.NewInt(0).Set(startingBalance), voucher, balance}
 	if _, ok := vm.channels[channelId]; ok {
 		return fmt.Errorf("channel already registered")
 	}
@@ -61,7 +62,7 @@ func (vm *voucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 	}
 
 	if types.Gt(amount, pStatus.currentBalance.Remaining) {
-		return Voucher{}, fmt.Errorf("unable to pay amount: insufficient funds")
+		return voucher, fmt.Errorf("unable to pay amount: insufficient funds")
 	}
 
 	pStatus.currentBalance.Remaining.Sub(pStatus.currentBalance.Remaining, amount)
@@ -71,19 +72,20 @@ func (vm *voucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 	voucher.ChannelId = channelId
 
 	if err := voucher.Sign(pk); err != nil {
-		return Voucher{}, err
+		return voucher, err
 	}
 
 	// question: is there a more efficient way to validate the signature against the purported signer?
 	// (is this validation even necessary? it's more of a failsafe than an important feature)
 	signer, err := voucher.RecoverSigner()
 	if err != nil {
-		return Voucher{}, err
+		return voucher, err
 	}
 
 	if signer != vm.me {
 		return Voucher{}, fmt.Errorf("only signer may sign vouchers")
 	}
+
 	return voucher, nil
 }
 

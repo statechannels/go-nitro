@@ -32,7 +32,7 @@ type (
 
 	VoucherManager interface {
 		// Register registers a channel with a starting balance
-		Register(channelId types.Destination, sender common.Address, startingBalance *big.Int) error
+		Register(channelId types.Destination, sender common.Address, receiver common.Address, startingBalance *big.Int) error
 
 		// Remove deletes the channel from the manager
 		Remove(channelId types.Destination)

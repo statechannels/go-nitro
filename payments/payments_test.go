@@ -53,7 +53,7 @@ func TestPaymentManager(t *testing.T) {
 	_, err := paymentMgr.Pay(channelId, payment, testactors.Alice.PrivateKey)
 	Assert(t, err != nil, "channel must be registered to make payments")
 
-	Ok(t, paymentMgr.Register(channelId, testactors.Alice.Address(), deposit))
+	Ok(t, paymentMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit))
 	Equals(t, startingBalance, getBalance(paymentMgr))
 
 	firstVoucher, err := paymentMgr.Pay(channelId, payment, testactors.Alice.PrivateKey)
@@ -71,7 +71,7 @@ func TestPaymentManager(t *testing.T) {
 	_, err = receiptMgr.Receive(firstVoucher)
 	Assert(t, err != nil, "channel must be registered to receive vouchers")
 
-	_ = receiptMgr.Register(channelId, testactors.Alice.Address(), deposit)
+	_ = receiptMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit)
 	Equals(t, startingBalance, getBalance(receiptMgr))
 
 	received, err := receiptMgr.Receive(firstVoucher)
@@ -97,11 +97,11 @@ func TestPaymentManager(t *testing.T) {
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
 	// re-registering a channel doesn't reset its balance
-	err = paymentMgr.Register(channelId, testactors.Alice.Address(), deposit)
+	err = paymentMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit)
 	Assert(t, err != nil, "expected register to fail")
 	Equals(t, twoPaymentsMade, getBalance(paymentMgr))
 
-	err = receiptMgr.Register(channelId, testactors.Alice.Address(), deposit)
+	err = receiptMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit)
 	Assert(t, err != nil, "expected register to fail")
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
