@@ -96,13 +96,13 @@ export function computeReclaimEffects(
     };
 
     // copy each element except the indexOfTargetInSource element
-    if (sourceAllocations[i].destination == left) {
+    if (sourceAllocations[i].destination.toLowerCase() == left.toLowerCase()) {
       newSourceAllocations[k].amount = BigNumber.from(sourceAllocations[i].amount)
         .add(targetAllocations[0].amount)
         .toHexString();
       foundLeft = true;
     }
-    if (sourceAllocations[i].destination == right) {
+    if (sourceAllocations[i].destination.toLowerCase() == right.toLowerCase()) {
       newSourceAllocations[k].amount = BigNumber.from(sourceAllocations[i].amount)
         .add(targetAllocations[1].amount)
         .toHexString();

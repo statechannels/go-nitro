@@ -1,5 +1,9 @@
 import {writeFileSync} from 'fs';
 
+import {BigNumber} from 'ethers';
+
+import {encodeOutcome, Outcome} from '../src';
+import {computeReclaimEffects} from '../src/contract/multi-asset-holder';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../src/transactions';
 
 import {
@@ -10,6 +14,12 @@ import {
   LforX,
   gasUsed,
   executeAndRevert,
+  LforV,
+  V,
+  Alice,
+  Bob,
+  challengeVirtualPaymentChannelWithVoucher,
+  paymentAmount,
 } from './fixtures';
 import {emptyGasResults} from './gas';
 import {deployContracts, nitroAdjudicator, token} from './localSetup';
@@ -233,8 +243,7 @@ async function main() {
     );
     // transferAllAssetsX  ⬛ ---------------> 👩
 
-    // meta-test here to confirm the total recorded in gas.ts is up to date
-    // with the recorded costs of each step
+    // record total
     gasResults.ETHexitSadLedgerFunded.satp.total =
       gasResults.ETHexitSadLedgerFunded.satp.challengeL +
       gasResults.ETHexitSadLedgerFunded.satp.transferAllAssetsL +
@@ -242,92 +251,91 @@ async function main() {
       gasResults.ETHexitSadLedgerFunded.satp.transferAllAssetsX;
   });
 
-  // TODO uncomment this test when VirtualApp is developed
+  // exiting a virtual funded (with ETH) channel
   // Scenario: Intermediary Ingrid goes offline
   // initially                   ⬛ ->  L  ->  V  -> 👩
   // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👩
   // reclaim L                   ⬛ -- (L) --------> 👩
   // transferAllAssetsL          ⬛ ---------------> 👩
-  // exiting a virtual funded (with ETH) channel
-  // await executeAndRevert(async () => {
-  //   // begin setup
-  //   await (
-  //     await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforJ.channelId, 0, 10, {
-  //       value: 10,
-  //     })
-  //   ).wait();
-  //   // end setup
-  //   // initially                   ⬛ ->  L  ->  J  ->  X  -> 👩
-  //   // challenge L
-  //   const {
-  //     challengeTx: ledgerChallengeTx,
-  //     proof: ledgerProof,
-  //     finalizesAt: ledgerFinalizesAt,
-  //   } = await challengeChannel(LforJ, MAGIC_ADDRESS_INDICATING_ETH);
-  //   gasResults.ETHexitSadVirtualFunded.satp.challengeL = await gasUsed(ledgerChallengeTx);
+  await executeAndRevert(async () => {
+    // begin setup
+    await (
+      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforV.channelId, 0, 10, {
+        value: 10,
+      })
+    ).wait();
+    // end setup
+    // initially                   ⬛ ->  L  ->  V  -> 👨
+    // challenge L
+    const {
+      challengeTx: ledgerChallengeTx,
+      proof: ledgerProof,
+      finalizesAt: ledgerFinalizesAt,
+    } = await challengeChannel(LforV, MAGIC_ADDRESS_INDICATING_ETH);
+    gasResults.ETHexitSadVirtualFunded.satp.challengeL = await gasUsed(ledgerChallengeTx);
 
-  //   // challenge J
-  //   const {
-  //     challengeTx: jointChallengeTx,
-  //     proof: jointProof,
-  //     finalizesAt: jointChannelFinalizesAt,
-  //   } = await challengeChannel(J, MAGIC_ADDRESS_INDICATING_ETH);
-  //   gasResults.ETHexitSadVirtualFunded.satp.challengeJ = await gasUsed(jointChallengeTx);
+    // challenge V ...
+    const {
+      stateHash: vStateHash,
+      outcome: vOutcome,
+      gasUsed: vGasUsed,
+      finalizesAt: vFinalizesAt,
+    } = await challengeVirtualPaymentChannelWithVoucher(
+      V,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      BigNumber.from(paymentAmount).toNumber(),
+      Alice,
+      Bob
+    );
+    gasResults.ETHexitSadVirtualFunded.satp.challengeV = vGasUsed;
 
-  //   // challenge X
-  //   const {challengeTx, proof, finalizesAt} = await challengeChannel(
-  //     X,
-  //     MAGIC_ADDRESS_INDICATING_ETH
-  //   );
-  //   gasResults.ETHexitSadVirtualFunded.satp.challengeX = await gasUsed(challengeTx);
+    // begin wait
+    await waitForChallengesToTimeOut([ledgerFinalizesAt, vFinalizesAt]);
+    // end wait
+    // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👨
 
-  //   // begin wait
-  //   await waitForChallengesToTimeOut([ledgerFinalizesAt, jointChannelFinalizesAt, finalizesAt]);
-  //   // end wait
-  //   // challenge L,J,X + timeout   ⬛ -> (L) -> (J) -> (X) -> 👩
-  //   await assertEthBalancesAndHoldings(
-  //     {Alice: 0, Bob: 0, Ingrid: 0},
-  //     {LforJ: amountForAliceAndBob, J: 0, X: 0}
-  //   );
+    gasResults.ETHexitSadVirtualFunded.satp.reclaimL = await gasUsed(
+      await nitroAdjudicator.reclaim({
+        sourceChannelId: LforV.channelId,
+        sourceStateHash: ledgerProof.stateHash,
+        sourceOutcomeBytes: encodeOutcome(ledgerProof.outcome),
+        sourceAssetIndex: 0,
+        indexOfTargetInSource: 2,
+        targetStateHash: vStateHash,
+        targetOutcomeBytes: encodeOutcome(vOutcome),
+        targetAssetIndex: 0,
+      })
+    );
+    // reclaim L                   ⬛ -- (L) --------> 👨
 
-  //   gasResults.ETHexitSadVirtualFunded.satp.claimL = await gasUsed(
-  //     await nitroAdjudicator.claim({
-  //       sourceChannelId: LforJ.channelId,
-  //       sourceStateHash: ledgerProof.stateHash,
-  //       sourceOutcomeBytes: encodeOutcome(ledgerProof.outcome),
-  //       sourceAssetIndex: 0,
-  //       indexOfTargetInSource: 0,
-  //       targetStateHash: jointProof.stateHash,
-  //       targetOutcomeBytes: encodeOutcome(jointProof.outcome),
-  //       targetAssetIndex: 0,
-  //       targetAllocationIndicesToPayout: [], // meaning "all"
-  //     })
-  //   );
-  //   // claimL                      ⬛ ---------------> (X) -> 👩
-  //   await assertEthBalancesAndHoldings(
-  //     {Alice: 0, Bob: 0, Ingrid: 0},
-  //     {LforJ: 0, J: 0, X: amountForAliceAndBob}
-  //   );
+    // track change to ledger outcome caused by calling reclaim
+    const updatedAllocations = computeReclaimEffects(
+      ledgerProof.outcome[0].allocations,
+      vOutcome[0].allocations,
+      2
+    );
+    const updatedOutcome: Outcome = [
+      {
+        ...ledgerProof.outcome[0],
+        allocations: updatedAllocations,
+      },
+    ];
+    gasResults.ETHexitSadVirtualFunded.satp.transferAllAssetsL = await gasUsed(
+      await nitroAdjudicator.transferAllAssets(
+        LforV.channelId,
+        updatedOutcome,
+        ledgerProof.stateHash // stateHash
+      )
+    );
+    // transferAllAssetsL          ⬛ ---------------> 👨
 
-  //   gasResults.ETHexitSadVirtualFunded.satp.transferAllAssetsX = await gasUsed(
-  //     await nitroAdjudicator.transferAllAssets(
-  //       X.channelId,
-  //       proof.outcome, // outcomeBytes
-  //       proof.stateHash // stateHash
-  //     )
-  //   );
-  //   // transferAllAssetsX          ⬛ ----------------------> 👩
-  //   await assertEthBalancesAndHoldings(
-  //     {Alice: amountForAlice, Bob: amountForBob, Ingrid: 0},
-  //     {LforJ: 0, J: 0, X: 0}
-  //   );
-
-  //   // meta-test here to confirm the total recorded in gas.ts is up to date
-  //   // with the recorded costs of each step
-  //   gasResults.ETHexitSadVirtualFunded.satp.total =
-  //     (Object.values(gasResults.ETHexitSadVirtualFunded.satp) as number[]).reduce((a, b) => a + b) -
-  //     gasResults.ETHexitSadVirtualFunded.satp.total;
-  // });
+    // record total
+    gasResults.ETHexitSadVirtualFunded.satp.total =
+      gasResults.ETHexitSadVirtualFunded.satp.challengeL +
+      gasResults.ETHexitSadVirtualFunded.satp.challengeV +
+      gasResults.ETHexitSadVirtualFunded.satp.reclaimL +
+      gasResults.ETHexitSadVirtualFunded.satp.transferAllAssetsL;
+  });
 
   writeFileSync(__dirname + '/gasResults.json', JSON.stringify(gasResults, null, 2));
 }

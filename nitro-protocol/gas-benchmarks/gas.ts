@@ -95,12 +95,19 @@ export const emptyGasResults: GasResults = {
     },
   },
   ETHexitSadVirtualFunded: {
-    // Scenario: Intermediary Ingrid goes offline
-    // initially                   ⬛ ->  L  ->  V  -> 👩
-    // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👩
-    // reclaim L                   ⬛ -- (L) --------> 👩
-    // transferAllAssetsL          ⬛ ---------------> 👩
-    // TODO
-    satp: {},
+    // Scenario: Alice has gone offline during the virtual payment channel execution.
+    // Bob redeems a voucher on chain, reclaim his money into his ledger channel and then transfers it out.
+    // Alice then calls reclaim to recover her remaining funds
+    // initially                   ⬛ ->  L  ->  V  -> 👨
+    // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👨
+    // reclaim L                   ⬛ -- (L) --------> 👨
+    // transferAllAssetsL          ⬛ ---------------> 👨
+    satp: {
+      challengeL: 0,
+      challengeV: 0,
+      reclaimL: 0,
+      transferAllAssetsL: 0,
+      total: 0,
+    },
   },
 };

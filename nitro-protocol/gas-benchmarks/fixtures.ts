@@ -6,13 +6,18 @@ import {AllocationType} from '@statechannels/exit-format';
 import {takeSnapshot} from '@nomicfoundation/hardhat-network-helpers';
 
 import {
+  Bytes32,
   convertAddressToBytes32,
+  encodeVoucherAmountAndSignature,
   getChannelId,
   getFixedPart,
+  MAGIC_ADDRESS_INDICATING_ETH,
   signChallengeMessage,
   SignedState,
   signState,
+  signVoucher,
   State,
+  Voucher,
 } from '../src';
 import {
   encodeGuaranteeData,
@@ -22,7 +27,7 @@ import {
 } from '../src/contract/outcome';
 import {FixedPart, getVariablePart, hashState, SignedVariablePart} from '../src/contract/state';
 
-import {nitroAdjudicator, trivialAppAddress} from './localSetup';
+import {nitroAdjudicator, consensusAppAddress, virtualPaymentAppAddress} from './localSetup';
 
 export const chainId = '0x7a69'; // 31337 in hex (hardhat network default)
 
@@ -35,31 +40,37 @@ export const Ingrid = new Wallet(
 );
 export const participants = [Alice.address, Bob.address];
 
-export const amountForAlice = BigNumber.from(5).toHexString();
-export const amountForBob = BigNumber.from(5).toHexString();
+export const amountForAlice = BigNumber.from(10).toHexString();
+export const amountForBob = BigNumber.from(0).toHexString(); // We will use a unidirectional payment channel, i.e. Bob starts with nothing!
+export const paymentAmount = BigNumber.from(1).toHexString();
 export const amountForAliceAndBob = BigNumber.from(amountForAlice).add(amountForBob).toHexString();
 
 export class TestChannel {
   constructor(
     channelNonce: number,
     wallets: ethers.Wallet[],
-    allocations: Array<GuaranteeAllocation | SimpleAllocation>
+    allocations: Array<GuaranteeAllocation | SimpleAllocation>,
+    appDefinition?: string
   ) {
     this.wallets = wallets;
+    this.appDefinition = appDefinition ?? consensusAppAddress;
     this.fixedPart = {
       chainId,
       channelNonce,
       participants: wallets.map(w => w.address),
-      appDefinition: trivialAppAddress, // TODO adjust this to point to an appropriate (deployed) application, according to the channel type
+      appDefinition: this.appDefinition,
       challengeDuration: 600,
     };
     this.allocations = allocations;
   }
+  appDefinition: string;
   wallets: ethers.Wallet[];
   fixedPart: FixedPart;
   private allocations: Array<GuaranteeAllocation | SimpleAllocation>;
   outcome(asset: string) {
-    const outcome: Outcome = [{asset, allocations: this.allocations, metadata: '0x'}];
+    const outcome: Outcome = [
+      {asset, allocations: Array.from(this.allocations, a => ({...a})), metadata: '0x'},
+    ];
     return outcome;
   }
   get channelId() {
@@ -68,7 +79,7 @@ export class TestChannel {
   someState(asset: string): State {
     return {
       challengeDuration: 600,
-      appDefinition: trivialAppAddress, // TODO adjust this to point to an appropriate (deployed) application, according to the channel type
+      appDefinition: this.appDefinition,
       channel: this.fixedPart,
       turnNum: 6,
       isFinal: false,
@@ -102,7 +113,10 @@ export class TestChannel {
         variablePart: getVariablePart(state),
         sigs: this.wallets.map(w => signState(state, w.privateKey).signature),
       },
-      challengeSignature: signChallengeMessage([{state} as SignedState], Alice.privateKey),
+      challengeSignature: signChallengeMessage(
+        [{state} as SignedState],
+        this.wallets[0].privateKey
+      ),
       outcome: state.outcome,
       stateHash: hashState(state),
     };
@@ -200,37 +214,50 @@ export const LforX = new TestChannel(
   ]
 );
 
-/** Joint channel between Alice, Bob, and Ingrid, funding application channel X */
-export const J = new TestChannel(
+/** Virtual payment channel between Alice and Bob with Ingrid as intermediary*/
+export const V = new TestChannel(
   5,
-  [Alice, Bob, Ingrid],
+  [Alice, Ingrid, Bob],
   [
     {
-      destination: X.channelId,
-      amount: amountForAliceAndBob,
+      destination: convertAddressToBytes32(Alice.address),
+      amount: amountForAlice,
+      metadata: '0x',
+      allocationType: AllocationType.simple,
+    },
+    {
+      destination: convertAddressToBytes32(Bob.address),
+      amount: amountForBob,
+      metadata: '0x',
+      allocationType: AllocationType.simple,
+    },
+  ],
+  virtualPaymentAppAddress
+);
+
+/** Ledger channel between Bob and Ingrid, with Guarantee targeting virtual channel V */
+export const LforV = new TestChannel(
+  7,
+  [Bob, Ingrid],
+  [
+    {
+      destination: convertAddressToBytes32(Bob.address),
+      amount: '0x0',
       metadata: '0x',
       allocationType: AllocationType.simple,
     },
     {
       destination: convertAddressToBytes32(Ingrid.address),
-      amount: amountForAliceAndBob,
+      amount: '0x0',
       metadata: '0x',
       allocationType: AllocationType.simple,
     },
-  ]
-);
-
-/** Ledger channel between Alice and Ingid, with Guarantee targeting joint channel J */
-export const LforJ = new TestChannel(
-  7,
-  [Alice, Bob],
-  [
     {
-      destination: J.channelId,
+      destination: V.channelId,
       amount: amountForAliceAndBob,
       metadata: encodeGuaranteeData({
-        left: convertAddressToBytes32(Alice.address),
-        right: convertAddressToBytes32(Ingrid.address),
+        left: convertAddressToBytes32(Ingrid.address),
+        right: convertAddressToBytes32(Bob.address),
       }),
       allocationType: AllocationType.guarantee,
     },
@@ -268,7 +295,6 @@ export async function challengeChannel(
   finalizesAt: number;
 }> {
   const proof = channel.counterSignedSupportProof(channel.someState(asset)); // TODO use a nontrivial app with a state transition
-
   const challengeTx = await nitroAdjudicator.challenge(
     proof.fixedPart,
     proof.proof,
@@ -287,8 +313,8 @@ interface ETHBalances {
 }
 
 interface ETHHoldings {
-  LforJ: BigNumberish;
-  J: BigNumberish;
+  LforV: BigNumberish;
+  V: BigNumberish;
   X: BigNumberish;
 }
 
@@ -299,9 +325,10 @@ export async function assertEthBalancesAndHoldings(
   ethBalances: Partial<ETHBalances>,
   ethHoldings: Partial<ETHHoldings>
 ): Promise<void> {
+  const provider = hre.ethers.provider;
   const internalDestinations: {[Property in keyof ETHHoldings]: string} = {
-    LforJ: LforJ.channelId,
-    J: J.channelId,
+    LforV: LforV.channelId,
+    V: V.channelId,
     X: X.channelId,
   };
   const externalDestinations: {[Property in keyof ETHBalances]: string} = {
@@ -348,4 +375,70 @@ export async function executeAndRevert(fnc: () => void) {
   const snapshot = await takeSnapshot();
   await fnc();
   await snapshot.restore();
+}
+
+/**
+ * Constructs a support proof for the supplied channel which includes a payment voucher, and calls challenge,
+ * @returns The state hash, outcome, finalizesAt and gas consumed
+ */
+export async function challengeVirtualPaymentChannelWithVoucher(
+  channel: TestChannel,
+  asset: string,
+  amount: number,
+  payerWallet: Wallet,
+  challengerWallet: Wallet
+): Promise<{
+  stateHash: Bytes32;
+  outcome: Outcome;
+  finalizesAt: number;
+  gasUsed: number;
+}> {
+  const postFund = channel.someState(asset);
+  postFund.appData = '0x';
+  postFund.turnNum = 1;
+
+  const proof = [channel.counterSignedSupportProof(postFund).candidate];
+  const redemption = channel.someState(asset);
+  const voucher: Voucher = {
+    channelId: channel.channelId,
+    amount: BigNumber.from(amount).toHexString(),
+  };
+  const voucherSignature = await signVoucher(voucher, payerWallet);
+  redemption.appData = encodeVoucherAmountAndSignature(voucher.amount, voucherSignature);
+  redemption.turnNum = 2;
+
+  const outcome = channel.outcome(MAGIC_ADDRESS_INDICATING_ETH);
+  outcome[0].allocations[0].amount = BigNumber.from(outcome[0].allocations[0].amount)
+    .sub(amount)
+    .toHexString();
+  outcome[0].allocations[1].amount = BigNumber.from(amount).toHexString();
+  redemption.outcome = outcome;
+
+  const candidate: SignedVariablePart = {
+    variablePart: getVariablePart(redemption),
+    sigs: [signState(redemption, challengerWallet.privateKey).signature],
+  };
+
+  const challengeSignature = signChallengeMessage(
+    [{state: redemption} as SignedState],
+    challengerWallet.privateKey
+  );
+
+  const challengeTx = await nitroAdjudicator.challenge(
+    channel.fixedPart,
+    proof,
+    candidate,
+    challengeSignature
+  );
+
+  const finalizesAt = await getFinalizesAtFromTransactionHash(challengeTx.hash);
+
+  const gasUsed = (await challengeTx.wait()).gasUsed.toNumber();
+
+  return {
+    stateHash: hashState(redemption),
+    finalizesAt,
+    outcome: redemption.outcome,
+    gasUsed,
+  };
 }

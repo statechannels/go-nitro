@@ -1,6 +1,9 @@
 import {readFileSync, existsSync} from 'fs';
 
-import {encodeOutcome} from '../src';
+import {BigNumber} from 'ethers';
+
+import {encodeOutcome, Outcome} from '../src';
+import {computeReclaimEffects} from '../src/contract/multi-asset-holder';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../src/transactions';
 
 import {
@@ -8,12 +11,15 @@ import {
   Y,
   X,
   LforX,
-  LforJ,
-  J,
+  LforV,
   assertEthBalancesAndHoldings,
   amountForAlice,
-  amountForBob,
   amountForAliceAndBob,
+  V,
+  challengeVirtualPaymentChannelWithVoucher,
+  Alice,
+  Bob,
+  paymentAmount,
 } from './fixtures';
 import {GasResults} from './gas';
 import {challengeChannelAndExpectGas} from './jestSetup';
@@ -199,72 +205,100 @@ describe('Consumes the expected gas for sad-path exits', () => {
     ).toEqual(gasRequiredTo.ETHexitSadLedgerFunded.satp.total);
   });
 
-  // TODO unskip this test when the contracts are satp compatible
-  it.skip(`when exiting a virtual funded (with ETH) channel`, async () => {
+  it(`when exiting a virtual funded (with ETH) channel`, async () => {
     // begin setup
     await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforJ.channelId, 0, 10, {
-        value: 10,
-      })
+      await nitroAdjudicator.deposit(
+        // This deposit represents what in reality would likely be two deposits (one from Bob, one from Ingrid)
+        MAGIC_ADDRESS_INDICATING_ETH,
+        LforV.channelId,
+        0,
+        amountForAliceAndBob,
+        {
+          value: amountForAliceAndBob,
+        }
+      )
     ).wait();
     // end setup
-    // initially                   ⬛ ->  L  ->  J  ->  X  -> 👩
+    // initially                   ⬛ ->  L  ->  V  -> 👨
     // challenge L
     const {proof: ledgerProof, finalizesAt: ledgerFinalizesAt} = await challengeChannelAndExpectGas(
-      LforJ,
+      LforV,
       MAGIC_ADDRESS_INDICATING_ETH,
       gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeL
     );
-    // challenge J
-    const {proof: jointProof, finalizesAt: jointChannelFinalizesAt} =
-      await challengeChannelAndExpectGas(
-        J,
-        MAGIC_ADDRESS_INDICATING_ETH,
-        gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeJ
-      );
-    // challenge X
-    const {proof, finalizesAt} = await challengeChannelAndExpectGas(
-      X,
+
+    // challenge V with a voucher
+    const {
+      stateHash: vStateHash,
+      outcome: vOutcome,
+      gasUsed: vGasUsed,
+      finalizesAt: vFinalizesAt,
+    } = await challengeVirtualPaymentChannelWithVoucher(
+      V,
       MAGIC_ADDRESS_INDICATING_ETH,
-      gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeX
+      BigNumber.from(paymentAmount).toNumber(),
+      Alice,
+      Bob
     );
+
+    expect(vGasUsed).toEqual(gasRequiredTo.ETHexitSadVirtualFunded.satp.challengeV);
+
     // begin wait
-    await waitForChallengesToTimeOut([ledgerFinalizesAt, jointChannelFinalizesAt, finalizesAt]);
+    await waitForChallengesToTimeOut([ledgerFinalizesAt, vFinalizesAt]);
     // end wait
-    // challenge L,J,X + timeout   ⬛ -> (L) -> (J) -> (X) -> 👩
+    // challenge L,V   + timeout   ⬛ -> (L) -> (V) -> 👨
     await assertEthBalancesAndHoldings(
       {Alice: 0, Bob: 0, Ingrid: 0},
-      {LforJ: amountForAliceAndBob, J: 0, X: 0}
+      {LforV: amountForAliceAndBob, V: 0}
     );
     await expect(
-      await nitroAdjudicator.claim({
-        sourceChannelId: LforJ.channelId,
+      await nitroAdjudicator.reclaim({
+        sourceChannelId: LforV.channelId,
         sourceStateHash: ledgerProof.stateHash,
         sourceOutcomeBytes: encodeOutcome(ledgerProof.outcome),
         sourceAssetIndex: 0,
-        indexOfTargetInSource: 0,
-        targetStateHash: jointProof.stateHash,
-        targetOutcomeBytes: encodeOutcome(jointProof.outcome),
+        indexOfTargetInSource: 2,
+        targetStateHash: vStateHash,
+        targetOutcomeBytes: encodeOutcome(vOutcome),
         targetAssetIndex: 0,
-        targetAllocationIndicesToPayout: [], // meaning "all"
       })
-    ).toConsumeGas(gasRequiredTo.ETHexitSadVirtualFunded.satp.claimL);
-    // claimL                      ⬛ ---------------> (X) -> 👩
+    ).toConsumeGas(gasRequiredTo.ETHexitSadVirtualFunded.satp.reclaimL);
+    // reclaim L                   ⬛ -- (L) --------> 👨
+
     await assertEthBalancesAndHoldings(
       {Alice: 0, Bob: 0, Ingrid: 0},
-      {LforJ: 0, J: 0, X: amountForAliceAndBob}
+      {LforV: amountForAliceAndBob, V: 0}
     );
+
+    // track change to ledger outcome caused by calling reclaim
+    const updatedAllocations = computeReclaimEffects(
+      ledgerProof.outcome[0].allocations,
+      vOutcome[0].allocations,
+      2
+    );
+    const updatedOutcome: Outcome = [
+      {
+        ...ledgerProof.outcome[0],
+        allocations: updatedAllocations,
+      },
+    ];
+
     await expect(
       await nitroAdjudicator.transferAllAssets(
-        X.channelId,
-        proof.outcome, // outcomeBytes
-        proof.stateHash // stateHash
+        LforV.channelId,
+        updatedOutcome,
+        ledgerProof.stateHash // stateHash
       )
-    ).toConsumeGas(gasRequiredTo.ETHexitSadVirtualFunded.satp.transferAllAssetsX);
-    // transferAllAssetsX          ⬛ ----------------------> 👩
+    ).toConsumeGas(gasRequiredTo.ETHexitSadVirtualFunded.satp.transferAllAssetsL);
+    // transferAllAssetsL          ⬛ ---------------> 👨
+
     await assertEthBalancesAndHoldings(
-      {Alice: amountForAlice, Bob: amountForBob, Ingrid: 0},
-      {LforJ: 0, J: 0, X: 0}
+      {
+        Bob: BigNumber.from(paymentAmount), // Bob gets his paymennt
+        Ingrid: BigNumber.from(amountForAlice).sub(BigNumber.from(paymentAmount)), // Ingrid is adjusted down, she will be compensated in the other ledger channel
+      },
+      {LforV: 0, V: 0}
     );
 
     // meta-test here to confirm the total recorded in gas.ts is up to date
