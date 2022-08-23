@@ -30,27 +30,27 @@
   },
   "ETHexitSad": {
     "satp": {
-      "challenge": 111275,
+      "challenge": 116515,
       "transferAllAssets": 78319,
-      "total": 189594
+      "total": 194834
     }
   },
   "ETHexitSadLedgerFunded": {
     "satp": {
-      "challengeX": 111275,
-      "challengeL": 105269,
+      "challengeX": 116515,
+      "challengeL": 109730,
       "transferAllAssetsL": 58944,
       "transferAllAssetsX": 78319,
-      "total": 353807
+      "total": 363508
     }
   },
   "ETHexitSadVirtualFunded": {
     "satp": {
-      "challengeL": 119660,
+      "challengeL": 125691,
       "challengeV": 178764,
       "reclaimL": 59265,
       "transferAllAssetsL": 110019,
-      "total": 467708
+      "total": 473739
     }
   }
 }
