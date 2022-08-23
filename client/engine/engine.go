@@ -318,14 +318,6 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	for _, voucher := range message.Vouchers() {
 
-		c, ok := e.store.GetChannelById(voucher.ChannelId)
-		if !ok {
-			return EngineEvent{}, fmt.Errorf("could not get channel from the store %s", c.Id)
-		}
-		recipient := payments.GetPaymentReceiver(c.Participants)
-		if recipient != *e.store.GetAddress() {
-			return EngineEvent{}, fmt.Errorf("not the recipient in channel %s", c.Id)
-		}
 		// TODO: return the amount we paid?
 		_, err := e.vm.Receive(voucher)
 
@@ -385,7 +377,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
 				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 
-			err = e.registerPaymentChannelWithManagers(vfo)
+			err = e.registerPaymentChannel(vfo)
 			if err != nil {
 				return EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
 			}
@@ -518,7 +510,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	return
 }
 
-func (e Engine) registerPaymentChannelWithManagers(vfo virtualfund.Objective) error {
+func (e Engine) registerPaymentChannel(vfo virtualfund.Objective) error {
 	postfund := vfo.V.PostFundState()
 	startingBalance := big.NewInt(0)
 	// TODO: Assumes one asset for now
@@ -591,7 +583,7 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
-		err = e.registerPaymentChannelWithManagers(vfo)
+		err = e.registerPaymentChannel(vfo)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
 		}
