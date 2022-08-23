@@ -521,16 +521,16 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 }
 
 func (e Engine) registerPaymentChannelWithManagers(vfo virtualfund.Objective) error {
-	prefund := vfo.V.PreFundState()
+	postfund := vfo.V.PostFundState()
 	startingBalance := big.NewInt(0)
 	// TODO: Assumes one asset for now
-	startingBalance.Set(prefund.Outcome[0].Allocations[0].Amount)
+	startingBalance.Set(postfund.Outcome[0].Allocations[0].Amount)
 
 	switch vfo.MyRole {
 	case 0:
 		return e.pm.Register(vfo.V.Id, startingBalance)
 	case 2:
-		return e.rm.Register(vfo.V.Id, prefund.Participants[0], startingBalance)
+		return e.rm.Register(vfo.V.Id, postfund.Participants[0], startingBalance)
 	default:
 		// The intermediary does not need to use the payment or receipt manager
 		return nil
