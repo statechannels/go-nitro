@@ -53,7 +53,7 @@ type Engine struct {
 
 	metrics *MetricsRecorder
 
-	vm payments.VoucherManager
+	vm *payments.VoucherManager
 }
 
 // PaymentRequest represents a request from the API to make a payment using a channel

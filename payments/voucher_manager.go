@@ -8,31 +8,29 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-type (
-	// paymentStatus stores the status of payments for a given payment channel.
-	paymentStatus struct {
-		channelSender   common.Address
-		channelReceiver common.Address
-		startingBalance *big.Int
-		largestVoucher  Voucher
-		currentBalance  Balance
-	}
+// paymentStatus stores the status of payments for a given payment channel.
+type paymentStatus struct {
+	channelSender   common.Address
+	channelReceiver common.Address
+	startingBalance *big.Int
+	largestVoucher  Voucher
+	currentBalance  Balance
+}
 
-	// voucherManager receives and generates vouchers. It is responsible for storing vouchers.
-	voucherManager struct {
-		channels map[types.Destination]*paymentStatus
-		me       common.Address
-	}
-)
+// VoucherManager receives and generates vouchers. It is responsible for storing vouchers.
+type VoucherManager struct {
+	channels map[types.Destination]*paymentStatus
+	me       common.Address
+}
 
 // NewVoucherManager creates a new voucher manager
-func NewVoucherManager(me types.Address) VoucherManager {
+func NewVoucherManager(me types.Address) *VoucherManager {
 	channels := make(map[types.Destination]*paymentStatus)
-	return &voucherManager{channels, me}
+	return &VoucherManager{channels, me}
 }
 
 // Register registers a channel for use, given the sender and starting balance of the channel
-func (vm voucherManager) Register(channelId types.Destination, sender common.Address, receiver common.Address, startingBalance *big.Int) error {
+func (vm VoucherManager) Register(channelId types.Destination, sender common.Address, receiver common.Address, startingBalance *big.Int) error {
 
 	balance := Balance{big.NewInt(0).Set(startingBalance), &big.Int{}}
 	voucher := Voucher{ChannelId: channelId, Amount: big.NewInt(0)}
@@ -47,13 +45,13 @@ func (vm voucherManager) Register(channelId types.Destination, sender common.Add
 }
 
 // Remove deletes the channel's status
-func (vm *voucherManager) Remove(channelId types.Destination) {
+func (vm *VoucherManager) Remove(channelId types.Destination) {
 	delete(vm.channels, channelId)
 }
 
 // Pay will deduct amount from balance and add it to paid, returning a signed voucher for the
 // total amount paid.
-func (vm *voucherManager) Pay(channelId types.Destination, amount *big.Int, pk []byte) (Voucher, error) {
+func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk []byte) (Voucher, error) {
 	pStatus, ok := vm.channels[channelId]
 
 	voucher := Voucher{Amount: &big.Int{}}
@@ -90,7 +88,7 @@ func (vm *voucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 }
 
 // Receive validates the incoming voucher, and returns the total amount received so far
-func (vm *voucherManager) Receive(voucher Voucher) (*big.Int, error) {
+func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
 	status, ok := vm.channels[voucher.ChannelId]
 	if !ok {
 		return &big.Int{}, fmt.Errorf("channel not registered")
@@ -123,7 +121,7 @@ func (vm *voucherManager) Receive(voucher Voucher) (*big.Int, error) {
 }
 
 // Balance returns the balance of the channel
-func (vm *voucherManager) Balance(channelId types.Destination) (Balance, error) {
+func (vm *VoucherManager) Balance(channelId types.Destination) (Balance, error) {
 	data, ok := vm.channels[channelId]
 	if !ok {
 		return Balance{}, fmt.Errorf("channel not found")
