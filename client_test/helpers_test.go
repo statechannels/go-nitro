@@ -29,9 +29,12 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 	waitAndSendOn := func(completed map[protocols.ObjectiveId]bool, allDone chan interface{}) {
 
 		// We continue to consume completed objective ids from the chan until all have been completed
-		for got := range client.CompletedObjectives() {
-			// Mark the objective as completed
-			completed[got] = true
+		for got := range client.ObjectiveStatuses {
+
+			if got.Status == engine.Completed {
+				// Mark the objective as completed
+				completed[got.Id] = true
+			}
 
 			// If all objectives are completed we can send the all done signal and return
 			isDone := true
@@ -85,7 +88,7 @@ func waitTimeForReceivedVoucher(t *testing.T, client *client.Client, timeout tim
 	waitAndSendOn := func(received map[string]bool, allDone chan interface{}) {
 
 		// We continue to consume vouchers from the chan until all have been completed
-		for got := range client.ReceivedVouchers() {
+		for got := range client.ReceivedVouchers {
 			b := BasicVoucherInfo{got.Amount(), got.ChannelId()}
 			// Mark the voucher as received
 			received[b.id()] = true

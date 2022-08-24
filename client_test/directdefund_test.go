@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/statechannels/go-nitro/client"
+	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -110,9 +111,9 @@ func TestDirectDefund(t *testing.T) {
 
 		select {
 		case <-time.After(time.Second * 10):
-			t.Fatalf("expected ddfo on active ledger channel to fail, but no failures occurred within 10 seconds")
-		case rejected := <-clientA.FailedObjectives():
-			if rejected != protocols.ObjectiveId("DirectDefunding-"+ddfoTarget.String()) {
+			t.Fatalf("expected ddfo on active ledger channel to fail, but no statuses were sent within 10 seconds")
+		case os := <-clientA.ObjectiveStatuses:
+			if os.Id == protocols.ObjectiveId("DirectDefunding-"+ddfoTarget.String()) && os.Status != engine.Failed {
 				t.Errorf("expected ddfo on active ledger channel to fail, but it didn't")
 			}
 		}

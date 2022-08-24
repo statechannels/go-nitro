@@ -42,8 +42,8 @@ type Engine struct {
 	fromLedger chan consensus_channel.Proposal
 
 	// toAPi chans
-	ObjectiveStatuses chan<- ObjectiveStatus
-	ReceivedVouchers  chan<- payments.Voucher
+	ObjectiveStatuses chan ObjectiveStatus
+	ReceivedVouchers  chan payments.Voucher
 
 	msg   messageservice.MessageService
 	chain chainservice.ChainService

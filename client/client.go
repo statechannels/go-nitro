@@ -22,8 +22,8 @@ import (
 type Client struct {
 	engine            engine.Engine // The core business logic of the client
 	Address           *types.Address
-	ObjectiveStatuses chan<- engine.ObjectiveStatus
-	ReceivedVouchers  chan<- payments.Voucher
+	ObjectiveStatuses chan engine.ObjectiveStatus
+	ReceivedVouchers  chan payments.Voucher
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
