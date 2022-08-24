@@ -65,6 +65,7 @@ func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 
 	pStatus.currentBalance.Remaining.Sub(pStatus.currentBalance.Remaining, amount)
 	pStatus.currentBalance.Paid.Add(pStatus.currentBalance.Paid, amount)
+	pStatus.largestVoucher = voucher
 
 	voucher.Amount.Set(pStatus.currentBalance.Paid)
 	voucher.ChannelId = channelId
