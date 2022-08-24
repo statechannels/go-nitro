@@ -19,9 +19,9 @@ type (
 	// - then Alice and Bob would cooperatively conclude the channel with outcome
 	//   {alice: 80, bob: 20}
 	Voucher struct {
-		channelId types.Destination
-		amount    *big.Int
-		signature state.Signature
+		ChannelId types.Destination
+		Amount    *big.Int
+		Signature state.Signature
 	}
 
 	// Balance stores the remaining and paid funds in a channel.

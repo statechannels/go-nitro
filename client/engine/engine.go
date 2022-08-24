@@ -320,7 +320,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	for _, voucher := range message.Vouchers() {
 
-		c, ok := e.store.GetChannelById(voucher.ChannelId())
+		c, ok := e.store.GetChannelById(voucher.ChannelId)
 		if !ok {
 			return EngineEvent{}, fmt.Errorf("could not get channel from the store %s", c.Id)
 		}
