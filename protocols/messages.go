@@ -280,12 +280,20 @@ type StateSummary struct {
 	TurnNum     uint64
 }
 
+// VoucherSummary contains some basic info about a voucher for logging.
+type VoucherSummary struct {
+	ObjectiveId string
+	ChannelId   string
+	Amount      uint64
+}
+
 // MessagarSummary contains some basic info about a message for logging.
 type MessageSummary struct {
 	To        string
 	Proposals []ProposalSummary
 	States    []StateSummary
 	Rejected  []ObjectiveId
+	vouchers  []VoucherSummary
 }
 
 // SummarizeMessage returns a MessageSummary for the provided message.
@@ -310,7 +318,12 @@ func SummarizeMessage(m Message) MessageSummary {
 		rejectedObjectives = append(rejectedObjectives, p.ObjectiveId)
 	}
 
-	return MessageSummary{To: m.To.String(), Proposals: proposals, States: states, Rejected: rejectedObjectives}
+	vouchers := make([]VoucherSummary, len(m.Vouchers()))
+	for i, v := range m.Vouchers() {
+		vouchers[i] = VoucherSummary{ObjectiveId: string(v.ObjectiveId), ChannelId: v.Payload.ChannelId.String(), Amount: v.Payload.Amount.Uint64()}
+	}
+
+	return MessageSummary{To: m.To.String(), Proposals: proposals, States: states, Rejected: rejectedObjectives, vouchers: vouchers}
 }
 
 // SummarizeProposal returns a ProposalSummary for the provided signed proposal.
