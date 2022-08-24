@@ -70,19 +70,9 @@ type APIEvent struct {
 	ObjectiveToSpawn protocols.ObjectiveRequest
 	PaymentToMake    PaymentRequest
 }
-
-type Status uint
-
-const (
-	Unapproved = iota
-	Approved
-	Completed
-	Failed
-)
-
 type ObjectiveStatus struct {
 	Id     protocols.ObjectiveId
-	Status Status
+	Status protocols.ObjectiveStatus
 }
 type CompletedObjectiveEvent struct {
 	Id protocols.ObjectiveId
@@ -170,7 +160,7 @@ func (e *Engine) Run() {
 		}
 
 		if objectiveStatus != nil {
-			if objectiveStatus.Status == Completed {
+			if objectiveStatus.Status == protocols.Completed {
 				e.logger.Printf("Objective %s is complete & returned to API", objectiveStatus.Id)
 				e.metrics.RecordObjectiveCompleted(objectiveStatus.Id)
 			}
@@ -231,7 +221,7 @@ func (e *Engine) handleMessage(message protocols.Message) (*payments.Voucher, *O
 				err = e.executeSideEffects(sideEffects)
 				// An error would mean we failed to send a message. But the objective is still "completed".
 				// So, we should return allCompleted even if there was an error.
-				return nil, &ObjectiveStatus{objective.Id(), Completed}, err
+				return nil, &ObjectiveStatus{objective.Id(), protocols.Completed}, err
 			}
 		}
 
@@ -307,7 +297,7 @@ func (e *Engine) handleMessage(message protocols.Message) (*payments.Voucher, *O
 			return nil, nil, err
 		}
 
-		return nil, &ObjectiveStatus{objective.Id(), Failed}, nil
+		return nil, &ObjectiveStatus{objective.Id(), protocols.Rejected}, nil
 	}
 
 	for _, voucher := range message.Vouchers() {
@@ -406,7 +396,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (objectiveStatus *ObjectiveSt
 			e.metrics.RecordObjectiveStarted(objectiveId)
 			ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
 			if err != nil {
-				return &ObjectiveStatus{objectiveId, Failed}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+				return &ObjectiveStatus{objectiveId, protocols.Rejected}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 			// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 			e.store.DestroyConsensusChannel(request.ChannelId)
@@ -479,7 +469,7 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 func (e *Engine) attemptProgress(objective protocols.Objective) (objectiveStatus *ObjectiveStatus, err error) {
 	defer e.metrics.RecordFunctionDuration()()
 
-	objectiveStatus = &ObjectiveStatus{Id: objective.Id()}
+	objectiveStatus = &ObjectiveStatus{Id: objective.Id(), Status: objective.GetStatus()}
 
 	secretKey := e.store.GetChannelSecretKey()
 	var crankedObjective protocols.Objective
@@ -504,7 +494,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (objectiveStatus
 	// TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
 	// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
 	if waitingFor == "WaitingForNothing" {
-		objectiveStatus.Status = Completed
+		objectiveStatus.Status = protocols.Completed
 		e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
 		err = e.spawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
 		if err != nil {

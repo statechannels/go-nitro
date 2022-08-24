@@ -31,7 +31,7 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 		// We continue to consume completed objective ids from the chan until all have been completed
 		for got := range client.ObjectiveStatuses {
 
-			if got.Status == engine.Completed {
+			if got.Status == protocols.Completed {
 				// Mark the objective as completed
 				completed[got.Id] = true
 			}
