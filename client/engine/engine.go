@@ -193,7 +193,7 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 
 // updateObjective handles updating and cranking the objective and dispatching any side effects
 func (e *Engine) updateObjective(objective protocols.Objective, event protocols.ObjectiveEvent) (EngineEvent, error) {
-	changeEvent := EngineEvent{}
+	engineEvent := EngineEvent{}
 	if objective.GetStatus() == protocols.Unapproved {
 		e.logger.Printf("Policymaker is %+v", e.policymaker)
 		if e.policymaker.ShouldApprove(objective) {
@@ -211,21 +211,21 @@ func (e *Engine) updateObjective(objective protocols.Objective, event protocols.
 				return EngineEvent{}, err
 			}
 
-			changeEvent.CompletedObjectives = append(changeEvent.CompletedObjectives, objective)
+			engineEvent.CompletedObjectives = append(engineEvent.CompletedObjectives, objective)
 			err = e.executeSideEffects(sideEffects)
 			// An error would mean we failed to send a message. But the objective is still "completed".
 			// So, we should return allCompleted even if there was an error.
-			return changeEvent, err
+			return engineEvent, err
 		}
 	}
 
 	if objective.GetStatus() == protocols.Completed {
 		e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
-		return changeEvent, nil
+		return engineEvent, nil
 	}
 	if objective.GetStatus() == protocols.Rejected {
 		e.logger.Printf("Ignoring payload for rejected objective  %s", objective.Id())
-		return changeEvent, nil
+		return engineEvent, nil
 	}
 
 	updatedObjective, err := objective.Update(event)
@@ -237,13 +237,13 @@ func (e *Engine) updateObjective(objective protocols.Objective, event protocols.
 	if err != nil {
 		return EngineEvent{}, err
 	}
-	changeEvent.CompletedObjectives = append(changeEvent.CompletedObjectives, progressEvent.CompletedObjectives...)
+	engineEvent.CompletedObjectives = append(engineEvent.CompletedObjectives, progressEvent.CompletedObjectives...)
 
 	if err != nil {
 		return EngineEvent{}, err
 	}
 
-	return changeEvent, nil
+	return engineEvent, nil
 }
 
 // handleMessage handles a Message from a peer go-nitro Wallet.
