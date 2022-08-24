@@ -25,9 +25,9 @@ func TestVirtualFundWithSimpleTCPMessageService(t *testing.T) {
 		irene.Address(): "localhost:3007",
 	}
 
-	clientA, msgA := setupClientWithSimpleTCP(alice.PrivateKey, chainServiceA, peers, logDestination, 0)
-	clientB, msgB := setupClientWithSimpleTCP(bob.PrivateKey, chainServiceB, peers, logDestination, 0)
-	clientI, msgI := setupClientWithSimpleTCP(irene.PrivateKey, chainServiceI, peers, logDestination, 0)
+	clientA, msgA, _ := setupClientWithSimpleTCP(alice.PrivateKey, chainServiceA, peers, logDestination, 0)
+	clientB, msgB, _ := setupClientWithSimpleTCP(bob.PrivateKey, chainServiceB, peers, logDestination, 0)
+	clientI, msgI, _ := setupClientWithSimpleTCP(irene.PrivateKey, chainServiceI, peers, logDestination, 0)
 	defer msgA.Close()
 	defer msgB.Close()
 	defer msgI.Close()
