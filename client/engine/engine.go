@@ -53,8 +53,7 @@ type Engine struct {
 
 	metrics *MetricsRecorder
 
-	pm payments.PaymentManager
-	rm payments.ReceiptManager
+	vm *payments.VoucherManager
 }
 
 // PaymentRequest represents a request from the API to make a payment using a channel
@@ -108,8 +107,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	e.policymaker = policymaker
 
-	e.rm = payments.NewReceiptManager()
-	e.pm = payments.NewPaymentManager(*e.store.GetAddress())
+	e.vm = payments.NewVoucherManager(*store.GetAddress())
 
 	e.logger.Println("Constructed Engine")
 
@@ -320,16 +318,8 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	for _, voucher := range message.Vouchers() {
 
-		c, ok := e.store.GetChannelById(voucher.ChannelId)
-		if !ok {
-			return EngineEvent{}, fmt.Errorf("could not get channel from the store %s", c.Id)
-		}
-		recipient := payments.GetPaymentReceiver(c.Participants)
-		if recipient != *e.store.GetAddress() {
-			return EngineEvent{}, fmt.Errorf("not the recipient in channel %s", c.Id)
-		}
 		// TODO: return the amount we paid?
-		_, err := e.rm.Receive(voucher)
+		_, err := e.vm.Receive(voucher)
 
 		allCompleted.ReceivedVouchers = append(allCompleted.ReceivedVouchers, voucher)
 		if err != nil {
@@ -387,7 +377,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
 				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
 
-			err = e.registerPaymentChannelWithManagers(vfo)
+			err = e.registerPaymentChannel(vfo)
 			if err != nil {
 				return EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
 			}
@@ -427,7 +417,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
 
 	// TODO: Should this live in the payment manager?
 	if cId := apiEvent.PaymentToMake.ChannelId; cId != (types.Destination{}) {
-		voucher, err := e.pm.Pay(
+		voucher, err := e.vm.Pay(
 			cId,
 			apiEvent.PaymentToMake.Amount,
 			*e.store.GetChannelSecretKey())
@@ -438,11 +428,11 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
 		if !ok {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
 		}
-		sender, recipient := payments.GetPaymentSender(c.Participants), payments.GetPaymentReceiver(c.Participants)
-		if sender != *e.store.GetAddress() {
+		payer, payee := payments.GetPayer(c.Participants), payments.GetPayee(c.Participants)
+		if payer != *e.store.GetAddress() {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
 		}
-		se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, recipient)}
+		se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
 		err = e.executeSideEffects(se)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Error sending payment voucher: %w", err)
@@ -520,21 +510,13 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	return
 }
 
-func (e Engine) registerPaymentChannelWithManagers(vfo virtualfund.Objective) error {
+func (e Engine) registerPaymentChannel(vfo virtualfund.Objective) error {
 	postfund := vfo.V.PostFundState()
 	startingBalance := big.NewInt(0)
 	// TODO: Assumes one asset for now
 	startingBalance.Set(postfund.Outcome[0].Allocations[0].Amount)
 
-	switch vfo.MyRole {
-	case 0:
-		return e.pm.Register(vfo.V.Id, startingBalance)
-	case uint(len(vfo.V.Participants) - 1):
-		return e.rm.Register(vfo.V.Id, payments.GetPaymentSender(postfund.Participants), startingBalance)
-	default:
-		// The intermediaries does not need to use the payment or receipt manager
-		return nil
-	}
+	return e.vm.Register(vfo.V.Id, payments.GetPayer(postfund.Participants), payments.GetPayee(postfund.Participants), startingBalance)
 
 }
 
@@ -601,7 +583,7 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
-		err = e.registerPaymentChannelWithManagers(vfo)
+		err = e.registerPaymentChannel(vfo)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
 		}

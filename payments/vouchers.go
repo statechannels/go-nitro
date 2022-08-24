@@ -2,13 +2,36 @@ package payments
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
 	nitroAbi "github.com/statechannels/go-nitro/abi"
+	"github.com/statechannels/go-nitro/channel/state"
 	nitroCrypto "github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
+
+// A Voucher signed by Alice can be used by Bob to redeem payments in case of
+// a misbehaving Alice.
+//
+// During normal operation, Alice & Bob would terminate the channel with an
+// outcome reflecting the largest amount signed by Alice. For instance,
+//   - if the channel started with balances {alice: 100, bob: 0}
+//   - and the biggest voucher signed by alice had amount = 20
+//   - then Alice and Bob would cooperatively conclude the channel with outcome
+//     {alice: 80, bob: 20}
+type Voucher struct {
+	ChannelId types.Destination
+	Amount    *big.Int
+	Signature state.Signature
+}
+
+// Balance stores the remaining and paid funds in a channel.
+type Balance struct {
+	Remaining *big.Int
+	Paid      *big.Int
+}
 
 func (v *Voucher) Hash() (types.Bytes32, error) {
 	encoded, err := abi.Arguments{
