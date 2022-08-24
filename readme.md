@@ -35,8 +35,8 @@ The following roadmap gives an idea of the various packages that compose the `go
 ├── protocols ✅               # functional core of the go-nitro client
 │   ├── direct-fund ✅         # fund a channel on-chain
 │   ├── direct-defund ✅       # defund a channel on-chain
-│   ├── virtual-fund ✅        # fund a channel off-chain through one or more intermediaries
-│   └── virtual-defund ✅      # defund a channel off-chain through one or more intermediaries
+│   ├── virtual-fund ✅ 🚧     # fund a channel off-chain through one (✅) or more (🚧) intermediaries
+│   └── virtual-defund ✅ 🚧   # defund a channel off-chain through one (✅) or more (🚧) intermediaries
 └── types ✅                   # basic types and utility methods
 ```
 
