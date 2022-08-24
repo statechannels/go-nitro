@@ -291,7 +291,7 @@ func (e *Engine) handleMessage(message protocols.Message) (*payments.Voucher, *O
 		objective, err := e.store.GetObjectiveById(entry.ObjectiveId)
 
 		if err != nil {
-			return EngineEvent{}, err
+			return nil, nil, err
 		}
 		if objective.GetStatus() == protocols.Rejected {
 			e.logger.Printf("Ignoring payload for rejected objective  %s", objective.Id())
@@ -304,10 +304,10 @@ func (e *Engine) handleMessage(message protocols.Message) (*payments.Voucher, *O
 		objective, _ = objective.Reject()
 		err = e.store.SetObjective(objective)
 		if err != nil {
-			return EngineEvent{}, err
+			return nil, nil, err
 		}
 
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
+		return nil, &ObjectiveStatus{objective.Id(), Failed}, nil
 	}
 
 	for _, voucher := range message.Vouchers() {
