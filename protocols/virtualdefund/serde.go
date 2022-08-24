@@ -18,7 +18,7 @@ type jsonObjective struct {
 	VFixed         state.FixedPart
 	InitialOutcome outcome.SingleAssetExit
 	Signatures     [3]state.Signature
-	Vouchers       [3]payments.Voucher
+	AliceVoucher   payments.Voucher
 	VoucherSent    bool
 	ToMyLeft       []byte
 	ToMyRight      []byte
@@ -61,6 +61,7 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 		ToMyRight:      right,
 		MyRole:         o.MyRole,
 		VoucherSent:    o.VoucherSent,
+		AliceVoucher:   *o.AliceVoucher,
 	}
 
 	return json.Marshal(jsonVFO)
@@ -94,11 +95,7 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.InitialOutcome = jsonVFO.InitialOutcome
 	o.VFixed = jsonVFO.VFixed
 
-	vouchers := [3]*payments.Voucher{}
-	for i := range vouchers {
-		vouchers[i] = &jsonVFO.Vouchers[i]
-	}
-	o.Vouchers = vouchers
+	o.AliceVoucher = &jsonVFO.AliceVoucher
 	o.VoucherSent = jsonVFO.VoucherSent
 
 	return nil

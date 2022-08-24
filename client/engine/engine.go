@@ -647,7 +647,16 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
-		return &virtualfund.Objective{}, fmt.Errorf("cannot construct virtual defund from a state, must use a voucher instead")
+
+		getOurVoucher := func(cId types.Destination) (payments.Voucher, error) {
+			return e.vm.Voucher(cId, *e.store.GetChannelSecretKey())
+		}
+		vdfo, err := virtualdefund.ConstructObjectiveFromVoucher(ss.State().FixedPart(), *payments.NewVoucher(ss.ChannelId(), big.NewInt(0)), *e.store.GetAddress(), false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel, getOurVoucher)
+		if err != nil {
+			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
+		}
+
+		return &vdfo, nil
 
 	case directdefund.IsDirectDefundObjective(id):
 		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), false, e.store.GetConsensusChannelById)

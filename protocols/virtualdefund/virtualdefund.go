@@ -41,7 +41,7 @@ type Objective struct {
 	// Signatures gets updated as participants sign and send states to each other.
 	Signatures [3]state.Signature
 
-	Vouchers [3]*payments.Voucher
+	AliceVoucher *payments.Voucher
 
 	// TODO: Do we need this? If so it should probably be private
 	VoucherSent bool
@@ -137,16 +137,14 @@ func NewObjective(request ObjectiveRequest,
 
 	}
 
-	vouchers := [3]*payments.Voucher{}
-	vouchers[V.MyIndex] = &latestVoucher
 	return Objective{
 		Status:         status,
 		InitialOutcome: initialOutcome, VFixed: V.FixedPart,
-		Signatures: [3]state.Signature{},
-		MyRole:     V.MyIndex,
-		ToMyLeft:   toMyLeft,
-		ToMyRight:  toMyRight,
-		Vouchers:   vouchers,
+		Signatures:   [3]state.Signature{},
+		MyRole:       V.MyIndex,
+		ToMyLeft:     toMyLeft,
+		ToMyRight:    toMyRight,
+		AliceVoucher: &latestVoucher,
 	}, nil
 
 }
@@ -186,17 +184,12 @@ func ConstructObjectiveFromVoucher(
 	}
 
 	alice := o.VFixed.Participants[0]
-	intermediary := o.VFixed.Participants[1]
-	bob := o.VFixed.Participants[2]
-
 	// Set the initial voucher we received from the message
 	switch {
 	case from == alice:
-		o.Vouchers[0] = initialVoucher.Clone()
-	case from == intermediary:
-		o.Vouchers[1] = initialVoucher.Clone()
-	case from == bob:
-		o.Vouchers[2] = initialVoucher.Clone()
+		o.AliceVoucher = initialVoucher.Clone()
+	default:
+		// TODO: Only Alice should be sending vouchers?
 	}
 	return o, nil
 }
@@ -227,20 +220,15 @@ func (o *Objective) finalState() state.State {
 }
 
 // Returns the proposal with the largest amount
+// TODO: Should go
 func (o *Objective) LargestProposalAmount() *big.Int {
-	largest := big.NewInt(0)
 
-	for _, v := range o.Vouchers {
-		amount := big.NewInt(0)
-		if v != nil && v.Amount != nil {
-			amount.Set(v.Amount)
-		}
-		if amount.Cmp(largest) > 0 {
-
-			largest = v.Amount
-		}
+	amount := big.NewInt(0)
+	if o.AliceVoucher != nil && o.AliceVoucher.Amount != nil {
+		amount.Set(o.AliceVoucher.Amount)
 	}
-	return largest
+
+	return amount
 }
 
 // finalOutcome returns the outcome for the final state calculated from the InitialOutcome and PaidToBob
@@ -315,10 +303,7 @@ func (o *Objective) clone() Objective {
 
 	clone.VFixed = o.VFixed.Clone()
 	clone.InitialOutcome = o.InitialOutcome.Clone()
-
-	for i, v := range o.Vouchers {
-		clone.Vouchers[i] = v.Clone()
-	}
+	clone.AliceVoucher = o.AliceVoucher.Clone()
 
 	clone.Signatures = [3]state.Signature{}
 	for i, s := range o.Signatures {
@@ -348,16 +333,16 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		return &updated, sideEffects, WaitingForNothing, protocols.ErrNotApproved
 	}
 
-	if !updated.VoucherSent {
+	if !updated.VoucherSent && updated.MyRole == payments.PAYER_INDEX {
 
 		myAddress := updated.VFixed.Participants[updated.MyRole]
-		vMsgs := protocols.CreateVoucherMessage(*updated.Vouchers[o.MyRole], myAddress, updated.Id(), updated.VFixed.Participants...)
+		vMsgs := protocols.CreateVoucherMessage(*updated.AliceVoucher, myAddress, updated.Id(), updated.VFixed.Participants...)
 
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, vMsgs...)
 		updated.VoucherSent = true
 	}
 
-	if !updated.haveAllVouchers() {
+	if !updated.hasAliceVoucher() {
 		return &updated, sideEffects, WaitingForLatestVoucher, nil
 	}
 
@@ -500,13 +485,9 @@ func (o *Objective) signedByMe() bool {
 
 }
 
-func (o *Objective) haveAllVouchers() bool {
-	for _, v := range o.Vouchers {
-		if v == nil {
-			return false
-		}
-	}
-	return true
+// hasAliceVoucher returns true if we have received the latest voucher from Alice
+func (o *Objective) hasAliceVoucher() bool {
+	return o.AliceVoucher != nil
 }
 
 // isRightDefunded returns whether the ledger channel ToMyRight has been defunded
@@ -630,16 +611,11 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 
 	if event.Voucher.ChannelId == o.VId() {
 		alice := updated.VFixed.Participants[0]
-		intermediary := updated.VFixed.Participants[1]
-		bob := updated.VFixed.Participants[2]
-
 		switch {
 		case event.From == alice:
-			updated.Vouchers[0] = event.Voucher.Clone()
-		case event.From == intermediary:
-			updated.Vouchers[1] = event.Voucher.Clone()
-		case event.From == bob:
-			updated.Vouchers[2] = event.Voucher.Clone()
+			updated.AliceVoucher = event.Voucher.Clone()
+		default:
+			// TODO: Only Alice should be sending vouchers
 		}
 	}
 	return &updated, nil

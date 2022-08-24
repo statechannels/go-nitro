@@ -78,7 +78,11 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
 
 		voucherFetch := func(types.Destination) (payments.Voucher, error) {
+			if my.Address() == alice.Address() {
+				return data.voucher, nil
+			}
 			return payments.Voucher{}, nil
+
 		}
 		virtualDefund, err := NewObjective(request, false, my.Address(), getChannel, getConsensusChannel, voucherFetch)
 		testhelpers.Ok(t, err)
@@ -135,18 +139,15 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 			t.Fatal(err)
 
 		}
-		//
+
 		updatedObj, se, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
 
-		testhelpers.Equals(t, WaitingForLatestVoucher, waitingFor)
-		testhelpers.AssertVoucherSentToEveryone(t, se, updated.Vouchers[updated.MyRole], my, allActors)
+		testhelpers.Equals(t, WaitingForCompleteFinal, waitingFor)
+		testhelpers.AssertVoucherSentToEveryone(t, se, updated.AliceVoucher, my, allActors)
 
-		// Set all the vouchers. This mimics all the parties exchanging the latest voucher they have.
-		for i := range updated.Vouchers {
-			updated.Vouchers[i] = aliceVoucher.Clone()
-		}
+		updated.AliceVoucher = aliceVoucher.Clone()
 
 		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 		testhelpers.Ok(t, err)
@@ -219,7 +220,7 @@ func TestConstructObjectiveFromState(t *testing.T) {
 	want := Objective{
 		Status:         protocols.Approved,
 		InitialOutcome: data.vInitial.Outcome[0],
-		Vouchers:       [3]*payments.Voucher{voucher.Clone()}, // TODO: We expect the largest voucher we have to be there
+		AliceVoucher:   voucher.Clone(), // TODO: We expect the largest voucher we have to be there
 		VFixed:         data.vFinal.FixedPart(),
 		Signatures:     [3]state.Signature{},
 		ToMyLeft:       left,
