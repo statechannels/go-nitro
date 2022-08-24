@@ -78,7 +78,7 @@ type EngineEvent struct {
 	ReceivedVouchers []payments.Voucher
 }
 
-// Merge merges change event other into e
+// Merge merges other into e
 func (e *EngineEvent) Merge(other *EngineEvent) {
 	e.CompletedObjectives = append(e.CompletedObjectives, other.CompletedObjectives...)
 	e.FailedObjectives = append(e.FailedObjectives, other.FailedObjectives...)
@@ -595,6 +595,8 @@ func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedS
 	}
 }
 
+// getOrCreateObjectiveFromVoucher attempts to retrieve the objective from the store.
+// If the objective is not found it uses the voucher and the channel store to construct a new objective.
 func (e *Engine) getOrCreateObjectiveFromVoucher(id protocols.ObjectiveId, v payments.Voucher) (protocols.Objective, error) {
 	defer e.metrics.RecordFunctionDuration()()
 	if !virtualdefund.IsVirtualDefundObjective(id) {
