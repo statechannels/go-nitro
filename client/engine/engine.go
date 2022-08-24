@@ -428,11 +428,11 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
 		if !ok {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
 		}
-		sender, recipient := payments.GetPaymentSender(c.Participants), payments.GetPaymentReceiver(c.Participants)
-		if sender != *e.store.GetAddress() {
+		payer, payee := payments.GetPayer(c.Participants), payments.GetPayee(c.Participants)
+		if payer != *e.store.GetAddress() {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
 		}
-		se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, recipient)}
+		se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
 		err = e.executeSideEffects(se)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Error sending payment voucher: %w", err)
@@ -516,7 +516,7 @@ func (e Engine) registerPaymentChannel(vfo virtualfund.Objective) error {
 	// TODO: Assumes one asset for now
 	startingBalance.Set(postfund.Outcome[0].Allocations[0].Amount)
 
-	return e.vm.Register(vfo.V.Id, payments.GetPaymentSender(postfund.Participants), payments.GetPaymentReceiver(postfund.Participants), startingBalance)
+	return e.vm.Register(vfo.V.Id, payments.GetPayer(postfund.Participants), payments.GetPayee(postfund.Participants), startingBalance)
 
 }
 

@@ -10,8 +10,8 @@ import (
 
 // paymentStatus stores the status of payments for a given payment channel.
 type paymentStatus struct {
-	channelSender   common.Address
-	channelReceiver common.Address
+	channelPayer    common.Address
+	channelPayee    common.Address
 	startingBalance *big.Int
 	largestVoucher  Voucher
 	currentBalance  Balance
@@ -29,12 +29,12 @@ func NewVoucherManager(me types.Address) *VoucherManager {
 	return &VoucherManager{channels, me}
 }
 
-// Register registers a channel for use, given the sender and starting balance of the channel
-func (vm VoucherManager) Register(channelId types.Destination, sender common.Address, receiver common.Address, startingBalance *big.Int) error {
+// Register registers a channel for use, given the payer, payee and starting balance of the channel
+func (vm VoucherManager) Register(channelId types.Destination, payer common.Address, payee common.Address, startingBalance *big.Int) error {
 
 	balance := Balance{big.NewInt(0).Set(startingBalance), &big.Int{}}
 	voucher := Voucher{ChannelId: channelId, Amount: big.NewInt(0)}
-	data := &paymentStatus{sender, receiver, big.NewInt(0).Set(startingBalance), voucher, balance}
+	data := &paymentStatus{payer, payee, big.NewInt(0).Set(startingBalance), voucher, balance}
 	if _, ok := vm.channels[channelId]; ok {
 		return fmt.Errorf("channel already registered")
 	}
@@ -95,7 +95,7 @@ func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
 	}
 
 	// We only care about vouchers when we are the recipient of the payment
-	if status.channelReceiver != vm.me {
+	if status.channelPayee != vm.me {
 		return &big.Int{}, nil
 	}
 	received := &big.Int{}
@@ -113,8 +113,8 @@ func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
 	if err != nil {
 		return &big.Int{}, err
 	}
-	if signer != status.channelSender {
-		return &big.Int{}, fmt.Errorf("wrong signer: %+v, %+v", signer, status.channelSender)
+	if signer != status.channelPayer {
+		return &big.Int{}, fmt.Errorf("wrong signer: %+v, %+v", signer, status.channelPayer)
 	}
 	status.currentBalance.Paid.Set(received)
 	remaining := big.NewInt(0).Sub(status.startingBalance, received)
