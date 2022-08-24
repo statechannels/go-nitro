@@ -147,7 +147,6 @@ func (m Message) RejectedObjectives() []ObjectivePayload[rejectedObjective] {
 // Serialize serializes the message into a string.
 func (m Message) Serialize() (string, error) {
 	bytes, err := json.Marshal(jsonMessage{m.To, m.From, m.payloads})
-	// fmt.Printf("%+v\n", string(bytes))
 	return string(bytes), err
 }
 
@@ -205,7 +204,6 @@ func DeserializeMessage(s string) (Message, error) {
 		}
 	}
 
-	// fmt.Printf("%+v\n", msg.Payloads)
 	return Message{To: msg.To, From: msg.From, payloads: msg.Payloads}, err
 }
 

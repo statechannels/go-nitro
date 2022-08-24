@@ -198,7 +198,6 @@ func ConstructObjectiveFromVoucher(
 	case from == bob:
 		o.Vouchers[2] = initialVoucher.Clone()
 	}
-	fmt.Printf("vouchers for %s %+v\n", myAddress, o.Vouchers)
 	return o, nil
 }
 
@@ -502,7 +501,6 @@ func (o *Objective) signedByMe() bool {
 }
 
 func (o *Objective) haveAllVouchers() bool {
-	fmt.Printf("%s: %+v\n", o.VFixed.Participants[o.MyRole], o.Vouchers)
 	for _, v := range o.Vouchers {
 		if v == nil {
 			return false
