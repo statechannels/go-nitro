@@ -378,14 +378,17 @@ func CreateRejectionNoticeMessage(oId ObjectiveId, sender types.Address, recipie
 // CreateVoucherMessage returns a signed voucher message for each of the recipients provided.
 func CreateVoucherMessage(voucher payments.Voucher, sender types.Address, objectiveId ObjectiveId, recipients ...types.Address) []Message {
 
-	messages := make([]Message, len(recipients))
-	for i, recipient := range recipients {
+	messages := make([]Message, 0)
+	for _, recipient := range recipients {
+		if recipient == sender {
+			continue
+		}
 		payload := messagePayload{
 			Voucher:     voucher,
 			ObjectiveId: objectiveId,
 		}
 		payloads := []messagePayload{payload}
-		messages[i] = Message{To: recipient, From: sender, payloads: payloads}
+		messages = append(messages, Message{To: recipient, From: sender, payloads: payloads})
 
 	}
 
