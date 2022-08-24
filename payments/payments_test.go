@@ -28,8 +28,9 @@ func TestPaymentManager(t *testing.T) {
 	}
 
 	var (
-		channelId      = types.Destination{1}
-		wrongChannelId = types.Destination{2}
+		channelId        = types.Destination{1}
+		wrongChannelId   = types.Destination{2}
+		anotherChannelId = types.Destination{3}
 
 		deposit       = big.NewInt(1000)
 		payment       = big.NewInt(20)
@@ -111,9 +112,11 @@ func TestPaymentManager(t *testing.T) {
 	Equals(t, doublePayment, received)
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
-	// Only the signer can sign vouchers
-	_, err = paymentMgr.Pay(channelId, triplePayment, testactors.Bob.PrivateKey)
-	Assert(t, err != nil, "only Alice can sign vouchers")
+	// Only the payer can sign vouchers
+	err = receiptMgr.Register(anotherChannelId, testactors.Bob.Address(), testactors.Alice.Address(), deposit)
+	Ok(t, err)
+	_, err = paymentMgr.Pay(anotherChannelId, triplePayment, testactors.Bob.PrivateKey)
+	Assert(t, err != nil, "only payer can sign vouchers")
 
 	// Receiving a voucher for an unknown channel fails
 	_, err = receiptMgr.Receive(testVoucher(wrongChannelId, payment, testactors.Alice))

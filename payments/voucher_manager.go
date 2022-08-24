@@ -63,6 +63,10 @@ func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 		return Voucher{}, fmt.Errorf("unable to pay amount: insufficient funds")
 	}
 
+	if pStatus.channelPayer != vm.me {
+		return Voucher{}, fmt.Errorf("can only sign vouchers if we're the payer")
+	}
+
 	pStatus.currentBalance.Remaining.Sub(pStatus.currentBalance.Remaining, amount)
 	pStatus.currentBalance.Paid.Add(pStatus.currentBalance.Paid, amount)
 	pStatus.largestVoucher = voucher
@@ -72,17 +76,6 @@ func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 
 	if err := voucher.Sign(pk); err != nil {
 		return voucher, err
-	}
-
-	// question: is there a more efficient way to validate the signature against the purported signer?
-	// (is this validation even necessary? it's more of a failsafe than an important feature)
-	signer, err := voucher.RecoverSigner()
-	if err != nil {
-		return voucher, err
-	}
-
-	if signer != vm.me {
-		return Voucher{}, fmt.Errorf("only signer may sign vouchers")
 	}
 
 	return voucher, nil
