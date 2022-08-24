@@ -211,7 +211,7 @@ func TestConstructObjectiveFromState(t *testing.T) {
 	}
 
 	// TODO: Move voucher to data
-	got, err := ConstructObjectiveFromVoucher(data.vFinal.FixedPart(), voucher, true, alice.Address(), getChannel, getConsensusChannel, voucherFetch)
+	got, err := ConstructObjectiveFromVoucher(data.vFinal.FixedPart(), voucher, alice.Address(), true, alice.Address(), getChannel, getConsensusChannel, voucherFetch)
 	if err != nil {
 		t.Fatal(err)
 	}

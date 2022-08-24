@@ -156,6 +156,7 @@ func NewObjective(request ObjectiveRequest,
 func ConstructObjectiveFromVoucher(
 	fixedPart state.FixedPart,
 	initialVoucher payments.Voucher,
+	from types.Address,
 	preapprove bool,
 	myAddress types.Address,
 	getChannel GetChannelByIdFunction,
@@ -173,13 +174,32 @@ func ConstructObjectiveFromVoucher(
 	if err != nil {
 		return Objective{}, err
 	}
-	return NewObjective(
+	o, err := NewObjective(
 		ObjectiveRequest{channelId},
 		preapprove,
 		myAddress,
 		getChannel,
 		getTwoPartyConsensusLedger,
 		getVoucher)
+	if err != nil {
+		return Objective{}, err
+	}
+
+	alice := o.VFixed.Participants[0]
+	intermediary := o.VFixed.Participants[1]
+	bob := o.VFixed.Participants[2]
+
+	// Set the initial voucher we received from the message
+	switch {
+	case from == alice:
+		o.Vouchers[0] = initialVoucher.Clone()
+	case from == intermediary:
+		o.Vouchers[1] = initialVoucher.Clone()
+	case from == bob:
+		o.Vouchers[2] = initialVoucher.Clone()
+	}
+	fmt.Printf("vouchers for %s %+v\n", myAddress, o.Vouchers)
+	return o, nil
 }
 
 // IsVirtualDefundObjective inspects a objective id and returns true if the objective id is for a virtualdefund objective.
@@ -611,7 +631,6 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 	}
 
 	if event.Voucher.ChannelId == o.VId() {
-
 		alice := updated.VFixed.Participants[0]
 		intermediary := updated.VFixed.Participants[1]
 		bob := updated.VFixed.Participants[2]
