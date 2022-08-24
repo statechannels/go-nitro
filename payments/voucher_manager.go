@@ -56,11 +56,11 @@ func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 
 	voucher := Voucher{Amount: &big.Int{}}
 	if !ok {
-		return voucher, fmt.Errorf("channel not found")
+		return Voucher{}, fmt.Errorf("channel not found")
 	}
 
 	if types.Gt(amount, pStatus.currentBalance.Remaining) {
-		return voucher, fmt.Errorf("unable to pay amount: insufficient funds")
+		return Voucher{}, fmt.Errorf("unable to pay amount: insufficient funds")
 	}
 
 	pStatus.currentBalance.Remaining.Sub(pStatus.currentBalance.Remaining, amount)
