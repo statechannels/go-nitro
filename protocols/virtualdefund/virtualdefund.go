@@ -72,9 +72,10 @@ type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger
 func NewObjective(request ObjectiveRequest,
 	preApprove bool,
 	myAddress types.Address,
+	latestVoucher *payments.Voucher,
 	getChannel GetChannelByIdFunction,
 	getConsensusChannel GetTwoPartyConsensusLedgerFunction,
-	getVoucher GetVoucherByChannelIdFunction,
+
 ) (Objective, error) {
 	var status protocols.ObjectiveStatus
 
@@ -125,18 +126,6 @@ func NewObjective(request ObjectiveRequest,
 
 	}
 
-	// If we can't find any vouchers we use an unsigned voucher of 0
-	// TODO: We have a "zero" voucher and now a voucher with amount 0
-	latestVoucher := *payments.NewVoucher(request.ChannelId, big.NewInt(0))
-	if myAddress == alice {
-		var err error
-		latestVoucher, err = getVoucher(request.ChannelId)
-		if err != nil {
-			return Objective{}, fmt.Errorf("could not get the latest voucher for channel %s: %w", request.ChannelId, err)
-		}
-
-	}
-
 	return Objective{
 		Status:         status,
 		InitialOutcome: initialOutcome, VFixed: V.FixedPart,
@@ -144,7 +133,7 @@ func NewObjective(request ObjectiveRequest,
 		MyRole:       V.MyIndex,
 		ToMyLeft:     toMyLeft,
 		ToMyRight:    toMyRight,
-		AliceVoucher: &latestVoucher,
+		AliceVoucher: latestVoucher.Clone(),
 	}, nil
 
 }
@@ -153,13 +142,12 @@ func NewObjective(request ObjectiveRequest,
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
 func ConstructObjectiveFromVoucher(
 	fixedPart state.FixedPart,
-	initialVoucher payments.Voucher,
+	voucher payments.Voucher,
 	from types.Address,
 	preapprove bool,
 	myAddress types.Address,
 	getChannel GetChannelByIdFunction,
 	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
-	getVoucher GetVoucherByChannelIdFunction,
 ) (Objective, error) {
 
 	err := fixedPart.Validate()
@@ -176,9 +164,10 @@ func ConstructObjectiveFromVoucher(
 		ObjectiveRequest{channelId},
 		preapprove,
 		myAddress,
+		&voucher,
 		getChannel,
 		getTwoPartyConsensusLedger,
-		getVoucher)
+	)
 	if err != nil {
 		return Objective{}, err
 	}
@@ -187,7 +176,7 @@ func ConstructObjectiveFromVoucher(
 	// Set the initial voucher we received from the message
 	switch {
 	case from == alice:
-		o.AliceVoucher = initialVoucher.Clone()
+		o.AliceVoucher = voucher.Clone()
 	default:
 		// TODO: Only Alice should be sending vouchers?
 	}

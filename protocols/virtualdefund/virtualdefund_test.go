@@ -12,7 +12,6 @@ import (
 	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
 )
 
 var alice = ta.Alice
@@ -43,11 +42,7 @@ func TestInvalidUpdate(t *testing.T) {
 
 	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vFinal)
 
-	voucherFetch := func(types.Destination) (payments.Voucher, error) {
-		return payments.Voucher{}, nil
-	}
-
-	virtualDefund, err := NewObjective(request, false, alice.Address(), getChannel, getConsensusChannel, voucherFetch)
+	virtualDefund, err := NewObjective(request, false, alice.Address(), nil, getChannel, getConsensusChannel)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,34 +69,32 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		request := ObjectiveRequest{
 			ChannelId: vId,
 		}
+		var updated *Objective
 
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
 
-		voucherFetch := func(types.Destination) (payments.Voucher, error) {
-			if my.Address() == alice.Address() {
-				return data.voucher, nil
-			}
-			return payments.Voucher{}, nil
-
-		}
-		virtualDefund, err := NewObjective(request, false, my.Address(), getChannel, getConsensusChannel, voucherFetch)
+		virtualDefund, err := NewObjective(request, false, my.Address(), nil, getChannel, getConsensusChannel)
 		testhelpers.Ok(t, err)
 		from := alice.Address()
-		if my.Address() == alice.Address() {
-			from = bob.Address()
-		}
-		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), From: from, Voucher: data.voucher}
 
-		updatedObj, err := virtualDefund.Update(e)
-		testhelpers.Ok(t, err)
-		updated := updatedObj.(*Objective)
+		if my.Address() != alice.Address() {
+			e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), From: from, Voucher: data.voucher}
+
+			updatedObj, err := virtualDefund.Update(e)
+			testhelpers.Ok(t, err)
+			updated = updatedObj.(*Objective)
+		} else {
+			updated = &virtualDefund
+			updated.AliceVoucher = &data.voucher
+
+		}
 		signedFinal := state.NewSignedState(data.vFinal)
 		// Sign the final state by some other participant
 		signStateByOthers(my, signedFinal)
 
-		e = protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedState: signedFinal}
+		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedState: signedFinal}
 
-		updatedObj, err = updated.Update(e)
+		updatedObj, err := updated.Update(e)
 		testhelpers.Ok(t, err)
 		updated = updatedObj.(*Objective)
 		for _, a := range allActors {
@@ -123,18 +116,14 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 
 		aliceVoucher, _ := payments.NewSignedVoucher(vId, big.NewInt(int64(data.paid)), alice.PrivateKey)
 
-		voucherFetch := func(types.Destination) (payments.Voucher, error) {
-			return payments.Voucher{}, nil
-		}
+		initialVoucher := payments.NewVoucher(vId, big.NewInt(0))
 		if my.Role == 0 {
-			voucherFetch = func(types.Destination) (payments.Voucher, error) {
-				return *aliceVoucher, nil
-			}
+			initialVoucher = aliceVoucher
 		}
 
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
 
-		virtualDefund, err := NewObjective(request, true, my.Address(), getChannel, getConsensusChannel, voucherFetch)
+		virtualDefund, err := NewObjective(request, true, my.Address(), initialVoucher, getChannel, getConsensusChannel)
 		if err != nil {
 			t.Fatal(err)
 
@@ -207,12 +196,9 @@ func TestConstructObjectiveFromState(t *testing.T) {
 
 	getChannel, getConsensusChannel := generateStoreGetters(alice.Role, vId, data.vInitial)
 	voucher := *payments.NewVoucher(vId, big.NewInt(int64(data.paid)))
-	voucherFetch := func(types.Destination) (payments.Voucher, error) {
-		return voucher, nil
-	}
 
 	// TODO: Move voucher to data
-	got, err := ConstructObjectiveFromVoucher(data.vFinal.FixedPart(), voucher, alice.Address(), true, alice.Address(), getChannel, getConsensusChannel, voucherFetch)
+	got, err := ConstructObjectiveFromVoucher(data.vFinal.FixedPart(), voucher, alice.Address(), true, alice.Address(), getChannel, getConsensusChannel)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,10 +225,8 @@ func TestApproveReject(t *testing.T) {
 	}
 
 	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vInitial)
-	voucherFetch := func(types.Destination) (payments.Voucher, error) {
-		return payments.Voucher{}, nil
-	}
-	virtualDefund, err := NewObjective(request, false, alice.Address(), getChannel, getConsensusChannel, voucherFetch)
+
+	virtualDefund, err := NewObjective(request, false, alice.Address(), nil, getChannel, getConsensusChannel)
 	if err != nil {
 		t.Fatal(err)
 	}

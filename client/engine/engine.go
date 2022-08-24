@@ -407,10 +407,11 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
 
 		case virtualdefund.ObjectiveRequest:
 			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
-			getVoucher := func(cId types.Destination) (payments.Voucher, error) {
-				return e.vm.Voucher(cId, *e.store.GetChannelSecretKey())
+			voucher, err := e.vm.Voucher(request.ChannelId, *e.store.GetChannelSecretKey())
+			if err != nil {
+				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not fetch voucher %+v: %w", request, err)
 			}
-			vdfo, err := virtualdefund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel, getVoucher)
+			vdfo, err := virtualdefund.NewObjective(request, true, *e.store.GetAddress(), &voucher, e.store.GetChannelById, e.store.GetConsensusChannel)
 			if err != nil {
 				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
@@ -605,16 +606,12 @@ func (e *Engine) getOrCreateObjectiveFromVoucher(id protocols.ObjectiveId, v pay
 		return objective, nil
 	} else if errors.Is(err, store.ErrNoSuchObjective) {
 
-		getOurVoucher := func(cId types.Destination) (payments.Voucher, error) {
-			return e.vm.Voucher(cId, *e.store.GetChannelSecretKey())
-		}
-
 		c, ok := e.store.GetChannelById(v.ChannelId)
 		if !ok {
 			return nil, fmt.Errorf("could not find channel for voucher channel id %s", v.ChannelId)
 		}
 
-		vdfo, err := virtualdefund.ConstructObjectiveFromVoucher(c.FixedPart, v, from, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel, getOurVoucher)
+		vdfo, err := virtualdefund.ConstructObjectiveFromVoucher(c.FixedPart, v, from, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
@@ -648,10 +645,12 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
 
-		getOurVoucher := func(cId types.Destination) (payments.Voucher, error) {
-			return e.vm.Voucher(cId, *e.store.GetChannelSecretKey())
+		voucher, err := e.vm.Voucher(ss.ChannelId(), *e.store.GetChannelSecretKey())
+		if err != nil {
+			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
-		vdfo, err := virtualdefund.ConstructObjectiveFromVoucher(ss.State().FixedPart(), *payments.NewVoucher(ss.ChannelId(), big.NewInt(0)), *e.store.GetAddress(), false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel, getOurVoucher)
+
+		vdfo, err := virtualdefund.ConstructObjectiveFromVoucher(ss.State().FixedPart(), voucher, *e.store.GetAddress(), false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
