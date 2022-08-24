@@ -3,7 +3,6 @@ package virtualdefund
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -200,23 +199,11 @@ func (o *Objective) finalState() state.State {
 	return state.StateFromFixedAndVariablePart(o.VFixed, vp)
 }
 
-// Returns the proposal with the largest amount
-// TODO: Should go
-func (o *Objective) LargestProposalAmount() *big.Int {
-
-	amount := big.NewInt(0)
-	if o.AliceVoucher != nil && o.AliceVoucher.Amount != nil {
-		amount.Set(o.AliceVoucher.Amount)
-	}
-
-	return amount
-}
-
 // finalOutcome returns the outcome for the final state calculated from the InitialOutcome and PaidToBob
 func (o *Objective) finalOutcome() outcome.SingleAssetExit {
 	finalOutcome := o.InitialOutcome.Clone()
-	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.LargestProposalAmount())
-	finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.LargestProposalAmount())
+	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.AliceVoucher.Amount)
+	finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.AliceVoucher.Amount)
 
 	return finalOutcome
 }
