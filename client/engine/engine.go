@@ -647,7 +647,7 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
-		return &virtualfund.Objective{}, fmt.Errorf("cannot construct virtual defund from a state. We expect a voucher first.")
+		return &virtualfund.Objective{}, fmt.Errorf("cannot construct virtual defund from a state, must use a voucher instead")
 
 	case directdefund.IsDirectDefundObjective(id):
 		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), false, e.store.GetConsensusChannelById)
