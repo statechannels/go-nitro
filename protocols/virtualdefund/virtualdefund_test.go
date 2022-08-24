@@ -75,10 +75,9 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 
 		virtualDefund, err := NewObjective(request, false, my.Address(), nil, getChannel, getConsensusChannel)
 		testhelpers.Ok(t, err)
-		from := alice.Address()
 
 		if my.Address() != alice.Address() {
-			e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), From: from, Voucher: data.voucher}
+			e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), Voucher: data.voucher}
 
 			updatedObj, err := virtualDefund.Update(e)
 			testhelpers.Ok(t, err)
@@ -198,7 +197,7 @@ func TestConstructObjectiveFromState(t *testing.T) {
 	voucher := *payments.NewVoucher(vId, big.NewInt(int64(data.paid)))
 
 	// TODO: Move voucher to data
-	got, err := ConstructObjectiveFromVoucher(data.vFinal.FixedPart(), voucher, alice.Address(), true, alice.Address(), getChannel, getConsensusChannel)
+	got, err := ConstructObjectiveFromVoucher(data.vFinal.FixedPart(), voucher, true, alice.Address(), getChannel, getConsensusChannel)
 	if err != nil {
 		t.Fatal(err)
 	}

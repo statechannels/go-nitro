@@ -24,7 +24,6 @@ const (
 // Message is an object to be sent across the wire. It can contain a proposal and signed states, and is addressed to a counterparty.
 type Message struct {
 	To       types.Address
-	From     types.Address
 	payloads []messagePayload
 }
 
@@ -146,14 +145,13 @@ func (m Message) RejectedObjectives() []ObjectivePayload[rejectedObjective] {
 
 // Serialize serializes the message into a string.
 func (m Message) Serialize() (string, error) {
-	bytes, err := json.Marshal(jsonMessage{m.To, m.From, m.payloads})
+	bytes, err := json.Marshal(jsonMessage{m.To, m.payloads})
 	return string(bytes), err
 }
 
 // jsonMessage is a private struct with public members, allowing a Message to be easily serialized
 type jsonMessage struct {
 	To       types.Address
-	From     types.Address
 	Payloads []messagePayload
 }
 
@@ -204,7 +202,7 @@ func DeserializeMessage(s string) (Message, error) {
 		}
 	}
 
-	return Message{To: msg.To, From: msg.From, payloads: msg.Payloads}, err
+	return Message{To: msg.To, payloads: msg.Payloads}, err
 }
 
 // CreateSignedStateMessages creates a set of messages containing the signed state.
@@ -223,7 +221,7 @@ func CreateSignedStateMessages(id ObjectiveId, ss state.SignedState, myIndex uin
 			SignedState: ss,
 		}
 
-		message := Message{To: participant, From: ss.State().Participants[myIndex], payloads: []messagePayload{payload}}
+		message := Message{To: participant, payloads: []messagePayload{payload}}
 		messages = append(messages, message)
 	}
 	return messages
@@ -338,7 +336,7 @@ func SummarizeProposal(oId ObjectiveId, sp consensus_channel.SignedProposal) Pro
 
 // CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
 // It contains the provided signed proposals and any proposals in the proposal queue.
-func CreateSignedProposalMessage(recipient types.Address, sender types.Address, proposals ...consensus_channel.SignedProposal) Message {
+func CreateSignedProposalMessage(recipient types.Address, proposals ...consensus_channel.SignedProposal) Message {
 
 	payloads := make([]messagePayload, len(proposals))
 	for i, sp := range proposals {
@@ -351,14 +349,13 @@ func CreateSignedProposalMessage(recipient types.Address, sender types.Address, 
 
 	return Message{
 		To:       recipient,
-		From:     sender,
 		payloads: payloads,
 	}
 }
 
 // CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
 // It contains the provided signed proposals and any proposals in the proposal queue.
-func CreateRejectionNoticeMessage(oId ObjectiveId, sender types.Address, recipients ...types.Address) []Message {
+func CreateRejectionNoticeMessage(oId ObjectiveId, recipients ...types.Address) []Message {
 	messages := make([]Message, len(recipients))
 	for i, recipient := range recipients {
 		payload := messagePayload{
@@ -366,7 +363,7 @@ func CreateRejectionNoticeMessage(oId ObjectiveId, sender types.Address, recipie
 			Rejected:    true,
 		}
 		payloads := []messagePayload{payload}
-		messages[i] = Message{To: recipient, From: sender, payloads: payloads}
+		messages[i] = Message{To: recipient, payloads: payloads}
 
 	}
 
@@ -386,7 +383,7 @@ func CreateVoucherMessage(voucher payments.Voucher, sender types.Address, object
 			ObjectiveId: objectiveId,
 		}
 		payloads := []messagePayload{payload}
-		messages = append(messages, Message{To: recipient, From: sender, payloads: payloads})
+		messages = append(messages, Message{To: recipient, payloads: payloads})
 
 	}
 

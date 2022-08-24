@@ -229,9 +229,9 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 	updated := o.clone()
 
 	updated.Status = protocols.Rejected
-	peer, me := o.C.Participants[1-o.C.MyIndex], o.C.Participants[o.C.MyIndex]
+	peer := o.C.Participants[1-o.C.MyIndex]
 
-	sideEffects := protocols.SideEffects{MessagesToSend: protocols.CreateRejectionNoticeMessage(o.Id(), me, peer)}
+	sideEffects := protocols.SideEffects{MessagesToSend: protocols.CreateRejectionNoticeMessage(o.Id(), peer)}
 	return &updated, sideEffects
 }
 

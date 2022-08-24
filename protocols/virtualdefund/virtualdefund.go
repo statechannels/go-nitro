@@ -143,7 +143,6 @@ func NewObjective(request ObjectiveRequest,
 func ConstructObjectiveFromVoucher(
 	fixedPart state.FixedPart,
 	voucher payments.Voucher,
-	from types.Address,
 	preapprove bool,
 	myAddress types.Address,
 	getChannel GetChannelByIdFunction,
@@ -172,14 +171,7 @@ func ConstructObjectiveFromVoucher(
 		return Objective{}, err
 	}
 
-	alice := o.VFixed.Participants[0]
-	// Set the initial voucher we received from the message
-	switch {
-	case from == alice:
-		o.AliceVoucher = voucher.Clone()
-	default:
-		// TODO: Only Alice should be sending vouchers?
-	}
+	o.AliceVoucher = voucher.Clone()
 	return o, nil
 }
 
@@ -254,8 +246,8 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 			peers = append(peers, peer)
 		}
 	}
-	me := o.VFixed.Participants[o.MyRole]
-	messages := protocols.CreateRejectionNoticeMessage(o.Id(), me, peers...)
+
+	messages := protocols.CreateRejectionNoticeMessage(o.Id(), peers...)
 
 	return &updated, protocols.SideEffects{MessagesToSend: messages}
 }
@@ -429,7 +421,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
 		}
 		recipient := ledger.Follower()
-		message := protocols.CreateSignedProposalMessage(recipient, o.VFixed.Participants[o.MyRole], ledger.ProposalQueue()...)
+		message := protocols.CreateSignedProposalMessage(recipient, ledger.ProposalQueue()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	} else {
@@ -448,7 +440,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 
 			// messaging sideEffect
 			recipient := ledger.Leader()
-			message := protocols.CreateSignedProposalMessage(recipient, o.VFixed.Participants[o.MyRole], sp)
+			message := protocols.CreateSignedProposalMessage(recipient, sp)
 			sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 		}
 	}
@@ -599,13 +591,7 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 	}
 
 	if event.Voucher.ChannelId == o.VId() {
-		alice := updated.VFixed.Participants[0]
-		switch {
-		case event.From == alice:
-			updated.AliceVoucher = event.Voucher.Clone()
-		default:
-			// TODO: Only Alice should be sending vouchers
-		}
+		updated.AliceVoucher = event.Voucher.Clone()
 	}
 	return &updated, nil
 
