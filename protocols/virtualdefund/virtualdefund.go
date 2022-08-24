@@ -301,6 +301,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		return &updated, sideEffects, WaitingForNothing, protocols.ErrNotApproved
 	}
 
+	// We only send out a voucher if we're Alice and we haven't already sent one
 	if !updated.VoucherSent && updated.MyRole == payments.PAYER_INDEX {
 
 		myAddress := updated.VFixed.Participants[updated.MyRole]
