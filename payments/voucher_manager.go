@@ -54,7 +54,7 @@ func (vm *VoucherManager) Remove(channelId types.Destination) {
 func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk []byte) (Voucher, error) {
 	pStatus, ok := vm.channels[channelId]
 
-	voucher := Voucher{Amount: &big.Int{}}
+	voucher := Voucher{ChannelId: channelId, Amount: &big.Int{}}
 	if !ok {
 		return Voucher{}, fmt.Errorf("channel not found")
 	}
@@ -130,20 +130,18 @@ func (vm *VoucherManager) Balance(channelId types.Destination) (Balance, error) 
 }
 
 // Voucher returns the latest sent voucher for a channel
-func (vm *VoucherManager) Voucher(channelId types.Destination, pk []byte) (Voucher, error) {
+// If no voucher is found then an un unsigned zero voucher for the channel wil be
+func (vm *VoucherManager) Voucher(channelId types.Destination) (Voucher, error) {
+	data, ok := vm.channels[channelId]
 
-	bal, err := vm.Balance(channelId)
-	voucher := Voucher{Amount: &big.Int{}}
-	if err != nil {
-		return voucher, fmt.Errorf("unable to get balance to construct voucher: %w", err)
-	}
-	voucher.Amount.Set(bal.Paid)
-	voucher.ChannelId = channelId
-
-	if err := voucher.Sign(pk); err != nil {
-		return Voucher{}, err
+	if !ok {
+		return Voucher{}, fmt.Errorf("channel not found")
 	}
 
-	return voucher, nil
+	if data.largestVoucher.Equal(&Voucher{}) {
+		return *NewVoucher(channelId, big.NewInt(0)), nil
+	}
+
+	return data.largestVoucher, nil
 
 }

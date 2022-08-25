@@ -337,6 +337,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			if err != nil {
 				return EngineEvent{}, err
 			}
+
 			event := protocols.ObjectiveEvent{
 				ObjectiveId: entry.ObjectiveId,
 				Voucher:     entry.Payload,
@@ -407,7 +408,9 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
 
 		case virtualdefund.ObjectiveRequest:
 			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
-			voucher, err := e.vm.Voucher(request.ChannelId, *e.store.GetChannelSecretKey())
+
+			voucher, err := e.vm.Voucher(request.ChannelId)
+
 			if err != nil {
 				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not fetch voucher %+v: %w", request, err)
 			}
@@ -646,9 +649,7 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
-
-		voucher, err := e.vm.Voucher(ss.ChannelId(), *e.store.GetChannelSecretKey())
-		fmt.Printf("voucher: %+v\n", voucher)
+		voucher, err := e.vm.Voucher(ss.ChannelId())
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
