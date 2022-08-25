@@ -14,6 +14,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+const PAYER_START_AMOUNT = 1_000
+
 func openVirtualChannels(t *testing.T, clientA client.Client, clientB client.Client, clientI client.Client, numOfChannels uint) []types.Destination {
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)
@@ -21,7 +23,7 @@ func openVirtualChannels(t *testing.T, clientA client.Client, clientB client.Cli
 	objectiveIds := make([]protocols.ObjectiveId, numOfChannels)
 	channelIds := make([]types.Destination, numOfChannels)
 	for i := 0; i < int(numOfChannels); i++ {
-		outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
+		outcome := td.Outcomes.Create(alice.Address(), bob.Address(), PAYER_START_AMOUNT, 1)
 		request := virtualfund.ObjectiveRequest{
 			CounterParty:      bob.Address(),
 			Intermediary:      irene.Address(),
