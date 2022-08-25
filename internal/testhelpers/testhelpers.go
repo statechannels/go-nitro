@@ -78,9 +78,6 @@ func AssertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.S
 
 func AssertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to testactors.Actor) {
 
-	if len(ses.MessagesToSend) != 1 {
-		fmt.Printf("%+v\n", ses.MessagesToSend)
-	}
 	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
 
 	found := false
