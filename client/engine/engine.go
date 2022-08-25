@@ -256,7 +256,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
 
 	e.logger.Printf("Handling inbound message %+v", protocols.SummarizeMessage(message))
-	allCompleted := EngineEvent{}
+	engineEvent := EngineEvent{}
 
 	for _, entry := range message.SignedStates() {
 
@@ -274,7 +274,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if err != nil {
 			return EngineEvent{}, err
 		}
-		allCompleted.Merge(&stateEvents)
+		engineEvent.Merge(&stateEvents)
 
 	}
 
@@ -294,7 +294,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if err != nil {
 			return EngineEvent{}, err
 		}
-		allCompleted.Merge(&proposalEvents)
+		engineEvent.Merge(&proposalEvents)
 
 	}
 
@@ -318,7 +318,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			return EngineEvent{}, err
 		}
 
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
+		engineEvent.CompletedObjectives = append(engineEvent.CompletedObjectives, objective)
 	}
 
 	for _, entry := range message.Vouchers() {
@@ -329,7 +329,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			if err != nil {
 				return EngineEvent{}, fmt.Errorf("error accepting payment voucher: %w", err)
 			}
-			allCompleted.ReceivedVouchers = append(allCompleted.ReceivedVouchers, entry.Payload)
+			engineEvent.ReceivedVouchers = append(engineEvent.ReceivedVouchers, entry.Payload)
 
 		} else {
 
@@ -346,11 +346,11 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			if err != nil {
 				return EngineEvent{}, fmt.Errorf("could not update objective: %w", err)
 			}
-			allCompleted.Merge(&e)
+			engineEvent.Merge(&e)
 		}
 
 	}
-	return allCompleted, nil
+	return engineEvent, nil
 
 }
 
