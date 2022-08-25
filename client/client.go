@@ -94,11 +94,8 @@ func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
 func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequest) virtualfund.ObjectiveResponse {
 
-	apiEvent := engine.APIEvent{
-		ObjectiveToSpawn: objectiveRequest,
-	}
 	// Send the event to the engine
-	c.engine.FromAPI <- apiEvent
+	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 
 	return objectiveRequest.Response(*c.Address)
 }
@@ -110,11 +107,9 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big
 		ChannelId: channelId,
 		PaidToBob: paidToBob,
 	}
-	apiEvent := engine.APIEvent{
-		ObjectiveToSpawn: objectiveRequest,
-	}
+
 	// Send the event to the engine
-	c.engine.FromAPI <- apiEvent
+	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 
 	return objectiveRequest.Id(*c.Address)
 
@@ -130,11 +125,8 @@ func (c *Client) CreateLedgerChannel(request directfund.ObjectiveRequestForConse
 		// Appdata implicitly zero
 	}
 
-	apiEvent := engine.APIEvent{
-		ObjectiveToSpawn: objectiveRequest,
-	}
 	// Send the event to the engine
-	c.engine.FromAPI <- apiEvent
+	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 
 	return objectiveRequest.Response(*c.Address)
 
@@ -146,11 +138,9 @@ func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.Objec
 	objectiveRequest := directdefund.ObjectiveRequest{
 		ChannelId: channelId,
 	}
-	apiEvent := engine.APIEvent{
-		ObjectiveToSpawn: objectiveRequest,
-	}
+
 	// Send the event to the engine
-	c.engine.FromAPI <- apiEvent
+	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 
 	return objectiveRequest.Id(*c.Address)
 
@@ -158,10 +148,6 @@ func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.Objec
 
 // Pay will send a signed voucher to the payee that they can redeem for the given amount.
 func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
-
-	apiEvent := engine.APIEvent{
-		PaymentToMake: engine.PaymentRequest{ChannelId: channelId, Amount: amount},
-	}
 	// Send the event to the engine
-	c.engine.FromAPI <- apiEvent
+	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
 }
