@@ -50,7 +50,7 @@ interface IMultiAssetHolder {
      * @param targetOutcomeBytes The abi.encode of target channel outcome
      * @param targetAssetIndex the index of the targetted asset in the target outcome.
      */
-    struct ClaimArgs {
+    struct RereclaimArgs {
         bytes32 sourceChannelId;
         bytes32 sourceStateHash;
         bytes sourceOutcomeBytes;
@@ -64,9 +64,9 @@ interface IMultiAssetHolder {
     /**
      * @notice Reclaim moves money from a target channel back into a ledger channel which is guaranteeing it. The guarantee is removed from the ledger channel.
      * @dev Reclaim moves money from a target channel back into a ledger channel which is guaranteeing it. The guarantee is removed from the ledger channel.
-     * @param claimArgs arguments used in the claim function. Used to avoid stack too deep error.
+     * @param reclaimArgs arguments used in the claim function. Used to avoid stack too deep error.
      */
-    function reclaim(ClaimArgs memory claimArgs) external;
+    function reclaim(RereclaimArgs memory reclaimArgs) external;
 
     /**
      * @dev Indicates that `amountDeposited` has been deposited into `destination`.
