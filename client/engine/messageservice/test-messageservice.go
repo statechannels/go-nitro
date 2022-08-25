@@ -81,7 +81,6 @@ func (t TestMessageService) dispatchMessage(message protocols.Message) {
 		// deserialize the message
 
 		serializedMsg, err := message.Serialize()
-
 		if err != nil {
 			panic(`could not serialize message`)
 		}
