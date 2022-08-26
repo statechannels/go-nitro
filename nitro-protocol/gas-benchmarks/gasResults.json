@@ -1,7 +1,7 @@
 {
   "deployInfrastructureContracts": {
     "satp": {
-      "NitroAdjudicator": 3430524
+      "NitroAdjudicator": 3434887
     }
   },
   "directlyFundAChannelWithETHFirst": {
@@ -48,9 +48,9 @@
     "satp": {
       "challengeL": 125691,
       "challengeV": 178764,
-      "reclaimL": 59265,
+      "reclaimL": 59299,
       "transferAllAssetsL": 110019,
-      "total": 473739
+      "total": 473773
     }
   }
 }

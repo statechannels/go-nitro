@@ -34,11 +34,11 @@ func computeReclaimEffects(sourceAllocations []outcome.Allocation, targetAllocat
 			AllocationType: sourceAllocations[i].AllocationType,
 			Metadata:       sourceAllocations[i].Metadata,
 		}
-		if sourceAllocations[i].Destination == guaranteeData.Left {
+		if !foundLeft && sourceAllocations[i].Destination == guaranteeData.Left {
 			newSourceAllocations[k].Amount.Add(newSourceAllocations[k].Amount, targetAllocations[0].Amount)
 			foundLeft = true
 		}
-		if sourceAllocations[i].Destination == guaranteeData.Right {
+		if !foundRight && sourceAllocations[i].Destination == guaranteeData.Right {
 			newSourceAllocations[k].Amount.Add(newSourceAllocations[k].Amount, targetAllocations[1].Amount)
 			foundRight = true
 		}

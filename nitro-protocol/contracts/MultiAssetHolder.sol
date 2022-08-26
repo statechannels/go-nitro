@@ -359,11 +359,11 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
                 metadata: sourceAllocations[i].metadata
             });
 
-            if (sourceAllocations[i].destination == guaranteeData.left) {
+            if (!foundLeft && sourceAllocations[i].destination == guaranteeData.left) {
                 newSourceAllocations[k].amount += targetAllocations[0].amount;
                 foundLeft = true;
             }
-            if (sourceAllocations[i].destination == guaranteeData.right) {
+            if (!foundRight && sourceAllocations[i].destination == guaranteeData.right) {
                 newSourceAllocations[k].amount += targetAllocations[1].amount;
                 foundRight = true;
             }
