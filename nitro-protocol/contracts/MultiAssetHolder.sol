@@ -8,7 +8,7 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import './interfaces/IMultiAssetHolder.sol';
 
 /**
-@dev An implementation of the IMultiAssetHolder interface. The AssetHolder contract escrows ETH or tokens against state channels. It allows assets to be internally accounted for, and ultimately prepared for transfer from one channel to other channels and/or external destinations, as well as for guarantees to be claimed.
+@dev An implementation of the IMultiAssetHolder interface. The AssetHolder contract escrows ETH or tokens against state channels. It allows assets to be internally accounted for, and ultimately prepared for transfer from one channel to other channels and/or external destinations, as well as for guarantees to be reclaimed.
  */
 contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     using SafeMath for uint256;
@@ -244,36 +244,36 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     /**
      * @notice Reclaim moves money from a target channel back into a ledger channel which is guaranteeing it. The guarantee is removed from the ledger channel.
      * @dev Reclaim moves money from a target channel back into a ledger channel which is guaranteeing it. The guarantee is removed from the ledger channel.
-     * @param claimArgs arguments used in the claim function. Used to avoid stack too deep error.
+     * @param reclaimArgs arguments used in the reclaim function. Used to avoid stack too deep error.
      */
-    function reclaim(ClaimArgs memory claimArgs) external override {
+    function reclaim(ReclaimArgs memory reclaimArgs) external override {
         (
             Outcome.SingleAssetExit[] memory sourceOutcome,
             Outcome.SingleAssetExit[] memory targetOutcome
-        ) = _apply_reclaim_checks(claimArgs); // view
+        ) = _apply_reclaim_checks(reclaimArgs); // view
 
         Outcome.Allocation[] memory newSourceAllocations;
         {
             Outcome.Allocation[] memory sourceAllocations = sourceOutcome[
-                claimArgs.sourceAssetIndex
+                reclaimArgs.sourceAssetIndex
             ].allocations;
             Outcome.Allocation[] memory targetAllocations = targetOutcome[
-                claimArgs.targetAssetIndex
+                reclaimArgs.targetAssetIndex
             ].allocations;
             newSourceAllocations = compute_reclaim_effects(
                 sourceAllocations,
                 targetAllocations,
-                claimArgs.indexOfTargetInSource
+                reclaimArgs.indexOfTargetInSource
             ); // pure
         }
 
-        _apply_reclaim_effects(claimArgs, sourceOutcome, newSourceAllocations);
+        _apply_reclaim_effects(reclaimArgs, sourceOutcome, newSourceAllocations);
     }
 
     /**
      * @dev Checks that the source and target channels are finalized; that the supplied outcomes match the stored fingerprints; that the asset is identical in source and target. Computes and returns the decoded outcomes.
      */
-    function _apply_reclaim_checks(ClaimArgs memory claimArgs)
+    function _apply_reclaim_checks(ReclaimArgs memory reclaimArgs)
         internal
         view
         returns (
@@ -288,17 +288,17 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             bytes memory targetOutcomeBytes,
             uint256 targetAssetIndex
         ) = (
-                claimArgs.sourceChannelId,
-                claimArgs.sourceOutcomeBytes,
-                claimArgs.sourceAssetIndex,
-                claimArgs.targetOutcomeBytes,
-                claimArgs.targetAssetIndex
+                reclaimArgs.sourceChannelId,
+                reclaimArgs.sourceOutcomeBytes,
+                reclaimArgs.sourceAssetIndex,
+                reclaimArgs.targetOutcomeBytes,
+                reclaimArgs.targetAssetIndex
             );
 
         // source checks
         _requireChannelFinalized(sourceChannelId);
         _requireMatchingFingerprint(
-            claimArgs.sourceStateHash,
+            reclaimArgs.sourceStateHash,
             keccak256(sourceOutcomeBytes),
             sourceChannelId
         );
@@ -308,27 +308,27 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         address asset = sourceOutcome[sourceAssetIndex].asset;
         require(
             sourceOutcome[sourceAssetIndex]
-                .allocations[claimArgs.indexOfTargetInSource]
+                .allocations[reclaimArgs.indexOfTargetInSource]
                 .allocationType == uint8(Outcome.AllocationType.guarantee),
             'not a guarantee allocation'
         );
 
         bytes32 targetChannelId = sourceOutcome[sourceAssetIndex]
-            .allocations[claimArgs.indexOfTargetInSource]
+            .allocations[reclaimArgs.indexOfTargetInSource]
             .destination;
 
         // target checks
         require(targetOutcome[targetAssetIndex].asset == asset, 'targetAsset != guaranteeAsset');
         _requireChannelFinalized(targetChannelId);
         _requireMatchingFingerprint(
-            claimArgs.targetStateHash,
+            reclaimArgs.targetStateHash,
             keccak256(targetOutcomeBytes),
             targetChannelId
         );
     }
 
     /**
-     * @dev Computes side effects for the claim function. Returns updated allocations for the source, computed by finding the guarantee in the source for the target, and moving money out of the guarantee and back into the ledger channel as regular allocations for the participants.
+     * @dev Computes side effects for the reclaim function. Returns updated allocations for the source, computed by finding the guarantee in the source for the target, and moving money out of the guarantee and back into the ledger channel as regular allocations for the participants.
      */
     function compute_reclaim_effects(
         Outcome.Allocation[] memory sourceAllocations,
@@ -381,25 +381,25 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
      * @dev Updates the fingerprint of the outcome for the source channel and emit an event for it.
      */
     function _apply_reclaim_effects(
-        ClaimArgs memory claimArgs,
+        ReclaimArgs memory reclaimArgs,
         Outcome.SingleAssetExit[] memory sourceOutcome,
         Outcome.Allocation[] memory newSourceAllocations
     ) internal {
         (bytes32 sourceChannelId, uint256 sourceAssetIndex) = (
-            claimArgs.sourceChannelId,
-            claimArgs.sourceAssetIndex
+            reclaimArgs.sourceChannelId,
+            reclaimArgs.sourceAssetIndex
         );
 
         // store fingerprint of modified source outcome
         sourceOutcome[sourceAssetIndex].allocations = newSourceAllocations;
         _updateFingerprint(
             sourceChannelId,
-            claimArgs.sourceStateHash,
+            reclaimArgs.sourceStateHash,
             keccak256(abi.encode(sourceOutcome))
         );
 
         // emit the information needed to compute the new source outcome stored in the fingerprint
-        emit Reclaimed(claimArgs.sourceChannelId, claimArgs.sourceAssetIndex);
+        emit Reclaimed(reclaimArgs.sourceChannelId, reclaimArgs.sourceAssetIndex);
 
         // Note: no changes are made to the target channel.
     }
