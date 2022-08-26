@@ -21,6 +21,7 @@ import {
   INVALID_SIGNATURE,
   TURN_NUM_RECORD_DECREASED,
   TURN_NUM_RECORD_NOT_INCREASED,
+  COUNTING_APP_INVALID_TRANSITION,
 } from '../../../src/contract/transaction-creators/revert-reasons';
 import {Outcome, SignedState} from '../../../src/index';
 import {
@@ -30,7 +31,6 @@ import {
   signState,
   signStates,
 } from '../../../src/signatures';
-import {COUNTING_APP_INVALID_TRANSITION} from '../../revert-reasons';
 import {
   clearedChallengeFingerprint,
   finalizedFingerprint,

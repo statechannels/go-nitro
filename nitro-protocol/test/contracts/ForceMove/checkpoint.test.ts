@@ -20,8 +20,8 @@ import {
   CHANNEL_FINALIZED,
   TURN_NUM_RECORD_NOT_INCREASED,
   SIGNED_BY_NON_MOVER,
+  COUNTING_APP_INVALID_TRANSITION,
 } from '../../../src/contract/transaction-creators/revert-reasons';
-import {COUNTING_APP_INVALID_TRANSITION} from '../../revert-reasons';
 import {
   getCountingAppContractAddress,
   getRandomNonce,
