@@ -345,6 +345,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         bool foundTarget = false;
         bool foundLeft = false;
         bool foundRight = false;
+        uint256 totalReclaimed;
 
         uint256 k = 0;
         for (uint256 i = 0; i < sourceAllocations.length; i++) {
@@ -361,10 +362,12 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
 
             if (!foundLeft && sourceAllocations[i].destination == guaranteeData.left) {
                 newSourceAllocations[k].amount += targetAllocations[0].amount;
+                totalReclaimed += targetAllocations[0].amount;
                 foundLeft = true;
             }
             if (!foundRight && sourceAllocations[i].destination == guaranteeData.right) {
                 newSourceAllocations[k].amount += targetAllocations[1].amount;
+                totalReclaimed += targetAllocations[1].amount;
                 foundRight = true;
             }
             k++;
@@ -373,6 +376,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         require(foundTarget, 'could not find target');
         require(foundLeft, 'could not find left');
         require(foundRight, 'could not find right');
+        require(totalReclaimed == guarantee.amount, 'totalReclaimes!=guarantee.amount');
 
         return newSourceAllocations;
     }
