@@ -416,7 +416,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 
 }
 
-// handleObjectiveRequest handles an PaymentRequest (triggered by a client API call).
+// handlePaymentRequest handles an PaymentRequest (triggered by a client API call).
 // It prepares and dispatches a payment message to the counterparty.
 func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
 	if (request == PaymentRequest{}) {
