@@ -246,7 +246,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
      * @dev Reclaim moves money from a target channel back into a ledger channel which is guaranteeing it. The guarantee is removed from the ledger channel.
      * @param reclaimArgs arguments used in the reclaim function. Used to avoid stack too deep error.
      */
-    function reclaim(RereclaimArgs memory reclaimArgs) external override {
+    function reclaim(ReclaimArgs memory reclaimArgs) external override {
         (
             Outcome.SingleAssetExit[] memory sourceOutcome,
             Outcome.SingleAssetExit[] memory targetOutcome
@@ -273,7 +273,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     /**
      * @dev Checks that the source and target channels are finalized; that the supplied outcomes match the stored fingerprints; that the asset is identical in source and target. Computes and returns the decoded outcomes.
      */
-    function _apply_reclaim_checks(RereclaimArgs memory reclaimArgs)
+    function _apply_reclaim_checks(ReclaimArgs memory reclaimArgs)
         internal
         view
         returns (
@@ -381,7 +381,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
      * @dev Updates the fingerprint of the outcome for the source channel and emit an event for it.
      */
     function _apply_reclaim_effects(
-        RereclaimArgs memory reclaimArgs,
+        ReclaimArgs memory reclaimArgs,
         Outcome.SingleAssetExit[] memory sourceOutcome,
         Outcome.Allocation[] memory newSourceAllocations
     ) internal {
