@@ -48,25 +48,27 @@ var Actors actors = actors{
 
 func TestChallenge(t *testing.T) {
 
+	// Setup transacting EOA
+	key, _ := crypto.GenerateKey()
+	auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337)) // 1337 according to godoc on backends.NewSimulatedBackend
+	address := auth.From
+
+	// Setup a second transacting EOA
+	key2, _ := crypto.GenerateKey()
+	auth2, _ := bind.NewKeyedTransactorWithChainID(key2, big.NewInt(1337)) // 1337 according to godoc on backends.NewSimulatedBackend
+	address2 := auth2.From
+
+	// Setup "blockchain" params
+	balance := new(big.Int)
+	balance.SetString("10000000000000000000", 10) // 10 eth in wei
+	gAlloc := map[common.Address]core.GenesisAccount{
+		address:  {Balance: balance},
+		address2: {Balance: balance},
+	}
+	blockGasLimit := uint64(4712388)
+
 	TestChallengeWithTurnNum := func(t *testing.T, turnNum uint64) {
-		// Setup transacting EOA
-		key, _ := crypto.GenerateKey()
-		auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337)) // 1337 according to godoc on backends.NewSimulatedBackend
-		address := auth.From
 
-		// Setup a second transacting EOA
-		key2, _ := crypto.GenerateKey()
-		auth2, _ := bind.NewKeyedTransactorWithChainID(key2, big.NewInt(1337)) // 1337 according to godoc on backends.NewSimulatedBackend
-		address2 := auth2.From
-
-		// Setup "blockchain"
-		balance := new(big.Int)
-		balance.SetString("10000000000000000000", 10) // 10 eth in wei
-		gAlloc := map[common.Address]core.GenesisAccount{
-			address:  {Balance: balance},
-			address2: {Balance: balance},
-		}
-		blockGasLimit := uint64(4712388)
 		sim := backends.NewSimulatedBackend(gAlloc, blockGasLimit)
 
 		// Deploy Adjudicator
