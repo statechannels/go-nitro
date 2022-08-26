@@ -6,7 +6,7 @@ import '../interfaces/INitroTypes.sol';
 import {NitroUtils} from '../libraries/NitroUtils.sol';
 
 /**
- * @dev This contract extends the NitroUtils contract to enable it to be more easily unit-tested. It exposes public or external functions call into internal functions. It should not be deployed in a production environment.
+ * @dev This contract uses the NitroUtils library to enable it to be more easily unit-tested. It exposes public or external functions call into internal functions. It should not be deployed in a production environment.
  */
 contract TESTNitroUtils {
     /**
