@@ -137,7 +137,7 @@ func checkIreneBobLedgerOutcome(t *testing.T, vId types.Destination, outcome con
 }
 
 func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
-
+	t.Skip()
 	// Setup logging
 	logFile := "test_rejected_virtualdefund_fund.log"
 	truncateLog(logFile)

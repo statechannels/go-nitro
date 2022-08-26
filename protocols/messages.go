@@ -19,6 +19,7 @@ const (
 	SignedProposalPayload  PayloadType = "SignedProposalPayload"
 	RejectionNoticePayload PayloadType = "RejectionNoticePayload"
 	VoucherPayload         PayloadType = "VoucherPayload"
+	VirtualDefundPayload   PayloadType = "VirtualDefundPayload"
 )
 
 // Message is an object to be sent across the wire. It can contain a proposal and signed states, and is addressed to a counterparty.
@@ -37,6 +38,7 @@ type messagePayload struct {
 	SignedProposal consensus_channel.SignedProposal
 	Voucher        payments.Voucher
 	Rejected       bool
+	VirtualDefund  interface{}
 }
 
 // hasState returns true if the payload contains a signed state.
@@ -59,6 +61,11 @@ func (p messagePayload) hasVoucher() bool {
 	return !(&p.Voucher).Equal(&payments.Voucher{})
 }
 
+// hasVirtualDefund returns true if the payload contains a virtual defund message.
+func (p messagePayload) hasVirtualDefund() bool {
+	return p.VirtualDefund != nil
+}
+
 // Type returns the type of the payload, either a SignedProposal or SignedState.
 func (p messagePayload) Type() PayloadType {
 	if p.hasProposal() {
@@ -67,6 +74,9 @@ func (p messagePayload) Type() PayloadType {
 		return SignedStatePayload
 	} else if p.hasVoucher() {
 		return VoucherPayload
+	} else if p.hasVirtualDefund() {
+		return VirtualDefundPayload
+
 	} else {
 		return RejectionNoticePayload
 	}
@@ -122,6 +132,34 @@ func (m Message) SignedProposals() []ObjectivePayload[consensus_channel.SignedPr
 	return signedProposals
 }
 
+type VirtualDefundMessage struct {
+	ChannelId types.Destination
+}
+
+func (b VirtualDefundMessage) SortInfo() (types.Destination, uint64) {
+	return b.ChannelId, 0
+}
+
+// SignedProposals returns a slice of signed proposals with their objectiveId that were contained in the message.
+// The proposals are sorted by ledger id then turnNum.
+func (m Message) VirtualDefundMessages() map[ObjectiveId][][]byte {
+
+	msgs := make(map[ObjectiveId][][]byte)
+
+	for _, p := range m.payloads {
+		if p.Type() == VirtualDefundPayload {
+			b, err := json.Marshal(p.VirtualDefund)
+			if err != nil {
+				panic(fmt.Errorf("Could not marshal virtual defund payload: %w", err))
+			}
+			msgs[p.ObjectiveId] = append(msgs[p.ObjectiveId], b)
+
+		}
+	}
+
+	return msgs
+}
+
 // rejectedObjective is a placeholder type that holds no value, but implements the PayloadValue interface.
 // This allows the RejectedObjectives function to use the generic ObjectivePayload type.
 type rejectedObjective struct{}
@@ -168,6 +206,8 @@ func (p *messagePayload) MarshalJSON() ([]byte, error) {
 		m["Rejected"] = p.Rejected
 	case VoucherPayload:
 		m["Voucher"] = p.Voucher
+	case VirtualDefundPayload:
+		m["VirtualDefund"] = p.VirtualDefund
 	default:
 		return []byte{}, fmt.Errorf("unknown payload type")
 	}
@@ -197,7 +237,11 @@ func DeserializeMessage(s string) (Message, error) {
 		if p.hasRejection() {
 			numPresent += 1
 		}
+		if p.hasVirtualDefund() {
+			numPresent += 1
+		}
 		if numPresent != 1 {
+
 			return Message{}, ErrInvalidPayload
 		}
 	}
@@ -239,13 +283,17 @@ func (se *SideEffects) Merge(other SideEffects) {
 // or RejectedObjective
 // It includes functions to get basic info to allow sorting.
 type PayloadValue interface {
-	state.SignedState | consensus_channel.SignedProposal | rejectedObjective | payments.Voucher
+	state.SignedState | consensus_channel.SignedProposal | rejectedObjective | payments.Voucher | VirtualDefundMessage
+}
+
+type SortablePayloadValue interface {
+	PayloadValue
 	SortInfo() (channelID types.Destination, turnNum uint64)
 }
 
 // sortPayloads sorts the objective payloads by channel id then turnNum.
 // This is used to ensure that the payloads can be processed in a deterministic order.
-func sortPayloads[T PayloadValue](payloads []ObjectivePayload[T]) {
+func sortPayloads[T SortablePayloadValue](payloads []ObjectivePayload[T]) {
 	sort.Slice(payloads, func(i, j int) bool {
 		cId1, turnNum1 := payloads[i].Payload.SortInfo()
 		cId2, turnNum2 := payloads[j].Payload.SortInfo()
@@ -383,6 +431,28 @@ func CreateVoucherMessage(voucher payments.Voucher, sender types.Address, object
 			ObjectiveId: objectiveId,
 		}
 		payloads := []messagePayload{payload}
+
+		messages = append(messages, Message{To: recipient, payloads: payloads})
+
+	}
+
+	return messages
+}
+
+// CreateVirtualDefundMessages takes in a payload and constructs a virtual defund message
+func CreateVirtualDefundMessages(payload interface{}, sender types.Address, objectiveId ObjectiveId, recipients ...types.Address) []Message {
+
+	messages := make([]Message, 0)
+	for _, recipient := range recipients {
+		if recipient == sender {
+			continue
+		}
+		payload := messagePayload{
+			VirtualDefund: payload,
+			ObjectiveId:   objectiveId,
+		}
+		payloads := []messagePayload{payload}
+
 		messages = append(messages, Message{To: recipient, payloads: payloads})
 
 	}

@@ -191,44 +191,54 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 	return e.attemptProgress(obj)
 }
 
-// updateObjective handles updating and cranking the objective and dispatching any side effects
-func (e *Engine) updateObjective(objective protocols.Objective, event protocols.ObjectiveEvent) (EngineEvent, error) {
+func (e *Engine) checkPolicyMaker(objective protocols.Objective) (EngineEvent, protocols.Objective, error) {
 	engineEvent := EngineEvent{}
+	updated := objective
 	if objective.GetStatus() == protocols.Unapproved {
 		e.logger.Printf("Policymaker is %+v", e.policymaker)
 		if e.policymaker.ShouldApprove(objective) {
-			objective = objective.Approve()
+			updated = objective.Approve()
 
-			ddfo, ok := objective.(*directdefund.Objective)
+			ddfo, ok := updated.(*directdefund.Objective)
 			if ok {
 				// If we just approved a direct defund objective, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 				e.store.DestroyConsensusChannel(ddfo.C.Id)
 			}
+
 		} else {
 			objective, sideEffects := objective.Reject()
+			updated = objective
 			err := e.store.SetObjective(objective)
 			if err != nil {
-				return EngineEvent{}, err
+				return EngineEvent{}, nil, err
 			}
 
 			engineEvent.CompletedObjectives = append(engineEvent.CompletedObjectives, objective)
 			err = e.executeSideEffects(sideEffects)
 			// An error would mean we failed to send a message. But the objective is still "completed".
 			// So, we should return allCompleted even if there was an error.
-			return engineEvent, err
+			return engineEvent, updated, err
 		}
 	}
 
 	if objective.GetStatus() == protocols.Completed {
 		e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
-		return engineEvent, nil
+		return engineEvent, updated, nil
 	}
 	if objective.GetStatus() == protocols.Rejected {
 		e.logger.Printf("Ignoring payload for rejected objective  %s", objective.Id())
-		return engineEvent, nil
+		return engineEvent, updated, nil
 	}
+	return engineEvent, updated, nil
+}
 
-	updatedObjective, err := objective.Update(event)
+// updateObjective handles updating and cranking the objective and dispatching any side effects
+func (e *Engine) updateObjective(objective protocols.Objective, event protocols.ObjectiveEvent) (EngineEvent, error) {
+	engineEvent, updated, err := e.checkPolicyMaker(objective)
+	if err != nil {
+		return EngineEvent{}, err
+	}
+	updatedObjective, err := updated.Update(event)
 	if err != nil {
 		return EngineEvent{}, err
 	}
@@ -257,9 +267,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	e.logger.Printf("Handling inbound message %+v", protocols.SummarizeMessage(message))
 	engineEvent := EngineEvent{}
-
 	for _, entry := range message.SignedStates() {
-
 		objective, err := e.getOrCreateObjective(entry.ObjectiveId, entry.Payload)
 		if err != nil {
 			return EngineEvent{}, err
@@ -331,27 +339,44 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			}
 			engineEvent.ReceivedVouchers = append(engineEvent.ReceivedVouchers, entry.Payload)
 
-		} else {
+		}
 
-			objective, err := e.getOrCreateObjectiveFromVoucher(entry.ObjectiveId, entry.Payload)
+	}
+
+	for id, vdPayloads := range message.VirtualDefundMessages() {
+		for _, payload := range vdPayloads {
+			objective, err := e.getOrCreateObjective(id, protocols.PayloadValue(payload))
+
+			if err != nil {
+				return EngineEvent{}, err
+			}
+			vdfo, isVirtual := objective.(*virtualdefund.Objective)
+			if !isVirtual {
+				return EngineEvent{}, fmt.Errorf("expected virtual defund objective, got %s", vdfo.Id())
+			}
+			engineEvent, updated, err := e.checkPolicyMaker(vdfo)
+			if err != nil {
+				return EngineEvent{}, err
+			}
+			updated, err = updated.(*virtualdefund.Objective).UpdateWithPayload(payload.(protocols.PayloadValue))
 			if err != nil {
 				return EngineEvent{}, err
 			}
 
-			event := protocols.ObjectiveEvent{
-				ObjectiveId: entry.ObjectiveId,
-				Voucher:     entry.Payload,
-			}
-			e, err := e.updateObjective(objective, event)
+			progressEvent, err := e.attemptProgress(updated)
 			if err != nil {
-				return EngineEvent{}, fmt.Errorf("could not update objective: %w", err)
+				return EngineEvent{}, err
 			}
-			engineEvent.Merge(&e)
+			engineEvent.CompletedObjectives = append(engineEvent.CompletedObjectives, progressEvent.CompletedObjectives...)
+
+			if err != nil {
+				return EngineEvent{}, err
+
+			}
 		}
 
 	}
 	return engineEvent, nil
-
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
@@ -409,11 +434,8 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
 		case virtualdefund.ObjectiveRequest:
 			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
 
-			voucher, err := e.vm.Voucher(request.ChannelId)
+			voucher := e.vm.Voucher(request.ChannelId, *e.store.GetChannelSecretKey())
 
-			if err != nil {
-				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not fetch voucher %+v: %w", request, err)
-			}
 			vdfo, err := virtualdefund.NewObjective(request, true, *e.store.GetAddress(), &voucher, e.store.GetChannelById, e.store.GetConsensusChannel)
 			if err != nil {
 				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
@@ -450,6 +472,7 @@ func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
 			cId,
 			apiEvent.PaymentToMake.Amount,
 			*e.store.GetChannelSecretKey())
+		fmt.Printf("Payment made: %+v", voucher)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
 		}
@@ -571,7 +594,7 @@ func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 }
 
 // getOrCreateObjective retrieves the objective from the store. if the objective does not exist, it creates the objective using the supplied signed state, and stores it in the store
-func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedState) (protocols.Objective, error) {
+func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, payload []byte) (protocols.Objective, error) {
 	defer e.metrics.RecordFunctionDuration()()
 
 	objective, err := e.store.GetObjectiveById(id)
@@ -579,9 +602,23 @@ func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedS
 	if err == nil {
 		return objective, nil
 	} else if errors.Is(err, store.ErrNoSuchObjective) {
+		var newObj protocols.Objective
+		var err error
+		if virtualdefund.IsVirtualDefundObjective(id) {
+			voucher := e.vm.Voucher(virtualdefund.GetChannelId(id), *e.store.GetChannelSecretKey())
 
-		newObj, err := e.constructObjectiveFromMessage(id, ss)
+			newObj, err = virtualdefund.ConstructObjectiveFromMessagePayload(false, payload, *e.store.GetAddress(), &voucher, e.store.GetChannelById, e.store.GetConsensusChannel)
+			if err != nil {
+				return nil, fmt.Errorf("error constructing objective from message: %w", err)
+			}
+		} else {
 
+			if ss, isState := payload.(state.SignedState); isState {
+				newObj, err = e.constructObjectiveFromMessage(id, ss)
+			} else {
+				return nil, fmt.Errorf("only virtual defund supports constructing an objective from a non-state")
+			}
+		}
 		if err != nil {
 			return nil, fmt.Errorf("error constructing objective from message: %w", err)
 		}
@@ -596,37 +633,6 @@ func (e *Engine) getOrCreateObjective(id protocols.ObjectiveId, ss state.SignedS
 	} else {
 		return nil, fmt.Errorf("unexpected error getting/creating objective %s: %w", id, err)
 	}
-}
-
-// getOrCreateObjectiveFromVoucher attempts to retrieve the objective from the store.
-// If the objective is not found it uses the voucher and the channel store to construct a new objective.
-func (e *Engine) getOrCreateObjectiveFromVoucher(id protocols.ObjectiveId, v payments.Voucher) (protocols.Objective, error) {
-	defer e.metrics.RecordFunctionDuration()()
-	if !virtualdefund.IsVirtualDefundObjective(id) {
-		return nil, fmt.Errorf("only virtual defund objectives can be constructed from a voucher")
-	}
-	objective, err := e.store.GetObjectiveById(id)
-
-	if err == nil {
-		return objective, nil
-	} else if errors.Is(err, store.ErrNoSuchObjective) {
-
-		c, ok := e.store.GetChannelById(v.ChannelId)
-		if !ok {
-			return nil, fmt.Errorf("could not find channel for voucher channel id %s", v.ChannelId)
-		}
-
-		vdfo, err := virtualdefund.ConstructObjectiveFromVoucher(c.FixedPart, v, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
-		if err != nil {
-			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
-		}
-
-		return &vdfo, nil
-	} else {
-
-		return nil, fmt.Errorf("unexpected error getting/creating objective %s: %w", id, err)
-	}
-
 }
 
 // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied message.
@@ -649,17 +655,7 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, ss stat
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
-		voucher, err := e.vm.Voucher(ss.ChannelId())
-		if err != nil {
-			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
-		}
-
-		vdfo, err := virtualdefund.ConstructObjectiveFromVoucher(ss.State().FixedPart(), voucher, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
-		if err != nil {
-			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
-		}
-
-		return &vdfo, nil
+		return &virtualfund.Objective{}, fmt.Errorf("virtual defunding does not support constructing an objective from a state")
 
 	case directdefund.IsDirectDefundObjective(id):
 		ddfo, err := directdefund.ConstructObjectiveFromState(ss.State(), false, e.store.GetConsensusChannelById)

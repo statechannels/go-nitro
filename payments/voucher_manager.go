@@ -67,10 +67,10 @@ func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 		return Voucher{}, fmt.Errorf("can only sign vouchers if we're the payer")
 	}
 
-	pStatus.currentBalance.Remaining.Sub(pStatus.currentBalance.Remaining, amount)
-	pStatus.currentBalance.Paid.Add(pStatus.currentBalance.Paid, amount)
+	pStatus.currentBalance.Remaining = pStatus.currentBalance.Remaining.Sub(pStatus.currentBalance.Remaining, amount)
+	pStatus.currentBalance.Paid = pStatus.currentBalance.Paid.Add(pStatus.currentBalance.Paid, amount)
 	pStatus.largestVoucher = voucher
-
+	fmt.Printf("vstatus\n%+v\n", pStatus.currentBalance.Paid)
 	voucher.Amount.Set(pStatus.currentBalance.Paid)
 	voucher.ChannelId = channelId
 
@@ -131,17 +131,17 @@ func (vm *VoucherManager) Balance(channelId types.Destination) (Balance, error) 
 
 // Voucher returns the latest sent voucher for a channel
 // If no voucher is found then an un unsigned zero voucher for the channel wil be
-func (vm *VoucherManager) Voucher(channelId types.Destination) (Voucher, error) {
+func (vm *VoucherManager) Voucher(channelId types.Destination, pk []byte) Voucher {
 	data, ok := vm.channels[channelId]
 
-	if !ok {
-		return Voucher{}, fmt.Errorf("channel not found")
+	if !ok || data.largestVoucher.Equal(&Voucher{}) {
+		return *NewVoucher(channelId, big.NewInt(0))
+	}
+	if vm.me == data.channelPayer {
+		_ = data.largestVoucher.Sign(pk)
+		return data.largestVoucher
 	}
 
-	if data.largestVoucher.Equal(&Voucher{}) {
-		return *NewVoucher(channelId, big.NewInt(0)), nil
-	}
-
-	return data.largestVoucher, nil
+	return data.largestVoucher
 
 }

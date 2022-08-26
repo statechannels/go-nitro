@@ -1,6 +1,7 @@
 package payments
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -120,4 +121,35 @@ func NewSignedVoucher(channelId types.Destination, amount *big.Int, pk []byte) (
 	v := NewVoucher(channelId, amount)
 	err := v.Sign(pk)
 	return v, err
+}
+
+type jsonVoucher struct {
+	ChannelId types.Destination
+	Amount    *big.Int
+	Signature state.Signature
+}
+
+// UnmarshalJSON populates the calling voucher with the
+// json-encoded data
+func (v *Voucher) UnmarshalJSON(data []byte) error {
+	var jsonV jsonVoucher
+	err := json.Unmarshal(data, &jsonV)
+	if err != nil {
+		return fmt.Errorf("error unmarshaling voucher data")
+	}
+	v.Amount = jsonV.Amount
+	v.ChannelId = jsonV.ChannelId
+	v.Signature = jsonV.Signature
+	return nil
+}
+
+// MarshalJSON returns a JSON representation of a voucher
+func (v Voucher) MarshalJSON() ([]byte, error) {
+
+	jsonV := jsonVoucher{
+		ChannelId: v.ChannelId,
+		Amount:    v.Amount,
+		Signature: v.Signature,
+	}
+	return json.Marshal(jsonV)
 }

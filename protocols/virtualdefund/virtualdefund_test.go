@@ -33,35 +33,6 @@ func TestCrank(t *testing.T) {
 	}
 }
 
-func TestInvalidUpdate(t *testing.T) {
-	data := generateTestData()
-	vId := data.vFinal.ChannelId()
-	request := ObjectiveRequest{
-		ChannelId: vId,
-	}
-
-	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vFinal)
-
-	virtualDefund, err := NewObjective(request, false, alice.Address(), nil, getChannel, getConsensusChannel)
-	if err != nil {
-		t.Fatal(err)
-	}
-	invalidFinal := data.vFinal.Clone()
-	invalidFinal.ChannelNonce = big.NewInt(5)
-
-	signedFinal := state.NewSignedState(invalidFinal)
-
-	// Sign the final state by some other participant
-	signStateByOthers(alice, signedFinal)
-
-	e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedState: signedFinal}
-	_, err = virtualDefund.Update(e)
-	if err.Error() != "event channelId out of scope of objective" {
-		t.Errorf("Expected error for channelId being out of scope, got %v", err)
-	}
-
-}
-
 func testUpdateAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
@@ -72,30 +43,33 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		var updated *Objective
 
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
+		aliceVoucher, _ := payments.NewSignedVoucher(vId, big.NewInt(int64(data.paid)), alice.PrivateKey)
+		oldVoucher, _ := payments.NewSignedVoucher(vId, big.NewInt(int64(data.paid-1)), alice.PrivateKey)
 
-		virtualDefund, err := NewObjective(request, false, my.Address(), nil, getChannel, getConsensusChannel)
+		virtualDefund, err := NewObjective(request, false, my.Address(), aliceVoucher, getChannel, getConsensusChannel)
+
 		testhelpers.Ok(t, err)
 
+		var payload protocols.PayloadValue
 		if my.Address() != alice.Address() {
-			e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), Voucher: data.voucher}
+			payload = CreateStartPayload(&virtualDefund, aliceVoucher)
 
-			updatedObj, err := virtualDefund.Update(e)
-			testhelpers.Ok(t, err)
-			updated = updatedObj.(*Objective)
 		} else {
-			updated = &virtualDefund
-			updated.AliceVoucher = &data.voucher
-
+			payload = CreateStartPayload(&virtualDefund, oldVoucher)
 		}
+		updatedObj, err := virtualDefund.UpdateWithPayload(payload)
+		testhelpers.Ok(t, err)
+		updated = updatedObj.(*Objective)
 		signedFinal := state.NewSignedState(data.vFinal)
 		// Sign the final state by some other participant
 		signStateByOthers(my, signedFinal)
 
-		e := protocols.ObjectiveEvent{ObjectiveId: virtualDefund.Id(), SignedState: signedFinal}
-
-		updatedObj, err := updated.Update(e)
-		testhelpers.Ok(t, err)
+		payload = CreateUpdateSigPayload(*updated, signedFinal.Signatures())
+		
+		updatedObj, err = virtualDefund.UpdateWithPayload(payload)
 		updated = updatedObj.(*Objective)
+		testhelpers.Ok(t, err)
+
 		for _, a := range allActors {
 			if a.Role != my.Role {
 				testhelpers.Assert(t, !isZero(updated.Signatures[a.Role]), "expected signature for participant %s to be non-zero", a.Name)
@@ -114,15 +88,16 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		request := ObjectiveRequest{}
 
 		aliceVoucher, _ := payments.NewSignedVoucher(vId, big.NewInt(int64(data.paid)), alice.PrivateKey)
-
-		initialVoucher := payments.NewVoucher(vId, big.NewInt(0))
-		if my.Role == 0 {
-			initialVoucher = aliceVoucher
-		}
+		oldVoucher, _ := payments.NewSignedVoucher(vId, big.NewInt(int64(data.paid-1)), alice.PrivateKey)
 
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
-
-		virtualDefund, err := NewObjective(request, true, my.Address(), initialVoucher, getChannel, getConsensusChannel)
+		var submitVoucher *payments.Voucher
+		if my.Address() == alice.Address() {
+			submitVoucher = aliceVoucher.Clone()
+		} else {
+			submitVoucher = oldVoucher
+		}
+		virtualDefund, err := NewObjective(request, true, my.Address(), submitVoucher, getChannel, getConsensusChannel)
 		if err != nil {
 			t.Fatal(err)
 
@@ -132,10 +107,12 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
 
-		testhelpers.Equals(t, WaitingForCompleteFinal, waitingFor)
-		testhelpers.AssertVoucherSentToEveryone(t, se, updated.AliceVoucher, my, allActors)
+		testhelpers.Equals(t, WaitingForLatestVoucher, waitingFor)
+		testhelpers.AssertVoucherSentToEveryone(t, se, submitVoucher, my, allActors)
 
-		updated.AliceVoucher = aliceVoucher.Clone()
+		updated.Vouchers[0] = aliceVoucher
+		updated.Vouchers[1] = oldVoucher
+		updated.Vouchers[2] = oldVoucher
 
 		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 		testhelpers.Ok(t, err)
@@ -195,23 +172,30 @@ func TestConstructObjectiveFromState(t *testing.T) {
 
 	getChannel, getConsensusChannel := generateStoreGetters(alice.Role, vId, data.vInitial)
 	voucher := *payments.NewVoucher(vId, big.NewInt(int64(data.paid)))
+	oldVoucher := *payments.NewVoucher(vId, big.NewInt(int64(data.paid)))
 
-	// TODO: Move voucher to data
-	got, err := ConstructObjectiveFromVoucher(data.vFinal.FixedPart(), voucher, true, alice.Address(), getChannel, getConsensusChannel)
+	payload := StartMessage{
+		VirtualDefundMessage: protocols.VirtualDefundMessage{
+			ChannelId: vId},
+		Sender:        alice.Address(),
+		LatestVoucher: voucher,
+	}
+	got, err := ConstructObjectiveFromMessagePayload(true, payload, alice.Address(), &oldVoucher, getChannel, getConsensusChannel)
 	if err != nil {
 		t.Fatal(err)
 	}
 	left, right := generateLedgers(alice.Role, vId)
+	vouchers := [3]*payments.Voucher{&voucher, nil, nil}
 	want := Objective{
 		Status:         protocols.Approved,
 		InitialOutcome: data.vInitial.Outcome[0],
-		AliceVoucher:   voucher.Clone(), // TODO: We expect the largest voucher we have to be there
+		Vouchers:       vouchers,
 		VFixed:         data.vFinal.FixedPart(),
 		Signatures:     [3]state.Signature{},
 		ToMyLeft:       left,
 		ToMyRight:      right,
 	}
-	if diff := cmp.Diff(want, got, cmp.AllowUnexported(big.Int{}, consensus_channel.ConsensusChannel{}, consensus_channel.LedgerOutcome{}, consensus_channel.Guarantee{}, payments.Voucher{}, Objective{})); diff != "" {
+	if diff := cmp.Diff(want, *got, cmp.AllowUnexported(big.Int{}, consensus_channel.ConsensusChannel{}, consensus_channel.LedgerOutcome{}, consensus_channel.Guarantee{}, payments.Voucher{}, Objective{})); diff != "" {
 		t.Errorf("objective mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -224,8 +208,9 @@ func TestApproveReject(t *testing.T) {
 	}
 
 	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vInitial)
+	aliceVoucher, _ := payments.NewSignedVoucher(vId, big.NewInt(int64(data.paid)), alice.PrivateKey)
 
-	virtualDefund, err := NewObjective(request, false, alice.Address(), nil, getChannel, getConsensusChannel)
+	virtualDefund, err := NewObjective(request, false, alice.Address(), aliceVoucher, getChannel, getConsensusChannel)
 	if err != nil {
 		t.Fatal(err)
 	}

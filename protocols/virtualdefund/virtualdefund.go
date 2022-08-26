@@ -1,8 +1,10 @@
 package virtualdefund
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -40,7 +42,7 @@ type Objective struct {
 	// Signatures gets updated as participants sign and send states to each other.
 	Signatures [3]state.Signature
 
-	AliceVoucher *payments.Voucher
+	Vouchers [3]*payments.Voucher
 
 	// TODO: Do we need this? If so it should probably be private
 	VoucherSent bool
@@ -71,7 +73,7 @@ type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger
 func NewObjective(request ObjectiveRequest,
 	preApprove bool,
 	myAddress types.Address,
-	latestVoucher *payments.Voucher,
+	myVoucher *payments.Voucher,
 	getChannel GetChannelByIdFunction,
 	getConsensusChannel GetTwoPartyConsensusLedgerFunction,
 
@@ -89,7 +91,7 @@ func NewObjective(request ObjectiveRequest,
 		return Objective{}, fmt.Errorf("could not find channel %s", request.ChannelId)
 	}
 
-	initialOutcome := V.PostFundState().Outcome[0]
+	initialOutcome := V.PostFundState().Outcome[0].Clone()
 
 	// This logic assumes a single hop virtual channel.
 	// Currently this is the only type of virtual channel supported.
@@ -124,59 +126,30 @@ func NewObjective(request ObjectiveRequest,
 		return Objective{}, fmt.Errorf("client address not found in an expected participant index")
 
 	}
+	vouchers := [3]*payments.Voucher{}
+	vouchers[V.MyIndex] = myVoucher
 
 	return Objective{
 		Status:         status,
 		InitialOutcome: initialOutcome, VFixed: V.FixedPart,
-		Signatures:   [3]state.Signature{},
-		MyRole:       V.MyIndex,
-		ToMyLeft:     toMyLeft,
-		ToMyRight:    toMyRight,
-		AliceVoucher: latestVoucher.Clone(),
+		Signatures: [3]state.Signature{},
+		MyRole:     V.MyIndex,
+		ToMyLeft:   toMyLeft,
+		ToMyRight:  toMyRight,
+		Vouchers:   vouchers,
 	}, nil
 
-}
-
-// ConstructObjectiveFromVoucher takes in a message and constructs an objective from it.
-// It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
-func ConstructObjectiveFromVoucher(
-	fixedPart state.FixedPart,
-	voucher payments.Voucher,
-	preapprove bool,
-	myAddress types.Address,
-	getChannel GetChannelByIdFunction,
-	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
-) (Objective, error) {
-
-	err := fixedPart.Validate()
-	if err != nil {
-		return Objective{}, err
-	}
-
-	channelId := fixedPart.ChannelId()
-
-	if err != nil {
-		return Objective{}, err
-	}
-	o, err := NewObjective(
-		ObjectiveRequest{channelId},
-		preapprove,
-		myAddress,
-		&voucher,
-		getChannel,
-		getTwoPartyConsensusLedger,
-	)
-	if err != nil {
-		return Objective{}, err
-	}
-
-	o.AliceVoucher = voucher.Clone()
-	return o, nil
 }
 
 // IsVirtualDefundObjective inspects a objective id and returns true if the objective id is for a virtualdefund objective.
 func IsVirtualDefundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)
+}
+
+func GetChannelId(id protocols.ObjectiveId) types.Destination {
+	cIdString := strings.TrimPrefix(ObjectivePrefix, ObjectivePrefix)
+
+	return types.Destination(common.HexToHash(cIdString))
 }
 
 // signedFinalState returns the final state for the virtual channel
@@ -202,8 +175,8 @@ func (o *Objective) finalState() state.State {
 // finalOutcome returns the outcome for the final state calculated from the InitialOutcome and PaidToBob
 func (o *Objective) finalOutcome() outcome.SingleAssetExit {
 	finalOutcome := o.InitialOutcome.Clone()
-	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.AliceVoucher.Amount)
-	finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.AliceVoucher.Amount)
+	finalOutcome.Allocations[0].Amount = finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.largestVoucherAmount())
+	finalOutcome.Allocations[1].Amount = finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.largestVoucherAmount())
 
 	return finalOutcome
 }
@@ -271,8 +244,12 @@ func (o *Objective) clone() Objective {
 
 	clone.VFixed = o.VFixed.Clone()
 	clone.InitialOutcome = o.InitialOutcome.Clone()
-	clone.AliceVoucher = o.AliceVoucher.Clone()
+	clonedVouchers := [3]*payments.Voucher{}
+	for i, v := range o.Vouchers {
+		clonedVouchers[i] = v.Clone()
+	}
 
+	clone.Vouchers = clonedVouchers
 	clone.Signatures = [3]state.Signature{}
 	for i, s := range o.Signatures {
 		clone.Signatures[i] = state.CloneSignature(s)
@@ -302,10 +279,9 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	}
 
 	// We only send out a voucher if we're Alice and we haven't already sent one
-	if !updated.VoucherSent && updated.MyRole == payments.PAYER_INDEX {
+	if !updated.VoucherSent {
 
-		myAddress := updated.VFixed.Participants[updated.MyRole]
-		vMsgs := protocols.CreateVoucherMessage(*updated.AliceVoucher, myAddress, updated.Id(), updated.VFixed.Participants...)
+		vMsgs := CreateStartMessage(o, o.myLatestVoucher())
 
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, vMsgs...)
 		updated.VoucherSent = true
@@ -330,12 +306,16 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if err != nil {
 			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not generate signed final state: %w", err)
 		}
-		messages := protocols.CreateSignedStateMessages(updated.Id(), signedFinal, updated.MyRole)
+		messages := CreateUpdateSigMessage(updated, signedFinal.Signatures())
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
+	fullySigned, err := updated.fullySigned()
 
+	if err != nil {
+		return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not validate signatures: %w", err)
+	}
 	// Check if all participants have signed the final state
-	if !updated.fullySigned() {
+	if !fullySigned {
 		return &updated, sideEffects, WaitingForCompleteFinal, nil
 	}
 
@@ -365,14 +345,32 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 }
 
+func (o *Objective) myLatestVoucher() *payments.Voucher {
+	return o.Vouchers[o.MyRole]
+}
+
 // fullySigned returns whether we have a signature from every partciapant
-func (o *Objective) fullySigned() bool {
+func (o *Objective) fullySigned() (bool, error) {
+	if !o.hasAliceVoucher() {
+		return false, nil
+	}
 	for _, sig := range o.Signatures {
 		if isZero(sig) {
-			return false
+			return false, nil
 		}
 	}
-	return true
+
+	for i, sig := range o.Signatures {
+		isValid, err := o.validateSignature(sig, uint(i))
+
+		if !isValid {
+			err = fmt.Errorf("signature %+v for participant %d is invalid", sig, i)
+		}
+		if err != nil {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 // isAlice returns true if the receiver represents participant 0 in the virtualdefund protocol
@@ -454,9 +452,28 @@ func (o *Objective) signedByMe() bool {
 
 }
 
+func (o *Objective) largestVoucherAmount() *big.Int {
+	largest := big.NewInt(0)
+	for _, v := range o.Vouchers {
+		if v != nil && v.Amount != nil && v.Amount.Cmp(largest) > 0 {
+			largest = v.Amount
+		}
+	}
+	return largest
+}
+
 // hasAliceVoucher returns true if we have received the latest voucher from Alice
 func (o *Objective) hasAliceVoucher() bool {
-	return o.AliceVoucher != nil
+	for _, v := range o.Vouchers {
+		if v == nil {
+			return false
+		}
+	}
+	for i, _ := range o.Vouchers {
+		signer, err := o.Vouchers[i].RecoverSigner()
+		return err == nil && signer == payments.GetPayer(o.VFixed.Participants)
+	}
+	return false
 }
 
 // isRightDefunded returns whether the ledger channel ToMyRight has been defunded
@@ -501,6 +518,57 @@ func (o *Objective) validateSignature(sig state.Signature, participantIndex uint
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
 // and returns the updated state.
+func (o *Objective) UpdateWithPayload(p []byte) (protocols.Objective, error) {
+
+	updated := o.clone()
+
+	switch DeterminePayloadType(p) {
+	case StartPayloadType:
+		var startPayload StartMessage
+		err := json.Unmarshal(p, &startPayload)
+		if err != nil {
+			panic(err)
+		}
+		senderIndex := -1
+		for i, p := range updated.VFixed.Participants {
+			if p == startPayload.Sender {
+				senderIndex = i
+			}
+		}
+		updated.Vouchers[senderIndex] = &startPayload.LatestVoucher
+	case UpdateSigPayloadType:
+		var updatePayload UpdateSignaturesMessage
+		err := json.Unmarshal(p, &updatePayload)
+		if err != nil {
+			panic(err)
+		}
+		for i := uint(0); i < 3; i++ {
+			existingSig := o.Signatures[i]
+			incomingSig := updatePayload.Signatures[i]
+
+			// If the incoming signature is zeroed we ignore it
+			if isZero(incomingSig) {
+				continue
+			}
+			// If the existing signature is not zeroed we check that it matches the incoming signature
+			if !isZero(existingSig) {
+				if existingSig.Equal(incomingSig) {
+					continue
+				} else {
+					return nil, fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
+				}
+			}
+			updated.Signatures[i] = incomingSig
+
+		}
+
+	}
+
+	return &updated, nil
+}
+
+// Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
+// and returns the updated state.
 func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
 	if o.Id() != event.ObjectiveId {
 		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
@@ -508,44 +576,6 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 
 	updated := o.clone()
 
-	if ss := event.SignedState; len(ss.Signatures()) != 0 {
-		incomingChannelId := ss.State().ChannelId()
-		vChannelId := updated.VFixed.ChannelId()
-
-		if incomingChannelId != vChannelId {
-			return o, errors.New("event channelId out of scope of objective")
-		} else {
-			incomingSignatures := ss.Signatures()
-			for i := uint(0); i < 3; i++ {
-				existingSig := o.Signatures[i]
-				incomingSig := incomingSignatures[i]
-
-				// If the incoming signature is zeroed we ignore it
-				if isZero(incomingSig) {
-					continue
-				}
-				// If the existing signature is not zeroed we check that it matches the incoming signature
-				if !isZero(existingSig) {
-					if existingSig.Equal(incomingSig) {
-						continue
-					} else {
-						return o, fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
-					}
-				}
-				updated.Signatures[i] = incomingSig
-
-				// Otherwise we validate the incoming signature and update our signatures
-				isValid, err := updated.validateSignature(incomingSig, i)
-				if isValid {
-					// Update the signature
-					updated.Signatures[i] = incomingSig
-				} else {
-					return o, fmt.Errorf("failed to validate signature: %w", err)
-				}
-
-			}
-		}
-	}
 	var toMyLeftId types.Destination
 	var toMyRightId types.Destination
 
@@ -578,9 +608,6 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 		}
 	}
 
-	if event.Voucher.ChannelId == o.VId() {
-		updated.AliceVoucher = event.Voucher.Clone()
-	}
 	return &updated, nil
 
 }
@@ -599,4 +626,96 @@ type ObjectiveRequest struct {
 // Id returns the objective id for the request.
 func (r ObjectiveRequest) Id(types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
+}
+
+type StartMessage struct {
+	protocols.VirtualDefundMessage
+	Sender        types.Address
+	LatestVoucher payments.Voucher
+}
+
+type UpdateSignaturesMessage struct {
+	protocols.VirtualDefundMessage
+	Signatures [3]state.Signature
+}
+
+type PayloadType string
+
+const (
+	StartPayloadType     PayloadType = "StartPayloadType"
+	UpdateSigPayloadType PayloadType = "UpdateSigPayloadType"
+)
+
+func DeterminePayloadType(p []byte) PayloadType {
+	var m map[string]interface{}
+	err := json.Unmarshal(p, &m)
+	if err != nil {
+		panic(err)
+	}
+	_, isStart := m["LatestVoucher"]
+	if isStart {
+		return StartPayloadType
+	} else {
+		return UpdateSigPayloadType
+	}
+}
+
+func ConstructObjectiveFromMessagePayload(preapprove bool, payload []byte, me types.Address, myLatestVoucher *payments.Voucher,
+	getChannel GetChannelByIdFunction, getConsensus GetTwoPartyConsensusLedgerFunction) (*Objective, error) {
+
+	switch payloadType := DeterminePayloadType(payload); payloadType {
+	case StartPayloadType:
+		startPayload := StartMessage{}
+		json.Unmarshal(payload, &startPayload)
+		request := ObjectiveRequest{ChannelId: startPayload.ChannelId}
+		o, err := NewObjective(request, preapprove, me, myLatestVoucher, getChannel, getConsensus)
+		if err != nil {
+			return nil, err
+		}
+
+		senderIndex := -1
+		for i, p := range o.VFixed.Participants {
+			if p == startPayload.Sender {
+				senderIndex = i
+			}
+		}
+
+		o.Vouchers[senderIndex] = &startPayload.LatestVoucher
+		return &o, nil
+	case UpdateSigPayloadType:
+		return nil, errors.New("Should have received start virtual defunding message first")
+	default:
+		return nil, fmt.Errorf("unreconized virtual defunding message payload %+v", payload)
+	}
+
+}
+
+func CreateStartMessage(o *Objective, voucher *payments.Voucher) []protocols.Message {
+
+	return protocols.CreateVirtualDefundMessages(CreateStartPayload(o, voucher), o.VFixed.Participants[o.MyRole], o.Id(), o.VFixed.Participants...)
+}
+func CreateStartPayload(o *Objective, voucher *payments.Voucher) StartMessage {
+
+	payload := StartMessage{
+		VirtualDefundMessage: protocols.VirtualDefundMessage{
+			ChannelId: o.VFixed.ChannelId()},
+		Sender:        o.VFixed.Participants[o.MyRole],
+		LatestVoucher: *o.Vouchers[o.MyRole],
+	}
+	return payload
+}
+
+func CreateUpdateSigMessage(o Objective, signatures []state.Signature) []protocols.Message {
+
+	return protocols.CreateVirtualDefundMessages(CreateUpdateSigPayload(o, signatures), o.VFixed.Participants[o.MyRole], o.Id(), o.VFixed.Participants...)
+}
+
+func CreateUpdateSigPayload(o Objective, signatures []state.Signature) UpdateSignaturesMessage {
+
+	payload := UpdateSignaturesMessage{
+		VirtualDefundMessage: protocols.VirtualDefundMessage{
+			ChannelId: o.VFixed.ChannelId()},
+		Signatures: [3]state.Signature{signatures[0], signatures[1], signatures[2]},
+	}
+	return payload
 }
