@@ -2,8 +2,10 @@ package NitroAdjudicator
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // computeReclaimEffects mirrors on chain code.
@@ -22,6 +24,8 @@ func computeReclaimEffects(sourceAllocations []outcome.Allocation, targetAllocat
 		foundTarget, foundLeft, foundRight bool
 	)
 
+	totalReclaimed := big.NewInt(0)
+
 	k := 0
 	for i := 0; i < len(sourceAllocations); i++ {
 		if i == int(indexOfTargetInSource) {
@@ -36,10 +40,12 @@ func computeReclaimEffects(sourceAllocations []outcome.Allocation, targetAllocat
 		}
 		if !foundLeft && sourceAllocations[i].Destination == guaranteeData.Left {
 			newSourceAllocations[k].Amount.Add(newSourceAllocations[k].Amount, targetAllocations[0].Amount)
+			totalReclaimed = totalReclaimed.Add(totalReclaimed, targetAllocations[0].Amount)
 			foundLeft = true
 		}
 		if !foundRight && sourceAllocations[i].Destination == guaranteeData.Right {
 			newSourceAllocations[k].Amount.Add(newSourceAllocations[k].Amount, targetAllocations[1].Amount)
+			totalReclaimed = totalReclaimed.Add(totalReclaimed, targetAllocations[1].Amount)
 			foundRight = true
 		}
 		k++
@@ -53,6 +59,9 @@ func computeReclaimEffects(sourceAllocations []outcome.Allocation, targetAllocat
 	}
 	if !foundRight {
 		return []outcome.Allocation{}, fmt.Errorf("could not find right")
+	}
+	if !types.Equal(totalReclaimed, guarantee.Amount) {
+		return []outcome.Allocation{}, fmt.Errorf("totalReclaimed!=guarantee.amount")
 	}
 	return newSourceAllocations, nil
 
