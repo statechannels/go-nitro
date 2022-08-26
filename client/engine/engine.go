@@ -365,10 +365,6 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, e
 func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
 
-	if or == nil {
-		panic("tried to handle nil objective request")
-	}
-
 	switch request := or.(type) {
 
 	case virtualfund.ObjectiveRequest:
