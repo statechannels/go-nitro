@@ -376,7 +376,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         require(foundTarget, 'could not find target');
         require(foundLeft, 'could not find left');
         require(foundRight, 'could not find right');
-        require(totalReclaimed == guarantee.amount, 'totalReclaimes!=guarantee.amount');
+        require(totalReclaimed == guarantee.amount, 'totalReclaimed!=guarantee.amount');
 
         return newSourceAllocations;
     }
