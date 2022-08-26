@@ -82,6 +82,8 @@ export function computeReclaimEffects(
   let foundLeft = false;
   let foundRight = false;
 
+  let totalReclaimed = BigNumber.from(0);
+
   let k = 0;
   for (let i = 0; i < sourceAllocations.length; i++) {
     if (i == indexOfTargetInSource) {
@@ -96,16 +98,18 @@ export function computeReclaimEffects(
     };
 
     // copy each element except the indexOfTargetInSource element
-    if (sourceAllocations[i].destination.toLowerCase() == left.toLowerCase()) {
+    if (!foundLeft && sourceAllocations[i].destination.toLowerCase() == left.toLowerCase()) {
       newSourceAllocations[k].amount = BigNumber.from(sourceAllocations[i].amount)
         .add(targetAllocations[0].amount)
         .toHexString();
+      totalReclaimed = totalReclaimed.add(targetAllocations[0].amount);
       foundLeft = true;
     }
-    if (sourceAllocations[i].destination.toLowerCase() == right.toLowerCase()) {
+    if (!foundRight && sourceAllocations[i].destination.toLowerCase() == right.toLowerCase()) {
       newSourceAllocations[k].amount = BigNumber.from(sourceAllocations[i].amount)
         .add(targetAllocations[1].amount)
         .toHexString();
+      totalReclaimed = totalReclaimed.add(targetAllocations[1].amount);
       foundRight = true;
     }
     k++;
@@ -122,6 +126,11 @@ export function computeReclaimEffects(
   if (!foundRight) {
     throw Error('could not find right');
   }
+
+  if (!totalReclaimed.eq(guarantee.amount)) {
+    throw Error('totalReclaimed!=guarantee.amount');
+  }
+
   return newSourceAllocations;
 }
 
