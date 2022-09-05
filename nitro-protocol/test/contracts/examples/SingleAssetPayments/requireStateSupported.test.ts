@@ -24,7 +24,7 @@ import {
   Channel,
   signStates,
 } from '../../../../src';
-import {SIGNED_BY_NON_MOVER} from '../../../../src/contract/transaction-creators/revert-reasons';
+import {INVALID_SIGNED_BY} from '../../../../src/contract/transaction-creators/revert-reasons';
 
 const provider = getTestProvider();
 let singleAssetPayments: Contract;
@@ -58,7 +58,7 @@ beforeAll(async () => {
 const whoSignedWhatA = [1, 0];
 const whoSignedWhatB = [0, 1];
 
-const reason1 = SIGNED_BY_NON_MOVER;
+const reason1 = INVALID_SIGNED_BY;
 const reason2 = 'not a simple allocation';
 const reason3 = 'Total allocated cannot change';
 const reason4 = 'outcome: Only one asset allowed';

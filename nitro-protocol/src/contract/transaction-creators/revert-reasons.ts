@@ -23,6 +23,6 @@ export const MUST_SUBMIT_EXACTLY_1_STATE = 'Must submit exactly 1 state';
 export const COUNTING_APP_INVALID_TRANSITION = 'Counter must be incremented';
 
 // Turn Taking
-export const SIGNED_BY_NON_MOVER = 'Invalid signedBy';
+export const INVALID_SIGNED_BY = 'Invalid signedBy';
 export const INVALID_NUMBER_OF_PROOF = 'Insufficient or excess proof states';
 export const TOO_MANY_PARTICIPANTS = 'Too many participants';
