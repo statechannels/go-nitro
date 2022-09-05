@@ -10,7 +10,6 @@ export const UNACCEPTABLE_WHO_SIGNED_WHAT = 'Unacceptable whoSignedWhat array';
 export const WHO_SIGNED_WHAT_WRONG_LENGTH = '|whoSignedWhat|!=nParticipants';
 export const WRONG_CHANNEL_STORAGE = 'status(ChannelData)!=storage';
 export const INVALID_SIGNATURE = 'Invalid signature';
-export const INVALID_NUMBER_OF_STATES = 'Insufficient or excess states';
 
 // Function-specific messages
 export const CHALLENGER_NON_PARTICIPANT = 'Challenger is not a participant';

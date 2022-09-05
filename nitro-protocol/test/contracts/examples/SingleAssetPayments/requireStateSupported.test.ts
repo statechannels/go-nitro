@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
-import {Contract, ethers, Wallet} from 'ethers';
+import {Contract, ethers} from 'ethers';
 import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
@@ -12,6 +12,7 @@ import {
   separateProofAndCandidate,
 } from '../../../../src/contract/state';
 import {
+  generateParticipants,
   getRandomNonce,
   getTestProvider,
   randomExternalDestination,
@@ -34,18 +35,14 @@ const addresses = {
   A: randomExternalDestination(),
   B: randomExternalDestination(),
 };
-const guaranteeData = {left: addresses.A, right: addresses.B};
 
-const participants = ['', ''];
-const wallets = new Array(2);
 const chainId = process.env.CHAIN_NETWORK_ID;
-const challengeDuration = 0x100;
 
-// Populate wallets and participants array
-for (let i = 0; i < 2; i++) {
-  wallets[i] = Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
+const nParticipants = 2;
+const {wallets, participants} = generateParticipants(nParticipants);
+
+const challengeDuration = 0x100;
+const guaranteeData = {left: addresses.A, right: addresses.B};
 
 beforeAll(async () => {
   singleAssetPayments = setupContract(

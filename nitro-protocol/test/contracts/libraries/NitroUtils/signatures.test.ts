@@ -8,15 +8,6 @@ import {TESTNitroUtils} from '../../../../typechain-types';
 const provider = getTestProvider();
 let NitroUtils: Contract & TESTNitroUtils;
 
-const participants = ['', '', ''];
-const wallets = new Array(3);
-
-// Populate wallets and participants array
-for (let i = 0; i < 3; i++) {
-  wallets[i] = Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
-
 beforeAll(async () => {
   NitroUtils = setupContract(
     provider,

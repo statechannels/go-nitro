@@ -8,6 +8,7 @@ import {
 } from '../../../../src/signatures';
 import testStrictTurnTakingArtifact from '../../../../artifacts/contracts/test/TESTStrictTurnTaking.sol/TESTStrictTurnTaking.json';
 import {
+  generateParticipants,
   getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
@@ -31,14 +32,9 @@ const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
 const defaultOutcome: Outcome = [{asset, allocations: [], metadata: '0x'}];
 const appDefinition = getCountingAppContractAddress();
-const participants = ['', '', ''];
-const wallets = new Array(3);
 
-// Populate wallets and participants array
-for (let i = 0; i < 3; i++) {
-  wallets[i] = Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
+const nParticipants = 3;
+const {wallets, participants} = generateParticipants(nParticipants);
 
 beforeAll(async () => {
   StrictTurnTaking = setupContract(
@@ -138,35 +134,32 @@ describe('requireValidInput', () => {
   const reverts4 = 'revert when too many participants';
 
   it.each`
-    description | numParticipants | numProof | reason
-    ${accepts1} | ${2}            | ${1}     | ${undefined}
-    ${accepts1} | ${4}            | ${3}     | ${undefined}
-    ${reverts1} | ${2}            | ${0}     | ${INVALID_NUMBER_OF_PROOF}
-    ${reverts2} | ${4}            | ${1}     | ${INVALID_NUMBER_OF_PROOF}
-    ${reverts3} | ${2}            | ${2}     | ${INVALID_NUMBER_OF_PROOF}
-    ${reverts4} | ${256}          | ${255}   | ${TOO_MANY_PARTICIPANTS}
+    description | nParticipants | numProof | reason
+    ${accepts1} | ${2}          | ${1}     | ${undefined}
+    ${accepts1} | ${4}          | ${3}     | ${undefined}
+    ${reverts1} | ${2}          | ${0}     | ${INVALID_NUMBER_OF_PROOF}
+    ${reverts2} | ${4}          | ${1}     | ${INVALID_NUMBER_OF_PROOF}
+    ${reverts3} | ${2}          | ${2}     | ${INVALID_NUMBER_OF_PROOF}
+    ${reverts4} | ${256}        | ${255}   | ${TOO_MANY_PARTICIPANTS}
   `(
     '$description',
     async ({
-      numParticipants,
+      nParticipants,
       numProof,
       reason,
     }: {
       description: string;
-      numParticipants: number;
+      nParticipants: number;
       numProof: number;
       reason: undefined | string;
     }) => {
       if (reason) {
         await expectRevert(
-          () => StrictTurnTaking.requireValidInput(numParticipants, numProof),
+          () => StrictTurnTaking.requireValidInput(nParticipants, numProof),
           reason
         );
       } else {
-        const txResult = (await StrictTurnTaking.requireValidInput(
-          numParticipants,
-          numProof
-        )) as any;
+        const txResult = (await StrictTurnTaking.requireValidInput(nParticipants, numProof)) as any;
 
         // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object with returned values
         // which in this case should be empty

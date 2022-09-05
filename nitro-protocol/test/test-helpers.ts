@@ -1,4 +1,4 @@
-import {Contract, ethers, BigNumberish, BigNumber, providers} from 'ethers';
+import {Contract, ethers, BigNumberish, BigNumber, providers, Wallet} from 'ethers';
 import {BytesLike} from '@ethersproject/bytes';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 import {isBigNumberish} from '@ethersproject/bignumber/lib/bignumber';
@@ -57,6 +57,26 @@ export function getCountingAppContractAddress(): string {
 }
 
 export const nonParticipant = ethers.Wallet.createRandom();
+
+/**
+ * Generate `n` wallets and return them alongside with array of their addresses.
+ * @param n Number of wallets to create.
+ * @returns N wallets with their addresses.
+ */
+export function generateParticipants(n: number): {
+  wallets: Wallet[];
+  participants: string[];
+} {
+  const participants = new Array(n).fill('');
+  const wallets = new Array(n);
+
+  for (let i = 0; i < n; i++) {
+    wallets[i] = Wallet.createRandom();
+    participants[i] = wallets[i].address;
+  }
+
+  return {participants, wallets};
+}
 
 export const clearedChallengeFingerprint = (turnNumRecord = 5): Bytes32 =>
   channelDataToStatus({

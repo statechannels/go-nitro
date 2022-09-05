@@ -9,22 +9,16 @@ import {
   RecoveredVariablePart,
   State,
 } from '../../../src/contract/state';
-import {getTestProvider, setupContract} from '../../test-helpers';
+import {generateParticipants, getTestProvider, setupContract} from '../../test-helpers';
 const {HashZero} = ethers.constants;
 
 const provider = getTestProvider();
 let consensusApp: Contract;
 
-const participants = ['', '', ''];
-const wallets = new Array(3);
+const nParticipants = 3;
+const {wallets, participants} = generateParticipants(nParticipants);
 const chainId = process.env.CHAIN_NETWORK_ID;
 const challengeDuration = 0x100;
-
-// Populate wallets and participants array
-for (let i = 0; i < 3; i++) {
-  wallets[i] = Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
 
 const channel: Channel = {chainId, channelNonce: 8, participants};
 

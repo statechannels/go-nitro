@@ -22,6 +22,7 @@ import {
 import {
   clearedChallengeFingerprint,
   finalizedFingerprint,
+  generateParticipants,
   getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
@@ -30,22 +31,18 @@ import {
 } from '../../test-helpers';
 import {bindSignatures, signStates} from '../../../src';
 
-const provider = getTestProvider();
 let ForceMove: Contract;
+const provider = getTestProvider();
 const chainId = process.env.CHAIN_NETWORK_ID;
-const participants = ['', '', ''];
-const wallets = new Array(3);
+
+const nParticipants = 3;
+const {wallets, participants} = generateParticipants(nParticipants);
+
 const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
 const outcome: Outcome = [{asset, allocations: [], metadata: '0x'}];
 let appDefinition: string;
 
-const nParticipants = 3;
-// Populate wallets and participants array
-for (let i = 0; i < nParticipants; i++) {
-  wallets[i] = Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
 beforeAll(async () => {
   ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
   appDefinition = getCountingAppContractAddress();
