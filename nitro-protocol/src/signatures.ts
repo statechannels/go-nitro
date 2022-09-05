@@ -1,7 +1,10 @@
 import {Wallet, utils, Signature} from 'ethers';
 
+import {Bytes, Uint256} from './contract/types';
+import {getSignedBy, getSignersIndices, getSignersNum} from './bitfield-utils';
 import {hashChallengeMessage} from './contract/challenge';
 import {getChannelId} from './contract/channel';
+import {Outcome} from './contract/outcome';
 import {
   getFixedPart,
   hashState,
@@ -58,6 +61,91 @@ export async function sign(wallet: Wallet, msgHash: string | Uint8Array): Promis
   // Returns an object with v, r, and s properties.
   return utils.splitSignature(await wallet.signMessage(utils.arrayify(msgHash)));
 }
+
+// Towards #761 https://github.com/statechannels/go-nitro/issues/761
+//
+export type ShortenedVariablePart =
+  | {
+      signerIndices: number[];
+      appData?: Bytes;
+      outcome?: Outcome;
+      isFinal?: boolean;
+    }
+  | number[];
+
+// Map<turnNum => ShortenedVariablePart> | Map<turnNum => signerIndices>
+export type TurnNumToShortenedVariablePart = Map<number, ShortenedVariablePart>;
+
+/**
+ * Signs a state using wallets at indices determined by signedBy bitfield.
+ * @param state A state to sign.
+ * @param wallets An array of wallets.
+ * @param signedBy SignedBy bitfield.
+ * @returns States signed by wallets at indices determined by signedBy bitfield.
+ */
+export async function signStateWithBitfield(
+  state: State,
+  wallets: Wallet[],
+  signedBy: Uint256
+): Promise<Signature[]> {
+  if (wallets.length < getSignersNum(signedBy)) {
+    throw new Error('Insufficient wallets');
+  }
+
+  const promises = getSignersIndices(signedBy).map(
+    async i => await sign(wallets[i], hashState(state))
+  );
+
+  return Promise.all(promises);
+}
+
+/**
+ * Convert provided ShortenedSignedBy and turnNum into RecoveredVariablePart. Missing ShortenedVariablePart fields are initialized to default values.
+ * @param turnNum Turn number.
+ * @param shortenedVP ShortenedVariablePart.
+ * @returns RecoveredVariablePart.
+ */
+export function shortenedToRecoveredVariablePart(
+  turnNum: number,
+  shortenedVP: ShortenedVariablePart
+): RecoveredVariablePart {
+  // if just an array of signerIndices was supplied, convert it to ShortenedVariablePart
+  if (Array.isArray(shortenedVP)) {
+    shortenedVP = {
+      signerIndices: shortenedVP,
+    };
+  }
+
+  const outcome = shortenedVP.outcome ?? [];
+  const appData = shortenedVP.appData ?? '0x';
+  const isFinal = shortenedVP.isFinal ?? false;
+
+  return {
+    variablePart: {
+      outcome,
+      appData,
+      turnNum,
+      isFinal,
+    },
+    signedBy: getSignedBy(shortenedVP.signerIndices),
+  };
+}
+
+/**
+ * Convert a mapping between turnNumbers and ShortenedVariableParts to an array of RecoveredVariableParts.
+ * @param turnNumToShortenedVP A mapping between turnNumbers and ShortenedVariableParts.
+ * @returns An array of RecoveredVariableParts.
+ */
+export function shortenedToRecoveredVariableParts(
+  turnNumToShortenedVP: TurnNumToShortenedVariablePart
+): RecoveredVariablePart[] {
+  return Array.from(turnNumToShortenedVP).map(([turnNum, shortenedVP]) => {
+    return shortenedToRecoveredVariablePart(turnNum, shortenedVP);
+  });
+}
+
+//
+// end towards #761 https://github.com/statechannels/go-nitro/issues/761
 
 /**
  * Maps the supplied wallets array to (a Promise of) an array of signatures by those wallets on the supplied states, using whoSignedWhat to map from wallet to state.

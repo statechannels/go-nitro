@@ -2,6 +2,10 @@ import {BigNumber, Contract, Wallet} from 'ethers';
 import {it} from '@jest/globals';
 import {expectRevert} from '@statechannels/devtools';
 
+import {
+  shortenedToRecoveredVariableParts,
+  TurnNumToShortenedVariablePart,
+} from '../../../../src/signatures';
 import testStrictTurnTakingArtifact from '../../../../artifacts/contracts/test/TESTStrictTurnTaking.sol/TESTStrictTurnTaking.json';
 import {
   getCountingAppContractAddress,
@@ -13,10 +17,11 @@ import {TESTStrictTurnTaking} from '../../../../typechain-types';
 import {Channel, getFixedPart, getVariablePart, Outcome, State} from '../../../../src';
 import {
   INVALID_NUMBER_OF_PROOF,
-  SIGNED_BY_NON_MOVER,
+  INVALID_SIGNED_BY,
   TOO_MANY_PARTICIPANTS,
+  WRONG_TURN_NUM,
 } from '../../../../src/contract/transaction-creators/revert-reasons';
-import {RecoveredVariablePart} from '../../../../src/contract/state';
+import {RecoveredVariablePart, separateProofAndCandidate} from '../../../../src/contract/state';
 import {getSignedBy} from '../../../../src/bitfield-utils';
 const provider = getTestProvider();
 let StrictTurnTaking: Contract & TESTStrictTurnTaking;
@@ -50,7 +55,6 @@ describe('isSignedByMover', () => {
   const accepts1 = 'should not revert when signed only by mover';
 
   const reverts1 = 'should revert when not signed by mover';
-  const INVALID_SIGNED_BY = SIGNED_BY_NON_MOVER;
 
   const reverts2 = 'should revert when signed not only by mover';
 
@@ -127,6 +131,7 @@ describe('moverAddress', () => {
 
 describe('requireValidInput', () => {
   const accepts1 = 'accept when all rules are preserved';
+
   const reverts1 = 'revert when supplied zero proof states';
   const reverts2 = 'revert when supplied not enough proof states';
   const reverts3 = 'revert when supplied excessive proof states';
@@ -161,6 +166,76 @@ describe('requireValidInput', () => {
         const txResult = (await StrictTurnTaking.requireValidInput(
           numParticipants,
           numProof
+        )) as any;
+
+        // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object with returned values
+        // which in this case should be empty
+        expect(txResult.length).toBe(0);
+      }
+    }
+  );
+});
+
+describe('requireValidTurnTaking', () => {
+  const accepts1 = 'accept when strict turn taking from 0';
+  const accepts2 = 'accept when strict turn taking not from 0';
+
+  const reverts1 = 'revert when insufficient states';
+  const reverts2 = 'revert when excess states';
+  const reverts3 = 'revert when a state is signed by multiple participants';
+  const reverts4 = 'revert when a state is not signed';
+  const reverts5 = 'revert when a state signed by non mover';
+  const reverts6 = 'revert when a turn number is skipped';
+
+  it.each`
+    description | turnNumToShortenedVariablePart                       | reason
+    ${accepts1} | ${new Map([[0, [0]], [1, [1]], [2, [2]]])}           | ${undefined}
+    ${accepts2} | ${new Map([[3, [0]], [4, [1]], [5, [2]]])}           | ${undefined}
+    ${reverts1} | ${new Map([[0, [0]], [1, [1]]])}                     | ${INVALID_NUMBER_OF_PROOF}
+    ${reverts2} | ${new Map([[0, [0]], [1, [1]], [2, [2]], [3, [0]]])} | ${INVALID_NUMBER_OF_PROOF}
+    ${reverts3} | ${new Map([[0, [0]], [1, [1, 2]], [2, [2]]])}        | ${INVALID_SIGNED_BY}
+    ${reverts4} | ${new Map([[0, [0]], [1, []], [2, [2]]])}            | ${INVALID_SIGNED_BY}
+    ${reverts5} | ${new Map([[0, [0]], [1, [2]], [2, [1]]])}           | ${INVALID_SIGNED_BY}
+    ${reverts6} | ${new Map([[0, [0]], [2, [1]], [3, [2]]])}           | ${WRONG_TURN_NUM}
+  `(
+    '$description',
+    async ({
+      turnNumToShortenedVariablePart,
+      reason,
+    }: {
+      turnNumToShortenedVariablePart: TurnNumToShortenedVariablePart;
+      reason: undefined | string;
+    }) => {
+      const channel: Channel = {
+        chainId,
+        participants,
+        channelNonce,
+      };
+
+      const state: State = {
+        turnNum: 0,
+        isFinal: false,
+        channel,
+        challengeDuration,
+        outcome: defaultOutcome,
+        appDefinition,
+        appData: '0x',
+      };
+
+      const fixedPart = getFixedPart(state);
+
+      const recoveredVP = shortenedToRecoveredVariableParts(turnNumToShortenedVariablePart);
+      const {proof, candidate} = separateProofAndCandidate(recoveredVP);
+
+      if (reason) {
+        await expectRevert(() =>
+          StrictTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate)
+        );
+      } else {
+        const txResult = (await StrictTurnTaking.requireValidTurnTaking(
+          fixedPart,
+          proof,
+          candidate
         )) as any;
 
         // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object with returned values
