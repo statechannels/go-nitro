@@ -38,20 +38,6 @@ contract TESTStrictTurnTaking {
     }
 
     /**
-     * @notice Wrapper for otherwise internal function. Require supplied variable part has specified turn number.
-     * @dev Require supplied variable part has specified turn number.
-     * @param variablePart Variable part to check turn number of.
-     * @param turnNum Turn number to compare with.
-     */
-    function requireHasTurnNum(INitroTypes.VariablePart memory variablePart, uint48 turnNum)
-        internal
-        pure
-    {
-        StrictTurnTaking.requireHasTurnNum(variablePart, turnNum);
-    }
-
-
-    /**
      * @notice Wrapper for otherwise internal function. Find moving participant address based on state turn number.
      * @dev Find moving participant address based on state turn number.
      * @param participants Array of participant addresses.
@@ -59,11 +45,11 @@ contract TESTStrictTurnTaking {
      * @return address Moving partitipant address.
      */
     function moverAddress(address[] memory participants, uint48 turnNum)
-        internal
+        public
         pure
         returns (address)
     {
-        StrictTurnTaking._moverAddress(participants, turnNum);
+        return StrictTurnTaking._moverAddress(participants, turnNum);
     }
 
     /**
@@ -72,7 +58,7 @@ contract TESTStrictTurnTaking {
      * @param numParticipants Number of participants in a channel.
      * @param numProofStates Number of proof states submitted.
      */
-    function requireValidInput(uint256 numParticipants, uint256 numProofStates) internal pure {
+    function requireValidInput(uint256 numParticipants, uint256 numProofStates) public pure {
         StrictTurnTaking._requireValidInput(numParticipants, numProofStates);
     }
 }
