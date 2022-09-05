@@ -124,7 +124,7 @@ type Objective struct {
 	ToMyRight *Connection
 
 	n      uint // number of intermediaries
-	MyRole uint // index in the virtual funding protocol. 0 for Alice, n for Bob. Otherwise, one of the intermediaries.
+	MyRole uint // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
 
 	a0 types.Funds // Initial balance for Alice
 	b0 types.Funds // Initial balance for Bob
