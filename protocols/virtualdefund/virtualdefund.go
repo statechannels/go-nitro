@@ -568,7 +568,7 @@ func isZero(sig state.Signature) bool {
 	return sig.Equal(zeroSig)
 }
 
-// ObjectiveRequest represents a request to create a new direct defund objective.
+// ObjectiveRequest represents a request to create a new virtual defund objective.
 type ObjectiveRequest struct {
 	ChannelId types.Destination
 	PaidToBob *big.Int
