@@ -52,7 +52,6 @@ describe('isSignedByMover', () => {
   const accepts1 = 'should not revert when signed only by mover';
 
   const reverts1 = 'should revert when not signed by mover';
-
   const reverts2 = 'should revert when signed not only by mover';
 
   it.each`
@@ -96,8 +95,6 @@ describe('isSignedByMover', () => {
 describe('moverAddress', () => {
   const accepts1 = 'return correct mover';
   const accepts2 = 'return correct mover for turnNum >= numParticipants';
-
-  const participants = wallets.map(w => w.address);
 
   it.each`
     description | turnNum | expectedParticipantIdx

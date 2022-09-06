@@ -6,7 +6,7 @@ import '../interfaces/INitroTypes.sol';
 import {StrictTurnTaking} from '../libraries/signature-logic/StrictTurnTaking.sol';
 
 /**
- * @dev This contract uses the StrictTurnTaking library to enable it to be more easily unit-tested. It exposes public or external functions call into internal functions. It should not be deployed in a production environment.
+ * @dev This contract uses the StrictTurnTaking library to make it more easily unit-tested. It exposes public or external functions call into internal functions. It should not be deployed in a production environment.
  */
 contract TESTStrictTurnTaking {
     /**

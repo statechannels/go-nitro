@@ -19,6 +19,7 @@ declare global {
       TRIVIAL_APP_ADDRESS: string;
       TEST_NITRO_UTILS_ADDRESS: string;
       TEST_STRICT_TURN_TAKING_ADDRESS: string;
+      TEST_CONSENSUS_ADDRESS: string;
       TEST_FORCE_MOVE_ADDRESS: string;
       TEST_NITRO_ADJUDICATOR_ADDRESS: string;
       TEST_TOKEN_ADDRESS: string;
