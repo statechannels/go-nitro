@@ -24,6 +24,7 @@ import {
 } from '../../../../src/contract/transaction-creators/revert-reasons';
 import {RecoveredVariablePart, separateProofAndCandidate} from '../../../../src/contract/state';
 import {getSignedBy} from '../../../../src/bitfield-utils';
+import {expectSucceed} from '../../../expect-succeed';
 const provider = getTestProvider();
 let StrictTurnTaking: Contract & TESTStrictTurnTaking;
 
@@ -87,11 +88,7 @@ describe('isSignedByMover', () => {
     if (reason) {
       await expectRevert(() => StrictTurnTaking.isSignedByMover(fixedPart, rvp), reason);
     } else {
-      const txResult = (await StrictTurnTaking.isSignedByMover(fixedPart, rvp)) as any;
-
-      // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object with returned values
-      // which in this case should be empty
-      expect(txResult.length).toBe(0);
+      await expectSucceed(() => StrictTurnTaking.isSignedByMover(fixedPart, rvp));
     }
   });
 });
@@ -159,11 +156,7 @@ describe('requireValidInput', () => {
           reason
         );
       } else {
-        const txResult = (await StrictTurnTaking.requireValidInput(nParticipants, numProof)) as any;
-
-        // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object with returned values
-        // which in this case should be empty
-        expect(txResult.length).toBe(0);
+        await expectSucceed(() => StrictTurnTaking.requireValidInput(nParticipants, numProof));
       }
     }
   );
@@ -225,15 +218,9 @@ describe('requireValidTurnTaking', () => {
           StrictTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate)
         );
       } else {
-        const txResult = (await StrictTurnTaking.requireValidTurnTaking(
-          fixedPart,
-          proof,
-          candidate
-        )) as any;
-
-        // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object with returned values
-        // which in this case should be empty
-        expect(txResult.length).toBe(0);
+        await expectSucceed(() =>
+          StrictTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate)
+        );
       }
     }
   );

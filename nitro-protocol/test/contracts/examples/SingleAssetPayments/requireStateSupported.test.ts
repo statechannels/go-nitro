@@ -26,6 +26,7 @@ import {
   signStates,
 } from '../../../../src';
 import {INVALID_SIGNED_BY} from '../../../../src/contract/transaction-creators/revert-reasons';
+import {expectSucceed} from '../../../expect-succeed';
 
 const provider = getTestProvider();
 let singleAssetPayments: Contract;
@@ -169,15 +170,9 @@ describe('requireStateSupported', () => {
           reason
         );
       } else {
-        const txResult = await singleAssetPayments.requireStateSupported(
-          fixedPart,
-          proof,
-          candidate
+        await expectSucceed(() =>
+          singleAssetPayments.requireStateSupported(fixedPart, proof, candidate)
         );
-
-        // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
-        // which in this case should be empty
-        expect(txResult.length).toBe(0);
       }
     }
   );

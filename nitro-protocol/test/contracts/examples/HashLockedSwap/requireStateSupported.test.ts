@@ -22,6 +22,7 @@ import {
   getRandomNonce,
   generateParticipants,
 } from '../../../test-helpers';
+import {expectSucceed} from '../../../expect-succeed';
 
 // Utilities
 // TODO: move to a src file
@@ -162,11 +163,7 @@ describe('requireStateSupported', () => {
       );
 
       if (isValid) {
-        const txResult = await hashTimeLock.requireStateSupported(fixedPart, proof, candidate);
-
-        // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
-        // which in this case should be empty
-        expect(txResult.length).toBe(0);
+        await expectSucceed(() => hashTimeLock.requireStateSupported(fixedPart, proof, candidate));
       } else {
         await expectRevert(
           () => hashTimeLock.requireStateSupported(fixedPart, proof, candidate),
