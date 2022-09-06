@@ -21,6 +21,6 @@ contract TESTConsensus {
         INitroTypes.RecoveredVariablePart[] memory proof,
         INitroTypes.RecoveredVariablePart memory candidate
     ) public pure {
-      Consensus.requireConsensus(fixedPart, proof, candidate);
+        Consensus.requireConsensus(fixedPart, proof, candidate);
     }
 }
