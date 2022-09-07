@@ -20,7 +20,7 @@ import {
   TurnNumToShortenedVariablePart,
 } from '../../../../src';
 import {
-  NOT_UNANIMUS,
+  NOT_UNANIMOUS,
   PROOF_SUPPLIED,
 } from '../../../../src/contract/transaction-creators/revert-reasons';
 import {separateProofAndCandidate} from '../../../../src/contract/state';
@@ -60,8 +60,8 @@ describe('requireConsensus', () => {
     description | turnNumToShortenedVariablePart         | reason
     ${accepts1} | ${new Map([[0, [0, 1, 2]]])}           | ${undefined}
     ${accepts2} | ${new Map([[2, [0, 1, 2]]])}           | ${undefined}
-    ${reverts1} | ${new Map([[0, [0, 1]]])}              | ${NOT_UNANIMUS}
-    ${reverts2} | ${new Map([[0, []]])}                  | ${NOT_UNANIMUS}
+    ${reverts1} | ${new Map([[0, [0, 1]]])}              | ${NOT_UNANIMOUS}
+    ${reverts2} | ${new Map([[0, []]])}                  | ${NOT_UNANIMOUS}
     ${reverts3} | ${new Map([[0, [0]], [1, [0, 1, 2]]])} | ${PROOF_SUPPLIED}
   `(
     '$description',
