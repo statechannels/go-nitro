@@ -1,5 +1,5 @@
 import {expectRevert} from '@statechannels/devtools';
-import {Contract, Wallet, ethers, BigNumber} from 'ethers';
+import {Contract, ethers, BigNumber} from 'ethers';
 
 import VirtualPaymentAppArtifact from '../../../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 import {
@@ -16,23 +16,24 @@ import {
   RecoveredVariablePart,
   State,
 } from '../../../src/contract/state';
-import {computeOutcome, getTestProvider, setupContract} from '../../test-helpers';
+import {
+  computeOutcome,
+  generateParticipants,
+  getTestProvider,
+  setupContract,
+} from '../../test-helpers';
 const {HashZero} = ethers.constants;
 
-const provider = getTestProvider();
 let virtualPaymentApp: Contract;
-
-const participants = ['', '', ''];
-const wallets = new Array(3);
+const provider = getTestProvider();
 const chainId = process.env.CHAIN_NETWORK_ID;
+
+const nParticipants = 3;
+const {wallets, participants} = generateParticipants(nParticipants);
+
 const challengeDuration = 0x100;
 const MAGIC_ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-// Populate wallets and participants array
-for (let i = 0; i < 3; i++) {
-  wallets[i] = Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
 const channel: Channel = {chainId, channelNonce: 8, participants};
 
 const baseState: State = {

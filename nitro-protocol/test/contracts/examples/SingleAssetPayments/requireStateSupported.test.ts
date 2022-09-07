@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
-import {Contract, ethers, Wallet} from 'ethers';
+import {Contract, ethers} from 'ethers';
 import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
@@ -12,6 +12,7 @@ import {
   separateProofAndCandidate,
 } from '../../../../src/contract/state';
 import {
+  generateParticipants,
   getRandomNonce,
   getTestProvider,
   randomExternalDestination,
@@ -24,7 +25,8 @@ import {
   Channel,
   signStates,
 } from '../../../../src';
-import {SIGNED_BY_NON_MOVER} from '../../../../src/contract/transaction-creators/revert-reasons';
+import {INVALID_SIGNED_BY} from '../../../../src/contract/transaction-creators/revert-reasons';
+import {expectSucceed} from '../../../expect-succeed';
 
 const provider = getTestProvider();
 let singleAssetPayments: Contract;
@@ -34,18 +36,14 @@ const addresses = {
   A: randomExternalDestination(),
   B: randomExternalDestination(),
 };
-const guaranteeData = {left: addresses.A, right: addresses.B};
 
-const participants = ['', ''];
-const wallets = new Array(2);
 const chainId = process.env.CHAIN_NETWORK_ID;
-const challengeDuration = 0x100;
 
-// Populate wallets and participants array
-for (let i = 0; i < 2; i++) {
-  wallets[i] = Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
+const nParticipants = 2;
+const {wallets, participants} = generateParticipants(nParticipants);
+
+const challengeDuration = 0x100;
+const guaranteeData = {left: addresses.A, right: addresses.B};
 
 beforeAll(async () => {
   singleAssetPayments = setupContract(
@@ -58,7 +56,7 @@ beforeAll(async () => {
 const whoSignedWhatA = [1, 0];
 const whoSignedWhatB = [0, 1];
 
-const reason1 = SIGNED_BY_NON_MOVER;
+const reason1 = INVALID_SIGNED_BY;
 const reason2 = 'not a simple allocation';
 const reason3 = 'Total allocated cannot change';
 const reason4 = 'outcome: Only one asset allowed';
@@ -172,15 +170,9 @@ describe('requireStateSupported', () => {
           reason
         );
       } else {
-        const txResult = await singleAssetPayments.requireStateSupported(
-          fixedPart,
-          proof,
-          candidate
+        await expectSucceed(() =>
+          singleAssetPayments.requireStateSupported(fixedPart, proof, candidate)
         );
-
-        // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
-        // which in this case should be empty
-        expect(txResult.length).toBe(0);
       }
     }
   );

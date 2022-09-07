@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
-import {Contract, ethers, utils, Wallet} from 'ethers';
+import {Contract, ethers, utils} from 'ethers';
 import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
@@ -20,7 +20,9 @@ import {
   setupContract,
   AssetOutcomeShortHand,
   getRandomNonce,
+  generateParticipants,
 } from '../../../test-helpers';
+import {expectSucceed} from '../../../expect-succeed';
 
 // Utilities
 // TODO: move to a src file
@@ -41,18 +43,16 @@ const addresses = {
   Sender: randomExternalDestination(),
   Receiver: randomExternalDestination(),
 };
-const participants = ['', ''];
-const wallets = new Array(2);
+
 const provider = getTestProvider();
 const chainId = process.env.CHAIN_NETWORK_ID;
+
+const nParticipants = 2;
+const {wallets, participants} = generateParticipants(nParticipants);
+
 const challengeDuration = 0x100;
 const whoSignedWhat = [1, 0];
 
-// Populate wallets and participants array
-for (let i = 0; i < 2; i++) {
-  wallets[i] = Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
 beforeAll(async () => {
   hashTimeLock = setupContract(provider, HashLockedSwapArtifact, process.env.HASH_LOCK_ADDRESS);
 });
@@ -163,11 +163,7 @@ describe('requireStateSupported', () => {
       );
 
       if (isValid) {
-        const txResult = await hashTimeLock.requireStateSupported(fixedPart, proof, candidate);
-
-        // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
-        // which in this case should be empty
-        expect(txResult.length).toBe(0);
+        await expectSucceed(() => hashTimeLock.requireStateSupported(fixedPart, proof, candidate));
       } else {
         await expectRevert(
           () => hashTimeLock.requireStateSupported(fixedPart, proof, candidate),

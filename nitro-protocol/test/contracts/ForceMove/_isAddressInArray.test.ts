@@ -1,36 +1,21 @@
-import {Contract, Wallet} from 'ethers';
+import {Contract} from 'ethers';
 
 import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
-import {getTestProvider, setupContract} from '../../test-helpers';
+import {generateParticipants, getTestProvider, setupContract} from '../../test-helpers';
 
 const provider = getTestProvider();
 let ForceMove: Contract;
 
-const participants = ['', '', ''];
-const wallets = new Array(3);
-
-// Populate wallets and participants array
-for (let i = 0; i < 3; i++) {
-  wallets[i] = Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
+const nParticipants = 4;
+const {participants} = generateParticipants(nParticipants);
 
 beforeAll(async () => {
   ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
 });
 
 describe('_isAddressInArray', () => {
-  let suspect: string;
-  let addresses: string[];
-
-  beforeAll(() => {
-    suspect = Wallet.createRandom().address;
-    addresses = [
-      Wallet.createRandom().address,
-      Wallet.createRandom().address,
-      Wallet.createRandom().address,
-    ];
-  });
+  const suspect = participants[0];
+  const addresses = participants.slice(1);
 
   it('verifies absence of suspect', async () => {
     expect(await ForceMove.isAddressInArray(suspect, addresses)).toBe(false);

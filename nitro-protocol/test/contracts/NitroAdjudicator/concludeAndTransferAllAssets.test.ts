@@ -1,5 +1,5 @@
 import {expectRevert} from '@statechannels/devtools';
-import {Contract, Wallet, ethers, BigNumber, constants} from 'ethers';
+import {Contract, ethers, BigNumber, constants} from 'ethers';
 import {it} from '@jest/globals';
 
 import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
@@ -14,6 +14,7 @@ import {
 } from '../../../src/contract/state';
 import {
   computeOutcome,
+  generateParticipants,
   getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
@@ -44,10 +45,11 @@ const token = setupContract(
 
 const provider = getTestProvider();
 const chainId = process.env.CHAIN_NETWORK_ID;
-const participants = ['', '', ''];
-const wallets = new Array(3);
-const challengeDuration = 0x1000;
 
+const nParticipants = 3;
+const {wallets, participants} = generateParticipants(nParticipants);
+
+const challengeDuration = 0x1000;
 let appDefinition: string;
 
 interface addressesT {
@@ -88,11 +90,6 @@ for (let i = 0; i < 100; i++) {
   if (i < 100) oneHundredPayouts.ERC20[i.toString()] = 1;
 }
 
-// Populate wallets and participants array
-for (let i = 0; i < 3; i++) {
-  wallets[i] = Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
 beforeAll(async () => {
   addresses.ETH = MAGIC_ADDRESS_INDICATING_ETH;
   addresses.ERC20 = token.address;

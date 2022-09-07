@@ -10,7 +10,6 @@ export const UNACCEPTABLE_WHO_SIGNED_WHAT = 'Unacceptable whoSignedWhat array';
 export const WHO_SIGNED_WHAT_WRONG_LENGTH = '|whoSignedWhat|!=nParticipants';
 export const WRONG_CHANNEL_STORAGE = 'status(ChannelData)!=storage';
 export const INVALID_SIGNATURE = 'Invalid signature';
-export const INVALID_NUMBER_OF_STATES = 'Insufficient or excess states';
 
 // Function-specific messages
 export const CHALLENGER_NON_PARTICIPANT = 'Challenger is not a participant';
@@ -19,5 +18,13 @@ export const WRONG_REFUTATION_SIGNATURE = 'Refutation state not signed by challe
 export const NONFINAL_STATE = 'State must be final';
 export const MUST_SUBMIT_EXACTLY_1_STATE = 'Must submit exactly 1 state';
 
+// Application-specifis messages
+export const COUNTING_APP_INVALID_TRANSITION = 'Counter must be incremented';
+
 // Turn Taking
-export const SIGNED_BY_NON_MOVER = 'Invalid signedBy';
+export const INVALID_SIGNED_BY = 'Invalid signedBy';
+export const INVALID_NUMBER_OF_PROOF_STATES = 'Invalid number of proof states';
+export const TOO_MANY_PARTICIPANTS = 'Too many participants';
+export const WRONG_TURN_NUM = 'Wrong variablePart.turnNum';
+export const NOT_UNANIMOUS = '!unanimous';
+export const PROOF_SUPPLIED = '|proof|!=0';

@@ -9,6 +9,8 @@ import singleAssetPaymentsArtifact from '../artifacts/contracts/examples/SingleA
 import hashLockedSwapArtifact from '../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
 import testForceMoveArtifact from '../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
 import testNitroUtilsArtifact from '../artifacts/contracts/test/TESTNitroUtils.sol/TESTNitroUtils.json';
+import testStrictTurnTakingArtifact from '../artifacts/contracts/test/TESTStrictTurnTaking.sol/TESTStrictTurnTaking.json';
+import testConsensusArtifact from '../artifacts/contracts/test/TESTConsensus.sol/TESTConsensus.json';
 import testNitroAdjudicatorArtifact from '../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 import tokenArtifact from '../artifacts/contracts/Token.sol/Token.json';
 import trivialAppArtifact from '../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
@@ -27,6 +29,8 @@ const [
   hashLockedSwapFactory,
   testForceMoveFactory,
   testNitroUtilsFactory,
+  testStrictTurnTakingFactory,
+  testConsensusFactory,
   testNitroAdjudicatorFactory,
   tokenFactory,
   trivialAppFactory,
@@ -40,6 +44,8 @@ const [
   hashLockedSwapArtifact,
   testForceMoveArtifact,
   testNitroUtilsArtifact,
+  testStrictTurnTakingArtifact,
+  testConsensusArtifact,
   testNitroAdjudicatorArtifact,
   tokenArtifact,
   trivialAppArtifact,
@@ -56,13 +62,16 @@ export async function deploy(): Promise<Record<string, string>> {
 
   const HASH_LOCK_ADDRESS = (await hashLockedSwapFactory.deploy()).address;
   const SINGLE_ASSET_PAYMENTS_ADDRESS = (await singleAssetPaymentsFactory.deploy()).address;
+  const EMBEDDED_APPLICATION_ADDRESS = (await embeddedApplicationFactory.deploy()).address;
+  const CONSENSUS_APP_ADDRESS = await (await consensusAppFactory.deploy()).address;
+  const VIRTUAL_PAYMENT_APP_ADDRESS = await (await virtualPaymentAppFactory.deploy()).address;
+
   const TEST_NITRO_ADJUDICATOR_ADDRESS = (await testNitroAdjudicatorFactory.deploy()).address;
   const TRIVIAL_APP_ADDRESS = (await trivialAppFactory.deploy()).address;
   const TEST_FORCE_MOVE_ADDRESS = (await testForceMoveFactory.deploy()).address;
   const TEST_NITRO_UTILS_ADDRESS = (await testNitroUtilsFactory.deploy()).address;
-  const EMBEDDED_APPLICATION_ADDRESS = (await embeddedApplicationFactory.deploy()).address;
-  const CONSENSUS_APP_ADDRESS = await (await consensusAppFactory.deploy()).address;
-  const VIRTUAL_PAYMENT_APP_ADDRESS = await (await virtualPaymentAppFactory.deploy()).address;
+  const TEST_STRICT_TURN_TAKING_ADDRESS = (await testStrictTurnTakingFactory.deploy()).address;
+  const TEST_CONSENSUS_ADDRESS = (await testConsensusFactory.deploy()).address;
 
   const TEST_TOKEN_ADDRESS = (
     await tokenFactory.deploy(new Wallet(TEST_ACCOUNTS[0].privateKey).address)
@@ -74,11 +83,13 @@ export async function deploy(): Promise<Record<string, string>> {
     EMBEDDED_APPLICATION_ADDRESS,
     SINGLE_ASSET_PAYMENTS_ADDRESS,
     TRIVIAL_APP_ADDRESS,
-    TEST_FORCE_MOVE_ADDRESS,
-    TEST_NITRO_UTILS_ADDRESS,
-    TEST_NITRO_ADJUDICATOR_ADDRESS,
-    TEST_TOKEN_ADDRESS,
     CONSENSUS_APP_ADDRESS,
     VIRTUAL_PAYMENT_APP_ADDRESS,
+    TEST_FORCE_MOVE_ADDRESS,
+    TEST_NITRO_UTILS_ADDRESS,
+    TEST_STRICT_TURN_TAKING_ADDRESS,
+    TEST_CONSENSUS_ADDRESS,
+    TEST_NITRO_ADJUDICATOR_ADDRESS,
+    TEST_TOKEN_ADDRESS,
   };
 }

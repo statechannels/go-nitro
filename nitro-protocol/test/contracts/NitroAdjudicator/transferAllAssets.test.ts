@@ -1,11 +1,12 @@
 import {expectRevert} from '@statechannels/devtools';
-import {Contract, Wallet, constants} from 'ethers';
+import {Contract, constants} from 'ethers';
 import {it} from '@jest/globals';
 
 import {Channel, getChannelId} from '../../../src/contract/channel';
 import {hashOutcome, Outcome} from '../../../src/contract/outcome';
 import {
   computeOutcome,
+  generateParticipants,
   getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
@@ -48,18 +49,13 @@ const addresses = {
 };
 
 // Constants for this test suite
-
 const chainId = process.env.CHAIN_NETWORK_ID;
-const participants = ['', '', ''];
-const wallets = new Array(3);
+
+const nParticipants = 3;
+const {participants} = generateParticipants(nParticipants);
+
 const challengeDuration = 0x1000;
 let appDefinition: string;
-
-// Populate wallets and participants array
-for (let i = 0; i < 3; i++) {
-  wallets[i] = Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
 
 beforeAll(async () => {
   appDefinition = getCountingAppContractAddress();

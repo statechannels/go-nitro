@@ -17,10 +17,11 @@ import {
 import {
   CHALLENGER_NON_PARTICIPANT,
   CHANNEL_FINALIZED,
-  INVALID_NUMBER_OF_STATES,
+  INVALID_NUMBER_OF_PROOF_STATES,
   INVALID_SIGNATURE,
   TURN_NUM_RECORD_DECREASED,
   TURN_NUM_RECORD_NOT_INCREASED,
+  COUNTING_APP_INVALID_TRANSITION,
 } from '../../../src/contract/transaction-creators/revert-reasons';
 import {Outcome, SignedState} from '../../../src/index';
 import {
@@ -30,7 +31,6 @@ import {
   signState,
   signStates,
 } from '../../../src/signatures';
-import {COUNTING_APP_INVALID_TRANSITION} from '../../revert-reasons';
 import {
   clearedChallengeFingerprint,
   finalizedFingerprint,
@@ -49,13 +49,13 @@ import {MAX_OUTCOME_ITEMS} from '../../../src/contract/outcome';
 
 import {transitionType} from './types';
 
-const provider = getTestProvider();
-
 let ForceMove: Contract;
-
+const provider = getTestProvider();
 const chainId = process.env.CHAIN_NETWORK_ID;
+
 const participants = ['', '', ''];
 const wallets = new Array(3);
+
 const challengeDuration = 86400; // 1 day
 const outcome: Outcome = [{allocations: [], asset: Wallet.createRandom().address, metadata: '0x'}];
 
@@ -157,8 +157,8 @@ describe('challenge', () => {
     ${reverts4}  | ${challengeAtTwenty}         | ${threeStates} | ${'correct'}           | ${TURN_NUM_RECORD_NOT_INCREASED}
     ${reverts4}  | ${challengeAtLargestTurnNum} | ${threeStates} | ${'correct'}           | ${TURN_NUM_RECORD_NOT_INCREASED}
     ${reverts5}  | ${finalizedAtFive}           | ${threeStates} | ${'correct'}           | ${CHANNEL_FINALIZED}
-    ${reverts6}  | ${empty}                     | ${oneState}    | ${'correct'}           | ${INVALID_NUMBER_OF_STATES}
-    ${reverts7}  | ${empty}                     | ${fourStates}  | ${'correct'}           | ${INVALID_NUMBER_OF_STATES}
+    ${reverts6}  | ${empty}                     | ${oneState}    | ${'correct'}           | ${INVALID_NUMBER_OF_PROOF_STATES}
+    ${reverts7}  | ${empty}                     | ${fourStates}  | ${'correct'}           | ${INVALID_NUMBER_OF_PROOF_STATES}
   `(
     '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, stateData, challengeSignatureType, reasonString}) => {

@@ -21,7 +21,7 @@
     "prettier:write": "prettier --write './contracts/**/*.sol'",
     "benchmark:diff": "npx hardhat compile && jest -c ./config/jest/jest.gas-benchmarks.config.js",
     "benchmark:update": "npx hardhat run gas-benchmarks/exportBenchmarkResults.ts",
-    "benchmark": "npm run benchmark:diff || true && npm run benchmark:update"
+    "benchmark": "npm run benchmark:diff || npm run benchmark:update"
   },
   "keywords": [],
   "author": "",

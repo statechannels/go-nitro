@@ -19,10 +19,11 @@ import {
 import {
   CHANNEL_FINALIZED,
   TURN_NUM_RECORD_NOT_INCREASED,
-  SIGNED_BY_NON_MOVER,
+  INVALID_SIGNED_BY,
+  COUNTING_APP_INVALID_TRANSITION,
 } from '../../../src/contract/transaction-creators/revert-reasons';
-import {COUNTING_APP_INVALID_TRANSITION} from '../../revert-reasons';
 import {
+  generateParticipants,
   getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
@@ -34,20 +35,16 @@ import {testParams} from './types';
 
 const provider = getTestProvider();
 let ForceMove: Contract;
-const chainId = process.env.CHAIN_NETWORK_ID;
+
 const participantsNum = 3;
-const participants = new Array(participantsNum).fill('');
-const wallets = new Array(participantsNum);
+const {wallets, participants} = generateParticipants(participantsNum);
+
+const chainId = process.env.CHAIN_NETWORK_ID;
 const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
 const defaultOutcome: Outcome = [{asset, allocations: [], metadata: '0x'}];
 let appDefinition: string;
 
-// Populate wallets and participants array
-for (let i = 0; i < participantsNum; i++) {
-  wallets[i] = Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
 beforeAll(async () => {
   ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
   appDefinition = getCountingAppContractAddress();
@@ -100,10 +97,10 @@ describe('checkpoint', () => {
     ${accepts3} | ${turnNumRecord + 1 + participantsNum} | ${valid}             | ${future}    | ${undefined}
     ${reverts1} | ${turnNumRecord}                       | ${valid}             | ${never}     | ${TURN_NUM_RECORD_NOT_INCREASED}
     ${reverts2} | ${turnNumRecord + 1}                   | ${invalidTransition} | ${never}     | ${COUNTING_APP_INVALID_TRANSITION}
-    ${reverts3} | ${turnNumRecord + 1}                   | ${unsupported}       | ${never}     | ${SIGNED_BY_NON_MOVER}
+    ${reverts3} | ${turnNumRecord + 1}                   | ${unsupported}       | ${never}     | ${INVALID_SIGNED_BY}
     ${reverts4} | ${turnNumRecord}                       | ${valid}             | ${future}    | ${TURN_NUM_RECORD_NOT_INCREASED}
     ${reverts5} | ${turnNumRecord + 1}                   | ${invalidTransition} | ${future}    | ${COUNTING_APP_INVALID_TRANSITION}
-    ${reverts6} | ${turnNumRecord + 1}                   | ${unsupported}       | ${future}    | ${SIGNED_BY_NON_MOVER}
+    ${reverts6} | ${turnNumRecord + 1}                   | ${unsupported}       | ${future}    | ${INVALID_SIGNED_BY}
     ${reverts7} | ${turnNumRecord + 1}                   | ${valid}             | ${past}      | ${CHANNEL_FINALIZED}
   `('$description', async ({largestTurnNum, support, finalizesAt, reason}: testParams) => {
     const {appDatas, whoSignedWhat} = support;

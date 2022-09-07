@@ -10,6 +10,7 @@ import {
   State,
   VariablePart,
 } from '../../../src/contract/state';
+import {expectSucceed} from '../../expect-succeed';
 import {getRandomNonce, getTestProvider, setupContract} from '../../test-helpers';
 
 const provider = getTestProvider();
@@ -64,11 +65,8 @@ describe('requireStateSupported', () => {
     for (let i = 0; i < 5; i++) {
       const from: RecoveredVariablePart = getRandomRecoveredVariablePart();
       const to: RecoveredVariablePart = getRandomRecoveredVariablePart();
-      const txResult = await trivialApp.requireStateSupported(getMockedFixedPart(), [from], to);
 
-      // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
-      // which in this case should be empty
-      expect(txResult.length).toBe(0);
+      await expectSucceed(() => trivialApp.requireStateSupported(getMockedFixedPart(), [from], to));
     }
   });
 
@@ -92,10 +90,8 @@ describe('requireStateSupported', () => {
     const from: RecoveredVariablePart = mockSigs(getVariablePart(fromState));
     const to: RecoveredVariablePart = mockSigs(getVariablePart(toState));
 
-    const txResult = await trivialApp.requireStateSupported(getFixedPart(fromState), [from], to);
-
-    // As 'requireStateSupported' method is constant (view or pure), if it succeedes, it returns an object/array with returned values
-    // which in this case should be empty
-    expect(txResult.length).toBe(0);
+    await expectSucceed(() =>
+      trivialApp.requireStateSupported(getFixedPart(fromState), [from], to)
+    );
   });
 });
