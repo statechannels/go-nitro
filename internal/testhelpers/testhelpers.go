@@ -3,6 +3,7 @@ package testhelpers
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"reflect"
@@ -55,6 +56,7 @@ func Equals(tb testing.TB, want, got interface{}) {
 }
 
 // AssertStateSentToEveryone asserts that ses contains a message for every participant but from
+// This assumes the `PayloadData` is an encoded `state.SignedState`
 func AssertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected state.SignedState, from testactors.Actor, allActors []testactors.Actor) {
 	for _, a := range allActors {
 		if a.Role != from.Role {
@@ -64,12 +66,15 @@ func AssertStateSentToEveryone(t *testing.T, ses protocols.SideEffects, expected
 }
 
 // AssertStateSentTo asserts that ses contains a message for the participant
+// This assumes the `PayloadData` is an encoded `state.SignedState`
 func AssertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.SignedState, to testactors.Actor) {
+	b, _ := json.Marshal(expected)
+
 	for _, msg := range ses.MessagesToSend {
 		toAddress := to.Address()
 		if bytes.Equal(msg.To[:], toAddress[:]) {
-			for _, ss := range msg.ObjectiveMessages {
-				Equals(t, ss.PayloadData, expected)
+			for _, op := range msg.ObjectiveMessages {
+				Equals(t, op.PayloadData, b)
 			}
 		}
 	}

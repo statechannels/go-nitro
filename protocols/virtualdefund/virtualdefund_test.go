@@ -114,7 +114,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		updatedObj, _, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
+		updatedObj, se, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
 
@@ -129,8 +129,8 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		testhelpers.Equals(t, waitingFor, WaitingForCompleteFinal)
 		signedByMe := state.NewSignedState(data.vFinal)
 		testhelpers.SignState(&signedByMe, &my.PrivateKey)
-		// TODO: Need to implement a helper that understands the virtual defund payload format
-		// testhelpers.AssertStateSentToEveryone(t, se, signedByMe, my, allActors)
+
+		testhelpers.AssertStateSentToEveryone(t, se, signedByMe, my, allActors)
 
 		// Update the signatures on the objective so the final state is fully signed
 		signedByOthers := signStateByOthers(my, state.NewSignedState(data.vFinal))
@@ -140,7 +140,6 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 			}
 		}
 
-		var se protocols.SideEffects
 		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 		updated = updatedObj.(*Objective)
 		testhelpers.Ok(t, err)
