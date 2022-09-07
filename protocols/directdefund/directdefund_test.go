@@ -96,9 +96,9 @@ func TestUpdate(t *testing.T) {
 	o, _ := newTestObjective()
 
 	// Prepare an event with a mismatched channelId
-	e := protocols.CreateObjectivePayload("some-id", SignedStatePayload, testState)
+	op := protocols.CreateObjectivePayload("some-id", SignedStatePayload, testState)
 	// Assert that Updating the objective with such an event returns an error
-	if _, err := o.Update(e); err == nil {
+	if _, err := o.Update(op); err == nil {
 		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
 	}
 
@@ -107,9 +107,9 @@ func TestUpdate(t *testing.T) {
 	s.TurnNum = 3
 
 	ss, _ := signedTestState(s, []bool{true, false})
-	e = protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, ss)
+	op = protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, ss)
 
-	if _, err := o.Update(e); err.Error() != "direct defund objective can only be updated with final states" {
+	if _, err := o.Update(op); err.Error() != "direct defund objective can only be updated with final states" {
 		t.Error(err)
 	}
 
@@ -117,8 +117,8 @@ func TestUpdate(t *testing.T) {
 	s.TurnNum = 4
 	s.IsFinal = true
 	ss, _ = signedTestState(s, []bool{true, false})
-	e = protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, ss)
-	if _, err := o.Update(e); err.Error() != "expected state with turn number 2, received turn number 4" {
+	op = protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, ss)
+	if _, err := o.Update(op); err.Error() != "expected state with turn number 2, received turn number 4" {
 		t.Error(err)
 	}
 }
@@ -163,8 +163,8 @@ func TestCrankAlice(t *testing.T) {
 
 	// The second update and crank. Alice is expected to create a withdrawAll transaction
 	finalStateSignedByAliceBob, _ := signedTestState(finalState, []bool{true, true})
-	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, finalStateSignedByAliceBob)
-	updated, err = updated.Update(e)
+	op := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, finalStateSignedByAliceBob)
+	updated, err = updated.Update(op)
 	if err != nil {
 		t.Error(err)
 	}
@@ -216,8 +216,8 @@ func TestCrankBob(t *testing.T) {
 	finalState.IsFinal = true
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
 
-	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, finalStateSignedByAlice)
-	updated, err := o.Update(e)
+	op := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, finalStateSignedByAlice)
+	updated, err := o.Update(op)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +244,7 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The second update and crank. Bob is expected to NOT create any transactions or side effects
-	updated, err = updated.Update(e)
+	updated, err = updated.Update(op)
 	if err != nil {
 		t.Error(err)
 	}
