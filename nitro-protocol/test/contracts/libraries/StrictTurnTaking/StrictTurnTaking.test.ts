@@ -120,7 +120,7 @@ describe('moverAddress', () => {
 });
 
 describe('requireValidInput', () => {
-  const accepts1 = 'accept when all rules are preserved';
+  const accepts1 = 'accept when all rules are satisfied';
 
   const reverts1 = 'revert when supplied zero proof states';
   const reverts2 = 'revert when supplied not enough proof states';
