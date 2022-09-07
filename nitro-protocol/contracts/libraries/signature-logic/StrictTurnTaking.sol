@@ -91,7 +91,7 @@ library StrictTurnTaking {
     function _requireValidInput(uint256 numParticipants, uint256 numProofStates) internal pure {
         require(
             (numProofStates > 0) && (numParticipants == numProofStates + 1),
-            'Insufficient or excess proof'
+            'Invalid number of proof states'
         );
 
         // no more than 255 participants

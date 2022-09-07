@@ -17,7 +17,7 @@ import {
 import {
   CHALLENGER_NON_PARTICIPANT,
   CHANNEL_FINALIZED,
-  INVALID_NUMBER_OF_PROOF,
+  INVALID_NUMBER_OF_PROOF_STATES,
   INVALID_SIGNATURE,
   TURN_NUM_RECORD_DECREASED,
   TURN_NUM_RECORD_NOT_INCREASED,
@@ -157,8 +157,8 @@ describe('challenge', () => {
     ${reverts4}  | ${challengeAtTwenty}         | ${threeStates} | ${'correct'}           | ${TURN_NUM_RECORD_NOT_INCREASED}
     ${reverts4}  | ${challengeAtLargestTurnNum} | ${threeStates} | ${'correct'}           | ${TURN_NUM_RECORD_NOT_INCREASED}
     ${reverts5}  | ${finalizedAtFive}           | ${threeStates} | ${'correct'}           | ${CHANNEL_FINALIZED}
-    ${reverts6}  | ${empty}                     | ${oneState}    | ${'correct'}           | ${INVALID_NUMBER_OF_PROOF}
-    ${reverts7}  | ${empty}                     | ${fourStates}  | ${'correct'}           | ${INVALID_NUMBER_OF_PROOF}
+    ${reverts6}  | ${empty}                     | ${oneState}    | ${'correct'}           | ${INVALID_NUMBER_OF_PROOF_STATES}
+    ${reverts7}  | ${empty}                     | ${fourStates}  | ${'correct'}           | ${INVALID_NUMBER_OF_PROOF_STATES}
   `(
     '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, stateData, challengeSignatureType, reasonString}) => {

@@ -23,7 +23,7 @@ export const COUNTING_APP_INVALID_TRANSITION = 'Counter must be incremented';
 
 // Turn Taking
 export const INVALID_SIGNED_BY = 'Invalid signedBy';
-export const INVALID_NUMBER_OF_PROOF = 'Insufficient or excess proof';
+export const INVALID_NUMBER_OF_PROOF_STATES = 'Invalid number of proof states';
 export const TOO_MANY_PARTICIPANTS = 'Too many participants';
 export const WRONG_TURN_NUM = 'Wrong variablePart.turnNum';
 export const NOT_UNANIMUS = '!unanimous';

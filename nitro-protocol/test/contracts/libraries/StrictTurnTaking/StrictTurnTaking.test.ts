@@ -17,7 +17,7 @@ import {
 import {TESTStrictTurnTaking} from '../../../../typechain-types';
 import {Channel, getFixedPart, getVariablePart, Outcome, State} from '../../../../src';
 import {
-  INVALID_NUMBER_OF_PROOF,
+  INVALID_NUMBER_OF_PROOF_STATES,
   INVALID_SIGNED_BY,
   TOO_MANY_PARTICIPANTS,
   WRONG_TURN_NUM,
@@ -131,9 +131,9 @@ describe('requireValidInput', () => {
     description | nParticipants | numProof | reason
     ${accepts1} | ${2}          | ${1}     | ${undefined}
     ${accepts1} | ${4}          | ${3}     | ${undefined}
-    ${reverts1} | ${2}          | ${0}     | ${INVALID_NUMBER_OF_PROOF}
-    ${reverts2} | ${4}          | ${1}     | ${INVALID_NUMBER_OF_PROOF}
-    ${reverts3} | ${2}          | ${2}     | ${INVALID_NUMBER_OF_PROOF}
+    ${reverts1} | ${2}          | ${0}     | ${INVALID_NUMBER_OF_PROOF_STATES}
+    ${reverts2} | ${4}          | ${1}     | ${INVALID_NUMBER_OF_PROOF_STATES}
+    ${reverts3} | ${2}          | ${2}     | ${INVALID_NUMBER_OF_PROOF_STATES}
     ${reverts4} | ${256}        | ${255}   | ${TOO_MANY_PARTICIPANTS}
   `(
     '$description',
@@ -174,8 +174,8 @@ describe('requireValidTurnTaking', () => {
     description | turnNumToShortenedVariablePart                       | reason
     ${accepts1} | ${new Map([[0, [0]], [1, [1]], [2, [2]]])}           | ${undefined}
     ${accepts2} | ${new Map([[3, [0]], [4, [1]], [5, [2]]])}           | ${undefined}
-    ${reverts1} | ${new Map([[0, [0]], [1, [1]]])}                     | ${INVALID_NUMBER_OF_PROOF}
-    ${reverts2} | ${new Map([[0, [0]], [1, [1]], [2, [2]], [3, [0]]])} | ${INVALID_NUMBER_OF_PROOF}
+    ${reverts1} | ${new Map([[0, [0]], [1, [1]]])}                     | ${INVALID_NUMBER_OF_PROOF_STATES}
+    ${reverts2} | ${new Map([[0, [0]], [1, [1]], [2, [2]], [3, [0]]])} | ${INVALID_NUMBER_OF_PROOF_STATES}
     ${reverts3} | ${new Map([[0, [0]], [1, [1, 2]], [2, [2]]])}        | ${INVALID_SIGNED_BY}
     ${reverts4} | ${new Map([[0, [0]], [1, []], [2, [2]]])}            | ${INVALID_SIGNED_BY}
     ${reverts5} | ${new Map([[0, [0]], [1, [2]], [2, [1]]])}           | ${INVALID_SIGNED_BY}
