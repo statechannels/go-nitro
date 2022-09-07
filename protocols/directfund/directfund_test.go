@@ -89,7 +89,7 @@ func TestNew(t *testing.T) {
 
 }
 
-func TestConstructFromState(t *testing.T) {
+func TestConstructFromPayload(t *testing.T) {
 	ss := state.NewSignedState(testState)
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
 	op := protocols.CreateObjectivePayload(id, SignedStatePayload, ss)

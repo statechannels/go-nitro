@@ -128,7 +128,7 @@ func ConstructObjectiveFromPayload(
 	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
 
-	ss := getPayload(p.PayloadData)
+	ss := getSignedStatePayload(p.PayloadData)
 	s := ss.State()
 
 	// Implicit in the wire protocol is that the message signalling
@@ -194,7 +194,7 @@ func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, e
 	if o.Id() != p.ObjectiveId {
 		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(p.ObjectiveId), string(o.Id()))
 	}
-	ss := getPayload(p.PayloadData)
+	ss := getSignedStatePayload(p.PayloadData)
 	if len(ss.Signatures()) != 0 {
 
 		if !ss.State().IsFinal {
@@ -334,7 +334,8 @@ func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
 }
 
-func getPayload(b []byte) state.SignedState {
+// getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
+func getSignedStatePayload(b []byte) state.SignedState {
 	ss := state.SignedState{}
 
 	err := json.Unmarshal(b, &ss)
@@ -344,6 +345,7 @@ func getPayload(b []byte) state.SignedState {
 	return ss
 }
 
+// otherParticipants returns the participants in the channel that are not the current participant.
 func (o *Objective) otherParticipants() []types.Address {
 	others := make([]types.Address, 0)
 	for i, p := range o.C.Participants {

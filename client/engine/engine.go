@@ -524,7 +524,8 @@ func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 	return nil
 }
 
-// getOrCreateObjective retrieves the objective from the store. if the objective does not exist, it creates the objective using the supplied signed state, and stores it in the store
+// getOrCreateObjective retrieves the objective from the store.
+// If the objective does not exist, it creates the objective using the supplied payload and stores it in the store
 func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.Objective, error) {
 	defer e.metrics.RecordFunctionDuration()()
 	id := p.ObjectiveId

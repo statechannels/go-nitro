@@ -104,6 +104,8 @@ type Objective interface {
 // VirtualObjective is an Objective that manipulates a ledger channel by exchanging signed proposals.
 type VirtualObjective interface {
 	Objective
+	// ReceiveProposal receives a signed proposal and returns an updated VirtualObjective.
+	// It is used to update the VirtualObjective with a proposal received from a peer.
 	ReceiveProposal(signedProposal consensus_channel.SignedProposal) (VirtualObjective, error)
 }
 

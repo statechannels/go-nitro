@@ -114,7 +114,7 @@ func ConstructFromPayload(
 ) (Objective, error) {
 	var err error
 
-	initialSignedState := getPayload(op.PayloadData)
+	initialSignedState := getSignedStatePayload(op.PayloadData)
 	initialState := initialSignedState.State()
 	err = initialState.FixedPart().Validate()
 	if err != nil {
@@ -258,7 +258,7 @@ func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, e
 	}
 
 	updated := o.clone()
-	ss := getPayload(p.PayloadData)
+	ss := getSignedStatePayload(p.PayloadData)
 	updated.C.AddSignedState(ss)
 	return &updated, nil
 }
@@ -486,6 +486,17 @@ func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
 	}
 }
 
+// getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
+func getSignedStatePayload(b []byte) state.SignedState {
+	ss := state.SignedState{}
+
+	err := json.Unmarshal(b, &ss)
+	if err != nil {
+		panic(err)
+	}
+	return ss
+}
+
 // mermaid diagram
 // key:
 // - effect!
@@ -526,13 +537,3 @@ func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
 //     D6 -->|No| R8
 
 //     R8["finish"]
-
-func getPayload(b []byte) state.SignedState {
-	ss := state.SignedState{}
-
-	err := json.Unmarshal(b, &ss)
-	if err != nil {
-		panic(err)
-	}
-	return ss
-}
