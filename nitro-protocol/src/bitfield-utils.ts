@@ -18,13 +18,12 @@ export function getSignersIndices(signedByStr: Uint256): number[] {
   let signerNum = 0;
   let acceptedSigners = 0;
 
-  while (signedBy > 0) {
+  for (; signedBy > 0; signerNum++) {
     if (signedBy % 2 == 1) {
       signerIndices[acceptedSigners] = signerNum;
       acceptedSigners++;
     }
-    signedBy = signedBy >> 1;
-    signerNum++;
+    signedBy >>= 1;
   }
 
   return signerIndices;
