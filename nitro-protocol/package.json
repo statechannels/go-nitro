@@ -13,6 +13,7 @@
     "test": "npm run test:contracts && npm run test:app --all",
     "test:app": "npx hardhat compile && jest -c ./config/jest/jest.config.js",
     "test:contracts": "npx hardhat compile && jest -c ./config/jest/jest.contracts.config.js",
+    "test:filecoin": "npx hardhat compile && jest -c ./config/jest/jest.filecoin.config.js",
     "lint:check": "npx eslint \"./\" --cache && npm run solhint:check && npm run prettier:check",
     "lint:write": "npx eslint \"./\" --fix && npm run prettier:write",
     "solhint:check": "npx solhint -w 0 './contracts/**/*.sol'",
@@ -27,6 +28,9 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@filecoin-shipyard/lotus-client-provider-nodejs": "^1.1.1",
+    "@filecoin-shipyard/lotus-client-rpc": "^1.2.0",
+    "@filecoin-shipyard/lotus-client-schema": "^4.2.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.3",
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.13",
     "@nomiclabs/hardhat-etherscan": "^3.0.0",
