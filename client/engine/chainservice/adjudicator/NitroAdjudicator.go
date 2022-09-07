@@ -43,8 +43,8 @@ type ExitFormatSingleAssetExit struct {
 	Allocations []ExitFormatAllocation
 }
 
-// IMultiAssetHolderClaimArgs is an auto generated low-level Go binding around an user-defined struct.
-type IMultiAssetHolderClaimArgs struct {
+// IMultiAssetHolderReclaimArgs is an auto generated low-level Go binding around an user-defined struct.
+type IMultiAssetHolderReclaimArgs struct {
 	SourceChannelId       [32]byte
 	SourceStateHash       [32]byte
 	SourceOutcomeBytes    []byte
@@ -623,23 +623,23 @@ func (_NitroAdjudicator *NitroAdjudicatorTransactorSession) Deposit(asset common
 
 // Reclaim is a paid mutator transaction binding the contract method 0xd3c4e738.
 //
-// Solidity: function reclaim((bytes32,bytes32,bytes,uint256,uint256,bytes32,bytes,uint256) claimArgs) returns()
-func (_NitroAdjudicator *NitroAdjudicatorTransactor) Reclaim(opts *bind.TransactOpts, claimArgs IMultiAssetHolderClaimArgs) (*types.Transaction, error) {
-	return _NitroAdjudicator.contract.Transact(opts, "reclaim", claimArgs)
+// Solidity: function reclaim((bytes32,bytes32,bytes,uint256,uint256,bytes32,bytes,uint256) reclaimArgs) returns()
+func (_NitroAdjudicator *NitroAdjudicatorTransactor) Reclaim(opts *bind.TransactOpts, reclaimArgs IMultiAssetHolderReclaimArgs) (*types.Transaction, error) {
+	return _NitroAdjudicator.contract.Transact(opts, "reclaim", reclaimArgs)
 }
 
 // Reclaim is a paid mutator transaction binding the contract method 0xd3c4e738.
 //
-// Solidity: function reclaim((bytes32,bytes32,bytes,uint256,uint256,bytes32,bytes,uint256) claimArgs) returns()
-func (_NitroAdjudicator *NitroAdjudicatorSession) Reclaim(claimArgs IMultiAssetHolderClaimArgs) (*types.Transaction, error) {
-	return _NitroAdjudicator.Contract.Reclaim(&_NitroAdjudicator.TransactOpts, claimArgs)
+// Solidity: function reclaim((bytes32,bytes32,bytes,uint256,uint256,bytes32,bytes,uint256) reclaimArgs) returns()
+func (_NitroAdjudicator *NitroAdjudicatorSession) Reclaim(reclaimArgs IMultiAssetHolderReclaimArgs) (*types.Transaction, error) {
+	return _NitroAdjudicator.Contract.Reclaim(&_NitroAdjudicator.TransactOpts, reclaimArgs)
 }
 
 // Reclaim is a paid mutator transaction binding the contract method 0xd3c4e738.
 //
-// Solidity: function reclaim((bytes32,bytes32,bytes,uint256,uint256,bytes32,bytes,uint256) claimArgs) returns()
-func (_NitroAdjudicator *NitroAdjudicatorTransactorSession) Reclaim(claimArgs IMultiAssetHolderClaimArgs) (*types.Transaction, error) {
-	return _NitroAdjudicator.Contract.Reclaim(&_NitroAdjudicator.TransactOpts, claimArgs)
+// Solidity: function reclaim((bytes32,bytes32,bytes,uint256,uint256,bytes32,bytes,uint256) reclaimArgs) returns()
+func (_NitroAdjudicator *NitroAdjudicatorTransactorSession) Reclaim(reclaimArgs IMultiAssetHolderReclaimArgs) (*types.Transaction, error) {
+	return _NitroAdjudicator.Contract.Reclaim(&_NitroAdjudicator.TransactOpts, reclaimArgs)
 }
 
 // Transfer is a paid mutator transaction binding the contract method 0x3033730e.

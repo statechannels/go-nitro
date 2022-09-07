@@ -36,7 +36,11 @@ func (uce *ErrUnhandledChainEvent) Error() string {
 // Engine is the imperative part of the core business logic of a go-nitro Client
 type Engine struct {
 	// inbound go channels
-	FromAPI    chan APIEvent // This one is exported so that the Client can send API calls
+
+	// From API
+	ObjectiveRequestsFromAPI chan protocols.ObjectiveRequest
+	PaymentRequestsFromAPI   chan PaymentRequest
+
 	fromChain  <-chan chainservice.Event
 	fromMsg    <-chan protocols.Message
 	fromLedger chan consensus_channel.Proposal
@@ -60,12 +64,6 @@ type Engine struct {
 type PaymentRequest struct {
 	ChannelId types.Destination
 	Amount    *big.Int
-}
-
-// APIEvent is an internal representation of an API call
-type APIEvent struct {
-	ObjectiveToSpawn protocols.ObjectiveRequest
-	PaymentToMake    PaymentRequest
 }
 
 // EngineEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
@@ -92,7 +90,9 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.store = store
 
 	// bind to inbound chans
-	e.FromAPI = make(chan APIEvent)
+	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest)
+	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
+
 	e.fromChain = chain.EventFeed()
 	e.fromMsg = msg.Out()
 
@@ -128,21 +128,23 @@ func (e *Engine) Run() {
 		var res EngineEvent
 		var err error
 
-		e.metrics.RecordQueueLength("api_events_queue", len(e.FromAPI))
+		e.metrics.RecordQueueLength("api_objective_request_queue", len(e.ObjectiveRequestsFromAPI))
+		e.metrics.RecordQueueLength("api_payment_request_queue", len(e.PaymentRequestsFromAPI))
 		e.metrics.RecordQueueLength("chain_events_queue", len(e.fromChain))
 		e.metrics.RecordQueueLength("messages_queue", len(e.fromMsg))
 		e.metrics.RecordQueueLength("proposal_queue", len(e.fromLedger))
 
 		select {
-		case apiEvent := <-e.FromAPI:
-			res, err = e.handleAPIEvent(apiEvent)
+		case or := <-e.ObjectiveRequestsFromAPI:
+			res, err = e.handleObjectiveRequest(or)
 
 			if errors.Is(err, directdefund.ErrNotEmpty) {
 				// communicate failure to client & swallow error
 				e.toApi <- res
 				err = nil
 			}
-
+		case pr := <-e.PaymentRequestsFromAPI:
+			err = e.handlePaymentRequest(pr)
 		case chainEvent := <-e.fromChain:
 			res, err = e.handleChainEvent(chainEvent)
 		case message := <-e.fromMsg:
@@ -358,92 +360,84 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, e
 	return e.attemptProgress(updatedEventHandler)
 }
 
-// handleAPIEvent handles an API Event (triggered by a client API call).
-// It will attempt to perform all of the following:
-//   - Spawn a new, approved objective (if not null)
-//   - Reject an existing objective (if not null)
-//   - Approve an existing objective (if not null)
-func (e *Engine) handleAPIEvent(apiEvent APIEvent) (EngineEvent, error) {
+// handleObjectiveRequest handles an ObjectiveRequest (triggered by a client API call).
+// It will attempt to spawn a new, approved objective.
+func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
+	myAddress := *e.store.GetAddress()
+	objectiveId := or.Id(myAddress)
+	e.metrics.RecordObjectiveStarted(objectiveId)
+	switch request := or.(type) {
 
-	if apiEvent.ObjectiveToSpawn != nil {
-
-		switch request := (apiEvent.ObjectiveToSpawn).(type) {
-
-		case virtualfund.ObjectiveRequest:
-			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
-			vfo, err := virtualfund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetConsensusChannel)
-			if err != nil {
-				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
-			}
-
-			err = e.registerPaymentChannel(vfo)
-			if err != nil {
-				return EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
-			}
-			return e.attemptProgress(&vfo)
-
-		case virtualdefund.ObjectiveRequest:
-			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
-			vdfo, err := virtualdefund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
-			if err != nil {
-				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
-			}
-			return e.attemptProgress(&vdfo)
-
-		case directfund.ObjectiveRequest:
-			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
-			dfo, err := directfund.NewObjective(request, true, *e.store.GetAddress(), e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
-			if err != nil {
-				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
-			}
-			return e.attemptProgress(&dfo)
-
-		case directdefund.ObjectiveRequest:
-			e.metrics.RecordObjectiveStarted(request.Id(*e.store.GetAddress()))
-			ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
-			if err != nil {
-				return EngineEvent{FailedObjectives: []protocols.ObjectiveId{request.Id(*e.store.GetAddress())}}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
-			}
-			// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
-			e.store.DestroyConsensusChannel(request.ChannelId)
-			return e.attemptProgress(&ddfo)
-
-		default:
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)
-		}
-
-	}
-
-	// TODO: Should this live in the payment manager?
-	if cId := apiEvent.PaymentToMake.ChannelId; cId != (types.Destination{}) {
-		voucher, err := e.vm.Pay(
-			cId,
-			apiEvent.PaymentToMake.Amount,
-			*e.store.GetChannelSecretKey())
+	case virtualfund.ObjectiveRequest:
+		vfo, err := virtualfund.NewObjective(request, true, myAddress, e.store.GetConsensusChannel)
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
+			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
-		c, ok := e.store.GetChannelById(cId)
-		if !ok {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
-		}
-		payer, payee := payments.GetPayer(c.Participants), payments.GetPayee(c.Participants)
-		if payer != *e.store.GetAddress() {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
-		}
-		se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
-		err = e.executeSideEffects(se)
+		err = e.registerPaymentChannel(vfo)
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Error sending payment voucher: %w", err)
+			return EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
 		}
+		return e.attemptProgress(&vfo)
 
+	case virtualdefund.ObjectiveRequest:
+		vdfo, err := virtualdefund.NewObjective(request, true, myAddress, e.store.GetChannelById, e.store.GetConsensusChannel)
+		if err != nil {
+			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+		}
+		return e.attemptProgress(&vdfo)
+
+	case directfund.ObjectiveRequest:
+		dfo, err := directfund.NewObjective(request, true, myAddress, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
+		if err != nil {
+			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+		}
+		return e.attemptProgress(&dfo)
+
+	case directdefund.ObjectiveRequest:
+		ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
+		if err != nil {
+			return EngineEvent{
+				FailedObjectives: []protocols.ObjectiveId{objectiveId},
+			}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+		}
+		// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
+		e.store.DestroyConsensusChannel(request.ChannelId)
+		return e.attemptProgress(&ddfo)
+
+	default:
+		return EngineEvent{}, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)
 	}
-	return EngineEvent{}, nil
 
 }
 
-// executeSideEffects executes the SideEffects declared by cranking an Objective
+// handlePaymentRequest handles an PaymentRequest (triggered by a client API call).
+// It prepares and dispatches a payment message to the counterparty.
+func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
+	if (request == PaymentRequest{}) {
+		panic("tried to handle nil payment request")
+	}
+	cId := request.ChannelId
+	voucher, err := e.vm.Pay(
+		cId,
+		request.Amount,
+		*e.store.GetChannelSecretKey())
+	if err != nil {
+		return fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
+	}
+	c, ok := e.store.GetChannelById(cId)
+	if !ok {
+		return fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
+	}
+	payer, payee := payments.GetPayer(c.Participants), payments.GetPayee(c.Participants)
+	if payer != *e.store.GetAddress() {
+		return fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
+	}
+	se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
+	return e.executeSideEffects(se)
+}
+
+// executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	defer e.metrics.RecordFunctionDuration()()
 

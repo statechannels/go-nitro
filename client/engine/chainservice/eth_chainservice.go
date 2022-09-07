@@ -14,6 +14,7 @@ import (
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 var allocationUpdatedTopic = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256)"))
@@ -176,4 +177,8 @@ func (ecs *EthChainService) listenForLogEvents(sub ethereum.Subscription, logs c
 // EventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
 func (ecs *EthChainService) EventFeed() <-chan Event {
 	return ecs.out
+}
+
+func (ecs *EthChainService) GetConsensusAppAddress() types.Address {
+	return ecs.consensusAppAddress
 }
