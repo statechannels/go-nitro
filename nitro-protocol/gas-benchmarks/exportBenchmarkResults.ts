@@ -338,6 +338,7 @@ async function main() {
   });
 
   writeFileSync(__dirname + '/gasResults.json', JSON.stringify(gasResults, null, 2));
+  console.log('Benchmark results updated successfully!');
 }
 
 main().catch(error => {
