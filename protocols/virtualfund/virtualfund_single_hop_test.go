@@ -2,6 +2,7 @@ package virtualfund
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
@@ -201,7 +202,7 @@ func TestMisaddressedUpdate(t *testing.T) {
 		td      = newTestData()
 		ledgers = td.leaderLedgers
 		vfo, _  = constructFromState(false, td.vPreFund, alice.Address(), ledgers[alice.Destination()].left, ledgers[alice.Destination()].right)
-		event   = protocols.ObjectiveEvent{
+		event   = protocols.ObjectivePayload{
 			ObjectiveId: "this-is-not-correct",
 		}
 	)
@@ -247,7 +248,8 @@ func TestCrankAsAlice(t *testing.T) {
 
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedState: c.SignedPreFundState()}
+	ss := c.SignedPreFundState()
+	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, &ss)
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -275,9 +277,8 @@ func TestCrankAsAlice(t *testing.T) {
 
 	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
 	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[1], TurnNum: 2}
-	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposal: sp}
 
-	oObj, err = o.Update(e)
+	oObj, err = o.ReceiveProposal(sp)
 	o = oObj.(*Objective)
 	Ok(t, err)
 
@@ -329,7 +330,8 @@ func TestCrankAsBob(t *testing.T) {
 
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedState: c.SignedPreFundState()}
+
+	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, c.SignedPreFundState())
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -356,9 +358,8 @@ func TestCrankAsBob(t *testing.T) {
 	// If Bob had received a signed counterproposal, he should proceed to postFundSetup
 	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, bob, o.ToMyLeft.getExpectedGuarantee())[0], TurnNum: 2}
-	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposal: sp}
 
-	oObj, err = o.Update(e)
+	oObj, err = o.ReceiveProposal(sp)
 	o = oObj.(*Objective)
 	Ok(t, err)
 
@@ -413,7 +414,7 @@ func TestCrankAsP1(t *testing.T) {
 
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedState: c.SignedPreFundState()}
+	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, c.SignedPreFundState())
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -441,9 +442,8 @@ func TestCrankAsP1(t *testing.T) {
 	// If P1 had received a signed counterproposal, she should proceed to postFundSetup
 	p = consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[1], TurnNum: 2}
-	e = protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedProposal: sp}
 
-	oObj, err = o.Update(e)
+	oObj, err = o.ReceiveProposal(sp)
 	o = oObj.(*Objective)
 	Ok(t, err)
 
@@ -479,13 +479,13 @@ func assertSupportedPrefund(o *Objective, t *testing.T) {
 func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to ta.Actor) {
 	numProposals := 0
 	for _, msg := range ses.MessagesToSend {
-		if len(msg.SignedProposals()) > 0 {
+		if len(msg.LedgerProposals) > 0 {
 
 			msg := ses.MessagesToSend[0]
-			sent := msg.SignedProposals()[0].Payload
+			sent := msg.LedgerProposals[0]
 			toAddress := to.Address()
 
-			Assert(t, len(ses.MessagesToSend[0].SignedProposals()) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
+			Assert(t, len(ses.MessagesToSend[0].LedgerProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
 			Assert(t, bytes.Equal(msg.To[:], toAddress[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address().String())
 			Assert(t, compareSignedProposals(sp, sent), "exp: %+v\n\n\tgot%+v", sp, sent)
 			numProposals++
@@ -501,8 +501,14 @@ func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.S
 		toAddress := to.Address()
 		correctAddress := bytes.Equal(msg.To[:], toAddress[:])
 		if correctAddress {
-			for _, ss := range msg.SignedStates() {
-				diff := compareStates(ss.Payload, expected)
+			for _, p := range msg.ObjectiveMessages {
+
+				ss := state.SignedState{}
+				err := json.Unmarshal(p.PayloadData, &ss)
+				if err != nil {
+					panic(err)
+				}
+				diff := compareStates(ss, expected)
 				Assert(t, diff == "", "incorrect state\n\ndiff: %v", diff)
 				found = true
 				break

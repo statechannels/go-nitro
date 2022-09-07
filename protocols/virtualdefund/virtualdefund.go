@@ -1,6 +1,7 @@
 package virtualdefund
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -19,6 +20,11 @@ const (
 	WaitingForCompleteFinal           protocols.WaitingFor = "WaitingForCompleteFinal"           // Round 1
 	WaitingForCompleteLedgerDefunding protocols.WaitingFor = "WaitingForCompleteLedgerDefunding" // Round 2
 	WaitingForNothing                 protocols.WaitingFor = "WaitingForNothing"                 // Finished
+)
+
+const (
+	SignedStatePayload protocols.PayloadType = "SignedStatePayload"
+	InitPayload        protocols.PayloadType = "InitPayload"
 )
 
 // The turn number used for the final state
@@ -128,39 +134,6 @@ func NewObjective(request ObjectiveRequest,
 
 }
 
-// ConstructObjectiveFromState takes in a message and constructs an objective from it.
-// It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
-func ConstructObjectiveFromState(
-	initialState state.State,
-	preapprove bool,
-	myAddress types.Address,
-	getChannel GetChannelByIdFunction,
-	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
-) (Objective, error) {
-
-	err := initialState.FixedPart().Validate()
-	if err != nil {
-		return Objective{}, err
-	}
-
-	channelId := initialState.ChannelId()
-
-	// TODO: Because there is no payment system we are not able to query or verify how much was paid.
-	// So the current behaviour is as follows:
-	// - whomever calls CloseVirtualChannel gets to set paidToBob however they like
-	// - the responder will go along with it
-	paidToBob, err := calculatePaidToBob(initialState, getChannel)
-	if err != nil {
-		return Objective{}, err
-	}
-	return NewObjective(
-		ObjectiveRequest{channelId, paidToBob},
-		preapprove,
-		myAddress,
-		getChannel,
-		getTwoPartyConsensusLedger)
-}
-
 // calculatePaidToBob determines the amount paid to bob by comparing the prefund setup state and the proposed final state.
 func calculatePaidToBob(proposedFinalState state.State, getChannel GetChannelByIdFunction) (*big.Int, error) {
 	if !proposedFinalState.IsFinal {
@@ -176,6 +149,37 @@ func calculatePaidToBob(proposedFinalState state.State, getChannel GetChannelByI
 	initialBobAmount := pf.Outcome[0].Allocations[1].Amount
 	finalBobAmount := proposedFinalState.Outcome[0].Allocations[1].Amount
 	return big.NewInt(0).Sub(finalBobAmount, initialBobAmount), nil
+}
+
+// ConstructObjectiveFromPayload takes in a message and constructs an objective from it.
+// It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
+func ConstructObjectiveFromPayload(
+	p protocols.ObjectivePayload,
+	preapprove bool,
+	myAddress types.Address,
+	getChannel GetChannelByIdFunction,
+	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
+) (Objective, error) {
+
+	switch p.Type {
+	case InitPayload:
+		panic("TODO: Not implemented")
+	case SignedStatePayload:
+		ss := getSignedStatePayload(p.PayloadData)
+		paidToBob, err := calculatePaidToBob(ss.State(), getChannel)
+		if err != nil {
+			return Objective{}, err
+		}
+		return NewObjective(
+			ObjectiveRequest{ss.ChannelId(), paidToBob},
+			preapprove,
+			myAddress,
+			getChannel,
+			getTwoPartyConsensusLedger)
+
+	default:
+		return Objective{}, fmt.Errorf("unknown payload type %s", p.Type)
+	}
 }
 
 // IsVirtualDefundObjective inspects a objective id and returns true if the objective id is for a virtualdefund objective.
@@ -294,6 +298,16 @@ func (o *Objective) clone() Objective {
 	return clone
 }
 
+func (o *Objective) otherParticipants() []types.Address {
+	others := make([]types.Address, 0)
+	for i, p := range o.VFixed.Participants {
+		if i != int(o.MyRole) {
+			others = append(others, p)
+		}
+	}
+	return others
+}
+
 // Crank inspects the extended state and declares a list of Effects to be executed
 func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
@@ -314,12 +328,11 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		// Update the signature stored on the objective
 		updated.Signatures[updated.MyRole] = sig
 
-		// Send out the signature (using a signed state) to fellow participants
-		signedFinal, err := updated.signedFinalState()
+		ss, err := updated.signedFinalState()
 		if err != nil {
-			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not generate signed final state: %w", err)
+			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not get signed final state: %w", err)
 		}
-		messages := protocols.CreateSignedStateMessages(updated.Id(), signedFinal, updated.MyRole)
+		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
@@ -485,48 +498,52 @@ func (o *Objective) validateSignature(sig state.Signature, participantIndex uint
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
 // and returns the updated state.
-func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
-	if o.Id() != event.ObjectiveId {
-		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, error) {
+	if o.Id() != op.ObjectiveId {
+		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(op.ObjectiveId), string(o.Id()))
 	}
 
-	updated := o.clone()
+	switch op.Type {
+	case SignedStatePayload:
 
-	if ss := event.SignedState; len(ss.Signatures()) != 0 {
-		incomingChannelId := ss.State().ChannelId()
-		vChannelId := updated.VFixed.ChannelId()
+		updated := o.clone()
 
-		if incomingChannelId != vChannelId {
-			return o, errors.New("event channelId out of scope of objective")
-		} else {
-			incomingSignatures := ss.Signatures()
-			for i := uint(0); i < 3; i++ {
-				existingSig := o.Signatures[i]
-				incomingSig := incomingSignatures[i]
+		incomingSignatures := getSignedStatePayload(op.PayloadData).Signatures()
+		for i := uint(0); i < 3; i++ {
+			existingSig := o.Signatures[i]
+			incomingSig := incomingSignatures[i]
 
-				// If the incoming signature is zeroed we ignore it
-				if isZero(incomingSig) {
+			// If the incoming signature is zeroed we ignore it
+			if isZero(incomingSig) {
+				continue
+			}
+			// If the existing signature is not zeroed we check that it matches the incoming signature
+			if !isZero(existingSig) {
+				if existingSig.Equal(incomingSig) {
 					continue
-				}
-				// If the existing signature is not zeroed we check that it matches the incoming signature
-				if !isZero(existingSig) {
-					if existingSig.Equal(incomingSig) {
-						continue
-					} else {
-						return o, fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
-					}
-				}
-				// Otherwise we validate the incoming signature and update our signatures
-				isValid, err := updated.validateSignature(incomingSig, i)
-				if isValid {
-					// Update the signature
-					updated.Signatures[i] = incomingSig
 				} else {
-					return o, fmt.Errorf("failed to validate signature: %w", err)
+					return o, fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
 				}
 			}
+			// Otherwise we validate the incoming signature and update our signatures
+			isValid, err := updated.validateSignature(incomingSig, i)
+			if isValid {
+				// Update the signature
+				updated.Signatures[i] = incomingSig
+			} else {
+				return o, fmt.Errorf("failed to validate signature: %w", err)
+			}
 		}
+		return &updated, nil
+	case InitPayload:
+		panic("TODO: Not implemented yet")
+	default:
+		return o, fmt.Errorf("unknown payload type %s", op.Type)
 	}
+
+}
+
+func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protocols.VirtualObjective, error) {
 	var toMyLeftId types.Destination
 	var toMyRightId types.Destination
 
@@ -537,7 +554,9 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 		toMyRightId = o.ToMyRight.Id
 	}
 
-	if sp := event.SignedProposal; sp.Proposal.Target() == o.VId() {
+	updated := o.clone()
+
+	if sp.Proposal.Target() == o.VId() {
 		var err error
 		switch sp.Proposal.LedgerID {
 		case types.Destination{}:
@@ -555,11 +574,10 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 		}
 
 		if err != nil {
-			return o, fmt.Errorf("error incorporating signed proposal %+v into objective: %w", protocols.SummarizeProposal(event.ObjectiveId, sp), err)
+			return o, fmt.Errorf("error incorporating signed proposal %+v into objective: %w", sp, err)
 		}
 	}
 	return &updated, nil
-
 }
 
 // isZero returns true if every byte field on the signature is zero
@@ -577,4 +595,13 @@ type ObjectiveRequest struct {
 // Id returns the objective id for the request.
 func (r ObjectiveRequest) Id(types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
+}
+
+func getSignedStatePayload(b []byte) state.SignedState {
+	ss := state.SignedState{}
+	err := json.Unmarshal(b, &ss)
+	if err != nil {
+		panic(err)
+	}
+	return ss
 }

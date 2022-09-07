@@ -122,14 +122,6 @@ func (o *MetricsRecorder) RecordObjectiveCompleted(id protocols.ObjectiveId) {
 
 }
 
-// RecordOutgoingMessage records metrics about the the outgoing message
-func (o *MetricsRecorder) RecordOutgoingMessage(msg protocols.Message) {
-	proposalCount := len(msg.SignedProposals())
-	o.metrics.RecordPoint(o.addMyAddress("message_proposals")+fmt.Sprintf(",to=%s", msg.To), float64(proposalCount))
-	stateCount := len(msg.SignedProposals())
-	o.metrics.RecordPoint(o.addMyAddress("message_states")+fmt.Sprintf(",to=%s", msg.To), float64(stateCount))
-}
-
 // RecordQueueLength records metrics about the length of some queue
 func (o *MetricsRecorder) RecordQueueLength(name string, queueLength int) {
 	o.metrics.Gauge(o.addMyAddress(name)).Update(float64(queueLength))

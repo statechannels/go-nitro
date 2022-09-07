@@ -2,6 +2,7 @@
 package directdefund // import "github.com/statechannels/go-nitro/directfund"
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -19,6 +20,9 @@ const (
 	WaitingForFinalization protocols.WaitingFor = "WaitingForFinalization"
 	WaitingForWithdraw     protocols.WaitingFor = "WaitingForWithdraw"
 	WaitingForNothing      protocols.WaitingFor = "WaitingForNothing" // Finished
+)
+const (
+	SignedStatePayload protocols.PayloadType = "SignedStatePayload"
 )
 
 const ObjectivePrefix = "DirectDefunding-"
@@ -117,12 +121,16 @@ func NewObjective(
 	return init, nil
 }
 
-// ConstructObjectiveFromState takes in a state and constructs an objective from it.
-func ConstructObjectiveFromState(
-	s state.State,
+// ConstructObjectiveFromPayload takes in a state and constructs an objective from it.
+func ConstructObjectiveFromPayload(
+	p protocols.ObjectivePayload,
 	preapprove bool,
 	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
+
+	ss := getPayload(p.PayloadData)
+	s := ss.State()
+
 	// Implicit in the wire protocol is that the message signalling
 	// closure of a channel includes an isFinal state (in the 0 slot of the message)
 	//
@@ -182,25 +190,25 @@ func (o *Objective) Related() []protocols.Storable {
 
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectDefundingObjective,
 // and returns the updated objective
-func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
-	if o.Id() != event.ObjectiveId {
-		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, error) {
+	if o.Id() != p.ObjectiveId {
+		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(p.ObjectiveId), string(o.Id()))
 	}
+	ss := getPayload(p.PayloadData)
+	if len(ss.Signatures()) != 0 {
 
-	if len(event.SignedState.Signatures()) != 0 {
-
-		if !event.SignedState.State().IsFinal {
+		if !ss.State().IsFinal {
 			return o, errors.New("direct defund objective can only be updated with final states")
 		}
-		if o.finalTurnNum != event.SignedState.State().TurnNum {
-			return o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, event.SignedState.State().TurnNum)
+		if o.finalTurnNum != ss.State().TurnNum {
+			return o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, ss.State().TurnNum)
 		}
 	} else {
 		return o, fmt.Errorf("event does not contain a signed state")
 	}
 
 	updated := o.clone()
-	updated.C.AddSignedState(event.SignedState)
+	updated.C.AddSignedState(ss)
 
 	return &updated, nil
 }
@@ -249,7 +257,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if err != nil {
 			return &updated, protocols.SideEffects{}, WaitingForFinalization, fmt.Errorf("could not sign final state %w", err)
 		}
-		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
+		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
@@ -324,4 +332,24 @@ type ObjectiveRequest struct {
 // Id returns the objective id for the request.
 func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
+}
+
+func getPayload(b []byte) state.SignedState {
+	ss := state.SignedState{}
+
+	err := json.Unmarshal(b, &ss)
+	if err != nil {
+		panic(err)
+	}
+	return ss
+}
+
+func (o *Objective) otherParticipants() []types.Address {
+	others := make([]types.Address, 0)
+	for i, p := range o.C.Participants {
+		if i != int(o.C.MyIndex) {
+			others = append(others, p)
+		}
+	}
+	return others
 }

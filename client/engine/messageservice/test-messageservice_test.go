@@ -29,9 +29,9 @@ func TestConnect(t *testing.T) {
 
 	got := <-bobOut
 
-	prop := got.SignedProposals()[0]
-	if prop.ObjectiveId != testId {
+	prop := got.LedgerProposals[0]
+	if protocols.GetProposalObjectiveId(prop.Proposal) != testId {
 		t.Fatalf("expected bob to receive ObjectiveId %v, but received %v",
-			testId, prop.ObjectiveId)
+			testId, protocols.GetProposalObjectiveId(prop.Proposal))
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
@@ -25,7 +26,10 @@ var Channels channelCollection = channelCollection{
 func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool) {
 	ts := testState.Clone()
 	ts.TurnNum = 0
-	testObj, err := directfund.ConstructFromState(true, ts, ts.Participants[0])
+	ss := state.NewSignedState(ts)
+	id := protocols.ObjectiveId(directfund.ObjectivePrefix + testState.ChannelId().String())
+	op := protocols.CreateObjectivePayload(id, directfund.SignedStatePayload, ss)
+	testObj, err := directfund.ConstructFromPayload(true, op, ts.Participants[0])
 
 	if err != nil {
 		return &consensus_channel.ConsensusChannel{}, false

@@ -20,7 +20,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-const defaultTimeout = 10 * time.Second
+const defaultTimeout = 360 * time.Second
 
 // waitWithTimeoutForCompletedObjectiveIds waits up to the given timeout for completed objectives and returns when the all objective ids provided have been completed.
 // If the timeout lapses and the objectives have not all completed, the parent test will be failed.

@@ -3,7 +3,9 @@ package testdata
 import (
 	"fmt"
 
+	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
@@ -45,7 +47,10 @@ var Objectives objectiveCollection = objectiveCollection{
 func genericDFO() directfund.Objective {
 	ts := testState.Clone()
 	ts.TurnNum = 0
-	testObj, err := directfund.ConstructFromState(false, ts, ts.Participants[0])
+	ss := state.NewSignedState(ts)
+	id := protocols.ObjectiveId(directfund.ObjectivePrefix + testState.ChannelId().String())
+	op := protocols.CreateObjectivePayload(id, directfund.SignedStatePayload, ss)
+	testObj, err := directfund.ConstructFromPayload(false, op, ts.Participants[0])
 	if err != nil {
 		panic(fmt.Errorf("error constructing genericDFO: %w", err))
 	}

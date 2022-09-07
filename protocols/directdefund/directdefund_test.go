@@ -96,9 +96,7 @@ func TestUpdate(t *testing.T) {
 	o, _ := newTestObjective()
 
 	// Prepare an event with a mismatched channelId
-	e := protocols.ObjectiveEvent{
-		ObjectiveId: "some-id",
-	}
+	e := protocols.CreateObjectivePayload("some-id", SignedStatePayload, testState)
 	// Assert that Updating the objective with such an event returns an error
 	if _, err := o.Update(e); err == nil {
 		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
@@ -107,9 +105,9 @@ func TestUpdate(t *testing.T) {
 	// Try updating the objective with a non-final state. An error is expected.
 	s := testState.Clone()
 	s.TurnNum = 3
-	e.ObjectiveId = o.Id()
+
 	ss, _ := signedTestState(s, []bool{true, false})
-	e.SignedState = ss
+	e = protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, ss)
 
 	if _, err := o.Update(e); err.Error() != "direct defund objective can only be updated with final states" {
 		t.Error(err)
@@ -119,8 +117,7 @@ func TestUpdate(t *testing.T) {
 	s.TurnNum = 4
 	s.IsFinal = true
 	ss, _ = signedTestState(s, []bool{true, false})
-	e.SignedState = ss
-
+	e = protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, ss)
 	if _, err := o.Update(e); err.Error() != "expected state with turn number 2, received turn number 4" {
 		t.Error(err)
 	}
@@ -157,7 +154,7 @@ func TestCrankAlice(t *testing.T) {
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
 
 	expectedSE := protocols.SideEffects{
-		MessagesToSend: protocols.CreateSignedStateMessages(o.Id(), finalStateSignedByAlice, 0),
+		MessagesToSend: protocols.CreateObjectivePayloadMessage(o.Id(), finalStateSignedByAlice, SignedStatePayload, o.otherParticipants()...),
 	}
 
 	if diff := compareSideEffect(expectedSE, se); diff != "" {
@@ -166,8 +163,7 @@ func TestCrankAlice(t *testing.T) {
 
 	// The second update and crank. Alice is expected to create a withdrawAll transaction
 	finalStateSignedByAliceBob, _ := signedTestState(finalState, []bool{true, true})
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedState: finalStateSignedByAliceBob}
-
+	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, finalStateSignedByAliceBob)
 	updated, err = updated.Update(e)
 	if err != nil {
 		t.Error(err)
@@ -219,7 +215,8 @@ func TestCrankBob(t *testing.T) {
 	finalState.TurnNum = 2
 	finalState.IsFinal = true
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
-	e := protocols.ObjectiveEvent{ObjectiveId: o.Id(), SignedState: finalStateSignedByAlice}
+
+	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, finalStateSignedByAlice)
 	updated, err := o.Update(e)
 	if err != nil {
 		t.Fatal(err)
@@ -239,7 +236,7 @@ func TestCrankBob(t *testing.T) {
 	// Create the state we expect Bob to send
 	finalStateSignedByBob, _ := signedTestState(finalState, []bool{false, true})
 	expectedSE := protocols.SideEffects{
-		MessagesToSend: protocols.CreateSignedStateMessages(updated.Id(), finalStateSignedByBob, 1),
+		MessagesToSend: protocols.CreateObjectivePayloadMessage(updated.Id(), finalStateSignedByBob, SignedStatePayload, o.otherParticipants()...),
 	}
 
 	if diff := compareSideEffect(expectedSE, se); diff != "" {
