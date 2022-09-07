@@ -35,7 +35,7 @@ const config: HardhatUserConfig & {watcher: any} = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200,
+            runs: 20_000,
           },
         },
       },
