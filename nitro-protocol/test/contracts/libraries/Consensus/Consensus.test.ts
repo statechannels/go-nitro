@@ -5,7 +5,6 @@ import {expectRevert} from '@statechannels/devtools';
 import testConsensusArtifact from '../../../../artifacts/contracts/test/TESTConsensus.sol/TESTConsensus.json';
 import {
   generateParticipants,
-  getCountingAppContractAddress,
   getRandomNonce,
   getTestProvider,
   setupContract,
@@ -32,7 +31,7 @@ const chainId = process.env.CHAIN_NETWORK_ID;
 const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
 const defaultOutcome: Outcome = [{asset, allocations: [], metadata: '0x'}];
-const appDefinition = getCountingAppContractAddress();
+const appDefinition = process.env.CONSENSUS_APP_ADDRESS;
 
 const nParticipants = 3;
 const {participants} = generateParticipants(nParticipants);
