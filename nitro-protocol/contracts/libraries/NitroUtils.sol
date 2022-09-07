@@ -100,7 +100,7 @@ library NitroUtils {
         uint8 signerNum = 0;
         uint8 acceptedSigners = 0;
 
-        for(; signedBy > 0; signerNum++) {
+        for (; signedBy > 0; signerNum++) {
             if (signedBy % 2 == 1) {
                 signerIndices[acceptedSigners] = signerNum;
                 acceptedSigners++;
