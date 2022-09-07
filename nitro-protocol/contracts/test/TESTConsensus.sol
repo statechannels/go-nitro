@@ -6,7 +6,7 @@ import '../libraries/NitroUtils.sol';
 import {Consensus} from '../libraries/signature-logic/Consensus.sol';
 
 /**
- * @dev This contract uses the Consensus library to make it more easily unit-tested. It exposes public or external functions call into internal functions. It should not be deployed in a production environment.
+ * @dev This contract uses the Consensus library to make it more easily unit-tested. It exposes public or external functions which call into internal functions. It should not be deployed in a production environment.
  */
 contract TESTConsensus {
     /**
