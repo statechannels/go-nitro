@@ -204,12 +204,16 @@ func ConstructObjectiveFromPayload(
 		if !found {
 			return Objective{}, fmt.Errorf("could not find channel %s", cId)
 		}
-		paidToBob, err := calculatePaidToBob(pf.Outcome, ss.State().Outcome)
-		if err != nil {
-			return Objective{}, err
-		}
-		if paidToBob.Cmp(latestVoucherAmount) < 0 {
-			return Objective{}, fmt.Errorf("amount paid in final state (%v) is less than the latest voucher amount (%v)", paidToBob, latestVoucherAmount)
+
+		// If we're bob we want to verify that the final state amount matches the latest voucher amount we have
+		if amBob := myAddress == c.Participants[len(c.Participants)-1]; amBob {
+			paidToBob, err := calculatePaidToBob(pf.Outcome, ss.State().Outcome)
+			if err != nil {
+				return Objective{}, err
+			}
+			if paidToBob.Cmp(latestVoucherAmount) < 0 {
+				return Objective{}, fmt.Errorf("amount paid in final state (%v) is less than the latest voucher amount (%v)", paidToBob, latestVoucherAmount)
+			}
 		}
 		return NewObjective(
 			ObjectiveRequest{ss.ChannelId()},
@@ -585,13 +589,16 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 			return &Objective{}, err
 		}
 		updated := o.clone()
-
 		paidToBob, err := calculatePaidToBob(outcome.Exit{updated.InitialOutcome}, ss.State().Outcome)
 		if err != nil {
 			return &Objective{}, err
 		}
-		if paidToBob.Cmp(updated.MinPaymentAmount) < 0 {
-			return &Objective{}, fmt.Errorf("payment amount %d is less than the minimum payment amount %d", paidToBob, o.MinPaymentAmount)
+
+		// if we're Bob we want to make sure the final state Alice sent is equal to or larger than the payment we already have
+		if o.isBob() {
+			if paidToBob.Cmp(updated.MinPaymentAmount) < 0 {
+				return &Objective{}, fmt.Errorf("payment amount %d is less than the minimum payment amount %d", paidToBob, o.MinPaymentAmount)
+			}
 		}
 
 		updated.PaidToBob = paidToBob
