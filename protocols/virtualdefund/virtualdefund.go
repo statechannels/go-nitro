@@ -17,15 +17,15 @@ import (
 )
 
 const (
-	WaitingForAmountFromAlice         protocols.WaitingFor = "WaitingForAliceFinal"
+	WaitingForFinalStateFromAlice     protocols.WaitingFor = "WaitingForFinalStateFromAlice"
 	WaitingForSignedFinal             protocols.WaitingFor = "WaitingForSignedFinal"             // Round 1
 	WaitingForCompleteLedgerDefunding protocols.WaitingFor = "WaitingForCompleteLedgerDefunding" // Round 2
 	WaitingForNothing                 protocols.WaitingFor = "WaitingForNothing"                 // Finished
 )
 
 const (
-	SignedStatePayload   protocols.PayloadType = "SignedStatePayload"
-	RequestDefundPayload protocols.PayloadType = "RequestDefundPayload"
+	SignedStatePayload       protocols.PayloadType = "SignedStatePayload"
+	FinalStateRequestPayload protocols.PayloadType = "FinalStateRequestPayload"
 )
 
 // The turn number used for the final state
@@ -175,7 +175,7 @@ func ConstructObjectiveFromPayload(
 		latestVoucherAmount = big.NewInt(0)
 	}
 	switch p.Type {
-	case RequestDefundPayload:
+	case FinalStateRequestPayload:
 		cId, err := getRequestDefundPayload(p.PayloadData)
 		if err != nil {
 			return Objective{}, err
@@ -368,9 +368,9 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	// If we don't know the amount yet we send a message to alice to request it
 	if !updated.isAlice() && updated.PaidToBob == nil {
 		alice := o.VFixed.Participants[0]
-		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.VId(), RequestDefundPayload, alice)
+		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.VId(), FinalStateRequestPayload, alice)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-		return &updated, sideEffects, WaitingForAmountFromAlice, nil
+		return &updated, sideEffects, WaitingForFinalStateFromAlice, nil
 	}
 
 	// Signing of the final state
@@ -627,7 +627,7 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 		}
 		return &updated, nil
 
-	case RequestDefundPayload:
+	case FinalStateRequestPayload:
 		// Since the objective is already created we don't need to do anything else with the payload
 		return o, nil
 	default:

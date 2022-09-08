@@ -122,8 +122,8 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		updated := updatedObj.(*Objective)
 
 		if my.Role != 0 {
-			testhelpers.Equals(t, se.MessagesToSend[0].ObjectiveMessages[0].Type, RequestDefundPayload)
-			testhelpers.Equals(t, waitingFor, WaitingForAmountFromAlice)
+			testhelpers.Equals(t, se.MessagesToSend[0].ObjectiveMessages[0].Type, FinalStateRequestPayload)
+			testhelpers.Equals(t, waitingFor, WaitingForFinalStateFromAlice)
 
 			// mimic Alice sending the final state by setting PaidToBob to the paid value
 			updated.PaidToBob = big.NewInt(int64(data.paid))
