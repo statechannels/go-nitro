@@ -55,9 +55,9 @@ This protocol has the following properties:
 
 ### Downsides
 
-- Redundancy: Some messages seems "unecessary" -- for example, prodding Alice to start the protocol.
-- Asymmetry: each participant behaves quite differently.
-- Fragility: there's no attempt to recover if something goes wrong. Bob's verification could fail (but this likely indicates "Malice from Alice"). Messages could be dropped. This can probably be handled with general "retry logic", though.
+- Redundancy: Some messages seem "unecessary" -- for example, prodding Alice to start the protocol.
+- Asymmetry: Each participant behaves quite differently.
+- Fragility: There's no attempt to recover if something goes wrong. Bob's verification could fail (but this likely indicates "Malice from Alice"). Messages could be dropped. This can probably be handled with general "retry logic", though.
 - Vagueness: Although Bob holds largest voucher with amount `x`, but will agree to close the channel with any `y>=x`.
 
 ### Diagram
