@@ -298,6 +298,7 @@ func (o *Objective) clone() Objective {
 	return clone
 }
 
+// otherParticipants returns the participants in the channel that are not the current participant.
 func (o *Objective) otherParticipants() []types.Address {
 	others := make([]types.Address, 0)
 	for i, p := range o.VFixed.Participants {
@@ -496,6 +497,16 @@ func (o *Objective) validateSignature(sig state.Signature, participantIndex uint
 	return true, nil
 }
 
+// getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
+func getSignedStatePayload(b []byte) state.SignedState {
+	ss := state.SignedState{}
+	err := json.Unmarshal(b, &ss)
+	if err != nil {
+		panic(err)
+	}
+	return ss
+}
+
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
 // and returns the updated state.
 func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, error) {
@@ -595,13 +606,4 @@ type ObjectiveRequest struct {
 // Id returns the objective id for the request.
 func (r ObjectiveRequest) Id(types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
-}
-
-func getSignedStatePayload(b []byte) state.SignedState {
-	ss := state.SignedState{}
-	err := json.Unmarshal(b, &ss)
-	if err != nil {
-		panic(err)
-	}
-	return ss
 }
