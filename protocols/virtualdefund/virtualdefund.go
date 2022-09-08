@@ -368,7 +368,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	// If we don't know the amount yet we send a message to alice to request it
 	if !updated.isAlice() && updated.PaidToBob == nil {
 		alice := o.VFixed.Participants[0]
-		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.MyRole, RequestDefundPayload, alice)
+		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.VId(), RequestDefundPayload, alice)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 		return &updated, sideEffects, WaitingForAmountFromAlice, nil
 	}
@@ -561,7 +561,7 @@ func getSignedStatePayload(b []byte) (state.SignedState, error) {
 	return ss, nil
 }
 
-// getRequestDefundPayload takes in a serialized signed state payload and returns the deserialized SignedState.
+// getRequestDefundPayload takes in a serialized channel id payload and returns the deserialized channel id.
 func getRequestDefundPayload(b []byte) (types.Destination, error) {
 	cId := types.Destination{}
 	err := json.Unmarshal(b, &cId)
