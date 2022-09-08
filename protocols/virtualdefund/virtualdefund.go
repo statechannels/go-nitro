@@ -38,13 +38,13 @@ type Objective struct {
 	// InitialOutcome is the initial outcome of the virtual channel
 	InitialOutcome outcome.SingleAssetExit
 
-	// PaidToBob is the amount that should be paid from Alice (participant 0) to Bob (participant 2)
-	// This may be nil before we receive the largest amount from Alice
-	PaidToBob *big.Int
+	// FinalOutCome is the final outcome of the virtual channel from Alice
+	FinalOutcome outcome.SingleAssetExit
 
-	// MinPaymentAmount is the minimum payment amount we require from Alice
-	// This is set by Bob so he can ensure he receives the latest amount from any vouchers he's received
-	MinPaymentAmount *big.Int
+	// MinimumPaymentAmount is the latest payment amount we have received from Alice before starting defunding.
+	// This is set by Bob so he can ensure he receives the latest amount from any vouchers he's received.
+	// If this is not set then virtual defunding will accept any final outcome from Alice.
+	MinimumPaymentAmount *big.Int
 
 	// VFixed is the fixed channel information for the virtual channel
 	VFixed state.FixedPart
@@ -134,22 +134,27 @@ func NewObjective(request ObjectiveRequest,
 		largestPaymentAmount = big.NewInt(0)
 	}
 
+	finalOutcome := outcome.SingleAssetExit{}
 	// Since is Alice is responsible for issuing vouchers she always has the largest payment amount
-	var paidToBob *big.Int
+	// This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent
 	if myAddress == alice {
-		paidToBob = new(big.Int).Set(largestPaymentAmount)
+
+		finalOutcome = initialOutcome.Clone()
+		finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, largestPaymentAmount)
+		finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, largestPaymentAmount)
+
 	}
 
 	return Objective{
-		Status:           status,
-		InitialOutcome:   initialOutcome,
-		PaidToBob:        paidToBob,
-		MinPaymentAmount: largestPaymentAmount,
-		VFixed:           V.FixedPart,
-		Signatures:       [3]state.Signature{},
-		MyRole:           V.MyIndex,
-		ToMyLeft:         toMyLeft,
-		ToMyRight:        toMyRight,
+		Status:               status,
+		InitialOutcome:       initialOutcome,
+		FinalOutcome:         finalOutcome,
+		MinimumPaymentAmount: largestPaymentAmount,
+		VFixed:               V.FixedPart,
+		Signatures:           [3]state.Signature{},
+		MyRole:               V.MyIndex,
+		ToMyLeft:             toMyLeft,
+		ToMyRight:            toMyRight,
 	}, nil
 }
 
@@ -249,18 +254,8 @@ func (o *Objective) signedFinalState() (state.SignedState, error) {
 
 // finalState returns the final state for the virtual channel
 func (o *Objective) finalState() state.State {
-	vp := state.VariablePart{Outcome: outcome.Exit{o.finalOutcome()}, TurnNum: FinalTurnNum, IsFinal: true}
+	vp := state.VariablePart{Outcome: outcome.Exit{o.FinalOutcome}, TurnNum: FinalTurnNum, IsFinal: true}
 	return state.StateFromFixedAndVariablePart(o.VFixed, vp)
-}
-
-// finalOutcome returns the outcome for the final state calculated from the InitialOutcome and PaidToBob
-func (o *Objective) finalOutcome() outcome.SingleAssetExit {
-	finalOutcome := o.InitialOutcome.Clone()
-
-	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.PaidToBob)
-	finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.PaidToBob)
-
-	return finalOutcome
 }
 
 // Id returns the objective id.
@@ -325,11 +320,10 @@ func (o *Objective) clone() Objective {
 
 	clone.VFixed = o.VFixed.Clone()
 	clone.InitialOutcome = o.InitialOutcome.Clone()
-	if o.PaidToBob != nil {
-		clone.PaidToBob = big.NewInt(0).Set(o.PaidToBob)
-	}
-	if o.MinPaymentAmount != nil {
-		clone.MinPaymentAmount = big.NewInt(0).Set(o.MinPaymentAmount)
+	clone.FinalOutcome = o.FinalOutcome.Clone()
+
+	if o.MinimumPaymentAmount != nil {
+		clone.MinimumPaymentAmount = big.NewInt(0).Set(o.MinimumPaymentAmount)
 	}
 	clone.Signatures = [3]state.Signature{}
 	for i, s := range o.Signatures {
@@ -359,6 +353,10 @@ func (o *Objective) otherParticipants() []types.Address {
 	return others
 }
 
+func (o *Objective) hasFinalStateFromAlice() bool {
+	return !o.FinalOutcome.Equal(outcome.SingleAssetExit{})
+}
+
 // Crank inspects the extended state and declares a list of Effects to be executed
 func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
@@ -370,7 +368,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	}
 
 	// If we don't know the amount yet we send a message to alice to request it
-	if !updated.isAlice() && updated.PaidToBob == nil {
+	if !updated.isAlice() && !updated.hasFinalStateFromAlice() {
 		alice := o.VFixed.Participants[0]
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.VId(), FinalStateRequestPayload, alice)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
@@ -448,7 +446,7 @@ func (o *Objective) isBob() bool {
 
 // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
 func (o *Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) consensus_channel.Proposal {
-	left := o.finalOutcome().Allocations[0].Amount
+	left := o.FinalOutcome.Allocations[0].Amount
 
 	return consensus_channel.NewRemoveProposal(ledger.Id, o.VId(), left)
 }
@@ -596,12 +594,12 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 
 		// if we're Bob we want to make sure the final state Alice sent is equal to or larger than the payment we already have
 		if o.isBob() {
-			if paidToBob.Cmp(updated.MinPaymentAmount) < 0 {
-				return &Objective{}, fmt.Errorf("payment amount %d is less than the minimum payment amount %d", paidToBob, o.MinPaymentAmount)
+			if paidToBob.Cmp(updated.MinimumPaymentAmount) < 0 {
+				return &Objective{}, fmt.Errorf("payment amount %d is less than the minimum payment amount %d", paidToBob, o.MinimumPaymentAmount)
 			}
 		}
 
-		updated.PaidToBob = paidToBob
+		updated.FinalOutcome = ss.State().Outcome[0]
 		if err != nil {
 			return o, fmt.Errorf("could not get signed state payload: %w", err)
 		}

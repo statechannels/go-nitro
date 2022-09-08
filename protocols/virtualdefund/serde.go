@@ -14,15 +14,16 @@ import (
 // jsonObjective replaces the virtualfund Objective's channel pointers
 // with the channel's respective IDs, making jsonObjective suitable for serialization
 type jsonObjective struct {
-	Status           protocols.ObjectiveStatus
-	VFixed           state.FixedPart
-	InitialOutcome   outcome.SingleAssetExit
-	Signatures       [3]state.Signature
-	PaidToBob        *big.Int
-	ToMyLeft         []byte
-	ToMyRight        []byte
-	MinPaymentAmount *big.Int
-	MyRole           uint
+	Status         protocols.ObjectiveStatus
+	VFixed         state.FixedPart
+	InitialOutcome outcome.SingleAssetExit
+	FinalOutcome   outcome.SingleAssetExit
+	Signatures     [3]state.Signature
+
+	ToMyLeft             []byte
+	ToMyRight            []byte
+	MinimumPaymentAmount *big.Int
+	MyRole               uint
 }
 
 // MarshalJSON returns a JSON representation of the VirtualDefundObjective
@@ -52,15 +53,15 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 	}
 
 	jsonVFO := jsonObjective{
-		Status:           o.Status,
-		VFixed:           o.VFixed,
-		Signatures:       o.Signatures,
-		PaidToBob:        o.PaidToBob,
-		InitialOutcome:   o.InitialOutcome,
-		ToMyLeft:         left,
-		ToMyRight:        right,
-		MyRole:           o.MyRole,
-		MinPaymentAmount: o.MinPaymentAmount,
+		Status:               o.Status,
+		VFixed:               o.VFixed,
+		Signatures:           o.Signatures,
+		FinalOutcome:         o.FinalOutcome,
+		InitialOutcome:       o.InitialOutcome,
+		ToMyLeft:             left,
+		ToMyRight:            right,
+		MyRole:               o.MyRole,
+		MinimumPaymentAmount: o.MinimumPaymentAmount,
 	}
 	return json.Marshal(jsonVFO)
 }
@@ -92,8 +93,8 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.Signatures = jsonVFO.Signatures
 	o.InitialOutcome = jsonVFO.InitialOutcome
 	o.VFixed = jsonVFO.VFixed
-	o.PaidToBob = jsonVFO.PaidToBob
-	o.MinPaymentAmount = jsonVFO.MinPaymentAmount
+	o.FinalOutcome = jsonVFO.FinalOutcome
+	o.MinimumPaymentAmount = jsonVFO.MinimumPaymentAmount
 
 	return nil
 }

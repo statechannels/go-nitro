@@ -126,7 +126,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 			testhelpers.Equals(t, waitingFor, WaitingForFinalStateFromAlice)
 
 			// mimic Alice sending the final state by setting PaidToBob to the paid value
-			updated.PaidToBob = big.NewInt(int64(data.paid))
+			updated.FinalOutcome = data.vFinal.Outcome[0]
 			updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 			testhelpers.Ok(t, err)
 			updated = updatedObj.(*Objective)
@@ -196,15 +196,16 @@ func TestConstructObjectiveFromState(t *testing.T) {
 		t.Fatal(err)
 	}
 	left, right := generateLedgers(alice.Role, vId)
+
 	want := Objective{
-		Status:           protocols.Approved,
-		InitialOutcome:   data.vInitial.Outcome[0],
-		PaidToBob:        big.NewInt(int64(data.paid)),
-		VFixed:           data.vFinal.FixedPart(),
-		Signatures:       [3]state.Signature{},
-		ToMyLeft:         left,
-		ToMyRight:        right,
-		MinPaymentAmount: big.NewInt(int64(data.paid)),
+		Status:               protocols.Approved,
+		InitialOutcome:       data.vInitial.Outcome[0],
+		FinalOutcome:         data.vFinal.Outcome[0],
+		VFixed:               data.vFinal.FixedPart(),
+		Signatures:           [3]state.Signature{},
+		ToMyLeft:             left,
+		ToMyRight:            right,
+		MinimumPaymentAmount: big.NewInt(int64(data.paid)),
 	}
 	if diff := cmp.Diff(want, got, cmp.AllowUnexported(big.Int{}, consensus_channel.ConsensusChannel{}, consensus_channel.LedgerOutcome{}, consensus_channel.Guarantee{})); diff != "" {
 		t.Errorf("objective mismatch (-want +got):\n%s", diff)
