@@ -60,10 +60,10 @@ describe('Connects to a local filecoin-flavoured ganache instance', () => {
     Method: 2,
     Params: Buffer.from(simplecoinhex, 'hex').toString('base64'),
     // Params: bytecodeHexString,
-    Version: 42,
+    Version: 0,
     Nonce: 42,
     GasLimit: 1_000_000,
-    GasFeeCap: '0',
+    GasFeeCap: '10000',
     GasPremium: '0',
   };
 
