@@ -36,12 +36,21 @@ describe('Connects to wallaby testnet', () => {
     // Internally, this will get a new nonce, sign the message, do some encoding and call the MpoolPush RPC method.
     const responsePromise = filecoin_client.tx.sendMessage(messageBody, privateKey);
 
+    let responseCID: string;
+
     await Promise.race([
       responsePromise.catch(err => {
         console.log(err);
         throw err;
       }),
-      responsePromise.then(response => console.log(response)),
+      responsePromise.then(response => {
+        responseCID = (
+          response as {
+            '/': string;
+          }
+        )['/'];
+        console.log('response CID is', responseCID);
+      }),
     ]);
   });
 });
