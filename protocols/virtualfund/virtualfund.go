@@ -544,8 +544,11 @@ func ConstructObjectiveFromPayload(
 	myAddress types.Address,
 	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
 ) (Objective, error) {
+	initialState, err := getSignedStatePayload(p.PayloadData)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not get signed state payload: %w", err)
+	}
 
-	initialState := getPayload(p.PayloadData)
 	participants := initialState.State().Participants
 
 	// This logic assumes a single hop virtual channel.
@@ -739,12 +742,12 @@ func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
 	}
 }
 
-func getPayload(b []byte) state.SignedState {
+// getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
+func getSignedStatePayload(b []byte) (state.SignedState, error) {
 	ss := state.SignedState{}
-
 	err := json.Unmarshal(b, &ss)
 	if err != nil {
-		panic(err)
+		return ss, fmt.Errorf("could not unmarshal signed state: %w", err)
 	}
-	return ss
+	return ss, nil
 }

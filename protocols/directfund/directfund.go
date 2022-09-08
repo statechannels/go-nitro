@@ -114,7 +114,10 @@ func ConstructFromPayload(
 ) (Objective, error) {
 	var err error
 
-	initialSignedState := getSignedStatePayload(op.PayloadData)
+	initialSignedState, err := getSignedStatePayload(op.PayloadData)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not get signed state payload: %w", err)
+	}
 	initialState := initialSignedState.State()
 	err = initialState.FixedPart().Validate()
 	if err != nil {
@@ -258,7 +261,12 @@ func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, e
 	}
 
 	updated := o.clone()
-	ss := getSignedStatePayload(p.PayloadData)
+	ss, err := getSignedStatePayload(p.PayloadData)
+	if err != nil {
+		if err != nil {
+			return o, fmt.Errorf("could not get signed state payload: %w", err)
+		}
+	}
 	updated.C.AddSignedState(ss)
 	return &updated, nil
 }
@@ -487,14 +495,13 @@ func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
 }
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
-func getSignedStatePayload(b []byte) state.SignedState {
+func getSignedStatePayload(b []byte) (state.SignedState, error) {
 	ss := state.SignedState{}
-
 	err := json.Unmarshal(b, &ss)
 	if err != nil {
-		panic(err)
+		return ss, fmt.Errorf("could not unmarshal signed state: %w", err)
 	}
-	return ss
+	return ss, nil
 }
 
 // mermaid diagram

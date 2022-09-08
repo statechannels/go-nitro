@@ -163,9 +163,12 @@ func ConstructObjectiveFromPayload(
 
 	switch p.Type {
 	case InitPayload:
-		panic("TODO: Not implemented")
+		return Objective{}, fmt.Errorf("unknown payload type %s", p.Type)
 	case SignedStatePayload:
-		ss := getSignedStatePayload(p.PayloadData)
+		ss, err := getSignedStatePayload(p.PayloadData)
+		if err != nil {
+			return Objective{}, err
+		}
 		paidToBob, err := calculatePaidToBob(ss.State(), getChannel)
 		if err != nil {
 			return Objective{}, err
@@ -498,13 +501,13 @@ func (o *Objective) validateSignature(sig state.Signature, participantIndex uint
 }
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
-func getSignedStatePayload(b []byte) state.SignedState {
+func getSignedStatePayload(b []byte) (state.SignedState, error) {
 	ss := state.SignedState{}
 	err := json.Unmarshal(b, &ss)
 	if err != nil {
-		panic(err)
+		return ss, fmt.Errorf("could not unmarshal signed state: %w", err)
 	}
-	return ss
+	return ss, nil
 }
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
@@ -518,8 +521,11 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 	case SignedStatePayload:
 
 		updated := o.clone()
-
-		incomingSignatures := getSignedStatePayload(op.PayloadData).Signatures()
+		p, err := getSignedStatePayload(op.PayloadData)
+		if err != nil {
+			return o, fmt.Errorf("could not get signed state payload: %w", err)
+		}
+		incomingSignatures := p.Signatures()
 		for i := uint(0); i < 3; i++ {
 			existingSig := o.Signatures[i]
 			incomingSig := incomingSignatures[i]
@@ -547,7 +553,7 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 		}
 		return &updated, nil
 	case InitPayload:
-		panic("TODO: Not implemented yet")
+		return o, fmt.Errorf("TODO: %s not yet implemented", op.Type)
 	default:
 		return o, fmt.Errorf("unknown payload type %s", op.Type)
 	}

@@ -128,7 +128,10 @@ func ConstructObjectiveFromPayload(
 	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
 
-	ss := getSignedStatePayload(p.PayloadData)
+	ss, err := getSignedStatePayload(p.PayloadData)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not get signed state payload: %w", err)
+	}
 	s := ss.State()
 
 	// Implicit in the wire protocol is that the message signalling
@@ -138,7 +141,7 @@ func ConstructObjectiveFromPayload(
 		return Objective{}, ErrNoFinalState
 	}
 
-	err := s.FixedPart().Validate()
+	err = s.FixedPart().Validate()
 	if err != nil {
 		return Objective{}, err
 	}
@@ -194,7 +197,10 @@ func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, e
 	if o.Id() != p.ObjectiveId {
 		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(p.ObjectiveId), string(o.Id()))
 	}
-	ss := getSignedStatePayload(p.PayloadData)
+	ss, err := getSignedStatePayload(p.PayloadData)
+	if err != nil {
+		return o, fmt.Errorf("could not get signed state payload: %w", err)
+	}
 	if len(ss.Signatures()) != 0 {
 
 		if !ss.State().IsFinal {
@@ -335,14 +341,13 @@ func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
 }
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
-func getSignedStatePayload(b []byte) state.SignedState {
+func getSignedStatePayload(b []byte) (state.SignedState, error) {
 	ss := state.SignedState{}
-
 	err := json.Unmarshal(b, &ss)
 	if err != nil {
-		panic(err)
+		return ss, fmt.Errorf("could not unmarshal signed state: %w", err)
 	}
-	return ss
+	return ss, nil
 }
 
 // otherParticipants returns the participants in the channel that are not the current participant.
