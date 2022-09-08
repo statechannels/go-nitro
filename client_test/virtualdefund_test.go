@@ -65,7 +65,9 @@ func runVirtualDefundIntegrationTest(t *testing.T, messageDelay time.Duration, o
 	totalPaidToBob := paidToBob * numOfVirtualChannels
 
 	cIds := openVirtualChannels(t, clientA, clientB, clientI, numOfVirtualChannels)
-
+	for i := 0; i < len(cIds); i++ {
+		clientA.Pay(cIds[i], big.NewInt(int64(paidToBob)))
+	}
 	ids := make([]protocols.ObjectiveId, len(cIds))
 	for i := 0; i < len(cIds); i++ {
 		ids[i] = clientA.CloseVirtualChannel(cIds[i], big.NewInt(int64(paidToBob)))

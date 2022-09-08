@@ -372,7 +372,11 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		return e.attemptProgress(&vfo)
 
 	case virtualdefund.ObjectiveRequest:
-		vdfo, err := virtualdefund.NewObjective(request, true, myAddress, e.store.GetChannelById, e.store.GetConsensusChannel)
+		bal, err := e.vm.Balance(request.ChannelId)
+		if err != nil {
+			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Failed trying to get latest voucher balance %+v: %w", request, err)
+		}
+		vdfo, err := virtualdefund.NewObjective(request, true, myAddress, bal.Paid, e.store.GetChannelById, e.store.GetConsensusChannel)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
@@ -573,7 +577,15 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
-		vdfo, err := virtualdefund.ConstructObjectiveFromPayload(p, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
+		vId, err := virtualdefund.GetVirtualChannelFromId(id)
+		if err != nil {
+			return &virtualdefund.Objective{}, fmt.Errorf("could not determine virtual channel id: %w", err)
+		}
+		bal, err := e.vm.Balance(vId)
+		if err != nil {
+			return &virtualdefund.Objective{}, fmt.Errorf("could determine voucher balance: %w", err)
+		}
+		vdfo, err := virtualdefund.ConstructObjectiveFromPayload(p, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel, bal.Paid)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}

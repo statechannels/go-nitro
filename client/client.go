@@ -105,7 +105,6 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination, paidToBob *big
 
 	objectiveRequest := virtualdefund.ObjectiveRequest{
 		ChannelId: channelId,
-		PaidToBob: paidToBob,
 	}
 
 	// Send the event to the engine

@@ -17,14 +17,15 @@ import (
 )
 
 const (
-	WaitingForCompleteFinal           protocols.WaitingFor = "WaitingForCompleteFinal"           // Round 1
+	WaitingForAmountFromAlice         protocols.WaitingFor = "WaitingForAliceFinal"
+	WaitingForSignedFinal             protocols.WaitingFor = "WaitingForSignedFinal"             // Round 1
 	WaitingForCompleteLedgerDefunding protocols.WaitingFor = "WaitingForCompleteLedgerDefunding" // Round 2
 	WaitingForNothing                 protocols.WaitingFor = "WaitingForNothing"                 // Finished
 )
 
 const (
-	SignedStatePayload protocols.PayloadType = "SignedStatePayload"
-	InitPayload        protocols.PayloadType = "InitPayload"
+	SignedStatePayload   protocols.PayloadType = "SignedStatePayload"
+	RequestDefundPayload protocols.PayloadType = "RequestDefundPayload"
 )
 
 // The turn number used for the final state
@@ -38,7 +39,12 @@ type Objective struct {
 	InitialOutcome outcome.SingleAssetExit
 
 	// PaidToBob is the amount that should be paid from Alice (participant 0) to Bob (participant 2)
+	// This may be nil before we receive the largest amount from Alice
 	PaidToBob *big.Int
+
+	// MinPaymentAmount is the minimum payment amount we require from Alice
+	// This is set by Bob so he can ensure he receives the latest amount from any vouchers he's received
+	MinPaymentAmount *big.Int
 
 	// VFixed is the fixed channel information for the virtual channel
 	VFixed state.FixedPart
@@ -71,6 +77,7 @@ type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger
 func NewObjective(request ObjectiveRequest,
 	preApprove bool,
 	myAddress types.Address,
+	largestPaymentAmount *big.Int,
 	getChannel GetChannelByIdFunction,
 	getConsensusChannel GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 	var status protocols.ObjectiveStatus
@@ -121,33 +128,36 @@ func NewObjective(request ObjectiveRequest,
 		return Objective{}, fmt.Errorf("client address not found in an expected participant index")
 
 	}
-	return Objective{
-		Status:         status,
-		InitialOutcome: initialOutcome,
-		PaidToBob:      request.PaidToBob,
-		VFixed:         V.FixedPart,
-		Signatures:     [3]state.Signature{},
-		MyRole:         V.MyIndex,
-		ToMyLeft:       toMyLeft,
-		ToMyRight:      toMyRight,
-	}, nil
 
+	if largestPaymentAmount == nil {
+
+		largestPaymentAmount = big.NewInt(0)
+	}
+
+	// Since is Alice is responsible for issuing vouchers she always has the largest payment amount
+	var paidToBob *big.Int
+	if myAddress == alice {
+		paidToBob = new(big.Int).Set(largestPaymentAmount)
+	}
+
+	return Objective{
+		Status:           status,
+		InitialOutcome:   initialOutcome,
+		PaidToBob:        paidToBob,
+		MinPaymentAmount: largestPaymentAmount,
+		VFixed:           V.FixedPart,
+		Signatures:       [3]state.Signature{},
+		MyRole:           V.MyIndex,
+		ToMyLeft:         toMyLeft,
+		ToMyRight:        toMyRight,
+	}, nil
 }
 
 // calculatePaidToBob determines the amount paid to bob by comparing the prefund setup state and the proposed final state.
-func calculatePaidToBob(proposedFinalState state.State, getChannel GetChannelByIdFunction) (*big.Int, error) {
-	if !proposedFinalState.IsFinal {
-		return big.NewInt(0), fmt.Errorf("expected final state")
-	}
-	cId := proposedFinalState.ChannelId()
-	c, found := getChannel(cId)
-	pf := c.PreFundState()
+func calculatePaidToBob(initialOutcome outcome.Exit, finalOutcome outcome.Exit) (*big.Int, error) {
 
-	if !found {
-		return big.NewInt(0), fmt.Errorf("could not find channel %s", cId)
-	}
-	initialBobAmount := pf.Outcome[0].Allocations[1].Amount
-	finalBobAmount := proposedFinalState.Outcome[0].Allocations[1].Amount
+	initialBobAmount := initialOutcome[0].Allocations[1].Amount
+	finalBobAmount := finalOutcome[0].Allocations[1].Amount
 	return big.NewInt(0).Sub(finalBobAmount, initialBobAmount), nil
 }
 
@@ -158,24 +168,54 @@ func ConstructObjectiveFromPayload(
 	myAddress types.Address,
 	getChannel GetChannelByIdFunction,
 	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
+	latestVoucherAmount *big.Int,
 ) (Objective, error) {
 
+	if latestVoucherAmount == nil {
+		latestVoucherAmount = big.NewInt(0)
+	}
 	switch p.Type {
-	case InitPayload:
-		return Objective{}, fmt.Errorf("unknown payload type %s", p.Type)
+	case RequestDefundPayload:
+		cId, err := getRequestDefundPayload(p.PayloadData)
+		if err != nil {
+			return Objective{}, err
+		}
+		return NewObjective(
+			ObjectiveRequest{cId},
+			preapprove,
+			myAddress,
+			latestVoucherAmount,
+			getChannel,
+			getTwoPartyConsensusLedger)
+
 	case SignedStatePayload:
 		ss, err := getSignedStatePayload(p.PayloadData)
 		if err != nil {
 			return Objective{}, err
 		}
-		paidToBob, err := calculatePaidToBob(ss.State(), getChannel)
+
+		if !ss.State().IsFinal {
+			return Objective{}, fmt.Errorf("expected final state")
+		}
+		cId := ss.ChannelId()
+		c, found := getChannel(cId)
+		pf := c.PreFundState()
+
+		if !found {
+			return Objective{}, fmt.Errorf("could not find channel %s", cId)
+		}
+		paidToBob, err := calculatePaidToBob(pf.Outcome, ss.State().Outcome)
 		if err != nil {
 			return Objective{}, err
 		}
+		if paidToBob.Cmp(latestVoucherAmount) < 0 {
+			return Objective{}, fmt.Errorf("amount paid in final state (%v) is less than the latest voucher amount (%v)", paidToBob, latestVoucherAmount)
+		}
 		return NewObjective(
-			ObjectiveRequest{ss.ChannelId(), paidToBob},
+			ObjectiveRequest{ss.ChannelId()},
 			preapprove,
 			myAddress,
+			latestVoucherAmount,
 			getChannel,
 			getTwoPartyConsensusLedger)
 
@@ -281,8 +321,12 @@ func (o *Objective) clone() Objective {
 
 	clone.VFixed = o.VFixed.Clone()
 	clone.InitialOutcome = o.InitialOutcome.Clone()
-	clone.PaidToBob = big.NewInt(0).Set(o.PaidToBob)
-
+	if o.PaidToBob != nil {
+		clone.PaidToBob = big.NewInt(0).Set(o.PaidToBob)
+	}
+	if o.MinPaymentAmount != nil {
+		clone.MinPaymentAmount = big.NewInt(0).Set(o.MinPaymentAmount)
+	}
 	clone.Signatures = [3]state.Signature{}
 	for i, s := range o.Signatures {
 		clone.Signatures[i] = state.CloneSignature(s)
@@ -321,6 +365,14 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		return &updated, sideEffects, WaitingForNothing, protocols.ErrNotApproved
 	}
 
+	// If we don't know the amount yet we send a message to alice to request it
+	if !updated.isAlice() && updated.PaidToBob == nil {
+		alice := o.VFixed.Participants[0]
+		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.MyRole, RequestDefundPayload, alice)
+		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+		return &updated, sideEffects, WaitingForAmountFromAlice, nil
+	}
+
 	// Signing of the final state
 	if !updated.signedByMe() {
 
@@ -341,7 +393,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	// Check if all participants have signed the final state
 	if !updated.fullySigned() {
-		return &updated, sideEffects, WaitingForCompleteFinal, nil
+		return &updated, sideEffects, WaitingForSignedFinal, nil
 	}
 
 	if !updated.isAlice() && !updated.isLeftDefunded() {
@@ -509,6 +561,16 @@ func getSignedStatePayload(b []byte) (state.SignedState, error) {
 	return ss, nil
 }
 
+// getRequestDefundPayload takes in a serialized signed state payload and returns the deserialized SignedState.
+func getRequestDefundPayload(b []byte) (types.Destination, error) {
+	cId := types.Destination{}
+	err := json.Unmarshal(b, &cId)
+	if err != nil {
+		return cId, fmt.Errorf("could not unmarshal signatures: %w", err)
+	}
+	return cId, nil
+}
+
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
 // and returns the updated state.
 func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, error) {
@@ -518,13 +580,26 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 
 	switch op.Type {
 	case SignedStatePayload:
-
+		ss, err := getSignedStatePayload(op.PayloadData)
+		if err != nil {
+			return &Objective{}, err
+		}
 		updated := o.clone()
-		p, err := getSignedStatePayload(op.PayloadData)
+
+		paidToBob, err := calculatePaidToBob(outcome.Exit{updated.InitialOutcome}, ss.State().Outcome)
+		if err != nil {
+			return &Objective{}, err
+		}
+		if paidToBob.Cmp(updated.MinPaymentAmount) < 0 {
+			return &Objective{}, fmt.Errorf("payment amount %d is less than the minimum payment amount %d", paidToBob, o.MinPaymentAmount)
+		}
+
+		updated.PaidToBob = paidToBob
 		if err != nil {
 			return o, fmt.Errorf("could not get signed state payload: %w", err)
 		}
-		incomingSignatures := p.Signatures()
+
+		incomingSignatures := ss.Signatures()
 		for i := uint(0); i < 3; i++ {
 			existingSig := o.Signatures[i]
 			incomingSig := incomingSignatures[i]
@@ -551,8 +626,10 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 			}
 		}
 		return &updated, nil
-	case InitPayload:
-		return o, fmt.Errorf("TODO: %s not yet implemented", op.Type)
+
+	case RequestDefundPayload:
+		// Since the objective is already created we don't need to do anything else with the payload
+		return o, nil
 	default:
 		return o, fmt.Errorf("unknown payload type %s", op.Type)
 	}
@@ -606,10 +683,18 @@ func isZero(sig state.Signature) bool {
 // ObjectiveRequest represents a request to create a new virtual defund objective.
 type ObjectiveRequest struct {
 	ChannelId types.Destination
-	PaidToBob *big.Int
 }
 
 // Id returns the objective id for the request.
 func (r ObjectiveRequest) Id(types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
+}
+
+// GetVirtualChannelFromId gets the virtual channel id from the objective id.
+func GetVirtualChannelFromId(id protocols.ObjectiveId) (types.Destination, error) {
+	if !strings.HasPrefix(string(id), ObjectivePrefix) {
+		return types.Destination{}, fmt.Errorf("id %s does not have prefix %s", id, ObjectivePrefix)
+	}
+	raw := string(id)[len(ObjectivePrefix):]
+	return types.Destination(common.HexToHash(raw)), nil
 }

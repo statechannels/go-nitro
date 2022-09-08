@@ -38,12 +38,11 @@ func TestInvalidUpdate(t *testing.T) {
 	vId := data.vFinal.ChannelId()
 	request := ObjectiveRequest{
 		ChannelId: vId,
-		PaidToBob: big.NewInt(int64(data.paid)),
 	}
 
 	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vFinal)
 
-	virtualDefund, err := NewObjective(request, false, alice.Address(), getChannel, getConsensusChannel)
+	virtualDefund, err := NewObjective(request, false, alice.Address(), nil, getChannel, getConsensusChannel)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,12 +70,11 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		vId := data.vFinal.ChannelId()
 		request := ObjectiveRequest{
 			ChannelId: vId,
-			PaidToBob: big.NewInt(int64(data.paid)),
 		}
 
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
 
-		virtualDefund, err := NewObjective(request, false, my.Address(), getChannel, getConsensusChannel)
+		virtualDefund, err := NewObjective(request, false, my.Address(), nil, getChannel, getConsensusChannel)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -105,11 +103,16 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		vId := data.vFinal.ChannelId()
 		request := ObjectiveRequest{
 			ChannelId: vId,
-			PaidToBob: big.NewInt(int64(data.paid)),
 		}
 
+		// If we're Alice we should have the latest payment amount
+		// Otherwise we have an older or no payment amount
+		ourPaymentAmount := big.NewInt(0)
+		if my.Role == 0 {
+			ourPaymentAmount = big.NewInt(int64(data.paid))
+		}
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
-		virtualDefund, err := NewObjective(request, true, my.Address(), getChannel, getConsensusChannel)
+		virtualDefund, err := NewObjective(request, true, my.Address(), ourPaymentAmount, getChannel, getConsensusChannel)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -117,6 +120,17 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		updatedObj, se, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
+
+		if my.Role != 0 {
+			testhelpers.Equals(t, se.MessagesToSend[0].ObjectiveMessages[0].Type, RequestDefundPayload)
+			testhelpers.Equals(t, waitingFor, WaitingForAmountFromAlice)
+
+			// mimic Alice sending the final state by setting PaidToBob to the paid value
+			updated.PaidToBob = big.NewInt(int64(data.paid))
+			updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
+			testhelpers.Ok(t, err)
+			updated = updatedObj.(*Objective)
+		}
 
 		for _, a := range allActors {
 			if a.Role == my.Role {
@@ -126,7 +140,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 			}
 		}
 
-		testhelpers.Equals(t, waitingFor, WaitingForCompleteFinal)
+		testhelpers.Equals(t, waitingFor, WaitingForSignedFinal)
 		signedByMe := state.NewSignedState(data.vFinal)
 		testhelpers.SignState(&signedByMe, &my.PrivateKey)
 
@@ -177,19 +191,20 @@ func TestConstructObjectiveFromState(t *testing.T) {
 	signStateByOthers(alice, signedFinal)
 	b, _ := json.Marshal(signedFinal)
 	payload := protocols.ObjectivePayload{Type: SignedStatePayload, PayloadData: b, ObjectiveId: protocols.ObjectiveId(fmt.Sprintf("%s%s", ObjectivePrefix, vId))}
-	got, err := ConstructObjectiveFromPayload(payload, true, alice.Address(), getChannel, getConsensusChannel)
+	got, err := ConstructObjectiveFromPayload(payload, true, alice.Address(), getChannel, getConsensusChannel, big.NewInt(int64(data.paid)))
 	if err != nil {
 		t.Fatal(err)
 	}
 	left, right := generateLedgers(alice.Role, vId)
 	want := Objective{
-		Status:         protocols.Approved,
-		InitialOutcome: data.vInitial.Outcome[0],
-		PaidToBob:      big.NewInt(int64(data.paid)),
-		VFixed:         data.vFinal.FixedPart(),
-		Signatures:     [3]state.Signature{},
-		ToMyLeft:       left,
-		ToMyRight:      right,
+		Status:           protocols.Approved,
+		InitialOutcome:   data.vInitial.Outcome[0],
+		PaidToBob:        big.NewInt(int64(data.paid)),
+		VFixed:           data.vFinal.FixedPart(),
+		Signatures:       [3]state.Signature{},
+		ToMyLeft:         left,
+		ToMyRight:        right,
+		MinPaymentAmount: big.NewInt(int64(data.paid)),
 	}
 	if diff := cmp.Diff(want, got, cmp.AllowUnexported(big.Int{}, consensus_channel.ConsensusChannel{}, consensus_channel.LedgerOutcome{}, consensus_channel.Guarantee{})); diff != "" {
 		t.Errorf("objective mismatch (-want +got):\n%s", diff)
@@ -201,12 +216,11 @@ func TestApproveReject(t *testing.T) {
 	vId := data.vFinal.ChannelId()
 	request := ObjectiveRequest{
 		ChannelId: vId,
-		PaidToBob: big.NewInt(int64(data.paid)),
 	}
 
 	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vInitial)
 
-	virtualDefund, err := NewObjective(request, false, alice.Address(), getChannel, getConsensusChannel)
+	virtualDefund, err := NewObjective(request, false, alice.Address(), nil, getChannel, getConsensusChannel)
 	if err != nil {
 		t.Fatal(err)
 	}
