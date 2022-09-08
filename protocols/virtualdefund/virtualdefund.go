@@ -38,7 +38,7 @@ type Objective struct {
 	// InitialOutcome is the initial outcome of the virtual channel
 	InitialOutcome outcome.SingleAssetExit
 
-	// FinalOutCome is the final outcome of the virtual channel from Alice
+	// FinalOutcome is the final outcome of the virtual channel from Alice
 	FinalOutcome outcome.SingleAssetExit
 
 	// MinimumPaymentAmount is the latest payment amount we have received from Alice before starting defunding.
