@@ -43,21 +43,22 @@ In the final round, the leader in each ledger channel proposes that V is defunde
 
 Once the finalisation proof is broadcast to all participants, the protocol progresses in the same way as virtual funding, only with guarantees being removed (instead of added) to the ledger channels. This is described in [ADR 0003](./0003-consensus-ledger-channels.md).
 
-### Upsidss
+### Upsides
 
 This protocol has the following properties:
 
 - Equitability: Anyone can trigger the channel to close / be defunded (assuming cooperation, of course).
-- Robustness: messages arriving out of order are not too problematic, as long as Alice sends her latest voucher. She may get lucky and close the channel with a stale voucher amount only if larger vouchers got dropped / delayed -- but then Bob would not have provided the goods/services for those vouchers anywy.
+- Robustness: Messages arriving out of order are not too problematic, as long as Alice sends her latest voucher. She may get lucky and close the channel with a stale voucher amount only if larger vouchers got dropped / delayed -- but then Bob would not have provided the goods/services for those vouchers anywy.
 - Scalablity: Rounds 2,3,4 can probably be optimised to save a round of messaging, but this may be premature and not scale easily to multihop virtual defunding. (Example: make Irene the leader in the ledger channels, so she can send out the updates in `L`, `L’` concurrently with her `V.isFinal` signature.
 - Explicitness: Bob’s verification of the voucher is very important and is highlighted here.
 - Simplicity: Irene does not need to be involved until Alice and Bob are agreed. She doesn’t even need to understand vouchers.
 
 ### Downsides
 
-- Redundancy: some messages seems "unecessary" -- for example, prodding Alice to start the protocol.
+- Redundancy: Some messages seems "unecessary" -- for example, prodding Alice to start the protocol.
 - Asymmetry: each participant behaves quite differently.
 - Fragility: there's no attempt to recover if something goes wrong. Bob's verification could fail (but this likely indicates "Malice from Alice"). Messages could be dropped. This can probably be handled with general "retry logic", though.
+- Vagueness: Although Bob holds largest voucher with amount `x`, but will agree to close the channel with any `y>=x`.
 
 ### Diagram
 
