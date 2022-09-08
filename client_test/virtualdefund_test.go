@@ -77,11 +77,11 @@ func runVirtualDefundIntegrationTestAs(t *testing.T, closer types.Address, messa
 	for i := 0; i < len(cIds); i++ {
 		switch closer {
 		case alice.Address():
-			ids[i] = clientA.CloseVirtualChannel(cIds[i], big.NewInt(int64(paidToBob)))
+			ids[i] = clientA.CloseVirtualChannel(cIds[i])
 		case bob.Address():
-			ids[i] = clientB.CloseVirtualChannel(cIds[i], big.NewInt(int64(paidToBob)))
+			ids[i] = clientB.CloseVirtualChannel(cIds[i])
 		case irene.Address():
-			ids[i] = clientI.CloseVirtualChannel(cIds[i], big.NewInt(int64(paidToBob)))
+			ids[i] = clientI.CloseVirtualChannel(cIds[i])
 		}
 
 	}
