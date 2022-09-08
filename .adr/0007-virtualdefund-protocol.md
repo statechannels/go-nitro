@@ -1,4 +1,4 @@
-# 0007 -- Proposal Processing - LedgerChannel SideEffects
+# 0007 -- Virtual Defund protocol
 
 ## Status
 
