@@ -4,8 +4,6 @@
 
 Accepted
 
-## Definitions
-
 ## Context
 
 We have adopted a _voucher_ based payment system for virtual channels in `go-nitro`. Vouchers are not state channel updates in the usual sense -- they do not increase the turn number for a virtual channel `V` -- instead, they are simple messages which reference `V`, an `amount` plus a signature on that pair. They are a "replace-by-incentive" mechanism, so need no index or turn number of their own.
@@ -51,6 +49,12 @@ This protocol has the following properties:
 - Bob’s verification of the voucher is very important and explicit.
 - Simplicity: Irene does not need to be involved until Alice and Bob are agreed. She doesn’t even need to understand vouchers.
 
-Once the finalisation proof is broadcast to all participants, the protocol progresses in the same way as virtual funding, only with guarantees being removed (instead of added) to the ledger channels. This is described in ADR 0003.
+Once the finalisation proof is broadcast to all participants, the protocol progresses in the same way as virtual funding, only with guarantees being removed (instead of added) to the ledger channels. This is described in [ADR 0003](./0003-consensus-ledger-channels.md).
 
-TODO add sequence diagram svg and link to edit.
+### Diagram
+
+The below diagram shows the happy path in the case of a single intermediary:
+
+![Virtual Defunding Sequence Diagram](./virtual-defunding.svg)|
+
+Edit this diagram [here](https://sequencediagram.org/index.html#initialData=C4S2BsFMAIDUQE7AK4ENzQCKQGbIHYAmI+A5tKtAMYAWq++kGs0A7mDdADKSGmQJoAYToMmAZ24AabgHIAUPIAOqJCCogV+YNABEAQXDrIuipP3LVoDVp26AkgkiNTqSfctqb9OwCEA9gBGrpK+iioI6FDg8vj+wDAIIKQ0Ov440L7QAFzQADyBqFQA1qQI-gSE2QDEAJ5M4P6sAHwBgdBOAI7IkOLAkoS4lfK+ALTN+rmwAHRdPX1CjeKQnlFM0Ok4sfEw-gBuAtD6Ur65ABT+SqD++OgAlIpxCRsHgvY5+YUlZRVENfXgRotRzORKQbq9frQQZ4IirQFMeT2caTOCzcHzYCLfzLeHRDY4LZPXavI4nc6Xa63cAPPGI4nQKA4NIZfQfApFUrlSr-BpNCZGKgwEh9ZKoBIDIZw-TjU7QADaAAYALpokDiABiJHQZ30d2gZ1QhAAVsg+gBbZxQ81GyAPCJrDCbEay3KvEA4WrQS3icSofjbZ77Q7HOUAUSIBOgACVfoRoIrwqpHYHEslUlGsrkOd9uX86nyWm1oDh-AhWKpCJIcNqMOJki7mvZcvKAIyqmbqrXU3Une3JhFOwmpl4h8nQCPx9IxuPQVuKEfBt7sr5cuO8wH8kGMaCBcpGqhuKE16nQeukOkxZETFsAJlQHemXdrZ3sD2vcvlt8Cj+fPbfl4EkSOyjoIoa5JOUaxpU0C3gugEjkyLJHCunI-DyBabi0PC2oIew7JIwD+NCUrxiw7DAJwXDyDKTYtgAzA+uRcNMMKVLAuoPGMdEKvRP7MbIrGkRxvgPAySQpMhWafGheZVJhQLNDhgx4QR0BESRsJkWwHByIBzqLqS4ETpG07QZG9FJpEg6IbgyFstmq7ofmAKKRq-hYYc+ESupxFsZGLA4OU5rcEiKItgALEx3BCVpHEAeJ6ZSahubrgp-LuZ5qk+Rp-naUF-ghVwCgfpF-FyLF7Gvv21n4s6DJLmS4amRk5nxhFQA).
