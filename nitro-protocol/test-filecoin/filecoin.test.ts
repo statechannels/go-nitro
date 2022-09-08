@@ -76,7 +76,7 @@ describe('Connects to a local filecoin-flavoured ganache instance', () => {
     Version: 0,
     Nonce: 42,
     GasLimit: 1_000_000,
-    GasFeeCap: '10000',
+    GasFeeCap: '30000',
     GasPremium: '20000',
   };
 
