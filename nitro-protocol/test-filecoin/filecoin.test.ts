@@ -77,11 +77,11 @@ describe('Connects to a local filecoin-flavoured ganache instance', () => {
     Nonce: 42,
     GasLimit: 1_000_000,
     GasFeeCap: '10000',
-    GasPremium: '0',
+    GasPremium: '20000',
   };
 
   it('reads the chain height', async () => {
-    let response = await axios.post(wallaby, {
+    const response = await axios.post(wallaby, {
       jsonrpc: '2.0',
       method: 'Filecoin.Version',
       params: [],
@@ -90,36 +90,41 @@ describe('Connects to a local filecoin-flavoured ganache instance', () => {
     });
     console.log(response.data);
 
-    console.log('signing message...');
-    // const signature = filecoin_signer.utils.signMessage(messageBody, privateKey);
-    const signature = filecoin_signer.tx.transactionSignLotus(messageBody, privateKey);
-    // expect(filecoin_signer.utils.verifySignature(messageBody, signature, myAddress)).toBe(true);
-
-    const signedMessage: SignedMessage = {
-      Message: messageBody,
-      Signature: {Type: 1, Data: Buffer.from(signature, 'hex').toString('base64')},
-    };
+    const filecoin_client = new FilecoinClient(endpoint);
 
     console.log('pushing signed message to mempool');
-    const config = {
-      headers: {Authorization: `Bearer ${jimpicktoken}`},
-    };
-    const responsePromise = axios.post(
-      endpoint,
-      {
-        jsonrpc: '2.0',
-        method: 'Filecoin.MpoolPush',
-        params: [signedMessage],
-        id: 2,
-      },
-      config
-    );
+
+    const responsePromise = filecoin_client.tx.sendMessage(messageBody, privateKey);
+
+    // console.log('signing message...');
+    // // const signature = filecoin_signer.utils.signMessage(messageBody, privateKey);
+    // const signature = filecoin_signer.tx.transactionSignLotus(messageBody, privateKey);
+    // // expect(filecoin_signer.utils.verifySignature(messageBody, signature, myAddress)).toBe(true);
+
+    // const signedMessage: SignedMessage = {
+    //   Message: messageBody,
+    //   Signature: {Type: 1, Data: Buffer.from(signature, 'hex').toString('base64')},
+    // };
+
+    // const config = {
+    //   headers: {Authorization: `Bearer ${jimpicktoken}`},
+    // // };
+    // const responsePromise = axios.post(
+    //   endpoint,
+    //   {
+    //     jsonrpc: '2.0',
+    //     method: 'Filecoin.MpoolPush',
+    //     params: [signedMessage],
+    //     id: 2,
+    //   },
+    //   config
+    // );
     await Promise.race([
       responsePromise.catch(err => {
-        console.log(err.response.data);
+        console.log(err);
         throw err;
       }),
-      responsePromise.then(response => console.log(response.data)),
+      responsePromise.then(response => console.log(response)),
     ]);
     // const response = await filecoin_client.tx.sendMessage(messageBody, privateKey);
     // // const response = await client.mpoolPush(signedMessage);
