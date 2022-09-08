@@ -26,7 +26,7 @@ const jimpicknet = 'https://fvm-4.default.knative.hex.camp/rpc/v0';
 const jimpicktoken =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.Fp-tjQ3fbUEKSXKDAybCR_vEE7MdPQ1Uqw2_2MVClfk';
 
-const endpoint = jimpicknet;
+const endpoint = wallaby;
 // const provider = new NodejsProvider(wallaby);
 // const client = new LotusRPC(provider, {schema: mainnet.fullNode});
 
@@ -82,7 +82,7 @@ describe('Connects to a local filecoin-flavoured ganache instance', () => {
 
     const signedMessage: SignedMessage = {
       Message: messageBody,
-      Signature: {Type: 2, Data: Buffer.from(signature, 'hex').toString('base64')},
+      Signature: {Type: 1, Data: Buffer.from(signature, 'hex').toString('base64')},
     };
 
     console.log('pushing signed message to mempool');
