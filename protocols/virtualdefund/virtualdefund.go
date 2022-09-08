@@ -554,6 +554,7 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 
 }
 
+// ReceiveProposal receives a signed proposal and returns an updated VirtualDefund objective.
 func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protocols.VirtualObjective, error) {
 	var toMyLeftId types.Destination
 	var toMyRightId types.Destination
