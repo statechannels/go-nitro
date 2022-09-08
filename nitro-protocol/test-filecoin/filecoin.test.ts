@@ -32,9 +32,22 @@ const endpoint = wallaby;
 
 // const filecoin_client = new FilecoinClient(wallaby, '');
 
-const myAddress =
-  't3w3ycieznjdzczqknlroo7aruchh5e373wz76su66ae4if3jrqjux346hyffu3l6htawazyiagbk6rne44cya';
-const privateKey = '380070f27bf48d2c9e50952553371171ea8b7ce0eb16a19b978821183baef811';
+// const myAddress =
+// 't3w3ycieznjdzczqknlroo7aruchh5e373wz76su66ae4if3jrqjux346hyffu3l6htawazyiagbk6rne44cya';
+// const privateKey = '380070f27bf48d2c9e50952553371171ea8b7ce0eb16a19b978821183baef811';
+
+// const myAddress = 't1bl36yn6vr5mruyvaehidna2ijdencfgpkflflmy';
+// const privateKey = '6645aa9129061ccef190e1bb1e11319b3d716b3140eec27595d045dbd565733b';
+// const privateKeyLotus =
+//   '7b2254797065223a22736563703235366b31222c22507269766174654b6579223a225a6b57716b536b47484d37786b4f4737486845786d7a3178617a464137734a316c6442463239566c637a733d227d';
+
+const myAddress = 't1vdc3bjjejtdipqri77xtpc4cozmrglspe7qumfi';
+const privateKey = Buffer.from('/+4JRNot2aej55QWksaAVUER02GkDvdS3eOlmrPt5XM=', 'base64').toString(
+  'hex'
+);
+
+// const foo = filecoin_signer.wallet.keyRecover(privateKey);
+// console.log(foo);
 
 describe('Connects to a local filecoin-flavoured ganache instance', () => {
   // the instance must be started manually before the test is run
@@ -78,7 +91,9 @@ describe('Connects to a local filecoin-flavoured ganache instance', () => {
     console.log(response.data);
 
     console.log('signing message...');
-    const signature = filecoin_signer.utils.signMessage(messageBody, privateKey);
+    // const signature = filecoin_signer.utils.signMessage(messageBody, privateKey);
+    const signature = filecoin_signer.tx.transactionSignLotus(messageBody, privateKey);
+    // expect(filecoin_signer.utils.verifySignature(messageBody, signature, myAddress)).toBe(true);
 
     const signedMessage: SignedMessage = {
       Message: messageBody,
@@ -95,7 +110,7 @@ describe('Connects to a local filecoin-flavoured ganache instance', () => {
         jsonrpc: '2.0',
         method: 'Filecoin.MpoolPush',
         params: [signedMessage],
-        id: 1,
+        id: 2,
       },
       config
     );
