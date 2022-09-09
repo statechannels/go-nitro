@@ -24,7 +24,7 @@ type ObjectivePayload struct {
 type PayloadType string
 
 // CreateObjectivePayload generates an objective message from the given objective id and payload.
-// CreateObjectivePayload handles serializing `p`into json.
+// CreateObjectivePayload handles serializing `p` into json.
 func CreateObjectivePayload(id ObjectiveId, payloadType PayloadType, p interface{}) ObjectivePayload {
 	b, err := json.Marshal(p)
 	if err != nil {
