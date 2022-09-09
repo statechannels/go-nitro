@@ -583,7 +583,7 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 		}
 		bal, err := e.vm.Balance(vId)
 		if err != nil {
-			return &virtualdefund.Objective{}, fmt.Errorf("could determine voucher balance: %w", err)
+			return &virtualdefund.Objective{}, fmt.Errorf("could not determine voucher balance: %w", err)
 		}
 		vdfo, err := virtualdefund.ConstructObjectiveFromPayload(p, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel, bal.Paid)
 		if err != nil {
