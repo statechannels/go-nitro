@@ -120,18 +120,12 @@ func TestUpdate(t *testing.T) {
 
 	var stateToSign state.State = s.C.PreFundState()
 	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.PrivateKey)
-	// Prepare an event with a mismatched channelId
-	e := protocols.ObjectiveEvent{}
+
 	// Assert that Updating the objective with such an event returns an error
 	// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
 	if _, err := s.Update(protocols.CreateObjectivePayload("some-id", SignedStatePayload, testState)); err == nil {
 		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
 	}
-
-	// Now modify the event to give it the "correct" objective id,
-	// and make a new Sigs map.
-	// This prepares us for the rest of the test. We will reuse the same event multiple times
-	e.ObjectiveId = s.Id()
 
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
