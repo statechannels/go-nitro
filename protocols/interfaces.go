@@ -94,12 +94,12 @@ type Objective interface {
 	GetStatus() ObjectiveStatus
 }
 
-// VirtualObjective is an Objective that manipulates a ledger channel by exchanging signed proposals.
-type VirtualObjective interface {
+// ProposalReceiver is an Objective that receives proposals.
+type ProposalReceiver interface {
 	Objective
 	// ReceiveProposal receives a signed proposal and returns an updated VirtualObjective.
-	// It is used to update the VirtualObjective with a proposal received from a peer.
-	ReceiveProposal(signedProposal consensus_channel.SignedProposal) (VirtualObjective, error)
+	// It is used to update the objective with a proposal received from a peer.
+	ReceiveProposal(signedProposal consensus_channel.SignedProposal) (ProposalReceiver, error)
 }
 
 // ObjectiveId is a unique identifier for an Objective.

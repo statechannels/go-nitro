@@ -327,7 +327,7 @@ func (o *Objective) getPayload(raw protocols.ObjectivePayload) (*state.SignedSta
 	return payload, nil
 }
 
-func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protocols.VirtualObjective, error) {
+func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protocols.ProposalReceiver, error) {
 	if pId := protocols.GetProposalObjectiveId(sp.Proposal); o.Id() != pId {
 
 		return o, fmt.Errorf("sp and objective Ids do not match: %s and %s respectively", string(pId), string(o.Id()))

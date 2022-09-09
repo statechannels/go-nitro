@@ -263,7 +263,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
 			continue
 		}
-		vObjective, isVirtual := objective.(protocols.VirtualObjective)
+		vObjective, isVirtual := objective.(protocols.ProposalReceiver)
 		if !isVirtual {
 			return EngineEvent{}, fmt.Errorf("received a proposal for a non-virtual objective %s", objective.Id())
 		}
