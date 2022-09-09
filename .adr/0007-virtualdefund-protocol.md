@@ -12,15 +12,21 @@ For simplicitly, we assume a simplex (one-way) payment channel where participant
 
 To virtually defund `V`, we therefore need to resolve the payment vouchers into a finalizable state update in `V`. Once all parties have the finalization proof for `V`, they can proceed to propose / accept ledger channel updates which "unplug" `V` from the 2 (or more) ledger channels (`L`, `L'`,...) which guarantee it.
 
+## Definition
+
+An outcome is **reclaimable** when it allocates the same total funds to the same destinations as the postfund state.
+
+This is an important property, since if there is no money allocated, no money can be reclaimed; and if the expected destinations aren't in the outcome, reclaim will revert.
+
 ## Decision
 
 - Alice instigates the virtualdefund protocol.
-- She sends an `{isFinal: true, turnNum: 3}` state for `V` "adjusted" by the latest (largest amount) voucher to Bob. Adjusted means the voucher amount is deducted from Alice's allocation and added to Bob's.
-- Bob verifies that state, requiring the adjustment amount to be equal to or larger than the largest voucher he has received.
-- Bob forwards Alice's signature and his own signature on the final state to all intermediaries.
-- The intermediaries countersign and broadcast their signature to all other participants.
-- The leader in each ledger channel proposes to defund `V`.
-- The follower in each ledger channel agrees (countersigns the ledger update).
+- She sends an `{isFinal: true, turnNum: 3}` state for `V` "adjusted" by the latest (largest amount) voucher to all other participants. Adjusted means the voucher amount is deducted from Alice's allocation and added to Bob's.
+- The intermediaries verify that the final state has a reclaimable outcome. Then, they countersign and broadcast their signature to all other participants.
+- Bob also verifies that state, additionally requiring the adjustment amount to be equal to or larger than the largest voucher he has received.
+- Bob broadcasts his own signature on the final state to all other participants.
+- When they have all signatures on a final state, the leader in each ledger channel proposes to defund `V`.
+- If they have all signatures on a final state, the follower in each ledger channel agrees (countersigns the ledger update).
 
 ## Justification
 
@@ -33,15 +39,13 @@ The roles in the virtual channel are very distinct. We can leverage these distin
 
 ### Details
 
-Alice will be programmed to construct a final state for V **which has its outcome adjusted with the latest voucher.** There is an opportunity for her to be malicious here and send a lower voucher / stale voucher. She sends the state to Bob in a message. The message has a header (or type) “virtual defund instigation message” and includes sufficient data for Bob to verify that the update is acceptable: the final state and the signature. He will need to compute the effective voucher amount himself (Alice could send it, but Bob needs to verify anyway).
+Alice will be programmed to construct a final state for V **which has its outcome adjusted with the latest voucher.** There is an opportunity for her to be malicious here and send a lower voucher / stale voucher. She sends the state to the other participants in a message. The message has a header (or type) “virtual defund instigation message” and includes sufficient data for those participants to verify that the update is acceptable: the final state and the signature. Bob will need to compute the effective voucher amount himself (Alice could send it, but Bob needs to verify anyway). This is so he can check it against his local largest voucher. Intermediaries need to check for reclaimability.
 
-Bob’s client will get this message and trigger a verification procedure. All he cares about is that the adjusted outcome is **as good or better as** he expects given _his_ latest voucher. So if the special message comes in ahead of the actual latest voucher, he will be pleasantly surprised and continue with the protocol. If a malicious message comes in (Alice knowingly sending a low voucher), he will ignore it.
+Bob’s client will get the message and trigger a verification procedure. All he cares about is that the adjusted outcome is **as good or better as** he expects given _his_ latest voucher. So if the special message comes in ahead of the actual latest voucher, he will be pleasantly surprised and continue with the protocol. If a malicious message comes in (Alice knowingly sending a low voucher), he will ignore it.
 
-At this point Alice and Bob have agreed on a final state with an appropriate adjustment. Irene did not need to be involved in that. Bob sends his signature and Alice’s signature to Irene. When she has both signatures, she adds her own and broadcasts to Alice and Bob.
+If every one is happy / successfully verifies, signatures will be broadcast and all parties now hold a finalization proof.
 
-In the final round, the leader in each ledger channel proposes that V is defunded, and the follower agrees.
-
-Once the finalisation proof is broadcast to all participants, the protocol progresses in the same way as virtual funding, only with guarantees being removed (instead of added) to the ledger channels. This is described in [ADR 0003](./0003-consensus-ledger-channels.md).
+In the final round, the leader in each ledger channel proposes that V is defunded, and the follower agrees. The protocol progresses in the same way as virtual funding, only with guarantees being removed (instead of added) to the ledger channels. This is described in [ADR 0003](./0003-consensus-ledger-channels.md).
 
 ### Upsides
 
@@ -49,7 +53,6 @@ This protocol has the following properties:
 
 - Equitability: Anyone can trigger the channel to close / be defunded (assuming cooperation, of course).
 - Robustness: Messages arriving out of order are not too problematic, as long as Alice sends her latest voucher. She may get lucky and close the channel with a stale voucher amount only if larger vouchers got dropped / delayed -- but then Bob would not have provided the goods/services for those vouchers anywy.
-- Scalablity: Rounds 2,3,4 can probably be optimised to save a round of messaging, but this may be premature and not scale easily to multihop virtual defunding. (Example: make Irene the leader in the ledger channels, so she can send out the updates in `L`, `L’` concurrently with her `V.isFinal` signature.
 - Explicitness: Bob’s verification of the voucher is very important and is highlighted here.
 - Simplicity: Irene does not need to be involved until Alice and Bob are agreed. She doesn’t even need to understand vouchers.
 
