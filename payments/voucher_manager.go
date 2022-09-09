@@ -118,6 +118,13 @@ func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
 	return received, nil
 }
 
+// ChannelRegistered returns  whether a channel has been registered with the voucher manager or not
+func (vm *VoucherManager) ChannelRegistered(channelId types.Destination) bool {
+	_, ok := vm.channels[channelId]
+	return ok
+
+}
+
 // Balance returns the balance of the channel
 func (vm *VoucherManager) Balance(channelId types.Destination) (Balance, error) {
 	data, ok := vm.channels[channelId]

@@ -15,6 +15,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
@@ -29,8 +30,12 @@ func TestVirtualDefundIntegration(t *testing.T) {
 	logFile := "test_virtual_defund.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
-	runVirtualDefundIntegrationTest(t, 0, defaultTimeout, logDestination)
+	for _, closer := range []testactors.Actor{alice, irene, bob} {
+		t.Run(fmt.Sprintf("TestVirtualDefundIntegration_as_%s", closer.Name), func(t *testing.T) {
+			runVirtualDefundIntegrationTestAs(t, closer.Address(), 0, defaultTimeout, logDestination)
 
+		})
+	}
 }
 
 func TestVirtualDefundIntegrationWithMessageDelay(t *testing.T) {
@@ -44,12 +49,12 @@ func TestVirtualDefundIntegrationWithMessageDelay(t *testing.T) {
 	// Since we are delaying messages we allow for enough time to complete the objective
 	const OBJECTIVE_TIMEOUT = time.Second * 2
 
-	runVirtualDefundIntegrationTest(t, MAX_MESSAGE_DELAY, OBJECTIVE_TIMEOUT, logDestination)
+	runVirtualDefundIntegrationTestAs(t, alice.Address(), MAX_MESSAGE_DELAY, OBJECTIVE_TIMEOUT, logDestination)
 
 }
 
-// runVirtualDefundIntegrationTest runs a virtual defund integration test using the provided message delay, objective timeout and log destination
-func runVirtualDefundIntegrationTest(t *testing.T, messageDelay time.Duration, objectiveTimeout time.Duration, logDestination io.Writer) {
+// runVirtualDefundIntegrationTestAs runs a virtual defund integration test using the provided message delay, objective timeout and log destination
+func runVirtualDefundIntegrationTestAs(t *testing.T, closer types.Address, messageDelay time.Duration, objectiveTimeout time.Duration, logDestination io.Writer) {
 	chain := chainservice.NewMockChain()
 	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
@@ -65,10 +70,19 @@ func runVirtualDefundIntegrationTest(t *testing.T, messageDelay time.Duration, o
 	totalPaidToBob := paidToBob * numOfVirtualChannels
 
 	cIds := openVirtualChannels(t, clientA, clientB, clientI, numOfVirtualChannels)
-
+	for i := 0; i < len(cIds); i++ {
+		clientA.Pay(cIds[i], big.NewInt(int64(paidToBob)))
+	}
 	ids := make([]protocols.ObjectiveId, len(cIds))
 	for i := 0; i < len(cIds); i++ {
-		ids[i] = clientA.CloseVirtualChannel(cIds[i], big.NewInt(int64(paidToBob)))
+		switch closer {
+		case alice.Address():
+			ids[i] = clientA.CloseVirtualChannel(cIds[i])
+		case bob.Address():
+			ids[i] = clientB.CloseVirtualChannel(cIds[i])
+		case irene.Address():
+			ids[i] = clientI.CloseVirtualChannel(cIds[i])
+		}
 
 	}
 	waitTimeForCompletedObjectiveIds(t, &clientA, objectiveTimeout, ids...)

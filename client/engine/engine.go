@@ -365,14 +365,26 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
-		err = e.registerPaymentChannel(vfo)
+		// Only Alice or Bob care about registering the objective and keeping track of vouchers
+		if vfo.MyRole == payments.PAYEE_INDEX || vfo.MyRole == payments.PAYER_INDEX {
+			err = e.registerPaymentChannel(vfo)
+			if err != nil {
+				return EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
+			}
+		}
+
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
 		}
 		return e.attemptProgress(&vfo)
 
 	case virtualdefund.ObjectiveRequest:
-		vdfo, err := virtualdefund.NewObjective(request, true, myAddress, e.store.GetChannelById, e.store.GetConsensusChannel)
+		minAmount := big.NewInt(0)
+		if e.vm.ChannelRegistered(request.ChannelId) {
+			bal, _ := e.vm.Balance(request.ChannelId)
+			minAmount = bal.Paid
+		}
+		vdfo, err := virtualdefund.NewObjective(request, true, myAddress, minAmount, e.store.GetChannelById, e.store.GetConsensusChannel)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
@@ -573,7 +585,17 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
-		vdfo, err := virtualdefund.ConstructObjectiveFromPayload(p, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel)
+		vId, err := virtualdefund.GetVirtualChannelFromObjectiveId(id)
+		if err != nil {
+			return &virtualdefund.Objective{}, fmt.Errorf("could not determine virtual channel id: %w", err)
+		}
+		minAmount := big.NewInt(0)
+		if e.vm.ChannelRegistered(vId) {
+			bal, _ := e.vm.Balance(vId)
+			minAmount = bal.Paid
+		}
+
+		vdfo, err := virtualdefund.ConstructObjectiveFromPayload(p, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel, minAmount)
 		if err != nil {
 			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
 		}
