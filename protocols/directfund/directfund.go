@@ -253,7 +253,7 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 	return &updated, sideEffects
 }
 
-// Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
+// Update receives an ObjectivePayload, applies all applicable data to the DirectFundingObjectiveState,
 // and returns the updated state
 func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, error) {
 	if o.Id() != p.ObjectiveId {

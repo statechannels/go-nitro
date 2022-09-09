@@ -151,8 +151,7 @@ func calculatePaidToBob(proposedFinalState state.State, getChannel GetChannelByI
 	return big.NewInt(0).Sub(finalBobAmount, initialBobAmount), nil
 }
 
-// ConstructObjectiveFromPayload takes in a message and constructs an objective from it.
-// It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
+// ConstructObjectiveFromPayload takes in a message payload and constructs an objective from it.
 func ConstructObjectiveFromPayload(
 	p protocols.ObjectivePayload,
 	preapprove bool,

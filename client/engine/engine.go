@@ -553,7 +553,7 @@ func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.O
 	}
 }
 
-// constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied message.
+// constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied payload.
 func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p protocols.ObjectivePayload) (protocols.Objective, error) {
 	defer e.metrics.RecordFunctionDuration()()
 
