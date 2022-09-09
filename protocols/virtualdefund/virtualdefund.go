@@ -138,7 +138,7 @@ func NewObjective(request ObjectiveRequest,
 	}
 
 	finalOutcome := outcome.SingleAssetExit{}
-	// Since is Alice is responsible for issuing vouchers she always has the largest payment amount
+	// Since Alice is responsible for issuing vouchers she always has the largest payment amount
 	// This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent
 	if myAddress == alice {
 
