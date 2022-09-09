@@ -501,7 +501,7 @@ func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.S
 		toAddress := to.Address()
 		correctAddress := bytes.Equal(msg.To[:], toAddress[:])
 		if correctAddress {
-			for _, p := range msg.ObjectiveMessages {
+			for _, p := range msg.ObjectivePayloads {
 
 				ss := state.SignedState{}
 				err := json.Unmarshal(p.PayloadData, &ss)

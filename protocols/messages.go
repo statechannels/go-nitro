@@ -37,9 +37,9 @@ func CreateObjectivePayload(id ObjectiveId, payloadType PayloadType, p interface
 // Message is an object to be sent across the wire.
 type Message struct {
 	To types.Address
-	// ObjectiveMessages contains a collection of payloads for various objectives.
+	// ObjectivePayloads contains a collection of payloads for various objectives.
 	// Protocols are responsible for parsing the payload.
-	ObjectiveMessages []ObjectivePayload
+	ObjectivePayloads []ObjectivePayload
 	// LedgerProposals contains a collection of signed proposals.
 	// Since proposals need to be handled in order they need to be an explicit part of the message format.
 	LedgerProposals []consensus_channel.SignedProposal
@@ -114,7 +114,7 @@ func CreateObjectivePayloadMessage(id ObjectiveId, p interface{}, payloadType Pa
 	messages := make([]Message, 0)
 
 	for _, participant := range recipients {
-		message := Message{To: participant, ObjectiveMessages: []ObjectivePayload{CreateObjectivePayload(id, payloadType, p)}}
+		message := Message{To: participant, ObjectivePayloads: []ObjectivePayload{CreateObjectivePayload(id, payloadType, p)}}
 		messages = append(messages, message)
 	}
 	return messages

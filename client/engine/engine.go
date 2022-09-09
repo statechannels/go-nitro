@@ -196,9 +196,9 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	allCompleted := EngineEvent{}
 
-	for _, entry := range message.ObjectiveMessages {
+	for _, payload := range message.ObjectivePayloads {
 
-		objective, err := e.getOrCreateObjective(entry)
+		objective, err := e.getOrCreateObjective(payload)
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -237,7 +237,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			continue
 		}
 
-		updatedObjective, err := objective.Update(entry)
+		updatedObjective, err := objective.Update(payload)
 		if err != nil {
 			return EngineEvent{}, err
 		}
