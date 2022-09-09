@@ -577,7 +577,7 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
-		vId, err := virtualdefund.GetVirtualChannelFromId(id)
+		vId, err := virtualdefund.GetVirtualChannelFromObjectiveId(id)
 		if err != nil {
 			return &virtualdefund.Objective{}, fmt.Errorf("could not determine virtual channel id: %w", err)
 		}

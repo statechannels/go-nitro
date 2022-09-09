@@ -678,8 +678,8 @@ func (r ObjectiveRequest) Id(types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
 }
 
-// GetVirtualChannelFromId gets the virtual channel id from the objective id.
-func GetVirtualChannelFromId(id protocols.ObjectiveId) (types.Destination, error) {
+// GetVirtualChannelFromObjectiveId gets the virtual channel id from the objective id.
+func GetVirtualChannelFromObjectiveId(id protocols.ObjectiveId) (types.Destination, error) {
 	if !strings.HasPrefix(string(id), ObjectivePrefix) {
 		return types.Destination{}, fmt.Errorf("id %s does not have prefix %s", id, ObjectivePrefix)
 	}
