@@ -158,14 +158,6 @@ func NewObjective(request ObjectiveRequest,
 	}, nil
 }
 
-// calculatePaidToBob determines the amount paid to bob by comparing the prefund setup state and the proposed final state.
-func calculatePaidToBob(initialOutcome outcome.Exit, finalOutcome outcome.Exit) (*big.Int, error) {
-
-	initialBobAmount := initialOutcome[0].Allocations[1].Amount
-	finalBobAmount := finalOutcome[0].Allocations[1].Amount
-	return big.NewInt(0).Sub(finalBobAmount, initialBobAmount), nil
-}
-
 // ConstructObjectiveFromPayload takes in a message payload and constructs an objective from it.
 func ConstructObjectiveFromPayload(
 	p protocols.ObjectivePayload,
@@ -210,16 +202,11 @@ func ConstructObjectiveFromPayload(
 			return Objective{}, fmt.Errorf("could not find channel %s", cId)
 		}
 
-		// If we're bob we want to verify that the final state amount matches the latest voucher amount we have
-		if amBob := myAddress == c.Participants[len(c.Participants)-1]; amBob {
-			paidToBob, err := calculatePaidToBob(pf.Outcome, ss.State().Outcome)
-			if err != nil {
-				return Objective{}, err
-			}
-			if paidToBob.Cmp(latestVoucherAmount) < 0 {
-				return Objective{}, fmt.Errorf("amount paid in final state (%v) is less than the latest voucher amount (%v)", paidToBob, latestVoucherAmount)
-			}
+		err = validateFinalOutcome(pf.FixedPart(), pf.Outcome[0], ss.State().Outcome[0], myAddress, latestVoucherAmount)
+		if err != nil {
+			return Objective{}, fmt.Errorf("final outcome from alice failed validation: %w", err)
 		}
+
 		return NewObjective(
 			ObjectiveRequest{ss.ChannelId()},
 			preapprove,
@@ -587,16 +574,9 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 			return &Objective{}, err
 		}
 		updated := o.clone()
-		paidToBob, err := calculatePaidToBob(outcome.Exit{updated.InitialOutcome}, ss.State().Outcome)
+		err = validateFinalOutcome(updated.VFixed, updated.InitialOutcome, ss.State().Outcome[0], o.VFixed.Participants[o.MyRole], updated.MinimumPaymentAmount)
 		if err != nil {
-			return &Objective{}, err
-		}
-
-		// if we're Bob we want to make sure the final state Alice sent is equal to or larger than the payment we already have
-		if o.isBob() {
-			if paidToBob.Cmp(updated.MinimumPaymentAmount) < 0 {
-				return &Objective{}, fmt.Errorf("payment amount %d is less than the minimum payment amount %d", paidToBob, o.MinimumPaymentAmount)
-			}
+			return o, fmt.Errorf("outcome from Alice failed validation %w", err)
 		}
 
 		updated.FinalOutcome = ss.State().Outcome[0]
@@ -702,4 +682,33 @@ func GetVirtualChannelFromId(id protocols.ObjectiveId) (types.Destination, error
 	}
 	raw := string(id)[len(ObjectivePrefix):]
 	return types.Destination(common.HexToHash(raw)), nil
+}
+
+// validateFinalOutcome is a helper function that validates a final outcome from Alice is valid.
+func validateFinalOutcome(vFixed state.FixedPart, initialOutcome outcome.SingleAssetExit, finalOutcome outcome.SingleAssetExit, me types.Address, minAmount *big.Int) error {
+	// Check the outcome participants are correct
+	alice, bob := vFixed.Participants[0], vFixed.Participants[len(vFixed.Participants)-1]
+	if initialOutcome.Allocations[0].Destination != types.AddressToDestination(alice) {
+		return fmt.Errorf("first allocation is not to Alice but to %s", initialOutcome.Allocations[0].Destination)
+	}
+	if initialOutcome.Allocations[1].Destination != types.AddressToDestination(bob) {
+		return fmt.Errorf("first allocation is not to Alice but to %s", initialOutcome.Allocations[0].Destination)
+	}
+
+	// Check the amounts are correct
+	initialAliceAmount, initialBobAmount := initialOutcome.Allocations[0].Amount, initialOutcome.Allocations[1].Amount
+	finalAliceAmount, finalBobAmount := finalOutcome.Allocations[0].Amount, finalOutcome.Allocations[1].Amount
+	paidToBob := big.NewInt(0).Sub(finalBobAmount, initialBobAmount)
+	paidFromAlice := big.NewInt(0).Sub(initialAliceAmount, finalAliceAmount)
+	if paidToBob.Cmp(paidFromAlice) != 0 {
+		return fmt.Errorf("final outcome is not balanced: Alice paid %d, Bob received %d", paidFromAlice, paidToBob)
+	}
+
+	// if we're Bob we want to make sure the final state Alice sent is equal to or larger than the payment we already have
+	if me == bob {
+		if paidToBob.Cmp(minAmount) < 0 {
+			return fmt.Errorf("payment amount %d is less than the minimum payment amount %d", paidToBob, minAmount)
+		}
+	}
+	return nil
 }
