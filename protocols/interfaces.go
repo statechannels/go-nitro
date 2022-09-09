@@ -63,13 +63,6 @@ type AdjudicationStatus struct {
 	// TODO eventually this struct will contain the other fields stored in (or committed to by) the adjudicator
 }
 
-// ObjectiveEvent holds information used to update an Objective. Some fields may be nil.
-type ObjectiveEvent struct {
-	ObjectiveId    ObjectiveId
-	SignedState    state.SignedState
-	SignedProposal consensus_channel.SignedProposal
-}
-
 // Storable is an object that can be stored by the store.
 type Storable interface {
 	json.Marshaler
@@ -88,7 +81,7 @@ type Objective interface {
 
 	Approve() Objective                                                  // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Reject() (Objective, SideEffects)                                    // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Update(event ObjectiveEvent) (Objective, error)                      // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Update(payload ObjectivePayload) (Objective, error)                  // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Crank(secretKey *[]byte) (Objective, SideEffects, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
 
 	// Related returns a slice of related objects that need to be stored along with the objective
@@ -99,6 +92,14 @@ type Objective interface {
 	OwnsChannel() types.Destination
 	// GetStatus returns the status of the objective.
 	GetStatus() ObjectiveStatus
+}
+
+// ProposalReceiver is an Objective that receives proposals.
+type ProposalReceiver interface {
+	Objective
+	// ReceiveProposal receives a signed proposal and returns an updated VirtualObjective.
+	// It is used to update the objective with a proposal received from a peer.
+	ReceiveProposal(signedProposal consensus_channel.SignedProposal) (ProposalReceiver, error)
 }
 
 // ObjectiveId is a unique identifier for an Objective.

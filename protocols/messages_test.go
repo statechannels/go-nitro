@@ -1,7 +1,7 @@
 package protocols
 
 import (
-	"errors"
+	"encoding/json"
 	"math/big"
 	"reflect"
 	"testing"
@@ -31,30 +31,30 @@ func addProposal() consensus_channel.SignedProposal {
 	return consensus_channel.SignedProposal{Proposal: add, Signature: state.Signature{}}
 }
 
+func toPayload(p interface{}) []byte {
+
+	b, err := json.Marshal(p)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
 func TestMessage(t *testing.T) {
+	ss := state.NewSignedState(state.TestState)
 	msg := Message{
 		To: types.Address{'a'},
-		payloads: []messagePayload{{
+		ObjectivePayloads: []ObjectivePayload{{
 			ObjectiveId: `say-hello-to-my-little-friend`,
-			SignedState: state.NewSignedState(state.TestState),
-		}, {
-			ObjectiveId:    `say-hello-to-my-little-friend2`,
-			SignedProposal: addProposal(),
-		},
-			{
-				ObjectiveId:    `say-hello-to-my-little-friend3`,
-				SignedProposal: removeProposal(),
-			},
-
-			{
-
-				Voucher: payments.Voucher{ChannelId: types.Destination{'d'}, Amount: big.NewInt(123), Signature: state.Signature{}},
-			},
-		},
+			PayloadData: toPayload(&ss),
+		}},
+		LedgerProposals:    []consensus_channel.SignedProposal{addProposal(), removeProposal()},
+		Payments:           []payments.Voucher{{ChannelId: types.Destination{'d'}, Amount: big.NewInt(123), Signature: state.Signature{}}},
+		RejectedObjectives: []ObjectiveId{"say-hello-to-my-little-friend2"},
 	}
 
 	msgString :=
-		`{"To":"0x6100000000000000000000000000000000000000","Payloads":[{"ObjectiveId":"say-hello-to-my-little-friend","SignedState":{"State":{"ChainId":9001,"Participants":["0xf5a1bb5607c9d079e46d1b3dc33f257d937b43bd","0x760bf27cd45036a6c486802d30b5d90cffbe31fe"],"ChannelNonce":37140676580,"AppDefinition":"0x5e29e5ab8ef33f050c7cc10b5a0456d975c5f88d","ChallengeDuration":60,"AppData":"","Outcome":[{"Asset":"0x0000000000000000000000000000000000000000","Metadata":null,"Allocations":[{"Destination":"0x000000000000000000000000f5a1bb5607c9d079e46d1b3dc33f257d937b43bd","Amount":5,"AllocationType":0,"Metadata":null},{"Destination":"0x000000000000000000000000ee18ff1575055691009aa246ae608132c57a422c","Amount":5,"AllocationType":0,"Metadata":null}]}],"TurnNum":5,"IsFinal":false},"Sigs":{}}},{"ObjectiveId":"say-hello-to-my-little-friend2","SignedProposal":{"R":null,"S":null,"V":0,"Proposal":{"LedgerID":"0x6c00000000000000000000000000000000000000000000000000000000000000","ToAdd":{"Guarantee":{"Amount":1,"Target":"0x6100000000000000000000000000000000000000000000000000000000000000","Left":"0x6200000000000000000000000000000000000000000000000000000000000000","Right":"0x6300000000000000000000000000000000000000000000000000000000000000"},"LeftDeposit":1},"ToRemove":{"Target":"0x0000000000000000000000000000000000000000000000000000000000000000","LeftAmount":null}},"TurnNum":0}},{"ObjectiveId":"say-hello-to-my-little-friend3","SignedProposal":{"R":null,"S":null,"V":0,"Proposal":{"LedgerID":"0x6c00000000000000000000000000000000000000000000000000000000000000","ToAdd":{"Guarantee":{"Amount":null,"Target":"0x0000000000000000000000000000000000000000000000000000000000000000","Left":"0x0000000000000000000000000000000000000000000000000000000000000000","Right":"0x0000000000000000000000000000000000000000000000000000000000000000"},"LeftDeposit":null},"ToRemove":{"Target":"0x6100000000000000000000000000000000000000000000000000000000000000","LeftAmount":1}},"TurnNum":0}},{"ObjectiveId":"","Voucher":{"ChannelId":"0x6400000000000000000000000000000000000000000000000000000000000000","Amount":123,"Signature":{"R":null,"S":null,"V":0}}}]}`
+		`{"To":"0x6100000000000000000000000000000000000000","ObjectivePayloads":[{"PayloadData":"eyJTdGF0ZSI6eyJDaGFpbklkIjo5MDAxLCJQYXJ0aWNpcGFudHMiOlsiMHhmNWExYmI1NjA3YzlkMDc5ZTQ2ZDFiM2RjMzNmMjU3ZDkzN2I0M2JkIiwiMHg3NjBiZjI3Y2Q0NTAzNmE2YzQ4NjgwMmQzMGI1ZDkwY2ZmYmUzMWZlIl0sIkNoYW5uZWxOb25jZSI6MzcxNDA2NzY1ODAsIkFwcERlZmluaXRpb24iOiIweDVlMjllNWFiOGVmMzNmMDUwYzdjYzEwYjVhMDQ1NmQ5NzVjNWY4OGQiLCJDaGFsbGVuZ2VEdXJhdGlvbiI6NjAsIkFwcERhdGEiOiIiLCJPdXRjb21lIjpbeyJBc3NldCI6IjB4MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsIk1ldGFkYXRhIjpudWxsLCJBbGxvY2F0aW9ucyI6W3siRGVzdGluYXRpb24iOiIweDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGY1YTFiYjU2MDdjOWQwNzllNDZkMWIzZGMzM2YyNTdkOTM3YjQzYmQiLCJBbW91bnQiOjUsIkFsbG9jYXRpb25UeXBlIjowLCJNZXRhZGF0YSI6bnVsbH0seyJEZXN0aW5hdGlvbiI6IjB4MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwZWUxOGZmMTU3NTA1NTY5MTAwOWFhMjQ2YWU2MDgxMzJjNTdhNDIyYyIsIkFtb3VudCI6NSwiQWxsb2NhdGlvblR5cGUiOjAsIk1ldGFkYXRhIjpudWxsfV19XSwiVHVybk51bSI6NSwiSXNGaW5hbCI6ZmFsc2V9LCJTaWdzIjp7fX0=","ObjectiveId":"say-hello-to-my-little-friend","Type":""}],"LedgerProposals":[{"R":null,"S":null,"V":0,"Proposal":{"LedgerID":"0x6c00000000000000000000000000000000000000000000000000000000000000","ToAdd":{"Guarantee":{"Amount":1,"Target":"0x6100000000000000000000000000000000000000000000000000000000000000","Left":"0x6200000000000000000000000000000000000000000000000000000000000000","Right":"0x6300000000000000000000000000000000000000000000000000000000000000"},"LeftDeposit":1},"ToRemove":{"Target":"0x0000000000000000000000000000000000000000000000000000000000000000","LeftAmount":null}},"TurnNum":0},{"R":null,"S":null,"V":0,"Proposal":{"LedgerID":"0x6c00000000000000000000000000000000000000000000000000000000000000","ToAdd":{"Guarantee":{"Amount":null,"Target":"0x0000000000000000000000000000000000000000000000000000000000000000","Left":"0x0000000000000000000000000000000000000000000000000000000000000000","Right":"0x0000000000000000000000000000000000000000000000000000000000000000"},"LeftDeposit":null},"ToRemove":{"Target":"0x6100000000000000000000000000000000000000000000000000000000000000","LeftAmount":1}},"TurnNum":0}],"Payments":[{"ChannelId":"0x6400000000000000000000000000000000000000000000000000000000000000","Amount":123,"Signature":{"R":null,"S":null,"V":0}}],"RejectedObjectives":["say-hello-to-my-little-friend2"]}`
 
 	t.Run(`serialize`, func(t *testing.T) {
 		got, err := msg.Serialize()
@@ -78,13 +78,4 @@ func TestMessage(t *testing.T) {
 		}
 	})
 
-	t.Run(`validation`, func(t *testing.T) {
-
-		invalidMsg := `{"To":"0x6100000000000000000000000000000000000000","Payloads":[{"ObjectiveId":"say-hello-to-my-little-friend","SignedState":{"State":{"ChainId":9001,"Participants":["0xf5a1bb5607c9d079e46d1b3dc33f257d937b43bd","0x760bf27cd45036a6c486802d30b5d90cffbe31fe"],"ChannelNonce":37140676580,"AppDefinition":"0x5e29e5ab8ef33f050c7cc10b5a0456d975c5f88d","ChallengeDuration":60,"AppData":"","Outcome":[{"Asset":"0x0000000000000000000000000000000000000000","Metadata":null,"Allocations":[{"Destination":"0x000000000000000000000000f5a1bb5607c9d079e46d1b3dc33f257d937b43bd","Amount":5,"AllocationType":0,"Metadata":null},{"Destination":"0x000000000000000000000000ee18ff1575055691009aa246ae608132c57a422c","Amount":5,"AllocationType":0,"Metadata":null}]}],"TurnNum":5,"IsFinal":false},"Sigs":{}},"SignedProposal":{"R":null,"S":null,"V":0,"Proposal":{"LedgerID":"0x6c00000000000000000000000000000000000000000000000000000000000000","ToAdd":{"Guarantee":{"Amount":1,"Target":"0x6100000000000000000000000000000000000000000000000000000000000000","Left":"0x6200000000000000000000000000000000000000000000000000000000000000","Right":"0x6300000000000000000000000000000000000000000000000000000000000000"},"LeftDeposit":1},"ToRemove":{"Target":"0x0000000000000000000000000000000000000000000000000000000000000000","LeftAmount":null}},"TurnNum":0}}]}`
-
-		_, err := DeserializeMessage(invalidMsg)
-		if !errors.Is(err, ErrInvalidPayload) {
-			t.Fatalf("expected error deserializing invalid payload")
-		}
-	})
 }

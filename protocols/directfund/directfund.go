@@ -2,6 +2,7 @@
 package directfund // import "github.com/statechannels/go-nitro/directfund"
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -22,6 +23,10 @@ const (
 	WaitingForCompleteFunding  protocols.WaitingFor = "WaitingForCompleteFunding"
 	WaitingForCompletePostFund protocols.WaitingFor = "WaitingForCompletePostFund"
 	WaitingForNothing          protocols.WaitingFor = "WaitingForNothing" // Finished
+)
+
+const (
+	SignedStatePayload protocols.PayloadType = "SignedStatePayload"
 )
 
 const ObjectivePrefix = "DirectFunding-"
@@ -52,18 +57,26 @@ type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger
 // NewObjective creates a new direct funding objective from a given request.
 func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 
-	objective, err := ConstructFromState(preApprove,
-		state.State{
-			ChainId:           big.NewInt(1337), // TODO https://github.com/statechannels/go-nitro/issues/601
-			Participants:      []types.Address{myAddress, request.CounterParty},
-			ChannelNonce:      big.NewInt(request.Nonce),
-			AppDefinition:     request.AppDefinition,
-			ChallengeDuration: request.ChallengeDuration,
-			AppData:           request.AppData,
-			Outcome:           request.Outcome,
-			TurnNum:           0,
-			IsFinal:           false,
-		},
+	initialState := state.State{
+		ChainId:           big.NewInt(1337), // TODO https://github.com/statechannels/go-nitro/issues/601
+		Participants:      []types.Address{myAddress, request.CounterParty},
+		ChannelNonce:      big.NewInt(request.Nonce),
+		AppDefinition:     request.AppDefinition,
+		ChallengeDuration: request.ChallengeDuration,
+		AppData:           request.AppData,
+		Outcome:           request.Outcome,
+		TurnNum:           0,
+		IsFinal:           false,
+	}
+
+	// TODO: Refactor so the main logic is contained in NewObjective and have ConstructFromPayload call that
+	signedInitial := state.NewSignedState(initialState)
+	b, err := json.Marshal(signedInitial)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not create new objective: %w", err)
+	}
+	objective, err := ConstructFromPayload(preApprove,
+		protocols.ObjectivePayload{ObjectiveId: request.Id(myAddress), PayloadData: b, Type: SignedStatePayload},
 		myAddress,
 	)
 	if err != nil {
@@ -92,15 +105,20 @@ func channelsExistWithCounterparty(counterparty types.Address, getChannels GetCh
 	return ok
 }
 
-// ConstructFromState initiates a Objective with data calculated from
+// ConstructFromPayload initiates a Objective with data calculated from
 // the supplied initialState and client address
-func ConstructFromState(
+func ConstructFromPayload(
 	preApprove bool,
-	initialState state.State,
+	op protocols.ObjectivePayload,
 	myAddress types.Address,
 ) (Objective, error) {
 	var err error
 
+	initialSignedState, err := getSignedStatePayload(op.PayloadData)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not get signed state payload: %w", err)
+	}
+	initialState := initialSignedState.State()
 	err = initialState.FixedPart().Validate()
 	if err != nil {
 		return Objective{}, err
@@ -235,16 +253,21 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 	return &updated, sideEffects
 }
 
-// Update receives an ObjectiveEvent, applies all applicable event data to the DirectFundingObjectiveState,
+// Update receives an ObjectivePayload, applies all applicable data to the DirectFundingObjectiveState,
 // and returns the updated state
-func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
-	if o.Id() != event.ObjectiveId {
-		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, error) {
+	if o.Id() != p.ObjectiveId {
+		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(p.ObjectiveId), string(o.Id()))
 	}
 
 	updated := o.clone()
-	updated.C.AddSignedState(event.SignedState)
-
+	ss, err := getSignedStatePayload(p.PayloadData)
+	if err != nil {
+		if err != nil {
+			return o, fmt.Errorf("could not get signed state payload: %w", err)
+		}
+	}
+	updated.C.AddSignedState(ss)
 	return &updated, nil
 }
 
@@ -267,6 +290,16 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 
 }
 
+func (o *Objective) otherParticipants() []types.Address {
+	others := make([]types.Address, 0)
+	for i, p := range o.C.Participants {
+		if i != int(o.C.MyIndex) {
+			others = append(others, p)
+		}
+	}
+	return others
+}
+
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
@@ -285,7 +318,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if err != nil {
 			return &updated, protocols.SideEffects{}, WaitingForCompletePrefund, fmt.Errorf("could not sign prefund %w", err)
 		}
-		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
+		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, updated.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
@@ -320,7 +353,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if err != nil {
 			return &updated, protocols.SideEffects{}, WaitingForCompletePostFund, fmt.Errorf("could not sign postfund %w", err)
 		}
-		messages := protocols.CreateSignedStateMessages(updated.Id(), ss, updated.C.MyIndex)
+		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, updated.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
@@ -459,6 +492,16 @@ func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
 		Id:        protocols.ObjectiveId(ObjectivePrefix + channelId.String()),
 		ChannelId: channelId,
 	}
+}
+
+// getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
+func getSignedStatePayload(b []byte) (state.SignedState, error) {
+	ss := state.SignedState{}
+	err := json.Unmarshal(b, &ss)
+	if err != nil {
+		return ss, fmt.Errorf("could not unmarshal signed state: %w", err)
+	}
+	return ss, nil
 }
 
 // mermaid diagram

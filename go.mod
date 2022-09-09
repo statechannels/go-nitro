@@ -3,7 +3,6 @@ module github.com/statechannels/go-nitro
 go 1.19
 
 require (
-	github.com/DistributedClocks/GoVector v0.0.0-20210402100930-db949c81a0af
 	github.com/ethereum/go-ethereum v1.10.8
 	github.com/google/go-cmp v0.5.6
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
@@ -19,7 +18,6 @@ require (
 	github.com/VictoriaMetrics/fastcache v1.6.0 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
-	github.com/daviddengcn/go-colortext v1.0.0 // indirect
 	github.com/deckarep/golang-set v0.0.0-20180603214616-504e848d77ea // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
@@ -39,8 +37,6 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20210305035536-64b5b1c73954 // indirect
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
-	github.com/vmihailenco/msgpack/v5 v5.1.4 // indirect
-	github.com/vmihailenco/tagparser v0.1.2 // indirect
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
 	golang.org/x/sys v0.0.0-20210816183151-1e6c022a8912 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect

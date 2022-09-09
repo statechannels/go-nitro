@@ -3,12 +3,12 @@ package virtualfund // import "github.com/statechannels/go-nitro/virtualfund"
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -23,6 +23,10 @@ const (
 	WaitingForCompleteFunding  protocols.WaitingFor = "WaitingForCompleteFunding"  // Round 2
 	WaitingForCompletePostFund protocols.WaitingFor = "WaitingForCompletePostFund" // Round 3
 	WaitingForNothing          protocols.WaitingFor = "WaitingForNothing"          // Finished
+)
+
+const (
+	SignedStatePayload protocols.PayloadType = "SignedStatePayload"
 )
 
 const ObjectivePrefix = "VirtualFund-"
@@ -286,15 +290,8 @@ func (o *Objective) Approve() protocols.Objective {
 func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
-	participants := []common.Address{}
-	for i, peer := range o.V.Participants {
-		if i != int(o.MyRole) {
-			participants = append(participants, peer)
-		}
 
-	}
-
-	messages := protocols.CreateRejectionNoticeMessage(o.Id(), participants...)
+	messages := protocols.CreateRejectionNoticeMessage(o.Id(), o.otherParticipants()...)
 	sideEffects := protocols.SideEffects{MessagesToSend: messages}
 	return &updated, sideEffects
 }
@@ -309,11 +306,31 @@ func (o *Objective) GetStatus() protocols.ObjectiveStatus {
 	return o.Status
 }
 
-// Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
-// and returns the updated state.
-func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective, error) {
-	if o.Id() != event.ObjectiveId {
-		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(event.ObjectiveId), string(o.Id()))
+func (o *Objective) otherParticipants() []types.Address {
+	otherParticipants := make([]types.Address, 0)
+	for i, p := range o.V.Participants {
+		if i != int(o.MyRole) {
+			otherParticipants = append(otherParticipants, p)
+		}
+	}
+	return otherParticipants
+}
+
+func (o *Objective) getPayload(raw protocols.ObjectivePayload) (*state.SignedState, error) {
+	payload := &state.SignedState{}
+
+	err := json.Unmarshal(raw.PayloadData, payload)
+	if err != nil {
+		return nil, err
+
+	}
+	return payload, nil
+}
+
+func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protocols.ProposalReceiver, error) {
+	if pId := protocols.GetProposalObjectiveId(sp.Proposal); o.Id() != pId {
+
+		return o, fmt.Errorf("sp and objective Ids do not match: %s and %s respectively", string(pId), string(o.Id()))
 	}
 
 	updated := o.clone()
@@ -328,7 +345,7 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 		toMyRightId = o.ToMyRight.Channel.Id // Avoid this if it is nil
 	}
 
-	if sp := event.SignedProposal; sp.Proposal.Target() == o.V.Id {
+	if sp.Proposal.Target() == o.V.Id {
 		var err error
 
 		switch sp.Proposal.LedgerID {
@@ -343,21 +360,27 @@ func (o *Objective) Update(event protocols.ObjectiveEvent) (protocols.Objective,
 		}
 
 		if err != nil {
-			return o, fmt.Errorf("error incorporating signed proposal %+v into objective: %w", protocols.SummarizeProposal(event.ObjectiveId, sp), err)
+			return o, fmt.Errorf("error incorporating signed proposal %+v into objective: %w", sp, err)
 		}
 	}
+	return &updated, nil
+}
 
-	if ss := event.SignedState; len(ss.Signatures()) != 0 {
-		channelId := ss.State().ChannelId() // TODO handle error
-		switch channelId {
-		case types.Destination{}:
-			return o, errors.New("null channel id") // catch this case to avoid a panic below -- because if Alice or Bob we allow a null channel.
-		case o.V.Id:
-			updated.V.AddSignedState(ss)
-			// We expect pre and post fund state signatures.
-		default:
-			return o, errors.New("event channelId out of scope of objective")
-		}
+// Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
+// and returns the updated state.
+func (o *Objective) Update(raw protocols.ObjectivePayload) (protocols.Objective, error) {
+
+	if o.Id() != raw.ObjectiveId {
+		return o, fmt.Errorf("raw and objective Ids do not match: %s and %s respectively", string(raw.ObjectiveId), string(o.Id()))
+	}
+	payload, err := o.getPayload(raw)
+	if err != nil {
+		return o, fmt.Errorf("error parsing payload: %w", err)
+	}
+	updated := o.clone()
+
+	if ss := payload; len(ss.Signatures()) != 0 {
+		updated.V.AddSignedState(*ss)
 	}
 
 	return &updated, nil
@@ -382,7 +405,8 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if err != nil {
 			return o, protocols.SideEffects{}, WaitingForNothing, err
 		}
-		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
+
+		messages := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
@@ -419,7 +443,8 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if err != nil {
 			return o, protocols.SideEffects{}, WaitingForNothing, err
 		}
-		messages := protocols.CreateSignedStateMessages(o.Id(), ss, o.V.MyIndex)
+
+		messages := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
@@ -511,16 +536,20 @@ func (o *Objective) isBob() bool {
 // the calling client and the given counterparty, if such a channel exists.
 type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
-// ConstructObjectiveFromState takes in a message and constructs an objective from it.
+// ConstructObjectiveFromPayload takes in a message and constructs an objective from it.
 // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
-func ConstructObjectiveFromState(
-	initialState state.State,
+func ConstructObjectiveFromPayload(
+	p protocols.ObjectivePayload,
 	preapprove bool,
 	myAddress types.Address,
 	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
 ) (Objective, error) {
+	initialState, err := getSignedStatePayload(p.PayloadData)
+	if err != nil {
+		return Objective{}, fmt.Errorf("could not get signed state payload: %w", err)
+	}
 
-	participants := initialState.Participants
+	participants := initialState.State().Participants
 
 	// This logic assumes a single hop virtual channel.
 	// Currently this is the only type of virtual channel supported.
@@ -557,7 +586,7 @@ func ConstructObjectiveFromState(
 
 	return constructFromState(
 		preapprove,
-		initialState,
+		initialState.State(),
 		myAddress,
 		leftC,
 		rightC,
@@ -598,6 +627,7 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 	}
 
 	recipient := ledger.Follower()
+
 	message := protocols.CreateSignedProposalMessage(recipient, connection.Channel.ProposalQueue()...)
 	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
@@ -710,4 +740,14 @@ func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
 		Id:        protocols.ObjectiveId(ObjectivePrefix + channelId.String()),
 		ChannelId: channelId,
 	}
+}
+
+// getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
+func getSignedStatePayload(b []byte) (state.SignedState, error) {
+	ss := state.SignedState{}
+	err := json.Unmarshal(b, &ss)
+	if err != nil {
+		return ss, fmt.Errorf("could not unmarshal signed state: %w", err)
+	}
+	return ss, nil
 }
