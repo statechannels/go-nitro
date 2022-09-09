@@ -24,8 +24,11 @@ const (
 )
 
 const (
-	SignedStatePayload       protocols.PayloadType = "SignedStatePayload"
-	FinalStateRequestPayload protocols.PayloadType = "FinalStateRequestPayload"
+	// SignedStatePayload indicates that the payload is a json serialized signed state
+	SignedStatePayload protocols.PayloadType = "SignedStatePayload"
+	// RequestFinalStatePayload indicates that the payload is a request for the final state
+	// The actual payload is simply the channel id that the final state is for
+	RequestFinalStatePayload protocols.PayloadType = "RequestFinalStatePayload"
 )
 
 // The turn number used for the final state
@@ -172,8 +175,8 @@ func ConstructObjectiveFromPayload(
 		latestVoucherAmount = big.NewInt(0)
 	}
 	switch p.Type {
-	case FinalStateRequestPayload:
-		cId, err := getRequestDefundPayload(p.PayloadData)
+	case RequestFinalStatePayload:
+		cId, err := getRequestFinalStatePayload(p.PayloadData)
 		if err != nil {
 			return Objective{}, err
 		}
@@ -357,7 +360,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	// If we don't know the amount yet we send a message to alice to request it
 	if !updated.isAlice() && !updated.hasFinalStateFromAlice() {
 		alice := o.VFixed.Participants[0]
-		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.VId(), FinalStateRequestPayload, alice)
+		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.VId(), RequestFinalStatePayload, alice)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 		return &updated, sideEffects, WaitingForFinalStateFromAlice, nil
 	}
@@ -550,8 +553,8 @@ func getSignedStatePayload(b []byte) (state.SignedState, error) {
 	return ss, nil
 }
 
-// getRequestDefundPayload takes in a serialized channel id payload and returns the deserialized channel id.
-func getRequestDefundPayload(b []byte) (types.Destination, error) {
+// getRequestFinalStatePayload takes in a serialized channel id payload and returns the deserialized channel id.
+func getRequestFinalStatePayload(b []byte) (types.Destination, error) {
 	cId := types.Destination{}
 	err := json.Unmarshal(b, &cId)
 	if err != nil {
@@ -612,7 +615,7 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 		}
 		return &updated, nil
 
-	case FinalStateRequestPayload:
+	case RequestFinalStatePayload:
 		// Since the objective is already created we don't need to do anything else with the payload
 		return o, nil
 	default:
