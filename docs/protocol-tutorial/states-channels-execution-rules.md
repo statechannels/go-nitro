@@ -62,3 +62,29 @@ Unlike the rules of the underlying blockchain -- which dictate which state histo
 The rules for how one supported state may supercede another are very simple. Each state has a version number, with greater version numbers superceding lesser ones.
 
 The state channel rules are enshrined in two places on the blockchain: firstly, in the **core protocol**, and secondly in the **application rules**.
+
+### Application rules
+
+Each channel is required to specify application rules in a contract adhering to the following on chain interface:
+
+```solidity
+
+/**
+ * @dev The IForceMoveApp interface calls for its children to implement an application-specific requireStateSupported function, defining the state machine of a ForceMove state channel DApp.
+ */
+interface IForceMoveApp is INitroTypes {
+    /**
+     * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
+     * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
+     * @param fixedPart Fixed part of the state channel.
+     * @param proof Array of recovered variable parts which constitutes a support proof for the candidate. May be omitted when `candidate` constitutes a support proof itself.
+     * @param candidate Recovered variable part the proof was supplied for. Also may constitute a support proof itself.
+     */
+    function requireStateSupported(
+        FixedPart calldata fixedPart,
+        RecoveredVariablePart[] calldata proof,
+        RecoveredVariablePart calldata candidate
+    ) external pure;
+}
+
+```
