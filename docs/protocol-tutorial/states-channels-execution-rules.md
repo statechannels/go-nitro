@@ -1,0 +1,64 @@
+# States, Channels and Execution Rules
+
+A state channel can be thought of as a set of data structures (called "states") exchanged between a fixed set of actors (which we call participants) together with some rules.
+
+## States
+
+=== "TypeScript"
+
+    ``` ts
+    import {Channel, Outcome, State} from '@statechannels/nitro-protocol';
+
+    const state: State = {
+        turnNum: 0,
+        isFinal: false,
+        channel,
+        challengeDuration,
+        outcome,
+        appDefinition,
+        appData
+    };
+
+    ```
+
+=== "Go"
+
+    ``` Go
+    import (
+    "math/big"
+
+    "github.com/ethereum/go-ethereum/common"
+    "github.com/statechannels/go-nitro/channel/state"
+    "github.com/statechannels/go-nitro/channel/state/outcome"
+    "github.com/statechannels/go-nitro/internal/testactors"
+    "github.com/statechannels/go-nitro/types"
+    )
+
+    var testState = state.State{
+        ChainId: chainId,
+        Participants: []types.Address{
+            testactors.Alice.Address(),
+            testactors.Bob.Address(),
+            },
+        ChannelNonce: big.NewInt(37140676580),
+        AppDefinition: someAppDefinition,
+        ChallengeDuration: big.NewInt(60),
+        AppData: []byte{},
+        Outcome: testOutcome,
+        TurnNum: 5,
+        IsFinal: false,
+    }
+
+    ```
+
+## Rules
+
+The rules dictate the conditions under which a state may be considered **supported** by the underlying blockchain, and also dictate how one supported state may supercede another. In this manner, state channels may be "updated" as participants follow the rules to support state after state.
+
+If a state is supported by the underylying blockchain, it has a chance to be the **final state** for the channel. The final state influences how any assets locked into the channel will be dispersed.
+
+Unlike the rules of the underlying blockchain -- which dictate which state history is canoncial via Proof of Work, Proof of Stake, Proof of Authority (or some other hardcoded mechanism) -- Nitro protocol allows for the state channel update rules to vary from one application to another. One state channel might proceed only by unanimous consensus (all parties must digitially sign a state to make it supported), and another might proceed in a round-robin fashion (each party has the chance to support the next state unilaterally).
+
+The rules for how one supported state may supercede another are very simple. Each state has a version number, with greater version numbers superceding lesser ones.
+
+The state channel rules are enshrined in two places on the blockchain: firstly, in the **core protocol**, and secondly in the **application rules**.

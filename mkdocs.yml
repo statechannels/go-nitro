@@ -3,6 +3,21 @@ repo_url: https://github.com/statechannels/go-nitro
 theme:
   name: material
   palette:
-    scheme: magmo.com
+    scheme: statechannels.org
+  logo: assets/mstile-144x144.png
+  favicon: assets/favicon.ico
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - content.tabs.link
 extra_css:
   - stylesheets/extra.css
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true

@@ -1,14 +1,10 @@
-# Introduction
-
-Welcome to the documentation website for Nitro Protocol (v2), a state channel protocol implementation in solidity and Golang.
-
 ## What are state channels?
 
 State channels are a technology which allows for peer-to-peer games, payments and other few-user applications to safely trade blockchain assets at extremely low latency, low cost and high throughput without requiring trust in a third-party. State channels can be programmed such that assets are redistributed according to arbitary logic, allowing for applications such as poker, conditional payments, atomic swaps and more.
 
 ## What is Nitro Protocol?
 
-Nitro protocol is a state of the art state channel protocol which is focussed on security, perormance and extensibility. It has been developed over several years of research: the first version was announced in a whitepaper in 2019, and v2 is described in a second paper.
+Nitro protocol is a state of the art state channel protocol which is focussed on security, performance and extensibility. It has been developed over several years of research: the first version was announced in a whitepaper in 2019, and v2 is described in a second paper.
 
 One of the key features of Nitro are _virtual_ channels, where peers can setup a direct connection with each other entirely off-chain.
 
