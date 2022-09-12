@@ -467,6 +467,11 @@ type payloadSummary struct {
 	Data string
 }
 
+type msgSummary struct {
+	To       string
+	Payloads []payloadSummary
+}
+
 func (e *Engine) summarizePayloads(msg protocols.Message) interface{} {
 
 	summaries := make([]payloadSummary, 0)
@@ -475,7 +480,7 @@ func (e *Engine) summarizePayloads(msg protocols.Message) interface{} {
 
 		summaries = append(summaries, s)
 	}
-	return summaries
+	return msgSummary{To: msg.To.String(), Payloads: summaries}
 
 }
 
