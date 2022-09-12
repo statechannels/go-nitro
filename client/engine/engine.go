@@ -195,7 +195,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
 
 	allCompleted := EngineEvent{}
-
+	e.logger.Printf("Handling message %+v", message)
 	for _, payload := range message.ObjectivePayloads {
 
 		objective, err := e.getOrCreateObjective(payload)
@@ -445,7 +445,7 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	defer e.metrics.RecordFunctionDuration()()
 
 	for _, message := range sideEffects.MessagesToSend {
-
+		e.logger.Printf("Sending message %+v", message)
 		e.msg.Send(message)
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
