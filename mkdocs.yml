@@ -1,3 +1,8 @@
 site_name: Nitro Protocol (v2)
+repo_url: https://github.com/statechannels/go-nitro
 theme:
   name: material
+  palette:
+    scheme: magmo.com
+extra_css:
+  - stylesheets/extra.css
