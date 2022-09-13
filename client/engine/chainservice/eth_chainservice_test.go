@@ -106,7 +106,7 @@ func TestEthChainService(t *testing.T) {
 			Alice.Address(),
 			Bob.Address(),
 		},
-		ChannelNonce:      big.NewInt(37140676584),
+		ChannelNonce:      big.NewInt(37140676585),
 		AppDefinition:     common.Address{},
 		ChallengeDuration: &big.Int{},
 		AppData:           []byte{},
