@@ -24,7 +24,7 @@ func fp() state.FixedPart {
 	return state.FixedPart{
 		Participants:      participants[:],
 		ChainId:           big.NewInt(9001),
-		ChannelNonce:      big.NewInt(9001),
+		ChannelNonce:      9001,
 		ChallengeDuration: big.NewInt(100),
 	}
 }

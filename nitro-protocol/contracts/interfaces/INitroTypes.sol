@@ -31,7 +31,7 @@ interface INitroTypes {
     struct FixedPart {
         uint256 chainId;
         address[] participants;
-        uint48 channelNonce;
+        uint64 channelNonce;
         address appDefinition;
         uint48 challengeDuration;
     }

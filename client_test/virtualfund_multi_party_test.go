@@ -46,7 +46,7 @@ func TestVirtualFundMultiParty(t *testing.T) {
 		AppDefinition:     types.Address{},
 		AppData:           types.Bytes{},
 		ChallengeDuration: big.NewInt(0),
-		Nonce:             rand.Int63(),
+		Nonce:             rand.Uint64(),
 	}
 	withBrianRequest := virtualfund.ObjectiveRequest{
 		CounterParty: brian.Address(),
@@ -60,7 +60,7 @@ func TestVirtualFundMultiParty(t *testing.T) {
 		AppDefinition:     types.Address{},
 		AppData:           types.Bytes{},
 		ChallengeDuration: big.NewInt(0),
-		Nonce:             rand.Int63(),
+		Nonce:             rand.Uint64(),
 	}
 	id := clientAlice.CreateVirtualChannel(withBobRequest).Id
 	id2 := clientAlice.CreateVirtualChannel(withBrianRequest).Id

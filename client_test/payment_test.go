@@ -48,7 +48,7 @@ func TestPayments(t *testing.T) {
 		AppDefinition:     types.Address{},
 		AppData:           types.Bytes{},
 		ChallengeDuration: big.NewInt(0),
-		Nonce:             rand.Int63(),
+		Nonce:             rand.Uint64(),
 	}
 
 	r := clientA.CreateVirtualChannel(request)

@@ -47,7 +47,7 @@ func TestInvalidUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 	invalidFinal := data.vFinal.Clone()
-	invalidFinal.ChannelNonce = big.NewInt(5)
+	invalidFinal.ChannelNonce = 5
 
 	signedFinal := state.NewSignedState(invalidFinal)
 

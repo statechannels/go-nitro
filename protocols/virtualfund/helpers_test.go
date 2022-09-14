@@ -26,7 +26,7 @@ func prepareConsensusChannelHelper(role uint, leader, follower testactors.Actor,
 	fp := state.FixedPart{
 		ChainId:           big.NewInt(9001),
 		Participants:      []types.Address{leader.Address(), follower.Address()},
-		ChannelNonce:      big.NewInt(0),
+		ChannelNonce:      0,
 		AppDefinition:     types.Address{},
 		ChallengeDuration: big.NewInt(45),
 	}

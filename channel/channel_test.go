@@ -208,7 +208,7 @@ func TestChannel(t *testing.T) {
 			Participants: []types.Address{
 				common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`),
 			},
-			ChannelNonce:      big.NewInt(37140676581),
+			ChannelNonce:      37140676581,
 			AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
 			ChallengeDuration: big.NewInt(60),
 			AppData:           []byte{},
@@ -216,7 +216,7 @@ func TestChannel(t *testing.T) {
 			TurnNum:           5,
 			IsFinal:           false,
 		}
-		v.ChannelNonce.Add(v.ChannelNonce, big.NewInt(1))
+		v.ChannelNonce += 1
 		aliceSignatureOnWrongState, _ := v.Sign(alicePrivateKey)
 		got = c.AddStateWithSignature(v, aliceSignatureOnWrongState) // note state from wrong channel
 		if got != want {

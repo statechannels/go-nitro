@@ -36,7 +36,7 @@ type (
 	State struct {
 		ChainId           *types.Uint256
 		Participants      []types.Address
-		ChannelNonce      *types.Uint256 // uint48 in solidity
+		ChannelNonce      uint64
 		AppDefinition     types.Address
 		ChallengeDuration *types.Uint256
 		AppData           types.Bytes
@@ -49,7 +49,7 @@ type (
 	FixedPart struct {
 		ChainId           *types.Uint256
 		Participants      []types.Address
-		ChannelNonce      *types.Uint256 // uint48 in solidity
+		ChannelNonce      uint64
 		AppDefinition     types.Address
 		ChallengeDuration *types.Uint256
 	}
@@ -90,7 +90,7 @@ func (fp FixedPart) ChannelId() types.Destination {
 		{Type: abi.Uint256},
 		{Type: abi.Address},
 		{Type: abi.Uint256},
-	}.Pack(fp.ChainId, fp.Participants, fp.ChannelNonce, fp.AppDefinition, fp.ChallengeDuration)
+	}.Pack(fp.ChainId, fp.Participants, new(big.Int).SetUint64(fp.ChannelNonce), fp.AppDefinition, fp.ChallengeDuration)
 
 	if err != nil {
 		panic(err)
@@ -167,7 +167,7 @@ func equalParticipants(p []types.Address, q []types.Address) bool {
 func (s State) Equal(r State) bool {
 	return types.Equal(s.ChainId, r.ChainId) &&
 		equalParticipants(s.Participants, r.Participants) &&
-		types.Equal(s.ChannelNonce, r.ChannelNonce) &&
+		s.ChannelNonce == r.ChannelNonce &&
 		bytes.Equal(s.AppDefinition.Bytes(), r.AppDefinition.Bytes()) &&
 		types.Equal(s.ChallengeDuration, r.ChallengeDuration) &&
 		bytes.Equal(s.AppData, r.AppData) &&
@@ -181,7 +181,7 @@ func (f FixedPart) Clone() FixedPart {
 	clone := FixedPart{}
 	clone.ChainId = new(big.Int).Set(f.ChainId)
 	clone.Participants = append(clone.Participants, f.Participants...)
-	clone.ChannelNonce = new(big.Int).Set(f.ChannelNonce)
+	clone.ChannelNonce = f.ChannelNonce
 	clone.AppDefinition = f.AppDefinition
 	clone.ChallengeDuration = new(big.Int).Set(f.ChallengeDuration)
 	return clone
@@ -191,10 +191,6 @@ func (f FixedPart) Clone() FixedPart {
 func (fp FixedPart) Validate() error {
 	if fp.ChainId == nil {
 		return errors.New(`cannot compute ChannelId with nil ChainId`)
-	}
-
-	if fp.ChannelNonce == nil {
-		return errors.New(`cannot compute ChannelId with nil ChannelNonce`)
 	}
 
 	if fp.ChannelId().IsExternal() {

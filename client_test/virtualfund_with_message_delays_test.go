@@ -62,7 +62,7 @@ func createVirtualChannels(client client.Client, counterParty types.Address, int
 			AppDefinition:     types.Address{},
 			AppData:           types.Bytes{},
 			ChallengeDuration: big.NewInt(0),
-			Nonce:             rand.Int63(),
+			Nonce:             rand.Uint64(),
 		}
 
 		ids[i] = client.CreateVirtualChannel(request).Id

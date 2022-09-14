@@ -23,7 +23,7 @@ func TestMarshalJSON(t *testing.T) {
 	vPreFund := state.State{
 		ChainId:           big.NewInt(9001),
 		Participants:      []types.Address{alice.Address(), p1.Address(), bob.Address()}, // A single hop virtual channel
-		ChannelNonce:      big.NewInt(0),
+		ChannelNonce:      0,
 		AppDefinition:     types.Address{},
 		ChallengeDuration: big.NewInt(45),
 		AppData:           []byte{},

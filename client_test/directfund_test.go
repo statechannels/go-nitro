@@ -29,7 +29,7 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 		CounterParty:      *beta.Address,
 		Outcome:           outcome,
 		ChallengeDuration: big.NewInt(0),
-		Nonce:             int64(rand.Int31()),
+		Nonce:             rand.Uint64(),
 	}
 	response := alpha.CreateLedgerChannel(request)
 
@@ -71,7 +71,7 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 		CounterParty:      bob.Address(),
 		Outcome:           outcome,
 		ChallengeDuration: big.NewInt(0),
-		Nonce:             rand.Int63(),
+		Nonce:             rand.Uint64(),
 	}
 
 	response := clientA.CreateLedgerChannel(request)
