@@ -63,7 +63,7 @@ func TestMarshalJSON(t *testing.T) {
 	encodedVfo, err := json.Marshal(vfo)
 
 	if err != nil {
-		t.Fatalf("error encoding direct-fund objective %v", vfo)
+		t.Fatalf("error encoding virtualfund objective %v", vfo)
 	}
 
 	got := Objective{}
