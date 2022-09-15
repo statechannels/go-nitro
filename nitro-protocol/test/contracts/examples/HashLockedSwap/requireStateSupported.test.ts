@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
-import {Contract, ethers, utils} from 'ethers';
+import {BigNumber, Contract, ethers, utils} from 'ethers';
 import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
@@ -78,7 +78,7 @@ const incorrectPreImage: HashLockedSwapData = {
 
 describe('requireStateSupported', () => {
   let channelNonce = getRandomNonce('HashLockedSwap');
-  beforeEach(() => (channelNonce += 1));
+  beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
   it.each`
     isValid  | dataA                 | balancesA                   | turnNumB | dataB                | balancesB                   | description
     ${true}  | ${conditionalPayment} | ${{Sender: 1, Receiver: 0}} | ${4}     | ${correctPreImage}   | ${{Sender: 0, Receiver: 1}} | ${'Receiver unlocks the conditional payment'}

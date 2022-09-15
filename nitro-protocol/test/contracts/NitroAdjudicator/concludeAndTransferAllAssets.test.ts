@@ -116,7 +116,7 @@ const oneState = {
 const turnNumRecord = 5;
 let channelNonce = getRandomNonce('concludeAndTransferAllAssets');
 describe('concludeAndTransferAllAssets', () => {
-  beforeEach(() => (channelNonce += 1));
+  beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
   it.each`
     description  | outcomeShortHand           | heldBefore           | heldAfter          | newOutcome | payouts                    | reasonString
     ${accepts1}  | ${{ETH: {A: 1}}}           | ${{ETH: {c: 1}}}     | ${{ETH: {c: 0}}}   | ${{}}      | ${{ETH: {A: 1}}}           | ${undefined}

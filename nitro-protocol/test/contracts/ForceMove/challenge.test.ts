@@ -143,7 +143,7 @@ describe('challenge', () => {
   const finalizedAtFive = finalizedFingerprint(5);
 
   let channelNonce = getRandomNonce('challenge');
-  beforeEach(() => (channelNonce += 1));
+  beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
   it.each`
     description  | initialFingerprint           | stateData      | challengeSignatureType | reasonString
     ${accepts1}  | ${empty}                     | ${threeStates} | ${'correct'}           | ${undefined}
