@@ -77,7 +77,7 @@ func prepareConsensusChannel(role uint, left, right ta.Actor, guarantees ...cons
 	fp := state.FixedPart{
 		ChainId:           big.NewInt(9001),
 		Participants:      []types.Address{left.Address(), right.Address()},
-		ChannelNonce:      big.NewInt(0),
+		ChannelNonce:      0,
 		AppDefinition:     types.Address{},
 		ChallengeDuration: big.NewInt(45),
 	}
@@ -253,7 +253,7 @@ func generateTestData() testdata {
 	vFixed := state.FixedPart{
 		ChainId:           big.NewInt(9001),
 		Participants:      []types.Address{alice.Address(), irene.Address(), bob.Address()}, // A single hop virtual channel
-		ChannelNonce:      big.NewInt(0),
+		ChannelNonce:      0,
 		AppDefinition:     types.Address{},
 		ChallengeDuration: big.NewInt(45),
 	}

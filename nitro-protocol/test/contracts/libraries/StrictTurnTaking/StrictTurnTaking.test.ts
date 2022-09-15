@@ -46,7 +46,7 @@ beforeAll(async () => {
 });
 
 let channelNonce = getRandomNonce('StrictTurnTaking');
-beforeEach(() => (channelNonce += 1));
+beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
 
 describe('isSignedByMover', () => {
   const accepts1 = 'should not revert when signed only by mover';

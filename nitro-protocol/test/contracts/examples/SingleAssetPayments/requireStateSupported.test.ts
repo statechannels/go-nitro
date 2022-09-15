@@ -1,6 +1,6 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
-import {Contract, ethers} from 'ethers';
+import {BigNumber, Contract, ethers} from 'ethers';
 import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
@@ -63,7 +63,7 @@ const reason4 = 'outcome: Only one asset allowed';
 
 describe('requireStateSupported', () => {
   let channelNonce = getRandomNonce('SingleAssetPayments');
-  beforeEach(() => (channelNonce += 1));
+  beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
   it.each`
     numAssets | isAllocation      | balancesA       | turnNums  | balancesB       | whoSignedWhat     | reason       | description
     ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${[3, 4]} | ${{A: 0, B: 2}} | ${whoSignedWhatA} | ${undefined} | ${'A pays B 1 wei'}

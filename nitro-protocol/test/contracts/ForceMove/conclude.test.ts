@@ -1,5 +1,5 @@
 import {expectRevert} from '@statechannels/devtools';
-import {ethers, Contract, Wallet} from 'ethers';
+import {ethers, Contract, Wallet, BigNumber} from 'ethers';
 const {HashZero} = ethers.constants;
 const {defaultAbiCoder} = ethers.utils;
 import {it} from '@jest/globals';
@@ -83,7 +83,7 @@ const finalized = finalizedFingerprint(turnNumRecord);
 
 let channelNonce = getRandomNonce('conclude');
 describe('conclude', () => {
-  beforeEach(() => (channelNonce += 1));
+  beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
   it.each`
     description | initialFingerprint  | isFinal  | largestTurnNum                   | support        | reasonString
     ${accepts2} | ${HashZero}         | ${true}  | ${turnNumRecord - 1}             | ${oneState}    | ${undefined}

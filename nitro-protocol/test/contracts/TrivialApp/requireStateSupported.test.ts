@@ -41,7 +41,7 @@ function getMockedFixedPart(): FixedPart {
   const fixedPart: FixedPart = {
     chainId: process.env.CHAIN_NETWORK_ID,
     participants: [Wallet.createRandom().address, Wallet.createRandom().address],
-    channelNonce: 0,
+    channelNonce: '0x0',
     appDefinition: trivialApp.address,
     challengeDuration: 0,
   };

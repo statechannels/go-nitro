@@ -1,5 +1,5 @@
 import {it} from '@jest/globals';
-import {Contract, Wallet} from 'ethers';
+import {BigNumber, Contract, Wallet} from 'ethers';
 import {expectRevert} from '@statechannels/devtools';
 
 import testConsensusArtifact from '../../../../artifacts/contracts/test/TESTConsensus.sol/TESTConsensus.json';
@@ -45,7 +45,7 @@ beforeAll(async () => {
 });
 
 let channelNonce = getRandomNonce('Consensus');
-beforeEach(() => (channelNonce += 1));
+beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
 
 describe('requireConsensus', () => {
   const accepts1 = 'accept when signed by all (one turnNum)';

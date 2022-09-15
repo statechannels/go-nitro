@@ -43,7 +43,7 @@ export function createChallengeTransaction(
   // and SignedStates[] won't comply with that in general. This function accepts the re-ordered sigs.
   const signedStates = states.map(s => ({
     state: s,
-    signature: {v: 0, r: '', s: '', _vs: '', recoveryParam: 0},
+    signature: {v: 0, r: '', s: '', _vs: '', recoveryParam: 0} as Signature,
   }));
   const challengerSignature = signChallengeMessage(signedStates, challengerPrivateKey);
 

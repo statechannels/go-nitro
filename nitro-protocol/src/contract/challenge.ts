@@ -131,7 +131,7 @@ export function getChallengeClearedEvent(
       s: args[4][2],
       _vs: args[4][3],
       recoveryParam: args[4][4],
-    };
+    } as Signature;
 
     const signedState: SignedState = {
       signature,

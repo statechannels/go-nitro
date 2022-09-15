@@ -47,7 +47,7 @@ export const amountForAliceAndBob = BigNumber.from(amountForAlice).add(amountFor
 
 export class TestChannel {
   constructor(
-    channelNonce: number,
+    channelNonce: string,
     wallets: ethers.Wallet[],
     allocations: Array<GuaranteeAllocation | SimpleAllocation>,
     appDefinition?: string
@@ -162,7 +162,7 @@ export class TestChannel {
 
 /** An application channel between Alice and Bob */
 export const X = new TestChannel(
-  2,
+  '0x2',
   [Alice, Bob],
   [
     {
@@ -182,7 +182,7 @@ export const X = new TestChannel(
 
 /** Another application channel between Alice and Bob */
 export const Y = new TestChannel(
-  3,
+  '0x3',
   [Alice, Bob],
   [
     {
@@ -202,7 +202,7 @@ export const Y = new TestChannel(
 
 /** Ledger channel between Alice and Bob, providing funds to channel X */
 export const LforX = new TestChannel(
-  4,
+  '0x4',
   [Alice, Bob],
   [
     {
@@ -216,7 +216,7 @@ export const LforX = new TestChannel(
 
 /** Virtual payment channel between Alice and Bob with Ingrid as intermediary*/
 export const V = new TestChannel(
-  5,
+  '0x5',
   [Alice, Ingrid, Bob],
   [
     {
@@ -237,7 +237,7 @@ export const V = new TestChannel(
 
 /** Ledger channel between Bob and Ingrid, with Guarantee targeting virtual channel V */
 export const LforV = new TestChannel(
-  7,
+  '0x7',
   [Bob, Ingrid],
   [
     {

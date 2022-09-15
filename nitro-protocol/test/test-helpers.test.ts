@@ -1,6 +1,6 @@
 import {BigNumber} from 'ethers';
 
-import {replaceAddressesAndBigNumberify} from './test-helpers';
+import {getRandomNonce, replaceAddressesAndBigNumberify} from './test-helpers';
 
 const addresses = {
   // Channels
@@ -35,5 +35,12 @@ describe('replaceAddressesAndBigNumberify', () => {
     expect(replaceAddressesAndBigNumberify(multiAsset, addresses)).toStrictEqual(
       multiAssetReplaced
     );
+  });
+});
+
+describe('getRandomNonce', () => {
+  it('generates hex strings representing 64 bit integers', () => {
+    const result = getRandomNonce('StrictTurnTaking');
+    expect(BigNumber.from(result).lt(BigNumber.from('0xffffffffffffffff'))).toBe(true);
   });
 });

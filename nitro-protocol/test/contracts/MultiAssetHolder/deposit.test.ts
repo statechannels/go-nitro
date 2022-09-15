@@ -63,7 +63,7 @@ const description8 =
 describe('deposit', () => {
   let channelNonce = getRandomNonce('deposit');
   afterEach(() => {
-    channelNonce++;
+    channelNonce = BigNumber.from(channelNonce).add(1).toHexString();
   });
   it.each`
     description     | asset    | held | expectedHeld | amount | heldAfter | reasonString

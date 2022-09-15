@@ -18,7 +18,7 @@ module.exports = {
   rootDir: root,
   collectCoverageFrom: ['**/*.{js,jsx,ts,tsx}'],
   reporters: ['default'],
-  testMatch: ['<rootDir>/test/src/**/?(*.)test.ts?(x)'],
+  testMatch: ['<rootDir>/test/src/**/?(*.)test.ts?(x)', '<rootDir>/test/?(*.)test.ts?(x)'],
   testEnvironment: 'node',
   testURL: 'http://localhost',
   preset: 'ts-jest',

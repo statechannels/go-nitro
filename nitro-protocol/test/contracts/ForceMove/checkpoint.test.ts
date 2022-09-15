@@ -1,5 +1,5 @@
 import {expectRevert} from '@statechannels/devtools';
-import {Contract, Wallet, ethers} from 'ethers';
+import {Contract, Wallet, ethers, BigNumber} from 'ethers';
 import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
@@ -89,7 +89,7 @@ const turnNumRecord = 7;
 
 describe('checkpoint', () => {
   let channelNonce = getRandomNonce('checkpoint');
-  beforeEach(() => (channelNonce += 1));
+  beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
   it.each`
     description | largestTurnNum                         | support              | finalizesAt  | reason
     ${accepts1} | ${turnNumRecord + 1}                   | ${valid}             | ${undefined} | ${undefined}

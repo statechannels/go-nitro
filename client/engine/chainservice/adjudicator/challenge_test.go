@@ -97,7 +97,7 @@ func TestChallenge(t *testing.T) {
 				Actors.Alice.Address,
 				Actors.Bob.Address,
 			},
-			ChannelNonce:      big.NewInt(37140676580),
+			ChannelNonce:      37140676580,
 			AppDefinition:     consensusAppAddress,
 			ChallengeDuration: big.NewInt(60),
 			AppData:           []byte{},

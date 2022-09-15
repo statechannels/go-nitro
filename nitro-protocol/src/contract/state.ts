@@ -4,7 +4,7 @@ import {ParamType} from 'ethers/lib/utils';
 
 import {Channel, getChannelId} from './channel';
 import {Outcome} from './outcome';
-import {Address, Bytes, Bytes32, Uint256, Uint48} from './types';
+import {Address, Bytes, Bytes32, Uint256, Uint48, Uint64} from './types';
 
 /**
  * Holds all of the data defining the state of a channel
@@ -25,7 +25,7 @@ export interface State {
 export interface FixedPart {
   chainId: Uint256;
   participants: Address[];
-  channelNonce: Uint48;
+  channelNonce: Uint64;
   appDefinition: Address;
   challengeDuration: Uint48;
 }

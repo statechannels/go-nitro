@@ -70,7 +70,7 @@ func genericVFO() virtualfund.Objective {
 		ts.AppData,
 		ts.ChallengeDuration,
 		ts.Outcome,
-		ts.ChannelNonce.Int64(),
+		ts.ChannelNonce,
 	}
 
 	ledgerPath := createLedgerPath([]testactors.Actor{

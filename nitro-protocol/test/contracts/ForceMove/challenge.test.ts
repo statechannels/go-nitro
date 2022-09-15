@@ -74,7 +74,7 @@ for (let i = 0; i < 3; i++) {
 
 const twoPartyChannel: Channel = {
   chainId: process.env.CHAIN_NETWORK_ID,
-  channelNonce: 0x1,
+  channelNonce: '0x1',
   participants: [wallets[0].address, wallets[1].address],
 };
 
@@ -143,7 +143,7 @@ describe('challenge', () => {
   const finalizedAtFive = finalizedFingerprint(5);
 
   let channelNonce = getRandomNonce('challenge');
-  beforeEach(() => (channelNonce += 1));
+  beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
   it.each`
     description  | initialFingerprint           | stateData      | challengeSignatureType | reasonString
     ${accepts1}  | ${empty}                     | ${threeStates} | ${'correct'}           | ${undefined}
@@ -190,7 +190,7 @@ describe('challenge', () => {
 
       const challengeState: SignedState = {
         state: states[states.length - 1],
-        signature: {v: 0, r: '', s: '', _vs: '', recoveryParam: 0},
+        signature: {v: 0, r: '', s: '', _vs: '', recoveryParam: 0} as Signature,
       };
 
       const correctChallengeSignature = signChallengeMessage(
@@ -239,7 +239,7 @@ describe('challenge', () => {
           ethers.BigNumber.from(eventFixedPart[0]).eq(ethers.BigNumber.from(fixedPart.chainId))
         ).toBe(true);
         expect(eventFixedPart[1]).toEqual(fixedPart.participants);
-        expect(eventFixedPart[2]).toEqual(fixedPart.channelNonce);
+        expect((eventFixedPart[2] as BigNumber).toHexString()).toEqual(fixedPart.channelNonce);
         expect(eventFixedPart[3]).toEqual(fixedPart.appDefinition);
         expect(eventFixedPart[4]).toEqual(fixedPart.challengeDuration);
 

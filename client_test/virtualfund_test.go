@@ -29,7 +29,7 @@ func openVirtualChannels(t *testing.T, clientA client.Client, clientB client.Cli
 			AppDefinition:     types.Address{},
 			AppData:           types.Bytes{},
 			ChallengeDuration: big.NewInt(0),
-			Nonce:             rand.Int63(),
+			Nonce:             rand.Uint64(),
 		}
 		response := clientA.CreateVirtualChannel(request)
 		objectiveIds[i] = response.Id
