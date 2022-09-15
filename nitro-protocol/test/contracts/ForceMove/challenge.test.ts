@@ -190,7 +190,7 @@ describe('challenge', () => {
 
       const challengeState: SignedState = {
         state: states[states.length - 1],
-        signature: {v: 0, r: '', s: '', _vs: '', recoveryParam: 0},
+        signature: {v: 0, r: '', s: '', _vs: '', recoveryParam: 0} as Signature,
       };
 
       const correctChallengeSignature = signChallengeMessage(
