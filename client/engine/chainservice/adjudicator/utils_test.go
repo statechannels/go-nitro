@@ -9,9 +9,9 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
-func generateStatus(state state.State, finalizesAt *big.Int) ([]byte, error) {
+func generateStatus(state state.State, finalizesAt uint64) ([]byte, error) {
 	turnNumBytes := big.NewInt(int64(state.TurnNum)).FillBytes(make([]byte, 6))
-	finalizesAtBytes := finalizesAt.FillBytes(make([]byte, 6))
+	finalizesAtBytes := new(big.Int).SetUint64(finalizesAt).FillBytes(make([]byte, 6))
 
 	stateHash, err := state.Hash()
 	if err != nil {

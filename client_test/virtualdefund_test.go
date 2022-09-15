@@ -184,7 +184,7 @@ func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
 		Outcome:           outcome,
 		AppDefinition:     types.Address{},
 		AppData:           types.Bytes{},
-		ChallengeDuration: big.NewInt(0),
+		ChallengeDuration: 0,
 		Nonce:             rand.Uint64(),
 	}
 	response := clientA.CreateVirtualChannel(request)

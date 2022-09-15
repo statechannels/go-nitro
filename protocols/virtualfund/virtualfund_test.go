@@ -25,7 +25,7 @@ func TestMarshalJSON(t *testing.T) {
 		Participants:      []types.Address{alice.Address(), p1.Address(), bob.Address()}, // A single hop virtual channel
 		ChannelNonce:      0,
 		AppDefinition:     types.Address{},
-		ChallengeDuration: big.NewInt(45),
+		ChallengeDuration: 45,
 		AppData:           []byte{},
 		Outcome: outcome.Exit{outcome.SingleAssetExit{
 			Allocations: outcome.Allocations{

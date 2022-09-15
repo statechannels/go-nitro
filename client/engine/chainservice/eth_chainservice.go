@@ -93,7 +93,7 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 	case protocols.WithdrawAllTransaction:
 		state := tx.SignedState.State()
 		signatures := tx.SignedState.Signatures()
-		nitroFixedPart := NitroAdjudicator.INitroTypesFixedPart(state.FixedPart())
+		nitroFixedPart := NitroAdjudicator.INitroTypesFixedPart(NitroAdjudicator.ConvertFixedPart(state.FixedPart()))
 		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(state.VariablePart())
 		nitroSignatures := []NitroAdjudicator.INitroTypesSignature{NitroAdjudicator.ConvertSignature(signatures[0]), NitroAdjudicator.ConvertSignature(signatures[1])}
 		proof := make([]NitroAdjudicator.INitroTypesSignedVariablePart, 0)

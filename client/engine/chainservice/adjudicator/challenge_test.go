@@ -99,7 +99,7 @@ func TestChallenge(t *testing.T) {
 			},
 			ChannelNonce:      37140676580,
 			AppDefinition:     consensusAppAddress,
-			ChallengeDuration: big.NewInt(60),
+			ChallengeDuration: 60,
 			AppData:           []byte{},
 			Outcome:           outcome.Exit{},
 			TurnNum:           turnNum,
@@ -128,7 +128,7 @@ func TestChallenge(t *testing.T) {
 		// Fire off a Challenge tx
 		tx, err := na.Challenge(
 			auth,
-			INitroTypesFixedPart(s.FixedPart()),
+			INitroTypesFixedPart(ConvertFixedPart(s.FixedPart())),
 			proof,
 			candidate,
 			ConvertSignature(challengerSig),
@@ -150,10 +150,9 @@ func TestChallenge(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		challengeTime := big.NewInt(int64(header.Time))
 
 		// Generate expectation
-		expectedFinalizesAt := big.NewInt(0).Add(challengeTime, s.ChallengeDuration)
+		expectedFinalizesAt := header.Time + s.ChallengeDuration
 		cId := s.ChannelId()
 		expectedOnChainStatus, err := generateStatus(s, expectedFinalizesAt)
 		if err != nil {

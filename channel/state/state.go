@@ -38,7 +38,7 @@ type (
 		Participants      []types.Address
 		ChannelNonce      uint64
 		AppDefinition     types.Address
-		ChallengeDuration *types.Uint256
+		ChallengeDuration uint64
 		AppData           types.Bytes
 		Outcome           outcome.Exit
 		TurnNum           uint64
@@ -51,7 +51,7 @@ type (
 		Participants      []types.Address
 		ChannelNonce      uint64
 		AppDefinition     types.Address
-		ChallengeDuration *types.Uint256
+		ChallengeDuration uint64
 	}
 
 	// VariablePart contains the subset of State data which can change with each state update.
@@ -90,7 +90,7 @@ func (fp FixedPart) ChannelId() types.Destination {
 		{Type: abi.Uint256},
 		{Type: abi.Address},
 		{Type: abi.Uint256},
-	}.Pack(fp.ChainId, fp.Participants, new(big.Int).SetUint64(fp.ChannelNonce), fp.AppDefinition, fp.ChallengeDuration)
+	}.Pack(fp.ChainId, fp.Participants, new(big.Int).SetUint64(fp.ChannelNonce), fp.AppDefinition, new(big.Int).SetUint64(fp.ChallengeDuration))
 
 	if err != nil {
 		panic(err)
@@ -169,7 +169,7 @@ func (s State) Equal(r State) bool {
 		equalParticipants(s.Participants, r.Participants) &&
 		s.ChannelNonce == r.ChannelNonce &&
 		bytes.Equal(s.AppDefinition.Bytes(), r.AppDefinition.Bytes()) &&
-		types.Equal(s.ChallengeDuration, r.ChallengeDuration) &&
+		s.ChallengeDuration == r.ChallengeDuration &&
 		bytes.Equal(s.AppData, r.AppData) &&
 		s.Outcome.Equal(r.Outcome) &&
 		s.TurnNum == r.TurnNum &&
@@ -183,7 +183,7 @@ func (f FixedPart) Clone() FixedPart {
 	clone.Participants = append(clone.Participants, f.Participants...)
 	clone.ChannelNonce = f.ChannelNonce
 	clone.AppDefinition = f.AppDefinition
-	clone.ChallengeDuration = new(big.Int).Set(f.ChallengeDuration)
+	clone.ChallengeDuration = f.ChallengeDuration
 	return clone
 }
 

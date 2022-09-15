@@ -8,6 +8,16 @@ import (
 	nc "github.com/statechannels/go-nitro/crypto"
 )
 
+func ConvertFixedPart(fp state.FixedPart) INitroTypesFixedPart {
+	return INitroTypesFixedPart{
+		ChainId:           fp.ChainId,
+		Participants:      fp.Participants,
+		ChannelNonce:      fp.ChannelNonce,
+		AppDefinition:     fp.AppDefinition,
+		ChallengeDuration: new(big.Int).SetUint64(fp.ChallengeDuration),
+	}
+}
+
 func ConvertVariablePart(vp state.VariablePart) INitroTypesVariablePart {
 	return INitroTypesVariablePart{
 		AppData: vp.AppData,

@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"math/big"
 	"math/rand"
 	"testing"
 
@@ -45,7 +44,7 @@ func TestVirtualFundMultiParty(t *testing.T) {
 		),
 		AppDefinition:     types.Address{},
 		AppData:           types.Bytes{},
-		ChallengeDuration: big.NewInt(0),
+		ChallengeDuration: 0,
 		Nonce:             rand.Uint64(),
 	}
 	withBrianRequest := virtualfund.ObjectiveRequest{
@@ -59,7 +58,7 @@ func TestVirtualFundMultiParty(t *testing.T) {
 		),
 		AppDefinition:     types.Address{},
 		AppData:           types.Bytes{},
-		ChallengeDuration: big.NewInt(0),
+		ChallengeDuration: 0,
 		Nonce:             rand.Uint64(),
 	}
 	id := clientAlice.CreateVirtualChannel(withBobRequest).Id

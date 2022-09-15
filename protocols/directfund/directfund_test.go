@@ -26,7 +26,7 @@ var testState = state.State{
 	Participants:      []types.Address{alice.Address(), bob.Address()},
 	ChannelNonce:      37140676580,
 	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
-	ChallengeDuration: big.NewInt(60),
+	ChallengeDuration: 60,
 	AppData:           []byte{},
 	Outcome: outcome.Exit{
 		outcome.SingleAssetExit{
