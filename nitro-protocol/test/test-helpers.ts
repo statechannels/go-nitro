@@ -342,7 +342,8 @@ export function compileEventsFromLogs(logs: any[], contractsArray: Contract[]): 
 }
 
 export function getRandomNonce(seed: string): string {
-  return ethers.utils.id(seed);
+  // Returns a hex string representing a 64 bit integer
+  return ethers.utils.id(seed).slice(0, 18); // '0x' plus [16 hexits is 8 bytes is 64 bits]
 }
 
 export const largeOutcome = (
