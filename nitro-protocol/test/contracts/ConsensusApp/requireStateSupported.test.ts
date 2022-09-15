@@ -21,7 +21,7 @@ const {wallets, participants} = generateParticipants(nParticipants);
 const chainId = process.env.CHAIN_NETWORK_ID;
 const challengeDuration = 0x100;
 
-const channel: Channel = {chainId, channelNonce: 8, participants};
+const channel: Channel = {chainId, channelNonce: BigNumber.from(8).toHexString(), participants};
 
 beforeAll(async () => {
   consensusApp = setupContract(provider, ConsensusAppArtifact, process.env.CONSENSUS_APP_ADDRESS);

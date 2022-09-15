@@ -341,8 +341,8 @@ export function compileEventsFromLogs(logs: any[], contractsArray: Contract[]): 
   return events;
 }
 
-export function getRandomNonce(seed: string): number {
-  return Number.parseInt(ethers.utils.id(seed).slice(2, 11), 16);
+export function getRandomNonce(seed: string): string {
+  return ethers.utils.id(seed);
 }
 
 export const largeOutcome = (

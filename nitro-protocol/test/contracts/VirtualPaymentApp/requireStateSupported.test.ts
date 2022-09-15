@@ -34,7 +34,7 @@ const {wallets, participants} = generateParticipants(nParticipants);
 const challengeDuration = 0x100;
 const MAGIC_ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-const channel: Channel = {chainId, channelNonce: 8, participants};
+const channel: Channel = {chainId, channelNonce: '0x8', participants};
 
 const baseState: State = {
   turnNum: 0,

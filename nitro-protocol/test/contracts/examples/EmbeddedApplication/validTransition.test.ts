@@ -1,5 +1,5 @@
 import {expectRevert as innerExpectRevert} from '@statechannels/devtools';
-import {constants, Contract, Wallet} from 'ethers';
+import {BigNumber, constants, Contract, Wallet} from 'ethers';
 import {AllocationType} from '@statechannels/exit-format';
 
 import embeddedApplicationArtifact from '../../../../artifacts/contracts/examples/EmbeddedApplication.sol/EmbeddedApplication.json';
@@ -141,7 +141,7 @@ const stateForX: State = {
   channel: {
     chainId: '0x1',
     participants: [Alice.address, Bob.address],
-    channelNonce: 87,
+    channelNonce: BigNumber.from(87).toHexString(),
   },
   challengeDuration: 0,
   outcome: sixFour,
@@ -155,7 +155,7 @@ const greaterStateForX: State = {
   channel: {
     chainId: '0x1',
     participants: [Alice.address, Bob.address],
-    channelNonce: 87,
+    channelNonce: BigNumber.from(87).toHexString(),
   },
   challengeDuration: 0,
   outcome: fourSix,

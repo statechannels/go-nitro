@@ -74,7 +74,7 @@ for (let i = 0; i < 3; i++) {
 
 const twoPartyChannel: Channel = {
   chainId: process.env.CHAIN_NETWORK_ID,
-  channelNonce: 0x1,
+  channelNonce: '0x1',
   participants: [wallets[0].address, wallets[1].address],
 };
 
