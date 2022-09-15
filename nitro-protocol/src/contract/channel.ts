@@ -1,7 +1,7 @@
 import {utils} from 'ethers';
 
 import {FixedPart} from './state';
-import {Address, Bytes32, Uint256, Uint48, Uint64} from './types';
+import {Address, Bytes32, Uint256, Uint64} from './types';
 
 /**
  * Holds the parameters that define a channel (in particular, its id)
