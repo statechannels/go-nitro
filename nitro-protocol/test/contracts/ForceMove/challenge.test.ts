@@ -239,7 +239,7 @@ describe('challenge', () => {
           ethers.BigNumber.from(eventFixedPart[0]).eq(ethers.BigNumber.from(fixedPart.chainId))
         ).toBe(true);
         expect(eventFixedPart[1]).toEqual(fixedPart.participants);
-        expect(eventFixedPart[2]).toEqual(fixedPart.channelNonce);
+        expect((eventFixedPart[2] as BigNumber).toHexString()).toEqual(fixedPart.channelNonce);
         expect(eventFixedPart[3]).toEqual(fixedPart.appDefinition);
         expect(eventFixedPart[4]).toEqual(fixedPart.challengeDuration);
 
