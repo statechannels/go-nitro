@@ -447,7 +447,7 @@ func IsDirectFundObjective(id protocols.ObjectiveId) bool {
 // There is no AppDefinition, since we currently only support full consensus rules for direct channels.
 type ObjectiveRequestForConsensusApp struct {
 	CounterParty      types.Address
-	ChallengeDuration *types.Uint256
+	ChallengeDuration uint64
 	Outcome           outcome.Exit
 	Nonce             uint64
 }

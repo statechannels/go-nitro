@@ -48,7 +48,7 @@ var testVirtualState = state.State{
 	},
 	ChannelNonce:      1234789,
 	AppDefinition:     someAppDefinition,
-	ChallengeDuration: big.NewInt(60),
+	ChallengeDuration: 60,
 	AppData:           []byte{},
 	Outcome: Outcomes.CreateLongOutcome(
 		SimpleItem{testactors.Alice.Destination(), 6},
@@ -66,7 +66,7 @@ var testState = state.State{
 	},
 	ChannelNonce:      37140676580,
 	AppDefinition:     someAppDefinition,
-	ChallengeDuration: big.NewInt(60),
+	ChallengeDuration: 60,
 	AppData:           []byte{},
 	Outcome:           testOutcome,
 	TurnNum:           5,

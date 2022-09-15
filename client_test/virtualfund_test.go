@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"math/big"
 	"math/rand"
 	"testing"
 
@@ -28,7 +27,7 @@ func openVirtualChannels(t *testing.T, clientA client.Client, clientB client.Cli
 			Outcome:           outcome,
 			AppDefinition:     types.Address{},
 			AppData:           types.Bytes{},
-			ChallengeDuration: big.NewInt(0),
+			ChallengeDuration: 0,
 			Nonce:             rand.Uint64(),
 		}
 		response := clientA.CreateVirtualChannel(request)

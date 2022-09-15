@@ -2,7 +2,6 @@
 package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
-	"math/big"
 	"math/rand"
 	"testing"
 	"time"
@@ -28,7 +27,7 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 	request := directfund.ObjectiveRequestForConsensusApp{
 		CounterParty:      *beta.Address,
 		Outcome:           outcome,
-		ChallengeDuration: big.NewInt(0),
+		ChallengeDuration: 0,
 		Nonce:             rand.Uint64(),
 	}
 	response := alpha.CreateLedgerChannel(request)
@@ -70,7 +69,7 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 	request := directfund.ObjectiveRequestForConsensusApp{
 		CounterParty:      bob.Address(),
 		Outcome:           outcome,
-		ChallengeDuration: big.NewInt(0),
+		ChallengeDuration: 0,
 		Nonce:             rand.Uint64(),
 	}
 

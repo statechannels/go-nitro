@@ -28,7 +28,7 @@ func prepareConsensusChannelHelper(role uint, leader, follower testactors.Actor,
 		Participants:      []types.Address{leader.Address(), follower.Address()},
 		ChannelNonce:      0,
 		AppDefinition:     types.Address{},
-		ChallengeDuration: big.NewInt(45),
+		ChallengeDuration: 45,
 	}
 
 	leaderBal := consensus_channel.NewBalance(leader.Destination(), big.NewInt(int64(leftBalance)))

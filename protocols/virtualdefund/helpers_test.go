@@ -79,7 +79,7 @@ func prepareConsensusChannel(role uint, left, right ta.Actor, guarantees ...cons
 		Participants:      []types.Address{left.Address(), right.Address()},
 		ChannelNonce:      0,
 		AppDefinition:     types.Address{},
-		ChallengeDuration: big.NewInt(45),
+		ChallengeDuration: 45,
 	}
 
 	leftBal := consensus_channel.NewBalance(left.Destination(), big.NewInt(0))
@@ -255,7 +255,7 @@ func generateTestData() testdata {
 		Participants:      []types.Address{alice.Address(), irene.Address(), bob.Address()}, // A single hop virtual channel
 		ChannelNonce:      0,
 		AppDefinition:     types.Address{},
-		ChallengeDuration: big.NewInt(45),
+		ChallengeDuration: 45,
 	}
 
 	finalAliceAmount := uint(6)

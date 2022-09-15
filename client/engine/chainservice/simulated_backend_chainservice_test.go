@@ -107,7 +107,7 @@ func TestConcludeSimulatedBackendChainService(t *testing.T) {
 		},
 		ChannelNonce:      37140676580,
 		AppDefinition:     bindings.ConsensusApp.Address,
-		ChallengeDuration: &big.Int{},
+		ChallengeDuration: 0,
 		AppData:           []byte{},
 		Outcome:           concludeOutcome,
 		TurnNum:           uint64(2),

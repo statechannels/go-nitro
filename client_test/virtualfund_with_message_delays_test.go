@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"math/big"
 	"math/rand"
 	"testing"
 	"time"
@@ -61,7 +60,7 @@ func createVirtualChannels(client client.Client, counterParty types.Address, int
 			Outcome:           outcome,
 			AppDefinition:     types.Address{},
 			AppData:           types.Bytes{},
-			ChallengeDuration: big.NewInt(0),
+			ChallengeDuration: 0,
 			Nonce:             rand.Uint64(),
 		}
 
