@@ -134,6 +134,8 @@ func (e *Engine) Run() {
 		e.metrics.RecordQueueLength("proposal_queue", len(e.fromLedger))
 
 		select {
+		case message := <-e.fromMsg:
+			res, err = e.handleMessage(message)
 		case or := <-e.ObjectiveRequestsFromAPI:
 			res, err = e.handleObjectiveRequest(or)
 
@@ -142,12 +144,12 @@ func (e *Engine) Run() {
 				e.toApi <- res
 				err = nil
 			}
+
 		case pr := <-e.PaymentRequestsFromAPI:
 			err = e.handlePaymentRequest(pr)
 		case chainEvent := <-e.fromChain:
 			res, err = e.handleChainEvent(chainEvent)
-		case message := <-e.fromMsg:
-			res, err = e.handleMessage(message)
+
 		case proposal := <-e.fromLedger:
 			res, err = e.handleProposal(proposal)
 		}
