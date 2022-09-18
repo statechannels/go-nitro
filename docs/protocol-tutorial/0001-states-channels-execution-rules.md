@@ -1,8 +1,26 @@
 # States, Channels and Execution Rules
 
-A state channel can be thought of as a set of data structures (called "states") exchanged between a fixed set of actors (which we call participants) together with some rules.
+A state channel can be thought of as a set of data structures (called "states") committed to and exchanged between a fixed set of actors (which we call participants), together with some execution rules.
+
+!!! info
+
+    "Committing to" a state is typically done by digitially signing it.
 
 ## States
+
+In Nitro protocol, a state has the following type (on chain in Solidity, off-chain in Typescript and Go):
+=== "Solidity"
+
+    ```solidity
+    struct State {
+        // participants sign the hash of this
+        bytes32 channelId; // keccack(FixedPart)
+        bytes appData;
+        bytes outcome;
+        uint48 turnNum;
+        bool isFinal;
+    }
+    ```
 
 === "TypeScript"
 
@@ -51,7 +69,7 @@ A state channel can be thought of as a set of data structures (called "states") 
 
     ```
 
-## Rules
+## Execution Rules
 
 The rules dictate the conditions under which a state may be considered **supported** by the underlying blockchain, and also dictate how one supported state may supercede another. In this manner, state channels may be "updated" as participants follow the rules to support state after state.
 
@@ -62,6 +80,15 @@ Unlike the rules of the underlying blockchain -- which dictate which state histo
 The rules for how one supported state may supercede another are very simple. Each state has a version number, with greater version numbers superceding lesser ones.
 
 The state channel rules are enshrined in two places on the blockchain: firstly, in the **core protocol**, and secondly in the **application rules**.
+
+### Core protocol rules
+
+Nitro is a very open protocol, and has become more open over time (in particular, v2 is more open compared with v1). This means that very little is stipulated at the core protocol level. Each application gets full control over when a state can be considered supported. The only things enforced by the core protocol are:
+
+- the rule that higher turn numbers take precedence over lower ones
+- an escape hatch for an "instant checkout" of the channel, which bypasses the application rules altogether (TODO link)
+
+Otherwise, the core protocol defers to the application rules.
 
 ### Application rules
 
