@@ -1,9 +1,4 @@
----
-id: off-chain-funding
-title: Off-chain funding
----
-
-import Mermaid from '@theme/Mermaid';
+# WIP Off-chain funding
 
 This advanced section of the tutorial covers funding and defunding channels by redistributing assets off chain. This has the great advantage of removing the need for most on-chain transactions.
 
@@ -17,75 +12,86 @@ Now imagine that we want to play Rock Paper Scissors (or run some other state ch
 
 Instead of funding it on chain, let's just divert some money from our existing ledger channel.
 
-```typescript
-// In lesson16.test.ts
-// Construct a ledger channel with the hub
-const mySigningKey =
-  "0x7ab741b57e8d94dd7e1a29055646bafde7010f38a900f55bbd7647880faa6ee8";
-const hubSigningKey =
-  "0x2030b463177db2da82908ef90fa55ddfcef56e8183caf60db464bc398e736e6f";
-const me = new ethers.Wallet(mySigningKey).address;
-const hub = new ethers.Wallet(hubSigningKey).address;
-const myDestination = convertAddressToBytes32(me);
-const hubDestination = convertAddressToBytes32(hub);
-const participants = [me, hub];
-const chainId = "0x1234";
-const ledgerChannel: Channel = {
-  chainId,
-  channelNonce: BigNumber.from(0).toHexString(),
-  participants,
-};
-const ledgerChannelId = getChannelId(ledgerChannel);
+=== "TypeScript"
 
-// Construct a state for that allocates 6 wei to each of us, and has turn numer n - 1
-// This is called the "pre fund setup" state
+    ``` ts
 
-const sixEachStatePreFS: State = {
-  isFinal: false,
-  channel: ledgerChannel,
-  outcome: [
+    // Construct a ledger channel with the hub
+    const mySigningKey =
+    "0x7ab741b57e8d94dd7e1a29055646bafde7010f38a900f55bbd7647880faa6ee8";
+    const hubSigningKey =
+    "0x2030b463177db2da82908ef90fa55ddfcef56e8183caf60db464bc398e736e6f";
+    const me = new ethers.Wallet(mySigningKey).address;
+    const hub = new ethers.Wallet(hubSigningKey).address;
+    const myDestination = convertAddressToBytes32(me);
+    const hubDestination = convertAddressToBytes32(hub);
+    const participants = [me, hub];
+    const chainId = "0x1234";
+    const ledgerChannel: Channel = {
+    chainId,
+    channelNonce: BigNumber.from(0).toHexString(),
+    participants,
+    };
+    const ledgerChannelId = getChannelId(ledgerChannel);
+
+    // Construct a state for that allocates 6 wei to each of us, and has turn numer n - 1
+    // This is called the "pre fund setup" state
+
+    const sixEachStatePreFS: State = {
+    isFinal: false,
+    channel: ledgerChannel,
+    outcome: [
     {
-      asset: MAGIC_ADDRESS_INDICATING_ETH,
-      allocationItems: [
-        {
-          destination: myDestination,
-          amount: parseUnits("6", "wei").toHexString(),
-        },
-        {
-          destination: hubDestination,
-          amount: parseUnits("6", "wei").toHexString(),
-        },
-      ],
+    asset: MAGIC_ADDRESS_INDICATING_ETH,
+    allocationItems: [
+    {
+    destination: myDestination,
+    amount: parseUnits("6", "wei").toHexString(),
     },
-  ],
-  appDefinition: AddressZero,
-  appData: HashZero,
-  challengeDuration: 86400, // 1 day
-  turnNum: 1,
-};
+    {
+    destination: hubDestination,
+    amount: parseUnits("6", "wei").toHexString(),
+    },
+    ],
+    },
+    ],
+    appDefinition: AddressZero,
+    appData: HashZero,
+    challengeDuration: 86400, // 1 day
+    turnNum: 1,
+    };
 
-// Collect a support proof by getting all participants to sign this state
-signState(sixEachStatePreFS, mySigningKey);
-signState(sixEachStatePreFS, hubSigningKey);
+    // Collect a support proof by getting all participants to sign this state
+    signState(sixEachStatePreFS, mySigningKey);
+    signState(sixEachStatePreFS, hubSigningKey);
 
-// Desposit plenty of funds ON CHAIN
-const amount = parseUnits("12", "wei");
-const destination = ledgerChannelId;
-const expectedHeld = 0;
-const tx0 = ETHAssetHolder.deposit(destination, expectedHeld, amount, {
-  value: amount,
-});
-await(await tx0).wait();
+    // Desposit plenty of funds ON CHAIN
+    const amount = parseUnits("12", "wei");
+    const destination = ledgerChannelId;
+    const expectedHeld = 0;
+    const tx0 = ETHAssetHolder.deposit(destination, expectedHeld, amount, {
+    value: amount,
+    });
+    await(await tx0).wait();
 
-// Construct a state that allocates 6 wei to each of us, but with turn number 2n - 1
-// This is called the "post fund setup" state
+    // Construct a state that allocates 6 wei to each of us, but with turn number 2n - 1
+    // This is called the "post fund setup" state
 
-const sixEachStatePostFS: State = { ...sixEachStatePreFS, turnNum: 3 };
+    const sixEachStatePostFS: State = { ...sixEachStatePreFS, turnNum: 3 };
 
-// Collect a support proof by getting all participants to sign this state
-signState(sixEachStatePostFS, mySigningKey);
-signState(sixEachStatePostFS, hubSigningKey);
-```
+    // Collect a support proof by getting all participants to sign this state
+    signState(sixEachStatePostFS, mySigningKey);
+    signState(sixEachStatePostFS, hubSigningKey);
+
+    ```
+
+=== "Go"
+
+    ``` Go
+
+    // TODO
+
+    ```
 
 So far, so standard. We have directly funded a channel, but this time we are calling it a ledger channel, L. The funding graph looks like this:
 
