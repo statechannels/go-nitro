@@ -69,6 +69,63 @@ In Nitro protocol, a state has the following type (on chain in Solidity, off-cha
 
     ```
 
+## Channel IDs
+
+Channels are identified by the hash of the `FixedPart`` of the state (those parts that may _not_ vary):
+
+```solidity
+
+    struct FixedPart {
+        uint256 chainId;
+        address[] participants;
+        uint48 channelNonce;
+        address appDefinition;
+        uint48 challengeDuration;
+    }
+
+    bytes32 channelId = keccak256(
+        abi.encode(
+            fixedPart.chainId,
+            fixedPart.participants,
+            fixedPart.channelNonce,
+            fixedPart.appDefinition,
+            fixedPart.challengeDuration
+        )
+    );
+
+```
+
+The remainding fields of the state may vary, and are known as the `VariablePart`:
+
+```solidity
+       struct VariablePart {
+        Outcome.SingleAssetExit[] outcome;
+        bytes appData;
+        uint48 turnNum;
+        bool isFinal;
+    }
+```
+
+!!! info
+
+    States are usually submitted to the blockchain as a single fixed part and multiple variable parts.
+
+## State commitments
+
+To commit to a state, a hash is formed as follows:
+
+```solidity
+ bytes32 stateHash = keccak256(abi.encode(
+        channelId,
+        vp.appData,
+        vp.outcome,
+        vp.turnNum,
+        vp.isFinal
+    ));
+```
+
+and this hash is signed using an _ephemeral_ Ethereum private key. _Ephemeral_ in this context means a dedicated private key, generated solely for the purpose of executing the state channel.
+
 ## Execution Rules
 
 The rules dictate the conditions under which a state may be considered **supported** by the underlying blockchain, and also dictate how one supported state may supercede another. In this manner, state channels may be "updated" as participants follow the rules to support state after state.
