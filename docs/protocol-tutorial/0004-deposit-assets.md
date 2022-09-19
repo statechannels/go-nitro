@@ -1,8 +1,8 @@
-# Deposit Assets
+# Depositing Assets
 
 Early on in the lifecycle of a state channel -- i.e. after exchanging some setup states, but before executing any application logic -- participants will want to "fund it". They will stake assets on the channel so that the state updates are meaningful. The simplest way to do this is with an on chain deposit; a more advanced possibility is fund a new channel from an existing funded channel.
 
-## `deposit` into channel
+## `deposit` into a channel
 
 The deposit method allows ETH or ERC20 tokens to be escrowed against a channel.
 We have the following call signature:
@@ -51,3 +51,8 @@ const tx0 = NitroAdjudicator.deposit(
 ```
 
 Otherwise, if we are depositing ERC20 tokens, we must remember to [`approve`](https://docs.openzeppelin.com/contracts/2.x/api/token/erc20#IERC20-approve-address-uint256-) the NitroAdjudicator for enough tokens before making the deposit.
+
+## Outcome priority
+
+![Outcome priority](./outcome-priority.png){ align=left }
+In Nitro, it is possible for a channel to be underfunded, exactly funded or overfunded at different points in time. Particularly during depositing, there are fewer funds held against the channel than are allocated by it (i.e. it is underfunded). If a channel were to finalize and be liquidated when underfunded (something which could happen), the funds would be paid out in priority order. This implies that depositing safely requires an understanding of that priority order -- in essence, participants should not deposit until those with higher priority have had their deposits confirmed.
