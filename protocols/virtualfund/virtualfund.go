@@ -705,7 +705,7 @@ type ObjectiveRequest struct {
 	CounterParty      types.Address
 	AppDefinition     types.Address
 	AppData           types.Bytes
-	ChallengeDuration uint64
+	ChallengeDuration uint32
 	Outcome           outcome.Exit
 	Nonce             uint64
 }

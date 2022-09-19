@@ -152,7 +152,7 @@ func TestChallenge(t *testing.T) {
 		}
 
 		// Generate expectation
-		expectedFinalizesAt := header.Time + s.ChallengeDuration
+		expectedFinalizesAt := header.Time + uint64(s.ChallengeDuration)
 		cId := s.ChannelId()
 		expectedOnChainStatus, err := generateStatus(s, expectedFinalizesAt)
 		if err != nil {
