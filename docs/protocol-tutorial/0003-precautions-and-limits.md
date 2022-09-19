@@ -1,6 +1,9 @@
 # Precautions and Limits
 
-TODO fix links in this file.
+TODO:
+
+- fix links in this file.
+- check data types given recent code changes (nonce no longer 48 bit, challenge duration...)
 
 ## Precautions
 
