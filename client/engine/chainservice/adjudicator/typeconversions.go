@@ -14,7 +14,7 @@ func ConvertFixedPart(fp state.FixedPart) INitroTypesFixedPart {
 		Participants:      fp.Participants,
 		ChannelNonce:      fp.ChannelNonce,
 		AppDefinition:     fp.AppDefinition,
-		ChallengeDuration: new(big.Int).SetUint64(fp.ChallengeDuration),
+		ChallengeDuration: new(big.Int).SetUint64(uint64(fp.ChallengeDuration)),
 	}
 }
 

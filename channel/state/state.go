@@ -38,7 +38,7 @@ type (
 		Participants      []types.Address
 		ChannelNonce      uint64
 		AppDefinition     types.Address
-		ChallengeDuration uint64
+		ChallengeDuration uint32
 		AppData           types.Bytes
 		Outcome           outcome.Exit
 		TurnNum           uint64
@@ -51,7 +51,7 @@ type (
 		Participants      []types.Address
 		ChannelNonce      uint64
 		AppDefinition     types.Address
-		ChallengeDuration uint64
+		ChallengeDuration uint32
 	}
 
 	// VariablePart contains the subset of State data which can change with each state update.
@@ -90,7 +90,7 @@ func (fp FixedPart) ChannelId() types.Destination {
 		{Type: abi.Uint256},
 		{Type: abi.Address},
 		{Type: abi.Uint256},
-	}.Pack(fp.ChainId, fp.Participants, new(big.Int).SetUint64(fp.ChannelNonce), fp.AppDefinition, new(big.Int).SetUint64(fp.ChallengeDuration))
+	}.Pack(fp.ChainId, fp.Participants, new(big.Int).SetUint64(fp.ChannelNonce), fp.AppDefinition, new(big.Int).SetUint64(uint64(fp.ChallengeDuration)))
 
 	if err != nil {
 		panic(err)
