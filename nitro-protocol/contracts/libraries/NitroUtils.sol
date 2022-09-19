@@ -129,7 +129,7 @@ library NitroUtils {
         require(fixedPart.chainId == getChainID(), 'Incorrect chainId');
         channelId = keccak256(
             abi.encode(
-                getChainID(),
+                fixedPart.chainId,
                 fixedPart.participants,
                 fixedPart.channelNonce,
                 fixedPart.appDefinition,
