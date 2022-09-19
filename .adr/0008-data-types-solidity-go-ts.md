@@ -43,7 +43,7 @@ Implications for Go: This allows us to use the _same_ type in Solidity and Go (a
 
 Implications for Solidity: There are some very small changes in gas consumption. Since most or all of the encoding of this variable results in it being padded to 256 bits, enlarging it does no harm at all. The implications for the semantics of this variable remain essentially unchanged or slightly improved (it allows for a truly huge number of channels).
 
-Implications for Typescript: We have lost the use of a primitive type (unfortunate), and have introduced the chance of an overflow. These problems have essentially been moved from Go to Typescript.
+Implications for Typescript: We have lost the use of a primitive type (unfortunate, since now it is more awkard to do arithmetic). There is an implicit heuristic with the `number` type in Javascript to not try and represent integers larger than 52 bits. Moving to a hex `string` might encourage programmers to represent even larger integers -- but they should always bear in mind that they should not exceed 64 bits because of the solidity type. They are unlikely to do this unless using a random number gererator.
 
 ## Decision 2
 
@@ -58,3 +58,7 @@ Implications for Go: This allows us to use a _safe_ `challengeDuration` in our o
 Implications for Solidity: No change. There is still the chance of an overflow when computing `timestamp + challengeDuration`, so this must be checked off-chain (as ever)!
 
 Implications for Typescript: No change. There is a chance of the same overflow as for Solidity.
+
+## Decision 3
+
+We acknowledge that the type systems of the various runtimes discussed here is limited in the extent to which it can protect from things like overflows or mismatches between runtimes. Future solutions may include runtime checks / validation of variables during serde.
