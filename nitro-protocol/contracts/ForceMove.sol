@@ -248,7 +248,7 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Recover si##gnatures for each variable part in the supplied array.
+     * @notice Recover signatures for each variable part in the supplied array.
      * @dev Recover signatures for each variable part in the supplied array.
      * @param fixedPart Fixed Part of the states in the support proof.
      * @param signedVariableParts Signed variable parts of the states in the support proof.
