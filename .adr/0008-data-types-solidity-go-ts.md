@@ -39,7 +39,7 @@ Solidity: `uint64` (previously `uint48`)
 Go: `uint64` (prevously `*big.Int`)
 Typescript: hex `string` (previously `number`)
 
-Implications for Go: This allows use to use the _same_ type in Solidity and Go (a big advantage -- no overflows) as well as having the sweetness of a primitive type in our primary off-chain language.
+Implications for Go: This allows us to use the _same_ type in Solidity and Go (a big advantage -- no overflows) as well as having the sweetness of a primitive type in our primary off-chain language.
 
 Implications for Solidity: There are some very small changes in gas consumption. Since most or all of the encoding of this variable results in it being padded to 256 bits, enlarging it does no harm at all. The implications for the semantics of this variable remain essentially unchanged or slightly improved (it allows for a truly huge number of channels).
 
@@ -53,8 +53,8 @@ Solidity: `uint48` (previously `uint48`)
 Go: `uint32` (prevously `*big.Int`)
 Typescript: `number` (previously `number`)
 
-Implications for Go: This allows use to use a _safe_ `challengeDuration` in our off-chain code, in the sense that it less than `max(uint48) - <timestamp> ` for any unix timestamp for another few million years. This is important since we pack `finalizesAt = <timestamp + challengeDuration` into a slot only 48 bits wide. The Go type system will prevent this overflow happening on chain. A downside is that we aren't necessarily allowing the use of as-large-a-value as possible for this variable.
+Implications for Go: This allows us to use a _safe_ `challengeDuration` in our off-chain code, in the sense that it less than `max(uint48) - <timestamp> ` for any unix timestamp for another few million years. This is important since we pack `finalizesAt = timestamp + challengeDuration` into a slot only 48 bits wide. The Go type system will prevent this overflow happening on chain. A downside is that we aren't necessarily allowing the use of as-large-a-value as possible for this variable.
 
-Implications for Solidity: No change. There is still the chance of an overflow when computing `<timestamp + challengeDuration`, so this must be checked off-chain (as ever)!
+Implications for Solidity: No change. There is still the chance of an overflow when computing `timestamp + challengeDuration`, so this must be checked off-chain (as ever)!
 
 Implications for Typescript: No change. There is a chance of the same overflow as for Solidity.
