@@ -446,7 +446,7 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	defer e.metrics.RecordFunctionDuration()()
 
 	for _, message := range sideEffects.MessagesToSend {
-
+		e.logger.Printf("sending message %+v", message.Summarize())
 		e.msg.Send(message)
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
