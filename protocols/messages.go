@@ -181,8 +181,8 @@ type ObjectivePayloadSummary struct {
 
 // ProposalSummary is a summary of a proposal suitable for logging.
 type ProposalSummary struct {
+	ObjectiveId  string
 	LedgerId     string
-	TargetId     string
 	ProposalType string
 	TurnNum      uint64
 }
@@ -206,8 +206,8 @@ func (m Message) Summarize() MessageSummary {
 	s.ProposalSummaries = make([]ProposalSummary, len(m.LedgerProposals))
 	for i, p := range m.SortedProposals() {
 		s.ProposalSummaries[i] = ProposalSummary{
+			ObjectiveId:  string(GetProposalObjectiveId(p.Proposal)),
 			LedgerId:     p.ChannelID().String(),
-			TargetId:     p.Proposal.Target().String(),
 			TurnNum:      p.TurnNum,
 			ProposalType: string(p.Proposal.Type())}
 	}
