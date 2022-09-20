@@ -193,7 +193,7 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 //   - attempts progress on related objectives which may have become unblocked.
 func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
-
+	e.logger.Printf("Handling incoming message: %+v", message.Summarize())
 	allCompleted := EngineEvent{}
 
 	for _, payload := range message.ObjectivePayloads {
