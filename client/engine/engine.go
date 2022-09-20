@@ -357,6 +357,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 	defer e.metrics.RecordFunctionDuration()()
 	myAddress := *e.store.GetAddress()
 	objectiveId := or.Id(myAddress)
+	e.logger.Printf("handling new objective request for %s", objectiveId)
 	e.metrics.RecordObjectiveStarted(objectiveId)
 	switch request := or.(type) {
 
@@ -557,7 +558,7 @@ func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.O
 		if err != nil {
 			return nil, fmt.Errorf("error setting objective in store: %w", err)
 		}
-		e.logger.Printf("Created new objective from  message %s", newObj.Id())
+		e.logger.Printf("Created new objective from message %s", newObj.Id())
 		return newObj, nil
 
 	} else {
@@ -567,6 +568,7 @@ func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.O
 
 // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied payload.
 func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p protocols.ObjectivePayload) (protocols.Objective, error) {
+	e.logger.Printf("Constructing objective %s from message", id)
 	defer e.metrics.RecordFunctionDuration()()
 
 	switch {
