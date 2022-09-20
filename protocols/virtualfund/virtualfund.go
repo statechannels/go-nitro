@@ -150,7 +150,6 @@ func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Add
 			Participants:      []types.Address{myAddress, request.Intermediary, request.CounterParty},
 			ChannelNonce:      request.Nonce,
 			ChallengeDuration: request.ChallengeDuration,
-			AppData:           request.AppData,
 			Outcome:           request.Outcome,
 			TurnNum:           0,
 			IsFinal:           false,
@@ -699,15 +698,21 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 	return sideEffects, nil
 }
 
-// ObjectiveRequest represents a request to create a new virtual funding objective.
-type ObjectiveRequest struct {
+// ObjectiveRequestForVirtualPaymentApp represents a request to create a new virtual funding objective.
+// There is no AppDefinition, since we currently only support full consensus rules for direct channels.
+// There is no Nonce, since the client fills this in.
+type ObjectiveRequestForVirtualPaymentApp struct {
 	Intermediary      types.Address
 	CounterParty      types.Address
-	AppDefinition     types.Address
-	AppData           types.Bytes
 	ChallengeDuration uint32
 	Outcome           outcome.Exit
-	Nonce             uint64
+}
+
+// ObjectiveRequest represents a request to create a new virtual funding objective.
+type ObjectiveRequest struct {
+	ObjectiveRequestForVirtualPaymentApp
+	Nonce         uint64
+	AppDefinition types.Address
 }
 
 // Id returns the objective id for the request.

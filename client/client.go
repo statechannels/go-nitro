@@ -4,6 +4,7 @@ package client // import "github.com/statechannels/go-nitro/client"
 import (
 	"io"
 	"math/big"
+	"math/rand"
 
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -92,7 +93,13 @@ func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
-func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequest) virtualfund.ObjectiveResponse {
+func (c *Client) CreateVirtualChannel(request virtualfund.ObjectiveRequestForVirtualPaymentApp) virtualfund.ObjectiveResponse {
+
+	objectiveRequest := virtualfund.ObjectiveRequest{
+		ObjectiveRequestForVirtualPaymentApp: request,
+		Nonce:                                rand.Uint64(),
+		// AppDefinition implicitly zero TODO https://github.com/statechannels/go-nitro/issues/839
+	}
 
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
@@ -121,7 +128,8 @@ func (c *Client) CreateLedgerChannel(request directfund.ObjectiveRequestForConse
 	objectiveRequest := directfund.ObjectiveRequest{
 		ObjectiveRequestForConsensusApp: request,
 		AppDefinition:                   c.engine.GetConsensusAppAddress(),
-		// Appdata implicitly zero
+		Nonce:                           rand.Uint64(),
+		// Appdata implicitly zero TODO https://github.com/statechannels/go-nitro/issues/839
 	}
 
 	// Send the event to the engine
