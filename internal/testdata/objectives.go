@@ -64,15 +64,15 @@ func genericVFO() virtualfund.Objective {
 	ts.Participants[2] = testactors.Bob.Address()
 
 	request := virtualfund.ObjectiveRequest{
-		ts.Participants[1],
-		ts.Participants[2],
-		ts.AppDefinition,
-		ts.AppData,
-		ts.ChallengeDuration,
-		ts.Outcome,
+		virtualfund.ObjectiveRequestForVirtualPaymentApp{
+			Intermediary:      ts.Participants[1],
+			CounterParty:      ts.Participants[2],
+			ChallengeDuration: ts.ChallengeDuration,
+			Outcome:           ts.Outcome,
+		},
 		ts.ChannelNonce,
+		ts.AppDefinition,
 	}
-
 	ledgerPath := createLedgerPath([]testactors.Actor{
 		testactors.Alice,
 		testactors.Irene,

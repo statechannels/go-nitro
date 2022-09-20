@@ -2,7 +2,6 @@
 package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
-	"math/rand"
 	"testing"
 	"time"
 
@@ -92,15 +91,13 @@ func TestDirectDefund(t *testing.T) {
 
 		// create & virtual channel between A and B through I
 		outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
-		request := virtualfund.ObjectiveRequest{
+		request := virtualfund.ObjectiveRequestForVirtualPaymentApp{
 			CounterParty:      bob.Address(),
 			Intermediary:      irene.Address(),
 			Outcome:           outcome,
-			AppDefinition:     types.Address{},
-			AppData:           types.Bytes{},
 			ChallengeDuration: 0,
-			Nonce:             rand.Uint64(),
 		}
+
 		response := clientA.CreateVirtualChannel(request)
 
 		waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, response.Id)

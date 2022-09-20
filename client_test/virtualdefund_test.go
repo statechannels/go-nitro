@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -178,14 +177,11 @@ func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
 	directlyFundALedgerChannel(t, clientB, clientI)
 
 	outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
-	request := virtualfund.ObjectiveRequest{
+	request := virtualfund.ObjectiveRequestForVirtualPaymentApp{
 		CounterParty:      bob.Address(),
 		Intermediary:      irene.Address(),
 		Outcome:           outcome,
-		AppDefinition:     types.Address{},
-		AppData:           types.Bytes{},
 		ChallengeDuration: 0,
-		Nonce:             rand.Uint64(),
 	}
 	response := clientA.CreateVirtualChannel(request)
 

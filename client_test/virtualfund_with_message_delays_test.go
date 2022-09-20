@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"math/rand"
 	"testing"
 	"time"
 
@@ -53,15 +52,12 @@ func createVirtualChannels(client client.Client, counterParty types.Address, int
 	ids := make([]protocols.ObjectiveId, amountOfChannels)
 	for i := uint(0); i < amountOfChannels; i++ {
 		outcome := td.Outcomes.Create(*client.Address, counterParty, 1, 1)
-		request := virtualfund.ObjectiveRequest{
+		request := virtualfund.ObjectiveRequestForVirtualPaymentApp{
 
 			CounterParty:      counterParty,
 			Intermediary:      intermediary,
 			Outcome:           outcome,
-			AppDefinition:     types.Address{},
-			AppData:           types.Bytes{},
 			ChallengeDuration: 0,
-			Nonce:             rand.Uint64(),
 		}
 
 		ids[i] = client.CreateVirtualChannel(request).Id

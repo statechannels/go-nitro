@@ -2,7 +2,6 @@
 package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
-	"math/rand"
 	"testing"
 	"time"
 
@@ -28,7 +27,6 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 		CounterParty:      *beta.Address,
 		Outcome:           outcome,
 		ChallengeDuration: 0,
-		Nonce:             rand.Uint64(),
 	}
 	response := alpha.CreateLedgerChannel(request)
 
@@ -70,7 +68,6 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 		CounterParty:      bob.Address(),
 		Outcome:           outcome,
 		ChallengeDuration: 0,
-		Nonce:             rand.Uint64(),
 	}
 
 	response := clientA.CreateLedgerChannel(request)

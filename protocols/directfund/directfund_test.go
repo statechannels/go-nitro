@@ -61,7 +61,6 @@ func TestNew(t *testing.T) {
 			CounterParty:      testState.Participants[1],
 			ChallengeDuration: testState.ChallengeDuration,
 			Outcome:           testState.Outcome,
-			Nonce:             0,
 		},
 		AppDefinition: testState.AppDefinition,
 		AppData:       testState.AppData,
