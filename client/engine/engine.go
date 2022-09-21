@@ -28,6 +28,11 @@ type ErrUnhandledChainEvent struct {
 	reason    string
 }
 
+type HandlerReturnValue struct {
+	engineEvent EngineEvent
+	err         error
+}
+
 func (uce *ErrUnhandledChainEvent) Error() string {
 	return fmt.Sprintf("chain event %#v could not be handled by objective %#v due to: %s", uce.event, uce.objective, uce.reason)
 }
@@ -43,6 +48,8 @@ type Engine struct {
 	fromChain  <-chan chainservice.Event
 	fromMsg    <-chan protocols.Message
 	fromLedger chan consensus_channel.Proposal
+
+	fromHandlers chan HandlerReturnValue
 
 	toApi chan EngineEvent
 
@@ -91,6 +98,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	// bind to inbound chans
 	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest)
 	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
+	e.fromHandlers = make(chan HandlerReturnValue, 10)
 
 	e.fromChain = chain.EventFeed()
 	e.fromMsg = msg.Out()
@@ -123,25 +131,19 @@ func (e *Engine) ToApi() <-chan EngineEvent {
 
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
 func (e *Engine) Run() {
+	go e.ListenForHandlerResponses()
 	for {
-		var res EngineEvent
-		var err error
-
 		e.metrics.RecordQueueLength("api_objective_request_queue", len(e.ObjectiveRequestsFromAPI))
 		e.metrics.RecordQueueLength("api_payment_request_queue", len(e.PaymentRequestsFromAPI))
 		e.metrics.RecordQueueLength("chain_events_queue", len(e.fromChain))
 		e.metrics.RecordQueueLength("messages_queue", len(e.fromMsg))
 		e.metrics.RecordQueueLength("proposal_queue", len(e.fromLedger))
+		var err error
+		var res EngineEvent
 
 		select {
 		case or := <-e.ObjectiveRequestsFromAPI:
-			res, err = e.handleObjectiveRequest(or)
-
-			if errors.Is(err, directdefund.ErrNotEmpty) {
-				// communicate failure to client & swallow error
-				e.toApi <- res
-				err = nil
-			}
+			go e.handleObjectiveRequest(or)
 		case pr := <-e.PaymentRequestsFromAPI:
 			err = e.handlePaymentRequest(pr)
 		case chainEvent := <-e.fromChain:
@@ -153,7 +155,14 @@ func (e *Engine) Run() {
 		}
 
 		// Handle errors
+		if errors.Is(err, directdefund.ErrNotEmpty) {
+			// communicate failure to client & swallow error
+			e.toApi <- res
+			err = nil
+		}
+
 		if err != nil {
+
 			e.logger.Panic(fmt.Errorf("%s, error in run loop: %w", e.store.GetAddress(), err))
 			// TODO do not panic if in production.
 			// TODO report errors back to the consuming application
@@ -168,6 +177,35 @@ func (e *Engine) Run() {
 			e.toApi <- res
 		}
 
+	}
+}
+
+func (e *Engine) ListenForHandlerResponses() {
+	for val := range e.fromHandlers {
+		err := val.err
+		res := val.engineEvent
+		// Handle errors
+		if errors.Is(err, directdefund.ErrNotEmpty) {
+			// communicate failure to client & swallow error
+			e.toApi <- res
+			err = nil
+		}
+
+		if err != nil {
+
+			e.logger.Panic(fmt.Errorf("%s, error in run loop: %w", e.store.GetAddress(), err))
+			// TODO do not panic if in production.
+			// TODO report errors back to the consuming application
+		}
+
+		// Only send out an event if there are changes
+		if len(res.CompletedObjectives) > 0 || len(res.FailedObjectives) > 0 || len(res.ReceivedVouchers) > 0 {
+			for _, obj := range res.CompletedObjectives {
+				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
+				e.metrics.RecordObjectiveCompleted(obj.Id())
+			}
+			e.toApi <- res
+		}
 	}
 }
 
@@ -353,30 +391,39 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, e
 
 // handleObjectiveRequest handles an ObjectiveRequest (triggered by a client API call).
 // It will attempt to spawn a new, approved objective.
-func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEvent, error) {
+func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) {
 	defer e.metrics.RecordFunctionDuration()()
 	myAddress := *e.store.GetAddress()
 	objectiveId := or.Id(myAddress)
 	e.metrics.RecordObjectiveStarted(objectiveId)
+
+	var res EngineEvent
+	var err error
 	switch request := or.(type) {
 
 	case virtualfund.ObjectiveRequest:
 		vfo, err := virtualfund.NewObjective(request, true, myAddress, e.store.GetConsensusChannel)
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+			e.fromHandlers <- HandlerReturnValue{EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)}
+			return
 		}
 		// Only Alice or Bob care about registering the objective and keeping track of vouchers
 		if vfo.MyRole == payments.PAYEE_INDEX || vfo.MyRole == payments.PAYER_INDEX {
 			err = e.registerPaymentChannel(vfo)
 			if err != nil {
-				return EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
+				e.fromHandlers <- HandlerReturnValue{EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)}
+				return
 			}
 		}
 
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
+			e.fromHandlers <- HandlerReturnValue{EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)}
+			return
+
 		}
-		return e.attemptProgress(&vfo)
+		res, err = e.attemptProgress(&vfo)
+		e.fromHandlers <- HandlerReturnValue{res, err}
+		return
 
 	case virtualdefund.ObjectiveRequest:
 		minAmount := big.NewInt(0)
@@ -386,30 +433,43 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		}
 		vdfo, err := virtualdefund.NewObjective(request, true, myAddress, minAmount, e.store.GetChannelById, e.store.GetConsensusChannel)
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+			e.fromHandlers <- HandlerReturnValue{EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)}
+			return
 		}
-		return e.attemptProgress(&vdfo)
+		res, err = e.attemptProgress(&vdfo)
+		e.fromHandlers <- HandlerReturnValue{res, err}
+		return
 
 	case directfund.ObjectiveRequest:
 		dfo, err := directfund.NewObjective(request, true, myAddress, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+			err = fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+			e.fromHandlers <- HandlerReturnValue{EngineEvent{}, err}
+			return
 		}
-		return e.attemptProgress(&dfo)
+		res, err = e.attemptProgress(&dfo)
+		e.fromHandlers <- HandlerReturnValue{res, err}
+		return
 
 	case directdefund.ObjectiveRequest:
 		ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
 		if err != nil {
-			return EngineEvent{
+			res, err = EngineEvent{
 				FailedObjectives: []protocols.ObjectiveId{objectiveId},
 			}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+			e.fromHandlers <- HandlerReturnValue{res, err}
+			return
 		}
 		// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 		e.store.DestroyConsensusChannel(request.ChannelId)
-		return e.attemptProgress(&ddfo)
+		res, err = e.attemptProgress(&ddfo)
+		e.fromHandlers <- HandlerReturnValue{res, err}
+		return
 
 	default:
-		return EngineEvent{}, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)
+		res, err = EngineEvent{}, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)
+		e.fromHandlers <- HandlerReturnValue{res, err}
+		return
 	}
 
 }
