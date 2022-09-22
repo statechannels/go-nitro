@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -19,7 +18,6 @@ import (
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
-	"github.com/statechannels/go-nitro/protocols/virtualfund"
 
 	"github.com/statechannels/go-nitro/types"
 )
@@ -178,16 +176,7 @@ func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
 	directlyFundALedgerChannel(t, clientB, clientI)
 
 	outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
-	request := virtualfund.ObjectiveRequest{
-		CounterParty:      bob.Address(),
-		Intermediary:      irene.Address(),
-		Outcome:           outcome,
-		AppDefinition:     types.Address{},
-		AppData:           types.Bytes{},
-		ChallengeDuration: 0,
-		Nonce:             rand.Uint64(),
-	}
-	response := clientA.CreateVirtualChannel(request)
+	response := clientA.CreateVirtualPaymentChannel(irene.Address(), bob.Address(), 0, outcome)
 
 	waitTimeForCompletedObjectiveIds(t, &clientA, time.Second, response.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientB, time.Second, response.Id)

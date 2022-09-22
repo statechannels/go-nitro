@@ -150,7 +150,6 @@ func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Add
 			Participants:      []types.Address{myAddress, request.Intermediary, request.CounterParty},
 			ChannelNonce:      request.Nonce,
 			ChallengeDuration: request.ChallengeDuration,
-			AppData:           request.AppData,
 			Outcome:           request.Outcome,
 			TurnNum:           0,
 			IsFinal:           false,
@@ -703,11 +702,10 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 type ObjectiveRequest struct {
 	Intermediary      types.Address
 	CounterParty      types.Address
-	AppDefinition     types.Address
-	AppData           types.Bytes
 	ChallengeDuration uint32
 	Outcome           outcome.Exit
 	Nonce             uint64
+	AppDefinition     types.Address
 }
 
 // Id returns the objective id for the request.

@@ -4,7 +4,9 @@ package client // import "github.com/statechannels/go-nitro/client"
 import (
 	"io"
 	"math/big"
+	"math/rand"
 
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -92,7 +94,16 @@ func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
-func (c *Client) CreateVirtualChannel(objectiveRequest virtualfund.ObjectiveRequest) virtualfund.ObjectiveResponse {
+func (c *Client) CreateVirtualPaymentChannel(Intermediary, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) virtualfund.ObjectiveResponse {
+
+	objectiveRequest := virtualfund.ObjectiveRequest{
+		Intermediary:      Intermediary,
+		CounterParty:      CounterParty,
+		ChallengeDuration: ChallengeDuration,
+		Outcome:           Outcome,
+		Nonce:             rand.Uint64(),
+		// AppDefinition implicitly zero TODO https://github.com/statechannels/go-nitro/issues/839
+	}
 
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
@@ -116,11 +127,14 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.Obje
 
 // CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
 // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
-func (c *Client) CreateLedgerChannel(request directfund.ObjectiveRequestForConsensusApp) directfund.ObjectiveResponse {
+func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
 
 	objectiveRequest := directfund.ObjectiveRequest{
-		ObjectiveRequestForConsensusApp: request,
-		AppDefinition:                   c.engine.GetConsensusAppAddress(),
+		CounterParty:      Counterparty,
+		ChallengeDuration: ChallengeDuration,
+		Outcome:           outcome,
+		AppDefinition:     c.engine.GetConsensusAppAddress(),
+		Nonce:             rand.Uint64(),
 		// Appdata implicitly zero
 	}
 

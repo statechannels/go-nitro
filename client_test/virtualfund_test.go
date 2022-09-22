@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/statechannels/go-nitro/client"
@@ -9,7 +8,6 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -21,16 +19,8 @@ func openVirtualChannels(t *testing.T, clientA client.Client, clientB client.Cli
 	channelIds := make([]types.Destination, numOfChannels)
 	for i := 0; i < int(numOfChannels); i++ {
 		outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
-		request := virtualfund.ObjectiveRequest{
-			CounterParty:      bob.Address(),
-			Intermediary:      irene.Address(),
-			Outcome:           outcome,
-			AppDefinition:     types.Address{},
-			AppData:           types.Bytes{},
-			ChallengeDuration: 0,
-			Nonce:             rand.Uint64(),
-		}
-		response := clientA.CreateVirtualChannel(request)
+		response := clientA.CreateVirtualPaymentChannel(irene.Address(), bob.Address(), 0, outcome)
+
 		objectiveIds[i] = response.Id
 		channelIds[i] = response.ChannelId
 	}
