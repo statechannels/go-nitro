@@ -159,3 +159,67 @@ func DeserializeMessage(s string) (Message, error) {
 
 	return msg, err
 }
+
+// MessageSummary is a summary of a message suitable for logging.
+type MessageSummary struct {
+	To               string
+	PayloadSummaries []ObjectivePayloadSummary
+
+	ProposalSummaries []ProposalSummary
+
+	Payments []PaymentSummary
+	// RejectedObjectives is a collection of objectives that have been rejected.
+	RejectedObjectives []string
+}
+
+// ObjectivePayloadSummary is a summary of an objective payload suitable for logging.
+type ObjectivePayloadSummary struct {
+	ObjectiveId     string
+	Type            string
+	PayloadDataSize int
+}
+
+// ProposalSummary is a summary of a proposal suitable for logging.
+type ProposalSummary struct {
+	ObjectiveId  string
+	LedgerId     string
+	ProposalType string
+	TurnNum      uint64
+}
+
+// PaymentSummary is a summary of a payment voucher suitable for logging.
+type PaymentSummary struct {
+	Amount    uint64
+	ChannelId string
+}
+
+// Summarize returns a MessageSummary for the message that is suitable for logging
+func (m Message) Summarize() MessageSummary {
+	s := MessageSummary{}
+	s.To = m.To.String()
+
+	s.PayloadSummaries = make([]ObjectivePayloadSummary, len(m.ObjectivePayloads))
+	for i, p := range m.ObjectivePayloads {
+		s.PayloadSummaries[i] = ObjectivePayloadSummary{ObjectiveId: string(p.ObjectiveId), Type: string(p.Type), PayloadDataSize: len(p.PayloadData)}
+	}
+
+	s.ProposalSummaries = make([]ProposalSummary, len(m.LedgerProposals))
+	for i, p := range m.SortedProposals() {
+		s.ProposalSummaries[i] = ProposalSummary{
+			ObjectiveId:  string(GetProposalObjectiveId(p.Proposal)),
+			LedgerId:     p.ChannelID().String(),
+			TurnNum:      p.TurnNum,
+			ProposalType: string(p.Proposal.Type())}
+	}
+
+	s.Payments = make([]PaymentSummary, len(m.Payments))
+	for i, p := range m.Payments {
+		s.Payments[i] = PaymentSummary{Amount: p.Amount.Uint64(), ChannelId: p.ChannelId.String()}
+	}
+
+	s.RejectedObjectives = make([]string, len(m.RejectedObjectives))
+	for i, o := range m.RejectedObjectives {
+		s.RejectedObjectives[i] = string(o)
+	}
+	return s
+}
