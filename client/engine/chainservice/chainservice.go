@@ -72,4 +72,6 @@ type ChainService interface {
 	SendTransaction(protocols.ChainTransaction) error
 	// GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
 	GetConsensusAppAddress() types.Address
+	// GetVirtualPaymentAppAddress returns the address of a deployed VirtualPaymentApp
+	GetVirtualPaymentAppAddress() types.Address
 }

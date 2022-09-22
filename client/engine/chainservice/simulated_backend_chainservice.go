@@ -13,6 +13,7 @@ import (
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	ConsensusApp "github.com/statechannels/go-nitro/client/engine/chainservice/consensusapp"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
+	VirtualPaymentApp "github.com/statechannels/go-nitro/client/engine/chainservice/virtualpaymentapp"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -25,9 +26,10 @@ type binding[T any] struct {
 }
 
 type bindings struct {
-	Adjudicator  binding[NitroAdjudicator.NitroAdjudicator]
-	Token        binding[Token.Token]
-	ConsensusApp binding[ConsensusApp.ConsensusApp]
+	Adjudicator       binding[NitroAdjudicator.NitroAdjudicator]
+	Token             binding[Token.Token]
+	ConsensusApp      binding[ConsensusApp.ConsensusApp]
+	VirtualPaymentApp binding[VirtualPaymentApp.VirtualPaymentApp]
 }
 
 type simulatedChain interface {
@@ -49,6 +51,7 @@ func NewSimulatedBackendChainService(sim simulatedChain, bindings bindings,
 		bindings.Adjudicator.Contract,
 		bindings.Adjudicator.Address,
 		bindings.ConsensusApp.Address,
+		bindings.VirtualPaymentApp.Address,
 		txSigner,
 		logDestination)
 
@@ -106,6 +109,12 @@ func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, bind
 		return nil, contractBindings, accounts, err
 	}
 
+	// Deploy VirtualPaymentChannelApp
+	virtualPaymentAppAddress, _, vpa, err := VirtualPaymentApp.DeployVirtualPaymentApp(accounts[0], sim)
+	if err != nil {
+		return nil, contractBindings, accounts, err
+	}
+
 	// Deploy a test ERC20 Token Contract
 	tokenAddress, _, tokenBinding, err := Token.DeployToken(accounts[0], sim, accounts[0].From)
 	if err != nil {
@@ -113,9 +122,10 @@ func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, bind
 	}
 
 	contractBindings = bindings{
-		Adjudicator:  binding[NitroAdjudicator.NitroAdjudicator]{naAddress, na},
-		Token:        binding[Token.Token]{tokenAddress, tokenBinding},
-		ConsensusApp: binding[ConsensusApp.ConsensusApp]{consensusAppAddress, ca},
+		Adjudicator:       binding[NitroAdjudicator.NitroAdjudicator]{naAddress, na},
+		Token:             binding[Token.Token]{tokenAddress, tokenBinding},
+		ConsensusApp:      binding[ConsensusApp.ConsensusApp]{consensusAppAddress, ca},
+		VirtualPaymentApp: binding[VirtualPaymentApp.VirtualPaymentApp]{virtualPaymentAppAddress, vpa},
 	}
 	sim.Commit()
 	return sim, contractBindings, accounts, nil
@@ -123,4 +133,9 @@ func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, bind
 
 func (sbcs *SimulatedBackendChainService) GetConsensusAppAddress() types.Address {
 	return sbcs.consensusAppAddress
+}
+
+// GetVirtualPaymentAppAddress returns the address of a deployed VirtualPaymentApp
+func (sbcs *SimulatedBackendChainService) GetVirtualPaymentAppAddress() types.Address {
+	return sbcs.virtualPaymentAppAddress
 }

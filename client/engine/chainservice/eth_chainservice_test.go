@@ -53,12 +53,15 @@ func TestEthChainService(t *testing.T) {
 	txSubmitter.GasLimit = uint64(300000) // in units
 
 	naAddress := common.HexToAddress("0x52dfe327D871A85f1AB0252A6ac67DBBFb7A2A2F")
+	caAddress := common.Address{}  // TODO use proper address
+	vpaAddress := common.Address{} // TODO use proper address
+
 	na, err := NitroAdjudicator.NewNitroAdjudicator(naAddress, client)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cs, err := NewEthChainService(client, na, naAddress, common.Address{}, txSubmitter, NoopLogger{})
+	cs, err := NewEthChainService(client, na, naAddress, caAddress, vpaAddress, txSubmitter, NoopLogger{})
 	if err != nil {
 		t.Fatal(err)
 	}
