@@ -127,13 +127,15 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.Obje
 
 // CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
 // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
-func (c *Client) CreateLedgerChannel(request directfund.ObjectiveRequestForConsensusApp) directfund.ObjectiveResponse {
+func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
 
 	objectiveRequest := directfund.ObjectiveRequest{
-		ObjectiveRequestForConsensusApp: request,
-		AppDefinition:                   c.engine.GetConsensusAppAddress(),
-		Nonce:                           rand.Uint64(),
-		// Appdata implicitly zero TODO https://github.com/statechannels/go-nitro/issues/839
+		CounterParty:      Counterparty,
+		ChallengeDuration: ChallengeDuration,
+		Outcome:           outcome,
+		AppDefinition:     c.engine.GetConsensusAppAddress(),
+		Nonce:             rand.Uint64(),
+		// Appdata implicitly zero
 	}
 
 	// Send the event to the engine

@@ -13,7 +13,6 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -22,13 +21,7 @@ const ledgerChannelDeposit = 5_000_000
 func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client) types.Destination {
 	// Set up an outcome that requires both participants to deposit
 	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, ledgerChannelDeposit, ledgerChannelDeposit)
-
-	request := directfund.ObjectiveRequestForConsensusApp{
-		CounterParty:      *beta.Address,
-		Outcome:           outcome,
-		ChallengeDuration: 0,
-	}
-	response := alpha.CreateLedgerChannel(request)
+	response := alpha.CreateLedgerChannel(*beta.Address, 0, outcome)
 
 	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, response.Id)
 	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, response.Id)
@@ -63,14 +56,7 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 	}
 
 	outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), ledgerChannelDeposit, ledgerChannelDeposit)
-
-	request := directfund.ObjectiveRequestForConsensusApp{
-		CounterParty:      bob.Address(),
-		Outcome:           outcome,
-		ChallengeDuration: 0,
-	}
-
-	response := clientA.CreateLedgerChannel(request)
+	response := clientA.CreateLedgerChannel(bob.Address(), 0, outcome)
 
 	waitTimeForCompletedObjectiveIds(t, &clientA, time.Second, response.Id)
 
