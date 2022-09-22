@@ -193,7 +193,7 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 //   - attempts progress on related objectives which may have become unblocked.
 func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
-	e.logger.Printf("Handling incoming message: %+v", message.Summarize())
+	e.logMessage(message, Incoming)
 	allCompleted := EngineEvent{}
 
 	for _, payload := range message.ObjectivePayloads {
@@ -446,7 +446,7 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	defer e.metrics.RecordFunctionDuration()()
 
 	for _, message := range sideEffects.MessagesToSend {
-		e.logger.Printf("sending message %+v", message.Summarize())
+		e.logMessage(message, Outgoing)
 		e.msg.Send(message)
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
@@ -647,4 +647,22 @@ func (e *Engine) GetConsensusAppAddress() types.Address {
 // GetVirtualPaymentAppAddress returns the address of a deployed VirtualPaymentApp
 func (e *Engine) GetVirtualPaymentAppAddress() types.Address {
 	return e.chain.GetVirtualPaymentAppAddress()
+}
+
+type messageDirection string
+
+const (
+	Incoming messageDirection = "Incoming"
+	Outgoing messageDirection = "Outgoing"
+)
+
+// logMessage logs a message to the engine's logger
+func (e *Engine) logMessage(msg protocols.Message, direction messageDirection) {
+	defer e.metrics.RecordFunctionDuration()()
+
+	if direction == Incoming {
+		e.logger.Printf("Receiving message %+v", msg.Summarize())
+	} else {
+		e.logger.Printf("Sending message %+v", msg.Summarize())
+	}
 }
