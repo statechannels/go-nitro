@@ -102,7 +102,7 @@ func (c *Client) CreateVirtualPaymentChannel(Intermediary, CounterParty types.Ad
 		ChallengeDuration: ChallengeDuration,
 		Outcome:           Outcome,
 		Nonce:             rand.Uint64(),
-		// AppDefinition implicitly zero TODO https://github.com/statechannels/go-nitro/issues/839
+		AppDefinition:     c.engine.GetVirtualPaymentAppAddress(),
 	}
 
 	// Send the event to the engine
