@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"math/rand"
 
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -93,11 +94,14 @@ func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
-func (c *Client) CreateVirtualChannel(request virtualfund.ObjectiveRequestForVirtualPaymentApp) virtualfund.ObjectiveResponse {
+func (c *Client) CreateVirtualPaymentChannel(Intermediary, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) virtualfund.ObjectiveResponse {
 
 	objectiveRequest := virtualfund.ObjectiveRequest{
-		ObjectiveRequestForVirtualPaymentApp: request,
-		Nonce:                                rand.Uint64(),
+		Intermediary:      Intermediary,
+		CounterParty:      CounterParty,
+		ChallengeDuration: ChallengeDuration,
+		Outcome:           Outcome,
+		Nonce:             rand.Uint64(),
 		// AppDefinition implicitly zero TODO https://github.com/statechannels/go-nitro/issues/839
 	}
 

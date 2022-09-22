@@ -7,7 +7,6 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -39,15 +38,7 @@ func TestPayments(t *testing.T) {
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)
 	outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 100, 100)
-	request := virtualfund.ObjectiveRequestForVirtualPaymentApp{
-
-		CounterParty:      bob.Address(),
-		Intermediary:      irene.Address(),
-		Outcome:           outcome,
-		ChallengeDuration: 0,
-	}
-
-	r := clientA.CreateVirtualChannel(request)
+	r := clientA.CreateVirtualPaymentChannel(irene.Address(), bob.Address(), 0, outcome)
 
 	ids := []protocols.ObjectiveId{r.Id}
 
