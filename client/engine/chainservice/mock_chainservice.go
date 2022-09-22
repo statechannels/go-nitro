@@ -42,6 +42,11 @@ func (mc *MockChainService) GetConsensusAppAddress() types.Address {
 	return types.Address{}
 }
 
+// GetVirtualPaymentAppAddress returns the zero address, since the mock chain will not run any application logic.
+func (mc *MockChainService) GetVirtualPaymentAppAddress() types.Address {
+	return types.Address{}
+}
+
 func (mc *MockChainService) EventFeed() <-chan Event {
 	return mc.eventFeed
 }

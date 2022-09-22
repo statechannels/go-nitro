@@ -27,23 +27,24 @@ type ethChain interface {
 }
 
 type EthChainService struct {
-	chain               ethChain
-	na                  *NitroAdjudicator.NitroAdjudicator
-	naAddress           common.Address
-	consensusAppAddress common.Address
-	txSigner            *bind.TransactOpts
-	out                 chan Event
-	logger              *log.Logger
+	chain                    ethChain
+	na                       *NitroAdjudicator.NitroAdjudicator
+	naAddress                common.Address
+	consensusAppAddress      common.Address
+	virtualPaymentAppAddress common.Address
+	txSigner                 *bind.TransactOpts
+	out                      chan Event
+	logger                   *log.Logger
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
 func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
-	naAddress common.Address, caAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer) (*EthChainService, error) {
+	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer) (*EthChainService, error) {
 	logPrefix := "chainservice " + txSigner.From.String() + ": "
 	logger := log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, txSigner, make(chan Event, 10), logger}
+	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger}
 
 	err := ecs.subcribeToEvents()
 	return &ecs, err
@@ -181,4 +182,8 @@ func (ecs *EthChainService) EventFeed() <-chan Event {
 
 func (ecs *EthChainService) GetConsensusAppAddress() types.Address {
 	return ecs.consensusAppAddress
+}
+
+func (ecs *EthChainService) GetVirtualPaymentAppAddress() types.Address {
+	return ecs.virtualPaymentAppAddress
 }

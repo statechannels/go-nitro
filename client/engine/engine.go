@@ -641,3 +641,8 @@ func getProposalObjectiveId(p consensus_channel.Proposal) protocols.ObjectiveId 
 func (e *Engine) GetConsensusAppAddress() types.Address {
 	return e.chain.GetConsensusAppAddress()
 }
+
+// GetVirtualPaymentAppAddress returns the address of a deployed VirtualPaymentApp
+func (e *Engine) GetVirtualPaymentAppAddress() types.Address {
+	return e.chain.GetVirtualPaymentAppAddress()
+}
