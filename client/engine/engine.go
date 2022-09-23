@@ -207,13 +207,6 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 	return e.attemptProgress(obj)
 }
 
-// handleMessageAsync is an async wrapper for e.handleMessage; the return value is sent on the e.fromHandlers chan.
-
-func (e *Engine) handleMessageAsync(message protocols.Message) {
-	res, err := e.handleMessage(message)
-	e.fromHandlers <- HandlerReturnValue{res, err}
-}
-
 // handleMessage handles a Message from a peer go-nitro Wallet.
 // It:
 //   - reads an objective from the store,
