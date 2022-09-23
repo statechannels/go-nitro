@@ -18,7 +18,7 @@ jobs:
         with:
           repository: 'statechannels/go-nitro-testground'
           path: "code/go-nitro-testground"
-          ref: update-to-main #TODO Remove when https://github.com/statechannels/go-nitro-testground/pull/103 is merged
+          ref: main
       
       # Set up caching for docker (which testground uses) and go modules
       - uses: actions/cache@v3
