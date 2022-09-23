@@ -58,6 +58,24 @@ jobs:
          -tp=paymentTestDuration=30  -tp=concurrentPaymentJobs=1 \
           --metadata-repo "${{github.repository}}" \
           --metadata-branch "${{github.ref}}" \
-          --metadata-commit "${{github.sha}}" 
-
-      
+          --metadata-commit "${{github.sha}}"  | tee run.out
+      - name: Get Id
+        id: get_id
+        run: | 
+         echo "::set-output name=RUN_ID::$(awk '/run is queued with ID/ {print $10}' <run.out)"
+      - name: Find Comment
+        uses: peter-evans/find-comment@v2
+        id: fc
+        with:
+         issue-number: ${{ github.event.pull_request.number }}
+         comment-author: 'github-actions[bot]'
+         body-includes: Dashboard Link
+      - name: Update comment
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            Dashboard link
+            http://34.168.92.245:3000/d/miulKz7Vk/message-stats?orgId=1&var-runId=${{steps.get_id.outputs.RUN_ID}}&from=now-5m&to=now
+          edit-mode: replace
