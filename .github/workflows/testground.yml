@@ -31,6 +31,10 @@ jobs:
             ${{ runner.os }}-go-
       - uses: satackey/action-docker-layer-caching@v0.0.11
         continue-on-error: true
+        with:
+          key: docker-cache-{hash}
+          restore-keys: |
+           docker-cache-
 
       # Build the testground daemon
       - name: Build
