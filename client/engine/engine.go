@@ -151,7 +151,7 @@ func (e *Engine) Run() {
 		case or := <-e.ObjectiveRequestsFromAPI:
 			go runAsync(e.handleObjectiveRequest, or, e.fromHandlers)
 		case pr := <-e.PaymentRequestsFromAPI:
-			runAsync(e.handlePaymentRequest, pr, e.fromHandlers)
+			go runAsync(e.handlePaymentRequest, pr, e.fromHandlers)
 		case chainEvent := <-e.fromChain:
 			runAsync(e.handleChainEvent, chainEvent, e.fromHandlers)
 		case message := <-e.fromMsg:
