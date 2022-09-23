@@ -51,6 +51,9 @@ jobs:
          -p=go-nitro-testground -t=virtual-payment \
          -b=docker:go -r=local:docker \
          -tp=numOfHubs=2 -tp=numOfPayers=2 -tp=numOfPayees=2  -i=6 \
-         -tp=paymentTestDuration=60  -tp=concurrentPaymentJobs=1
+         -tp=paymentTestDuration=60  -tp=concurrentPaymentJobs=1 \
+          --metadata-repo "${{github.repository}}" \
+          --metadata-branch "${{github.ref_name}}" \
+          --metadata-commit "${{github.sha}}" 
 
       
