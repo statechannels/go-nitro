@@ -157,7 +157,7 @@ func (e *Engine) Run() {
 		case message := <-e.fromMsg:
 			runAsync(e.handleMessage, message, e.fromHandlers) // TODO run this in a goroutine
 		case proposal := <-e.fromLedger:
-			runAsync(e.handleProposal, proposal, e.fromHandlers)
+			go runAsync(e.handleProposal, proposal, e.fromHandlers)
 		}
 
 	}
