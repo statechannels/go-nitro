@@ -63,6 +63,10 @@ jobs:
         id: get_id
         run: | 
          echo "::set-output name=RUN_ID::$(awk '/run is queued with ID/ {print $10}' <run.out)"
+      - name: Set Time
+        id: set_time
+        run: | 
+         echo "::set-output name=DONE_TIME::$(date +%s)"
       - name: Find dashboard links comment
         uses: peter-evans/find-comment@v2
         id: fc
@@ -80,8 +84,8 @@ jobs:
             ## Run Id
             ${{steps.get_id.outputs.RUN_ID}}
             ## Grafana Dashboard Links
-            - [Message Stats](http://34.168.92.245:3000/d/miulKz7Vk/message-stats?orgId=1&var-runId=${{steps.get_id.outputs.RUN_ID}}&from=now-2m&to=now)
-            - [Time to First Payment](http://34.168.92.245:3000/d/5OBBeW37k/time-to-first-payment?orgId=1&var-runId=${{steps.get_id.outputs.RUN_ID}}&from=now-2m&to=now)
+            - [Message Stats](http://34.168.92.245:3000/d/miulKz7Vk/message-stats?orgId=1&var-runId=${{steps.get_id.outputs.RUN_ID}}&from=${{steps.set_time.outputs.DONE_TIME}}-1m&to=${{steps.set_time.outputs.DONE_TIME}})
+            - [Time to First Payment](http://34.168.92.245:3000/d/5OBBeW37k/time-to-first-payment?orgId=1&var-runId=${{steps.get_id.outputs.RUN_ID}}&from=${{steps.set_time.outputs.DONE_TIME}}-1m&to=${{steps.set_time.outputs.DONE_TIME}})
             ## Testground Links
             - [Logs](http://34.168.92.245:8042/logs?task_id=${{steps.get_id.outputs.RUN_ID}})
             - [Output download](http://34.168.92.245:8042/outputs?run_id=${{steps.get_id.outputs.RUN_ID}})
