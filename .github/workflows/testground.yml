@@ -49,6 +49,7 @@ jobs:
         run:    testground plan import --from ./go-nitro-testground
         working-directory: "code"
 
+      # Set the start time for the dashboard time range
       - name: Set Start Time
         id: set_start_time
         run: | 
@@ -64,34 +65,39 @@ jobs:
           --metadata-repo "${{github.repository}}" \
           --metadata-branch "${{github.ref}}" \
           --metadata-commit "${{github.sha}}"  | tee run.out
-      - name: Get Id
-        id: get_id
+
+      # Parse the run id from the testground run output
+      - name: Set Run Id
+        id: set_run_id
         run: | 
          echo "::set-output name=RUN_ID::$(awk '/run is queued with ID/ {print $10}' <run.out)"
+      # Set the end time for the dashboard time range
       - name: Set Done Time
         id: set_done_time
         run: | 
          echo "::set-output name=DONE_TIME::$((`date '+%s'`*1000))"
+      
+      # Look for an existing comment from the bot and update it 
       - name: Find dashboard links comment
         uses: peter-evans/find-comment@v2
-        id: fc
+        id: find-comment
         with:
          issue-number: ${{ github.event.pull_request.number }}
          comment-author: 'github-actions[bot]'
-         body-includes: Dashboard Links
+         body-includes: Testground Run
       - name: Update dashboard links comment
         uses: peter-evans/create-or-update-comment@v2
         with:
-          comment-id: ${{ steps.fc.outputs.comment-id }}
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             # 🧪Testground Run🧪
             ## Run Id
-            ${{steps.get_id.outputs.RUN_ID}}
+            ${{steps.set_run_id.outputs.RUN_ID}}
             ## Grafana Dashboard Links
-            - [Message Stats](http://34.168.92.245:3000/d/miulKz7Vk/message-stats?orgId=1&var-runId=${{steps.get_id.outputs.RUN_ID}}&from=${{steps.set_start_time.outputs.START_TIME}}&to=${{steps.set_done_time.outputs.DONE_TIME}})
-            - [Time to First Payment](http://34.168.92.245:3000/d/5OBBeW37k/time-to-first-payment?orgId=1&var-runId=${{steps.get_id.outputs.RUN_ID}}&from=${{steps.set_start_time.outputs.START_TIME}}&to=${{steps.set_done_time.outputs.DONE_TIME}})
+            - [Message Stats](http://34.168.92.245:3000/d/miulKz7Vk/message-stats?orgId=1&var-runId=${{steps.set_run_id.outputs.RUN_ID}}&from=${{steps.set_start_time.outputs.START_TIME}}&to=${{steps.set_done_time.outputs.DONE_TIME}})
+            - [Time to First Payment](http://34.168.92.245:3000/d/5OBBeW37k/time-to-first-payment?orgId=1&var-runId=${{steps.set_run_id.outputs.RUN_ID}}&from=${{steps.set_start_time.outputs.START_TIME}}&to=${{steps.set_done_time.outputs.DONE_TIME}})
             ## Testground Links
-            - [Logs](http://34.168.92.245:8042/logs?task_id=${{steps.get_id.outputs.RUN_ID}})
-            - [Output download](http://34.168.92.245:8042/outputs?run_id=${{steps.get_id.outputs.RUN_ID}})
+            - [Logs](http://34.168.92.245:8042/logs?task_id=${{steps.set_run_id.outputs.RUN_ID}})
+            - [Output download](http://34.168.92.245:8042/outputs?run_id=${{steps.set_run_id.outputs.RUN_ID}})
           edit-mode: replace
