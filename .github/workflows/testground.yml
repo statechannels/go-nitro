@@ -63,9 +63,9 @@ jobs:
          -b=docker:go -r=local:docker \
          -tp=numOfHubs=2 -tp=numOfPayers=2 -tp=numOfPayees=2  -i=6 \
          -tp=paymentTestDuration=30  -tp=concurrentPaymentJobs=1 \
-          --metadata-repo "${{github.repository}}" \
-          --metadata-branch "${{github.event.pull_request.head.ref}}" \
-          --metadata-commit "${{github.event.pull_request.head.sha}}"  | tee run.out
+         --metadata-repo "${{github.repository}}" \
+         --metadata-branch "${{github.event.pull_request.head.ref}}" \
+         --metadata-commit "${{github.event.pull_request.head.sha}}"  | tee run.out
           
       # Parse the run id from the testground run output
       - name: Set Run Id
