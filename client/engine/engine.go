@@ -147,17 +147,18 @@ func (e *Engine) Run() {
 		e.metrics.RecordQueueLength("messages_queue", len(e.fromMsg))
 		e.metrics.RecordQueueLength("proposal_queue", len(e.fromLedger))
 
+		// TODO the engine cannot currently cope with running handlers asynchronously, so we omit the "go" keyword from most of them:
 		select {
 		case or := <-e.ObjectiveRequestsFromAPI:
 			go runAsync(e.handleObjectiveRequest, or, e.fromHandlers)
 		case pr := <-e.PaymentRequestsFromAPI:
-			go runAsync(e.handlePaymentRequest, pr, e.fromHandlers)
+			runAsync(e.handlePaymentRequest, pr, e.fromHandlers)
 		case chainEvent := <-e.fromChain:
-			go runAsync(e.handleChainEvent, chainEvent, e.fromHandlers)
+			runAsync(e.handleChainEvent, chainEvent, e.fromHandlers)
 		case message := <-e.fromMsg:
-			runAsync(e.handleMessage, message, e.fromHandlers) // TODO run this in a goroutine
+			runAsync(e.handleMessage, message, e.fromHandlers)
 		case proposal := <-e.fromLedger:
-			go runAsync(e.handleProposal, proposal, e.fromHandlers)
+			runAsync(e.handleProposal, proposal, e.fromHandlers)
 		}
 
 	}
