@@ -1,0 +1,59 @@
+name: Run Testground
+
+on:
+  pull_request:
+jobs:
+  run-testground:
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: "^1.19.0"
+      # Get testground and our test plan code
+      - uses: actions/checkout@v3
+        with:
+         repository: 'statechannels/testground'
+         path: "code/testground"
+      - uses: actions/checkout@v3
+        with:
+          repository: 'statechannels/go-nitro-testground'
+          path: "code/go-nitro-testground"
+          ref: main
+      
+      # Set up caching for docker (which testground uses) and go modules
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - uses: satackey/action-docker-layer-caching@v0.0.11
+        continue-on-error: true
+
+      # Build the testground daemon
+      - name: Build
+        run: make goinstall docker-testground
+        working-directory: "code/testground"
+      # Update our test plan so it uses the version of go-nitro from this workflow
+      - name: Update Test Dependency
+        run: go get github.com/statechannels/go-nitro@${{github.event.pull_request.head.sha}}
+        working-directory: "code/go-nitro-testground"
+
+      - name: Import Test 
+        run:    testground plan import --from ./go-nitro-testground
+        working-directory: "code"
+      # Run a short test using the wait flag so we block until it completes
+      - name: Run Test 
+        run: | 
+         testground --endpoint=http://34.168.92.245:8042  run s --wait \
+         -p=go-nitro-testground -t=virtual-payment \
+         -b=docker:go -r=local:docker \
+         -tp=numOfHubs=2 -tp=numOfPayers=2 -tp=numOfPayees=2  -i=6 \
+         -tp=paymentTestDuration=30  -tp=concurrentPaymentJobs=1 \
+          --metadata-repo "${{github.repository}}" \
+          --metadata-branch "${{github.ref}}" \
+          --metadata-commit "${{github.sha}}" 
+
+      
