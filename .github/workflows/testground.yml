@@ -34,7 +34,7 @@ jobs:
 
       # Build the testground daemon
       - name: Build
-        run: make install
+        run: make goinstall docker-testground
         working-directory: "code/testground"
       # Update our test plan so it uses the version of go-nitro from this workflow
       - name: Update Test Dependency
