@@ -52,7 +52,7 @@ jobs:
       - name: Set Start Time
         id: set_start_time
         run: | 
-         echo "::set-output name=START_TIME::$(date +%s)"
+         echo "::set-output name=START_TIME::$((`date '+%s'`*1000))"
       # Run a short test using the wait flag so we block until it completes
       - name: Run Test 
         run: | 
@@ -71,7 +71,7 @@ jobs:
       - name: Set Done Time
         id: set_done_time
         run: | 
-         echo "::set-output name=DONE_TIME::$(date +%s)"
+         echo "::set-output name=DONE_TIME::$((`date '+%s'`*1000))"
       - name: Find dashboard links comment
         uses: peter-evans/find-comment@v2
         id: fc
