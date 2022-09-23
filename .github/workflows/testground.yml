@@ -100,4 +100,4 @@ jobs:
             ## Testground Links
             - [Logs](http://34.168.92.245:8042/logs?task_id=${{steps.set_run_id.outputs.RUN_ID}})
             - [Output download](http://34.168.92.245:8042/outputs?run_id=${{steps.set_run_id.outputs.RUN_ID}})
-          edit-mode: replace
+          edit-mode: append
