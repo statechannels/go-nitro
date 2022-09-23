@@ -48,6 +48,11 @@ jobs:
       - name: Import Test 
         run:    testground plan import --from ./go-nitro-testground
         working-directory: "code"
+
+      - name: Set Start Time
+        id: set_start_time
+        run: | 
+         echo "::set-output name=START_TIME::$(date +%s)"
       # Run a short test using the wait flag so we block until it completes
       - name: Run Test 
         run: | 
@@ -63,8 +68,8 @@ jobs:
         id: get_id
         run: | 
          echo "::set-output name=RUN_ID::$(awk '/run is queued with ID/ {print $10}' <run.out)"
-      - name: Set Time
-        id: set_time
+      - name: Set Done Time
+        id: set_done_time
         run: | 
          echo "::set-output name=DONE_TIME::$(date +%s)"
       - name: Find dashboard links comment
@@ -84,8 +89,8 @@ jobs:
             ## Run Id
             ${{steps.get_id.outputs.RUN_ID}}
             ## Grafana Dashboard Links
-            - [Message Stats](http://34.168.92.245:3000/d/miulKz7Vk/message-stats?orgId=1&var-runId=${{steps.get_id.outputs.RUN_ID}}&from=${{steps.set_time.outputs.DONE_TIME}}-1m&to=${{steps.set_time.outputs.DONE_TIME}})
-            - [Time to First Payment](http://34.168.92.245:3000/d/5OBBeW37k/time-to-first-payment?orgId=1&var-runId=${{steps.get_id.outputs.RUN_ID}}&from=${{steps.set_time.outputs.DONE_TIME}}-1m&to=${{steps.set_time.outputs.DONE_TIME}})
+            - [Message Stats](http://34.168.92.245:3000/d/miulKz7Vk/message-stats?orgId=1&var-runId=${{steps.get_id.outputs.RUN_ID}}&from=${{steps.set_start_time.outputs.START_TIME}}&to=${{steps.set_done_time.outputs.DONE_TIME}})
+            - [Time to First Payment](http://34.168.92.245:3000/d/5OBBeW37k/time-to-first-payment?orgId=1&var-runId=${{steps.get_id.outputs.RUN_ID}}&from=${{steps.set_start_time.outputs.START_TIME}}&to=${{steps.set_done_time.outputs.DONE_TIME}})
             ## Testground Links
             - [Logs](http://34.168.92.245:8042/logs?task_id=${{steps.get_id.outputs.RUN_ID}})
             - [Output download](http://34.168.92.245:8042/outputs?run_id=${{steps.get_id.outputs.RUN_ID}})
