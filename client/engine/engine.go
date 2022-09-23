@@ -153,7 +153,7 @@ func (e *Engine) Run() {
 		case pr := <-e.PaymentRequestsFromAPI:
 			go runAsync(e.handlePaymentRequest, pr, e.fromHandlers)
 		case chainEvent := <-e.fromChain:
-			runAsync(e.handleChainEvent, chainEvent, e.fromHandlers)
+			go runAsync(e.handleChainEvent, chainEvent, e.fromHandlers)
 		case message := <-e.fromMsg:
 			runAsync(e.handleMessage, message, e.fromHandlers) // TODO run this in a goroutine
 		case proposal := <-e.fromLedger:
