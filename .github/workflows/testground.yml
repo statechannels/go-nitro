@@ -105,4 +105,4 @@ jobs:
         uses: saadmk11/comment-webpage-screenshot@main
         with:
           capture_changed_html_files: no
-          capture_urls: 'http://demo:demo@34.168.92.245:3000/d/miulKz7Vk/message-stats?orgId=1&var-runId=${{steps.set_run_id.outputs.RUN_ID}}&from=${{steps.set_start_time.outputs.START_TIME}}&to=${{steps.set_done_time.outputs.DONE_TIME}},http://demo:demo@34.168.92.245:3000/d/5OBBeW37k/time-to-first-payment?orgId=1&var-runId=${{steps.set_run_id.outputs.RUN_ID}}&from=${{steps.set_start_time.outputs.START_TIME}}&to=${{steps.set_done_time.outputs.DONE_TIME}}'
+          capture_urls: 'http://34.168.92.245:3000/d/miulKz7Vk/message-stats?orgId=1&var-runId=${{steps.set_run_id.outputs.RUN_ID}}&from=${{steps.set_start_time.outputs.START_TIME}}&to=${{steps.set_done_time.outputs.DONE_TIME}},http://34.168.92.245:3000/d/5OBBeW37k/time-to-first-payment?orgId=1&var-runId=${{steps.set_run_id.outputs.RUN_ID}}&from=${{steps.set_start_time.outputs.START_TIME}}&to=${{steps.set_done_time.outputs.DONE_TIME}}'
