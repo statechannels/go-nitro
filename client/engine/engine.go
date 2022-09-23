@@ -28,6 +28,11 @@ type ErrUnhandledChainEvent struct {
 	reason    string
 }
 
+type HandlerReturnValue struct {
+	EngineEvent
+	error
+}
+
 func (uce *ErrUnhandledChainEvent) Error() string {
 	return fmt.Sprintf("chain event %#v could not be handled by objective %#v due to: %s", uce.event, uce.objective, uce.reason)
 }
@@ -43,6 +48,8 @@ type Engine struct {
 	fromChain  <-chan chainservice.Event
 	fromMsg    <-chan protocols.Message
 	fromLedger chan consensus_channel.Proposal
+
+	fromHandlers chan HandlerReturnValue
 
 	toApi chan EngineEvent
 
@@ -100,6 +107,8 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	e.toApi = make(chan EngineEvent, 100)
 
+	e.fromHandlers = make(chan HandlerReturnValue, 100)
+
 	// initialize a Logger
 	logPrefix := e.store.GetAddress().String()[0:8] + ": "
 	e.logger = log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
@@ -121,11 +130,16 @@ func (e *Engine) ToApi() <-chan EngineEvent {
 	return e.toApi
 }
 
+// runAsync can be used to run a handler asychronously in the sense that the passed handler function will be called with the passed args and then have its return value sent on the passed chan instead of returned.
+func runAsync[p any](h func(p) (EngineEvent, error), args p, c chan HandlerReturnValue) {
+	res, err := h(args)
+	c <- HandlerReturnValue{res, err}
+}
+
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
 func (e *Engine) Run() {
+	go e.ListenForHandlerResponses()
 	for {
-		var res EngineEvent
-		var err error
 
 		e.metrics.RecordQueueLength("api_objective_request_queue", len(e.ObjectiveRequestsFromAPI))
 		e.metrics.RecordQueueLength("api_payment_request_queue", len(e.PaymentRequestsFromAPI))
@@ -135,25 +149,34 @@ func (e *Engine) Run() {
 
 		select {
 		case or := <-e.ObjectiveRequestsFromAPI:
-			res, err = e.handleObjectiveRequest(or)
-
-			if errors.Is(err, directdefund.ErrNotEmpty) {
-				// communicate failure to client & swallow error
-				e.toApi <- res
-				err = nil
-			}
+			go runAsync(e.handleObjectiveRequest, or, e.fromHandlers)
 		case pr := <-e.PaymentRequestsFromAPI:
-			err = e.handlePaymentRequest(pr)
+			runAsync(e.handlePaymentRequest, pr, e.fromHandlers)
 		case chainEvent := <-e.fromChain:
-			res, err = e.handleChainEvent(chainEvent)
+			runAsync(e.handleChainEvent, chainEvent, e.fromHandlers)
 		case message := <-e.fromMsg:
-			res, err = e.handleMessage(message)
+			runAsync(e.handleMessage, message, e.fromHandlers) // TODO run this in a goroutine
 		case proposal := <-e.fromLedger:
-			res, err = e.handleProposal(proposal)
+			runAsync(e.handleProposal, proposal, e.fromHandlers)
 		}
 
+	}
+}
+
+// ListenForHandlerResponses reads from the e.fromHandlers chan, sends responses across the API and handles errors.
+func (e *Engine) ListenForHandlerResponses() {
+	for val := range e.fromHandlers {
+		res := val.EngineEvent
+		err := val.error
 		// Handle errors
+		if errors.Is(err, directdefund.ErrNotEmpty) {
+			// communicate failure to client & swallow error
+			e.toApi <- res
+			err = nil
+		}
+
 		if err != nil {
+
 			e.logger.Panic(fmt.Errorf("%s, error in run loop: %w", e.store.GetAddress(), err))
 			// TODO do not panic if in production.
 			// TODO report errors back to the consuming application
@@ -167,7 +190,6 @@ func (e *Engine) Run() {
 			}
 			e.toApi <- res
 		}
-
 	}
 }
 
@@ -183,6 +205,13 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 		return EngineEvent{}, err
 	}
 	return e.attemptProgress(obj)
+}
+
+// handleMessageAsync is an async wrapper for e.handleMessage; the return value is sent on the e.fromHandlers chan.
+
+func (e *Engine) handleMessageAsync(message protocols.Message) {
+	res, err := e.handleMessage(message)
+	e.fromHandlers <- HandlerReturnValue{res, err}
 }
 
 // handleMessage handles a Message from a peer go-nitro Wallet.
@@ -418,7 +447,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 
 // handlePaymentRequest handles an PaymentRequest (triggered by a client API call).
 // It prepares and dispatches a payment message to the counterparty.
-func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
+func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, error) {
 	if (request == PaymentRequest{}) {
 		panic("tried to handle nil payment request")
 	}
@@ -428,18 +457,18 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
 		request.Amount,
 		*e.store.GetChannelSecretKey())
 	if err != nil {
-		return fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
+		return EngineEvent{}, fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
 	}
 	c, ok := e.store.GetChannelById(cId)
 	if !ok {
-		return fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
+		return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
 	}
 	payer, payee := payments.GetPayer(c.Participants), payments.GetPayee(c.Participants)
 	if payer != *e.store.GetAddress() {
-		return fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
+		return EngineEvent{}, fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
 	}
 	se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
-	return e.executeSideEffects(se)
+	return EngineEvent{}, e.executeSideEffects(se)
 }
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
