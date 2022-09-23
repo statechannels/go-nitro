@@ -99,7 +99,7 @@ jobs:
             - [Output download](http://34.168.92.245:8042/outputs?run_id=${{steps.set_run_id.outputs.RUN_ID}})
           edit-mode: append
       
-          # Checkout go-nitro code so screenshot action can get git branch
+      # Checkout go-nitro code so screenshot action can get git branch
       - uses: actions/checkout@v3
       - name: Run Screenshot Comment Action
         uses: saadmk11/comment-webpage-screenshot@main
