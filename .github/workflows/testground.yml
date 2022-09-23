@@ -1,7 +1,7 @@
 name: Run Testground
 
 on:
-  push:
+  pull_request:
 jobs:
   run-testground:
       runs-on: ubuntu-latest
@@ -38,7 +38,7 @@ jobs:
         working-directory: "code/testground"
       # Update our test plan so it uses the version of go-nitro from this workflow
       - name: Update Test Dependency
-        run: go get github.com/statechannels/go-nitro@${{github.sha}}
+        run: go get github.com/statechannels/go-nitro@${{github.event.pull_request.head.sha}}
         working-directory: "code/go-nitro-testground"
 
       - name: Import Test 
@@ -53,7 +53,7 @@ jobs:
          -tp=numOfHubs=2 -tp=numOfPayers=2 -tp=numOfPayees=2  -i=6 \
          -tp=paymentTestDuration=60  -tp=concurrentPaymentJobs=1 \
           --metadata-repo "${{github.repository}}" \
-          --metadata-branch "${{github.ref_name}}" \
+          --metadata-branch "${{github.ref}}" \
           --metadata-commit "${{github.sha}}" 
 
       
