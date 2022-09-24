@@ -52,6 +52,8 @@ jobs:
       # Set the start time for the dashboard time range
       - name: Set Start Time
         id: set_start_time
+        # We add 40 seconds to the start time so the dashboard ignores startup when nothing is happening
+        # We multiply by 1000 to get the timestamp in MS which grafana expects
         run: | 
          echo "::set-output name=START_TIME_OFFSET::$(((`date '+%s'`+40)*1000))"
       # Run a short test using the wait flag so we block until it completes
