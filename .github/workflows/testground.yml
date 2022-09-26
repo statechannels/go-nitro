@@ -53,7 +53,7 @@ jobs:
          -tp=numOfHubs=2 -tp=numOfPayers=2 -tp=numOfPayees=2  -i=6 \
          -tp=paymentTestDuration=30  -tp=concurrentPaymentJobs=1 \
           --metadata-repo "${{github.repository}}" \
-          --metadata-branch "${{github.ref}}" \
-          --metadata-commit "${{github.sha}}" 
+          --metadata-branch "${{github.event.pull_request.head.ref}}" \
+          --metadata-commit "${{github.event.pull_request.head.sha}}" 
 
       
