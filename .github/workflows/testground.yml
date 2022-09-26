@@ -31,6 +31,10 @@ jobs:
             ${{ runner.os }}-go-
       - uses: satackey/action-docker-layer-caching@v0.0.11
         continue-on-error: true
+        with:
+          key: docker-cache-{hash}
+          restore-keys: |
+           docker-cache-
 
       # Build the testground daemon
       - name: Build
@@ -44,16 +48,54 @@ jobs:
       - name: Import Test 
         run:    testground plan import --from ./go-nitro-testground
         working-directory: "code"
+
+      # Set the start time for the dashboard time range
+      - name: Set Start Time
+        id: set_start_time
+        # We add 45 seconds to the start time so the dashboard ignores startup when nothing is happening
+        # We multiply by 1000 to get the timestamp in MS which grafana expects
+        run: | 
+         echo "::set-output name=START_TIME_OFFSET::$(((`date '+%s'`+45)*1000))"
       # Run a short test using the wait flag so we block until it completes
       - name: Run Test 
         run: | 
-         testground --endpoint=http://34.168.92.245:8042  run s --wait \
+         testground --endpoint=$((secrets.TG_SERVER_URL))  run s --wait \
          -p=go-nitro-testground -t=virtual-payment \
          -b=docker:go -r=local:docker \
          -tp=numOfHubs=2 -tp=numOfPayers=2 -tp=numOfPayees=2  -i=6 \
          -tp=paymentTestDuration=30  -tp=concurrentPaymentJobs=1 \
-          --metadata-repo "${{github.repository}}" \
-          --metadata-branch "${{github.event.pull_request.head.ref}}" \
-          --metadata-commit "${{github.event.pull_request.head.sha}}" 
-
+         --metadata-repo "${{github.repository}}" \
+         --metadata-branch "${{github.event.pull_request.head.ref}}" \
+         --metadata-commit "${{github.event.pull_request.head.sha}}"  | tee run.out
+          
+      # Parse the run id from the testground run output
+      - name: Set Run Id
+        id: set_run_id
+        run: | 
+         echo "::set-output name=RUN_ID::$(awk '/run is queued with ID/ {print $10}' <run.out)"
+      # Set the end time for the dashboard time range
+      - name: Set Done Time
+        id: set_done_time
+        run: | 
+         echo "::set-output name=DONE_TIME::$((`date '+%s'`*1000))"
       
+      # Look for an existing comment from the bot and update it 
+      - name: Find dashboard links comment
+        uses: peter-evans/find-comment@v2
+        id: find-comment
+        with:
+         issue-number: ${{ github.event.pull_request.number }}
+         comment-author: 'github-actions[bot]'
+         body-includes: Testground Run
+      - name: Update dashboard links comment
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            # 🧪 Testground Run for ${{github.event.pull_request.head.sha}} 
+            - [Message Stats Dashboard]($((secrets.TG_GRAFANA_URL))/d/miulKz7Vk/message-stats?orgId=1&var-runId=${{steps.set_run_id.outputs.RUN_ID}}&from=${{steps.set_start_time.outputs.START_TIME_OFFSET}}&to=${{steps.set_done_time.outputs.DONE_TIME}})
+            - [Time to First Payment Dashboard]($((secrets.TG_GRAFANA_URL))/d/5OBBeW37k/time-to-first-payment?orgId=1&var-runId=${{steps.set_run_id.outputs.RUN_ID}}&from=${{steps.set_start_time.outputs.START_TIME_OFFSET}}&to=${{steps.set_done_time.outputs.DONE_TIME}})
+            - [Logs]($((secrets.TG_SERVER_URL))logs?task_id=${{steps.set_run_id.outputs.RUN_ID}})
+            - [Output download]($((secrets.TG_SERVER_URL))/outputs?run_id=${{steps.set_run_id.outputs.RUN_ID}})
+          edit-mode: append
