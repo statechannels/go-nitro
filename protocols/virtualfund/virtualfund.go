@@ -379,7 +379,10 @@ func (o *Objective) Update(raw protocols.ObjectivePayload) (protocols.Objective,
 	updated := o.clone()
 
 	if ss := payload; len(ss.Signatures()) != 0 {
-		updated.V.AddSignedState(*ss)
+		ok := updated.V.AddSignedState(*ss)
+		if !ok {
+			panic(fmt.Errorf("Could ont add signed state %+v", ss))
+		}
 	}
 
 	return &updated, nil
