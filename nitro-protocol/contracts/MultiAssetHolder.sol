@@ -459,7 +459,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
      * @return The input address left-padded with zeros.
      */
     function _addressToBytes32(address participant) internal pure returns (bytes32) {
-        return bytes32(bytes20(participant));
+        return bytes32(uint256(uint160(participant)));
     }
 
     /**
@@ -469,7 +469,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
      * @return The rightmost 160 bits of the input string.
      */
     function _bytes32ToAddress(bytes32 destination) internal pure returns (address payable) {
-        return payable(address(bytes20(destination)));
+        return payable(address(uint160(uint256(destination))));
     }
 
     // **************
