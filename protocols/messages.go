@@ -174,9 +174,9 @@ type MessageSummary struct {
 
 // ObjectivePayloadSummary is a summary of an objective payload suitable for logging.
 type ObjectivePayloadSummary struct {
-	ObjectiveId     string
-	Type            string
-	PayloadDataSize int
+	ObjectiveId string
+	Type        string
+	PayloadData string
 }
 
 // ProposalSummary is a summary of a proposal suitable for logging.
@@ -200,7 +200,7 @@ func (m Message) Summarize() MessageSummary {
 
 	s.PayloadSummaries = make([]ObjectivePayloadSummary, len(m.ObjectivePayloads))
 	for i, p := range m.ObjectivePayloads {
-		s.PayloadSummaries[i] = ObjectivePayloadSummary{ObjectiveId: string(p.ObjectiveId), Type: string(p.Type), PayloadDataSize: len(p.PayloadData)}
+		s.PayloadSummaries[i] = ObjectivePayloadSummary{ObjectiveId: string(p.ObjectiveId), Type: string(p.Type), PayloadData: string(p.PayloadData)}
 	}
 
 	s.ProposalSummaries = make([]ProposalSummary, len(m.LedgerProposals))
