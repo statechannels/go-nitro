@@ -137,11 +137,6 @@ func (e *Engine) Run() {
 		case or := <-e.ObjectiveRequestsFromAPI:
 			res, err = e.handleObjectiveRequest(or)
 
-			if errors.Is(err, directdefund.ErrNotEmpty) {
-				// communicate failure to client & swallow error
-				e.toApi <- res
-				err = nil
-			}
 		case pr := <-e.PaymentRequestsFromAPI:
 			err = e.handlePaymentRequest(pr)
 		case chainEvent := <-e.fromChain:
