@@ -31,7 +31,7 @@ const config: HardhatUserConfig & {watcher: any} = {
   solidity: {
     compilers: [
       {
-        version: '0.7.6',
+        version: '0.8.17',
         settings: {
           optimizer: {
             enabled: true,
@@ -40,18 +40,6 @@ const config: HardhatUserConfig & {watcher: any} = {
         },
       },
     ],
-    overrides: {
-      // This configuration is a workaround for an example contract which doesn't compile with the optimzer on.
-      // The contract is not part of our core protocol.
-      // It is an example of an application a third party dev might write, so it is highly nonideal that it requires this workaround.
-      // See https://github.com/ethereum/solidity/issues/10930
-      'contracts/examples/EmbeddedApplication.sol': {
-        version: '0.7.6',
-        settings: {
-          optimizer: {enabled: false},
-        },
-      },
-    },
   },
   namedAccounts: {
     deployer: {
