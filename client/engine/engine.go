@@ -89,8 +89,8 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.store = store
 
 	// bind to inbound chans
-	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest)
-	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
+	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest, 1000)
+	e.PaymentRequestsFromAPI = make(chan PaymentRequest, 1000)
 
 	e.fromChain = chain.EventFeed()
 	e.fromMsg = msg.Out()
@@ -98,7 +98,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.chain = chain
 	e.msg = msg
 
-	e.toApi = make(chan EngineEvent, 100)
+	e.toApi = make(chan EngineEvent, 1000)
 
 	// initialize a Logger
 	logPrefix := e.store.GetAddress().String()[0:8] + ": "

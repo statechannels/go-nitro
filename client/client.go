@@ -39,8 +39,8 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	}
 
 	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker, metricsApi)
-	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
-	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
+	c.completedObjectives = make(chan protocols.ObjectiveId, 1000)
+	c.failedObjectives = make(chan protocols.ObjectiveId, 1000)
 	// Using a larger buffer since payments can be sent frequently.
 	c.receivedVouchers = make(chan payments.Voucher, 1000)
 	// Start the engine in a go routine
