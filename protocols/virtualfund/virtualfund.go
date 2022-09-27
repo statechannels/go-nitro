@@ -308,7 +308,7 @@ func (o *Objective) GetStatus() protocols.ObjectiveStatus {
 func (o *Objective) otherParticipants() []types.Address {
 	otherParticipants := make([]types.Address, 0)
 	for i, p := range o.V.Participants {
-		if i != int(o.MyRole) {
+		if i != int(o.V.MyIndex) {
 			otherParticipants = append(otherParticipants, p)
 		}
 	}
@@ -408,6 +408,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 			return o, protocols.SideEffects{}, WaitingForNothing, err
 		}
 
+		fmt.Printf("Other participants : %+v\n", o.otherParticipants())
 		messages := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
