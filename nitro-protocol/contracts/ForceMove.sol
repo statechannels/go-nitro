@@ -169,7 +169,7 @@ contract ForceMove is IForceMove, StatusManager {
         emit Concluded(channelId, uint48(block.timestamp)); //solhint-disable-line not-rely-on-time
     }
 
-    function getChainID() public pure returns (uint256) {
+    function getChainID() public view returns (uint256) {
         return NitroUtils.getChainID();
     }
 
