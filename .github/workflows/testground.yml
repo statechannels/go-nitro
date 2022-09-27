@@ -21,7 +21,7 @@ jobs:
           path: "code/go-nitro-testground"
           ref: main
       
-      # Set up caching for docker (which testground uses) and go modules
+      # Set up caching for go modules
       - uses: actions/cache@v3
         with:
           path: |
@@ -30,22 +30,7 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - uses: satackey/action-docker-layer-caching@v0.0.11
-        continue-on-error: true
-        with:
-          key: docker-cache-{hash}
-          restore-keys: |
-           docker-cache-
-
-      # # Build the testground daemon
-      # - name: Build
-      #   run: make goinstall docker-testground
-      #   working-directory: "code/testground"
-      # # Update our test plan so it uses the version of go-nitro from this workflow
-      # - name: Update Test Dependency
-      #   run: go get github.com/statechannels/go-nitro@${{github.event.pull_request.head.sha}}
-      #   working-directory: "code/go-nitro-testground"
-
+    
       - name: Import Test 
         run:    testground plan import --from ./go-nitro-testground
         working-directory: "code"
