@@ -132,7 +132,7 @@ func (e *Engine) Run() {
 		e.metrics.RecordQueueLength("chain_events_queue", len(e.fromChain))
 		e.metrics.RecordQueueLength("messages_queue", len(e.fromMsg))
 		e.metrics.RecordQueueLength("proposal_queue", len(e.fromLedger))
-
+		e.metrics.RecordQueueLength("to_api_queue", len(e.toApi))
 		select {
 		case or := <-e.ObjectiveRequestsFromAPI:
 			res, err = e.handleObjectiveRequest(or)
