@@ -50,6 +50,7 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart memory candidate,
         Signature memory challengerSig
     ) external override {
+        _requireCorrectChainId(fixedPart.chainId);
         bytes32 channelId = NitroUtils.getChannelId(fixedPart);
         uint48 candidateTurnNum = candidate.variablePart.turnNum;
 
@@ -101,6 +102,7 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate
     ) external override {
+        _requireCorrectChainId(fixedPart.chainId);
         bytes32 channelId = NitroUtils.getChannelId(fixedPart);
         uint48 candidateTurnNum = candidate.variablePart.turnNum;
 
@@ -140,6 +142,7 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate
     ) internal returns (bytes32 channelId) {
+        _requireCorrectChainId(fixedPart.chainId);
         channelId = NitroUtils.getChannelId(fixedPart);
 
         // checks
@@ -176,6 +179,16 @@ contract ForceMove is IForceMove, StatusManager {
     // *****************
     // Internal methods:
     // *****************
+
+
+    /**
+     * @notice Checks that the supplied chain id matches the chain id of this contract.
+     * @dev Checks that the supplied chain id matches the chain id of this contract.
+     * @param declaredChainId The chain id to check.
+     */
+    function _requireCorrectChainId(uint256 declaredChainId) internal view {
+        require(declaredChainId == getChainID(), 'Incorrect chainId');
+    }
 
     /**
      * @notice Checks that the challengerSignature was created by one of the supplied participants.
