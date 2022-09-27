@@ -410,6 +410,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	}
 
 	if !updated.V.PreFundComplete() {
+		for i, p := range updated.V.Participants {
+			hasSigned := updated.V.SignedStateForTurnNum[channel.PreFundTurnNum].HasSignatureForParticipant(uint(i))
+			fmt.Printf("Participant %s has signed prefund: %v\n", p, hasSigned)
+		}
 		return &updated, sideEffects, WaitingForCompletePrefund, nil
 	}
 
