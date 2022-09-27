@@ -37,6 +37,7 @@ const config: HardhatUserConfig & {watcher: any} = {
             enabled: true,
             runs: 20_000,
           },
+          viaIR: true,
         },
       },
     ],
