@@ -180,7 +180,6 @@ contract ForceMove is IForceMove, StatusManager {
     // Internal methods:
     // *****************
 
-
     /**
      * @notice Checks that the supplied chain id matches the chain id of this contract.
      * @dev Checks that the supplied chain id matches the chain id of this contract.

@@ -10,7 +10,6 @@ import './interfaces/IMultiAssetHolder.sol';
 @dev An implementation of the IMultiAssetHolder interface. The AssetHolder contract escrows ETH or tokens against state channels. It allows assets to be internally accounted for, and ultimately prepared for transfer from one channel to other channels and/or external destinations, as well as for guarantees to be reclaimed.
  */
 contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
-
     // *******
     // Storage
     // *******
