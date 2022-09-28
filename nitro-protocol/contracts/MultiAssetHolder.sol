@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.7.6;
+pragma solidity 0.8.17;
 pragma experimental ABIEncoderV2;
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 import './ForceMove.sol';
-import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import './interfaces/IMultiAssetHolder.sol';
 
@@ -11,8 +10,6 @@ import './interfaces/IMultiAssetHolder.sol';
 @dev An implementation of the IMultiAssetHolder interface. The AssetHolder contract escrows ETH or tokens against state channels. It allows assets to be internally accounted for, and ultimately prepared for transfer from one channel to other channels and/or external destinations, as well as for guarantees to be reclaimed.
  */
 contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
-    using SafeMath for uint256;
-
     // *******
     // Storage
     // *******
@@ -49,12 +46,12 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         // 4. The chain re-orgs, leaving B's deposit in the chain but not A's
         uint256 held = holdings[asset][channelId];
         require(held >= expectedHeld, 'holdings < expectedHeld');
-        require(held < expectedHeld.add(amount), 'holdings already sufficient');
+        require(held < expectedHeld + amount, 'holdings already sufficient');
 
         // The depositor wishes to increase the holdings against channelId to amount + expectedHeld
         // The depositor need only deposit (at most) amount + (expectedHeld - holdings) (the term in parentheses is non-positive)
 
-        amountDeposited = expectedHeld.add(amount).sub(held); // strictly positive
+        amountDeposited = expectedHeld + amount - held; // strictly positive
         // require successful deposit before updating holdings (protect against reentrancy)
         if (asset == address(0)) {
             require(msg.value == amount, 'Incorrect msg.value for deposit');
@@ -66,13 +63,13 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             );
         }
 
-        uint256 nowHeld = held.add(amountDeposited);
+        uint256 nowHeld = held + amountDeposited;
         holdings[asset][channelId] = nowHeld;
         emit Deposited(channelId, asset, amountDeposited, nowHeld);
 
         if (asset == address(0)) {
             // refund whatever wasn't deposited.
-            uint256 refund = amount.sub(amountDeposited);
+            uint256 refund = amount - amountDeposited;
             (bool success, ) = msg.sender.call{value: refund}(''); //solhint-disable-line avoid-low-level-calls
             require(success, 'Could not refund excess funds');
         }
@@ -462,7 +459,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
      * @return The input address left-padded with zeros.
      */
     function _addressToBytes32(address participant) internal pure returns (bytes32) {
-        return bytes32(uint256(participant));
+        return bytes32(uint256(uint160(participant)));
     }
 
     /**
@@ -472,7 +469,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
      * @return The rightmost 160 bits of the input string.
      */
     function _bytes32ToAddress(bytes32 destination) internal pure returns (address payable) {
-        return address(uint160(uint256(destination)));
+        return payable(address(uint160(uint256(destination))));
     }
 
     // **************

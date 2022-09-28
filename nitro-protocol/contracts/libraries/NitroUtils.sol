@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.7.6;
+pragma solidity 0.8.17;
 pragma experimental ABIEncoderV2;
 
 import '../interfaces/INitroTypes.sol';
@@ -126,7 +126,6 @@ library NitroUtils {
         pure
         returns (bytes32 channelId)
     {
-        require(fixedPart.chainId == getChainID(), 'Incorrect chainId');
         channelId = keccak256(
             abi.encode(
                 fixedPart.chainId,
@@ -138,7 +137,7 @@ library NitroUtils {
         );
     }
 
-    function getChainID() internal pure returns (uint256) {
+    function getChainID() internal view returns (uint256) {
         uint256 id;
         /* solhint-disable no-inline-assembly */
         assembly {
