@@ -3,8 +3,10 @@ package protocols
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"sort"
 
+	"github.com/mitchellh/hashstructure/v2"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/types"
@@ -163,6 +165,7 @@ func DeserializeMessage(s string) (Message, error) {
 // MessageSummary is a summary of a message suitable for logging.
 type MessageSummary struct {
 	To               string
+	Hash             string
 	PayloadSummaries []ObjectivePayloadSummary
 
 	ProposalSummaries []ProposalSummary
@@ -197,6 +200,13 @@ type PaymentSummary struct {
 func (m Message) Summarize() MessageSummary {
 	s := MessageSummary{}
 	s.To = m.To.String()
+
+	hash, err := hashstructure.Hash(m, hashstructure.FormatV2, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	s.Hash = fmt.Sprintf("%x", hash)
 
 	s.PayloadSummaries = make([]ObjectivePayloadSummary, len(m.ObjectivePayloads))
 	for i, p := range m.ObjectivePayloads {
