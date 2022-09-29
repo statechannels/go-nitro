@@ -62,8 +62,9 @@ jobs:
          testground --endpoint=${{secrets.TG_SERVER_URL}}  run s --wait \
          -p=go-nitro-testground -t=virtual-payment \
          -b=docker:go -r=local:docker \
-         -tp=numOfHubs=2 -tp=numOfPayers=2 -tp=numOfPayees=2  -i=6 \
-         -tp=paymentTestDuration=30  -tp=concurrentPaymentJobs=1 \
+         -tp=numOfHubs=1 -tp=numOfPayers=10 -tp=numOfPayees=1  -i=12 \
+         -tp=paymentTestDuration=30  -tp=concurrentPaymentJobs=10 \
+         --tp=networkLatency=15 --tp=networkJitter=2 \
          --metadata-repo "${{github.repository}}" \
          --metadata-branch "${{github.event.pull_request.head.ref}}" \
          --metadata-commit "${{github.event.pull_request.head.sha}}"  | tee run.out
