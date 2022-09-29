@@ -1,4 +1,4 @@
-site_name: Nitro Protocol (v2)
+site_name: Nitro State Channel Framework
 repo_url: https://github.com/statechannels/go-nitro
 theme:
   name: material

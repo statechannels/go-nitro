@@ -1,3 +1,5 @@
+# FAQs
+
 ## What are state channels?
 
 State channels are a technology which allows for peer-to-peer games, payments and other few-user applications to safely trade blockchain assets at extremely low latency, low cost and high throughput without requiring trust in a third-party. State channels can be programmed such that assets are redistributed according to arbitary logic, allowing for applications such as poker, conditional payments, atomic swaps and more.
