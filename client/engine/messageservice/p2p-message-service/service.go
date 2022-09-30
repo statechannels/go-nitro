@@ -1,4 +1,4 @@
-package libp2pms
+package p2pms
 
 import (
 	"bufio"

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
-	libp2pms "github.com/statechannels/go-nitro/client/engine/messageservice/lib-p2p-message-service"
+	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
 )
@@ -25,7 +25,7 @@ func TestPayments(t *testing.T) {
 	clientA, msgA := setupClientWithLibP2p(alice.PrivateKey, 3005, chainServiceA, logDestination)
 	clientB, msgB := setupClientWithLibP2p(bob.PrivateKey, 3006, chainServiceB, logDestination)
 	clientI, msgI := setupClientWithLibP2p(irene.PrivateKey, 3007, chainServiceI, logDestination)
-	peers := []libp2pms.PeerInfo{
+	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
 		{Id: msgB.Id(), IpAddress: "127.0.0.1", Port: 3006, Address: bob.Address()},
 		{Id: msgI.Id(), IpAddress: "127.0.0.1", Port: 3007, Address: irene.Address()},
