@@ -3,7 +3,7 @@ import {Contract, Wallet, ethers} from 'ethers';
 
 import {getRandomNonce, getTestProvider, setupContract} from '../../test-helpers';
 import NitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
-import {getVariablePart, State, Channel, getFixedPart} from '../../../src';
+import {getVariablePart, State, getFixedPart} from '../../../src';
 import {FixedPart, SignedVariablePart} from '../../../src/contract/state';
 
 const provider = getTestProvider();
@@ -19,13 +19,10 @@ beforeAll(async () => {
 
 describe('null app', () => {
   it('should revert when requireStateSupported is called', async () => {
-    const channel: Channel = {
+    const fromState: State = {
       participants: [Wallet.createRandom().address, Wallet.createRandom().address],
       chainId: process.env.CHAIN_NETWORK_ID,
       channelNonce: getRandomNonce('nullApp'),
-    };
-    const fromState: State = {
-      channel,
       outcome: [],
       turnNum: 1,
       isFinal: false,

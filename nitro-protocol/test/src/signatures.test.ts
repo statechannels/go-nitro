@@ -10,7 +10,9 @@ describe('signatures', () => {
     it('signs a state', async () => {
       const wallet = Wallet.createRandom();
       const state: State = {
-        channel: {chainId: '0x1', channelNonce: '0x01', participants: [wallet.address]},
+        chainId: '0x1',
+        channelNonce: '0x01',
+        participants: [wallet.address],
         outcome: [],
         turnNum: 1,
         isFinal: false,
@@ -35,11 +37,9 @@ describe('signatures', () => {
     it('throws an exception if signing with non-participant private key', () => {
       const wallet = Wallet.createRandom();
       const state: State = {
-        channel: {
-          chainId: process.env.CHAIN_NETWORK_ID ?? '0x1',
-          channelNonce: '0x01',
-          participants: [Wallet.createRandom().address],
-        },
+        chainId: process.env.CHAIN_NETWORK_ID ?? '0x1',
+        channelNonce: '0x01',
+        participants: [Wallet.createRandom().address],
         outcome: [],
         turnNum: 1,
         isFinal: false,
@@ -56,9 +56,10 @@ describe('signatures', () => {
   describe('signChallengeMessage', () => {
     it('signs a challenge message', async () => {
       const wallet = Wallet.createRandom();
-      const channel = {chainId: '0x1', channelNonce: '0x01', participants: [wallet.address]};
       const state: State = {
-        channel,
+        chainId: '0x1',
+        channelNonce: '0x01',
+        participants: [wallet.address],
         outcome: [],
         turnNum: 1,
         isFinal: false,
@@ -79,11 +80,9 @@ describe('signatures', () => {
     it('throws an exception if signing with non-participant private key', async () => {
       const wallet = Wallet.createRandom();
       const state: State = {
-        channel: {
-          chainId: process.env.CHAIN_NETWORK_ID ?? '0x1',
-          channelNonce: '0x01',
-          participants: [Wallet.createRandom().address],
-        },
+        chainId: process.env.CHAIN_NETWORK_ID ?? '0x1',
+        channelNonce: '0x01',
+        participants: [Wallet.createRandom().address],
         outcome: [],
         turnNum: 1,
         isFinal: false,
@@ -102,7 +101,9 @@ describe('signatures', () => {
     it('correctly recovers a state signer address', async () => {
       const wallet = Wallet.createRandom();
       const state: State = {
-        channel: {chainId: '0x1', channelNonce: '0x1', participants: [wallet.address]},
+        chainId: '0x1',
+        channelNonce: '0x1',
+        participants: [wallet.address],
         outcome: [],
         turnNum: 1,
         isFinal: false,
@@ -119,11 +120,9 @@ describe('signatures', () => {
     it('throws an exception when the signer is not a participant', async () => {
       const wallet = Wallet.createRandom();
       const state: State = {
-        channel: {
-          chainId: process.env.CHAIN_NETWORK_ID ?? '0x1',
-          channelNonce: '0x1',
-          participants: [Wallet.createRandom().address],
-        },
+        chainId: process.env.CHAIN_NETWORK_ID ?? '0x1',
+        channelNonce: '0x1',
+        participants: [Wallet.createRandom().address],
         outcome: [],
         turnNum: 1,
         isFinal: false,

@@ -2,7 +2,6 @@ import {ethers, Wallet} from 'ethers';
 import {it} from '@jest/globals';
 
 import {SignedState, State} from '../../src';
-import {Channel} from '../../src/contract/channel';
 import {MAX_OUTCOME_ITEMS} from '../../src/contract/outcome';
 import {signState} from '../../src/signatures';
 import {
@@ -19,19 +18,16 @@ const walletB = Wallet.createRandom();
 
 // TODO use 3x participants to match other tests
 
-const channel: Channel = {
-  chainId: '0x1',
-  channelNonce: getRandomNonce('transactions'),
-  participants: [walletA.address, walletB.address], // 2 participants is the most common usecase
-};
-
 const state: State = {
   turnNum: 0,
   isFinal: false,
   appDefinition: ethers.constants.AddressZero,
   appData: '0x00',
   outcome: [],
-  channel,
+  chainId: '0x1',
+  channelNonce: getRandomNonce('transactions'),
+  participants: [walletA.address, walletB.address], // 2 participants is the most common usecase
+
   challengeDuration: 0x1,
 };
 let signedStateA: SignedState;
@@ -90,7 +86,6 @@ describe('transaction-generators', () => {
     'creates a correct signature arguments when handling multiple states',
     async ({turnNum, expectedWhoSignedWhat}) => {
       const wallet2 = Wallet.createRandom();
-      const twoPlayerChannel = {...channel, participants: [walletA.address, wallet2.address]};
 
       const signedStates = [
         await signState(
@@ -100,7 +95,9 @@ describe('transaction-generators', () => {
             appDefinition: ethers.constants.AddressZero,
             appData: '0x00',
             outcome: [],
-            channel: twoPlayerChannel,
+            chainId: '0x1',
+            channelNonce: getRandomNonce('transactions'),
+            participants: [walletA.address, wallet2.address], // 2 participants is the most common usecase
             challengeDuration: 0x0,
           },
           turnNum[0] % 2 === 0 ? walletA.privateKey : wallet2.privateKey
@@ -112,7 +109,9 @@ describe('transaction-generators', () => {
             appDefinition: ethers.constants.AddressZero,
             appData: '0x00',
             outcome: [],
-            channel: twoPlayerChannel,
+            chainId: '0x1',
+            channelNonce: getRandomNonce('transactions'),
+            participants: [walletA.address, wallet2.address], // 2 participants is the most common usecase
             challengeDuration: 0x0,
           },
           turnNum[1] % 2 === 0 ? walletA.privateKey : wallet2.privateKey

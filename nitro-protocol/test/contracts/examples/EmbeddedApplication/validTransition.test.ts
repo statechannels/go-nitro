@@ -138,11 +138,11 @@ const fourSix: Outcome = [
 const stateForX: State = {
   turnNum: 4,
   isFinal: false,
-  channel: {
-    chainId: '0x1',
-    participants: [Alice.address, Bob.address],
-    channelNonce: BigNumber.from(87).toHexString(),
-  },
+
+  chainId: '0x1',
+  participants: [Alice.address, Bob.address],
+  channelNonce: BigNumber.from(87).toHexString(),
+
   challengeDuration: 0,
   outcome: sixFour,
   appDefinition: constants.AddressZero, // We will run the null app in X (for demonstration purposes)
@@ -152,11 +152,9 @@ const stateForX: State = {
 const greaterStateForX: State = {
   turnNum: 5,
   isFinal: false,
-  channel: {
-    chainId: '0x1',
-    participants: [Alice.address, Bob.address],
-    channelNonce: BigNumber.from(87).toHexString(),
-  },
+  chainId: '0x1',
+  participants: [Alice.address, Bob.address],
+  channelNonce: BigNumber.from(87).toHexString(),
   challengeDuration: 0,
   outcome: fourSix,
   appDefinition: constants.AddressZero, // We will run the null app in X (for demonstration purposes)

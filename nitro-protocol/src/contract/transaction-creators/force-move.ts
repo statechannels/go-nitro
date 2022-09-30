@@ -24,7 +24,7 @@ export function createChallengeTransaction(
   if (states.length === 0) {
     throw new Error('No states provided');
   }
-  const {participants} = states[0].channel;
+  const {participants} = states[0];
   if (participants.length !== signatures.length) {
     throw new Error(
       `Participants (length:${participants.length}) and signatures (length:${signatures.length}) need to be the same length`
@@ -102,7 +102,7 @@ export function concludeArgs(
   if (states.length === 0) {
     throw new Error('No states provided');
   }
-  const {participants} = states[0].channel;
+  const {participants} = states[0];
   if (participants.length !== signatures.length) {
     throw new Error(
       `Participants (length:${participants.length}) and signatures (length:${signatures.length}) need to be the same length`

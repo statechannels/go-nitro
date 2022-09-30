@@ -3,7 +3,7 @@ import {Contract, ethers, BigNumber, constants} from 'ethers';
 import {it} from '@jest/globals';
 
 import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
-import {Channel, getChannelId} from '../../../src/contract/channel';
+import {getChannelId} from '../../../src/contract/channel';
 import {Outcome} from '../../../src/contract/outcome';
 import {
   FixedPart,
@@ -146,7 +146,6 @@ describe('concludeAndTransferAllAssets', () => {
       payouts: OutcomeShortHand;
       reasonString: string;
     }) => {
-      const channel: Channel = {chainId, participants, channelNonce};
       const fixedPart: FixedPart = {
         chainId,
         participants,
@@ -202,7 +201,9 @@ describe('concludeAndTransferAllAssets', () => {
       for (let i = 1; i <= numStates; i++) {
         states.push({
           isFinal: true,
-          channel,
+          chainId,
+          participants,
+          channelNonce,
           outcome,
           appDefinition,
           appData: appData[i - 1],

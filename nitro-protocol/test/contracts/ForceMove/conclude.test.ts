@@ -5,7 +5,7 @@ const {defaultAbiCoder} = ethers.utils;
 import {it} from '@jest/globals';
 
 import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
-import {Channel, getChannelId} from '../../../src/contract/channel';
+import {getChannelId} from '../../../src/contract/channel';
 import {channelDataToStatus} from '../../../src/contract/channel-storage';
 import {Outcome} from '../../../src/contract/outcome';
 import {
@@ -100,7 +100,6 @@ describe('conclude', () => {
   `(
     '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, isFinal, largestTurnNum, support, reasonString}) => {
-      const channel: Channel = {chainId, participants, channelNonce};
       const {appData, whoSignedWhat} = support;
       const numStates = appData.length;
 
@@ -108,7 +107,9 @@ describe('conclude', () => {
       for (let i = 1; i <= numStates; i++) {
         states.push({
           isFinal,
-          channel,
+          chainId,
+          participants,
+          channelNonce,
           outcome,
           appDefinition,
           appData: defaultAbiCoder.encode(['uint256'], [appData[i - 1]]),
@@ -117,7 +118,13 @@ describe('conclude', () => {
         });
       }
 
-      const channelId = getChannelId({...channel, appDefinition, challengeDuration});
+      const channelId = getChannelId({
+        chainId,
+        participants,
+        channelNonce,
+        appDefinition,
+        challengeDuration,
+      });
       const variableParts = states.map(state => getVariablePart(state));
       const fixedPart = getFixedPart(states[0]);
 

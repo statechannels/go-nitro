@@ -18,7 +18,7 @@ export async function validTransition(
   toState: State,
   appContract: Contract
 ): Promise<boolean> {
-  const numberOfParticipants = toState.channel.participants.length;
+  const numberOfParticipants = toState.participants.length;
   const fromVariablePart = getVariablePart(fromState);
   const toVariablePart = getVariablePart(toState);
 
@@ -29,7 +29,7 @@ export async function validTransition(
  * Encodes a validTransition method call as the data on an ethereum transaction. Useful for testing gas consumption of a ForceMoveApp.
  */
 export function createValidTransitionTransaction(fromState: State, toState: State): {data: string} {
-  const numberOfParticipants = toState.channel.participants.length;
+  const numberOfParticipants = toState.participants.length;
   const fromVariablePart = getVariablePart(fromState);
   const toVariablePart = getVariablePart(toState);
   const data = ForceMoveAppContractInterface.encodeFunctionData('validTransition', [

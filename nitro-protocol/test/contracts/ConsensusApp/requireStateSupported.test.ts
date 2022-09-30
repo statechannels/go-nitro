@@ -2,7 +2,7 @@ import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers, BigNumber} from 'ethers';
 
 import ConsensusAppArtifact from '../../../artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
-import {bindSignaturesWithSignedByBitfield, Channel, signState} from '../../../src';
+import {bindSignaturesWithSignedByBitfield, signState} from '../../../src';
 import {
   getFixedPart,
   getVariablePart,
@@ -21,8 +21,6 @@ const {wallets, participants} = generateParticipants(nParticipants);
 const chainId = process.env.CHAIN_NETWORK_ID;
 const challengeDuration = 0x100;
 
-const channel: Channel = {chainId, channelNonce: BigNumber.from(8).toHexString(), participants};
-
 beforeAll(async () => {
   consensusApp = setupContract(provider, ConsensusAppArtifact, process.env.CONSENSUS_APP_ADDRESS);
 });
@@ -30,7 +28,9 @@ beforeAll(async () => {
 const state: State = {
   turnNum: 5,
   isFinal: false,
-  channel,
+  chainId,
+  channelNonce: BigNumber.from(8).toHexString(),
+  participants,
   challengeDuration,
   outcome: [],
   appData: HashZero,

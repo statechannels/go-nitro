@@ -7,7 +7,7 @@ const {HashZero} = ethers.constants;
 const {defaultAbiCoder} = ethers.utils;
 
 import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
-import {Channel, getChannelId} from '../../../src/contract/channel';
+import {getChannelId} from '../../../src/contract/channel';
 import {channelDataToStatus} from '../../../src/contract/channel-storage';
 import {Outcome} from '../../../src/contract/outcome';
 import {
@@ -104,12 +104,13 @@ describe('checkpoint', () => {
     ${reverts7} | ${turnNumRecord + 1}                   | ${valid}             | ${past}      | ${CHANNEL_FINALIZED}
   `('$description', async ({largestTurnNum, support, finalizesAt, reason}: testParams) => {
     const {appDatas, whoSignedWhat} = support;
-    const channel: Channel = {chainId, channelNonce, participants};
 
-    const states = appDatas.map((data, idx) => ({
+    const states: State[] = appDatas.map((data, idx) => ({
       turnNum: largestTurnNum - appDatas.length + 1 + idx,
       isFinal: false,
-      channel,
+      chainId,
+      channelNonce,
+      participants,
       challengeDuration,
       outcome: defaultOutcome,
       appData: defaultAbiCoder.encode(['uint256'], [data]),
@@ -134,7 +135,9 @@ describe('checkpoint', () => {
       : {
           turnNum: turnNumRecord,
           isFinal: false,
-          channel,
+          chainId,
+          channelNonce,
+          participants,
           outcome,
           appData: defaultAbiCoder.encode(['uint256'], [appDatas[0]]),
           appDefinition,

@@ -2,7 +2,7 @@ import {expectRevert} from '@statechannels/devtools';
 import {Contract, constants} from 'ethers';
 import {it} from '@jest/globals';
 
-import {Channel, getChannelId} from '../../../src/contract/channel';
+import {getChannelId} from '../../../src/contract/channel';
 import {hashOutcome, Outcome} from '../../../src/contract/outcome';
 import {
   computeOutcome,
@@ -86,8 +86,13 @@ describe('transferAllAssets', () => {
       payouts: OutcomeShortHand;
       reasonString: string;
     }) => {
-      const channel: Channel = {chainId, channelNonce, participants};
-      const channelId = getChannelId({...channel, appDefinition, challengeDuration});
+      const channelId = getChannelId({
+        chainId,
+        channelNonce,
+        participants,
+        appDefinition,
+        challengeDuration,
+      });
       addresses.c = channelId;
 
       // Transform input data (unpack addresses and BigNumberify amounts)

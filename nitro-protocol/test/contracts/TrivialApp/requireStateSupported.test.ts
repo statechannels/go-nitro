@@ -1,7 +1,6 @@
 import {Contract, Wallet, ethers, utils} from 'ethers';
 
 import TrivialAppArtifact from '../../../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
-import {Channel} from '../../../src/contract/channel';
 import {
   FixedPart,
   getFixedPart,
@@ -71,13 +70,10 @@ describe('requireStateSupported', () => {
   });
 
   it('Transitions between States with mocked-up data are valid', async () => {
-    const channel: Channel = {
+    const fromState: State = {
       participants: [Wallet.createRandom().address, Wallet.createRandom().address],
       chainId: process.env.CHAIN_NETWORK_ID,
       channelNonce: getRandomNonce('trivialApp'),
-    };
-    const fromState: State = {
-      channel,
       outcome: [],
       turnNum: 1,
       isFinal: false,

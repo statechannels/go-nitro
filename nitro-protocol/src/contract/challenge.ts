@@ -3,7 +3,6 @@ const {Interface, keccak256, defaultAbiCoder} = utils;
 
 import NitroAdjudicatorArtifact from '../../artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
 import {SignedState} from '../signatures';
-import {Channel} from '..';
 
 import {decodeOutcome} from './outcome';
 import {FixedPart, hashState, State, VariablePart} from './state';
@@ -67,13 +66,14 @@ export function getChallengeRegisteredEvent(eventResult: any[]): ChallengeRegist
     return {outcome, appData, turnNum, isFinal};
   });
 
-  const channel: Channel = {chainId, channelNonce, participants};
   const challengeStates: SignedState[] = variableParts.map((v, i) => {
     const turnNum = turnNumRecord - (variableParts.length - i - 1);
     const signature = sigs[i];
     const state: State = {
       turnNum,
-      channel,
+      chainId,
+      channelNonce,
+      participants,
       outcome: decodeOutcome(v.outcome),
       appData: v.appData,
       challengeDuration,
@@ -141,7 +141,9 @@ export function getChallengeClearedEvent(
         isFinal,
         outcome,
         appData,
-        channel: {chainId: BigNumber.from(chainId).toHexString(), channelNonce, participants},
+        chainId: BigNumber.from(chainId).toHexString(),
+        channelNonce,
+        participants,
         turnNum: BigNumber.from(newTurnNumRecord).toNumber(),
       },
     };

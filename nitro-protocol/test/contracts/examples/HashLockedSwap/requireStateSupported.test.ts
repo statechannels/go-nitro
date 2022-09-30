@@ -5,12 +5,13 @@ import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
 import HashLockedSwapArtifact from '../../../../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
-import {bindSignaturesWithSignedByBitfield, Bytes32, Channel, signStates} from '../../../../src';
+import {bindSignaturesWithSignedByBitfield, Bytes32, signStates} from '../../../../src';
 import {Outcome} from '../../../../src/contract/outcome';
 import {
   getFixedPart,
   getVariablePart,
   separateProofAndCandidate,
+  State,
 } from '../../../../src/contract/state';
 import {Bytes} from '../../../../src/contract/types';
 import {
@@ -100,8 +101,6 @@ describe('requireStateSupported', () => {
       dataB: HashLockedSwapData;
       balancesB: AssetOutcomeShortHand;
     }) => {
-      const channel: Channel = {chainId, channelNonce, participants};
-
       const turnNumA = turnNumB - 1;
       balancesA = replaceAddressesAndBigNumberify(balancesA, addresses) as AssetOutcomeShortHand;
       const allocationsA: Allocation[] = [];
@@ -133,11 +132,13 @@ describe('requireStateSupported', () => {
       const outcomeB: Outcome = [
         {asset: ethers.constants.AddressZero, allocations: allocationsB, metadata: '0x'},
       ];
-      const states = [
+      const states: State[] = [
         {
           turnNum: turnNumA,
           isFinal: false,
-          channel,
+          chainId,
+          channelNonce,
+          participants,
           challengeDuration,
           outcome: outcomeA,
           appData: encodeHashLockedSwapData(dataA),
@@ -146,7 +147,9 @@ describe('requireStateSupported', () => {
         {
           turnNum: turnNumB,
           isFinal: false,
-          channel,
+          chainId,
+          channelNonce,
+          participants,
           challengeDuration,
           outcome: outcomeB,
           appData: encodeHashLockedSwapData(dataB),
