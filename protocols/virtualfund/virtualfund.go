@@ -574,22 +574,21 @@ func ConstructObjectiveFromPayload(
 
 		for i, intermediary := range intermediaries {
 			if myAddress == intermediary {
-
+				foundMyself = true
 				// I am intermediary `i` and participant `p`
 				p := i + 1 // participants[p] === intermediaries[i]
 
-				foundMyself = true
-				leftOfI := participants[p-1]
-				rightOfI := participants[p+1]
+				leftOfMe := participants[p-1]
+				rightOfMe := participants[p+1]
 
-				leftC, ok = getTwoPartyConsensusLedger(leftOfI)
+				leftC, ok = getTwoPartyConsensusLedger(leftOfMe)
 				if !ok {
-					return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", leftOfI, myAddress)
+					return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", leftOfMe, myAddress)
 				}
 
-				rightC, ok = getTwoPartyConsensusLedger(rightOfI)
+				rightC, ok = getTwoPartyConsensusLedger(rightOfMe)
 				if !ok {
-					return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", myAddress, rightOfI)
+					return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", myAddress, rightOfMe)
 				}
 
 				break
