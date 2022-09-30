@@ -71,8 +71,8 @@ func (ms *P2PMessageService) AddPeers(peers []PeerInfo) {
 	}
 }
 
-// NewTestMessageService returns a running SimpleTcpMessageService listening on the given url
-func NewMessageService(hostName string, port int, pk []byte) *P2PMessageService {
+// NewMessageService returns a running P2PMessageService listening on the given ip and port
+func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
 	// We generate a random key using the hash of the pk as a seed
 	// This should mean that the message key is deterministic
 	// TODO: Ideally we would use the pk directly, but I haven't figured out of this is possible with lib p2p
@@ -81,7 +81,7 @@ func NewMessageService(hostName string, port int, pk []byte) *P2PMessageService 
 	messageKey, _, err := p2pcrypto.GenerateECDSAKeyPair(rand.New(rand.NewSource(seed)))
 
 	options := []libp2p.Option{libp2p.Identity(messageKey),
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", hostName, port)),
+		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
 		libp2p.DefaultTransports,
 		libp2p.NoSecurity,
 		libp2p.DefaultMuxers,

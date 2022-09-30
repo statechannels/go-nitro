@@ -7,7 +7,7 @@ import (
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 )
 
-func TestVirtualFundWithSimpleTCPMessageService(t *testing.T) {
+func TestVirtualFundWithP2PMessageService(t *testing.T) {
 
 	// Setup logging
 	logFile := "test_virtual_fund_with_simple_tcp.log"
@@ -19,9 +19,9 @@ func TestVirtualFundWithSimpleTCPMessageService(t *testing.T) {
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 
-	clientA, msgA := setupClientWithLibP2p(alice.PrivateKey, 3005, chainServiceA, logDestination)
-	clientB, msgB := setupClientWithLibP2p(bob.PrivateKey, 3006, chainServiceB, logDestination)
-	clientI, msgI := setupClientWithLibP2p(irene.PrivateKey, 3007, chainServiceI, logDestination)
+	clientA, msgA := setupClientWithP2PMessageService(alice.PrivateKey, 3005, chainServiceA, logDestination)
+	clientB, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, logDestination)
+	clientI, msgI := setupClientWithP2PMessageService(irene.PrivateKey, 3007, chainServiceI, logDestination)
 
 	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
