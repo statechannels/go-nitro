@@ -550,37 +550,54 @@ func ConstructObjectiveFromPayload(
 
 	participants := initialState.State().Participants
 
-	// This logic assumes a single hop virtual channel.
-	// Currently this is the only type of virtual channel supported.
-	alice := participants[0]
-	intermediary := participants[1]
-	bob := participants[2]
-
 	var leftC *consensus_channel.ConsensusChannel
 	var rightC *consensus_channel.ConsensusChannel
 	var ok bool
 
-	if myAddress == alice {
+	if myAddress == participants[0] {
+
+		// I am Alice
 		return Objective{}, errors.New("participant[0] should not construct objectives from peer messages")
-	} else if myAddress == bob {
-		leftC, ok = getTwoPartyConsensusLedger(intermediary)
-		if !ok {
-			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", intermediary, bob)
-		}
 
-	} else if myAddress == intermediary {
-		leftC, ok = getTwoPartyConsensusLedger(alice)
-		if !ok {
-			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", alice, intermediary)
-		}
+	} else if myAddress == participants[len(participants)-1] {
 
-		rightC, ok = getTwoPartyConsensusLedger(bob)
+		// I am Bob
+		leftOfBob := participants[len(participants)-2]
+		leftC, ok = getTwoPartyConsensusLedger(leftOfBob)
 		if !ok {
-			return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", intermediary, bob)
+			return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", leftOfBob, myAddress)
 		}
 
 	} else {
-		return Objective{}, fmt.Errorf("client address not found in an expected participant index")
+		intermediaries := participants[1 : len(participants)-1]
+		foundMyself := false
+
+		for i, intermediary := range intermediaries {
+			if myAddress == intermediary {
+				foundMyself = true
+				// I am intermediary `i` and participant `p`
+				p := i + 1 // participants[p] === intermediaries[i]
+
+				leftOfMe := participants[p-1]
+				rightOfMe := participants[p+1]
+
+				leftC, ok = getTwoPartyConsensusLedger(leftOfMe)
+				if !ok {
+					return Objective{}, fmt.Errorf("could not find a left ledger channel between %v and %v", leftOfMe, myAddress)
+				}
+
+				rightC, ok = getTwoPartyConsensusLedger(rightOfMe)
+				if !ok {
+					return Objective{}, fmt.Errorf("could not find a right ledger channel between %v and %v", myAddress, rightOfMe)
+				}
+
+				break
+			}
+		}
+
+		if !foundMyself {
+			return Objective{}, fmt.Errorf("client address not found in the participant list")
+		}
 	}
 
 	return constructFromState(
