@@ -365,7 +365,7 @@ func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protoc
 	return &updated, nil
 }
 
-// Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
+// Update receives a protocols.ObjectivePayload, applies all applicable event data to the VirtualFundObjective,
 // and returns the updated state.
 func (o *Objective) Update(raw protocols.ObjectivePayload) (protocols.Objective, error) {
 
@@ -385,7 +385,7 @@ func (o *Objective) Update(raw protocols.ObjectivePayload) (protocols.Objective,
 	return &updated, nil
 }
 
-// Crank inspects the extended state and declares a list of Effects to be executed
+// Crank inspects the extended state and declares a list of Effects to be executed.
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all.
 func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
@@ -717,7 +717,7 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 
 // ObjectiveRequest represents a request to create a new virtual funding objective.
 type ObjectiveRequest struct {
-	Intermediary      types.Address
+	Intermediary      types.Address // todo904: this should be an internal lookup
 	CounterParty      types.Address
 	ChallengeDuration uint32
 	Outcome           outcome.Exit
