@@ -95,10 +95,6 @@ func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
 func (c *Client) CreateVirtualPaymentChannel(Intermediary, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) virtualfund.ObjectiveResponse {
-	// todo904: should be CreateVirtualPaymentChannel(CounterParty types.Address, ...)
-	//
-	// omit the intermediary - consuming application shouldn't be concerned with it. go-nitro should
-	// retain a running record of its ledger channels
 
 	objectiveRequest := virtualfund.ObjectiveRequest{
 		Intermediary:      Intermediary,
