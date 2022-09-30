@@ -7,3 +7,11 @@ They work by allowing users to deposit their funds into a "layer 2" network whic
 The network benefits from significant advantages, however -- in a fraction of a second, a direct, private connection can be forged with anyone else in the network. Then, payments can be streamed incredibly fast: up to **hundreds of times per second**. What's more, there is no per-payment fee to cover!
 
 This is in sharp contrast to the experience of transacting publicly on a "layer 1" blockchain or even on a rollup chain. There, fees and latency apply to each and every action.
+
+## What's on offer
+
+These docs cover the open source code at https://github.com/statechannels/go-nitro. This includes
+
+- smart contracts (solidity)
+- utilities (Typescript)
+- fully-featured off chain client (Go, work in progress)
