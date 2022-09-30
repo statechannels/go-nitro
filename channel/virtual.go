@@ -6,21 +6,24 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
-type SingleHopVirtualChannel struct {
+type SingleHopVirtualChannel struct { // todo904: refactor as VirtualChannel - why not?
 	Channel
 }
 
 // NewSingleHopVirtualChannel returns a new SingleHopVirtualChannel based on the supplied state.
 func NewSingleHopVirtualChannel(s state.State, myIndex uint) (*SingleHopVirtualChannel, error) {
-	if myIndex > 2 {
-		return &SingleHopVirtualChannel{}, errors.New("myIndex in a single hop virtual channel must be 0, 1, or 2")
+	if int(myIndex) >= len(s.Participants) {
+		return &SingleHopVirtualChannel{}, errors.New("myIndex is out of range for the supplied participant list")
 	}
-	if len(s.Participants) != 3 {
-		return &SingleHopVirtualChannel{}, errors.New("a single hop virtual channel must have exactly three participants")
-	}
+	// if myIndex > 2 {
+	// 	return &SingleHopVirtualChannel{}, errors.New("myIndex in a single hop virtual channel must be 0, 1, or 2")
+	// }
+	// if len(s.Participants) != 3 {
+	// 	return &SingleHopVirtualChannel{}, errors.New("a single hop virtual channel must have exactly three participants")
+	// }
 	for _, assetExit := range s.Outcome {
 		if len(assetExit.Allocations) != 2 {
-			return &SingleHopVirtualChannel{}, errors.New("a single hop virtual channel's initial state should only have two allocations")
+			return &SingleHopVirtualChannel{}, errors.New("a virtual channel's initial state should only have two allocations")
 		}
 	}
 	c, err := New(s, myIndex)

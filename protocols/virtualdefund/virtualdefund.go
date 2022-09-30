@@ -55,14 +55,14 @@ type Objective struct {
 	// Signatures are the signatures for the final virtual state from each participant
 	// Signatures are ordered by participant order: Signatures[0] is Alice's signature, Signatures[1] is Irene's signature, Signatures[2] is Bob's signature
 	// Signatures gets updated as participants sign and send states to each other.
-	Signatures [3]state.Signature
+	Signatures [3]state.Signature // todo904: this can't be hardcoded [3]
 
 	ToMyLeft  *consensus_channel.ConsensusChannel
 	ToMyRight *consensus_channel.ConsensusChannel
 
 	// MyRole is the index of the participant in the participants list
 	// 0 is Alice
-	// 1 is Irene
+	// 1 is Irene // todo904: generalize
 	// 2 is Bob
 	MyRole uint
 }

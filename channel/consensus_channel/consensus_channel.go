@@ -18,7 +18,7 @@ import (
 type ledgerIndex uint
 
 var (
-	ErrIncorrectChannelID = fmt.Errorf("proposal ID and channel ID do not match")
+	ErrIncorrectChannelID = fmt.Errorf("proposal's LedgerID does not match the ID of the ledger Channel")
 	ErrIncorrectTurnNum   = fmt.Errorf("incorrect turn number")
 	ErrInvalidDeposit     = fmt.Errorf("unable to divert to guarantee: invalid deposit")
 	ErrInsufficientFunds  = fmt.Errorf("insufficient funds")
