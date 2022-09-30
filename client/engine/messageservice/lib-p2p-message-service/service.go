@@ -3,20 +3,25 @@ package libp2pms
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
+	"math/rand"
 	"time"
 
-	libp2p "github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p"
+	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
-	p2ppeer "github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
-	"github.com/statechannels/go-nitro-testground/peer"
-	"github.com/statechannels/go-nitro/client/engine"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/statechannels/go-nitro/client/engine/store/safesync"
+	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 const (
@@ -31,21 +36,52 @@ const (
 type P2PMessageService struct {
 	out chan protocols.Message // for sending message to engine
 
-	peers *safesync.Map[peer.PeerInfo]
+	peers *safesync.Map[peer.ID]
 
-	quit chan struct{} // quit is used to signal the goroutine to stop
-
-	me      peer.MyInfo
+	quit    chan struct{} // quit is used to signal the goroutine to stop
+	me      types.Address
+	key     p2pcrypto.PrivKey
 	p2pHost host.Host
+}
 
-	metrics *engine.MetricsRecorder
+// Id returns the libp2p peer ID of the message service
+func (ms *P2PMessageService) Id() peer.ID {
+	id, _ := peer.IDFromPrivateKey(ms.key)
+	return id
+}
+
+// AddPeers adds the peers to the message service
+// We ignore peers that are ourselves
+func (ms *P2PMessageService) AddPeers(peers []PeerInfo) {
+
+	for _, p := range peers {
+		// Ignore ourselves
+		if p.Address == ms.me {
+			continue
+		}
+		multi, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", p.IpAddress, p.Port, p.Id))
+
+		// Extract the peer ID from the multiaddr.
+		info, _ := peer.AddrInfoFromP2pAddr(multi)
+		// Add the destination's peer multiaddress in the peerstore.
+		// This will be used during connection and stream creation by libp2p.
+		ms.p2pHost.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+
+		ms.peers.Store(p.Address.String(), info.ID)
+	}
 }
 
 // NewTestMessageService returns a running SimpleTcpMessageService listening on the given url
-func NewMessageService(me peer.MyInfo, peers []peer.PeerInfo, metrics *engine.MetricsRecorder) *P2PMessageService {
+func NewMessageService(hostName string, port int, pk []byte) *P2PMessageService {
+	// We generate a random key using the hash of the pk as a seed
+	// This should mean that the message key is deterministic
+	// TODO: Ideally we would use the pk directly, but I haven't figured out of this is possible with lib p2p
+	hash := sha256.Sum256(pk)
+	seed := big.NewInt(0).SetBytes(hash[:]).Int64()
+	messageKey, _, err := p2pcrypto.GenerateECDSAKeyPair(rand.New(rand.NewSource(seed)))
 
-	options := []libp2p.Option{libp2p.Identity(me.MessageKey),
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", me.IpAddress, me.Port)),
+	options := []libp2p.Option{libp2p.Identity(messageKey),
+		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", hostName, port)),
 		libp2p.DefaultTransports,
 		libp2p.NoSecurity,
 		libp2p.DefaultMuxers,
@@ -55,26 +91,14 @@ func NewMessageService(me peer.MyInfo, peers []peer.PeerInfo, metrics *engine.Me
 		panic(err)
 	}
 
-	safePeers := safesync.Map[peer.PeerInfo]{}
-	for _, p := range peers {
-		if p.Address == me.Address {
-			continue
-		}
-		safePeers.Store(p.Address.String(), p)
-
-		// Extract the peer ID from the multiaddr.
-		info, _ := p2ppeer.AddrInfoFromP2pAddr(p.MultiAddress())
-		// Add the destination's peer multiaddress in the peerstore.
-		// This will be used during connection and stream creation by libp2p.
-		host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
-	}
+	safePeers := safesync.Map[peer.ID]{}
 	h := &P2PMessageService{
 		out:     make(chan protocols.Message, BUFFER_SIZE),
 		peers:   &safePeers,
 		p2pHost: host,
 		quit:    make(chan struct{}),
-		me:      me,
-		metrics: metrics,
+		key:     messageKey,
+		me:      crypto.GetAddressFromSecretKeyBytes(pk),
 	}
 
 	h.p2pHost.SetStreamHandler(MESSAGE_ADDRESS, func(stream network.Stream) {
@@ -112,17 +136,16 @@ func NewMessageService(me peer.MyInfo, peers []peer.PeerInfo, metrics *engine.Me
 // It blocks until the message is sent.
 // It will retry establishing a stream NUM_CONNECT_ATTEMPTS times before giving up
 func (ms *P2PMessageService) Send(msg protocols.Message) {
-	defer ms.metrics.RecordFunctionDuration()()
 	raw, err := msg.Serialize()
 	ms.checkError(err)
 
-	peer, ok := ms.peers.Load(msg.To.String())
+	id, ok := ms.peers.Load(msg.To.String())
 	if !ok {
 		panic(fmt.Errorf("could not load peer %s", msg.To.String()))
 	}
 
 	for i := 0; i < NUM_CONNECT_ATTEMPTS; i++ {
-		s, err := ms.p2pHost.NewStream(context.Background(), peer.Id, MESSAGE_ADDRESS)
+		s, err := ms.p2pHost.NewStream(context.Background(), id, MESSAGE_ADDRESS)
 		if err == nil {
 
 			writer := bufio.NewWriter(s)
@@ -131,7 +154,6 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 			_, err = writer.WriteString(raw + string(DELIMITER))
 
 			ms.checkError(err)
-			ms.recordOutgoingMessageMetrics(msg, []byte(raw))
 
 			writer.Flush()
 			s.Close()
@@ -140,7 +162,7 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 		}
 
 		// TODO: Hook up to a logger
-		fmt.Printf("attempt %d: could not open stream to %s, retrying in %s\n", i, peer.Address.String(), RETRY_SLEEP_DURATION.String())
+		fmt.Printf("attempt %d: could not open stream to %s, retrying in %s\n", i, msg.To.String(), RETRY_SLEEP_DURATION.String())
 		time.Sleep(RETRY_SLEEP_DURATION)
 
 	}
@@ -169,19 +191,4 @@ func (s *P2PMessageService) Out() <-chan protocols.Message {
 func (s *P2PMessageService) Close() {
 	close(s.quit)
 	s.p2pHost.Close()
-}
-
-// recordOutgoingMessageMetrics records various metrics about an outgoing message using the metrics API
-func (h *P2PMessageService) recordOutgoingMessageMetrics(msg protocols.Message, raw []byte) {
-
-	h.metrics.RecordQueueLength(fmt.Sprintf("msg_proposal_count,sender=%s,receiver=%s", h.me.Address, msg.To), len(msg.LedgerProposals))
-	h.metrics.RecordQueueLength(fmt.Sprintf("msg_payment_count,sender=%s,receiver=%s", h.me.Address, msg.To), len(msg.Payments))
-	h.metrics.RecordQueueLength(fmt.Sprintf("msg_payload_count,sender=%s,receiver=%s", h.me.Address, msg.To), len(msg.ObjectivePayloads))
-
-	totalPayloadsSize := 0
-	for _, p := range msg.ObjectivePayloads {
-		totalPayloadsSize += len(p.PayloadData)
-	}
-	h.metrics.RecordQueueLength(fmt.Sprintf("msg_payload_size,sender=%s,receiver=%s", h.me.Address, msg.To), totalPayloadsSize)
-	h.metrics.RecordQueueLength(fmt.Sprintf("msg_size,sender=%s,receiver=%s", h.me.Address, msg.To), len(raw))
 }
