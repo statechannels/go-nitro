@@ -79,7 +79,9 @@ func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
 	hash := sha256.Sum256(pk)
 	seed := big.NewInt(0).SetBytes(hash[:]).Int64()
 	messageKey, _, err := p2pcrypto.GenerateECDSAKeyPair(rand.New(rand.NewSource(seed)))
-
+	if err != nil {
+		panic(err)
+	}
 	options := []libp2p.Option{libp2p.Identity(messageKey),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
 		libp2p.DefaultTransports,
