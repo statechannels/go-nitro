@@ -4,7 +4,7 @@ A state channel can be thought of as a set of data structures (called "states") 
 
 !!! info
 
-    "Committing to" a state is typically done by digitially signing it.
+    In Nitro, "committing to" a state menas digitially signing it.
 
 ## States
 
@@ -12,68 +12,7 @@ In Nitro protocol, a state has the following type (on chain in Solidity, off-cha
 === "Solidity"
 
     ```solidity
-    struct State {
-        // participants sign the hash of this
-        bytes32 channelId; // keccack(FixedPart)
-        bytes appData;
-        bytes outcome;
-        uint48 turnNum;
-        bool isFinal;
-    }
-    ```
-
-=== "TypeScript"
-
-    ``` ts
-    import {Channel, Outcome, State} from '@statechannels/nitro-protocol';
-
-    const state: State = {
-        turnNum: 0,
-        isFinal: false,
-        channel,
-        challengeDuration,
-        outcome,
-        appDefinition,
-        appData
-    };
-
-    ```
-
-=== "Go"
-
-    ``` Go
-    import (
-    "math/big"
-
-    "github.com/ethereum/go-ethereum/common"
-    "github.com/statechannels/go-nitro/channel/state"
-    "github.com/statechannels/go-nitro/channel/state/outcome"
-    "github.com/statechannels/go-nitro/internal/testactors"
-    "github.com/statechannels/go-nitro/types"
-    )
-
-    var testState = state.State{
-        ChainId: chainId,
-        Participants: []types.Address{
-            testactors.Alice.Address(),
-            testactors.Bob.Address(),
-            },
-        ChannelNonce: big.NewInt(37140676580),
-        AppDefinition: someAppDefinition,
-        ChallengeDuration: big.NewInt(60),
-        AppData: []byte{},
-        Outcome: testOutcome,
-        TurnNum: 5,
-        IsFinal: false,
-    }
-
-    ```
-
-## Channel IDs
-
-Channels are identified by the hash of the `FixedPart`` of the state (those parts that may _not_ vary):
-
-```solidity
+    import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
     struct FixedPart {
         uint256 chainId;
@@ -82,16 +21,89 @@ Channels are identified by the hash of the `FixedPart`` of the state (those part
         address appDefinition;
         uint48 challengeDuration;
     }
+    struct VariablePart {
+        Outcome.SingleAssetExit[] outcome;
+        bytes appData;
+        uint48 turnNum;
+        bool isFinal;
+    }
+    ```
 
-    bytes32 channelId = keccak256(
-        abi.encode(
-            fixedPart.chainId,
-            fixedPart.participants,
-            fixedPart.channelNonce,
-            fixedPart.appDefinition,
-            fixedPart.challengeDuration
-        )
-    );
+=== "TypeScript"
+
+    ```typescript
+    import * as ExitFormat from '@statechannels/exit-format';
+    export type Outcome = ExitFormat.Exit;
+
+    export interface Channel {
+        channelNonce: Uint64; // Unique identifier for each new channel created by the same participants on the same chain
+        participants: Address[]; // List of participant addresses (corresponding to ECDSA signing keys used to sign state channel updates)
+        chainId: Uint256; // Identifier of the chain where this channel is adjudicated and where assets are held
+    }
+    export interface State {
+        turnNum: number;
+        isFinal: boolean;
+        channel: Channel;
+        challengeDuration: number;
+        outcome: Outcome;
+        appDefinition: string;
+        appData: string;
+    }
+    ```
+
+=== "Go"
+
+```Go
+import (
+"math/big"
+
+"github.com/ethereum/go-ethereum/common"
+"github.com/statechannels/go-nitro/channel/state"
+"github.com/statechannels/go-nitro/channel/state/outcome"
+"github.com/statechannels/go-nitro/internal/testactors"
+"github.com/statechannels/go-nitro/types"
+)
+
+var testState = state.State{
+    ChainId: chainId,
+    Participants: []types.Address{
+        testactors.Alice.Address(),
+        testactors.Bob.Address(),
+        },
+    ChannelNonce: big.NewInt(37140676580),
+    AppDefinition: someAppDefinition,
+    ChallengeDuration: big.NewInt(60),
+    AppData: []byte{},
+    Outcome: testOutcome,
+    TurnNum: 5,
+    IsFinal: false,
+}
+
+```
+
+## Channel IDs
+
+Channels are identified by the hash of the `FixedPart`` of the state (those parts that may _not_ vary):
+
+```solidity
+
+  struct FixedPart {
+      uint256 chainId;
+      address[] participants;
+      uint48 channelNonce;
+      address appDefinition;
+      uint48 challengeDuration;
+  }
+
+  bytes32 channelId = keccak256(
+      abi.encode(
+          fixedPart.chainId,
+          fixedPart.participants,
+          fixedPart.channelNonce,
+          fixedPart.appDefinition,
+          fixedPart.challengeDuration
+      )
+  );
 
 ```
 
