@@ -7,6 +7,7 @@ theme:
   logo: assets/mstile-144x144.png
   favicon: assets/favicon.ico
   features:
+    - content.code.annotate
     - navigation.tracking
     - navigation.tabs
     - content.tabs.link
