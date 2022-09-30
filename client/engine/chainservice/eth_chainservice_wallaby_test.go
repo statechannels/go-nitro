@@ -18,15 +18,6 @@ import (
 )
 
 func TestEthChainServiceAgainstWallaby(t *testing.T) {
-	// Add a valid private key with testnet Eth. DO NOT check into git.
-	pkString := "6645aa9129061ccef190e1bb1e11319b3d716b3140eec27595d045dbd565733b" // or maybe 7b2254797065223a22736563703235366b31222c22507269766174654b6579223a225a6b57716b536b47484d37786b4f4737486845786d7a3178617a464137734a316c6442463239566c637a733d227d
-
-	one := big.NewInt(1)
-
-	pk, err := crypto.HexToECDSA(pkString)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	client, err := ethclient.Dial("https://wallaby.node.glif.io/rpc/v0")
 	if err != nil {
@@ -38,6 +29,16 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(bn)
+
+	// Add a valid private key with testnet Eth. DO NOT check into git.
+	pkString := "6645aa9129061ccef190e1bb1e11319b3d716b3140eec27595d045dbd565733b" // or maybe 7b2254797065223a22736563703235366b31222c22507269766174654b6579223a225a6b57716b536b47484d37786b4f4737486845786d7a3178617a464137734a316c6442463239566c637a733d227d
+
+	one := big.NewInt(1)
+
+	pk, err := crypto.HexToECDSA(pkString)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// gasPrice, err := client.SuggestGasPrice(context.Background())
 	// if err != nil {
