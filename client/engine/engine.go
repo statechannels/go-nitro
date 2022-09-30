@@ -447,6 +447,7 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 
 	for _, message := range sideEffects.MessagesToSend {
 		e.logMessage(message, Outgoing)
+		e.recordMessageMetrics(message)
 		e.msg.Send(message)
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
@@ -658,11 +659,25 @@ const (
 
 // logMessage logs a message to the engine's logger
 func (e *Engine) logMessage(msg protocols.Message, direction messageDirection) {
-	defer e.metrics.RecordFunctionDuration()()
 
 	if direction == Incoming {
 		e.logger.Printf("Receiving message %+v", msg.Summarize())
 	} else {
 		e.logger.Printf("Sending message %+v", msg.Summarize())
 	}
+}
+
+// recordMessageMetrics records metrics for a message
+func (e *Engine) recordMessageMetrics(message protocols.Message) {
+	e.metrics.RecordQueueLength(fmt.Sprintf("msg_proposal_count,sender=%s,receiver=%s", e.store.GetAddress(), message.To), len(message.LedgerProposals))
+	e.metrics.RecordQueueLength(fmt.Sprintf("msg_payment_count,sender=%s,receiver=%s", e.store.GetAddress(), message.To), len(message.Payments))
+	e.metrics.RecordQueueLength(fmt.Sprintf("msg_payload_count,sender=%s,receiver=%s", e.store.GetAddress(), message.To), len(message.ObjectivePayloads))
+
+	totalPayloadsSize := 0
+	for _, p := range message.ObjectivePayloads {
+		totalPayloadsSize += len(p.PayloadData)
+	}
+	raw, _ := message.Serialize()
+	e.metrics.RecordQueueLength(fmt.Sprintf("msg_payload_size,sender=%s,receiver=%s", e.store.GetAddress(), message.To), totalPayloadsSize)
+	e.metrics.RecordQueueLength(fmt.Sprintf("msg_size,sender=%s,receiver=%s", e.store.GetAddress(), message.To), len(raw))
 }
