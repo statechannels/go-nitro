@@ -36,7 +36,7 @@ jobs:
       - name: Run 5 min Test 
         run: | 
          testground --endpoint=${{secrets.TG_SERVER_URL}}  run s --wait \
-         -p=go-nitro-testground -t=virtual-payment \
+         -tp=isNightly=true -p=go-nitro-testground -t=virtual-payment \
          -b=docker:go -r=local:docker \
          -tp=numOfHubs=1 -tp=numOfPayers=10 -tp=numOfPayees=1  -i=12 \
          -tp=paymentTestDuration=300  -tp=concurrentPaymentJobs=10 \
