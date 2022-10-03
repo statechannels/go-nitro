@@ -45,7 +45,7 @@ func New(s state.State, myIndex uint) (*Channel, error) {
 	}
 	c.MyIndex = myIndex
 	c.OnChainFunding = make(types.Funds)
-	c.FixedPart = s.FixedPart()
+	c.FixedPart = s.FixedPart().Clone()
 	c.latestSupportedStateTurnNum = MaxTurnNum // largest uint64 value reserved for "no supported state"
 	// c.Support =  // TODO
 
