@@ -82,7 +82,7 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 	txSubmitter.GasLimit = uint64(47755863) // in units
 	txSubmitter.GasFeeCap = big.NewInt(100)
 
-	txSubmitter.Nonce = big.NewInt(nonce)
+	txSubmitter.Nonce = big.NewInt(nonce + 1)
 
 	// As of the "Iron" FVM release, it seems that the return value of things like eth_getBlockByNumber do not match the spec.
 	// Linked to this (probably) https://github.com/filecoin-project/ref-fvm/issues/908
@@ -92,7 +92,7 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 	signedTx, err := txSubmitter.Signer(txSubmitter.From,
 		gethTypes.NewTx(&(gethTypes.DynamicFeeTx{
 			// ChainID:   big.NewInt(31415),
-			Nonce:     uint64(nonce),
+			Nonce:     txSubmitter.Nonce.Uint64(),
 			GasTipCap: txSubmitter.GasTipCap,
 			GasFeeCap: txSubmitter.GasFeeCap,
 			Gas:       txSubmitter.GasLimit,
@@ -107,6 +107,7 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	receipt, err := client.TransactionReceipt(context.Background(), signedTx.Hash())
 	if err != nil {
 		t.Fatal(err)
