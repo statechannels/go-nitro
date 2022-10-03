@@ -1,9 +1,12 @@
 package chainservice
 
 import (
+	"bytes"
 	"context"
+	"io/ioutil"
 	"log"
 	"math/big"
+	"net/http"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -49,31 +52,30 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// jrpc, err := jsonrpc.Dial("tcp", "wallaby.node.glif.io/rpc/v0:80")
-	// // data, err := json.Marshal(map[string]interface{}{
-	// // 	"method": "rpc.discover",
-	// // 	"id":     1,
-	// // 	"params": []interface{}{},
-	// // })
-	// if err != nil {
-	// 	log.Fatalf("Marshal: %v", err)
-	// }
+	resp, err := http.Post(endpoint, "application/json", bytes.NewBuffer([]byte(`{ "jsonrpc": "2.0", "method": "eth_blockNumber","params": [], "id":67}`)))
 
-	// reply := ""
-	// err2 := jrpc.Call("Filecoin.Version", nil, reply)
-	// t.Log(reply)
-	// t.Log(err2)
+	// 	curl --location --request POST 'https://wallaby.node.glif.io/rpc/v0' \
+	//   --header 'Content-Type: application/json' \
+	//   --data-raw '{
+	//   "jsonrpc":"2.0",
+	//   "method":"eth_blockNumber",
+	//   "params":[],
+	//   "id":67
+	//   }'
 
-	// t.Log(data)
-
-	// // resp, err := http.Post(endpoint, "application/json", strings.NewReader(`{ jsonrpc: "2.0", method: "Filecoin.MpoolGetNonce",params: ["`+secp256k1Address.String()+`"]}`))
 	// resp, err := http.Post(endpoint, "application/json", strings.NewReader(string(data)))
 
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// t.Log(resp)
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(string(body))
 
 	// gasPrice, err := client.SuggestGasPrice(context.Background())
 	// if err != nil {
