@@ -3,6 +3,7 @@ package chainservice
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -45,25 +46,13 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pubKey := crypto.FromECDSA(pk)
-	secp256k1Address, err := address.NewSecp256k1Address(pubKey)
-	t.Log(secp256k1Address)
+	f1Address, err := address.NewSecp256k1Address(crypto.FromECDSAPub(&pk.PublicKey))
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	resp, err := http.Post(endpoint, "application/json", bytes.NewBuffer([]byte(`{ "jsonrpc": "2.0", "method": "eth_blockNumber","params": [], "id":67}`)))
-
-	// 	curl --location --request POST 'https://wallaby.node.glif.io/rpc/v0' \
-	//   --header 'Content-Type: application/json' \
-	//   --data-raw '{
-	//   "jsonrpc":"2.0",
-	//   "method":"eth_blockNumber",
-	//   "params":[],
-	//   "id":67
-	//   }'
-
-	// resp, err := http.Post(endpoint, "application/json", strings.NewReader(string(data)))
+	resp, err := http.Post(endpoint, "application/json", bytes.NewBuffer([]byte(`{ "jsonrpc": "2.0", "method": "Filecoin.MpoolGetNonce","params": ["`+f1Address.String()+`"], "id":67}`)))
 
 	if err != nil {
 		t.Fatal(err)
@@ -75,12 +64,19 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log(string(body))
+	type responseTy struct {
+		jsonrpc string
+		result  int64
+		id      int64
+	}
 
-	// gasPrice, err := client.SuggestGasPrice(context.Background())
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	responseBody := responseTy{}
+	err = json.Unmarshal(body, &responseBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nonce := responseBody.result
 
 	txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, big.NewInt(5))
 	if err != nil {
@@ -90,7 +86,7 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 	txSubmitter.GasLimit = uint64(300000) // in units
 	txSubmitter.GasFeeCap = big.NewInt(100)
 
-	txSubmitter.Nonce = big.NewInt(1)
+	txSubmitter.Nonce = big.NewInt(nonce)
 
 	// nonce, err := client.NonceAt(context.Background(), txSubmitter.From, nil)
 	// if err != nil {
