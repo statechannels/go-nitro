@@ -84,9 +84,39 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 	}
 
 	txSubmitter.GasLimit = uint64(47755863) // in units
-	txSubmitter.GasFeeCap = big.NewInt(100)
+
+	resp, err = http.Post(endpoint, "application/json", bytes.NewBuffer([]byte(`{ "jsonrpc": "2.0", "method": "eth_maxPriorityFeePerGas","params": [], "id":`+fmt.Sprint(rand.Intn(1000))+`}`)))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body, err = ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type responseTy2 struct {
+		Result string `json:"result"`
+	}
+	responseBody2 := responseTy2{}
+
+	err = json.Unmarshal(body, &responseBody2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	gasFeeCap := responseBody2.Result
+	t.Log("eth_maxPriorityFeePerGas returned", gasFeeCap)
+	txSubmitter.GasFeeCap = new(big.Int)
+	txSubmitter.GasFeeCap.SetString(gasFeeCap, 16)
+
+	// OVERWRITE ALL OF THAT ANYWAY ;-)
+	txSubmitter.GasFeeCap = big.NewInt(7755863)
 
 	txSubmitter.Nonce = big.NewInt(nonce + 1)
+	txSubmitter.Nonce = big.NewInt(4)
 
 	// As of the "Iron" FVM release, it seems that the return value of things like eth_getBlockByNumber do not match the spec.
 	// Linked to this (probably) https://github.com/filecoin-project/ref-fvm/issues/908
@@ -112,12 +142,18 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log(signedTx.Hash())
-	receipt, err := client.TransactionReceipt(context.Background(), signedTx.Hash())
+	naAddress, err := bind.WaitDeployed(context.Background(), client, signedTx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(receipt)
+	t.Log(naAddress)
+
+	// t.Log(signedTx.Hash())
+	// receipt, err := client.TransactionReceipt(context.Background(), signedTx.Hash())
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// t.Log(receipt)
 
 	// caAddress := common.Address{}  // TODO use proper address
 	// vpaAddress := common.Address{} // TODO use proper address
