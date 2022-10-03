@@ -39,7 +39,7 @@ jobs:
          -tp=isNightly=true -p=go-nitro-testground -t=virtual-payment \
          -b=docker:go -r=local:docker \
          -tp=numOfHubs=1 -tp=numOfPayers=10 -tp=numOfPayees=1  -i=12 \
-         -tp=paymentTestDuration=300  -tp=concurrentPaymentJobs=10 \
+         -tp=paymentTestDuration=180  -tp=concurrentPaymentJobs=10 \
          --tp=networkLatency=15 --tp=networkJitter=2 \
          --metadata-repo "${{github.repository}}" \
          --metadata-branch "${{github.event.pull_request.head.ref}}" \
