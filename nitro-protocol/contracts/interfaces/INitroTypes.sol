@@ -11,6 +11,14 @@ interface INitroTypes {
         bytes32 s;
     }
 
+    struct FixedPart {
+        uint256 chainId;
+        address[] participants;
+        uint64 channelNonce;
+        address appDefinition;
+        uint48 challengeDuration;
+    }
+
     struct VariablePart {
         Outcome.SingleAssetExit[] outcome;
         bytes appData;
@@ -26,22 +34,5 @@ interface INitroTypes {
     struct RecoveredVariablePart {
         VariablePart variablePart;
         uint256 signedBy; // bitmask
-    }
-
-    struct FixedPart {
-        uint256 chainId;
-        address[] participants;
-        uint64 channelNonce;
-        address appDefinition;
-        uint48 challengeDuration;
-    }
-
-    struct State {
-        // participants sign the hash of this
-        bytes32 channelId; // keccack(FixedPart)
-        bytes appData;
-        bytes outcome;
-        uint48 turnNum;
-        bool isFinal;
     }
 }
