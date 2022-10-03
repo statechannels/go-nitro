@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/filecoin-project/go-address"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
@@ -19,7 +20,9 @@ import (
 
 func TestEthChainServiceAgainstWallaby(t *testing.T) {
 
-	client, err := ethclient.Dial("https://wallaby.node.glif.io/rpc/v0")
+	endpoint := "https://wallaby.node.glif.io/rpc/v0"
+
+	client, err := ethclient.Dial(endpoint)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +34,7 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 	t.Log(bn)
 
 	// Add a valid private key with testnet Eth. DO NOT check into git.
-	pkString := "6645aa9129061ccef190e1bb1e11319b3d716b3140eec27595d045dbd565733b" // or maybe 7b2254797065223a22736563703235366b31222c22507269766174654b6579223a225a6b57716b536b47484d37786b4f4737486845786d7a3178617a464137734a316c6442463239566c637a733d227d
+	pkString := "6645aa9129061ccef190e1bb1e11319b3d716b3140eec27595d045dbd565733b"
 
 	one := big.NewInt(1)
 
@@ -39,6 +42,38 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	pubKey := crypto.FromECDSA(pk)
+	secp256k1Address, err := address.NewSecp256k1Address(pubKey)
+	t.Log(secp256k1Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// jrpc, err := jsonrpc.Dial("tcp", "wallaby.node.glif.io/rpc/v0:80")
+	// // data, err := json.Marshal(map[string]interface{}{
+	// // 	"method": "rpc.discover",
+	// // 	"id":     1,
+	// // 	"params": []interface{}{},
+	// // })
+	// if err != nil {
+	// 	log.Fatalf("Marshal: %v", err)
+	// }
+
+	// reply := ""
+	// err2 := jrpc.Call("Filecoin.Version", nil, reply)
+	// t.Log(reply)
+	// t.Log(err2)
+
+	// t.Log(data)
+
+	// // resp, err := http.Post(endpoint, "application/json", strings.NewReader(`{ jsonrpc: "2.0", method: "Filecoin.MpoolGetNonce",params: ["`+secp256k1Address.String()+`"]}`))
+	// resp, err := http.Post(endpoint, "application/json", strings.NewReader(string(data)))
+
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// t.Log(resp)
 
 	// gasPrice, err := client.SuggestGasPrice(context.Background())
 	// if err != nil {
@@ -49,9 +84,24 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	txSubmitter.GasPrice = big.NewInt(100) // gasPrice
-	txSubmitter.GasLimit = uint64(300000)  // in units
+
+	txSubmitter.GasLimit = uint64(300000) // in units
 	txSubmitter.GasFeeCap = big.NewInt(100)
+
+	txSubmitter.Nonce = big.NewInt(1)
+
+	// nonce, err := client.NonceAt(context.Background(), txSubmitter.From, nil)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// txSubmitter.Nonce = big.NewInt(int64(nonce))
+
+	// getting an error on the below: failed to retrieve account nonce: actor not found
+	// possible solution:
+	//   const f1addr = fa.newSecp256k1Address(pubKey).toString();
+	//   const priorityFee = await callRpc("eth_maxPriorityFeePerGas");
+	//   const nonce = await callRpc("Filecoin.MpoolGetNonce", [f1addr]); we need to call filecoin mpoolgetnonce with the filecoin address
 
 	naAddress, _, na, err := NitroAdjudicator.DeployNitroAdjudicator(txSubmitter, client)
 
