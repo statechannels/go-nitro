@@ -172,7 +172,7 @@ func TestClone(t *testing.T) {
 	}
 }
 
-func cloneAndSignSetupStateByPeers(v channel.SingleHopVirtualChannel, myRole uint, prefund bool) *channel.SingleHopVirtualChannel {
+func cloneAndSignSetupStateByPeers(v channel.VirtualChannel, myRole uint, prefund bool) *channel.VirtualChannel {
 	withSigs := v.Clone()
 
 	var state state.State

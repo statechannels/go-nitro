@@ -132,7 +132,7 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("failed to unmarshal the VirtualFundObjective: %w", err)
 	}
 
-	o.V = &channel.SingleHopVirtualChannel{}
+	o.V = &channel.VirtualChannel{}
 	o.V.Id = jsonVFO.V
 
 	o.ToMyLeft = &Connection{}
