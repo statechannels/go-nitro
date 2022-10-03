@@ -115,7 +115,7 @@ func (ecs *EthChainService) subcribeToEvents() error {
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
 	}
-	logs := make(chan ethTypes.Log)
+	logs := make(chan ethTypes.Log, 100)
 	sub, err := ecs.chain.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil {
 		return err
