@@ -7,7 +7,7 @@ import (
 
 // PeerInfo contains information about a peer
 type PeerInfo struct {
-	Port      int64
+	Port      int
 	Id        peer.ID
 	Address   types.Address
 	IpAddress string
