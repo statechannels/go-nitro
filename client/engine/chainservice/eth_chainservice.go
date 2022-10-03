@@ -44,7 +44,7 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	logPrefix := "chainservice " + txSigner.From.String() + ": "
 	logger := log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger}
+	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 1000), logger}
 
 	err := ecs.subcribeToEvents()
 	return &ecs, err
