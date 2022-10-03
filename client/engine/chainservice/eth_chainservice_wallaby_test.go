@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"math/big"
+	"math/rand"
 	"net/http"
 	"testing"
 
@@ -48,7 +50,9 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resp, err := http.Post(endpoint, "application/json", bytes.NewBuffer([]byte(`{ "jsonrpc": "2.0", "method": "Filecoin.MpoolGetNonce","params": ["`+f1Address.String()+`"], "id":67}`)))
+	t.Log("f1 Address is ", f1Address)
+
+	resp, err := http.Post(endpoint, "application/json", bytes.NewBuffer([]byte(`{ "jsonrpc": "2.0", "method": "Filecoin.MpoolGetNonce","params": ["`+f1Address.String()+`"], "id":`+fmt.Sprint(rand.Intn(1000))+`}`)))
 
 	if err != nil {
 		t.Fatal(err)
@@ -61,18 +65,18 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 	}
 
 	type responseTy struct {
-		jsonrpc string
-		result  int64
-		id      int64
+		Result int64 `json:"result"`
 	}
 
-	responseBody := responseTy{}
+	var responseBody responseTy
 	err = json.Unmarshal(body, &responseBody)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	nonce := responseBody.result
+	nonce := responseBody.Result
+
+	t.Log("Filecoin.MpoolGetNonce call returned", nonce)
 
 	txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, big.NewInt(31415))
 	if err != nil {
@@ -108,6 +112,7 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	t.Log(signedTx.Hash())
 	receipt, err := client.TransactionReceipt(context.Background(), signedTx.Hash())
 	if err != nil {
 		t.Fatal(err)
