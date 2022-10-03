@@ -304,8 +304,8 @@ func TestChannel(t *testing.T) {
 
 }
 
-func TestSingleHopVirtualChannel(t *testing.T) {
-	compareChannels := func(a, b *SingleHopVirtualChannel) string {
+func TestVirtualChannel(t *testing.T) {
+	compareChannels := func(a, b *VirtualChannel) string {
 		return cmp.Diff(*a, *b, cmp.AllowUnexported(*a, big.Int{}, state.SignedState{}, Channel{}))
 	}
 
@@ -313,7 +313,7 @@ func TestSingleHopVirtualChannel(t *testing.T) {
 	s.Participants = append(s.Participants, s.Participants[0]) // ensure three participants
 	s.TurnNum = 0
 	testClone := func(t *testing.T) {
-		r, err := NewSingleHopVirtualChannel(s, 0)
+		r, err := NewVirtualChannel(s, 0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -332,14 +332,17 @@ func TestSingleHopVirtualChannel(t *testing.T) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
-		var nilChannel *SingleHopVirtualChannel
+		var nilChannel *VirtualChannel
 		clone := nilChannel.Clone()
 		if clone != nil {
 			t.Fatal("Tried to clone a Channel via a nil pointer, but got something not nil")
 		}
 
 	}
-	t.Run(`TestClone`, testClone)
+
+	t.Run(`TestClone SingleHop`, testClone)
+	s.Participants = append(s.Participants, s.Participants[1]) // add a fourth participant
+	t.Run(`TestClone DoubleHop`, testClone)
 }
 
 func TestSerde(t *testing.T) {

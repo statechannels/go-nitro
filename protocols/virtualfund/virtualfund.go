@@ -122,7 +122,7 @@ func (c *Connection) getExpectedGuarantee() consensus_channel.Guarantee {
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
 type Objective struct {
 	Status protocols.ObjectiveStatus
-	V      *channel.SingleHopVirtualChannel
+	V      *channel.VirtualChannel
 
 	ToMyLeft  *Connection
 	ToMyRight *Connection
@@ -194,7 +194,7 @@ func constructFromState(
 	}
 
 	// Initialize virtual channel
-	v, err := channel.NewSingleHopVirtualChannel(initialStateOfV, init.MyRole)
+	v, err := channel.NewVirtualChannel(initialStateOfV, init.MyRole)
 	if err != nil {
 		return Objective{}, err
 	}

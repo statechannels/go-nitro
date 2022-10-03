@@ -6,33 +6,36 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 )
 
-type SingleHopVirtualChannel struct {
+type VirtualChannel struct {
 	Channel
 }
 
-// NewSingleHopVirtualChannel returns a new SingleHopVirtualChannel based on the supplied state.
-func NewSingleHopVirtualChannel(s state.State, myIndex uint) (*SingleHopVirtualChannel, error) {
-	if myIndex > 2 {
-		return &SingleHopVirtualChannel{}, errors.New("myIndex in a single hop virtual channel must be 0, 1, or 2")
+// NewVirtualChannel returns a new VirtualChannel based on the supplied state.
+//
+// Virtual channel protocol currently presumes exactly two "active" participants,
+// Alice and Bob (p[0] and p[last]). They should be the only destinations allocated
+// to in the supplied state's Outcome.
+func NewVirtualChannel(s state.State, myIndex uint) (*VirtualChannel, error) {
+	if int(myIndex) >= len(s.Participants) {
+		return &VirtualChannel{}, errors.New("myIndex not in range of the supplied participants")
 	}
-	if len(s.Participants) != 3 {
-		return &SingleHopVirtualChannel{}, errors.New("a single hop virtual channel must have exactly three participants")
-	}
+
 	for _, assetExit := range s.Outcome {
 		if len(assetExit.Allocations) != 2 {
-			return &SingleHopVirtualChannel{}, errors.New("a single hop virtual channel's initial state should only have two allocations")
+			return &VirtualChannel{}, errors.New("a virtual channel's initial state should only have two allocations")
 		}
 	}
+
 	c, err := New(s, myIndex)
 
-	return &SingleHopVirtualChannel{*c}, err
+	return &VirtualChannel{*c}, err
 }
 
 // Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.
-func (v *SingleHopVirtualChannel) Clone() *SingleHopVirtualChannel {
+func (v *VirtualChannel) Clone() *VirtualChannel {
 	if v == nil {
 		return nil
 	}
-	w := SingleHopVirtualChannel{*v.Channel.Clone()}
+	w := VirtualChannel{*v.Channel.Clone()}
 	return &w
 }
