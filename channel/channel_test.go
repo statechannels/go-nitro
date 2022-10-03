@@ -304,7 +304,7 @@ func TestChannel(t *testing.T) {
 
 }
 
-func TestSingleHopVirtualChannel(t *testing.T) {
+func TestVirtualChannel(t *testing.T) {
 	compareChannels := func(a, b *VirtualChannel) string {
 		return cmp.Diff(*a, *b, cmp.AllowUnexported(*a, big.Int{}, state.SignedState{}, Channel{}))
 	}
@@ -339,7 +339,10 @@ func TestSingleHopVirtualChannel(t *testing.T) {
 		}
 
 	}
-	t.Run(`TestClone`, testClone)
+
+	t.Run(`TestClone SingleHop`, testClone)
+	s.Participants = append(s.Participants, s.Participants[1]) // add a fourth participant
+	t.Run(`TestClone DoubleHop`, testClone)
 }
 
 func TestSerde(t *testing.T) {
