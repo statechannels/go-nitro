@@ -95,7 +95,9 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 		state := tx.SignedState.State()
 		signatures := tx.SignedState.Signatures()
 		nitroFixedPart := NitroAdjudicator.INitroTypesFixedPart(NitroAdjudicator.ConvertFixedPart(state.FixedPart()))
+
 		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(state.VariablePart())
+		fmt.Printf("nitro var part:\n %+v\n", nitroVariablePart)
 		nitroSignatures := []NitroAdjudicator.INitroTypesSignature{NitroAdjudicator.ConvertSignature(signatures[0]), NitroAdjudicator.ConvertSignature(signatures[1])}
 		proof := make([]NitroAdjudicator.INitroTypesSignedVariablePart, 0)
 		candidate := NitroAdjudicator.INitroTypesSignedVariablePart{
