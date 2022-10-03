@@ -92,8 +92,8 @@ func (c *Connection) handleProposal(sp consensus_channel.SignedProposal) error {
 	return nil
 }
 
-// Funded computes whether the ledger channel on the receiver funds the guarantee expected by this connection
-func (c *Connection) Funded() bool {
+// IsFundingTheTarget computes whether the ledger channel on the receiver funds the guarantee expected by this connection
+func (c *Connection) IsFundingTheTarget() bool {
 	g := c.getExpectedGuarantee()
 	return c.Channel.Includes(g)
 }
@@ -415,7 +415,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	// Funding
 
-	if !updated.isAlice() && !updated.ToMyLeft.Funded() {
+	if !updated.isAlice() && !updated.ToMyLeft.IsFundingTheTarget() {
 
 		ledgerSideEffects, err := updated.updateLedgerWithGuarantee(*updated.ToMyLeft, secretKey)
 		if err != nil {
@@ -424,7 +424,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		sideEffects.Merge(ledgerSideEffects)
 	}
 
-	if !updated.isBob() && !updated.ToMyRight.Funded() {
+	if !updated.isBob() && !updated.ToMyRight.IsFundingTheTarget() {
 		ledgerSideEffects, err := updated.updateLedgerWithGuarantee(*updated.ToMyRight, secretKey)
 		if err != nil {
 			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
@@ -481,11 +481,11 @@ func (o *Objective) fundingComplete() bool {
 
 	switch {
 	case o.isAlice():
-		return o.ToMyRight.Funded()
+		return o.ToMyRight.IsFundingTheTarget()
 	case o.isBob():
-		return o.ToMyLeft.Funded()
+		return o.ToMyLeft.IsFundingTheTarget()
 	default: // Intermediary
-		return o.ToMyRight.Funded() && o.ToMyLeft.Funded()
+		return o.ToMyRight.IsFundingTheTarget() && o.ToMyLeft.IsFundingTheTarget()
 	}
 
 }
