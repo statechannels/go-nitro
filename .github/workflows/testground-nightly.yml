@@ -31,7 +31,7 @@ jobs:
         run:    testground plan import --from ./go-nitro-testground
         working-directory: "code"
 
-      - name: Run 5 min Test 
+      - name: Run 3 min Test 
         run: | 
          testground --endpoint=${{secrets.TG_SERVER_URL}}  run s --wait \
          -tp=isNightly=true -p=go-nitro-testground -t=virtual-payment \
