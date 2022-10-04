@@ -32,9 +32,9 @@ const (
 	RETRY_SLEEP_DURATION = 5 * time.Second
 )
 
-// P2PMessageService is a rudimentary message service that uses TCP to send and receive messages
+// P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
 type P2PMessageService struct {
-	out chan protocols.Message // for sending message to engine
+	toEngine chan protocols.Message // for forwarding processed messages to the engine
 
 	peers *safesync.Map[peer.ID]
 
@@ -44,14 +44,14 @@ type P2PMessageService struct {
 	p2pHost host.Host
 }
 
-// Id returns the libp2p peer ID of the message service
+// Id returns the libp2p peer ID of the message service.
 func (ms *P2PMessageService) Id() peer.ID {
 	id, _ := peer.IDFromPrivateKey(ms.key)
 	return id
 }
 
-// AddPeers adds the peers to the message service
-// We ignore peers that are ourselves
+// AddPeers adds the peers to the message service.
+// We ignore peers that are ourselves.
 func (ms *P2PMessageService) AddPeers(peers []PeerInfo) {
 
 	for _, p := range peers {
