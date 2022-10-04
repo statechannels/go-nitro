@@ -95,12 +95,12 @@ func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
 
 	safePeers := safesync.Map[peer.ID]{}
 	h := &P2PMessageService{
-		out:     make(chan protocols.Message, BUFFER_SIZE),
-		peers:   &safePeers,
-		p2pHost: host,
-		quit:    make(chan struct{}),
-		key:     messageKey,
-		me:      crypto.GetAddressFromSecretKeyBytes(pk),
+		toEngine: make(chan protocols.Message, BUFFER_SIZE),
+		peers:    &safePeers,
+		p2pHost:  host,
+		quit:     make(chan struct{}),
+		key:      messageKey,
+		me:       crypto.GetAddressFromSecretKeyBytes(pk),
 	}
 
 	h.p2pHost.SetStreamHandler(MESSAGE_ADDRESS, func(stream network.Stream) {
@@ -124,7 +124,7 @@ func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
 			m, err := protocols.DeserializeMessage(raw)
 
 			h.checkError(err)
-			h.out <- m
+			h.toEngine <- m
 			stream.Close()
 		}
 
@@ -186,7 +186,7 @@ func (s *P2PMessageService) checkError(err error) {
 
 // Out returns a channel that can be used to receive messages from the message service
 func (s *P2PMessageService) Out() <-chan protocols.Message {
-	return s.out
+	return s.toEngine
 }
 
 // Close closes the P2PMessageService
