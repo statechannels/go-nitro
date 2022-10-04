@@ -38,12 +38,13 @@
  * Import typescript types
  *
  * ```typescript
- * import {Channel} from '@statechannels/nitro-protocol';
+ * import {State} from '@statechannels/nitro-protocol';
  *
- * const channel: Channel = {
+ * const state: State = {
  *   chainId: '0x1',
  *   channelNonce: 0,
  *   participants: ['0xalice...', '0xbob...'],
+ *   // etc
  * };
  * ```
  *
@@ -134,7 +135,7 @@ export {
   getChallengeClearedEvent,
   ChallengeRegisteredEvent,
 } from './contract/challenge';
-export {Channel, getChannelId, isExternalDestination} from './contract/channel';
+export {getChannelId, isExternalDestination} from './contract/channel';
 export {
   validTransition,
   ForceMoveAppContractInterface,

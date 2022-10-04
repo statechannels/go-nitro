@@ -78,9 +78,7 @@ export class TestChannel {
   }
   someState(asset: string): State {
     return {
-      challengeDuration: 600,
-      appDefinition: this.appDefinition,
-      channel: this.fixedPart,
+      ...this.fixedPart,
       turnNum: 6,
       isFinal: false,
       outcome: this.outcome(asset),

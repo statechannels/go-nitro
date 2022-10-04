@@ -10,6 +10,7 @@ import {
   getFixedPart,
   getVariablePart,
   separateProofAndCandidate,
+  State,
 } from '../../../../src/contract/state';
 import {
   generateParticipants,
@@ -22,7 +23,6 @@ import {
 import {
   AssetOutcomeShortHand,
   bindSignaturesWithSignedByBitfield,
-  Channel,
   signStates,
 } from '../../../../src';
 import {INVALID_SIGNED_BY} from '../../../../src/contract/transaction-creators/revert-reasons';
@@ -91,8 +91,6 @@ describe('requireStateSupported', () => {
       whoSignedWhat: number[];
       reason?: string;
     }) => {
-      const channel: Channel = {chainId, channelNonce, participants};
-
       balancesA = replaceAddressesAndBigNumberify(balancesA, addresses) as AssetOutcomeShortHand;
       const allocationsA: Allocation[] = [];
       Object.keys(balancesA).forEach(key =>
@@ -131,11 +129,13 @@ describe('requireStateSupported', () => {
         outcomeB.push(outcomeB[0]);
       }
 
-      const states = [
+      const states: State[] = [
         {
           turnNum: turnNums[0],
           isFinal: false,
-          channel,
+          chainId,
+          channelNonce,
+          participants,
           challengeDuration,
           outcome: outcomeA,
           appData: HashZero,
@@ -144,7 +144,9 @@ describe('requireStateSupported', () => {
         {
           turnNum: turnNums[1],
           isFinal: false,
-          channel,
+          chainId,
+          channelNonce,
+          participants,
           challengeDuration,
           outcome: outcomeB,
           appData: HashZero,

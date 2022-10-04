@@ -6,7 +6,7 @@ const {HashZero} = ethers.constants;
 const {defaultAbiCoder} = ethers.utils;
 
 import ForceMoveArtifact from '../../../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
-import {Channel, getChannelId} from '../../../src/contract/channel';
+import {getChannelId} from '../../../src/contract/channel';
 import {channelDataToStatus, ChannelData} from '../../../src/contract/channel-storage';
 import {
   getFixedPart,
@@ -72,14 +72,7 @@ for (let i = 0; i < 3; i++) {
   participants[i] = wallets[i].address;
 }
 
-const twoPartyChannel: Channel = {
-  chainId: process.env.CHAIN_NETWORK_ID,
-  channelNonce: '0x1',
-  participants: [wallets[0].address, wallets[1].address],
-};
-
-async function createSignedCountingAppState(
-  channel: Channel,
+async function createTwoPartySignedCountingAppState(
   appData: number,
   turnNum: number,
   outcome: Outcome = []
@@ -91,10 +84,12 @@ async function createSignedCountingAppState(
       appDefinition: getCountingAppContractAddress(),
       appData: defaultAbiCoder.encode(['uint256'], [appData]),
       outcome,
-      channel,
+      chainId: process.env.CHAIN_NETWORK_ID,
+      channelNonce: '0x1',
+      participants: [wallets[0].address, wallets[1].address],
       challengeDuration: 0xfff,
     },
-    wallets[turnNum % channel.participants.length].privateKey
+    wallets[turnNum % 2].privateKey
   );
 }
 
@@ -163,16 +158,13 @@ describe('challenge', () => {
     '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, stateData, challengeSignatureType, reasonString}) => {
       const {appDatas, whoSignedWhat}: transitionType = stateData;
-      const channel: Channel = {
-        chainId,
-        participants,
-        channelNonce,
-      };
 
       const states: State[] = appDatas.map((data, idx) => ({
         turnNum: largestTurnNum - appDatas.length + 1 + idx,
         isFinal: idx > appDatas.length - isFinalCount,
-        channel,
+        chainId,
+        participants,
+        channelNonce,
         challengeDuration,
         outcome,
         appDefinition,
@@ -275,7 +267,13 @@ describe('challenge', () => {
 });
 
 describe('challenge with transaction generator', () => {
-  const twoPartyFixedPart = {...twoPartyChannel, appDefinition, challengeDuration};
+  const twoPartyFixedPart = {
+    chainId: process.env.CHAIN_NETWORK_ID,
+    channelNonce: '0x1',
+    participants: [wallets[0].address, wallets[1].address],
+    appDefinition,
+    challengeDuration,
+  };
 
   beforeEach(async () => {
     await (await ForceMove.setStatus(getChannelId(twoPartyFixedPart), HashZero)).wait();
@@ -289,8 +287,8 @@ describe('challenge with transaction generator', () => {
   `('$description', async ({appData, turnNums, challenger}) => {
     const transactionRequest: ethers.providers.TransactionRequest = createChallengeTransaction(
       [
-        await createSignedCountingAppState(twoPartyChannel, appData[0], turnNums[0]),
-        await createSignedCountingAppState(twoPartyChannel, appData[1], turnNums[1]),
+        await createTwoPartySignedCountingAppState(appData[0], turnNums[0]),
+        await createTwoPartySignedCountingAppState(appData[1], turnNums[1]),
       ],
       wallets[challenger].privateKey
     );

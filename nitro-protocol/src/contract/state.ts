@@ -2,22 +2,11 @@ import {utils} from 'ethers';
 import {Signature} from '@ethersproject/bytes';
 import {ParamType} from 'ethers/lib/utils';
 
-import {Channel, getChannelId} from './channel';
+import {getChannelId} from './channel';
 import {Outcome} from './outcome';
 import {Address, Bytes, Bytes32, Uint256, Uint48, Uint64} from './types';
 
-/**
- * Holds all of the data defining the state of a channel
- */
-export interface State {
-  turnNum: number; // TODO: This should maybe be a string b/c it is uint256 in solidity
-  isFinal: boolean;
-  channel: Channel;
-  challengeDuration: number;
-  outcome: Outcome;
-  appDefinition: string;
-  appData: string;
-}
+export type State = FixedPart & VariablePart;
 
 /**
  * The part of a State which does not ordinarily change during state channel updates
@@ -96,8 +85,7 @@ export function getVariablePart(state: State): VariablePart {
  * @returns the FixedPart, which does not ordinarily change during state channel updates
  */
 export function getFixedPart(state: State): FixedPart {
-  const {appDefinition, challengeDuration, channel} = state;
-  const {chainId, participants, channelNonce} = channel;
+  const {appDefinition, challengeDuration, chainId, participants, channelNonce} = state;
   return {chainId, participants, channelNonce, appDefinition, challengeDuration};
 }
 

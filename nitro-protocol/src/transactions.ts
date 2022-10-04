@@ -138,7 +138,7 @@ export function createSignatureArguments(signedStates: SignedState[]): {
   signatures: Signature[];
   whoSignedWhat: number[];
 } {
-  const {participants} = signedStates[0].state.channel;
+  const {participants} = signedStates[0].state;
   const states = [];
   const whoSignedWhat = new Array<number>(participants.length);
 

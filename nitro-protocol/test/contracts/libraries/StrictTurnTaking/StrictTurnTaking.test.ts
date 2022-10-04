@@ -15,7 +15,7 @@ import {
   setupContract,
 } from '../../../test-helpers';
 import {TESTStrictTurnTaking} from '../../../../typechain-types';
-import {Channel, getFixedPart, getVariablePart, Outcome, State} from '../../../../src';
+import {getFixedPart, getVariablePart, Outcome, State} from '../../../../src';
 import {
   INVALID_NUMBER_OF_PROOF_STATES,
   INVALID_SIGNED_BY,
@@ -60,16 +60,12 @@ describe('isSignedByMover', () => {
     ${reverts1} | ${3}    | ${[2]}    | ${INVALID_SIGNED_BY}
     ${reverts2} | ${3}    | ${[0, 1]} | ${INVALID_SIGNED_BY}
   `('$description', async ({turnNum, signedBy, reason}) => {
-    const channel: Channel = {
-      chainId,
-      participants,
-      channelNonce,
-    };
-
     const state: State = {
       turnNum,
       isFinal: false,
-      channel,
+      chainId,
+      participants,
+      channelNonce,
       challengeDuration,
       outcome: defaultOutcome,
       appDefinition,
@@ -189,16 +185,12 @@ describe('requireValidTurnTaking', () => {
       turnNumToShortenedVariablePart: TurnNumToShortenedVariablePart;
       reason: undefined | string;
     }) => {
-      const channel: Channel = {
-        chainId,
-        participants,
-        channelNonce,
-      };
-
       const state: State = {
         turnNum: 0,
         isFinal: false,
-        channel,
+        chainId,
+        participants,
+        channelNonce,
         challengeDuration,
         outcome: defaultOutcome,
         appDefinition,

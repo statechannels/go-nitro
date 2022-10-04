@@ -11,7 +11,6 @@ import {
 } from '../../../test-helpers';
 import {TESTConsensus} from '../../../../typechain-types';
 import {
-  Channel,
   getFixedPart,
   Outcome,
   shortenedToRecoveredVariableParts,
@@ -71,16 +70,12 @@ describe('requireConsensus', () => {
       turnNumToShortenedVariablePart: TurnNumToShortenedVariablePart;
       reason: undefined | string;
     }) => {
-      const channel: Channel = {
-        chainId,
-        participants,
-        channelNonce,
-      };
-
       const state: State = {
         turnNum: 0,
         isFinal: false,
-        channel,
+        chainId,
+        participants,
+        channelNonce,
         challengeDuration,
         outcome: defaultOutcome,
         appDefinition,

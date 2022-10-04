@@ -4,7 +4,7 @@ import {it} from '@jest/globals';
 const {AddressZero} = ethers.constants;
 
 import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
-import {Channel, getChannelId} from '../../../src/contract/channel';
+import {getChannelId} from '../../../src/contract/channel';
 import {
   getCountingAppContractAddress,
   getRandomNonce,
@@ -82,8 +82,13 @@ describe('deposit', () => {
     amount = BigNumber.from(amount);
     heldAfter = BigNumber.from(heldAfter);
 
-    const destinationChannel: Channel = {chainId, channelNonce, participants};
-    const destination = getChannelId({...destinationChannel, appDefinition, challengeDuration});
+    const destination = getChannelId({
+      chainId,
+      channelNonce,
+      participants,
+      appDefinition,
+      challengeDuration,
+    });
 
     if (asset === ERC20) {
       // Check msg.sender has enough tokens
