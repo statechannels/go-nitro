@@ -17,6 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/crypto"
@@ -25,11 +26,11 @@ import (
 )
 
 const (
-	MESSAGE_ADDRESS      = "/messages/1.0.0"
-	DELIMITER            = '\n'
-	BUFFER_SIZE          = 1_000
-	NUM_CONNECT_ATTEMPTS = 20
-	RETRY_SLEEP_DURATION = 5 * time.Second
+	PROTOCOL_ID          protocol.ID = "/go-nitro/msg/1.0.0"
+	DELIMITER                        = '\n'
+	BUFFER_SIZE                      = 1_000
+	NUM_CONNECT_ATTEMPTS             = 20
+	RETRY_SLEEP_DURATION             = 5 * time.Second
 )
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
@@ -103,7 +104,7 @@ func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
 		me:       crypto.GetAddressFromSecretKeyBytes(pk),
 	}
 
-	h.p2pHost.SetStreamHandler(MESSAGE_ADDRESS, func(stream network.Stream) {
+	h.p2pHost.SetStreamHandler(PROTOCOL_ID, func(stream network.Stream) {
 
 		select {
 		case <-h.quit:
@@ -147,7 +148,7 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 	}
 
 	for i := 0; i < NUM_CONNECT_ATTEMPTS; i++ {
-		s, err := ms.p2pHost.NewStream(context.Background(), id, MESSAGE_ADDRESS)
+		s, err := ms.p2pHost.NewStream(context.Background(), id, PROTOCOL_ID)
 		if err == nil {
 
 			writer := bufio.NewWriter(s)
