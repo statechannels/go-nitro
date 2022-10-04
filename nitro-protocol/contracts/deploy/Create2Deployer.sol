@@ -25,6 +25,4 @@ contract Create2Deployer {
     ) public pure returns (address) {
         return Create2.computeAddress(salt, codeHash, deployer);
     }
-
-    receive() external payable {}
 }
