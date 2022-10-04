@@ -72,7 +72,7 @@ func (ms *P2PMessageService) AddPeers(peers []PeerInfo) {
 	}
 }
 
-// NewMessageService returns a running P2PMessageService listening on the given ip and port
+// NewMessageService returns a running P2PMessageService listening on the given ip and port.
 func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
 	// We generate a random key using the hash of the pk as a seed
 	// This should mean that the message key is deterministic
