@@ -111,21 +111,24 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 }
 
 func (ecs *EthChainService) subcribeToEvents() error {
+
+	go ecs.listenForLogEvents()
+	return nil
+}
+
+func (ecs *EthChainService) listenForLogEvents() {
+	// TODO: Quick workaround https://github.com/ethereum/go-ethereum/issues/23845#issuecomment-972039638
 	// Subsribe to Adjudicator events
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
 	}
 	logs := make(chan ethTypes.Log)
-	sub, err := ecs.chain.SubscribeFilterLogs(context.Background(), query, logs)
-	if err != nil {
-		return err
-	}
-	go ecs.listenForLogEvents(sub, logs)
-	return nil
-}
-
-func (ecs *EthChainService) listenForLogEvents(sub ethereum.Subscription, logs chan ethTypes.Log) {
 	for {
+
+		sub, err := ecs.chain.SubscribeFilterLogs(context.Background(), query, logs)
+		if err != nil {
+			panic(err)
+		}
 		select {
 		case err := <-sub.Err():
 			// TODO should we try resubscribing to chain events
