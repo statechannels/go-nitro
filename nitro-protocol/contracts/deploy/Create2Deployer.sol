@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Further information: https://eips.ethereum.org/EIPS/eip-1014
+// This is a trimmed down version of https://github.com/pcaversaccio/xdeployer/blob/main/src/contracts/Create2Deployer.sol
+// - Solidity version is upgraded
+// - Pausable functionality is removed
 
 pragma solidity 0.8.17;
 
