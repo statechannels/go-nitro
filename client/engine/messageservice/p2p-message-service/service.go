@@ -135,7 +135,7 @@ func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
 
 }
 
-// Send sends messages to other participants
+// Send sends messages to other participants.
 // It blocks until the message is sent.
 // It will retry establishing a stream NUM_CONNECT_ATTEMPTS times before giving up
 func (ms *P2PMessageService) Send(msg protocols.Message) {
