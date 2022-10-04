@@ -44,7 +44,7 @@
  *   chainId: '0x1',
  *   channelNonce: 0,
  *   participants: ['0xalice...', '0xbob...'],
-  * // etc
+ *   // etc
  * };
  * ```
  *
