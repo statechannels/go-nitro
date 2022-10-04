@@ -30,8 +30,8 @@ var (
 
 // Create2DeployerMetaData contains all meta data concerning the Create2Deployer contract.
 var Create2DeployerMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"salt\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"codeHash\",\"type\":\"bytes32\"}],\"name\":\"computeAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"salt\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"codeHash\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"deployer\",\"type\":\"address\"}],\"name\":\"computeAddressWithDeployer\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"salt\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"code\",\"type\":\"bytes\"}],\"name\":\"deploy\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]",
-	Bin: "0x6080806040523461001657610310908161001c8239f35b600080fdfe60406080815260048036101561001f575b5050361561001d57600080fd5b005b600091823560e01c8063481286e61461022c57806356299481146101e6576366cfa0571461004d5750610010565b346101b85760603660031901126101b85781356044359167ffffffffffffffff928381116101e257366023820112156101e25780850135938085116101cf57825190601f8601601f19908116603f01168201908111828210176101bc5783528481526020938785830193602497368982840101116101b8578089899301873784010152804710610176578151156101365790516001600160a01b0392863592f516156100f7578480f35b5162461bcd60e51b8152928301526019908201527f437265617465323a204661696c6564206f6e206465706c6f79000000000000006044820152606490fd5b60648786888188519362461bcd60e51b85528401528201527f437265617465323a2062797465636f6465206c656e677468206973207a65726f6044820152fd5b835162461bcd60e51b8152808801869052601d818801527f437265617465323a20696e73756666696369656e742062616c616e63650000006044820152606490fd5b8280fd5b634e487b7160e01b885260418752602488fd5b634e487b7160e01b875260418652602487fd5b8580fd5b50823461022957606036600319011261022957604435926001600160a01b039182851685036102295750602093610221916024359035610262565b915191168152f35b80fd5b5082346102295781600319360112610229575061025160209230906024359035610262565b90516001600160a01b039091168152f35b919060405192602084019260ff60f81b84526bffffffffffffffffffffffff199060601b16602185015260358401526055830152605582526080820182811067ffffffffffffffff8211176102c457604052905190206001600160a01b031690565b634e487b7160e01b600052604160045260246000fdfea264697066735822122021db922b0c805a7f1557f5a5273c9914204fb27d173e4d80e7f5037a2be0c8d364736f6c63430008110033",
+	ABI: "[{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"salt\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"codeHash\",\"type\":\"bytes32\"}],\"name\":\"computeAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"salt\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"codeHash\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"deployer\",\"type\":\"address\"}],\"name\":\"computeAddressWithDeployer\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"salt\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"code\",\"type\":\"bytes\"}],\"name\":\"deploy\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	Bin: "0x6080806040523461001657610304908161001c8239f35b600080fdfe60406080815260048036101561001457600080fd5b600091823560e01c8063481286e61461022057806356299481146101da576366cfa0571461004157600080fd5b346101ac5760603660031901126101ac5781356044359167ffffffffffffffff928381116101d657366023820112156101d65780850135938085116101c357825190601f8601601f19908116603f01168201908111828210176101b05783528481526020938785830193602497368982840101116101ac57808989930187378401015280471061016a5781511561012a5790516001600160a01b0392863592f516156100eb578480f35b5162461bcd60e51b8152928301526019908201527f437265617465323a204661696c6564206f6e206465706c6f79000000000000006044820152606490fd5b60648786888188519362461bcd60e51b85528401528201527f437265617465323a2062797465636f6465206c656e677468206973207a65726f6044820152fd5b835162461bcd60e51b8152808801869052601d818801527f437265617465323a20696e73756666696369656e742062616c616e63650000006044820152606490fd5b8280fd5b634e487b7160e01b885260418752602488fd5b634e487b7160e01b875260418652602487fd5b8580fd5b50823461021d57606036600319011261021d57604435926001600160a01b0391828516850361021d5750602093610215916024359035610256565b915191168152f35b80fd5b50823461021d578160031936011261021d575061024560209230906024359035610256565b90516001600160a01b039091168152f35b919060405192602084019260ff60f81b84526bffffffffffffffffffffffff199060601b16602185015260358401526055830152605582526080820182811067ffffffffffffffff8211176102b857604052905190206001600160a01b031690565b634e487b7160e01b600052604160045260246000fdfea2646970667358221220567a69f8ed14284d8665ec0c4b2debd2808d8e3bc865809fe000b3b94f3cdbb864736f6c63430008110033",
 }
 
 // Create2DeployerABI is the input ABI used to generate the binding from.
@@ -282,25 +282,4 @@ func (_Create2Deployer *Create2DeployerSession) Deploy(value *big.Int, salt [32]
 // Solidity: function deploy(uint256 value, bytes32 salt, bytes code) returns()
 func (_Create2Deployer *Create2DeployerTransactorSession) Deploy(value *big.Int, salt [32]byte, code []byte) (*types.Transaction, error) {
 	return _Create2Deployer.Contract.Deploy(&_Create2Deployer.TransactOpts, value, salt, code)
-}
-
-// Receive is a paid mutator transaction binding the contract receive function.
-//
-// Solidity: receive() payable returns()
-func (_Create2Deployer *Create2DeployerTransactor) Receive(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _Create2Deployer.contract.RawTransact(opts, nil) // calldata is disallowed for receive function
-}
-
-// Receive is a paid mutator transaction binding the contract receive function.
-//
-// Solidity: receive() payable returns()
-func (_Create2Deployer *Create2DeployerSession) Receive() (*types.Transaction, error) {
-	return _Create2Deployer.Contract.Receive(&_Create2Deployer.TransactOpts)
-}
-
-// Receive is a paid mutator transaction binding the contract receive function.
-//
-// Solidity: receive() payable returns()
-func (_Create2Deployer *Create2DeployerTransactorSession) Receive() (*types.Transaction, error) {
-	return _Create2Deployer.Contract.Receive(&_Create2Deployer.TransactOpts)
 }
