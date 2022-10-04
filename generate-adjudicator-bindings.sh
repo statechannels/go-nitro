@@ -1,19 +1,25 @@
 set -e
 cd nitro-protocol
 
-solc --base-path $(pwd) @statechannels/exit-format/=node_modules/@statechannels/exit-format/ @openzeppelin/contracts/=node_modules/@openzeppelin/contracts/ contracts/NitroAdjudicator.sol \
- contracts/ConsensusApp.sol contracts/Token.sol contracts/VirtualPaymentApp.sol contracts/deploy/Create2Deployer.sol --optimize --bin --abi -o tmp-build --via-ir
+solc --base-path $(pwd) 
+  @statechannels/exit-format/=node_modules/@statechannels/exit-format/ \
+  @openzeppelin/contracts/=node_modules/@openzeppelin/contracts/ \
+  contracts/NitroAdjudicator.sol contracts/ConsensusApp.sol contracts/Token.sol contracts/VirtualPaymentApp.sol contracts/deploy/Create2Deployer.sol \
+  --optimize --bin --abi -o tmp-build --via-ir
 
-# NitroAdjudicator
-abigen --abi=$(pwd)/tmp-build/NitroAdjudicator.abi --bin=$(pwd)/tmp-build/NitroAdjudicator.bin --pkg=NitroAdjudicator --out=$(pwd)/../client/engine/chainservice/adjudicator/NitroAdjudicator.go
-# ConsensusApp
-abigen --abi=$(pwd)/tmp-build/ConsensusApp.abi --bin=$(pwd)/tmp-build/ConsensusApp.bin --pkg=ConsensusApp --out=$(pwd)/../client/engine/chainservice/consensusapp/ConsensusApp.go 
-# Token
-abigen --abi=$(pwd)/tmp-build/Token.abi --bin=$(pwd)/tmp-build/Token.bin --pkg=Token --type=Token --out=$(pwd)/../client/engine/chainservice/erc20/Token.go
-# VirtualPaymentApp
-abigen --abi=$(pwd)/tmp-build/VirtualPaymentApp.abi --bin=$(pwd)/tmp-build/VirtualPaymentApp.bin --pkg=VirtualPaymentApp --out=$(pwd)/../client/engine/chainservice/virtualpaymentapp/VirtualPaymentApp.go
+function runAbigen {
+  abigen --abi=$(pwd)/tmp-build/${1}.abi \
+    --bin=$(pwd)/tmp-build/${1}.bin \
+    --pkg=${1} \
+    --out=$(pwd)/../client/engine/chainservice/${2}/${1}.go 
 
-abigen --abi=$(pwd)/tmp-build/Create2Deployer.abi --bin=$(pwd)/tmp-build/Create2Deployer.bin --pkg=Create2Deployer --out=$(pwd)/../client/engine/chainservice/create2deployer/Create2Deployer.go
+}
+
+runAbigen "NitroAdjudicator" "adjudicator"
+runAbigen "ConsensusApp" "consensusapp"
+runAbigen "Token" "erc20"
+runAbigen "VirtualPaymentApp" "virtualpaymentapp"
+runAbigen "Create2Deployer" "create2deployer"
 
 rm -rf $(pwd)/tmp-build
 echo "Deleted tmp-build directory."
