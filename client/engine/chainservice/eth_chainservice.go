@@ -131,6 +131,7 @@ func (ecs *EthChainService) listenForLogEvents(sub ethereum.Subscription, logs c
 			// TODO should we try resubscribing to chain events
 			ecs.logger.Printf("event subscription error: %v", err)
 		case chainEvent := <-logs:
+			ecs.logger.Printf("Handling chain event: %v\n", chainEvent)
 			switch chainEvent.Topics[0] {
 			case depositedTopic:
 				nad, err := ecs.na.ParseDeposited(chainEvent)
