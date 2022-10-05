@@ -388,7 +388,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		return &updated, sideEffects, WaitingForSignedFinal, nil
 	}
 
-	if !updated.isAlice() && !updated.isLeftDefunded() {
+	if !updated.isAlice() && !updated.leftHasDefunded() {
 		ledgerSideEffects, err := updated.updateLedgerToRemoveGuarantee(updated.ToMyLeft, secretKey)
 		if err != nil {
 			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
@@ -396,7 +396,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		sideEffects.Merge(ledgerSideEffects)
 	}
 
-	if !updated.isBob() && !updated.isRightDefunded() {
+	if !updated.isBob() && !updated.rightHasDefunded() {
 		ledgerSideEffects, err := updated.updateLedgerToRemoveGuarantee(updated.ToMyRight, secretKey)
 		if err != nil {
 			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
@@ -404,7 +404,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		sideEffects.Merge(ledgerSideEffects)
 	}
 
-	if fullyDefunded := updated.isLeftDefunded() && updated.isRightDefunded(); !fullyDefunded {
+	if fullyDefunded := updated.leftHasDefunded() && updated.rightHasDefunded(); !fullyDefunded {
 		return &updated, sideEffects, WaitingForCompleteLedgerDefunding, nil
 	}
 
@@ -503,9 +503,11 @@ func (o *Objective) signedByMe() bool {
 
 }
 
-// isRightDefunded returns whether the ledger channel ToMyRight has been defunded
-// If ToMyRight==nil then we return true
-func (o *Objective) isRightDefunded() bool {
+// rightHasDefunded returns whether the ledger channel ToMyRight has removed
+// its funding for the target channel.
+//
+// If ToMyRight==nil then we return true.
+func (o *Objective) rightHasDefunded() bool {
 	if o.ToMyRight == nil {
 		return true
 	}
@@ -514,9 +516,11 @@ func (o *Objective) isRightDefunded() bool {
 	return !included
 }
 
-// isLeftDefunded returns whether the ledger channel ToMyLeft has been defunded
-// If ToMyLeft==nil then we return true
-func (o *Objective) isLeftDefunded() bool {
+// leftHasDefunded returns whether the ledger channel ToMyLeft has removed
+// its funding for the target channel.
+//
+// If ToMyLeft==nil then we return true.
+func (o *Objective) leftHasDefunded() bool {
 	if o.ToMyLeft == nil {
 		return true
 	}
