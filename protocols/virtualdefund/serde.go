@@ -18,7 +18,7 @@ type jsonObjective struct {
 	VFixed         state.FixedPart
 	InitialOutcome outcome.SingleAssetExit
 	FinalOutcome   outcome.SingleAssetExit
-	Signatures     [3]state.Signature
+	Signatures     []state.Signature
 
 	ToMyLeft             []byte
 	ToMyRight            []byte
