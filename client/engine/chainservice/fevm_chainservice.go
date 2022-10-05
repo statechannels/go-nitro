@@ -1,11 +1,16 @@
 package chainservice
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"math/big"
+	"math/rand"
+	"net/http"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -21,7 +26,8 @@ import (
 )
 
 type FevmChainService struct {
-	chain                    ethChain
+	chain                    *ethclient.Client
+	endpoint                 string
 	na                       *NitroAdjudicator.NitroAdjudicator
 	naAddress                common.Address
 	consensusAppAddress      common.Address
@@ -33,7 +39,7 @@ type FevmChainService struct {
 
 // NewFevmChainService constructs a chain service that points at a FEVM (Filecoin Ethereum Virtual Machine) endpoint. It deploys and submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewFevmChainService(endpoint string, pkString string, na *NitroAdjudicator.NitroAdjudicator, logDestination io.Writer) (*FevmChainService, error) {
+func NewFevmChainService(endpoint string, pkString string, logDestination io.Writer) (*FevmChainService, error) {
 
 	// hardcoded chain id
 	chainId := big.NewInt(31415)
@@ -61,14 +67,46 @@ func NewFevmChainService(endpoint string, pkString string, na *NitroAdjudicator.
 
 	txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, chainId)
 
+	// TODO these are stubbed but will be deployed in future
+	na := NitroAdjudicator.NitroAdjudicator{}
 	naAddress := types.Address{}
 	caAddress := types.Address{}
 	vpaAddress := types.Address{}
 
-	ecs := FevmChainService{chain, na, naAddress, caAddress, vpaAddress, txSubmitter, make(chan Event, 10), logger}
+	ecs := FevmChainService{chain, endpoint, &na, naAddress, caAddress, vpaAddress, txSubmitter, make(chan Event, 10), logger}
 
 	// err := fcs.subcribeToEvents() // TODO
 	return &ecs, err
+}
+
+func (fcs *FevmChainService) rpcCall(method, params string, result interface{}) error {
+	resp, err := http.Post(fcs.endpoint, "application/json", bytes.NewBuffer([]byte(`{ "jsonrpc": "2.0", "method": `+method+`,"params": [`+params+`], "id":`+fmt.Sprint(rand.Intn(1000))+`}`)))
+	if err != nil {
+		return err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return err
+	}
+
+	type responseTy2 struct {
+		Result string `json:"result"`
+	}
+	err = json.Unmarshal(body, &result)
+	return nil
+}
+
+func (fcs *FevmChainService) filecoinNonce() (int64, error) {
+	result := struct {
+		Result int64 `json:"result"`
+	}{}
+	err := fcs.rpcCall("Filecoin.MpoolGetNonce", "", result)
+	if err != nil {
+		return 0, err
+	}
+	return result.Result, nil
 }
 
 // defaultTxOpts returns transaction options suitable for most transaction submissions
