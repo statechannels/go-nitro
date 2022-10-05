@@ -112,7 +112,7 @@ func (fcs *FevmChainService) filecoinNonce() (uint64, error) {
 	return uint64(responseBody.Result), nil
 }
 
-func (fcs *FevmChainService) deployAdjudicator() error {
+func (fcs *FevmChainService) DeployAdjudicator() error {
 
 	nonce, err := fcs.filecoinNonce()
 	if err != nil {
