@@ -430,6 +430,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 // fullySigned returns whether we have a signature from every partciapant.
 func (o *Objective) fullySigned() bool {
+	if len(o.Signatures) != len(o.VFixed.Participants) {
+		return false
+	}
+
 	for _, sig := range o.Signatures {
 		if isZero(sig) {
 			return false
