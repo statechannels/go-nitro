@@ -134,19 +134,19 @@ func (ecs *EthChainService) listenForLogEvents() {
 	for {
 		select {
 		case err := <-sub.Err():
-			// If the error is nil then the subscription was closed and we need to re-subscribe.
-			// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
-			if err == nil {
-
-				var sErr error
-				sub, sErr = ecs.chain.SubscribeFilterLogs(context.Background(), query, logs)
-				if sErr != nil {
-					panic(err)
-				}
-				ecs.logger.Println("resubscribed to filtered logs")
-			} else {
+			if err != nil {
 				panic(err)
 			}
+
+			// If the error is nil then the subscription was closed and we need to re-subscribe.
+			// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
+			var sErr error
+			sub, sErr = ecs.chain.SubscribeFilterLogs(context.Background(), query, logs)
+			if sErr != nil {
+				panic(err)
+			}
+			ecs.logger.Println("resubscribed to filtered logs")
+
 		case <-time.After(RESUB_INTERVAL):
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
 			// We unsub here and recreate the subscription in the next iteration of the select.
