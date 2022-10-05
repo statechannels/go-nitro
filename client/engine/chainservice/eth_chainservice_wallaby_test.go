@@ -33,10 +33,10 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(bn)
+	t.Log("blockheight is ", bn)
 
 	// Add a valid private key with testnet Eth. DO NOT check into git.
-	pkString := "6645aa9129061ccef190e1bb1e11319b3d716b3140eec27595d045dbd565733b"
+	pkString := "9182b5bf5b9c966e001934ebaf008f65516290cef6e3069d11e718cbd4336aae" // t1udwy7alczinlgqottpsqczaw6z7w7ae6kqwl7uy
 
 	// one := big.NewInt(1)
 
@@ -50,7 +50,7 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log("f1 Address is ", f1Address)
+	t.Log("filecoin address is ", f1Address)
 
 	resp, err := http.Post(endpoint, "application/json", bytes.NewBuffer([]byte(`{ "jsonrpc": "2.0", "method": "Filecoin.MpoolGetNonce","params": ["`+f1Address.String()+`"], "id":`+fmt.Sprint(rand.Intn(1000))+`}`)))
 
@@ -83,7 +83,7 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	txSubmitter.GasLimit = uint64(47755863) // in units
+	txSubmitter.GasLimit = uint64(1000000000) // BlockGasLimit / 10
 
 	resp, err = http.Post(endpoint, "application/json", bytes.NewBuffer([]byte(`{ "jsonrpc": "2.0", "method": "eth_maxPriorityFeePerGas","params": [], "id":`+fmt.Sprint(rand.Intn(1000))+`}`)))
 
@@ -107,22 +107,21 @@ func TestEthChainServiceAgainstWallaby(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	gasFeeCap := responseBody2.Result
-	t.Log("eth_maxPriorityFeePerGas returned", gasFeeCap)
-	txSubmitter.GasFeeCap = new(big.Int)
-	txSubmitter.GasFeeCap.SetString(gasFeeCap, 16)
+	gasTipCap := responseBody2.Result
 
-	// OVERWRITE ALL OF THAT ANYWAY ;-)
-	txSubmitter.GasFeeCap = big.NewInt(7755863)
+	txSubmitter.GasTipCap = new(big.Int)
+	txSubmitter.GasTipCap.SetString(gasTipCap[2:], 16)
+	t.Log("eth_maxPriorityFeePerGas returned", txSubmitter.GasTipCap)
 
+	txSubmitter.GasFeeCap = big.NewInt(0).Set(txSubmitter.GasTipCap)
 	txSubmitter.Nonce = big.NewInt(nonce + 1)
-	txSubmitter.Nonce = big.NewInt(4)
 
 	// As of the "Iron" FVM release, it seems that the return value of things like eth_getBlockByNumber do not match the spec.
 	// Linked to this (probably) https://github.com/filecoin-project/ref-fvm/issues/908
 	// Since the geth ethClient calls out to eth_getBlockNumber and tries to deserialize the result to one including `logsBloom` parameter, the following command will not yet work:
 	// naAddress, _, na, err := NitroAdjudicator.DeployNitroAdjudicator(txSubmitter, client)
 
+	// https://ethereum.stackexchange.com/questions/107814/getting-current-base-fee-from-json-rpc
 	signedTx, err := txSubmitter.Signer(txSubmitter.From,
 		gethTypes.NewTx(&(gethTypes.DynamicFeeTx{
 			// ChainID:   big.NewInt(31415),
