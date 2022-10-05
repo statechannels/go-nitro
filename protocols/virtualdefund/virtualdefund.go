@@ -487,7 +487,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 
 // VId returns the channel id of the virtual channel.
 func (o *Objective) VId() types.Destination {
-	vId := o.VFixed.ChannelId() // TODO Deal with error
+	vId := o.VFixed.ChannelId()
 
 	return vId
 }
