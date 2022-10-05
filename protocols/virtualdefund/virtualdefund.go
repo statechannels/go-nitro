@@ -363,7 +363,7 @@ func (o *Objective) hasFinalStateFromAlice() bool {
 	return !o.FinalOutcome.Equal(outcome.SingleAssetExit{})
 }
 
-// Crank inspects the extended state and declares a list of Effects to be executed
+// Crank inspects the extended state and declares a list of Effects to be executed.
 func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
 	sideEffects := protocols.SideEffects{}
@@ -430,7 +430,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 }
 
-// fullySigned returns whether we have a signature from every partciapant
+// fullySigned returns whether we have a signature from every partciapant.
 func (o *Objective) fullySigned() bool {
 	for _, sig := range o.Signatures {
 		if isZero(sig) {
@@ -513,10 +513,9 @@ func (o *Objective) signedBy(participant uint) bool {
 	return !isZero(o.Signatures[participant])
 }
 
-// signedByMe returns whether the current participant has signed the final state
+// signedByMe returns whether the current participant has signed the final state.
 func (o *Objective) signedByMe() bool {
 	return o.signedBy(o.MyRole)
-
 }
 
 // rightHasDefunded returns whether the ledger channel ToMyRight has removed
@@ -545,8 +544,8 @@ func (o *Objective) leftHasDefunded() bool {
 	return !included
 }
 
-// validateSignature returns whether the given signature is valid for the given participant
-// If a signature is invalid an error will be returned containing the reason
+// validateSignature returns whether the given signature is valid for the given participant.
+// If a signature is invalid an error will be returned containing the reason.
 func (o *Objective) validateSignature(sig state.Signature, participantIndex uint) (bool, error) {
 	if participantIndex >= uint(len(o.VFixed.Participants)) {
 		return false, fmt.Errorf("participant index %d is out of bounds", participantIndex)
