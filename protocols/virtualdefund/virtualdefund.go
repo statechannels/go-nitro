@@ -289,18 +289,18 @@ func (o *Objective) GetStatus() protocols.ObjectiveStatus {
 	return o.Status
 }
 
-// Relable returns related channels that need to be stored along with the objective.
+// Related returns channels that need to be stored along with the objective.
 func (o *Objective) Related() []protocols.Storable {
-	relatable := []protocols.Storable{}
+	related := []protocols.Storable{}
 
 	if o.ToMyLeft != nil {
-		relatable = append(relatable, o.ToMyLeft)
+		related = append(related, o.ToMyLeft)
 	}
 
 	if o.ToMyRight != nil {
-		relatable = append(relatable, o.ToMyRight)
+		related = append(related, o.ToMyRight)
 	}
-	return relatable
+	return related
 }
 
 // Clone returns a deep copy of the receiver.
