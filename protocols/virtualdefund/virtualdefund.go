@@ -266,9 +266,8 @@ func (o *Objective) finalState() state.State {
 
 // Id returns the objective id.
 func (o *Objective) Id() protocols.ObjectiveId {
-	vId := o.VFixed.ChannelId() //TODO: Handle error
-	return protocols.ObjectiveId(ObjectivePrefix + vId.String())
-
+	id := o.VId().String()
+	return protocols.ObjectiveId(ObjectivePrefix + id)
 }
 
 // Approve returns an approved copy of the objective.
@@ -296,8 +295,7 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 
 // OwnsChannel returns the channel that the objective is funding.
 func (o *Objective) OwnsChannel() types.Destination {
-	vId := o.VFixed.ChannelId()
-	return vId
+	return o.VId()
 }
 
 // GetStatus returns the status of the objective.
@@ -503,9 +501,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 
 // VId returns the channel id of the virtual channel.
 func (o *Objective) VId() types.Destination {
-	vId := o.VFixed.ChannelId()
-
-	return vId
+	return o.VFixed.ChannelId()
 }
 
 // signedBy returns whether we have a valid signature for the given participant
