@@ -12,7 +12,6 @@ import (
 	"math/rand"
 	"net/http"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
@@ -95,6 +94,9 @@ func (fcs *FevmChainService) rpcCall(method, params string, result interface{}) 
 		Result string `json:"result"`
 	}
 	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -206,76 +208,6 @@ func (fcs *FevmChainService) SendTransaction(tx protocols.ChainTransaction) erro
 	default:
 		return fmt.Errorf("unexpected transaction type %T", tx)
 	}
-}
-
-func (fcs *FevmChainService) subcribeToEvents() error {
-	// Subsribe to Adjudicator events
-	query := ethereum.FilterQuery{
-		Addresses: []common.Address{fcs.naAddress},
-	}
-	logs := make(chan ethTypes.Log)
-	sub, err := fcs.chain.SubscribeFilterLogs(context.Background(), query, logs)
-	if err != nil {
-		return err
-	}
-	go fcs.listenForLogEvents(sub, logs)
-	return nil
-}
-
-func (fcs *FevmChainService) listenForLogEvents(sub ethereum.Subscription, logs chan ethTypes.Log) {
-	for {
-		select {
-		case err := <-sub.Err():
-			// TODO should we try resubscribing to chain events
-			fcs.logger.Printf("event subscription error: %v", err)
-		case chainEvent := <-logs:
-			switch chainEvent.Topics[0] {
-			case depositedTopic:
-				nad, err := fcs.na.ParseDeposited(chainEvent)
-				if err != nil {
-					fcs.logger.Printf("error in ParseDeposited: %v", err)
-				}
-
-				event := NewDepositedEvent(nad.Destination, chainEvent.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
-				fcs.out <- event
-			case allocationUpdatedTopic:
-				au, err := fcs.na.ParseAllocationUpdated(chainEvent)
-				if err != nil {
-					fcs.logger.Printf("error in ParseAllocationUpdated: %v", err)
-				}
-
-				tx, pending, err := fcs.chain.TransactionByHash(context.Background(), chainEvent.TxHash)
-				if pending {
-					fcs.logger.Printf("Expected transacion to be part of the chain, but the transaction is pending")
-				}
-				if err != nil {
-					fcs.logger.Printf("error in TransactoinByHash: %v", err)
-				}
-
-				assetAddress, amount, err := getChainHolding(fcs.na, tx, au)
-				if err != nil {
-					fcs.logger.Printf("error in getChainHoldings: %v", err)
-				}
-				event := NewAllocationUpdatedEvent(au.ChannelId, chainEvent.BlockNumber, assetAddress, amount)
-				fcs.out <- event
-			case concludedTopic:
-				ce, err := fcs.na.ParseConcluded(chainEvent)
-				if err != nil {
-					fcs.logger.Printf("error in ParseConcluded: %v", err)
-				}
-
-				event := ConcludedEvent{commonEvent: commonEvent{channelID: ce.ChannelId, BlockNum: chainEvent.BlockNumber}}
-				fcs.out <- event
-			default:
-				fcs.logger.Printf("Unknown chain event")
-			}
-		}
-	}
-}
-
-// EventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
-func (fcs *FevmChainService) EventFeed() <-chan Event {
-	return fcs.out
 }
 
 func (fcs *FevmChainService) GetConsensusAppAddress() types.Address {
