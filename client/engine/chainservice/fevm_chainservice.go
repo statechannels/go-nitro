@@ -98,9 +98,9 @@ func (fcs *FevmChainService) rpcCall(method, params string, result interface{}) 
 	return nil
 }
 
-func (fcs *FevmChainService) filecoinNonce() (int64, error) {
+func (fcs *FevmChainService) filecoinNonce() (uint64, error) {
 	result := struct {
-		Result int64 `json:"result"`
+		Result uint64 `json:"result"`
 	}{}
 	err := fcs.rpcCall("Filecoin.MpoolGetNonce", "", result)
 	if err != nil {
@@ -109,14 +109,53 @@ func (fcs *FevmChainService) filecoinNonce() (int64, error) {
 	return result.Result, nil
 }
 
+func (fcs *FevmChainService) deployAdjudicator() error {
+
+	nonce, err := fcs.filecoinNonce()
+	if err != nil {
+		return fmt.Errorf("could not get nonce %w", err)
+	}
+	// As of the "Iron" FVM release, it seems that the return value of things like eth_getBlockByNumber do not match the spec.
+	// Linked to this (probably) https://github.com/filecoin-project/ref-fvm/issues/908
+	// Since the geth ethClient calls out to eth_getBlockNumber and tries to deserialize the result to one including `logsBloom` parameter, the following command will not yet work:
+	// naAddress, _, na, err := NitroAdjudicator.DeployNitroAdjudicator(txSubmitter, client)
+	// https://ethereum.stackexchange.com/questions/107814/getting-current-base-fee-from-json-rpc
+	signedTx, err := fcs.txSigner.Signer(
+		fcs.txSigner.From,
+		ethTypes.NewTx(&(ethTypes.DynamicFeeTx{
+			// ChainID:   big.NewInt(31415),
+			Nonce:     nonce,
+			GasFeeCap: fcs.defaultTxOpts().GasFeeCap,
+			Gas:       fcs.defaultTxOpts().GasLimit,
+			Value:     big.NewInt(0),
+			Data:      []byte(NitroAdjudicator.NitroAdjudicatorMetaData.Bin),
+		})))
+	if err != nil {
+		return fmt.Errorf("could not sign tx %w", err)
+	}
+
+	err = fcs.chain.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		return fmt.Errorf("could not send tx %w", err)
+	}
+
+	naAddress, err := bind.WaitDeployed(context.Background(), fcs.chain, signedTx)
+	if err != nil {
+		return fmt.Errorf("could not wait for tx %w", err)
+	}
+	fcs.naAddress = naAddress
+	// TODO populate na  on fcs
+	return nil
+}
+
 // defaultTxOpts returns transaction options suitable for most transaction submissions
 func (fcs *FevmChainService) defaultTxOpts() *bind.TransactOpts {
 	return &bind.TransactOpts{
-		From:     fcs.txSigner.From,
-		Nonce:    fcs.txSigner.Nonce,
-		Signer:   fcs.txSigner.Signer,
-		GasPrice: fcs.txSigner.GasPrice,
-		GasLimit: fcs.txSigner.GasLimit,
+		From:      fcs.txSigner.From,
+		Nonce:     fcs.txSigner.Nonce,
+		Signer:    fcs.txSigner.Signer,
+		GasFeeCap: big.NewInt(10_000_000_000_000),
+		GasLimit:  1000000000, // BlockGasLimit / 10
 	}
 }
 

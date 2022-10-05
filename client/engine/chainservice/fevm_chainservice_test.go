@@ -23,4 +23,10 @@ func TestFevmChainService(t *testing.T) {
 		t.Fatal(fcs)
 	}
 	t.Log("Filecoin.MpoolGetNonce call returned", nonce)
+
+	err = fcs.deployAdjudicator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("chain service stored adjudicator address:", fcs.naAddress)
 }
