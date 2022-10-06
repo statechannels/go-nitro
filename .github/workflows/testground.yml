@@ -51,6 +51,10 @@ jobs:
          --metadata-commit "${{github.event.pull_request.head.sha}}"  | tee run.out
           
       # Parse the run id from the testground run output
+      - name: Set Run Outcome
+        id: set_run_outcome
+        run: | 
+         echo "::set-output name=RUN_OUTCOME::$(awk '/run outcome:/ {print $10}' <run.out)"
       - name: Set Run Id
         id: set_run_id
         run: | 
@@ -60,7 +64,7 @@ jobs:
         id: set_done_time
         run: | 
          echo "::set-output name=DONE_TIME::$((`date '+%s'`*1000))"
-      
+  
       # Look for an existing comment from the bot and update it 
       - name: Find dashboard links comment
         uses: peter-evans/find-comment@v2
