@@ -39,4 +39,6 @@ type ConsensusChannelStore interface {
 	GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error)
 	SetConsensusChannel(*consensus_channel.ConsensusChannel) error
 	DestroyConsensusChannel(id types.Destination)
+
+	ActiveLedgers() []*consensus_channel.ConsensusChannel
 }

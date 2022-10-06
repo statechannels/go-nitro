@@ -148,6 +148,20 @@ func (ms *MemStore) DestroyConsensusChannel(id types.Destination) {
 	ms.consensusChannels.Delete(id.String())
 }
 
+// ActiveLedgers returns all known, running ledger channels.
+func (ms *MemStore) ActiveLedgers() []*consensus_channel.ConsensusChannel {
+	ledgers := []*consensus_channel.ConsensusChannel{}
+
+	ms.consensusChannels.Range(func(key string, value []byte) bool {
+		if ledger, err := ms.GetConsensusChannelById(types.StringToDestination(key)); err == nil {
+			ledgers = append(ledgers, ledger)
+		}
+		return true
+	})
+
+	return ledgers
+}
+
 // GetChannelById retrieves the channel with the supplied id, if it exists.
 func (ms *MemStore) GetChannelById(id types.Destination) (c *channel.Channel, ok bool) {
 	ch, err := ms.getChannelById(id)
