@@ -8,7 +8,8 @@ A state channel can be thought of as a set of data structures (called "states") 
 
 ## States
 
-In Nitro protocol, a state has the following type (on chain in Solidity, off-chain in Typescript and Go):
+In Nitro protocol, a state is broken up into fixed and variable parts:
+
 === "Solidity"
 
     ```solidity
@@ -21,65 +22,74 @@ In Nitro protocol, a state has the following type (on chain in Solidity, off-cha
         address appDefinition;
         uint48 challengeDuration;
     }
+
     struct VariablePart {
-        Outcome.SingleAssetExit[] outcome;
+        Outcome.SingleAssetExit[] outcome; // (1)
         bytes appData;
         uint48 turnNum;
         bool isFinal;
     }
     ```
 
+    1. This composite type is explained in the section on [outcomes](./0002-outcomes.md).
+
 === "TypeScript"
 
     ```typescript
-    import * as ExitFormat from '@statechannels/exit-format';
-    export type Outcome = ExitFormat.Exit;
+        import * as ExitFormat from '@statechannels/exit-format';
+        import {Address, Bytes, Bytes32, Uint256, Uint48, Uint64} from '@statechannels/nitro-protocol'; // (1)
 
-    export interface Channel {
-        channelNonce: Uint64; // Unique identifier for each new channel created by the same participants on the same chain
-        participants: Address[]; // List of participant addresses (corresponding to ECDSA signing keys used to sign state channel updates)
-        chainId: Uint256; // Identifier of the chain where this channel is adjudicated and where assets are held
-    }
-    export interface State {
-        turnNum: number;
-        isFinal: boolean;
-        channel: Channel;
-        challengeDuration: number;
-        outcome: Outcome;
-        appDefinition: string;
-        appData: string;
-    }
+        export interface FixedPart {
+            chainId: Uint256;
+            participants: Address[];
+            channelNonce: Uint64;
+            appDefinition: Address;
+            challengeDuration: Uint48;
+        }
+
+        export interface VariablePart {
+            outcome: ExitFormat.Exit; // (2)
+            appData: Bytes;
+            turnNum: Uint48;
+            isFinal: boolean;
+        }
     ```
+
+    1. `Bytes32`, `Bytes`, `Address`, `Uint256`, `Uint64` are aliases to the Javascript `string` type. They are respresented as hex strings. `Uint48` is aliased to a `number`.
+    2. This composite type is explained in the section on [outcomes](./0002-outcomes.md).
 
 === "Go"
 
-```Go
-import (
-"math/big"
+    ```Go
+    import (
+        "github.com/statechannels/go-nitro/channel/state/outcome"
+        "github.com/statechannels/go-nitro/types" // (1)
+    )
 
-"github.com/ethereum/go-ethereum/common"
-"github.com/statechannels/go-nitro/channel/state"
-"github.com/statechannels/go-nitro/channel/state/outcome"
-"github.com/statechannels/go-nitro/internal/testactors"
-"github.com/statechannels/go-nitro/types"
-)
+    type (
+        FixedPart struct {
+            ChainId           *types.Uint256
+            Participants      []types.Address
+            ChannelNonce      uint64
+            AppDefinition     types.Address
+            ChallengeDuration uint32
+        }
 
-var testState = state.State{
-    ChainId: chainId,
-    Participants: []types.Address{
-        testactors.Alice.Address(),
-        testactors.Bob.Address(),
-        },
-    ChannelNonce: big.NewInt(37140676580),
-    AppDefinition: someAppDefinition,
-    ChallengeDuration: big.NewInt(60),
-    AppData: []byte{},
-    Outcome: testOutcome,
-    TurnNum: 5,
-    IsFinal: false,
-}
+        VariablePart struct {
+            AppData types.Bytes
+            Outcome outcome.Exit // (2)
+            TurnNum uint64
+            IsFinal bool
+        }
+    )
+    ```
 
-```
+    1. `types.Address` is an alias to go-ethereum's [`common.Address`](https://pkg.go.dev/github.com/ethereum/go-ethereum@v1.10.8/common#Address) type. `types.Bytes32` is an alias to go-ethereum's [`common.Hash`](https://pkg.go.dev/github.com/ethereum/go-ethereum@v1.10.8/common#Hash) type.
+    2. This composite type is explained in the section on [outcomes](./0002-outcomes.md).
+
+!!! info
+
+    States are usually submitted to the blockchain as a single fixed part and multiple variable parts.
 
 ## Channel IDs
 
@@ -117,10 +127,6 @@ The remainding fields of the state may vary, and are known as the `VariablePart`
         bool isFinal;
     }
 ```
-
-!!! info
-
-    States are usually submitted to the blockchain as a single fixed part and multiple variable parts.
 
 ## State commitments
 
