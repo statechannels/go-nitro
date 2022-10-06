@@ -4,7 +4,7 @@ A state channel can be thought of as a set of data structures (called "states") 
 
 !!! info
 
-    In Nitro, "committing to" a state menas digitially signing it.
+    In Nitro, participants "commit to" a state by digitially signing it.
 
 ## States
 
@@ -97,14 +97,6 @@ Channels are identified by the hash of the `FixedPart`` of the state (those part
 
 ```solidity
 
-  struct FixedPart {
-      uint256 chainId;
-      address[] participants;
-      uint48 channelNonce;
-      address appDefinition;
-      uint48 challengeDuration;
-  }
-
   bytes32 channelId = keccak256(
       abi.encode(
           fixedPart.chainId,
@@ -115,17 +107,6 @@ Channels are identified by the hash of the `FixedPart`` of the state (those part
       )
   );
 
-```
-
-The remainding fields of the state may vary, and are known as the `VariablePart`:
-
-```solidity
-       struct VariablePart {
-        Outcome.SingleAssetExit[] outcome;
-        bytes appData;
-        uint48 turnNum;
-        bool isFinal;
-    }
 ```
 
 ## State commitments
