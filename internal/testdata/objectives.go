@@ -8,6 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // objectiveCollection namespaces literal objectives, precomputed objectives, and
@@ -64,7 +65,7 @@ func genericVFO() virtualfund.Objective {
 	ts.Participants[2] = testactors.Bob.Address()
 
 	request := virtualfund.ObjectiveRequest{
-		Intermediary:      ts.Participants[1],
+		Intermediaries:    []types.Address{ts.Participants[1]},
 		CounterParty:      ts.Participants[2],
 		ChallengeDuration: ts.ChallengeDuration,
 		Outcome:           ts.Outcome,

@@ -367,7 +367,8 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
 		// Only Alice or Bob care about registering the objective and keeping track of vouchers
-		if vfo.MyRole == payments.PAYEE_INDEX || vfo.MyRole == payments.PAYER_INDEX {
+		lastParticipant := uint(len(vfo.V.Participants) - 1)
+		if vfo.MyRole == lastParticipant || vfo.MyRole == payments.PAYER_INDEX {
 			err = e.registerPaymentChannel(vfo)
 			if err != nil {
 				return EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)

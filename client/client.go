@@ -93,11 +93,12 @@ func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 	return c.receivedVouchers
 }
 
-// CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels with the intermediary.
-func (c *Client) CreateVirtualPaymentChannel(Intermediary, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) virtualfund.ObjectiveResponse {
+// CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
+// with the supplied intermediaries.
+func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) virtualfund.ObjectiveResponse {
 
 	objectiveRequest := virtualfund.ObjectiveRequest{
-		Intermediary:      Intermediary,
+		Intermediaries:    Intermediaries,
 		CounterParty:      CounterParty,
 		ChallengeDuration: ChallengeDuration,
 		Outcome:           Outcome,
