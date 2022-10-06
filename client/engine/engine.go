@@ -221,7 +221,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 				}
 
 				allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
-				err = e.executeSideEffects(sideEffects)
+				go e.executeSideEffects(sideEffects)
 				// An error would mean we failed to send a message. But the objective is still "completed".
 				// So, we should return allCompleted even if there was an error.
 				return allCompleted, err
@@ -439,7 +439,8 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
 		return fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
 	}
 	se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
-	return e.executeSideEffects(se)
+	go e.executeSideEffects(se)
+	return nil
 }
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
@@ -504,7 +505,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 			return
 		}
 	}
-	err = e.executeSideEffects(sideEffects)
+	go e.executeSideEffects(sideEffects)
 	return
 }
 
