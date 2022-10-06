@@ -3,10 +3,10 @@ package chainservice
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"math/rand"
@@ -84,7 +84,7 @@ func (fcs *FevmChainService) rpcCall(method, params string, result interface{}) 
 		return err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return err
@@ -117,6 +117,11 @@ func (fcs *FevmChainService) deployAdjudicator() error {
 	if err != nil {
 		return fmt.Errorf("could not get nonce %w", err)
 	}
+
+	hexBytecode, err := hex.DecodeString(NitroAdjudicator.NitroAdjudicatorMetaData.Bin[2:])
+	if err != nil {
+		log.Fatal(err)
+	}
 	// As of the "Iron" FVM release, it seems that the return value of things like eth_getBlockByNumber do not match the spec.
 	// Linked to this (probably) https://github.com/filecoin-project/ref-fvm/issues/908
 	// Since the geth ethClient calls out to eth_getBlockNumber and tries to deserialize the result to one including `logsBloom` parameter, the following command will not yet work:
@@ -130,21 +135,24 @@ func (fcs *FevmChainService) deployAdjudicator() error {
 			GasFeeCap: fcs.defaultTxOpts().GasFeeCap,
 			Gas:       fcs.defaultTxOpts().GasLimit,
 			Value:     big.NewInt(0),
-			Data:      []byte(NitroAdjudicator.NitroAdjudicatorMetaData.Bin),
+			Data:      hexBytecode,
 		})))
 	if err != nil {
 		return fmt.Errorf("could not sign tx %w", err)
 	}
 
+	fmt.Println("Sending tx")
 	err = fcs.chain.SendTransaction(context.Background(), signedTx)
 	if err != nil {
 		return fmt.Errorf("could not send tx %w", err)
 	}
+	fmt.Println("Tx sent")
 
 	naAddress, err := bind.WaitDeployed(context.Background(), fcs.chain, signedTx)
 	if err != nil {
 		return fmt.Errorf("could not wait for tx %w", err)
 	}
+	fmt.Println("Deploy successful")
 	fcs.naAddress = naAddress
 	// TODO populate na  on fcs
 	return nil
