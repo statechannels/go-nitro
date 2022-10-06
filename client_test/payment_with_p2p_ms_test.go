@@ -12,6 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/store"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // setupClientWithP2PMessageService is a helper function that contructs a client and returns the new client and its store.
@@ -54,7 +55,12 @@ func TestPayments(t *testing.T) {
 	directlyFundALedgerChannel(t, clientA, clientI)
 	directlyFundALedgerChannel(t, clientI, clientB)
 	outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 100, 100)
-	r := clientA.CreateVirtualPaymentChannel(irene.Address(), bob.Address(), 0, outcome)
+	r := clientA.CreateVirtualPaymentChannel(
+		[]types.Address{irene.Address()},
+		bob.Address(),
+		0,
+		outcome,
+	)
 
 	ids := []protocols.ObjectiveId{r.Id}
 

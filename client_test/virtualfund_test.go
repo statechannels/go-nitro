@@ -19,7 +19,12 @@ func openVirtualChannels(t *testing.T, clientA client.Client, clientB client.Cli
 	channelIds := make([]types.Destination, numOfChannels)
 	for i := 0; i < int(numOfChannels); i++ {
 		outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
-		response := clientA.CreateVirtualPaymentChannel(irene.Address(), bob.Address(), 0, outcome)
+		response := clientA.CreateVirtualPaymentChannel(
+			[]types.Address{irene.Address()},
+			bob.Address(),
+			0,
+			outcome,
+		)
 
 		objectiveIds[i] = response.Id
 		channelIds[i] = response.ChannelId

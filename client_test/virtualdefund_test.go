@@ -176,7 +176,12 @@ func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
 	directlyFundALedgerChannel(t, clientB, clientI)
 
 	outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
-	response := clientA.CreateVirtualPaymentChannel(irene.Address(), bob.Address(), 0, outcome)
+	response := clientA.CreateVirtualPaymentChannel(
+		[]types.Address{irene.Address()},
+		bob.Address(),
+		0,
+		outcome,
+	)
 
 	waitTimeForCompletedObjectiveIds(t, &clientA, time.Second, response.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientB, time.Second, response.Id)

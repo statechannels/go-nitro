@@ -90,7 +90,7 @@ func TestDirectDefund(t *testing.T) {
 
 		// create & virtual channel between A and B through I
 		outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
-		response := clientA.CreateVirtualPaymentChannel(irene.Address(), bob.Address(), 0, outcome)
+		response := clientA.CreateVirtualPaymentChannel([]types.Address{irene.Address()}, bob.Address(), 0, outcome)
 
 		waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, response.Id)
 

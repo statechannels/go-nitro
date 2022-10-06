@@ -6,6 +6,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	td "github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // TestVirtualFundMultiParty tests the scenario where Alice creates virtual channels with Bob and Brian using Irene as the intermediary.
@@ -31,19 +32,27 @@ func TestVirtualFundMultiParty(t *testing.T) {
 	directlyFundALedgerChannel(t, clientIrene, clientBob)
 	directlyFundALedgerChannel(t, clientIrene, clientBrian)
 
-	id := clientAlice.CreateVirtualPaymentChannel(irene.Address(), bob.Address(), 0, td.Outcomes.Create(
-		alice.Address(),
+	id := clientAlice.CreateVirtualPaymentChannel(
+		[]types.Address{irene.Address()},
 		bob.Address(),
-		1,
-		1,
-	)).Id
+		0,
+		td.Outcomes.Create(
+			alice.Address(),
+			bob.Address(),
+			1,
+			1,
+		)).Id
 
-	id2 := clientAlice.CreateVirtualPaymentChannel(irene.Address(), brian.Address(), 0, td.Outcomes.Create(
-		alice.Address(),
+	id2 := clientAlice.CreateVirtualPaymentChannel(
+		[]types.Address{irene.Address()},
 		brian.Address(),
-		1,
-		1,
-	)).Id
+		0,
+		td.Outcomes.Create(
+			alice.Address(),
+			brian.Address(),
+			1,
+			1,
+		)).Id
 
 	waitTimeForCompletedObjectiveIds(t, &clientBob, defaultTimeout, id)
 	waitTimeForCompletedObjectiveIds(t, &clientBrian, defaultTimeout, id2)

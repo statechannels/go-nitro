@@ -51,7 +51,7 @@ func createVirtualChannels(client client.Client, counterParty types.Address, int
 	ids := make([]protocols.ObjectiveId, amountOfChannels)
 	for i := uint(0); i < amountOfChannels; i++ {
 		outcome := td.Outcomes.Create(*client.Address, counterParty, 1, 1)
-		ids[i] = client.CreateVirtualPaymentChannel(intermediary, counterParty, 0, outcome).Id
+		ids[i] = client.CreateVirtualPaymentChannel([]types.Address{intermediary}, counterParty, 0, outcome).Id
 	}
 	return ids
 }
