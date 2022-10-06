@@ -40,7 +40,9 @@ type EthChainService struct {
 
 // RESUB_INTERVAL is how often we resubscribe to log events.
 // We do this to avoid https://github.com/ethereum/go-ethereum/issues/23845
-const RESUB_INTERVAL = 60 * time.Second
+// We use 4:30 as the default filter timeout is 5 minutes.
+// See https://github.com/ethereum/go-ethereum/blob/e14164d516600e9ac66f9060892e078f5c076229/eth/filters/filter_system.go#L43
+const RESUB_INTERVAL = 4*time.Minute + 30*time.Second
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
@@ -114,7 +116,6 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 		return fmt.Errorf("unexpected transaction type %T", tx)
 	}
 }
-
 func (ecs *EthChainService) subcribeToEvents() error {
 
 	go ecs.listenForLogEvents()
