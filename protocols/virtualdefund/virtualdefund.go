@@ -52,18 +52,20 @@ type Objective struct {
 	// VFixed is the fixed channel information for the virtual channel
 	VFixed state.FixedPart
 
-	// Signatures are the signatures for the final virtual state from each participant
-	// Signatures are ordered by participant order: Signatures[0] is Alice's signature, Signatures[1] is Irene's signature, Signatures[2] is Bob's signature
-	// Signatures gets updated as participants sign and send states to each other.
-	Signatures [3]state.Signature
+	// Signatures are the signatures for the final virtual state from each participant.
+	//
+	// Signatures are ordered by participant order: Signatures[0] is Alice's signature,
+	// Signatures[last] is Bob's signature, Signatures[1,...,n] are the intermediaries'
+	// signatures.
+	Signatures []state.Signature
 
 	ToMyLeft  *consensus_channel.ConsensusChannel
 	ToMyRight *consensus_channel.ConsensusChannel
 
 	// MyRole is the index of the participant in the participants list
 	// 0 is Alice
-	// 1 is Irene
-	// 2 is Bob
+	// 1...n is Irene, Ivan, ... (the n intermediaries)
+	// n+1 is Bob
 	MyRole uint
 }
 
@@ -98,42 +100,56 @@ func NewObjective(request ObjectiveRequest,
 
 	initialOutcome := V.PostFundState().Outcome[0]
 
-	// This logic assumes a single hop virtual channel.
-	// Currently this is the only type of virtual channel supported.
 	alice := V.Participants[0]
-	intermediary := V.Participants[1]
-	bob := V.Participants[2]
+	bob := V.Participants[len(V.Participants)-1]
 
-	var toMyLeft, toMyRight *consensus_channel.ConsensusChannel
+	var leftLedger, rightLedger *consensus_channel.ConsensusChannel
 	var ok bool
 
-	switch myAddress {
-	case alice:
-		toMyRight, ok = getConsensusChannel(intermediary)
+	if myAddress == alice {
+		rightOfAlice := V.Participants[1]
+		rightLedger, ok = getConsensusChannel(rightOfAlice)
 		if !ok {
-			return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", alice, intermediary)
+			return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", alice, rightOfAlice)
 		}
-	case intermediary:
-		toMyLeft, ok = getConsensusChannel(alice)
+	} else if myAddress == bob {
+		leftOfBob := V.Participants[len(V.Participants)-2]
+		leftLedger, ok = getConsensusChannel(leftOfBob)
 		if !ok {
-			return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", alice, intermediary)
+			return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", leftOfBob, bob)
 		}
-		toMyRight, ok = getConsensusChannel(bob)
-		if !ok {
-			return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", intermediary, bob)
-		}
-	case bob:
-		toMyLeft, ok = getConsensusChannel(intermediary)
-		if !ok {
-			return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", intermediary, bob)
-		}
-	default:
-		return Objective{}, fmt.Errorf("client address not found in an expected participant index")
+	} else {
+		intermediaries := V.Participants[1 : len(V.Participants)-1]
+		foundMyself := false
 
+		for i, intermediary := range intermediaries {
+			if myAddress == intermediary {
+				foundMyself = true
+				// I am intermediary `i` and participant `p`
+				p := i + 1 // participants[p] === intermediaries[i]
+
+				leftOfMe := V.Participants[p-1]
+				rightOfMe := V.Participants[p+1]
+
+				leftLedger, ok = getConsensusChannel(leftOfMe)
+				if !ok {
+					return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", leftOfMe, myAddress)
+				}
+				rightLedger, ok = getConsensusChannel(bob)
+				if !ok {
+					return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", myAddress, rightOfMe)
+				}
+
+				break
+			}
+		}
+
+		if !foundMyself {
+			return Objective{}, fmt.Errorf("client address not found in an expected participant index")
+		}
 	}
 
 	if largestPaymentAmount == nil {
-
 		largestPaymentAmount = big.NewInt(0)
 	}
 
@@ -154,10 +170,10 @@ func NewObjective(request ObjectiveRequest,
 		FinalOutcome:         finalOutcome,
 		MinimumPaymentAmount: largestPaymentAmount,
 		VFixed:               V.FixedPart,
-		Signatures:           [3]state.Signature{},
+		Signatures:           make([]state.Signature, len(V.FixedPart.Participants)),
 		MyRole:               V.MyIndex,
-		ToMyLeft:             toMyLeft,
-		ToMyRight:            toMyRight,
+		ToMyLeft:             leftLedger,
+		ToMyRight:            rightLedger,
 	}, nil
 }
 
@@ -250,9 +266,8 @@ func (o *Objective) finalState() state.State {
 
 // Id returns the objective id.
 func (o *Objective) Id() protocols.ObjectiveId {
-	vId := o.VFixed.ChannelId() //TODO: Handle error
-	return protocols.ObjectiveId(ObjectivePrefix + vId.String())
-
+	id := o.VId().String()
+	return protocols.ObjectiveId(ObjectivePrefix + id)
 }
 
 // Approve returns an approved copy of the objective.
@@ -280,8 +295,7 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 
 // OwnsChannel returns the channel that the objective is funding.
 func (o *Objective) OwnsChannel() types.Destination {
-	vId := o.VFixed.ChannelId()
-	return vId
+	return o.VId()
 }
 
 // GetStatus returns the status of the objective.
@@ -289,18 +303,18 @@ func (o *Objective) GetStatus() protocols.ObjectiveStatus {
 	return o.Status
 }
 
-// Relable returns related channels that need to be stored along with the objective.
+// Related returns channels that need to be stored along with the objective.
 func (o *Objective) Related() []protocols.Storable {
-	relatable := []protocols.Storable{}
+	related := []protocols.Storable{}
 
 	if o.ToMyLeft != nil {
-		relatable = append(relatable, o.ToMyLeft)
+		related = append(related, o.ToMyLeft)
 	}
 
 	if o.ToMyRight != nil {
-		relatable = append(relatable, o.ToMyRight)
+		related = append(related, o.ToMyRight)
 	}
-	return relatable
+	return related
 }
 
 // Clone returns a deep copy of the receiver.
@@ -315,9 +329,9 @@ func (o *Objective) clone() Objective {
 	if o.MinimumPaymentAmount != nil {
 		clone.MinimumPaymentAmount = big.NewInt(0).Set(o.MinimumPaymentAmount)
 	}
-	clone.Signatures = [3]state.Signature{}
-	for i, s := range o.Signatures {
-		clone.Signatures[i] = state.CloneSignature(s)
+	clone.Signatures = []state.Signature{}
+	for _, sig := range o.Signatures {
+		clone.Signatures = append(clone.Signatures, state.CloneSignature(sig))
 	}
 	clone.MyRole = o.MyRole
 
@@ -347,7 +361,7 @@ func (o *Objective) hasFinalStateFromAlice() bool {
 	return !o.FinalOutcome.Equal(outcome.SingleAssetExit{})
 }
 
-// Crank inspects the extended state and declares a list of Effects to be executed
+// Crank inspects the extended state and declares a list of Effects to be executed.
 func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
 	sideEffects := protocols.SideEffects{}
@@ -388,7 +402,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		return &updated, sideEffects, WaitingForSignedFinal, nil
 	}
 
-	if !updated.isAlice() && !updated.isLeftDefunded() {
+	if !updated.isAlice() && !updated.leftHasDefunded() {
 		ledgerSideEffects, err := updated.updateLedgerToRemoveGuarantee(updated.ToMyLeft, secretKey)
 		if err != nil {
 			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
@@ -396,7 +410,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		sideEffects.Merge(ledgerSideEffects)
 	}
 
-	if !updated.isBob() && !updated.isRightDefunded() {
+	if !updated.isBob() && !updated.rightHasDefunded() {
 		ledgerSideEffects, err := updated.updateLedgerToRemoveGuarantee(updated.ToMyRight, secretKey)
 		if err != nil {
 			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
@@ -404,7 +418,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		sideEffects.Merge(ledgerSideEffects)
 	}
 
-	if fullyDefunded := updated.isLeftDefunded() && updated.isRightDefunded(); !fullyDefunded {
+	if fullyDefunded := updated.leftHasDefunded() && updated.rightHasDefunded(); !fullyDefunded {
 		return &updated, sideEffects, WaitingForCompleteLedgerDefunding, nil
 	}
 
@@ -414,8 +428,12 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 }
 
-// fullySigned returns whether we have a signature from every partciapant
+// fullySigned returns whether we have a signature from every partciapant.
 func (o *Objective) fullySigned() bool {
+	if len(o.Signatures) != len(o.VFixed.Participants) {
+		return false
+	}
+
 	for _, sig := range o.Signatures {
 		if isZero(sig) {
 			return false
@@ -424,14 +442,14 @@ func (o *Objective) fullySigned() bool {
 	return true
 }
 
-// isAlice returns true if the receiver represents participant 0 in the virtualdefund protocol
+// isAlice returns true if the receiver represents participant 0 in the virtualdefund protocol.
 func (o *Objective) isAlice() bool {
 	return o.MyRole == 0
 }
 
-// isBob returns true if the receiver represents participant 2 in the virtualdefund protocol
+// isBob returns true if the receiver represents the last participant in the virtualdefund protocol.
 func (o *Objective) isBob() bool {
-	return o.MyRole == 2
+	return int(o.MyRole) == len(o.VFixed.Participants)-1
 }
 
 // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
@@ -487,9 +505,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 
 // VId returns the channel id of the virtual channel.
 func (o *Objective) VId() types.Destination {
-	vId := o.VFixed.ChannelId() // TODO Deal with error
-
-	return vId
+	return o.VFixed.ChannelId()
 }
 
 // signedBy returns whether we have a valid signature for the given participant
@@ -497,15 +513,16 @@ func (o *Objective) signedBy(participant uint) bool {
 	return !isZero(o.Signatures[participant])
 }
 
-// signedByMe returns whether the current participant has signed the final state
+// signedByMe returns whether the current participant has signed the final state.
 func (o *Objective) signedByMe() bool {
 	return o.signedBy(o.MyRole)
-
 }
 
-// isRightDefunded returns whether the ledger channel ToMyRight has been defunded
-// If ToMyRight==nil then we return true
-func (o *Objective) isRightDefunded() bool {
+// rightHasDefunded returns whether the ledger channel ToMyRight has removed
+// its funding for the target channel.
+//
+// If ToMyRight==nil then we return true.
+func (o *Objective) rightHasDefunded() bool {
 	if o.ToMyRight == nil {
 		return true
 	}
@@ -514,9 +531,11 @@ func (o *Objective) isRightDefunded() bool {
 	return !included
 }
 
-// isLeftDefunded returns whether the ledger channel ToMyLeft has been defunded
-// If ToMyLeft==nil then we return true
-func (o *Objective) isLeftDefunded() bool {
+// leftHasDefunded returns whether the ledger channel ToMyLeft has removed
+// its funding for the target channel.
+//
+// If ToMyLeft==nil then we return true.
+func (o *Objective) leftHasDefunded() bool {
 	if o.ToMyLeft == nil {
 		return true
 	}
@@ -525,10 +544,10 @@ func (o *Objective) isLeftDefunded() bool {
 	return !included
 }
 
-// validateSignature returns whether the given signature is valid for the given participant
-// If a signature is invalid an error will be returned containing the reason
+// validateSignature returns whether the given signature is valid for the given participant.
+// If a signature is invalid an error will be returned containing the reason.
 func (o *Objective) validateSignature(sig state.Signature, participantIndex uint) (bool, error) {
-	if participantIndex > 2 {
+	if participantIndex >= uint(len(o.VFixed.Participants)) {
 		return false, fmt.Errorf("participant index %d is out of bounds", participantIndex)
 	}
 
@@ -538,7 +557,7 @@ func (o *Objective) validateSignature(sig state.Signature, participantIndex uint
 		return false, fmt.Errorf("failed to recover signer from signature: %w", err)
 	}
 	if signer != o.VFixed.Participants[participantIndex] {
-		return false, fmt.Errorf("signature is for %s, expected signature from %s ", signer, o.VFixed.Participants[participantIndex])
+		return false, fmt.Errorf("signature is from %s, but expected signature from %s ", signer, o.VFixed.Participants[participantIndex])
 	}
 	return true, nil
 }
@@ -588,7 +607,7 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 		}
 
 		incomingSignatures := ss.Signatures()
-		for i := uint(0); i < 3; i++ {
+		for i := range o.VFixed.Participants {
 			existingSig := o.Signatures[i]
 			incomingSig := incomingSignatures[i]
 
@@ -605,7 +624,7 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 				}
 			}
 			// Otherwise we validate the incoming signature and update our signatures
-			isValid, err := updated.validateSignature(incomingSig, i)
+			isValid, err := updated.validateSignature(incomingSig, uint(i))
 			if isValid {
 				// Update the signature
 				updated.Signatures[i] = incomingSig

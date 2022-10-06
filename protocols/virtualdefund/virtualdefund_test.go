@@ -202,7 +202,7 @@ func TestConstructObjectiveFromState(t *testing.T) {
 		InitialOutcome:       data.vInitial.Outcome[0],
 		FinalOutcome:         data.vFinal.Outcome[0],
 		VFixed:               data.vFinal.FixedPart(),
-		Signatures:           [3]state.Signature{},
+		Signatures:           make([]state.Signature, 3),
 		ToMyLeft:             left,
 		ToMyRight:            right,
 		MinimumPaymentAmount: big.NewInt(int64(data.paid)),
