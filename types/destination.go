@@ -35,6 +35,20 @@ func (d Destination) Bytes() []byte {
 	return Bytes32(d).Bytes()
 }
 
+func StringToDestination(s string) (Destination, error) {
+	d := Destination{0}
+
+	if len(s) > len(d) {
+		return d, errors.New("supplied string is too long to represent a destination")
+	}
+
+	for i, b := range s {
+		d[i] = byte(b)
+	}
+
+	return d, nil
+}
+
 // AddressToDestinaion left-pads the blockchain address with zeros.
 func AddressToDestination(a Address) Destination {
 	d := Destination{0}
