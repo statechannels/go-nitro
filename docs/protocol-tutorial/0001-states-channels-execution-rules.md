@@ -178,10 +178,10 @@ To commit to a state, a hash is formed as follows:
 ```solidity
  bytes32 stateHash = keccak256(abi.encode(
         channelId,
-        vp.appData,
-        vp.outcome,
-        vp.turnNum,
-        vp.isFinal
+        variablePart.appData,
+        variablePart.outcome,
+        variablePart.turnNum,
+        variablePart.isFinal
     ));
 ```
 
