@@ -50,7 +50,11 @@ jobs:
          --metadata-branch "${{github.event.pull_request.head.ref}}" \
          --metadata-commit "${{github.event.pull_request.head.sha}}"  | tee run.out
           
-      # Parse the run id from the testground run output
+      # Parse the run outcome and id from the testground run output
+      - name: Set Run Outcome
+        id: set_run_outcome
+        run: | 
+         echo "::set-output name=RUN_OUTCOME::$(awk '/run finished with outcome/ {print $10}' <run.out)"
       - name: Set Run Id
         id: set_run_id
         run: | 
@@ -81,3 +85,6 @@ jobs:
             - [Logs](${{secrets.TG_SERVER_URL}}/logs?task_id=${{steps.set_run_id.outputs.RUN_ID}})
             - [Output download](${{secrets.TG_SERVER_URL}}/outputs?run_id=${{steps.set_run_id.outputs.RUN_ID}})
           edit-mode: append
+      - name: Fail if testground run failed
+        if:  ${{ steps.set_run_outcome.outputs.RUN_OUTCOME  != 'success' }}
+        run: exit 1
