@@ -1,6 +1,6 @@
 # Lifecycle of a state channel
 
-"State" is a highly overloaded term in this context. Here we'll consider the "state" of a state channel as composite of three states -- the off chain state, the on chain _adjudication state_ and the on chain _funding state_. The off chain state may be different for each participant in the channel, whereas the on chain state is considered consistent (up to issues to do with finality and chain reorgs).
+In this section we'll consider the "state" of a state channel (a highly overloaded term) as composite of three states -- the off chain [state](./0001-states-channels-execution-rules.md#states), the on chain _adjudication state_ and the on chain _funding state_. The off chain state may be different for each participant in the channel, whereas the on chain state is considered consistent (up to issues to do with finality and chain reorgs).
 
 ## Off-chain lifecycle
 
