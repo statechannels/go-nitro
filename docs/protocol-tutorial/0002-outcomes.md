@@ -52,13 +52,13 @@ Putting these elements together, a simple outcome such as "5 ETH to Alice, 5 ETH
       assetMetadata: NullAssetMetadata, // Intentionally left blank
       allocations: [
         {
-          destination: "0x96f7123E3A80C9813eF50213ADEd0e4511CB820f", // Alice
+          destination: "0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f", // Alice
           amount: "0x05",
           allocationType: AllocationType.simple, // a regular ETH transfer
           metadata: "0x",
         },
         {
-          destination: "0x0737369d5F8525D039038Da1EdBAC4C4f161b949", // Bob
+          destination: "0x0000000000000000000000000737369d5F8525D039038Da1EdBAC4C4f161b949", // Bob
           amount: "0x05",
           allocationType: AllocationType.simple, // a regular ETH transfer
           metadata: "0x",
@@ -83,12 +83,12 @@ Putting these elements together, a simple outcome such as "5 ETH to Alice, 5 ETH
       var ethExit = outcome.SingleAssetExit{
           Allocations: outcome.Allocations{
             outcome.Allocation{
-              Destination: types.Destination(common.HexToHash("0x96f7123E3A80C9813eF50213ADEd0e4511CB820f")), // Alice
+              Destination: types.Destination(common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f")), // Alice
               Amount:      big.NewInt(5),
               // Other fields implicitly zero-ed out
             },
             outcome.Allocation{
-              Destination: types.Destination(common.HexToHash("0x0737369d5F8525D039038Da1EdBAC4C4f161b949")), // Bob
+              Destination: types.Destination(common.HexToHash("0x0000000000000000000000000737369d5F8525D039038Da1EdBAC4C4f161b949")), // Bob
               Amount:      big.NewInt(5),
               // Other fields implicitly zero-ed out
             },
