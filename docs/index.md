@@ -12,6 +12,5 @@ This is in sharp contrast to the experience of transacting publicly on a "layer 
 
 These docs cover the open source code at [https://github.com/statechannels/go-nitro](https://github.com/statechannels/go-nitro). This includes
 
-- smart contracts :simple-solidity:
-- utilities :simple-typescript:
-- fully-featured off chain client :simple-go:
+- :fontawesome-brands-npm: [@satechannels/go-nitro](https://www.npmjs.com/package/@statechannels/nitro-protocol): smart contracts :simple-solidity: and utilities :simple-typescript:.
+- :simple-go: [`go-nitro`](https://pkg.go.dev/github.com/statechannels/go-nitro) fully-featured off chain client libary
