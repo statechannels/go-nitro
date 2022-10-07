@@ -4,7 +4,7 @@ In this section we'll consider the "state" of a state channel as composite of th
 
 !!! info
 
-    "State" is a highly overloaded term -- in this section we take it to mean something different from the "state" of [the section on states](./0001-states-channels-execution-rules.md#states) (unless explicitly noted).
+    "State" is a highly overloaded term -- in this section we take it to mean something different from the "state" of [the section on states](./0010-states-channels.md#states) (unless explicitly noted).
 
 ## Off-chain lifecycle
 
@@ -23,7 +23,7 @@ state OffChain {
 
 ```
 
-The conditions for each state emerge from the collection of [states](./0001-states-channels-execution-rules.md#states) and [signatures](./0001-states-channels-execution-rules.md#state-commitments) held by each participant. Let's look at each in turn.
+The conditions for each state emerge from the collection of [states](./0010-states-channels.md#states) and [signatures](./0010-states-channels.md#state-commitments) held by each participant. Let's look at each in turn.
 
 ### `Proposed`
 
@@ -35,7 +35,7 @@ This state applies when all participants commit to the **prefund** state, i.e. w
 
 !!! info
 
-    It is important to wait for a supported prefund before depositing any funds on chain, since this state is a guarantee that on chain funds can be unlocked with the intial (prefund) [outcome](./0002-outcomes.md).
+    It is important to wait for a supported prefund before depositing any funds on chain, since this state is a guarantee that on chain funds can be unlocked with the intial (prefund) [outcome](./0030-outcomes.md).
 
 ### `Funded`
 
@@ -45,7 +45,7 @@ This state applies when all participants commit to a state with `turnNum=1` know
 - sufficient money is directly allocated to the channel in question from an existing funded channel
 - sufficient money is _guaranteed_ to the channel in question from an existing funded channel
 
-For more detail see the section on [funding](./0005-funding-a-channel.md).
+For more detail see the section on [funding](./0050-funding-a-channel.md).
 
 ### `Running`
 
@@ -88,11 +88,11 @@ state Fundings {
 
 ### On-chain
 
-When a channel is to be funded on chain, participants follow the [on chain deposit protocol](./0005-funding-a-channel.md#fund-with-an-on-chain-deposit). When sufficient funds are deposited against the channel, the state has transitioned to `FundedOnChain`.
+When a channel is to be funded on chain, participants follow the [on chain deposit protocol](./0050-funding-a-channel.md#fund-with-an-on-chain-deposit). When sufficient funds are deposited against the channel, the state has transitioned to `FundedOnChain`.
 
 ### Off-chain
 
-Funding on chain is often not necessary, since most channels are funded off-chain. In that case, the "funding state" of a channel is composed of the off-chain state of one or more other channels. See the section on [funding](./0005-funding-a-channel.md#fund-from-an-existing-channel).
+Funding on chain is often not necessary, since most channels are funded off-chain. In that case, the "funding state" of a channel is composed of the off-chain state of one or more other channels. See the section on [funding](./0050-funding-a-channel.md#fund-from-an-existing-channel).
 
 ## Adjudication
 
@@ -100,7 +100,7 @@ The off chain state may be submitted to the adjudication contract at any time to
 
 !!! tip
 
-    Ideally channels are never adjudicated on chain. This only state applies  as a [last resort](./0006-finalizing-a-channel.md#sad-path) when cooperation has broken down.
+    Ideally channels are never adjudicated on chain. This only state applies  as a [last resort](./0060-finalizing-a-channel.md#sad-path) when cooperation has broken down.
 
 # Adjudicator Status
 
@@ -117,7 +117,7 @@ The adjudicator smart contract is the main on-chain code governing the state cha
 
 ```
 
-1. This is formed according to [this formula](./0001-states-channels-execution-rules.md#state-commitments).
+1. This is formed according to [this formula](./0010-states-channels.md#state-commitments).
 
 The derived data is stored inside the following mapping (with `channelId` as the key):
 
@@ -174,7 +174,7 @@ Here we omitted some of the fields, because the helper function is smart enough 
 `turNumRecord` is the highest turn number that is known to the chain to be supported by a full set of signatures.
 The exception to this rule is that it is set to `0` when the channel is concluded via a `conclude` call.
 
-For example, the `turnNumRecord` might be increased by a submitted `checkpoint` transaction including a [support proof](./0001-states-channels-execution-rules.md#execution-rules) for a state.
+For example, the `turnNumRecord` might be increased by a submitted `checkpoint` transaction including a [support proof](./0020-execution-rules.md#execution-rules) for a state.
 
 Note that a new `validTransition` `m`-chain may be implied by a single, signed state that is a validTransition from a state already supported on-chain: and hence the `turnNumRecord` can be incremented by a `respond` transaction.
 

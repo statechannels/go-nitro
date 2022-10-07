@@ -32,7 +32,7 @@ When `allocationType` is set to `guarantee`, funds cannot be transferred in the 
 
 ## Destinations
 
-A `destination` is 32 byte identifier which may either denote a [channel ID](./0001-states-channels-execution-rules.md#channel-ids) or a so-called "external destination" (a 20 byte Ethereum address left-padded with zeros).
+A `destination` is 32 byte identifier which may either denote a [channel ID](./0010-states-channels.md#channel-ids) or a so-called "external destination" (a 20 byte Ethereum address left-padded with zeros).
 
 ## A simple example
 

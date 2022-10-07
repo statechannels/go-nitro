@@ -13,7 +13,7 @@ function deposit(address asset, bytes32 destination, uint256 expectedHeld, uint2
 
 !!! warning
 
-    There are a few rules to obey when calling `deposit`. Firstly, `destination` must NOT be  an [external destination](./0002-outcomes.md#destinations). Secondly, the on-chain holdings for `destination` must be greater than or equal to `expectedHeld`. Thirdly, the holdings for `destination` must be less than the sum of the amount expected to be held and the amount declared in the deposit.
+    There are a few rules to obey when calling `deposit`. Firstly, `destination` must NOT be  an [external destination](./0030-outcomes.md#destinations). Secondly, the on-chain holdings for `destination` must be greater than or equal to `expectedHeld`. Thirdly, the holdings for `destination` must be less than the sum of the amount expected to be held and the amount declared in the deposit.
 
     The first rule prevents funds being escrowed against something other than a channelId: funds may only be unlocked from channels, so you shouldn't deposit into anything else. The second rule prevents loss of funds: since holdings are paid out in preferential order, depositing before a counterparty has deposited implies that they can withdraw your funds. The check is performed in the same transaction as the deposit, making this safe even in the event of a chain re-org that reverts a previous participant's deposit. The third rule prevents the deposit of uneccessary funds: if my aim was to increase the holdings to a certain level, but they are already at or above that level, then I want my deposit to transaction revert.
 
@@ -61,7 +61,7 @@ In Nitro, it is possible for a channel to be underfunded, exactly funded or over
 
 ## Fund from an existing channel
 
-In most cases, there should be no need to pay the cost and latency of funding on chain. All it takes to fund a second channel (say, `X`) **off-chain** from a first (sa,y `L`) is to make a state update in `L`. The participants of `L` can collaborate to support a state with a modififed [`outcome`](./0002-outcomes.md). This is particularly straightforward if the first channel is running the [`ConsensusApp`](./0001-states-channels-execution-rules.md#consensusapp).
+In most cases, there should be no need to pay the cost and latency of funding on chain. All it takes to fund a second channel (say, `X`) **off-chain** from a first (sa,y `L`) is to make a state update in `L`. The participants of `L` can collaborate to support a state with a modififed [`outcome`](./0030-outcomes.md). This is particularly straightforward if the first channel is running the [`ConsensusApp`](./0010-states-channels.md#consensusapp).
 
 Take for example an initial funding tree like this:
 
