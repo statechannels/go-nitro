@@ -10,8 +10,8 @@ This is in sharp contrast to the experience of transacting publicly on a "layer 
 
 ## What's on offer
 
-These docs cover the open source code at https://github.com/statechannels/go-nitro. This includes
+These docs cover the open source code at [https://github.com/statechannels/go-nitro](https://github.com/statechannels/go-nitro). This includes
 
-- smart contracts (solidity)
-- utilities (Typescript)
-- fully-featured off chain client (Go, work in progress)
+- smart contracts :simple-solidity:
+- utilities :simple-typescript:
+- fully-featured off chain client :simple-go:
