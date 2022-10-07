@@ -2,15 +2,23 @@
 
 The adjudicator contract stores certain information about any channel that it knows about. Specifically, it stores data derived from the `ChannelData` struct, which contains:
 
-- `uint48 turnNumRecord`
-- `uint48 finalizesAt`
-- `bytes32 stateHash // keccak256(abi.encode(State))`
-- `bytes32 outcomeHash`
+```solidity
+
+    struct ChannelData {
+          uint48 turnNumRecord;
+          uint48 finalizesAt;
+          bytes32 stateHash; // (1)
+          bytes32 outcomeHash;
+    }
+
+```
+
+1. This is formed according to [this formula](./0001-states-channels-execution-rules.md#state-commitments).
 
 The derived data is stored inside the following mapping (with `channelId` as the key):
 
 ```solidity
-    mapping(bytes32 => bytes32) public statusOf;
+mapping(bytes32 => bytes32) public statusOf;
 ```
 
 Generating a 32 byte `status` involves
@@ -36,9 +44,9 @@ uint160(
 
 When the adjudicator needs to verify the exact state or outcome, the data is provided in the function arguments, as part of the `calldata`. The chain will then check that the hydrated data matches the status that has been stored.
 
-:::note
-`turnNumRecord` and `finalizesAt` can be read from storage straightforwardly, whereas the other `ChannelData` fields are only stored as the output of a one-way function. The input to this function must therefore be tracked in client code by monitoring the relevant contract events.
-:::
+!!! info
+
+    `turnNumRecord` and `finalizesAt` can be read from storage straightforwardly, whereas the other `ChannelData` fields are only stored as the output of a one-way function. The input to this function must therefore be tracked in client code by monitoring the relevant contract events.
 
 We provide a helper function to construct the appropriate status from a javascript representation of `ChannelData`:
 

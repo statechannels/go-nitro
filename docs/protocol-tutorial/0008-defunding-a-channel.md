@@ -1,0 +1,3 @@
+# Defunding a channel
+
+TODO
