@@ -6,7 +6,7 @@ Nitro protocol uses the [statechannels exit format](https://github.com/statechan
 
 !!! tip
 
-    Nitro supports Native, ERC20, ERC721 and ERC1155 tokens.
+    Nitro supports native (e.g. ETH) and ERC20 tokens.
 
 An `Outcome` is an array of `SingleAssetExits`, each specifying:
 
@@ -24,11 +24,7 @@ An `allocation` is
 - an `allocationType` identifier
 - optional `metadata`
 
-The `allocationType` identifier is usually set to 0, meaning "simple". Other values are "withdraw helper" and "guarantee" which we will explain shortly. Simple allocations do not have any `metadata`.
-
-### Withdraw Helpers
-
-When `allocationType` is set to `withdrawHelper`, the metadata will be decoded as an `address` and `callData` pair. The `execute` method on the contract at `address` will be called with `callData` and `amount` immediately after funds are transferred.
+The `allocationType` identifier is usually set to 0, meaning "simple". Simple allocations do not have any `metadata`.
 
 ### Guarantees
 
