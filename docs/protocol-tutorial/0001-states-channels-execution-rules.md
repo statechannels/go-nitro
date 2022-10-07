@@ -233,3 +233,17 @@ interface IForceMoveApp is INitroTypes {
 }
 
 ```
+
+### Auxiliary application rules
+
+Some of the more advanced features in Nitro are actually expressed themselves as Nitro Applications which we call _auxiliary applications_. There are a couple of important ones:
+
+#### `ConsensusApp`
+
+The consensus app encodes a very simple rule for execution -- in order for a state to be supported, it must be _unanimously countersigned_ -- that is, signed by _all_ of the channel participants. See the [source code](https://github.com/statechannels/go-nitro/blob/main/nitro-protocol/contracts/ConsensusApp.sol).
+
+Ledger channels are a special type of channel used to fund other channels -- they are an example of a channel which run the `ConsensusApp`.
+
+#### `VirtualPaymentApp`
+
+The virtual payment app allows a _payer_ to pay a _payee_ via their inirection connection through `n` intermediaries. Payments are simply signed "vouchers" sent from the _payer_ to the _payee_. This app is in effect a mini state channel adjudicator, which requires unanimous consensu for most state execution, but parses vouchers and allows for other transitions via _forced transtiions_ (or unilateral consensus). See the [source code](https://github.com/statechannels/go-nitro/blob/main/nitro-protocol/contracts/VirtualPaymentApp.sol).
