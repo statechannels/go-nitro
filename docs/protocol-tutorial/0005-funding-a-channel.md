@@ -82,7 +82,7 @@ The diagram shows on-chain funding of `10` for `L`, which initially allocates `5
 
 === "Typescript"
 
-    ```ts
+    ```ts hl_lines="13 19 23 24 25 26 27 28 29"
     import {
       Exit,
       SingleAssetExit,
@@ -124,7 +124,7 @@ The diagram shows on-chain funding of `10` for `L`, which initially allocates `5
 
 === "Go"
 
-    ```Go
+    ```Go hl_lines="13 17 19 20 21 22 23"
       import (
         "math/big"
 
