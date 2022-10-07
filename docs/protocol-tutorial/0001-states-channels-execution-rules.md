@@ -91,7 +91,7 @@ In Nitro protocol, a state is broken up into fixed and variable parts:
 
 !!! info
 
-    States are usually submitted to the blockchain as a single fixed part and multiple variable parts.
+    States are usually submitted to the blockchain as a single fixed part and multiple variable parts. This is known as a "support proof".
 
 Let's take each property in turn:
 
@@ -200,6 +200,8 @@ Unlike the rules of the underlying blockchain -- which dictate which state histo
 The rules for how one supported state may supercede another are very simple. Each state has a version number, with greater version numbers superceding lesser ones.
 
 The state channel rules are enshrined in two places on the blockchain: firstly, in the **core protocol**, and secondly in the **application rules**.
+
+Participants _may_ provide "support proofs" to the blockchain in order to record the execution of the state channel. They will typically prefer to not do that, since it costs gas -- but they will keep such "support proofs" in hand in case they need to use them.
 
 ### Core protocol rules
 
