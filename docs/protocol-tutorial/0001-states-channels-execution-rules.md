@@ -6,6 +6,8 @@ A state channel can be thought of as a set of data structures (called "states") 
 
     In Nitro, participants "commit to" a state by digitially signing it.
 
+A state channel controls [funds](./0005-funding-a-channel.md) which are locked up -- either on an L1 blockchain or on some other ledger such as another state channel.
+
 ## States
 
 In Nitro protocol, a state is broken up into fixed and variable parts:
