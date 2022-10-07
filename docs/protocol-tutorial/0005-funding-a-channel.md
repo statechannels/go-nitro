@@ -61,7 +61,7 @@ In Nitro, it is possible for a channel to be underfunded, exactly funded or over
 
 ## Fund from an existing channel
 
-All it takes to fund a second channel (say, `X`) from a first (sa,y `L`) is to make a state update in `L`. The participants of `L` can collaborate to support a state with a modififed [`outcome`](./0002-outcomes.md). This is particularly straightforward if the first channel is running the [`ConsensusApp`](./0001-states-channels-execution-rules.md#consensusapp).
+In most cases, there should be no need to pay the cost and latency of funding on chain. All it takes to fund a second channel (say, `X`) **off-chain** from a first (sa,y `L`) is to make a state update in `L`. The participants of `L` can collaborate to support a state with a modififed [`outcome`](./0002-outcomes.md). This is particularly straightforward if the first channel is running the [`ConsensusApp`](./0001-states-channels-execution-rules.md#consensusapp).
 
 Take for example an initial funding tree like this:
 
