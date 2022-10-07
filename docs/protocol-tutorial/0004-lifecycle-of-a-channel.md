@@ -75,8 +75,16 @@ state Funding {
 
 ### Funding
 
-When a channel is to be funded on chain, participants follow the [on chain deposit protocol](./0005-funding-a-channel.md#fund-with-an-on-chain-deposit). When sufficient funds are deposited against the channel, the state has transitioned to `FundedOnChain`. Funding on chain is often not necessary.
+When a channel is to be funded on chain, participants follow the [on chain deposit protocol](./0005-funding-a-channel.md#fund-with-an-on-chain-deposit). When sufficient funds are deposited against the channel, the state has transitioned to `FundedOnChain`.
+
+!!! tip
+
+    Funding on chain is often not necessary, since most channels are funded off-chain.
 
 ### Adjudication
 
 The off chain state may be submitted to the adjudication contract at any time to trigger the adjudication status to transition to `Challenged`. It may then transition to `FinalizedOnChain` via a timeout, or back to `Open` via a `checkpoint` transaction, or indeed back to `Challenge` via another `challange` transaction.
+
+!!! tip
+
+    Ideally channels are never adjudicated on chain. This only happens as a [last resort](./0006-finalizing-a-channel.md#sad-path) when cooperation has broken down.
