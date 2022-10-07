@@ -17,15 +17,19 @@ state OffChain {
 
 ```
 
-### Transitioning to `Proposed`
+### `Proposed`
 
 This happens as soon as a participant commits to a state with `turnNum=0` known as the **prefund** state.
 
-### Transitioning to `ReadyToFund`
+### `ReadyToFund`
 
 This happens when all participants commit to the **prefund** state, i.e. when all prefund signatures are in hand.
 
-### Transitioning to `Funded`
+!!! info
+
+    It is important to wait for a supported prefund before depositing any funds on chain, since this state is a guarantee that on chain funds can be unlocked with the intial (prefund) [outcome](./0002-outcomes.md).
+
+### `Funded`
 
 This happens when all participants commit to a state with `turnNum=1` known as the **postfund** state. Each participant should only make this commitment when one of the following is true:
 
@@ -35,11 +39,11 @@ This happens when all participants commit to a state with `turnNum=1` known as t
 
 For more detail see the section on [funding](./0005-funding-a-channel.md).
 
-### Transitioning to `Running`
+### `Running`
 
 This happens when a state with `turnNum > 1` becomes supported.
 
-### Transitioning to `Finalized`
+### `Finalized`
 
 This happens when all participants commit to a state with `isFinal=true`, i.e. when all final signatures are in hand.
 
