@@ -91,6 +91,68 @@ In Nitro protocol, a state is broken up into fixed and variable parts:
 
     States are usually submitted to the blockchain as a single fixed part and multiple variable parts.
 
+Let's take each property in turn:
+
+### Chain id
+
+This needs to match the id of the chain where assets are to be locked (i.e. the 'root' of the funding graph for this channel). In the event of a mismatch, the channel cannot be concluded and funds cannot be unlocked.
+
+### Participants
+
+This is a dynamic array of Ethereum addresses, each derived from an ECDSA private key in the usual manner. Each address represents a participant in the state channel who is able to commit to state updates and thereby cause the channel to finalize on chain.
+
+!!! warning
+
+    Before joining a state channel, you (or your off-chain software) should check that it has length at least 2, but no more than 255, and include a public key (account) that you control. Each entry should be a nonzero ethereum address.
+
+### ChannelNonce
+
+This is a unique number used to differentiate channels with an otherwise identical `FixedPart`. For example, if the same participants want to run the same kind of channel on the same chain as a previous channel, they can choose a new `ChannelNonce` to prevent state updates from from the existing channel being replayed.
+
+!!! warning
+
+    You should never join a channel which re-uses a channel nonce.
+
+### AppDefinition
+
+This is an Ethereum address where a Nitro application has been deployed. This is a contract conforming to the `ForceMoveApp` and defining [application rules](#application-rules).
+
+!!! warning
+
+    You should have confidence that the application is not malicious or suffering from security flaws. You should inspect the source code (which should be publically available and verifiable) or appeal to a trusted authority to do this.
+
+### ChallengeDuration
+
+This is duration (in seconds) of the challenge-response window. If a challenge is raised on chain at time `t`, the channel will finalize at `t + ChallengeDuration` unless cleared by a subqsequent on-chain transaction.
+
+!!! warning
+
+    This should be at least 1 block time (~15 seconds on mainnet) and less than `2^48-1` seconds. Whatever it is set to, the channel should be closed long before `2^48 - 1 - challengeDuration`. In practice we recommend somewhere between 5 minutes and 5 months.
+
+### AppData
+
+The AppData is optional data which may be interpreted by the Nitro application and affect the execution rules of the channel -- see the section on [application rules](#application-rules). For example, it could describe the state of a chess board or include the hash of a secret.
+
+### Outcome
+
+This describes how funds will be disbursed if the channel were to finalize in the current state. See the section on [Outcomes](0002-outcomes.md).
+
+### TurnNum
+
+The turn number is the mechanism by which newer states take precedence over older ones. The turn number usually increments as the channel progresses.
+
+!!! warning
+
+    The turn number must not exceed 281,474,976,710,655 because then it will overflow on chain. It is very unlikely a channel would ever have this many updates.
+
+### IsFinal
+
+This is a boolean flag which allows the [channel execution rules](#execution-rules) to be bypassed and for the channel to be finalized "instantly" without waiting for the challenge-response window to lapse.
+
+!!! warning
+
+    As soon as an `isFinal=true` state is _enabled_ (that is to say, you cannot prevent it from becoming supported) it is not safe to continue executing the state channel. It should be finalized immediately.
+
 ## Channel IDs
 
 Channels are identified by the hash of the `FixedPart`` of the state (those parts that may _not_ vary):
