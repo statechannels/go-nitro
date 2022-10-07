@@ -143,7 +143,7 @@ The turn number is the mechanism by which newer states take precedence over olde
 
 !!! warning
 
-    The turn number must not exceed 281,474,976,710,655 because then it will overflow on chain. It is very unlikely a channel would ever have this many updates.
+    The turn number must not exceed 281,474,976,710,655 because then it will overflow on chain. It should not exceed 4,294,967,295 because it may then overflow off-chain. It is very unlikely a channel would ever have this many updates.
 
 ### IsFinal
 
@@ -204,7 +204,7 @@ The state channel rules are enshrined in two places on the blockchain: firstly, 
 Nitro is a very open protocol, and has become more open over time (in particular, v2 is more open compared with v1). This means that very little is stipulated at the core protocol level. Each application gets full control over when a state can be considered supported. The only things enforced by the core protocol are:
 
 - the rule that higher turn numbers take precedence over lower ones
-- an escape hatch for an "instant checkout" of the channel, which bypasses the application rules altogether (TODO link)
+- an escape hatch for an ["instant checkout"](./0006-finalizing-a-channel.md#happy-path) of the channel, which bypasses the application rules altogether
 
 Otherwise, the core protocol defers to the application rules.
 
