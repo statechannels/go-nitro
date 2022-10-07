@@ -8,7 +8,7 @@ A participant wishing to end the state channel will sign a state with `isFinal =
 
 ### Off chain
 
-In most cases, the channel would be finalized and defunded [off chain](./0010-off-chain-funding.md), and no contract calls are necessary.
+In most cases, the channel would be finalized and defunded [off chain](./0005-funding-a-channel.md##fund-from-an-existing-channel), and no contract calls are necessary.
 
 ### On chain -- calling `conclude`
 

@@ -61,6 +61,122 @@ In Nitro, it is possible for a channel to be underfunded, exactly funded or over
 
 ## Fund from an existing channel
 
+All it takes to fund a second channel (say, `X`) from a first (sa,y `L`) is to make a state update in `L`. The participants of `L` can collaborate to support a state with a modififed [`outcome`](./0002-outcomes.md). This is particularly straightforward if the first channel is running the [`ConsensusApp`](./0001-states-channels-execution-rules.md#consensusapp).
+
+Take for example an initial funding tree like this:
+
+```mermaid
+graph LR;
+linkStyle default interpolate basis;
+ETHAssetHolder( )
+ledger((L))
+me(( )):::external
+hub(( )):::external
+ETHAssetHolder-->|10|ledger;
+ledger-->|5|me;
+ledger-->|5|hub;
+classDef external fill:#f96
+```
+
+The diagram shows on-chain funding of `10` for `L`, which initially allocates `5` to each participant. The participants propose and countersign a modified outcome like so:
+
+=== "Typescript"
+
+    ```ts
+    import {
+      Exit,
+      SingleAssetExit,
+      NullAssetMetadata,
+    } from "@statechannels/exit-format";
+
+    const ethExit: SingleAssetExit = {
+      asset: "0x0",
+      assetMetadata: NullAssetMetadata,
+      allocations: [
+        {
+          destination: "0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f", // Alice
+          amount: "0x02", // (1)
+          allocationType: AllocationType.simple,
+          metadata: "0x",
+        },
+        {
+          destination: "0x0000000000000000000000000737369d5F8525D039038Da1EdBAC4C4f161b949", // Bob
+          amount: "0x02", // (2)
+          allocationType: AllocationType.simple, // a regular ETH transfer
+          metadata: "0x",
+        },
+        { // (3)
+          // The channel id of the second channel:
+          destination: "0xC4f161b9490737369d5F8525D039038Da1EdBAC4",
+          amount: "0x06",
+          allocationType: AllocationType.simple,
+          metadata: "0x",
+        },
+      ],
+    };
+
+    const exit = [ethExit];
+    ```
+
+    1. This amount was decremented by 3.
+    2. This amount was decremented by 3.
+    3. This allocation was appended.
+
+=== "Go"
+
+    ```Go
+      import (
+        "math/big"
+
+        "github.com/ethereum/go-ethereum/common"
+        "github.com/statechannels/go-nitro/channel/state/outcome"
+        "github.com/statechannels/go-nitro/types"
+      )
+
+      var ethExit = outcome.SingleAssetExit{
+          Allocations: outcome.Allocations{
+            outcome.Allocation{
+              Destination: types.Destination(common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f")),
+              Amount:      big.NewInt(2), // (1)
+            },
+            outcome.Allocation{
+              Destination: types.Destination(common.HexToHash("0x0000000000000000000000000737369d5F8525D039038Da1EdBAC4C4f161b949")),
+              Amount:      big.NewInt(2), // (2)
+            },
+            outcome.Allocation{ // (3)
+              // The channel id of the second channel:
+              Destination: types.Destination(common.HexToHash("0xC4f161b9490737369d5F8525D039038Da1EdBAC4")),
+              Amount:      big.NewInt(6),
+            },
+          },
+        }
+
+      var exit = outcome.Exit{{ethExit}}
+    ```
+
+    1. This amount was decremented by 3.
+    2. This amount was decremented by 3.
+    3. This allocation was appended.
+
+Bringing the funding graph to a state like this:
+
+```mermaid
+graph LR;
+linkStyle default interpolate basis;
+ETHAssetHolder( )
+ledger((L))
+channel((X))
+me(( )):::external
+hub(( )):::external
+ETHAssetHolder-->|10|ledger;
+ledger-->|2|me;
+ledger-->|2|hub;
+ledger-->|6|channel;
+classDef external fill:#f96
+```
+
 ## Fund virtually
 
 ...from two or more existing channels
+
+TODO
