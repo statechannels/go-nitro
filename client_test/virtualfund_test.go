@@ -47,11 +47,66 @@ func TestVirtualFundIntegration(t *testing.T) {
 	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
+	chainServiceBr := chainservice.NewMockChainService(chain, brian.Address())
 	broker := messageservice.NewBroker()
 
 	clientA, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, 0)
+	irene, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
+	ivan, _ := setupClient(brian.PrivateKey, chainServiceBr, broker, logDestination, 0)
 	clientB, _ := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, 0)
-	clientI, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
 
-	openVirtualChannels(t, clientA, clientB, clientI, 1)
+	openN_HopVirtualChannels(t, []client.Client{clientA, irene, ivan, clientB}, 1)
+}
+
+// openN_HopVirtualChannels connects the n given participants in a line of ledger channels,
+// then uses these ledger connections to open channels between the first participant
+// and each other participant.
+//
+// This makes channels with 0, 1, ..., [len(participants) - 1] hops.
+func openN_HopVirtualChannels(t *testing.T, participants []client.Client, channelsPerCounterparty uint) {
+
+	// set a chain of ledger channels between incoming clients.
+	// network is a line: A <-> B <-> C <-> D ... <-> X
+	for i, participant := range participants {
+		if i+1 < len(participants) {
+			directlyFundALedgerChannel(t, participant, participants[i+1])
+		}
+	}
+
+	alice := participants[0] // alice initiates each virtualfund operation
+	counterparties := participants[1:]
+
+	for i := 0; i < int(channelsPerCounterparty); i++ {
+
+		// and funds channels with everyone else along the chain
+		// (including her immediate neighbor)
+		for j, bob := range counterparties {
+
+			intermediaries := counterparties[0:j]
+			intermediaryAddresses := clientsToAddresses(intermediaries)
+
+			outcome := td.Outcomes.Create(*alice.Address, *bob.Address, 1, 1)
+			response := alice.CreateVirtualPaymentChannel(
+				intermediaryAddresses,
+				*bob.Address,
+				0,
+				outcome,
+			)
+
+			waitTimeForCompletedObjectiveIds(t, &alice, defaultTimeout, response.Id)
+			for _, intermediary := range intermediaries {
+				waitTimeForCompletedObjectiveIds(t, &intermediary, defaultTimeout, response.Id)
+			}
+			waitTimeForCompletedObjectiveIds(t, &bob, defaultTimeout, response.Id)
+		}
+	}
+
+}
+
+func clientsToAddresses(clients []client.Client) []types.Address {
+	ret := []types.Address{}
+	for _, client := range clients {
+		ret = append(ret, *client.Address)
+	}
+	return ret
 }
