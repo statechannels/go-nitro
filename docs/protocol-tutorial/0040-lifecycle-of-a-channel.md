@@ -218,4 +218,4 @@ const channelData: ChannelData = {
 const status = channelDataToStatus(channelData);
 ```
 
-Here we omitted some of the fields, because the helper function is smart enough to know to set them to null values when finalizes at is zero. We'll be using this helper in the next tutorial lesson.
+Here we omitted some of the fields, because the helper function is smart enough to know to set them to null values when finalizes at is zero.
