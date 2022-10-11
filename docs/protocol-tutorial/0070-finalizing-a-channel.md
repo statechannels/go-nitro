@@ -1,8 +1,10 @@
 # Finalizing a channel
 
+Finalization of a state channel is a necessary step before defunding it.
+
 ## Happy path
 
-Finalization of a state channel is a necessary step before defunding it. In the so-called 'happy' case, all participants cooperate to achieve this.
+In the so-called 'happy' case, all participants cooperate to achieve this.
 
 A participant wishing to end the state channel will sign a state with `isFinal = true`. Then, the other participants may support that state. Once a full set of `n` such signatures exists (this set is known as a **finalization proof**) the channel is said to be 'closed' or 'finalized'.
 
