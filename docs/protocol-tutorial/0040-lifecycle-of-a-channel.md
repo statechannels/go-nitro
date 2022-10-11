@@ -45,7 +45,7 @@ This state applies when all participants commit to a state with `turnNum=1` know
 - sufficient money is directly allocated to the channel in question from an existing funded channel
 - sufficient money is _guaranteed_ to the channel in question from an existing funded channel
 
-For more detail see the section on [funding](./0050-funding-a-channel.md).
+For more detail see the section on [funding](./0060-funding-a-channel.md).
 
 ### `Running`
 
@@ -88,11 +88,11 @@ state Fundings {
 
 ### On-chain
 
-When a channel is to be funded on chain, participants follow the [on chain deposit protocol](./0050-funding-a-channel.md#fund-with-an-on-chain-deposit). When sufficient funds are deposited against the channel, the state has transitioned to `FundedOnChain`.
+When a channel is to be funded on chain, participants follow the [on chain deposit protocol](./0060-funding-a-channel.md#fund-with-an-on-chain-deposit). When sufficient funds are deposited against the channel, the state has transitioned to `FundedOnChain`.
 
 ### Off-chain
 
-Funding on chain is often not necessary, since most channels are funded off-chain. In that case, the "funding state" of a channel is composed of the off-chain state of one or more other channels. See the section on [funding](./0050-funding-a-channel.md#fund-from-an-existing-channel).
+Funding on chain is often not necessary, since most channels are funded off-chain. In that case, the "funding state" of a channel is composed of the off-chain state of one or more other channels. See the section on [funding](./0060-funding-a-channel.md#fund-from-an-existing-channel).
 
 ## Adjudication
 
@@ -100,7 +100,7 @@ The off chain state may be submitted to the adjudication contract at any time to
 
 !!! tip
 
-    Ideally channels are never adjudicated on chain. This only state applies  as a [last resort](./0060-finalizing-a-channel.md#sad-path) when cooperation has broken down.
+    Ideally channels are never adjudicated on chain. This only state applies  as a [last resort](./0070-finalizing-a-channel.md#sad-path) when cooperation has broken down.
 
 # Adjudicator Status
 
