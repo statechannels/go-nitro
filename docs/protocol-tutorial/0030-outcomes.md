@@ -34,6 +34,17 @@ Simple allocations do not have any `metadata`, and allow for funds to be moved o
 
 When `allocationType` is set to `guarantee`, funds cannot be transferred in the usual way. Instead, they may be moved to another channel on chain using the `reclaim` method. This is explained further in the section on virtual channels. See the section on [defunding](./0080-defunding-a-channel.md).
 
+The `metadata` is an encoding of the following struct:
+
+```solidity
+  struct Guarantee {
+        bytes32 left;
+        bytes32 right;
+    }
+```
+
+where `left` and `right` correspond to channel participants.
+
 ## Destinations
 
 A `destination` is 32 byte identifier which may either denote a [channel ID](./0010-states-channels.md#channel-ids) or a so-called "external destination" (a 20 byte Ethereum address left-padded with zeros).

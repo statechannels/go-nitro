@@ -60,19 +60,25 @@ In Nitro, it is possible for a channel to be underfunded, exactly funded or over
 
 In most cases, there should be no need to pay the cost and latency of funding on chain. All it takes to fund a second channel (say, `X`) **off-chain** from a first (sa,y `L`) is to make a state update in `L`. The participants of `L` can collaborate to support a state with a modififed [`outcome`](./0030-outcomes.md). This is particularly straightforward if the first channel is running the [`ConsensusApp`](./0010-states-channels.md#consensusapp).
 
+!!! info
+
+    In this context, the channel `L` is known as a **ledger channel**.
+
 Take for example an initial funding tree like this:
 
 ```mermaid
-graph LR;
+graph TD;
 linkStyle default interpolate basis;
 ETHAssetHolder( )
 ledger((L))
-me(( )):::external
-hub(( )):::external
+me(( )):::me
+hub(( )):::hub
 ETHAssetHolder-->|10|ledger;
 ledger-->|5|me;
 ledger-->|5|hub;
-classDef external fill:#f96
+classDef me fill:#4287f5
+classDef hub fill:#85e69f
+classDef bob fill:#d93434
 ```
 
 The diagram shows on-chain funding of `10` for `L`, which initially allocates `5` to each participant. The participants propose and countersign a modified outcome like so:
@@ -158,22 +164,179 @@ The diagram shows on-chain funding of `10` for `L`, which initially allocates `5
 Bringing the funding graph to a state like this:
 
 ```mermaid
-graph LR;
+graph TD;
 linkStyle default interpolate basis;
 ETHAssetHolder( )
 ledger((L))
 channel((X))
-me(( )):::external
-hub(( )):::external
+me(( )):::me
+hub(( )):::hub
 ETHAssetHolder-->|10|ledger;
 ledger-->|2|me;
 ledger-->|2|hub;
 ledger-->|6|channel;
-classDef external fill:#f96
+classDef me fill:#4287f5
+classDef hub fill:#85e69f
+classDef bob fill:#d93434
 ```
 
 ## Fund virtually
 
-...from two or more existing channels
+It is possible to virtually fund a channel with a counterparty via two or more channels which constitute an indirect pre-existing connection with that counterparty.
 
-TODO
+Take for example an initial funding tree like this:
+
+```mermaid
+graph TD;
+linkStyle default interpolate basis;
+ETHAssetHolder( )
+ledgerL((L))
+ledgerM((M))
+ledgerR((R))
+me((A)):::me
+hub1((I1)):::hub1
+hub2((I2)):::hub2
+counterparty((B)):::bob
+ETHAssetHolder-->|10|ledgerL;
+ETHAssetHolder-->|10|ledgerM;
+ETHAssetHolder-->|10|ledgerR;
+ledgerL-->|5|me;
+ledgerL-->|5|hub1;
+ledgerM-->|5|hub1;
+ledgerM-->|5|hub2;
+ledgerR-->|5|hub2;
+ledgerR-->|5|counterparty;
+classDef me fill:#4287f5
+classDef hub1 fill:#85e69f
+classDef hub2 fill:#f242f5
+classDef bob fill:#d93434
+```
+
+Here `A` wishes to enter a channel with `B`, but only has a ledger channel with `I1`. However, since `I1` has a ledger channel with `I2`, and `I2` has a [ledger channel](#fund-from-an-existing-channel) with `B`, it is indeed possible to safely fund such a channel in the following way.
+
+1. `A` proposes a channel `V` with participants `A,I1,I2,B`. Each participant has a numerical role in the virtual funding protocol. `V` allocates funds to `A` and `B`, but not to ther intermediaries `I1,I2`. The other participants join the channel. See [lifecycle of a channel](./0040-lifecycle-of-a-channel.md).
+2. In each existing ledger channel (`L,M,R`), the participants of that channel make an update to include a guarantee for `V` in the outcome of the ledger channel.
+3. When all of the ledger channels (there will be 1 or 2) which an actor is participating in have reached consensus on guaranteeing `V`, that actor signs the [postfund state](./0040-lifecycle-of-a-channel.md#off-chain-lifecycle) for `V`.
+4. When the postfund round completes, the channel is considered funded.
+
+Here is an example of step 2 for `M`, the ledger channel between `A` and `I1`:
+
+=== "Typescript"
+
+    ```ts hl_lines="13 19 23 24 25 26 27 28 29"
+    import {
+      Exit,
+      SingleAssetExit,
+      NullAssetMetadata,
+    } from "@statechannels/exit-format";
+
+    const ethExit: SingleAssetExit = {
+      asset: "0x0",
+      assetMetadata: NullAssetMetadata,
+      allocations: [
+        {
+          destination: "0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f", // Alice
+          amount: "0x04", // (1)
+          allocationType: AllocationType.simple,
+          metadata: "0x",
+        },
+        {
+          destination: "0x0000000000000000000000000737369d5F8525D039038Da1EdBAC4C4f161b949", // Bob
+          amount: "0x04", // (2)
+          allocationType: AllocationType.simple, // a regular ETH transfer
+          metadata: "0x",
+        },
+        { // (3)
+          // The channel id of V:
+          destination: "0x0737369d5F8C4f161b949525D039038Da1EdBAC4",
+          amount: "0x02",
+          allocationType: AllocationType.Guarantee,
+          metadata: "0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f0000000000000000000000000737369d5F8525D039038Da1EdBAC4C4f161b949",
+        },
+      ],
+    };
+
+    const exit = [ethExit];
+    ```
+
+    1. This amount was decremented by 1.
+    2. This amount was decremented by 1.
+    3. This allocation was appended. Notice that it is a [guarantee allocation.](./0030-outcomes.md#guarantees)
+
+=== "Go"
+
+    ```Go hl_lines="16 20 22 23 24 25 26 27"
+      import (
+        "math/big"
+
+        "github.com/ethereum/go-ethereum/common"
+        "github.com/statechannels/go-nitro/channel/state/outcome"
+        "github.com/statechannels/go-nitro/types"
+      )
+
+      var aliceDestination := types.Destination(common.HexToHash("0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f"))
+      var I1Destination := types.Destination(common.HexToHash("0x0000000000000000000000000737369d5F8525D039038Da1EdBAC4C4f161b949"))
+
+      var ethExit = outcome.SingleAssetExit{
+          Allocations: outcome.Allocations{
+            outcome.Allocation{
+              Destination: aliceDestination,
+              Amount:      big.NewInt(4), // (1)
+            },
+            outcome.Allocation{
+              Destination: I1Destination,
+              Amount:      big.NewInt(4), // (2)
+            },
+            outcome.Allocation{ // (3)
+              // The channel id of V:
+              Destination: types.Destination(common.HexToHash("0x0737369d5F8C4f161b949525D039038Da1EdBAC4")),
+              Amount:      big.NewInt(2),
+              Metadata: append(aliceDestination.Bytes(), I1Destination.Bytes()...)
+            },
+          },
+        }
+
+      var exit = outcome.Exit{{ethExit}}
+    ```
+
+    1. This amount was decremented by 1.
+    2. This amount was decremented by 1.
+    3. This allocation was appended. Notice that it is a [guarantee allocation.](./0030-outcomes.md#guarantees)
+
+Note how the additional allocation is a [guarantee allocation.](./0030-outcomes.md#guarantees) and has appropriately encoded metadata. If the ledger channels are labelled `L_i` and ordered left to right by participant role, the `left` metadata field in `L_i`'s guarantee is set to participant `P_i`'s destination and the right metadata field is set to participant `P_(i+1)`'s destiantion.
+
+And once steps 1-4 are complete, the funding graph looks like so:
+
+```mermaid
+graph TD;
+linkStyle default interpolate basis;
+ETHAssetHolder( )
+ledgerL((L))
+ledgerM((M))
+ledgerR((R))
+V((V))
+me((A)):::me
+hub1((I1)):::hub1
+hub2((I2)):::hub2
+counterparty((B)):::bob
+ETHAssetHolder-->|10|ledgerL;
+ETHAssetHolder-->|10|ledgerM;
+ETHAssetHolder-->|10|ledgerR;
+ledgerL-->|4|me;
+ledgerL-->|4|hub1;
+ledgerM-->|4|hub1;
+ledgerM-->|4|hub2;
+ledgerR-->|4|hub2;
+ledgerR-->|4|counterparty;
+ledgerL-..->|2|V;
+ledgerM-..->|2|V;
+ledgerR-..->|2|V;
+classDef me fill:#4287f5
+classDef hub1 fill:#85e69f
+classDef hub2 fill:#f242f5
+classDef bob fill:#d93434
+```
+
+This construction generalizes, and works with anything from `1` , `2` (as shown here) or `n` hops.
+
+Channel `V` may be used for `A` to send payments to `B`, for example: see [virtual payment app](./0020-execution-rules.md#virtualpaymentapp).
