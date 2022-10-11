@@ -14,7 +14,7 @@ Participants _may_ provide "support proofs" to the blockchain in order to record
 
 ### Core protocol rules
 
-Nitro is a very open protocol, and has become more open over time (in particular, v2 is more open compared with v1). This means that very little is stipulated at the core protocol level. Each application gets full control over when a state can be considered supported. The only things enforced by the core protocol are:
+Nitro is a very open protocol: This means that very little is stipulated at the core protocol level. Each application gets full control over when a state can be considered supported. The only things enforced by the core protocol are:
 
 - the rule that higher turn numbers take precedence over lower ones
 - an escape hatch for an ["instant checkout"](./0070-finalizing-a-channel.md#happy-path) of the channel, which bypasses the application rules altogether

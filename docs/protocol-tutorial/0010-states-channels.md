@@ -91,7 +91,7 @@ In Nitro protocol, a state is broken up into fixed and variable parts:
 
 !!! info
 
-    States are usually submitted to the blockchain as a single fixed part and multiple variable parts. This is known as a "support proof".
+    States are usually submitted to the blockchain as a single fixed part and multiple (signed) variable parts. This is known as a "support proof".
 
 Let's take each property in turn:
 
@@ -117,7 +117,7 @@ This is a unique number used to differentiate channels with an otherwise identic
 
 ### AppDefinition
 
-This is an Ethereum address where a Nitro application has been deployed. This is a contract conforming to the `ForceMoveApp` and defining [application rules](#application-rules).
+This is an Ethereum address where a Nitro application has been deployed. This is a contract conforming to the `ForceMoveApp` and defining [application rules](./0020-execution-rules.md#application-rules).
 
 !!! warning
 
@@ -133,7 +133,7 @@ This is duration (in seconds) of the challenge-response window. If a challenge i
 
 ### AppData
 
-The AppData is optional data which may be interpreted by the Nitro application and affect the execution rules of the channel -- see the section on [application rules](#application-rules). For example, it could describe the state of a chess board or include the hash of a secret.
+The AppData is optional data which may be interpreted by the Nitro application and affect the execution rules of the channel -- see the section on [application rules](./0020-execution-rules.md#application-rules). For example, it could describe the state of a chess board or include the hash of a secret.
 
 ### Outcome
 

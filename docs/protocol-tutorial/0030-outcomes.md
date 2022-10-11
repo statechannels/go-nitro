@@ -2,11 +2,11 @@
 
 The **outcome** of a state is the part which dictates where funds are disbursed to once the channel has finalized.
 
-Nitro protocol uses the [statechannels exit format](https://github.com/statechannels/exit-format), supporting a multitude of token types.
+Nitro protocol uses the [L2 exit format](https://github.com/statechannels/exit-format), which is designed as standard for supporting a multitude of token types.
 
 !!! tip
 
-    Nitro supports native (e.g. ETH) and ERC20 tokens.
+    At the current time, Nitro supports native (e.g. ETH) and ERC20 tokens.
 
 An `Outcome` is an array of `SingleAssetExits`, each specifying:
 
@@ -24,11 +24,15 @@ An `allocation` is
 - an `allocationType` identifier
 - optional `metadata`
 
-The `allocationType` identifier is usually set to 0, meaning "simple". Simple allocations do not have any `metadata`.
+The `allocationType` identifier is usually set to 0, meaning "simple".
+
+### Simple Allocations
+
+Simple allocations do not have any `metadata`, and allow for funds to be moved on-chain using the `transfer` method. See the section on [defunding](./0080-defunding-a-channel.md).
 
 ### Guarantees
 
-When `allocationType` is set to `guarantee`, funds cannot be transferred in the usual way. Instead, they may be moved to another channel on chain using the `reclaim` method. This is explained further in the section on virtual channels.
+When `allocationType` is set to `guarantee`, funds cannot be transferred in the usual way. Instead, they may be moved to another channel on chain using the `reclaim` method. This is explained further in the section on virtual channels. See the section on [defunding](./0080-defunding-a-channel.md).
 
 ## Destinations
 
