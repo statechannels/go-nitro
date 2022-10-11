@@ -21,10 +21,7 @@ If we are depositing ETH, we must remember to send the right amount of ETH with 
 
 ```typescript
 import { ethers } from "ethers";
-import {
-  randomChannelId,
-  randomChannelId,
-} from "@statechannels/nitro-protocol";
+import { randomChannelId } from "@statechannels/nitro-protocol";
 
 // In lesson5.test.ts
 
