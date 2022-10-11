@@ -12,19 +12,19 @@ State channels can be programmed such that assets are redistributed according to
 
 ## What is Nitro Protocol?
 
-Nitro protocol is a state of the art state channel protocol which is focussed on security, performance and extensibility. It has been developed over several years of research: the first version was announced in a whitepaper in 2019, and v2 is described in a second paper.
+Nitro protocol is a state of the art state channel protocol which is focussed on security, performance and extensibility. It has been developed over several [years of research](./research-papers.md).
 
-One of the key features of Nitro are _virtual_ channels, where peers can setup a direct connection with each other entirely off-chain.
+One of the key features of Nitro are [_virtual_ channels](./protocol-tutorial/0060-funding-a-channel.md#fund-virtually), where peers can setup a direct connection with each other entirely off-chain.
 
 ## How is it implemented?
 
-The on-chain components of Nitro protocol are implemented in solidity, and are published alongside lightweight off-chain support in Typescript in the npm package @statechannels/nitro-protocol.
+The on-chain components of Nitro protocol are implemented in solidity, and are published alongside lightweight off-chain support in Typescript in the npm package [@statechannels/nitro-protocol](https://www.npmjs.com/package/@statechannels/nitro-protocol).
 
-The off-chain component of the protocol are implemented in `go-nitro`, a reference client for Nitro Protocol v2.
+The off-chain component of the protocol are implemented in [`go-nitro`](https://pkg.go.dev/github.com/statechannels/go-nitro), a reference client for Nitro Protocol.
 
 ## Where is it being used?
 
-The maintainers of `nitro-protocol` and `go-nitro` are working towards integrating the system into the Filecoin Retrieval Market.
+The maintainers of `nitro-protocol` and `go-nitro` are working towards integrating the system into the [Filecoin Retrieval Market](https://retrieval.market/) and the [Filecoin Virtual Machine](https://fvm.filecoin.io/).
 
 ## How can I find out more?
 
@@ -32,8 +32,12 @@ This website covers all the material you need to understand whether Nitro Protoc
 
 ## Is it a good fit for my use case?
 
-State channels are not a panacea. If you can answer "yes" to these questions, then they could be a good solution for your application:
+State channels are not a panacea. If you can answer "yes" to one or more of these questions, then they could be a good solution for your application:
 
 - Do you require very low latency transactions?
 - Do you require the cost per transaction to be extremely low or zero?
 - Do you require some level of privacy?
+
+## Alternatives
+
+Other [layer 2 scaling solutions](https://ethereum.org/en/developers/docs/scaling/#off-chain-scaling) may be more appropriate for your use case.
