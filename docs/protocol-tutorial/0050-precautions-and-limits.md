@@ -2,7 +2,7 @@
 
 ## Precautions
 
-As a state channel participant, it is advised to check the [`FixedPart`](./0010-states-channels.md#channel-ids) of any channel before participating in it. The section on [states](./0010-states-channels.md#states) explains these checks.
+As a state channel participant, it is advised to check the [`FixedPart`](./0010-states-channels.md#channel-ids) of any channel before joining it. The section on [states](./0010-states-channels.md#states) explains these checks.
 
 ## Limits
 
