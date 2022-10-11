@@ -13,6 +13,7 @@
     "test": "npm run test:contracts && npm run test:app --all",
     "test:app": "npx hardhat compile && jest -c ./config/jest/jest.config.js",
     "test:contracts": "npx hardhat compile && jest -c ./config/jest/jest.contracts.config.js",
+    "test:fevm": "jest -c ./config/jest/jest.fevmContracts.config.js",
     "lint:check": "npx eslint \"./\" --cache && npm run solhint:check && npm run prettier:check",
     "lint:write": "npx eslint \"./\" --fix && npm run prettier:write",
     "solhint:check": "npx solhint -w 0 './contracts/**/*.sol'",
