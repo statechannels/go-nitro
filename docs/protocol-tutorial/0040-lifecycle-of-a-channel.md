@@ -86,6 +86,8 @@ state Fundings {
 
 ```
 
+The channel should be funded when the off chain state is `ReadyToFund`, and defunded when the off chain state is `Finalized`.
+
 ### On-chain
 
 When a channel is to be funded on chain, participants follow the [on chain deposit protocol](./0060-funding-a-channel.md#fund-with-an-on-chain-deposit). When sufficient funds are deposited against the channel, the state has transitioned to `FundedOnChain`.
