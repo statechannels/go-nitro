@@ -14,7 +14,7 @@ const provider = new ethers.providers.JsonRpcProvider('https://wallaby.node.glif
 const wallet = new Wallet('9182b5bf5b9c966e001934ebaf008f65516290cef6e3069d11e718cbd4336aae');
 
 const testNitroAdjudicator = new ethers.Contract(
-  't2ncif6kqekarww5vartvfwa6xxwjhg3l34grgmoi',
+  '0xfF00000000000000000000000000000000000437',
   TESTNitroAdjudicatorArtifact.abi,
   wallet
 ) as unknown as TESTNitroAdjudicator & Contract;
