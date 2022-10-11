@@ -8,7 +8,7 @@ A participant wishing to end the state channel will sign a state with `isFinal =
 
 ### Off chain
 
-In most cases, the channel would be finalized and defunded [off chain](./0060-funding-a-channel.md##fund-from-an-existing-channel), and no contract calls are necessary.
+In most cases, the channel would be finalized and defunded [off chain](./0060-funding-a-channel.md#fund-from-an-existing-channel), and no contract calls are necessary.
 
 ### On chain -- calling `conclude`
 
@@ -18,69 +18,9 @@ The conclude method allows anyone with sufficient off-chain state to immediately
 
 The off-chain state(s) is submitted (in an optimized format), and once relevant checks have passed, an expired challenge is stored against the `channelId`. (This is an implementation detail -- the important point is that the chain shows that the channel has been finalized.)
 
-In the following example the participants support the state by countersigning it, without increasing the turn number:
-
 ```typescript
-// In lesson6.test.ts
-
-/* Import ethereum wallet utilities  */
-import { BigNumber, ethers } from "ethers";
-const { AddressZero, HashZero } = ethers.constants;
-
-/* Import statechannels wallet utilities  */
-import {
-  Channel,
-  State,
-  getFixedPart,
-  hashOutcome,
-  signStates,
-  hashAppPart,
-} from "@statechannels/nitro-protocol";
-
-/* Construct a final state */
-const participants = [];
-const wallets: ethers.Wallet[] = [];
-for (let i = 0; i < 3; i++) {
-  wallets[i] = ethers.Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
-const chainId = "0x1234";
-const channelNonce = BigNumber.from(0).toHexString();
-const channel: Channel = { chainId, channelNonce, participants };
-const largestTurnNum = 4;
-const state: State = {
-  isFinal: true,
-  channel,
-  outcome: [],
-  appDefinition: AddressZero,
-  appData: HashZero,
-  challengeDuration: 86400, // 1 day
-  turnNum: largestTurnNum,
-};
-
-/* Generate a finalization proof */
-const whoSignedWhat = [0, 0, 0];
-const sigs = await signStates([state], wallets, whoSignedWhat);
-
-/*
-  Call conclude
-*/
-const numStates = 1;
-const fixedPart = getFixedPart(state);
-const appPartHash = hashAppPart(state);
-const outcomeHash = hashOutcome(state.outcome);
-const tx = NitroAdjudicator.conclude(
-  largestTurnNum,
-  fixedPart,
-  appPartHash,
-  outcomeHash,
-  numStates,
-  whoSignedWhat,
-  sigs
-);
+TODO example
 ```
-
-Notice we imported `hashOutcome` and `hashAppPart` in order to provide the `conclude` method with the correct calldata.
 
 ## Sad path
 
@@ -92,11 +32,19 @@ The required data for this method consists of a single state, along with `n` sig
 
 This delay allows the challenge to be cleared by a timely and well-formed [respond](./clear-a-challenge#call-respond) or [checkpoint](./clear-a-challenge#call-checkpoint) transaction. We'll get to those shortly. If no such transaction is forthcoming, the challenge will time out, allowing the `outcome` registered to be finalized. A finalized outcome can then be used to extract funds from the channel (more on that below, too).
 
+```typescript
+TODO example
+```
+
 !!! tip
 
     The `challengeDuration` is a [fixed parameter](./execute-state-transitions#construct-a-state-with-the-correct-format) expressed in seconds, that is set when a channel is proposed. It should be set to a value low enough that participants may close a channel in a reasonable amount of time in the case that a counterparty becomes unresponsive; but high enough that malicious challenges can be detected and responded to without placing unreasonable liveness requirements on responders. A `challengeDuration` of 1 day is a reasonable starting point, but the "right" value will likely depend on your application.
 
 ### Call `challenge`
+
+```typescript
+TODO example
+```
 
 !!!note
 
@@ -111,67 +59,6 @@ This delay allows the challenge to be cleared by a timely and well-formed [respo
 
     We provide a handy utility function `signChallengeMessage` to form this signature.
 
-```typescript
-// In lesson7.test.ts
-
-import { signChallengeMessage } from "@statechannels/nitro-protocol";
-
-const participants = [];
-const wallets: ethers.Wallet[] = [];
-for (let i = 0; i < 3; i++) {
-  wallets[i] = ethers.Wallet.createRandom();
-  participants[i] = wallets[i].address;
-}
-const chainId = "0x1234";
-const channelNonce = 0;
-const channel: Channel = { chainId, channelNonce, participants };
-
-/* Choose a challenger */
-const challenger = wallets[0];
-
-/* Construct a progression of states */
-const largestTurnNum = 8;
-const isFinalCount = 0;
-const appDatas = [0, 1, 2];
-const states: State[] = appDatas.map((data, idx) => ({
-  turnNum: largestTurnNum - appDatas.length + 1 + idx,
-  isFinal: idx > appDatas.length - isFinalCount,
-  channel,
-  challengeDuration: 86400, // 1 day
-  outcome: [],
-  appDefinition: process.env.TRIVIAL_APP_ADDRESS,
-  appData: HashZero,
-}));
-
-/* Construct a support proof */
-const whoSignedWhat = [0, 1, 2];
-const signatures = await signStates(states, wallets, whoSignedWhat);
-
-/* Form the challengeSignature */
-const challengeSignedState: SignedState = signState(
-  states[states.length - 1],
-  challenger.privateKey
-);
-const challengeSignature = signChallengeMessage(
-  [challengeSignedState],
-  challenger.privateKey
-);
-
-/* Submit the challenge transaction */
-const variableParts = states.map((state) => getVariablePart(state));
-const fixedPart = getFixedPart(states[0]);
-
-const tx = NitroAdjudicator.challenge(
-  fixedPart,
-  largestTurnNum,
-  variableParts,
-  isFinalCount,
-  signatures,
-  whoSignedWhat,
-  challengeSignature
-);
-```
-
 A challenge being registered does _not_ mean that the channel will inexorably finalize. Participants have the timeout period in order to be able to respond. Perhaps they come back online after a brief spell of inactivity, or perhaps the challenger was trying to (maliciously) finalize the channel with a supported but outdated (or 'stale') state.
 
 ## Clear a challenge
@@ -180,44 +67,6 @@ A challenge being registered does _not_ mean that the channel will inexorably fi
 
 The `checkpoint` method allows anyone with a supported off-chain state to establish a new and higher `turnNumRecord` on chain, and leave the resulting channel in the "Open" mode. It can be used to clear a challenge.
 
-```typescript
-// In lesson8.test.ts
-
-/* 
-  Register a challenge with a very long timeout, following the preceding tutorial step
-  Form a new support proof (you should be familiar with how to do this by now) with an increased largestTurnNum
-*/
-
-/* Submit this transaction: */
-
-const tx = NitroAdjudicator.checkpoint(
-  fixedPart,
-  largestTurnNum,
-  variableParts,
-  isFinalCount,
-  signatures,
-  whoSignedWhat
-);
-
-await(await tx).wait();
-
-/* 
-    Form an expectation about the new state of the chain:
-  */
-const channelData: ChannelData = {
-  turnNumRecord: largestTurnNum,
-  finalizesAt: 0x0, // 0 here implies the channel is open again
-};
-const expectedChannelStorageHash = channelDataToChannelStorageHash(channelData);
-
-/* 
-    Check channelStorageHash against the expected value (it is a public mapping)
-  */
-expect(await NitroAdjudicator.channelStorageHashes(channelId)).toEqual(
-  expectedChannelStorageHash
-);
-```
-
 ### Call `challenge` again
 
 It is important to understand that a challenge may be "cleared" by another more recent challenge. The channel will be left in challenge mode (so it has not really been 'cleared' in that sense), but some [on chain storage](./understand-adjudicator-status) will be updated, such as the deadline for responding.
@@ -225,32 +74,3 @@ It is important to understand that a challenge may be "cleared" by another more 
 ## Extract info from Adjudicator Events
 
 You may have noticed that to respond, the challenge state itself must be (re)submitted to the chain. To save gas, information is only stored on chain in a hashed format. Clients should, therefore, cache information emitted in Events emitted by the adjudicator, in order to be able to respond to challenges.
-
-```typescript
-// In lesson10.test.ts
-
-// Prepare a challenge transaction as above, and store the transaction receipt
-const receipt = await(
-  await NitroAdjudicator.challenge(
-    fixedPart,
-    largestTurnNum,
-    variableParts,
-    isFinalCount,
-    signatures,
-    whoSignedWhat,
-    challengeSignature
-  )
-).wait();
-
-// Extract the information out of the ChallengeRegistered event
-const event = receipt.events.pop();
-const {
-  channelId: eventChannelId,
-  turnNumRecord: eventTurnNumRecord,
-  finalizesAt: eventFinalizesAt,
-  challenger: eventChallenger,
-  isFinal: eventIsFinal,
-  fixedPart: eventFixedPart,
-  variableParts: eventVariableParts,
-} = event.args;
-```
