@@ -12,7 +12,7 @@ let wallet = new Wallet('9182b5bf5b9c966e001934ebaf008f65516290cef6e3069d11e718c
 wallet = wallet.connect(provider);
 
 const testNitroAdjudicator = new ethers.Contract(
-  '0xff0000000000000000000000000000000000047d',
+  '0xFF00000000000000000000000000000000000485',
   TESTNitroAdjudicatorArtifact.abi,
   wallet
 ) as unknown as TESTNitroAdjudicator & Contract;
