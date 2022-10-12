@@ -46,13 +46,19 @@ const tx2 = NitroAdjudicator.transfer(
 
     There is a convenience method `oncludeAndTransferAllAssets` which combines concluding with transferring for every asset --  batching them to save gas.
 
+### Tracking on-chain storage
+
+When a channel has been partially defunded using `transfer`, the [on-chain storage](./0040-lifecycle-of-a-channel.md#adjudicator-storage) is updated. To continue the defunding process, it is necessary to track sufficient information to supply the new outcome for the next call to `transfer` (which could be made by a different party).
+
+To do this, it is necessary to listen for `AllocationUpdated` events and to compute the new outcome using `computeTransferEffectsAndInteractions` off-chain helper function
+
 ## Off-chain defunding
 
 If the channel in question is funded off chain, it can usually be cooperatively defunded. If that fails, the channel must be finalized on chain and then defunded using the on-chain `transfer` or `reclaim` methods.
 
 ### Cooperate
 
-Here, participants in the parent channel make an update which reverses (or reverts) the update they made when [funding the channel[](./0060-funding-a-channel.md#fund-virtually). This involves:
+Here, participants in the parent channel make an update which reverses (or reverts) the update they made when [funding the channel](./0060-funding-a-channel.md#fund-virtually). This involves:
 
 1. Removing the allocation which targets the channel in question.
 2. Appropriately incrementing the allocations to the parent channel's participants' external destinations.
@@ -63,4 +69,8 @@ If the channel in question was [virtually funded](./0060-funding-a-channel.md#fu
 
 ### Transfer in, transfer out
 
+If cooperation is not possible, the parent and child channels must both be finalized on chain. If the child channel is funded with a [simple allocation](./0030-outcomes.md#simple-allocations), funds may be transferred from the parent channel to the child channel. Now the child channel is funded on chain. it can be defunded as [above](#on-chain-defunding-using-transfer).
+
 ### Reclaim and transfer out
+
+If cooperation is not possible, the parent and child channels must both be finalized on chain. If the child channel is funded with a [guarantee](./0030-outcomes.md#guarantees), funds may be transferred from the child channel to the parent channel using `reclaim`. Next, the parent channel may be defunded as [above](#on-chain-defunding-using-transfer).
