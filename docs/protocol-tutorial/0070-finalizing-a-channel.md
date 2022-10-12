@@ -1,6 +1,6 @@
 # Finalizing a channel
 
-Finalization of a state channel is a necessary step before defunding it.
+Finalization of a state channel is a necessary step before defunding it. It can happen on- or off-chain.
 
 ## Happy path
 
