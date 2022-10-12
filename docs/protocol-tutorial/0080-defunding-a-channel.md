@@ -42,6 +42,40 @@ const tx2 = NitroAdjudicator.transfer(
 2. If the channel was concluded on the happy path, we can use this default value
 3. This magic value (a zero length array) implies we want to pay out all of the allocationItems (in this case there is only one)
 
+Visually, we can see some of the on-chain funding for the channel has been transferred directly to one the channel's participants:
+
+=== "Before"
+
+    ```mermaid
+    graph TD;
+    linkStyle default interpolate basis;
+    ETHAssetHolder( )
+    ledger((L))
+    me(( )):::me
+    hub(( )):::hub
+    ETHAssetHolder-->|10|ledger;
+    ledger-->|5|me;
+    ledger-->|5|hub;
+    classDef me fill:#4287f5
+    classDef hub fill:#85e69f
+    classDef bob fill:#d93434
+    ```
+
+=== "After"
+
+    ```mermaid
+    graph TD;
+    linkStyle default interpolate basis;
+    ETHAssetHolder( )
+    me(( )):::me
+    hub(( )):::hub
+    ETHAssetHolder-->|5|me;
+    ETHAssetHolder-->|5|hub;
+    classDef me fill:#4287f5
+    classDef hub fill:#85e69f
+    classDef bob fill:#d93434
+    ```
+
 !!! info
 
     There is a convenience method `oncludeAndTransferAllAssets` which combines concluding with transferring for every asset --  batching them to save gas.
@@ -69,7 +103,45 @@ If the channel in question was [virtually funded](./0060-funding-a-channel.md#fu
 
 ### Transfer in, transfer out
 
-If cooperation is not possible, the parent and child channels must both be finalized on chain. If the child channel is funded with a [simple allocation](./0030-outcomes.md#simple-allocations), funds may be transferred from the parent channel to the child channel. Now the child channel is funded on chain. it can be defunded as [above](#on-chain-defunding-using-transfer).
+If cooperation is not possible, the parent and child channels (let's call them `L` and `X` respectively) must both be finalized on chain. If the child channel is funded with a [simple allocation](./0030-outcomes.md#simple-allocations) like so:
+
+```mermaid
+graph TD;
+linkStyle default interpolate basis;
+ETHAssetHolder( )
+ledger((L))
+channel((X))
+me(( )):::me
+hub(( )):::hub
+ETHAssetHolder-->|10|ledger;
+ledger-->|2|me;
+ledger-->|2|hub;
+ledger-->|6|channel;
+classDef me fill:#4287f5
+classDef hub fill:#85e69f
+classDef bob fill:#d93434
+```
+
+funds may be `transferred` from the parent channel **in** to the child channel. Now the child channel is funded on chain:
+
+```mermaid
+graph TD;
+linkStyle default interpolate basis;
+ETHAssetHolder( )
+ledger((L))
+channel((X))
+me(( )):::me
+hub(( )):::hub
+ETHAssetHolder-->|10|ledger;
+ledger-->|2|me;
+ledger-->|2|hub;
+ETHAssetHolder-->|6|channel;
+classDef me fill:#4287f5
+classDef hub fill:#85e69f
+classDef bob fill:#d93434
+```
+
+It can now be defunded as [above](#on-chain-defunding-using-transfer) by transferring money **out** of `X`.
 
 ### Reclaim and transfer out
 
