@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -165,12 +166,24 @@ func (fcs *FevmChainService) deployAdjudicator() error {
 	}
 	fmt.Println("Tx sent")
 
-	naAddress, err := bind.WaitDeployed(context.Background(), fcs.chain, signedTx)
-	if err != nil {
-		return fmt.Errorf("could not wait for tx %w", err)
+	time.Sleep(10)
+	isPending := true
+	for isPending {
+		tx, iP, err := fcs.chain.TransactionByHash(context.Background(), signedTx.Hash())
+		if err != nil {
+			return err
+		}
+		isPending = iP
+		time.Sleep(10)
+		fmt.Println(tx)
 	}
+
+	// naAddress, err := bind.WaitDeployed(context.Background(), fcs.chain, signedTx)
+	// if err != nil {
+	// 	return fmt.Errorf("could not wait for tx %w", err)
+	// }
 	fmt.Println("Deploy successful")
-	fcs.naAddress = naAddress
+	// fcs.naAddress = naAddress
 	// TODO populate na  on fcs
 	return nil
 }
