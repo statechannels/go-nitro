@@ -78,7 +78,7 @@ Visually, we can see some of the on-chain funding for the channel has been trans
 
 !!! info
 
-    There is a convenience method `oncludeAndTransferAllAssets` which combines concluding with transferring for every asset --  batching them to save gas.
+    There is a convenience method `concludeAndTransferAllAssets` which combines concluding with transferring for every asset --  batching them to save gas.
 
 ### Tracking on-chain storage
 
@@ -105,43 +105,47 @@ If the channel in question was [virtually funded](./0060-funding-a-channel.md#fu
 
 If cooperation is not possible, the parent and child channels (let's call them `L` and `X` respectively) must both be finalized on chain. If the child channel is funded with a [simple allocation](./0030-outcomes.md#simple-allocations) like so:
 
-```mermaid
-graph TD;
-linkStyle default interpolate basis;
-ETHAssetHolder( )
-ledger((L))
-channel((X))
-me(( )):::me
-hub(( )):::hub
-ETHAssetHolder-->|10|ledger;
-ledger-->|2|me;
-ledger-->|2|hub;
-ledger-->|6|channel;
-classDef me fill:#4287f5
-classDef hub fill:#85e69f
-classDef bob fill:#d93434
-```
+funds may be `transferred` from the parent channel **in** to the child channel. Now the child channel is funded on chain. It can now be defunded as [above](#on-chain-defunding-using-transfer) by transferring money **out** of `X`.
 
-funds may be `transferred` from the parent channel **in** to the child channel. Now the child channel is funded on chain:
+Visually, the following transformation has been applied:
 
-```mermaid
-graph TD;
-linkStyle default interpolate basis;
-ETHAssetHolder( )
-ledger((L))
-channel((X))
-me(( )):::me
-hub(( )):::hub
-ETHAssetHolder-->|10|ledger;
-ledger-->|2|me;
-ledger-->|2|hub;
-ETHAssetHolder-->|6|channel;
-classDef me fill:#4287f5
-classDef hub fill:#85e69f
-classDef bob fill:#d93434
-```
+=== "Before"
 
-It can now be defunded as [above](#on-chain-defunding-using-transfer) by transferring money **out** of `X`.
+    ```mermaid
+    graph TD;
+    linkStyle default interpolate basis;
+    ETHAssetHolder( )
+    ledger((L))
+    channel((X))
+    me(( )):::me
+    hub(( )):::hub
+    ETHAssetHolder-->|10|ledger;
+    ledger-->|2|me;
+    ledger-->|2|hub;
+    ledger-->|6|channel;
+    classDef me fill:#4287f5
+    classDef hub fill:#85e69f
+    classDef bob fill:#d93434
+    ```
+
+=== "After"
+
+    ```mermaid
+    graph TD;
+    linkStyle default interpolate basis;
+    ETHAssetHolder( )
+    ledger((L))
+    channel((X))
+    me(( )):::me
+    hub(( )):::hub
+    ETHAssetHolder-->|10|ledger;
+    ledger-->|2|me;
+    ledger-->|2|hub;
+    ETHAssetHolder-->|6|channel;
+    classDef me fill:#4287f5
+    classDef hub fill:#85e69f
+    classDef bob fill:#d93434
+    ```
 
 ### Reclaim and transfer out
 
