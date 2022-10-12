@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -102,6 +103,8 @@ func (fcs *FevmChainService) rpcCall(method, params string, result interface{}) 
 
 	body, err := io.ReadAll(resp.Body)
 
+	fmt.Println(string(body))
+
 	if err != nil {
 		return err
 	}
@@ -161,6 +164,23 @@ func (fcs *FevmChainService) deployAdjudicator() error {
 	}
 	fmt.Println("Tx sent")
 
+	found := false
+	for !found {
+		result := struct {
+			Result bool `json:"result"`
+		}{Result: false}
+		err = fcs.rpcCall("eth_getTransactionByHash", signedTx.Hash().Hex(), &result)
+
+		if err != nil {
+			return fmt.Errorf("could not get tx by hash %w", err)
+		}
+		found = result.Result
+		fmt.Println(result.Result)
+		time.Sleep(2)
+
+	}
+
+	// fmt.Println(result)
 	// time.Sleep(10)
 	// isPending := true
 	// for isPending {
