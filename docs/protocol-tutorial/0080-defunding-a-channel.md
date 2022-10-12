@@ -47,3 +47,11 @@ const tx2 = NitroAdjudicator.transfer(
     There is a convenience method `oncludeAndTransferAllAssets` which combines concluding with transferring for every asset --  batching them to save gas.
 
 ## Off-chain defunding
+
+If the channel in question is funded off chain, it can usually be cooperatively defunded. If that fails, the channel must be finalized on chain and then defunded using the on-chain `transfer` or `reclaim` methods.
+
+### Cooperate
+
+### Transfer in, transfer out
+
+### Reclaim and transfer out
