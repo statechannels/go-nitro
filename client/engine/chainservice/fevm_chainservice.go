@@ -181,7 +181,7 @@ func (fcs *FevmChainService) defaultTxOpts() *bind.TransactOpts {
 		From:      fcs.txSigner.From,
 		Nonce:     fcs.txSigner.Nonce,
 		Signer:    fcs.txSigner.Signer,
-		GasFeeCap: big.NewInt(10_000_000_000_000),
+		GasFeeCap: big.NewInt(10_000_000_000),
 		GasLimit:  1000000000, // BlockGasLimit / 10
 	}
 }
