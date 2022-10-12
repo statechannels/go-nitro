@@ -20,10 +20,8 @@ function deposit(address asset, bytes32 destination, uint256 expectedHeld, uint2
 If we are depositing ETH, we must remember to send the right amount of ETH with the transaction, and to set the `asset` parameter to the zero address.
 
 ```typescript
-import { ethers } from "ethers";
+import { ethers, constants } from "ethers";
 import { randomChannelId } from "@statechannels/nitro-protocol";
-
-// In lesson5.test.ts
 
 /*
       Get an appropriate representation of 1 wei, and
@@ -39,7 +37,7 @@ const destination = randomChannelId();
 */
 const expectedHeld = 0;
 const tx0 = NitroAdjudicator.deposit(
-  constants.AddressZero,
+  constants.AddressZero, // (1)
   destination,
   expectedHeld,
   amount,
@@ -49,7 +47,9 @@ const tx0 = NitroAdjudicator.deposit(
 );
 ```
 
-Otherwise, if we are depositing ERC20 tokens, we must remember to [`approve`](https://docs.openzeppelin.com/contracts/2.x/api/token/erc20#IERC20-approve-address-uint256-) the NitroAdjudicator for enough tokens before making the deposit.
+1. This magic value declares that this is a native token deposit (e.g. ETH).
+
+Otherwise, if we are depositing ERC20 tokens, we must remember to [`approve`](https://docs.openzeppelin.com/contracts/2.x/api/token/erc20#IERC20-approve-address-uint256-) the NitroAdjudicator for enough tokens before making the deposit, and then call deposit with the ERC20 token contract address as the first parameter (instead of the zero address).
 
 ### Outcome priority
 
