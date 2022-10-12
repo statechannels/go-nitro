@@ -27,6 +27,7 @@ import (
 type FevmChainService struct {
 	chain                    *ethclient.Client
 	endpoint                 string
+	f1Address                filecoinAddress.Address
 	na                       *NitroAdjudicator.NitroAdjudicator
 	naAddress                common.Address
 	consensusAppAddress      common.Address
@@ -72,28 +73,44 @@ func NewFevmChainService(endpoint string, pkString string, logDestination io.Wri
 	caAddress := types.Address{}
 	vpaAddress := types.Address{}
 
-	ecs := FevmChainService{chain, endpoint, &na, naAddress, caAddress, vpaAddress, txSubmitter, make(chan Event, 10), logger}
+	ecs := FevmChainService{chain, endpoint, f1Address, &na, naAddress, caAddress, vpaAddress, txSubmitter, make(chan Event, 10), logger}
 
 	// err := fcs.subcribeToEvents() // TODO
 	return &ecs, err
 }
 
 func (fcs *FevmChainService) rpcCall(method, params string, result interface{}) error {
-	resp, err := http.Post(fcs.endpoint, "application/json", bytes.NewBuffer([]byte(`{ "jsonrpc": "2.0", "method": `+method+`,"params": [`+params+`], "id":`+fmt.Sprint(rand.Intn(1000))+`}`)))
+	// requestBody := bytes.NewBuffer([]byte(`{ "jsonrpc": "2.0", "method": ` + method + `,"params": [` + params + `], "id":` + fmt.Sprint(rand.Intn(1000)) + `}`))
+	requestBody := struct {
+		Jsonrpc string   `json:"jsonrpc"`
+		Method  string   `json:"method"`
+		Params  []string `json:"params"`
+		Id      int      `json:"id"`
+	}{
+		Jsonrpc: "2.0",
+		Method:  method,
+		Params:  []string{params},
+		Id:      rand.Intn(1000),
+	}
+	encodedRequestBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(encodedRequestBody))
+	resp, err := http.Post(fcs.endpoint, "application/json", bytes.NewBuffer(encodedRequestBody))
 	if err != nil {
 		return err
 	}
 
 	body, err := io.ReadAll(resp.Body)
 
+	fmt.Println(string(body))
+
 	if err != nil {
 		return err
 	}
 
-	type responseTy2 struct {
-		Result string `json:"result"`
-	}
-	err = json.Unmarshal(body, &result)
+	err = json.Unmarshal(body, result)
 	if err != nil {
 		return err
 	}
@@ -103,8 +120,8 @@ func (fcs *FevmChainService) rpcCall(method, params string, result interface{}) 
 func (fcs *FevmChainService) filecoinNonce() (uint64, error) {
 	result := struct {
 		Result uint64 `json:"result"`
-	}{}
-	err := fcs.rpcCall("Filecoin.MpoolGetNonce", "", result)
+	}{Result: 999}
+	err := fcs.rpcCall("Filecoin.MpoolGetNonce", fcs.f1Address.String(), &result)
 	if err != nil {
 		return 0, err
 	}
