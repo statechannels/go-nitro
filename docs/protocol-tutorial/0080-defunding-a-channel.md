@@ -150,3 +150,41 @@ Visually, the following transformation has been applied:
 ### Reclaim and transfer out
 
 If cooperation is not possible, the parent and child channels must both be finalized on chain. If the child channel is funded with a [guarantee](./0030-outcomes.md#guarantees), funds may be transferred from the child channel to the parent channel using `reclaim`. Next, the parent channel may be defunded as [above](#on-chain-defunding-using-transfer).
+
+Visually, the following transformation has been applied:
+
+=== "Before"
+
+    ```mermaid
+    graph TD;
+    linkStyle default interpolate basis;
+    ETHAssetHolder( )
+    ledger((L))
+    channel((X))
+    me(( )):::me
+    hub(( )):::hub
+    ETHAssetHolder-->|10|ledger;
+    ledger-->|2|me;
+    ledger-->|2|hub;
+    ledger-.->|6|channel;
+    classDef me fill:#4287f5
+    classDef hub fill:#85e69f
+    classDef bob fill:#d93434
+    ```
+
+=== "After"
+
+    ```mermaid
+    graph TD;
+    linkStyle default interpolate basis;
+    ETHAssetHolder( )
+    ledger((L))
+    me(( )):::me
+    hub(( )):::hub
+    ETHAssetHolder-->|10|ledger;
+    ledger-->|6|me;
+    ledger-->|4|hub;
+    classDef me fill:#4287f5
+    classDef hub fill:#85e69f
+    classDef bob fill:#d93434
+    ```
