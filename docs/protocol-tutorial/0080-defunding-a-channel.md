@@ -52,6 +52,15 @@ If the channel in question is funded off chain, it can usually be cooperatively 
 
 ### Cooperate
 
+Here, participants in the parent channel make an update which reverses (or reverts) the update they made when [funding the channel[](./0060-funding-a-channel.md#fund-virtually). This involves:
+
+1. Removing the allocation which targets the channel in question.
+2. Appropriately incrementing the allocations to the parent channel's participants' external destinations.
+
+For step 2, this is very simple if the channel in question was funded with a [simple allocation](./0030-outcomes.md#simple-allocations). Each participant in the parent channel is awarded the funds which were allocated to them in the child channel.
+
+If the channel in question was [virtually funded](./0060-funding-a-channel.md#fund-virtually) with a [guarantee](./0030-outcomes.md#guarantees), each participant in the parent channel is awarded the funds which were allocated to a possibly-distinct participant in the child channel, according to the mapping encoded in the guarantee metadata. The operation should mirror the on-chain `reclaim` method.
+
 ### Transfer in, transfer out
 
 ### Reclaim and transfer out
