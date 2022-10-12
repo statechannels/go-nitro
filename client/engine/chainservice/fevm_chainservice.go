@@ -11,7 +11,6 @@ import (
 	"math/big"
 	"math/rand"
 	"net/http"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -81,7 +80,6 @@ func NewFevmChainService(endpoint string, pkString string, logDestination io.Wri
 }
 
 func (fcs *FevmChainService) rpcCall(method, params string, result interface{}) error {
-	// requestBody := bytes.NewBuffer([]byte(`{ "jsonrpc": "2.0", "method": ` + method + `,"params": [` + params + `], "id":` + fmt.Sprint(rand.Intn(1000)) + `}`))
 	requestBody := struct {
 		Jsonrpc string   `json:"jsonrpc"`
 		Method  string   `json:"method"`
@@ -97,15 +95,12 @@ func (fcs *FevmChainService) rpcCall(method, params string, result interface{}) 
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(encodedRequestBody))
 	resp, err := http.Post(fcs.endpoint, "application/json", bytes.NewBuffer(encodedRequestBody))
 	if err != nil {
 		return err
 	}
 
 	body, err := io.ReadAll(resp.Body)
-
-	fmt.Println(string(body))
 
 	if err != nil {
 		return err
@@ -166,24 +161,24 @@ func (fcs *FevmChainService) deployAdjudicator() error {
 	}
 	fmt.Println("Tx sent")
 
-	time.Sleep(10)
-	isPending := true
-	for isPending {
-		tx, iP, err := fcs.chain.TransactionByHash(context.Background(), signedTx.Hash())
-		if err != nil {
-			return err
-		}
-		isPending = iP
-		time.Sleep(10)
-		fmt.Println(tx)
-	}
-
-	// naAddress, err := bind.WaitDeployed(context.Background(), fcs.chain, signedTx)
-	// if err != nil {
-	// 	return fmt.Errorf("could not wait for tx %w", err)
+	// time.Sleep(10)
+	// isPending := true
+	// for isPending {
+	// 	tx, iP, err := fcs.chain.TransactionByHash(context.Background(), signedTx.Hash())
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	isPending = iP
+	// 	time.Sleep(10)
+	// 	fmt.Println(tx)
 	// }
+
+	naAddress, err := bind.WaitDeployed(context.Background(), fcs.chain, signedTx)
+	if err != nil {
+		return fmt.Errorf("could not wait for tx %w", err)
+	}
 	fmt.Println("Deploy successful")
-	// fcs.naAddress = naAddress
+	fcs.naAddress = naAddress
 	// TODO populate na  on fcs
 	return nil
 }
