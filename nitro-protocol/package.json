@@ -12,6 +12,7 @@
   ],
   "types": "lib/src/index.d.ts",
   "scripts": {
+    "build:typescript": "rm -rf dist; tsc",
     "contracts:deploy-localhost": "npx hardhat deploy --network localhost --export-all addresses.json && node ./scripts/postdeploy.ts",
     "contracts:deploy-goerli": "npx hardhat deploy --network goerli --export-all addresses.json && node ./scripts/postdeploy.js",
     "contracts:node": "npx hardhat node --no-deploy",
@@ -20,6 +21,7 @@
     "test:contracts": "npx hardhat compile && jest -c ./config/jest/jest.contracts.config.js",
     "lint:check": "npx eslint \"./\" --cache && npm run solhint:check && npm run prettier:check",
     "lint:write": "npx eslint \"./\" --fix && npm run prettier:write",
+    "prepare": "yarn contract:compile && yarn build:typescript",
     "solhint:check": "npx solhint -w 0 './contracts/**/*.sol'",
     "solhint:write": "echo 'This command does not seem to work. Use npm run prettier:write ' && npx solhint --fix './contracts/**/*.sol'",
     "prettier:check": "prettier --check './contracts/**/*.sol'",
