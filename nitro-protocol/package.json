@@ -1,11 +1,16 @@
 {
   "name": "@statechannels/nitro-protocol",
   "version": "2.0.0-alpha.0",
-  "description": "Smart contracts and typescript libraries for nitro v2",
+  "author": "statechannels.org",
+  "bugs": "https://github.com/statechannels/go-nitro/issues",
+  "description": "Smart contracts and typescript libraries for nitro state channel protocol.",
   "main": "index.js",
+  "homepage": "https://github.com/statechannels/go-nitro",
+  "repository": "statechannels/go-nitro.git",
   "files": [
     "/contracts/**/*.sol"
   ],
+  "types": "lib/src/index.d.ts",
   "scripts": {
     "contracts:deploy-localhost": "npx hardhat deploy --network localhost --export-all addresses.json && node ./scripts/postdeploy.ts",
     "contracts:deploy-goerli": "npx hardhat deploy --network goerli --export-all addresses.json && node ./scripts/postdeploy.js",
@@ -24,8 +29,7 @@
     "benchmark": "npm run benchmark:diff || npm run benchmark:update"
   },
   "keywords": [],
-  "author": "statechannels.org",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.3",
     "@nomiclabs/hardhat-ethers": "^2.1.1",
