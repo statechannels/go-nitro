@@ -12,7 +12,7 @@
   ],
   "types": "lib/src/index.d.ts",
   "scripts": {
-    "build:typescript": "rm -rf dist; tsc",
+    "build:typescript": "rm -rf dist; npx tsc",
     "contracts:deploy-localhost": "npx hardhat deploy --network localhost --export-all addresses.json && node ./scripts/postdeploy.ts",
     "contracts:deploy-goerli": "npx hardhat deploy --network goerli --export-all addresses.json && node ./scripts/postdeploy.js",
     "contracts:node": "npx hardhat node --no-deploy",
