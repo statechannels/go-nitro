@@ -91,7 +91,7 @@ In Nitro protocol, a state is broken up into fixed and variable parts:
 
 !!! info
 
-    States are usually submitted to the blockchain as a single fixed part and multiple (signed) variable parts. This is known as a "support proof".
+    States are usually submitted to the blockchain as a single fixed part and multiple (signed) variable parts. This is known as a ["support proof"](#support-proofs).
 
 Let's take each property in turn:
 
@@ -187,4 +187,119 @@ To commit to a state, a hash is formed as follows:
     ));
 ```
 
-and this hash is signed using an _ephemeral_ Ethereum private key. _Ephemeral_ in this context means a dedicated private key, generated solely for the purpose of executing the state channel.
+and this hash is signed using an _ephemeral_ Ethereum private key. _Ephemeral_ in this context means a dedicated private key, generated solely for the purpose of executing the state channel. The signature has the following type:
+
+=== "Solidity"
+
+    ```solidity
+        struct Signature {
+            uint8 v;
+            bytes32 r;
+            bytes32 s;
+        }
+    ```
+
+=== "TypeScript"
+
+    ```typescript
+        import { Signature } from "ethers";
+    ```
+
+=== "Go"
+
+    ```Go
+
+        type Signature struct {
+            R []byte
+            S []byte
+            V byte
+        }
+
+    ```
+
+You can sign a state using these utilities:
+
+=== "TypeScript"
+
+    ```typescript
+        import {signData} from '@statechannels/nitro-protocol;
+
+        const signature = signData(stateHash, privateKey);
+    ```
+
+=== "Go"
+
+    ```Go
+    import 	nc "github.com/statechannels/go-nitro/crypto"
+
+    signature := nc.SignEthereumMessage(stateHash.Bytes(), secretKey)
+    ```
+
+### `SignedVariableParts`
+
+Signatures on a state hash by different participants are often bundled up with the variable part of the state when being submitted to chain.
+
+=== "Solidity"
+
+    ```solidity
+    struct SignedVariablePart {
+        VariablePart variablePart;
+        Signature[] sigs;
+    }
+    ```
+
+=== "TypeScript"
+
+    ```typescript
+    export interface SignedVariablePart {
+        variablePart: VariablePart;
+        sigs: Signature[];
+    }
+
+    ```
+
+=== "Go"
+
+    ```Go
+        // INitroTypesSignedVariablePart is an auto generated low-level Go binding around an user-defined struct.
+        type INitroTypesSignedVariablePart struct {
+            VariablePart INitroTypesVariablePart
+            Sigs         []INitroTypesSignature
+        }
+    ```
+
+### Support proofs
+
+Support proofs consist of just enough information for the chain to verify that a state has been supported. They usually consist of [`FixedPart`](#states), plus a singular [`SignedVariablePart`](#signedvariableparts) named `candidate`, plus an array of [`SignedVariableParts`](#signedvariableparts) named `proof`.
+
+### `RecoveredVariableParts`
+
+The adjudicator smart contract will recover the signer from each signature on a `SignedVariablePart`, and convert the resulting list into a `signedBy` bitmask indicating which participant has signed that particular state. The bitfield is bundled with the `VariablePart` into a `RecoveredVariablePaet`:
+
+=== "Solidity"
+
+    ```solidity
+    struct RecoveredVariablePart {
+        VariablePart variablePart;
+        uint256 signedBy;
+    }
+    ```
+
+=== "TypeScript"
+
+    ```typescript
+    export interface RecoveredVariablePart {
+        variablePart: VariablePart;
+        signedBy: Uint256;
+    }
+    ```
+
+=== "Go"
+
+    ```Go
+        // not yet implemented
+    ```
+
+before being passed to the application execution rules (which do not need to do any signature recovery of their own).
+
+For example, if a channel has three participants and they all signed the state in question, we would have `signedBy = 0b111 = 7`. If only participant with index `0` had signed, we would have `signedBy = 0b001 = 1`.
