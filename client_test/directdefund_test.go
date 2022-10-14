@@ -3,14 +3,11 @@ package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
 	"testing"
-	"time"
 
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
-	"github.com/statechannels/go-nitro/internal/testdata"
-	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -38,10 +35,7 @@ func TestDirectDefund(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	chainI, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[1], logDestination)
-	if err != nil {
-		t.Fatal(err)
-	}
+
 	chainB, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[2], logDestination)
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +46,7 @@ func TestDirectDefund(t *testing.T) {
 
 	// Client setup
 	clientA, storeA := setupClient(alice.PrivateKey, chainA, broker, logDestination, 0)
-	clientI, _ := setupClient(irene.PrivateKey, chainI, broker, logDestination, 0)
+
 	clientB, storeB := setupClient(bob.PrivateKey, chainB, broker, logDestination, 0)
 	// End Client setup
 
@@ -83,27 +77,4 @@ func TestDirectDefund(t *testing.T) {
 		}
 	}
 
-	// test failure of teardown of a ledger channel currently funding a virtual channel
-	{
-		ddfoTarget := directlyFundALedgerChannel(t, clientA, clientI)
-		directlyFundALedgerChannel(t, clientI, clientB)
-
-		// create & virtual channel between A and B through I
-		outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
-		response := clientA.CreateVirtualPaymentChannel([]types.Address{irene.Address()}, bob.Address(), 0, outcome)
-
-		waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, response.Id)
-
-		clientA.CloseLedgerChannel(ddfoTarget)
-
-		select {
-		case <-time.After(time.Second * 10):
-			t.Fatalf("expected ddfo on active ledger channel to fail, but no failures occurred within 10 seconds")
-		case rejected := <-clientA.FailedObjectives():
-			if rejected != protocols.ObjectiveId("DirectDefunding-"+ddfoTarget.String()) {
-				t.Errorf("expected ddfo on active ledger channel to fail, but it didn't")
-			}
-		}
-
-	}
 }
