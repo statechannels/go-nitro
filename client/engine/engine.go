@@ -135,7 +135,6 @@ func (e *Engine) ToApi() <-chan EngineEvent {
 func run[p any](h func(p) (EngineEvent, error), args p, c chan HandlerReturnValue) {
 	res, err := h(args)
 	c <- HandlerReturnValue{res, err}
-	return
 }
 
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
