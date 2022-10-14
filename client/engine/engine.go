@@ -581,7 +581,7 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 	case virtualfund.IsVirtualFundObjective(id):
 		vfo, err := virtualfund.ConstructObjectiveFromPayload(p, false, *e.store.GetAddress(), e.store.GetConsensusChannel)
 		if err != nil {
-			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message.\n\ttarget objective: %s\n\terr: %w", id, err)
+			return &virtualfund.Objective{}, fromMsgErr(id, err)
 		}
 		err = e.registerPaymentChannel(vfo)
 		if err != nil {
@@ -601,13 +601,13 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 
 		vdfo, err := virtualdefund.ConstructObjectiveFromPayload(p, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel, minAmount)
 		if err != nil {
-			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual defund objective from message.\n\ttarget objective: %s\n\terr: %w", id, err)
+			return &virtualfund.Objective{}, fromMsgErr(id, err)
 		}
 		return &vdfo, nil
 	case directdefund.IsDirectDefundObjective(id):
 		ddfo, err := directdefund.ConstructObjectiveFromPayload(p, false, e.store.GetConsensusChannelById)
 		if err != nil {
-			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message.\n\ttarget objective: %s\n\terr: %w", id, err)
+			return &directdefund.Objective{}, fromMsgErr(id, err)
 		}
 		return &ddfo, nil
 
@@ -615,6 +615,12 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 		return &directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
 	}
 
+}
+
+// fromMsgErr wraps errors from objective construction functions and
+// returns an error bundled with the objectiveID
+func fromMsgErr(id protocols.ObjectiveId, err error) error {
+	return fmt.Errorf("could not create objective from message.\n\ttarget objective: %s\n\terr: %w", id, err)
 }
 
 // getProposalObjectiveId returns the objectiveId for a proposal.
