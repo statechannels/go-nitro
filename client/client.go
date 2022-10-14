@@ -167,20 +167,25 @@ func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
 	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
 }
 
-// WaitForObjectivesToComplete returns a mapping showing which of the supplied objective ids is completed, and a channel which will recieve an empty struct when all have done so.
-func (c *Client) WaitForObjectivesToComplete(ctx context.Context, ids ...protocols.ObjectiveId) (map[protocols.ObjectiveId]bool, chan struct{}) {
+// WaitForObjectivesToComplete returns a channel on which
+// a mapping showing which of the supplied objective ids is still incomplete
+// will be sent either when all objectives have been completed, or when the supplied context is cancelled.
+func (c *Client) WaitForObjectivesToComplete(ctx context.Context, ids ...protocols.ObjectiveId) chan map[protocols.ObjectiveId]bool {
 
-	doneChan := make(chan struct{})
+	doneChan := make(chan map[protocols.ObjectiveId]bool)
 
-	completed := make(map[protocols.ObjectiveId]bool)
+	incomplete := make(map[protocols.ObjectiveId]bool)
+	for _, id := range ids {
+		incomplete[id] = true
+	}
 
 	handleCompletedObjectiveAndCheckAllCompleted := func(got protocols.ObjectiveId) bool {
 		allCompleted := true
 		for _, id := range ids {
 			if id == got {
-				completed[id] = true
+				incomplete[id] = false
 			} // TODO if the id is irrelevant to us, we could resend it on the CompletedObjective chan for others to read?
-			allCompleted = allCompleted && (completed[id])
+			allCompleted = allCompleted && !incomplete[id]
 		}
 		return allCompleted
 	}
@@ -191,10 +196,11 @@ func (c *Client) WaitForObjectivesToComplete(ctx context.Context, ids ...protoco
 			case got := <-c.CompletedObjectives():
 				allCompleted := handleCompletedObjectiveAndCheckAllCompleted(got)
 				if allCompleted {
-					doneChan <- struct{}{}
+					doneChan <- incomplete
 					return
 				}
 			case <-ctx.Done():
+				doneChan <- incomplete
 				return
 			}
 		}
