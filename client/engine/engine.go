@@ -130,10 +130,12 @@ func (e *Engine) ToApi() <-chan EngineEvent {
 	return e.toApi
 }
 
-// runAsync can be used to run a handler asychronously in the sense that the passed handler function will be called with the passed args and then have its return value sent on the passed chan instead of returned.
-func runAsync[p any](h func(p) (EngineEvent, error), args p, c chan HandlerReturnValue) {
+// run can be used to run a handler asychronously in the sense that the passed handler function will be called with the passed args and then have its return value sent on the passed chan instead of returned.
+// To run the handler truly asynchronously, use go run().
+func run[p any](h func(p) (EngineEvent, error), args p, c chan HandlerReturnValue) {
 	res, err := h(args)
 	c <- HandlerReturnValue{res, err}
+	return
 }
 
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
@@ -150,15 +152,15 @@ func (e *Engine) Run() {
 		// TODO the engine cannot currently cope with running handlers asynchronously, so we omit the "go" keyword from most of them:
 		select {
 		case or := <-e.ObjectiveRequestsFromAPI:
-			go runAsync(e.handleObjectiveRequest, or, e.fromHandlers)
+			go run(e.handleObjectiveRequest, or, e.fromHandlers)
 		case pr := <-e.PaymentRequestsFromAPI:
-			runAsync(e.handlePaymentRequest, pr, e.fromHandlers)
+			run(e.handlePaymentRequest, pr, e.fromHandlers)
 		case chainEvent := <-e.fromChain:
-			runAsync(e.handleChainEvent, chainEvent, e.fromHandlers)
+			run(e.handleChainEvent, chainEvent, e.fromHandlers)
 		case message := <-e.fromMsg:
-			runAsync(e.handleMessage, message, e.fromHandlers)
+			run(e.handleMessage, message, e.fromHandlers)
 		case proposal := <-e.fromLedger:
-			runAsync(e.handleProposal, proposal, e.fromHandlers)
+			run(e.handleProposal, proposal, e.fromHandlers)
 		}
 
 	}
