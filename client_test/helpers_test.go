@@ -32,7 +32,13 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 	case <-time.After(timeout):
 		cancel()
 		incomplete := <-allDone
-		t.Fatalf("Objective ids %v failed to complete on client %s within %s", incomplete, client.Address, timeout)
+		ids := make([]protocols.ObjectiveId, len(incomplete))
+		i := 0
+		for k := range incomplete {
+			ids[i] = k
+			i++
+		}
+		t.Fatalf("Objective ids %s failed to complete on client %s within %s", ids, client.Address, timeout)
 	case <-allDone:
 		cancel()
 		return
