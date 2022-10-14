@@ -601,7 +601,7 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 
 		vdfo, err := virtualdefund.ConstructObjectiveFromPayload(p, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel, minAmount)
 		if err != nil {
-			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
+			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual defund objective from message: %w", err)
 		}
 		return &vdfo, nil
 	case directdefund.IsDirectDefundObjective(id):
