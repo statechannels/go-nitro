@@ -581,17 +581,17 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 	case virtualfund.IsVirtualFundObjective(id):
 		vfo, err := virtualfund.ConstructObjectiveFromPayload(p, false, *e.store.GetAddress(), e.store.GetConsensusChannel)
 		if err != nil {
-			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message: %w", err)
+			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual fund objective from message.\n\ttarget objective: %s\n\terr: %w", id, err)
 		}
 		err = e.registerPaymentChannel(vfo)
 		if err != nil {
-			return &virtualfund.Objective{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
+			return &virtualfund.Objective{}, fmt.Errorf("could not register channel with payment/receipt manager.\n\ttarget channel: %s\n\terr: %w", id, err)
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
 		vId, err := virtualdefund.GetVirtualChannelFromObjectiveId(id)
 		if err != nil {
-			return &virtualdefund.Objective{}, fmt.Errorf("could not determine virtual channel id: %w", err)
+			return &virtualdefund.Objective{}, fmt.Errorf("could not determine virtual channel id from objective %s: %w", id, err)
 		}
 		minAmount := big.NewInt(0)
 		if e.vm.ChannelRegistered(vId) {
@@ -601,13 +601,13 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 
 		vdfo, err := virtualdefund.ConstructObjectiveFromPayload(p, false, *e.store.GetAddress(), e.store.GetChannelById, e.store.GetConsensusChannel, minAmount)
 		if err != nil {
-			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual defund objective from message: %w", err)
+			return &virtualfund.Objective{}, fmt.Errorf("could not create virtual defund objective from message.\n\ttarget objective: %s\n\terr: %w", id, err)
 		}
 		return &vdfo, nil
 	case directdefund.IsDirectDefundObjective(id):
 		ddfo, err := directdefund.ConstructObjectiveFromPayload(p, false, e.store.GetConsensusChannelById)
 		if err != nil {
-			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message: %w", err)
+			return &directdefund.Objective{}, fmt.Errorf("could not create direct defund objective from message.\n\ttarget objective: %s\n\terr: %w", id, err)
 		}
 		return &ddfo, nil
 
