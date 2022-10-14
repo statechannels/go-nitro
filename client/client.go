@@ -2,6 +2,7 @@
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
+	"context"
 	"io"
 	"math/big"
 	"math/rand"
@@ -164,4 +165,39 @@ func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.Objec
 func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
 	// Send the event to the engine
 	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
+}
+
+// WaitForObjectivesToComplete returns a mapping showing which of the supplied objective ids is completed, and a channel which will recieve an empty struct when all have done so.
+func (c *Client) WaitForObjectivesToComplete(ctx context.Context, ids ...protocols.ObjectiveId) (map[protocols.ObjectiveId]bool, chan struct{}) {
+
+	doneChan := make(chan struct{})
+
+	completed := make(map[protocols.ObjectiveId]bool)
+
+	handleCompletedObjectiveAndCheckAllCompleted := func(got protocols.ObjectiveId) bool {
+		allCompleted := true
+		for _, id := range ids {
+			if id == got {
+				completed[id] = true
+			} // TODO if the id is irrelevant to us, we could resend it on the CompletedObjective chan for others to read?
+			allCompleted = allCompleted && (completed[id])
+		}
+		return allCompleted
+	}
+
+	go func() {
+		for {
+			select {
+			case got := <-c.CompletedObjectives():
+				allCompleted := handleCompletedObjectiveAndCheckAllCompleted(got)
+				if allCompleted {
+					doneChan <- struct{}{}
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return doneChan
 }
