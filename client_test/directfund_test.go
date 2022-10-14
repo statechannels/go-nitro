@@ -2,6 +2,7 @@
 package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -58,7 +59,7 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 	outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), ledgerChannelDeposit, ledgerChannelDeposit)
 	response := clientA.CreateLedgerChannel(bob.Address(), 0, outcome)
 
-	waitTimeForCompletedObjectiveIds(t, &clientA, time.Second, response.Id)
+	<-clientA.WaitForObjectivesToComplete(context.Background(), response.Id)
 
 	obj, _ := storeA.GetObjectiveById(response.Id)
 
