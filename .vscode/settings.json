@@ -2,4 +2,7 @@
   "go.formatTool": "gofmt",
   "go.lintTool": "golangci-lint",
   "go.lintOnSave": "workspace",
+  "yaml.schemas": {
+    "https://squidfunk.github.io/mkdocs-material/schema.json": "mkdocs.yml"
+  }
 }

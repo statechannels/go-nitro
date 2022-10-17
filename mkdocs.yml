@@ -1,0 +1,33 @@
+site_name: Nitro State Channel Framework
+strict: true
+repo_url: https://github.com/statechannels/go-nitro
+theme:
+  name: material
+  palette:
+    scheme: statechannels.org
+  logo: assets/mstile-144x144.png
+  favicon: assets/favicon.ico
+  features:
+    - content.code.annotate
+    - navigation.tracking
+    - navigation.tabs
+    - content.tabs.link
+extra_css:
+  - stylesheets/extra.css
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
