@@ -137,7 +137,14 @@ type Objective struct {
 
 // NewObjective creates a new virtual funding objective from a given request.
 func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
-	rightCC, ok := getTwoPartyConsensusLedger(request.Intermediaries[0])
+	var rightCC *consensus_channel.ConsensusChannel
+	ok := false
+
+	if len(request.Intermediaries) > 0 {
+		rightCC, ok = getTwoPartyConsensusLedger(request.Intermediaries[0])
+	} else {
+		rightCC, ok = getTwoPartyConsensusLedger(request.CounterParty)
+	}
 
 	if !ok {
 		return Objective{}, fmt.Errorf("could not find ledger for %s and %s", myAddress, request.Intermediaries[0])
