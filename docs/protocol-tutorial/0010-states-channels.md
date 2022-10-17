@@ -194,7 +194,7 @@ To commit to a state, a hash is formed as follows:
     ));
 ```
 
-and this hash is signed using an _ephemeral_ Ethereum private key. _Ephemeral_ in this context means a dedicated private key, generated solely for the purpose of executing the state channel. The signature has the following type:
+and this hash is signed using an dedicated Ethereum private key generated solely for the purpose of executing state channel(s) and not otherwise controlling funds on chain. The signature has the following type:
 
 === "Solidity"
 
