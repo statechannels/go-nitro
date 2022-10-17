@@ -39,7 +39,8 @@ In Nitro protocol, a state is broken up into fixed and variable parts:
 
     ```typescript
         import * as ExitFormat from '@statechannels/exit-format';
-        import {Address, Bytes, Bytes32, Uint256, Uint48, Uint64} from '@statechannels/nitro-protocol'; // (1)
+        // (1)
+        import {Address, Bytes, Bytes32, Uint256, Uint48, Uint64} from '@statechannels/nitro-protocol';
 
         export interface FixedPart {
             chainId: Uint256;
@@ -95,13 +96,15 @@ In Nitro protocol, a state is broken up into fixed and variable parts:
 
 Let's take each property in turn:
 
+## Fixed Part
+
 ### Chain id
 
 This needs to match the id of the chain where assets are to be locked (i.e. the 'root' of the funding graph for this channel). In the event of a mismatch, the channel cannot be concluded and funds cannot be unlocked.
 
 ### Participants
 
-This is a dynamic array of Ethereum addresses, each derived from an ECDSA private key in the usual manner. Each address represents a participant in the state channel who is able to commit to state updates and thereby cause the channel to finalize on chain.
+This is a list of Ethereum addresses, each derived from an ECDSA private key in the usual manner. Each address represents a participant in the state channel who is able to commit to state updates and thereby cause the channel to finalize on chain.
 
 !!! warning
 
@@ -109,11 +112,13 @@ This is a dynamic array of Ethereum addresses, each derived from an ECDSA privat
 
 ### ChannelNonce
 
-This is a unique number used to differentiate channels with an otherwise identical `FixedPart`. For example, if the same participants want to run the same kind of channel on the same chain as a previous channel, they can choose a new `ChannelNonce` to prevent state updates from from the existing channel being replayed.
+This is a unique number used to differentiate channels with an otherwise identical `FixedPart`. For example, if the same participants want to run the same kind of channel on the same chain as a previous channel, they can choose a new `ChannelNonce` to prevent state updates for the original channel from being replayed on the new one.
 
 !!! warning
 
     You should never join a channel which re-uses a channel nonce.
+
+## Variable Part
 
 ### AppDefinition
 
@@ -157,7 +162,7 @@ This is a boolean flag which allows the [channel execution rules](#execution-rul
 
 ## Channel IDs
 
-Channels are identified by the hash of the `FixedPart`` of the state (those parts that may _not_ vary):
+Channels are identified by the hash of the `FixedPart` of the state (those parts that may _not_ vary):
 
 ```solidity
 
@@ -270,11 +275,13 @@ Signatures on a state hash by different participants are often bundled up with t
 
 ### Support proofs
 
-Support proofs consist of just enough information for the chain to verify that a state has been supported. They usually consist of [`FixedPart`](#states), plus a singular [`SignedVariablePart`](#signedvariableparts) named `candidate`, plus an array of [`SignedVariableParts`](#signedvariableparts) named `proof`.
+A support proof is any bundle of information sufficient for the chain to verify that a given channel state is legitimate. They usually consist of [`FixedPart`](#states), plus a singular [`SignedVariablePart`](#signedvariableparts) named `candidate`, plus an array of [`SignedVariableParts`](#signedvariableparts) named `proof`.
+
+The trivial support proof is a state with `IsFinal: true` signed by every participant. For an intuition around more complicated support proofs, see [Putting the 'state' in state channels](https://blog.statechannels.org/putting-the-state-in-state-channels/).
 
 ### `RecoveredVariableParts`
 
-The adjudicator smart contract will recover the signer from each signature on a `SignedVariablePart`, and convert the resulting list into a `signedBy` bitmask indicating which participant has signed that particular state. The bitfield is bundled with the `VariablePart` into a `RecoveredVariablePaet`:
+The adjudicator smart contract will recover the signer from each signature on a `SignedVariablePart`, and convert the resulting list into a `signedBy` bitmask indicating which participant has signed that particular state. The bitfield is bundled with the `VariablePart` into a `RecoveredVariablePart`:
 
 === "Solidity"
 
