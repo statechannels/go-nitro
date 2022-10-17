@@ -2,9 +2,7 @@ name: Deploy updated docs website
 on:
   push:
     branches:
-      - master
       - main
-      - mkdocs # TODO this is temporary
 jobs:
   deploy:
     runs-on: ubuntu-latest

@@ -5,7 +5,7 @@ Nitro Protocol
 
 Smart contracts which implement nitro protocol for state channel networks on ethereum. Includes javascript and typescript support.
 
-There is an accompanying documentation [website](https://protocol.statechannels.org/).
+:new: There is an accompanying documentation [website](https://statechannels.github.io/go-nitro/).
 
 A full description of nitro protocol and it's capabilities can be found in a [whitepaper](https://eprint.iacr.org/2019/219).
 
