@@ -120,8 +120,6 @@ This is a unique number used to differentiate channels with an otherwise identic
 
     You should never join a channel which re-uses a channel nonce.
 
-## Variable Part
-
 ### AppDefinition
 
 This is an Ethereum address where a Nitro application has been deployed. This is a contract conforming to the `ForceMoveApp` and defining [application rules](./0020-execution-rules.md#application-rules).
@@ -138,13 +136,15 @@ This is duration (in seconds) of the challenge-response window. If a challenge i
 
     This should be at least 1 block time (~15 seconds on mainnet) and less than `2^48-1` seconds. Whatever it is set to, the channel should be closed long before `2^48 - 1 - challengeDuration`. In practice we recommend somewhere between 5 minutes and 5 months.
 
-### AppData
-
-The AppData is optional data which may be interpreted by the Nitro application and affect the execution rules of the channel -- see the section on [application rules](./0020-execution-rules.md#application-rules). For example, it could describe the state of a chess board or include the hash of a secret.
+## Variable Part
 
 ### Outcome
 
 This describes how funds will be disbursed if the channel were to finalize in the current state. See the section on [Outcomes](./0030-outcomes.md).
+
+### AppData
+
+The AppData is optional data which may be interpreted by the Nitro application and affect the execution rules of the channel -- see the section on [application rules](./0020-execution-rules.md#application-rules). For example, it could describe the state of a chess board or include the hash of a secret.
 
 ### TurnNum
 
