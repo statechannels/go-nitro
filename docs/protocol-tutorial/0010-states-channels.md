@@ -8,6 +8,8 @@ A state channel can be thought of as a set of data structures (called "states") 
 
 A state channel controls [funds](./0060-funding-a-channel.md) which are locked up -- either on an L1 blockchain or on some other ledger such as another state channel.
 
+State channel execution may always be disputed on-chain via a contract we call the Adjudicator, although this not necessary.
+
 ## States
 
 In Nitro protocol, a state is broken up into fixed and variable parts:
