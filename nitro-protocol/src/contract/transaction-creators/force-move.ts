@@ -1,11 +1,7 @@
 import {Signature, ethers} from 'ethers';
 
-import ForceMoveArtifact from '../../../artifacts/contracts/ForceMove.sol/ForceMove.json';
 import {bindSignatures, signChallengeMessage} from '../../signatures';
 import {getFixedPart, getVariablePart, separateProofAndCandidate, State} from '../state';
-
-// https://github.com/ethers-io/ethers.js/issues/602#issuecomment-574671078
-export const ForceMoveContractInterface = new ethers.utils.Interface(ForceMoveArtifact.abi);
 
 interface CheckpointData {
   challengeState?: State;
