@@ -1,6 +1,7 @@
 import {Contract, ContractFactory, utils} from 'ethers';
 import hre from 'hardhat';
 
+import '@nomiclabs/hardhat-ethers';
 import {NitroAdjudicator} from '../typechain-types/NitroAdjudicator';
 import {Token} from '../typechain-types/Token';
 import {VirtualPaymentApp} from '../typechain-types/VirtualPaymentApp';
