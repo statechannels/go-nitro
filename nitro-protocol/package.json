@@ -4,7 +4,7 @@
   "author": "statechannels.org",
   "bugs": "https://github.com/statechannels/go-nitro/issues",
   "description": "Smart contracts and typescript libraries for nitro state channel protocol.",
-  "main": "index.js",
+  "main": "lib/src/index.js",
   "homepage": "https://github.com/statechannels/go-nitro",
   "repository": "statechannels/go-nitro.git",
   "files": [
