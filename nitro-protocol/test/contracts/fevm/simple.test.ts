@@ -29,11 +29,12 @@ const simpleCoinContract = new Contract(
 ) as unknown as SimpleCoin & Contract;
 
 it('submits a transaction', async () => {
-  const txPromise = simpleCoinContract.getBalance(addressWithFunds);
+  const {idActorHex} = await deriveAddrsFromPk(pk, wallabyUrl);
+  const txPromise = simpleCoinContract.getBalance(idActorHex);
   console.log((await txPromise).toString());
 });
 
-it.skip('submits a transaction', async () => {
+it('submits a transaction', async () => {
   const data = simpleCoinContract.interface.encodeFunctionData('sendCoin', [
     '0xff00000000000000000000000000000000000485',
     1,
