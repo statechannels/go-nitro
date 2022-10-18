@@ -3,9 +3,8 @@ name: Check Bindings and Lockfile
 on:
   push:
     branches: [main]
-    paths: "nitro-protocol/contracts/**"
   pull_request:
-    paths: "nitro-protocol/contracts/**"
+    paths: ["nitro-protocol/contracts/**", generate-adjudicator-bindings.sh]
 
 jobs:
   build:
