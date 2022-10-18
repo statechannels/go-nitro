@@ -1,7 +1,7 @@
 set -e
 cd nitro-protocol
 
-solc --base-path $(pwd) 
+solc --base-path $(pwd) \
   @statechannels/exit-format/=node_modules/@statechannels/exit-format/ \
   @openzeppelin/contracts/=node_modules/@openzeppelin/contracts/ \
   contracts/NitroAdjudicator.sol contracts/ConsensusApp.sol contracts/Token.sol contracts/VirtualPaymentApp.sol contracts/deploy/Create2Deployer.sol \
@@ -12,7 +12,6 @@ function runAbigen {
     --bin=$(pwd)/tmp-build/${1}.bin \
     --pkg=${1} \
     --out=$(pwd)/../client/engine/chainservice/${2}/${1}.go 
-
 }
 
 runAbigen "NitroAdjudicator" "adjudicator"
