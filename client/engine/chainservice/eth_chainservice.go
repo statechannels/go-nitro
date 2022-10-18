@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -14,13 +15,15 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
+	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
 var allocationUpdatedTopic = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256)"))
 var concludedTopic = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
-var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
+
+// var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
 
 type ethChain interface {
 	bind.ContractBackend
@@ -36,6 +39,7 @@ type EthChainService struct {
 	txSigner                 *bind.TransactOpts
 	out                      chan Event
 	logger                   *log.Logger
+	submittedTxs             safesync.Map[txSubmittedInfo]
 }
 
 // RESUB_INTERVAL is how often we resubscribe to log events.
@@ -44,6 +48,16 @@ type EthChainService struct {
 // See https://github.com/ethereum/go-ethereum/blob/e14164d516600e9ac66f9060892e078f5c076229/eth/filters/filter_system.go#L43
 const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
 
+const POLL_INTERVAL = 2 * time.Second
+
+type txSubmittedInfo struct {
+	txHash          common.Hash
+	asset           types.Address
+	channelId       types.Destination
+	expectedTotal   *big.Int
+	expectedDeposit *big.Int
+}
+
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
 func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
@@ -51,9 +65,16 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	logPrefix := "chainservice " + txSigner.From.String() + ": "
 	logger := log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger}
+	ecs := EthChainService{chain, na,
+		naAddress, caAddress, vpaAddress,
+		txSigner, make(chan Event, 10), logger,
+		safesync.Map[txSubmittedInfo]{},
+	}
 
 	err := ecs.subcribeToEvents()
+
+	go ecs.pollChain(context.Background())
+
 	return &ecs, err
 }
 
@@ -92,7 +113,11 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 				return err
 			}
 
-			_, err = ecs.na.Deposit(txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
+			depositTx, err := ecs.na.Deposit(txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
+
+			info := txSubmittedInfo{depositTx.Hash(), tokenAddress, tx.ChannelId(), big.NewInt(0).Add(holdings, amount), amount}
+			ecs.submittedTxs.Store(tx.ChannelId().String(), info)
+
 			if err != nil {
 				return err
 			}
@@ -117,9 +142,62 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 	}
 }
 func (ecs *EthChainService) subcribeToEvents() error {
-
 	go ecs.listenForLogEvents()
 	return nil
+}
+
+// getLatestBlockNum returns the latest block number
+func (ecs *EthChainService) getLatestBlockNum() uint64 {
+	latestBlock, err := ecs.chain.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		panic(err)
+	}
+	return latestBlock.Number.Uint64()
+}
+
+// pollChain periodically polls the chain for holdings changes.
+func (ecs *EthChainService) pollChain(ctx context.Context) {
+
+	previousBlock := ecs.getLatestBlockNum()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(POLL_INTERVAL):
+			latestBlock := ecs.getLatestBlockNum()
+
+			// If we don't have a new block number we ingore this iteration.
+			if latestBlock == previousBlock {
+				continue
+			}
+
+			previousBlock = latestBlock
+
+			completed := make([]string, 0)
+			// Range over all open tx infos and check if the holdings have been updated.
+			ecs.submittedTxs.Range(func(key string, info txSubmittedInfo) bool {
+
+				amount, err := ecs.na.Holdings(&bind.CallOpts{}, info.asset, info.channelId)
+				if err != nil {
+					panic(err)
+				}
+
+				if amount.Cmp(info.expectedTotal) == 0 {
+					event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.expectedDeposit, info.expectedTotal)
+					ecs.out <- event
+					completed = append(completed, key)
+				}
+				return true
+
+			})
+
+			// Remove all completed tx infos.
+			for _, key := range completed {
+				ecs.submittedTxs.Delete(key)
+			}
+
+		}
+	}
 }
 
 func (ecs *EthChainService) listenForLogEvents() {
@@ -154,14 +232,14 @@ func (ecs *EthChainService) listenForLogEvents() {
 			sub.Unsubscribe()
 		case chainEvent := <-logs:
 			switch chainEvent.Topics[0] {
-			case depositedTopic:
-				nad, err := ecs.na.ParseDeposited(chainEvent)
-				if err != nil {
-					ecs.logger.Printf("error in ParseDeposited: %v", err)
-				}
+			// case depositedTopic:
+			// 	nad, err := ecs.na.ParseDeposited(chainEvent)
+			// 	if err != nil {
+			// 		ecs.logger.Printf("error in ParseDeposited: %v", err)
+			// 	}
 
-				event := NewDepositedEvent(nad.Destination, chainEvent.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
-				ecs.out <- event
+			// 	event := NewDepositedEvent(nad.Destination, chainEvent.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
+			// 	ecs.out <- event
 			case allocationUpdatedTopic:
 				au, err := ecs.na.ParseAllocationUpdated(chainEvent)
 				if err != nil {
