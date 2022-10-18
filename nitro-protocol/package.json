@@ -20,7 +20,7 @@
     "test": "npm run test:contracts && npm run test:app --all",
     "test:app": "npx hardhat compile && jest -c ./config/jest/jest.config.js",
     "test:contracts": "npx hardhat compile && jest -c ./config/jest/jest.contracts.config.js",
-    "test:fevm": "jest -c ./config/jest/jest.fevmContracts.config.js",
+    "test:fevm": "jest -c ./config/jest/jest.fevmContracts.config.js --silent=false",
     "lint:check": "npx eslint \"./\" --cache && npm run solhint:check && npm run prettier:check",
     "lint:write": "npx eslint \"./\" --fix && npm run prettier:write",
     "prepare": "npx hardhat compile && npm run build:typescript",
@@ -79,6 +79,8 @@
     "wait-on": "^6.0.1"
   },
   "dependencies": {
+    "@babel/runtime": "^7.19.4",
+    "@glif/filecoin-rpc-client": "^2.0.8",
     "@openzeppelin/contracts": "^4.7.3",
     "@statechannels/exit-format": "^0.0.6",
     "@typechain/ethers-v5": "^9.0.0"
