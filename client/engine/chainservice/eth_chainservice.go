@@ -47,7 +47,7 @@ type EthChainService struct {
 // See https://github.com/ethereum/go-ethereum/blob/e14164d516600e9ac66f9060892e078f5c076229/eth/filters/filter_system.go#L43
 const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
 
-const POLL_INTERVAL = 2 * time.Second
+const POLL_INTERVAL = 500 * time.Millisecond
 
 type TxType string
 
