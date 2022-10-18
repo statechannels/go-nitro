@@ -1,5 +1,3 @@
 hardhat.config.ts
 scripts
 test
-contracts/test/*.sol
-contracts/deploy/Create2Deployer.sol
