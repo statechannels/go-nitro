@@ -38,7 +38,7 @@ type EthChainService struct {
 	txSigner                 *bind.TransactOpts
 	out                      chan Event
 	logger                   *log.Logger
-	submittedTxs             safesync.Map[txSubmittedInfo]
+	watchedChannels          safesync.Map[watchInfo]
 }
 
 // RESUB_INTERVAL is how often we resubscribe to log events.
@@ -51,18 +51,15 @@ const POLL_INTERVAL = 2 * time.Second
 
 type TxType string
 
-const (
-	DepositTx  TxType = "Deposit"
-	WithdrawTx TxType = "Withdraw"
-)
+type watchInfo struct {
+	asset            types.Address
+	channelId        types.Destination
+	fundingTarget    *big.Int
+	ourFundingTarget *big.Int
+}
 
-type txSubmittedInfo struct {
-	txHash          common.Hash
-	asset           types.Address
-	channelId       types.Destination
-	expectedHeld    *big.Int
-	expectedDeposit *big.Int
-	txType          TxType
+func (w *watchInfo) isDeposit() bool {
+	return !types.IsZero(w.fundingTarget) || !types.IsZero(w.ourFundingTarget)
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
@@ -75,7 +72,7 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	ecs := EthChainService{chain, na,
 		naAddress, caAddress, vpaAddress,
 		txSigner, make(chan Event, 10), logger,
-		safesync.Map[txSubmittedInfo]{},
+		safesync.Map[watchInfo]{},
 	}
 	if usePolling := true; usePolling {
 		go ecs.pollChain(context.Background())
@@ -121,10 +118,7 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 				return err
 			}
 
-			depositTx, err := ecs.na.Deposit(txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
-
-			info := txSubmittedInfo{depositTx.Hash(), tokenAddress, tx.ChannelId(), big.NewInt(0).Add(holdings, amount), amount, DepositTx}
-			ecs.submittedTxs.Store(tx.ChannelId().String(), info)
+			_, err = ecs.na.Deposit(txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
 
 			if err != nil {
 				return err
@@ -142,12 +136,8 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 			VariablePart: nitroVariablePart,
 			Sigs:         nitroSignatures,
 		}
-		asset := state.VariablePart().Outcome[0].Asset
+		_, err := ecs.na.ConcludeAndTransferAllAssets(ecs.defaultTxOpts(), nitroFixedPart, proof, candidate)
 
-		withdrawTx, err := ecs.na.ConcludeAndTransferAllAssets(ecs.defaultTxOpts(), nitroFixedPart, proof, candidate)
-
-		info := txSubmittedInfo{withdrawTx.Hash(), asset, tx.ChannelId(), big.NewInt(0), big.NewInt(0), WithdrawTx}
-		ecs.submittedTxs.Store(tx.ChannelId().String(), info)
 		return err
 
 	default:
@@ -164,9 +154,19 @@ func (ecs *EthChainService) getLatestBlockNum() uint64 {
 	return latestBlock.Number.Uint64()
 }
 
+func (ecs *EthChainService) Monitor(channelId types.Destination, ourDeposit, expectedTotal types.Funds) {
+	total, deposit := big.NewInt(0), big.NewInt(0)
+	for _, amount := range expectedTotal {
+		total = amount
+	}
+	for _, amount := range ourDeposit {
+		deposit = amount
+	}
+	ecs.watchedChannels.Store(channelId.String(), watchInfo{channelId: channelId, fundingTarget: total, ourFundingTarget: deposit})
+}
+
 // pollChain periodically polls the chain for holdings changes.
 func (ecs *EthChainService) pollChain(ctx context.Context) {
-
 	previousBlock := ecs.getLatestBlockNum()
 	for {
 		select {
@@ -181,25 +181,22 @@ func (ecs *EthChainService) pollChain(ctx context.Context) {
 			}
 
 			previousBlock = latestBlock
-
 			completed := make([]string, 0)
 			// Range over all open tx infos and check if the holdings have been updated.
-			ecs.submittedTxs.Range(func(key string, info txSubmittedInfo) bool {
-
+			ecs.watchedChannels.Range(func(key string, info watchInfo) bool {
 				currentHoldings, err := ecs.na.Holdings(&bind.CallOpts{}, info.asset, info.channelId)
 				if err != nil {
 					panic(err)
 				}
 
-				switch txType := info.txType; {
-				case txType == DepositTx && currentHoldings.Cmp(info.expectedHeld) >= 0:
-
-					event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.expectedDeposit, info.expectedHeld)
+				if info.isDeposit() {
+					event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.ourFundingTarget, currentHoldings)
 					ecs.out <- event
-					completed = append(completed, key)
-
-					// TODO: Check holdings are empty
-				case txType == WithdrawTx:
+					// We only want to remove the channel if the deposit is fully complete.
+					if currentHoldings.Cmp(info.fundingTarget) >= 0 {
+						completed = append(completed, key)
+					}
+				} else {
 					concludedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: info.channelId, BlockNum: latestBlock}}
 					ecs.out <- concludedEvent
 					allocEvent := NewAllocationUpdatedEvent(info.channelId, latestBlock, info.asset, currentHoldings)
@@ -214,7 +211,7 @@ func (ecs *EthChainService) pollChain(ctx context.Context) {
 
 			// Remove all completed tx infos.
 			for _, key := range completed {
-				ecs.submittedTxs.Delete(key)
+				ecs.watchedChannels.Delete(key)
 			}
 
 		}
