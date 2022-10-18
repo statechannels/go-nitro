@@ -14,7 +14,6 @@ import testConsensusArtifact from '../artifacts/contracts/test/TESTConsensus.sol
 import testNitroAdjudicatorArtifact from '../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 import tokenArtifact from '../artifacts/contracts/Token.sol/Token.json';
 import trivialAppArtifact from '../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
-import embeddedApplicationArtifact from '../artifacts/contracts/examples/EmbeddedApplication.sol/EmbeddedApplication.json';
 import consensusAppArtifact from '../artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
 import virtualPaymentAppArtifact from '../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 const rpcEndPoint = 'http://localhost:' + process.env.GANACHE_PORT;
@@ -49,7 +48,6 @@ const [
   testNitroAdjudicatorArtifact,
   tokenArtifact,
   trivialAppArtifact,
-  embeddedApplicationArtifact,
   consensusAppArtifact,
   virtualPaymentAppArtifact,
 ].map(artifact =>
