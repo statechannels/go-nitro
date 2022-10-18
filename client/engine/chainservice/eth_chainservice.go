@@ -22,8 +22,7 @@ import (
 
 var allocationUpdatedTopic = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256)"))
 var concludedTopic = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
-
-// var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
+var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
 
 type ethChain interface {
 	bind.ContractBackend
@@ -50,12 +49,20 @@ const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
 
 const POLL_INTERVAL = 2 * time.Second
 
+type TxType string
+
+const (
+	DepositTx  TxType = "Deposit"
+	WithdrawTx TxType = "Withdraw"
+)
+
 type txSubmittedInfo struct {
 	txHash          common.Hash
 	asset           types.Address
 	channelId       types.Destination
-	expectedTotal   *big.Int
+	expectedHeld    *big.Int
 	expectedDeposit *big.Int
+	txType          TxType
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
@@ -70,12 +77,13 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 		txSigner, make(chan Event, 10), logger,
 		safesync.Map[txSubmittedInfo]{},
 	}
+	if usePolling := true; usePolling {
+		go ecs.pollChain(context.Background())
+	} else {
+		go ecs.listenForLogEvents()
+	}
 
-	err := ecs.subcribeToEvents()
-
-	go ecs.pollChain(context.Background())
-
-	return &ecs, err
+	return &ecs, nil
 }
 
 // defaultTxOpts returns transaction options suitable for most transaction submissions
@@ -115,7 +123,7 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 
 			depositTx, err := ecs.na.Deposit(txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
 
-			info := txSubmittedInfo{depositTx.Hash(), tokenAddress, tx.ChannelId(), big.NewInt(0).Add(holdings, amount), amount}
+			info := txSubmittedInfo{depositTx.Hash(), tokenAddress, tx.ChannelId(), big.NewInt(0).Add(holdings, amount), amount, DepositTx}
 			ecs.submittedTxs.Store(tx.ChannelId().String(), info)
 
 			if err != nil {
@@ -134,16 +142,17 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 			VariablePart: nitroVariablePart,
 			Sigs:         nitroSignatures,
 		}
-		_, err := ecs.na.ConcludeAndTransferAllAssets(ecs.defaultTxOpts(), nitroFixedPart, proof, candidate)
+		asset := state.VariablePart().Outcome[0].Asset
+
+		withdrawTx, err := ecs.na.ConcludeAndTransferAllAssets(ecs.defaultTxOpts(), nitroFixedPart, proof, candidate)
+
+		info := txSubmittedInfo{withdrawTx.Hash(), asset, tx.ChannelId(), big.NewInt(0), big.NewInt(0), WithdrawTx}
+		ecs.submittedTxs.Store(tx.ChannelId().String(), info)
 		return err
 
 	default:
 		return fmt.Errorf("unexpected transaction type %T", tx)
 	}
-}
-func (ecs *EthChainService) subcribeToEvents() error {
-	go ecs.listenForLogEvents()
-	return nil
 }
 
 // getLatestBlockNum returns the latest block number
@@ -177,16 +186,28 @@ func (ecs *EthChainService) pollChain(ctx context.Context) {
 			// Range over all open tx infos and check if the holdings have been updated.
 			ecs.submittedTxs.Range(func(key string, info txSubmittedInfo) bool {
 
-				amount, err := ecs.na.Holdings(&bind.CallOpts{}, info.asset, info.channelId)
+				currentHoldings, err := ecs.na.Holdings(&bind.CallOpts{}, info.asset, info.channelId)
 				if err != nil {
 					panic(err)
 				}
 
-				if amount.Cmp(info.expectedTotal) == 0 {
-					event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.expectedDeposit, info.expectedTotal)
+				switch txType := info.txType; {
+				case txType == DepositTx && currentHoldings.Cmp(info.expectedHeld) >= 0:
+
+					event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.expectedDeposit, info.expectedHeld)
 					ecs.out <- event
 					completed = append(completed, key)
+
+					// TODO: Check holdings are empty
+				case txType == WithdrawTx:
+					concludedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: info.channelId, BlockNum: latestBlock}}
+					ecs.out <- concludedEvent
+					allocEvent := NewAllocationUpdatedEvent(info.channelId, latestBlock, info.asset, currentHoldings)
+					ecs.out <- allocEvent
+					completed = append(completed, key)
+
 				}
+
 				return true
 
 			})
@@ -231,15 +252,16 @@ func (ecs *EthChainService) listenForLogEvents() {
 			// We unsub here and recreate the subscription in the next iteration of the select.
 			sub.Unsubscribe()
 		case chainEvent := <-logs:
-			switch chainEvent.Topics[0] {
-			// case depositedTopic:
-			// 	nad, err := ecs.na.ParseDeposited(chainEvent)
-			// 	if err != nil {
-			// 		ecs.logger.Printf("error in ParseDeposited: %v", err)
-			// 	}
 
-			// 	event := NewDepositedEvent(nad.Destination, chainEvent.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
-			// 	ecs.out <- event
+			switch chainEvent.Topics[0] {
+			case depositedTopic:
+				nad, err := ecs.na.ParseDeposited(chainEvent)
+				if err != nil {
+					ecs.logger.Printf("error in ParseDeposited: %v", err)
+				}
+
+				event := NewDepositedEvent(nad.Destination, chainEvent.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
+				ecs.out <- event
 			case allocationUpdatedTopic:
 				au, err := ecs.na.ParseAllocationUpdated(chainEvent)
 				if err != nil {
