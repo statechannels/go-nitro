@@ -33,7 +33,6 @@ const [
   testNitroAdjudicatorFactory,
   tokenFactory,
   trivialAppFactory,
-  embeddedApplicationFactory,
   consensusAppFactory,
   virtualPaymentAppFactory,
 ] = [
@@ -60,7 +59,6 @@ export async function deploy(): Promise<Record<string, string>> {
 
   const HASH_LOCK_ADDRESS = (await hashLockedSwapFactory.deploy()).address;
   const SINGLE_ASSET_PAYMENTS_ADDRESS = (await singleAssetPaymentsFactory.deploy()).address;
-  const EMBEDDED_APPLICATION_ADDRESS = (await embeddedApplicationFactory.deploy()).address;
   const CONSENSUS_APP_ADDRESS = await (await consensusAppFactory.deploy()).address;
   const VIRTUAL_PAYMENT_APP_ADDRESS = await (await virtualPaymentAppFactory.deploy()).address;
 
@@ -78,7 +76,6 @@ export async function deploy(): Promise<Record<string, string>> {
     NITRO_ADJUDICATOR_ADDRESS,
     COUNTING_APP_ADDRESS,
     HASH_LOCK_ADDRESS,
-    EMBEDDED_APPLICATION_ADDRESS,
     SINGLE_ASSET_PAYMENTS_ADDRESS,
     TRIVIAL_APP_ADDRESS,
     CONSENSUS_APP_ADDRESS,
