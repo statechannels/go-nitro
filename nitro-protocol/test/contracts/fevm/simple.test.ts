@@ -59,19 +59,6 @@ it('submits a transaction', async () => {
   const rawTxHex = '0x' + serializedTx.toString('hex');
   const res = await ethRpc.request('sendRawTransaction', rawTxHex);
   console.log(res);
-  // const txRequest: providers.TransactionRequest = {
-  //   data,
-  //   type: 2,
-  //   chainId: 31415,
-  //   to: '0xFf000000000000000000000000000000000004C8',
-  //   gasLimit: '0x76c0000',
-  //   maxFeePerGas: '0x9184e72a000',
-  //   maxPriorityFeePerGas: '0x9184e72a000',
-  //   nonce: 54,
-  // };
-  // const signedTx = await wallet.signTransaction(txRequest);
-  // const txPromise = provider.sendTransaction(signedTx);
-  // console.log(await txPromise);
 });
 
 function hexlify(id: string) {
