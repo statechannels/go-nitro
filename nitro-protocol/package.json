@@ -24,7 +24,7 @@
     "benchmark": "npm run benchmark:diff || npm run benchmark:update"
   },
   "keywords": [],
-  "author": "",
+  "author": "statechannels.org",
   "license": "ISC",
   "devDependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.3",
