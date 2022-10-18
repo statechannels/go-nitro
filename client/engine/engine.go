@@ -326,7 +326,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 //   - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
-	e.logger.Printf("handling chain event %v", chainEvent)
+	e.logger.Printf("handling chain event %+v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
 	if !ok {
 		// TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
@@ -392,10 +392,16 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
+
+		e.chain.Monitor(dfo.C.ChannelId(),
+			dfo.C.PostFundState().Outcome.TotalAllocatedFor(types.AddressToDestination(*e.store.GetAddress())),
+			dfo.C.Total())
+
 		return e.attemptProgress(&dfo)
 
 	case directdefund.ObjectiveRequest:
 		ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
+		e.chain.Monitor(ddfo.C.ChannelId(), types.Funds{}, types.Funds{})
 		if err != nil {
 			return EngineEvent{
 				FailedObjectives: []protocols.ObjectiveId{objectiveId},
@@ -557,6 +563,16 @@ func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.O
 
 		newObj, err := e.constructObjectiveFromMessage(id, p)
 
+		if dfo, isDF := newObj.(*directfund.Objective); isDF {
+			e.chain.Monitor(
+				dfo.C.ChannelId(),
+				dfo.C.PostFundState().Outcome.TotalAllocatedFor(types.AddressToDestination(*e.store.GetAddress())),
+				dfo.C.Total(),
+			)
+		}
+		if ddfo, isDDF := newObj.(*directdefund.Objective); isDDF {
+			e.chain.Monitor(ddfo.C.ChannelId(), types.Funds{}, types.Funds{})
+		}
 		if err != nil {
 			return nil, fmt.Errorf("error constructing objective from message: %w", err)
 		}
