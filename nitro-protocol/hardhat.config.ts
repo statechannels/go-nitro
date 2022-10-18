@@ -70,7 +70,7 @@ const config: HardhatUserConfig & {watcher: any} = {
     },
     wallaby: {
       url: 'https://wallaby.node.glif.io/rpc/v0',
-      accounts: ['9182b5bf5b9c966e001934ebaf008f65516290cef6e3069d11e718cbd4336aae'],
+      accounts: ['716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd'],
       chainId: 31415,
     },
   },
