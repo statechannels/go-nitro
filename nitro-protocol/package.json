@@ -8,7 +8,7 @@
   "homepage": "https://github.com/statechannels/go-nitro",
   "repository": "statechannels/go-nitro.git",
   "files": [
-    "/contracts/**/*.sol",
+    "contracts",
     "dist"
   ],
   "types": "lib/src/index.d.ts",
