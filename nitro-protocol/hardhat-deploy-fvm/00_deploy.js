@@ -6,7 +6,7 @@ const ethers = require('ethers');
 const fa = require('@glif/filecoin-address');
 const request = util.promisify(require('request'));
 
-const DEPLOYER_PRIVATE_KEY = '9182b5bf5b9c966e001934ebaf008f65516290cef6e3069d11e718cbd4336aae';
+const DEPLOYER_PRIVATE_KEY = '716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd';
 
 function hexToBytes(hex) {
   // ref: https://stackoverflow.com/a/34356351
