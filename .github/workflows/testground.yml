@@ -2,6 +2,7 @@ name: Run Testground
 
 on:
   pull_request:
+    paths: '**/*.go'
 jobs:
   run-testground:
       runs-on: ubuntu-latest
