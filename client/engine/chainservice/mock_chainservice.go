@@ -50,3 +50,7 @@ func (mc *MockChainService) GetVirtualPaymentAppAddress() types.Address {
 func (mc *MockChainService) EventFeed() <-chan Event {
 	return mc.eventFeed
 }
+
+func (mc *MockChainService) Monitor(cId types.Destination, expectedHoldings, expectedDeposit types.Funds) {
+
+}

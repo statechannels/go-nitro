@@ -74,4 +74,8 @@ type ChainService interface {
 	GetConsensusAppAddress() types.Address
 	// GetVirtualPaymentAppAddress returns the address of a deployed VirtualPaymentApp
 	GetVirtualPaymentAppAddress() types.Address
+
+	// Monitor instruct the chain service to monitor the channel with the given id.
+	// This is only applicable when using polling
+	Monitor(channelId types.Destination, ourDeposit, expectedTotal types.Funds)
 }
