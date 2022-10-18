@@ -56,8 +56,8 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 
 	// Prepare test data to trigger EthChainService
 	testDeposit := types.Funds{
-		common.HexToAddress("0x00"): one,
-		bindings.Token.Address:      one,
+		// common.HexToAddress("0x00"): one, TODO: Polling only supports one asset at a time
+		bindings.Token.Address: one,
 	}
 	channelID := types.Destination(common.HexToHash(`4ebd366d014a173765ba1e50f284c179ade31f20441bec41664712aac6cc461d`))
 	testTx := protocols.NewDepositTransaction(channelID, testDeposit)
@@ -70,7 +70,7 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 	}
 
 	// Check that the recieved events matches the expected event
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 1; i++ {
 		receivedEvent := <-out
 		dEvent := receivedEvent.(DepositedEvent)
 		expectedEvent := NewDepositedEvent(channelID, 2, dEvent.AssetAddress, testDeposit[dEvent.AssetAddress], testDeposit[dEvent.AssetAddress])
@@ -88,7 +88,6 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 }
 
 func TestConcludeSimulatedBackendChainService(t *testing.T) {
-
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
 	if err != nil {
 		t.Fatal(err)
