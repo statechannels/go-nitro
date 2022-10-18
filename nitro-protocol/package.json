@@ -11,7 +11,7 @@
     "contracts",
     "dist"
   ],
-  "types": "lib/src/index.d.ts",
+  "types": "dist/src/index.d.ts",
   "scripts": {
     "build:typescript": "rm -rf dist; npx tsc",
     "contracts:deploy-localhost": "npx hardhat deploy --network localhost --export-all addresses.json && node ./scripts/postdeploy.ts",
