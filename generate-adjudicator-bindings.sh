@@ -7,7 +7,7 @@ solc --base-path $(pwd) \
   contracts/NitroAdjudicator.sol contracts/ConsensusApp.sol contracts/Token.sol contracts/VirtualPaymentApp.sol contracts/deploy/Create2Deployer.sol \
   --optimize --bin --abi -o tmp-build --via-ir
 
-function runAbigen {
+runAbigen() {
   abigen --abi=$(pwd)/tmp-build/${1}.abi \
     --bin=$(pwd)/tmp-build/${1}.bin \
     --pkg=${1} \
