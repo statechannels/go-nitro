@@ -8,9 +8,9 @@ import SimpleCoinArtifact from '../../../artifacts/contracts/SimpleCoin.sol/Simp
 import {SimpleCoin} from '../../../typechain-types';
 
 const wallabyUrl = 'https://wallaby.node.glif.io/rpc/v0';
-const pk = '9182b5bf5b9c966e001934ebaf008f65516290cef6e3069d11e718cbd4336aae';
-const addressWithFunds = '0xff00000000000000000000000000000000000415';
-const contractAddress = '0xFf000000000000000000000000000000000004C8';
+const pk = '716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd';
+const addressWithFunds = '0xff000000000000000000000000000000000003f7';
+const contractAddress = '0xFF000000000000000000000000000000000003f8';
 
 const provider = new providers.JsonRpcProvider(wallabyUrl);
 export const simpleCoinAbi = new utils.Interface(SimpleCoinArtifact.abi);
@@ -28,9 +28,9 @@ const simpleCoinContract = new Contract(
   provider
 ) as unknown as SimpleCoin & Contract;
 
-it.skip('submits a transaction', async () => {
+it('submits a transaction', async () => {
   const txPromise = simpleCoinContract.getBalance(addressWithFunds);
-  console.log(await txPromise);
+  console.log((await txPromise).toString());
 });
 
 it('submits a transaction', async () => {
