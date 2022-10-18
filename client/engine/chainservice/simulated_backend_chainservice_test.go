@@ -19,22 +19,6 @@ var (
 	Bob   = testactors.Bob
 )
 
-var concludeOutcome = outcome.Exit{
-	outcome.SingleAssetExit{
-		Asset: types.Address{},
-		Allocations: outcome.Allocations{
-			outcome.Allocation{
-				Destination: types.AddressToDestination(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)),
-				Amount:      big.NewInt(1),
-			},
-			outcome.Allocation{
-				Destination: types.AddressToDestination(common.HexToAddress(`0xEe18fF1575055691009aa246aE608132C57a422c`)),
-				Amount:      big.NewInt(1),
-			},
-		},
-	},
-}
-
 type NoopLogger struct{}
 
 func (l NoopLogger) Write(p []byte) (n int, err error) {
@@ -98,6 +82,21 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 
 func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	t.Skip("TODO: This seems to stall out")
+	var concludeOutcome = outcome.Exit{
+		outcome.SingleAssetExit{
+			Asset: types.Address{},
+			Allocations: outcome.Allocations{
+				outcome.Allocation{
+					Destination: types.AddressToDestination(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)),
+					Amount:      big.NewInt(1),
+				},
+				outcome.Allocation{
+					Destination: types.AddressToDestination(common.HexToAddress(`0xEe18fF1575055691009aa246aE608132C57a422c`)),
+					Amount:      big.NewInt(1),
+				},
+			},
+		},
+	}
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
 	if err != nil {
 		t.Fatal(err)
