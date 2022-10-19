@@ -47,31 +47,31 @@ module.exports = async ({deployments}) => {
   console.log('Filecoin deployer address (f1):', f1addr);
   console.log('Nonce:', nonce);
 
-  // await deploy('NitroAdjudicator', {
-  //   from: deployer.address,
-  //   args: [],
-  //   // since it's difficult to estimate the gas limit before f4 address is launched, it's safer to manually set
-  //   // a large gasLimit. This should be addressed in the following releases.
-  //   gasLimit: 1000000000, // BlockGasLimit / 10
-  //   // since Ethereum's legacy transaction format is not supported on FVM, we need to specify
-  //   // maxPriorityFeePerGas to instruct hardhat to use EIP-1559 tx format
-  //   maxPriorityFeePerGas: priorityFee,
-  //   nonce: nonce,
-  //   log: true,
-  // });
-
-  await deploy('SimpleCoin', {
+  await deploy('NitroAdjudicator', {
     from: deployer.address,
     args: [],
     // since it's difficult to estimate the gas limit before f4 address is launched, it's safer to manually set
     // a large gasLimit. This should be addressed in the following releases.
-    gasLimit: 10000000000, // BlockGasLimit / 10
+    gasLimit: 1000000000, // BlockGasLimit / 10
     // since Ethereum's legacy transaction format is not supported on FVM, we need to specify
     // maxPriorityFeePerGas to instruct hardhat to use EIP-1559 tx format
     maxPriorityFeePerGas: priorityFee,
     nonce: nonce,
     log: true,
   });
+
+  // await deploy('SimpleCoin', {
+  //   from: deployer.address,
+  //   args: [],
+  //   // since it's difficult to estimate the gas limit before f4 address is launched, it's safer to manually set
+  //   // a large gasLimit. This should be addressed in the following releases.
+  //   gasLimit: 10000000000, // BlockGasLimit / 10
+  //   // since Ethereum's legacy transaction format is not supported on FVM, we need to specify
+  //   // maxPriorityFeePerGas to instruct hardhat to use EIP-1559 tx format
+  //   maxPriorityFeePerGas: priorityFee,
+  //   nonce: nonce,
+  //   log: true,
+  // });
 
   // await deploy('ERC20', {
   //   from: deployer.address,
@@ -86,4 +86,4 @@ module.exports = async ({deployments}) => {
   //   log: true,
   // });
 };
-module.exports.tags = ['SimpleCoin'];
+module.exports.tags = ['NitroAdjudicator'];
