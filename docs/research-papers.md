@@ -4,7 +4,7 @@ Nitro is based on a culmination of research spanning the following papers:
 
 ## (2018) [:fontawesome-solid-file-pdf:](https://magmo.com/force-move-games.pdf) ForceMove
 
-An n-party state channel protocol. ForceMove contains early descriptions of the Nitro Adjudicator's acceptance of [user supplied applications](./protocol-tutorial/0010-states-channels.md#appdefinition), and of the turn-taking paradigm that allows channel applications to arbitrarily specify conditions where individual participants may force changes to channel state (as opposed to all participants co-signing a state change). This turn-taking paradigm is also covered in the blog post [Putting the 'state' in state channels](https://blog.statechannels.org/putting-the-state-in-state-channels/).
+An n-party state channel protocol. ForceMove contains early descriptions of a _generalized_ state channel protocol, i.e. one which allows for [user-defined applications](./protocol-tutorial/0010-states-channels.md#appdefinition), and of a turn-taking paradigm that allows individual participants to force changes to channel state (as opposed to all participants co-signing a state change). This turn-taking paradigm is also covered in the blog post [Putting the 'state' in state channels](https://blog.statechannels.org/putting-the-state-in-state-channels/).
 
 Note: most of the specific terminology from this paper is out of date with respect to current implementation.
 
