@@ -1,5 +1,5 @@
 <h1 align="center">
-<div><img src="https://protocol.statechannels.org/img/favicon.ico"><br>
+<div><img src="https://statechannels.org/favicon.ico"><br>
 go-nitro
 </h1>
 Implementation of nitro protocol in golang.
@@ -85,7 +85,7 @@ The resulting Go bindings file is _checked-in_ to the repository. Although it is
 
 If you alter the contracts, you should regenerate the bindings file at check it in. A github action will run which will check that you have done this correctly.
 
-TIP: if you find that the github action still reports a mismatch despite regenerating the bindings, this may be due to the action using the "test merge" of your PR (rather than the tip of your branch). Try rebasing your branch. 
+TIP: if you find that the github action still reports a mismatch despite regenerating the bindings, this may be due to the action using the "test merge" of your PR (rather than the tip of your branch). Try rebasing your branch.
 
 ## Contributing
 
