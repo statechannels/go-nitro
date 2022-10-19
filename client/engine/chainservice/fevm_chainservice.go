@@ -226,3 +226,12 @@ func (fcs *FevmChainService) GetConsensusAppAddress() types.Address {
 func (fcs *FevmChainService) GetVirtualPaymentAppAddress() types.Address {
 	return fcs.virtualPaymentAppAddress
 }
+
+// TODO: These functions are here to keep compatibility with the chain service interface
+
+func (fcs *FevmChainService) EventFeed() <-chan Event {
+	return nil
+}
+func (fcs *FevmChainService) Monitor(channelId types.Destination, ourDeposit, expectedTotal types.Funds) {
+
+}
