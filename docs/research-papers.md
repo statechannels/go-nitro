@@ -16,7 +16,7 @@ A protocol for state channel networks. Describes protocols for the secure adjust
 - perform top ups of running channels, and
 - to construct [virtual channels](https://blog.statechannels.org/virtual-channels/) between users who have no common channel, via a shared intermediary
 
-Note: some of the specific terminology and protocol details in this paper are out of date with respect to current implementation.
+Note: much of the terminology from this paper is out of date with respect to current implementation.
 
 ## (2022) [:fontawesome-solid-file-pdf:](https://statechannels.github.io/satp_paper/satp.pdf) Stateful Asset Transfer Protocol
 
