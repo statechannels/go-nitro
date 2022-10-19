@@ -1,19 +1,22 @@
-import {Contract, utils, providers, Wallet} from 'ethers';
+import {Contract, utils, providers, Wallet, BigNumber, constants} from 'ethers';
 // eslint-disable-next-line import/order
 import RpcEngine from '@glif/filecoin-rpc-client';
 import {FeeMarketEIP1559Transaction} from '@ethereumjs/tx';
 import {newSecp256k1Address} from '@glif/filecoin-address';
 
 import SimpleCoinArtifact from '../../../artifacts/contracts/SimpleCoin.sol/SimpleCoin.json';
-import {SimpleCoin} from '../../../typechain-types';
+import NitroArtifact from '../../../artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
+import {NitroAdjudicator, SimpleCoin} from '../../../typechain-types';
 
 const wallabyUrl = 'https://wallaby.node.glif.io/rpc/v0';
 const pk = '716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd';
-const addressWithFunds = '0xff000000000000000000000000000000000003f7';
-const contractAddress = '0xff000000000000000000000000000000000003f9';
+const simpleCoinAddress = '0xff000000000000000000000000000000000003f9';
+const nitroAddress = '0xFF000000000000000000000000000000000003fA';
+const channelId = '0xd9b535b686bcae01a00da8767de21d8bfc9915d513833160e5f15044fb4a3641';
 
 const provider = new providers.JsonRpcProvider(wallabyUrl);
-export const simpleCoinAbi = new utils.Interface(SimpleCoinArtifact.abi);
+const simpleCoinAbi = new utils.Interface(SimpleCoinArtifact.abi);
+const nitroAbi = new utils.Interface(NitroArtifact.abi);
 
 const ethRpc = new RpcEngine({
   apiAddress: wallabyUrl,
@@ -23,18 +26,24 @@ const ethRpc = new RpcEngine({
 const filRpc = new RpcEngine({apiAddress: wallabyUrl});
 
 const simpleCoinContract = new Contract(
-  contractAddress,
+  simpleCoinAddress,
   simpleCoinAbi,
   provider
 ) as unknown as SimpleCoin & Contract;
 
-it('submits a transaction', async () => {
+const nitroContract = new Contract(
+  nitroAddress,
+  nitroAbi,
+  provider
+) as unknown as NitroAdjudicator & Contract;
+
+it.skip('reads balance', async () => {
   const {idActorHex} = await deriveAddrsFromPk(pk, wallabyUrl);
   const txPromise = simpleCoinContract.getBalance(idActorHex);
   console.log((await txPromise).toString());
 });
 
-it('submits a transaction', async () => {
+it.skip('submits a transaction', async () => {
   const data = simpleCoinContract.interface.encodeFunctionData('sendCoin', [
     '0xff00000000000000000000000000000000000485',
     1,
@@ -47,12 +56,48 @@ it('submits a transaction', async () => {
   const txObject = {
     nonce,
     gasLimit: 1000000000, // BlockGasLimit / 10
-    to: contractAddress,
+    to: simpleCoinAddress,
     maxPriorityFeePerGas: priorityFee,
     maxFeePerGas: '0x2E90EDD000',
     chainId: 31415,
     data,
     type: 2,
+  };
+  const tx = FeeMarketEIP1559Transaction.fromTxData(txObject);
+  const sig = tx.sign(Buffer.from(pk, 'hex'));
+  const serializedTx = sig.serialize();
+  const rawTxHex = '0x' + serializedTx.toString('hex');
+  const res = await ethRpc.request('sendRawTransaction', rawTxHex);
+  console.log(res);
+});
+
+it('reads balance', async () => {
+  const txPromise = nitroContract.holdings(constants.AddressZero, channelId);
+  console.log((await txPromise).toString());
+});
+
+it('nitro deposit transaction', async () => {
+  const data = nitroContract.interface.encodeFunctionData('deposit', [
+    constants.AddressZero,
+    channelId,
+    0,
+    1,
+  ]);
+
+  const {secpActor} = await deriveAddrsFromPk(pk, wallabyUrl);
+  const priorityFee = await ethRpc.request('maxPriorityFeePerGas');
+  const nonce = await filRpc.request('MpoolGetNonce', secpActor);
+
+  const txObject = {
+    nonce,
+    gasLimit: 1000000000, // BlockGasLimit / 10
+    to: nitroAddress,
+    maxPriorityFeePerGas: priorityFee,
+    maxFeePerGas: '0x2E90EDD000',
+    chainId: 31415,
+    data,
+    type: 2,
+    value: constants.One.toHexString(),
   };
   const tx = FeeMarketEIP1559Transaction.fromTxData(txObject);
   const sig = tx.sign(Buffer.from(pk, 'hex'));
@@ -77,4 +122,12 @@ async function deriveAddrsFromPk(pk: string, apiAddress: string) {
   const idActorHex = hexlify(idActor);
 
   return {secpActor, idActor, idActorHex};
+}
+
+// Copied from https://stackoverflow.com/questions/58325771/how-to-generate-random-hex-string-in-javascript
+function genRanHex(size: number) {
+  return [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+}
+function randomChannelId() {
+  return '0x' + genRanHex(64);
 }
