@@ -65,7 +65,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
 
         uint256 nowHeld = held + amountDeposited;
         holdings[asset][channelId] = nowHeld;
-        emit Deposited(channelId, asset, amountDeposited, nowHeld);
+        //emit Deposited(channelId, asset, amountDeposited, nowHeld);
 
         if (asset == address(0)) {
             // refund whatever wasn't deposited.
