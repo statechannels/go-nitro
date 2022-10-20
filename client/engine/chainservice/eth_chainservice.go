@@ -38,7 +38,7 @@ type EthChainService struct {
 	txSigner                 *bind.TransactOpts
 	out                      chan Event
 	logger                   *log.Logger
-	watchedChannels          safesync.Map[watchInfo]
+	watchedChannels          safesync.Map[watchDepositInfo]
 }
 
 // RESUB_INTERVAL is how often we resubscribe to log events.
@@ -49,17 +49,11 @@ const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
 
 const POLL_INTERVAL = 500 * time.Millisecond
 
-type TxType string
-
-type watchInfo struct {
+type watchDepositInfo struct {
 	asset            types.Address
 	channelId        types.Destination
 	fundingTarget    *big.Int
 	ourFundingTarget *big.Int
-}
-
-func (w *watchInfo) isDeposit() bool {
-	return !types.IsZero(w.fundingTarget) || !types.IsZero(w.ourFundingTarget)
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
@@ -72,7 +66,7 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	ecs := EthChainService{chain, na,
 		naAddress, caAddress, vpaAddress,
 		txSigner, make(chan Event, 10), logger,
-		safesync.Map[watchInfo]{},
+		safesync.Map[watchDepositInfo]{},
 	}
 	if usePolling := true; usePolling {
 		go ecs.pollChain(context.Background())
@@ -162,7 +156,7 @@ func (ecs *EthChainService) Monitor(channelId types.Destination, ourDeposit, exp
 	for _, amount := range ourDeposit {
 		deposit = amount
 	}
-	ecs.watchedChannels.Store(channelId.String(), watchInfo{channelId: channelId, fundingTarget: total, ourFundingTarget: deposit})
+	ecs.watchedChannels.Store(channelId.String(), watchDepositInfo{channelId: channelId, fundingTarget: total, ourFundingTarget: deposit})
 }
 
 // pollChain periodically polls the chain for holdings changes.
@@ -182,27 +176,17 @@ func (ecs *EthChainService) pollChain(ctx context.Context) {
 
 			previousBlock = latestBlock
 			completed := make([]string, 0)
-			// Range over all open tx infos and check if the holdings have been updated.
-			ecs.watchedChannels.Range(func(key string, info watchInfo) bool {
+			// Range over all open deposit infos and check if the holdings have been updated.
+			ecs.watchedChannels.Range(func(key string, info watchDepositInfo) bool {
 				currentHoldings, err := ecs.na.Holdings(&bind.CallOpts{}, info.asset, info.channelId)
 				if err != nil {
 					panic(err)
 				}
-
-				if info.isDeposit() {
-					event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.ourFundingTarget, currentHoldings)
-					ecs.out <- event
-					// We only want to remove the channel if the deposit is fully complete.
-					if currentHoldings.Cmp(info.fundingTarget) >= 0 {
-						completed = append(completed, key)
-					}
-				} else {
-					concludedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: info.channelId, BlockNum: latestBlock}}
-					ecs.out <- concludedEvent
-					allocEvent := NewAllocationUpdatedEvent(info.channelId, latestBlock, info.asset, currentHoldings)
-					ecs.out <- allocEvent
+				event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.ourFundingTarget, currentHoldings)
+				ecs.out <- event
+				// We only want to remove the channel if the deposit is fully complete.
+				if currentHoldings.Cmp(info.fundingTarget) >= 0 {
 					completed = append(completed, key)
-
 				}
 
 				return true
