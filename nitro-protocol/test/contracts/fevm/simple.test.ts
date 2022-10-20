@@ -12,7 +12,7 @@ const wallabyUrl = 'https://wallaby.node.glif.io/rpc/v0';
 const pk = '716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd';
 const simpleCoinAddress = '0xff000000000000000000000000000000000003f9';
 const nitroAddress = '0xFF000000000000000000000000000000000003fA';
-const channelId = '0xd9b535b686bcae01a00da8767de21d8bfc9915d513833160e5f15044fb4a3641';
+const channelId = '0xd9b535b686bcae01a00da8767de21d8bfc9915d513833160e5f15044fb4a3644';
 
 const provider = new providers.JsonRpcProvider(wallabyUrl);
 const simpleCoinAbi = new utils.Interface(SimpleCoinArtifact.abi);
@@ -71,11 +71,6 @@ it.skip('submits a transaction', async () => {
   console.log(res);
 });
 
-it('reads balance', async () => {
-  const txPromise = nitroContract.holdings(constants.AddressZero, channelId);
-  console.log((await txPromise).toString());
-});
-
 it('nitro deposit transaction', async () => {
   const data = nitroContract.interface.encodeFunctionData('deposit', [
     constants.AddressZero,
@@ -86,6 +81,7 @@ it('nitro deposit transaction', async () => {
 
   const {secpActor} = await deriveAddrsFromPk(pk, wallabyUrl);
   const priorityFee = await ethRpc.request('maxPriorityFeePerGas');
+  console.log(priorityFee);
   const nonce = await filRpc.request('MpoolGetNonce', secpActor);
 
   const txObject = {
@@ -105,6 +101,11 @@ it('nitro deposit transaction', async () => {
   const rawTxHex = '0x' + serializedTx.toString('hex');
   const res = await ethRpc.request('sendRawTransaction', rawTxHex);
   console.log(res);
+});
+
+it('reads balance', async () => {
+  const txPromise = nitroContract.holdings(constants.AddressZero, channelId);
+  console.log((await txPromise).toString());
 });
 
 function hexlify(id: string) {
