@@ -161,7 +161,7 @@ func (ecs *EthChainService) Monitor(channelId types.Destination, ourDeposit, exp
 
 // pollChain periodically polls the chain for holdings changes.
 func (ecs *EthChainService) pollChain(ctx context.Context) {
-	previousBlock := ecs.getLatestBlockNum()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -169,12 +169,6 @@ func (ecs *EthChainService) pollChain(ctx context.Context) {
 		case <-time.After(POLL_INTERVAL):
 			latestBlock := ecs.getLatestBlockNum()
 
-			// If we don't have a new block number we ingore this iteration.
-			if latestBlock == previousBlock {
-				continue
-			}
-
-			previousBlock = latestBlock
 			completed := make([]string, 0)
 			// Range over all open deposit infos and check if the holdings have been updated.
 			ecs.watchedChannels.Range(func(key string, info watchDepositInfo) bool {
