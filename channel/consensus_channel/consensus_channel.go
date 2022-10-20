@@ -765,15 +765,25 @@ func (vars *Vars) Add(p Add) error {
 		return ErrDuplicateGuarantee
 	}
 
+	var left, right Balance
+
+	if o.leader.destination == p.Guarantee.left {
+		left = o.leader
+		right = o.follower
+	} else {
+		left = o.follower
+		right = o.leader
+	}
+
 	if types.Gt(p.LeftDeposit, p.amount) {
 		return ErrInvalidDeposit
 	}
 
-	if types.Gt(p.LeftDeposit, o.leader.amount) {
+	if types.Gt(p.LeftDeposit, left.amount) {
 		return ErrInsufficientFunds
 	}
 
-	if types.Gt(p.RightDeposit(), o.follower.amount) {
+	if types.Gt(p.RightDeposit(), right.amount) {
 		return ErrInsufficientFunds
 	}
 
@@ -782,10 +792,16 @@ func (vars *Vars) Add(p Add) error {
 	// Increase the turn number
 	vars.TurnNum += 1
 
-	// Adjust balances
-	o.leader.amount.Sub(o.leader.amount, p.LeftDeposit)
 	rightDeposit := p.RightDeposit()
-	o.follower.amount.Sub(o.follower.amount, rightDeposit)
+
+	// Adjust balances
+	if o.leader.destination == p.Guarantee.left {
+		o.leader.amount.Sub(o.leader.amount, p.LeftDeposit)
+		o.follower.amount.Sub(o.follower.amount, rightDeposit)
+	} else {
+		o.follower.amount.Sub(o.follower.amount, p.LeftDeposit)
+		o.leader.amount.Sub(o.leader.amount, rightDeposit)
+	}
 
 	// Include guarantee
 	o.guarantees[p.target] = p.Guarantee
