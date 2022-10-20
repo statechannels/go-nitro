@@ -61,7 +61,19 @@ To run tests:
 go test ./...
 ```
 
-# Viewing Godocs website
+# Documenation website
+
+This is built using a variant of `mkdocs`. First, follow [these instructions](https://squidfunk.github.io/mkdocs-material/getting-started/#installation) to install. Then run
+
+```
+mkdocs serve
+```
+
+and navigate to http://localhost:8000 .
+
+## Viewing Godocs website
+
+Run
 
 ```shell
 godoc --http :6060
