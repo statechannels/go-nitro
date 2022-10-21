@@ -728,7 +728,7 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 
 // ClientObjectiveRequest represents a request from the client API to create a new
 // virtual funding objective. The executing client which creates this request is
-// assming the Alice role in the virualfund protocol. IE, taking the first position
+// assuming the Alice role in the virualfund protocol. IE, taking the first position
 // in the participants list.
 type ClientObjectiveRequest struct {
 	Intermediaries    []types.Address
