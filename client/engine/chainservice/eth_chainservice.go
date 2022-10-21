@@ -54,6 +54,7 @@ type watchDepositInfo struct {
 	channelId        types.Destination
 	fundingTarget    *big.Int
 	ourFundingTarget *big.Int
+	largestHeld      *big.Int
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
@@ -156,7 +157,7 @@ func (ecs *EthChainService) Monitor(channelId types.Destination, ourDeposit, exp
 	for _, amount := range ourDeposit {
 		deposit = amount
 	}
-	ecs.watchedChannels.Store(channelId.String(), watchDepositInfo{channelId: channelId, fundingTarget: total, ourFundingTarget: deposit})
+	ecs.watchedChannels.Store(channelId.String(), watchDepositInfo{channelId: channelId, fundingTarget: total, ourFundingTarget: deposit, largestHeld: big.NewInt(0)})
 }
 
 // pollChain periodically polls the chain for holdings changes.
@@ -176,8 +177,11 @@ func (ecs *EthChainService) pollChain(ctx context.Context) {
 				if err != nil {
 					panic(err)
 				}
-				event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.ourFundingTarget, currentHoldings)
-				ecs.out <- event
+				if currentHoldings.Cmp(info.largestHeld) > 0 {
+					event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.ourFundingTarget, currentHoldings)
+					ecs.out <- event
+					info.largestHeld = currentHoldings
+				}
 				// We only want to remove the channel if the deposit is fully complete.
 				if currentHoldings.Cmp(info.fundingTarget) >= 0 {
 					completed = append(completed, key)

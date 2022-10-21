@@ -182,7 +182,8 @@ func (cs *FevmChainService) GetVirtualPaymentAppAddress() types.Address {
 func (cs *FevmChainService) Monitor(channelId types.Destination, ourDeposit, expectedTotal types.Funds) {
 	deposit := ourDeposit[common.Address{}]
 	total := expectedTotal[common.Address{}]
-	cs.watchedChannels.Store(channelId.String(), watchDepositInfo{channelId: channelId, fundingTarget: total, ourFundingTarget: deposit})
+	cs.watchedChannels.Store(channelId.String(),
+		watchDepositInfo{channelId: channelId, fundingTarget: total, ourFundingTarget: deposit, largestHeld: big.NewInt(0)})
 }
 
 // pollChain periodically polls the chain for holdings changes.
@@ -204,8 +205,12 @@ func (cs *FevmChainService) pollChain(ctx context.Context) {
 				if err != nil {
 					panic(err)
 				}
-				event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.ourFundingTarget, currentHoldings)
-				cs.out <- event
+				// Only send an event if the amount on chain has gone up.
+				if currentHoldings.Cmp(info.largestHeld) > 0 {
+					event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.ourFundingTarget, currentHoldings)
+					cs.out <- event
+					info.largestHeld.Set(currentHoldings)
+				}
 				// We only want to remove the channel if the deposit is fully complete.
 				if currentHoldings.Cmp(info.fundingTarget) >= 0 {
 					completed = append(completed, key)
