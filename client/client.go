@@ -149,7 +149,7 @@ func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDurati
 // CloseLedgerChannel attempts to close and defund the given directly funded channel.
 func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.ObjectiveId {
 
-	objectiveRequest := directdefund.ObjectiveRequest{
+	objectiveRequest := directdefund.ClientObjectiveRequest{
 		ChannelId: channelId,
 	}
 

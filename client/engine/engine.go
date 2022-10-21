@@ -393,7 +393,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		}
 		return e.attemptProgress(&dfo)
 
-	case directdefund.ObjectiveRequest:
+	case directdefund.ClientObjectiveRequest:
 		ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
 		if err != nil {
 			return EngineEvent{
