@@ -134,7 +134,7 @@ func (cs *FevmChainService) SendTransaction(tx protocols.ChainTransaction) error
 			if err != nil {
 				log.Fatalf("could not get nonce")
 			}
-
+			fmt.Printf("nonce: %d\n", nonce)
 			abi, err := NitroAdjudicator.NitroAdjudicatorMetaData.GetAbi()
 			if err != nil {
 				log.Fatal(err)
