@@ -136,7 +136,7 @@ type Objective struct {
 }
 
 // NewObjective creates a new virtual funding objective from a given request.
-func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
+func NewObjective(request ClientObjectiveRequest, preApprove bool, myAddress types.Address, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 	var rightCC *consensus_channel.ConsensusChannel
 	ok := false
 
@@ -726,8 +726,11 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 	return sideEffects, nil
 }
 
-// ObjectiveRequest represents a request to create a new virtual funding objective.
-type ObjectiveRequest struct {
+// ClientObjectiveRequest represents a request from the client API to create a new
+// virtual funding objective. The executing client which creates this request is
+// assming the Alice role in the virualfund protocol. IE, taking the first position
+// in the participants list.
+type ClientObjectiveRequest struct {
 	Intermediaries    []types.Address
 	CounterParty      types.Address
 	ChallengeDuration uint32
@@ -737,7 +740,7 @@ type ObjectiveRequest struct {
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
+func (r ClientObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
 	idStr := r.channelID(myAddress).String()
 	return protocols.ObjectiveId(ObjectivePrefix + idStr)
 }
@@ -749,7 +752,7 @@ type ObjectiveResponse struct {
 }
 
 // Response computes and returns the appropriate response from the request.
-func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
+func (r ClientObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
 	channelId := r.channelID(myAddress)
 
 	return ObjectiveResponse{
@@ -758,7 +761,7 @@ func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
 	}
 }
 
-func (r ObjectiveRequest) channelID(myAddress types.Address) types.Destination {
+func (r ClientObjectiveRequest) channelID(myAddress types.Address) types.Destination {
 	participants := []types.Address{myAddress}
 	participants = append(participants, r.Intermediaries...)
 	participants = append(participants, r.CounterParty)
