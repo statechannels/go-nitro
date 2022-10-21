@@ -41,14 +41,13 @@ func fvmNonce(f1Address filecoinAddress.Address) (int64, error) {
 }
 
 func latestBlockNum() (uint64, error) {
-	var responseBody map[string]interface{}
+	responseBody := make(map[string]interface{})
 
-	err := rpcCall("eth_getBlockByNumber", `["latest", false]`, &responseBody)
+	err := rpcCall("eth_blockNumber", `[]`, &responseBody)
 	if err != nil {
 		return 0, err
 	}
-	responseMap := responseBody["result"].(map[string]interface{})
-	blockNumHex := responseMap["number"].(string)
+	blockNumHex := responseBody["result"].(string)
 	blockNum, success := new(big.Int).SetString(blockNumHex[2:], 16)
 	if !success {
 		log.Fatalf("Unable to convert block number %+v", blockNumHex)
