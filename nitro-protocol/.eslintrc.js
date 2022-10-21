@@ -32,6 +32,9 @@ module.exports = {
      */
     'prettier/prettier': 'warn',
   },
+  // Ignore the deploy scripts for now
+  ignorePatterns: ['**/hardhat-deploy-fvm/*.js'],
+
   overrides: [
     {
       files: ['**/*.ts'],
