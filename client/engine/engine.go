@@ -438,7 +438,13 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
-
+	for _, tx := range sideEffects.TransactionsToSubmit {
+		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId())
+		err := e.chain.SendTransaction(tx)
+		if err != nil {
+			return err
+		}
+	}
 	go func() {
 		defer e.metrics.RecordFunctionDuration()()
 
@@ -447,16 +453,10 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 			// e.recordMessageMetrics(message)
 			e.msg.Send(message)
 		}
-		for _, tx := range sideEffects.TransactionsToSubmit {
-			e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId())
-			err := e.chain.SendTransaction(tx)
-			if err != nil {
-				panic(err)
-			}
-		}
 		for _, proposal := range sideEffects.ProposalsToProcess {
 			e.fromLedger <- proposal
 		}
+
 	}()
 	return nil
 }
