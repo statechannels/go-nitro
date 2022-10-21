@@ -1,10 +1,10 @@
 {
   "name": "@statechannels/nitro-protocol",
-  "version": "2.0.0-alpha.0",
+  "version": "2.0.0-alpha.1",
   "author": "statechannels.org",
   "bugs": "https://github.com/statechannels/go-nitro/issues",
   "description": "Smart contracts and typescript libraries for nitro state channel protocol.",
-  "main": "lib/src/index.js",
+  "main": "dist/src/index.js",
   "homepage": "https://github.com/statechannels/go-nitro",
   "repository": "statechannels/go-nitro.git",
   "files": [
