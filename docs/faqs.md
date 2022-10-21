@@ -22,6 +22,10 @@ The on-chain components of Nitro protocol are implemented in solidity, and are p
 
 The off-chain component of the protocol are implemented in [`go-nitro`](https://pkg.go.dev/github.com/statechannels/go-nitro), a reference client for Nitro Protocol.
 
+## What is `go-nitro`?
+
+`go-nitro` is a reference implementation of Nitro protocol. It manages signing keys, stores state channel updates and runs off-chain protocols such as [virtual funding](./protocol-tutorial/0060-funding-a-channel.md#fund-virtually). It abstracts away most of the complexity of running state channels. For more detail, see [this page](./go-nitro-client/client-api.md).
+
 ## Where is it being used?
 
 The maintainers of `nitro-protocol` and `go-nitro` are working towards integrating the system into the [Filecoin Retrieval Market](https://retrieval.market/) and the [Filecoin Virtual Machine](https://fvm.filecoin.io/).
