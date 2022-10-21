@@ -52,6 +52,10 @@ export function setupContract(
   return new ethers.Contract(address, artifact.abi, provider.getSigner(0));
 }
 
+export function getCountingAppContractAddress(): string {
+  return process.env.COUNTING_APP_ADDRESS;
+}
+
 export const nonParticipant = ethers.Wallet.createRandom();
 
 /**
