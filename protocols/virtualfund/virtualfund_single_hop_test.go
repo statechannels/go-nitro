@@ -74,11 +74,11 @@ func newTestData() testData {
 
 	followerLedgers := make(map[types.Destination]actorLedgers)
 	followerLedgers[alice.Destination()] = actorLedgers{
-		right: prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1, alice),
+		right: prepareConsensusChannel(uint(consensus_channel.Follower), p1, alice, alice),
 	}
 	followerLedgers[p1.Destination()] = actorLedgers{
 		left:  prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1, alice),
-		right: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob, p1),
+		right: prepareConsensusChannel(uint(consensus_channel.Follower), bob, p1, p1),
 	}
 	followerLedgers[bob.Destination()] = actorLedgers{
 		left: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob, p1),
