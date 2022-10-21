@@ -130,7 +130,7 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.Obje
 // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
 func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
 
-	objectiveRequest := directfund.ObjectiveRequest{
+	objectiveRequest := directfund.ClientObjectiveRequest{
 		CounterParty:      Counterparty,
 		ChallengeDuration: ChallengeDuration,
 		Outcome:           outcome,

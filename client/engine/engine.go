@@ -386,7 +386,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		}
 		return e.attemptProgress(&vdfo)
 
-	case directfund.ObjectiveRequest:
+	case directfund.ClientObjectiveRequest:
 		dfo, err := directfund.NewObjective(request, true, myAddress, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
