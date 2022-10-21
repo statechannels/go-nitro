@@ -452,7 +452,8 @@ func (e *Engine) sendMessages(msgs []protocols.Message) {
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	defer e.metrics.RecordFunctionDuration()()
 
-	e.sendMessages(sideEffects.MessagesToSend)
+	// Send the messages in a go routine so we don't have to block waiting for them to be delivered
+	go e.sendMessages(sideEffects.MessagesToSend)
 
 	for _, tx := range sideEffects.TransactionsToSubmit {
 		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId())
