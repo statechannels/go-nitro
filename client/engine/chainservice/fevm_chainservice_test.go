@@ -1,7 +1,6 @@
 package chainservice
 
 import (
-	"log"
 	"math/big"
 	"testing"
 
@@ -35,7 +34,6 @@ func TestFevmChainService(t *testing.T) {
 
 	// Check that the recieved events matches the expected event
 	receivedEvent := <-out
-	log.Print("received deposit event")
 	dEvent := receivedEvent.(DepositedEvent)
 	expectedEvent := NewDepositedEvent(channelID, 2, dEvent.AssetAddress, testDeposit[dEvent.AssetAddress], testDeposit[dEvent.AssetAddress])
 	// TODO to validate BlockNum and NowHeld values, chain state prior to transaction must be inspected

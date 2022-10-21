@@ -41,17 +41,17 @@ func fvmNonce(f1Address filecoinAddress.Address) (int64, error) {
 }
 
 func latestBlockNum() (uint64, error) {
-	type blockResultTy struct {
-		Number string `json:"result"`
-	}
-	var responseBody blockResultTy
-	err := rpcCall("eth_getBlockByNumber", `["latest", "false"]`, &responseBody)
+	var responseBody map[string]interface{}
+
+	err := rpcCall("eth_getBlockByNumber", `["latest", false]`, &responseBody)
 	if err != nil {
 		return 0, err
 	}
-	blockNum, success := new(big.Int).SetString(responseBody.Number, 16)
+	responseMap := responseBody["result"].(map[string]interface{})
+	blockNumHex := responseMap["number"].(string)
+	blockNum, success := new(big.Int).SetString(blockNumHex[2:], 16)
 	if !success {
-		log.Fatalf("Unable to convert block number %+v", responseBody)
+		log.Fatalf("Unable to convert block number %+v", blockNumHex)
 	}
 	return blockNum.Uint64(), nil
 }
@@ -209,7 +209,6 @@ func (cs *FevmChainService) pollChain(ctx context.Context) {
 					panic(err)
 				}
 				event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.ourFundingTarget, currentHoldings)
-				log.Printf("Sending deposited event. latest block %v, currentHoldings %v", latestBlock, currentHoldings)
 				cs.out <- event
 				// We only want to remove the channel if the deposit is fully complete.
 				if currentHoldings.Cmp(info.fundingTarget) >= 0 {
