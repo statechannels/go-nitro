@@ -375,7 +375,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		}
 		return e.attemptProgress(&vfo)
 
-	case virtualdefund.ObjectiveRequest:
+	case virtualdefund.ClientObjectiveRequest:
 		minAmount := big.NewInt(0)
 		if e.vm.ChannelRegistered(request.ChannelId) {
 			bal, _ := e.vm.Balance(request.ChannelId)

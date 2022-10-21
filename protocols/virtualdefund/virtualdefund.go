@@ -79,7 +79,7 @@ type GetChannelByIdFunction func(id types.Destination) (channel *channel.Channel
 type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
 // NewObjective constructs a new virtual defund objective
-func NewObjective(request ObjectiveRequest,
+func NewObjective(request ClientObjectiveRequest,
 	preApprove bool,
 	myAddress types.Address,
 	largestPaymentAmount *big.Int,
@@ -197,7 +197,7 @@ func ConstructObjectiveFromPayload(
 			return Objective{}, err
 		}
 		return NewObjective(
-			ObjectiveRequest{cId},
+			ClientObjectiveRequest{cId},
 			preapprove,
 			myAddress,
 			latestVoucherAmount,
@@ -227,7 +227,7 @@ func ConstructObjectiveFromPayload(
 		}
 
 		return NewObjective(
-			ObjectiveRequest{ss.ChannelId()},
+			ClientObjectiveRequest{ss.ChannelId()},
 			preapprove,
 			myAddress,
 			latestVoucherAmount,
@@ -687,13 +687,14 @@ func isZero(sig state.Signature) bool {
 	return sig.Equal(zeroSig)
 }
 
-// ObjectiveRequest represents a request to create a new virtual defund objective.
-type ObjectiveRequest struct {
+// ClientObjectiveRequest represents a request to create a new virtual defund objective.
+// It can be created by any member of a running virtual channel.
+type ClientObjectiveRequest struct {
 	ChannelId types.Destination
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id(types.Address) protocols.ObjectiveId {
+func (r ClientObjectiveRequest) Id(types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
 }
 

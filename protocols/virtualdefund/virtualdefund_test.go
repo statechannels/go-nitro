@@ -36,7 +36,7 @@ func TestCrank(t *testing.T) {
 func TestInvalidUpdate(t *testing.T) {
 	data := generateTestData()
 	vId := data.vFinal.ChannelId()
-	request := ObjectiveRequest{
+	request := ClientObjectiveRequest{
 		ChannelId: vId,
 	}
 
@@ -68,7 +68,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
 		vId := data.vFinal.ChannelId()
-		request := ObjectiveRequest{
+		request := ClientObjectiveRequest{
 			ChannelId: vId,
 		}
 
@@ -101,7 +101,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
 		vId := data.vFinal.ChannelId()
-		request := ObjectiveRequest{
+		request := ClientObjectiveRequest{
 			ChannelId: vId,
 		}
 
@@ -215,7 +215,7 @@ func TestConstructObjectiveFromState(t *testing.T) {
 func TestApproveReject(t *testing.T) {
 	data := generateTestData()
 	vId := data.vFinal.ChannelId()
-	request := ObjectiveRequest{
+	request := ClientObjectiveRequest{
 		ChannelId: vId,
 	}
 
