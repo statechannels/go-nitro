@@ -68,7 +68,7 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 		txSigner, make(chan Event, 10), logger,
 		safesync.Map[watchDepositInfo]{},
 	}
-	if usePolling := true; usePolling {
+	if usePolling := false; usePolling {
 		go ecs.pollChain(context.Background())
 	} else {
 		go ecs.listenForLogEvents()
