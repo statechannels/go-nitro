@@ -46,7 +46,7 @@ jobs:
          -b=docker:go -r=local:docker \
          -tp=numOfHubs=1 -tp=numOfPayers=2 -tp=numOfPayees=5  -i=8 \
          -tp=paymentTestDuration=60  -tp=concurrentPaymentJobs=3 \
-         --tp=networkLatency=10 --tp=networkJitter=5 \
+         --tp=networkLatency=10 --tp=networkJitter=1 \
          --metadata-repo "${{github.repository}}" \
          --metadata-branch "${{github.event.pull_request.head.ref}}" \
          --metadata-commit "${{github.event.pull_request.head.sha}}"  | tee run.out
