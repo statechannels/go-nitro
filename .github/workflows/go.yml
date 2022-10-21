@@ -32,7 +32,7 @@ jobs:
 
       - name: Test
         timeout-minutes: 30
-        run: go test ./... -count=2 -shuffle=on
+        run: go test ./... -count=1 -shuffle=on
 
       - name: Archive logs
         if: always()
