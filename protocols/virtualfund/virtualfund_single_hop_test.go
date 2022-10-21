@@ -62,26 +62,26 @@ func newTestData() testData {
 
 	leaderLedgers := make(map[types.Destination]actorLedgers)
 	leaderLedgers[alice.Destination()] = actorLedgers{
-		right: prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1),
+		right: prepareConsensusChannel(uint(consensus_channel.Leader), alice, p1, alice),
 	}
 	leaderLedgers[p1.Destination()] = actorLedgers{
-		left:  prepareConsensusChannel(uint(consensus_channel.Leader), p1, alice),
-		right: prepareConsensusChannel(uint(consensus_channel.Leader), p1, bob),
+		left:  prepareConsensusChannel(uint(consensus_channel.Leader), p1, alice, alice),
+		right: prepareConsensusChannel(uint(consensus_channel.Leader), p1, bob, p1),
 	}
 	leaderLedgers[bob.Destination()] = actorLedgers{
-		left: prepareConsensusChannel(uint(consensus_channel.Leader), bob, p1),
+		left: prepareConsensusChannel(uint(consensus_channel.Leader), bob, p1, p1),
 	}
 
 	followerLedgers := make(map[types.Destination]actorLedgers)
 	followerLedgers[alice.Destination()] = actorLedgers{
-		right: prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
+		right: prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1, alice),
 	}
 	followerLedgers[p1.Destination()] = actorLedgers{
-		left:  prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1),
-		right: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
+		left:  prepareConsensusChannel(uint(consensus_channel.Follower), alice, p1, alice),
+		right: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob, p1),
 	}
 	followerLedgers[bob.Destination()] = actorLedgers{
-		left: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob),
+		left: prepareConsensusChannel(uint(consensus_channel.Follower), p1, bob, p1),
 	}
 
 	return testData{vPreFund, vPostFund, leaderLedgers, followerLedgers}
