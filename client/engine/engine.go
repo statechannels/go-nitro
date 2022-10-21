@@ -400,7 +400,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 
 	case directdefund.ObjectiveRequest:
 		ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
-		e.chain.Monitor(ddfo.C.ChannelId(), types.Funds{}, types.Funds{})
+
 		if err != nil {
 			return EngineEvent{
 				FailedObjectives: []protocols.ObjectiveId{objectiveId},
@@ -559,9 +559,7 @@ func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.O
 				dfo.C.Total(),
 			)
 		}
-		if ddfo, isDDF := newObj.(*directdefund.Objective); isDDF {
-			e.chain.Monitor(ddfo.C.ChannelId(), types.Funds{}, types.Funds{})
-		}
+
 		if err != nil {
 			return nil, fmt.Errorf("error constructing objective from message: %w", err)
 		}
