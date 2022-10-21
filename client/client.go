@@ -115,7 +115,7 @@ func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, Cou
 // CloseVirtualChannel attempts to close and defund the given virtually funded channel.
 func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.ObjectiveId {
 
-	objectiveRequest := virtualdefund.ObjectiveRequest{
+	objectiveRequest := virtualdefund.ClientObjectiveRequest{
 		ChannelId: channelId,
 	}
 
