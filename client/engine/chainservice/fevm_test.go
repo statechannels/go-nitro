@@ -37,7 +37,7 @@ func TestFevm(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(holdings)
-
+	const pkString = "716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd"
 	pk, err := crypto.HexToECDSA(pkString)
 	if err != nil {
 		t.Fatal(err)

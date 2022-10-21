@@ -3,6 +3,7 @@ package chainservice
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,7 +26,6 @@ import (
 )
 
 const endpoint = "https://wallaby.node.glif.io/rpc/v0"
-const pkString = "716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd"
 const chainId = 31415
 
 func fvmNonce(f1Address filecoinAddress.Address) (int64, error) {
@@ -82,9 +82,10 @@ type FevmChainService struct {
 	ethClient       *ethclient.Client
 	out             chan Event
 	watchedChannels safesync.Map[watchDepositInfo]
+	pk              *ecdsa.PrivateKey
 }
 
-func NewFevmChainService() ChainService {
+func NewFevmChainService(pk *ecdsa.PrivateKey) ChainService {
 	nitroAddress := common.HexToAddress("0xFF000000000000000000000000000000000003fA")
 	client, err := ethclient.Dial(endpoint)
 	if err != nil {
@@ -95,7 +96,7 @@ func NewFevmChainService() ChainService {
 		log.Fatal(err)
 	}
 
-	cs := &FevmChainService{na, nitroAddress, client, make(chan Event, 100), safesync.Map[watchDepositInfo]{}}
+	cs := &FevmChainService{na, nitroAddress, client, make(chan Event, 100), safesync.Map[watchDepositInfo]{}, pk}
 	go cs.pollChain(context.Background())
 	return cs
 }
@@ -117,16 +118,12 @@ func (cs *FevmChainService) SendTransaction(tx protocols.ChainTransaction) error
 				return err
 			}
 
-			pk, err := crypto.HexToECDSA(pkString)
-			if err != nil {
-				log.Fatal(err)
-			}
-			txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, big.NewInt(int64(chainId)))
+			txSubmitter, err := bind.NewKeyedTransactorWithChainID(cs.pk, big.NewInt(int64(chainId)))
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			f1Address, err := filecoinAddress.NewSecp256k1Address(crypto.FromECDSAPub(&pk.PublicKey))
+			f1Address, err := filecoinAddress.NewSecp256k1Address(crypto.FromECDSAPub(&cs.pk.PublicKey))
 			if err != nil {
 				log.Fatalf("could not get address")
 			}

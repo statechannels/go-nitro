@@ -3,6 +3,7 @@ package client_test
 import (
 	"testing"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -17,10 +18,11 @@ func TestFevmDirectFund(t *testing.T) {
 	logFile := "test_fevm_direct_fund.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
-
+	const pkString = "716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd"
 	// Setup chain service
-	chainA := chainservice.NewFevmChainService()
-	chainB := chainservice.NewFevmChainService()
+	pk, _ := crypto.HexToECDSA(pkString)
+	chainA := chainservice.NewFevmChainService(pk)
+	chainB := chainservice.NewFevmChainService(pk)
 	// End chain service setup
 
 	broker := messageservice.NewBroker()
