@@ -441,8 +441,8 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	defer e.metrics.RecordFunctionDuration()()
 
 	for _, message := range sideEffects.MessagesToSend {
-		e.logMessage(message, Outgoing)
-		e.recordMessageMetrics(message)
+		// e.logMessage(message, Outgoing)
+		// e.recordMessageMetrics(message)
 		e.msg.Send(message)
 	}
 	for _, tx := range sideEffects.TransactionsToSubmit {
