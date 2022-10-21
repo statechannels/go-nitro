@@ -169,6 +169,7 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 		time.Sleep(RETRY_SLEEP_DURATION)
 
 	}
+	panic(fmt.Errorf("could not send message after %d retries", NUM_CONNECT_ATTEMPTS))
 
 }
 
