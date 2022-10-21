@@ -485,9 +485,9 @@ func assertOneProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus
 			sent := msg.LedgerProposals[0]
 			toAddress := to.Address()
 
-			Assert(t, len(ses.MessagesToSend[0].LedgerProposals) == 1, "exp: %+v\n\n\tgot%+v", sent.Proposal, sp.Proposal)
-			Assert(t, bytes.Equal(msg.To[:], toAddress[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address().String())
-			Assert(t, compareSignedProposals(sp, sent), "exp: %+v\n\n\tgot%+v", sp, sent)
+			Assert(t, len(ses.MessagesToSend[0].LedgerProposals) == 1, "exp: %+v\n\n\tgot: %+v", sent.Proposal, sp.Proposal)
+			Assert(t, bytes.Equal(msg.To[:], toAddress[:]), "exp: %+v\n\n\tgot: %+v", msg.To.String(), to.Address().String())
+			Assert(t, compareSignedProposals(sp, sent), "exp: %+v\n\n\tgot: %+v", sp, sent)
 			numProposals++
 		}
 	}
