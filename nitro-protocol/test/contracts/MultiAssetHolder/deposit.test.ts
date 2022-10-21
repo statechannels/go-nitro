@@ -65,7 +65,7 @@ describe('deposit', () => {
   afterEach(() => {
     channelNonce = BigNumber.from(channelNonce).add(1).toHexString();
   });
-  it.each`
+  it.skip.each`
     description     | asset    | held | expectedHeld | amount | heldAfter | reasonString
     ${description0} | ${ERC20} | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
     ${description1} | ${ERC20} | ${1} | ${1}         | ${1}   | ${2}      | ${undefined}
