@@ -97,7 +97,7 @@ func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 // with the supplied intermediaries.
 func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) virtualfund.ObjectiveResponse {
 
-	objectiveRequest := virtualfund.ObjectiveRequest{
+	objectiveRequest := virtualfund.ClientObjectiveRequest{
 		Intermediaries:    Intermediaries,
 		CounterParty:      CounterParty,
 		ChallengeDuration: ChallengeDuration,

@@ -356,7 +356,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 	e.metrics.RecordObjectiveStarted(objectiveId)
 	switch request := or.(type) {
 
-	case virtualfund.ObjectiveRequest:
+	case virtualfund.ClientObjectiveRequest:
 		vfo, err := virtualfund.NewObjective(request, true, myAddress, e.store.GetConsensusChannel)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
