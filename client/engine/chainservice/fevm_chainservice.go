@@ -168,7 +168,7 @@ func (cs *FevmChainService) SendTransaction(tx protocols.ChainTransaction) error
 		}
 		return nil
 	case protocols.WithdrawAllTransaction:
-		return fmt.Errorf("Withdraw transaction is not supported")
+		return fmt.Errorf("withdraw transaction is not supported")
 
 	default:
 		return fmt.Errorf("unexpected transaction type %T", tx)
