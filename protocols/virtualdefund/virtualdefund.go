@@ -62,10 +62,10 @@ type Objective struct {
 	ToMyLeft  *consensus_channel.ConsensusChannel
 	ToMyRight *consensus_channel.ConsensusChannel
 
-	// MyRole is the index of the participant in the participants list
-	// 0 is Alice
-	// 1...n is Irene, Ivan, ... (the n intermediaries)
-	// n+1 is Bob
+	// MyRole is the index of the participant in the participants list:
+	//  - 0 is Alice
+	//  - 1...n is Irene, Ivan, ... (the n intermediaries)
+	//  - n+1 is Bob
 	MyRole uint
 }
 
