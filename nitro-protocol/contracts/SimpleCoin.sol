@@ -2,12 +2,12 @@
 pragma solidity 0.8.17;
 
 contract SimpleCoin {
-    mapping(address => uint256) balances;
+    mapping(address => uint256) internal balances;
 
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
 
     constructor() {
-        balances[tx.origin] = 10000;
+        balances[msg.sender] = 10000;
     }
 
     function sendCoin(address receiver, uint256 amount) public returns (bool sufficient) {
