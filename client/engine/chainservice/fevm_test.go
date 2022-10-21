@@ -1,14 +1,8 @@
 package chainservice
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
-	"io"
 	"math/big"
-	"math/rand"
-	"net/http"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -22,41 +16,6 @@ import (
 )
 
 func TestFevm(t *testing.T) {
-	const endpoint = "https://wallaby.node.glif.io/rpc/v0"
-	const pkString = "716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd"
-	const chainId = 31415
-
-	rpcCall := func(method, params string, result interface{}) error {
-		reqBody := `{"jsonrpc": "2.0", "method": "` + method + `","params":` + params + `, "id":` + fmt.Sprint(rand.Intn(1000)) + `}`
-
-		resp, err := http.Post(endpoint, "application/json", bytes.NewBuffer([]byte(reqBody)))
-		if err != nil {
-			return err
-		}
-
-		body, err := io.ReadAll(resp.Body)
-
-		if err != nil {
-			return err
-		}
-
-		err = json.Unmarshal(body, &result)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	fvmNonce := func(f1Address filecoinAddress.Address) (int64, error) {
-		type resultTy struct {
-			Result float64 `json:"result"`
-		}
-		var responseBody resultTy
-		err := rpcCall("Filecoin.MpoolGetNonce", `["`+f1Address.String()+`"]`, &responseBody)
-		if err != nil {
-			return 0, err
-		}
-		return int64(responseBody.Result), nil
-	}
 
 	nitroAddress := common.HexToAddress("0xFF000000000000000000000000000000000003fA")
 	channelIdString := "0xd9b535b686bcae01a00da8767de21d8bfc9915d513833160e5f15044fb4a3643"
