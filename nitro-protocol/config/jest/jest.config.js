@@ -12,7 +12,7 @@ const root = resolve(__dirname, '../../');
 module.exports = {
   globals: {
     'ts-jest': {
-      tsconfig: './tsconfig.json',
+      tsconfig: './test/tsconfig.json',
     },
   },
   rootDir: root,

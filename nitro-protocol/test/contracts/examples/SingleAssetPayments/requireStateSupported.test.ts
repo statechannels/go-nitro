@@ -13,6 +13,7 @@ import {
   State,
 } from '../../../../src/contract/state';
 import {
+  AssetOutcomeShortHand,
   generateParticipants,
   getRandomNonce,
   getTestProvider,
@@ -20,11 +21,7 @@ import {
   replaceAddressesAndBigNumberify,
   setupContract,
 } from '../../../test-helpers';
-import {
-  AssetOutcomeShortHand,
-  bindSignaturesWithSignedByBitfield,
-  signStates,
-} from '../../../../src';
+import {bindSignaturesWithSignedByBitfield, signStates} from '../../../../src';
 import {INVALID_SIGNED_BY} from '../../../../src/contract/transaction-creators/revert-reasons';
 import {expectSucceed} from '../../../expect-succeed';
 

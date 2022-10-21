@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "baseUrl": "src",
+    "baseUrl": "src/test",
     "target": "es2018",
     "module": "commonjs",
     "strict": true,
@@ -8,7 +8,8 @@
     "resolveJsonModule": true,
     "outDir": "dist",
     "declaration": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noEmit": true
   },
-  "include": ["src/index.ts", "addresses.json"]
+  "include": ["environment.d.ts"]
 }

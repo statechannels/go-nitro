@@ -14,7 +14,6 @@ import testConsensusArtifact from '../artifacts/contracts/test/TESTConsensus.sol
 import testNitroAdjudicatorArtifact from '../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 import tokenArtifact from '../artifacts/contracts/Token.sol/Token.json';
 import trivialAppArtifact from '../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
-import embeddedApplicationArtifact from '../artifacts/contracts/examples/EmbeddedApplication.sol/EmbeddedApplication.json';
 import consensusAppArtifact from '../artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
 import virtualPaymentAppArtifact from '../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 const rpcEndPoint = 'http://localhost:' + process.env.GANACHE_PORT;
@@ -34,7 +33,6 @@ const [
   testNitroAdjudicatorFactory,
   tokenFactory,
   trivialAppFactory,
-  embeddedApplicationFactory,
   consensusAppFactory,
   virtualPaymentAppFactory,
 ] = [
@@ -49,7 +47,6 @@ const [
   testNitroAdjudicatorArtifact,
   tokenArtifact,
   trivialAppArtifact,
-  embeddedApplicationArtifact,
   consensusAppArtifact,
   virtualPaymentAppArtifact,
 ].map(artifact =>
@@ -62,7 +59,6 @@ export async function deploy(): Promise<Record<string, string>> {
 
   const HASH_LOCK_ADDRESS = (await hashLockedSwapFactory.deploy()).address;
   const SINGLE_ASSET_PAYMENTS_ADDRESS = (await singleAssetPaymentsFactory.deploy()).address;
-  const EMBEDDED_APPLICATION_ADDRESS = (await embeddedApplicationFactory.deploy()).address;
   const CONSENSUS_APP_ADDRESS = await (await consensusAppFactory.deploy()).address;
   const VIRTUAL_PAYMENT_APP_ADDRESS = await (await virtualPaymentAppFactory.deploy()).address;
 
@@ -80,7 +76,6 @@ export async function deploy(): Promise<Record<string, string>> {
     NITRO_ADJUDICATOR_ADDRESS,
     COUNTING_APP_ADDRESS,
     HASH_LOCK_ADDRESS,
-    EMBEDDED_APPLICATION_ADDRESS,
     SINGLE_ASSET_PAYMENTS_ADDRESS,
     TRIVIAL_APP_ADDRESS,
     CONSENSUS_APP_ADDRESS,
