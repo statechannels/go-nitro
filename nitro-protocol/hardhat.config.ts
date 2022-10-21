@@ -28,6 +28,7 @@ task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
 // Go to https://hardhat.org/config/ to learn more
 
 const config: HardhatUserConfig & {watcher: any} = {
+  defaultNetwork: 'wallaby',
   solidity: {
     compilers: [
       {
@@ -49,7 +50,7 @@ const config: HardhatUserConfig & {watcher: any} = {
   },
   paths: {
     sources: 'contracts',
-    deploy: 'hardhat-deploy',
+    deploy: 'hardhat-deploy-fvm',
     deployments: 'hardhat-deployments',
   },
   watcher: {
@@ -66,6 +67,11 @@ const config: HardhatUserConfig & {watcher: any} = {
       url: infuraToken ? 'https://goerli.infura.io/v3/' + infuraToken : '',
       accounts: goerliDeployerPK ? [goerliDeployerPK] : [],
       chainId: 5,
+    },
+    wallaby: {
+      url: 'https://wallaby.node.glif.io/rpc/v0',
+      accounts: ['716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd'],
+      chainId: 31415,
     },
   },
 };
