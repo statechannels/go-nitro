@@ -139,38 +139,39 @@ func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
 // It blocks until the message is sent.
 // It will retry establishing a stream NUM_CONNECT_ATTEMPTS times before giving up
 func (ms *P2PMessageService) Send(msg protocols.Message) {
-	raw, err := msg.Serialize()
-	ms.checkError(err)
+	go func() {
+		raw, err := msg.Serialize()
+		ms.checkError(err)
 
-	id, ok := ms.peers.Load(msg.To.String())
-	if !ok {
-		panic(fmt.Errorf("could not load peer %s", msg.To.String()))
-	}
-
-	for i := 0; i < NUM_CONNECT_ATTEMPTS; i++ {
-		s, err := ms.p2pHost.NewStream(context.Background(), id, PROTOCOL_ID)
-		if err == nil {
-
-			writer := bufio.NewWriter(s)
-
-			// We don't care about the number of bytes written
-			_, err = writer.WriteString(raw + string(DELIMITER))
-
-			ms.checkError(err)
-
-			writer.Flush()
-			s.Close()
-
-			return
+		id, ok := ms.peers.Load(msg.To.String())
+		if !ok {
+			panic(fmt.Errorf("could not load peer %s", msg.To.String()))
 		}
 
-		// TODO: Hook up to a logger
-		fmt.Printf("attempt %d: could not open stream to %s, retrying in %s\n", i, msg.To.String(), RETRY_SLEEP_DURATION.String())
-		time.Sleep(RETRY_SLEEP_DURATION)
+		for i := 0; i < NUM_CONNECT_ATTEMPTS; i++ {
+			s, err := ms.p2pHost.NewStream(context.Background(), id, PROTOCOL_ID)
+			if err == nil {
 
-	}
-	panic(fmt.Errorf("could not send message after %d retries", NUM_CONNECT_ATTEMPTS))
+				writer := bufio.NewWriter(s)
 
+				// We don't care about the number of bytes written
+				_, err = writer.WriteString(raw + string(DELIMITER))
+
+				ms.checkError(err)
+
+				writer.Flush()
+				s.Close()
+
+				return
+			}
+
+			// TODO: Hook up to a logger
+			fmt.Printf("attempt %d: could not open stream to %s, retrying in %s\n", i, msg.To.String(), RETRY_SLEEP_DURATION.String())
+			time.Sleep(RETRY_SLEEP_DURATION)
+
+		}
+		panic(fmt.Errorf("could not send message after %d retries", NUM_CONNECT_ATTEMPTS))
+	}()
 }
 
 // checkError panics if the message service is running and there is an error, otherwise it just returns
