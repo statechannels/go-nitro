@@ -68,7 +68,7 @@ type GetConsensusChannel func(channelId types.Destination) (ledger *consensus_ch
 
 // NewObjective initiates an Objective with the supplied channel
 func NewObjective(
-	request ObjectiveRequest,
+	request ClientObjectiveRequest,
 	preApprove bool,
 	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
@@ -147,7 +147,7 @@ func ConstructObjectiveFromPayload(
 	}
 
 	cId := s.ChannelId()
-	request := ObjectiveRequest{
+	request := ClientObjectiveRequest{
 		ChannelId: cId,
 	}
 	return NewObjective(request, preapprove, getConsensusChannel)
@@ -330,13 +330,14 @@ func (o *Objective) clone() Objective {
 	return clone
 }
 
-// ObjectiveRequest represents a request to create a new direct defund objective.
-type ObjectiveRequest struct {
+// ClientObjectiveRequest represents a request to create a new direct defund objective.
+// It can be created by any member of a running channel.
+type ClientObjectiveRequest struct {
 	ChannelId types.Destination
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
+func (r ClientObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
 }
 
