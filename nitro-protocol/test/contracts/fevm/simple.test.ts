@@ -1,4 +1,4 @@
-import {Contract, utils, providers, Wallet, BigNumber, constants} from 'ethers';
+import {Contract, utils, providers, Wallet, constants} from 'ethers';
 // eslint-disable-next-line import/order
 import RpcEngine from '@glif/filecoin-rpc-client';
 import {FeeMarketEIP1559Transaction} from '@ethereumjs/tx';
@@ -125,10 +125,10 @@ async function deriveAddrsFromPk(pk: string, apiAddress: string) {
   return {secpActor, idActor, idActorHex};
 }
 
-// Copied from https://stackoverflow.com/questions/58325771/how-to-generate-random-hex-string-in-javascript
-function genRanHex(size: number) {
-  return [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-}
-function randomChannelId() {
-  return '0x' + genRanHex(64);
-}
+// // Copied from https://stackoverflow.com/questions/58325771/how-to-generate-random-hex-string-in-javascript
+// function genRanHex(size: number) {
+//   return [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+// }
+// function randomChannelId() {
+//   return '0x' + genRanHex(64);
+// }
