@@ -281,7 +281,9 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 	if !ok {
 		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
 	}
-	if de.BlockNum > updated.latestBlockNumber {
+	// TODO: This block check doesn't place nice with the current polling.
+	// if de.BlockNum > updated.latestBlockNumber {
+	if de.NowHeld.Cmp(updated.C.OnChainFunding[de.AssetAddress]) >= 0 {
 		updated.C.OnChainFunding[de.AssetAddress] = de.NowHeld
 		updated.latestBlockNumber = de.BlockNum
 	}
