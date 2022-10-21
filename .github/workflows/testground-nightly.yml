@@ -31,14 +31,14 @@ jobs:
         run:    testground plan import --from ./go-nitro-testground
         working-directory: "code"
 
-      - name: Run 10 min Test 
+      - name: Run 5 min Test 
         run: | 
          testground --endpoint=${{secrets.TG_SERVER_URL}}  run s --wait \
          -tp=isNightly=true -p=go-nitro-testground -t=virtual-payment \
          -b=docker:go -r=local:docker \
-         -tp=numOfHubs=1 -tp=numOfPayers=10 -tp=numOfPayees=1  -i=12 \
-         -tp=paymentTestDuration=600  -tp=concurrentPaymentJobs=10 \
-         --tp=networkLatency=15 --tp=networkJitter=2 \
+         -tp=numOfHubs=1 -tp=numOfPayers=2 -tp=numOfPayees=5  -i=8 \
+         -tp=paymentTestDuration=300  -tp=concurrentPaymentJobs=3 \
+         --tp=networkLatency=10 --tp=networkJitter=1 \
          --metadata-repo "${{github.repository}}" \
          --metadata-branch "${{github.event.pull_request.head.ref}}" \
          --metadata-commit "${{github.event.pull_request.head.sha}}"  | tee run.out
