@@ -6,7 +6,8 @@ const ethers = require('ethers');
 const fa = require('@glif/filecoin-address');
 const request = util.promisify(require('request'));
 
-const DEPLOYER_PRIVATE_KEY = network.config.accounts[0];
+const wallet = ethers.Wallet.fromMnemonic(network.config.accounts.mnemonic);
+const DEPLOYER_PRIVATE_KEY = wallet._signingKey();
 
 function hexToBytes(hex) {
   // ref: https://stackoverflow.com/a/34356351
