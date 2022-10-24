@@ -70,6 +70,8 @@ const config: HardhatUserConfig & {watcher: any} = {
     },
     wallaby: {
       url: 'https://wallaby.node.glif.io/rpc/v0',
+      // Seed phrase:
+      // okay broom caught hat when reduce dose enter display cliff skate attack chase critic hotel about clinic element april victory flush grass lend history
       accounts: ['716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd'],
       chainId: 31415,
     },
