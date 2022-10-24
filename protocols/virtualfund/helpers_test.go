@@ -10,19 +10,19 @@ import (
 )
 
 // prepareConsensusChannel prepares a consensus channel with a consensus outcome
-//   - allocating 6 to leader
-//   - allocating 4 to follower
+//   - allocating 6 to left participant
+//   - allocating 4 to right participant
 //   - including the given guarantees
-func prepareConsensusChannel(role uint, leader, follower testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
-	return prepareConsensusChannelHelper(role, leader, follower, 6, 4, 1, guarantees...)
+func prepareConsensusChannel(role uint, leader, follower, leftActor testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
+	return prepareConsensusChannelHelper(role, leader, follower, leftActor, 6, 4, 1, guarantees...)
 }
 
 // consensusStateSignatures prepares a consensus channel with a consensus outcome and returns the signatures on the consensus state
 func consensusStateSignatures(leader, follower testactors.Actor, guarantees ...consensus_channel.Guarantee) [2]state.Signature {
-	return prepareConsensusChannelHelper(0, leader, follower, 0, 0, 2, guarantees...).Signatures()
+	return prepareConsensusChannelHelper(0, leader, follower, leader, 0, 0, 2, guarantees...).Signatures()
 }
 
-func prepareConsensusChannelHelper(role uint, leader, follower testactors.Actor, leftBalance, rightBalance, turnNum int, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
+func prepareConsensusChannelHelper(role uint, leader, follower, leftActor testactors.Actor, leftBalance, rightBalance, turnNum int, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
 	fp := state.FixedPart{
 		ChainId:           big.NewInt(9001),
 		Participants:      []types.Address{leader.Address(), follower.Address()},
@@ -30,9 +30,15 @@ func prepareConsensusChannelHelper(role uint, leader, follower testactors.Actor,
 		AppDefinition:     types.Address{},
 		ChallengeDuration: 45,
 	}
+	var leaderBal, followerBal consensus_channel.Balance
 
-	leaderBal := consensus_channel.NewBalance(leader.Destination(), big.NewInt(int64(leftBalance)))
-	followerBal := consensus_channel.NewBalance(follower.Destination(), big.NewInt(int64(rightBalance)))
+	if leader.Address() == leftActor.Address() {
+		leaderBal = consensus_channel.NewBalance(leader.Destination(), big.NewInt(int64(leftBalance)))
+		followerBal = consensus_channel.NewBalance(follower.Destination(), big.NewInt(int64(rightBalance)))
+	} else {
+		leaderBal = consensus_channel.NewBalance(leader.Destination(), big.NewInt(int64(rightBalance)))
+		followerBal = consensus_channel.NewBalance(follower.Destination(), big.NewInt(int64(leftBalance)))
+	}
 
 	lo := *consensus_channel.NewLedgerOutcome(types.Address{}, leaderBal, followerBal, guarantees)
 
