@@ -1,13 +1,11 @@
 <h1 align="center">
-<div><img src="https://protocol.statechannels.org/img/favicon.ico"> </div>
+<div><img src="https://statechannels.org/favicon.ico"> </div>
 Nitro Protocol
 </h1>
 
-Smart contracts which implement nitro protocol for state channel networks on ethereum. Includes javascript and typescript support.
+Smart contracts which implement nitro protocol for state channel networks on Ethereum and other EVM-compatible chains. Includes javascript and typescript support.
 
-:new: There is an accompanying documentation [website](https://statechannels.github.io/go-nitro/).
-
-A full description of nitro protocol and it's capabilities can be found in a [whitepaper](https://eprint.iacr.org/2019/219).
+:new: There is an accompanying documentation [website](https://docs.statechannels.org/).
 
 ## Installation
 
@@ -47,28 +45,34 @@ contract MyStateChannelApp is IForceMoveApp {
 ### Import precompiled artifacts for deployment/testing
 
 ```typescript
-const {NitroAdjudicatorArtifact, TrivialAppArtifact, TokenArtifact} =
+const {NitroAdjudicatorArtifact, ConsensusAppArtifact, VirtualPaymentAppArtifact} =
   require('@statechannels/nitro-protocol').ContractArtifacts;
 ```
 
 ### Import typescript types
 
 ```typescript
-import {Channel} from '@statechannels/nitro-protocol';
+import {State} from '@statechannels/nitro-protocol';
 
-const channel: Channel = {
+const state: State = {
   chainId: '0x1',
   channelNonce: 0,
   participants: ['0xalice...', '0xbob...'],
+  appDefinition: '0xabc...',
+  challengeDuration: '0x258',
+  outcome: [],
+  appData: '0x',
+  turnNum: 0,
+  isFinal: false,
 };
 ```
 
 ### Import javascript helper functions
 
 ```typescript
-import {getChannelId} from '@statechannels/nitro-protocol';
+import {getChannelId, getFixedPart} from '@statechannels/nitro-protocol';
 
-const channelId = getChannelId(channel);
+const channelId = getChannelId(getFixedPart(state));
 ```
 
 ## Development (GitHub)
@@ -78,21 +82,6 @@ We use hardhat to develop smart contracts. You can run the solidity compiler in 
 ```
 npx hardhat watch compilation
 ```
-
-## Documentation website (GitHub)
-
-1. Run `yarn docgen` to auto-generate markdown files from compiled Solidity code (using our fork of [`solidoc`](https://github.com/statechannels/solidoc)). If you change the source code you will need to recompile the contracts and re-run `solidoc` using `yarn contract:compile && yarn docgen`.
-2. Run `cd website`
-3. Run `yarn install`
-4. Run `yarn start`
-
-See https://docusaurus.io/docs/en/installation for more information.
-
-NB: you may run into difficulty running `docgen / solidoc` if you have the native solc compiler installed at the incorrect version number. You may refer to the circle `config.yml` at the monorepo root to check which version is being used as a part of our continuous integration.
-
-To add a new version of the docs, follow the instructions at https://docusaurus.io/docs/en/tutorial-version. We try to keep the documentation version in sync with the @statechannels/nitro-protocol npm package.
-
-## Deploying contracts
 
 ### For the goerli testnet:
 
