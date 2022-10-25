@@ -37,7 +37,7 @@ func TestFevm(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(holdings)
-	const pkString = "716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd"
+	const pkString = "8182b5bf5b9c966e001934ebaf008f65516290cef6e3069d11e718cbd4336aae"
 	pk, err := crypto.HexToECDSA(pkString)
 	if err != nil {
 		t.Fatal(err)
@@ -47,11 +47,12 @@ func TestFevm(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f1Address, err := filecoinAddress.NewSecp256k1Address(crypto.FromECDSAPub(&pk.PublicKey))
+	del, err := filecoinAddress.NewDelegatedAddress(10, crypto.PubkeyToAddress(pk.PublicKey).Bytes())
+
 	if err != nil {
 		t.Fatalf("could not get address")
 	}
-	nonce, err := fvmNonce(f1Address)
+	nonce, err := fvmNonce(del)
 	if err != nil {
 		t.Fatalf("could not get nonce")
 	}

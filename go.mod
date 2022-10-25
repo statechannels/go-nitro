@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/ethereum/go-ethereum v1.10.8
-	github.com/filecoin-project/go-address v1.0.0
+	github.com/filecoin-project/go-address v1.0.1-0.20221019124855-ac317c37debb
 	github.com/google/go-cmp v0.5.8
 	github.com/multiformats/go-multiaddr v0.7.0
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
