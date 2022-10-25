@@ -7,7 +7,6 @@ const fa = require('@glif/filecoin-address');
 const request = util.promisify(require('request'));
 
 const wallet = ethers.Wallet.fromMnemonic(network.config.accounts.mnemonic);
-const DEPLOYER_PRIVATE_KEY = wallet._signingKey();
 
 function hexToBytes(hex) {
   // ref: https://stackoverflow.com/a/34356351
@@ -33,23 +32,21 @@ async function callRpc(method, params) {
   return JSON.parse(res.body).result;
 }
 
-const deployer = new ethers.Wallet(DEPLOYER_PRIVATE_KEY);
-
 module.exports = async ({deployments}) => {
   const {deploy} = deployments;
 
-  const pubKey = hexToBytes(deployer.publicKey.slice(2));
+  const pubKey = hexToBytes(wallet.publicKey.slice(2));
   const f1addr = fa.newSecp256k1Address(pubKey).toString();
 
   const priorityFee = await callRpc('eth_maxPriorityFeePerGas');
   const nonce = await callRpc('Filecoin.MpoolGetNonce', [f1addr]);
 
-  console.log('Ethereum deployer address:', deployer.address);
+  console.log('Ethereum deployer address:', wallet.address);
   console.log('Filecoin deployer address (f1):', f1addr);
   console.log('Nonce:', nonce);
 
   await deploy('NitroAdjudicator', {
-    from: deployer.address,
+    from: wallet.address,
     args: [],
     // since it's difficult to estimate the gas limit before f4 address is launched, it's safer to manually set
     // a large gasLimit. This should be addressed in the following releases.
