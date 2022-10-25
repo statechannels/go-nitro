@@ -123,11 +123,12 @@ func (cs *FevmChainService) SendTransaction(tx protocols.ChainTransaction) error
 				log.Fatal(err)
 			}
 
-			f1Address, err := filecoinAddress.NewSecp256k1Address(crypto.FromECDSAPub(&cs.pk.PublicKey))
+			del, err := filecoinAddress.NewDelegatedAddress(10, crypto.PubkeyToAddress(cs.pk.PublicKey).Bytes())
+
 			if err != nil {
 				log.Fatalf("could not get address")
 			}
-			nonce, err := fvmNonce(f1Address)
+			nonce, err := fvmNonce(del)
 			if err != nil {
 				log.Fatalf("could not get nonce")
 			}
