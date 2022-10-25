@@ -17,7 +17,7 @@ import (
 
 func TestFevm(t *testing.T) {
 
-	nitroAddress := common.HexToAddress("0xFF000000000000000000000000000000000003fA")
+	nitroAddress := common.HexToAddress("0x01f885052E88DDD30cFe901Ac54ac355fc281340")
 	channelIdString := "0xd9b535b686bcae01a00da8767de21d8bfc9915d513833160e5f15044fb4a3643"
 
 	channelId := types.Destination(common.HexToHash(channelIdString))
