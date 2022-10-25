@@ -71,10 +71,7 @@ const config: HardhatUserConfig & {watcher: any} = {
     },
     wallaby: {
       url: 'https://wallaby.node.glif.io/rpc/v0',
-      accounts: {
-        mnemonic:
-          'okay broom caught hat when reduce dose enter display cliff skate attack chase critic hotel about clinic element april victory flush grass lend history',
-      },
+      accounts: ['8182b5bf5b9c966e001934ebaf008f65516290cef6e3069d11e718cbd4336aae'],
       chainId: 31415,
     },
   },
