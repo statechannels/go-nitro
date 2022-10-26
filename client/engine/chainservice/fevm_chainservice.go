@@ -86,7 +86,7 @@ type FevmChainService struct {
 }
 
 func NewFevmChainService(pk *ecdsa.PrivateKey) ChainService {
-	nitroAddress := common.HexToAddress("0xcf6E2F189DBDcfaC875097337957121060f38C2ago")
+	nitroAddress := common.HexToAddress("0xcf6E2F189DBDcfaC875097337957121060f38C2a")
 	client, err := ethclient.Dial(endpoint)
 	if err != nil {
 		log.Fatal(err)
