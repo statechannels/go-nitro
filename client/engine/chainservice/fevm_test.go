@@ -17,7 +17,7 @@ import (
 
 func TestFevm(t *testing.T) {
 
-	nitroAddress := common.HexToAddress("0x01f885052E88DDD30cFe901Ac54ac355fc281340")
+	nitroAddress := common.HexToAddress("0xcf6E2F189DBDcfaC875097337957121060f38C2a")
 	channelIdString := "0xd9b535b686bcae01a00da8767de21d8bfc9915d513833160e5f15044fb4a3643"
 
 	channelId := types.Destination(common.HexToHash(channelIdString))
@@ -37,7 +37,7 @@ func TestFevm(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(holdings)
-	const pkString = "716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd"
+	const pkString = "015731a72b6581a1df7cb8413d5cdd147201a876bf0da425b721b4be3c917de5"
 	pk, err := crypto.HexToECDSA(pkString)
 	if err != nil {
 		t.Fatal(err)
