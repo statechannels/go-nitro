@@ -441,7 +441,7 @@ func (e *Engine) sendMessages(msgs []protocols.Message) {
 	defer e.metrics.RecordFunctionDuration()()
 
 	for _, message := range msgs {
-		e.logMessage(message, Outgoing)
+		// e.logMessage(message, Outgoing)
 		e.recordMessageMetrics(message)
 		e.msg.Send(message)
 	}
