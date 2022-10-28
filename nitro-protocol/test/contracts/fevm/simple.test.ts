@@ -71,7 +71,7 @@ it.skip('submits a transaction', async () => {
   console.log(res);
 });
 
-it('nitro deposit transaction', async () => {
+it.skip('nitro deposit transaction', async () => {
   const data = nitroContract.interface.encodeFunctionData('deposit', [
     constants.AddressZero,
     channelId,
@@ -103,7 +103,7 @@ it('nitro deposit transaction', async () => {
   console.log(res);
 });
 
-it('reads balance', async () => {
+it.skip('reads balance', async () => {
   const txPromise = nitroContract.holdings(constants.AddressZero, channelId);
   console.log((await txPromise).toString());
 });
