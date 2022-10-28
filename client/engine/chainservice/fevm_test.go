@@ -31,17 +31,17 @@ func TestFevm(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	holdings, err := na.Holdings(&bind.CallOpts{}, types.Address{}, channelId)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(holdings)
 	const pkString = "015731a72b6581a1df7cb8413d5cdd147201a876bf0da425b721b4be3c917de5"
 	pk, err := crypto.HexToECDSA(pkString)
 	if err != nil {
 		t.Fatal(err)
 	}
+	holdings, err := na.Holdings(&bind.CallOpts{From: crypto.PubkeyToAddress(pk.PublicKey)}, types.Address{}, channelId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(holdings)
+
 	txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, big.NewInt(int64(chainId)))
 	if err != nil {
 		t.Fatal(err)
