@@ -113,7 +113,7 @@ func (cs *FevmChainService) SendTransaction(tx protocols.ChainTransaction) error
 			if tokenAddress != ethTokenAddress {
 				return fmt.Errorf("erc20 tokens are not supported")
 			}
-			holdings, err := cs.na.Holdings(&bind.CallOpts{}, tokenAddress, tx.ChannelId())
+			holdings, err := cs.na.Holdings(&bind.CallOpts{From: crypto.PubkeyToAddress(cs.pk.PublicKey)}, tokenAddress, tx.ChannelId())
 			if err != nil {
 				return err
 			}
@@ -201,7 +201,7 @@ func (cs *FevmChainService) pollChain(ctx context.Context) {
 			completed := make([]string, 0)
 			// Range over all open deposit infos and check if the holdings have been updated.
 			cs.watchedChannels.Range(func(key string, info watchDepositInfo) bool {
-				currentHoldings, err := cs.na.Holdings(&bind.CallOpts{}, info.asset, info.channelId)
+				currentHoldings, err := cs.na.Holdings(&bind.CallOpts{From: crypto.PubkeyToAddress(cs.pk.PublicKey)}, info.asset, info.channelId)
 				if err != nil {
 					panic(err)
 				}
