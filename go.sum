@@ -171,8 +171,6 @@ github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7
 github.com/ethereum/go-ethereum v1.10.8 h1:0UP5WUR8hh46ffbjJV7PK499+uGEyasRIfffS0vy06o=
 github.com/ethereum/go-ethereum v1.10.8/go.mod h1:pJNuIUYfX5+JKzSD/BTdNsvJSZ1TJqmz0dVyXMAbf6M=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
-github.com/filecoin-project/go-address v1.0.0 h1:IrexI0kpADLaPP+CdmU3CVAUqnW/FQC0KTmz4lVKiFU=
-github.com/filecoin-project/go-address v1.0.0/go.mod h1:5t3z6qPmIADZBtuE9EIzi0EwzcRy2nVhpo0I/c1r0OA=
 github.com/filecoin-project/go-address v1.0.1-0.20221019124855-ac317c37debb h1:UvHJms0aGDItERFnspu5FgKYHU7DEiLo67H2C/asrNs=
 github.com/filecoin-project/go-address v1.0.1-0.20221019124855-ac317c37debb/go.mod h1:5t3z6qPmIADZBtuE9EIzi0EwzcRy2nVhpo0I/c1r0OA=
 github.com/filecoin-project/go-crypto v0.0.0-20191218222705-effae4ea9f03 h1:2pMXdBnCiXjfCYx/hLqFxccPoqsSveQFxVLvNxy9bus=
