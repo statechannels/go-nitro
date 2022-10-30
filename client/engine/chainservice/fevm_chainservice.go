@@ -205,16 +205,27 @@ func (cs *FevmChainService) pollChain(ctx context.Context) {
 				if err != nil {
 					panic(err)
 				}
+				currentStatus, err := cs.na.StatusOf(&bind.CallOpts{From: crypto.PubkeyToAddress(cs.pk.PublicKey)}, info.channelId)
+				if err != nil {
+					panic(err)
+				}
+
+				if currentStatus[0] == 2 {
+					event := NewAllocationUpdatedEvent(info.channelId, latestBlock, info.asset, info.fundingTarget)
+					cs.out <- event
+					info.largestHeld.Set(currentHoldings)
+				}
+
 				// Only send an event if the amount on chain has gone up.
 				if currentHoldings.Cmp(info.largestHeld) > 0 {
 					event := NewDepositedEvent(info.channelId, latestBlock, info.asset, info.ourFundingTarget, currentHoldings)
 					cs.out <- event
 					info.largestHeld.Set(currentHoldings)
 				}
-				// We only want to remove the channel if the deposit is fully complete.
-				if currentHoldings.Cmp(info.fundingTarget) >= 0 {
-					completed = append(completed, key)
-				}
+				// // We only want to remove the channel if the deposit is fully complete.
+				// if currentHoldings.Cmp(info.fundingTarget) >= 0 {
+				// 	completed = append(completed, key)
+				// }
 
 				return true
 			})
