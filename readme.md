@@ -2,9 +2,9 @@
 <div><img src="https://statechannels.org/favicon.ico"><br>
 go-nitro
 </h1>
-Implementation of the [Nitro State Channels Framework](https://docs.statechannels.org) in Golang and solidity.
 
----
+<p align="center">Implementation of the <a href="https://docs.statechannels.org">Nitro State Channels Framework</a> in Golang and Solidity.</p>
+
 
 ## Usage
 
