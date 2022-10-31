@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -18,7 +19,6 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	filecoinAddress "github.com/filecoin-project/go-address"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/protocols"
@@ -28,16 +28,23 @@ import (
 const endpoint = "https://wallaby.node.glif.io/rpc/v0"
 const chainId = 31415
 
-func fvmNonce(f1Address filecoinAddress.Address) (int64, error) {
+func ethNonce(ethAddress common.Address) (int64, error) {
 	type nonceResultTy struct {
-		Result float64 `json:"result"`
+		Result string `json:"result"`
 	}
 	var responseBody nonceResultTy
-	err := rpcCall("Filecoin.MpoolGetNonce", `["`+f1Address.String()+`"]`, &responseBody)
+	err := rpcCall("eth_getTransactionCount", `["`+ethAddress.Hex()+`", "latest"]`, &responseBody)
 	if err != nil {
 		return 0, err
 	}
-	return int64(responseBody.Result), nil
+	// TODO we need to catch errors by inspecting the responseBody for an error
+
+	r, ok := big.NewInt(0).SetString(responseBody.Result[2:], 16)
+	if !ok {
+		return 0, errors.New("could not set bigint to string")
+	}
+	return r.Int64() + 1, nil
+
 }
 
 func latestBlockNum() (uint64, error) {
@@ -123,14 +130,14 @@ func (cs *FevmChainService) SendTransaction(tx protocols.ChainTransaction) error
 				log.Fatal(err)
 			}
 
-			del, err := filecoinAddress.NewDelegatedAddress(10, crypto.PubkeyToAddress(cs.pk.PublicKey).Bytes())
+			ethAddress := crypto.PubkeyToAddress(cs.pk.PublicKey)
 
 			if err != nil {
 				log.Fatalf("could not get address")
 			}
-			nonce, err := fvmNonce(del)
+			nonce, err := ethNonce(ethAddress)
 			if err != nil {
-				log.Fatalf("could not get nonce")
+				log.Fatal(err)
 			}
 			abi, err := NitroAdjudicator.NitroAdjudicatorMetaData.GetAbi()
 			if err != nil {

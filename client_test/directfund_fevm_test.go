@@ -19,6 +19,7 @@ func TestFevmDirectFund(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 	const pkString = "716b7161580785bc96a4344eb52d23131aea0caf42a52dcf9f8aee9eef9dc3cd"
+
 	// Setup chain service
 	pk, _ := crypto.HexToECDSA(pkString)
 	chainA := chainservice.NewFevmChainService(pk)
