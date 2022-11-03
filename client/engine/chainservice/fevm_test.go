@@ -49,10 +49,14 @@ func TestFevm(t *testing.T) {
 
 	del, err := filecoinAddress.NewDelegatedAddress(10, crypto.PubkeyToAddress(pk.PublicKey).Bytes())
 
+	want := "t410for64b7cich4ktkekidsea2lo7jdrbb7ppzyclzi"
+	if del.String() != want {
+		t.Fatalf("incorrect delegated address, got %s wanted %s", del, want)
+	}
 	if err != nil {
 		t.Fatalf("could not get address")
 	}
-	nonce, err := fvmNonce(del)
+	nonce, err := ethNonce(crypto.PubkeyToAddress(pk.PublicKey))
 	if err != nil {
 		t.Fatalf("could not get nonce")
 	}
