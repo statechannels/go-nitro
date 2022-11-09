@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 	"math/big"
+	"math/rand"
+	"time"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -440,12 +442,15 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
 func (e *Engine) sendMessages(msgs []protocols.Message) {
 	defer e.metrics.RecordFunctionDuration()()
 
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(msgs), func(i, j int) {
+		msgs[i], msgs[j] = msgs[j], msgs[i]
+	})
+
 	for _, m := range msgs {
-		go func(message protocols.Message) {
-			e.logMessage(message, Outgoing)
-			e.recordMessageMetrics(message)
-			e.msg.Send(message)
-		}(m)
+		e.logMessage(m, Outgoing)
+		e.recordMessageMetrics(m)
+		e.msg.Send(m)
 	}
 
 }
