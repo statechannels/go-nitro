@@ -47,10 +47,10 @@
   "ETHexitSadVirtualFunded": {
     "satp": {
       "challengeL": 122187,
-      "challengeV": 172901,
+      "challengeV": 172745,
       "reclaimL": 60323,
       "transferAllAssetsL": 112667,
-      "total": 468078
+      "total": 467922
     }
   }
 }

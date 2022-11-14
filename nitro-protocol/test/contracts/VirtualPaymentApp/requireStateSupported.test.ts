@@ -145,7 +145,7 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
     {...vVR, bobAdjustedCorrectly: false, reason: 'Bob not adjusted correctly'},
     {...vVR, nativeAsset: false, reason: 'only native asset allowed'},
     {...vVR, multipleAssets: true, reason: 'only native asset allowed'},
-    {...vVR, aliceUnderflow: true, reason: 'underflow'},
+    {...vVR, aliceUnderflow: true, reason: ' '}, // we expect transaction to revert without a reason string
   ];
 
   testcases.map(async tc => {
