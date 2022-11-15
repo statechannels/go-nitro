@@ -22,7 +22,7 @@
     "test:contracts": "npx hardhat compile && jest -c ./config/jest/jest.contracts.config.js",
     "lint:check": "npx eslint \"./\" --cache && npm run solhint:check && npm run prettier:check",
     "lint:write": "npx eslint \"./\" --fix && npm run prettier:write",
-    "prepare": "npx hardhat compile && npm run build:typescript",
+    "prepare": "npx hardhat compile && npx hardhat docgen && npm run build:typescript",
     "solhint:check": "npx solhint -w 0 './contracts/**/*.sol'",
     "solhint:write": "echo 'This command does not seem to work. Use npm run prettier:write ' && npx solhint --fix './contracts/**/*.sol'",
     "prettier:check": "prettier --check './contracts/**/*.sol'",
