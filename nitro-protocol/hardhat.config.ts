@@ -69,6 +69,11 @@ const config: HardhatUserConfig & {watcher: any} = {
       chainId: 5,
     },
   },
+  docgen: {
+    outputDir: '../docs/on-chain-api',
+    pages: 'items',
+    exclude: ['test', 'deploy'],
+  },
 };
 
 export default config;
