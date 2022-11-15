@@ -73,6 +73,7 @@ const config: HardhatUserConfig & {watcher: any} = {
     outputDir: '../docs/on-chain-api',
     pages: 'items',
     exclude: ['test', 'deploy'],
+    pageExtension: '.md',
   },
 };
 
