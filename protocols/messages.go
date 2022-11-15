@@ -82,6 +82,7 @@ func (se *SideEffects) Merge(other SideEffects) {
 
 	se.MessagesToSend = append(se.MessagesToSend, other.MessagesToSend...)
 	se.TransactionsToSubmit = append(se.TransactionsToSubmit, other.TransactionsToSubmit...)
+	se.ProposalsToProcess = append(se.ProposalsToProcess, other.ProposalsToProcess...)
 
 }
 

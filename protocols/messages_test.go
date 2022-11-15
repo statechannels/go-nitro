@@ -40,6 +40,30 @@ func toPayload(p interface{}) []byte {
 	return b
 }
 
+func TestSideEffectsMerge(t *testing.T) {
+	original := &SideEffects{
+		MessagesToSend:       []Message{{To: types.Address{'a'}}},
+		TransactionsToSubmit: []ChainTransaction{},
+		ProposalsToProcess:   []consensus_channel.Proposal{removeProposal().Proposal},
+	}
+	toMerge := SideEffects{
+		MessagesToSend:       []Message{{To: types.Address{'b'}}},
+		TransactionsToSubmit: []ChainTransaction{},
+		ProposalsToProcess:   []consensus_channel.Proposal{addProposal().Proposal},
+	}
+
+	original.Merge(toMerge)
+
+	expected := &SideEffects{
+		MessagesToSend:       []Message{{To: types.Address{'a'}}, {To: types.Address{'b'}}},
+		TransactionsToSubmit: []ChainTransaction{},
+		ProposalsToProcess:   []consensus_channel.Proposal{removeProposal().Proposal, addProposal().Proposal},
+	}
+	if !reflect.DeepEqual(original, expected) {
+		t.Errorf("incorrect merge: got:\n%v\nwanted:\n%v", original, expected)
+	}
+}
+
 func TestMessage(t *testing.T) {
 	ss := state.NewSignedState(state.TestState)
 	msg := Message{
