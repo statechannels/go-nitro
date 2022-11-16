@@ -70,10 +70,11 @@ const config: HardhatUserConfig & {watcher: any} = {
     },
   },
   docgen: {
-    outputDir: '../docs/on-chain-api',
+    outputDir: '../docs/On-chain-API',
     pages: 'items',
     exclude: ['test', 'deploy'],
     pageExtension: '.md',
+    templates: './solidity-docgen-templates',
   },
 };
 
