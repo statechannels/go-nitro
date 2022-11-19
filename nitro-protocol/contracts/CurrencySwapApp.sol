@@ -23,6 +23,7 @@ contract CurrencySwapApp is IForceMoveApp {
         // INitroTypes.Signature makerSignature;
     }
 
+    //TODO: Remove once logic is tested
     struct VoucherAmountAndSignature {
         uint256 amount;
         INitroTypes.Signature signature; // signature on abi.encode(channelId,amount)
@@ -30,8 +31,8 @@ contract CurrencySwapApp is IForceMoveApp {
 
     // TODO: To confirm indices are always 0 (Taker) and 1 (Maker)
     enum AllocationIndices {
-        Taker, // payer
-        Maker // beneficiary, initial allocation is zero
+        Taker,  // Aggressor order
+        Maker   // Passive order was found in broker orderbook
     }
 
     /**
@@ -127,6 +128,8 @@ contract CurrencySwapApp is IForceMoveApp {
         Outcome.SingleAssetExit[] memory newOutcome,
         uint256 voucherAmount
     ) internal pure {
+        // TODO: require Outcome.length == 2;
+        // && Outcome[0].asset == TakerAsset; Outcome[1].asset == MakerAsset
         require(
             oldOutcome.length == 1 &&
                 newOutcome.length == 1 &&
@@ -136,10 +139,10 @@ contract CurrencySwapApp is IForceMoveApp {
         );
 
         // TODO: Adjustments as follows
-        // Taker[TakerAsset].amount - voucherTakerAmount
-        // Taker[MakerAsset].amount + voucherMakerAmount
-        // Maker[MakerAsset].amount - voucherMakerAmount
-        // Maker[TakerAsset].amount + voucherTakerAmount
+        // Outcome[0].allocations[Taker].amount - voucherTakerAmount
+        // Outcome[1].allocations[Taker].amount + voucherMakerAmount
+        // Outcome[0].allocations[Maker].amount - voucherMakerAmount
+        // Outcome[1].allocations[Maker].amount + voucherTakerAmount
         require(
             newOutcome[0].allocations[uint256(AllocationIndices.Taker)].amount ==
                 oldOutcome[0].allocations[uint256(AllocationIndices.Taker)].amount - voucherAmount,
