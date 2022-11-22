@@ -67,6 +67,11 @@ const config: HardhatUserConfig & {watcher: any} = {
       accounts: goerliDeployerPK ? [goerliDeployerPK] : [],
       chainId: 5,
     },
+    wallaby: {
+      url: 'https://wallaby.node.glif.io/rpc/v0',
+      accounts: ['6b65fdf763faebfbcf9a43d5ab3dd2fb639a3d69c10df99eddc0a6eb30a99ba7'],
+      chainId: 31415,
+    },
   },
 };
 
