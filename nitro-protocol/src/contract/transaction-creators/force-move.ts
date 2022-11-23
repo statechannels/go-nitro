@@ -1,11 +1,9 @@
 import {Signature, ethers} from 'ethers';
 
-import ForceMoveArtifact from '../../../artifacts/contracts/ForceMove.sol/ForceMove.json';
 import {bindSignatures, signChallengeMessage} from '../../signatures';
 import {getFixedPart, getVariablePart, separateProofAndCandidate, State} from '../state';
 
-// https://github.com/ethers-io/ethers.js/issues/602#issuecomment-574671078
-export const ForceMoveContractInterface = new ethers.utils.Interface(ForceMoveArtifact.abi);
+import {NitroAdjudicatorContractInterface} from './multi-asset-holder';
 
 interface CheckpointData {
   challengeState?: State;
@@ -47,7 +45,7 @@ export function createChallengeTransaction(
   }));
   const challengerSignature = signChallengeMessage(signedStates, challengerPrivateKey);
 
-  const data = ForceMoveContractInterface.encodeFunctionData('challenge', [
+  const data = NitroAdjudicatorContractInterface.encodeFunctionData('challenge', [
     fixedPart,
     proof,
     candidate,
@@ -61,7 +59,7 @@ export function createCheckpointTransaction({
   signatures,
   whoSignedWhat,
 }: CheckpointData): ethers.providers.TransactionRequest {
-  const data = ForceMoveContractInterface.encodeFunctionData(
+  const data = NitroAdjudicatorContractInterface.encodeFunctionData(
     'checkpoint',
     checkpointArgs({states, signatures, whoSignedWhat})
   );
@@ -85,7 +83,7 @@ export function createConcludeTransaction(
   signatures: Signature[],
   whoSignedWhat: number[]
 ): ethers.providers.TransactionRequest {
-  const data = ForceMoveContractInterface.encodeFunctionData(
+  const data = NitroAdjudicatorContractInterface.encodeFunctionData(
     'conclude',
     concludeArgs(states, signatures, whoSignedWhat)
   );
