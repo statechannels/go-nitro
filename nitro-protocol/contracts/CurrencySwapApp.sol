@@ -8,7 +8,7 @@ import './interfaces/INitroTypes.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
 /**
- * @dev The CurrencySwapApp contract complies with the ForceMoveApp interface and allows payments to be made virtually from Alice to Bob (participants[0] to participants[n+1], where n is the number of intermediaries).
+ * @dev The CurrencySwapApp contract complies with the ForceMoveApp interface and allows Alice and Bob (participants[0] to participants[n+1], where n is the number of intermediaries) to trade two assets atomically. 
  */
 contract CurrencySwapApp is IForceMoveApp {
 
