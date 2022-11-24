@@ -20,7 +20,7 @@ import (
 
 const (
 	WaitingForCompletePrefund  protocols.WaitingFor = "WaitingForCompletePrefund"  // Round 1
-	WaitingForCompleteFunding  protocols.WaitingFor = "WaitingForCompleteFunding"  // Round 2
+	WaitingForFundingAssurance protocols.WaitingFor = "WaitingForFundingAssurance" // Round 2
 	WaitingForCompletePostFund protocols.WaitingFor = "WaitingForCompletePostFund" // Round 3
 	WaitingForNothing          protocols.WaitingFor = "WaitingForNothing"          // Finished
 )
@@ -443,8 +443,8 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		sideEffects.Merge(ledgerSideEffects)
 	}
 
-	if !updated.fundingComplete() {
-		return &updated, sideEffects, WaitingForCompleteFunding, nil
+	if !updated.isFundingAssured() {
+		return &updated, sideEffects, WaitingForFundingAssurance, nil
 	}
 
 	// Postfunding
@@ -459,9 +459,11 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	}
 
 	// Alice and Bob need a complete post fund round to know V is fully funded.
-	// EXPERIMENTAL: Intermediaries do not require the complete post fund, so we allow them to finish the protocol early.
+	// Intermediaries do not require the complete post fund, so we allow them to finish the protocol early.
 	// If they need to recover funds, they can force V to close by challenging with the pre fund state.
 	// Alice and Bob may counter-challenge with a postfund state plus a redemption state.
+	// The complete post fund is only really useful for Bob, since everyone else is safe as soon as their funding is assured.
+	// However we make Alice wait since she doesn't want to send vouchers before Bob is happy.
 	if !updated.V.PostFundComplete() && (updated.isAlice() || updated.isBob()) {
 		return &updated, sideEffects, WaitingForCompletePostFund, nil
 	}
@@ -488,19 +490,17 @@ func (o *Objective) Related() []protocols.Storable {
 //  Private methods on the VirtualFundObjective //
 //////////////////////////////////////////////////
 
-// fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
-func (o *Objective) fundingComplete() bool {
+// isFundingAssured returns true if I am satisfied that I can extract _at least_ the funds that I committed less / plus vouchers signed / received.
+func (o *Objective) isFundingAssured() bool {
 
 	// Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
 	// A = P_0 and B=P_n are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
 
 	switch {
 	case o.isAlice():
-		return o.ToMyRight.IsFundingTheTarget()
-	case o.isBob():
-		return o.ToMyLeft.IsFundingTheTarget()
-	default: // Intermediary
-		return o.ToMyRight.IsFundingTheTarget() && o.ToMyLeft.IsFundingTheTarget()
+		return true // Because of unidirectionality, Alice is only commits funds and never has a net flow back to her.
+	default: // Intermediary or Bob
+		return o.ToMyLeft.IsFundingTheTarget() // Because of unidirectionality, funds are flowing from left to right. As soon as the left ledger is plumbed in, my funding is assured.
 	}
 
 }
