@@ -265,7 +265,7 @@ func TestCrankAsAlice(t *testing.T) {
 	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[0], TurnNum: 2}
 	Ok(t, err)
 	assertOneProposalSent(t, effects, sp, p1)
-	Equals(t, waitingFor, WaitingForCompleteFunding)
+	Equals(t, waitingFor, WaitingForFundingAssurance)
 
 	// Check idempotency
 	emptySideEffects := protocols.SideEffects{}
@@ -273,7 +273,7 @@ func TestCrankAsAlice(t *testing.T) {
 	o = oObj.(*Objective)
 	Ok(t, err)
 	Equals(t, effects, emptySideEffects)
-	Equals(t, waitingFor, WaitingForCompleteFunding)
+	Equals(t, waitingFor, WaitingForFundingAssurance)
 
 	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
 	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[1], TurnNum: 2}
@@ -346,14 +346,14 @@ func TestCrankAsBob(t *testing.T) {
 	emptySideEffects := protocols.SideEffects{}
 	Ok(t, err)
 	Equals(t, effects, emptySideEffects)
-	Equals(t, waitingFor, WaitingForCompleteFunding)
+	Equals(t, waitingFor, WaitingForFundingAssurance)
 
 	// Check idempotency
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 	Ok(t, err)
 	Equals(t, effects, emptySideEffects)
-	Equals(t, waitingFor, WaitingForCompleteFunding)
+	Equals(t, waitingFor, WaitingForFundingAssurance)
 
 	// If Bob had received a signed counterproposal, he should proceed to postFundSetup
 	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
@@ -429,7 +429,7 @@ func TestCrankAsP1(t *testing.T) {
 	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[0], TurnNum: 2}
 	Ok(t, err)
 	assertOneProposalSent(t, effects, sp, alice)
-	Equals(t, waitingFor, WaitingForCompleteFunding)
+	Equals(t, waitingFor, WaitingForFundingAssurance)
 
 	// Check idempotency
 	emptySideEffects := protocols.SideEffects{}
@@ -437,7 +437,7 @@ func TestCrankAsP1(t *testing.T) {
 	o = oObj.(*Objective)
 	Ok(t, err)
 	Equals(t, effects, emptySideEffects)
-	Equals(t, waitingFor, WaitingForCompleteFunding)
+	Equals(t, waitingFor, WaitingForFundingAssurance)
 
 	// If P1 had received a signed counterproposal, she should proceed to postFundSetup
 	p = consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
@@ -457,7 +457,7 @@ func TestCrankAsP1(t *testing.T) {
 	Ok(t, err)
 
 	// We need to receive a proposal from Bob before funding is completed!
-	Equals(t, waitingFor, WaitingForCompleteFunding)
+	Equals(t, waitingFor, WaitingForFundingAssurance)
 	Equals(t, effects, emptySideEffects)
 }
 
