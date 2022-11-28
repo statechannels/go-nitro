@@ -66,6 +66,8 @@ func (ecs *EthChainService) defaultTxOpts() *bind.TransactOpts {
 		Signer:    ecs.txSigner.Signer,
 		GasFeeCap: ecs.txSigner.GasFeeCap,
 		GasTipCap: ecs.txSigner.GasTipCap,
+		GasLimit:  ecs.txSigner.GasLimit,
+		GasPrice:  ecs.txSigner.GasPrice,
 	}
 }
 
