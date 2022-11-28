@@ -80,7 +80,7 @@ func createLedgerState(client, hub types.Address, clientBalance, hubBalance uint
 		client,
 		hub,
 	}
-	state.Outcome = Outcomes.Create(client, hub, clientBalance, hubBalance)
+	state.Outcome = Outcomes.Create(client, hub, clientBalance, hubBalance, common.Address{})
 	state.AppDefinition = types.Address{} // ledger channel running the consensus app
 	state.TurnNum = 0
 
@@ -88,7 +88,7 @@ func createLedgerState(client, hub types.Address, clientBalance, hubBalance uint
 }
 
 // createOutcome is a helper function to create a two-actor outcome
-func createOutcome(first types.Address, second types.Address, x, y uin, asset common.Address) outcome.Exit {
+func createOutcome(first types.Address, second types.Address, x, y uint, asset common.Address) outcome.Exit {
 
 	return outcome.Exit{outcome.SingleAssetExit{
 		Asset: asset,
