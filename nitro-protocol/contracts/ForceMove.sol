@@ -49,7 +49,7 @@ contract ForceMove is IForceMove, StatusManager {
         SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate,
         Signature memory challengerSig
-    ) external override {
+    ) external virtual override {
         _requireCorrectChainId(fixedPart.chainId);
         bytes32 channelId = NitroUtils.getChannelId(fixedPart);
         uint48 candidateTurnNum = candidate.variablePart.turnNum;
@@ -101,7 +101,7 @@ contract ForceMove is IForceMove, StatusManager {
         FixedPart memory fixedPart,
         SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate
-    ) external override {
+    ) external virtual override {
         _requireCorrectChainId(fixedPart.chainId);
         bytes32 channelId = NitroUtils.getChannelId(fixedPart);
         uint48 candidateTurnNum = candidate.variablePart.turnNum;
@@ -126,7 +126,7 @@ contract ForceMove is IForceMove, StatusManager {
         FixedPart memory fixedPart,
         SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate
-    ) external override {
+    ) external virtual override {
         _conclude(fixedPart, proof, candidate);
     }
 
