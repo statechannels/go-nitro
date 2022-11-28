@@ -2,7 +2,6 @@ package chainservice
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"log"
 	"math/big"
@@ -23,6 +22,7 @@ import (
 )
 
 func TestEthChainServiceFEVM(t *testing.T) {
+	// Since this is hitting a contract on a test chain we only want to run it selectively
 	t.Skip()
 	// This is funded key on wallaby based on the test test ... fake mnemoic
 	pkString := "6b65fdf763faebfbcf9a43d5ab3dd2fb639a3d69c10df99eddc0a6eb30a99ba7"
@@ -39,17 +39,13 @@ func TestEthChainServiceFEVM(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, chainId)
 	if err != nil {
 		log.Fatal(err)
 	}
-	txSubmitter.GasPrice = gasPrice
-	txSubmitter.GasLimit = uint64(300000) // in units
+	// By setting the GasTipCap we signal this is a type 2 transaction
+	// FEVM does NOT support type 1 transactions
+	txSubmitter.GasTipCap = big.NewInt(300000)
 
 	// This is the deployed contract on wallaby
 	naAddress := common.HexToAddress("0x9F6E424d79cEA7E32b852f724E130d2F1C7c99c6")
