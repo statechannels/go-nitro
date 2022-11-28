@@ -120,6 +120,20 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 	}
 }
 
+// fatalError is called when a goroutine encounters an unrecoverable error.
+// If prints out the error to STDOUT, the logger and then exits the program.
+func (ecs *EthChainService) fatalError(format string, v ...any) {
+
+	// Print to STDOUT in case we're using a noop logger
+	fmt.Println(fmt.Errorf(format, v...))
+	// FatalF prints to the logger then calls exit(1)
+	ecs.logger.Fatalf(format, v...)
+
+	// Manually panic in case we're using a logger that doesn't call exit(1)
+	panic(fmt.Errorf(format, v...))
+
+}
+
 // dispatchChainEvents takes in a collection of event logs from the chain
 // and dispatches events to the out channel
 func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
@@ -128,7 +142,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 		case depositedTopic:
 			nad, err := ecs.na.ParseDeposited(l)
 			if err != nil {
-				ecs.logger.Fatalf("error in ParseDeposited: %v", err)
+				ecs.fatalError("error in ParseDeposited: %v", err)
 			}
 
 			event := NewDepositedEvent(nad.Destination, l.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
@@ -136,23 +150,23 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 		case allocationUpdatedTopic:
 			au, err := ecs.na.ParseAllocationUpdated(l)
 			if err != nil {
-				ecs.logger.Fatalf("error in ParseAllocationUpdated: %v", err)
+				ecs.fatalError("error in ParseAllocationUpdated: %v", err)
 
 			}
 
 			tx, pending, err := ecs.chain.TransactionByHash(context.Background(), l.TxHash)
 			if pending {
-				ecs.logger.Fatalf("Expected transacion to be part of the chain, but the transaction is pending")
+				ecs.fatalError("Expected transacion to be part of the chain, but the transaction is pending")
 
 			}
 			if err != nil {
-				ecs.logger.Fatalf("error in TransactoinByHash: %v", err)
+				ecs.fatalError("error in TransactoinByHash: %v", err)
 
 			}
 
 			assetAddress, amount, err := getChainHolding(ecs.na, tx, au)
 			if err != nil {
-				ecs.logger.Fatalf("error in getChainHoldings: %v", err)
+				ecs.fatalError("error in getChainHoldings: %v", err)
 
 			}
 			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, amount)
@@ -160,7 +174,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 		case concludedTopic:
 			ce, err := ecs.na.ParseConcluded(l)
 			if err != nil {
-				ecs.logger.Fatalf("error in ParseConcluded: %v", err)
+				ecs.fatalError("error in ParseConcluded: %v", err)
 
 			}
 
@@ -168,7 +182,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			ecs.out <- event
 
 		default:
-			ecs.logger.Printf("Unknown chain event")
+			ecs.fatalError("Unknown chain event")
 		}
 	}
 
