@@ -5,8 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -18,9 +20,10 @@ import (
 
 const ledgerChannelDeposit = 5_000_000
 
-func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client) types.Destination {
+func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client, asset common.Address) types.Destination {
 	// Set up an outcome that requires both participants to deposit
-	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, ledgerChannelDeposit, ledgerChannelDeposit)
+	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, ledgerChannelDeposit, ledgerChannelDeposit, asset)
+
 	response := alpha.CreateLedgerChannel(*beta.Address, 0, outcome)
 
 	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, response.Id)
@@ -55,7 +58,7 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 		_ = client.New(messageservice, chainServiceB, storeB, logDestination, &RejectingPolicyMaker{}, nil)
 	}
 
-	outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), ledgerChannelDeposit, ledgerChannelDeposit)
+	outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), ledgerChannelDeposit, ledgerChannelDeposit, types.Address{})
 	response := clientA.CreateLedgerChannel(bob.Address(), 0, outcome)
 
 	waitTimeForCompletedObjectiveIds(t, &clientA, time.Second, response.Id)
@@ -77,6 +80,43 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 
 // TestDirectFund uses the geth simulated backend
 func TestDirectFund(t *testing.T) {
+	assertLedgerChannelInBothStoresWithOutcome := func(want outcome.Exit, storeA, storeB store.Store) {
+		for _, store := range []store.Store{storeA, storeB} {
+			var con *consensus_channel.ConsensusChannel
+			var ok bool
+
+			// each client fetches the ConsensusChannel by reference to their counterparty
+			if store.GetChannelSecretKey() == &alice.PrivateKey {
+				con, ok = store.GetConsensusChannel(*storeB.GetAddress())
+			} else {
+				con, ok = store.GetConsensusChannel(*storeA.GetAddress())
+			}
+
+			if !ok {
+				t.Fatalf("expected a consensus channel to have been created")
+			}
+			vars := con.ConsensusVars()
+			got := vars.Outcome.AsOutcome()
+
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("expected outcome to be %v, got %v:\n %v", want, got, diff)
+			}
+			if vars.TurnNum != 1 {
+				t.Fatal("expected consensus turn number to be the post fund setup 1, received #$v", vars.TurnNum)
+			}
+			if con.Leader() != *storeA.GetAddress() {
+				t.Fatalf("Expected %v as leader, but got %v", *storeA.GetAddress(), con.Leader())
+			}
+
+			if !con.OnChainFunding.IsNonZero() {
+				t.Fatal("Expected nonzero on chain funding, but got zero")
+			}
+
+			if _, channelStillInStore := store.GetChannelById(con.Id); channelStillInStore {
+				t.Fatalf("Expected channel to have been destroyed in %v's store, but it was not", store.GetAddress())
+			}
+		}
+	}
 
 	// Setup logging
 	logFile := "test_direct_fund.log"
@@ -103,45 +143,14 @@ func TestDirectFund(t *testing.T) {
 	clientA, storeA := setupClient(alice.PrivateKey, chainA, broker, logDestination, 0)
 	clientB, storeB := setupClient(bob.PrivateKey, chainB, broker, logDestination, 0)
 
-	directlyFundALedgerChannel(t, clientA, clientB)
+	asset := common.Address{}
+	directlyFundALedgerChannel(t, clientA, clientB, asset)
+	want := testdata.Outcomes.Create(*clientA.Address, *clientB.Address, ledgerChannelDeposit, ledgerChannelDeposit, asset)
+	assertLedgerChannelInBothStoresWithOutcome(want, storeA, storeB)
 
-	want := testdata.Outcomes.Create(*clientA.Address, *clientB.Address, ledgerChannelDeposit, ledgerChannelDeposit)
-	// Ensure that we create a consensus channel in the store
-	for _, store := range []store.Store{storeA, storeB} {
-		var con *consensus_channel.ConsensusChannel
-		var ok bool
-
-		// each client fetches the ConsensusChannel by reference to their counterparty
-		if store.GetChannelSecretKey() == &alice.PrivateKey {
-			con, ok = store.GetConsensusChannel(*clientB.Address)
-		} else {
-			con, ok = store.GetConsensusChannel(*clientA.Address)
-		}
-
-		if !ok {
-			t.Fatalf("expected a consensus channel to have been created")
-		}
-		vars := con.ConsensusVars()
-		got := vars.Outcome.AsOutcome()
-
-		if diff := cmp.Diff(want, got); diff != "" {
-			t.Fatalf("expected outcome to be %v, got %v:\n %v", want, got, diff)
-		}
-		if vars.TurnNum != 1 {
-			t.Fatal("expected consensus turn number to be the post fund setup 1, received #$v", vars.TurnNum)
-		}
-		if con.Leader() != *clientA.Address {
-			t.Fatalf("Expected %v as leader, but got %v", clientA.Address, con.Leader())
-		}
-
-		if !con.OnChainFunding.IsNonZero() {
-			t.Fatal("Expected nonzero on chain funding, but got zero")
-		}
-
-		if _, channelStillInStore := store.GetChannelById(con.Id); channelStillInStore {
-			t.Fatalf("Expected channel to have been destroyed in %v's store, but it was not", store.GetAddress())
-		}
-
-	}
+	asset = bindings.Token.Address
+	directlyFundALedgerChannel(t, clientA, clientB, asset)
+	want = testdata.Outcomes.Create(*clientA.Address, *clientB.Address, ledgerChannelDeposit, ledgerChannelDeposit, asset)
+	assertLedgerChannelInBothStoresWithOutcome(want, storeA, storeB)
 
 }
