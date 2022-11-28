@@ -62,7 +62,6 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 
 // defaultTxOpts returns transaction options suitable for most transaction submissions
 func (ecs *EthChainService) defaultTxOpts() *bind.TransactOpts {
-	// FEVM only supports type 2 transactions
 	return &bind.TransactOpts{
 		From:      ecs.txSigner.From,
 		Nonce:     ecs.txSigner.Nonce,
