@@ -128,7 +128,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 		case depositedTopic:
 			nad, err := ecs.na.ParseDeposited(l)
 			if err != nil {
-				ecs.logger.Printf("error in ParseDeposited: %v", err)
+				ecs.logger.Fatalf("error in ParseDeposited: %v", err)
 			}
 
 			event := NewDepositedEvent(nad.Destination, l.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
@@ -136,27 +136,32 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 		case allocationUpdatedTopic:
 			au, err := ecs.na.ParseAllocationUpdated(l)
 			if err != nil {
-				ecs.logger.Printf("error in ParseAllocationUpdated: %v", err)
+				ecs.logger.Fatalf("error in ParseAllocationUpdated: %v", err)
+
 			}
 
 			tx, pending, err := ecs.chain.TransactionByHash(context.Background(), l.TxHash)
 			if pending {
-				ecs.logger.Printf("Expected transacion to be part of the chain, but the transaction is pending")
+				ecs.logger.Fatalf("Expected transacion to be part of the chain, but the transaction is pending")
+
 			}
 			if err != nil {
-				ecs.logger.Printf("error in TransactoinByHash: %v", err)
+				ecs.logger.Fatalf("error in TransactoinByHash: %v", err)
+
 			}
 
 			assetAddress, amount, err := getChainHolding(ecs.na, tx, au)
 			if err != nil {
-				ecs.logger.Printf("error in getChainHoldings: %v", err)
+				ecs.logger.Fatalf("error in getChainHoldings: %v", err)
+
 			}
 			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, amount)
 			ecs.out <- event
 		case concludedTopic:
 			ce, err := ecs.na.ParseConcluded(l)
 			if err != nil {
-				ecs.logger.Printf("error in ParseConcluded: %v", err)
+				ecs.logger.Fatalf("error in ParseConcluded: %v", err)
+
 			}
 
 			event := ConcludedEvent{commonEvent: commonEvent{channelID: ce.ChannelId, BlockNum: l.BlockNumber}}
