@@ -153,4 +153,6 @@ func TestDirectFund(t *testing.T) {
 	want = testdata.Outcomes.Create(*clientA.Address, *clientB.Address, ledgerChannelDeposit, ledgerChannelDeposit, asset)
 	assertLedgerChannelInBothStoresWithOutcome(want, storeA, storeB)
 
+	// We get a "channel already exists with counterparty" error
+
 }
