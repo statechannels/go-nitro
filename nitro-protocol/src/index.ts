@@ -28,7 +28,14 @@ export {
 export {encodeOutcome, decodeOutcome, Outcome, AssetOutcome, hashOutcome} from './contract/outcome';
 export {channelDataToStatus} from './contract/channel-storage';
 
-export {State, VariablePart, getVariablePart, getFixedPart, hashState} from './contract/state';
+export {
+  State,
+  VariablePart,
+  RecoveredVariablePart,
+  getVariablePart,
+  getFixedPart,
+  hashState,
+} from './contract/state';
 
 export * from './signatures';
 export * from './transactions';
