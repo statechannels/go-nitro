@@ -172,10 +172,10 @@ func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
 	}
 	clientI, storeI := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, meanMessageDelay)
 
-	directlyFundALedgerChannel(t, clientA, clientI)
-	directlyFundALedgerChannel(t, clientB, clientI)
+	directlyFundALedgerChannel(t, clientA, clientI, types.Address{})
+	directlyFundALedgerChannel(t, clientB, clientI, types.Address{})
 
-	outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
+	outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1, types.Address{})
 	response := clientA.CreateVirtualPaymentChannel(
 		[]types.Address{irene.Address()},
 		bob.Address(),
