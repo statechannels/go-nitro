@@ -17,9 +17,10 @@ type SimpleItem struct {
 }
 
 type outcomes struct {
-	// Create returns a simple outcome {a: aBalance, b: bBalance} in the
+	// Create returns a simple outcome {a: aBalance, b: bBalance} with the supplied
+	// erc20 token address as the asset. A zero address implies the
 	// zero-asset (chain-native token)
-	Create func(a, b types.Address, aBalance, bBalance uint) outcome.Exit
+	Create func(a, b types.Address, aBalance, bBalance uint, token common.Address) outcome.Exit
 	// CreateLongOutcome returns a simple outcome {addressOne: balanceOne ...} in the
 	// zero-asset (chain-native token)
 	// The outcome can be of arbitrary length, and is formed in order that the SimpleItems are provided
@@ -87,9 +88,10 @@ func createLedgerState(client, hub types.Address, clientBalance, hubBalance uint
 }
 
 // createOutcome is a helper function to create a two-actor outcome
-func createOutcome(first types.Address, second types.Address, x, y uint) outcome.Exit {
+func createOutcome(first types.Address, second types.Address, x, y uin, asset common.Address) outcome.Exit {
 
 	return outcome.Exit{outcome.SingleAssetExit{
+		Asset: asset,
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
 				Destination: types.AddressToDestination(first),
