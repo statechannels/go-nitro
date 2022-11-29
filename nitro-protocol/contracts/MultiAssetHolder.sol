@@ -36,7 +36,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         bytes32 channelId,
         uint256 expectedHeld,
         uint256 amount
-    ) external payable override {
+    ) external payable virtual override {
         require(!_isExternalDestination(channelId), 'Deposit to external destination');
         uint256 amountDeposited;
         // this allows participants to reduce the wait between deposits, while protecting them from losing funds by depositing too early. Specifically it protects against the scenario:

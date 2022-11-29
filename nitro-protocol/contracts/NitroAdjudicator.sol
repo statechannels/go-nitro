@@ -22,7 +22,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         FixedPart memory fixedPart,
         SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate
-    ) public {
+    ) public virtual {
         bytes32 channelId = _conclude(fixedPart, proof, candidate);
 
         transferAllAssets(channelId, candidate.variablePart.outcome, bytes32(0));
@@ -39,7 +39,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         bytes32 channelId,
         Outcome.SingleAssetExit[] memory outcome,
         bytes32 stateHash
-    ) public {
+    ) public virtual {
         // checks
         _requireChannelFinalized(channelId);
         _requireMatchingFingerprint(stateHash, NitroUtils.hashOutcome(outcome), channelId);
