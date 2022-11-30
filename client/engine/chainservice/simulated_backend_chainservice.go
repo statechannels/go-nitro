@@ -121,6 +121,16 @@ func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, bind
 		return nil, contractBindings, accounts, err
 	}
 
+	// Distributed tokens to all accounts
+	INITIAL_TOKEN_BALANCE := big.NewInt(10_000_000)
+	for _, account := range accounts {
+		accountAddress := account.From
+		_, err := tokenBinding.Transfer(accounts[0], accountAddress, INITIAL_TOKEN_BALANCE)
+		if err != nil {
+			return nil, contractBindings, accounts, err
+		}
+	}
+
 	contractBindings = bindings{
 		Adjudicator:       binding[NitroAdjudicator.NitroAdjudicator]{naAddress, na},
 		Token:             binding[Token.Token]{tokenAddress, tokenBinding},

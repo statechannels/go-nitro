@@ -159,6 +159,6 @@ func TestDirectFund(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("native-asset", testDirectFundWithAsset(common.Address{}, sim, chainA, chainB, logDestination))
+	// t.Run("native-asset", testDirectFundWithAsset(common.Address{}, sim, chainA, chainB, logDestination))
 	t.Run("ERC20-asset", testDirectFundWithAsset(bindings.Token.Address, sim, chainA, chainB, logDestination))
 }
