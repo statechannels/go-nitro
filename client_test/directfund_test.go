@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
@@ -81,8 +82,18 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 }
 
 // testDirectFundWithAsset returns a function which tests the direct fund flow with the supplied asset. It is designed to be used as a subtest.
-func testDirectFundWithAsset(asset common.Address, sim *backends.SimulatedBackend, chainA, chainB chainservice.ChainService, logDestination *os.File) func(t *testing.T) {
+func testDirectFundWithAsset(asset common.Address, sim *backends.SimulatedBackend, bindings chainservice.Bindings, ethAccounts []*bind.TransactOpts, logDestination *os.File) func(t *testing.T) {
 	return func(t *testing.T) {
+
+		// Spawn a pair of chain services
+		chainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
+		if err != nil {
+			t.Fatal(err)
+		}
+		chainB, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[1], logDestination)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		broker := messageservice.NewBroker()
 
@@ -149,16 +160,6 @@ func TestDirectFund(t *testing.T) {
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
-	// Spawn a pair of long running chain services
-	chainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
-	if err != nil {
-		t.Fatal(err)
-	}
-	chainB, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[1], logDestination)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// t.Run("native-asset", testDirectFundWithAsset(common.Address{}, sim, chainA, chainB, logDestination))
-	t.Run("ERC20-asset", testDirectFundWithAsset(bindings.Token.Address, sim, chainA, chainB, logDestination))
+	t.Run("native-asset", testDirectFundWithAsset(common.Address{}, sim, bindings, ethAccounts, logDestination))
+	t.Run("ERC20-asset", testDirectFundWithAsset(bindings.Token.Address, sim, bindings, ethAccounts, logDestination))
 }
