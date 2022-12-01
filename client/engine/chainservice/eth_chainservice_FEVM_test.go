@@ -48,7 +48,7 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	txSubmitter.GasTipCap = big.NewInt(300000)
 
 	// This is the deployed contract on wallaby
-	naAddress := common.HexToAddress("0x9F6E424d79cEA7E32b852f724E130d2F1C7c99c6")
+	naAddress := common.HexToAddress("0x1c08e50a97FE37C13EE3aA9FEEAd7d307f114130")
 	caAddress := common.Address{}  // TODO use proper address
 	vpaAddress := common.Address{} // TODO use proper address
 
