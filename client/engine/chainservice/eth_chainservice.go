@@ -147,6 +147,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			}
 
 			event := NewDepositedEvent(nad.Destination, l.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
+			fmt.Printf("DISPATCHING EVENT\n%+v\n", event)
 			ecs.out <- event
 		case allocationUpdatedTopic:
 			au, err := ecs.na.ParseAllocationUpdated(l)
@@ -185,6 +186,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			}
 
 			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, amount)
+			fmt.Printf("DISPATCHING EVENT\n%+v\n", event)
 			ecs.out <- event
 		case concludedTopic:
 			ce, err := ecs.na.ParseConcluded(l)
@@ -194,6 +196,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			}
 
 			event := ConcludedEvent{commonEvent: commonEvent{channelID: ce.ChannelId, BlockNum: l.BlockNumber}}
+			fmt.Printf("DISPATCHING EVENT\n%+v\n", event)
 			ecs.out <- event
 
 		default:
@@ -235,13 +238,14 @@ func (ecs *EthChainService) listenForLogEvents(ctx context.Context) {
 		select {
 		case <-time.After(EVENT_POLL_INTERVAL):
 			currentBlock := ecs.getCurrentBlockNum()
+
 			if moreRecentBlockAvailable := currentBlock.Cmp(query.ToBlock) > 0; moreRecentBlockAvailable {
-				// We update to query to be between our previous block number and the latest block number
-				query.FromBlock = big.NewInt(0).Set(query.ToBlock)
+				// The query includes the from and to blocks so we need to increment the from block to avoid duplicating events
+				query.FromBlock = big.NewInt(0).Add(query.ToBlock, big.NewInt(1))
 				query.ToBlock = big.NewInt(0).Set(currentBlock)
 
 				fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
-
+				fmt.Printf("Polling from %d to %d found %d logs\n", query.FromBlock, query.ToBlock, len(fetchedLogs))
 				if err != nil {
 					panic(err)
 				}
