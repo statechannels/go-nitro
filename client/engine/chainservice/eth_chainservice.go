@@ -147,7 +147,6 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			}
 
 			event := NewDepositedEvent(nad.Destination, l.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
-			fmt.Printf("DISPATCHING EVENT\n%+v\n", event)
 			ecs.out <- event
 		case allocationUpdatedTopic:
 			au, err := ecs.na.ParseAllocationUpdated(l)
@@ -186,7 +185,6 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			}
 
 			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, amount)
-			fmt.Printf("DISPATCHING EVENT\n%+v\n", event)
 			ecs.out <- event
 		case concludedTopic:
 			ce, err := ecs.na.ParseConcluded(l)
@@ -196,7 +194,6 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			}
 
 			event := ConcludedEvent{commonEvent: commonEvent{channelID: ce.ChannelId, BlockNum: l.BlockNumber}}
-			fmt.Printf("DISPATCHING EVENT\n%+v\n", event)
 			ecs.out <- event
 
 		default:
@@ -245,7 +242,7 @@ func (ecs *EthChainService) listenForLogEvents(ctx context.Context) {
 				query.ToBlock = big.NewInt(0).Set(currentBlock)
 
 				fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
-				fmt.Printf("Polling from %d to %d found %d logs\n", query.FromBlock, query.ToBlock, len(fetchedLogs))
+
 				if err != nil {
 					panic(err)
 				}

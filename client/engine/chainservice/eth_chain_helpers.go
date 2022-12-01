@@ -11,7 +11,7 @@ import (
 	nt "github.com/statechannels/go-nitro/types"
 )
 
-// getAssetHoldings rreads on-chain holdings for a channel and an asset address and block number
+// getAssetHoldings reads on-chain holdings for a channel,asset address, and block number
 func getAssetHoldings(na *NitroAdjudicator.NitroAdjudicator, assetAddress common.Address, blockNumber *big.Int, channelId nt.Destination) (*big.Int, error) {
 	amount, err := na.Holdings(&bind.CallOpts{BlockNumber: blockNumber}, assetAddress, channelId)
 	if err != nil {
