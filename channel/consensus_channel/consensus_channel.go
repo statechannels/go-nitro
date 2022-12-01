@@ -15,6 +15,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// NOTE: Most of the logic bellow can be extracted to serve for both ledger and virtual channels
+
 type ledgerIndex uint
 
 var (

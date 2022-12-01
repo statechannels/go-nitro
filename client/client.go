@@ -112,6 +112,66 @@ func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, Cou
 	return objectiveRequest.Response(*c.Address)
 }
 
+// CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
+// with the supplied intermediaries.
+func (c *Client) CreateVirtualChannel(Intermediaries []types.Address, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) virtualfund.ObjectiveResponse {
+	objectiveRequest := virtualfund.ObjectiveRequest{
+		Intermediaries:    Intermediaries,
+		CounterParty:      CounterParty,
+		ChallengeDuration: ChallengeDuration,
+		Outcome:           Outcome,
+		Nonce:             rand.Uint64(),
+		// TODO: This should be the address of the virtual channel app
+		// (adding more rules, based on AppData, and being backed up by ledger channel consensus app)
+		AppDefinition: types.Address{},
+	}
+
+	// Send the event to the engine
+	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
+
+	return objectiveRequest.Response(*c.Address)
+}
+
+// ProgressChannel will send a signed state to the counterparty that they can use to progress the channel.
+func (c *Client) ProgressChannel(channelId types.Destination, outcome outcome.Exit) protocols.ObjectiveId {
+	// TODO: introduce new protocol, that will move a state from turnNum N to turnNum N+1
+	// This should work with a direct or virtual channel
+
+	// TODO: introduce AppData later on, but for now lets only focus on the outcome
+
+	// NOTE: The protocol will internaly take charge of incrementing the state turn number
+
+	// RFC: name of the protocol: progress, stateprogress, ...?
+	// This name should reflect that it is an objective protocol that simply ask for each participant to agree and sign a state protopoal
+	// A bit like how LedgerProposals message works for direct channels
+
+	objectiveRequest := stateprogress.ObjectiveRequest{
+		ChannelId: channelId,
+		Outcome:   outcome,
+	}
+
+	// Send the event to the engine
+	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
+
+	return objectiveRequest.Id(*c.Address)
+}
+
+// Pay will send a payment to the channel counterparty.
+func (c *Client) _Pay(channelId types.Destination, asset types.Address, amount *big.Int) protocols.ObjectiveId {
+	// NOTE: Here we reuse the "progress" channel protocol directily
+	// This method is simply an helper for outcome manipulation
+	// This kind of method is usefull for both direct and virtual channels
+
+	return c.ProgressChannel(channelId, outcome.Exit{
+		outcome.SingleAssetExit{
+			Asset:       asset,
+			Allocations: []outcome.Allocation{
+				// TODO: modify allocations according to the payment
+			},
+		},
+	})
+}
+
 // CloseVirtualChannel attempts to close and defund the given virtually funded channel.
 func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.ObjectiveId {
 
@@ -129,6 +189,11 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.Obje
 // CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
 // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
 func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
+	// TODO: introduce a CreateChannel method, that will simply use objectives to create a channel (direct or virtual)
+	// This method will take all channel params (or a struct), allowing to create very customized channels (outcomes and appData)
+
+	// NOTE: CreateLedgerChannel will then simply be a specialaized version of CreateChannel, that will use the consensus app
+	// And CreateVirtualChannel will be a specialized version of CreateChannel, that will update outcome of ledger channel with guarentee allocations
 
 	objectiveRequest := directfund.ObjectiveRequest{
 		CounterParty:      Counterparty,

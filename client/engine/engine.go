@@ -356,6 +356,23 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 	e.metrics.RecordObjectiveStarted(objectiveId)
 	switch request := or.(type) {
 
+	// TODO: instead of working with payment channels, we should use standard channel state
+	// and modify LedgerProposals message to work with any kind of channel state (direct or virtual)
+
+	// NOTE: in term of protocols, there should not be any difference between direct or virtual channel
+	// when it comes to propose a channel open
+
+	// NOTE: the only difference between direct and virtual protocols (fund/defunds) is:
+	// - Direct channel: we deposit the allocations on the adjudicator
+	// - Virtual channel: we update ledger channel allocations with a guarantee
+	// When it comes to defunding, the opposite process happens:
+	// - Direct channel: we withdraw from the adjudicator
+	// - Virtual channel: we update ledger channel allocations and remove the guarantee
+
+	// NOTE: before closing a ledger channel, we should check that all virtual channels are closed
+
+	// NOTE: both virtualfund/defund protocols already implement the guarantee manipulation of the ledger channel
+
 	case virtualfund.ObjectiveRequest:
 		vfo, err := virtualfund.NewObjective(request, true, myAddress, e.store.GetConsensusChannel)
 		if err != nil {
