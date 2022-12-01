@@ -29,7 +29,6 @@ var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint
 type ethChain interface {
 	bind.ContractBackend
 	ethereum.TransactionReader
-	BlockNumber(ctx context.Context) (uint64, error)
 }
 
 type EthChainService struct {
@@ -206,14 +205,12 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 
 // getCurrentBlockNumber returns the current block number.
 func (ecs *EthChainService) getCurrentBlockNum() *big.Int {
-	// TODO: We specifically call BlockNumber as HeaderByNumber can fail
-	// see https://github.com/filecoin-project/ref-fvm/issues/1135
-	blockNum, err := ecs.chain.BlockNumber(context.Background())
+	h, err := ecs.chain.HeaderByNumber(context.Background(), nil)
 	if err != nil {
 		panic(err)
 	}
 
-	return big.NewInt(int64(blockNum))
+	return h.Number
 }
 
 // listenForLogEvents periodically polls the chain client to check if there new events.
