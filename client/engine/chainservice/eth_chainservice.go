@@ -156,9 +156,16 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 	}
 }
 
-// fatalError is called when a goroutine encounters an unrecoverable error.
+// fatalError is called to output the error and then panic, killing the chain service.
 // If prints out the error to STDOUT, the logger and then exits the program.
-func (ecs *EthChainService) fatalError(format string, v ...any) {
+func (ecs *EthChainService) fatalError(err error) {
+	ecs.fatalF("FATAL ERROR\n%+v", err)
+}
+
+// fatalF is called to output a message and then panic, killing the chain service.
+// It accepts a format string and arguments, as per fmt.Printf.
+// If prints out the error to STDOUT, the logger and then exits the program.
+func (ecs *EthChainService) fatalF(format string, v ...any) {
 
 	// Print to STDOUT in case we're using a noop logger
 	fmt.Println(fmt.Errorf(format, v...))
@@ -178,7 +185,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 		case depositedTopic:
 			nad, err := ecs.na.ParseDeposited(l)
 			if err != nil {
-				ecs.fatalError("error in ParseDeposited: %v", err)
+				ecs.fatalF("error in ParseDeposited: %v", err)
 			}
 
 			event := NewDepositedEvent(nad.Destination, l.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
@@ -186,13 +193,13 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 		case allocationUpdatedTopic:
 			au, err := ecs.na.ParseAllocationUpdated(l)
 			if err != nil {
-				ecs.fatalError("error in ParseAllocationUpdated: %v", err)
+				ecs.fatalF("error in ParseAllocationUpdated: %v", err)
 
 			}
 
 			tx, pending, err := ecs.chain.TransactionByHash(context.Background(), l.TxHash)
 			if pending {
-				ecs.fatalError("Expected transaction to be part of the chain, but the transaction is pending")
+				ecs.fatalF("Expected transaction to be part of the chain, but the transaction is pending")
 
 			}
 			var assetAddress types.Address
@@ -206,16 +213,16 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 				assetAddress := types.Address{}
 				amount, err = getAssetHoldings(ecs.na, assetAddress, new(big.Int).SetUint64(au.Raw.BlockNumber), au.ChannelId)
 				if err != nil {
-					ecs.fatalError("error in getAssetHoldings: %v", err)
+					ecs.fatalF("error in getAssetHoldings: %v", err)
 				}
 
 			case err != nil:
-				ecs.fatalError("error in TransactionByHash: %v", err)
+				ecs.fatalF("error in TransactionByHash: %v", err)
 
 			default:
 				assetAddress, amount, err = getChainHolding(ecs.na, tx, au)
 				if err != nil {
-					ecs.fatalError("error in getChainHoldings: %v", err)
+					ecs.fatalF("error in getChainHoldings: %v", err)
 				}
 			}
 
@@ -224,7 +231,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 		case concludedTopic:
 			ce, err := ecs.na.ParseConcluded(l)
 			if err != nil {
-				ecs.fatalError("error in ParseConcluded: %v", err)
+				ecs.fatalF("error in ParseConcluded: %v", err)
 
 			}
 
@@ -232,7 +239,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			ecs.out <- event
 
 		default:
-			ecs.fatalError("Unknown chain event")
+			ecs.fatalF("Unknown chain event")
 		}
 	}
 
@@ -242,7 +249,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 func (ecs *EthChainService) getCurrentBlockNum() *big.Int {
 	h, err := ecs.chain.HeaderByNumber(context.Background(), nil)
 	if err != nil {
-		panic(err)
+		ecs.fatalError(err)
 	}
 
 	return h.Number
@@ -258,13 +265,13 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 	logs := make(chan ethTypes.Log)
 	sub, err := ecs.chain.SubscribeFilterLogs(ctx, query, logs)
 	if err != nil {
-		panic(err)
+		ecs.fatalError(err)
 	}
 	for {
 		select {
 		case err := <-sub.Err():
 			if err != nil {
-				panic(err)
+				ecs.fatalError(err)
 			}
 
 			// If the error is nil then the subscription was closed and we need to re-subscribe.
@@ -272,7 +279,7 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 			var sErr error
 			sub, sErr = ecs.chain.SubscribeFilterLogs(ctx, query, logs)
 			if sErr != nil {
-				panic(err)
+				ecs.fatalError(err)
 			}
 			ecs.logger.Println("resubscribed to filtered logs")
 
@@ -302,7 +309,7 @@ func (ecs *EthChainService) pollForLogs(ctx context.Context) {
 	fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
 
 	if err != nil {
-		panic(err)
+		ecs.fatalError(err)
 	}
 
 	ecs.dispatchChainEvents(fetchedLogs)
@@ -319,7 +326,7 @@ func (ecs *EthChainService) pollForLogs(ctx context.Context) {
 				fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
 
 				if err != nil {
-					panic(err)
+					ecs.fatalError(err)
 				}
 
 				ecs.dispatchChainEvents(fetchedLogs)
