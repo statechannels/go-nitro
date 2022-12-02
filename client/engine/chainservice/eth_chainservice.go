@@ -283,8 +283,6 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 		case chainEvent := <-logs:
 			ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
 
-		default:
-			ecs.logger.Printf("Unknown chain event")
 		}
 	}
 
