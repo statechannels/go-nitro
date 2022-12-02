@@ -12,13 +12,13 @@ import (
 )
 
 func openVirtualChannels(t *testing.T, clientA client.Client, clientB client.Client, clientI client.Client, numOfChannels uint) []types.Destination {
-	directlyFundALedgerChannel(t, clientA, clientI)
-	directlyFundALedgerChannel(t, clientI, clientB)
+	directlyFundALedgerChannel(t, clientA, clientI, types.Address{})
+	directlyFundALedgerChannel(t, clientI, clientB, types.Address{})
 
 	objectiveIds := make([]protocols.ObjectiveId, numOfChannels)
 	channelIds := make([]types.Destination, numOfChannels)
 	for i := 0; i < int(numOfChannels); i++ {
-		outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1)
+		outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 1, 1, types.Address{})
 		response := clientA.CreateVirtualPaymentChannel(
 			[]types.Address{irene.Address()},
 			bob.Address(),
@@ -69,7 +69,7 @@ func openN_HopVirtualChannels(t *testing.T, participants []client.Client, channe
 	// network is a line: A <-> B <-> C <-> D ... <-> X
 	for i, participant := range participants {
 		if i+1 < len(participants) {
-			directlyFundALedgerChannel(t, participant, participants[i+1])
+			directlyFundALedgerChannel(t, participant, participants[i+1], types.Address{})
 		}
 	}
 
@@ -85,7 +85,7 @@ func openN_HopVirtualChannels(t *testing.T, participants []client.Client, channe
 			intermediaries := counterparties[0:j]
 			intermediaryAddresses := clientsToAddresses(intermediaries)
 
-			outcome := td.Outcomes.Create(*alice.Address, *bob.Address, 1, 1)
+			outcome := td.Outcomes.Create(*alice.Address, *bob.Address, 1, 1, types.Address{})
 			response := alice.CreateVirtualPaymentChannel(
 				intermediaryAddresses,
 				*bob.Address,

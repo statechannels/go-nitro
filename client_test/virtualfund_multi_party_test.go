@@ -28,9 +28,9 @@ func TestVirtualFundMultiParty(t *testing.T) {
 	clientBrian, _ := setupClient(brian.PrivateKey, chainServiceBr, broker, logDestination, 0)
 	clientIrene, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
 
-	directlyFundALedgerChannel(t, clientAlice, clientIrene)
-	directlyFundALedgerChannel(t, clientIrene, clientBob)
-	directlyFundALedgerChannel(t, clientIrene, clientBrian)
+	directlyFundALedgerChannel(t, clientAlice, clientIrene, types.Address{})
+	directlyFundALedgerChannel(t, clientIrene, clientBob, types.Address{})
+	directlyFundALedgerChannel(t, clientIrene, clientBrian, types.Address{})
 
 	id := clientAlice.CreateVirtualPaymentChannel(
 		[]types.Address{irene.Address()},
@@ -41,6 +41,7 @@ func TestVirtualFundMultiParty(t *testing.T) {
 			bob.Address(),
 			1,
 			1,
+			types.Address{},
 		)).Id
 
 	id2 := clientAlice.CreateVirtualPaymentChannel(
@@ -52,6 +53,7 @@ func TestVirtualFundMultiParty(t *testing.T) {
 			brian.Address(),
 			1,
 			1,
+			types.Address{},
 		)).Id
 
 	waitTimeForCompletedObjectiveIds(t, &clientBob, defaultTimeout, id)

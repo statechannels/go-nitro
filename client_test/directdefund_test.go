@@ -52,7 +52,7 @@ func TestDirectDefund(t *testing.T) {
 
 	// test successful condition for setup / teadown of unused ledger channel
 	{
-		channelId := directlyFundALedgerChannel(t, clientA, clientB)
+		channelId := directlyFundALedgerChannel(t, clientA, clientB, types.Address{})
 		directlyDefundALedgerChannel(t, clientA, clientB, channelId)
 
 		// Ensure that we no longer have a consensus channel in the store
