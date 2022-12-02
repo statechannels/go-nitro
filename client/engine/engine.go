@@ -177,6 +177,10 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 	if err != nil {
 		return EngineEvent{}, err
 	}
+	if obj.GetStatus() == protocols.Completed {
+		e.logger.Printf("Ignoring proposal for complected objective  %s", obj.Id())
+		return EngineEvent{}, nil
+	}
 	return e.attemptProgress(obj)
 }
 
