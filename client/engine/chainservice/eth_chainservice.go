@@ -18,6 +18,8 @@ import (
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
+
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 const FEVM_PARSE_ERROR = "json: cannot unmarshal hex string \"0x\" into Go struct field txJSON.v of type *hexutil.Big"
@@ -46,6 +48,12 @@ type EthChainService struct {
 // it's safe to poll relatively frequently.
 const EVENT_POLL_INTERVAL = 500 * time.Millisecond
 
+// RESUB_INTERVAL is how often we resubscribe to log events.
+// We do this to avoid https://github.com/ethereum/go-ethereum/issues/23845
+// We use 2.5 minutes as the default filter timeout is 5 minutes.
+// See https://github.com/ethereum/go-ethereum/blob/e14164d516600e9ac66f9060892e078f5c076229/eth/filters/filter_system.go#L43
+const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
+
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
 func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
@@ -55,8 +63,35 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger}
 
-	go ecs.listenForLogEvents(context.Background())
+	if ecs.subscriptionsSupported() {
+		logger.Printf("Notifications are supported by the chain. Using notifications to listen for events.")
+		go ecs.subscribeForLogs(context.Background())
+	} else {
+		logger.Printf("Notifications are NOT supported by the chain. Using polling to listen for events.")
+		go ecs.pollForLogs(context.Background())
+	}
 	return &ecs, nil
+}
+
+// subscriptionsSupported returns true if the node supports subscriptions for events.
+// Otherwise returns false
+func (ecs *EthChainService) subscriptionsSupported() bool {
+	// This is slightly painful but seems like the only way to find out if notifications are supported
+	// We attempt to subscribe (with a query that should never return a result) and check the error
+	query := ethereum.FilterQuery{
+		Addresses: []common.Address{ecs.naAddress},
+		FromBlock: big.NewInt(0),
+		ToBlock:   big.NewInt(0),
+	}
+
+	logs := make(chan ethTypes.Log, 1)
+	sub, err := ecs.chain.SubscribeFilterLogs(context.Background(), query, logs)
+	if err == rpc.ErrNotificationsUnsupported {
+		return false
+	}
+
+	sub.Unsubscribe()
+	return true
 }
 
 // defaultTxOpts returns transaction options suitable for most transaction submissions
@@ -213,9 +248,51 @@ func (ecs *EthChainService) getCurrentBlockNum() *big.Int {
 	return h.Number
 }
 
-// listenForLogEvents periodically polls the chain client to check if there new events.
-// If so it dispatches events to
-func (ecs *EthChainService) listenForLogEvents(ctx context.Context) {
+// subscribeForLogs subscribes for logs and pushes them to the out channel.
+// It relies on notifications being supported by the chain node.
+func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
+	// Subscribe to Adjudicator events
+	query := ethereum.FilterQuery{
+		Addresses: []common.Address{ecs.naAddress},
+	}
+	logs := make(chan ethTypes.Log)
+	sub, err := ecs.chain.SubscribeFilterLogs(ctx, query, logs)
+	if err != nil {
+		panic(err)
+	}
+	for {
+		select {
+		case err := <-sub.Err():
+			if err != nil {
+				panic(err)
+			}
+
+			// If the error is nil then the subscription was closed and we need to re-subscribe.
+			// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
+			var sErr error
+			sub, sErr = ecs.chain.SubscribeFilterLogs(ctx, query, logs)
+			if sErr != nil {
+				panic(err)
+			}
+			ecs.logger.Println("resubscribed to filtered logs")
+
+		case <-time.After(RESUB_INTERVAL):
+			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
+			// We unsub here and recreate the subscription in the next iteration of the select.
+			sub.Unsubscribe()
+		case chainEvent := <-logs:
+			ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
+
+		default:
+			ecs.logger.Printf("Unknown chain event")
+		}
+	}
+
+}
+
+// pollForLogs periodically polls the chain client to check if there new events.
+// It can function over a chain node that does not support notifications.
+func (ecs *EthChainService) pollForLogs(ctx context.Context) {
 
 	// The initial query we want to get all events since the contract was deployed to the current block.
 	query := ethereum.FilterQuery{
