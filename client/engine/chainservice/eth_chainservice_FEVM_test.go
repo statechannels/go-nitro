@@ -26,8 +26,11 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	t.Skip()
 	// This is funded key on wallaby based on the test test ... fake mnemoic
 	pkString := "6b65fdf763faebfbcf9a43d5ab3dd2fb639a3d69c10df99eddc0a6eb30a99ba7"
-	chainId := big.NewInt(31415)
-
+	// Due to https://github.com/filecoin-project/ref-fvm/issues/1182
+	// the on-chain chainid() function returns the incorrect chain id (31415926)
+	// To work around this we use ths incorrect chain id in the state
+	// So the on-chain check passes
+	workaroundChainId := big.NewInt(31415926)
 	pk, err := crypto.HexToECDSA(pkString)
 	if err != nil {
 		t.Fatal(err)
@@ -38,8 +41,10 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, chainId)
+	wallabyChainId := big.NewInt(31415)
+	// When submitting a transaction it's signed against a specific chain id
+	// To get the correct signature we need to use the correct chain id that wallaby is expecting
+	txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, wallabyChainId)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,7 +53,7 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	txSubmitter.GasTipCap = big.NewInt(300000)
 
 	// This is the deployed contract on wallaby
-	naAddress := common.HexToAddress("0x1c08e50a97FE37C13EE3aA9FEEAd7d307f114130")
+	naAddress := common.HexToAddress("0xab5c7Ff206Ed23180DbF9c6F3b98Ec984D0b0aB8")
 	caAddress := common.Address{}  // TODO use proper address
 	vpaAddress := common.Address{} // TODO use proper address
 
@@ -87,7 +92,7 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	}
 
 	var concludeState = state.State{
-		ChainId: chainId,
+		ChainId: workaroundChainId,
 		Participants: []types.Address{
 			Alice.Address(),
 			Bob.Address(),
