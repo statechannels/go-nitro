@@ -37,8 +37,9 @@ type Engine struct {
 	// inbound go channels
 
 	// From API
-	ObjectiveRequestsFromAPI chan protocols.ObjectiveRequest
-	PaymentRequestsFromAPI   chan PaymentRequest
+	ObjectiveRequestsFromAPI  chan protocols.ObjectiveRequest
+	PaymentRequestsFromAPI    chan PaymentRequest // TODO: refactor payment app to use the virtual app manager
+	VirtualAppRequestsFromAPI chan *VirtualAppRequest
 
 	fromChain  <-chan chainservice.Event
 	fromMsg    <-chan protocols.Message
@@ -56,7 +57,8 @@ type Engine struct {
 
 	metrics *MetricsRecorder
 
-	vm *payments.VoucherManager
+	vam *VirtualAppManager
+	vm  *payments.VoucherManager
 }
 
 // PaymentRequest represents a request from the API to make a payment using a channel
@@ -92,6 +94,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	// bind to inbound chans
 	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest)
 	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
+	e.VirtualAppRequestsFromAPI = make(chan *VirtualAppRequest, 100)
 
 	e.fromChain = chain.EventFeed()
 	e.fromMsg = msg.Out()
@@ -108,6 +111,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.policymaker = policymaker
 
 	e.vm = payments.NewVoucherManager(*store.GetAddress())
+	e.vam = NewVirtualAppManager(e.logger, &e.store)
 
 	e.logger.Println("Constructed Engine")
 
@@ -130,6 +134,7 @@ func (e *Engine) Run() {
 
 		e.metrics.RecordQueueLength("api_objective_request_queue", len(e.ObjectiveRequestsFromAPI))
 		e.metrics.RecordQueueLength("api_payment_request_queue", len(e.PaymentRequestsFromAPI))
+		e.metrics.RecordQueueLength("api_virtual_app_request_queue", len(e.VirtualAppRequestsFromAPI))
 		e.metrics.RecordQueueLength("chain_events_queue", len(e.fromChain))
 		e.metrics.RecordQueueLength("messages_queue", len(e.fromMsg))
 		e.metrics.RecordQueueLength("proposal_queue", len(e.fromLedger))
@@ -139,6 +144,8 @@ func (e *Engine) Run() {
 			res, err = e.handleObjectiveRequest(or)
 		case pr := <-e.PaymentRequestsFromAPI:
 			err = e.handlePaymentRequest(pr)
+		case vAppRequest := <-e.VirtualAppRequestsFromAPI:
+			err = e.vam.HandleRequest(vAppRequest)
 		case chainEvent := <-e.fromChain:
 			res, err = e.handleChainEvent(chainEvent)
 		case message := <-e.fromMsg:
