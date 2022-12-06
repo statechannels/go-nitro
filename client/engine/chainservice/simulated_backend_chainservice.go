@@ -25,7 +25,7 @@ type binding[T any] struct {
 	Contract *T
 }
 
-type bindings struct {
+type Bindings struct {
 	Adjudicator       binding[NitroAdjudicator.NitroAdjudicator]
 	Token             binding[Token.Token]
 	ConsensusApp      binding[ConsensusApp.ConsensusApp]
@@ -45,7 +45,7 @@ type SimulatedBackendChainService struct {
 
 // NewSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewSimulatedBackendChainService(sim simulatedChain, bindings bindings,
+func NewSimulatedBackendChainService(sim simulatedChain, bindings Bindings,
 	txSigner *bind.TransactOpts, logDestination io.Writer) (ChainService, error) {
 	ethChainService, err := NewEthChainService(sim,
 		bindings.Adjudicator.Contract,
@@ -72,10 +72,10 @@ func (sbcs *SimulatedBackendChainService) SendTransaction(tx protocols.ChainTran
 }
 
 // SetupSimulatedBackend creates a new SimulatedBackend with the supplied number of transacting accounts, deploys the Nitro Adjudicator and returns both.
-func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, bindings, []*bind.TransactOpts, error) {
+func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, Bindings, []*bind.TransactOpts, error) {
 	accounts := make([]*bind.TransactOpts, numAccounts)
 	genesisAlloc := make(map[common.Address]core.GenesisAccount)
-	contractBindings := bindings{}
+	contractBindings := Bindings{}
 
 	balance, success := new(big.Int).SetString("10000000000000000000", 10) // 10 eth in wei
 	if !success {
@@ -121,7 +121,17 @@ func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, bind
 		return nil, contractBindings, accounts, err
 	}
 
-	contractBindings = bindings{
+	// Distributed tokens to all accounts
+	INITIAL_TOKEN_BALANCE := big.NewInt(10_000_000)
+	for _, account := range accounts {
+		accountAddress := account.From
+		_, err := tokenBinding.Transfer(accounts[0], accountAddress, INITIAL_TOKEN_BALANCE)
+		if err != nil {
+			return nil, contractBindings, accounts, err
+		}
+	}
+
+	contractBindings = Bindings{
 		Adjudicator:       binding[NitroAdjudicator.NitroAdjudicator]{naAddress, na},
 		Token:             binding[Token.Token]{tokenAddress, tokenBinding},
 		ConsensusApp:      binding[ConsensusApp.ConsensusApp]{consensusAppAddress, ca},

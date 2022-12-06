@@ -34,8 +34,8 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 	clientB, _ := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, MAX_MESSAGE_DELAY)
 	clientI, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, MAX_MESSAGE_DELAY)
 
-	directlyFundALedgerChannel(t, clientA, clientI)
-	directlyFundALedgerChannel(t, clientI, clientB)
+	directlyFundALedgerChannel(t, clientA, clientI, types.Address{})
+	directlyFundALedgerChannel(t, clientI, clientB, types.Address{})
 
 	ids := createVirtualChannels(clientA, bob.Address(), irene.Address(), 5)
 	waitTimeForCompletedObjectiveIds(t, &clientA, OBJECTIVE_TIMEOUT, ids...)
@@ -50,7 +50,7 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 func createVirtualChannels(client client.Client, counterParty types.Address, intermediary types.Address, amountOfChannels uint) []protocols.ObjectiveId {
 	ids := make([]protocols.ObjectiveId, amountOfChannels)
 	for i := uint(0); i < amountOfChannels; i++ {
-		outcome := td.Outcomes.Create(*client.Address, counterParty, 1, 1)
+		outcome := td.Outcomes.Create(*client.Address, counterParty, 1, 1, types.Address{})
 		ids[i] = client.CreateVirtualPaymentChannel([]types.Address{intermediary}, counterParty, 0, outcome).Id
 	}
 	return ids

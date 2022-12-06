@@ -52,9 +52,9 @@ func TestPayments(t *testing.T) {
 	defer msgB.Close()
 	defer msgI.Close()
 
-	directlyFundALedgerChannel(t, clientA, clientI)
-	directlyFundALedgerChannel(t, clientI, clientB)
-	outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 100, 100)
+	directlyFundALedgerChannel(t, clientA, clientI, types.Address{})
+	directlyFundALedgerChannel(t, clientI, clientB, types.Address{})
+	outcome := td.Outcomes.Create(alice.Address(), bob.Address(), 100, 100, types.Address{})
 	r := clientA.CreateVirtualPaymentChannel(
 		[]types.Address{irene.Address()},
 		bob.Address(),
