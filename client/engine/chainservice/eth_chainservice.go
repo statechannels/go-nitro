@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -21,8 +20,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/rpc"
 )
-
-const FEVM_PARSE_ERROR = "json: cannot unmarshal hex string \"0x\" into Go struct field txJSON.v of type *hexutil.Big"
 
 var allocationUpdatedTopic = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256)"))
 var concludedTopic = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
@@ -204,26 +201,14 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			}
 			var assetAddress types.Address
 			var amount *big.Int
-			switch {
 
-			// TODO: Workaround for https://github.com/filecoin-project/ref-fvm/issues/1158
-			case err != nil && strings.Contains(err.Error(), FEVM_PARSE_ERROR):
-				ecs.logger.Printf("WARNING: Cannot parse transaction, assuming asset address of 0x00...")
-				fmt.Printf("WARNING: Cannot parse transaction, assuming asset address of 0x00...")
-				assetAddress := types.Address{}
-				amount, err = getAssetHoldings(ecs.na, assetAddress, new(big.Int).SetUint64(au.Raw.BlockNumber), au.ChannelId)
-				if err != nil {
-					ecs.fatalF("error in getAssetHoldings: %v", err)
-				}
-
-			case err != nil:
+			if err != nil {
 				ecs.fatalF("error in TransactionByHash: %v", err)
+			}
 
-			default:
-				assetAddress, amount, err = getChainHolding(ecs.na, tx, au)
-				if err != nil {
-					ecs.fatalF("error in getChainHoldings: %v", err)
-				}
+			assetAddress, amount, err = getChainHolding(ecs.na, tx, au)
+			if err != nil {
+				ecs.fatalF("error in getChainHoldings: %v", err)
 			}
 
 			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, amount)
