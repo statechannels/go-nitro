@@ -60,6 +60,8 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	txSubmitter.GasTipCap = big.NewInt(300000)
 
 	// This is the deployed contract on wallaby
+	// If wallaby gets reset this will need to be redeployed by running:
+	// WALLABY_DEPLOYER_PK="<FUNDED PK>" npx hardhat deploy --network wallaby --deploy-scripts ./hardhat-deploy-fvm --reset
 	naAddress := common.HexToAddress("0xab5c7Ff206Ed23180DbF9c6F3b98Ec984D0b0aB8")
 	caAddress := common.Address{}  // TODO use proper address
 	vpaAddress := common.Address{} // TODO use proper address
