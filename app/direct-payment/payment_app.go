@@ -1,7 +1,7 @@
-package margin
+package directpayment
 
 import (
-	"github.com/statechannels/go-nitro/apps"
+	"github.com/statechannels/go-nitro/app"
 	"github.com/statechannels/go-nitro/channel"
 )
 
@@ -9,7 +9,7 @@ type PaymentApp struct {
 	//
 }
 
-var _ apps.App = (*PaymentApp)(nil)
+var _ app.App = (*PaymentApp)(nil)
 
 func (a *PaymentApp) Type() string {
 	return "payment"

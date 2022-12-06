@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"github.com/statechannels/go-nitro/apps"
 	"github.com/statechannels/go-nitro/channel"
 )
 
@@ -10,8 +9,6 @@ import (
 type ConsensusApp struct {
 	//
 }
-
-var _ apps.App = (*ConsensusApp)(nil)
 
 func (a *ConsensusApp) Type() string {
 	return "consensus"

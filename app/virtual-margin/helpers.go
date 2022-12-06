@@ -1,4 +1,4 @@
-package margin
+package virtualmargin
 
 import "github.com/statechannels/go-nitro/types"
 

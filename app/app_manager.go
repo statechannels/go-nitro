@@ -1,4 +1,4 @@
-package apps
+package app
 
 import (
 	"log"
@@ -14,14 +14,11 @@ type AppManager struct {
 }
 
 func NewAppManager(logger *log.Logger, sto store.Store) *AppManager {
-	m := &AppManager{
+	return &AppManager{
 		logger: logger,
 		store:  sto,
-
-		apps: make(map[string]App),
+		apps:   map[string]App{},
 	}
-
-	return m
 }
 
 func (m *AppManager) RegisterApp(app App) {
@@ -42,7 +39,7 @@ func (m *AppManager) UnregisterApp(app App) {
 	m.logger.Printf("INFO: App %s unregistered", app.Type())
 }
 
-func (m *AppManager) HandleRequest(req AppRequest) error {
+func (m *AppManager) HandleRequest(req *AppRequest) error {
 	app, ok := m.apps[req.AppType]
 	if !ok {
 		return ErrAppNotRegistered

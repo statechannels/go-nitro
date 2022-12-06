@@ -1,4 +1,4 @@
-package apps
+package app
 
 import "github.com/statechannels/go-nitro/internal"
 

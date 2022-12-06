@@ -1,9 +1,8 @@
-package margin
+package directmargin
 
 import (
 	"math/big"
 
-	"github.com/statechannels/go-nitro/apps"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/internal"
 )
@@ -21,8 +20,6 @@ type MarginApp struct {
 
 	//
 }
-
-var _ apps.App = (*MarginApp)(nil)
 
 func (a *MarginApp) Type() string {
 	return "margin"
