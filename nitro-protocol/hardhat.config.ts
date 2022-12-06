@@ -13,7 +13,7 @@ dotenv.config();
 
 const infuraToken = process.env.INFURA_TOKEN;
 const goerliDeployerPK = process.env.GOERLI_DEPLOYER_PK;
-
+const wallabyDeployerPk = process.env.WALLABY_DEPLOYER_PK;
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
@@ -66,6 +66,11 @@ const config: HardhatUserConfig & {watcher: any} = {
       url: infuraToken ? 'https://goerli.infura.io/v3/' + infuraToken : '',
       accounts: goerliDeployerPK ? [goerliDeployerPK] : [],
       chainId: 5,
+    },
+    wallaby: {
+      url: 'https://wallaby.node.glif.io/rpc/v0',
+      accounts: wallabyDeployerPk ? [wallabyDeployerPk] : [],
+      chainId: 31415,
     },
   },
 };

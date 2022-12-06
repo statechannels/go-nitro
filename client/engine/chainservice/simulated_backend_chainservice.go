@@ -34,7 +34,7 @@ type Bindings struct {
 
 type simulatedChain interface {
 	ethChain
-	Commit()
+	Commit() common.Hash
 }
 
 // SimulatedBackendChainService extends EthChainService to automatically mine a block for every transaction
