@@ -284,7 +284,8 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 // It can function over a chain node that does not support notifications.
 func (ecs *EthChainService) pollForLogs(ctx context.Context) {
 
-	// The initial query we want to get all events since the contract was deployed to the current block.
+	// TODO: We are currently querying from the genesis block to the current block.
+	// We could make this more performant by querying from the nitro adjudicator contract deployment block.
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
 		FromBlock: nil,
