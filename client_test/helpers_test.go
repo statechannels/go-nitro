@@ -20,6 +20,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+const TEST_CHAIN_ID = 1337
 const defaultTimeout = 10 * time.Second
 
 // waitWithTimeoutForCompletedObjectiveIds waits up to the given timeout for completed objectives and returns when the all objective ids provided have been completed.

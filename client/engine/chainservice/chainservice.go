@@ -74,4 +74,6 @@ type ChainService interface {
 	GetConsensusAppAddress() types.Address
 	// GetVirtualPaymentAppAddress returns the address of a deployed VirtualPaymentApp
 	GetVirtualPaymentAppAddress() types.Address
+	// GetChainId returns the id of the chain the service is connected to
+	GetChainId() (*big.Int, error)
 }

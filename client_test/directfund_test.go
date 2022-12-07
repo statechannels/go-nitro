@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -81,7 +80,7 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 }
 
 // testDirectFundWithAsset returns a function which tests the direct fund flow with the supplied asset. It is designed to be used as a subtest.
-func testDirectFundWithAsset(asset common.Address, sim *backends.SimulatedBackend, bindings chainservice.Bindings, ethAccounts []*bind.TransactOpts, logDestination *os.File) func(t *testing.T) {
+func testDirectFundWithAsset(asset common.Address, sim chainservice.SimulatedChain, bindings chainservice.Bindings, ethAccounts []*bind.TransactOpts, logDestination *os.File) func(t *testing.T) {
 	return func(t *testing.T) {
 
 		// Spawn a pair of chain services

@@ -3,6 +3,7 @@ package protocols
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -116,5 +117,5 @@ const (
 
 // ObjectiveRequest is a request to create a new objective.
 type ObjectiveRequest interface {
-	Id(types.Address) ObjectiveId
+	Id(types.Address, *big.Int) ObjectiveId
 }

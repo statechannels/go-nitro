@@ -19,10 +19,12 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+const TEST_CHAIN_ID = 1337
+
 var alice, bob testactors.Actor = testactors.Alice, testactors.Bob
 
 var testState = state.State{
-	ChainId:           big.NewInt(9001),
+	ChainId:           big.NewInt(TEST_CHAIN_ID),
 	Participants:      []types.Address{alice.Address(), bob.Address()},
 	ChannelNonce:      37140676580,
 	AppDefinition:     common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`),
@@ -64,7 +66,7 @@ func TestNew(t *testing.T) {
 		AppData:           testState.AppData,
 	}
 	// Assert that valid constructor args do not result in error
-	if _, err := NewObjective(request, false, testState.Participants[0], getByParticipant, getByConsensus); err != nil {
+	if _, err := NewObjective(request, false, testState.Participants[0], big.NewInt(TEST_CHAIN_ID), getByParticipant, getByConsensus); err != nil {
 		t.Error(err)
 	}
 
@@ -73,14 +75,14 @@ func TestNew(t *testing.T) {
 		return []*channel.Channel{c}
 	}
 
-	if _, err := NewObjective(request, false, testState.Participants[0], getByParticipantHasChannel, getByConsensus); err == nil {
+	if _, err := NewObjective(request, false, testState.Participants[0], big.NewInt(TEST_CHAIN_ID), getByParticipantHasChannel, getByConsensus); err == nil {
 		t.Errorf("Expected an error when constructing with an objective when an existing channel exists")
 	}
 
 	getByConsensusHasChannel := func(id types.Address) (*consensus_channel.ConsensusChannel, bool) {
 		return nil, true
 	}
-	if _, err := NewObjective(request, false, testState.Participants[0], getByParticipant, getByConsensusHasChannel); err == nil {
+	if _, err := NewObjective(request, false, testState.Participants[0], big.NewInt(TEST_CHAIN_ID), getByParticipant, getByConsensusHasChannel); err == nil {
 		t.Errorf("Expected an error when constructing with an objective when an existing channel consensus channel exists")
 	}
 

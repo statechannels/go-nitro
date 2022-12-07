@@ -32,7 +32,7 @@ var Outcomes outcomes = outcomes{
 	CreateLongOutcome: createLongOutcome,
 }
 
-var chainId, _ = big.NewInt(0).SetString("9001", 10)
+var chainId, _ = big.NewInt(0).SetString("1337", 10)
 var someAppDefinition = common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`)
 
 var testOutcome = createLongOutcome(

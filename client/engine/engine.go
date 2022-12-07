@@ -355,13 +355,21 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, e
 func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
 	myAddress := *e.store.GetAddress()
-	objectiveId := or.Id(myAddress)
+
+	chainId, err := e.chain.GetChainId()
+
+	if err != nil {
+		return EngineEvent{}, fmt.Errorf("could get chain id from chain service: %w", err)
+	}
+
+	objectiveId := or.Id(myAddress, chainId)
 	e.logger.Printf("handling new objective request for %s", objectiveId)
 	e.metrics.RecordObjectiveStarted(objectiveId)
+
 	switch request := or.(type) {
 
 	case virtualfund.ObjectiveRequest:
-		vfo, err := virtualfund.NewObjective(request, true, myAddress, e.store.GetConsensusChannel)
+		vfo, err := virtualfund.NewObjective(request, true, myAddress, chainId, e.store.GetConsensusChannel)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
@@ -392,7 +400,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		return e.attemptProgress(&vdfo)
 
 	case directfund.ObjectiveRequest:
-		dfo, err := directfund.NewObjective(request, true, myAddress, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
+		dfo, err := directfund.NewObjective(request, true, myAddress, chainId, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}

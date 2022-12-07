@@ -8,6 +8,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+const TEST_CHAIN_ID = 1337
+
 var channel1Id = types.Destination{1}
 var targetChannel = types.Destination{2}
 
@@ -23,7 +25,7 @@ func fp() state.FixedPart {
 	}
 	return state.FixedPart{
 		Participants:      participants[:],
-		ChainId:           big.NewInt(9001),
+		ChainId:           big.NewInt(1337),
 		ChannelNonce:      9001,
 		ChallengeDuration: 100,
 	}
