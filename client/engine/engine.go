@@ -2,6 +2,7 @@
 package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -52,6 +53,8 @@ type Engine struct {
 	store       store.Store // A Store for persisting and restoring important data
 	policymaker PolicyMaker // A PolicyMaker decides whether to approve or reject objectives
 
+	channelLocker *ChannelLocker
+
 	logger *log.Logger
 
 	metrics *MetricsRecorder
@@ -83,12 +86,13 @@ type CompletedObjectiveEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker PolicyMaker, metricsApi MetricsApi) Engine {
+func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker PolicyMaker, metricsApi MetricsApi, channelLocker *ChannelLocker) Engine {
 	e := Engine{}
 
-	e.store = store
-
 	e.fromLedger = make(chan consensus_channel.Proposal, 100)
+
+	e.store = store
+	e.channelLocker = channelLocker
 	// bind to inbound chans
 	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest)
 	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
@@ -123,7 +127,8 @@ func (e *Engine) ToApi() <-chan EngineEvent {
 }
 
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
-func (e *Engine) Run() {
+// It accepts a context that can be used to cancel the loop.
+func (e *Engine) Run(ctx context.Context) {
 	for {
 		var res EngineEvent
 		var err error
@@ -145,6 +150,8 @@ func (e *Engine) Run() {
 			res, err = e.handleMessage(message)
 		case proposal := <-e.fromLedger:
 			res, err = e.handleProposal(proposal)
+		case <-ctx.Done():
+			return
 		}
 
 		// Handle errors
@@ -191,6 +198,7 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 //   - attempts progress on the target Objective,
 //   - attempts progress on related objectives which may have become unblocked.
 func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
+
 	defer e.metrics.RecordFunctionDuration()()
 	e.logMessage(message, Incoming)
 	allCompleted := EngineEvent{}
@@ -198,6 +206,9 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 	for _, payload := range message.ObjectivePayloads {
 
 		objective, err := e.getOrCreateObjective(payload)
+		e.channelLocker.Lock(objective)
+		// Refetch the objective, in case it has been updated by another run loop
+		objective, _ = e.getOrCreateObjective(payload)
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -249,12 +260,15 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if err != nil {
 			return EngineEvent{}, err
 		}
-
+		e.channelLocker.Unlock(objective)
 	}
 
 	for _, entry := range message.LedgerProposals {
 		id := getProposalObjectiveId(entry.Proposal)
 		objective, err := e.store.GetObjectiveById(id)
+		e.channelLocker.Lock(objective)
+		// Refetch the objective, in case it has been updated by another run loop
+		objective, _ = e.store.GetObjectiveById(id)
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -282,7 +296,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if err != nil {
 			return EngineEvent{}, err
 		}
-
+		e.channelLocker.Unlock(objective)
 	}
 
 	for _, entry := range message.RejectedObjectives {
@@ -330,7 +344,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 //   - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
-	e.logger.Printf("handling chain event %v", chainEvent)
+	fmt.Printf("handling chain event %v\n", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
 	if !ok {
 		// TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
@@ -338,7 +352,11 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, e
 		// in the future the chain service should allow us to register for specific channels
 		return EngineEvent{}, nil
 	}
+	// Acquire a lock for the channels and then refetch the objective to get the latest version
+	e.channelLocker.Lock(objective)
+	defer e.channelLocker.Unlock(objective)
 
+	objective, _ = e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
 	eventHandler, ok := objective.(chainservice.ChainEventHandler)
 	if !ok {
 		return EngineEvent{}, &ErrUnhandledChainEvent{event: chainEvent, objective: objective, reason: "objective does not handle chain events"}
@@ -369,7 +387,11 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 	switch request := or.(type) {
 
 	case virtualfund.ObjectiveRequest:
+
 		vfo, err := virtualfund.NewObjective(request, true, myAddress, chainId, e.store.GetConsensusChannel)
+		// Acquire a lock for the channels and then generate the objective with the latest data
+		e.channelLocker.Lock(&vfo)
+		defer e.channelLocker.Unlock(&vfo)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
@@ -394,13 +416,20 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 			minAmount = bal.Paid
 		}
 		vdfo, err := virtualdefund.NewObjective(request, true, myAddress, minAmount, e.store.GetChannelById, e.store.GetConsensusChannel)
+		e.channelLocker.Lock(&vdfo)
+		defer e.channelLocker.Unlock(&vdfo)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
 		return e.attemptProgress(&vdfo)
 
 	case directfund.ObjectiveRequest:
+		// Acquire a lock for the channels and then generate the objective with the latest data
+
 		dfo, err := directfund.NewObjective(request, true, myAddress, chainId, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
+		e.channelLocker.Lock(&dfo)
+		defer e.channelLocker.Unlock(&dfo)
+
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
@@ -408,6 +437,8 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 
 	case directdefund.ObjectiveRequest:
 		ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
+		e.channelLocker.Lock(&ddfo)
+		defer e.channelLocker.Unlock(&ddfo)
 		if err != nil {
 			return EngineEvent{
 				FailedObjectives: []protocols.ObjectiveId{objectiveId},

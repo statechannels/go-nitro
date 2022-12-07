@@ -20,7 +20,7 @@ func setupClientWithP2PMessageService(pk []byte, port int, chain *chainservice.M
 
 	messageservice := p2pms.NewMessageService("127.0.0.1", port, pk)
 	storeA := store.NewMemStore(pk)
-	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}, nil), messageservice
+	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}, nil, 1), messageservice
 }
 
 func TestPayments(t *testing.T) {

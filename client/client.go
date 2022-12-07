@@ -2,6 +2,7 @@
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
+	"context"
 	"io"
 	"math/big"
 	"math/rand"
@@ -20,6 +21,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// We use a buffer so we can send to the completedObjectives without blocking on the receiver reading from the chan
+const COMPLETED_OBJECTIVES_BUFFER_SIZE = 10
+
 // Client provides the interface for the consuming application
 type Client struct {
 	engine              engine.Engine // The core business logic of the client
@@ -28,10 +32,11 @@ type Client struct {
 	failedObjectives    chan protocols.ObjectiveId
 	receivedVouchers    chan payments.Voucher
 	chainId             *big.Int
+	channelLocker       *engine.ChannelLocker
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
-func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker engine.PolicyMaker, metricsApi engine.MetricsApi) Client {
+func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker engine.PolicyMaker, metricsApi engine.MetricsApi, concurrentRunLoops uint) Client {
 	c := Client{}
 	c.Address = store.GetAddress()
 	// If a metrics API is not provided we used the no-op version which does nothing.
@@ -43,13 +48,17 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 		panic(err)
 	}
 	c.chainId = chainId
-	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker, metricsApi)
+	c.channelLocker = engine.NewChannelLocker()
+	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker, metricsApi, c.channelLocker)
+
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
 	c.receivedVouchers = make(chan payments.Voucher, 1000)
-	// Start the engine in a go routine
-	go c.engine.Run()
+
+	for i := uint(0); i < concurrentRunLoops; i++ {
+		go c.engine.Run(context.Background())
+	}
 
 	// Start the event handler in a go routine
 	// It will listen for events from the engine and dispatch events to client channels

@@ -131,7 +131,7 @@ func setupClient(pk []byte, chain chainservice.ChainService, msgBroker messagese
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
 	storeA := store.NewMemStore(pk)
-	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}, nil), storeA
+	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}, nil, 2), storeA
 }
 
 func truncateLog(logFile string) {
