@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
@@ -336,7 +337,7 @@ type ObjectiveRequest struct {
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
+func (r ObjectiveRequest) Id(myAddress types.Address, chainId *big.Int) protocols.ObjectiveId {
 	return protocols.ObjectiveId(ObjectivePrefix + r.ChannelId.String())
 }
 

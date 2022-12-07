@@ -36,7 +36,7 @@ var allActors []ta.Actor = []ta.Actor{alice, p1, bob}
 // newTestData returns new copies of consistent test data each time it is called
 func newTestData() testData {
 	var vPreFund = state.State{
-		ChainId:           big.NewInt(9001),
+		ChainId:           big.NewInt(TEST_CHAIN_ID),
 		Participants:      []types.Address{alice.Address(), p1.Address(), bob.Address()},
 		ChannelNonce:      0,
 		AppDefinition:     types.Address{},

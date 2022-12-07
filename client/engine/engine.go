@@ -355,14 +355,17 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, e
 func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
 	myAddress := *e.store.GetAddress()
-	objectiveId := or.Id(myAddress)
-	e.logger.Printf("handling new objective request for %s", objectiveId)
-	e.metrics.RecordObjectiveStarted(objectiveId)
+
 	chainId, err := e.chain.GetChainId()
 
 	if err != nil {
 		return EngineEvent{}, fmt.Errorf("could get chain id from chain service: %w", err)
 	}
+
+	objectiveId := or.Id(myAddress, chainId)
+	e.logger.Printf("handling new objective request for %s", objectiveId)
+	e.metrics.RecordObjectiveStarted(objectiveId)
+
 	switch request := or.(type) {
 
 	case virtualfund.ObjectiveRequest:

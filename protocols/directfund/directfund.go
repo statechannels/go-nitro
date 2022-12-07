@@ -76,7 +76,7 @@ func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Add
 		return Objective{}, fmt.Errorf("could not create new objective: %w", err)
 	}
 	objective, err := ConstructFromPayload(preApprove,
-		protocols.ObjectivePayload{ObjectiveId: request.Id(myAddress), PayloadData: b, Type: SignedStatePayload},
+		protocols.ObjectivePayload{ObjectiveId: request.Id(myAddress, chainId), PayloadData: b, Type: SignedStatePayload},
 		myAddress,
 	)
 	if err != nil {
@@ -454,8 +454,8 @@ type ObjectiveRequest struct {
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
-	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
+func (r ObjectiveRequest) Id(myAddress types.Address, chainId *big.Int) protocols.ObjectiveId {
+	fixedPart := state.FixedPart{ChainId: chainId,
 		Participants:      []types.Address{myAddress, r.CounterParty},
 		ChannelNonce:      r.Nonce,
 		ChallengeDuration: r.ChallengeDuration}
@@ -471,9 +471,9 @@ type ObjectiveResponse struct {
 }
 
 // Response computes and returns the appropriate response from the request.
-func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
+func (r ObjectiveRequest) Response(myAddress types.Address, chainId *big.Int) ObjectiveResponse {
 	fixedPart := state.FixedPart{
-		ChainId:           big.NewInt(1337), // TODO add this field to the request and pull it from there. https://github.com/statechannels/go-nitro/issues/601
+		ChainId:           chainId,
 		Participants:      []types.Address{myAddress, r.CounterParty},
 		ChannelNonce:      r.Nonce,
 		ChallengeDuration: r.ChallengeDuration,

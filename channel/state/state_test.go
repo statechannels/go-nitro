@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -11,13 +12,13 @@ import (
 )
 
 // The following constants are generated from our ts nitro-protocol package
-var correctChannelId = common.HexToHash(`252e8d12b641d8dd3cde74d299047963c99ce52bded2fbd38afa8e07b76a9306`)
-var correctStateHash = common.HexToHash(`867a304a6c24962522085dc09c09b47413897a13700e94190c4e3320af0a3779`)
+var correctChannelId = common.HexToHash(`6c39f3700c1d9a3dabcca3397083bf1460adbd36628c516eb9a05f7577cb5134`)
+var correctStateHash = common.HexToHash(`a5b67e0f29a8d82f5f758f205d11224c02a043228bb9201ae633e75e18c5ff9a`)
 var signerPrivateKey = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
 var signerAddress = common.HexToAddress(`F5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)
 var correctSignature = Signature{
-	R: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
-	S: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
+	R: common.Hex2Bytes(`be2d27ae0892e2981b31e017c8cb6f99bc0ccd1ae7d1b06fc69f1311f61c3e01`),
+	S: common.Hex2Bytes(`21420562c8227a3aa3b8e15574f93fa62b64f429ae727578dceea37f6083742e`),
 	V: byte(27),
 }
 
@@ -63,7 +64,7 @@ func TestSign(t *testing.T) {
 	want_r, want_s, want_v := correctSignature.R, correctSignature.S, correctSignature.V
 	got, error := TestState.Sign(signerPrivateKey)
 	got_r, got_s, got_v := got.R, got.S, got.V
-
+	fmt.Printf("R: %s, S: %s, V: %v\n", common.Bytes2Hex(got_r), common.Bytes2Hex(got_s), got_v)
 	if error != nil {
 		t.Error(error)
 	}
@@ -99,7 +100,7 @@ func TestEqualParticipants(t *testing.T) {
 
 func TestEqual(t *testing.T) {
 	want := State{
-		ChainId: chainId,
+		ChainId: TestState.ChainId,
 		Participants: []types.Address{
 			common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`), // private key caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634
 			common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`), // private key 62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2

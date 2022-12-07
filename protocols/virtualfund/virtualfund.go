@@ -737,8 +737,8 @@ type ObjectiveRequest struct {
 }
 
 // Id returns the objective id for the request.
-func (r ObjectiveRequest) Id(myAddress types.Address) protocols.ObjectiveId {
-	idStr := r.channelID(myAddress).String()
+func (r ObjectiveRequest) Id(myAddress types.Address, chainId *big.Int) protocols.ObjectiveId {
+	idStr := r.channelID(myAddress, chainId).String()
 	return protocols.ObjectiveId(ObjectivePrefix + idStr)
 }
 
@@ -749,8 +749,8 @@ type ObjectiveResponse struct {
 }
 
 // Response computes and returns the appropriate response from the request.
-func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
-	channelId := r.channelID(myAddress)
+func (r ObjectiveRequest) Response(myAddress types.Address, chainId *big.Int) ObjectiveResponse {
+	channelId := r.channelID(myAddress, chainId)
 
 	return ObjectiveResponse{
 		Id:        protocols.ObjectiveId(ObjectivePrefix + channelId.String()),
@@ -758,12 +758,12 @@ func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
 	}
 }
 
-func (r ObjectiveRequest) channelID(myAddress types.Address) types.Destination {
+func (r ObjectiveRequest) channelID(myAddress types.Address, chainId *big.Int) types.Destination {
 	participants := []types.Address{myAddress}
 	participants = append(participants, r.Intermediaries...)
 	participants = append(participants, r.CounterParty)
 
-	fixedPart := state.FixedPart{ChainId: big.NewInt(9001), // TODO https://github.com/statechannels/go-nitro/issues/601
+	fixedPart := state.FixedPart{ChainId: chainId,
 		Participants:      participants,
 		ChannelNonce:      r.Nonce,
 		ChallengeDuration: r.ChallengeDuration}

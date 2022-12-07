@@ -24,7 +24,7 @@ func consensusStateSignatures(leader, follower testactors.Actor, guarantees ...c
 
 func prepareConsensusChannelHelper(role uint, leader, follower, leftActor testactors.Actor, leftBalance, rightBalance, turnNum int, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
 	fp := state.FixedPart{
-		ChainId:           big.NewInt(9001),
+		ChainId:           big.NewInt(TEST_CHAIN_ID),
 		Participants:      []types.Address{leader.Address(), follower.Address()},
 		ChannelNonce:      0,
 		AppDefinition:     types.Address{},
