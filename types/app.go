@@ -1,7 +1,9 @@
 package types
 
 type AppRequest struct {
-	AppId       string      `json:"appType"`
+	From Address `json:"from"`
+
+	AppId       string      `json:"appId"`
 	RequestType string      `json:"requestType"`
 	ChannelId   Destination `json:"channelId"`
 

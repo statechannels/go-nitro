@@ -4,11 +4,12 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/internal"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // TODO: Extract common errors into a common package
@@ -26,11 +27,24 @@ type MarginApp struct {
 	myAddress common.Address
 }
 
-func (a *MarginApp) Type() string {
-	return "margin"
+func NewMarginApp(engine *engine.Engine, myAddr common.Address, store store.Store) *MarginApp {
+	return &MarginApp{
+		balances:  make(map[string]*Balance),
+		store:     store,
+		engine:    engine,
+		myAddress: myAddr,
+	}
 }
 
-func (a *MarginApp) HandleMarginProposal(ch *channel.Channel, data interface{}) {
+func (a *MarginApp) Id() string {
+	return "direct-margin"
+}
+
+func (a *MarginApp) handleMarginProposal(
+	ch *consensus_channel.ConsensusChannel,
+	from types.Address,
+	data interface{},
+) {
 	// 1. Check the proposal
 	// 2. Accept
 	// 2.1 Build the new state, and sign
@@ -41,11 +55,15 @@ func (a *MarginApp) HandleMarginProposal(ch *channel.Channel, data interface{}) 
 	a.engine.SendMessages([]protocols.Message{})
 }
 
-func (a *MarginApp) HandleRequest(ch *channel.Channel, ty string, data interface{}) error {
+func (a *MarginApp) HandleRequest(
+	ch *consensus_channel.ConsensusChannel,
+	from types.Address,
+	ty string,
+	data interface{},
+) error {
 	switch ty {
-
 	case RequestTypeMarginProposal:
-		a.HandleMarginProposal(ch, data)
+		a.handleMarginProposal(ch, from, data)
 
 	case RequestTypeMarginAccept:
 

@@ -23,21 +23,21 @@ func NewAppManager(logger *log.Logger, sto store.Store) *AppManager {
 }
 
 func (m *AppManager) RegisterApp(app App) {
-	if _, ok := m.apps[app.Type()]; ok {
-		m.logger.Printf("WARN: App %s already registered, ignoring", app.Type())
+	if _, ok := m.apps[app.Id()]; ok {
+		m.logger.Printf("WARN: App %s already registered, ignoring", app.Id())
 
 		return
 	}
 
-	m.apps[app.Type()] = app
+	m.apps[app.Id()] = app
 
-	m.logger.Printf("INFO: App %s registered", app.Type())
+	m.logger.Printf("INFO: App %s registered", app.Id())
 }
 
 func (m *AppManager) UnregisterApp(app App) {
-	delete(m.apps, app.Type())
+	delete(m.apps, app.Id())
 
-	m.logger.Printf("INFO: App %s unregistered", app.Type())
+	m.logger.Printf("INFO: App %s unregistered", app.Id())
 }
 
 func (m *AppManager) HandleRequest(req *types.AppRequest) error {
@@ -46,16 +46,18 @@ func (m *AppManager) HandleRequest(req *types.AppRequest) error {
 		return ErrAppNotRegistered
 	}
 
-	ch, ok := m.store.GetChannelById(req.ChannelId)
-	if !ok {
+	ch, err := m.store.GetConsensusChannelById(req.ChannelId)
+	if err != nil {
+		m.logger.Printf("ERR: %s", err)
+
 		return ErrChannelNotFound
 	}
 
-	err := app.HandleRequest(ch, req.RequestType, req.Data)
+	err = app.HandleRequest(ch, req.From, req.RequestType, req.Data)
 	if err != nil {
 		return err
 	}
 
 	// NOTE: this is a temporary solution, more optimized way can be achieved later on
-	return m.store.SetChannel(ch)
+	return m.store.SetConsensusChannel(ch)
 }

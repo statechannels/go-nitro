@@ -2,6 +2,7 @@ package pingpong
 
 import (
 	"testing"
+	"time"
 
 	"github.com/statechannels/go-nitro/app"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -38,8 +39,8 @@ func TestFundingMethod(t *testing.T) {
 	clientA, storeA, messageServiceA := SetupClient(alice.PrivateKey, chainA, broker, logDestination, 0)
 	clientB, storeB, messageServiceB := SetupClient(bob.PrivateKey, chainB, broker, logDestination, 0)
 
-	pingPongA := NewPingPongApp(clientA.GetEngine())
-	pingPongB := NewPingPongApp(clientB.GetEngine())
+	pingPongA := NewPingPongApp(clientA.GetEngine(), alice.Address())
+	pingPongB := NewPingPongApp(clientB.GetEngine(), bob.Address())
 
 	clientA.GetAppManager().RegisterApp(pingPongA)
 	clientB.GetAppManager().RegisterApp(pingPongB)
@@ -48,7 +49,11 @@ func TestFundingMethod(t *testing.T) {
 	c, err := storeA.GetConsensusChannelById(chId)
 	require.NoError(t, err)
 
-	pingPongA.Ping(c)
+	err = pingPongA.Ping(c)
+	require.NoError(t, err)
+
+	// Use sleep to wait for the message to be processed
+	time.Sleep(1 * time.Second)
 
 	_, _ = clientA, clientB
 	_, _ = storeA, storeB

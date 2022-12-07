@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
@@ -18,12 +18,17 @@ type MockedVirtualApp struct {
 	mock.Mock
 }
 
-func (app *MockedVirtualApp) HandleRequest(ch *channel.Channel, ty string, data interface{}) error {
+func (app *MockedVirtualApp) HandleRequest(
+	ch *consensus_channel.ConsensusChannel,
+	from types.Address,
+	ty string,
+	data interface{},
+) error {
 	args := app.Called(ch, ty, data)
 	return args.Error(0)
 }
 
-func (app *MockedVirtualApp) Type() string {
+func (app *MockedVirtualApp) Id() string {
 	return "mock"
 }
 
@@ -40,14 +45,15 @@ func TestAppManager(t *testing.T) {
 		s, appMgr, mApp := setup()
 		appMgr.RegisterApp(mApp)
 		c := td.Objectives.Directfund.GenericDFO().C
-		s.SetChannel(c)
+		err := s.SetChannel(c)
+		require.NoError(t, err)
 		mApp.On("HandleRequest", c, "ping", nil).Return(nil)
 		req := &types.AppRequest{
 			AppId:       "mock",
 			RequestType: "ping",
 			ChannelId:   c.ChannelId(),
 		}
-		err := appMgr.HandleRequest(req)
+		err = appMgr.HandleRequest(req)
 		require.NoError(t, err)
 		mApp.AssertCalled(t, "HandleRequest", c, "ping", nil)
 	})
