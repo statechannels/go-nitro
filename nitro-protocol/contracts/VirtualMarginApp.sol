@@ -19,6 +19,12 @@ import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFo
  * @dev The VirtualMarginApp contract complies with the ForceMoveApp interface and allows payments to be made virtually from Initiator to Receiver (participants[0] to participants[n+1], where n is the number of intermediaries).
  */
 contract VirtualMarginApp is IForceMoveApp {
+    struct MarginProof {
+        INitroTypes.Signature leaderSignature;
+        INitroTypes.Signature receiverSignature;
+        uint256 version;
+    }
+
     enum AllocationIndices {
         Initiator,
         Receiver
@@ -39,7 +45,7 @@ contract VirtualMarginApp is IForceMoveApp {
         // This channel has only 4 states which can be supported:
         // 0    prefund
         // 1    postfund
-        // 2+   margin change
+        // 2+   margin call
         // 3+   final
 
         uint8 nParticipants = uint8(fixedPart.participants.length);
@@ -55,7 +61,7 @@ contract VirtualMarginApp is IForceMoveApp {
             if (candidate.variablePart.turnNum == 0) return; // prefund
             if (candidate.variablePart.turnNum == 1) return; // postfund
 
-            // postfund
+            // final
             if (candidate.variablePart.turnNum >= 3) {
                 // final (note: there is a core protocol escape hatch for this, too, so it could be removed)
                 require(candidate.variablePart.isFinal, '!final; turnNum>=3 && |proof|=0');
@@ -65,22 +71,21 @@ contract VirtualMarginApp is IForceMoveApp {
             revert('bad candidate turnNum; |proof|=0');
         }
 
-        // state 2+ requires previous supported state to be supplied
+        // state 2+ requires postfund state to be supplied
 
         if (proof.length == 1) {
             _requireProofOfUnanimousConsensusOnPostFund(proof[0], nParticipants);
 
             require(candidate.variablePart.turnNum >= 2, 'turnNum < 2; |proof|=1');
 
+            // supplied state must be signed by either party
             require(
-                NitroUtils.isClaimedSignedBy(candidate.signedBy, 0),
-                'redemption not signed by Leader'
+                NitroUtils.isClaimedSignedBy(candidate.signedBy, 0) ||
+                    NitroUtils.isClaimedSignedBy(candidate.signedBy, nParticipants - 1),
+                'no identity proof on margin call state'
             );
 
-            require(
-                NitroUtils.isClaimedSignedBy(candidate.signedBy, nParticipants - 1),
-                'redemption not signed by Receiver'
-            );
+            _requireValidMarginProof(fixedPart, candidate.variablePart);
 
             _requireCorrectOutcomes(
                 proof[0].variablePart.outcome,
@@ -103,6 +108,30 @@ contract VirtualMarginApp is IForceMoveApp {
             NitroUtils.getClaimedSignersNum(rVP.signedBy) == numParticipants,
             'postfund !unanimous; |proof|=1'
         );
+    }
+
+    function _requireValidMarginProof(
+        FixedPart memory fixedPart,
+        VariablePart memory variablePart
+    ) internal pure {
+        MarginProof memory marginProof = abi.decode(variablePart.appData, (MarginProof));
+
+        require(marginProof.version == variablePart.turnNum, 'version != turnNum');
+
+        address recoveredLeader = NitroUtils.recoverSigner(
+            keccak256(abi.encode(NitroUtils.getChannelId(fixedPart), marginProof.version)),
+            marginProof.leaderSignature
+        );
+        require(recoveredLeader == fixedPart.participants[0], 'invalid signature for voucher'); // could be incorrect channelId or incorrect signature
+
+        address recoveredReceiver = NitroUtils.recoverSigner(
+            keccak256(abi.encode(NitroUtils.getChannelId(fixedPart), marginProof.version)),
+            marginProof.receiverSignature
+        );
+        require(
+            recoveredReceiver == fixedPart.participants[fixedPart.participants.length - 1],
+            'invalid signature for voucher'
+        ); // could be incorrect channelId or incorrect signature
     }
 
     function _requireCorrectOutcomes(
