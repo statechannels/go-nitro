@@ -7,22 +7,21 @@ import './libraries/NitroUtils.sol';
 import './interfaces/INitroTypes.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
+// NOTE: Attack:
+// Bob can submit a convenient candidate, when Alice in trouble (Way back machine attack)
+
+// Possible solutions:
+// 1: Alice does checkpoint periodically
+// 2: Alice hire a WatchTower, which replicates Alice's states,
+// and challenge in the case of challenge event and missing heartbeat
+
 /**
- * @dev The VirtualMarginApp contract complies with the ForceMoveApp interface and allows payments to be made virtually from Alice to Bob (participants[0] to participants[n+1], where n is the number of intermediaries).
+ * @dev The VirtualMarginApp contract complies with the ForceMoveApp interface and allows payments to be made virtually from Initiator to Receiver (participants[0] to participants[n+1], where n is the number of intermediaries).
  */
 contract VirtualMarginApp is IForceMoveApp {
-
-    struct MarginState {
-        uint256 leaderAmount;
-        uint256 followerAmount;
-        uint256 version;                    // Highest number is the valid state
-        INitroTypes.Signature leaderSig;    // signature on abi.encode(channelId,amount)
-        INitroTypes.Signature followerSig;  // signature on abi.encode(channelId,amount)
-    }
-
     enum AllocationIndices {
-        Leader,     // Leader is the virtual-channel initiator
-        Follower    // Follower accepted to establish the link
+        Initiator,
+        Receiver
     }
 
     /**
@@ -38,55 +37,64 @@ contract VirtualMarginApp is IForceMoveApp {
         RecoveredVariablePart calldata candidate
     ) external pure override {
         // This channel has only 4 states which can be supported:
-        // 0 prefund
-        // 1 postfund
-        // 2 redemption
-        // 3 final
+        // 0    prefund
+        // 1    postfund
+        // 2+   margin change
+        // 3+   final
 
-        // states 0,1,3 can be supported via unanimous consensus:
+        uint8 nParticipants = uint8(fixedPart.participants.length);
+
+        // states 0,1,3+:
 
         if (proof.length == 0) {
             require(
-                NitroUtils.getClaimedSignersNum(candidate.signedBy) ==
-                    fixedPart.participants.length,
-                '!unanimous; |proof|=0'
+                NitroUtils.getClaimedSignersNum(candidate.signedBy) == nParticipants,
+                '!unanimous'
             );
+
             if (candidate.variablePart.turnNum == 0) return; // prefund
             if (candidate.variablePart.turnNum == 1) return; // postfund
-            if (candidate.variablePart.turnNum == 3) {
+
+            // postfund
+            if (candidate.variablePart.turnNum >= 3) {
                 // final (note: there is a core protocol escape hatch for this, too, so it could be removed)
-                require(candidate.variablePart.isFinal, '!final; turnNum=3 && |proof|=0');
+                require(candidate.variablePart.isFinal, '!final; turnNum>=3 && |proof|=0');
                 return;
             }
+
             revert('bad candidate turnNum; |proof|=0');
         }
 
-        // State 2 can be supported via a forced transition from state 1:
-        //
-        //      (2)_B     [redemption state signed by Bob, includes a voucher signed by Alice. The outcome may be updated in favour of Bob]
-        //      ^
-        //      |
-        //      (1)_AIB   [fully signed postfund]
+        // state 2+ requires previous supported state to be supplied
 
         if (proof.length == 1) {
-            requireProofOfUnanimousConsensusOnPostFund(proof[0], fixedPart.participants.length);
-            require(candidate.variablePart.turnNum == 2, 'bad candidate turnNum; |proof|=1');
+            _requireProofOfUnanimousConsensusOnPostFund(proof[0], nParticipants);
+
+            require(candidate.variablePart.turnNum >= 2, 'turnNum < 2; |proof|=1');
+
             require(
-                NitroUtils.isClaimedSignedBy(candidate.signedBy, 2),
-                'redemption not signed by Bob'
+                NitroUtils.isClaimedSignedBy(candidate.signedBy, 0),
+                'redemption not signed by Leader'
             );
-            MarginState memory receipt = requireValidMarginState(candidate.variablePart.appData, fixedPart);
-            requireCorrectAdjustments(
+
+            require(
+                NitroUtils.isClaimedSignedBy(candidate.signedBy, nParticipants - 1),
+                'redemption not signed by Receiver'
+            );
+
+            _requireCorrectOutcomes(
                 proof[0].variablePart.outcome,
                 candidate.variablePart.outcome,
-                receipt
+                fixedPart.participants[0],
+                fixedPart.participants[nParticipants - 1],
+                nParticipants
             );
             return;
         }
         revert('bad proof length');
     }
 
-    function requireProofOfUnanimousConsensusOnPostFund(
+    function _requireProofOfUnanimousConsensusOnPostFund(
         RecoveredVariablePart memory rVP,
         uint256 numParticipants
     ) internal pure {
@@ -97,50 +105,45 @@ contract VirtualMarginApp is IForceMoveApp {
         );
     }
 
-    function requireValidMarginState(bytes memory appData, FixedPart memory fixedPart)
-        internal
-        pure
-        returns (MarginState memory)
-    {
-        MarginState memory receipt = abi.decode(appData, (MarginState));
-        bytes32 receiptHash = keccak256(abi.encode(NitroUtils.getChannelId(fixedPart), receipt.leaderAmount, receipt.followerAmount, receipt.version));
-
-        address firstSigner = NitroUtils.recoverSigner(
-            receiptHash,
-            receipt.leaderSig
-        );
-        address lastSigner = NitroUtils.recoverSigner(
-            receiptHash,
-            receipt.followerSig
-        );
-        require(firstSigner == fixedPart.participants[0], 'invalid signature from Leader');
-        require(lastSigner == fixedPart.participants[fixedPart.participants.length - 1], 'invalid signature from Follower');
-        return receipt;
-    }
-
-    function requireCorrectAdjustments(
+    function _requireCorrectOutcomes(
         Outcome.SingleAssetExit[] memory oldOutcome,
         Outcome.SingleAssetExit[] memory newOutcome,
-        MarginState memory receipt
+        address Leader,
+        address Receiver,
+        uint8 nParticipants
     ) internal pure {
-        // TODO: Validate collateral asset type is valid
-        //
+        // NOTE: do we need such strict rules?
+        // is there a scenario they can be broken in a malicious way?
+
+        // only 1 collateral asset (USDT) for now, 2 later (+ YellowToken)
+        require(oldOutcome.length == 1 && newOutcome.length == 1, 'invalid number of assets');
+
+        // only 2 allocations
+        require(
+            oldOutcome[0].allocations.length == 2 && newOutcome[0].allocations.length == 2,
+            'invalid number of allocations'
+        );
+
+        // TODO: allocations are to Leader and Receiver
         // require(
-        //     oldOutcome.length == 1 &&
-        //         newOutcome.length == 1 &&
-        //         oldOutcome[0].asset == address(0) &&
-        //         newOutcome[0].asset == address(0),
-        //     'only native asset allowed'
+        //     oldOutcome[0].allocations[0].destination == Leader &&
+        //     oldOutcome[0].allocations[1].destination == Receiver &&
+        //     newOutcome[0].allocations[0].destination == Leader &&
+        //     newOutcome[0].allocations[1].destination == Receiver,
+        //     'invalid number of allocations'
         // );
 
-        require(
-            newOutcome[0].allocations[uint256(AllocationIndices.Leader)].amount == receipt.leaderAmount,
-            'Leader not adjusted correctly'
-        );
-        require(
-            newOutcome[0].allocations[uint256(AllocationIndices.Follower)].amount == receipt.followerAmount,
-            'Follower not adjusted correctly'
-        );
-        // TODO: Find a way to validate version number
+        // TODO: Add getter and setter, for Fee and collateral currencies
+        // newOutcome[0].asset == ASSET_FEE_ADDRESS &&
+        // newOutcome[1].asset == ASSET_COLLATERAL_ADDRESS,
+
+        // equal sums
+        uint256 oldAllocationSum;
+        uint256 newAllocationSum;
+        for (uint256 i = 0; i < nParticipants; i++) {
+            oldAllocationSum += oldOutcome[0].allocations[i].amount;
+            newAllocationSum += newOutcome[0].allocations[i].amount;
+        }
+        require(oldAllocationSum == newAllocationSum, 'total allocated cannot change');
     }
 }
