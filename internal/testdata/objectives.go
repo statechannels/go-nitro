@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
@@ -10,6 +11,8 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
+
+const TEST_CHAIN_ID = 1337
 
 // objectiveCollection namespaces literal objectives, precomputed objectives, and
 // procedural objective generators for consumption
@@ -79,7 +82,7 @@ func genericVFO() virtualfund.Objective {
 	})
 	lookup := ledgerPath.GetLedgerLookup(testactors.Alice.Address())
 
-	testVFO, err := virtualfund.NewObjective(request, true, ts.Participants[0], lookup)
+	testVFO, err := virtualfund.NewObjective(request, true, ts.Participants[0], big.NewInt(TEST_CHAIN_ID), lookup)
 	if err != nil {
 		panic(fmt.Errorf("error constructing genericVFO: %w", err))
 	}

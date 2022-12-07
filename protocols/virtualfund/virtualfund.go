@@ -136,7 +136,7 @@ type Objective struct {
 }
 
 // NewObjective creates a new virtual funding objective from a given request.
-func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
+func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, chainId *big.Int, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 	var rightCC *consensus_channel.ConsensusChannel
 	ok := false
 
@@ -157,7 +157,7 @@ func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Add
 
 	objective, err := constructFromState(preApprove,
 		state.State{
-			ChainId:           big.NewInt(9001), // TODO https://github.com/statechannels/go-nitro/issues/601
+			ChainId:           chainId,
 			Participants:      participants,
 			ChannelNonce:      request.Nonce,
 			ChallengeDuration: request.ChallengeDuration,

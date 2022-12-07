@@ -1,6 +1,8 @@
 package chainservice
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -49,4 +51,8 @@ func (mc *MockChainService) GetVirtualPaymentAppAddress() types.Address {
 
 func (mc *MockChainService) EventFeed() <-chan Event {
 	return mc.eventFeed
+}
+
+func (mc *MockChainService) GetChainId() (*big.Int, error) {
+	return big.NewInt(TEST_CHAIN_ID), nil
 }

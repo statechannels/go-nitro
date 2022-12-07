@@ -55,10 +55,10 @@ type GetChannelsByParticipantFunction func(participant types.Address) []*channel
 type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)
 
 // NewObjective creates a new direct funding objective from a given request.
-func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
+func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, chainId *big.Int, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 
 	initialState := state.State{
-		ChainId:           big.NewInt(1337), // TODO https://github.com/statechannels/go-nitro/issues/601
+		ChainId:           chainId,
 		Participants:      []types.Address{myAddress, request.CounterParty},
 		ChannelNonce:      request.Nonce,
 		AppDefinition:     request.AppDefinition,

@@ -1,6 +1,7 @@
 package chainservice
 
 import (
+	"context"
 	"errors"
 	"io"
 	"math/big"
@@ -18,6 +19,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// This is the chain id used by the simulated backend as well as hardhat
+const TEST_CHAIN_ID = 1337
+
 var ErrUnableToAssignBigInt = errors.New("simulated_backend_chainservice: unable to assign BigInt")
 
 type binding[T any] struct {
@@ -32,20 +36,30 @@ type Bindings struct {
 	VirtualPaymentApp binding[VirtualPaymentApp.VirtualPaymentApp]
 }
 
-type simulatedChain interface {
+type SimulatedChain interface {
 	ethChain
 	Commit() common.Hash
+	Close() error
+}
+
+// This is used to wrap the simulated backend so that we can provide a ChainID function like a real eth client
+type BackendWrapper struct {
+	*backends.SimulatedBackend
+}
+
+func (b *BackendWrapper) ChainID(ctx context.Context) (*big.Int, error) {
+	return big.NewInt(TEST_CHAIN_ID), nil
 }
 
 // SimulatedBackendChainService extends EthChainService to automatically mine a block for every transaction
 type SimulatedBackendChainService struct {
 	*EthChainService
-	sim simulatedChain
+	sim SimulatedChain
 }
 
 // NewSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewSimulatedBackendChainService(sim simulatedChain, bindings Bindings,
+func NewSimulatedBackendChainService(sim SimulatedChain, bindings Bindings,
 	txSigner *bind.TransactOpts, logDestination io.Writer) (ChainService, error) {
 	ethChainService, err := NewEthChainService(sim,
 		bindings.Adjudicator.Contract,
@@ -72,7 +86,7 @@ func (sbcs *SimulatedBackendChainService) SendTransaction(tx protocols.ChainTran
 }
 
 // SetupSimulatedBackend creates a new SimulatedBackend with the supplied number of transacting accounts, deploys the Nitro Adjudicator and returns both.
-func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, Bindings, []*bind.TransactOpts, error) {
+func SetupSimulatedBackend(numAccounts uint64) (SimulatedChain, Bindings, []*bind.TransactOpts, error) {
 	accounts := make([]*bind.TransactOpts, numAccounts)
 	genesisAlloc := make(map[common.Address]core.GenesisAccount)
 	contractBindings := Bindings{}
@@ -138,7 +152,8 @@ func SetupSimulatedBackend(numAccounts uint64) (*backends.SimulatedBackend, Bind
 		VirtualPaymentApp: binding[VirtualPaymentApp.VirtualPaymentApp]{virtualPaymentAppAddress, vpa},
 	}
 	sim.Commit()
-	return sim, contractBindings, accounts, nil
+
+	return &BackendWrapper{sim}, contractBindings, accounts, nil
 }
 
 func (sbcs *SimulatedBackendChainService) GetConsensusAppAddress() types.Address {

@@ -28,6 +28,7 @@ var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint
 type ethChain interface {
 	bind.ContractBackend
 	ethereum.TransactionReader
+	ChainID(ctx context.Context) (*big.Int, error)
 }
 
 type EthChainService struct {
@@ -335,4 +336,8 @@ func (ecs *EthChainService) GetConsensusAppAddress() types.Address {
 
 func (ecs *EthChainService) GetVirtualPaymentAppAddress() types.Address {
 	return ecs.virtualPaymentAppAddress
+}
+
+func (ecs *EthChainService) GetChainId() (*big.Int, error) {
+	return ecs.chain.ChainID(context.Background())
 }
