@@ -15,6 +15,8 @@ import (
 )
 
 type MockedVirtualApp struct {
+	*App
+
 	mock.Mock
 }
 
@@ -24,12 +26,8 @@ func (app *MockedVirtualApp) HandleRequest(
 	ty string,
 	data interface{},
 ) error {
-	args := app.Called(ch, ty, data)
+	args := app.Called(ch, from, ty, data)
 	return args.Error(0)
-}
-
-func (app *MockedVirtualApp) Id() string {
-	return "mock"
 }
 
 func TestAppManager(t *testing.T) {
@@ -37,13 +35,15 @@ func TestAppManager(t *testing.T) {
 		logger := log.New(os.Stdout, "test-virtual-app", log.Flags())
 		s := store.NewMemStore(testactors.Alice.PrivateKey)
 		appMgr := NewAppManager(logger, s)
-		mApp := &MockedVirtualApp{}
+		mApp := &MockedVirtualApp{
+			App: NewApp("mock", types.Address{}),
+		}
 		return s, appMgr, mApp
 	}
 
 	t.Run("Dispatch request to registered virtual app", func(t *testing.T) {
 		s, appMgr, mApp := setup()
-		appMgr.RegisterApp(mApp)
+		appMgr.RegisterApp(mApp.App)
 		c := td.Objectives.Directfund.GenericDFO().C
 		err := s.SetChannel(c)
 		require.NoError(t, err)

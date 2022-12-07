@@ -153,6 +153,9 @@ func (e *Engine) Run() {
 			res, err = e.handleMessage(message)
 		case proposal := <-e.fromLedger:
 			res, err = e.handleProposal(proposal)
+
+		case message := <-e.Am.MessageCh:
+			e.SendMessages([]protocols.Message{message})
 		}
 
 		// Handle errors

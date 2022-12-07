@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/statechannels/go-nitro/app"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/internal/testactors"
@@ -13,11 +12,6 @@ import (
 
 var alice = testactors.Alice
 var bob = testactors.Bob
-
-// Tests that the MarginApp complies with the app.App interface
-func TestMarginAppType(t *testing.T) {
-	var _ app.App = (*PingPongApp)(nil)
-}
 
 func TestFundingMethod(t *testing.T) {
 	// Setup logging
@@ -42,8 +36,8 @@ func TestFundingMethod(t *testing.T) {
 	pingPongA := NewPingPongApp(clientA.GetEngine(), alice.Address())
 	pingPongB := NewPingPongApp(clientB.GetEngine(), bob.Address())
 
-	clientA.GetAppManager().RegisterApp(pingPongA)
-	clientB.GetAppManager().RegisterApp(pingPongB)
+	clientA.GetAppManager().RegisterApp(pingPongA.App)
+	clientB.GetAppManager().RegisterApp(pingPongB.App)
 
 	chId := directlyFundALedgerChannel(t, clientA, clientB)
 	c, err := storeA.GetConsensusChannelById(chId)
