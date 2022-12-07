@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -40,6 +41,7 @@ type EthChainService struct {
 	txSigner                 *bind.TransactOpts
 	out                      chan Event
 	logger                   *log.Logger
+	nonceLock                *sync.Mutex
 }
 
 // Since we only fetch events if there's a new block number
@@ -59,7 +61,16 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	logPrefix := "chainservice " + txSigner.From.String() + ": "
 	logger := log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger}
+	ecs := EthChainService{
+		chain,
+		na,
+		naAddress,
+		caAddress,
+		vpaAddress,
+		txSigner,
+		make(chan Event, 10),
+		logger,
+		&sync.Mutex{}}
 
 	if ecs.subscriptionsSupported() {
 		logger.Printf("Notifications are supported by the chain. Using notifications to listen for events.")
@@ -107,6 +118,8 @@ func (ecs *EthChainService) defaultTxOpts() *bind.TransactOpts {
 
 // SendTransaction sends the transaction and blocks until it has been submitted.
 func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error {
+	ecs.nonceLock.Lock()
+	defer ecs.nonceLock.Unlock()
 	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
 		for tokenAddress, amount := range tx.Deposit {
