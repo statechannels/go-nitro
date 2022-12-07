@@ -2,6 +2,7 @@ package engine
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -68,14 +69,18 @@ func getChannelIds(related []protocols.Storable) []types.Destination {
 
 		case *channel.Channel:
 			if c != nil {
+
 				channelIds = append(channelIds, c.Id)
 			}
 
 		case *consensus_channel.ConsensusChannel:
-			if c != nil {
+			if c != nil && (c.Id != types.Destination{}) {
 				channelIds = append(channelIds, c.Id)
 			}
+		default:
+			panic(fmt.Errorf("Unknown storable type: %T", c))
 		}
+
 	}
 	return channelIds
 }
