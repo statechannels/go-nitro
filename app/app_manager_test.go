@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/types"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -41,8 +42,8 @@ func TestAppManager(t *testing.T) {
 		c := td.Objectives.Directfund.GenericDFO().C
 		s.SetChannel(c)
 		mApp.On("HandleRequest", c, "ping", nil).Return(nil)
-		req := &AppRequest{
-			AppType:     "mock",
+		req := &types.AppRequest{
+			AppId:       "mock",
 			RequestType: "ping",
 			ChannelId:   c.ChannelId(),
 		}
@@ -53,8 +54,8 @@ func TestAppManager(t *testing.T) {
 
 	t.Run("Doesn't dispatch request to registered virtual app", func(t *testing.T) {
 		_, appMgr, mApp := setup()
-		err := appMgr.HandleRequest(&AppRequest{
-			AppType: "mock",
+		err := appMgr.HandleRequest(&types.AppRequest{
+			AppId: "mock",
 		})
 		require.Error(t, ErrAppNotRegistered, err)
 		mApp.AssertNotCalled(t, "HandleRequest", mock.Anything, mock.Anything)

@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"math/rand"
 
+	"github.com/statechannels/go-nitro/app"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -164,4 +165,12 @@ func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.Objec
 func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
 	// Send the event to the engine
 	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
+}
+
+func (c *Client) GetAppManager() *app.AppManager {
+	return c.engine.Am
+}
+
+func (c *Client) GetEngine() *engine.Engine {
+	return &c.engine
 }

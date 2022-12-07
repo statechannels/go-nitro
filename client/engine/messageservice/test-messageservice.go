@@ -49,7 +49,7 @@ func NewBroker() Broker {
 // NewTestMessageService returns a running TestMessageService
 // It accepts an address, a broker, and a max delay for messages.
 // Messages will be handled with a random delay between 0 and maxDelay
-func NewTestMessageService(address types.Address, broker Broker, maxDelay time.Duration) TestMessageService {
+func  NewTestMessageService(address types.Address, broker Broker, maxDelay time.Duration) TestMessageService {
 	tms := TestMessageService{
 		address:   address,
 		out:       make(chan protocols.Message, 5),

@@ -1,4 +1,4 @@
-package directmargin
+package pingpong
 
 import (
 	"math/big"
@@ -18,9 +18,5 @@ type MaginState struct {
 // NOTE: maybe rename "Request" with "Message", since not only requests are sent (for example: voucher signed by the leader or follower)
 
 // Margin App request types
-const RequestTypeFunding = "funding"
-const RequestTypeMarginProposal = "margin-proposal"
-const RequestTypeMarginAccept = "margin-accept"
-const RequestTypeMarginReject = "margin-reject"
-const RequestTypeDefunding = "defunding"
-
+const RequestTypePing = "ping"
+const RequestTypePong = "pong"

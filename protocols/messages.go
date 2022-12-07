@@ -46,6 +46,8 @@ type Message struct {
 	// Payments contains a collection of signed vouchers representing payments.
 	// Payments are handled outside of any objective.
 	Payments []payments.Voucher
+
+	AppRequests []types.AppRequest
 	// RejectedObjectives is a collection of objectives that have been rejected.
 	RejectedObjectives []ObjectiveId
 }

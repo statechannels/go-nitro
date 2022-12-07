@@ -1,4 +1,4 @@
-package directmargin
+package pingpong
 
 import (
 	"testing"
@@ -15,12 +15,12 @@ var bob = testactors.Bob
 
 // Tests that the MarginApp complies with the app.App interface
 func TestMarginAppType(t *testing.T) {
-	var _ app.App = (*MarginApp)(nil)
+	var _ app.App = (*PingPongApp)(nil)
 }
 
 func TestFundingMethod(t *testing.T) {
 	// Setup logging
-	logFile := "test_app_margin.log"
+	logFile := "test_app_ping.log"
 	TruncateLog(logFile)
 	logDestination := NewLogWriter(logFile)
 
@@ -38,7 +38,17 @@ func TestFundingMethod(t *testing.T) {
 	clientA, storeA, messageServiceA := SetupClient(alice.PrivateKey, chainA, broker, logDestination, 0)
 	clientB, storeB, messageServiceB := SetupClient(bob.PrivateKey, chainB, broker, logDestination, 0)
 
-	directlyFundALedgerChannel(t, clientA, clientB)
+	pingPongA := NewPingPongApp(clientA.GetEngine())
+	pingPongB := NewPingPongApp(clientB.GetEngine())
+
+	clientA.GetAppManager().RegisterApp(pingPongA)
+	clientB.GetAppManager().RegisterApp(pingPongB)
+
+	chId := directlyFundALedgerChannel(t, clientA, clientB)
+	c, err := storeA.GetConsensusChannelById(chId)
+	require.NoError(t, err)
+
+	pingPongA.Ping(c)
 
 	_, _ = clientA, clientB
 	_, _ = storeA, storeB

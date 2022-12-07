@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/types"
 )
 
 type AppManager struct {
@@ -39,8 +40,8 @@ func (m *AppManager) UnregisterApp(app App) {
 	m.logger.Printf("INFO: App %s unregistered", app.Type())
 }
 
-func (m *AppManager) HandleRequest(req *AppRequest) error {
-	app, ok := m.apps[req.AppType]
+func (m *AppManager) HandleRequest(req *types.AppRequest) error {
+	app, ok := m.apps[req.AppId]
 	if !ok {
 		return ErrAppNotRegistered
 	}

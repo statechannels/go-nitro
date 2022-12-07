@@ -40,7 +40,7 @@ type Engine struct {
 	// From API
 	ObjectiveRequestsFromAPI chan protocols.ObjectiveRequest
 	PaymentRequestsFromAPI   chan PaymentRequest // TODO: refactor payment app to use the virtual app manager
-	AppRequestsFromAPI       chan *app.AppRequest
+	AppRequestsFromAPI       chan *types.AppRequest
 
 	fromChain  <-chan chainservice.Event
 	fromMsg    <-chan protocols.Message
@@ -58,7 +58,7 @@ type Engine struct {
 
 	metrics *MetricsRecorder
 
-	am *app.AppManager
+	Am *app.AppManager
 	vm *payments.VoucherManager
 }
 
@@ -95,7 +95,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	// bind to inbound chans
 	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest)
 	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
-	e.AppRequestsFromAPI = make(chan *app.AppRequest, 100)
+	e.AppRequestsFromAPI = make(chan *types.AppRequest, 100)
 
 	e.fromChain = chain.EventFeed()
 	e.fromMsg = msg.Out()
@@ -112,7 +112,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.policymaker = policymaker
 
 	e.vm = payments.NewVoucherManager(*store.GetAddress())
-	e.am = app.NewAppManager(e.logger, e.store)
+	e.Am = app.NewAppManager(e.logger, e.store)
 
 	e.logger.Println("Constructed Engine")
 
@@ -146,7 +146,7 @@ func (e *Engine) Run() {
 		case pr := <-e.PaymentRequestsFromAPI:
 			err = e.handlePaymentRequest(pr)
 		case appRequest := <-e.AppRequestsFromAPI:
-			err = e.am.HandleRequest(appRequest)
+			err = e.Am.HandleRequest(appRequest)
 		case chainEvent := <-e.fromChain:
 			res, err = e.handleChainEvent(chainEvent)
 		case message := <-e.fromMsg:
@@ -185,7 +185,7 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 	if err != nil {
 		return EngineEvent{}, err
 	}
-	return e.attemptProgress(obj)
+	return e.AttemptProgress(obj)
 }
 
 // handleMessage handles a Message from a peer go-nitro Wallet.
@@ -244,7 +244,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if err != nil {
 			return EngineEvent{}, err
 		}
-		progressEvent, err := e.attemptProgress(updatedObjective)
+		progressEvent, err := e.AttemptProgress(updatedObjective)
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -276,7 +276,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			return EngineEvent{}, err
 		}
 
-		progressEvent, err := e.attemptProgress(updatedObjective)
+		progressEvent, err := e.AttemptProgress(updatedObjective)
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -310,6 +310,13 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		}
 
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
+	}
+
+	for _, ar := range message.AppRequests {
+		err := e.Am.HandleRequest(&ar)
+		if err != nil {
+			return EngineEvent{}, err
+		}
 	}
 
 	for _, voucher := range message.Payments {
@@ -351,7 +358,7 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, e
 	if err != nil {
 		return EngineEvent{}, err
 	}
-	return e.attemptProgress(updatedEventHandler)
+	return e.AttemptProgress(updatedEventHandler)
 }
 
 // handleObjectiveRequest handles an ObjectiveRequest (triggered by a client API call).
@@ -381,7 +388,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
 		}
-		return e.attemptProgress(&vfo)
+		return e.AttemptProgress(&vfo)
 
 	case virtualdefund.ObjectiveRequest:
 		minAmount := big.NewInt(0)
@@ -393,14 +400,14 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
-		return e.attemptProgress(&vdfo)
+		return e.AttemptProgress(&vdfo)
 
 	case directfund.ObjectiveRequest:
 		dfo, err := directfund.NewObjective(request, true, myAddress, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
-		return e.attemptProgress(&dfo)
+		return e.AttemptProgress(&dfo)
 
 	case directdefund.ObjectiveRequest:
 		ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
@@ -411,7 +418,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		}
 		// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 		e.store.DestroyConsensusChannel(request.ChannelId)
-		return e.attemptProgress(&ddfo)
+		return e.AttemptProgress(&ddfo)
 
 	default:
 		return EngineEvent{}, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)
@@ -445,8 +452,8 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
 	return e.executeSideEffects(se)
 }
 
-// sendMessages sends out the messages and records the metrics.
-func (e *Engine) sendMessages(msgs []protocols.Message) {
+// SendMessages sends out the messages and records the metrics.
+func (e *Engine) SendMessages(msgs []protocols.Message) {
 	defer e.metrics.RecordFunctionDuration()()
 
 	for _, message := range msgs {
@@ -462,7 +469,7 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	defer e.metrics.RecordFunctionDuration()()
 
 	// Send messages in a go routine so that we don't block on message delivery
-	go e.sendMessages(sideEffects.MessagesToSend)
+	go e.SendMessages(sideEffects.MessagesToSend)
 
 	for _, tx := range sideEffects.TransactionsToSubmit {
 		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId())
@@ -477,14 +484,14 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	return nil
 }
 
-// attemptProgress takes a "live" objective in memory and performs the following actions:
+// AttemptProgress takes a "live" objective in memory and performs the following actions:
 //
 //  1. It pulls the secret key from the store
 //  2. It cranks the objective with that key
 //  3. It commits the cranked objective to the store
 //  4. It executes any side effects that were declared during cranking
 //  5. It updates progress metadata in the store
-func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing EngineEvent, err error) {
+func (e *Engine) AttemptProgress(objective protocols.Objective) (outgoing EngineEvent, err error) {
 	defer e.metrics.RecordFunctionDuration()()
 
 	secretKey := e.store.GetChannelSecretKey()
