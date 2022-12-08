@@ -9,130 +9,139 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// paymentStatus stores the status of payments for a given payment channel.
-type paymentStatus struct {
-	channelPayer    common.Address
-	channelPayee    common.Address
+type marginStatus struct {
+	leaderAddr      common.Address
+	followerAddr    common.Address
 	startingBalance *big.Int
-	largestVoucher  Voucher
+	latestMargin    MarginApp
 	currentBalance  Balance
 }
 
-// VoucherManager receives and generates vouchers. It is responsible for storing vouchers.
-type VoucherManager struct {
-	channels *safesync.Map[*paymentStatus]
+type MarginAppManager struct {
+	channels *safesync.Map[*marginStatus]
 	me       common.Address
 }
 
-// NewVoucherManager creates a new voucher manager
-func NewVoucherManager(me types.Address) *VoucherManager {
-	channels := safesync.Map[*paymentStatus]{}
-	return &VoucherManager{&channels, me}
+func NewMarginAppManager(me types.Address) *MarginAppManager {
+	channels := safesync.Map[*marginStatus]{}
+	return &MarginAppManager{&channels, me}
 }
 
-// Register registers a channel for use, given the payer, payee and starting balance of the channel
-func (vm *VoucherManager) Register(channelId types.Destination, payer common.Address, payee common.Address, startingBalance *big.Int) error {
+func (ma *MarginAppManager) Register(channelId types.Destination, leader common.Address, follower common.Address, startingBalance *big.Int) error {
+	// lets have our initial balance, equal by both sides
+	// if starting balance is 100, then we will start to propose our margin from
+	// LeaderAmount = 50, FollowerAmount = 50
+	// TODO think about the case one of the malicious part can challenge this state
 
-	balance := Balance{big.NewInt(0).Set(startingBalance), &big.Int{}}
-	voucher := Voucher{ChannelId: channelId, Amount: big.NewInt(0)}
-	data := &paymentStatus{payer, payee, big.NewInt(0).Set(startingBalance), voucher, balance}
-	if _, ok := vm.channels.Load(channelId.String()); ok {
+	halfStartingBalance := startingBalance.Div(startingBalance, big.NewInt(2))
+	balance := Balance{halfStartingBalance, halfStartingBalance}
+	marginApp := MarginApp{ChannelId: channelId, LeaderAmount: halfStartingBalance, FollowerAmount: halfStartingBalance, Version: big.NewInt(1)}
+
+	data := &marginStatus{leader, follower, big.NewInt(0).Set(startingBalance), marginApp, balance}
+	if _, ok := ma.channels.Load(channelId.String()); ok {
 		return fmt.Errorf("channel already registered")
 	}
 
-	vm.channels.Store(channelId.String(), data)
+	ma.channels.Store(channelId.String(), data)
 
 	return nil
 }
 
-// Remove deletes the channel's status
-func (vm *VoucherManager) Remove(channelId types.Destination) {
-	vm.channels.Delete(channelId.String())
+func (ma *MarginAppManager) Remove(channelId types.Destination) {
+	ma.channels.Delete(channelId.String())
 }
 
-// Pay will deduct amount from balance and add it to paid, returning a signed voucher for the
-// total amount paid.
-func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk []byte) (Voucher, error) {
-	pStatus, ok := vm.channels.Load(channelId.String())
-
-	voucher := Voucher{Amount: &big.Int{}}
+func (ma *MarginAppManager) ProposeAndSign(channelId types.Destination, leaderAmount *big.Int, followerAmount *big.Int, pk []byte) (MarginApp, error) {
+	pStatus, ok := ma.channels.Load(channelId.String())
 	if !ok {
-		return Voucher{}, fmt.Errorf("channel not found")
+		return MarginApp{}, fmt.Errorf("channel not found")
 	}
 
-	if types.Gt(amount, pStatus.currentBalance.Remaining) {
-		return Voucher{}, fmt.Errorf("unable to pay amount: insufficient funds")
+	margin := MarginApp{LeaderAmount: &big.Int{}, FollowerAmount: &big.Int{}}
+	newBalance := big.NewInt(0).Add(followerAmount, leaderAmount)
+	if types.Gt(newBalance, pStatus.startingBalance) {
+		return MarginApp{}, fmt.Errorf("sum of proposed funds should be equal to starting balance")
 	}
 
-	if pStatus.channelPayer != vm.me {
-		return Voucher{}, fmt.Errorf("can only sign vouchers if we're the payer")
+	if pStatus.leaderAddr != ma.me {
+		return MarginApp{}, fmt.Errorf("can only propose vouchers if leader")
 	}
 
-	pStatus.currentBalance.Remaining.Sub(pStatus.currentBalance.Remaining, amount)
-	pStatus.currentBalance.Paid.Add(pStatus.currentBalance.Paid, amount)
-	pStatus.largestVoucher = voucher
+	margin.LeaderAmount = leaderAmount
+	margin.FollowerAmount = followerAmount
+	margin.ChannelId = channelId
+	margin.Version = big.NewInt(0).Add(pStatus.latestMargin.Version, big.NewInt(0))
 
-	voucher.Amount.Set(pStatus.currentBalance.Paid)
-	voucher.ChannelId = channelId
-
-	if err := voucher.Sign(pk); err != nil {
-		return voucher, err
+	if err := margin.LeaderSign(pk); err != nil {
+		return margin, err
 	}
 
-	return voucher, nil
+	// Update margin app manager
+	pStatus.currentBalance = Balance{Leader: leaderAmount, Follower: followerAmount}
+	pStatus.latestMargin = margin
+
+	return margin, nil
 }
 
-// Receive validates the incoming voucher, and returns the total amount received so far
-func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
-	status, ok := vm.channels.Load(voucher.ChannelId.String())
+func (ma *MarginAppManager) HandleProposal(margin MarginApp) error {
+	// Here All checks if valid proposal
+	status, ok := ma.channels.Load(margin.ChannelId.String())
 	if !ok {
-		return &big.Int{}, fmt.Errorf("channel not registered")
+		return fmt.Errorf("channel not registered")
 	}
 
-	// We only care about vouchers when we are the recipient of the payment
-	if status.channelPayee != vm.me {
-		return &big.Int{}, nil
-	}
-	received := &big.Int{}
-	received.Set(voucher.Amount)
-	if types.Gt(received, status.startingBalance) {
-		return &big.Int{}, fmt.Errorf("channel has insufficient funds")
+	if status.followerAddr != ma.me {
+		return fmt.Errorf("only follower could handle proposal")
 	}
 
-	receivedSoFar := status.largestVoucher.Amount
-	if !types.Gt(received, receivedSoFar) {
-		return receivedSoFar, nil
+	marginBalance := big.NewInt(0).Add(margin.FollowerAmount, margin.LeaderAmount)
+	if !types.Gt(marginBalance, status.startingBalance) {
+		return fmt.Errorf("sum of proposed funds should be equal to starting balance")
 	}
 
-	signer, err := voucher.RecoverSigner()
+	// Verify that margin was signed by Leader
+	signer, err := margin.RecoverLeaderSigner()
 	if err != nil {
-		return &big.Int{}, err
+		return fmt.Errorf("couldn't recover leader signature")
 	}
-	if signer != status.channelPayer {
-		return &big.Int{}, fmt.Errorf("wrong signer: %+v, %+v", signer, status.channelPayer)
-	}
-	status.currentBalance.Paid.Set(received)
-	remaining := big.NewInt(0).Sub(status.startingBalance, received)
-	status.currentBalance.Remaining.Set(remaining)
 
-	status.largestVoucher = voucher
-	return received, nil
+	if signer != status.leaderAddr {
+		return fmt.Errorf("margin was not signed by leader")
+	}
+
+	return nil
 }
 
-// ChannelRegistered returns  whether a channel has been registered with the voucher manager or not
-func (vm *VoucherManager) ChannelRegistered(channelId types.Destination) bool {
-	_, ok := vm.channels.Load(channelId.String())
+func (ma *MarginAppManager) SignProposal(margin MarginApp, pk []byte) (MarginApp, error) {
+	status, ok := ma.channels.Load(margin.ChannelId.String())
+	if !ok {
+		return MarginApp{}, fmt.Errorf("channel not registered")
+	}
+
+	if err := margin.FollowerSign(pk); err != nil {
+		return MarginApp{}, fmt.Errorf("couldn't sign latest margin")
+	}
+
+	status.latestMargin = margin
+	status.currentBalance.Leader = margin.LeaderAmount
+	status.currentBalance.Follower = margin.FollowerAmount
+
+	//TODO
+	// Make channel to push signed proposal
+
+	return MarginApp{}, nil
+}
+
+func (ma *MarginAppManager) RejectProposal() {
+	//TODO
+	// Make channel to push rejected proposal
+}
+
+func (ma *MarginAppManager) ChannelRegistered(channelId types.Destination) bool {
+	_, ok := ma.channels.Load(channelId.String())
 	return ok
 
 }
 
-// Balance returns the balance of the channel
-func (vm *VoucherManager) Balance(channelId types.Destination) (Balance, error) {
-	data, ok := vm.channels.Load(channelId.String())
-	if !ok {
-		return Balance{}, fmt.Errorf("channel not found")
-	}
-
-	return data.currentBalance, nil
-
-}
+// For Leader - ProposeAndSign
+// For Follower - HandleProposal, SignProposl/RejectProposal

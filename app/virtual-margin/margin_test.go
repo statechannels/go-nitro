@@ -2,13 +2,10 @@ package virtualmargin
 
 import (
 	"fmt"
-	"math/big"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"testing"
-
-	"github.com/statechannels/go-nitro/internal/testactors"
 
 	"github.com/statechannels/go-nitro/types"
 )
@@ -18,123 +15,123 @@ type manager interface {
 	Balance(chanId types.Destination) (Balance, error)
 }
 
-func TestPaymentManager(t *testing.T) {
-	testVoucher := func(cId types.Destination, amount *big.Int, actor testactors.Actor) Voucher {
-		payment := &big.Int{}
-		payment.Set(amount)
-		voucher := Voucher{ChannelId: cId, Amount: payment}
-		_ = voucher.Sign(actor.PrivateKey)
-		return voucher
-	}
+// func TestPaymentManager(t *testing.T) {
+// 	testVoucher := func(cId types.Destination, amount *big.Int, actor testactors.Actor) Voucher {
+// 		payment := &big.Int{}
+// 		payment.Set(amount)
+// 		voucher := Voucher{ChannelId: cId, Amount: payment}
+// 		_ = voucher.Sign(actor.PrivateKey)
+// 		return voucher
+// 	}
 
-	var (
-		channelId        = types.Destination{1}
-		wrongChannelId   = types.Destination{2}
-		anotherChannelId = types.Destination{3}
+// 	var (
+// 		channelId        = types.Destination{1}
+// 		wrongChannelId   = types.Destination{2}
+// 		anotherChannelId = types.Destination{3}
 
-		deposit       = big.NewInt(1000)
-		payment       = big.NewInt(20)
-		doublePayment = big.NewInt(40)
-		triplePayment = big.NewInt(60)
-		overPayment   = big.NewInt(2000)
+// 		deposit       = big.NewInt(1000)
+// 		payment       = big.NewInt(20)
+// 		doublePayment = big.NewInt(40)
+// 		triplePayment = big.NewInt(60)
+// 		overPayment   = big.NewInt(2000)
 
-		startingBalance = Balance{big.NewInt(1000), big.NewInt(0)}
-		onePaymentMade  = Balance{big.NewInt(980), big.NewInt(20)}
-		twoPaymentsMade = Balance{big.NewInt(960), big.NewInt(40)}
-	)
+// 		startingBalance = Balance{big.NewInt(1000), big.NewInt(0)}
+// 		onePaymentMade  = Balance{big.NewInt(980), big.NewInt(20)}
+// 		twoPaymentsMade = Balance{big.NewInt(960), big.NewInt(40)}
+// 	)
 
-	getBalance := func(m manager) Balance {
-		bal, _ := m.Balance(channelId)
-		return bal
-	}
+// 	getBalance := func(m manager) Balance {
+// 		bal, _ := m.Balance(channelId)
+// 		return bal
+// 	}
 
-	// Happy path: Payment manager can register channels and make payments
-	paymentMgr := NewVoucherManager(testactors.Alice.Address())
+// 	// Happy path: Payment manager can register channels and make payments
+// 	paymentMgr := NewVoucherManager(testactors.Alice.Address())
 
-	_, err := paymentMgr.Pay(channelId, payment, testactors.Alice.PrivateKey)
-	Assert(t, err != nil, "channel must be registered to make payments")
+// 	_, err := paymentMgr.Pay(channelId, payment, testactors.Alice.PrivateKey)
+// 	Assert(t, err != nil, "channel must be registered to make payments")
 
-	Ok(t, paymentMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit))
-	Equals(t, startingBalance, getBalance(paymentMgr))
+// 	Ok(t, paymentMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit))
+// 	Equals(t, startingBalance, getBalance(paymentMgr))
 
-	firstVoucher, err := paymentMgr.Pay(channelId, payment, testactors.Alice.PrivateKey)
-	Ok(t, err)
-	Equals(t, testVoucher(channelId, payment, testactors.Alice), firstVoucher)
-	Equals(t, onePaymentMade, getBalance(paymentMgr))
+// 	firstVoucher, err := paymentMgr.Pay(channelId, payment, testactors.Alice.PrivateKey)
+// 	Ok(t, err)
+// 	Equals(t, testVoucher(channelId, payment, testactors.Alice), firstVoucher)
+// 	Equals(t, onePaymentMade, getBalance(paymentMgr))
 
-	signer, err := firstVoucher.RecoverSigner()
-	Ok(t, err)
-	Equals(t, testactors.Alice.Address(), signer)
+// 	signer, err := firstVoucher.RecoverSigner()
+// 	Ok(t, err)
+// 	Equals(t, testactors.Alice.Address(), signer)
 
-	// Happy path: receipt manager can receive vouchers
-	receiptMgr := NewVoucherManager(testactors.Bob.Address())
+// 	// Happy path: receipt manager can receive vouchers
+// 	receiptMgr := NewVoucherManager(testactors.Bob.Address())
 
-	_, err = receiptMgr.Receive(firstVoucher)
-	Assert(t, err != nil, "channel must be registered to receive vouchers")
+// 	_, err = receiptMgr.Receive(firstVoucher)
+// 	Assert(t, err != nil, "channel must be registered to receive vouchers")
 
-	_ = receiptMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit)
-	Equals(t, startingBalance, getBalance(receiptMgr))
+// 	_ = receiptMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit)
+// 	Equals(t, startingBalance, getBalance(receiptMgr))
 
-	received, err := receiptMgr.Receive(firstVoucher)
-	Ok(t, err)
-	Equals(t, received, payment)
-	Equals(t, onePaymentMade, getBalance(receiptMgr))
-	// Receiving a voucher is idempotent
-	received, err = receiptMgr.Receive(firstVoucher)
-	Ok(t, err)
-	Equals(t, received, payment)
-	Equals(t, onePaymentMade, getBalance(receiptMgr))
+// 	received, err := receiptMgr.Receive(firstVoucher)
+// 	Ok(t, err)
+// 	Equals(t, received, payment)
+// 	Equals(t, onePaymentMade, getBalance(receiptMgr))
+// 	// Receiving a voucher is idempotent
+// 	received, err = receiptMgr.Receive(firstVoucher)
+// 	Ok(t, err)
+// 	Equals(t, received, payment)
+// 	Equals(t, onePaymentMade, getBalance(receiptMgr))
 
-	// paying twice returns a larger voucher
-	secondVoucher, err := paymentMgr.Pay(channelId, payment, testactors.Alice.PrivateKey)
-	Ok(t, err)
-	Equals(t, testVoucher(channelId, doublePayment, testactors.Alice), secondVoucher)
-	Equals(t, twoPaymentsMade, getBalance(paymentMgr))
+// 	// paying twice returns a larger voucher
+// 	secondVoucher, err := paymentMgr.Pay(channelId, payment, testactors.Alice.PrivateKey)
+// 	Ok(t, err)
+// 	Equals(t, testVoucher(channelId, doublePayment, testactors.Alice), secondVoucher)
+// 	Equals(t, twoPaymentsMade, getBalance(paymentMgr))
 
-	// Receiving a new voucher increases amount received
-	received, err = receiptMgr.Receive(secondVoucher)
-	Ok(t, err)
-	Equals(t, doublePayment, received)
-	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
+// 	// Receiving a new voucher increases amount received
+// 	received, err = receiptMgr.Receive(secondVoucher)
+// 	Ok(t, err)
+// 	Equals(t, doublePayment, received)
+// 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
-	// re-registering a channel doesn't reset its balance
-	err = paymentMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit)
-	Assert(t, err != nil, "expected register to fail")
-	Equals(t, twoPaymentsMade, getBalance(paymentMgr))
+// 	// re-registering a channel doesn't reset its balance
+// 	err = paymentMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit)
+// 	Assert(t, err != nil, "expected register to fail")
+// 	Equals(t, twoPaymentsMade, getBalance(paymentMgr))
 
-	err = receiptMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit)
-	Assert(t, err != nil, "expected register to fail")
-	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
+// 	err = receiptMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit)
+// 	Assert(t, err != nil, "expected register to fail")
+// 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
-	// Receiving old vouchers is ok
-	received, err = receiptMgr.Receive(firstVoucher)
-	Ok(t, err)
-	Equals(t, doublePayment, received)
-	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
+// 	// Receiving old vouchers is ok
+// 	received, err = receiptMgr.Receive(firstVoucher)
+// 	Ok(t, err)
+// 	Equals(t, doublePayment, received)
+// 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
-	// Only the payer can sign vouchers
-	err = receiptMgr.Register(anotherChannelId, testactors.Bob.Address(), testactors.Alice.Address(), deposit)
-	Ok(t, err)
-	_, err = paymentMgr.Pay(anotherChannelId, triplePayment, testactors.Bob.PrivateKey)
-	Assert(t, err != nil, "only payer can sign vouchers")
+// 	// Only the payer can sign vouchers
+// 	err = receiptMgr.Register(anotherChannelId, testactors.Bob.Address(), testactors.Alice.Address(), deposit)
+// 	Ok(t, err)
+// 	_, err = paymentMgr.Pay(anotherChannelId, triplePayment, testactors.Bob.PrivateKey)
+// 	Assert(t, err != nil, "only payer can sign vouchers")
 
-	// Receiving a voucher for an unknown channel fails
-	_, err = receiptMgr.Receive(testVoucher(wrongChannelId, payment, testactors.Alice))
-	Assert(t, err != nil, "expected an error")
-	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
+// 	// Receiving a voucher for an unknown channel fails
+// 	_, err = receiptMgr.Receive(testVoucher(wrongChannelId, payment, testactors.Alice))
+// 	Assert(t, err != nil, "expected an error")
+// 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
-	// Receiving a voucher that's too large fails
-	_, err = receiptMgr.Receive(testVoucher(channelId, overPayment, testactors.Alice))
-	Assert(t, err != nil, "expected an error")
-	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
+// 	// Receiving a voucher that's too large fails
+// 	_, err = receiptMgr.Receive(testVoucher(channelId, overPayment, testactors.Alice))
+// 	Assert(t, err != nil, "expected an error")
+// 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
-	// Receiving a voucher with the wrong signature fails
-	voucher := testVoucher(channelId, payment, testactors.Alice)
-	voucher.Amount = triplePayment
-	_, err = receiptMgr.Receive(voucher)
-	Assert(t, err != nil, "expected an error")
-	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
-}
+// 	// Receiving a voucher with the wrong signature fails
+// 	voucher := testVoucher(channelId, payment, testactors.Alice)
+// 	voucher.Amount = triplePayment
+// 	_, err = receiptMgr.Receive(voucher)
+// 	Assert(t, err != nil, "expected an error")
+// 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
+// }
 
 // TODO: This is a copy of the test helpers from github.com/statechannels/go-nitro/internal/testactors
 // We have a copy of them here to avoid an import cycle.

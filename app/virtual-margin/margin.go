@@ -12,40 +12,27 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// A Voucher signed by Alice can be used by Bob to redeem payments in case of
-// a misbehaving Alice.
-//
-// During normal operation, Alice & Bob would terminate the channel with an
-// outcome reflecting the largest amount signed by Alice. For instance,
-//   - if the channel started with balances {alice: 100, bob: 0}
-//   - and the biggest voucher signed by alice had amount = 20
-//   - then Alice and Bob would cooperatively conclude the channel with outcome
-//     {alice: 80, bob: 20}
-type Voucher struct {
-	ChannelId types.Destination
-	Amount    *big.Int
-	Signature state.Signature
-}
-
-type Margin struct {
+type MarginApp struct {
 	ChannelId      types.Destination
 	LeaderAmount   *big.Int
 	FollowerAmount *big.Int
+	Version        *big.Int
 	LeaderSig      state.Signature
 	FollowerSig    state.Signature
 }
 
-// Balance stores the remaining and paid funds in a channel.
 type Balance struct {
-	Remaining *big.Int
-	Paid      *big.Int
+	Leader   *big.Int
+	Follower *big.Int
 }
 
-func (v *Voucher) Hash() (types.Bytes32, error) {
+func (mv *MarginApp) Hash() (types.Bytes32, error) {
 	encoded, err := abi.Arguments{
 		{Type: nitroAbi.Destination},
 		{Type: nitroAbi.Uint256},
-	}.Pack(v.ChannelId, v.Amount)
+		{Type: nitroAbi.Uint256},
+		{Type: nitroAbi.Uint256},
+	}.Pack(mv.ChannelId, mv.LeaderAmount, mv.FollowerAmount, mv.Version)
 
 	if err != nil {
 		return types.Bytes32{}, fmt.Errorf("failed to encode voucher: %w", err)
@@ -53,8 +40,8 @@ func (v *Voucher) Hash() (types.Bytes32, error) {
 	return crypto.Keccak256Hash(encoded), nil
 }
 
-func (v *Voucher) Sign(pk []byte) error {
-	hash, err := v.Hash()
+func (ma *MarginApp) LeaderSign(pk []byte) error {
+	hash, err := ma.Hash()
 	if err != nil {
 		return err
 	}
@@ -65,20 +52,48 @@ func (v *Voucher) Sign(pk []byte) error {
 		return err
 	}
 
-	v.Signature = sig
+	ma.LeaderSig = sig
 
 	return nil
 }
 
-func (v *Voucher) RecoverSigner() (types.Address, error) {
+func (ma *MarginApp) FollowerSign(pk []byte) error {
+	hash, err := ma.Hash()
+	if err != nil {
+		return err
+	}
+
+	sig, err := nitroCrypto.SignEthereumMessage(hash.Bytes(), pk)
+
+	if err != nil {
+		return err
+	}
+
+	ma.FollowerSig = sig
+
+	return nil
+}
+
+func (v *MarginApp) RecoverLeaderSigner() (types.Address, error) {
 	h, error := v.Hash()
 	if error != nil {
 		return types.Address{}, error
 	}
-	return nitroCrypto.RecoverEthereumMessageSigner(h[:], v.Signature)
+	return nitroCrypto.RecoverEthereumMessageSigner(h[:], v.LeaderSig)
 }
 
-// Equal returns true if the two vouchers have the same channel id, amount and signatures
-func (v *Voucher) Equal(other *Voucher) bool {
-	return v.ChannelId == other.ChannelId && v.Amount.Cmp(other.Amount) == 0 && v.Signature.Equal(other.Signature)
+func (v *MarginApp) RecoverFollowerSigner() (types.Address, error) {
+	h, error := v.Hash()
+	if error != nil {
+		return types.Address{}, error
+	}
+	return nitroCrypto.RecoverEthereumMessageSigner(h[:], v.FollowerSig)
+}
+
+func (v *MarginApp) Equal(other *MarginApp) bool {
+	return v.ChannelId == other.ChannelId &&
+		v.LeaderAmount.Cmp(other.LeaderAmount) == 0 &&
+		v.FollowerAmount.Cmp(other.FollowerAmount) == 0 &&
+		v.LeaderSig.Equal(other.LeaderSig) &&
+		v.FollowerSig.Equal(other.FollowerSig)
 }
