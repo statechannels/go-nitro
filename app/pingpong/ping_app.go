@@ -2,6 +2,8 @@ package pingpong
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/statechannels/go-nitro/app"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -11,11 +13,20 @@ import (
 
 type PingPongApp struct {
 	*app.App
+	random   *rand.Rand
+	reqInfos map[string]RequestInfo
+}
+
+type RequestInfo struct {
+	sendAt   int64
+	callback chan int64
 }
 
 func NewPingPongApp(engine *engine.Engine, myAddr types.Address) *PingPongApp {
 	a := &PingPongApp{
-		App: app.NewApp("pingpong", myAddr),
+		App:      app.NewApp("pingpong", myAddr),
+		random:   rand.New(rand.NewSource(time.Now().UnixNano())),
+		reqInfos: map[string]RequestInfo{},
 	}
 
 	a.RegisterRequestHandler(
@@ -43,16 +54,19 @@ func (a *PingPongApp) Id() string {
 	return "pingpong"
 }
 
-func (a *PingPongApp) Ping(ch *consensus_channel.ConsensusChannel) error {
+func (a *PingPongApp) Ping(ch *consensus_channel.ConsensusChannel, out chan int64) error {
+	reqId := fmt.Sprintf("%d", a.random.Uint64())
+	ts := time.Now().UnixNano()
+	a.reqInfos[reqId] = RequestInfo{ts, out}
+
 	for _, p := range ch.FixedPart().Participants {
 		if p == a.MyAddress {
 			continue
 		}
 
-		fmt.Println("Sending ping to", p, "with data", 42)
+		fmt.Println("Sending ping to", p, "with reqId", reqId, "and timestamp", ts)
 
-		a.SendRequest(ch, p, RequestTypePing, 42)
-
+		a.SendRequest(ch, p, RequestTypePing, reqId)
 	}
 
 	return nil
@@ -63,11 +77,11 @@ func (a *PingPongApp) handlePing(
 	from types.Address,
 	data interface{},
 ) {
-	fmt.Println("Received ping from", from, "with data", data)
+	reqId := data.(string)
 
-	fmt.Println("Sending pong to", from, "with data", data.(float64)+1)
+	fmt.Println("Received ping from", from, "with reqId", reqId, "and timestamp")
 
-	a.SendRequest(ch, from, RequestTypePong, data.(float64)+1)
+	a.SendRequest(ch, from, RequestTypePong, reqId)
 }
 
 func (a *PingPongApp) handlePong(
@@ -75,5 +89,15 @@ func (a *PingPongApp) handlePong(
 	from types.Address,
 	data interface{},
 ) {
-	fmt.Println("Received pong from", from, "with data", data)
+	ts := time.Now().UnixNano()
+	reqId := data.(string)
+	reqInfos, ok := a.reqInfos[reqId]
+	if !ok {
+		fmt.Printf("ERR: Received pong with unknown id %s\n", reqId)
+		return
+	}
+	delete(a.reqInfos, reqId)
+	rtt := ts - reqInfos.sendAt
+	reqInfos.callback <- rtt
+	fmt.Println("Received pong from", from, "with reqId", reqId, "RTT", rtt, "ns")
 }

@@ -1,12 +1,14 @@
 package pingpong
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,6 +34,7 @@ func TestFundingMethod(t *testing.T) {
 
 	clientA, storeA, messageServiceA := SetupClient(alice.PrivateKey, chainA, broker, logDestination, 0)
 	clientB, storeB, messageServiceB := SetupClient(bob.PrivateKey, chainB, broker, logDestination, 0)
+	_, _, _ = storeB, messageServiceA, messageServiceB
 
 	pingPongA := NewPingPongApp(clientA.GetEngine(), alice.Address())
 	pingPongB := NewPingPongApp(clientB.GetEngine(), bob.Address())
@@ -43,13 +46,16 @@ func TestFundingMethod(t *testing.T) {
 	c, err := storeA.GetConsensusChannelById(chId)
 	require.NoError(t, err)
 
-	err = pingPongA.Ping(c)
+	done := make(chan int64, 16)
+	err = pingPongA.Ping(c, done)
 	require.NoError(t, err)
 
-	// Use sleep to wait for the message to be processed
-	time.Sleep(1 * time.Second)
-
-	_, _ = clientA, clientB
-	_, _ = storeA, storeB
-	_, _ = messageServiceA, messageServiceB
+	timeout := time.After(10 * time.Millisecond)
+	select {
+	case <-timeout:
+		t.Fatal("timeout")
+	case rtt := <-done:
+		assert.LessOrEqual(t, rtt, int64(10_000_000))
+		fmt.Printf("Pong received, rtt: %d ns\n", rtt)
+	}
 }
