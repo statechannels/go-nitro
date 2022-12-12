@@ -7,7 +7,6 @@ pragma solidity 0.8.17;
  * @dev Copy-pasted from Openzeppelin ERC20 contract, but with the inheritance from IERC20 interface removed and no return value for transferFrom.
  */
 contract BadToken {
-
     function transferFrom(
         address from,
         address to,
@@ -31,27 +30,33 @@ contract BadToken {
     uint256 private _totalSupply;
     string private _name;
     string private _symbol;
+
     function balanceOf(address account) public view virtual returns (uint256) {
         return _balances[account];
     }
+
     function transfer(address to, uint256 amount) public virtual returns (bool) {
         address owner = msg.sender;
         _transfer(owner, to, amount);
         return true;
     }
+
     function allowance(address owner, address spender) public view virtual returns (uint256) {
         return _allowances[owner][spender];
     }
+
     function approve(address spender, uint256 amount) public virtual returns (bool) {
         address owner = msg.sender;
         _approve(owner, spender, amount);
         return true;
     }
+
     function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
         address owner = msg.sender;
         _approve(owner, spender, allowance(owner, spender) + addedValue);
         return true;
     }
+
     function _transfer(
         address from,
         address to,
@@ -69,6 +74,7 @@ contract BadToken {
         emit Transfer(from, to, amount);
         _afterTokenTransfer(from, to, amount);
     }
+
     function _mint(address account, uint256 amount) internal virtual {
         require(account != address(0), 'ERC20: mint to the zero address');
         _beforeTokenTransfer(address(0), account, amount);
@@ -77,6 +83,7 @@ contract BadToken {
         emit Transfer(address(0), account, amount);
         _afterTokenTransfer(address(0), account, amount);
     }
+
     function _approve(
         address owner,
         address spender,
@@ -87,6 +94,7 @@ contract BadToken {
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
+
     function _spendAllowance(
         address owner,
         address spender,
@@ -100,15 +108,16 @@ contract BadToken {
             }
         }
     }
+
     function _beforeTokenTransfer(
         address from,
         address to,
         uint256 amount
     ) internal virtual {}
+
     function _afterTokenTransfer(
         address from,
         address to,
         uint256 amount
     ) internal virtual {}
-
 }
