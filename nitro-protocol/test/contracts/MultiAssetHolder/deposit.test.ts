@@ -4,6 +4,7 @@ import {it} from '@jest/globals';
 const {AddressZero} = ethers.constants;
 
 import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
+import BadTokenArtifact from '../../../artifacts/contracts/test/BadToken.sol/BadToken.json';
 import {getChannelId} from '../../../src/contract/channel';
 import {
   getCountingAppContractAddress,
@@ -11,7 +12,7 @@ import {
   getTestProvider,
   setupContract,
 } from '../../test-helpers';
-import {Token, TESTNitroAdjudicator} from '../../../typechain-types';
+import {Token, BadToken, TESTNitroAdjudicator} from '../../../typechain-types';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../src/transactions';
@@ -28,6 +29,12 @@ const token = setupContract(
   process.env.TEST_TOKEN_ADDRESS
 ) as unknown as Token & Contract;
 
+const badToken = setupContract(
+  provider,
+  BadTokenArtifact,
+  process.env.BAD_TOKEN_ADDRESS
+) as unknown as BadToken & Contract;
+
 const signer0 = getTestProvider().getSigner(0); // Convention matches setupContract function
 let signer0Address: string;
 const chainId = process.env.CHAIN_NETWORK_ID;
@@ -37,6 +44,7 @@ let appDefinition: string;
 
 const ETH = MAGIC_ADDRESS_INDICATING_ETH;
 const ERC20 = token.address;
+const BadERC20 = badToken.address;
 
 // Populate destinations array
 for (let i = 0; i < 3; i++) {
@@ -59,6 +67,7 @@ const description7 =
   'Reverts deposit of ETH (msg.value = amount, expectedHeld + amount < holdings)';
 const description8 =
   'Deposits ETH (msg.value = amount,  amount < holdings < amount + expectedHeld)';
+const description9 = 'Deposits a Bad token (expectedHeld = 0)';
 
 describe('deposit', () => {
   let channelNonce = getRandomNonce('deposit');
@@ -66,16 +75,17 @@ describe('deposit', () => {
     channelNonce = BigNumber.from(channelNonce).add(1).toHexString();
   });
   it.each`
-    description     | asset    | held | expectedHeld | amount | heldAfter | reasonString
-    ${description0} | ${ERC20} | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
-    ${description1} | ${ERC20} | ${1} | ${1}         | ${1}   | ${2}      | ${undefined}
-    ${description2} | ${ERC20} | ${0} | ${1}         | ${2}   | ${0}      | ${'holdings < expectedHeld'}
-    ${description3} | ${ERC20} | ${3} | ${1}         | ${1}   | ${3}      | ${'holdings already sufficient'}
-    ${description4} | ${ERC20} | ${3} | ${2}         | ${2}   | ${4}      | ${undefined}
-    ${description5} | ${ETH}   | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
-    ${description6} | ${ETH}   | ${0} | ${1}         | ${2}   | ${0}      | ${'holdings < expectedHeld'}
-    ${description7} | ${ETH}   | ${3} | ${1}         | ${1}   | ${3}      | ${'holdings already sufficient'}
-    ${description8} | ${ETH}   | ${3} | ${2}         | ${2}   | ${4}      | ${undefined}
+    description     | asset       | held | expectedHeld | amount | heldAfter | reasonString
+    ${description0} | ${ERC20}    | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
+    ${description1} | ${ERC20}    | ${1} | ${1}         | ${1}   | ${2}      | ${undefined}
+    ${description2} | ${ERC20}    | ${0} | ${1}         | ${2}   | ${0}      | ${'holdings < expectedHeld'}
+    ${description3} | ${ERC20}    | ${3} | ${1}         | ${1}   | ${3}      | ${'holdings already sufficient'}
+    ${description4} | ${ERC20}    | ${3} | ${2}         | ${2}   | ${4}      | ${undefined}
+    ${description5} | ${ETH}      | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
+    ${description6} | ${ETH}      | ${0} | ${1}         | ${2}   | ${0}      | ${'holdings < expectedHeld'}
+    ${description7} | ${ETH}      | ${3} | ${1}         | ${1}   | ${3}      | ${'holdings already sufficient'}
+    ${description8} | ${ETH}      | ${3} | ${2}         | ${2}   | ${4}      | ${undefined}
+    ${description9} | ${BadERC20} | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
   `('$description', async ({asset, held, expectedHeld, amount, reasonString, heldAfter}) => {
     held = BigNumber.from(held);
     expectedHeld = BigNumber.from(expectedHeld);
@@ -105,6 +115,23 @@ describe('deposit', () => {
       expect(allowance.sub(amount).sub(held).gte(0)).toBe(true);
     }
 
+    if (asset === BadERC20) {
+      // Check msg.sender has enough tokens
+      const balance = await badToken.balanceOf(signer0Address);
+      await expect(balance.gte(held.add(amount))).toBe(true);
+
+      // Increase allowance
+      await (
+        await badToken.increaseAllowance(testNitroAdjudicator.address, held.add(amount))
+      ).wait(); // Approve enough for setup and main test
+
+      // Check allowance updated
+      const allowance = BigNumber.from(
+        await badToken.allowance(signer0Address, testNitroAdjudicator.address)
+      );
+      expect(allowance.sub(amount).sub(held).gte(0)).toBe(true);
+    }
+
     if (held > 0) {
       // Set holdings by depositing in the 'safest' way
       const {events} = await (
@@ -119,7 +146,7 @@ describe('deposit', () => {
       }
 
       expect(await testNitroAdjudicator.holdings(asset, destination)).toEqual(held);
-      if (asset === ERC20) {
+      if (asset === ERC20 || asset == BadERC20) {
         const {data: amountTransferred} = getTransferEvent(events);
         expect(held.eq(amountTransferred)).toBe(true);
       }
@@ -146,7 +173,7 @@ describe('deposit', () => {
         destinationHoldings: heldAfter,
       });
 
-      if (asset == ERC20) {
+      if (asset == ERC20 || asset == BadERC20) {
         const amountTransferred = BigNumber.from(getTransferEvent(events).data);
         expect(heldAfter.sub(held).eq(amountTransferred)).toBe(true);
         const balanceAfter = await getBalance(asset, signer0Address);
@@ -168,7 +195,13 @@ const getTransferEvent = (events: ethers.Event[]) =>
   events.find(({topics}) => topics[0] === token.filters.Transfer(AddressZero).topics![0])!;
 
 async function getBalance(asset: string, address: string) {
-  return asset === ETH
-    ? BigNumber.from(await provider.getBalance(address))
-    : BigNumber.from(await token.balanceOf(address));
+  switch (asset) {
+    case ETH:
+      return BigNumber.from(await provider.getBalance(address));
+    case ERC20:
+      return BigNumber.from(await token.balanceOf(address));
+    case BadERC20:
+      return BigNumber.from(await badToken.balanceOf(address));
+  }
+  throw Error('unrecognized asset');
 }
