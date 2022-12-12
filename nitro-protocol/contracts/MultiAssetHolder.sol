@@ -57,10 +57,18 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             require(msg.value == amount, 'Incorrect msg.value for deposit');
         } else {
             // require successful deposit before updating holdings (protect against reentrancy)
-            require(
-                IERC20(asset).transferFrom(msg.sender, address(this), amountDeposited),
-                'Could not deposit ERC20s'
+            uint256 before = IERC20(asset).balanceOf(address(this));
+            (bool success, ) = asset.call(
+                abi.encodeWithSignature(
+                    'transferFrom(address,address,uint256)',
+                    msg.sender,
+                    address(this),
+                    amountDeposited
+                )
             );
+            require(success, 'Could not deposit ERC20s');
+            uint256 aft = IERC20(asset).balanceOf(address(this));
+            require(aft == before + amountDeposited, 'Could not deposit ERC20s');
         }
 
         uint256 nowHeld = held + amountDeposited;
