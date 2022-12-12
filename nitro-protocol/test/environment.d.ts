@@ -23,6 +23,7 @@ declare global {
       TEST_FORCE_MOVE_ADDRESS: string;
       TEST_NITRO_ADJUDICATOR_ADDRESS: string;
       TEST_TOKEN_ADDRESS: string;
+      BAD_TOKEN_ADDRESS: string;
     }
   }
 }

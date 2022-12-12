@@ -13,6 +13,7 @@ import testStrictTurnTakingArtifact from '../artifacts/contracts/test/TESTStrict
 import testConsensusArtifact from '../artifacts/contracts/test/TESTConsensus.sol/TESTConsensus.json';
 import testNitroAdjudicatorArtifact from '../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 import tokenArtifact from '../artifacts/contracts/Token.sol/Token.json';
+import badTokenArtifact from '../artifacts/contracts/test/BadToken.sol/BadToken.json';
 import trivialAppArtifact from '../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
 import consensusAppArtifact from '../artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
 import virtualPaymentAppArtifact from '../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
@@ -32,6 +33,7 @@ const [
   testConsensusFactory,
   testNitroAdjudicatorFactory,
   tokenFactory,
+  badTokenFactory,
   trivialAppFactory,
   consensusAppFactory,
   virtualPaymentAppFactory,
@@ -46,6 +48,7 @@ const [
   testConsensusArtifact,
   testNitroAdjudicatorArtifact,
   tokenArtifact,
+  badTokenArtifact,
   trivialAppArtifact,
   consensusAppArtifact,
   virtualPaymentAppArtifact,
@@ -72,6 +75,11 @@ export async function deploy(): Promise<Record<string, string>> {
   const TEST_TOKEN_ADDRESS = (
     await tokenFactory.deploy(new Wallet(TEST_ACCOUNTS[0].privateKey).address)
   ).address;
+
+  const BAD_TOKEN_ADDRESS = (
+    await badTokenFactory.deploy(new Wallet(TEST_ACCOUNTS[0].privateKey).address)
+  ).address;
+
   return {
     NITRO_ADJUDICATOR_ADDRESS,
     COUNTING_APP_ADDRESS,
@@ -86,5 +94,6 @@ export async function deploy(): Promise<Record<string, string>> {
     TEST_CONSENSUS_ADDRESS,
     TEST_NITRO_ADJUDICATOR_ADDRESS,
     TEST_TOKEN_ADDRESS,
+    BAD_TOKEN_ADDRESS,
   };
 }
