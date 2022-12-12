@@ -58,6 +58,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         } else {
             // require successful deposit before updating holdings (protect against reentrancy)
             uint256 before = IERC20(asset).balanceOf(address(this));
+            // solhint-disable-next-line avoid-low-level-calls
             (bool success, ) = asset.call(
                 abi.encodeWithSignature(
                     'transferFrom(address,address,uint256)',
