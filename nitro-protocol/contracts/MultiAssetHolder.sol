@@ -4,12 +4,15 @@ pragma experimental ABIEncoderV2;
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 import './ForceMove.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import './interfaces/IMultiAssetHolder.sol';
 
 /**
 @dev An implementation of the IMultiAssetHolder interface. The AssetHolder contract escrows ETH or tokens against state channels. It allows assets to be internally accounted for, and ultimately prepared for transfer from one channel to other channels and/or external destinations, as well as for guarantees to be reclaimed.
  */
 contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
+    using SafeERC20 for IERC20;
+
     // *******
     // Storage
     // *******
@@ -56,20 +59,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         if (asset == address(0)) {
             require(msg.value == amount, 'Incorrect msg.value for deposit');
         } else {
-            // require successful deposit before updating holdings (protect against reentrancy)
-            uint256 before = IERC20(asset).balanceOf(address(this));
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool success, ) = asset.call(
-                abi.encodeWithSignature(
-                    'transferFrom(address,address,uint256)',
-                    msg.sender,
-                    address(this),
-                    amountDeposited
-                )
-            );
-            require(success, 'Could not deposit ERC20s');
-            uint256 aft = IERC20(asset).balanceOf(address(this));
-            require(aft == before + amountDeposited, 'Could not deposit ERC20s');
+            IERC20(asset).safeTransferFrom(msg.sender, address(this), amountDeposited);
         }
 
         uint256 nowHeld = held + amountDeposited;
