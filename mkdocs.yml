@@ -32,3 +32,13 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
+extra:
+  social:
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/statechannels
+    - icon: fontawesome/brands/github
+      link: https://github.com/statechannels/go-nitro
+    - icon: fontawesome/brands/npm
+      link: https://www.npmjs.com/package/@statechannels/nitro-protocol
+    - icon: fontawesome/solid/envelope
+      link: mailto:contact@magmo.com
