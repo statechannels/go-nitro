@@ -458,7 +458,12 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
-	if !updated.V.PostFundComplete() {
+	// Alice and Bob require a complete post fund round to know that vouchers may be enforced on chain.
+	// Intermediaries do not require the complete post fund, so we allow them to finish the protocol early.
+	// If they need to recover funds, they can force V to close by challenging with the pre fund state.
+	// Alice and Bob may counter-challenge with a postfund state plus a redemption state.
+	// See ADR-0009.
+	if !updated.V.PostFundComplete() && (updated.isAlice() || updated.isBob()) {
 		return &updated, sideEffects, WaitingForCompletePostFund, nil
 	}
 
