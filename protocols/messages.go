@@ -74,6 +74,8 @@ func (m Message) ProposalsSortedForProcessing() []consensus_channel.SignedPropos
 	return proposals
 }
 
+// proposalsSortedForSummary sorts the proposals by channelId and then by turn number.
+func (m Message) proposalsSortedForSummary() []consensus_channel.SignedProposal {
 	signedProposals := make([]consensus_channel.SignedProposal, len(m.LedgerProposals))
 	copy(signedProposals, m.LedgerProposals)
 
@@ -83,7 +85,7 @@ func (m Message) ProposalsSortedForProcessing() []consensus_channel.SignedPropos
 
 		cIdCompare := bytes.Compare(cId1.Bytes(), cId2.Bytes())
 
-		if sameChannel := cIdCompare == 0; sameChannel {
+		if cIdCompare == 0 {
 			return turnNum1 < turnNum2
 		} else {
 			return cIdCompare < 0
@@ -227,7 +229,7 @@ func (m Message) Summarize() MessageSummary {
 	}
 
 	s.ProposalSummaries = make([]ProposalSummary, len(m.LedgerProposals))
-	for i, p := range m.SortedProposals() {
+	for i, p := range m.proposalsSortedForSummary() {
 		s.ProposalSummaries[i] = ProposalSummary{
 			ObjectiveId:  string(GetProposalObjectiveId(p.Proposal)),
 			LedgerId:     p.ChannelID().String(),
