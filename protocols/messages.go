@@ -50,8 +50,30 @@ type Message struct {
 	RejectedObjectives []ObjectiveId
 }
 
-// SortedProposals sorts the proposals by channelId and then by turn number.
-func (m Message) SortedProposals() []consensus_channel.SignedProposal {
+// ProposalsSortedForProcessing sorts proposals for a given channel by turn number.
+// It does not swap proposals that target different channels.
+func (m Message) ProposalsSortedForProcessing() []consensus_channel.SignedProposal {
+	proposals := make([]consensus_channel.SignedProposal, len(m.LedgerProposals))
+	copy(proposals, m.LedgerProposals)
+
+	sort.Slice(proposals, func(i, j int) bool {
+		cId1, turnNum1 := proposals[i].ChannelID(), proposals[i].TurnNum
+		cId2, turnNum2 := proposals[j].ChannelID(), proposals[j].TurnNum
+
+		cIdCompare := bytes.Compare(cId1.Bytes(), cId2.Bytes())
+
+		if cIdCompare == 0 {
+			// if the channel ids are the same, sort by turn number
+			return turnNum1 < turnNum2
+		} else {
+			// if the channel ids are different, do not sort
+			return i < j
+		}
+	})
+
+	return proposals
+}
+
 	signedProposals := make([]consensus_channel.SignedProposal, len(m.LedgerProposals))
 	copy(signedProposals, m.LedgerProposals)
 
