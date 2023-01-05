@@ -885,7 +885,6 @@ func (v Vars) AsState(fp state.FixedPart) state.State {
 		Outcome: outcome,
 
 		// Constant
-		ChainId:           fp.ChainId,
 		Participants:      fp.Participants,
 		ChannelNonce:      fp.ChannelNonce,
 		ChallengeDuration: fp.ChallengeDuration,

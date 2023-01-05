@@ -23,7 +23,6 @@ func TestMarshalJSON(t *testing.T) {
 	alice, p1, bob := testactors.Alice, testactors.Irene, testactors.Bob
 
 	vPreFund := state.State{
-		ChainId:           big.NewInt(TEST_CHAIN_ID),
 		Participants:      []types.Address{alice.Address(), p1.Address(), bob.Address()}, // A single hop virtual channel
 		ChannelNonce:      0,
 		AppDefinition:     types.Address{},

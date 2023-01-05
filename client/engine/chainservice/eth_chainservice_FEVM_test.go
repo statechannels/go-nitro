@@ -33,11 +33,6 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	t.Skip()
 	// This is funded key on wallaby based on the test test ... fake mnemoic
 	pkString := "6b65fdf763faebfbcf9a43d5ab3dd2fb639a3d69c10df99eddc0a6eb30a99ba7"
-	// Due to https://github.com/filecoin-project/ref-fvm/issues/1182
-	// the on-chain chainid() function returns the incorrect chain id (31415926)
-	// To work around this we use ths incorrect chain id in the state
-	// So the on-chain check passes
-	workaroundChainId := big.NewInt(31415926)
 	pk, err := crypto.HexToECDSA(pkString)
 	if err != nil {
 		t.Fatal(err)
@@ -103,7 +98,6 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	}
 
 	var concludeState = state.State{
-		ChainId: workaroundChainId,
 		Participants: []types.Address{
 			Alice.Address(),
 			Bob.Address(),

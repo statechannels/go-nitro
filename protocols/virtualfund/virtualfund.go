@@ -157,7 +157,6 @@ func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Add
 
 	objective, err := constructFromState(preApprove,
 		state.State{
-			ChainId:           chainId,
 			Participants:      participants,
 			ChannelNonce:      request.Nonce,
 			ChallengeDuration: request.ChallengeDuration,
@@ -738,7 +737,7 @@ type ObjectiveRequest struct {
 
 // Id returns the objective id for the request.
 func (r ObjectiveRequest) Id(myAddress types.Address, chainId *big.Int) protocols.ObjectiveId {
-	idStr := r.channelID(myAddress, chainId).String()
+	idStr := r.channelID(myAddress).String()
 	return protocols.ObjectiveId(ObjectivePrefix + idStr)
 }
 
@@ -749,8 +748,8 @@ type ObjectiveResponse struct {
 }
 
 // Response computes and returns the appropriate response from the request.
-func (r ObjectiveRequest) Response(myAddress types.Address, chainId *big.Int) ObjectiveResponse {
-	channelId := r.channelID(myAddress, chainId)
+func (r ObjectiveRequest) Response(myAddress types.Address) ObjectiveResponse {
+	channelId := r.channelID(myAddress)
 
 	return ObjectiveResponse{
 		Id:        protocols.ObjectiveId(ObjectivePrefix + channelId.String()),
@@ -758,12 +757,12 @@ func (r ObjectiveRequest) Response(myAddress types.Address, chainId *big.Int) Ob
 	}
 }
 
-func (r ObjectiveRequest) channelID(myAddress types.Address, chainId *big.Int) types.Destination {
+func (r ObjectiveRequest) channelID(myAddress types.Address) types.Destination {
 	participants := []types.Address{myAddress}
 	participants = append(participants, r.Intermediaries...)
 	participants = append(participants, r.CounterParty)
 
-	fixedPart := state.FixedPart{ChainId: chainId,
+	fixedPart := state.FixedPart{
 		Participants:      participants,
 		ChannelNonce:      r.Nonce,
 		ChallengeDuration: r.ChallengeDuration}

@@ -92,7 +92,6 @@ func TestChallenge(t *testing.T) {
 		sim.Commit()
 
 		var s = state.State{
-			ChainId: big.NewInt(1337),
 			Participants: []types.Address{
 				Actors.Alice.Address,
 				Actors.Bob.Address,

@@ -34,7 +34,6 @@ func CloneSignature(s Signature) Signature {
 type (
 	// State holds all of the data describing the state of a channel
 	State struct {
-		ChainId           *types.Uint256
 		Participants      []types.Address
 		ChannelNonce      uint64
 		AppDefinition     types.Address
@@ -47,7 +46,6 @@ type (
 
 	// FixedPart contains the subset of State data which does not change during a state update.
 	FixedPart struct {
-		ChainId           *types.Uint256
 		Participants      []types.Address
 		ChannelNonce      uint64
 		AppDefinition     types.Address
@@ -65,7 +63,7 @@ type (
 
 // FixedPart returns the FixedPart of the State
 func (s State) FixedPart() FixedPart {
-	return FixedPart{s.ChainId, s.Participants, s.ChannelNonce, s.AppDefinition, s.ChallengeDuration}
+	return FixedPart{s.Participants, s.ChannelNonce, s.AppDefinition, s.ChallengeDuration}
 }
 
 // VariablePart returns the VariablePart of the State
@@ -85,12 +83,11 @@ func (s State) ChannelId() types.Destination {
 func (fp FixedPart) ChannelId() types.Destination {
 
 	encodedChannelPart, err := ethAbi.Arguments{
-		{Type: abi.Uint256},
 		{Type: abi.AddressArray},
 		{Type: abi.Uint256},
 		{Type: abi.Address},
 		{Type: abi.Uint256},
-	}.Pack(fp.ChainId, fp.Participants, new(big.Int).SetUint64(fp.ChannelNonce), fp.AppDefinition, new(big.Int).SetUint64(uint64(fp.ChallengeDuration)))
+	}.Pack(fp.Participants, new(big.Int).SetUint64(fp.ChannelNonce), fp.AppDefinition, new(big.Int).SetUint64(uint64(fp.ChallengeDuration)))
 
 	if err != nil {
 		panic(err)
@@ -165,8 +162,7 @@ func equalParticipants(p []types.Address, q []types.Address) bool {
 
 // Equal returns true if the given State is deeply equal to the receiever.
 func (s State) Equal(r State) bool {
-	return types.Equal(s.ChainId, r.ChainId) &&
-		equalParticipants(s.Participants, r.Participants) &&
+	return equalParticipants(s.Participants, r.Participants) &&
 		s.ChannelNonce == r.ChannelNonce &&
 		bytes.Equal(s.AppDefinition.Bytes(), r.AppDefinition.Bytes()) &&
 		s.ChallengeDuration == r.ChallengeDuration &&
@@ -179,7 +175,6 @@ func (s State) Equal(r State) bool {
 // Clone returns a deep copy of the receiver.
 func (f FixedPart) Clone() FixedPart {
 	clone := FixedPart{}
-	clone.ChainId = new(big.Int).Set(f.ChainId)
 	clone.Participants = append(clone.Participants, f.Participants...)
 	clone.ChannelNonce = f.ChannelNonce
 	clone.AppDefinition = f.AppDefinition
@@ -189,10 +184,6 @@ func (f FixedPart) Clone() FixedPart {
 
 // Validate checks whether the receiver is malformed and returns an error if it is.
 func (fp FixedPart) Validate() error {
-	if fp.ChainId == nil {
-		return errors.New(`cannot compute ChannelId with nil ChainId`)
-	}
-
 	if fp.ChannelId().IsExternal() {
 		return errors.New("channelId is an external destination") // This is extremely unlikely
 	}
@@ -210,7 +201,6 @@ func (s State) Clone() State {
 	clone := State{}
 	// Fixed part
 	cloneFixedPart := s.FixedPart().Clone()
-	clone.ChainId = cloneFixedPart.ChainId
 	clone.Participants = cloneFixedPart.Participants
 	clone.ChannelNonce = cloneFixedPart.ChannelNonce
 	clone.AppDefinition = cloneFixedPart.AppDefinition
@@ -230,7 +220,6 @@ func (s State) Clone() State {
 func StateFromFixedAndVariablePart(f FixedPart, v VariablePart) State {
 
 	return State{
-		ChainId:           f.ChainId,
 		Participants:      f.Participants,
 		ChannelNonce:      f.ChannelNonce,
 		AppDefinition:     f.AppDefinition,

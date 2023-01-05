@@ -128,7 +128,6 @@ library NitroUtils {
     {
         channelId = keccak256(
             abi.encode(
-                fixedPart.chainId,
                 fixedPart.participants,
                 fixedPart.channelNonce,
                 fixedPart.appDefinition,

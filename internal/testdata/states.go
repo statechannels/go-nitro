@@ -32,7 +32,6 @@ var Outcomes outcomes = outcomes{
 	CreateLongOutcome: createLongOutcome,
 }
 
-var chainId, _ = big.NewInt(0).SetString("1337", 10)
 var someAppDefinition = common.HexToAddress(`0x5e29E5Ab8EF33F050c7cc10B5a0456D975C5F88d`)
 
 var testOutcome = createLongOutcome(
@@ -41,7 +40,6 @@ var testOutcome = createLongOutcome(
 )
 
 var testVirtualState = state.State{
-	ChainId: chainId,
 	Participants: []types.Address{
 		testactors.Alice.Address(),
 		testactors.Irene.Address(),
@@ -60,7 +58,6 @@ var testVirtualState = state.State{
 }
 
 var testState = state.State{
-	ChainId: chainId,
 	Participants: []types.Address{
 		testactors.Alice.Address(),
 		testactors.Bob.Address(),

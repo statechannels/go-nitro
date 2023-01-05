@@ -114,7 +114,7 @@ func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, Cou
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 
-	return objectiveRequest.Response(*c.Address, c.chainId)
+	return objectiveRequest.Response(*c.Address)
 }
 
 // CloseVirtualChannel attempts to close and defund the given virtually funded channel.
