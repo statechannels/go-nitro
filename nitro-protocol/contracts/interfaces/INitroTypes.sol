@@ -12,7 +12,6 @@ interface INitroTypes {
     }
 
     struct FixedPart {
-        uint256 chainId;
         address[] participants;
         uint64 channelNonce;
         address appDefinition;
