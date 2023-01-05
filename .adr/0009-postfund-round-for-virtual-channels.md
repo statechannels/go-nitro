@@ -10,7 +10,7 @@ This work is based on [RFC 18](https://www.notion.so/statechannels/RFC-18-Clarif
 
 Although (at the time of writing) the `virtualfund` protocol is concerned only with a `V` which is a unidirectional (simplex) payment channel, this ADR is written to still apply when that assumption is lifted.
 
-The gas expenditure during on chain operations is not taken into account in this documenet.
+The gas expenditure during on chain operations is not taken into account in this document.
 
 ### What is the virtual fund protocol for?
 
