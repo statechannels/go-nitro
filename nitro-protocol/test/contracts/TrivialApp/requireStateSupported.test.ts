@@ -38,7 +38,6 @@ function getRandomRecoveredVariablePart(): RecoveredVariablePart {
 
 function getMockedFixedPart(): FixedPart {
   const fixedPart: FixedPart = {
-    chainId: process.env.CHAIN_NETWORK_ID,
     participants: [Wallet.createRandom().address, Wallet.createRandom().address],
     channelNonce: '0x0',
     appDefinition: trivialApp.address,
@@ -72,7 +71,6 @@ describe('requireStateSupported', () => {
   it('Transitions between States with mocked-up data are valid', async () => {
     const fromState: State = {
       participants: [Wallet.createRandom().address, Wallet.createRandom().address],
-      chainId: process.env.CHAIN_NETWORK_ID,
       channelNonce: getRandomNonce('trivialApp'),
       outcome: [],
       turnNum: 1,

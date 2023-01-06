@@ -21,7 +21,6 @@ describe('null app', () => {
   it('should revert when requireStateSupported is called', async () => {
     const fromState: State = {
       participants: [Wallet.createRandom().address, Wallet.createRandom().address],
-      chainId: process.env.CHAIN_NETWORK_ID,
       channelNonce: getRandomNonce('nullApp'),
       outcome: [],
       turnNum: 1,

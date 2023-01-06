@@ -12,7 +12,6 @@ export type State = FixedPart & VariablePart;
  * The part of a State which does not ordinarily change during state channel updates
  */
 export interface FixedPart {
-  chainId: Uint256;
   participants: Address[];
   channelNonce: Uint64;
   appDefinition: Address;
@@ -57,7 +56,7 @@ export function separateProofAndCandidate<T = SignedVariablePart | RecoveredVari
   candidate: T;
 } {
   const proof = svps.slice(0, -1);
-  const candidate = svps.at(-1);
+  const candidate = svps[svps.length - 1];
   if (candidate == undefined) {
     throw Error('insufficient length array');
   }
@@ -85,8 +84,8 @@ export function getVariablePart(state: State): VariablePart {
  * @returns the FixedPart, which does not ordinarily change during state channel updates
  */
 export function getFixedPart(state: State): FixedPart {
-  const {appDefinition, challengeDuration, chainId, participants, channelNonce} = state;
-  return {chainId, participants, channelNonce, appDefinition, challengeDuration};
+  const {appDefinition, challengeDuration, participants, channelNonce} = state;
+  return {participants, channelNonce, appDefinition, challengeDuration};
 }
 
 /**

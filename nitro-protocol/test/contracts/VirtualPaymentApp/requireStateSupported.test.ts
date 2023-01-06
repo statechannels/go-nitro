@@ -25,7 +25,6 @@ const {HashZero} = ethers.constants;
 
 let virtualPaymentApp: Contract;
 const provider = getTestProvider();
-const chainId = process.env.CHAIN_NETWORK_ID;
 
 const nParticipants = 3;
 const {wallets, participants} = generateParticipants(nParticipants);
@@ -36,7 +35,6 @@ const MAGIC_ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
 const baseState: State = {
   turnNum: 0,
   isFinal: false,
-  chainId,
   channelNonce: '0x8',
   participants,
   challengeDuration,

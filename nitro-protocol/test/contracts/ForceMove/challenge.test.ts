@@ -51,7 +51,6 @@ import {transitionType} from './types';
 
 let ForceMove: Contract;
 const provider = getTestProvider();
-const chainId = process.env.CHAIN_NETWORK_ID;
 
 const participants = ['', '', ''];
 const wallets = new Array(3);
@@ -84,7 +83,6 @@ async function createTwoPartySignedCountingAppState(
       appDefinition: getCountingAppContractAddress(),
       appData: defaultAbiCoder.encode(['uint256'], [appData]),
       outcome,
-      chainId: process.env.CHAIN_NETWORK_ID,
       channelNonce: '0x1',
       participants: [wallets[0].address, wallets[1].address],
       challengeDuration: 0xfff,
@@ -155,14 +153,13 @@ describe('challenge', () => {
     ${reverts6}  | ${empty}                     | ${oneState}    | ${'correct'}           | ${INVALID_NUMBER_OF_PROOF_STATES}
     ${reverts7}  | ${empty}                     | ${fourStates}  | ${'correct'}           | ${INVALID_NUMBER_OF_PROOF_STATES}
   `(
-    '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
+    '$description', // For the purposes of this test, participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, stateData, challengeSignatureType, reasonString}) => {
       const {appDatas, whoSignedWhat}: transitionType = stateData;
 
       const states: State[] = appDatas.map((data, idx) => ({
         turnNum: largestTurnNum - appDatas.length + 1 + idx,
         isFinal: idx > appDatas.length - isFinalCount,
-        chainId,
         participants,
         channelNonce,
         challengeDuration,
@@ -227,13 +224,10 @@ describe('challenge', () => {
         // Check this information is enough to respond
         expect(eventChannelId).toEqual(channelId);
         expect(eventTurnNumRecord).toEqual(largestTurnNum);
-        expect(
-          ethers.BigNumber.from(eventFixedPart[0]).eq(ethers.BigNumber.from(fixedPart.chainId))
-        ).toBe(true);
-        expect(eventFixedPart[1]).toEqual(fixedPart.participants);
-        expect((eventFixedPart[2] as BigNumber).toHexString()).toEqual(fixedPart.channelNonce);
-        expect(eventFixedPart[3]).toEqual(fixedPart.appDefinition);
-        expect(eventFixedPart[4]).toEqual(fixedPart.challengeDuration);
+        expect(eventFixedPart[0]).toEqual(fixedPart.participants);
+        expect((eventFixedPart[1] as BigNumber).toHexString()).toEqual(fixedPart.channelNonce);
+        expect(eventFixedPart[2]).toEqual(fixedPart.appDefinition);
+        expect(eventFixedPart[3]).toEqual(fixedPart.challengeDuration);
 
         expect(eventIsFinal).toEqual(isFinalCount > 0);
 
@@ -268,7 +262,6 @@ describe('challenge', () => {
 
 describe('challenge with transaction generator', () => {
   const twoPartyFixedPart = {
-    chainId: process.env.CHAIN_NETWORK_ID,
     channelNonce: '0x1',
     participants: [wallets[0].address, wallets[1].address],
     appDefinition,

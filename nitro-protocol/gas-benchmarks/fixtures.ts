@@ -55,7 +55,6 @@ export class TestChannel {
     this.wallets = wallets;
     this.appDefinition = appDefinition ?? consensusAppAddress;
     this.fixedPart = {
-      chainId,
       channelNonce,
       participants: wallets.map(w => w.address),
       appDefinition: this.appDefinition,

@@ -18,11 +18,11 @@ export function isExternalDestination(bytes32: Bytes32): boolean {
  * @returns a 32 byte hex string representing the id
  */
 export function getChannelId(fixedPart: FixedPart): Bytes32 {
-  const {chainId, participants, channelNonce, appDefinition, challengeDuration} = fixedPart;
+  const {participants, channelNonce, appDefinition, challengeDuration} = fixedPart;
   const channelId = utils.keccak256(
     utils.defaultAbiCoder.encode(
-      ['uint256', 'address[]', 'uint256', 'address', 'uint48'],
-      [chainId, participants, channelNonce, appDefinition, challengeDuration]
+      ['address[]', 'uint256', 'address', 'uint48'],
+      [participants, channelNonce, appDefinition, challengeDuration]
     )
   );
   if (isExternalDestination(channelId))

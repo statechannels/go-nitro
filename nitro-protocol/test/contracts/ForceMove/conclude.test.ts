@@ -33,7 +33,6 @@ import {bindSignatures, signStates} from '../../../src';
 
 let ForceMove: Contract;
 const provider = getTestProvider();
-const chainId = process.env.CHAIN_NETWORK_ID;
 
 const nParticipants = 3;
 const {wallets, participants} = generateParticipants(nParticipants);
@@ -98,7 +97,7 @@ describe('conclude', () => {
     ${reverts4} | ${HashZero}         | ${false} | ${turnNumRecord - 1}             | ${oneState}    | ${NONFINAL_STATE}
     ${reverts5} | ${HashZero}         | ${true}  | ${turnNumRecord - nParticipants} | ${threeStates} | ${MUST_SUBMIT_EXACTLY_1_STATE}
   `(
-    '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
+    '$description', // For the purposes of this test, participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, isFinal, largestTurnNum, support, reasonString}) => {
       const {appData, whoSignedWhat} = support;
       const numStates = appData.length;
@@ -107,7 +106,6 @@ describe('conclude', () => {
       for (let i = 1; i <= numStates; i++) {
         states.push({
           isFinal,
-          chainId,
           participants,
           channelNonce,
           outcome,
@@ -119,7 +117,6 @@ describe('conclude', () => {
       }
 
       const channelId = getChannelId({
-        chainId,
         participants,
         channelNonce,
         appDefinition,
