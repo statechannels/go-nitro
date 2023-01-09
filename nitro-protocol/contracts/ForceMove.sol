@@ -116,30 +116,26 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
-     * @dev Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
+     * @notice Finalizes a channel according to the given candidate. External wrapper for _conclude.
+     * @dev Finalizes a channel according to the given candidate. External wrapper for _conclude.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param proof An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update. The proof is a validation for the supplied candidate.
      * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to. The candidate state is supported by proof states.
      */
     function conclude(
         FixedPart memory fixedPart,
-        SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate
-    ) external virtual override {
-        _conclude(fixedPart, proof, candidate);
+    ) external virtual  {
+        _conclude(fixedPart, candidate);
     }
 
     /**
-     * @notice Finalizes a channel by providing a finalization proof. Internal method.
-     * @dev Finalizes a channel by providing a finalization proof. Internal method.
+     * @notice Finalizes a channel according to the given candidate. Internal method.
+     * @dev Finalizes a channel according to the given candidate. Internal method.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param proof An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update. The proof is a validation for the supplied candidate.
      * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to. The candidate state is supported by proof states.
      */
     function _conclude(
         FixedPart memory fixedPart,
-        SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate
     ) internal returns (bytes32 channelId) {
         _requireCorrectChainId(fixedPart.chainId);
@@ -147,7 +143,6 @@ contract ForceMove is IForceMove, StatusManager {
 
         // checks
         _requireChannelNotFinalized(channelId);
-        require(proof.length == 0, 'Must submit exactly 1 state');
         require(candidate.variablePart.isFinal, 'State must be final');
         RecoveredVariablePart memory recoveredVariablePart = recoverVariablePart(
             fixedPart,
