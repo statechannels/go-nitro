@@ -111,7 +111,6 @@ func TestSortedProposals(t *testing.T) {
 		Input       []consensus_channel.SignedProposal
 		Expectation []consensus_channel.SignedProposal
 	}
-
 	testCases := []TestCase{
 		{
 			Input: []consensus_channel.SignedProposal{
@@ -121,6 +120,20 @@ func TestSortedProposals(t *testing.T) {
 			Expectation: []consensus_channel.SignedProposal{
 				addProposal(types.Destination{'a'}, 0),
 				addProposal(types.Destination{'a'}, 1),
+			},
+		},
+		{
+			Input: []consensus_channel.SignedProposal{
+				addProposal(types.Destination{'b'}, 1),
+				addProposal(types.Destination{'b'}, 0),
+				addProposal(types.Destination{'a'}, 1),
+				addProposal(types.Destination{'a'}, 0),
+			},
+			Expectation: []consensus_channel.SignedProposal{
+				addProposal(types.Destination{'a'}, 0),
+				addProposal(types.Destination{'a'}, 1),
+				addProposal(types.Destination{'b'}, 0),
+				addProposal(types.Destination{'b'}, 1),
 			},
 		},
 	}
