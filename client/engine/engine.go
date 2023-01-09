@@ -89,9 +89,9 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.store = store
 
 	e.fromLedger = make(chan consensus_channel.Proposal, 100)
-	// bind to inbound chans
-	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest)
-	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
+	const apiBufferSize = 1
+	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest, apiBufferSize)
+	e.PaymentRequestsFromAPI = make(chan PaymentRequest, apiBufferSize)
 
 	e.fromChain = chain.EventFeed()
 	e.fromMsg = msg.Out()
