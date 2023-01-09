@@ -107,19 +107,32 @@ func TestMessage(t *testing.T) {
 }
 
 func TestSortedProposals(t *testing.T) {
-	msg := Message{
-		To: types.Address{'a'},
-		LedgerProposals: []consensus_channel.SignedProposal{
-			addProposal(types.Destination{'a'}, 1),
-			addProposal(types.Destination{'a'}, 0),
+	type TestCase struct {
+		Input       []consensus_channel.SignedProposal
+		Expectation []consensus_channel.SignedProposal
+	}
+
+	testCases := []TestCase{
+		{
+			Input: []consensus_channel.SignedProposal{
+				addProposal(types.Destination{'a'}, 1),
+				addProposal(types.Destination{'a'}, 0),
+			},
+			Expectation: []consensus_channel.SignedProposal{
+				addProposal(types.Destination{'a'}, 0),
+				addProposal(types.Destination{'a'}, 1),
+			},
 		},
 	}
-	got := msg.SortedProposals()
-	want := []consensus_channel.SignedProposal{
-		addProposal(types.Destination{'a'}, 0),
-		addProposal(types.Destination{'a'}, 1),
-	}
-	if diff := cmp.Diff(got, want, cmpopts.IgnoreUnexported(consensus_channel.Guarantee{}, big.Int{})); diff != "" {
-		t.Errorf("SortedProposals() mismatch (-want +got):\n%s", diff)
+
+	for _, testCase := range testCases {
+		msg := Message{
+			To:              types.Address{'a'},
+			LedgerProposals: testCase.Input,
+		}
+		got := msg.SortedProposals()
+		if diff := cmp.Diff(got, testCase.Expectation, cmpopts.IgnoreUnexported(consensus_channel.Guarantee{}, big.Int{})); diff != "" {
+			t.Errorf("SortedProposals() mismatch (-want +got):\n%s", diff)
+		}
 	}
 }
