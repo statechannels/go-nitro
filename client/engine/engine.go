@@ -89,7 +89,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 	e.store = store
 
 	e.fromLedger = make(chan consensus_channel.Proposal, 100)
-	const apiBufferSize = 1
+	const apiBufferSize = 100
 	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest, apiBufferSize)
 	e.PaymentRequestsFromAPI = make(chan PaymentRequest, apiBufferSize)
 
