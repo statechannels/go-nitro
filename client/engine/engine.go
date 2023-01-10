@@ -252,7 +252,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	}
 
-	for _, entry := range message.SortedProposals() {
+	for _, entry := range message.LedgerProposals {
 		id := getProposalObjectiveId(entry.Proposal)
 		o, err := e.store.GetObjectiveById(id)
 		if err != nil {
