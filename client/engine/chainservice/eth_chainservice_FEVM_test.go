@@ -34,8 +34,12 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	// This is funded key on wallaby based on the
 	// test test test test test test test test test test test junk
 	// mnemoic
-	pkString := "6b65fdf763faebfbcf9a43d5ab3dd2fb639a3d69c10df99eddc0a6eb30a99ba7" // corresponding address is f1qid3qslm4jax2jpohkdwomtidgd3x7xa7qvahea
+	pkString := "6b65fdf763faebfbcf9a43d5ab3dd2fb639a3d69c10df99eddc0a6eb30a99ba7"
+	// corresponding f1 address is f1qid3qslm4jax2jpohkdwomtidgd3x7xa7qvahea
+	// corresponding ETH address is 0xD41298190D223F90C9475aA98852D764eD53550D
+	// corresponding f4 address (delegated) is t410f2qjjqginei7zbskhlkuyquwxmtwvgvinuuswnpq. This one needs to be funded!
 	pk, err := crypto.HexToECDSA(pkString)
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +63,8 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	// This is the deployed contract on wallaby
 	// If wallaby gets reset this will need to be redeployed by running:
 	// WALLABY_DEPLOYER_PK="<FUNDED PK>" npx hardhat deploy --network wallaby --deploy-scripts ./hardhat-deploy-fvm --reset
-	naAddress := common.HexToAddress("0xab5c7Ff206Ed23180DbF9c6F3b98Ec984D0b0aB8")
+	// NOTE the FUNDED PK should correspond to  hardhat account 0 (see nitro-protocol/accounts.json), which you need to fund using the faucet.
+	naAddress := common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3")
 	caAddress := common.Address{}  // TODO use proper address
 	vpaAddress := common.Address{} // TODO use proper address
 
