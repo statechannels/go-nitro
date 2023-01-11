@@ -764,7 +764,7 @@ func (r ObjectiveRequest) Id(myAddress types.Address, chainId *big.Int) protocol
 
 // SignalObjectiveStarted is used by the engine to signal the objective has been started.
 func (r ObjectiveRequest) SignalObjectiveStarted() {
-	r.objectiveStarted <- struct{}{}
+	close(r.objectiveStarted)
 }
 
 // WaitForObjectiveToStart blocks until the objective starts

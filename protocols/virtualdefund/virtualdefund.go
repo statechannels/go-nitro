@@ -746,7 +746,7 @@ func validateFinalOutcome(vFixed state.FixedPart, initialOutcome outcome.SingleA
 
 // SignalObjectiveStarted is used by the engine to signal the objective has been started.
 func (r ObjectiveRequest) SignalObjectiveStarted() {
-	r.objectiveStarted <- struct{}{}
+	close(r.objectiveStarted)
 }
 
 // WaitForObjectiveToStart blocks until the objective starts

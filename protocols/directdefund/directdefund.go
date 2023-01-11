@@ -347,7 +347,7 @@ func NewObjectiveRequest(channelId types.Destination) ObjectiveRequest {
 
 // SignalObjectiveStarted is used by the engine to signal the objective has been started.
 func (r ObjectiveRequest) SignalObjectiveStarted() {
-	r.objectiveStarted <- struct{}{}
+	close(r.objectiveStarted)
 }
 
 // WaitForObjectiveToStart blocks until the objective starts
