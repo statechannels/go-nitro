@@ -767,9 +767,9 @@ func (r ObjectiveRequest) SignalObjectiveStarted() {
 	r.objectiveStarted <- struct{}{}
 }
 
-// ObjectiveStarted returns a channel used to signal when the objective is started
-func (r ObjectiveRequest) ObjectiveStarted() <-chan struct{} {
-	return r.objectiveStarted
+// WaitForObjectiveToStart blocks until the objective starts
+func (r ObjectiveRequest) WaitForObjectiveToStart() {
+	<-r.objectiveStarted
 }
 
 // ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.

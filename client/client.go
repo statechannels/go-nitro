@@ -113,7 +113,7 @@ func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, Cou
 
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
-	<-objectiveRequest.ObjectiveStarted()
+	objectiveRequest.WaitForObjectiveToStart()
 	return objectiveRequest.Response(*c.Address, c.chainId)
 }
 
@@ -124,7 +124,7 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.Obje
 
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
-	<-objectiveRequest.ObjectiveStarted()
+	objectiveRequest.WaitForObjectiveToStart()
 	return objectiveRequest.Id(*c.Address, c.chainId)
 
 }
@@ -144,7 +144,7 @@ func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDurati
 
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
-	<-objectiveRequest.ObjectiveStarted()
+	objectiveRequest.WaitForObjectiveToStart()
 	return objectiveRequest.Response(*c.Address, c.chainId)
 
 }
@@ -156,7 +156,7 @@ func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.Objec
 
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
-	<-objectiveRequest.ObjectiveStarted()
+	objectiveRequest.WaitForObjectiveToStart()
 	return objectiveRequest.Id(*c.Address, c.chainId)
 
 }
