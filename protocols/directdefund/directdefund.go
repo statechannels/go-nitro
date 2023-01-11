@@ -333,7 +333,26 @@ func (o *Objective) clone() Objective {
 
 // ObjectiveRequest represents a request to create a new direct defund objective.
 type ObjectiveRequest struct {
-	ChannelId types.Destination
+	ChannelId        types.Destination
+	objectiveStarted chan struct{}
+}
+
+// NewObjectiveRequest creates a new ObjectiveRequest.
+func NewObjectiveRequest(channelId types.Destination) ObjectiveRequest {
+	return ObjectiveRequest{
+		ChannelId:        channelId,
+		objectiveStarted: make(chan struct{}),
+	}
+}
+
+// SignalObjectiveStarted is used by the engine to signal the objective has been started.
+func (r ObjectiveRequest) SignalObjectiveStarted() {
+	r.objectiveStarted <- struct{}{}
+}
+
+// ObjectiveStarted returns a channel used to signal when the objective is started
+func (r ObjectiveRequest) ObjectiveStarted() <-chan struct{} {
+	return r.objectiveStarted
 }
 
 // Id returns the objective id for the request.

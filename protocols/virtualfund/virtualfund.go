@@ -734,12 +734,42 @@ type ObjectiveRequest struct {
 	Outcome           outcome.Exit
 	Nonce             uint64
 	AppDefinition     types.Address
+	objectiveStarted  chan struct{}
+}
+
+// NewObjectiveRequest creates a new ObjectiveRequest.
+func NewObjectiveRequest(intermediaries []types.Address,
+	counterparty types.Address,
+	challengeDuration uint32,
+	outcome outcome.Exit,
+	nonce uint64,
+	appDefinition types.Address,
+) ObjectiveRequest {
+	return ObjectiveRequest{
+		Intermediaries:    intermediaries,
+		CounterParty:      counterparty,
+		ChallengeDuration: challengeDuration,
+		Outcome:           outcome,
+		Nonce:             nonce,
+		AppDefinition:     appDefinition,
+		objectiveStarted:  make(chan struct{}),
+	}
 }
 
 // Id returns the objective id for the request.
 func (r ObjectiveRequest) Id(myAddress types.Address, chainId *big.Int) protocols.ObjectiveId {
 	idStr := r.channelID(myAddress, chainId).String()
 	return protocols.ObjectiveId(ObjectivePrefix + idStr)
+}
+
+// SignalObjectiveStarted is used by the engine to signal the objective has been started.
+func (r ObjectiveRequest) SignalObjectiveStarted() {
+	r.objectiveStarted <- struct{}{}
+}
+
+// ObjectiveStarted returns a channel used to signal when the objective is started
+func (r ObjectiveRequest) ObjectiveStarted() <-chan struct{} {
+	return r.objectiveStarted
 }
 
 // ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.

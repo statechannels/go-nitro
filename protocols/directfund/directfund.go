@@ -451,6 +451,35 @@ type ObjectiveRequest struct {
 	AppDefinition     types.Address
 	AppData           types.Bytes
 	Nonce             uint64
+	objectiveStarted  chan struct{}
+}
+
+// NewObjectiveRequest creates a new ObjectiveRequest.
+func NewObjectiveRequest(
+	counterparty types.Address,
+	challengeDuration uint32,
+	outcome outcome.Exit,
+	nonce uint64,
+	appDefinition types.Address,
+) ObjectiveRequest {
+	return ObjectiveRequest{
+		CounterParty:      counterparty,
+		ChallengeDuration: challengeDuration,
+		Outcome:           outcome,
+		Nonce:             nonce,
+		AppDefinition:     appDefinition,
+		objectiveStarted:  make(chan struct{}),
+	}
+}
+
+// SignalObjectiveStarted is used by the engine to signal the objective has been started.
+func (r ObjectiveRequest) SignalObjectiveStarted() {
+	r.objectiveStarted <- struct{}{}
+}
+
+// ObjectiveStarted returns a channel used to signal when the objective is started
+func (r ObjectiveRequest) ObjectiveStarted() <-chan struct{} {
+	return r.objectiveStarted
 }
 
 // Id returns the objective id for the request.

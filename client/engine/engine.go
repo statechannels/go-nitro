@@ -365,7 +365,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 	objectiveId := or.Id(myAddress, chainId)
 	e.logger.Printf("handling new objective request for %s", objectiveId)
 	e.metrics.RecordObjectiveStarted(objectiveId)
-
+	defer or.SignalObjectiveStarted()
 	switch request := or.(type) {
 
 	case virtualfund.ObjectiveRequest:

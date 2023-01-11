@@ -197,7 +197,7 @@ func ConstructObjectiveFromPayload(
 			return Objective{}, err
 		}
 		return NewObjective(
-			ObjectiveRequest{cId},
+			ObjectiveRequest{cId, make(chan struct{})},
 			preapprove,
 			myAddress,
 			latestVoucherAmount,
@@ -227,7 +227,7 @@ func ConstructObjectiveFromPayload(
 		}
 
 		return NewObjective(
-			ObjectiveRequest{ss.ChannelId()},
+			ObjectiveRequest{ss.ChannelId(), make(chan struct{})},
 			preapprove,
 			myAddress,
 			latestVoucherAmount,
@@ -689,7 +689,16 @@ func isZero(sig state.Signature) bool {
 
 // ObjectiveRequest represents a request to create a new virtual defund objective.
 type ObjectiveRequest struct {
-	ChannelId types.Destination
+	ChannelId        types.Destination
+	objectiveStarted chan struct{}
+}
+
+// NewObjectiveRequest creates a new ObjectiveRequest.
+func NewObjectiveRequest(channelId types.Destination) ObjectiveRequest {
+	return ObjectiveRequest{
+		ChannelId:        channelId,
+		objectiveStarted: make(chan struct{}),
+	}
 }
 
 // Id returns the objective id for the request.
@@ -733,4 +742,14 @@ func validateFinalOutcome(vFixed state.FixedPart, initialOutcome outcome.SingleA
 		}
 	}
 	return nil
+}
+
+// SignalObjectiveStarted is used by the engine to signal the objective has been started.
+func (r ObjectiveRequest) SignalObjectiveStarted() {
+	r.objectiveStarted <- struct{}{}
+}
+
+// ObjectiveStarted returns a channel used to signal when the objective is started
+func (r ObjectiveRequest) ObjectiveStarted() <-chan struct{} {
+	return r.objectiveStarted
 }

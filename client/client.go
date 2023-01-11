@@ -102,31 +102,29 @@ func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 // with the supplied intermediaries.
 func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) virtualfund.ObjectiveResponse {
 
-	objectiveRequest := virtualfund.ObjectiveRequest{
-		Intermediaries:    Intermediaries,
-		CounterParty:      CounterParty,
-		ChallengeDuration: ChallengeDuration,
-		Outcome:           Outcome,
-		Nonce:             rand.Uint64(),
-		AppDefinition:     c.engine.GetVirtualPaymentAppAddress(),
-	}
+	objectiveRequest := virtualfund.NewObjectiveRequest(
+		Intermediaries,
+		CounterParty,
+		ChallengeDuration,
+		Outcome,
+		rand.Uint64(),
+		c.engine.GetVirtualPaymentAppAddress(),
+	)
 
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
-
+	<-objectiveRequest.ObjectiveStarted()
 	return objectiveRequest.Response(*c.Address, c.chainId)
 }
 
 // CloseVirtualChannel attempts to close and defund the given virtually funded channel.
 func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.ObjectiveId {
 
-	objectiveRequest := virtualdefund.ObjectiveRequest{
-		ChannelId: channelId,
-	}
+	objectiveRequest := virtualdefund.NewObjectiveRequest(channelId)
 
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
-
+	<-objectiveRequest.ObjectiveStarted()
 	return objectiveRequest.Id(*c.Address, c.chainId)
 
 }
@@ -135,18 +133,18 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.Obje
 // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
 func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
 
-	objectiveRequest := directfund.ObjectiveRequest{
-		CounterParty:      Counterparty,
-		ChallengeDuration: ChallengeDuration,
-		Outcome:           outcome,
-		AppDefinition:     c.engine.GetConsensusAppAddress(),
-		Nonce:             rand.Uint64(),
+	objectiveRequest := directfund.NewObjectiveRequest(
+		Counterparty,
+		ChallengeDuration,
+		outcome,
+		rand.Uint64(),
+		c.engine.GetConsensusAppAddress(),
 		// Appdata implicitly zero
-	}
+	)
 
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
-
+	<-objectiveRequest.ObjectiveStarted()
 	return objectiveRequest.Response(*c.Address, c.chainId)
 
 }
@@ -154,13 +152,11 @@ func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDurati
 // CloseLedgerChannel attempts to close and defund the given directly funded channel.
 func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.ObjectiveId {
 
-	objectiveRequest := directdefund.ObjectiveRequest{
-		ChannelId: channelId,
-	}
+	objectiveRequest := directdefund.NewObjectiveRequest(channelId)
 
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
-
+	<-objectiveRequest.ObjectiveStarted()
 	return objectiveRequest.Id(*c.Address, c.chainId)
 
 }
