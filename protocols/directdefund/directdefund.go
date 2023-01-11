@@ -148,9 +148,7 @@ func ConstructObjectiveFromPayload(
 	}
 
 	cId := s.ChannelId()
-	request := ObjectiveRequest{
-		ChannelId: cId,
-	}
+	request := NewObjectiveRequest(cId)
 	return NewObjective(request, preapprove, getConsensusChannel)
 }
 

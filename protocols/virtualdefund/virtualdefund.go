@@ -197,7 +197,7 @@ func ConstructObjectiveFromPayload(
 			return Objective{}, err
 		}
 		return NewObjective(
-			ObjectiveRequest{cId, make(chan struct{})},
+			NewObjectiveRequest(cId),
 			preapprove,
 			myAddress,
 			latestVoucherAmount,
@@ -227,7 +227,7 @@ func ConstructObjectiveFromPayload(
 		}
 
 		return NewObjective(
-			ObjectiveRequest{ss.ChannelId(), make(chan struct{})},
+			NewObjectiveRequest(ss.ChannelId()),
 			preapprove,
 			myAddress,
 			latestVoucherAmount,
