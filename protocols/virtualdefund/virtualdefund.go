@@ -476,7 +476,11 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
 		}
 		recipient := ledger.Follower()
+
+		// Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
+		// to create a valid message with ordered proposals:
 		message := protocols.CreateSignedProposalMessage(recipient, ledger.ProposalQueue()...)
+
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	} else {

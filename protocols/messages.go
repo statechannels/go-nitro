@@ -133,8 +133,9 @@ func CreateRejectionNoticeMessage(oId ObjectiveId, recipients ...types.Address) 
 	return messages
 }
 
-// CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
-// It contains the provided signed proposals and any proposals in the proposal queue.
+// CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger channel.
+// The proposals MUST be sorted by turnNum
+// since the ledger protocol relies on the message receipient processing the proposals in that order. See ADR 4.
 func CreateSignedProposalMessage(recipient types.Address, proposals ...consensus_channel.SignedProposal) Message {
 	msg := Message{To: recipient, LedgerProposals: proposals}
 	return msg
