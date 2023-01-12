@@ -60,12 +60,8 @@ const acceptsWhenChallengeOngoingIf =
   'It accepts when there is an ongoing challenge, and sets the channel storage correctly, if ';
 const accepts5 = acceptsWhenChallengeOngoingIf + 'passed one state';
 
-const reverts1 = 'It reverts when the channel is open, but more than one state is supplied';
-const reverts2 =
-  'It reverts when there is an ongoing challenge,  but more than one state is supplied';
 const reverts3 = 'It reverts when the outcome is already finalized';
 const reverts4 = 'It reverts when the states is not final';
-const reverts5 = 'It reverts when passed n states, and the slot is empty';
 
 const threeStates = {
   whoSignedWhat: [0, 1, 2],
