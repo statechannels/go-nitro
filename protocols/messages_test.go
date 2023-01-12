@@ -6,20 +6,22 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/types"
 )
 
-func removeProposal() consensus_channel.SignedProposal {
-	remove := consensus_channel.NewRemoveProposal(types.Destination{'l'}, types.Destination{'a'}, big.NewInt(1))
-	return consensus_channel.SignedProposal{Proposal: remove, Signature: state.Signature{}}
+func removeProposal(ledgerId types.Destination, turnNum uint64) consensus_channel.SignedProposal {
+	remove := consensus_channel.NewRemoveProposal(ledgerId, types.Destination{'a'}, big.NewInt(1))
+	return consensus_channel.SignedProposal{Proposal: remove, Signature: state.Signature{}, TurnNum: turnNum}
 }
 
-func addProposal() consensus_channel.SignedProposal {
+func addProposal(ledgerId types.Destination, turnNum uint64) consensus_channel.SignedProposal {
 	amount := big.NewInt(1)
-	add := consensus_channel.NewAddProposal(types.Destination{'l'}, consensus_channel.NewGuarantee(
+	add := consensus_channel.NewAddProposal(ledgerId, consensus_channel.NewGuarantee(
 		amount,
 		types.Destination{'a'},
 		types.Destination{'b'},
@@ -28,7 +30,7 @@ func addProposal() consensus_channel.SignedProposal {
 		amount,
 	)
 
-	return consensus_channel.SignedProposal{Proposal: add, Signature: state.Signature{}}
+	return consensus_channel.SignedProposal{Proposal: add, Signature: state.Signature{}, TurnNum: turnNum}
 }
 
 func toPayload(p interface{}) []byte {
@@ -44,12 +46,12 @@ func TestSideEffectsMerge(t *testing.T) {
 	original := &SideEffects{
 		MessagesToSend:       []Message{{To: types.Address{'a'}}},
 		TransactionsToSubmit: []ChainTransaction{},
-		ProposalsToProcess:   []consensus_channel.Proposal{removeProposal().Proposal},
+		ProposalsToProcess:   []consensus_channel.Proposal{removeProposal(types.Destination{'l'}, 0).Proposal},
 	}
 	toMerge := SideEffects{
 		MessagesToSend:       []Message{{To: types.Address{'b'}}},
 		TransactionsToSubmit: []ChainTransaction{},
-		ProposalsToProcess:   []consensus_channel.Proposal{addProposal().Proposal},
+		ProposalsToProcess:   []consensus_channel.Proposal{addProposal(types.Destination{'l'}, 0).Proposal},
 	}
 
 	original.Merge(toMerge)
@@ -57,7 +59,7 @@ func TestSideEffectsMerge(t *testing.T) {
 	expected := &SideEffects{
 		MessagesToSend:       []Message{{To: types.Address{'a'}}, {To: types.Address{'b'}}},
 		TransactionsToSubmit: []ChainTransaction{},
-		ProposalsToProcess:   []consensus_channel.Proposal{removeProposal().Proposal, addProposal().Proposal},
+		ProposalsToProcess:   []consensus_channel.Proposal{removeProposal(types.Destination{'l'}, 0).Proposal, addProposal(types.Destination{'l'}, 0).Proposal},
 	}
 	if !reflect.DeepEqual(original, expected) {
 		t.Errorf("incorrect merge: got:\n%v\nwanted:\n%v", original, expected)
@@ -72,7 +74,7 @@ func TestMessage(t *testing.T) {
 			ObjectiveId: `say-hello-to-my-little-friend`,
 			PayloadData: toPayload(&ss),
 		}},
-		LedgerProposals:    []consensus_channel.SignedProposal{addProposal(), removeProposal()},
+		LedgerProposals:    []consensus_channel.SignedProposal{addProposal(types.Destination{'l'}, 0), removeProposal(types.Destination{'l'}, 0)},
 		Payments:           []payments.Voucher{{ChannelId: types.Destination{'d'}, Amount: big.NewInt(123), Signature: state.Signature{}}},
 		RejectedObjectives: []ObjectiveId{"say-hello-to-my-little-friend2"},
 	}
@@ -102,4 +104,48 @@ func TestMessage(t *testing.T) {
 		}
 	})
 
+}
+
+func TestSortedProposals(t *testing.T) {
+	type TestCase struct {
+		Input       []consensus_channel.SignedProposal
+		Expectation []consensus_channel.SignedProposal
+	}
+	testCases := []TestCase{
+		{
+			Input: []consensus_channel.SignedProposal{
+				removeProposal(types.Destination{'a'}, 1),
+				addProposal(types.Destination{'a'}, 0),
+			},
+			Expectation: []consensus_channel.SignedProposal{
+				addProposal(types.Destination{'a'}, 0),
+				removeProposal(types.Destination{'a'}, 1),
+			},
+		},
+		{
+			Input: []consensus_channel.SignedProposal{
+				removeProposal(types.Destination{'b'}, 1),
+				addProposal(types.Destination{'b'}, 0),
+				removeProposal(types.Destination{'a'}, 1),
+				addProposal(types.Destination{'a'}, 0),
+			},
+			Expectation: []consensus_channel.SignedProposal{
+				addProposal(types.Destination{'a'}, 0),
+				removeProposal(types.Destination{'a'}, 1),
+				addProposal(types.Destination{'b'}, 0),
+				removeProposal(types.Destination{'b'}, 1),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		msg := Message{
+			To:              types.Address{'a'},
+			LedgerProposals: testCase.Input,
+		}
+		got := msg.SortedProposals()
+		if diff := cmp.Diff(got, testCase.Expectation, cmpopts.IgnoreUnexported(consensus_channel.Guarantee{}, big.Int{})); diff != "" {
+			t.Errorf("SortedProposals() mismatch (-want +got):\n%s", diff)
+		}
+	}
 }
