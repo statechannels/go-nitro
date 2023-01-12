@@ -281,20 +281,57 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 
 }
 
-// pollForLogs periodically polls the chain client to check if there new events.
-// It can function over a chain node that does not support notifications.
-func (ecs *EthChainService) pollForLogs(ctx context.Context) {
+const MAX_BATCH_SIZE = 2000
 
-	// TODO: We are currently querying from the genesis block to the current block.
-	// We could make this more performant by querying from the nitro adjudicator contract deployment block.
+func (ecs *EthChainService) fetchLogsInBatches(from *big.Int, to *big.Int) ([]ethTypes.Log, error) {
+
+	fromBlock := big.NewInt(0).Set(from)
+	toBlock := big.NewInt(0).Set(to)
+	batchSize := big.NewInt(MAX_BATCH_SIZE)
+	logs := make([]ethTypes.Log, 0)
+
+	// Big.ints make it hard to parse but this is the condition:
+	// toBlock - fromBlock > MAX_BATCH_SIZE
+	for big.NewInt(0).Sub(toBlock, from).Cmp(big.NewInt(MAX_BATCH_SIZE)) > 0 {
+		nextBlock := big.NewInt(0).Add(fromBlock, batchSize)
+		query := ethereum.FilterQuery{
+			Addresses: []common.Address{ecs.naAddress},
+			FromBlock: fromBlock,
+			ToBlock:   toBlock,
+		}
+
+		fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
+
+		if err != nil {
+			return nil, err
+		}
+
+		logs = append(logs, fetchedLogs...)
+		fromBlock.Add(nextBlock, big.NewInt(1))
+	}
+
+	// This handles the final query which gets the remaining logs
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
-		FromBlock: nil,
-		ToBlock:   ecs.getCurrentBlockNum(),
+		FromBlock: fromBlock,
+		ToBlock:   toBlock,
 	}
 
 	fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
 
+	logs = append(logs, fetchedLogs...)
+	return logs, nil
+
+}
+
+// pollForLogs periodically polls the chain client to check if there new events.
+// It can function over a chain node that does not support notifications.
+func (ecs *EthChainService) pollForLogs(ctx context.Context) {
+	toBlock := ecs.getCurrentBlockNum()
+	fetchedLogs, err := ecs.fetchLogsInBatches(big.NewInt(0), toBlock)
 	if err != nil {
 		ecs.fatalError(err)
 	}
@@ -305,12 +342,11 @@ func (ecs *EthChainService) pollForLogs(ctx context.Context) {
 		case <-time.After(EVENT_POLL_INTERVAL):
 			currentBlock := ecs.getCurrentBlockNum()
 
-			if moreRecentBlockAvailable := currentBlock.Cmp(query.ToBlock) > 0; moreRecentBlockAvailable {
+			if moreRecentBlockAvailable := currentBlock.Cmp(toBlock) > 0; moreRecentBlockAvailable {
 				// The query includes the from and to blocks so we need to increment the from block to avoid duplicating events
-				query.FromBlock = big.NewInt(0).Add(query.ToBlock, big.NewInt(1))
-				query.ToBlock = big.NewInt(0).Set(currentBlock)
-
-				fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
+				fromBlock := big.NewInt(0).Add(toBlock, big.NewInt(1))
+				fetchedLogs, err = ecs.fetchLogsInBatches(fromBlock, currentBlock)
+				toBlock.Set(currentBlock)
 
 				if err != nil {
 					ecs.fatalError(err)
