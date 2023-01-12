@@ -340,3 +340,5 @@ classDef bob fill:#d93434
 This construction generalizes, and works with anything from `1` , `2` (as shown here) or `n` hops.
 
 Channel `V` may be used for `A` to send payments to `B`, for example: see [virtual payment app](./0020-execution-rules.md#virtualpaymentapp).
+
+The full offchain protocol for virtually funding a channel can be understood by reading the implementation [readme](https://github.com/statechannels/go-nitro/tree/main/protocols/virtualfund).
