@@ -46,6 +46,7 @@ note left of A : <background:#yellow>Irene votes to activate V
 I->A: 3a: V.postFund(I) 
 I->B: 3b: V.postFund(I)
 parallel off
+note over I : Irene exits protocol (see ADR 9)
 
 note left of A : <background:#yellow>Alice votes to activate V
 A->I: 3c: V.postFund(A)
