@@ -16,7 +16,6 @@ import {
 } from '../../../src/contract/state';
 import {
   CHANNEL_FINALIZED,
-  MUST_SUBMIT_EXACTLY_1_STATE,
   NONFINAL_STATE,
 } from '../../../src/contract/transaction-creators/revert-reasons';
 import {
@@ -83,18 +82,15 @@ let channelNonce = getRandomNonce('conclude');
 describe('conclude', () => {
   beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
   it.each`
-    description | initialFingerprint  | isFinal  | largestTurnNum                   | support        | reasonString
-    ${accepts2} | ${HashZero}         | ${true}  | ${turnNumRecord - 1}             | ${oneState}    | ${undefined}
-    ${accepts2} | ${HashZero}         | ${true}  | ${turnNumRecord + 1}             | ${oneState}    | ${undefined}
-    ${accepts3} | ${channelOpen}      | ${true}  | ${turnNumRecord + 2}             | ${oneState}    | ${undefined}
-    ${accepts5} | ${challengeOngoing} | ${true}  | ${turnNumRecord + 4}             | ${oneState}    | ${undefined}
-    ${accepts6} | ${channelOpen}      | ${true}  | ${turnNumRecord - 1}             | ${oneState}    | ${undefined}
-    ${accepts7} | ${challengeOngoing} | ${true}  | ${turnNumRecord - 1}             | ${oneState}    | ${undefined}
-    ${reverts1} | ${channelOpen}      | ${true}  | ${turnNumRecord + nParticipants} | ${threeStates} | ${MUST_SUBMIT_EXACTLY_1_STATE}
-    ${reverts2} | ${challengeOngoing} | ${true}  | ${turnNumRecord + nParticipants} | ${threeStates} | ${MUST_SUBMIT_EXACTLY_1_STATE}
-    ${reverts3} | ${finalized}        | ${true}  | ${turnNumRecord + 1}             | ${oneState}    | ${CHANNEL_FINALIZED}
-    ${reverts4} | ${HashZero}         | ${false} | ${turnNumRecord - 1}             | ${oneState}    | ${NONFINAL_STATE}
-    ${reverts5} | ${HashZero}         | ${true}  | ${turnNumRecord - nParticipants} | ${threeStates} | ${MUST_SUBMIT_EXACTLY_1_STATE}
+    description | initialFingerprint  | isFinal  | largestTurnNum       | support     | reasonString
+    ${accepts2} | ${HashZero}         | ${true}  | ${turnNumRecord - 1} | ${oneState} | ${undefined}
+    ${accepts2} | ${HashZero}         | ${true}  | ${turnNumRecord + 1} | ${oneState} | ${undefined}
+    ${accepts3} | ${channelOpen}      | ${true}  | ${turnNumRecord + 2} | ${oneState} | ${undefined}
+    ${accepts5} | ${challengeOngoing} | ${true}  | ${turnNumRecord + 4} | ${oneState} | ${undefined}
+    ${accepts6} | ${channelOpen}      | ${true}  | ${turnNumRecord - 1} | ${oneState} | ${undefined}
+    ${accepts7} | ${challengeOngoing} | ${true}  | ${turnNumRecord - 1} | ${oneState} | ${undefined}
+    ${reverts3} | ${finalized}        | ${true}  | ${turnNumRecord + 1} | ${oneState} | ${CHANNEL_FINALIZED}
+    ${reverts4} | ${HashZero}         | ${false} | ${turnNumRecord - 1} | ${oneState} | ${NONFINAL_STATE}
   `(
     '$description', // For the purposes of this test, participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, isFinal, largestTurnNum, support, reasonString}) => {
@@ -130,11 +126,11 @@ describe('conclude', () => {
 
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
-      const {proof, candidate} = separateProofAndCandidate(
+      const {candidate} = separateProofAndCandidate(
         bindSignatures(variableParts, signatures, whoSignedWhat)
       );
 
-      const tx = ForceMove.conclude(fixedPart, proof, candidate);
+      const tx = ForceMove.conclude(fixedPart, candidate);
       if (reasonString) {
         await expectRevert(() => tx, reasonString);
       } else {

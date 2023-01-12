@@ -110,9 +110,9 @@ export function concludeArgs(
   const fixedPart = getFixedPart(states[0]);
 
   const variableParts = states.map(s => getVariablePart(s));
-  const {proof, candidate} = separateProofAndCandidate(
+  const {candidate} = separateProofAndCandidate(
     bindSignatures(variableParts, signatures, whoSignedWhat)
   );
 
-  return [fixedPart, proof, candidate];
+  return [fixedPart, candidate];
 }
