@@ -1,9 +1,9 @@
 package protocols
 
 import (
-	"bytes"
 	"encoding/json"
 	"sort"
+	"strings"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/payments"
@@ -48,27 +48,6 @@ type Message struct {
 	Payments []payments.Voucher
 	// RejectedObjectives is a collection of objectives that have been rejected.
 	RejectedObjectives []ObjectiveId
-}
-
-// SortedProposals sorts the proposals by channelId and then by turn number.
-func (m Message) SortedProposals() []consensus_channel.SignedProposal {
-	signedProposals := make([]consensus_channel.SignedProposal, len(m.LedgerProposals))
-	copy(signedProposals, m.LedgerProposals)
-
-	sort.Slice(signedProposals, func(i, j int) bool {
-		cId1, turnNum1 := signedProposals[i].ChannelID(), signedProposals[i].TurnNum
-		cId2, turnNum2 := signedProposals[j].ChannelID(), signedProposals[j].TurnNum
-
-		cIdCompare := bytes.Compare(cId1.Bytes(), cId2.Bytes())
-
-		if sameChannel := cIdCompare == 0; sameChannel {
-			return turnNum1 < turnNum2
-		} else {
-			return cIdCompare < 0
-		}
-	})
-
-	return signedProposals
 }
 
 // Serialize serializes the message into a string.
@@ -206,13 +185,25 @@ func (m Message) Summarize() MessageSummary {
 	}
 
 	s.ProposalSummaries = make([]ProposalSummary, len(m.LedgerProposals))
-	for i, p := range m.SortedProposals() {
+	for i, p := range m.LedgerProposals {
 		s.ProposalSummaries[i] = ProposalSummary{
 			ObjectiveId:  string(GetProposalObjectiveId(p.Proposal)),
 			LedgerId:     p.ChannelID().String(),
 			TurnNum:      p.TurnNum,
 			ProposalType: string(p.Proposal.Type())}
 	}
+	sort.Slice(s.ProposalSummaries, func(i, j int) bool {
+		Id1, turnNum1 := s.ProposalSummaries[i].ObjectiveId, s.ProposalSummaries[i].TurnNum
+		Id2, turnNum2 := s.ProposalSummaries[j].ObjectiveId, s.ProposalSummaries[j].TurnNum
+
+		IdCompare := strings.Compare(Id1, Id2)
+
+		if sameChannel := IdCompare == 0; sameChannel {
+			return turnNum1 < turnNum2
+		} else {
+			return IdCompare < 0
+		}
+	})
 
 	s.Payments = make([]PaymentSummary, len(m.Payments))
 	for i, p := range m.Payments {
