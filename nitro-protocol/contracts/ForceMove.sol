@@ -116,25 +116,25 @@ contract ForceMove is IForceMove, StatusManager {
     }
 
     /**
-     * @notice Finalizes a channel according to the given candidate. External wrapper for _conclude.
-     * @dev Finalizes a channel according to the given candidate. External wrapper for _conclude.
+     * @notice Finalizes a channel according to the given finalState. External wrapper for _conclude.
+     * @dev Finalizes a channel according to the given finalState. External wrapper for _conclude.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param candidate A struct, that can be signed by any number of participants, describing the final state of the channel.
+     * @param finalState A state, signed by all participants, describing the closing state of the channel.
      */
-    function conclude(FixedPart memory fixedPart, SignedVariablePart memory candidate)
+    function conclude(FixedPart memory fixedPart, SignedVariablePart memory finalState)
         external
         virtual
     {
-        _conclude(fixedPart, candidate);
+        _conclude(fixedPart, finalState);
     }
 
     /**
-     * @notice Finalizes a channel according to the given candidate. Internal method.
-     * @dev Finalizes a channel according to the given candidate. Internal method.
+     * @notice Finalizes a channel according to the given finalState. Internal method.
+     * @dev Finalizes a channel according to the given finalState. Internal method.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param candidate A struct, that can be signed by any number of participants, describing the final state of the channel.
+     * @param finalState A state, signed by all participants, describing the closing state of the channel.
      */
-    function _conclude(FixedPart memory fixedPart, SignedVariablePart memory candidate)
+    function _conclude(FixedPart memory fixedPart, SignedVariablePart memory finalState)
         internal
         returns (bytes32 channelId)
     {
@@ -143,10 +143,10 @@ contract ForceMove is IForceMove, StatusManager {
 
         // checks
         _requireChannelNotFinalized(channelId);
-        require(candidate.variablePart.isFinal, 'State must be final');
+        require(finalState.variablePart.isFinal, 'State must be final');
         RecoveredVariablePart memory recoveredVariablePart = recoverVariablePart(
             fixedPart,
-            candidate
+            finalState
         );
         require(
             NitroUtils.getClaimedSignersNum(recoveredVariablePart.signedBy) ==
@@ -160,7 +160,7 @@ contract ForceMove is IForceMove, StatusManager {
                 0,
                 uint48(block.timestamp), //solhint-disable-line not-rely-on-time
                 bytes32(0),
-                NitroUtils.hashOutcome(candidate.variablePart.outcome)
+                NitroUtils.hashOutcome(finalState.variablePart.outcome)
             )
         );
 
