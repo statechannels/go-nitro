@@ -95,7 +95,7 @@ contract ForceMove is IForceMove, StatusManager {
      * @dev Overwrites the `turnNumRecord` stored against a channel by providing a proof with higher turn number.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param proof An ordered array of structs, that can be signed by any number of participants, each struct describing the properties of the state channel that may change with each state update. The proof is a validation for the supplied candidate.
-     * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to. The candidate state is supported by proof states.
+     * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to.
      */
     function checkpoint(
         FixedPart memory fixedPart,
@@ -119,12 +119,12 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Finalizes a channel according to the given candidate. External wrapper for _conclude.
      * @dev Finalizes a channel according to the given candidate. External wrapper for _conclude.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to. The candidate state is supported by proof states.
+     * @param candidate A struct, that can be signed by any number of participants, describing the final state of the channel.
      */
-    function conclude(
-        FixedPart memory fixedPart,
-        SignedVariablePart memory candidate
-    ) external virtual  {
+    function conclude(FixedPart memory fixedPart, SignedVariablePart memory candidate)
+        external
+        virtual
+    {
         _conclude(fixedPart, candidate);
     }
 
@@ -132,12 +132,12 @@ contract ForceMove is IForceMove, StatusManager {
      * @notice Finalizes a channel according to the given candidate. Internal method.
      * @dev Finalizes a channel according to the given candidate. Internal method.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to. The candidate state is supported by proof states.
+     * @param candidate A struct, that can be signed by any number of participants, describing the final state of the channel.
      */
-    function _conclude(
-        FixedPart memory fixedPart,
-        SignedVariablePart memory candidate
-    ) internal returns (bytes32 channelId) {
+    function _conclude(FixedPart memory fixedPart, SignedVariablePart memory candidate)
+        internal
+        returns (bytes32 channelId)
+    {
         _requireCorrectChainId(fixedPart.chainId);
         channelId = NitroUtils.getChannelId(fixedPart);
 

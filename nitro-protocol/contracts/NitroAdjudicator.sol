@@ -15,7 +15,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
      * @notice Finalizes a channel according to the provided candidate, and liquidates all assets for the channel.
      * @dev Finalizes a channel according to the provided candidate, and liquidates all assets for the channel.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param candidate Variable part of the state to change to. The candidate state is supported by proof states.
+     * @param candidate Variable part of the state to change to.
      */
     function concludeAndTransferAllAssets(
         FixedPart memory fixedPart,
