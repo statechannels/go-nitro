@@ -36,9 +36,7 @@ func TestCrank(t *testing.T) {
 func TestInvalidUpdate(t *testing.T) {
 	data := generateTestData()
 	vId := data.vFinal.ChannelId()
-	request := ObjectiveRequest{
-		ChannelId: vId,
-	}
+	request := NewObjectiveRequest(vId)
 
 	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vFinal)
 
@@ -68,10 +66,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
 		vId := data.vFinal.ChannelId()
-		request := ObjectiveRequest{
-			ChannelId: vId,
-		}
-
+		request := NewObjectiveRequest(vId)
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
 
 		virtualDefund, err := NewObjective(request, false, my.Address(), nil, getChannel, getConsensusChannel)
@@ -101,9 +96,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 	return func(t *testing.T) {
 		data := generateTestData()
 		vId := data.vFinal.ChannelId()
-		request := ObjectiveRequest{
-			ChannelId: vId,
-		}
+		request := NewObjectiveRequest(vId)
 
 		// If we're Alice we should have the latest payment amount
 		// Otherwise we have an older or no payment amount
@@ -215,9 +208,7 @@ func TestConstructObjectiveFromState(t *testing.T) {
 func TestApproveReject(t *testing.T) {
 	data := generateTestData()
 	vId := data.vFinal.ChannelId()
-	request := ObjectiveRequest{
-		ChannelId: vId,
-	}
+	request := NewObjectiveRequest(vId)
 
 	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vInitial)
 

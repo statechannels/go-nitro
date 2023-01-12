@@ -148,9 +148,7 @@ func ConstructObjectiveFromPayload(
 	}
 
 	cId := s.ChannelId()
-	request := ObjectiveRequest{
-		ChannelId: cId,
-	}
+	request := NewObjectiveRequest(cId)
 	return NewObjective(request, preapprove, getConsensusChannel)
 }
 
@@ -333,7 +331,26 @@ func (o *Objective) clone() Objective {
 
 // ObjectiveRequest represents a request to create a new direct defund objective.
 type ObjectiveRequest struct {
-	ChannelId types.Destination
+	ChannelId        types.Destination
+	objectiveStarted chan struct{}
+}
+
+// NewObjectiveRequest creates a new ObjectiveRequest.
+func NewObjectiveRequest(channelId types.Destination) ObjectiveRequest {
+	return ObjectiveRequest{
+		ChannelId:        channelId,
+		objectiveStarted: make(chan struct{}),
+	}
+}
+
+// SignalObjectiveStarted is used by the engine to signal the objective has been started.
+func (r ObjectiveRequest) SignalObjectiveStarted() {
+	close(r.objectiveStarted)
+}
+
+// WaitForObjectiveToStart blocks until the objective starts
+func (r ObjectiveRequest) WaitForObjectiveToStart() {
+	<-r.objectiveStarted
 }
 
 // Id returns the objective id for the request.

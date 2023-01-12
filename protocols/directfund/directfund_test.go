@@ -58,13 +58,13 @@ func TestNew(t *testing.T) {
 	getByConsensus := func(id types.Address) (*consensus_channel.ConsensusChannel, bool) {
 		return nil, false
 	}
-	request := ObjectiveRequest{
-		CounterParty:      testState.Participants[1],
-		ChallengeDuration: testState.ChallengeDuration,
-		Outcome:           testState.Outcome,
-		AppDefinition:     testState.AppDefinition,
-		AppData:           testState.AppData,
-	}
+	request := NewObjectiveRequest(
+		testState.Participants[1],
+		testState.ChallengeDuration,
+		testState.Outcome,
+		0,
+		testState.AppDefinition,
+	)
 	// Assert that valid constructor args do not result in error
 	if _, err := NewObjective(request, false, testState.Participants[0], big.NewInt(TEST_CHAIN_ID), getByParticipant, getByConsensus); err != nil {
 		t.Error(err)
