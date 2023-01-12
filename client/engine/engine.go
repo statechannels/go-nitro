@@ -252,7 +252,8 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	}
 
-	for _, entry := range message.LedgerProposals {
+	for _, entry := range message.LedgerProposals { // The ledger protocol requires us to process these proposals in turnNum order.
+		// Here we rely on the sender having packed them into the message in that order, and do not apply any checks or sorting of our own.
 		id := getProposalObjectiveId(entry.Proposal)
 		o, err := e.store.GetObjectiveById(id)
 		if err != nil {
