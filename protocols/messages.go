@@ -2,8 +2,6 @@ package protocols
 
 import (
 	"encoding/json"
-	"sort"
-	"strings"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/payments"
@@ -192,19 +190,6 @@ func (m Message) Summarize() MessageSummary {
 			TurnNum:      p.TurnNum,
 			ProposalType: string(p.Proposal.Type())}
 	}
-	sort.Slice(s.ProposalSummaries, func(i, j int) bool {
-		Id1, turnNum1 := s.ProposalSummaries[i].ObjectiveId, s.ProposalSummaries[i].TurnNum
-		Id2, turnNum2 := s.ProposalSummaries[j].ObjectiveId, s.ProposalSummaries[j].TurnNum
-
-		IdCompare := strings.Compare(Id1, Id2)
-
-		if sameChannel := IdCompare == 0; sameChannel {
-			return turnNum1 < turnNum2
-		} else {
-			return IdCompare < 0
-		}
-	})
-
 	s.Payments = make([]PaymentSummary, len(m.Payments))
 	for i, p := range m.Payments {
 		s.Payments[i] = PaymentSummary{Amount: p.Amount.Uint64(), ChannelId: p.ChannelId.String()}
