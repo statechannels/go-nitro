@@ -16,7 +16,7 @@ import (
 
 func removeProposal(ledgerId types.Destination, turnNum uint64) consensus_channel.SignedProposal {
 	remove := consensus_channel.NewRemoveProposal(ledgerId, types.Destination{'a'}, big.NewInt(1))
-	return consensus_channel.SignedProposal{Proposal: remove, Signature: state.Signature{}}
+	return consensus_channel.SignedProposal{Proposal: remove, Signature: state.Signature{}, TurnNum: turnNum}
 }
 
 func addProposal(ledgerId types.Destination, turnNum uint64) consensus_channel.SignedProposal {
