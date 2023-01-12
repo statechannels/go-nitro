@@ -6,8 +6,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/payments"
@@ -104,48 +102,4 @@ func TestMessage(t *testing.T) {
 		}
 	})
 
-}
-
-func TestSortedProposals(t *testing.T) {
-	type TestCase struct {
-		Input       []consensus_channel.SignedProposal
-		Expectation []consensus_channel.SignedProposal
-	}
-	testCases := []TestCase{
-		{
-			Input: []consensus_channel.SignedProposal{
-				removeProposal(types.Destination{'a'}, 1),
-				addProposal(types.Destination{'a'}, 0),
-			},
-			Expectation: []consensus_channel.SignedProposal{
-				addProposal(types.Destination{'a'}, 0),
-				removeProposal(types.Destination{'a'}, 1),
-			},
-		},
-		{
-			Input: []consensus_channel.SignedProposal{
-				removeProposal(types.Destination{'b'}, 1),
-				addProposal(types.Destination{'b'}, 0),
-				removeProposal(types.Destination{'a'}, 1),
-				addProposal(types.Destination{'a'}, 0),
-			},
-			Expectation: []consensus_channel.SignedProposal{
-				addProposal(types.Destination{'a'}, 0),
-				removeProposal(types.Destination{'a'}, 1),
-				addProposal(types.Destination{'b'}, 0),
-				removeProposal(types.Destination{'b'}, 1),
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-		msg := Message{
-			To:              types.Address{'a'},
-			LedgerProposals: testCase.Input,
-		}
-		got := msg.SortedProposals()
-		if diff := cmp.Diff(got, testCase.Expectation, cmpopts.IgnoreUnexported(consensus_channel.Guarantee{}, big.Int{})); diff != "" {
-			t.Errorf("SortedProposals() mismatch (-want +got):\n%s", diff)
-		}
-	}
 }

@@ -660,7 +660,10 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 
 	recipient := ledger.Follower()
 
+	// Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
+	// to create a valid message with ordered proposals:
 	message := protocols.CreateSignedProposalMessage(recipient, connection.Channel.ProposalQueue()...)
+
 	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	return sideEffects, nil
