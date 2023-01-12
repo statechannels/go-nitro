@@ -10,7 +10,7 @@ import './INitroTypes.sol';
 interface IForceMoveApp is INitroTypes {
     /**
      * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
-     * @dev Depending on application, it might be useful to stricken state mutability of an implementation to 'pure' for security reasons.
+     * @dev Depending on the application, it might be desirable to narrow the state mutability of an implementation to 'pure' to make security analysis easier.
      * @param fixedPart Fixed part of the state channel.
      * @param proof Array of recovered variable parts which constitutes a support proof for the candidate. May be omitted when `candidate` constitutes a support proof itself.
      * @param candidate Recovered variable part the proof was supplied for. Also may constitute a support proof itself.
