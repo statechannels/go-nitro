@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -59,8 +60,28 @@ type SimulatedBackendChainService struct {
 
 // NewSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
+func NewPollingSimulatedBackendChainService(sim SimulatedChain, bindings Bindings,
+	txSigner *bind.TransactOpts, logDestination io.Writer) (ChainService, error) {
+
+	ethChainService, err := newPollingSimulatedChainService(sim,
+		bindings.Adjudicator.Contract,
+		bindings.Adjudicator.Address,
+		bindings.ConsensusApp.Address,
+		bindings.VirtualPaymentApp.Address,
+		txSigner,
+		logDestination)
+	if err != nil {
+		return &SimulatedBackendChainService{}, err
+	}
+
+	return &SimulatedBackendChainService{sim: sim, EthChainService: ethChainService}, nil
+}
+
+// NewSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
+// and listens to events from an eventSource
 func NewSimulatedBackendChainService(sim SimulatedChain, bindings Bindings,
 	txSigner *bind.TransactOpts, logDestination io.Writer) (ChainService, error) {
+
 	ethChainService, err := NewEthChainService(sim,
 		bindings.Adjudicator.Contract,
 		bindings.Adjudicator.Address,
@@ -72,6 +93,7 @@ func NewSimulatedBackendChainService(sim SimulatedChain, bindings Bindings,
 	if err != nil {
 		return &SimulatedBackendChainService{}, err
 	}
+
 	return &SimulatedBackendChainService{sim: sim, EthChainService: ethChainService}, nil
 }
 
@@ -163,4 +185,15 @@ func (sbcs *SimulatedBackendChainService) GetConsensusAppAddress() types.Address
 // GetVirtualPaymentAppAddress returns the address of a deployed VirtualPaymentApp
 func (sbcs *SimulatedBackendChainService) GetVirtualPaymentAppAddress() types.Address {
 	return sbcs.virtualPaymentAppAddress
+}
+
+func newPollingSimulatedChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
+	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer) (*EthChainService, error) {
+	logPrefix := "chainservice " + txSigner.From.String() + ": "
+	logger := log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
+	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
+	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger}
+
+	go ecs.pollForLogs(context.Background())
+	return &ecs, nil
 }

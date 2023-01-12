@@ -86,17 +86,31 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 
 	sim.Close()
 }
-
 func TestConcludeSimulatedBackendChainService(t *testing.T) {
+	runDepositAndConcludeTest(t, false)
+}
+func TestConcludeSimulatedBackendChainServiceWithPolling(t *testing.T) {
+	runDepositAndConcludeTest(t, true)
+}
 
+func runDepositAndConcludeTest(t *testing.T, usePolling bool) {
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cs, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], NoopLogger{})
-	if err != nil {
-		t.Fatal(err)
+	var cs ChainService
+	if usePolling {
+		cs, err = NewPollingSimulatedBackendChainService(sim, bindings, ethAccounts[0], NoopLogger{})
+		if err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		cs, err = NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], NoopLogger{})
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
+
 	out := cs.EventFeed()
 
 	var concludeState = state.State{
