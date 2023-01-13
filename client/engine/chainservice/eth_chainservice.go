@@ -42,6 +42,12 @@ type EthChainService struct {
 	logger                   *log.Logger
 }
 
+// MAX_QUERY_BLOCK_RANGE is the maximum range of blocks we query for events at once.
+// Most json-rpc nodes restrict the amount of blocks you can search.
+// For example Wallaby supports a maximum range of 2880
+// See https://github.com/Zondax/rosetta-filecoin/blob/b395b3e04401be26c6cdf6a419e14ce85e2f7331/tools/wallaby/files/config.toml#L243
+const MAX_QUERY_BLOCK_RANGE = 2000
+
 // Since we only fetch events if there's a new block number
 // it's safe to poll relatively frequently.
 const EVENT_POLL_INTERVAL = 500 * time.Millisecond
@@ -281,20 +287,60 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 
 }
 
-// pollForLogs periodically polls the chain client to check if there new events.
-// It can function over a chain node that does not support notifications.
-func (ecs *EthChainService) pollForLogs(ctx context.Context) {
+// fetchLogsFromChain fetches logs from the chain from the given block number to the given block number.
+// It splits the query into multiple queries if the range is too large.
+func (ecs *EthChainService) fetchLogsFromChain(from *big.Int, to *big.Int) ([]ethTypes.Log, error) {
 
-	// TODO: We are currently querying from the genesis block to the current block.
-	// We could make this more performant by querying from the nitro adjudicator contract deployment block.
+	fromBlock := big.NewInt(0).Set(from)
+	toBlock := big.NewInt(0).Set(to)
+
+	logs := make([]ethTypes.Log, 0)
+
+	// Big.ints make it hard to parse but this is the condition:
+	// toBlock - fromBlock > MAX_QUERY_BLOCK_RANGE
+	for big.NewInt(0).Sub(toBlock, from).Cmp(big.NewInt(MAX_QUERY_BLOCK_RANGE)) > 0 {
+
+		nextBlock := big.NewInt(0).Add(fromBlock, big.NewInt(MAX_QUERY_BLOCK_RANGE))
+
+		query := ethereum.FilterQuery{
+			Addresses: []common.Address{ecs.naAddress},
+			FromBlock: fromBlock,
+			ToBlock:   toBlock,
+		}
+
+		fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
+
+		if err != nil {
+			return nil, err
+		}
+
+		logs = append(logs, fetchedLogs...)
+		// Update the fromBlock so it's the next block after the last block we fetched
+		fromBlock.Add(nextBlock, big.NewInt(1))
+	}
+
+	// This handles the final query which gets the remaining logs
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
-		FromBlock: nil,
-		ToBlock:   ecs.getCurrentBlockNum(),
+		FromBlock: fromBlock,
+		ToBlock:   toBlock,
 	}
 
 	fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
 
+	logs = append(logs, fetchedLogs...)
+	return logs, nil
+
+}
+
+// pollForLogs periodically polls the chain client to check if there new events.
+// It can function over a chain node that does not support notifications.
+func (ecs *EthChainService) pollForLogs(ctx context.Context) {
+	toBlock := ecs.getCurrentBlockNum()
+	fetchedLogs, err := ecs.fetchLogsFromChain(big.NewInt(0), toBlock)
 	if err != nil {
 		ecs.fatalError(err)
 	}
@@ -305,12 +351,11 @@ func (ecs *EthChainService) pollForLogs(ctx context.Context) {
 		case <-time.After(EVENT_POLL_INTERVAL):
 			currentBlock := ecs.getCurrentBlockNum()
 
-			if moreRecentBlockAvailable := currentBlock.Cmp(query.ToBlock) > 0; moreRecentBlockAvailable {
+			if moreRecentBlockAvailable := currentBlock.Cmp(toBlock) > 0; moreRecentBlockAvailable {
 				// The query includes the from and to blocks so we need to increment the from block to avoid duplicating events
-				query.FromBlock = big.NewInt(0).Add(query.ToBlock, big.NewInt(1))
-				query.ToBlock = big.NewInt(0).Set(currentBlock)
-
-				fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
+				fromBlock := big.NewInt(0).Add(toBlock, big.NewInt(1))
+				fetchedLogs, err = ecs.fetchLogsFromChain(fromBlock, currentBlock)
+				toBlock.Set(currentBlock)
 
 				if err != nil {
 					ecs.fatalError(err)
