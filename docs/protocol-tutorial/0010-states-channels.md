@@ -20,7 +20,6 @@ In Nitro protocol, a state is broken up into fixed and variable parts:
     import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
     struct FixedPart {
-        uint256 chainId;
         address[] participants;
         uint48 channelNonce;
         address appDefinition;
@@ -45,7 +44,6 @@ In Nitro protocol, a state is broken up into fixed and variable parts:
         import {Address, Bytes, Bytes32, Uint256, Uint48, Uint64} from '@statechannels/nitro-protocol';
 
         export interface FixedPart {
-            chainId: Uint256;
             participants: Address[];
             channelNonce: Uint64;
             appDefinition: Address;
@@ -73,7 +71,6 @@ In Nitro protocol, a state is broken up into fixed and variable parts:
 
     type (
         FixedPart struct {
-            ChainId           *types.Uint256
             Participants      []types.Address
             ChannelNonce      uint64
             AppDefinition     types.Address
@@ -99,10 +96,6 @@ In Nitro protocol, a state is broken up into fixed and variable parts:
 Let's take each property in turn:
 
 ## Fixed Part
-
-### Chain id
-
-This needs to match the id of the chain where assets are to be locked (i.e. the 'root' of the funding graph for this channel). In the event of a mismatch, the channel cannot be concluded and funds cannot be unlocked.
 
 ### Participants
 
@@ -170,7 +163,6 @@ Channels are identified by the hash of the `FixedPart` of the state (those parts
 
   bytes32 channelId = keccak256(
       abi.encode(
-          fixedPart.chainId,
           fixedPart.participants,
           fixedPart.channelNonce,
           fixedPart.appDefinition,
