@@ -111,7 +111,7 @@ This is a unique number used to differentiate channels with an otherwise identic
 
 !!! warning
 
-    You should never join a channel which re-uses a channel nonce.
+    You should never join a channel which re-uses a channel ID.
 
 ### AppDefinition
 
