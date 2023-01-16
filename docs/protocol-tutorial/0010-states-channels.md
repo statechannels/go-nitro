@@ -107,7 +107,7 @@ This is a list of Ethereum addresses, each derived from an ECDSA private key in 
 
 ### ChannelNonce
 
-This is a unique number used to differentiate channels with an otherwise identical `FixedPart`. For example, if the same participants want to run the same kind of channel on the same chain as a previous channel, they can choose a new `ChannelNonce` to prevent state updates for the original channel from being replayed on the new one.
+This is a unique number used to differentiate channels with an otherwise identical `FixedPart`. For example, if the same participants want to run the same kind of channel as a previous channel, they can choose a new `ChannelNonce` to prevent state updates for the original channel from being replayed on the new one.
 
 !!! warning
 
