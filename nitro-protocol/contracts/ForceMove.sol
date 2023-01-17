@@ -169,22 +169,9 @@ contract ForceMove is IForceMove, StatusManager {
         emit Concluded(channelId, uint48(block.timestamp)); //solhint-disable-line not-rely-on-time
     }
 
-    function getChainID() public view returns (uint256) {
-        return NitroUtils.getChainID();
-    }
-
     // *****************
     // Internal methods:
     // *****************
-
-    /**
-     * @notice Checks that the supplied chain id matches the chain id of this contract.
-     * @dev Checks that the supplied chain id matches the chain id of this contract.
-     * @param declaredChainId The chain id to check.
-     */
-    function _requireCorrectChainId(uint256 declaredChainId) internal view {
-        require(declaredChainId == getChainID(), 'Incorrect chainId');
-    }
 
     /**
      * @notice Checks that the challengerSignature was created by one of the supplied participants.

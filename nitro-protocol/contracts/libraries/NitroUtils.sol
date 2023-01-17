@@ -136,16 +136,6 @@ library NitroUtils {
         );
     }
 
-    function getChainID() internal view returns (uint256) {
-        uint256 id;
-        /* solhint-disable no-inline-assembly */
-        assembly {
-            id := chainid()
-        }
-        /* solhint-disable no-inline-assembly */
-        return id;
-    }
-
     // *****************
     // Hash methods:
     // *****************
