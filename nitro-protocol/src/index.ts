@@ -47,3 +47,5 @@ export * from './contract/vouchers';
 export {Uint256, Bytes32} from './contract/types';
 
 export * from './channel-mode';
+
+export {OutcomeShortHand, AssetOutcomeShortHand, computeOutcome} from '../test/test-helpers';
