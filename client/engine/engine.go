@@ -252,22 +252,23 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	}
 
-	for _, entry := range message.LedgerProposals {
+	for _, entry := range message.LedgerProposals { // The ledger protocol requires us to process these proposals in turnNum order.
+		// Here we rely on the sender having packed them into the message in that order, and do not apply any checks or sorting of our own.
 		id := getProposalObjectiveId(entry.Proposal)
-		objective, err := e.store.GetObjectiveById(id)
+		o, err := e.store.GetObjectiveById(id)
 		if err != nil {
 			return EngineEvent{}, err
 		}
-		if objective.GetStatus() == protocols.Completed {
-			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
+		if o.GetStatus() == protocols.Completed {
+			e.logger.Printf("Ignoring payload for complected objective  %s", o.Id())
 			continue
 		}
-		vObjective, isVirtual := objective.(protocols.ProposalReceiver)
-		if !isVirtual {
-			return EngineEvent{}, fmt.Errorf("received a proposal for a non-virtual objective %s", objective.Id())
+		objective, isProposalReceiver := o.(protocols.ProposalReceiver)
+		if !isProposalReceiver {
+			return EngineEvent{}, fmt.Errorf("received a proposal for an objective which cannot receive proposals %s", objective.Id())
 		}
 
-		updatedObjective, err := vObjective.ReceiveProposal(entry)
+		updatedObjective, err := objective.ReceiveProposal(entry)
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -365,7 +366,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 	objectiveId := or.Id(myAddress, chainId)
 	e.logger.Printf("handling new objective request for %s", objectiveId)
 	e.metrics.RecordObjectiveStarted(objectiveId)
-
+	defer or.SignalObjectiveStarted()
 	switch request := or.(type) {
 
 	case virtualfund.ObjectiveRequest:

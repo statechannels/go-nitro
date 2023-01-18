@@ -118,4 +118,6 @@ const (
 // ObjectiveRequest is a request to create a new objective.
 type ObjectiveRequest interface {
 	Id(types.Address, *big.Int) ObjectiveId
+	WaitForObjectiveToStart()
+	SignalObjectiveStarted()
 }

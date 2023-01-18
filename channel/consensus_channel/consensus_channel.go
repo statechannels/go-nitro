@@ -46,7 +46,7 @@ type ConsensusChannel struct {
 	// current represents the "consensus state", signed by both parties
 	current SignedVars
 
-	// a queue of proposed changes which can be applied to the current state
+	// a queue of proposed changes which can be applied to the current state, ordered by TurnNum.
 	proposalQueue []SignedProposal
 }
 
@@ -132,7 +132,7 @@ func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
 
 }
 
-// IsProposedNext returns if the next proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
+// IsProposedNext returns true if the next proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
 func (c *ConsensusChannel) IsProposedNext(g Guarantee) (bool, error) {
 	vars := Vars{TurnNum: c.current.TurnNum, Outcome: c.current.Outcome.clone()}
 
@@ -255,8 +255,9 @@ func (c *ConsensusChannel) Signatures() [2]state.Signature {
 	return c.current.Signatures
 }
 
-// ProposalQueue returns the current queue of proposals.
+// ProposalQueue returns the current queue of proposals, ordered by TurnNum.
 func (c *ConsensusChannel) ProposalQueue() []SignedProposal {
+	// Since c.proposalQueue is already ordered by TurnNum, we can simply return it.
 	return c.proposalQueue
 }
 

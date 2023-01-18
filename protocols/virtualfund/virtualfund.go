@@ -457,7 +457,12 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
-	if !updated.V.PostFundComplete() {
+	// Alice and Bob require a complete post fund round to know that vouchers may be enforced on chain.
+	// Intermediaries do not require the complete post fund, so we allow them to finish the protocol early.
+	// If they need to recover funds, they can force V to close by challenging with the pre fund state.
+	// Alice and Bob may counter-challenge with a postfund state plus a redemption state.
+	// See ADR-0009.
+	if !updated.V.PostFundComplete() && (updated.isAlice() || updated.isBob()) {
 		return &updated, sideEffects, WaitingForCompletePostFund, nil
 	}
 
@@ -654,7 +659,10 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 
 	recipient := ledger.Follower()
 
+	// Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
+	// to create a valid message with ordered proposals:
 	message := protocols.CreateSignedProposalMessage(recipient, connection.Channel.ProposalQueue()...)
+
 	sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	return sideEffects, nil
@@ -733,12 +741,42 @@ type ObjectiveRequest struct {
 	Outcome           outcome.Exit
 	Nonce             uint64
 	AppDefinition     types.Address
+	objectiveStarted  chan struct{}
+}
+
+// NewObjectiveRequest creates a new ObjectiveRequest.
+func NewObjectiveRequest(intermediaries []types.Address,
+	counterparty types.Address,
+	challengeDuration uint32,
+	outcome outcome.Exit,
+	nonce uint64,
+	appDefinition types.Address,
+) ObjectiveRequest {
+	return ObjectiveRequest{
+		Intermediaries:    intermediaries,
+		CounterParty:      counterparty,
+		ChallengeDuration: challengeDuration,
+		Outcome:           outcome,
+		Nonce:             nonce,
+		AppDefinition:     appDefinition,
+		objectiveStarted:  make(chan struct{}),
+	}
 }
 
 // Id returns the objective id for the request.
 func (r ObjectiveRequest) Id(myAddress types.Address, chainId *big.Int) protocols.ObjectiveId {
 	idStr := r.channelID(myAddress).String()
 	return protocols.ObjectiveId(ObjectivePrefix + idStr)
+}
+
+// SignalObjectiveStarted is used by the engine to signal the objective has been started.
+func (r ObjectiveRequest) SignalObjectiveStarted() {
+	close(r.objectiveStarted)
+}
+
+// WaitForObjectiveToStart blocks until the objective starts
+func (r ObjectiveRequest) WaitForObjectiveToStart() {
+	<-r.objectiveStarted
 }
 
 // ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.

@@ -74,7 +74,7 @@ func newTestObjective() (Objective, error) {
 	getConsensusChannel := func(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
 		return cc, nil
 	}
-	request := ObjectiveRequest{ChannelId: cc.Id}
+	request := NewObjectiveRequest(cc.Id)
 	// Assert that valid constructor args do not result in error
 	o, err := NewObjective(request, true, getConsensusChannel)
 	if err != nil {

@@ -197,7 +197,7 @@ func ConstructObjectiveFromPayload(
 			return Objective{}, err
 		}
 		return NewObjective(
-			ObjectiveRequest{cId},
+			NewObjectiveRequest(cId),
 			preapprove,
 			myAddress,
 			latestVoucherAmount,
@@ -227,7 +227,7 @@ func ConstructObjectiveFromPayload(
 		}
 
 		return NewObjective(
-			ObjectiveRequest{ss.ChannelId()},
+			NewObjectiveRequest(ss.ChannelId()),
 			preapprove,
 			myAddress,
 			latestVoucherAmount,
@@ -476,7 +476,11 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
 		}
 		recipient := ledger.Follower()
+
+		// Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
+		// to create a valid message with ordered proposals:
 		message := protocols.CreateSignedProposalMessage(recipient, ledger.ProposalQueue()...)
+
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	} else {
@@ -689,7 +693,16 @@ func isZero(sig state.Signature) bool {
 
 // ObjectiveRequest represents a request to create a new virtual defund objective.
 type ObjectiveRequest struct {
-	ChannelId types.Destination
+	ChannelId        types.Destination
+	objectiveStarted chan struct{}
+}
+
+// NewObjectiveRequest creates a new ObjectiveRequest.
+func NewObjectiveRequest(channelId types.Destination) ObjectiveRequest {
+	return ObjectiveRequest{
+		ChannelId:        channelId,
+		objectiveStarted: make(chan struct{}),
+	}
 }
 
 // Id returns the objective id for the request.
@@ -733,4 +746,14 @@ func validateFinalOutcome(vFixed state.FixedPart, initialOutcome outcome.SingleA
 		}
 	}
 	return nil
+}
+
+// SignalObjectiveStarted is used by the engine to signal the objective has been started.
+func (r ObjectiveRequest) SignalObjectiveStarted() {
+	close(r.objectiveStarted)
+}
+
+// WaitForObjectiveToStart blocks until the objective starts
+func (r ObjectiveRequest) WaitForObjectiveToStart() {
+	<-r.objectiveStarted
 }

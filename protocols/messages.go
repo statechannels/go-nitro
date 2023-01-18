@@ -1,9 +1,7 @@
 package protocols
 
 import (
-	"bytes"
 	"encoding/json"
-	"sort"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/payments"
@@ -48,27 +46,6 @@ type Message struct {
 	Payments []payments.Voucher
 	// RejectedObjectives is a collection of objectives that have been rejected.
 	RejectedObjectives []ObjectiveId
-}
-
-// SortedProposals sorts the proposals by channelId and then by turn number.
-func (m Message) SortedProposals() []consensus_channel.SignedProposal {
-	signedProposals := make([]consensus_channel.SignedProposal, len(m.LedgerProposals))
-	copy(signedProposals, m.LedgerProposals)
-
-	sort.Slice(signedProposals, func(i, j int) bool {
-		cId1, turnNum1 := signedProposals[i].ChannelID(), signedProposals[i].TurnNum
-		cId2, turnNum2 := signedProposals[j].ChannelID(), signedProposals[j].TurnNum
-
-		cIdCompare := bytes.Compare(cId1.Bytes(), cId2.Bytes())
-
-		if sameChannel := cIdCompare == 0; sameChannel {
-			return turnNum1 < turnNum2
-		} else {
-			return cIdCompare < 0
-		}
-	})
-
-	return signedProposals
 }
 
 // Serialize serializes the message into a string.
@@ -133,8 +110,9 @@ func CreateRejectionNoticeMessage(oId ObjectiveId, recipients ...types.Address) 
 	return messages
 }
 
-// CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
-// It contains the provided signed proposals and any proposals in the proposal queue.
+// CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger channel.
+// The proposals MUST be sorted by turnNum
+// since the ledger protocol relies on the message receipient processing the proposals in that order. See ADR 4.
 func CreateSignedProposalMessage(recipient types.Address, proposals ...consensus_channel.SignedProposal) Message {
 	msg := Message{To: recipient, LedgerProposals: proposals}
 	return msg
@@ -205,14 +183,13 @@ func (m Message) Summarize() MessageSummary {
 	}
 
 	s.ProposalSummaries = make([]ProposalSummary, len(m.LedgerProposals))
-	for i, p := range m.SortedProposals() {
+	for i, p := range m.LedgerProposals {
 		s.ProposalSummaries[i] = ProposalSummary{
 			ObjectiveId:  string(GetProposalObjectiveId(p.Proposal)),
 			LedgerId:     p.ChannelID().String(),
 			TurnNum:      p.TurnNum,
 			ProposalType: string(p.Proposal.Type())}
 	}
-
 	s.Payments = make([]PaymentSummary, len(m.Payments))
 	for i, p := range m.Payments {
 		s.Payments[i] = PaymentSummary{Amount: p.Amount.Uint64(), ChannelId: p.ChannelId.String()}
