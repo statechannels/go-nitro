@@ -58,15 +58,15 @@ func TestEthChainServiceFEVM(t *testing.T) {
 		panic(err)
 	}
 
-	client, err := ethclient.Dial("https://wallaby.node.glif.io/rpc/v0")
+	client, err := ethclient.Dial("https://filecoin-hyperspace.chainstacklabs.com/rpc/v0")
 
 	if err != nil {
 		t.Fatal(err)
 	}
-	wallabyChainId := big.NewInt(31415)
+	hyperspaceChainId := big.NewInt(3141)
 	// When submitting a transaction it's signed against a specific chain id
 	// To get the correct signature we need to use the correct chain id that wallaby is expecting
-	txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, wallabyChainId)
+	txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, hyperspaceChainId)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,8 +76,9 @@ func TestEthChainServiceFEVM(t *testing.T) {
 
 	// This is the deployed contract on wallaby
 	// If wallaby gets reset this will need to be redeployed by running:
-	// WALLABY_DEPLOYER_PK="f4d69c36885541f56f4728ddc002a6fa2fcb26c9f608910310a776c83b7fde47" npx hardhat deploy --network wallaby --deploy-scripts ./hardhat-deploy-fvm --reset
+	// WALLABY_DEPLOYER_PK="f4d69c36885541f56f4728ddc002a6fa2fcb26c9f608910310a776c83b7fde47" npx hardhat deploy --network hyperspace --deploy-scripts ./hardhat-deploy-fvm --reset
 	// The key "f4d69c36885541f56f4728ddc002a6fa2fcb26c9f608910310a776c83b7fde47" is 0th account from the  WALLABY_MNEMONIC and WALLABY_HD_PATH
+	// (But the hardhat deploy script actually ends up using account 0xE39dce95b1A924E2472E24C20C55eA3559a09251 or t410f4oo45fnrvesoerzoetbayvpkgvm2besropxbvxi)
 	// It should be prefunded after every wallaby reset.
 	naAddress := common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3")
 	caAddress := common.Address{}  // TODO use proper address
