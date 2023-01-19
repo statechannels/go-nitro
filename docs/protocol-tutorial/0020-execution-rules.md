@@ -42,10 +42,14 @@ interface IForceMoveApp is INitroTypes {
         FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
-    ) external pure;
+    ) external view;
 }
 
 ```
+
+!!! info
+
+    Although the above interface allows for a `view` function, we recommend that you use a `pure` function wherever possible. Doing so makes the execution rules easier to reason about and verify.
 
 ### Auxiliary application rules
 

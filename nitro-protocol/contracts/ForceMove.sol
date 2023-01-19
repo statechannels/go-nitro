@@ -223,7 +223,7 @@ contract ForceMove is IForceMove, StatusManager {
         FixedPart memory fixedPart,
         SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate
-    ) internal pure {
+    ) internal view {
         IForceMoveApp(fixedPart.appDefinition).requireStateSupported(
             fixedPart,
             recoverVariableParts(fixedPart, proof),

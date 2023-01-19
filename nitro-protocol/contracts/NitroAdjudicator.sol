@@ -102,7 +102,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata proof,
         SignedVariablePart calldata candidate
-    ) external pure {
+    ) external view {
         return
             IForceMoveApp(fixedPart.appDefinition).requireStateSupported(
                 fixedPart,
