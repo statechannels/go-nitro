@@ -10,7 +10,6 @@ import (
 
 func ConvertFixedPart(fp state.FixedPart) INitroTypesFixedPart {
 	return INitroTypesFixedPart{
-		ChainId:           fp.ChainId,
 		Participants:      fp.Participants,
 		ChannelNonce:      fp.ChannelNonce,
 		AppDefinition:     fp.AppDefinition,

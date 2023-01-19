@@ -120,7 +120,6 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	}
 
 	var concludeState = state.State{
-		ChainId: wallabyChainId,
 		Participants: []types.Address{
 			Alice.Address(),
 			Bob.Address(),

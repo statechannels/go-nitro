@@ -49,8 +49,6 @@ const addresses = {
 };
 
 // Constants for this test suite
-const chainId = process.env.CHAIN_NETWORK_ID;
-
 const nParticipants = 3;
 const {participants} = generateParticipants(nParticipants);
 
@@ -70,7 +68,7 @@ describe('transferAllAssets', () => {
     description    | setOutcome                      | heldBefore                      | newOutcome | heldAfter                       | payouts                         | reasonString
     ${description} | ${{ETH: {A: 1}, ERC20: {A: 2}}} | ${{ETH: {c: 1}, ERC20: {c: 2}}} | ${{}}      | ${{ETH: {c: 0}, ERC20: {c: 0}}} | ${{ETH: {A: 1}, ERC20: {A: 2}}} | ${undefined}
   `(
-    '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
+    '$description', // For the purposes of this test, participants are fixed, making channelId 1-1 with channelNonce
     async ({
       setOutcome,
       heldBefore,
@@ -87,7 +85,6 @@ describe('transferAllAssets', () => {
       reasonString: string;
     }) => {
       const channelId = getChannelId({
-        chainId,
         channelNonce,
         participants,
         appDefinition,

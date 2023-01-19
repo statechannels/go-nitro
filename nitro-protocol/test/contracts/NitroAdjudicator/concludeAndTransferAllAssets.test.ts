@@ -44,8 +44,6 @@ const token = setupContract(
 ) as unknown as Token & Contract;
 
 const provider = getTestProvider();
-const chainId = process.env.CHAIN_NETWORK_ID;
-
 const nParticipants = 3;
 const {wallets, participants} = generateParticipants(nParticipants);
 
@@ -129,7 +127,7 @@ describe('concludeAndTransferAllAssets', () => {
     ${accepts7}  | ${fiftyPayouts}            | ${{ERC20: {c: 50}}}  | ${{ERC20: {c: 0}}} | ${{}}      | ${fiftyPayouts}            | ${undefined}
     ${accepts8}  | ${oneHundredPayouts}       | ${{ERC20: {c: 100}}} | ${{ERC20: {c: 0}}} | ${{}}      | ${oneHundredPayouts}       | ${undefined}
   `(
-    '$description', // For the purposes of this test, chainId and participants are fixed, making channelId 1-1 with channelNonce
+    '$description', // For the purposes of this test, participants are fixed, making channelId 1-1 with channelNonce
     async ({
       outcomeShortHand,
       heldBefore,
@@ -147,7 +145,6 @@ describe('concludeAndTransferAllAssets', () => {
       reasonString: string;
     }) => {
       const fixedPart: FixedPart = {
-        chainId,
         participants,
         channelNonce,
         appDefinition,
@@ -201,7 +198,6 @@ describe('concludeAndTransferAllAssets', () => {
       for (let i = 1; i <= numStates; i++) {
         states.push({
           isFinal: true,
-          chainId,
           participants,
           channelNonce,
           outcome,

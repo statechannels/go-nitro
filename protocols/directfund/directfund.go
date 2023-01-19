@@ -58,7 +58,6 @@ type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger
 func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, chainId *big.Int, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 
 	initialState := state.State{
-		ChainId:           chainId,
 		Participants:      []types.Address{myAddress, request.CounterParty},
 		ChannelNonce:      request.Nonce,
 		AppDefinition:     request.AppDefinition,
@@ -484,10 +483,11 @@ func (r ObjectiveRequest) WaitForObjectiveToStart() {
 
 // Id returns the objective id for the request.
 func (r ObjectiveRequest) Id(myAddress types.Address, chainId *big.Int) protocols.ObjectiveId {
-	fixedPart := state.FixedPart{ChainId: chainId,
+	fixedPart := state.FixedPart{
 		Participants:      []types.Address{myAddress, r.CounterParty},
 		ChannelNonce:      r.Nonce,
-		ChallengeDuration: r.ChallengeDuration}
+		ChallengeDuration: r.ChallengeDuration,
+	}
 
 	channelId := fixedPart.ChannelId()
 	return protocols.ObjectiveId(ObjectivePrefix + channelId.String())
@@ -502,7 +502,6 @@ type ObjectiveResponse struct {
 // Response computes and returns the appropriate response from the request.
 func (r ObjectiveRequest) Response(myAddress types.Address, chainId *big.Int) ObjectiveResponse {
 	fixedPart := state.FixedPart{
-		ChainId:           chainId,
 		Participants:      []types.Address{myAddress, r.CounterParty},
 		ChannelNonce:      r.Nonce,
 		ChallengeDuration: r.ChallengeDuration,

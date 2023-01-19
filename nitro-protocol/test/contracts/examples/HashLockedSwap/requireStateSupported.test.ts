@@ -46,7 +46,6 @@ const addresses = {
 };
 
 const provider = getTestProvider();
-const chainId = process.env.CHAIN_NETWORK_ID;
 
 const nParticipants = 2;
 const {wallets, participants} = generateParticipants(nParticipants);
@@ -136,7 +135,6 @@ describe('requireStateSupported', () => {
         {
           turnNum: turnNumA,
           isFinal: false,
-          chainId,
           channelNonce,
           participants,
           challengeDuration,
@@ -147,7 +145,6 @@ describe('requireStateSupported', () => {
         {
           turnNum: turnNumB,
           isFinal: false,
-          chainId,
           channelNonce,
           participants,
           challengeDuration,

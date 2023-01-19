@@ -114,7 +114,6 @@ func runDepositAndConcludeTest(t *testing.T, usePolling bool) {
 	out := cs.EventFeed()
 
 	var concludeState = state.State{
-		ChainId: big.NewInt(1337),
 		Participants: []types.Address{
 			Alice.Address(),
 			Bob.Address(),

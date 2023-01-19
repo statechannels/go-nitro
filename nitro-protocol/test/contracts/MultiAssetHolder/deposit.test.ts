@@ -37,7 +37,6 @@ const badToken = setupContract(
 
 const signer0 = getTestProvider().getSigner(0); // Convention matches setupContract function
 let signer0Address: string;
-const chainId = process.env.CHAIN_NETWORK_ID;
 const participants: string[] = [];
 const challengeDuration = 0x1000;
 let appDefinition: string;
@@ -93,7 +92,6 @@ describe('deposit', () => {
     heldAfter = BigNumber.from(heldAfter);
 
     const destination = getChannelId({
-      chainId,
       channelNonce,
       participants,
       appDefinition,

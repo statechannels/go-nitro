@@ -26,7 +26,6 @@ import {expectSucceed} from '../../../expect-succeed';
 const provider = getTestProvider();
 let Consensus: Contract & TESTConsensus;
 
-const chainId = process.env.CHAIN_NETWORK_ID;
 const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
 const defaultOutcome: Outcome = [{asset, allocations: [], metadata: '0x'}];
@@ -73,7 +72,6 @@ describe('requireConsensus', () => {
       const state: State = {
         turnNum: 0,
         isFinal: false,
-        chainId,
         participants,
         channelNonce,
         challengeDuration,

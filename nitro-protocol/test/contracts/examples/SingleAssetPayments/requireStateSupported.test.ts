@@ -34,8 +34,6 @@ const addresses = {
   B: randomExternalDestination(),
 };
 
-const chainId = process.env.CHAIN_NETWORK_ID;
-
 const nParticipants = 2;
 const {wallets, participants} = generateParticipants(nParticipants);
 
@@ -130,7 +128,6 @@ describe('requireStateSupported', () => {
         {
           turnNum: turnNums[0],
           isFinal: false,
-          chainId,
           channelNonce,
           participants,
           challengeDuration,
@@ -141,7 +138,6 @@ describe('requireStateSupported', () => {
         {
           turnNum: turnNums[1],
           isFinal: false,
-          chainId,
           channelNonce,
           participants,
           challengeDuration,

@@ -24,7 +24,6 @@ const state: State = {
   appDefinition: ethers.constants.AddressZero,
   appData: '0x00',
   outcome: [],
-  chainId: '0x1',
   channelNonce: getRandomNonce('transactions'),
   participants: [walletA.address, walletB.address], // 2 participants is the most common usecase
 
@@ -95,7 +94,6 @@ describe('transaction-generators', () => {
             appDefinition: ethers.constants.AddressZero,
             appData: '0x00',
             outcome: [],
-            chainId: '0x1',
             channelNonce: getRandomNonce('transactions'),
             participants: [walletA.address, wallet2.address], // 2 participants is the most common usecase
             challengeDuration: 0x0,
@@ -109,7 +107,6 @@ describe('transaction-generators', () => {
             appDefinition: ethers.constants.AddressZero,
             appData: '0x00',
             outcome: [],
-            chainId: '0x1',
             channelNonce: getRandomNonce('transactions'),
             participants: [walletA.address, wallet2.address], // 2 participants is the most common usecase
             challengeDuration: 0x0,

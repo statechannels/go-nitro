@@ -128,23 +128,12 @@ library NitroUtils {
     {
         channelId = keccak256(
             abi.encode(
-                fixedPart.chainId,
                 fixedPart.participants,
                 fixedPart.channelNonce,
                 fixedPart.appDefinition,
                 fixedPart.challengeDuration
             )
         );
-    }
-
-    function getChainID() internal view returns (uint256) {
-        uint256 id;
-        /* solhint-disable no-inline-assembly */
-        assembly {
-            id := chainid()
-        }
-        /* solhint-disable no-inline-assembly */
-        return id;
     }
 
     // *****************

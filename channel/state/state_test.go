@@ -12,13 +12,13 @@ import (
 )
 
 // The following constants are generated from our ts nitro-protocol package
-var correctChannelId = common.HexToHash(`6c39f3700c1d9a3dabcca3397083bf1460adbd36628c516eb9a05f7577cb5134`)
-var correctStateHash = common.HexToHash(`a5b67e0f29a8d82f5f758f205d11224c02a043228bb9201ae633e75e18c5ff9a`)
+var correctChannelId = common.HexToHash(`3f9dfeabcc41d1618dd0711102018ab6c1a1d7c25111a425401c2e524eb073a2`)
+var correctStateHash = common.HexToHash(`96033734eedd5f956bf74ac212a7a8a8419778bcfeb5f381f9fb84487cb5a0b1`)
 var signerPrivateKey = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
 var signerAddress = common.HexToAddress(`F5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)
 var correctSignature = Signature{
-	R: common.Hex2Bytes(`be2d27ae0892e2981b31e017c8cb6f99bc0ccd1ae7d1b06fc69f1311f61c3e01`),
-	S: common.Hex2Bytes(`21420562c8227a3aa3b8e15574f93fa62b64f429ae727578dceea37f6083742e`),
+	R: common.Hex2Bytes(`5e5faf7646cccc228a9d3a93995fe069f64caf743665312839ef29d91fc0b4da`),
+	S: common.Hex2Bytes(`742c49e4796540c23d1b3b36bf7802fea310debd4184cb12b4545d9cc345b267`),
 	V: byte(27),
 }
 
@@ -100,7 +100,6 @@ func TestEqualParticipants(t *testing.T) {
 
 func TestEqual(t *testing.T) {
 	want := State{
-		ChainId: TestState.ChainId,
 		Participants: []types.Address{
 			common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`), // private key caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634
 			common.HexToAddress(`0x760bf27cd45036a6C486802D30B5D90CfFBE31FE`), // private key 62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2

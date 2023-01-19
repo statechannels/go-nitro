@@ -18,7 +18,6 @@ let consensusApp: Contract;
 
 const nParticipants = 3;
 const {wallets, participants} = generateParticipants(nParticipants);
-const chainId = process.env.CHAIN_NETWORK_ID;
 const challengeDuration = 0x100;
 
 beforeAll(async () => {
@@ -28,7 +27,6 @@ beforeAll(async () => {
 const state: State = {
   turnNum: 5,
   isFinal: false,
-  chainId,
   channelNonce: BigNumber.from(8).toHexString(),
   participants,
   challengeDuration,

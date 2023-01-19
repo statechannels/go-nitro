@@ -39,7 +39,6 @@ let ForceMove: Contract;
 const participantsNum = 3;
 const {wallets, participants} = generateParticipants(participantsNum);
 
-const chainId = process.env.CHAIN_NETWORK_ID;
 const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
 const defaultOutcome: Outcome = [{asset, allocations: [], metadata: '0x'}];
@@ -108,7 +107,6 @@ describe('checkpoint', () => {
     const states: State[] = appDatas.map((data, idx) => ({
       turnNum: largestTurnNum - appDatas.length + 1 + idx,
       isFinal: false,
-      chainId,
       channelNonce,
       participants,
       challengeDuration,
@@ -135,7 +133,6 @@ describe('checkpoint', () => {
       : {
           turnNum: turnNumRecord,
           isFinal: false,
-          chainId,
           channelNonce,
           participants,
           outcome,
