@@ -13,23 +13,24 @@ import {
   State,
 } from '../../../src/contract/state';
 import {
-  computeOutcome,
   generateParticipants,
   getCountingAppContractAddress,
-  getRandomNonce,
   getTestProvider,
-  OutcomeShortHand,
   randomChannelId,
   randomExternalDestination,
-  replaceAddressesAndBigNumberify,
   setupContract,
 } from '../../test-helpers';
-import {signStates, channelDataToStatus, bindSignatures} from '../../../src';
+import {signStates, channelDataToStatus, bindSignatures, OutcomeShortHand} from '../../../src';
 import {MAGIC_ADDRESS_INDICATING_ETH, NITRO_MAX_GAS} from '../../../src/transactions';
 import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
 import {Token} from '../../../typechain-types/Token';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
+import {
+  computeOutcome,
+  getRandomNonce,
+  replaceAddressesAndBigNumberify,
+} from '../../../src/helpers';
 
 const testNitroAdjudicator = setupContract(
   getTestProvider(),

@@ -23,7 +23,7 @@ import {
   TURN_NUM_RECORD_NOT_INCREASED,
   COUNTING_APP_INVALID_TRANSITION,
 } from '../../../src/contract/transaction-creators/revert-reasons';
-import {Outcome, SignedState} from '../../../src/index';
+import {getRandomNonce, Outcome, SignedState} from '../../../src/index';
 import {
   bindSignatures,
   signChallengeMessage,
@@ -35,7 +35,6 @@ import {
   clearedChallengeFingerprint,
   finalizedFingerprint,
   getCountingAppContractAddress,
-  getRandomNonce,
   getTestProvider,
   largeOutcome,
   nonParticipant,

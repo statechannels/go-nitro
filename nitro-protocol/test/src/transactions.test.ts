@@ -1,7 +1,7 @@
 import {ethers, Wallet} from 'ethers';
 import {it} from '@jest/globals';
 
-import {SignedState, State} from '../../src';
+import {getRandomNonce, SignedState, State} from '../../src';
 import {MAX_OUTCOME_ITEMS} from '../../src/contract/outcome';
 import {signState} from '../../src/signatures';
 import {
@@ -11,7 +11,7 @@ import {
   createSignatureArguments,
   MAX_TX_DATA_SIZE,
 } from '../../src/transactions';
-import {getRandomNonce, largeOutcome} from '../test-helpers';
+import {largeOutcome} from '../test-helpers';
 
 const walletA = Wallet.createRandom();
 const walletB = Wallet.createRandom();

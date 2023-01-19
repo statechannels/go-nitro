@@ -1,9 +1,9 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, Wallet, ethers} from 'ethers';
 
-import {getRandomNonce, getTestProvider, setupContract} from '../../test-helpers';
+import {getTestProvider, setupContract} from '../../test-helpers';
 import NitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
-import {getVariablePart, State, getFixedPart} from '../../../src';
+import {getVariablePart, State, getFixedPart, getRandomNonce} from '../../../src';
 import {FixedPart, SignedVariablePart} from '../../../src/contract/state';
 
 const provider = getTestProvider();

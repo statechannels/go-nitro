@@ -1,6 +1,7 @@
 import {Contract, Wallet, ethers, utils} from 'ethers';
 
 import TrivialAppArtifact from '../../../artifacts/contracts/TrivialApp.sol/TrivialApp.json';
+import {getRandomNonce} from '../../../src/helpers';
 import {
   FixedPart,
   getFixedPart,
@@ -10,7 +11,7 @@ import {
   VariablePart,
 } from '../../../src/contract/state';
 import {expectSucceed} from '../../expect-succeed';
-import {getRandomNonce, getTestProvider, setupContract} from '../../test-helpers';
+import {getTestProvider, setupContract} from '../../test-helpers';
 
 const provider = getTestProvider();
 let trivialApp: Contract;

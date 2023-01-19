@@ -6,16 +6,12 @@ const {AddressZero} = ethers.constants;
 import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
 import BadTokenArtifact from '../../../artifacts/contracts/test/BadToken.sol/BadToken.json';
 import {getChannelId} from '../../../src/contract/channel';
-import {
-  getCountingAppContractAddress,
-  getRandomNonce,
-  getTestProvider,
-  setupContract,
-} from '../../test-helpers';
+import {getCountingAppContractAddress, getTestProvider, setupContract} from '../../test-helpers';
 import {Token, BadToken, TESTNitroAdjudicator} from '../../../typechain-types';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../src/transactions';
+import {getRandomNonce} from '../../../src/helpers';
 const provider = getTestProvider();
 const testNitroAdjudicator = setupContract(
   provider,

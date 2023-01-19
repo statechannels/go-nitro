@@ -3,15 +3,11 @@ import {BigNumber, Contract, Wallet} from 'ethers';
 import {expectRevert} from '@statechannels/devtools';
 
 import testConsensusArtifact from '../../../../artifacts/contracts/test/TESTConsensus.sol/TESTConsensus.json';
-import {
-  generateParticipants,
-  getRandomNonce,
-  getTestProvider,
-  setupContract,
-} from '../../../test-helpers';
+import {generateParticipants, getTestProvider, setupContract} from '../../../test-helpers';
 import {TESTConsensus} from '../../../../typechain-types';
 import {
   getFixedPart,
+  getRandomNonce,
   Outcome,
   shortenedToRecoveredVariableParts,
   State,

@@ -24,12 +24,11 @@ import {
   finalizedFingerprint,
   generateParticipants,
   getCountingAppContractAddress,
-  getRandomNonce,
   getTestProvider,
   ongoingChallengeFingerprint,
   setupContract,
 } from '../../test-helpers';
-import {bindSignatures, signStates} from '../../../src';
+import {bindSignatures, getRandomNonce, signStates} from '../../../src';
 
 let ForceMove: Contract;
 const provider = getTestProvider();
