@@ -72,6 +72,11 @@ const config: HardhatUserConfig & {watcher: any} = {
       accounts: wallabyDeployerPk ? [wallabyDeployerPk] : [],
       chainId: 31415,
     },
+    hyperspace: {
+      url: 'https://filecoin-hyperspace.chainstacklabs.com/rpc/v0',
+      accounts: wallabyDeployerPk ? [wallabyDeployerPk] : [],
+      chainId: 3141,
+    },
   },
 };
 
