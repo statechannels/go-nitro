@@ -305,7 +305,7 @@ func (ecs *EthChainService) fetchLogsFromChain(from *big.Int, to *big.Int) ([]et
 		query := ethereum.FilterQuery{
 			Addresses: []common.Address{ecs.naAddress},
 			FromBlock: fromBlock,
-			ToBlock:   toBlock,
+			ToBlock:   nextBlock,
 		}
 
 		fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
