@@ -12,6 +12,8 @@ module.exports = async (hre: HardhatRuntimeEnvironment) => {
   try {
     console.log('Working on chain id #', await getChainId());
 
+    console.log('deployer"', deployer);
+
     await deploy('NitroAdjudicator', {
       from: deployer,
       args: [],
