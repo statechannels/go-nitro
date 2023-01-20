@@ -298,7 +298,7 @@ func (ecs *EthChainService) fetchLogsFromChain(from *big.Int, to *big.Int) ([]et
 
 	// Big.ints make it hard to parse but this is the condition:
 	// toBlock - fromBlock > MAX_QUERY_BLOCK_RANGE
-	for big.NewInt(0).Sub(toBlock, from).Cmp(big.NewInt(MAX_QUERY_BLOCK_RANGE)) > 0 {
+	for big.NewInt(0).Sub(toBlock, fromBlock).Cmp(big.NewInt(MAX_QUERY_BLOCK_RANGE)) > 0 {
 
 		nextBlock := big.NewInt(0).Add(fromBlock, big.NewInt(MAX_QUERY_BLOCK_RANGE))
 
