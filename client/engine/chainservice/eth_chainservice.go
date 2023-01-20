@@ -231,7 +231,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			ecs.out <- event
 
 		default:
-			ecs.fatalF("Unknown chain event")
+			ecs.fatalF("Unknown chain event %+v", l)
 		}
 	}
 
