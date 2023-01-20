@@ -295,34 +295,17 @@ type blockRange struct {
 // splitBlockRange takes a BlockRange and chunks it into a slice of BlockRanges, each having an interval no larger than the passed interval.
 func splitBlockRange(total blockRange, maxInterval *big.Int) []blockRange {
 
-	totalInterval := big.NewInt(0).Sub(total.to, total.from)
-	// TODO check totalInterval is positive
+	slice := make([]blockRange, 0) // TODO precompute a capacity by dividing total interval by max interval
 
-	numChunksBig, remainderInterval := big.NewInt(0).DivMod(totalInterval, maxInterval, big.NewInt(0))
-
-	numChunks := numChunksBig.Uint64() // this function will only work if numChunks is representable as a unit
-
-	if remainderInterval.Cmp(big.NewInt(0)) > 0 {
-		numChunks++
-	}
-
-	slice := make([]blockRange, numChunks)
-
-	i := 0
-	for i < len(slice)-1 {
-		big.NewInt(0).Mul(maxInterval, big.NewInt(int64(i)))
-		slice[i] = blockRange{
-			from: big.NewInt(0).Add(total.from, big.NewInt(0).Mul(maxInterval, big.NewInt(int64(i)))),
-			to:   big.NewInt(0).Add(total.from, big.NewInt(0).Mul(maxInterval, big.NewInt(int64(i+1)))),
-		}
-		i++
-	}
-
-	if remainderInterval.Cmp(big.NewInt(0)) > 0 {
-		slice[i] = blockRange{
-			from: big.NewInt(0).Add(total.from, big.NewInt(0).Mul(maxInterval, big.NewInt(int64(i)))),
-			to:   big.NewInt(0).Set(total.to),
-		}
+	start := big.NewInt(0).Set(total.from)
+	finish := types.Min(total.to, big.NewInt(0).Add(start, maxInterval))
+	for finish.Cmp(total.to) < 0 { // finish < total.to
+		finish = types.Min(total.to, big.NewInt(0).Add(start, maxInterval))
+		slice = append(slice, blockRange{
+			from: big.NewInt(0).Set(start),
+			to:   big.NewInt(0).Set(finish),
+		})
+		start = big.NewInt(0).Add(finish, big.NewInt(1))
 	}
 
 	return slice
