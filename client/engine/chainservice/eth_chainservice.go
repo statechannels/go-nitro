@@ -303,7 +303,7 @@ func splitBlockRange(total blockRange, maxInterval *big.Int) []blockRange {
 
 	start := big.NewInt(0).Set(total.from)
 	finish := types.Min(total.to, big.NewInt(0).Add(start, maxInterval))
-	for finish.Cmp(total.to) < 0 { // finish < total.to
+	for finish.Cmp(start) >= 0 { // finish >= start
 		slice = append(slice, blockRange{
 			from: big.NewInt(0).Set(start),
 			to:   big.NewInt(0).Set(finish),
