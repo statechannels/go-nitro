@@ -45,7 +45,7 @@ func TestSplitBlockRange(t *testing.T) {
 			),
 			toBlockRanges(tc.expectation),
 			cmp.AllowUnexported(blockRange{}, big.Int{})); diff != "" {
-			t.Fatalf("splitBlockRange output incorrect on test case %v: %v", i, diff)
+			t.Fatalf("splitBlockRange output mismatch on test case %v. (-want +got):\n%s", i, diff)
 		}
 	}
 
