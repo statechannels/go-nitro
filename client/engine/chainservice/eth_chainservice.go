@@ -287,6 +287,48 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 
 }
 
+type BlockRange struct {
+	from *big.Int
+	to   *big.Int
+}
+
+// splitBlockRange takes a BlockRange and chunks it into a slice of BlockRanges, each having an interval no larger than the passed interval.
+func splitBlockRange(total BlockRange, maxInterval *big.Int) []BlockRange {
+
+	totalInterval := big.NewInt(0).Sub(total.to, total.from)
+	// TODO check totalInterval is positive
+
+	numChunksBig, remainderInterval := big.NewInt(0).DivMod(totalInterval, maxInterval, big.NewInt(0))
+
+	numChunks := numChunksBig.Uint64() // this function will only work if numChunks is representable as a unit
+
+	if remainderInterval.Cmp(big.NewInt(0)) > 0 {
+		numChunks++
+	}
+
+	slice := make([]BlockRange, numChunks)
+
+	i := 0
+	for i < len(slice)-1 {
+		big.NewInt(0).Mul(maxInterval, big.NewInt(int64(i)))
+		slice[i] = BlockRange{
+			from: big.NewInt(0).Add(total.from, big.NewInt(0).Mul(maxInterval, big.NewInt(int64(i)))),
+			to:   big.NewInt(0).Add(total.from, big.NewInt(0).Mul(maxInterval, big.NewInt(int64(i+1)))),
+		}
+		i++
+	}
+
+	if remainderInterval.Cmp(big.NewInt(0)) > 0 {
+		slice[i] = BlockRange{
+			from: big.NewInt(0).Add(total.from, big.NewInt(0).Mul(maxInterval, big.NewInt(int64(i)))),
+			to:   big.NewInt(0).Set(total.to),
+		}
+	}
+
+	return slice
+
+}
+
 // fetchLogsFromChain fetches logs from the chain from the given block number to the given block number.
 // It splits the query into multiple queries if the range is too large.
 func (ecs *EthChainService) fetchLogsFromChain(from *big.Int, to *big.Int) ([]ethTypes.Log, error) {
