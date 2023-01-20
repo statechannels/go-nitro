@@ -295,17 +295,21 @@ type blockRange struct {
 // splitBlockRange takes a BlockRange and chunks it into a slice of BlockRanges, each having an interval no larger than the passed interval.
 func splitBlockRange(total blockRange, maxInterval *big.Int) []blockRange {
 
+	if total.from.Cmp(total.to) > 0 {
+		panic(fmt.Sprintf("splitBlockRange: from > to. from = %v, to = %v", total.from, total.to))
+	}
+
 	slice := make([]blockRange, 0) // TODO precompute a capacity by dividing total interval by max interval
 
 	start := big.NewInt(0).Set(total.from)
 	finish := types.Min(total.to, big.NewInt(0).Add(start, maxInterval))
 	for finish.Cmp(total.to) < 0 { // finish < total.to
-		finish = types.Min(total.to, big.NewInt(0).Add(start, maxInterval))
 		slice = append(slice, blockRange{
 			from: big.NewInt(0).Set(start),
 			to:   big.NewInt(0).Set(finish),
 		})
 		start = big.NewInt(0).Add(finish, big.NewInt(1))
+		finish = types.Min(total.to, big.NewInt(0).Add(start, maxInterval))
 	}
 
 	return slice
@@ -316,21 +320,16 @@ func splitBlockRange(total blockRange, maxInterval *big.Int) []blockRange {
 // It splits the query into multiple queries if the range is too large.
 func (ecs *EthChainService) fetchLogsFromChain(from *big.Int, to *big.Int) ([]ethTypes.Log, error) {
 
-	fromBlock := big.NewInt(0).Set(from)
-	toBlock := big.NewInt(0).Set(to)
-
 	logs := make([]ethTypes.Log, 0)
 
-	// Big.ints make it hard to parse but this is the condition:
-	// toBlock - fromBlock > MAX_QUERY_BLOCK_RANGE
-	for big.NewInt(0).Sub(toBlock, fromBlock).Cmp(big.NewInt(MAX_QUERY_BLOCK_RANGE)) > 0 {
+	blockRanges := splitBlockRange(blockRange{from, to}, big.NewInt(int64(MAX_QUERY_BLOCK_RANGE)))
 
-		nextBlock := big.NewInt(0).Add(fromBlock, big.NewInt(MAX_QUERY_BLOCK_RANGE))
+	for _, bR := range blockRanges {
 
 		query := ethereum.FilterQuery{
 			Addresses: []common.Address{ecs.naAddress},
-			FromBlock: fromBlock,
-			ToBlock:   nextBlock,
+			FromBlock: bR.from,
+			ToBlock:   bR.to,
 		}
 
 		fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
@@ -340,23 +339,7 @@ func (ecs *EthChainService) fetchLogsFromChain(from *big.Int, to *big.Int) ([]et
 		}
 
 		logs = append(logs, fetchedLogs...)
-		// Update the fromBlock so it's the next block after the last block we fetched
-		fromBlock.Add(nextBlock, big.NewInt(1))
 	}
-
-	// This handles the final query which gets the remaining logs
-	query := ethereum.FilterQuery{
-		Addresses: []common.Address{ecs.naAddress},
-		FromBlock: fromBlock,
-		ToBlock:   toBlock,
-	}
-
-	fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
-	if err != nil {
-		return nil, err
-	}
-
-	logs = append(logs, fetchedLogs...)
 	return logs, nil
 
 }
