@@ -35,6 +35,7 @@ func TestSplitBlockRange(t *testing.T) {
 	testCases := []testCase{
 		{bR{from: 3, to: 7}, 2, []bR{{3, 5}, {6, 7}}},
 		{bR{from: 0, to: 11282}, 5640, []bR{{0, 5640}, {5641, 11281}, {11282, 11282}}},
+		{bR{from: 0, to: 1}, 100, []bR{{0, 1}}},
 	}
 
 	for i, tc := range testCases {
