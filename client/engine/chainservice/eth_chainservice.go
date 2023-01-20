@@ -287,13 +287,13 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 
 }
 
-type BlockRange struct {
+type blockRange struct {
 	from *big.Int
 	to   *big.Int
 }
 
 // splitBlockRange takes a BlockRange and chunks it into a slice of BlockRanges, each having an interval no larger than the passed interval.
-func splitBlockRange(total BlockRange, maxInterval *big.Int) []BlockRange {
+func splitBlockRange(total blockRange, maxInterval *big.Int) []blockRange {
 
 	totalInterval := big.NewInt(0).Sub(total.to, total.from)
 	// TODO check totalInterval is positive
@@ -306,12 +306,12 @@ func splitBlockRange(total BlockRange, maxInterval *big.Int) []BlockRange {
 		numChunks++
 	}
 
-	slice := make([]BlockRange, numChunks)
+	slice := make([]blockRange, numChunks)
 
 	i := 0
 	for i < len(slice)-1 {
 		big.NewInt(0).Mul(maxInterval, big.NewInt(int64(i)))
-		slice[i] = BlockRange{
+		slice[i] = blockRange{
 			from: big.NewInt(0).Add(total.from, big.NewInt(0).Mul(maxInterval, big.NewInt(int64(i)))),
 			to:   big.NewInt(0).Add(total.from, big.NewInt(0).Mul(maxInterval, big.NewInt(int64(i+1)))),
 		}
@@ -319,7 +319,7 @@ func splitBlockRange(total BlockRange, maxInterval *big.Int) []BlockRange {
 	}
 
 	if remainderInterval.Cmp(big.NewInt(0)) > 0 {
-		slice[i] = BlockRange{
+		slice[i] = blockRange{
 			from: big.NewInt(0).Add(total.from, big.NewInt(0).Mul(maxInterval, big.NewInt(int64(i)))),
 			to:   big.NewInt(0).Set(total.to),
 		}
