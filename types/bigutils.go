@@ -28,7 +28,23 @@ func Equal(a *big.Int, b *big.Int) bool {
 	return a.Cmp(b) == 0
 }
 
-// IsZero returns true if a is zero, false otherwise
+// IsZero returns true if a is zero, false otherwise.
 func IsZero(a *big.Int) bool {
 	return a.Cmp(big.NewInt(0)) == 0
+}
+
+// Max returns a if a > b, b otherwise.
+func Max(a *big.Int, b *big.Int) *big.Int {
+	if Gt(a, b) {
+		return a
+	}
+	return b
+}
+
+// Max returns a if a > b, b otherwise.
+func Min(a *big.Int, b *big.Int) *big.Int {
+	if Lt(a, b) {
+		return a
+	}
+	return b
 }
