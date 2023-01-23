@@ -302,14 +302,16 @@ func splitBlockRange(total blockRange, maxInterval *big.Int) []blockRange {
 	slice := make([]blockRange, 0) // TODO precompute a capacity by dividing total interval by max interval
 
 	start := big.NewInt(0).Set(total.from)
-	finish := types.Min(total.to, big.NewInt(0).Add(start, maxInterval))
-	for finish.Cmp(start) >= 0 { // finish >= start
+	for {
+		finish := types.Min(total.to, big.NewInt(0).Add(start, maxInterval))
 		slice = append(slice, blockRange{
 			from: big.NewInt(0).Set(start),
 			to:   big.NewInt(0).Set(finish),
 		})
+		if finish.Cmp(total.to) >= 0 {
+			break
+		}
 		start = big.NewInt(0).Add(finish, big.NewInt(1))
-		finish = types.Min(total.to, big.NewInt(0).Add(start, maxInterval))
 	}
 
 	return slice
