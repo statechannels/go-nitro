@@ -1,7 +1,7 @@
 {
   "deployInfrastructureContracts": {
     "satp": {
-      "NitroAdjudicator": 3360802
+      "NitroAdjudicator": 3360814
     }
   },
   "directlyFundAChannelWithETHFirst": {
