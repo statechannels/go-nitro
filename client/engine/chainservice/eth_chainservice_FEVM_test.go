@@ -2,17 +2,13 @@ package chainservice
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"log"
 	"math/big"
-	"strings"
 	"testing"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -89,9 +85,7 @@ func TestEthChainServiceFEVM(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wrappedClient := &FEVMWorkaroundChain{client, client}
-
-	cs, err := NewEthChainService(wrappedClient, na, naAddress, caAddress, vpaAddress, txSubmitter, NoopLogger{})
+	cs, err := NewEthChainService(client, na, naAddress, caAddress, vpaAddress, txSubmitter, NoopLogger{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,26 +214,4 @@ func TestEthChainServiceFEVM(t *testing.T) {
 
 	}
 
-}
-
-// FEVMWorkaroundChain is an ethChain with a custom implementation of TransactionByHash
-// as a workaround for https://github.com/filecoin-project/ref-fvm/issues/1158
-type FEVMWorkaroundChain struct {
-	ethChain
-	tr ethereum.TransactionReader
-}
-
-func (fwc *FEVMWorkaroundChain) TransactionByHash(ctx context.Context, txHash common.Hash) (tx *ethTypes.Transaction, isPending bool, err error) {
-	tx, pending, err := fwc.tr.TransactionByHash(context.Background(), txHash)
-	if err != nil && strings.Contains(err.Error(), FEVM_PARSE_ERROR) {
-		fmt.Printf("WARNING: Cannot parse transaction, using dummy tx json with asset address of 0x00...")
-		tx := &ethTypes.Transaction{}
-		err := tx.UnmarshalJSON([]byte(DUMMY_TX_DATA))
-		if err != nil {
-
-			panic(err)
-		}
-		return tx, false, nil
-	}
-	return tx, pending, err
 }
