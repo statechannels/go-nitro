@@ -185,5 +185,5 @@ func (c *Client) GetPaymentChannel(id types.Destination) (PaymentChannelInfo, er
 // GetLedgerChannel returns the ledger channel with the given id.
 // If no ledger channel exists with the given id an error is returned.
 func (c *Client) GetLedgerChannel(id types.Destination) (LedgerChannelInfo, error) {
-	return GetLedgerChannelInfo(id, c.store)
+	return getLedgerChannelInfo(id, c.store)
 }

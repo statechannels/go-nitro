@@ -128,9 +128,9 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 	}
 }
 
-// GetLedgerChannelInfo returns the LedgerChannelInfo for the given channel
+// getLedgerChannelInfo returns the LedgerChannelInfo for the given channel
 // It does this by querying the provided store
-func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
+func getLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
 	c, ok := store.GetChannelById(id)
 	if ok {
 
