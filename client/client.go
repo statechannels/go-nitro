@@ -2,10 +2,12 @@
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
+	"errors"
 	"io"
 	"math/big"
 	"math/rand"
 
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -28,6 +30,7 @@ type Client struct {
 	failedObjectives    chan protocols.ObjectiveId
 	receivedVouchers    chan payments.Voucher
 	chainId             *big.Int
+	store               store.Store
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -43,6 +46,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 		panic(err)
 	}
 	c.chainId = chainId
+	c.store = store
 	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
@@ -166,4 +170,62 @@ func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.Objec
 func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
 	// Send the event to the engine
 	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
+}
+
+func (c *Client) GetPaymentChannel(id types.Destination) (PaymentChannelInfo, error) {
+	res, ok := c.store.GetChannelById(id)
+	if !ok {
+		return PaymentChannelInfo{}, errors.New("channel not found")
+	}
+
+	return getPaymentChannelInfo(res), nil
+}
+
+// getPaymentChannelStatus returns the status of the channel
+func getPaymentChannelStatus(c *channel.Channel) ChannelStatus {
+	if c.FinalSignedByMe() {
+		if c.FinalCompleted() {
+			return Complete
+		}
+		return Closing
+	}
+	if !c.PostFundComplete() {
+		return Proposed
+	}
+
+	return Ready
+}
+
+func getPaymentChannelBalance(c *channel.Channel) PaymentChannelBalance {
+
+	latest := c.PreFundState()
+	if c.HasSupportedState() {
+
+		supported, _ := c.LatestSupportedState()
+		latest = supported
+	}
+
+	numParticipants := len(latest.Participants)
+	// TODO: We assume single asset outcomes
+	outcome := latest.Outcome[0]
+	asset := outcome.Asset
+	payer := latest.Participants[0]
+	payee := latest.Participants[numParticipants-1]
+	paidSoFar := outcome.Allocations[1].Amount
+	remaining := outcome.Allocations[0].Amount
+	return PaymentChannelBalance{
+		AssetAddress:   asset,
+		Payer:          payer,
+		Payee:          payee,
+		PaidSoFar:      paidSoFar,
+		RemainingFunds: remaining,
+	}
+}
+
+func getPaymentChannelInfo(channel *channel.Channel) PaymentChannelInfo {
+	return PaymentChannelInfo{
+		ID:      channel.Id,
+		Status:  getPaymentChannelStatus(channel),
+		Balance: getPaymentChannelBalance(channel),
+	}
 }
