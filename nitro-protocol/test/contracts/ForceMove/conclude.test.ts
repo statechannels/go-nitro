@@ -60,10 +60,6 @@ const accepts5 = acceptsWhenOpenIf + 'the largest turn number is not large enoug
 const reverts1 = 'It reverts when the outcome is already finalized';
 const reverts2 = 'It reverts when the states is not final';
 
-const threeStates = {
-  whoSignedWhat: [0, 1, 2],
-  appData: [0, 1, 2],
-};
 const oneState = {
   whoSignedWhat: [0, 0, 0],
   appData: [0],
