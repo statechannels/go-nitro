@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"math/rand"
 
-	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -181,51 +180,6 @@ func (c *Client) GetPaymentChannel(id types.Destination) (PaymentChannelInfo, er
 	return getPaymentChannelInfo(res), nil
 }
 
-// getPaymentChannelStatus returns the status of the channel
-func getPaymentChannelStatus(c *channel.Channel) ChannelStatus {
-	if c.FinalSignedByMe() {
-		if c.FinalCompleted() {
-			return Complete
-		}
-		return Closing
-	}
-	if !c.PostFundComplete() {
-		return Proposed
-	}
-
-	return Ready
-}
-
-func getPaymentChannelBalance(c *channel.Channel) PaymentChannelBalance {
-
-	latest := c.PreFundState()
-	if c.HasSupportedState() {
-
-		supported, _ := c.LatestSupportedState()
-		latest = supported
-	}
-
-	numParticipants := len(latest.Participants)
-	// TODO: We assume single asset outcomes
-	outcome := latest.Outcome[0]
-	asset := outcome.Asset
-	payer := latest.Participants[0]
-	payee := latest.Participants[numParticipants-1]
-	paidSoFar := outcome.Allocations[1].Amount
-	remaining := outcome.Allocations[0].Amount
-	return PaymentChannelBalance{
-		AssetAddress:   asset,
-		Payer:          payer,
-		Payee:          payee,
-		PaidSoFar:      paidSoFar,
-		RemainingFunds: remaining,
-	}
-}
-
-func getPaymentChannelInfo(channel *channel.Channel) PaymentChannelInfo {
-	return PaymentChannelInfo{
-		ID:      channel.Id,
-		Status:  getPaymentChannelStatus(channel),
-		Balance: getPaymentChannelBalance(channel),
-	}
+func (c *Client) GetLedgerChannel(id types.Destination) (LedgerChannelInfo, error) {
+	return GetLedgerChannelInfo(id, c.store)
 }

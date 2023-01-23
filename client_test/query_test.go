@@ -12,6 +12,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+const default_ledger_funding = 5_000_000
+
 func TestQueryPaymentChannels(t *testing.T) {
 
 	// Setup logging
@@ -28,8 +30,28 @@ func TestQueryPaymentChannels(t *testing.T) {
 	clientA, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, 0)
 	irene, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
 	clientB, _ := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, 0)
-	directlyFundALedgerChannel(t, clientA, irene, types.Address{})
+	ledgerAId := directlyFundALedgerChannel(t, clientA, irene, types.Address{})
 	directlyFundALedgerChannel(t, clientB, irene, types.Address{})
+
+	expectedLedgerA := client.LedgerChannelInfo{
+		ID:     ledgerAId,
+		Status: client.Ready,
+		Balance: client.LedgerChannelBalance{
+			AssetAddress:  types.Address{},
+			Hub:           *irene.Address,
+			Client:        *clientA.Address,
+			ClientBalance: big.NewInt(default_ledger_funding),
+			HubBalance:    big.NewInt(default_ledger_funding),
+		}}
+
+	fetchedLedgerA, err := clientA.GetLedgerChannel(ledgerAId)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(expectedLedgerA, fetchedLedgerA, cmp.AllowUnexported(big.Int{})); diff != "" {
+		t.Fatalf("Query diff mismatch (-want +got):\n%s", diff)
+	}
 
 	id := clientA.CreateVirtualPaymentChannel(
 		[]types.Address{*irene.Address},
