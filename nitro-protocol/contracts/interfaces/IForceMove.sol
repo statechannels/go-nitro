@@ -37,15 +37,13 @@ interface IForceMove is INitroTypes {
     ) external;
 
     /**
-     * @notice Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
-     * @dev Finalizes a channel by providing a finalization proof. External wrapper for _conclude.
+     * @notice Finalizes a channel according to the given candidate. External wrapper for _conclude.
+     * @dev Finalizes a channel according to the given candidate. External wrapper for _conclude.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param proof Additional proof material (in the form of an array of signed states) which completes the support proof.
-     * @param candidate A candidate state (along with signatures) which is being claimed to be supported.
+     * @param candidate A candidate state (along with signatures) to change to.
      */
     function conclude(
         FixedPart memory fixedPart,
-        SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate
     ) external;
 

@@ -12,18 +12,16 @@ import './MultiAssetHolder.sol';
  */
 contract NitroAdjudicator is ForceMove, MultiAssetHolder {
     /**
-     * @notice Finalizes a channel by providing a finalization proof, and liquidates all assets for the channel.
-     * @dev Finalizes a channel by providing a finalization proof, and liquidates all assets for the channel.
+     * @notice Finalizes a channel according to the given candidate, and liquidates all assets for the channel.
+     * @dev Finalizes a channel according to the given candidate, and liquidates all assets for the channel.
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
-     * @param proof Variable parts of the states with signatures in the support proof. The proof is a validation for the supplied candidate.
-     * @param candidate Variable part of the state to change to. The candidate state is supported by proof states.
+     * @param candidate Variable part of the state to change to.
      */
     function concludeAndTransferAllAssets(
         FixedPart memory fixedPart,
-        SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate
     ) public virtual {
-        bytes32 channelId = _conclude(fixedPart, proof, candidate);
+        bytes32 channelId = _conclude(fixedPart, candidate);
 
         transferAllAssets(channelId, candidate.variablePart.outcome, bytes32(0));
     }
