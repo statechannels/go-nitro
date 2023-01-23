@@ -47,23 +47,18 @@ beforeAll(async () => {
 
 const acceptsWhenOpenIf =
   'It accepts when the channel is open, and sets the channel storage correctly, if ';
-
-const accepts2 = acceptsWhenOpenIf + 'passed one state, and the slot is empty';
-const accepts3 = acceptsWhenOpenIf + 'the largestTurnNum is large enough';
-const accepts6 =
-  acceptsWhenOpenIf + 'despite the largest turn number being less than turnNumRecord';
-const accepts7 = acceptsWhenOpenIf + 'the largest turn number is not large enough';
-
 const acceptsWhenChallengeOngoingIf =
   'It accepts when there is an ongoing challenge, and sets the channel storage correctly, if ';
-const accepts5 = acceptsWhenChallengeOngoingIf + 'passed one state';
 
-const reverts1 = 'It reverts when the channel is open, but more than one state is supplied';
-const reverts2 =
-  'It reverts when there is an ongoing challenge,  but more than one state is supplied';
-const reverts3 = 'It reverts when the outcome is already finalized';
-const reverts4 = 'It reverts when the states is not final';
-const reverts5 = 'It reverts when passed n states, and the slot is empty';
+const accepts1 = acceptsWhenOpenIf + 'passed one state, and the slot is empty';
+const accepts2 = acceptsWhenOpenIf + 'the largestTurnNum is large enough';
+const accepts3 = acceptsWhenChallengeOngoingIf + 'passed one state';
+const accepts4 =
+  acceptsWhenOpenIf + 'despite the largest turn number being less than turnNumRecord';
+const accepts5 = acceptsWhenOpenIf + 'the largest turn number is not large enough';
+
+const reverts1 = 'It reverts when the outcome is already finalized';
+const reverts2 = 'It reverts when the states is not final';
 
 const threeStates = {
   whoSignedWhat: [0, 1, 2],
@@ -83,14 +78,14 @@ describe('conclude', () => {
   beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
   it.each`
     description | initialFingerprint  | isFinal  | largestTurnNum       | support     | reasonString
-    ${accepts2} | ${HashZero}         | ${true}  | ${turnNumRecord - 1} | ${oneState} | ${undefined}
-    ${accepts2} | ${HashZero}         | ${true}  | ${turnNumRecord + 1} | ${oneState} | ${undefined}
-    ${accepts3} | ${channelOpen}      | ${true}  | ${turnNumRecord + 2} | ${oneState} | ${undefined}
-    ${accepts5} | ${challengeOngoing} | ${true}  | ${turnNumRecord + 4} | ${oneState} | ${undefined}
-    ${accepts6} | ${channelOpen}      | ${true}  | ${turnNumRecord - 1} | ${oneState} | ${undefined}
-    ${accepts7} | ${challengeOngoing} | ${true}  | ${turnNumRecord - 1} | ${oneState} | ${undefined}
-    ${reverts3} | ${finalized}        | ${true}  | ${turnNumRecord + 1} | ${oneState} | ${CHANNEL_FINALIZED}
-    ${reverts4} | ${HashZero}         | ${false} | ${turnNumRecord - 1} | ${oneState} | ${NONFINAL_STATE}
+    ${accepts1} | ${HashZero}         | ${true}  | ${turnNumRecord - 1} | ${oneState} | ${undefined}
+    ${accepts1} | ${HashZero}         | ${true}  | ${turnNumRecord + 1} | ${oneState} | ${undefined}
+    ${accepts2} | ${channelOpen}      | ${true}  | ${turnNumRecord + 2} | ${oneState} | ${undefined}
+    ${accepts3} | ${challengeOngoing} | ${true}  | ${turnNumRecord + 4} | ${oneState} | ${undefined}
+    ${accepts4} | ${channelOpen}      | ${true}  | ${turnNumRecord - 1} | ${oneState} | ${undefined}
+    ${accepts5} | ${challengeOngoing} | ${true}  | ${turnNumRecord - 1} | ${oneState} | ${undefined}
+    ${reverts1} | ${finalized}        | ${true}  | ${turnNumRecord + 1} | ${oneState} | ${CHANNEL_FINALIZED}
+    ${reverts2} | ${HashZero}         | ${false} | ${turnNumRecord - 1} | ${oneState} | ${NONFINAL_STATE}
   `(
     '$description', // For the purposes of this test, participants are fixed, making channelId 1-1 with channelNonce
     async ({initialFingerprint, isFinal, largestTurnNum, support, reasonString}) => {
