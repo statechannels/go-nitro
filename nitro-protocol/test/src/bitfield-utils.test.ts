@@ -22,6 +22,10 @@ describe('bitfield utils', () => {
   });
 
   it('getSignedBy', () => {
+    expect(getSignedBy(0)).toEqual('1');
+    expect(getSignedBy(1)).toEqual('2');
+    expect(getSignedBy(5)).toEqual('32');
+
     expect(getSignedBy([])).toEqual('0');
     expect(getSignedBy([0])).toEqual('1');
     expect(getSignedBy([1])).toEqual('2');

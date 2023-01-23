@@ -7,7 +7,6 @@ import {
   getTestProvider,
   randomChannelId,
   randomExternalDestination,
-  replaceAddressesAndBigNumberify,
   setupContract,
 } from '../../test-helpers';
 import {encodeOutcome, hashOutcome, Outcome} from '../../../src/contract/outcome';
@@ -16,6 +15,7 @@ import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicato
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 import {channelDataToStatus} from '../../../src';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../src/transactions';
+import {replaceAddressesAndBigNumberify} from '../../../src/helpers';
 
 const testNitroAdjudicator = setupContract(
   getTestProvider(),

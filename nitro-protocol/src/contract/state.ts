@@ -89,15 +89,6 @@ export function getFixedPart(state: State): FixedPart {
 }
 
 /**
- * Encodes appData
- * @param appData appData of the state
- * @returns an array of bytes of apppData
- */
-export function encodeAppData(appData: string): Bytes {
-  return utils.defaultAbiCoder.encode(['bytes'], [appData]);
-}
-
-/**
  * Encodes and hashes the AppPart of a state
  * @param state a State
  * @returns a 32 byte keccak256 hash

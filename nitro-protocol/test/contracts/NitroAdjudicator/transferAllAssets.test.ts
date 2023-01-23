@@ -5,15 +5,11 @@ import {it} from '@jest/globals';
 import {getChannelId} from '../../../src/contract/channel';
 import {hashOutcome, Outcome} from '../../../src/contract/outcome';
 import {
-  computeOutcome,
   generateParticipants,
   getCountingAppContractAddress,
-  getRandomNonce,
   getTestProvider,
-  OutcomeShortHand,
   randomChannelId,
   randomExternalDestination,
-  replaceAddressesAndBigNumberify,
   setupContract,
 } from '../../test-helpers';
 import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
@@ -21,8 +17,15 @@ import {Token} from '../../../typechain-types/Token';
 import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
-import {channelDataToStatus, convertBytes32ToAddress} from '../../../src';
+import {
+  channelDataToStatus,
+  computeOutcome,
+  convertBytes32ToAddress,
+  getRandomNonce,
+  OutcomeShortHand,
+} from '../../../src';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../src/transactions';
+import {replaceAddressesAndBigNumberify} from '../../../src/helpers';
 
 const testNitroAdjudicator = setupContract(
   getTestProvider(),

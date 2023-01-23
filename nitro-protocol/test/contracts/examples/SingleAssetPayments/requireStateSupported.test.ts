@@ -13,17 +13,20 @@ import {
   State,
 } from '../../../../src/contract/state';
 import {
-  AssetOutcomeShortHand,
   generateParticipants,
-  getRandomNonce,
   getTestProvider,
   randomExternalDestination,
-  replaceAddressesAndBigNumberify,
   setupContract,
 } from '../../../test-helpers';
-import {bindSignaturesWithSignedByBitfield, signStates} from '../../../../src';
+import {
+  AssetOutcomeShortHand,
+  bindSignaturesWithSignedByBitfield,
+  getRandomNonce,
+  signStates,
+} from '../../../../src';
 import {INVALID_SIGNED_BY} from '../../../../src/contract/transaction-creators/revert-reasons';
 import {expectSucceed} from '../../../expect-succeed';
+import {replaceAddressesAndBigNumberify} from '../../../../src/helpers';
 
 const provider = getTestProvider();
 let singleAssetPayments: Contract;

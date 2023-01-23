@@ -3,6 +3,7 @@ import {Contract, ethers, BigNumber} from 'ethers';
 
 import VirtualPaymentAppArtifact from '../../../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 import {
+  computeOutcome,
   convertAddressToBytes32,
   encodeVoucherAmountAndSignature,
   getChannelId,
@@ -15,12 +16,7 @@ import {
   RecoveredVariablePart,
   State,
 } from '../../../src/contract/state';
-import {
-  computeOutcome,
-  generateParticipants,
-  getTestProvider,
-  setupContract,
-} from '../../test-helpers';
+import {generateParticipants, getTestProvider, setupContract} from '../../test-helpers';
 const {HashZero} = ethers.constants;
 
 let virtualPaymentApp: Contract;

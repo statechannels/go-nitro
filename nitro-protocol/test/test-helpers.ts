@@ -1,35 +1,13 @@
-import {Contract, ethers, BigNumberish, BigNumber, providers, Wallet} from 'ethers';
+import {Contract, ethers, BigNumber, providers, Wallet} from 'ethers';
 import {BytesLike} from '@ethersproject/bytes';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
-import {isBigNumberish} from '@ethersproject/bignumber/lib/bignumber';
 import {LogDescription} from '@ethersproject/abi';
 
 import {ChallengeClearedEvent, ChallengeRegisteredStruct} from '../src/contract/challenge';
 import {channelDataToStatus} from '../src/contract/channel-storage';
 import {Outcome} from '../src/contract/outcome';
-import {Bytes32, VariablePart} from '../src';
+import {Bytes32, OutcomeShortHand, VariablePart} from '../src';
 
-// Interfaces
-
-/**
- * A mapping from destination to BigNumberish. E.g. {ALICE:2, BOB:3}. Only used in testing.
- */
-export interface AssetOutcomeShortHand {
-  [destination: string]: BigNumberish;
-}
-
-/**
- * A mapping from asset to AssetOutcomeShorthand. E.g. {ETH: {ALICE:2, BOB:3}, DAI: {ALICE:1, BOB:4}}. Only used in testing.
- */
-export interface OutcomeShortHand {
-  [assetHolder: string]: AssetOutcomeShortHand;
-}
-
-export interface AddressesLookup {
-  [shorthand: string]: string | undefined;
-}
-
-// Functions
 export const getTestProvider = (): ethers.providers.JsonRpcProvider => {
   if (!process.env.GANACHE_PORT) {
     throw new Error('Missing environment variable GANACHE_PORT required');
@@ -42,7 +20,7 @@ export const getTestProvider = (): ethers.providers.JsonRpcProvider => {
  * @param provider an ethers JsonRpcProvider
  * @param artifact an object containing the abi of the contract in question
  * @param address the ethereum address of the contract, once it is deployed
- * @returns a rich (ethers) Contract object with a connected signer (ther 0th signer of the supplied provider)
+ * @returns a rich (ethers) Contract object with a connected signer (the 0th signer of the supplied provider)
  */
 export function setupContract(
   provider: ethers.providers.JsonRpcProvider,
@@ -239,35 +217,20 @@ export async function sendTransaction(
   return await response.wait();
 }
 
-// Recursively replaces any key with the value of that key in the addresses object
-// BigNumberify all numbers
-/**
- * Recursively replaces any key in a copy of the supplied object with the value of that key in the supplied addresses object. Also BigNumberifies all numbers.
- * Used in testing only.
- * @param object Object to be copied and modified
- * @param addresses Key-value address lookup
- * @returns suitably modified copy of object
- */
-export function replaceAddressesAndBigNumberify(
-  object: AssetOutcomeShortHand | OutcomeShortHand | BigNumberish,
-  addresses: AddressesLookup
-): AssetOutcomeShortHand | OutcomeShortHand | BigNumberish {
-  if (isBigNumberish(object)) {
-    return BigNumber.from(object);
-  }
-  const newObject: AssetOutcomeShortHand | OutcomeShortHand = {};
-  Object.keys(object).forEach(key => {
-    if (isBigNumberish(object[key])) {
-      newObject[addresses[key] as string] = BigNumber.from(object[key]);
-    } else if (typeof object[key] === 'object') {
-      // Recurse
-      newObject[addresses[key] as string] = replaceAddressesAndBigNumberify(
-        object[key],
-        addresses
-      ) as AssetOutcomeShortHand | BigNumberish;
-    }
+interface Event extends LogDescription {
+  contract: string;
+}
+
+export function compileEventsFromLogs(logs: any[], contractsArray: Contract[]): Event[] {
+  const events: Event[] = [];
+  logs.forEach(log => {
+    contractsArray.forEach(contract => {
+      if (log.address === contract.address) {
+        events.push({...contract.interface.parseLog(log), contract: log.address});
+      }
+    });
   });
-  return newObject;
+  return events;
 }
 
 // Sets the holdings defined in the multipleHoldings object. Requires an array of the relevant contracts to be passed in.
@@ -305,45 +268,6 @@ export function checkMultipleHoldings(
       });
     });
   });
-}
-
-/** Computes an Outcome from a shorthand description */
-export function computeOutcome(outcomeShortHand: OutcomeShortHand): Outcome {
-  const outcome: Outcome = [];
-  Object.keys(outcomeShortHand).forEach(asset => {
-    const allocations: Allocation[] = [];
-    Object.keys(outcomeShortHand[asset]).forEach(destination =>
-      allocations.push({
-        destination,
-        amount: BigNumber.from(outcomeShortHand[asset][destination]).toHexString(),
-        metadata: '0x',
-        allocationType: AllocationType.simple,
-      })
-    );
-    outcome.push({asset, metadata: '0x', allocations});
-  });
-  return outcome;
-}
-
-interface Event extends LogDescription {
-  contract: string;
-}
-
-export function compileEventsFromLogs(logs: any[], contractsArray: Contract[]): Event[] {
-  const events: Event[] = [];
-  logs.forEach(log => {
-    contractsArray.forEach(contract => {
-      if (log.address === contract.address) {
-        events.push({...contract.interface.parseLog(log), contract: log.address});
-      }
-    });
-  });
-  return events;
-}
-
-export function getRandomNonce(seed: string): string {
-  // Returns a hex string representing a 64 bit integer
-  return ethers.utils.id(seed).slice(0, 18); // '0x' plus [16 hexits is 8 bytes is 64 bits]
 }
 
 export const largeOutcome = (

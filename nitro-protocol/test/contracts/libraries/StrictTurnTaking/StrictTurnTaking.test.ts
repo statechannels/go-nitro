@@ -10,12 +10,11 @@ import testStrictTurnTakingArtifact from '../../../../artifacts/contracts/test/T
 import {
   generateParticipants,
   getCountingAppContractAddress,
-  getRandomNonce,
   getTestProvider,
   setupContract,
 } from '../../../test-helpers';
 import {TESTStrictTurnTaking} from '../../../../typechain-types';
-import {getFixedPart, getVariablePart, Outcome, State} from '../../../../src';
+import {getFixedPart, getRandomNonce, getVariablePart, Outcome, State} from '../../../../src';
 import {
   INVALID_NUMBER_OF_PROOF_STATES,
   INVALID_SIGNED_BY,

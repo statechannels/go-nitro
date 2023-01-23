@@ -29,10 +29,18 @@ export function getSignersIndices(signedByStr: Uint256): number[] {
   return signerIndices;
 }
 
-export function getSignedBy(signerIndices: number[]): Uint256 {
+export const SIGNED_BY_NO_ONE = 0;
+
+export function getSignedBy(signerIndices: number | number[]): Uint256 {
   let signedBy = 0;
-  for (const sIdx of signerIndices) {
-    signedBy += 2 ** sIdx;
+
+  if (Array.isArray(signerIndices)) {
+    for (const sIdx of signerIndices) {
+      signedBy += 2 ** sIdx;
+    }
+  } else {
+    signedBy = 2 ** signerIndices;
   }
+
   return signedBy.toString();
 }

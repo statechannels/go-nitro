@@ -5,7 +5,13 @@ import {it} from '@jest/globals';
 
 const {HashZero} = ethers.constants;
 import HashLockedSwapArtifact from '../../../../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
-import {bindSignaturesWithSignedByBitfield, Bytes32, signStates} from '../../../../src';
+import {
+  AssetOutcomeShortHand,
+  bindSignaturesWithSignedByBitfield,
+  Bytes32,
+  getRandomNonce,
+  signStates,
+} from '../../../../src';
 import {Outcome} from '../../../../src/contract/outcome';
 import {
   getFixedPart,
@@ -17,13 +23,11 @@ import {Bytes} from '../../../../src/contract/types';
 import {
   getTestProvider,
   randomExternalDestination,
-  replaceAddressesAndBigNumberify,
   setupContract,
-  AssetOutcomeShortHand,
-  getRandomNonce,
   generateParticipants,
 } from '../../../test-helpers';
 import {expectSucceed} from '../../../expect-succeed';
+import {replaceAddressesAndBigNumberify} from '../../../../src/helpers';
 
 // Utilities
 // TODO: move to a src file

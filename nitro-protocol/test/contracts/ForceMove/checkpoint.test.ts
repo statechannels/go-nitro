@@ -25,11 +25,10 @@ import {
 import {
   generateParticipants,
   getCountingAppContractAddress,
-  getRandomNonce,
   getTestProvider,
   setupContract,
 } from '../../test-helpers';
-import {bindSignatures, signStates} from '../../../src';
+import {bindSignatures, getRandomNonce, signStates} from '../../../src';
 
 import {testParams} from './types';
 

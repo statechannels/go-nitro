@@ -1,6 +1,6 @@
 import {BigNumber} from 'ethers';
 
-import {getRandomNonce, replaceAddressesAndBigNumberify} from './test-helpers';
+import {getRandomNonce, replaceAddressesAndBigNumberify} from '../../src/helpers';
 
 const addresses = {
   // Channels

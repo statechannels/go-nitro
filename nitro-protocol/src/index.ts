@@ -27,9 +27,11 @@ export {
 } from './contract/force-move-app';
 export {encodeOutcome, decodeOutcome, Outcome, AssetOutcome, hashOutcome} from './contract/outcome';
 export {channelDataToStatus} from './contract/channel-storage';
+export {getSignedBy} from './bitfield-utils';
 
 export {
   State,
+  FixedPart,
   VariablePart,
   RecoveredVariablePart,
   getVariablePart,
@@ -45,3 +47,5 @@ export * from './contract/vouchers';
 export {Uint256, Bytes32} from './contract/types';
 
 export * from './channel-mode';
+
+export {OutcomeShortHand, AssetOutcomeShortHand, computeOutcome, getRandomNonce} from './helpers';
