@@ -42,10 +42,7 @@ interface IForceMove is INitroTypes {
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param candidate A candidate state (along with signatures) to change to.
      */
-    function conclude(
-        FixedPart memory fixedPart,
-        SignedVariablePart memory candidate
-    ) external;
+    function conclude(FixedPart memory fixedPart, SignedVariablePart memory candidate) external;
 
     // events
 

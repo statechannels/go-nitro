@@ -119,10 +119,11 @@ contract ForceMove is IForceMove, StatusManager {
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to.
      */
-    function conclude(
-        FixedPart memory fixedPart,
-        SignedVariablePart memory candidate
-    ) external virtual override {
+    function conclude(FixedPart memory fixedPart, SignedVariablePart memory candidate)
+        external
+        virtual
+        override
+    {
         _conclude(fixedPart, candidate);
     }
 
@@ -132,10 +133,10 @@ contract ForceMove is IForceMove, StatusManager {
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to.
      */
-    function _conclude(
-        FixedPart memory fixedPart,
-        SignedVariablePart memory candidate
-    ) internal returns (bytes32 channelId) {
+    function _conclude(FixedPart memory fixedPart, SignedVariablePart memory candidate)
+        internal
+        returns (bytes32 channelId)
+    {
         channelId = NitroUtils.getChannelId(fixedPart);
 
         // checks
