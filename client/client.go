@@ -171,6 +171,8 @@ func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
 	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
 }
 
+// GetPaymentChannel returns the ledger channel with the given id.
+// If no ledger channel exists with the given id an error is returned.
 func (c *Client) GetPaymentChannel(id types.Destination) (PaymentChannelInfo, error) {
 	res, ok := c.store.GetChannelById(id)
 	if !ok {
@@ -180,6 +182,8 @@ func (c *Client) GetPaymentChannel(id types.Destination) (PaymentChannelInfo, er
 	return getPaymentChannelInfo(res), nil
 }
 
+// GetLedgerChannel returns the ledger channel with the given id.
+// If no ledger channel exists with the given id an error is returned.
 func (c *Client) GetLedgerChannel(id types.Destination) (LedgerChannelInfo, error) {
 	return GetLedgerChannelInfo(id, c.store)
 }

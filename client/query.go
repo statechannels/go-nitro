@@ -11,11 +11,13 @@ import (
 
 type ChannelStatus string
 
+// TODO: Think through statuses
 const Proposed ChannelStatus = "Proposed"
 const Ready ChannelStatus = "Ready"
 const Closing ChannelStatus = "Closing"
 const Complete ChannelStatus = "Complete"
 
+// PaymentChannelBalance contains the balance of a uni-directional payment channel
 type PaymentChannelBalance struct {
 	AssetAddress   types.Address
 	Payee          types.Address
@@ -23,6 +25,8 @@ type PaymentChannelBalance struct {
 	PaidSoFar      *big.Int
 	RemainingFunds *big.Int
 }
+
+// PaymentChannelInfo contains balance and status info about a payment channel
 type PaymentChannelInfo struct {
 	ID      types.Destination
 	Status  ChannelStatus
@@ -70,6 +74,7 @@ func getPaymentChannelBalance(c *channel.Channel) PaymentChannelBalance {
 	}
 }
 
+// getPaymentChannelInfo returns the PaymentChannelInfo for the given channel
 func getPaymentChannelInfo(channel *channel.Channel) PaymentChannelInfo {
 	return PaymentChannelInfo{
 		ID:      channel.Id,
@@ -78,11 +83,14 @@ func getPaymentChannelInfo(channel *channel.Channel) PaymentChannelInfo {
 	}
 }
 
+// LedgerChannelInfo contains balance and status info about a ledger channel
 type LedgerChannelInfo struct {
 	ID      types.Destination
 	Status  ChannelStatus
 	Balance LedgerChannelBalance
 }
+
+// LedgerChannelBalance contains the balance of a ledger channel
 type LedgerChannelBalance struct {
 	AssetAddress  types.Address
 	Hub           types.Address
@@ -91,14 +99,17 @@ type LedgerChannelBalance struct {
 	ClientBalance *big.Int
 }
 
-func getLatest(channel *channel.Channel) state.State {
+// getLatestSupported returns the latest supported state of the channel or the prefund state if no supported state exists
+func getLatestSupported(channel *channel.Channel) state.State {
 	if channel.HasSupportedState() {
 		supported, _ := channel.LatestSupportedState()
 		return supported
 	}
 	return channel.PreFundState()
 }
-func getBalanceFromState(latest state.State) LedgerChannelBalance {
+
+// getLedgerBalanceFromState returns the balance of the ledger channel from the given state
+func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 
 	// TODO: We assume single asset outcomes
 	outcome := latest.Outcome[0]
@@ -117,6 +128,8 @@ func getBalanceFromState(latest state.State) LedgerChannelBalance {
 	}
 }
 
+// GetLedgerChannelInfo returns the LedgerChannelInfo for the given channel
+// It does this by querying the provided store
 func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
 	c, ok := store.GetChannelById(id)
 	if ok {
@@ -124,7 +137,7 @@ func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChanne
 		return LedgerChannelInfo{
 			ID:      c.Id,
 			Status:  getStatusFromChannel(c),
-			Balance: getBalanceFromState(getLatest(c)),
+			Balance: getLedgerBalanceFromState(getLatestSupported(c)),
 		}, nil
 	}
 
@@ -137,22 +150,7 @@ func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChanne
 	return LedgerChannelInfo{
 		ID:      con.Id,
 		Status:  Ready,
-		Balance: getBalanceFromState(latest),
+		Balance: getLedgerBalanceFromState(latest),
 	}, nil
 
-}
-
-type NitroQuery interface {
-	// GetPaymentChannelByReceiver returns the first payment found channel with the given receiver.
-	// If no payment channel exists nil is returned.
-	GetPaymentChannelByReceiver(receiver types.Address) PaymentChannelInfo
-	// GetLedgerChannelByHub returns the first ledger channel found with the given hub.
-	// If no ledger channel exists nil is returned.
-	GetLedgerChannelByHub(Hub types.Address) LedgerChannelInfo
-	// GetLedgerChannel returnns the ledger channel for the given id.
-	// If no ledger channel exists nil is returned.
-	GetLedgerChannel(id types.Destination) LedgerChannelInfo
-	// GetPaymentChannel returnns the ledger channel for the given id.
-	// If no ledger channel exists nil is returned.
-	GetPaymentChannel(id types.Destination) PaymentChannelInfo
 }
