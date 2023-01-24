@@ -104,14 +104,16 @@ func TestPaymentChannelLifecycle(t *testing.T) {
 	checkPaymentChannel(t, res.ChannelId, o, client.Ready, &aliceClient, &bobClient)
 
 	aliceClient.Pay(res.ChannelId, big.NewInt(1))
-	// TODO: Test voucher query API once implemented
 
-	closeId := aliceClient.CloseVirtualChannel(res.ChannelId)
 	updatedOutcome := td.Outcomes.Create(alice.Address(),
 		bob.Address(),
 		1,
 		1,
 		types.Address{})
+	checkPaymentChannel(t, res.ChannelId, updatedOutcome, client.Ready, &aliceClient, &bobClient)
+
+	closeId := aliceClient.CloseVirtualChannel(res.ChannelId)
+
 	checkPaymentChannel(t, res.ChannelId, updatedOutcome, client.Closing, &aliceClient)
 
 	waitTimeForCompletedObjectiveIds(t, &aliceClient, defaultTimeout, closeId)

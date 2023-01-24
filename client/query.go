@@ -8,6 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/types"
@@ -116,7 +117,7 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 	}
 }
 
-func getPaymentChannelInfo(id types.Destination, store store.Store) (PaymentChannelInfo, error) {
+func getPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager) (PaymentChannelInfo, error) {
 
 	// This is slightly awkward but if the virtual defunding objective is complete it won't come back if we query by channel id
 	// We manually construct the objective id and query by that
@@ -141,11 +142,25 @@ func getPaymentChannelInfo(id types.Destination, store store.Store) (PaymentChan
 
 	// Otherwise we can just check the store
 	c, ok := store.GetChannelById(id)
+
 	if ok {
+		status := getStatusFromChannel(c)
+		balance := getPaymentChannelBalance(c.Participants, getLatestSupported(c).Outcome)
+
+		// If we have received vouchers we want to update the channel balance to reflect the vouchers
+		if hasVouchers := vm.ChannelRegistered(id); status == Ready && hasVouchers {
+			voucherBal, err := vm.Balance(id)
+			if err != nil {
+				return PaymentChannelInfo{}, err
+			}
+			balance.PaidSoFar.Set(voucherBal.Paid)
+			balance.RemainingFunds.Set(voucherBal.Remaining)
+		}
+
 		return PaymentChannelInfo{
 			ID:      id,
-			Status:  getStatusFromChannel(c),
-			Balance: getPaymentChannelBalance(c.Participants, getLatestSupported(c).Outcome),
+			Status:  status,
+			Balance: balance,
 		}, nil
 	}
 	return PaymentChannelInfo{}, fmt.Errorf("could not find channel with id %v", id)
