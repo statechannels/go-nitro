@@ -10,11 +10,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -157,4 +160,53 @@ func newLogWriter(logFile string) *os.File {
 	}
 
 	return logDestination
+}
+
+// checkPaymentChannel checks that the ledger channel has the expected outcome and status
+// It will fail if the channel does not exist
+func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...*client.Client) {
+
+	for _, c := range clients {
+		expected := expectedPaymentInfo(id, o, status)
+		ledger, err := c.GetPaymentChannel(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(expected, ledger, cmp.AllowUnexported(big.Int{})); diff != "" {
+			t.Fatalf("Payment channel diff mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+// expectedLedgerInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetLedgerChannel
+func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.LedgerChannelInfo {
+	clientAdd, _ := outcome[0].Allocations[0].Destination.ToAddress()
+	hubAdd, _ := outcome[0].Allocations[1].Destination.ToAddress()
+
+	return query.LedgerChannelInfo{
+		ID:     id,
+		Status: status,
+		Balance: query.LedgerChannelBalance{
+			AssetAddress:  types.Address{},
+			Hub:           hubAdd,
+			Client:        clientAdd,
+			ClientBalance: outcome[0].Allocations[0].Amount,
+			HubBalance:    outcome[0].Allocations[1].Amount,
+		}}
+}
+
+// checkLedgerChannel checks that the ledger channel has the expected outcome and status
+// It will fail if the channel does not exist
+func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...*client.Client) {
+
+	for _, c := range clients {
+		expected := expectedLedgerInfo(ledgerId, o, status)
+		ledger, err := c.GetLedgerChannel(ledgerId)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(expected, ledger, cmp.AllowUnexported(big.Int{})); diff != "" {
+			t.Fatalf("Ledger diff mismatch (-want +got):\n%s", diff)
+		}
+	}
 }
