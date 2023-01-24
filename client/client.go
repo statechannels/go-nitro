@@ -22,12 +22,12 @@ import (
 
 // Client provides the interface for the consuming application
 type Client struct {
-	engine              engine.Engine // The core business logic of the client
+	Engine              engine.Engine // The core business logic of the client
 	Address             *types.Address
 	completedObjectives chan protocols.ObjectiveId
 	failedObjectives    chan protocols.ObjectiveId
 	receivedVouchers    chan payments.Voucher
-	chainId             *big.Int
+	ChainId             *big.Int
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -42,14 +42,14 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	if err != nil {
 		panic(err)
 	}
-	c.chainId = chainId
-	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker, metricsApi)
+	c.ChainId = chainId
+	c.Engine = engine.New(messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
 	c.receivedVouchers = make(chan payments.Voucher, 1000)
 	// Start the engine in a go routine
-	go c.engine.Run()
+	go c.Engine.Run()
 
 	// Start the event handler in a go routine
 	// It will listen for events from the engine and dispatch events to client channels
@@ -61,7 +61,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
 // It parses events from the ToApi chan and then dispatches events to the necessary client chan.
 func (c *Client) handleEngineEvents() {
-	for update := range c.engine.ToApi() {
+	for update := range c.Engine.ToApi() {
 
 		for _, completed := range update.CompletedObjectives {
 
@@ -108,11 +108,11 @@ func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, Cou
 		ChallengeDuration,
 		Outcome,
 		rand.Uint64(),
-		c.engine.GetVirtualPaymentAppAddress(),
+		c.Engine.GetVirtualPaymentAppAddress(),
 	)
 
 	// Send the event to the engine
-	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
+	c.Engine.ObjectiveRequestsFromAPI <- objectiveRequest
 
 	objectiveRequest.WaitForObjectiveToStart()
 	return objectiveRequest.Response(*c.Address)
@@ -124,9 +124,9 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.Obje
 	objectiveRequest := virtualdefund.NewObjectiveRequest(channelId)
 
 	// Send the event to the engine
-	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
+	c.Engine.ObjectiveRequestsFromAPI <- objectiveRequest
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Id(*c.Address, c.chainId)
+	return objectiveRequest.Id(*c.Address, c.ChainId)
 
 }
 
@@ -139,14 +139,14 @@ func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDurati
 		ChallengeDuration,
 		outcome,
 		rand.Uint64(),
-		c.engine.GetConsensusAppAddress(),
+		c.Engine.GetConsensusAppAddress(),
 		// Appdata implicitly zero
 	)
 
 	// Send the event to the engine
-	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
+	c.Engine.ObjectiveRequestsFromAPI <- objectiveRequest
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Response(*c.Address, c.chainId)
+	return objectiveRequest.Response(*c.Address, c.ChainId)
 
 }
 
@@ -156,14 +156,14 @@ func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.Objec
 	objectiveRequest := directdefund.NewObjectiveRequest(channelId)
 
 	// Send the event to the engine
-	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
+	c.Engine.ObjectiveRequestsFromAPI <- objectiveRequest
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Id(*c.Address, c.chainId)
+	return objectiveRequest.Id(*c.Address, c.ChainId)
 
 }
 
 // Pay will send a signed voucher to the payee that they can redeem for the given amount.
 func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
 	// Send the event to the engine
-	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
+	c.Engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
 }

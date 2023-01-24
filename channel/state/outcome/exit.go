@@ -13,9 +13,9 @@ import (
 
 // SingleAssetExit declares an ordered list of Allocations for a single asset.
 type SingleAssetExit struct {
-	Asset       types.Address // Either the zero address (implying the native token) or the address of an ERC20 contract
-	Metadata    []byte        // Can be used to encode arbitrary additional information that applies to all allocations.
-	Allocations Allocations
+	Asset       types.Address `json:"asset"`    // Either the zero address (implying the native token) or the address of an ERC20 contract
+	Metadata    []byte        `json:"metadata"` // Can be used to encode arbitrary additional information that applies to all allocations.
+	Allocations Allocations   `json:"allocations"`
 }
 
 // Equal returns true if the supplied SingleAssetExit is deeply equal to the receiver.
