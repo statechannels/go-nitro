@@ -104,12 +104,13 @@ func TestPaymentChannelLifecycle(t *testing.T) {
 	checkPaymentChannel(t, res.ChannelId, o, client.Ready, &aliceClient, &bobClient)
 
 	aliceClient.Pay(res.ChannelId, big.NewInt(1))
-
+	<-bobClient.ReceivedVouchers()
 	updatedOutcome := testdata.Outcomes.Create(alice.Address(),
 		bob.Address(),
 		1,
 		1,
 		types.Address{})
+
 	checkPaymentChannel(t, res.ChannelId, updatedOutcome, client.Ready, &aliceClient, &bobClient)
 
 	closeId := aliceClient.CloseVirtualChannel(res.ChannelId)
