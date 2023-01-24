@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
@@ -174,13 +175,13 @@ func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
 
 // GetPaymentChannel returns the ledger channel with the given id.
 // If no ledger channel exists with the given id an error is returned.
-func (c *Client) GetPaymentChannel(id types.Destination) (PaymentChannelInfo, error) {
+func (c *Client) GetPaymentChannel(id types.Destination) (query.PaymentChannelInfo, error) {
 
-	return getPaymentChannelInfo(id, c.store, c.vm)
+	return query.GetPaymentChannelInfo(id, c.store, c.vm)
 }
 
 // GetLedgerChannel returns the ledger channel with the given id.
 // If no ledger channel exists with the given id an error is returned.
-func (c *Client) GetLedgerChannel(id types.Destination) (LedgerChannelInfo, error) {
-	return getLedgerChannelInfo(id, c.store)
+func (c *Client) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {
+	return query.GetLedgerChannelInfo(id, c.store)
 }

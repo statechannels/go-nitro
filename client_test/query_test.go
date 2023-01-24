@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/internal/testdata"
 
 	"github.com/statechannels/go-nitro/types"
@@ -35,22 +36,22 @@ func TestLedgerLifecycle(t *testing.T) {
 	ledgerId := res.ChannelId
 
 	// Irene might not have received the objective yet so we only check alice
-	checkLedgerChannel(t, ledgerId, outcome, client.Proposed, &aliceClient)
+	checkLedgerChannel(t, ledgerId, outcome, query.Proposed, &aliceClient)
 
 	waitTimeForCompletedObjectiveIds(t, &aliceClient, defaultTimeout, res.Id)
 	waitTimeForCompletedObjectiveIds(t, &ireneClient, defaultTimeout, res.Id)
 
-	checkLedgerChannel(t, ledgerId, outcome, client.Ready, &aliceClient, &ireneClient)
+	checkLedgerChannel(t, ledgerId, outcome, query.Ready, &aliceClient, &ireneClient)
 
 	closeId := aliceClient.CloseLedgerChannel(ledgerId)
 
 	// Irene might not have received the objective yet so we only check alice
-	checkLedgerChannel(t, ledgerId, outcome, client.Closing, &aliceClient)
+	checkLedgerChannel(t, ledgerId, outcome, query.Closing, &aliceClient)
 
 	waitTimeForCompletedObjectiveIds(t, &aliceClient, defaultTimeout, closeId)
 	waitTimeForCompletedObjectiveIds(t, &ireneClient, defaultTimeout, closeId)
 
-	checkLedgerChannel(t, ledgerId, outcome, client.Complete, &aliceClient, &ireneClient)
+	checkLedgerChannel(t, ledgerId, outcome, query.Complete, &aliceClient, &ireneClient)
 
 }
 
@@ -94,14 +95,14 @@ func TestPaymentChannelLifecycle(t *testing.T) {
 			types.Address{},
 		))
 
-	checkPaymentChannel(t, res.ChannelId, o, client.Proposed, &aliceClient)
+	checkPaymentChannel(t, res.ChannelId, o, query.Proposed, &aliceClient)
 
 	waitTimeForCompletedObjectiveIds(t, &aliceClient, defaultTimeout, res.Id)
 	waitTimeForCompletedObjectiveIds(t, &bobClient, defaultTimeout, res.Id)
 	waitTimeForCompletedObjectiveIds(t, &ireneClient, defaultTimeout, res.Id)
 
 	// TODO Irene will return proposed because she doesn't bother listening for the post fund setup
-	checkPaymentChannel(t, res.ChannelId, o, client.Ready, &aliceClient, &bobClient)
+	checkPaymentChannel(t, res.ChannelId, o, query.Ready, &aliceClient, &bobClient)
 
 	aliceClient.Pay(res.ChannelId, big.NewInt(1))
 	<-bobClient.ReceivedVouchers()
@@ -111,28 +112,28 @@ func TestPaymentChannelLifecycle(t *testing.T) {
 		1,
 		types.Address{})
 
-	checkPaymentChannel(t, res.ChannelId, updatedOutcome, client.Ready, &aliceClient, &bobClient)
+	checkPaymentChannel(t, res.ChannelId, updatedOutcome, query.Ready, &aliceClient, &bobClient)
 
 	closeId := aliceClient.CloseVirtualChannel(res.ChannelId)
 
-	checkPaymentChannel(t, res.ChannelId, updatedOutcome, client.Closing, &aliceClient)
+	checkPaymentChannel(t, res.ChannelId, updatedOutcome, query.Closing, &aliceClient)
 
 	waitTimeForCompletedObjectiveIds(t, &aliceClient, defaultTimeout, closeId)
 	waitTimeForCompletedObjectiveIds(t, &bobClient, defaultTimeout, closeId)
 	waitTimeForCompletedObjectiveIds(t, &ireneClient, defaultTimeout, closeId)
 
-	checkPaymentChannel(t, res.ChannelId, updatedOutcome, client.Complete, &aliceClient, &bobClient, &ireneClient)
+	checkPaymentChannel(t, res.ChannelId, updatedOutcome, query.Complete, &aliceClient, &bobClient, &ireneClient)
 }
 
 // expectedPaymentInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetPaymentChannel
-func expectedPaymentInfo(id types.Destination, outcome outcome.Exit, status client.ChannelStatus) client.PaymentChannelInfo {
+func expectedPaymentInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.PaymentChannelInfo {
 	payer, _ := outcome[0].Allocations[0].Destination.ToAddress()
 	payee, _ := outcome[0].Allocations[1].Destination.ToAddress()
 
-	return client.PaymentChannelInfo{
+	return query.PaymentChannelInfo{
 		ID:     id,
 		Status: status,
-		Balance: client.PaymentChannelBalance{
+		Balance: query.PaymentChannelBalance{
 			AssetAddress:   types.Address{},
 			Payee:          payee,
 			Payer:          payer,
@@ -143,7 +144,7 @@ func expectedPaymentInfo(id types.Destination, outcome outcome.Exit, status clie
 
 // checkPaymentChannel checks that the ledger channel has the expected outcome and status
 // It will fail if the channel does not exist
-func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, status client.ChannelStatus, clients ...*client.Client) {
+func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...*client.Client) {
 
 	for _, c := range clients {
 		expected := expectedPaymentInfo(id, o, status)
@@ -158,14 +159,14 @@ func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, sta
 }
 
 // expectedLedgerInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetLedgerChannel
-func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status client.ChannelStatus) client.LedgerChannelInfo {
+func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.LedgerChannelInfo {
 	clientAdd, _ := outcome[0].Allocations[0].Destination.ToAddress()
 	hubAdd, _ := outcome[0].Allocations[1].Destination.ToAddress()
 
-	return client.LedgerChannelInfo{
+	return query.LedgerChannelInfo{
 		ID:     id,
 		Status: status,
-		Balance: client.LedgerChannelBalance{
+		Balance: query.LedgerChannelBalance{
 			AssetAddress:  types.Address{},
 			Hub:           hubAdd,
 			Client:        clientAdd,
@@ -176,7 +177,7 @@ func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status clien
 
 // checkLedgerChannel checks that the ledger channel has the expected outcome and status
 // It will fail if the channel does not exist
-func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status client.ChannelStatus, clients ...*client.Client) {
+func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...*client.Client) {
 
 	for _, c := range clients {
 		expected := expectedLedgerInfo(ledgerId, o, status)

@@ -1,8 +1,7 @@
-package client
+package query
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -13,30 +12,6 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/types"
 )
-
-type ChannelStatus string
-
-// TODO: Think through statuses
-const Proposed ChannelStatus = "Proposed"
-const Ready ChannelStatus = "Ready"
-const Closing ChannelStatus = "Closing"
-const Complete ChannelStatus = "Complete"
-
-// PaymentChannelBalance contains the balance of a uni-directional payment channel
-type PaymentChannelBalance struct {
-	AssetAddress   types.Address
-	Payee          types.Address
-	Payer          types.Address
-	PaidSoFar      *big.Int
-	RemainingFunds *big.Int
-}
-
-// PaymentChannelInfo contains balance and status info about a payment channel
-type PaymentChannelInfo struct {
-	ID      types.Destination
-	Status  ChannelStatus
-	Balance PaymentChannelBalance
-}
 
 // getStatusFromChannel returns the status of the channel
 func getStatusFromChannel(c *channel.Channel) ChannelStatus {
@@ -49,7 +24,6 @@ func getStatusFromChannel(c *channel.Channel) ChannelStatus {
 	if !c.PostFundComplete() {
 		return Proposed
 	}
-
 	return Ready
 }
 
@@ -70,22 +44,6 @@ func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit
 		PaidSoFar:      paidSoFar,
 		RemainingFunds: remaining,
 	}
-}
-
-// LedgerChannelInfo contains balance and status info about a ledger channel
-type LedgerChannelInfo struct {
-	ID      types.Destination
-	Status  ChannelStatus
-	Balance LedgerChannelBalance
-}
-
-// LedgerChannelBalance contains the balance of a ledger channel
-type LedgerChannelBalance struct {
-	AssetAddress  types.Address
-	Hub           types.Address
-	Client        types.Address
-	HubBalance    *big.Int
-	ClientBalance *big.Int
 }
 
 // getLatestSupported returns the latest supported state of the channel or the prefund state if no supported state exists
@@ -117,7 +75,7 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 	}
 }
 
-func getPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager) (PaymentChannelInfo, error) {
+func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager) (PaymentChannelInfo, error) {
 
 	// This is slightly awkward but if the virtual defunding objective is complete it won't come back if we query by channel id
 	// We manually construct the objective id and query by that
@@ -167,9 +125,9 @@ func getPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 
 }
 
-// getLedgerChannelInfo returns the LedgerChannelInfo for the given channel
+// GetLedgerChannelInfo returns the LedgerChannelInfo for the given channel
 // It does this by querying the provided store
-func getLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
+func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
 	c, ok := store.GetChannelById(id)
 	if ok {
 
