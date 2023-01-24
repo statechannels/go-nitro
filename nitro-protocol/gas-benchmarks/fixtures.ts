@@ -139,11 +139,7 @@ export class TestChannel {
 
   async concludeAndTransferAllAssetsTx(asset: string) {
     const fP = this.supportProof(this.finalState(asset));
-    return await nitroAdjudicator.concludeAndTransferAllAssets(
-      fP.fixedPart,
-      fP.proof,
-      fP.candidate
-    );
+    return await nitroAdjudicator.concludeAndTransferAllAssets(fP.fixedPart, fP.candidate);
   }
 
   async challengeTx(asset: string) {

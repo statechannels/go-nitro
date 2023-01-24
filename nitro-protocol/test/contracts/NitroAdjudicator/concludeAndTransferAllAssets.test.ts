@@ -213,14 +213,13 @@ describe('concludeAndTransferAllAssets', () => {
 
       // Sign the states
       const signatures = await signStates(states, wallets, whoSignedWhat);
-      const {proof, candidate} = separateProofAndCandidate(
+      const {candidate} = separateProofAndCandidate(
         bindSignatures(variableParts, signatures, whoSignedWhat)
       );
 
       // Form transaction
       const tx = testNitroAdjudicator.concludeAndTransferAllAssets(
         getFixedPart(states[0]),
-        proof,
         candidate,
         {gasLimit: NITRO_MAX_GAS}
       );
