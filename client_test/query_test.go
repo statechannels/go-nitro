@@ -14,8 +14,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-const default_ledger_funding = 5_000_000
-
 func TestLedgerLifecycle(t *testing.T) {
 
 	logFile := "test_ledger_lifecycle.log"
@@ -56,10 +54,10 @@ func TestLedgerLifecycle(t *testing.T) {
 
 }
 
-func TestQueryPaymentChannels(t *testing.T) {
+func TestPaymentChannelLifecycle(t *testing.T) {
 
 	// Setup logging
-	logFile := "test_query.log"
+	logFile := "test_payment_lifecycle.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
@@ -69,34 +67,23 @@ func TestQueryPaymentChannels(t *testing.T) {
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 	broker := messageservice.NewBroker()
 
-	clientA, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, 0)
-	irene, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
-	clientB, _ := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, 0)
-	ledgerAId := directlyFundALedgerChannel(t, clientA, irene, types.Address{})
-	directlyFundALedgerChannel(t, clientB, irene, types.Address{})
+	aliceClient, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, 0)
+	ireneClient, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
+	bobClient, _ := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, 0)
 
-	expectedLedgerA := client.LedgerChannelInfo{
-		ID:     ledgerAId,
-		Status: client.Ready,
-		Balance: client.LedgerChannelBalance{
-			AssetAddress:  types.Address{},
-			Hub:           *irene.Address,
-			Client:        *clientA.Address,
-			ClientBalance: big.NewInt(default_ledger_funding),
-			HubBalance:    big.NewInt(default_ledger_funding),
-		}}
+	directlyFundALedgerChannel(t, aliceClient, ireneClient, types.Address{})
+	directlyFundALedgerChannel(t, bobClient, ireneClient, types.Address{})
 
-	fetchedLedgerA, err := clientA.GetLedgerChannel(ledgerAId)
-	if err != nil {
-		t.Fatal(err)
-	}
+	o := td.Outcomes.Create(
+		alice.Address(),
+		bob.Address(),
+		2,
+		0,
+		types.Address{},
+	)
 
-	if diff := cmp.Diff(expectedLedgerA, fetchedLedgerA, cmp.AllowUnexported(big.Int{})); diff != "" {
-		t.Fatalf("Query diff mismatch (-want +got):\n%s", diff)
-	}
-
-	id := clientA.CreateVirtualPaymentChannel(
-		[]types.Address{*irene.Address},
+	res := aliceClient.CreateVirtualPaymentChannel(
+		[]types.Address{*ireneClient.Address},
 		bob.Address(),
 		0,
 		td.Outcomes.Create(
@@ -105,32 +92,69 @@ func TestQueryPaymentChannels(t *testing.T) {
 			2,
 			0,
 			types.Address{},
-		)).ChannelId
+		))
 
-	res, err := clientA.GetPaymentChannel(id)
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkPaymentChannel(t, res.ChannelId, o, client.Proposed, &aliceClient)
 
-	expected := client.PaymentChannelInfo{
-		ID:     id,
-		Status: client.Proposed,
-		Balance: client.PaymentChannelBalance{
-			AssetAddress:   types.Address{},
-			Payee:          *clientB.Address,
-			Payer:          *clientA.Address,
-			PaidSoFar:      big.NewInt(0),
-			RemainingFunds: big.NewInt(2),
-		}}
+	waitTimeForCompletedObjectiveIds(t, &aliceClient, defaultTimeout, res.Id)
+	waitTimeForCompletedObjectiveIds(t, &bobClient, defaultTimeout, res.Id)
+	waitTimeForCompletedObjectiveIds(t, &ireneClient, defaultTimeout, res.Id)
 
-	if diff := cmp.Diff(expected, res, cmp.AllowUnexported(big.Int{})); diff != "" {
-		t.Fatalf("Query diff mismatch (-want +got):\n%s", diff)
-	}
+	// TODO Irene will return proposed because she doesn't bother listening for the post fund setup
+	checkPaymentChannel(t, res.ChannelId, o, client.Ready, &aliceClient, &bobClient)
 
+	aliceClient.Pay(res.ChannelId, big.NewInt(1))
+	// TODO: Test voucher query API once implemented
+
+	closeId := aliceClient.CloseVirtualChannel(res.ChannelId)
+
+	// TODO: This doesn't work for virtual defunding, since we store values directly on the objective
+	// This means the channel struct in the store will be stale
+	//checkPaymentChannel(t, res.ChannelId, o, client.Closing, &aliceClient)
+
+	waitTimeForCompletedObjectiveIds(t, &aliceClient, defaultTimeout, closeId)
+	waitTimeForCompletedObjectiveIds(t, &bobClient, defaultTimeout, closeId)
+	waitTimeForCompletedObjectiveIds(t, &ireneClient, defaultTimeout, closeId)
+	// TODO: This doesn't work for virtual defunding, since we store values directly on the objective
+	// This means the channel struct in the store will be stale
+	// checkPaymentChannel(t, res.ChannelId, o, client.Complete, &aliceClient, &bobClient, &ireneClient)
 }
 
-// expectedInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetLedgerChannel
-func expectedInfo(id types.Destination, outcome outcome.Exit, status client.ChannelStatus) client.LedgerChannelInfo {
+// expectedPaymentInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetPaymentChannel
+func expectedPaymentInfo(id types.Destination, outcome outcome.Exit, status client.ChannelStatus) client.PaymentChannelInfo {
+	payer, _ := outcome[0].Allocations[0].Destination.ToAddress()
+	payee, _ := outcome[0].Allocations[1].Destination.ToAddress()
+
+	return client.PaymentChannelInfo{
+		ID:     id,
+		Status: status,
+		Balance: client.PaymentChannelBalance{
+			AssetAddress:   types.Address{},
+			Payee:          payee,
+			Payer:          payer,
+			RemainingFunds: outcome[0].Allocations[0].Amount,
+			PaidSoFar:      outcome[0].Allocations[1].Amount,
+		}}
+}
+
+// checkPaymentChannel checks that the ledger channel has the expected outcome and status
+// It will fail if the channel does not exist
+func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, status client.ChannelStatus, clients ...*client.Client) {
+
+	for _, c := range clients {
+		expected := expectedPaymentInfo(id, o, status)
+		ledger, err := c.GetPaymentChannel(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(expected, ledger, cmp.AllowUnexported(big.Int{})); diff != "" {
+			t.Fatalf("Payment channel diff mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+// expectedLedgerInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetLedgerChannel
+func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status client.ChannelStatus) client.LedgerChannelInfo {
 	clientAdd, _ := outcome[0].Allocations[0].Destination.ToAddress()
 	hubAdd, _ := outcome[0].Allocations[1].Destination.ToAddress()
 
@@ -151,13 +175,13 @@ func expectedInfo(id types.Destination, outcome outcome.Exit, status client.Chan
 func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status client.ChannelStatus, clients ...*client.Client) {
 
 	for _, c := range clients {
-		expected := expectedInfo(ledgerId, o, status)
+		expected := expectedLedgerInfo(ledgerId, o, status)
 		ledger, err := c.GetLedgerChannel(ledgerId)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if diff := cmp.Diff(expected, ledger, cmp.AllowUnexported(big.Int{})); diff != "" {
-			t.Fatalf("Query diff mismatch (-want +got):\n%s", diff)
+			t.Fatalf("Ledger diff mismatch (-want +got):\n%s", diff)
 		}
 	}
 }

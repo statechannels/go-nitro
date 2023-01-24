@@ -33,6 +33,7 @@ type PaymentChannelInfo struct {
 	Balance PaymentChannelBalance
 }
 
+// TODO: This doesn't work for virtual defunding, since we store values directly on the objective
 // getStatusFromChannel returns the status of the channel
 func getStatusFromChannel(c *channel.Channel) ChannelStatus {
 	if c.FinalSignedByMe() {
