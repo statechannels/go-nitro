@@ -2,7 +2,6 @@
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
-	"errors"
 	"io"
 	"math/big"
 	"math/rand"
@@ -174,12 +173,8 @@ func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
 // GetPaymentChannel returns the ledger channel with the given id.
 // If no ledger channel exists with the given id an error is returned.
 func (c *Client) GetPaymentChannel(id types.Destination) (PaymentChannelInfo, error) {
-	res, ok := c.store.GetChannelById(id)
-	if !ok {
-		return PaymentChannelInfo{}, errors.New("channel not found")
-	}
 
-	return getPaymentChannelInfo(res), nil
+	return getPaymentChannelInfo(id, c.store)
 }
 
 // GetLedgerChannel returns the ledger channel with the given id.

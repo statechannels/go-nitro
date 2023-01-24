@@ -107,17 +107,18 @@ func TestPaymentChannelLifecycle(t *testing.T) {
 	// TODO: Test voucher query API once implemented
 
 	closeId := aliceClient.CloseVirtualChannel(res.ChannelId)
-
-	// TODO: This doesn't work for virtual defunding, since we store values directly on the objective
-	// This means the channel struct in the store will be stale
-	//checkPaymentChannel(t, res.ChannelId, o, client.Closing, &aliceClient)
+	updatedOutcome := td.Outcomes.Create(alice.Address(),
+		bob.Address(),
+		1,
+		1,
+		types.Address{})
+	checkPaymentChannel(t, res.ChannelId, updatedOutcome, client.Closing, &aliceClient)
 
 	waitTimeForCompletedObjectiveIds(t, &aliceClient, defaultTimeout, closeId)
 	waitTimeForCompletedObjectiveIds(t, &bobClient, defaultTimeout, closeId)
 	waitTimeForCompletedObjectiveIds(t, &ireneClient, defaultTimeout, closeId)
-	// TODO: This doesn't work for virtual defunding, since we store values directly on the objective
-	// This means the channel struct in the store will be stale
-	// checkPaymentChannel(t, res.ChannelId, o, client.Complete, &aliceClient, &bobClient, &ireneClient)
+
+	checkPaymentChannel(t, res.ChannelId, updatedOutcome, client.Complete, &aliceClient, &bobClient, &ireneClient)
 }
 
 // expectedPaymentInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetPaymentChannel

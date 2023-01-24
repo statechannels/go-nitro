@@ -1,11 +1,15 @@
 package client
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -33,7 +37,6 @@ type PaymentChannelInfo struct {
 	Balance PaymentChannelBalance
 }
 
-// TODO: This doesn't work for virtual defunding, since we store values directly on the objective
 // getStatusFromChannel returns the status of the channel
 func getStatusFromChannel(c *channel.Channel) ChannelStatus {
 	if c.FinalSignedByMe() {
@@ -49,38 +52,22 @@ func getStatusFromChannel(c *channel.Channel) ChannelStatus {
 	return Ready
 }
 
-func getPaymentChannelBalance(c *channel.Channel) PaymentChannelBalance {
+func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit) PaymentChannelBalance {
 
-	latest := c.PreFundState()
-	if c.HasSupportedState() {
-
-		supported, _ := c.LatestSupportedState()
-		latest = supported
-	}
-
-	numParticipants := len(latest.Participants)
+	numParticipants := len(participants)
 	// TODO: We assume single asset outcomes
-	outcome := latest.Outcome[0]
-	asset := outcome.Asset
-	payer := latest.Participants[0]
-	payee := latest.Participants[numParticipants-1]
-	paidSoFar := outcome.Allocations[1].Amount
-	remaining := outcome.Allocations[0].Amount
+	sao := outcome[0]
+	asset := sao.Asset
+	payer := participants[0]
+	payee := participants[numParticipants-1]
+	paidSoFar := sao.Allocations[1].Amount
+	remaining := sao.Allocations[0].Amount
 	return PaymentChannelBalance{
 		AssetAddress:   asset,
 		Payer:          payer,
 		Payee:          payee,
 		PaidSoFar:      paidSoFar,
 		RemainingFunds: remaining,
-	}
-}
-
-// getPaymentChannelInfo returns the PaymentChannelInfo for the given channel
-func getPaymentChannelInfo(channel *channel.Channel) PaymentChannelInfo {
-	return PaymentChannelInfo{
-		ID:      channel.Id,
-		Status:  getStatusFromChannel(channel),
-		Balance: getPaymentChannelBalance(channel),
 	}
 }
 
@@ -127,6 +114,42 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 		HubBalance:    hubBalance,
 		ClientBalance: clientBalance,
 	}
+}
+
+func getPaymentChannelInfo(id types.Destination, store store.Store) (PaymentChannelInfo, error) {
+
+	// This is slightly awkward but if the virtual defunding objective is complete it won't come back if we query by channel id
+	// We manually construct the objective id and query by that
+	virtualDefundId := protocols.ObjectiveId(virtualdefund.ObjectivePrefix + id.String())
+	fetchedDefund, err := store.GetObjectiveById(virtualDefundId)
+	isVirtualDefund := err == nil
+
+	// Since virtual defunding stores all state updates on the objective instead of the store we need to manually check the objective
+	if isVirtualDefund {
+		defund := fetchedDefund.(*virtualdefund.Objective)
+		status := Closing
+
+		if defund.Status == protocols.Completed {
+			status = Complete
+		}
+		return PaymentChannelInfo{
+			ID:      id,
+			Status:  status,
+			Balance: getPaymentChannelBalance(defund.VFixed.Participants, []outcome.SingleAssetExit{defund.FinalOutcome}),
+		}, nil
+	}
+
+	// Otherwise we can just check the store
+	c, ok := store.GetChannelById(id)
+	if ok {
+		return PaymentChannelInfo{
+			ID:      id,
+			Status:  getStatusFromChannel(c),
+			Balance: getPaymentChannelBalance(c.Participants, getLatestSupported(c).Outcome),
+		}, nil
+	}
+	return PaymentChannelInfo{}, fmt.Errorf("could not find channel with id %v", id)
+
 }
 
 // getLedgerChannelInfo returns the LedgerChannelInfo for the given channel
