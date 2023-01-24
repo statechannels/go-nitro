@@ -73,13 +73,11 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	// This is the deployed contract on wallaby
 	// If wallaby gets reset this will need to be redeployed by running:
 	// WALLABY_DEPLOYER_PK="f4d69c36885541f56f4728ddc002a6fa2fcb26c9f608910310a776c83b7fde47" npx hardhat deploy --network hyperspace --deploy-scripts ./hardhat-deploy-fvm --reset
-	// The key "f4d69c36885541f56f4728ddc002a6fa2fcb26c9f608910310a776c83b7fde47" is 0th account from the  WALLABY_MNEMONIC and WALLABY_HD_PATH
-	// (But the hardhat deploy script actually ends up using account 0xE39dce95b1A924E2472E24C20C55eA3559a09251 or t410f4oo45fnrvesoerzoetbayvpkgvm2besropxbvxi)
+	// The PK corresponds to account 0xE39dce95b1A924E2472E24C20C55eA3559a09251.
 	// It should be prefunded after every wallaby reset.
 	naAddress := common.HexToAddress("0x4fBeCDA4735eaF21C8ba5BD40Ab97dFa2Ed88E80")
-	caAddress := common.Address{}  // TODO use proper address
-	vpaAddress := common.Address{} // TODO use proper address
-
+	caAddress := common.HexToAddress("0xC57875E317f67F2bE5D62f5c7C696D2eb7Fe79FE")
+	vpaAddress := common.HexToAddress("0xc1AcE8075ee548AA2284b61C5eD8f1a69c4cE756")
 	na, err := NitroAdjudicator.NewNitroAdjudicator(naAddress, client)
 	if err != nil {
 		t.Fatal(err)
