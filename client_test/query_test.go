@@ -10,7 +10,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/internal/testdata"
-	td "github.com/statechannels/go-nitro/internal/testdata"
+
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -74,7 +74,7 @@ func TestPaymentChannelLifecycle(t *testing.T) {
 	directlyFundALedgerChannel(t, aliceClient, ireneClient, types.Address{})
 	directlyFundALedgerChannel(t, bobClient, ireneClient, types.Address{})
 
-	o := td.Outcomes.Create(
+	o := testdata.Outcomes.Create(
 		alice.Address(),
 		bob.Address(),
 		2,
@@ -86,7 +86,7 @@ func TestPaymentChannelLifecycle(t *testing.T) {
 		[]types.Address{*ireneClient.Address},
 		bob.Address(),
 		0,
-		td.Outcomes.Create(
+		testdata.Outcomes.Create(
 			alice.Address(),
 			bob.Address(),
 			2,
@@ -105,7 +105,7 @@ func TestPaymentChannelLifecycle(t *testing.T) {
 
 	aliceClient.Pay(res.ChannelId, big.NewInt(1))
 
-	updatedOutcome := td.Outcomes.Create(alice.Address(),
+	updatedOutcome := testdata.Outcomes.Create(alice.Address(),
 		bob.Address(),
 		1,
 		1,
