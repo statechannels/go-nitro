@@ -693,7 +693,7 @@ func isZero(sig state.Signature) bool {
 
 // ObjectiveRequest represents a request to create a new virtual defund objective.
 type ObjectiveRequest struct {
-	ChannelId        types.Destination
+	ChannelId        types.Destination `json:"channel_id"`
 	objectiveStarted chan struct{}
 }
 
