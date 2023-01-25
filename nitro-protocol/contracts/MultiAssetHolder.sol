@@ -245,7 +245,8 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     function reclaim(ReclaimArgs memory reclaimArgs) external override {
         (
             Outcome.SingleAssetExit[] memory sourceOutcome,
-            Outcome.SingleAssetExit[] memory targetOutcome
+            Outcome.SingleAssetExit[] memory targetOutcome,
+            bool releaseFees
         ) = _apply_reclaim_checks(reclaimArgs); // view
 
         Outcome.Allocation[] memory newSourceAllocations;
@@ -259,7 +260,8 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             newSourceAllocations = compute_reclaim_effects(
                 sourceAllocations,
                 targetAllocations,
-                reclaimArgs.indexOfTargetInSource
+                reclaimArgs.indexOfTargetInSource,
+                releaseFees
             ); // pure
         }
 
@@ -274,7 +276,8 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         view
         returns (
             Outcome.SingleAssetExit[] memory sourceOutcome,
-            Outcome.SingleAssetExit[] memory targetOutcome
+            Outcome.SingleAssetExit[] memory targetOutcome,
+            bool releaseFees
         )
     {
         (
@@ -315,7 +318,11 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
 
         // target checks
         require(targetOutcome[targetAssetIndex].asset == asset, 'targetAsset != guaranteeAsset');
+
         _requireChannelFinalized(targetChannelId);
+        (uint48 turnNumRecord, , ) = _unpackStatus(targetChannelId);
+        releaseFees = turnNumRecord > 0;
+
         _requireMatchingFingerprint(
             reclaimArgs.targetStateHash,
             keccak256(targetOutcomeBytes),
@@ -329,7 +336,8 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     function compute_reclaim_effects(
         Outcome.Allocation[] memory sourceAllocations,
         Outcome.Allocation[] memory targetAllocations,
-        uint256 indexOfTargetInSource
+        uint256 indexOfTargetInSource,
+        bool // releaseFees // This variable will be used soon and its name can be uncommented. 
     ) public pure returns (Outcome.Allocation[] memory) {
         Outcome.Allocation[] memory newSourceAllocations = new Outcome.Allocation[](
             sourceAllocations.length - 1 // is one slot shorter as we remove the guarantee
