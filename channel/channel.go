@@ -193,7 +193,7 @@ func (c Channel) FinalSignedByMe() bool {
 	return false
 }
 
-// FinalCompleted() returns true if I have a complete set of signatures on a final state, false otherwise.
+// FinalCompleted returns true if I have a complete set of signatures on a final state, false otherwise.
 func (c Channel) FinalCompleted() bool {
 	if c.latestSupportedStateTurnNum == MaxTurnNum {
 		return false

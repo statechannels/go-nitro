@@ -27,6 +27,7 @@ func getStatusFromChannel(c *channel.Channel) ChannelStatus {
 	return Ready
 }
 
+// getPaymentChannelBalance generates a PaymentChannelBalance from the given participants and outcome
 func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit) PaymentChannelBalance {
 
 	numParticipants := len(participants)
@@ -59,7 +60,7 @@ func getLatestSupported(channel *channel.Channel) state.State {
 // getLedgerBalanceFromState returns the balance of the ledger channel from the given state
 func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 
-	// TODO: We assume single asset outcomes
+	// TODO: We assume single asset outcomesch
 	outcome := latest.Outcome[0]
 	asset := outcome.Asset
 	client := latest.Participants[0]
