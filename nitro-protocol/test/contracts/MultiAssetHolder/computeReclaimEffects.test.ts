@@ -23,6 +23,7 @@ interface TestCaseInputs {
   sourceAllocations: Allocation[];
   targetAllocations: Allocation[];
   indexOfTargetInSource: number;
+  releaseFees: boolean;
 }
 
 interface TestCaseOutputs {
@@ -77,6 +78,7 @@ const testcase1: TestCase = {
         metadata: '0x',
       },
     ],
+    releaseFees: true,
   },
   outputs: {
     newSourceAllocations: [
@@ -113,7 +115,8 @@ describe('computeReclaimEffects', () => {
     const onChainNewSourceAllocations = await testNitroAdjudicator.compute_reclaim_effects(
       testCase.inputs.sourceAllocations,
       testCase.inputs.targetAllocations,
-      testCase.inputs.indexOfTargetInSource
+      testCase.inputs.indexOfTargetInSource,
+      testCase.inputs.releaseFees
     );
 
     expect(onChainNewSourceAllocations.map(convertAmountToHexString)).toMatchObject(
