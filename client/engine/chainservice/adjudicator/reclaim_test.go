@@ -19,6 +19,7 @@ func TestComputeReclaimEffects(t *testing.T) {
 		sourceAllocations     []outcome.Allocation
 		targetAllocations     []outcome.Allocation
 		indexOfTargetInSource uint
+		releaseFees           bool
 	}
 
 	type TestCaseOutputs struct {
@@ -73,6 +74,7 @@ func TestComputeReclaimEffects(t *testing.T) {
 					Metadata:       []byte{},
 				},
 			},
+			releaseFees: true,
 		},
 		outputs: TestCaseOutputs{
 			newSourceAllocations: []outcome.Allocation{
@@ -96,6 +98,7 @@ func TestComputeReclaimEffects(t *testing.T) {
 		testCase1.inputs.sourceAllocations,
 		testCase1.inputs.targetAllocations,
 		testCase1.inputs.indexOfTargetInSource,
+		testCase1.inputs.releaseFees,
 	)
 	if err != nil {
 		t.Fatal(err)
