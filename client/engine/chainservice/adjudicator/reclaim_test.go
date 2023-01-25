@@ -56,7 +56,7 @@ func TestComputeReclaimEffects(t *testing.T) {
 				},
 				{
 					Destination:    [32]byte{},
-					Amount:         big.NewInt(6),
+					Amount:         big.NewInt(7),
 					AllocationType: outcome.GuaranteeAllocationType,
 					Metadata:       metadata,
 				},
@@ -64,6 +64,12 @@ func TestComputeReclaimEffects(t *testing.T) {
 			targetAllocations: []outcome.Allocation{
 				{
 					Destination:    Alice,
+					Amount:         big.NewInt(1),
+					AllocationType: outcome.NormalAllocationType,
+					Metadata:       []byte{},
+				},
+				{
+					Destination:    Irene,
 					Amount:         big.NewInt(1),
 					AllocationType: outcome.NormalAllocationType,
 					Metadata:       []byte{},
@@ -87,7 +93,70 @@ func TestComputeReclaimEffects(t *testing.T) {
 				},
 				{
 					Destination:    Irene,
+					Amount:         big.NewInt(8),
+					AllocationType: outcome.NormalAllocationType,
+					Metadata:       []byte{},
+				},
+			},
+		},
+	}
+
+	testCase2 := TestCase{
+		inputs: TestCaseInputs{
+			indexOfTargetInSource: 2,
+			sourceAllocations: []outcome.Allocation{
+				{
+					Destination:    Alice,
+					Amount:         big.NewInt(2),
+					AllocationType: outcome.NormalAllocationType,
+					Metadata:       []byte{},
+				},
+				{
+					Destination:    Irene,
+					Amount:         big.NewInt(2),
+					AllocationType: outcome.NormalAllocationType,
+					Metadata:       []byte{},
+				},
+				{
+					Destination:    [32]byte{},
 					Amount:         big.NewInt(7),
+					AllocationType: outcome.GuaranteeAllocationType,
+					Metadata:       metadata,
+				},
+			},
+			targetAllocations: []outcome.Allocation{
+				{
+					Destination:    Alice,
+					Amount:         big.NewInt(6),
+					AllocationType: outcome.NormalAllocationType,
+					Metadata:       []byte{},
+				},
+				{
+					Destination:    Irene,
+					Amount:         big.NewInt(1),
+					AllocationType: outcome.NormalAllocationType,
+					Metadata:       []byte{},
+				},
+				{
+					Destination:    Bob,
+					Amount:         big.NewInt(0),
+					AllocationType: outcome.NormalAllocationType,
+					Metadata:       []byte{},
+				},
+			},
+			releaseFees: false,
+		},
+		outputs: TestCaseOutputs{
+			newSourceAllocations: []outcome.Allocation{
+				{
+					Destination:    Alice,
+					Amount:         big.NewInt(9),
+					AllocationType: outcome.NormalAllocationType,
+					Metadata:       []byte{},
+				},
+				{
+					Destination:    Irene,
+					Amount:         big.NewInt(2),
 					AllocationType: outcome.NormalAllocationType,
 					Metadata:       []byte{},
 				},
@@ -105,8 +174,11 @@ func TestComputeReclaimEffects(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if diff := cmp.Diff(offChainNewSourceAllocations, testCase1.outputs.newSourceAllocations); diff != "" {
-		t.Fatalf("newSourceAllocations does not match expectation :\n%s", diff)
+	for i, tc := range []TestCase{testCase1, testCase2} {
+		if diff := cmp.Diff(offChainNewSourceAllocations, tc.outputs.newSourceAllocations); diff != "" {
+			t.Fatalf("test case %v; newSourceAllocations does not match expectation :\n%s", i, diff)
+		}
+
 	}
 
 }
