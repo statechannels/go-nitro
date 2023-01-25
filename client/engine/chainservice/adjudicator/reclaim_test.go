@@ -13,6 +13,7 @@ import (
 func TestComputeReclaimEffects(t *testing.T) {
 
 	Alice := types.Destination(common.HexToHash("0xa"))
+	Irene := types.Destination(common.HexToHash("0x1"))
 	Bob := types.Destination(common.HexToHash("0xb"))
 
 	type TestCaseInputs struct {
@@ -31,7 +32,7 @@ func TestComputeReclaimEffects(t *testing.T) {
 		outputs TestCaseOutputs
 	}
 
-	metadata, err := outcome.GuaranteeMetadata{Left: Alice, Right: Bob}.Encode()
+	metadata, err := outcome.GuaranteeMetadata{Left: Alice, Right: Irene}.Encode()
 
 	if err != nil {
 		t.Fatal(err)
@@ -48,7 +49,7 @@ func TestComputeReclaimEffects(t *testing.T) {
 					Metadata:       []byte{},
 				},
 				{
-					Destination:    Bob,
+					Destination:    Irene,
 					Amount:         big.NewInt(2),
 					AllocationType: outcome.NormalAllocationType,
 					Metadata:       []byte{},
@@ -85,7 +86,7 @@ func TestComputeReclaimEffects(t *testing.T) {
 					Metadata:       []byte{},
 				},
 				{
-					Destination:    Bob,
+					Destination:    Irene,
 					Amount:         big.NewInt(7),
 					AllocationType: outcome.NormalAllocationType,
 					Metadata:       []byte{},
