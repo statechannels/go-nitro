@@ -337,7 +337,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         Outcome.Allocation[] memory sourceAllocations,
         Outcome.Allocation[] memory targetAllocations,
         uint256 indexOfTargetInSource,
-        bool // releaseFees // This variable will be used soon and its name can be uncommented. 
+        bool // releaseFees // This variable will be used soon and its name can be uncommented.
     ) public pure returns (Outcome.Allocation[] memory) {
         Outcome.Allocation[] memory newSourceAllocations = new Outcome.Allocation[](
             sourceAllocations.length - 1 // is one slot shorter as we remove the guarantee
