@@ -67,7 +67,9 @@ export function convertAddressToBytes32(address: string): string {
 export function computeReclaimEffects(
   sourceAllocations: ExitFormat.Allocation[], // we must index this with a JS number that is less than 2**32 - 1
   targetAllocations: ExitFormat.Allocation[], // we must index this with a JS number that is less than 2**32 - 1
-  indexOfTargetInSource: number
+  indexOfTargetInSource: number,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  releaseFees: boolean
 ): ExitFormat.Allocation[] {
   const newSourceAllocations: ExitFormat.Allocation[] = []; // will be one slot shorter than sourceAllocations
   const guarantee = sourceAllocations[indexOfTargetInSource];

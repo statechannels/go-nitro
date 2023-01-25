@@ -105,7 +105,8 @@ describe('computeReclaimEffects', () => {
     const offChainNewSourceAllocations = computeReclaimEffects(
       testCase.inputs.sourceAllocations,
       testCase.inputs.targetAllocations,
-      testCase.inputs.indexOfTargetInSource
+      testCase.inputs.indexOfTargetInSource,
+      testCase.inputs.releaseFees
     );
 
     expect(offChainNewSourceAllocations).toMatchObject(testCase.outputs.newSourceAllocations);
