@@ -46,7 +46,8 @@ func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit
 	}
 }
 
-// getLatestSupported returns the latest supported state of the channel or the prefund state if no supported state exists
+// getLatestSupported returns the latest supported state of the channel
+// or the prefund state if no supported state exists
 func getLatestSupported(channel *channel.Channel) state.State {
 	if channel.HasSupportedState() {
 		supported, _ := channel.LatestSupportedState()
@@ -75,6 +76,8 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 	}
 }
 
+// GetPaymentChannelInfo returns the PaymentChannelInfo for the given channel
+// It does this by querying the provided store and voucher manager
 func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager) (PaymentChannelInfo, error) {
 
 	// This is slightly awkward but if the virtual defunding objective is complete it won't come back if we query by channel id
@@ -83,7 +86,8 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 	fetchedDefund, err := store.GetObjectiveById(virtualDefundId)
 	isVirtualDefund := err == nil
 
-	// Since virtual defunding stores all state updates on the objective instead of the store we need to manually check the objective
+	// Since virtual defunding stores all state updates on the objective
+	// instead of the store we need to manually check the objective
 	if isVirtualDefund {
 		defund := fetchedDefund.(*virtualdefund.Objective)
 		status := Closing
@@ -91,6 +95,7 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 		if defund.Status == protocols.Completed {
 			status = Complete
 		}
+
 		return PaymentChannelInfo{
 			ID:      id,
 			Status:  status,
@@ -99,9 +104,9 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 	}
 
 	// Otherwise we can just check the store
-	c, ok := store.GetChannelById(id)
+	c, channelFound := store.GetChannelById(id)
 
-	if ok {
+	if channelFound {
 		status := getStatusFromChannel(c)
 		balance := getPaymentChannelBalance(c.Participants, getLatestSupported(c).Outcome)
 
