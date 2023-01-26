@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
@@ -28,6 +29,8 @@ type Client struct {
 	failedObjectives    chan protocols.ObjectiveId
 	receivedVouchers    chan payments.Voucher
 	chainId             *big.Int
+	store               store.Store
+	vm                  *payments.VoucherManager
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -43,7 +46,9 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 		panic(err)
 	}
 	c.chainId = chainId
-	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker, metricsApi)
+	c.store = store
+	c.vm = payments.NewVoucherManager(*store.GetAddress())
+	c.engine = engine.New(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
@@ -166,4 +171,17 @@ func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.Objec
 func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
 	// Send the event to the engine
 	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
+}
+
+// GetPaymentChannel returns the payment channel with the given id.
+// If no ledger channel exists with the given id an error is returned.
+func (c *Client) GetPaymentChannel(id types.Destination) (query.PaymentChannelInfo, error) {
+
+	return query.GetPaymentChannelInfo(id, c.store, c.vm)
+}
+
+// GetLedgerChannel returns the ledger channel with the given id.
+// If no ledger channel exists with the given id an error is returned.
+func (c *Client) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {
+	return query.GetLedgerChannelInfo(id, c.store)
 }
