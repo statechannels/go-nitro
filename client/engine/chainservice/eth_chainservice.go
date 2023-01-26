@@ -273,7 +273,7 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 			if sErr != nil {
 				ecs.fatalError(err)
 			}
-			ecs.logger.Println("resubscribed to filtered logs")
+			ecs.logger.Print("resubscribed to filtered logs")
 
 		case <-time.After(RESUB_INTERVAL):
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.

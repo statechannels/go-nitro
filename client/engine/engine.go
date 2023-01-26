@@ -109,7 +109,7 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 
 	e.vm = vm
 
-	e.logger.Println("Constructed Engine")
+	e.logger.Print("Constructed Engine")
 
 	if metricsApi == nil {
 		metricsApi = &NoOpMetrics{}
@@ -149,7 +149,8 @@ func (e *Engine) Run() {
 
 		// Handle errors
 		if err != nil {
-			e.logger.Panic(fmt.Errorf("%s, error in run loop: %w", e.store.GetAddress(), err))
+			e.logger.Err(fmt.Errorf("%s, error in run loop: %w", e.store.GetAddress(), err))
+			e.logger.Panic()
 			// TODO do not panic if in production.
 			// TODO report errors back to the consuming application
 		}
