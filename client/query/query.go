@@ -49,12 +49,12 @@ func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit
 
 // getLatestSupported returns the latest supported state of the channel
 // or the prefund state if no supported state exists
-func getLatestSupported(channel *channel.Channel) state.State {
+func getLatestSupported(channel *channel.Channel) (state.State, error) {
 	if channel.HasSupportedState() {
-		supported, _ := channel.LatestSupportedState()
-		return supported
+		return channel.LatestSupportedState()
+
 	}
-	return channel.PreFundState()
+	return channel.PreFundState(), nil
 }
 
 // getLedgerBalanceFromState returns the balance of the ledger channel from the given state
@@ -109,7 +109,11 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 
 	if channelFound {
 		status := getStatusFromChannel(c)
-		balance := getPaymentChannelBalance(c.Participants, getLatestSupported(c).Outcome)
+		latest, err := getLatestSupported(c)
+		if err != nil {
+			return PaymentChannelInfo{}, err
+		}
+		balance := getPaymentChannelBalance(c.Participants, latest.Outcome)
 
 		// If we have received vouchers we want to update the channel balance to reflect the vouchers
 		if hasVouchers := vm.ChannelRegistered(id); status == Ready && hasVouchers {
@@ -136,11 +140,14 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
 	c, ok := store.GetChannelById(id)
 	if ok {
-
+		latest, err := getLatestSupported(c)
+		if err != nil {
+			return LedgerChannelInfo{}, err
+		}
 		return LedgerChannelInfo{
 			ID:      c.Id,
 			Status:  getStatusFromChannel(c),
-			Balance: getLedgerBalanceFromState(getLatestSupported(c)),
+			Balance: getLedgerBalanceFromState(latest),
 		}, nil
 	}
 
