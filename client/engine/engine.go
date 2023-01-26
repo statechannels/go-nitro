@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/big"
 
+	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -52,7 +52,7 @@ type Engine struct {
 	store       store.Store // A Store for persisting and restoring important data
 	policymaker PolicyMaker // A PolicyMaker decides whether to approve or reject objectives
 
-	logger *log.Logger
+	logger zerolog.Logger
 
 	metrics *MetricsRecorder
 
@@ -102,8 +102,8 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	e.toApi = make(chan EngineEvent, 100)
 
 	// initialize a Logger
-	logPrefix := e.store.GetAddress().String()[0:8] + ": "
-	e.logger = log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	e.logger = zerolog.New(logDestination).With().Timestamp().Str("address", e.store.GetAddress().String()[0:8]).Caller().Logger()
 
 	e.policymaker = policymaker
 
