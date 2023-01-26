@@ -173,7 +173,7 @@ func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
 	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
 }
 
-// GetPaymentChannel returns the ledger channel with the given id.
+// GetPaymentChannel returns the payment channel with the given id.
 // If no ledger channel exists with the given id an error is returned.
 func (c *Client) GetPaymentChannel(id types.Destination) (query.PaymentChannelInfo, error) {
 

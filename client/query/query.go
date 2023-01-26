@@ -60,7 +60,7 @@ func getLatestSupported(channel *channel.Channel) state.State {
 // getLedgerBalanceFromState returns the balance of the ledger channel from the given state
 func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 
-	// TODO: We assume single asset outcomesch
+	// TODO: We assume single asset outcomes
 	outcome := latest.Outcome[0]
 	asset := outcome.Asset
 	client := latest.Participants[0]
