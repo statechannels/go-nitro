@@ -27,6 +27,10 @@ jobs:
         run: go get github.com/statechannels/go-nitro@${{github.event.pull_request.head.sha}}
         working-directory: "code/go-nitro-testground"
 
+      - name: Go mod tidy
+        run: go mod tidy
+        working-directory: "code/go-nitro-testground"
+
       - name: Import Test 
         run:    testground plan import --from ./go-nitro-testground
         working-directory: "code"
