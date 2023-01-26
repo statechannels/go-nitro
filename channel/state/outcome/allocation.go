@@ -18,10 +18,10 @@ const (
 
 // Allocation declares an Amount to be paid to a Destination.
 type Allocation struct {
-	Destination    types.Destination `json:"destination"`     // Either an ethereum address or an application-specific identifier
-	Amount         *types.Uint256    `json:"amount"`          // An amount of a particular asset
-	AllocationType AllocationType    `json:"allocation_type"` // Directs calling code on how to interpret the allocation
-	Metadata       []byte            `json:"metadata"`        // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
+	Destination    types.Destination // Either an ethereum address or an application-specific identifier
+	Amount         *types.Uint256    // An amount of a particular asset
+	AllocationType AllocationType    // Directs calling code on how to interpret the allocation
+	Metadata       []byte            // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
 }
 
 // Equal returns true if the supplied Allocation matches the receiver Allocation, and false otherwise.

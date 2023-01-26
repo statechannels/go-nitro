@@ -137,7 +137,7 @@ func TestRunRpcNats(t *testing.T) {
 			objRes := req.Response(alice.Address(), nil)
 
 			nts.SendMessage(netproto.NewMessage(netproto.TypeResponse, m.RequestId, network.DirectFundRequestMethod, []any{&objRes}))
-			clientA.Engine.ObjectiveRequestsFromAPI <- req
+			clientA.CreateLedgerChannel(req.CounterParty, req.ChallengeDuration, req.Outcome)
 		}
 	})
 
@@ -150,7 +150,7 @@ func TestRunRpcNats(t *testing.T) {
 		for i := 0; i < len(m.Args); i++ {
 			res := m.Args[i].(map[string]any)
 			req := parser.ParseDirectDefundRequest(res)
-			clientB.Engine.ObjectiveRequestsFromAPI <- req
+			clientB.CloseLedgerChannel(req.ChannelId)
 		}
 	})
 
