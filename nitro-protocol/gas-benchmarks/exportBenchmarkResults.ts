@@ -312,7 +312,8 @@ async function main() {
     const updatedAllocations = computeReclaimEffects(
       ledgerProof.outcome[0].allocations,
       vOutcome[0].allocations,
-      2
+      2,
+      true
     );
     const updatedOutcome: Outcome = [
       {
