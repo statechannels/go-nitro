@@ -25,11 +25,11 @@ var cs chainservice.ChainService
 var pk *ecdsa.PrivateKey
 
 func init() {
-	setupChainService()
+
 }
 
 func main() {
-
+	setupChainService()
 	c := client.New(
 		p2pms.NewMessageService("127.0.0.1", 2828, crypto.FromECDSA(pk)),
 		cs,
@@ -83,6 +83,9 @@ func setupChainService() {
 	caAddress := common.HexToAddress("0xC57875E317f67F2bE5D62f5c7C696D2eb7Fe79FE")
 	vpaAddress := common.HexToAddress("0xc1AcE8075ee548AA2284b61C5eD8f1a69c4cE756")
 	na, err := NitroAdjudicator.NewNitroAdjudicator(naAddress, chain)
+	if err != nil {
+		panic(err)
+	}
 	hyperspaceChainId := big.NewInt(3141)
 	txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, hyperspaceChainId)
 	if err != nil {
