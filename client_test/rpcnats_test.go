@@ -148,4 +148,6 @@ func TestRunRpcNats(t *testing.T) {
 	// todo: add me back
 	// req := directdefund.ObjectiveRequest{ChannelId: dfObjResponse.ChannelId}
 	// nts.SendMessage(netproto.NewMessage(netproto.TypeRequest, rand.Uint64(), network.DirectDefundRequestMethod, []any{&req}))
+
+	ns.Shutdown()
 }
