@@ -10,55 +10,55 @@ import (
 )
 
 func i2Uint8(v any) uint8 {
-	switch v.(type) {
+	switch v := v.(type) {
 	case int64:
-		return uint8(v.(int64))
+		return uint8(v)
 	case float64:
-		return uint8(v.(float64))
+		return uint8(v)
 	case uint32:
-		return uint8(v.(uint32))
+		return uint8(v)
 	case uint8:
-		return v.(uint8)
+		return v
 	}
 	panic(fmt.Sprintf("invalid type %s", reflect.TypeOf(v)))
 }
 
 func i2Uint32(v any) uint32 {
-	switch v.(type) {
+	switch v := v.(type) {
 	case int64:
-		return uint32(v.(int64))
+		return uint32(v)
 	case float64:
-		return uint32(v.(float64))
+		return uint32(v)
 	case uint32:
-		return v.(uint32)
+		return v
 	}
 	panic(fmt.Sprintf("invalid type %s", reflect.TypeOf(v)))
 }
 
 func i2Uint64(v any) uint64 {
-	switch v.(type) {
+	switch v := v.(type) {
 	case int64:
-		return uint64(v.(int64))
+		return uint64(v)
 	case float64:
-		return uint64(v.(float64))
+		return uint64(v)
 	case uint64:
-		return v.(uint64)
+		return v
 	}
 	panic(fmt.Sprintf("invalid type %s", reflect.TypeOf(v)))
 }
 
 func i2Uint256(v any) *types.Uint256 {
-	switch v.(type) {
+	switch v := v.(type) {
 	case string:
-		bigInt, ok := math.ParseBig256(v.(string))
+		bigInt, ok := math.ParseBig256(v)
 		if !ok {
-			panic(fmt.Sprintf("parsing to bigint failed. val: %s", v.(string)))
+			panic(fmt.Sprintf("parsing to bigint failed. val: %s", v))
 		}
 		return bigInt
 	case float64:
-		bigInt, ok := math.ParseBig256(fmt.Sprintf("%v", v.(float64)))
+		bigInt, ok := math.ParseBig256(fmt.Sprintf("%v", v))
 		if !ok {
-			panic(fmt.Sprintf("parsing to bigint failed. val: %v", v.(float64)))
+			panic(fmt.Sprintf("parsing to bigint failed. val: %v", v))
 		}
 		return bigInt
 	}
@@ -66,9 +66,9 @@ func i2Uint256(v any) *types.Uint256 {
 }
 
 func toByteArray(v any) []byte {
-	switch v.(type) {
+	switch v := v.(type) {
 	case []byte:
-		return v.([]byte)
+		return v
 	default:
 		var data []byte
 		return data

@@ -48,6 +48,9 @@ func TestRunRpcNats(t *testing.T) {
 	ns.Start()
 
 	nc, err := nats.Connect(ns.ClientURL())
+	if err != nil {
+		t.Error(err)
+	}
 	chain := chainservice.NewMockChain()
 
 	alice := testactors.Alice

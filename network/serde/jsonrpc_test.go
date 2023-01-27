@@ -86,7 +86,10 @@ func BenchmarkJsonRpcSerializeRequest(b *testing.B) {
 		Args:      []interface{}{"foo"},
 	}
 	for i := 0; i < b.N; i++ {
-		rpc.Serialize(m)
+		_, err := rpc.Serialize(m)
+		if err != nil {
+			b.Error(err)
+		}
 	}
 }
 
@@ -94,6 +97,9 @@ func BenchmarkJsonRpcDeserializeRequest(b *testing.B) {
 	rpc := JsonRpc{}
 	data := []byte(`{"method":"test","params":["foo"],"jsonrpc":"2.0","id":4242}`)
 	for i := 0; i < b.N; i++ {
-		rpc.Deserialize(data)
+		_, err := rpc.Deserialize(data)
+		if err != nil {
+			b.Error(err)
+		}
 	}
 }

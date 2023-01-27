@@ -6,10 +6,10 @@ type MessageType int8
 
 const (
 	TypeRequest      MessageType = 1
-	TypeResponse                 = 2
-	TypePublicEvent              = 3
-	TypePrivateEvent             = 4
-	TypeError                    = 5
+	TypeResponse     MessageType = 2
+	TypePublicEvent  MessageType = 3
+	TypePrivateEvent MessageType = 4
+	TypeError        MessageType = 5
 )
 
 type Message struct {
