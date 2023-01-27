@@ -3,6 +3,7 @@ package query
 import (
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -163,4 +164,10 @@ func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChanne
 		Balance: getLedgerBalanceFromState(latest),
 	}, nil
 
+}
+
+// GetMyAddress returns the participant address corresponding to the channel secret key for this nitro client.
+// It does this by querying the provided store
+func GetMyAddress(store store.Store) common.Address {
+	return *store.GetAddress()
 }

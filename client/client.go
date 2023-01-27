@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"math/rand"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -184,4 +185,9 @@ func (c *Client) GetPaymentChannel(id types.Destination) (query.PaymentChannelIn
 // If no ledger channel exists with the given id an error is returned.
 func (c *Client) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {
 	return query.GetLedgerChannelInfo(id, c.store)
+}
+
+// GetMyAddress returns the participant address corresponding to the channel secret key for this nitro client.
+func (c *Client) GetMyAddress() common.Address {
+	return query.GetMyAddress(c.store)
 }
