@@ -12,16 +12,16 @@ import (
 func TestCreateAllocations(t *testing.T) {
 	allocations := make([]any, 2)
 	allocation1 := map[string]any{
-		"destination":     testactors.Bob.Destination().String(),
-		"amount":          float64(123),
-		"allocation_type": float64(0),
-		"metadata":        nil,
+		"Destination":    testactors.Bob.Destination().String(),
+		"Amount":         float64(123),
+		"AllocationType": float64(0),
+		"Metadata":       nil,
 	}
 	allocation2 := map[string]any{
-		"destination":     testactors.Alice.Destination().String(),
-		"amount":          float64(456),
-		"allocation_type": float64(1),
-		"metadata":        []byte("test"),
+		"Destination":    testactors.Alice.Destination().String(),
+		"Amount":         float64(456),
+		"AllocationType": float64(1),
+		"Metadata":       []byte("test"),
 	}
 	allocations[0] = allocation1
 	allocations[1] = allocation2
