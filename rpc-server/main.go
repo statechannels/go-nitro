@@ -24,13 +24,6 @@ import (
 var cs chainservice.ChainService
 var pk *ecdsa.PrivateKey
 
-// This is the mnemonic for the prefunded accounts on wallaby.
-// The first 25 accounts will be prefunded.
-const WALLABY_MNEMONIC = "army forest resource shop tray cluster teach cause spice judge link oppose"
-
-// This is the HD path to use when deriving accounts from the mnemonic
-const WALLABY_HD_PATH = "m/44'/1'/0'/0"
-
 func init() {
 	setupChainService()
 }
@@ -56,6 +49,13 @@ func main() {
 }
 
 func setupChainService() {
+	// This is the mnemonic for the prefunded accounts on wallaby.
+	// The first 25 accounts will be prefunded.
+	const WALLABY_MNEMONIC = "army forest resource shop tray cluster teach cause spice judge link oppose"
+
+	// This is the HD path to use when deriving accounts from the mnemonic
+	const WALLABY_HD_PATH = "m/44'/1'/0'/0"
+
 	wallet, err := hdwallet.NewFromMnemonic(WALLABY_MNEMONIC)
 	if err != nil {
 		panic(err)
@@ -71,7 +71,9 @@ func setupChainService() {
 	// corresponding ETH address is 0x280c53E2C574418D8d6d8d651d4c3323F4b194Be
 	// corresponding f4 address (delegated) is t410ffagfhywforay3dlnrvsr2tbtep2ldff6xuxkrjq.
 	pk, err = wallet.PrivateKey(a)
-
+	if err != nil {
+		panic(err)
+	}
 	chain, err := ethclient.Dial("https://api.hyperspace.node.glif.io/rpc/v0")
 
 	if err != nil {
