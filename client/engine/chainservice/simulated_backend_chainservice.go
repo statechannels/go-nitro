@@ -65,7 +65,7 @@ func newPollingSimulatedBackendChainService(sim SimulatedChain, bindings Binding
 	txSigner *bind.TransactOpts, logDestination io.Writer) (ChainService, error) {
 
 	logging.ConfigureZeroLogger()
-	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()).Caller().Logger()
+	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner:", txSigner.From.String()[0:8]).Caller().Logger()
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{sim,
