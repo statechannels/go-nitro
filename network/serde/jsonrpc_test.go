@@ -24,11 +24,12 @@ func TestJsonRpcSerializeResponse(t *testing.T) {
 	rpc := JsonRpc{}
 	data, err := rpc.Serialize(&netproto.Message{
 		Type:      netproto.TypeResponse,
+		Method:    "bar",
 		RequestId: 4242,
 		Args:      []interface{}{"foo"},
 	})
 	require.NoError(t, err)
-	assert.Equal(t, `{"jsonrpc":"2.0","id":4242,"result":["foo"],"error":null}`, string(data))
+	assert.Equal(t, `{"jsonrpc":"2.0","id":4242,"method":"bar","params":null,"result":"foo","error":null}`, string(data))
 }
 
 func TestJsonRpcSerializeError(t *testing.T) {
