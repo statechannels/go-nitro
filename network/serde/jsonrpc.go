@@ -56,7 +56,7 @@ func (j *JsonRpc) Serialize(m *netproto.Message) ([]byte, error) {
 		return json.Marshal(&JsonRpcRequestResponse{
 			Jsonrpc: JsonRpcVersion,
 			Id:      m.RequestId,
-			Result:  m.Args,
+			Result:  m.Args[0],
 			Error:   nil,
 			Method:  m.Method,
 		})
