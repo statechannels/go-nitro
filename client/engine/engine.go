@@ -104,7 +104,6 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	// initialize a Logger
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	e.logger = zerolog.New(logDestination).With().Timestamp().Str("address", e.store.GetAddress().String()[0:8]).Caller().Logger()
-	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 
 	e.policymaker = policymaker
 
