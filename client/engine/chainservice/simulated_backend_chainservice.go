@@ -16,6 +16,7 @@ import (
 	ConsensusApp "github.com/statechannels/go-nitro/client/engine/chainservice/consensusapp"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
 	VirtualPaymentApp "github.com/statechannels/go-nitro/client/engine/chainservice/virtualpaymentapp"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -63,7 +64,7 @@ type SimulatedBackendChainService struct {
 func newPollingSimulatedBackendChainService(sim SimulatedChain, bindings Bindings,
 	txSigner *bind.TransactOpts, logDestination io.Writer) (ChainService, error) {
 
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	logging.ConfigureZeroLogger()
 	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()).Caller().Logger()
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.

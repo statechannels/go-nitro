@@ -15,6 +15,7 @@ import (
 	"github.com/rs/zerolog"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 
@@ -63,7 +64,7 @@ const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
 func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer) (*EthChainService, error) {
 
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	logging.ConfigureZeroLogger()
 	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()).Caller().Logger()
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.

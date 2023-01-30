@@ -12,6 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
@@ -101,8 +102,7 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 
 	e.toApi = make(chan EngineEvent, 100)
 
-	// initialize a Logger
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	logging.ConfigureZeroLogger()
 	e.logger = zerolog.New(logDestination).With().Timestamp().Str("address", e.store.GetAddress().String()[0:8]).Caller().Logger()
 
 	e.policymaker = policymaker
