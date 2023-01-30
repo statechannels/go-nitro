@@ -53,7 +53,7 @@ func TestRpcClient(t *testing.T) {
 	rpcServerA := rpc.NewRpcServer(&clientA)
 	rpcClientA := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), clientA.ChainId)
 	defer rpcServerA.Close()
-
+	defer rpcClientA.Close()
 	testOutcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), 100, 100, types.Address{})
 
 	res := rpcClientA.CreateLedger(bob.Address(), 100, testOutcome)

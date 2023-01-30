@@ -65,6 +65,10 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 
 }
 
+func (rc *RpcClient) Close() {
+	rc.nts.Close()
+}
+
 // registerHandlers registers error and response handles for the rpc client
 func (rs *RpcClient) registerHandlers() {
 
