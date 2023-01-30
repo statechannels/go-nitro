@@ -1,0 +1,61 @@
+package client_test
+
+import (
+	"fmt"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/client/engine/chainservice"
+	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
+	"github.com/statechannels/go-nitro/client/rpc"
+	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/types"
+)
+
+func TestRpcClient(t *testing.T) {
+	logger := zerolog.New(zerolog.ConsoleWriter{
+		Out:           os.Stdout,
+		TimeFormat:    time.RFC3339,
+		PartsOrder:    []string{"time", "level", "caller", "client", "scope", "message"},
+		FieldsExclude: []string{"time", "level", "caller", "message", "client", "scope"},
+	}).
+		Level(zerolog.InfoLevel).
+		With().
+		Timestamp().
+		Str("client", "").
+		Str("scope", "").
+		Logger()
+
+	chain := chainservice.NewMockChain()
+	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
+	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
+
+	clientA, msgA := setupClientWithP2PMessageService(alice.PrivateKey, 3005, chainServiceA, logger)
+	_, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, logger)
+	peers := []p2pms.PeerInfo{
+		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
+		{Id: msgB.Id(), IpAddress: "127.0.0.1", Port: 3006, Address: bob.Address()},
+	}
+	// Connect nitro P2P message services
+	msgA.AddPeers(peers)
+	msgB.AddPeers(peers)
+
+	defer msgA.Close()
+	defer msgB.Close()
+
+	alice := testactors.Alice
+	bob := testactors.Bob
+
+	rpcServerA := rpc.NewRpcServer(&clientA)
+	rpcClientA := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), clientA.ChainId)
+	defer rpcServerA.Close()
+
+	testOutcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), 100, 100, types.Address{})
+
+	res := rpcClientA.CreateLedger(bob.Address(), 100, testOutcome)
+	fmt.Printf("CreateLedger response: %v+\n", res)
+
+}
