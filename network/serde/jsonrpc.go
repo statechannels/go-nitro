@@ -53,11 +53,12 @@ func (j *JsonRpc) Serialize(m *netproto.Message) ([]byte, error) {
 		})
 
 	case netproto.TypeResponse:
-		return json.Marshal(&JsonRpcResponse{
+		return json.Marshal(&JsonRpcRequestResponse{
 			Jsonrpc: JsonRpcVersion,
 			Id:      m.RequestId,
 			Result:  m.Args,
 			Error:   nil,
+			Method:  m.Method,
 		})
 
 	}
