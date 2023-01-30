@@ -70,7 +70,7 @@ func (rs *RpcServer) registerHandlers() {
 
 			rs.client.CreateLedgerChannel(req.CounterParty, req.ChallengeDuration, req.Outcome)
 			msg := netproto.NewMessage(netproto.TypeResponse, m.RequestId, network.DirectFundRequestMethod, []any{&objRes})
-			fmt.Printf("SERVER RESPONSE MESSAGE\n\n\n: %+v\n", msg)
+
 			rs.nts.SendMessage(msg)
 
 		}
