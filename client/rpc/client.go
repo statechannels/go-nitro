@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/nats-io/nats.go"
+	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/network"
 	netproto "github.com/statechannels/go-nitro/network/protocol"
 	"github.com/statechannels/go-nitro/network/protocol/parser"
@@ -26,7 +26,7 @@ type RpcClient struct {
 	chainId   *big.Int
 
 	// responses is a collection of channels that are used to wait until a response is received from the RPC server
-	responses sync.Map
+	responses safesync.Map[chan directfund.ObjectiveResponse]
 }
 
 // NewRpcClient creates a new RpcClient
@@ -40,7 +40,7 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int
 	handleError(err)
 	nts := network.NewNetworkService(con, &serde.JsonRpc{})
 
-	c := &RpcClient{nts, myAddress, chainId, sync.Map{}}
+	c := &RpcClient{nts, myAddress, chainId, safesync.Map[chan directfund.ObjectiveResponse]{}}
 	c.registerHandlers()
 	return c
 }
@@ -56,7 +56,8 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 		common.Address{})
 
 	resRec := make(chan directfund.ObjectiveResponse)
-	rc.responses.Store(objReq.Id(rc.myAddress, rc.chainId), resRec)
+
+	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
 	rc.nts.SendMessage(netproto.NewMessage(netproto.TypeRequest, rand.Uint64(), network.DirectFundRequestMethod, []any{&objReq}))
 
 	objRes := <-resRec
@@ -82,9 +83,9 @@ func (rs *RpcClient) registerHandlers() {
 			res := parser.ParseDirectFundResponse(raw)
 
 			// Once we receive the response we notify the appropriate channel
-			if resRec, ok := rs.responses.Load(res.Id); ok {
-				rs.responses.Delete(res.Id)
-				resRec.(chan directfund.ObjectiveResponse) <- res
+			if resRec, ok := rs.responses.Load(string(res.Id)); ok {
+				rs.responses.Delete(string(res.Id))
+				resRec <- res
 			}
 
 		}
