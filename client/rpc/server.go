@@ -66,9 +66,9 @@ func (rs *RpcServer) registerHandlers() {
 
 			raw := m.Args[i].(map[string]interface{})
 			req := parser.ParseDirectFundRequest(raw)
-			objRes := req.Response(*rs.client.Address, nil)
 
-			rs.client.CreateLedgerChannel(req.CounterParty, req.ChallengeDuration, req.Outcome)
+			rs.client.IncomingObjectiveRequests() <- req
+			objRes := req.Response(*rs.client.Address, rs.client.ChainId)
 			msg := netproto.NewMessage(netproto.TypeResponse, m.RequestId, network.DirectFundRequestMethod, []any{&objRes})
 
 			rs.nts.SendMessage(msg)
