@@ -64,6 +64,10 @@ func (c *natsConnection) Send(t string, data []byte) {
 func (c *natsConnection) Recv() ([]byte, error) {
 	msg := <-c.msgChannel
 
+	// If the channel is closed, return nil
+	if msg == nil {
+		return nil, nil
+	}
 	return msg.Data, nil
 }
 
