@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"math/big"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/rs/zerolog"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
 	"github.com/statechannels/go-nitro/protocols"
@@ -39,7 +39,7 @@ type EthChainService struct {
 	virtualPaymentAppAddress common.Address
 	txSigner                 *bind.TransactOpts
 	out                      chan Event
-	logger                   *log.Logger
+	logger                   zerolog.Logger
 }
 
 // MAX_QUERY_BLOCK_RANGE is the maximum range of blocks we query for events at once.
@@ -62,8 +62,10 @@ const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
 // and listens to events from an eventSource
 func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer) (*EthChainService, error) {
-	logPrefix := "chainservice " + txSigner.From.String() + ": "
-	logger := log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
+
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()).Caller().Logger()
+
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger}
 
@@ -173,10 +175,10 @@ func (ecs *EthChainService) fatalF(format string, v ...any) {
 
 	// Print to STDOUT in case we're using a noop logger
 	fmt.Println(fmt.Errorf(format, v...))
-	// FatalF prints to the logger then calls exit(1)
-	ecs.logger.Fatalf(format, v...)
 
-	// Manually panic in case we're using a logger that doesn't call exit(1)
+	ecs.logger.Printf(format, v...)
+
+	// Manually panic
 	panic(fmt.Errorf(format, v...))
 
 }

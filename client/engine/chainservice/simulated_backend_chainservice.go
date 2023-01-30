@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -12,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/rs/zerolog"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	ConsensusApp "github.com/statechannels/go-nitro/client/engine/chainservice/consensusapp"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
@@ -63,8 +63,9 @@ type SimulatedBackendChainService struct {
 func newPollingSimulatedBackendChainService(sim SimulatedChain, bindings Bindings,
 	txSigner *bind.TransactOpts, logDestination io.Writer) (ChainService, error) {
 
-	logPrefix := "chainservice " + txSigner.From.String() + ": "
-	logger := log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()).Caller().Logger()
+
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{sim,
 		bindings.Adjudicator.Contract,
