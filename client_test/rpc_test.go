@@ -2,9 +2,7 @@ package client_test
 
 import (
 	"fmt"
-	"os"
 	"testing"
-	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -17,12 +15,9 @@ import (
 )
 
 func TestRpcClient(t *testing.T) {
-	logger := zerolog.New(zerolog.ConsoleWriter{
-		Out:           os.Stdout,
-		TimeFormat:    time.RFC3339,
-		PartsOrder:    []string{"time", "level", "caller", "client", "scope", "message"},
-		FieldsExclude: []string{"time", "level", "caller", "message", "client", "scope"},
-	}).
+	logDestination := newLogWriter("test_rpc_client.log")
+
+	logger := zerolog.New(logDestination).
 		Level(zerolog.InfoLevel).
 		With().
 		Timestamp().
