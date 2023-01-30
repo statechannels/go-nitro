@@ -13,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRpcClient(t *testing.T) {
@@ -56,6 +57,10 @@ func TestRpcClient(t *testing.T) {
 	testOutcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), 100, 100, types.Address{})
 
 	res := rpcClientA.CreateLedger(bob.Address(), 100, testOutcome)
+
+	// Quick sanity check that we're getting a valid objective id
+	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
+
 	fmt.Printf("CreateLedger response: %v+\n", res)
 
 }
