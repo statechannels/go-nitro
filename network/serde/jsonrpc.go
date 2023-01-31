@@ -4,16 +4,24 @@ import (
 	"encoding/json"
 	"fmt"
 
-	netproto "github.com/statechannels/go-nitro/network/protocol"
+	"github.com/statechannels/go-nitro/protocols/directfund"
 )
 
 const JsonRpcVersion = "2.0"
 
+type MessageType int8
+
+const (
+	TypeRequest  MessageType = 1
+	TypeResponse MessageType = 2
+	TypeError    MessageType = 3
+)
+
 type JsonRpcRequest struct {
-	Jsonrpc string        `json:"jsonrpc"`
-	Id      uint64        `json:"id"`
-	Method  string        `json:"method"`
-	Params  []interface{} `json:"params"`
+	Jsonrpc string      `json:"jsonrpc"`
+	Id      uint64      `json:"id"`
+	Method  string      `json:"method"`
+	Params  interface{} `json:"params"`
 }
 
 type JsonRpcResponse struct {
@@ -24,82 +32,60 @@ type JsonRpcResponse struct {
 }
 
 type JsonRpcRequestResponse struct {
-	Jsonrpc string        `json:"jsonrpc"`
-	Id      uint64        `json:"id"`
-	Method  string        `json:"method"`
-	Params  []interface{} `json:"params"`
-	Result  interface{}   `json:"result"`
-	Error   interface{}   `json:"error"`
+	Jsonrpc string      `json:"jsonrpc"`
+	Id      uint64      `json:"id"`
+	Method  string      `json:"method"`
+	Params  interface{} `json:"params"`
+	Result  interface{} `json:"result"`
+	Error   interface{} `json:"error"`
+}
+
+type JsonRpcDirectFundRequest struct {
+	Jsonrpc          string                      `json:"jsonrpc"`
+	Id               uint64                      `json:"id"`
+	Method           string                      `json:"method"`
+	ObjectiveRequest directfund.ObjectiveRequest `json:"params"`
+}
+
+type JsonRpcDirectFundResponse struct {
+	Jsonrpc           string                       `json:"jsonrpc"`
+	Id                uint64                       `json:"id"`
+	ObjectiveResponse directfund.ObjectiveResponse `json:"result"`
+	Error             interface{}                  `json:"error"`
 }
 
 type JsonRpc struct{}
 
-func (j *JsonRpc) Serialize(m *netproto.Message) ([]byte, error) {
-	switch m.Type {
-	case netproto.TypeRequest:
-		return json.Marshal(&JsonRpcRequest{
-			Jsonrpc: JsonRpcVersion,
-			Id:      m.RequestId,
-			Method:  m.Method,
-			Params:  m.Args,
-		})
-
-	case netproto.TypeError:
-		return json.Marshal(&JsonRpcResponse{
-			Jsonrpc: JsonRpcVersion,
-			Id:      m.RequestId,
-			Result:  nil,
-			Error:   m.Args,
-		})
-
-	case netproto.TypeResponse:
-		return json.Marshal(&JsonRpcResponse{
-			Jsonrpc: JsonRpcVersion,
-			Id:      m.RequestId,
-			Result:  m.Args,
-			Error:   nil,
-		})
-
+func NewDirectFundRequestMessage(requestId uint64, objectiveRequest directfund.ObjectiveRequest) *JsonRpcDirectFundRequest {
+	return &JsonRpcDirectFundRequest{
+		Jsonrpc:          JsonRpcVersion,
+		Id:               requestId,
+		Method:           "direct_fund",
+		ObjectiveRequest: objectiveRequest,
 	}
-
-	return nil, fmt.Errorf("unsupported message type %s", netproto.TypeStr(m.Type))
 }
 
-func (j *JsonRpc) Deserialize(data []byte) (*netproto.Message, error) {
+func NewDirectFundResponseMessage(requestId uint64, objectiveResponse directfund.ObjectiveResponse) *JsonRpcDirectFundResponse {
+	return &JsonRpcDirectFundResponse{
+		Jsonrpc:           JsonRpcVersion,
+		Id:                requestId,
+		ObjectiveResponse: objectiveResponse,
+		Error:             nil,
+	}
+}
+
+func Deserialize(data []byte) (*JsonRpcRequestResponse, MessageType, error) {
 	jm := JsonRpcRequestResponse{}
 	err := json.Unmarshal(data, &jm)
-	if err != nil {
-		return nil, err
-	}
-
 	if jm.Error != nil {
-		m := netproto.Message{
-			Type:      netproto.TypeError,
-			RequestId: jm.Id,
-			Args:      jm.Error.([]interface{}),
-		}
-		return &m, nil
+		return &jm, TypeError, err
 	}
-
 	if jm.Result != nil {
-		m := netproto.Message{
-			Type:      netproto.TypeResponse,
-			RequestId: jm.Id,
-			Method:    jm.Method,
-			Args:      []interface{}{jm.Result},
-		}
-		return &m, nil
+		return &jm, TypeResponse, err
 	}
-
 	if jm.Method != "" {
-		m := netproto.Message{
-			Type:      netproto.TypeRequest,
-			RequestId: jm.Id,
-			Method:    jm.Method,
-			Args:      jm.Params,
-		}
-		return &m, nil
+		return &jm, TypeRequest, err
 	}
 
-	return nil, fmt.Errorf("unexpected jsonrpc message format: %s", string(data))
+	return nil, TypeError, fmt.Errorf("unexpected jsonrpc message format: %s", string(data))
 }
