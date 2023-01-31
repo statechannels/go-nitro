@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -10,8 +11,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/network"
-	netproto "github.com/statechannels/go-nitro/network/protocol"
-	"github.com/statechannels/go-nitro/network/protocol/parser"
 	"github.com/statechannels/go-nitro/network/serde"
 	natstrans "github.com/statechannels/go-nitro/network/transport/nats"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -39,7 +38,7 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int
 
 	con, err := trp.PollConnection()
 	handleError(err)
-	nts := network.NewNetworkService(con, &serde.JsonRpc{})
+	nts := network.NewNetworkService(con)
 	nts.Logger = logger
 	c := &RpcClient{nts, myAddress, chainId, safesync.Map[chan directfund.ObjectiveResponse]{}}
 	c.registerHandlers()
@@ -59,7 +58,12 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 	resRec := make(chan directfund.ObjectiveResponse)
 
 	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
-	rc.nts.SendMessage(netproto.NewMessage(netproto.TypeRequest, rand.Uint64(), network.DirectFundRequestMethod, []any{&objReq}))
+	message := serde.NewDirectFundRequestMessage(rand.Uint64(), objReq)
+	data, err := json.Marshal(message)
+	if err != nil {
+		panic("Could not marshal direct fund request")
+	}
+	rc.nts.SendMessage(network.DirectFundRequestMethod, data)
 
 	objRes := <-resRec
 	return objRes
@@ -73,27 +77,21 @@ func (rc *RpcClient) Close() {
 // registerHandlers registers error and response handles for the rpc client
 func (rs *RpcClient) registerHandlers() {
 
-	rs.nts.RegisterErrorHandler(network.DirectFundRequestMethod, func(m *netproto.Message) {
-		panic(fmt.Sprintf("Objective failed: %v", *m))
+	rs.nts.RegisterErrorHandler(network.DirectFundRequestMethod, func(data []byte) {
+		panic(fmt.Sprintf("Objective failed: %v", data))
 	})
-	rs.nts.RegisterResponseHandler(network.DirectFundRequestMethod, func(m *netproto.Message) {
-		rs.nts.Logger.Trace().Msgf("Rpc client received response: %+v", m)
-		if len(m.Args) < 1 {
-			panic("unexpected empty args for direct funding method")
+	rs.nts.RegisterResponseHandler(func(data []byte) {
+		rs.nts.Logger.Trace().Msgf("Rpc client received response: %+v", data)
 
+		rpcResponse := serde.JsonRpcDirectFundResponse{}
+		err := json.Unmarshal(data, &rpcResponse)
+		if err != nil {
+			panic("could not unmarshal direct fund objective response")
 		}
 
-		for i := 0; i < len(m.Args); i++ {
-
-			raw := m.Args[i].(map[string]interface{})
-			res := parser.ParseDirectFundResponse(raw)
-
-			// Once we receive the response we notify the appropriate channel
-			if resRec, ok := rs.responses.Load(string(res.Id)); ok {
-				rs.responses.Delete(string(res.Id))
-				resRec <- res
-			}
-
+		if resRec, ok := rs.responses.Load(fmt.Sprintf("%v", rpcResponse.ObjectiveResponse.Id)); ok {
+			rs.responses.Delete(fmt.Sprintf("%v", rpcResponse.Id))
+			resRec <- rpcResponse.ObjectiveResponse
 		}
 	})
 }

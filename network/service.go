@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/rs/zerolog"
-	netproto "github.com/statechannels/go-nitro/network/protocol"
 	"github.com/statechannels/go-nitro/network/serde"
 	"github.com/statechannels/go-nitro/network/transport"
 )
@@ -21,19 +20,15 @@ const (
 type NetworkService struct {
 	Logger     zerolog.Logger
 	Connection transport.Connection
-	Serde      serde.Serde
 
-	handlerRequest      sync.Map
-	handlerResponse     sync.Map
-	handlerError        sync.Map
-	handlerPublicEvent  sync.Map
-	handlerPrivateEvent sync.Map
+	handlerRequest sync.Map
+	handlerError   sync.Map
+	responseHander func([]byte)
 }
 
-func NewNetworkService(con transport.Connection, srd serde.Serde) *NetworkService {
+func NewNetworkService(con transport.Connection) *NetworkService {
 	p := &NetworkService{
 		Connection: con,
-		Serde:      srd,
 	}
 
 	go p.handleMessages()
@@ -41,7 +36,7 @@ func NewNetworkService(con transport.Connection, srd serde.Serde) *NetworkServic
 	return p
 }
 
-func (p *NetworkService) RegisterRequestHandler(method string, handler func(*netproto.Message)) {
+func (p *NetworkService) RegisterRequestHandler(method string, handler func([]byte)) {
 	p.handlerRequest.Store(method, handler)
 	p.Logger.Trace().Str("method", method).Msg("registered request handler")
 }
@@ -51,7 +46,7 @@ func (p *NetworkService) UnregisterRequestHandler(method string) {
 	p.Logger.Trace().Str("method", method).Msg("unregistered request handler")
 }
 
-func (p *NetworkService) RegisterErrorHandler(method string, handler func(*netproto.Message)) {
+func (p *NetworkService) RegisterErrorHandler(method string, handler func([]byte)) {
 	p.handlerError.Store(method, handler)
 	p.Logger.Trace().Str("method", method).Msg("registered error handler")
 }
@@ -61,14 +56,14 @@ func (p *NetworkService) UnregisterErrorHandler(method string) {
 	p.Logger.Trace().Str("method", method).Msg("unregistered error handler")
 }
 
-func (p *NetworkService) RegisterResponseHandler(method string, handler func(*netproto.Message)) {
-	p.handlerResponse.Store(method, handler)
-	p.Logger.Trace().Str("method", method).Msg("registered response handler")
+func (p *NetworkService) RegisterResponseHandler(handler func([]byte)) {
+	p.responseHander = handler
+	p.Logger.Trace().Msg("registered response handler")
 }
 
-func (p *NetworkService) UnregisterResponseHandler(method string) {
-	p.handlerResponse.Delete(method)
-	p.Logger.Trace().Str("method", method).Msg("unregistered response handler")
+func (p *NetworkService) UnregisterResponseHandler() {
+	p.responseHander = nil
+	p.Logger.Trace().Msg("unregistered response handler")
 }
 
 // TODO: implement (un)registerPublicEventHandler
@@ -87,7 +82,7 @@ func (p *NetworkService) handleMessages() {
 			p.Logger.Fatal().Err(err).Msg("failed to receive message")
 		}
 
-		msg, err := p.Serde.Deserialize(data)
+		msg, messageType, err := serde.Deserialize(data)
 
 		if err != nil {
 			p.Logger.Error().Err(err).Msg("failed to deserialize message")
@@ -97,47 +92,35 @@ func (p *NetworkService) handleMessages() {
 		// NOTE: we do not hande messages in a separate goroutine
 		// to ensure that messages are handled in the order they are received
 		// and to avoid inconsistencies in the state of the peer
-		p.handleMessage(msg)
+		p.handleMessage(msg.Method, messageType, data)
 	}
 }
 
-func (p *NetworkService) SendMessage(msg *netproto.Message) {
-	data, err := p.Serde.Serialize(msg)
-
-	if err != nil {
-		// TODO: handle error
-		p.Logger.Error().Err(err).Msg("failed to serialize message")
-		return
-	}
-
+func (p *NetworkService) SendMessage(method string, data []byte) {
 	// FIXME: we can use one topic per app, but they have to be different
-	topic := fmt.Sprintf("nitro.%s", msg.Method)
+	topic := fmt.Sprintf("nitro.%s", method)
 	p.Connection.Send(topic, data)
 
 	p.Logger.Trace().
-		Str("msg_type", netproto.TypeStr(msg.Type)).
-		Str("method", msg.Method).
+		Str("method", method).
 		Msg("sent message")
 }
 
-func (p *NetworkService) getHandler(msg *netproto.Message) func(*netproto.Message) {
-	switch msg.Type {
-	case netproto.TypeRequest:
-		function, ok := p.handlerRequest.Load(msg.Method)
+func (p *NetworkService) getHandler(method string, messageType serde.MessageType) func([]byte) {
+	switch messageType {
+	case serde.TypeRequest:
+		function, ok := p.handlerRequest.Load(method)
 		if ok {
-			return function.(func(*netproto.Message))
+			return function.(func([]byte))
 		}
 
-	case netproto.TypeResponse:
-		function, ok := p.handlerResponse.Load(msg.Method)
-		if ok {
-			return function.(func(*netproto.Message))
-		}
+	case serde.TypeResponse:
+		return p.responseHander
 
-	case netproto.TypeError:
-		function, ok := p.handlerError.Load(msg.Method)
+	case serde.TypeError:
+		function, ok := p.handlerError.Load(method)
 		if ok {
-			return function.(func(*netproto.Message))
+			return function.(func([]byte))
 		}
 	}
 	// TODO: case handlerPublicEvent
@@ -146,23 +129,21 @@ func (p *NetworkService) getHandler(msg *netproto.Message) func(*netproto.Messag
 	return nil
 }
 
-func (p *NetworkService) handleMessage(msg *netproto.Message) {
+func (p *NetworkService) handleMessage(method string, messageType serde.MessageType, data []byte) {
 	p.Logger.Trace().
-		Str("msg_type", netproto.TypeStr(msg.Type)).
-		Str("method", msg.Method).
+		Str("method", method).
 		Msg("received message")
 
-	h := p.getHandler(msg)
+	h := p.getHandler(method, messageType)
 
 	if h == nil {
 		p.Logger.Error().
-			Str("msg_type", netproto.TypeStr(msg.Type)).
-			Str("method", msg.Method).
+			Str("method", method).
 			Msg("missing handler")
 		return
 	}
 
-	h(msg)
+	h(data)
 }
 
 func (p *NetworkService) Close() {
