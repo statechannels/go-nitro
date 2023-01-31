@@ -5,6 +5,7 @@ import (
 
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
+	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/network"
 	netproto "github.com/statechannels/go-nitro/network/protocol"
@@ -29,7 +30,7 @@ func (rs *RpcServer) Close() {
 	rs.nts.Close()
 }
 
-func NewRpcServer(nitroClient *nitro.Client) *RpcServer {
+func NewRpcServer(nitroClient *nitro.Client, logger zerolog.Logger) *RpcServer {
 
 	opts := &server.Options{}
 	ns, err := server.NewServer(opts)
@@ -48,7 +49,7 @@ func NewRpcServer(nitroClient *nitro.Client) *RpcServer {
 	handleError(err)
 
 	nts := network.NewNetworkService(con, &serde.JsonRpc{})
-
+	nts.Logger = logger
 	rs := &RpcServer{nts, ns, nitroClient}
 	rs.registerHandlers()
 	return rs

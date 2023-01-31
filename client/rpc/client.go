@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/nats-io/nats.go"
+	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/network"
 	netproto "github.com/statechannels/go-nitro/network/protocol"
@@ -30,7 +31,7 @@ type RpcClient struct {
 }
 
 // NewRpcClient creates a new RpcClient
-func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int) *RpcClient {
+func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int, logger zerolog.Logger) *RpcClient {
 
 	nc, err := nats.Connect(rpcServerUrl)
 	handleError(err)
@@ -39,7 +40,7 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int
 	con, err := trp.PollConnection()
 	handleError(err)
 	nts := network.NewNetworkService(con, &serde.JsonRpc{})
-
+	nts.Logger = logger
 	c := &RpcClient{nts, myAddress, chainId, safesync.Map[chan directfund.ObjectiveResponse]{}}
 	c.registerHandlers()
 	return c

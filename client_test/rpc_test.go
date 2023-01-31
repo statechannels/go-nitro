@@ -45,8 +45,8 @@ func TestRpcClient(t *testing.T) {
 	alice := testactors.Alice
 	bob := testactors.Bob
 
-	rpcServerA := rpc.NewRpcServer(&clientA)
-	rpcClientA := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), clientA.ChainId)
+	rpcServerA := rpc.NewRpcServer(&clientA, logger)
+	rpcClientA := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), clientA.ChainId, logger)
 	defer rpcServerA.Close()
 	defer rpcClientA.Close()
 	testOutcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), 100, 100, types.Address{})
