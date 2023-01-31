@@ -29,6 +29,9 @@ func init() {
 }
 
 func main() {
+	fileServer := http.FileServer(http.Dir("./rpc-server/static"))
+	http.Handle("/", fileServer)
+
 	setupChainService()
 	c := client.New(
 		p2pms.NewMessageService("127.0.0.1", 2828, crypto.FromECDSA(pk)),
