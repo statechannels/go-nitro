@@ -67,7 +67,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
             outcome[assetIndex].allocations = newAllocations;
             exit[assetIndex] = Outcome.SingleAssetExit(
                 asset,
-                assetOutcome.metadata,
+                assetOutcome.assetMetadata,
                 exitAllocations
             );
         }
