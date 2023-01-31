@@ -8,14 +8,20 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gorilla/websocket"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
+	"github.com/statechannels/go-nitro/client"
+	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
+	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
+	"github.com/statechannels/go-nitro/client/engine/store"
 )
 
 var cs chainservice.ChainService
@@ -27,26 +33,28 @@ func init() {
 }
 
 func main() {
-	port := os.Args[1]
+	rpcPort := os.Args[1]
+	msgPort, _ := strconv.Atoi(rpcPort)
+	msgPort++
 
 	fileServer := http.FileServer(http.Dir("./rpc-server/static"))
 	http.Handle("/", fileServer)
 
-	// setupChainService()
-	// c := client.New(
-	// 	p2pms.NewMessageService("127.0.0.1", 2828, crypto.FromECDSA(pk)),
-	// 	cs,
-	// 	store.NewMemStore(crypto.FromECDSA(pk)),
-	// 	io.Discard,
-	// 	&engine.PermissivePolicy{},
-	// 	nil,
-	// )
+	setupChainService()
+	c := client.New(
+		p2pms.NewMessageService("127.0.0.1", msgPort, crypto.FromECDSA(pk)),
+		cs,
+		store.NewMemStore(crypto.FromECDSA(pk)),
+		io.Discard,
+		&engine.PermissivePolicy{},
+		nil,
+	)
 
-	// GetAddressHandler := func(w http.ResponseWriter, req *http.Request) {
-	// 	fmt.Fprint(w, c.GetMyAddress().String())
-	// }
+	GetAddressHandler := func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprint(w, c.GetMyAddress().String())
+	}
 
-	// http.HandleFunc("/address", GetAddressHandler)
+	http.HandleFunc("/address", GetAddressHandler)
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 
@@ -73,7 +81,9 @@ func main() {
 			}
 		}
 	})
-	_ = http.ListenAndServe(":"+port, nil)
+	fmt.Println("rpc server listening on port " + rpcPort)
+	_ = http.ListenAndServe(":"+rpcPort, nil)
+
 }
 
 func setupChainService() {
@@ -102,14 +112,14 @@ func setupChainService() {
 	if err != nil {
 		panic(err)
 	}
-	chain, err := ethclient.Dial("https://api.hyperspace.node.glif.io/rpc/v0")
+	chain, err := ethclient.Dial("http://127.0.0.1:8545/")
 
 	if err != nil {
 		panic(err)
 	}
-	naAddress := common.HexToAddress("0x4fBeCDA4735eaF21C8ba5BD40Ab97dFa2Ed88E80")
-	caAddress := common.HexToAddress("0xC57875E317f67F2bE5D62f5c7C696D2eb7Fe79FE")
-	vpaAddress := common.HexToAddress("0xc1AcE8075ee548AA2284b61C5eD8f1a69c4cE756")
+	naAddress := common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3")
+	caAddress := common.HexToAddress("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
+	vpaAddress := common.HexToAddress("0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0")
 	na, err := NitroAdjudicator.NewNitroAdjudicator(naAddress, chain)
 	if err != nil {
 		panic(err)
