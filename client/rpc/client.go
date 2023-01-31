@@ -52,7 +52,7 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 		counterparty,
 		100,
 		outcome,
-		rand.Uint64(),
+		uint64(rand.Float64()), // TODO: Since numeric fields get converted to a float64 in transit we need to prevent overflow
 		common.Address{})
 
 	resRec := make(chan directfund.ObjectiveResponse)
