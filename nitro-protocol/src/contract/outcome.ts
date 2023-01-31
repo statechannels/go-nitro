@@ -77,7 +77,10 @@ const B_ADDRESS = '0x00000000000000000000000053484E75151D07FfD885159d4CF014B874c
 const exampleGuaranteeOutcome1: GuaranteeOutcome = [
   {
     asset: constants.AddressZero,
-    metadata: '0x',
+    assetMetadata: {
+      assetType: ExitFormat.AssetType.Default,
+      metadata: '0x',
+    },
     allocations: [
       {
         destination: '0xjointchannel1',

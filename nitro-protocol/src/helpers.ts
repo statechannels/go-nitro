@@ -64,7 +64,7 @@ export function computeOutcome(outcomeShortHand: OutcomeShortHand): Outcome {
         allocationType: AllocationType.simple,
       })
     );
-    outcome.push({asset, metadata: '0x', allocations});
+    outcome.push({asset, assetMetadata: {assetType: 0, metadata: '0x'}, allocations});
   });
   return outcome;
 }

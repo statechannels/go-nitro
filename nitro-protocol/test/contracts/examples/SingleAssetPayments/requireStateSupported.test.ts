@@ -100,7 +100,11 @@ describe('requireStateSupported', () => {
         })
       );
       const outcomeA: Outcome = [
-        {asset: ethers.constants.AddressZero, metadata: '0x', allocations: allocationsA},
+        {
+          asset: ethers.constants.AddressZero,
+          assetMetadata: {assetType: 0, metadata: '0x'},
+          allocations: allocationsA,
+        },
       ];
 
       if (numAssets[0] === 2) {
@@ -120,7 +124,11 @@ describe('requireStateSupported', () => {
       );
 
       const outcomeB: Outcome = [
-        {asset: ethers.constants.AddressZero, metadata: '0x', allocations: allocationsB},
+        {
+          asset: ethers.constants.AddressZero,
+          assetMetadata: {assetType: 0, metadata: '0x'},
+          allocations: allocationsB,
+        },
       ];
 
       if (numAssets[1] === 2) {

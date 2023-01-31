@@ -107,7 +107,7 @@ export const parseOutcomeEventResult = (eventOutcomeResult: any[]): Outcome => {
       });
     }
 
-    outcome.push({asset, metadata, allocations});
+    outcome.push({asset, assetMetadata: {assetType: 0, metadata}, allocations});
   });
 
   return outcome;
@@ -285,7 +285,7 @@ export const largeOutcome = (
             metadata: '0x',
           }),
           asset,
-          metadata: '0x',
+          assetMetadata: {assetType: 0, metadata: '0x'},
         },
       ]
     : [];

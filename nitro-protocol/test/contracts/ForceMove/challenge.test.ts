@@ -55,7 +55,13 @@ const participants = ['', '', ''];
 const wallets = new Array(3);
 
 const challengeDuration = 86400; // 1 day
-const outcome: Outcome = [{allocations: [], asset: Wallet.createRandom().address, metadata: '0x'}];
+const outcome: Outcome = [
+  {
+    allocations: [],
+    asset: Wallet.createRandom().address,
+    assetMetadata: {assetType: 0, metadata: '0x'},
+  },
+];
 
 const appDefinition = getCountingAppContractAddress();
 const keys = [

@@ -50,7 +50,11 @@ describe('reclaim', () => {
     ];
 
     const vOutcome: Outcome = [
-      {asset: MAGIC_ADDRESS_INDICATING_ETH, allocations: vAllocations, metadata: '0x'},
+      {
+        asset: MAGIC_ADDRESS_INDICATING_ETH,
+        allocations: vAllocations,
+        assetMetadata: {assetType: 0, metadata: '0x'},
+      },
     ];
     const vOutcomeHash = hashOutcome(vOutcome);
     await (
@@ -86,7 +90,11 @@ describe('reclaim', () => {
     ];
 
     const lOutcome: Outcome = [
-      {asset: MAGIC_ADDRESS_INDICATING_ETH, allocations: lAllocations, metadata: '0x'},
+      {
+        asset: MAGIC_ADDRESS_INDICATING_ETH,
+        allocations: lAllocations,
+        assetMetadata: {assetType: 0, metadata: '0x'},
+      },
     ];
     const lOutcomeHash = hashOutcome(lOutcome);
     await (
@@ -148,7 +156,11 @@ describe('reclaim', () => {
     ];
 
     const outcomeAfter: Outcome = [
-      {asset: MAGIC_ADDRESS_INDICATING_ETH, allocations: allocationAfter, metadata: '0x'},
+      {
+        asset: MAGIC_ADDRESS_INDICATING_ETH,
+        allocations: allocationAfter,
+        assetMetadata: {assetType: 0, metadata: '0x'},
+      },
     ];
     const expectedStatusAfter = channelDataToStatus({
       turnNumRecord: 99,

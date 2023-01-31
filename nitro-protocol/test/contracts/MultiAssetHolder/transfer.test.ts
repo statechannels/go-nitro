@@ -102,10 +102,18 @@ describe('transfer', () => {
         })
       );
       const outcomeHash = hashOutcome([
-        {asset: MAGIC_ADDRESS_INDICATING_ETH, metadata: '0x', allocations},
+        {
+          asset: MAGIC_ADDRESS_INDICATING_ETH,
+          assetMetadata: {assetType: 0, metadata: '0x'},
+          allocations,
+        },
       ]);
       const outcomeBytes = encodeOutcome([
-        {asset: MAGIC_ADDRESS_INDICATING_ETH, metadata: '0x', allocations},
+        {
+          asset: MAGIC_ADDRESS_INDICATING_ETH,
+          assetMetadata: {assetType: 0, metadata: '0x'},
+          allocations,
+        },
       ]);
 
       // Set adjudicator status
@@ -157,7 +165,11 @@ describe('transfer', () => {
           });
         });
         const outcomeAfter: Outcome = [
-          {asset: MAGIC_ADDRESS_INDICATING_ETH, metadata: '0x', allocations: allocationsAfter},
+          {
+            asset: MAGIC_ADDRESS_INDICATING_ETH,
+            assetMetadata: {assetType: 0, metadata: '0x'},
+            allocations: allocationsAfter,
+          },
         ];
         const expectedStatusAfter = channelDataToStatus({
           turnNumRecord,
