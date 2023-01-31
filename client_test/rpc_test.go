@@ -30,7 +30,7 @@ func TestRpcClient(t *testing.T) {
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 
 	clientA, msgA := setupClientWithP2PMessageService(alice.PrivateKey, 3005, chainServiceA, logger)
-	_, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, logger)
+	clientB, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, logger)
 	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
 		{Id: msgB.Id(), IpAddress: "127.0.0.1", Port: 3006, Address: bob.Address()},
@@ -58,4 +58,6 @@ func TestRpcClient(t *testing.T) {
 
 	fmt.Printf("CreateLedger response: %v+\n", res)
 
+	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, res.Id)
+	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, res.Id)
 }
