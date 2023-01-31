@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/big"
 	"net/http"
+	"os"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -26,6 +27,8 @@ func init() {
 }
 
 func main() {
+	port := os.Args[1]
+
 	fileServer := http.FileServer(http.Dir("./rpc-server/static"))
 	http.Handle("/", fileServer)
 
@@ -70,7 +73,7 @@ func main() {
 			}
 		}
 	})
-	_ = http.ListenAndServe(":2929", nil)
+	_ = http.ListenAndServe(":"+port, nil)
 }
 
 func setupChainService() {

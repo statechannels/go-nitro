@@ -24,7 +24,7 @@
   <script>
     var input = document.getElementById("input");
     var output = document.getElementById("output");
-    var socket = new WebSocket("ws://localhost:2929/ws");
+    var socket = new WebSocket("ws://" + location.host + "/ws");
 
     socket.onopen = function () {
       output.innerHTML += "Status: Connected\n";
