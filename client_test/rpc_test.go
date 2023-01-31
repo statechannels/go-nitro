@@ -18,7 +18,7 @@ func TestRpcClient(t *testing.T) {
 	logDestination := newLogWriter("test_rpc_client.log")
 
 	logger := zerolog.New(logDestination).
-		Level(zerolog.InfoLevel).
+		Level(zerolog.TraceLevel).
 		With().
 		Timestamp().
 		Str("client", "").
