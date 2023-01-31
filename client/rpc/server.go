@@ -57,6 +57,7 @@ func NewRpcServer(nitroClient *nitro.Client) *RpcServer {
 // registerHandlers registers the handlers for the rpc server
 func (rs *RpcServer) registerHandlers() {
 	rs.nts.RegisterRequestHandler(network.DirectFundRequestMethod, func(m *netproto.Message) {
+		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", m)
 		if len(m.Args) < 1 {
 			panic("unexpected empty args for direct funding method")
 

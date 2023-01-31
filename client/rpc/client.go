@@ -76,6 +76,7 @@ func (rs *RpcClient) registerHandlers() {
 		panic(fmt.Sprintf("Objective failed: %v", *m))
 	})
 	rs.nts.RegisterResponseHandler(network.DirectFundRequestMethod, func(m *netproto.Message) {
+		rs.nts.Logger.Trace().Msgf("Rpc client received response: %+v", m)
 		if len(m.Args) < 1 {
 			panic("unexpected empty args for direct funding method")
 
