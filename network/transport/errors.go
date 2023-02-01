@@ -1,13 +1,13 @@
 package transport
 
 import (
-	"github.com/statechannels/go-nitro/internal"
+	"fmt"
 )
 
 var (
 	// Transport
-	ErrTransportClosed = internal.NewError("transport closed")
+	ErrTransportClosed = fmt.Errorf("transport closed")
 
 	// Connection
-	ErrConnectionClosed = internal.NewError("connection closed")
+	ErrConnectionClosed = fmt.Errorf("connection closed")
 )
