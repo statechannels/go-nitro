@@ -17,8 +17,8 @@ var correctStateHash = common.HexToHash(`9fd03f73270ad22f7dd794580c6cb65e20ba943
 var signerPrivateKey = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
 var signerAddress = common.HexToAddress(`F5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)
 var correctSignature = Signature{
-	R: common.Hex2Bytes(`5e5faf7646cccc228a9d3a93995fe069f64caf743665312839ef29d91fc0b4da`),
-	S: common.Hex2Bytes(`742c49e4796540c23d1b3b36bf7802fea310debd4184cb12b4545d9cc345b267`),
+	R: common.Hex2Bytes(`9bd34a39ee9620c22ec2c6acb3421a305f97e40556c05d54a240c776255914e8`),
+	S: common.Hex2Bytes(`096e388777b67eea6ecdb5587161120318e3ee0d5a695969ddcf7c073f4be7f0`),
 	V: byte(27),
 }
 
