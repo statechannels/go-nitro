@@ -11,6 +11,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type AssetType uint8
+
 // SingleAssetExit declares an ordered list of Allocations for a single asset.
 type SingleAssetExit struct {
 	Asset         types.Address // Either the zero address (implying the native token) or the address of an ERC20 contract
