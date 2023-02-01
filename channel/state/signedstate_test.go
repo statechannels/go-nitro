@@ -38,7 +38,7 @@ func TestMergeWithDuplicateSignatures(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf(`incorrect merge, got %v, wanted %v`, got, want)
+		t.Errorf("incorrect merge:\ngot\n\t%v,\nwanted\n\t%v", got, want)
 	}
 
 }
@@ -87,7 +87,7 @@ func TestJSON(t *testing.T) {
 		}
 		want := msgString
 		if string(got) != want {
-			t.Fatalf(`incorrect MarshalJSON, got %v, wanted %v`, string(got), want)
+			t.Fatalf("incorrect MarshalJSON, got\n\t%v\nwanted\n\t%v", string(got), want)
 		}
 	})
 
