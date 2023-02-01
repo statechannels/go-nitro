@@ -30,12 +30,12 @@ func NewNetworkService(con transport.Connection) *NetworkService {
 }
 
 func (p *NetworkService) RegisterRequestHandler(method serde.RequestMethod, handler func(uint64, []byte)) {
-	p.handlerRequest.Store(string(method), handler)
+	p.handlerRequest.Store(method, handler)
 	p.Logger.Trace().Str("method", string(method)).Msg("registered request handler")
 }
 
 func (p *NetworkService) UnregisterRequestHandler(method serde.RequestMethod) {
-	p.handlerRequest.Delete(string(method))
+	p.handlerRequest.Delete(method)
 	p.Logger.Trace().Str("method", string(method)).Msg("unregistered request handler")
 }
 
@@ -84,17 +84,17 @@ func (p *NetworkService) handleMessages() {
 	}
 }
 
-func (p *NetworkService) SendMessage(method string, data []byte) {
+func (p *NetworkService) SendMessage(method serde.RequestMethod, data []byte) {
 	// FIXME: we can use one topic per app, but they have to be different
 	topic := fmt.Sprintf("nitro.%s", method)
 	p.Connection.Send(topic, data)
 
 	p.Logger.Trace().
-		Str("method", method).
+		Str("method", string(method)).
 		Msg("sent message")
 }
 
-func (p *NetworkService) getHandler(method string, messageType serde.MessageType) func(uint64, []byte) {
+func (p *NetworkService) getHandler(method serde.RequestMethod, messageType serde.MessageType) func(uint64, []byte) {
 	switch messageType {
 	case serde.TypeRequest:
 		function, ok := p.handlerRequest.Load(method)
@@ -116,7 +116,7 @@ func (p *NetworkService) handleMessage(id uint64, method serde.RequestMethod, me
 		Uint64("id", id).
 		Msg("received message")
 
-	h := p.getHandler(string(method), messageType)
+	h := p.getHandler(method, messageType)
 
 	if h == nil {
 		p.Logger.Error().

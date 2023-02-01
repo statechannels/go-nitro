@@ -37,7 +37,7 @@ func TestRegisterUnregisterRequestHandler(t *testing.T) {
 	service := newNetworkServiceMock()
 
 	service.RegisterRequestHandler(serde.DirectFundRequestMethod, func(uint64, []byte) {})
-	val, ok := service.handlerRequest.Load(string(serde.DirectFundRequestMethod))
+	val, ok := service.handlerRequest.Load(serde.DirectFundRequestMethod)
 	assert.NotNil(t, val)
 	assert.Equal(t, ok, true)
 	service.UnregisterRequestHandler(serde.DirectFundRequestMethod)
@@ -53,16 +53,16 @@ func TestGetHandler(t *testing.T) {
 	service.RegisterResponseHandler(func(uint64, []byte) {})
 	service.RegisterErrorHandler(func(uint64, []byte) {})
 
-	val := service.getHandler(string(serde.DirectFundRequestMethod), serde.TypeRequest)
+	val := service.getHandler(serde.DirectFundRequestMethod, serde.TypeRequest)
 	assert.NotNil(t, val)
 
 	val = service.getHandler("", serde.TypeResponse)
 	assert.NotNil(t, val)
 
-	val = service.getHandler(string(serde.DirectFundRequestMethod), serde.TypeError)
+	val = service.getHandler(serde.DirectFundRequestMethod, serde.TypeError)
 	assert.NotNil(t, val)
 
-	val = service.getHandler(string(serde.DirectDefundRequestMethod), serde.TypeRequest)
+	val = service.getHandler(serde.DirectDefundRequestMethod, serde.TypeRequest)
 	assert.Nil(t, val)
 }
 

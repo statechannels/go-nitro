@@ -84,7 +84,7 @@ func (rs *RpcServer) registerHandlers() {
 			panic("Could not marshal direct fund response message")
 		}
 
-		rs.nts.SendMessage(string(serde.DirectFundRequestMethod), messageData)
+		rs.nts.SendMessage(serde.DirectFundRequestMethod, messageData)
 	})
 
 	rs.nts.RegisterRequestHandler(serde.DirectDefundRequestMethod, func(id uint64, data []byte) {
@@ -111,7 +111,7 @@ func (rs *RpcServer) registerHandlers() {
 			panic("Could not marshal direct fund response message")
 		}
 
-		rs.nts.SendMessage(string(serde.DirectDefundRequestMethod), messageData)
+		rs.nts.SendMessage(serde.DirectDefundRequestMethod, messageData)
 	})
 }
 

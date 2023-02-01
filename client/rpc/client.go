@@ -73,7 +73,7 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 	if err != nil {
 		panic("Could not marshal direct fund request")
 	}
-	rc.nts.SendMessage(string(serde.DirectFundRequestMethod), data)
+	rc.nts.SendMessage(serde.DirectFundRequestMethod, data)
 
 	objRes := <-resRec
 	return objRes.(directfund.ObjectiveResponse)
@@ -94,7 +94,7 @@ func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
 	if err != nil {
 		panic("Could not marshal direct fund request")
 	}
-	rc.nts.SendMessage(string(serde.DirectDefundRequestMethod), data)
+	rc.nts.SendMessage(serde.DirectDefundRequestMethod, data)
 
 	objRes := <-resRec
 	return objRes.(protocols.ObjectiveId)
