@@ -76,7 +76,7 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
 
 	requestId := rand.Uint64()
-	rc.idsToMethods.Store(string(fmt.Sprintf("%d", requestId)), serde.DirectFundRequestMethod)
+	rc.idsToMethods.Store(fmt.Sprintf("%d", requestId), serde.DirectFundRequestMethod)
 
 	message := serde.NewJsonRpcRequest(requestId, serde.DirectFundRequestMethod, objReq)
 	data, err := json.Marshal(message)
@@ -86,20 +86,18 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 	rc.nts.SendMessage(string(serde.DirectFundRequestMethod), data)
 
 	objRes := <-resRec
-	fmt.Println("SANITY")
 	return objRes.(directfund.ObjectiveResponse)
 }
 
 func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
-	objReq := directdefund.NewObjectiveRequest(
-		id)
+	objReq := directdefund.NewObjectiveRequest(id)
 
 	// Create a channel and store it in the responses map
 	// We will use this channel to wait for the response
 	resRec := make(chan interface{})
 	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
 	requestId := rand.Uint64()
-	rc.idsToMethods.Store(string(fmt.Sprintf("%d", requestId)), serde.DirectDefundRequestMethod)
+	rc.idsToMethods.Store(fmt.Sprintf("%d", requestId), serde.DirectDefundRequestMethod)
 
 	message := serde.NewJsonRpcRequest(requestId, serde.DirectDefundRequestMethod, objReq)
 	data, err := json.Marshal(message)
@@ -117,15 +115,15 @@ func (rc *RpcClient) Close() {
 }
 
 // registerHandlers registers error and response handles for the rpc client
-func (rs *RpcClient) registerHandlers() {
+func (rc *RpcClient) registerHandlers() {
 
-	rs.nts.RegisterErrorHandler(serde.DirectDefundRequestMethod, func(id uint64, data []byte) {
+	rc.nts.RegisterErrorHandler(serde.DirectDefundRequestMethod, func(id uint64, data []byte) {
 		panic(fmt.Sprintf("Objective failed: %v", data))
 	})
 
-	rs.nts.RegisterResponseHandler(func(id uint64, data []byte) {
-		rs.nts.Logger.Trace().Msgf("Rpc client received response: %+v", data)
-		method, reqFound := rs.idsToMethods.Load(fmt.Sprintf("%d", id))
+	rc.nts.RegisterResponseHandler(func(id uint64, data []byte) {
+		rc.nts.Logger.Trace().Msgf("Rpc client received response: %+v", data)
+		method, reqFound := rc.idsToMethods.Load(fmt.Sprintf("%d", id))
 		if !reqFound {
 			panic(fmt.Sprint("Could not find request for response with id %D", id))
 		}
@@ -139,11 +137,11 @@ func (rs *RpcClient) registerHandlers() {
 				panic("could not unmarshal direct fund objective response")
 			}
 
-			if resRec, ok := rs.responses.Load(string(rpcResponse.Result.Id)); ok {
-				rs.responses.Delete(fmt.Sprintf("%v", rpcResponse.Id))
+			if resRec, ok := rc.responses.Load(string(rpcResponse.Result.Id)); ok {
+				rc.responses.Delete(string(rpcResponse.Result.Id))
 				resRec <- rpcResponse.Result
 
-				rs.idsToMethods.Delete(fmt.Sprintf("%d", rpcResponse.Id))
+				rc.idsToMethods.Delete(fmt.Sprintf("%d", rpcResponse.Id))
 			}
 
 		case serde.DirectDefundRequestMethod:
@@ -154,11 +152,11 @@ func (rs *RpcClient) registerHandlers() {
 				panic("could not unmarshal direct defund objective response")
 			}
 
-			if resRec, ok := rs.responses.Load(string(rpcResponse.Result)); ok {
-				rs.responses.Delete(fmt.Sprintf("%v", rpcResponse.Id))
+			if resRec, ok := rc.responses.Load(string(rpcResponse.Result)); ok {
+				rc.responses.Delete(fmt.Sprintf("%v", rpcResponse.Id))
 				resRec <- rpcResponse.Result
 
-				rs.idsToMethods.Delete(fmt.Sprintf("%d", rpcResponse.Id))
+				rc.idsToMethods.Delete(string(rpcResponse.Result))
 			}
 		}
 	})
