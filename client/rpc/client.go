@@ -16,6 +16,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -119,34 +120,45 @@ func (rc *RpcClient) registerHandlers() {
 
 		switch method {
 		case serde.DirectFundRequestMethod:
-
-			rpcResponse := serde.JsonRpcResponse[directfund.ObjectiveResponse]{}
-			err := json.Unmarshal(data, &rpcResponse)
-			if err != nil {
-				panic("could not unmarshal direct fund objective response")
-			}
-
-			if resRec, ok := rc.responses.Load(string(rpcResponse.Result.Id)); ok {
-				rc.responses.Delete(string(rpcResponse.Result.Id))
-				resRec <- rpcResponse.Result
-
-				rc.idsToMethods.Delete(fmt.Sprintf("%d", rpcResponse.Id))
-			}
-
+			handleResponse[directfund.ObjectiveResponse](rc, data)
 		case serde.DirectDefundRequestMethod:
+			handleResponse[protocols.ObjectiveId](rc, data)
 
-			rpcResponse := serde.JsonRpcResponse[protocols.ObjectiveId]{}
-			err := json.Unmarshal(data, &rpcResponse)
-			if err != nil {
-				panic("could not unmarshal direct defund objective response")
-			}
-
-			if resRec, ok := rc.responses.Load(string(rpcResponse.Result)); ok {
-				rc.responses.Delete(fmt.Sprintf("%v", rpcResponse.Id))
-				resRec <- rpcResponse.Result
-
-				rc.idsToMethods.Delete(string(rpcResponse.Result))
-			}
 		}
 	})
+}
+
+// handleResponse handles a response from the rpc server for the given client
+// It is not a member of the RpcClient so it can take advantage of generics
+func handleResponse[T serde.ResponsePayload](rc *RpcClient, data []byte) {
+	rpcResponse := serde.JsonRpcResponse[T]{}
+	err := json.Unmarshal(data, &rpcResponse)
+	if err != nil {
+		panic("could not unmarshal direct defund objective response")
+	}
+
+	if resRec, ok := rc.responses.Load(string(getObjectiveId(rpcResponse.Result))); ok {
+
+		resRec <- rpcResponse.Result
+
+		rc.idsToMethods.Delete(fmt.Sprintf("%d", nats.ReplayInstantPolicy))
+		rc.responses.Delete(fmt.Sprintf("%v", getObjectiveId(rpcResponse.Result)))
+	}
+}
+
+// getObjectiveId returns the objective id from the result of a response
+func getObjectiveId(result any) protocols.ObjectiveId {
+	id, isId := result.(protocols.ObjectiveId)
+	if isId {
+		return id
+	}
+	res, isRes := result.(directfund.ObjectiveResponse)
+	if isRes {
+		return res.Id
+	}
+	vRes, isVRes := result.(virtualfund.ObjectiveResponse)
+	if isVRes {
+		return vRes.Id
+	}
+	panic("Could not get id from result")
 }
