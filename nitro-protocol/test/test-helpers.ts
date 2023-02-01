@@ -1,6 +1,6 @@
 import {Contract, ethers, BigNumber, providers, Wallet} from 'ethers';
 import {BytesLike} from '@ethersproject/bytes';
-import {Allocation, AllocationType} from '@statechannels/exit-format';
+import {Allocation, AllocationType, AssetMetadata} from '@statechannels/exit-format';
 import {LogDescription} from '@ethersproject/abi';
 
 import {ChallengeClearedEvent, ChallengeRegisteredStruct} from '../src/contract/challenge';
@@ -92,7 +92,10 @@ export const parseOutcomeEventResult = (eventOutcomeResult: any[]): Outcome => {
 
   eventOutcomeResult.forEach((eventSingleAssetExit: any[]) => {
     const asset: string = eventSingleAssetExit[0];
-    const metadata: BytesLike = eventSingleAssetExit[1];
+    const assetMetadata: AssetMetadata = {
+      assetType: eventSingleAssetExit[1].assetType,
+      metadata: eventSingleAssetExit[1].metadata,
+    };
     const eventAllocations: any[] = Array.from(eventSingleAssetExit[2]);
     const allocations: Allocation[] = [];
 
@@ -107,7 +110,7 @@ export const parseOutcomeEventResult = (eventOutcomeResult: any[]): Outcome => {
       });
     }
 
-    outcome.push({asset, assetMetadata: {assetType: 0, metadata}, allocations});
+    outcome.push({asset, assetMetadata, allocations});
   });
 
   return outcome;
