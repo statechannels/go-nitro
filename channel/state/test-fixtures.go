@@ -13,7 +13,7 @@ var TestOutcome = outcome.Exit{
 		Asset: types.Address{},
 		AssetMetadata: outcome.AssetMetadata{
 			AssetType: 0,
-			Metadata:  []byte{0x00},
+			Metadata:  make(types.Bytes, 0),
 		},
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
