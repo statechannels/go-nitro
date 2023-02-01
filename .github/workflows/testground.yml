@@ -2,26 +2,26 @@ name: Run Testground
 
 on:
   pull_request:
-    paths: ['**/*.go']
+    paths: ["**/*.go"]
 jobs:
   run-testground:
-      runs-on: ubuntu-latest
-      container: iptestground/testground:edge
-      steps:
+    runs-on: ubuntu-latest
+    container: iptestground/testground:edge
+    steps:
       - uses: actions/setup-go@v3
         with:
           go-version: "^1.19.0"
       # Get testground and our test plan code
       - uses: actions/checkout@v3
         with:
-         repository: 'statechannels/testground'
-         path: "code/testground"
+          repository: "statechannels/testground"
+          path: "code/testground"
       - uses: actions/checkout@v3
         with:
-          repository: 'statechannels/go-nitro-testground'
+          repository: "statechannels/go-nitro-testground"
           path: "code/go-nitro-testground"
           ref: main
-      
+
       # Update our test plan so it uses the version of go-nitro from this workflow
       - name: Update Test Dependency
         run: go get github.com/statechannels/go-nitro@${{github.event.pull_request.head.sha}}
@@ -31,8 +31,8 @@ jobs:
         run: go mod tidy
         working-directory: "code/go-nitro-testground"
 
-      - name: Import Test 
-        run:    testground plan import --from ./go-nitro-testground
+      - name: Import Test
+        run: testground plan import --from ./go-nitro-testground
         working-directory: "code"
 
       # Set the start time for the dashboard time range
@@ -40,44 +40,48 @@ jobs:
         id: set_start_time
         # We add 45 seconds to the start time so the dashboard ignores startup when nothing is happening
         # We multiply by 1000 to get the timestamp in MS which grafana expects
-        run: | 
-         echo "::set-output name=START_TIME_OFFSET::$(((`date '+%s'`+45)*1000))"
+        run: |
+          echo "::set-output name=START_TIME_OFFSET::$(((`date '+%s'`+45)*1000))"
       # Run a short test using the wait flag so we block until it completes
-      - name: Run Test 
-        run: | 
-         testground --endpoint=${{secrets.TG_SERVER_URL}}  run s --wait \
-         -tp=isCI=true -p=go-nitro-testground -t=virtual-payment \
-         -b=docker:go -r=local:docker \
-         -tp=numOfHubs=1 -tp=numOfPayers=2 -tp=numOfPayees=5  -i=8 \
-         -tp=paymentTestDuration=60  -tp=concurrentPaymentJobs=3 \
-         --tp=networkLatency=10 --tp=networkJitter=1 \
-         --metadata-repo "${{github.repository}}" \
-         --metadata-branch "${{github.event.pull_request.head.ref}}" \
-         --metadata-commit "${{github.event.pull_request.head.sha}}"  | tee run.out
-          
+      - name: Run Test
+        run: |
+          testground --endpoint=${{secrets.TG_SERVER_URL}}  run s --wait \
+          -tp=isCI=true -p=go-nitro-testground -t=virtual-payment \
+          -b=docker:go -r=local:docker \
+          -tp=numOfHubs=1 -tp=numOfPayers=2 -tp=numOfPayees=5  -i=8 \
+          -tp=paymentTestDuration=60  -tp=concurrentPaymentJobs=3 \
+          --tp=networkLatency=10 --tp=networkJitter=1 \
+          --metadata-repo "${{github.repository}}" \
+          --metadata-branch "${{github.event.pull_request.head.ref}}" \
+          --metadata-commit "${{github.event.pull_request.head.sha}}"  | tee run.out
+
+      - name: Fail if testground run failed
+        if: ${{ steps.set_run_outcome.outputs.RUN_OUTCOME  != 'success' }}
+        run: exit 1
+
       # Parse the run outcome and id from the testground run output
       - name: Set Run Outcome
         id: set_run_outcome
-        run: | 
-         echo "::set-output name=RUN_OUTCOME::$(awk '/run finished with outcome/ {print $10}' <run.out)"
+        run: |
+          echo "::set-output name=RUN_OUTCOME::$(awk '/run finished with outcome/ {print $10}' <run.out)"
       - name: Set Run Id
         id: set_run_id
-        run: | 
-         echo "::set-output name=RUN_ID::$(awk '/run is queued with ID/ {print $10}' <run.out)"
+        run: |
+          echo "::set-output name=RUN_ID::$(awk '/run is queued with ID/ {print $10}' <run.out)"
       # Set the end time for the dashboard time range
       - name: Set Done Time
         id: set_done_time
-        run: | 
-         echo "::set-output name=DONE_TIME::$((`date '+%s'`*1000))"
-      
-      # Look for an existing comment from the bot and update it 
+        run: |
+          echo "::set-output name=DONE_TIME::$((`date '+%s'`*1000))"
+
+      # Look for an existing comment from the bot and update it
       - name: Find dashboard links comment
         uses: peter-evans/find-comment@v2
         id: find-comment
         with:
-         issue-number: ${{ github.event.pull_request.number }}
-         comment-author: 'github-actions[bot]'
-         body-includes: Testground Run
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: "github-actions[bot]"
+          body-includes: Testground Run
       - name: Update dashboard links comment
         uses: peter-evans/create-or-update-comment@v2
         with:
@@ -90,6 +94,3 @@ jobs:
             - [Logs](${{secrets.TG_SERVER_URL}}/logs?task_id=${{steps.set_run_id.outputs.RUN_ID}})
             - [Output download](${{secrets.TG_SERVER_URL}}/outputs?run_id=${{steps.set_run_id.outputs.RUN_ID}})
           edit-mode: append
-      - name: Fail if testground run failed
-        if:  ${{ steps.set_run_outcome.outputs.RUN_OUTCOME  != 'success' }}
-        run: exit 1
