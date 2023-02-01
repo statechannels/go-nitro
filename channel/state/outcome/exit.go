@@ -11,16 +11,21 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type AssetMetadata struct {
+	AssetType uint8
+	Metadata  []byte
+}
+
 // SingleAssetExit declares an ordered list of Allocations for a single asset.
 type SingleAssetExit struct {
-	Asset       types.Address // Either the zero address (implying the native token) or the address of an ERC20 contract
-	Metadata    []byte        // Can be used to encode arbitrary additional information that applies to all allocations.
-	Allocations Allocations
+	Asset         types.Address // Either the zero address (implying the native token) or the address of an ERC20 contract
+	AssetMetadata AssetMetadata // Can be used to encode arbitrary additional information that applies to all allocations.
+	Allocations   Allocations
 }
 
 // Equal returns true if the supplied SingleAssetExit is deeply equal to the receiver.
 func (s SingleAssetExit) Equal(r SingleAssetExit) bool {
-	return bytes.Equal(s.Metadata, r.Metadata) &&
+	return bytes.Equal(s.AssetMetadata.Metadata, r.AssetMetadata.Metadata) &&
 		s.Asset == r.Asset &&
 		s.Allocations.Equal(r.Allocations)
 
@@ -29,9 +34,9 @@ func (s SingleAssetExit) Equal(r SingleAssetExit) bool {
 // Clone returns a deep clone of the receiver.
 func (s SingleAssetExit) Clone() SingleAssetExit {
 	return SingleAssetExit{
-		Asset:       s.Asset,
-		Metadata:    s.Metadata,
-		Allocations: s.Allocations.Clone(),
+		Asset:         s.Asset,
+		AssetMetadata: AssetMetadata{s.AssetMetadata.AssetType, s.AssetMetadata.Metadata},
+		Allocations:   s.Allocations.Clone(),
 	}
 
 }
@@ -96,18 +101,33 @@ func (e Exit) TotalAllocatedFor(dest types.Destination) types.Funds {
 	return total
 }
 
+// assetMetadataTy describes the shape of AssetMetadata such that github.com/ethereum/go-ethereum/accounts/abi can parse it
+var assetMetadataTy = abi.ArgumentMarshaling{
+	Name: "AssetMetadata",
+	Type: "tuple",
+	Components: []abi.ArgumentMarshaling{
+		{Name: "AssetType", Type: "uint8"},
+		{Name: "Metadata", Type: "bytes"},
+	},
+}
+
 // ExitTy describes the shape of Exit such that github.com/ethereum/go-ethereum/accounts/abi can parse it
 var ExitTy, _ = abi.NewType("tuple[]", "struct ExitFormat.SingleAssetExit[]", []abi.ArgumentMarshaling{
 	{Name: "asset", Type: "address"},
-	{Name: "metadata", Type: "bytes"},
+	assetMetadataTy,
 	allocationsTy,
 })
 
+type rawAssetMetaDataType struct {
+	AssetType uint8
+	Metadata  []uint8
+}
+
 // rawExitType is an alias to the type returned when using the github.com/ethereum/go-ethereum/accounts/abi Unpack method with exitTy
 type rawExitType = []struct {
-	Asset       common.Address     `json:"asset"`
-	Metadata    []uint8            `json:"metadata"`
-	Allocations rawAllocationsType `json:"Allocations"`
+	Asset         common.Address       `json:"asset"`
+	AssetMetadata rawAssetMetaDataType `json:"AssetMetadata"`
+	Allocations   rawAllocationsType   `json:"Allocations"`
 }
 
 // convertToExit converts a rawExitType to an Exit
@@ -115,9 +135,9 @@ func convertToExit(r rawExitType) Exit {
 	exit := make(Exit, len(r))
 	for i, raw := range r {
 		exit[i] = SingleAssetExit{
-			Asset:       raw.Asset,
-			Metadata:    raw.Metadata,
-			Allocations: convertToAllocations(raw.Allocations),
+			Asset:         raw.Asset,
+			AssetMetadata: AssetMetadata{raw.AssetMetadata.AssetType, raw.AssetMetadata.Metadata},
+			Allocations:   convertToAllocations(raw.Allocations),
 		}
 	}
 

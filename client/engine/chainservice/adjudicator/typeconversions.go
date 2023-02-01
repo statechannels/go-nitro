@@ -30,7 +30,7 @@ func convertOutcome(o outcome.Exit) []ExitFormatSingleAssetExit {
 	e := make([]ExitFormatSingleAssetExit, len(o))
 	for i, sae := range o {
 		e[i].Asset = sae.Asset
-		e[i].Metadata = sae.Metadata
+		e[i].AssetMetadata = ExitFormatAssetMetadata{sae.AssetMetadata.AssetType, sae.AssetMetadata.Metadata}
 		e[i].Allocations = convertAllocations(sae.Allocations)
 	}
 	return e
