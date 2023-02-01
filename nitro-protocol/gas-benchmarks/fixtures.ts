@@ -68,7 +68,11 @@ export class TestChannel {
   private allocations: Array<GuaranteeAllocation | SimpleAllocation>;
   outcome(asset: string) {
     const outcome: Outcome = [
-      {asset, allocations: Array.from(this.allocations, a => ({...a})), metadata: '0x'},
+      {
+        asset,
+        allocations: Array.from(this.allocations, a => ({...a})),
+        assetMetadata: {assetType: 0, metadata: '0x'},
+      },
     ];
     return outcome;
   }
