@@ -11,10 +11,15 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+var nullMetadata = AssetMetadata{
+	AssetType: 0,
+	Metadata:  make(types.Bytes, 0),
+}
+
 func TestEqualExits(t *testing.T) {
 	var e1 = Exit{SingleAssetExit{
-		Asset:    common.HexToAddress("0x00"),
-		Metadata: make(types.Bytes, 0),
+		Asset:         common.HexToAddress("0x00"),
+		AssetMetadata: nullMetadata,
 		Allocations: Allocations{{
 			Destination:    types.Destination(common.HexToHash("0x0a")),
 			Amount:         big.NewInt(2),
@@ -24,8 +29,8 @@ func TestEqualExits(t *testing.T) {
 
 	// equal to e1
 	var e2 = Exit{SingleAssetExit{
-		Asset:    common.HexToAddress("0x00"),
-		Metadata: make(types.Bytes, 0),
+		Asset:         common.HexToAddress("0x00"),
+		AssetMetadata: nullMetadata,
 		Allocations: Allocations{{
 			Destination:    types.Destination(common.HexToHash("0x0a")),
 			Amount:         big.NewInt(2),
@@ -44,8 +49,8 @@ func TestEqualExits(t *testing.T) {
 	// each equal to e1 except in one aspect
 	var distinctExits []Exit = []Exit{
 		{SingleAssetExit{
-			Asset:    common.HexToAddress("0x01"), // distinct Asset
-			Metadata: make(types.Bytes, 0),
+			Asset:         common.HexToAddress("0x01"), // distinct Asset
+			AssetMetadata: nullMetadata,
 			Allocations: Allocations{{
 				Destination:    types.Destination(common.HexToHash("0x0a")),
 				Amount:         big.NewInt(2),
@@ -53,8 +58,11 @@ func TestEqualExits(t *testing.T) {
 				Metadata:       make(types.Bytes, 0)}},
 		}},
 		{SingleAssetExit{
-			Asset:    common.HexToAddress("0x00"),
-			Metadata: []byte{1}, // distinct metadata
+			Asset: common.HexToAddress("0x00"),
+			AssetMetadata: AssetMetadata{
+				AssetType: 0,
+				Metadata:  []byte{1},
+			},
 			Allocations: Allocations{{
 				Destination:    types.Destination(common.HexToHash("0x0a")),
 				Amount:         big.NewInt(2),
@@ -62,8 +70,8 @@ func TestEqualExits(t *testing.T) {
 				Metadata:       make(types.Bytes, 0)}},
 		}},
 		{SingleAssetExit{
-			Asset:    common.HexToAddress("0x00"),
-			Metadata: make(types.Bytes, 0),
+			Asset:         common.HexToAddress("0x00"),
+			AssetMetadata: nullMetadata,
 			Allocations: Allocations{{
 				Destination:    types.Destination(common.HexToHash("0x0b")), // distinct destination
 				Amount:         big.NewInt(2),
@@ -71,8 +79,8 @@ func TestEqualExits(t *testing.T) {
 				Metadata:       make(types.Bytes, 0)}},
 		}},
 		{SingleAssetExit{
-			Asset:    common.HexToAddress("0x00"),
-			Metadata: make(types.Bytes, 0),
+			Asset:         common.HexToAddress("0x00"),
+			AssetMetadata: nullMetadata,
 			Allocations: Allocations{{
 				Destination:    types.Destination(common.HexToHash("0x0a")),
 				Amount:         big.NewInt(3), // distinct amount
@@ -80,8 +88,8 @@ func TestEqualExits(t *testing.T) {
 				Metadata:       make(types.Bytes, 0)}},
 		}},
 		{SingleAssetExit{
-			Asset:    common.HexToAddress("0x00"),
-			Metadata: make(types.Bytes, 0),
+			Asset:         common.HexToAddress("0x00"),
+			AssetMetadata: nullMetadata,
 			Allocations: Allocations{{
 				Destination:    types.Destination(common.HexToHash("0x0a")),
 				Amount:         big.NewInt(2),
@@ -89,8 +97,8 @@ func TestEqualExits(t *testing.T) {
 				Metadata:       make(types.Bytes, 0)}},
 		}},
 		{SingleAssetExit{
-			Asset:    common.HexToAddress("0x00"),
-			Metadata: make(types.Bytes, 0),
+			Asset:         common.HexToAddress("0x00"),
+			AssetMetadata: nullMetadata,
 			Allocations: Allocations{{
 				Destination:    types.Destination(common.HexToHash("0x0a")),
 				Amount:         big.NewInt(2),
@@ -103,6 +111,22 @@ func TestEqualExits(t *testing.T) {
 		if e1.Equal(v) {
 			t.Error("expected distinct Exits but found them equal")
 		}
+	}
+}
+
+func TestExitEncodeDecode(t *testing.T) {
+	encodedExit, err := testExit.Encode()
+	if err != nil {
+		t.Error(err)
+	}
+
+	decodedExit, err := Decode(encodedExit)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !testExit.Equal(decodedExit) {
+		t.Error("decoded exit does not match expectation")
 	}
 }
 
@@ -231,7 +255,8 @@ func TestExitDivertToGuarantee(t *testing.T) {
 
 	want := Exit{
 		SingleAssetExit{
-			Asset: types.Address{0},
+			Asset:         types.Address{0},
+			AssetMetadata: nullMetadata,
 			Allocations: Allocations{
 				{
 					Destination:    aliceDestination,
@@ -346,7 +371,8 @@ func TestClone(t *testing.T) {
 
 	var e = Exit{
 		SingleAssetExit{
-			Asset: types.Address{0},
+			Asset:         types.Address{0},
+			AssetMetadata: nullMetadata,
 			Allocations: Allocations{
 				{
 					Destination:    aliceDestination,
@@ -369,7 +395,8 @@ func TestClone(t *testing.T) {
 			},
 		},
 		SingleAssetExit{
-			Asset: types.Address{0},
+			Asset:         types.Address{0},
+			AssetMetadata: nullMetadata,
 			Allocations: Allocations{
 				{
 					Destination:    aliceDestination,
