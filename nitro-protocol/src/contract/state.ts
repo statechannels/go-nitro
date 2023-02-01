@@ -120,7 +120,14 @@ export function encodeState(state: State): Bytes {
         type: 'tuple[]',
         components: [
           {name: 'asset', type: 'address'},
-          {name: 'metadata', type: 'bytes'},
+          {
+            name: 'assetMetadata',
+            type: 'tuple',
+            components: [
+              {name: 'assetType', type: 'uint8'},
+              {name: 'metadata', type: 'bytes'},
+            ],
+          },
           {
             type: 'tuple[]',
             name: 'allocations',
