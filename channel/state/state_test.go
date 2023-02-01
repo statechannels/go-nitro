@@ -13,7 +13,7 @@ import (
 
 // The following constants are generated from our ts nitro-protocol package
 var correctChannelId = common.HexToHash(`3f9dfeabcc41d1618dd0711102018ab6c1a1d7c25111a425401c2e524eb073a2`)
-var correctStateHash = common.HexToHash(`96033734eedd5f956bf74ac212a7a8a8419778bcfeb5f381f9fb84487cb5a0b1`)
+var correctStateHash = common.HexToHash(`9fd03f73270ad22f7dd794580c6cb65e20ba943d0a0885e72892a8c02b7a9d2c`)
 var signerPrivateKey = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
 var signerAddress = common.HexToAddress(`F5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)
 var correctSignature = Signature{
@@ -56,8 +56,8 @@ func TestChannelId(t *testing.T) {
 
 func TestHash(t *testing.T) {
 	want := correctStateHash
-	got, error := TestState.Hash()
-	checkErrorAndTestForEqualBytes(t, error, "state hash", got.Bytes(), want.Bytes())
+	got, err := TestState.Hash()
+	checkErrorAndTestForEqualBytes(t, err, "state hash", got.Bytes(), want.Bytes())
 }
 
 func TestSign(t *testing.T) {
