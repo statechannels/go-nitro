@@ -107,7 +107,7 @@ func (rc *RpcClient) Close() {
 // registerHandlers registers error and response handles for the rpc client
 func (rc *RpcClient) registerHandlers() {
 
-	rc.nts.RegisterErrorHandler(serde.DirectDefundRequestMethod, func(id uint64, data []byte) {
+	rc.nts.RegisterErrorHandler(func(id uint64, data []byte) {
 		panic(fmt.Sprintf("Objective failed: %v", data))
 	})
 

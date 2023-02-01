@@ -15,8 +15,8 @@ type NetworkService struct {
 	Connection transport.Connection
 
 	handlerRequest  sync.Map
-	handlerError    sync.Map
 	responseHandler func(uint64, []byte)
+	errorHander     func(uint64, []byte)
 }
 
 func NewNetworkService(con transport.Connection) *NetworkService {
@@ -39,14 +39,14 @@ func (p *NetworkService) UnregisterRequestHandler(method serde.RequestMethod) {
 	p.Logger.Trace().Str("method", string(method)).Msg("unregistered request handler")
 }
 
-func (p *NetworkService) RegisterErrorHandler(method serde.RequestMethod, handler func(uint64, []byte)) {
-	p.handlerError.Store(string(method), handler)
-	p.Logger.Trace().Str("method", string(method)).Msg("registered error handler")
+func (p *NetworkService) RegisterErrorHandler(handler func(uint64, []byte)) {
+	p.errorHander = handler
+	p.Logger.Trace().Msg("registered error handler")
 }
 
 func (p *NetworkService) UnregisterErrorHandler(method serde.RequestMethod) {
-	p.handlerError.Delete(string(method))
-	p.Logger.Trace().Str("method", string(method)).Msg("unregistered error handler")
+	p.errorHander = nil
+	p.Logger.Trace().Msg("unregistered error handler")
 }
 
 func (p *NetworkService) RegisterResponseHandler(handler func(uint64, []byte)) {
@@ -101,15 +101,10 @@ func (p *NetworkService) getHandler(method string, messageType serde.MessageType
 		if ok {
 			return function.(func(uint64, []byte))
 		}
-
 	case serde.TypeResponse:
 		return p.responseHandler
-
 	case serde.TypeError:
-		function, ok := p.handlerError.Load(method)
-		if ok {
-			return function.(func(uint64, []byte))
-		}
+		return p.errorHander
 	}
 
 	return nil

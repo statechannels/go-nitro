@@ -27,7 +27,6 @@ func newNetworkServiceMock() *NetworkService {
 		Logger:         zerolog.Logger{},
 		Connection:     &connMock{},
 		handlerRequest: sync.Map{},
-		handlerError:   sync.Map{},
 	}
 
 	return &service
@@ -52,7 +51,7 @@ func TestGetHandler(t *testing.T) {
 
 	service.RegisterRequestHandler(serde.DirectFundRequestMethod, func(uint64, []byte) {})
 	service.RegisterResponseHandler(func(uint64, []byte) {})
-	service.RegisterErrorHandler(serde.DirectFundRequestMethod, func(uint64, []byte) {})
+	service.RegisterErrorHandler(func(uint64, []byte) {})
 
 	val := service.getHandler(string(serde.DirectFundRequestMethod), serde.TypeRequest)
 	assert.NotNil(t, val)

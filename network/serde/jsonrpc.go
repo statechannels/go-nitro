@@ -31,13 +31,17 @@ const (
 	TypeError    MessageType = 3
 )
 
-type JsonRpcRequestResponse struct {
+// JsonRpcMessage is union of jsonrpc request, response, and error
+type JsonRpcMessage struct {
 	Jsonrpc string        `json:"jsonrpc"`
 	Id      uint64        `json:"id"`
 	Method  RequestMethod `json:"method"`
 	Params  interface{}   `json:"params"`
 	Result  interface{}   `json:"result"`
 	Error   interface{}   `json:"error"`
+	Code    uint64        `json:"code"`
+	Message string        `json:"message"`
+	Data    interface{}   `json:"data"`
 }
 type RequestPayload interface {
 	directfund.ObjectiveRequest | directdefund.ObjectiveRequest | virtualfund.ObjectiveRequest | virtualdefund.ObjectiveRequest
@@ -56,6 +60,12 @@ type JsonRpcResponse[T ResponsePayload] struct {
 	Id      uint64      `json:"id"`
 	Result  T           `json:"result"`
 	Error   interface{} `json:"error"`
+}
+
+type JsonRpcError struct {
+	Code    uint64      `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
 }
 
 func NewJsonRpcRequest[T RequestPayload](requestId uint64, method RequestMethod, objectiveRequest T) *JsonRpcRequest[T] {
@@ -77,17 +87,18 @@ func NewJsonRpcResponse[T ResponsePayload](requestId uint64, objectiveResponse T
 	}
 }
 
-func Deserialize(data []byte) (*JsonRpcRequestResponse, MessageType, error) {
-	jm := JsonRpcRequestResponse{}
+func Deserialize(data []byte) (*JsonRpcMessage, MessageType, error) {
+	jm := JsonRpcMessage{}
 	err := json.Unmarshal(data, &jm)
-	if jm.Error != nil {
-		return &jm, TypeError, err
+	if jm.Method != "" {
+		return &jm, TypeRequest, err
 	}
 	if jm.Result != nil {
 		return &jm, TypeResponse, err
 	}
-	if jm.Method != "" {
-		return &jm, TypeRequest, err
+
+	if jm.Message != "" {
+		return &jm, TypeError, err
 	}
 
 	return nil, TypeError, fmt.Errorf("unexpected jsonrpc message format: %s", string(data))
