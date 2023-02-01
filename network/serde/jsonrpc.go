@@ -4,7 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualdefund"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
 
 const JsonRpcVersion = "2.0"
@@ -17,19 +21,14 @@ const (
 	TypeError    MessageType = 3
 )
 
-type JsonRpcRequest struct {
-	Jsonrpc string      `json:"jsonrpc"`
-	Id      uint64      `json:"id"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
-}
+type MethodType string
 
-type JsonRpcResponse struct {
-	Jsonrpc string      `json:"jsonrpc"`
-	Id      uint64      `json:"id"`
-	Result  interface{} `json:"result"`
-	Error   interface{} `json:"error"`
-}
+const (
+	DirectFund    MethodType = "direct_fund"
+	DirectDefund  MethodType = "direct_defund"
+	VirtualFund   MethodType = "virtual_fund"
+	VirtualDefund MethodType = "virtual_defund"
+)
 
 type JsonRpcRequestResponse struct {
 	Jsonrpc string      `json:"jsonrpc"`
@@ -39,38 +38,41 @@ type JsonRpcRequestResponse struct {
 	Result  interface{} `json:"result"`
 	Error   interface{} `json:"error"`
 }
-
-type JsonRpcDirectFundRequest struct {
-	Jsonrpc          string                      `json:"jsonrpc"`
-	Id               uint64                      `json:"id"`
-	Method           string                      `json:"method"`
-	ObjectiveRequest directfund.ObjectiveRequest `json:"params"`
+type RequestPayload interface {
+	directfund.ObjectiveRequest | directdefund.ObjectiveRequest | virtualfund.ObjectiveRequest | virtualdefund.ObjectiveRequest
+}
+type JsonRpcRequest[T RequestPayload] struct {
+	Jsonrpc string `json:"jsonrpc"`
+	Id      uint64 `json:"id"`
+	Method  string `json:"method"`
+	Params  T      `json:"params"`
+}
+type ResponsePayload interface {
+	directfund.ObjectiveResponse | protocols.ObjectiveId | virtualfund.ObjectiveResponse
+}
+type JsonRpcResponse[T ResponsePayload] struct {
+	Jsonrpc string      `json:"jsonrpc"`
+	Id      uint64      `json:"id"`
+	Result  T           `json:"result"`
+	Error   interface{} `json:"error"`
 }
 
-type JsonRpcDirectFundResponse struct {
-	Jsonrpc           string                       `json:"jsonrpc"`
-	Id                uint64                       `json:"id"`
-	ObjectiveResponse directfund.ObjectiveResponse `json:"result"`
-	Error             interface{}                  `json:"error"`
-}
+func NewJsonRpcRequest[T RequestPayload](requestId uint64, method MethodType, objectiveRequest T) *JsonRpcRequest[T] {
 
-type JsonRpc struct{}
-
-func NewDirectFundRequestMessage(requestId uint64, objectiveRequest directfund.ObjectiveRequest) *JsonRpcDirectFundRequest {
-	return &JsonRpcDirectFundRequest{
-		Jsonrpc:          JsonRpcVersion,
-		Id:               requestId,
-		Method:           "direct_fund",
-		ObjectiveRequest: objectiveRequest,
+	return &JsonRpcRequest[T]{
+		Jsonrpc: JsonRpcVersion,
+		Id:      requestId,
+		Method:  string(method),
+		Params:  objectiveRequest,
 	}
 }
 
-func NewDirectFundResponseMessage(requestId uint64, objectiveResponse directfund.ObjectiveResponse) *JsonRpcDirectFundResponse {
-	return &JsonRpcDirectFundResponse{
-		Jsonrpc:           JsonRpcVersion,
-		Id:                requestId,
-		ObjectiveResponse: objectiveResponse,
-		Error:             nil,
+func NewJsonRpcResponse[T ResponsePayload](requestId uint64, objectiveResponse T) *JsonRpcResponse[T] {
+	return &JsonRpcResponse[T]{
+		Jsonrpc: JsonRpcVersion,
+		Id:      requestId,
+		Result:  objectiveResponse,
+		Error:   nil,
 	}
 }
 

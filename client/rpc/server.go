@@ -62,7 +62,7 @@ func (rs *RpcServer) registerHandlers() {
 	rs.nts.RegisterRequestHandler(network.DirectFundRequestMethod, func(data []byte) {
 		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
 
-		rpcRequest := serde.JsonRpcDirectFundRequest{}
+		rpcRequest := serde.JsonRpcRequest[directfund.ObjectiveRequest]{}
 		err := json.Unmarshal(data, &rpcRequest)
 		if err != nil {
 			panic("could not unmarshal direct fund objective request")
@@ -71,17 +71,17 @@ func (rs *RpcServer) registerHandlers() {
 		// todo: objective request is redefined so that it has a valid objectiveStarted channel.
 		// 	Should find a better way to accomplish this.
 		objectiveRequestWithChan := directfund.NewObjectiveRequest(
-			rpcRequest.ObjectiveRequest.CounterParty,
-			rpcRequest.ObjectiveRequest.ChallengeDuration,
-			rpcRequest.ObjectiveRequest.Outcome,
-			rpcRequest.ObjectiveRequest.Nonce,
-			rpcRequest.ObjectiveRequest.AppDefinition,
+			rpcRequest.Params.CounterParty,
+			rpcRequest.Params.ChallengeDuration,
+			rpcRequest.Params.Outcome,
+			rpcRequest.Params.Nonce,
+			rpcRequest.Params.AppDefinition,
 		)
 
 		rs.client.IncomingObjectiveRequests() <- objectiveRequestWithChan
 
-		objRes := rpcRequest.ObjectiveRequest.Response(*rs.client.Address, rs.chainId)
-		msg := serde.NewDirectFundResponseMessage(rpcRequest.Id, objRes)
+		objRes := rpcRequest.Params.Response(*rs.client.Address, rs.chainId)
+		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objRes)
 		messageData, err := json.Marshal(msg)
 		if err != nil {
 			panic("Could not marshal direct fund response message")

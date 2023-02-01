@@ -55,10 +55,12 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 		uint64(rand.Float64()), // TODO: Since numeric fields get converted to a float64 in transit we need to prevent overflow
 		common.Address{})
 
+	// Create a channel and store it in the responses map
+	// We will use this channel to wait for the response
 	resRec := make(chan directfund.ObjectiveResponse)
-
 	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
-	message := serde.NewDirectFundRequestMessage(rand.Uint64(), objReq)
+
+	message := serde.NewJsonRpcRequest(rand.Uint64(), serde.DirectFund, objReq)
 	data, err := json.Marshal(message)
 	if err != nil {
 		panic("Could not marshal direct fund request")
@@ -83,15 +85,15 @@ func (rs *RpcClient) registerHandlers() {
 	rs.nts.RegisterResponseHandler(func(data []byte) {
 		rs.nts.Logger.Trace().Msgf("Rpc client received response: %+v", data)
 
-		rpcResponse := serde.JsonRpcDirectFundResponse{}
+		rpcResponse := serde.JsonRpcResponse[directfund.ObjectiveResponse]{}
 		err := json.Unmarshal(data, &rpcResponse)
 		if err != nil {
 			panic("could not unmarshal direct fund objective response")
 		}
 
-		if resRec, ok := rs.responses.Load(fmt.Sprintf("%v", rpcResponse.ObjectiveResponse.Id)); ok {
+		if resRec, ok := rs.responses.Load(fmt.Sprintf("%v", rpcResponse.Result.Id)); ok {
 			rs.responses.Delete(fmt.Sprintf("%v", rpcResponse.Id))
-			resRec <- rpcResponse.ObjectiveResponse
+			resRec <- rpcResponse.Result
 		}
 	})
 }
