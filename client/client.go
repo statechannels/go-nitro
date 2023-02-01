@@ -21,7 +21,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// Client provides the interface for the consuming application
+// Client provides an API for the consuming application
 type Client struct {
 	engine              engine.Engine // The core business logic of the client
 	Address             *types.Address
