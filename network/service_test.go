@@ -1,136 +1,74 @@
 package network
 
-// import (
-// 	"encoding/json"
-// 	"sync"
-// 	"testing"
+import (
+	"sync"
+	"testing"
 
-// 	"github.com/rs/zerolog"
-// 	netproto "github.com/statechannels/go-nitro/network/protocol"
-// 	"github.com/stretchr/testify/assert"
-// 	"github.com/stretchr/testify/mock"
-// )
+	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/network/serde"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
 
-// var (
-// 	regReqHandler = "regReqHandler"
-// 	regErrHandler = "regErrHandler"
-// 	regResHandler = "regResHandler"
-// )
+type connMock struct {
+	mock.Mock
+}
 
-// type connMock struct {
-// 	mock.Mock
-// }
+func (c *connMock) Send(s string, bytes []byte) {}
 
-// func (c *connMock) Send(s string, bytes []byte) {}
+func (c *connMock) Recv() ([]byte, error) {
+	return []byte("event"), nil
+}
 
-// func (c *connMock) Recv() ([]byte, error) {
-// 	return []byte("event"), nil
-// }
+func (c *connMock) Close() {}
 
-// func (c *connMock) Close() {}
+func newNetworkServiceMock() *NetworkService {
+	service := NetworkService{
+		Logger:         zerolog.Logger{},
+		Connection:     &connMock{},
+		handlerRequest: sync.Map{},
+		handlerError:   sync.Map{},
+	}
 
-// type serializerMock struct {
-// 	mock.Mock
-// }
+	return &service
+}
 
-// func (s *serializerMock) Serialize(message *netproto.Message) ([]byte, error) {
-// 	return json.Marshal(message)
-// }
+// maybe logic will get more complicated and gonna keep this as example
+func TestRegisterUnregisterRequestHandler(t *testing.T) {
+	service := newNetworkServiceMock()
 
-// func (s *serializerMock) Deserialize(bytes []byte) (*netproto.Message, error) {
-// 	msg := new(netproto.Message)
-// 	err := json.Unmarshal(bytes, msg)
-// 	return msg, err
-// }
+	service.RegisterRequestHandler(serde.DirectFundRequestMethod, func(uint64, []byte) {})
+	val, ok := service.handlerRequest.Load(string(serde.DirectFundRequestMethod))
+	assert.NotNil(t, val)
+	assert.Equal(t, ok, true)
+	service.UnregisterRequestHandler(serde.DirectFundRequestMethod)
+	val, ok = service.handlerRequest.Load(serde.DirectFundRequestMethod)
+	assert.Nil(t, val)
+	assert.Equal(t, ok, false)
+}
 
-// func newNetworkServiceMock() *NetworkService {
-// 	service := NetworkService{
-// 		Logger:              zerolog.Logger{},
-// 		Connection:          &connMock{},
-// 		handlerRequest:      sync.Map{},
-// 		handlerResponse:     sync.Map{},
-// 		handlerError:        sync.Map{},
-// 		handlerPublicEvent:  sync.Map{},
-// 		handlerPrivateEvent: sync.Map{},
-// 	}
+func TestGetHandler(t *testing.T) {
+	service := newNetworkServiceMock()
 
-// 	return &service
-// }
+	service.RegisterRequestHandler(serde.DirectFundRequestMethod, func(uint64, []byte) {})
+	service.RegisterResponseHandler(func(uint64, []byte) {})
+	service.RegisterErrorHandler(serde.DirectFundRequestMethod, func(uint64, []byte) {})
 
-// // maybe logic will get more complicated and gonna keep this as example
-// func TestRegisterUnregisterRequestHandler(t *testing.T) {
-// 	service := newNetworkServiceMock()
+	val := service.getHandler(string(serde.DirectFundRequestMethod), serde.TypeRequest)
+	assert.NotNil(t, val)
 
-// 	service.RegisterRequestHandler(regReqHandler, func(message *netproto.Message) {})
-// 	val, ok := service.handlerRequest.Load(regReqHandler)
-// 	assert.NotNil(t, val)
-// 	assert.Equal(t, ok, true)
-// 	service.UnregisterRequestHandler(regReqHandler)
-// 	val, ok = service.handlerRequest.Load(regReqHandler)
-// 	assert.Nil(t, val)
-// 	assert.Equal(t, ok, false)
-// }
+	val = service.getHandler("", serde.TypeResponse)
+	assert.NotNil(t, val)
 
-// func TestGetHandler(t *testing.T) {
-// 	service := newNetworkServiceMock()
-// 	msg1 := &netproto.Message{
-// 		Type:      netproto.TypeRequest,
-// 		RequestId: 0,
-// 		Method:    regReqHandler,
-// 		Args:      nil,
-// 	}
-// 	msg2 := &netproto.Message{
-// 		Type:      netproto.TypeResponse,
-// 		RequestId: 1,
-// 		Method:    regResHandler,
-// 		Args:      nil,
-// 	}
-// 	msg3 := &netproto.Message{
-// 		Type:      netproto.TypeError,
-// 		RequestId: 2,
-// 		Method:    regErrHandler,
-// 		Args:      nil,
-// 	}
-// 	msg4 := &netproto.Message{
-// 		Type:      netproto.TypePrivateEvent,
-// 		RequestId: 5,
-// 		Method:    "",
-// 		Args:      nil,
-// 	}
+	val = service.getHandler(string(serde.DirectFundRequestMethod), serde.TypeError)
+	assert.NotNil(t, val)
 
-// 	service.RegisterRequestHandler(regReqHandler, func(message *netproto.Message) {})
-// 	service.RegisterResponseHandler(regResHandler, func(message *netproto.Message) {})
-// 	service.RegisterErrorHandler(regErrHandler, func(message *netproto.Message) {})
+	val = service.getHandler(string(serde.DirectDefundRequestMethod), serde.TypeRequest)
+	assert.Nil(t, val)
+}
 
-// 	val := service.getHandler(msg1.Method)
-// 	assert.NotNil(t, val)
-
-// 	val = service.getHandler(msg2)
-// 	assert.NotNil(t, val)
-
-// 	val = service.getHandler(msg3)
-// 	assert.NotNil(t, val)
-
-// 	val = service.getHandler(msg4)
-// 	assert.Nil(t, val)
-// }
-
-// func TestHandleMessage(t *testing.T) {
-// 	service := newNetworkServiceMock()
-// 	msg1 := &netproto.Message{
-// 		Type:      netproto.TypeRequest,
-// 		RequestId: 0,
-// 		Method:    regReqHandler,
-// 		Args:      nil,
-// 	}
-// 	//msg2 := &netproto.Message{
-// 	//	Type:      netproto.TypeResponse,
-// 	//	RequestId: 1,
-// 	//	Method:    regResHandler,
-// 	//	Args:      nil,
-// 	//}
-
-// 	service.RegisterRequestHandler(regReqHandler, func(message *netproto.Message) {})
-
-// 	service.handleMessage(msg1, netproto.TypeRequest)
-// }
+func TestHandleMessage(t *testing.T) {
+	service := newNetworkServiceMock()
+	service.RegisterRequestHandler(serde.DirectFundRequestMethod, func(uint64, []byte) {})
+	service.handleMessage(0, serde.DirectFundRequestMethod, serde.TypeRequest, []byte{})
+}
