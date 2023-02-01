@@ -55,19 +55,20 @@ jobs:
           --metadata-branch "${{github.event.pull_request.head.ref}}" \
           --metadata-commit "${{github.event.pull_request.head.sha}}"  | tee run.out
 
-      - name: Fail if testground run failed
-        if: ${{ steps.set_run_outcome.outputs.RUN_OUTCOME  != 'success' }}
-        run: exit 1
-
       # Parse the run outcome and id from the testground run output
       - name: Set Run Outcome
         id: set_run_outcome
         run: |
           echo "::set-output name=RUN_OUTCOME::$(awk '/run finished with outcome/ {print $10}' <run.out)"
+      - name: Fail if testground run failed
+        if: ${{ steps.set_run_outcome.outputs.RUN_OUTCOME  != 'success' }}
+        run: exit 1
+
       - name: Set Run Id
         id: set_run_id
         run: |
           echo "::set-output name=RUN_ID::$(awk '/run is queued with ID/ {print $10}' <run.out)"
+
       # Set the end time for the dashboard time range
       - name: Set Done Time
         id: set_done_time
