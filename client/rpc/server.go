@@ -13,6 +13,8 @@ import (
 	natstrans "github.com/statechannels/go-nitro/network/transport/nats"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualdefund"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
 
 // RpcServer handles nitro rpc requests and executes them on the nitro client
@@ -112,6 +114,87 @@ func (rs *RpcServer) registerHandlers() {
 		}
 
 		rs.nts.SendMessage(serde.DirectDefundRequestMethod, messageData)
+	})
+
+	rs.nts.RegisterRequestHandler(serde.VirtualFundRequestMethod, func(id uint64, data []byte) {
+
+		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
+
+		rpcRequest := serde.JsonRpcRequest[virtualfund.ObjectiveRequest]{}
+		err := json.Unmarshal(data, &rpcRequest)
+		if err != nil {
+			panic("could not unmarshal direct fund objective request")
+		}
+
+		// todo: objective request is redefined so that it has a valid objectiveStarted channel.
+		// 	Should find a better way to accomplish this.
+		objectiveRequestWithChan := virtualfund.NewObjectiveRequest(
+			rpcRequest.Params.Intermediaries,
+			rpcRequest.Params.CounterParty,
+			rpcRequest.Params.ChallengeDuration,
+			rpcRequest.Params.Outcome,
+			rpcRequest.Params.Nonce,
+			rpcRequest.Params.AppDefinition,
+		)
+
+		rs.client.IncomingObjectiveRequests() <- objectiveRequestWithChan
+
+		objRes := rpcRequest.Params.Response(*rs.client.Address)
+		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objRes)
+		messageData, err := json.Marshal(msg)
+		if err != nil {
+			panic("Could not marshal direct fund response message")
+		}
+
+		rs.nts.SendMessage(serde.VirtualFundRequestMethod, messageData)
+	})
+
+	rs.nts.RegisterRequestHandler(serde.VirtualDefundRequestMethod, func(id uint64, data []byte) {
+		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
+
+		rpcRequest := serde.JsonRpcRequest[virtualdefund.ObjectiveRequest]{}
+		err := json.Unmarshal(data, &rpcRequest)
+		if err != nil {
+			panic("could not unmarshal virtual defund objective request")
+		}
+
+		// todo: objective request is redefined so that it has a valid objectiveStarted channel.
+		// 	Should find a better way to accomplish this.
+		objectiveRequestWithChan := virtualdefund.NewObjectiveRequest(
+			rpcRequest.Params.ChannelId,
+		)
+
+		rs.client.IncomingObjectiveRequests() <- objectiveRequestWithChan
+
+		objRes := rpcRequest.Params.Id(*rs.client.Address, rs.chainId)
+		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objRes)
+		messageData, err := json.Marshal(msg)
+		if err != nil {
+			panic("Could not marshal direct fund response message")
+		}
+
+		rs.nts.SendMessage(serde.VirtualDefundRequestMethod, messageData)
+	})
+
+	rs.nts.RegisterRequestHandler(serde.PayRequestMethod, func(id uint64, data []byte) {
+		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
+
+		rpcRequest := serde.JsonRpcRequest[serde.PaymentRequest]{}
+		err := json.Unmarshal(data, &rpcRequest)
+		if err != nil {
+			panic("could not unmarshal pay objective request")
+		}
+
+		rs.client.Pay(rpcRequest.Params.Channel, big.NewInt(int64(rpcRequest.Params.Amount)))
+
+		// TODO: What should we return here? A voucher?
+		msg := serde.NewJsonRpcResponse(rpcRequest.Id, rpcRequest.Params)
+		messageData, err := json.Marshal(msg)
+		if err != nil {
+			panic("Could not marshal pay response message")
+		}
+
+		rs.nts.SendMessage(serde.VirtualDefundRequestMethod, messageData)
 	})
 }
 

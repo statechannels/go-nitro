@@ -16,6 +16,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 
@@ -48,6 +49,58 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int
 	c := &RpcClient{nts, myAddress, chainId, safesync.Map[chan interface{}]{}, safesync.Map[serde.RequestMethod]{}}
 	c.registerHandlers()
 	return c
+}
+
+// CreateLedger creates a new ledger channel
+func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) virtualfund.ObjectiveResponse {
+
+	objReq := virtualfund.NewObjectiveRequest(
+		intermediaries,
+		counterparty,
+		100,
+		outcome,
+		uint64(rand.Float64()), // TODO: Since numeric fields get converted to a float64 in transit we need to prevent overflow
+		common.Address{})
+
+	// Create a channel and store it in the responses map
+	// We will use this channel to wait for the response
+	resRec := make(chan interface{})
+	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
+
+	requestId := rand.Uint64()
+	rc.idsToMethods.Store(string(fmt.Sprintf("%d", requestId)), serde.VirtualFundRequestMethod)
+
+	message := serde.NewJsonRpcRequest(requestId, serde.VirtualFundRequestMethod, objReq)
+	data, err := json.Marshal(message)
+	if err != nil {
+		panic("Could not marshal direct fund request")
+	}
+	rc.nts.SendMessage(serde.DirectFundRequestMethod, data)
+
+	objRes := <-resRec
+	return objRes.(virtualfund.ObjectiveResponse)
+}
+
+func (rc *RpcClient) CloseVirtual(id types.Destination) protocols.ObjectiveId {
+	objReq := virtualdefund.NewObjectiveRequest(
+		id)
+
+	// Create a channel and store it in the responses map
+	// We will use this channel to wait for the response
+	resRec := make(chan interface{})
+	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
+	requestId := rand.Uint64()
+	rc.idsToMethods.Store(string(fmt.Sprintf("%d", requestId)), serde.VirtualDefundRequestMethod)
+
+	message := serde.NewJsonRpcRequest(requestId, serde.VirtualDefundRequestMethod, objReq)
+	data, err := json.Marshal(message)
+	if err != nil {
+		panic("Could not marshal direct fund request")
+	}
+	rc.nts.SendMessage(serde.VirtualDefundRequestMethod, data)
+
+	objRes := <-resRec
+	return objRes.(protocols.ObjectiveId)
 }
 
 // CreateLedger creates a new ledger channel
@@ -115,7 +168,7 @@ func (rc *RpcClient) registerHandlers() {
 		rc.nts.Logger.Trace().Msgf("Rpc client received response: %+v", data)
 		method, reqFound := rc.idsToMethods.Load(fmt.Sprintf("%d", id))
 		if !reqFound {
-			panic(fmt.Sprint("Could not find request for response with id %D", id))
+			panic(fmt.Sprintf("Could not find request for response with id %d", id))
 		}
 
 		switch method {
@@ -123,6 +176,12 @@ func (rc *RpcClient) registerHandlers() {
 			handleResponse[directfund.ObjectiveResponse](rc, data)
 		case serde.DirectDefundRequestMethod:
 			handleResponse[protocols.ObjectiveId](rc, data)
+		case serde.VirtualFundRequestMethod:
+			handleResponse[virtualfund.ObjectiveResponse](rc, data)
+		case serde.VirtualDefundRequestMethod:
+			handleResponse[protocols.ObjectiveId](rc, data)
+		case serde.PayRequestMethod:
+			handleResponse[serde.PaymentRequest](rc, data)
 
 		}
 	})
@@ -159,6 +218,11 @@ func getObjectiveId(result any) protocols.ObjectiveId {
 	vRes, isVRes := result.(virtualfund.ObjectiveResponse)
 	if isVRes {
 		return vRes.Id
+	}
+	pRes, isPRes := result.(serde.PaymentRequest)
+	if isPRes {
+		paymentId := fmt.Sprintf("PAYMENT-%s", pRes.Channel)
+		return protocols.ObjectiveId(paymentId)
 	}
 	panic("Could not get id from result")
 }
