@@ -116,7 +116,7 @@ func (rs *RpcServer) registerHandlers() {
 
 		rs.client.IncomingObjectiveRequests() <- objectiveRequestWithChan
 
-		objRes := rpcRequest.Params.Id(*rs.client.Address, rs.client.ChainId)
+		objRes := rpcRequest.Params.Id(*rs.client.Address, rs.chainId)
 		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objRes)
 		messageData, err := json.Marshal(msg)
 		if err != nil {
