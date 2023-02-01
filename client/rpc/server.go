@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"github.com/nats-io/nats-server/v2/server"
@@ -43,18 +42,7 @@ func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Lo
 	nc, err := nats.Connect(ns.ClientURL())
 	handleError(err)
 
-	trp := natstrans.NewNatsTransport(nc, []string{
-		fmt.Sprintf("nitro.%s",
-			serde.DirectFundRequestMethod),
-		fmt.Sprintf("nitro.%s",
-			serde.DirectDefundRequestMethod),
-		fmt.Sprintf("nitro.%s",
-			serde.VirtualFundRequestMethod),
-		fmt.Sprintf("nitro.%s",
-			serde.VirtualDefundRequestMethod),
-		fmt.Sprintf("nitro.%s",
-			serde.PayRequestMethod),
-	})
+	trp := natstrans.NewNatsTransport(nc, getTopics())
 
 	con, err := trp.PollConnection()
 	handleError(err)

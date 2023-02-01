@@ -38,18 +38,7 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int
 
 	nc, err := nats.Connect(rpcServerUrl)
 	handleError(err)
-	trp := natstrans.NewNatsTransport(nc, []string{
-		fmt.Sprintf("nitro.%s",
-			serde.DirectFundRequestMethod),
-		fmt.Sprintf("nitro.%s",
-			serde.DirectDefundRequestMethod),
-		fmt.Sprintf("nitro.%s",
-			serde.VirtualFundRequestMethod),
-		fmt.Sprintf("nitro.%s",
-			serde.VirtualDefundRequestMethod),
-		fmt.Sprintf("nitro.%s",
-			serde.PayRequestMethod),
-	})
+	trp := natstrans.NewNatsTransport(nc, getTopics())
 
 	con, err := trp.PollConnection()
 	handleError(err)
