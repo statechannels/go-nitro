@@ -111,8 +111,6 @@ func (p *NetworkService) getHandler(method string, messageType serde.MessageType
 			return function.(func(uint64, []byte))
 		}
 	}
-	// TODO: case handlerPublicEvent
-	// TODO: case handlerPrivateEvent
 
 	return nil
 }
