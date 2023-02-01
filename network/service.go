@@ -58,9 +58,6 @@ func (p *NetworkService) UnregisterResponseHandler() {
 	p.Logger.Trace().Msg("unregistered response handler")
 }
 
-// TODO: implement (un)registerPublicEventHandler
-// TODO: implement (un)registerPrivateEventHandler
-
 func (p *NetworkService) handleMessages() {
 	for {
 		data, err := p.Connection.Recv()
