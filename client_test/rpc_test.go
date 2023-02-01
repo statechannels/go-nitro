@@ -28,6 +28,10 @@ func TestRpcClient(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
+	chainId, err := chainServiceA.GetChainId()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	clientA, msgA := setupClientWithP2PMessageService(alice.PrivateKey, 3005, chainServiceA, logger)
 	clientB, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, logger)
@@ -45,8 +49,8 @@ func TestRpcClient(t *testing.T) {
 	alice := testactors.Alice
 	bob := testactors.Bob
 
-	rpcServerA := rpc.NewRpcServer(&clientA, logger)
-	rpcClientA := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), clientA.ChainId, logger)
+	rpcServerA := rpc.NewRpcServer(&clientA, chainId, logger)
+	rpcClientA := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), chainId, logger)
 	defer rpcServerA.Close()
 	defer rpcClientA.Close()
 	testOutcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), 100, 100, types.Address{})

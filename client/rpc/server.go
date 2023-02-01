@@ -3,6 +3,7 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
@@ -16,9 +17,10 @@ import (
 
 // RpcServer handles nitro rpc requests and executes them on the nitro client
 type RpcServer struct {
-	nts    *network.NetworkService
-	ns     *server.Server
-	client *nitro.Client
+	nts     *network.NetworkService
+	ns      *server.Server
+	client  *nitro.Client
+	chainId *big.Int
 }
 
 func (rs *RpcServer) Url() string {
@@ -30,7 +32,7 @@ func (rs *RpcServer) Close() {
 	rs.nts.Close()
 }
 
-func NewRpcServer(nitroClient *nitro.Client, logger zerolog.Logger) *RpcServer {
+func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Logger) *RpcServer {
 
 	opts := &server.Options{}
 	ns, err := server.NewServer(opts)
@@ -50,7 +52,7 @@ func NewRpcServer(nitroClient *nitro.Client, logger zerolog.Logger) *RpcServer {
 
 	nts := network.NewNetworkService(con)
 	nts.Logger = logger
-	rs := &RpcServer{nts, ns, nitroClient}
+	rs := &RpcServer{nts, ns, nitroClient, chainId}
 	rs.registerHandlers()
 	return rs
 }
@@ -78,7 +80,7 @@ func (rs *RpcServer) registerHandlers() {
 
 		rs.client.IncomingObjectiveRequests() <- objectiveRequestWithChan
 
-		objRes := rpcRequest.ObjectiveRequest.Response(*rs.client.Address, rs.client.ChainId)
+		objRes := rpcRequest.ObjectiveRequest.Response(*rs.client.Address, rs.chainId)
 		msg := serde.NewDirectFundResponseMessage(rpcRequest.Id, objRes)
 		messageData, err := json.Marshal(msg)
 		if err != nil {

@@ -27,7 +27,7 @@ type Client struct {
 	completedObjectives chan protocols.ObjectiveId
 	failedObjectives    chan protocols.ObjectiveId
 	receivedVouchers    chan payments.Voucher
-	ChainId             *big.Int
+	chainId             *big.Int
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -42,7 +42,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	if err != nil {
 		panic(err)
 	}
-	c.ChainId = chainId
+	c.chainId = chainId
 	c.engine = engine.New(messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
@@ -131,7 +131,7 @@ func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.Obje
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Id(*c.Address, c.ChainId)
+	return objectiveRequest.Id(*c.Address, c.chainId)
 
 }
 
@@ -151,7 +151,7 @@ func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDurati
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Response(*c.Address, c.ChainId)
+	return objectiveRequest.Response(*c.Address, c.chainId)
 
 }
 
@@ -163,7 +163,7 @@ func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.Objec
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Id(*c.Address, c.ChainId)
+	return objectiveRequest.Id(*c.Address, c.chainId)
 
 }
 
