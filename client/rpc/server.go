@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"github.com/nats-io/nats-server/v2/server"
@@ -12,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/network"
 	"github.com/statechannels/go-nitro/network/serde"
 	natstrans "github.com/statechannels/go-nitro/network/transport/nats"
+	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 )
 
@@ -42,10 +42,7 @@ func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Lo
 	nc, err := nats.Connect(ns.ClientURL())
 	handleError(err)
 
-	trp := natstrans.NewNatsTransport(nc, []string{
-		fmt.Sprintf("nitro.%s", network.DirectFundRequestMethod),
-		fmt.Sprintf("nitro.%s", network.DirectDefundRequestMethod),
-	})
+	trp := natstrans.NewNatsTransport(nc, getTopics())
 
 	con, err := trp.PollConnection()
 	handleError(err)
@@ -59,10 +56,10 @@ func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Lo
 
 // registerHandlers registers the handlers for the rpc server
 func (rs *RpcServer) registerHandlers() {
-	rs.nts.RegisterRequestHandler(network.DirectFundRequestMethod, func(data []byte) {
+	rs.nts.RegisterRequestHandler(serde.DirectFundRequestMethod, func(id uint64, data []byte) {
 		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
 
-		rpcRequest := serde.JsonRpcDirectFundRequest{}
+		rpcRequest := serde.JsonRpcRequest[directfund.ObjectiveRequest]{}
 		err := json.Unmarshal(data, &rpcRequest)
 		if err != nil {
 			panic("could not unmarshal direct fund objective request")
@@ -71,23 +68,50 @@ func (rs *RpcServer) registerHandlers() {
 		// todo: objective request is redefined so that it has a valid objectiveStarted channel.
 		// 	Should find a better way to accomplish this.
 		objectiveRequestWithChan := directfund.NewObjectiveRequest(
-			rpcRequest.ObjectiveRequest.CounterParty,
-			rpcRequest.ObjectiveRequest.ChallengeDuration,
-			rpcRequest.ObjectiveRequest.Outcome,
-			rpcRequest.ObjectiveRequest.Nonce,
-			rpcRequest.ObjectiveRequest.AppDefinition,
+			rpcRequest.Params.CounterParty,
+			rpcRequest.Params.ChallengeDuration,
+			rpcRequest.Params.Outcome,
+			rpcRequest.Params.Nonce,
+			rpcRequest.Params.AppDefinition,
 		)
 
 		rs.client.IncomingObjectiveRequests() <- objectiveRequestWithChan
 
-		objRes := rpcRequest.ObjectiveRequest.Response(*rs.client.Address, rs.chainId)
-		msg := serde.NewDirectFundResponseMessage(rpcRequest.Id, objRes)
+		objRes := rpcRequest.Params.Response(*rs.client.Address, rs.chainId)
+		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objRes)
 		messageData, err := json.Marshal(msg)
 		if err != nil {
 			panic("Could not marshal direct fund response message")
 		}
 
-		rs.nts.SendMessage(network.DirectFundRequestMethod, messageData)
+		rs.nts.SendMessage(string(serde.DirectFundRequestMethod), messageData)
+	})
+
+	rs.nts.RegisterRequestHandler(serde.DirectDefundRequestMethod, func(id uint64, data []byte) {
+		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
+
+		rpcRequest := serde.JsonRpcRequest[directdefund.ObjectiveRequest]{}
+		err := json.Unmarshal(data, &rpcRequest)
+		if err != nil {
+			panic("could not unmarshal direct fund objective request")
+		}
+
+		// todo: objective request is redefined so that it has a valid objectiveStarted channel.
+		// 	Should find a better way to accomplish this.
+		objectiveRequestWithChan := directdefund.NewObjectiveRequest(
+			rpcRequest.Params.ChannelId,
+		)
+
+		rs.client.IncomingObjectiveRequests() <- objectiveRequestWithChan
+
+		objRes := rpcRequest.Params.Id(*rs.client.Address, rs.chainId)
+		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objRes)
+		messageData, err := json.Marshal(msg)
+		if err != nil {
+			panic("Could not marshal direct fund response message")
+		}
+
+		rs.nts.SendMessage(string(serde.DirectDefundRequestMethod), messageData)
 	})
 }
 
