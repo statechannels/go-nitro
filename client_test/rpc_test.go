@@ -2,6 +2,7 @@ package client_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -14,16 +15,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRpcClient(t *testing.T) {
-	logDestination := newLogWriter("test_rpc_client.log")
-
-	logger := zerolog.New(logDestination).
+func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.Logger {
+	return zerolog.New(logDestination).
 		Level(zerolog.TraceLevel).
 		With().
 		Timestamp().
-		Str("client", "").
+		Str("client", clientName).
+		Str("rpc", rpcRole).
 		Str("scope", "").
 		Logger()
+}
+
+func TestRpcClient(t *testing.T) {
+	logDestination := newLogWriter("test_rpc_client.log")
 
 	chain := chainservice.NewMockChain()
 	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
@@ -33,8 +37,8 @@ func TestRpcClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	clientA, msgA := setupClientWithP2PMessageService(alice.PrivateKey, 3005, chainServiceA, logger)
-	clientB, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, logger)
+	clientA, msgA := setupClientWithP2PMessageService(alice.PrivateKey, 3005, chainServiceA, createLogger(logDestination, "alice", ""))
+	clientB, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, createLogger(logDestination, "bob", ""))
 	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
 		{Id: msgB.Id(), IpAddress: "127.0.0.1", Port: 3006, Address: bob.Address()},
@@ -49,8 +53,8 @@ func TestRpcClient(t *testing.T) {
 	alice := testactors.Alice
 	bob := testactors.Bob
 
-	rpcServerA := rpc.NewRpcServer(&clientA, chainId, logger)
-	rpcClientA := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), chainId, logger)
+	rpcServerA := rpc.NewRpcServer(&clientA, chainId, createLogger(logDestination, "alice", "server"))
+	rpcClientA := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), chainId, createLogger(logDestination, "alice", "client"))
 	defer rpcServerA.Close()
 	defer rpcClientA.Close()
 	testOutcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), 100, 100, types.Address{})
