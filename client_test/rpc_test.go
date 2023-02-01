@@ -64,4 +64,10 @@ func TestRpcClient(t *testing.T) {
 
 	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, res.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, res.Id)
+
+	closeId := rpcClientA.CloseLedger(res.ChannelId)
+
+	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, closeId)
+	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, closeId)
+
 }

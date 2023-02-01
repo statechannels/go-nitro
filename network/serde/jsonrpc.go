@@ -11,6 +11,16 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
 
+type RequestMethod string
+
+const (
+	DirectFundRequestMethod    RequestMethod = "direct_fund"
+	DirectDefundRequestMethod  RequestMethod = "direct_defund"
+	VirtualFundRequestMethod   RequestMethod = "virtual_fund"
+	VirtualDefundRequestMethod RequestMethod = "virtual_defund"
+	PayRequestMethod           RequestMethod = "pay"
+)
+
 const JsonRpcVersion = "2.0"
 
 type MessageType int8
@@ -21,22 +31,13 @@ const (
 	TypeError    MessageType = 3
 )
 
-type MethodType string
-
-const (
-	DirectFund    MethodType = "direct_fund"
-	DirectDefund  MethodType = "direct_defund"
-	VirtualFund   MethodType = "virtual_fund"
-	VirtualDefund MethodType = "virtual_defund"
-)
-
 type JsonRpcRequestResponse struct {
-	Jsonrpc string      `json:"jsonrpc"`
-	Id      uint64      `json:"id"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
-	Result  interface{} `json:"result"`
-	Error   interface{} `json:"error"`
+	Jsonrpc string        `json:"jsonrpc"`
+	Id      uint64        `json:"id"`
+	Method  RequestMethod `json:"method"`
+	Params  interface{}   `json:"params"`
+	Result  interface{}   `json:"result"`
+	Error   interface{}   `json:"error"`
 }
 type RequestPayload interface {
 	directfund.ObjectiveRequest | directdefund.ObjectiveRequest | virtualfund.ObjectiveRequest | virtualdefund.ObjectiveRequest
@@ -57,7 +58,7 @@ type JsonRpcResponse[T ResponsePayload] struct {
 	Error   interface{} `json:"error"`
 }
 
-func NewJsonRpcRequest[T RequestPayload](requestId uint64, method MethodType, objectiveRequest T) *JsonRpcRequest[T] {
+func NewJsonRpcRequest[T RequestPayload](requestId uint64, method RequestMethod, objectiveRequest T) *JsonRpcRequest[T] {
 
 	return &JsonRpcRequest[T]{
 		Jsonrpc: JsonRpcVersion,
