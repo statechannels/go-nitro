@@ -141,7 +141,7 @@ func handleResponse[T serde.ResponsePayload](rc *RpcClient, data []byte) {
 
 		resRec <- rpcResponse.Result
 
-		rc.idsToMethods.Delete(fmt.Sprintf("%d", nats.ReplayInstantPolicy))
+		rc.idsToMethods.Delete(fmt.Sprintf("%d", rpcResponse.Id))
 		rc.responses.Delete(fmt.Sprintf("%v", getObjectiveId(rpcResponse.Result)))
 	}
 }
