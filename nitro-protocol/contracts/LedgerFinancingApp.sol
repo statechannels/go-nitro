@@ -116,7 +116,7 @@ contract LedgerFinancingApp is IForceMoveApp {
         if (proof.length == 0) {
             // unanimous consensus check
             require(
-                NitroUtils.getClaimedSignersNum(candidate.signedBy) == 2,
+                NitroUtils.getClaimedSignersNum(candidate.signedBy) == fixedPart.participants.length,
                 '!unanimous; |proof|=0'
             );
             return;
