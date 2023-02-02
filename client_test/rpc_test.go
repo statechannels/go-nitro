@@ -74,9 +74,15 @@ func TestRpcClient(t *testing.T) {
 		100,
 		testdata.Outcomes.Create(alice.Address(), bob.Address(), 100, 100, types.Address{}))
 
-	assert.Regexp(t, "VirtualFunding.0x.*", vRes.Id)
-
+	assert.Regexp(t, "VirtualFund.0x.*", vRes.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, vRes.Id)
-	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, vRes.Id)
+
+	rpcClientA.Pay(vRes.ChannelId, 1)
+
+	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
+	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, closeVId)
+
+	closeId := rpcClientA.CloseLedger(res.ChannelId)
+	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, closeId)
 
 }
