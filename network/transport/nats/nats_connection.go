@@ -38,6 +38,7 @@ func (c *natsConnection) subscribeToTopics() {
 		} else {
 			c.mutex.Lock()
 			c.natsSubscriptions = append(c.natsSubscriptions, sub)
+			c.mutex.Unlock()
 		}
 	}
 }
