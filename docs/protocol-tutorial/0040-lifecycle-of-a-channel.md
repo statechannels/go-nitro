@@ -1,3 +1,7 @@
+---
+description: From Proposal through to Finalization
+---
+
 # Lifecycle of a state channel
 
 In this section we'll consider the "state" of a state channel as composite of three states -- the [_off chain state_](#off-chain-lifecycle), the on chain [_adjudication state_](#adjudication) and the [_funding state_](#funding-lifecyle) (which can be on or off chain). The off chain parts of the state may be different for each participant in the channel, whereas the on chain part of the state is considered consistent (up to issues to do with finality and chain reorgs).

@@ -3,6 +3,7 @@ strict: true
 repo_url: https://github.com/statechannels/go-nitro
 edit_uri: blob/main/docs/
 site_url: https://docs.statechannels.org
+site_description: "Nitro: A state channel framework for ultra-low cost, near-zero-latency conditional transfer of cryptoassets."
 plugins:
   - social
 theme:

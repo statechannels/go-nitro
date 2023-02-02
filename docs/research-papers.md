@@ -1,3 +1,7 @@
+---
+description: ForceMove, Nitro and SATP -- Evolution of the framework.
+---
+
 # Research papers
 
 Nitro is based on a culmination of research spanning the following papers:
