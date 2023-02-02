@@ -2,6 +2,9 @@ site_name: Nitro State Channel Framework
 strict: true
 repo_url: https://github.com/statechannels/go-nitro
 edit_uri: blob/main/docs/
+site_url: https://docs.statechannels.org
+plugins:
+  - social
 theme:
   name: material
   palette:
