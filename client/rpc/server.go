@@ -123,7 +123,7 @@ func (rs *RpcServer) registerHandlers() {
 		rpcRequest := serde.JsonRpcRequest[virtualfund.ObjectiveRequest]{}
 		err := json.Unmarshal(data, &rpcRequest)
 		if err != nil {
-			panic("could not unmarshal direct fund objective request")
+			panic("could not unmarshal virtual fund objective request")
 		}
 
 		// todo: objective request is redefined so that it has a valid objectiveStarted channel.

@@ -75,7 +75,7 @@ func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty 
 	if err != nil {
 		panic("Could not marshal direct fund request")
 	}
-	rc.nts.SendMessage(serde.DirectFundRequestMethod, data)
+	rc.nts.SendMessage(serde.VirtualFundRequestMethod, data)
 
 	objRes := <-resRec
 	return objRes.(virtualfund.ObjectiveResponse)
