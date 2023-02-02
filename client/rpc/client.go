@@ -153,6 +153,27 @@ func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
 	return objRes.(protocols.ObjectiveId)
 }
 
+func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
+
+	// Create a channel and store it in the responses map
+	// We will use this channel to wait for the response
+	resRec := make(chan interface{})
+	paymentId := fmt.Sprintf("PAYMENT-%s", id)
+	rc.responses.Store(paymentId, resRec)
+	requestId := rand.Uint64()
+	rc.idsToMethods.Store(fmt.Sprintf("%d", requestId), serde.PayRequestMethod)
+
+	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
+	message := serde.NewJsonRpcRequest(requestId, serde.PayRequestMethod, pReq)
+	data, err := json.Marshal(message)
+	if err != nil {
+		panic("Could not marshal direct fund request")
+	}
+	rc.nts.SendMessage(serde.PayRequestMethod, data)
+
+	<-resRec
+}
+
 func (rc *RpcClient) Close() {
 	rc.nts.Close()
 }
