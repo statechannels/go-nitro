@@ -1,1 +1,59 @@
-mkdocs-material==8.4.4
+aiohttp==3.8.3
+aiosignal==1.2.0
+async-timeout==4.0.2
+attrs==22.1.0
+brotlipy==0.7.0
+cairocffi==1.4.0
+CairoSVG==2.6.0
+certifi==2021.5.30
+cffi @ file:///opt/concourse/worker/volumes/live/976f8942-f51d-4f0e-7352-2a10f0820d0e/volume/cffi_1625814703974/work
+chardet @ file:///opt/concourse/worker/volumes/live/7e1102c4-8702-40f2-63d6-f260ce5f85e4/volume/chardet_1607706831384/work
+charset-normalizer==2.1.1
+click==8.1.3
+colorama==0.4.6
+conda==4.10.3
+conda-package-handling @ file:///opt/concourse/worker/volumes/live/8fb3e065-760b-4a9d-4cd9-aca7fc8baf53/volume/conda-package-handling_1618262145611/work
+cryptography @ file:///opt/concourse/worker/volumes/live/d5dda287-c0b3-4861-7262-fab05baa64dc/volume/cryptography_1616769284011/work
+cssselect2==0.7.0
+cycler==0.11.0
+defusedxml==0.7.1
+fonttools==4.33.3
+frozenlist==1.3.1
+ghp-import==2.1.0
+idna @ file:///home/linux1/recipes/ci/idna_1610986105248/work
+importlib-metadata==4.12.0
+Jinja2==3.1.2
+kiwisolver==1.4.2
+Markdown==3.3.7
+MarkupSafe==2.1.1
+matplotlib==3.5.2
+mergedeep==1.3.4
+mkdocs==1.4.2
+mkdocs-linkcheck==1.0.6
+mkdocs-material==9.0.9
+mkdocs-material-extensions==1.1.1
+multidict==6.0.2
+numpy==1.22.4
+packaging==21.3
+Pillow==9.1.1
+pycosat==0.6.3
+pycparser @ file:///tmp/build/80754af9/pycparser_1594388511720/work
+Pygments==2.14.0
+pymdown-extensions==9.9.2
+pyOpenSSL @ file:///tmp/build/80754af9/pyopenssl_1608057966937/work
+pyparsing==3.0.9
+PySocks @ file:///opt/concourse/worker/volumes/live/112288ac-9cb0-4e73-768b-13baf4ca6419/volume/pysocks_1605305820043/work
+python-dateutil==2.8.2
+PyYAML==6.0
+pyyaml-env-tag==0.1
+regex==2022.10.31
+requests==2.28.2
+ruamel-yaml-conda @ file:///opt/concourse/worker/volumes/live/e81cf0fe-611a-498e-6e69-a7320057c1ac/volume/ruamel_yaml_1616016689696/work
+six @ file:///tmp/build/80754af9/six_1623709665295/work
+tinycss2==1.2.1
+tqdm @ file:///tmp/build/80754af9/tqdm_1625563689033/work
+urllib3 @ file:///tmp/build/80754af9/urllib3_1625084269274/work
+watchdog==2.1.9
+webencodings==0.5.1
+yarl==1.8.1
+zipp==3.8.1
