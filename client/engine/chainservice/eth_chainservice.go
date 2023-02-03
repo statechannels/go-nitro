@@ -66,7 +66,7 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 
 	logging.ConfigureZeroLogger()
 
-	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner:", txSigner.From.String()[0:8]).Caller().Logger()
+	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger}
