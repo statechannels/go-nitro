@@ -1,3 +1,7 @@
+---
+description: State component governing redistribution of cryptoassets.
+---
+
 # Outcomes
 
 The **outcome** of a state is the part which dictates where funds are disbursed to once the channel has finalized.

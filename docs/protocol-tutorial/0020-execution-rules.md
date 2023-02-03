@@ -1,3 +1,7 @@
+---
+description: How to program a state channel to fit your application.
+---
+
 # Execution Rules
 
 A channel's execution rules dictate the conditions under which a state may be considered **supported** by the underlying blockchain, and also dictate how one supported state may supercede another. In this manner, state channels may be "updated" as participants follow the rules to support state after state.

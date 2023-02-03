@@ -1,3 +1,7 @@
+---
+description: Important data structures.
+---
+
 # States & Channels
 
 A state channel can be thought of as a set of data structures (called "states") committed to and exchanged between a fixed set of actors (which we call participants), together with some execution rules.
