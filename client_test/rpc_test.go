@@ -9,7 +9,6 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/client/rpc"
-	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/stretchr/testify/assert"
@@ -49,9 +48,6 @@ func TestRpcClient(t *testing.T) {
 
 	defer msgA.Close()
 	defer msgB.Close()
-
-	alice := testactors.Alice
-	bob := testactors.Bob
 
 	rpcServerA := rpc.NewRpcServer(&clientA, chainId, createLogger(logDestination, "alice", "server"))
 	rpcClientA := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), chainId, createLogger(logDestination, "alice", "client"))
