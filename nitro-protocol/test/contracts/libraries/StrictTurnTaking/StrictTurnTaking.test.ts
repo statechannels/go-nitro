@@ -29,7 +29,9 @@ let StrictTurnTaking: Contract & TESTStrictTurnTaking;
 
 const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
-const defaultOutcome: Outcome = [{asset, allocations: [], metadata: '0x'}];
+const defaultOutcome: Outcome = [
+  {asset, allocations: [], assetMetadata: {assetType: 0, metadata: '0x'}},
+];
 const appDefinition = getCountingAppContractAddress();
 
 const nParticipants = 3;

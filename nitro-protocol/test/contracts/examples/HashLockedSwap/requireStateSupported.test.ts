@@ -119,7 +119,7 @@ describe('requireStateSupported', () => {
         {
           asset: ethers.constants.AddressZero,
           allocations: allocationsA,
-          metadata: '0x',
+          assetMetadata: {assetType: 0, metadata: '0x'},
         },
       ];
       balancesB = replaceAddressesAndBigNumberify(balancesB, addresses) as AssetOutcomeShortHand;
@@ -133,7 +133,11 @@ describe('requireStateSupported', () => {
         })
       );
       const outcomeB: Outcome = [
-        {asset: ethers.constants.AddressZero, allocations: allocationsB, metadata: '0x'},
+        {
+          asset: ethers.constants.AddressZero,
+          allocations: allocationsB,
+          assetMetadata: {assetType: 0, metadata: '0x'},
+        },
       ];
       const states: State[] = [
         {

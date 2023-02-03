@@ -11,6 +11,10 @@ import (
 var TestOutcome = outcome.Exit{
 	outcome.SingleAssetExit{
 		Asset: types.Address{},
+		AssetMetadata: outcome.AssetMetadata{
+			AssetType: 0,
+			Metadata:  make(types.Bytes, 0),
+		},
 		Allocations: outcome.Allocations{
 			outcome.Allocation{
 				Destination: types.AddressToDestination(common.HexToAddress(`0xF5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)),

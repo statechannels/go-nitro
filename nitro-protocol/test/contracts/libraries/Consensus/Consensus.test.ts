@@ -24,7 +24,9 @@ let Consensus: Contract & TESTConsensus;
 
 const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
-const defaultOutcome: Outcome = [{asset, allocations: [], metadata: '0x'}];
+const defaultOutcome: Outcome = [
+  {asset, allocations: [], assetMetadata: {assetType: 0, metadata: '0x'}},
+];
 const appDefinition = process.env.CONSENSUS_APP_ADDRESS;
 
 const nParticipants = 3;

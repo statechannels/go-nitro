@@ -37,7 +37,7 @@ const {wallets, participants} = generateParticipants(nParticipants);
 
 const challengeDuration = 0x1000;
 const asset = Wallet.createRandom().address;
-const outcome: Outcome = [{asset, allocations: [], metadata: '0x'}];
+const outcome: Outcome = [{asset, allocations: [], assetMetadata: {assetType: 0, metadata: '0x'}}];
 let appDefinition: string;
 
 beforeAll(async () => {

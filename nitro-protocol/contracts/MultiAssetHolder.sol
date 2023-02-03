@@ -231,7 +231,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         _executeSingleAssetExit(
             Outcome.SingleAssetExit(
                 singleAssetExit.asset,
-                singleAssetExit.metadata,
+                singleAssetExit.assetMetadata,
                 exitAllocations
             )
         );

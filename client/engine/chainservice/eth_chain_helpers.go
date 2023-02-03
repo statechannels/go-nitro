@@ -52,8 +52,11 @@ func assetAddressForIndex(na *NitroAdjudicator.NitroAdjudicator, tx *types.Trans
 	candidate := params["candidate"].(struct {
 		VariablePart struct {
 			Outcome []struct {
-				Asset       common.Address "json:\"asset\""
-				Metadata    []uint8        "json:\"metadata\""
+				Asset         common.Address "json:\"asset\""
+				AssetMetadata struct {
+					AssetType uint8   "json:\"assetType\""
+					Metadata  []uint8 "json:\"metadata\""
+				} "json:\"assetMetadata\""
 				Allocations []struct {
 					Destination    [32]uint8 "json:\"destination\""
 					Amount         *big.Int  "json:\"amount\""
