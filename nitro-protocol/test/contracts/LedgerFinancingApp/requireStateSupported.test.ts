@@ -1,15 +1,9 @@
 import {expectRevert} from '@statechannels/devtools';
 import {Contract, ethers, BigNumber} from 'ethers';
+import {ParamType} from 'ethers/lib/utils';
 
 import LedgerFinancingAppArtifact from '../../../artifacts/contracts/LedgerFinancingApp.sol/LedgerFinancingApp.json';
-import {
-  computeOutcome,
-  convertAddressToBytes32,
-  encodeVoucherAmountAndSignature,
-  getChannelId,
-  signState,
-  Voucher,
-} from '../../../src';
+import {computeOutcome, convertAddressToBytes32} from '../../../src';
 import {
   getFixedPart,
   getVariablePart,
@@ -17,12 +11,11 @@ import {
   State,
 } from '../../../src/contract/state';
 import {generateParticipants, getTestProvider, setupContract} from '../../test-helpers';
-const {HashZero} = ethers.constants;
 
 let ledgerFinancingApp: Contract;
 const provider = getTestProvider();
 
-const {wallets, participants} = generateParticipants(2);
+const {participants} = generateParticipants(2);
 const challengeDuration = 0x100;
 const MAGIC_NATIVE_ASSET_ADDRESS = '0x0000000000000000000000000000000000000000';
 const APPDEF = process.env.LEDGER_FINANCING_APP_ADDRESS
@@ -45,168 +38,184 @@ interface AppData {
   collectedInterest: Funds;
 }
 
-function fundsABIEncode(funds: Funds): string {
-  return ethers.utils.defaultAbiCoder.encode(
-    ['address[]', 'uint256[]'],
-    [funds.asset, funds.amount]
-  );
-}
-
 function appDataABIEncode(appData: AppData): string {
   return ethers.utils.defaultAbiCoder.encode(
-    ['uint256', 'uint256', 'uint256', 'tuple(address[], uint256[])', 'tuple(address[], uint256[])'],
+    // ['uint128', 'uint128', 'uint256', 'tuple(address[], uint256[])', 'tuple(address[], uint256[])'],
     [
-      appData.dpyNum,
-      appData.dpyDen,
-      appData.blocknumber,
-      [appData.principal.asset, appData.principal.amount],
-      [appData.collectedInterest.asset, appData.collectedInterest.amount],
+      {
+        type: 'tuple',
+        components: [
+          {type: 'uint128', name: 'dpyNum'},
+          {type: 'uint128', name: 'dpyDen'},
+          {type: 'uint256', name: 'blocknumber'},
+          {
+            type: 'tuple',
+            name: 'principal',
+            components: [
+              {type: 'address[]', name: 'asset'},
+              {type: 'uint256[]', name: 'amount'},
+            ],
+          },
+          {
+            type: 'tuple',
+            name: 'collectedInterest',
+            components: [
+              {type: 'address[]', name: 'asset'},
+              {type: 'uint256[]', name: 'amount'},
+            ],
+          },
+        ],
+      } as ParamType,
+    ],
+    [
+      // appData.dpyNum,
+      // appData.dpyDen,
+      // appData.blocknumber,
+      // [appData.principal.asset, appData.principal.amount],
+      // [appData.collectedInterest.asset, appData.collectedInterest.amount],
+      appData,
     ]
   );
 }
 
+const initialOutcome = computeOutcome({
+  [MAGIC_NATIVE_ASSET_ADDRESS]: {[intermediary]: 500, [merchant]: 500},
+});
+
+const baseAppData: AppData = {
+  // 101/100 -> 1% daily percentage yield.
+  dpyNum: 101,
+  dpyDen: 100,
+  blocknumber: 1,
+  principal: {
+    asset: [MAGIC_NATIVE_ASSET_ADDRESS],
+    amount: [500],
+  },
+  collectedInterest: {
+    asset: [MAGIC_NATIVE_ASSET_ADDRESS],
+    amount: [0],
+  },
+};
+
 const baseState: State = {
   turnNum: 0,
-  isFinal: false,
+  isFinal: false, // intermediary wants to force finalization
   channelNonce: '0x8',
   participants,
   challengeDuration,
-  outcome: [],
-  appData: HashZero,
+  outcome: initialOutcome,
+  appData: appDataABIEncode(baseAppData),
   appDefinition: APPDEF,
 };
 
+const variablePart = getVariablePart(baseState);
+
+const signedByMerchant: RecoveredVariablePart = {
+  variablePart,
+  signedBy: BigNumber.from(0b10).toHexString(),
+};
+const signedByIntermediary: RecoveredVariablePart = {
+  variablePart,
+  signedBy: BigNumber.from(0b01).toHexString(),
+};
+const signedByBoth: RecoveredVariablePart = {
+  variablePart,
+  signedBy: BigNumber.from(0b11).toHexString(),
+};
+
 const fixedPart = getFixedPart(baseState);
-const channelId = getChannelId(fixedPart);
 
 beforeAll(async () => {
   ledgerFinancingApp = setupContract(provider, LedgerFinancingAppArtifact, APPDEF);
 });
 
-describe('requireStateSupported accepts unanimous states', () => {
-  // construct candidate-only test case with unanimous state, assert success.
-  const state = baseState;
-  const variablePart = getVariablePart(state);
-  const unanimousCandidate: RecoveredVariablePart = {
-    variablePart,
-    signedBy: BigNumber.from(0b11).toHexString(),
-  };
-  (async () => {
-    await ledgerFinancingApp.requireStateSupported(fixedPart, [], unanimousCandidate);
-  })();
-});
-
 describe('requireStateSupported', () => {
-  it('accepts legitimate interest calculations', () => {
+  it('accepts unanimous states', async () => {
+    await ledgerFinancingApp.requireStateSupported(fixedPart, [], signedByBoth);
+  });
+
+  it('accepts legitimate interest calculations', async () => {
     // test case:
     // - proof state w/ some outcome + appdata
     // - candidate state with interest rate
+    // increase blocknumber on provider by 7500:
+    // each day is ~7200 blocks
   });
 
-  it('rejects excessive interest calulations', () => {
+  it('reverts if the proof block number is in the future', async () => {
+    // create a challenge where the intermediary fakes the blocknumber
+    // (in order to get a higher interest rate).
+    const futureState: State = {
+      ...baseState,
+      appData: appDataABIEncode({...baseAppData, blocknumber: baseAppData.blocknumber + 1000000}),
+    };
+    const signedByIntermediary: RecoveredVariablePart = {
+      variablePart: getVariablePart(futureState),
+      signedBy: BigNumber.from(0b01).toHexString(),
+    };
+    await expectRevert(() =>
+      ledgerFinancingApp.requireStateSupported(fixedPart, [signedByBoth], signedByIntermediary)
+    );
+  });
+
+  it('rejects excessive interest calulations', async () => {
     // construct proof+candidate test case with unfair interest calculation, assert failure.
   });
 
-  it('rejects unilateral unsupported candidates', () => {
-    // test cases:
-    // - signed by intermediary only
-    // - signed by merchant only
-    // proof.length == 0
-    // failure for both
-    const state = baseState;
-    const variablePart = getVariablePart(state);
-    const signedByMerchant: RecoveredVariablePart = {
-      variablePart,
-      signedBy: BigNumber.from(0b10).toHexString(),
-    };
-    const signedByIntermediary: RecoveredVariablePart = {
-      variablePart,
-      signedBy: BigNumber.from(0b01).toHexString(),
-    };
+  it('rejects unilateral unsupported candidates', async () => {
+    // construct challenges with unsupported candidates signed by:
+    // - only the intermediary
+    // - only the merchant
+    // assert failure
 
-    (async () => {
-      await expectRevert(
-        () => ledgerFinancingApp.requireStateSupported(fixedPart, [], signedByMerchant),
-        '!unanimous; |proof|=0'
-      );
-      await expectRevert(
-        () => ledgerFinancingApp.requireStateSupported(fixedPart, [], signedByIntermediary),
-        '!unanimous; |proof|=0'
-      );
-    })();
+    await expectRevert(
+      () => ledgerFinancingApp.requireStateSupported(fixedPart, [], signedByMerchant),
+      '!unanimous; |proof|=0'
+    );
+    await expectRevert(
+      () => ledgerFinancingApp.requireStateSupported(fixedPart, [], signedByIntermediary),
+      '!unanimous; |proof|=0'
+    );
   });
 
-  it('rejects unilateral support proof states', () => {
-    // construct proof[0] with:
-    // - signed by intermediary only
-    // - signed by merchant only
-    // assert failure for both
+  it('rejects unilateral support proof states', async () => {
+    // construct challenges where the proof state is signed by
+    //  - only the intermediary
+    //  - only the merchant
+    // assert failure.
 
-    const state = baseState;
-    const variablePart = getVariablePart(state);
-    const signedByMerchant: RecoveredVariablePart = {
-      variablePart,
-      signedBy: BigNumber.from(0b10).toHexString(),
-    };
-    const signedByIntermediary: RecoveredVariablePart = {
-      variablePart,
-      signedBy: BigNumber.from(0b01).toHexString(),
-    };
+    await expectRevert(
+      () =>
+        ledgerFinancingApp.requireStateSupported(
+          fixedPart,
+          [signedByMerchant],
+          signedByIntermediary
+        ),
+      '!unanimous proof state'
+    );
 
-    (async () => {
-      await expectRevert(
-        () =>
-          ledgerFinancingApp.requireStateSupported(
-            fixedPart,
-            [signedByMerchant],
-            signedByIntermediary
-          ),
-        '!unanimous proof state'
-      );
-      await expectRevert(
-        () =>
-          ledgerFinancingApp.requireStateSupported(
-            fixedPart,
-            [signedByIntermediary],
-            signedByMerchant
-          ),
-        '!unanimous proof state'
-      );
-    })();
+    await expectRevert(
+      () =>
+        ledgerFinancingApp.requireStateSupported(
+          fixedPart,
+          [signedByIntermediary],
+          signedByMerchant
+        ),
+      '!unanimous proof state'
+    );
   });
 
-  it('rejects too-long proofs', () => {
-    // construct a challenge w/ two proof states, assert failure
-    const state = baseState;
-    const variablePart = getVariablePart(state);
-    const signedByMerchant: RecoveredVariablePart = {
-      variablePart,
-      signedBy: BigNumber.from(0b10).toHexString(),
-    };
-    const signedByIntermediary: RecoveredVariablePart = {
-      variablePart,
-      signedBy: BigNumber.from(0b01).toHexString(),
-    };
+  it('rejects too-long proofs', async () => {
+    // construct a challenge with two proof states, assert failure.
 
-    (async () => {
-      await expectRevert(
-        () =>
-          ledgerFinancingApp.requireStateSupported(
-            fixedPart,
-            [signedByMerchant],
-            signedByIntermediary
-          ),
-        '!unanimous proof state'
-      );
-      await expectRevert(
-        () =>
-          ledgerFinancingApp.requireStateSupported(
-            fixedPart,
-            [signedByIntermediary, signedByIntermediary],
-            signedByMerchant
-          ),
-        '!unanimous proof state'
-      );
-    })();
+    await expectRevert(
+      () =>
+        ledgerFinancingApp.requireStateSupported(
+          fixedPart,
+          [signedByMerchant, signedByIntermediary], // two proof states - should fail
+          signedByIntermediary
+        ),
+      '|proof| > 1'
+    );
   });
 });
