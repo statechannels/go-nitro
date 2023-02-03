@@ -140,6 +140,26 @@ describe('requireStateSupported', () => {
     // - candidate state with interest rate
     // increase blocknumber on provider by 7500:
     // each day is ~7200 blocks
+    for (let i = 0; i < 7500; i++) {
+      provider.send('evm_mine', []);
+    }
+    const updatedState: State = {
+      ...baseState,
+      turnNum: baseState.turnNum + 1,
+      outcome: computeOutcome({
+        [MAGIC_NATIVE_ASSET_ADDRESS]: {[intermediary]: 505, [merchant]: 495}, // intermediary picks up 1% of the principal
+      }),
+    };
+    const withIntermediarySignature: RecoveredVariablePart = {
+      variablePart: getVariablePart(updatedState),
+      signedBy: BigNumber.from(0b11).toHexString(),
+    };
+
+    await ledgerFinancingApp.requireStateSupported(
+      fixedPart,
+      [signedByBoth],
+      withIntermediarySignature
+    );
   });
 
   it('reverts if the proof block number is in the future', async () => {
