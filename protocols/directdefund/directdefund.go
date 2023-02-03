@@ -177,13 +177,13 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 }
 
 // OwnsChannel returns the channel that the objective is funding.
-func (ddo Objective) OwnsChannel() types.Destination {
-	return ddo.C.Id
+func (o Objective) OwnsChannel() types.Destination {
+	return o.C.Id
 }
 
 // GetStatus returns the status of the objective.
-func (ddo Objective) GetStatus() protocols.ObjectiveStatus {
-	return ddo.Status
+func (o Objective) GetStatus() protocols.ObjectiveStatus {
+	return o.Status
 }
 
 func (o *Objective) Related() []protocols.Storable {

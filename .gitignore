@@ -22,8 +22,12 @@ artifacts
 
 
 nitro-protocol/hardhat-network-output.log
-
 site
+
+# Editor configuration
+site/.idea
+.idea
+
 
 # Cache from mkdocs (docs website)
 .cache
