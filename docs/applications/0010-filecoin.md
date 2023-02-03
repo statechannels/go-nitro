@@ -1,3 +1,7 @@
+---
+description: Incentivized retrieval (and more).
+---
+
 # Filecoin
 
 Nitro channels are currently under development for use in the Filecoin ecosystem, with support from the [Filecoin Foundation](https://fil.org/). Efforts are concentrated on two main areas:

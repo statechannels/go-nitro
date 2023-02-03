@@ -1,4 +1,8 @@
-# Nitro Channels
+---
+description: Ultra-low cost, near-zero-latency conditional transfer of cryptoassets
+---
+
+# Nitro State Channel Framework
 
 Nitro channels are a technology which allows for **ultra-low cost, near-zero-latency conditional transfer** of cryptoassets.
 

@@ -1,1 +1,6 @@
-mkdocs-material==8.4.4
+CairoSVG==2.6.0
+mkdocs==1.4.2
+mkdocs-linkcheck==1.0.6
+mkdocs-material==9.0.9
+mkdocs-material-extensions==1.1.1
+Pillow==9.1.1

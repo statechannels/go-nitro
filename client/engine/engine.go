@@ -83,7 +83,7 @@ type CompletedObjectiveEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker PolicyMaker, metricsApi MetricsApi) Engine {
+func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker PolicyMaker, metricsApi MetricsApi) Engine {
 	e := Engine{}
 
 	e.store = store
@@ -107,7 +107,7 @@ func New(msg messageservice.MessageService, chain chainservice.ChainService, sto
 
 	e.policymaker = policymaker
 
-	e.vm = payments.NewVoucherManager(*store.GetAddress())
+	e.vm = vm
 
 	e.logger.Println("Constructed Engine")
 

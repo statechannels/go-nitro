@@ -183,6 +183,30 @@ func (c Channel) PostFundComplete() bool {
 	return c.SignedStateForTurnNum[PostFundTurnNum].HasAllSignatures()
 }
 
+// FinalSignedByMe returns true if the calling client has signed the post fund setup state, false otherwise.
+func (c Channel) FinalSignedByMe() bool {
+	for _, ss := range c.SignedStateForTurnNum {
+		if ss.HasSignatureForParticipant(c.MyIndex) && ss.State().IsFinal {
+			return true
+		}
+	}
+	return false
+}
+
+// FinalCompleted returns true if I have a complete set of signatures on a final state, false otherwise.
+func (c Channel) FinalCompleted() bool {
+	if c.latestSupportedStateTurnNum == MaxTurnNum {
+		return false
+	}
+
+	return c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State().IsFinal
+}
+
+// HasSupportedState returns true if the channel has a supported state, false otherwise.
+func (c Channel) HasSupportedState() bool {
+	return c.latestSupportedStateTurnNum != MaxTurnNum
+}
+
 // LatestSupportedState returns the latest supported state. A state is supported if it is signed
 // by all participants.
 func (c Channel) LatestSupportedState() (state.State, error) {

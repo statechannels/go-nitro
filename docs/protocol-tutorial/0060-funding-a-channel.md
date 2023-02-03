@@ -1,3 +1,7 @@
+---
+description: Putting money at stake on the outcome of the channel.
+---
+
 # Funding a channel
 
 Early on in the [lifecycle](./0040-lifecycle-of-a-channel.md) of a state channel -- i.e. after exchanging some setup states, but before executing any application logic -- participants will want to "fund it". They will stake assets on the channel so that the state updates are meaningful. The simplest way to do this is with an on chain deposit; a more advanced possibility is fund a new channel from an existing funded channel.

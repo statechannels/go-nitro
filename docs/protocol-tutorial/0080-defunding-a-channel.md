@@ -1,3 +1,7 @@
+---
+description: Unlocking and redistributing money which has been staked.
+---
+
 # Defunding a channel
 
 Defunding can only happen after a channel [finalizes](./0040-lifecycle-of-a-channel.md#finalized). Broadly speaking, it is the inverse of [channel funding](./0060-funding-a-channel.md): it can therefore happen on- or off-chain.

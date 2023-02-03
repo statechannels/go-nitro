@@ -1,3 +1,7 @@
+---
+description: What is a state channel? What kind of applications are there?
+---
+
 # FAQs
 
 ## What is a state channel?
