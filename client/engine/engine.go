@@ -149,8 +149,7 @@ func (e *Engine) Run() {
 
 		// Handle errors
 		if err != nil {
-			e.logger.Err(fmt.Errorf("%s, error in run loop: %w", e.store.GetAddress(), err))
-			e.logger.Panic()
+			e.logger.Panic().Err(err).Msgf("%s, error in run loop", e.store.GetAddress())
 			// TODO do not panic if in production.
 			// TODO report errors back to the consuming application
 		}
