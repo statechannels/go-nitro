@@ -16,36 +16,17 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gorilla/websocket"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/client/engine/store"
-	"github.com/statechannels/go-nitro/types"
 )
 
 var cs chainservice.ChainService
 var pk *ecdsa.PrivateKey
 var upgrader = websocket.Upgrader{}
-
-type asyncLogger struct {
-	r *io.PipeReader
-	w *io.PipeWriter
-}
-
-func newAsyncLogger() asyncLogger {
-	r, w := io.Pipe()
-	return asyncLogger{r, w}
-}
-func (a asyncLogger) Write(p []byte) (n int, err error) {
-	go a.w.Write(p)
-	return 0, nil
-}
-func (a asyncLogger) Read(p []byte) (n int, err error) {
-	return a.r.Read(p)
-}
 
 func init() {
 
@@ -60,14 +41,11 @@ func main() {
 	http.Handle("/", fileServer)
 
 	setupChainService()
-
-	a := newAsyncLogger()
-
 	c := client.New(
 		p2pms.NewMessageService("127.0.0.1", msgPort, crypto.FromECDSA(pk)),
 		cs,
 		store.NewMemStore(crypto.FromECDSA(pk)),
-		a,
+		io.Discard,
 		&engine.PermissivePolicy{},
 		nil,
 	)
@@ -86,20 +64,7 @@ func main() {
 			log.Print("upgrade failed: ", err)
 			return
 		}
-
 		defer conn.Close()
-
-		go func() {
-			for {
-				data := []byte{}
-				a.Read(data)
-				err = conn.WriteMessage(1, data)
-				if err != nil {
-					log.Println("write failed:", err)
-					break
-				}
-			}
-		}()
 
 		// Continuosly read and write message
 		for {
@@ -115,9 +80,6 @@ func main() {
 				break
 			}
 		}
-
-		c.CreateLedgerChannel(types.Address{}, 4, outcome.Exit{})
-
 	})
 	fmt.Println("rpc server listening on port " + rpcPort)
 	_ = http.ListenAndServe(":"+rpcPort, nil)
