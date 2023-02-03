@@ -23,10 +23,10 @@ contract LedgerFinancingApp is IForceMoveApp {
         // Lower numbers (eg, fraction in simplest terms) produce least risk of overflow.
         uint128 dpyNum;
         uint128 dpyDen;
-        // the current principal. Decreases as the serviceProvider earns via the channel.
-        Funds principal;
         // the block number of the latest principal adjustment
         uint256 blocknumber;
+        // the current principal. Decreases as the serviceProvider earns via the channel.
+        Funds principal;
         // the total interest collected so far. Strictly increasing.
         // The value of the intermediary's allocation can never be less than this:
         // ie, when the intermediary's collectedInterest grows to be equal to their
