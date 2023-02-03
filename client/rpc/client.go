@@ -134,7 +134,7 @@ func handleResponse[T serde.ResponsePayload](rc *RpcClient, data []byte) {
 	rpcResponse := serde.JsonRpcResponse[T]{}
 	err := json.Unmarshal(data, &rpcResponse)
 	if err != nil {
-		panic("could not unmarshal direct defund objective response")
+		panic("could not unmarshal objective response")
 	}
 
 	if resRec, ok := rc.responses.Load(string(getObjectiveId(rpcResponse.Result))); ok {
