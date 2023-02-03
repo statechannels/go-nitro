@@ -32,7 +32,6 @@ func newNetworkServiceMock() *NetworkService {
 	return &service
 }
 
-// maybe logic will get more complicated and gonna keep this as example
 func TestRegisterUnregisterRequestHandler(t *testing.T) {
 	service := newNetworkServiceMock()
 
