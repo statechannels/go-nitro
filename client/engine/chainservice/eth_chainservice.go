@@ -178,9 +178,9 @@ func (ecs *EthChainService) fatalF(format string, v ...any) {
 	// Print to STDOUT in case we're using a noop logger
 	fmt.Println(fmt.Errorf(format, v...))
 
-	ecs.logger.Printf(format, v...)
+	ecs.logger.Fatal().Msgf(format, v...)
 
-	// Manually panic
+	// Manually panic in case we're using a logger that doesn't call exit(1)
 	panic(fmt.Errorf(format, v...))
 
 }
