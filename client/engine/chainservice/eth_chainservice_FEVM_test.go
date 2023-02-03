@@ -30,7 +30,7 @@ const WALLABY_HD_PATH = "m/44'/1'/0'/0"
 
 func TestEthChainServiceFEVM(t *testing.T) {
 	// Since this is hitting a contract on a test chain we only want to run it selectively
-	t.Skip()
+	// t.Skip()
 	wallet, err := hdwallet.NewFromMnemonic(WALLABY_MNEMONIC)
 	if err != nil {
 		panic(err)
@@ -51,7 +51,7 @@ func TestEthChainServiceFEVM(t *testing.T) {
 		panic(err)
 	}
 
-	client, err := ethclient.Dial("https://api.hyperspace.node.glif.io/rpc/v0")
+	client, err := ethclient.Dial("https://api.hyperspace.node.glif.io/rpc/v1")
 
 	if err != nil {
 		t.Fatal(err)
