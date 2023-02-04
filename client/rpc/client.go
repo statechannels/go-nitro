@@ -81,6 +81,7 @@ func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty 
 	return objRes.(virtualfund.ObjectiveResponse)
 }
 
+// CloseVirtual closes a virtual channel
 func (rc *RpcClient) CloseVirtual(id types.Destination) protocols.ObjectiveId {
 	objReq := virtualdefund.NewObjectiveRequest(
 		id)
@@ -132,6 +133,7 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 	return objRes.(directfund.ObjectiveResponse)
 }
 
+// CloseLedger closes a ledger channel
 func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
 	objReq := directdefund.NewObjectiveRequest(id)
 
@@ -153,8 +155,8 @@ func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
 	return objRes.(protocols.ObjectiveId)
 }
 
+// Pay uses the specified channel to pay the specified amount
 func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
-
 	// Create a channel and store it in the responses map
 	// We will use this channel to wait for the response
 	resRec := make(chan interface{})
