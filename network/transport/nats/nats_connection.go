@@ -1,7 +1,6 @@
 package nats
 
 import (
-	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -13,7 +12,6 @@ type natsConnection struct {
 
 	subTopicNames     []string
 	msgChannel        chan *nats.Msg
-	mutex             sync.Mutex
 	natsSubscriptions []*nats.Subscription
 }
 
@@ -23,7 +21,6 @@ func NewNatsConnection(nc *nats.Conn, subTopicNames []string) *natsConnection {
 		subTopicNames:     subTopicNames,
 		msgChannel:        make(chan *nats.Msg, 128),
 		natsSubscriptions: make([]*nats.Subscription, len(subTopicNames)),
-		mutex:             sync.Mutex{},
 	}
 	go natsConnection.subscribeToTopics()
 
@@ -36,7 +33,6 @@ func (c *natsConnection) subscribeToTopics() {
 		if err != nil {
 			log.Error().Err(err).Msgf("failed to connect on topic: %s", topic)
 		} else {
-			c.mutex.Lock()
 			c.natsSubscriptions = append(c.natsSubscriptions, sub)
 		}
 	}

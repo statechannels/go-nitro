@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/types"
 )
 
 type RequestMethod string
@@ -43,8 +44,13 @@ type JsonRpcMessage struct {
 	Message string        `json:"message"`
 	Data    interface{}   `json:"data"`
 }
+
+type PaymentRequest struct {
+	Amount  uint64
+	Channel types.Destination
+}
 type RequestPayload interface {
-	directfund.ObjectiveRequest | directdefund.ObjectiveRequest | virtualfund.ObjectiveRequest | virtualdefund.ObjectiveRequest
+	directfund.ObjectiveRequest | directdefund.ObjectiveRequest | virtualfund.ObjectiveRequest | virtualdefund.ObjectiveRequest | PaymentRequest
 }
 type JsonRpcRequest[T RequestPayload] struct {
 	Jsonrpc string `json:"jsonrpc"`
@@ -53,7 +59,7 @@ type JsonRpcRequest[T RequestPayload] struct {
 	Params  T      `json:"params"`
 }
 type ResponsePayload interface {
-	directfund.ObjectiveResponse | protocols.ObjectiveId | virtualfund.ObjectiveResponse
+	directfund.ObjectiveResponse | protocols.ObjectiveId | virtualfund.ObjectiveResponse | PaymentRequest
 }
 type JsonRpcResponse[T ResponsePayload] struct {
 	Jsonrpc string      `json:"jsonrpc"`

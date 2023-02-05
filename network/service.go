@@ -61,6 +61,12 @@ func (p *NetworkService) UnregisterResponseHandler() {
 func (p *NetworkService) handleMessages() {
 	for {
 		data, err := p.Connection.Recv()
+
+		// If the data is nil no point in trying to deserialize it
+		if data == nil {
+			p.Logger.Warn().Msg("Received nil message, terminating")
+			return
+		}
 		if err != nil {
 			if errors.Is(err, transport.ErrConnectionClosed) {
 				p.Logger.Info().Msg("connection closed")
