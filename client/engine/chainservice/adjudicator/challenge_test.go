@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
@@ -46,6 +47,11 @@ var Actors actors = actors{
 	},
 }
 
+type backendWithTxReader interface {
+	bind.ContractBackend
+	ethereum.TransactionReader
+}
+
 func TestChallenge(t *testing.T) {
 
 	// Setup transacting EOA
@@ -66,30 +72,33 @@ func TestChallenge(t *testing.T) {
 		address2: {Balance: balance},
 	}
 	blockGasLimit := uint64(4712388)
+	sim := backends.NewSimulatedBackend(gAlloc, blockGasLimit)
 
-	TestChallengeWithTurnNum := func(t *testing.T, turnNum uint64) {
-
-		sim := backends.NewSimulatedBackend(gAlloc, blockGasLimit)
+	TestChallengeWithTurnNum := func(t *testing.T, turnNum uint64, chain backendWithTxReader) {
 
 		// Deploy Adjudicator
-		_, _, na, err := DeployNitroAdjudicator(auth, sim)
+		_, _, na, err := DeployNitroAdjudicator(auth, chain)
 
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		// Mine a block
-		sim.Commit()
+		// Mine a block if using a simulated backend
+		if sim, isSimulatedBackEnd := chain.(*backends.SimulatedBackend); isSimulatedBackEnd {
+			sim.Commit()
+		}
 
 		// Deploy ConsensusApp
-		consensusAppAddress, _, _, err := ConsensusApp.DeployConsensusApp(auth2, sim)
+		consensusAppAddress, _, _, err := ConsensusApp.DeployConsensusApp(auth2, chain)
 
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		// Mine a block
-		sim.Commit()
+		// Mine a block if using a simulated backend
+		if sim, isSimulatedBackEnd := chain.(*backends.SimulatedBackend); isSimulatedBackEnd {
+			sim.Commit()
+		}
 
 		var s = state.State{
 			Participants: []types.Address{
@@ -114,8 +123,10 @@ func TestChallenge(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Mine a block
-		sim.Commit()
+		// Mine a block if using a simulated backend
+		if sim, isSimulatedBackEnd := chain.(*backends.SimulatedBackend); isSimulatedBackEnd {
+			sim.Commit()
+		}
 
 		// Construct support proof
 		candidate := INitroTypesSignedVariablePart{
@@ -137,15 +148,17 @@ func TestChallenge(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Mine a block
-		sim.Commit()
+		// Mine a block if using a simulated backend
+		if sim, isSimulatedBackEnd := chain.(*backends.SimulatedBackend); isSimulatedBackEnd {
+			sim.Commit()
+		}
 
 		// Compute challenge time
-		receipt, err := sim.TransactionReceipt(context.Background(), tx.Hash())
+		receipt, err := chain.TransactionReceipt(context.Background(), tx.Hash())
 		if err != nil {
 			t.Fatal(err)
 		}
-		header, err := sim.HeaderByNumber(context.Background(), receipt.BlockNumber)
+		header, err := chain.HeaderByNumber(context.Background(), receipt.BlockNumber)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -169,11 +182,11 @@ func TestChallenge(t *testing.T) {
 			t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(expectedOnChainStatus[:]))
 		}
 
-		// Not sure if this is necessary
-		sim.Close()
 	}
 
 	for _, turnNum := range []uint64{0, 1, 2} {
-		t.Run("turnNum = "+fmt.Sprint(turnNum), func(t *testing.T) { TestChallengeWithTurnNum(t, turnNum) })
+		t.Run("turnNum = "+fmt.Sprint(turnNum), func(t *testing.T) { TestChallengeWithTurnNum(t, turnNum, sim) })
 	}
+
+	sim.Close()
 }
