@@ -231,8 +231,9 @@ func prepareSimulatedBackend(t *testing.T) preparedChain {
 // and deployed contract addresses for the Hyperspace test network. The contracts need to be manually
 // redeployed following e.g. a network reset. Otherwise, it is ready to use for testing.
 func prepareHyperspaceBackend(t *testing.T) preparedChain {
-	// This is the mnemonic for the prefunded accounts on wallaby.
-	// The first 25 accounts will be prefunded.
+	// This is the mnemonic for the accounts we use on hyperspace.
+	// Accounts 0 and 1 are used in this test.
+	// Following a network reset, they may need to be re-funded (e.g. from a faucet)
 	const MNEMONIC = "army forest resource shop tray cluster teach cause spice judge link oppose"
 
 	// This is the HD path to use when deriving accounts from the mnemonic
@@ -267,7 +268,7 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 	}
 
 	// When submitting a transaction it's signed against a specific chain id
-	// To get the correct signature we need to use the correct chain id that wallaby is expecting
+	// To get the correct signature we need to use the correct chain id that hyperspace is expecting
 	txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, hyperspaceChainId)
 	if err != nil {
 		t.Fatal(err)
@@ -276,11 +277,11 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 	// FEVM does NOT support type 1 transactions
 	txSubmitter.GasTipCap = big.NewInt(300000)
 
-	// This is the deployed contract on wallaby
-	// If wallaby gets reset this will need to be redeployed by running:
+	// This is the deployed contract on hyperspace
+	// If hyperspace gets reset this will need to be redeployed by running:
 	// WALLABY_DEPLOYER_PK="f4d69c36885541f56f4728ddc002a6fa2fcb26c9f608910310a776c83b7fde47" npx hardhat deploy --network hyperspace --deploy-scripts ./hardhat-deploy-fvm --reset
 	// The PK corresponds to account 0xE39dce95b1A924E2472E24C20C55eA3559a09251.
-	// It should be prefunded after every wallaby reset.
+	// It should be prefunded after every hyperspace reset.
 	naAddress := common.HexToAddress("0xd354e517646872dd27d702c6f9f7a6ada3646c47")
 	caAddress := common.HexToAddress("0x91315b24Bbf0c2e640d9BD47a2ADe927e72d9173")
 
