@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
-	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/network"
 	"github.com/statechannels/go-nitro/network/serde"
@@ -74,9 +73,7 @@ func TestNetworkClient(t *testing.T) {
 	logger := createLogger(newLogWriter("test_network_client.log"), "alice", "client")
 	clientConnetion := network.ClientConnection{Connection: connection}
 
-	idsToMethods := safesync.Map[serde.RequestMethod]{}
-
-	_, err = network.Request(&clientConnetion, objReq, logger, &idsToMethods)
+	_, err = network.Request(&clientConnetion, objReq, logger)
 	if err != nil {
 		t.Fatal(err)
 	}
