@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"math/big"
 	"testing"
 
@@ -63,7 +62,6 @@ type preparedChain struct {
 }
 
 func TestChallenge(t *testing.T) {
-
 	simulatedBackendPreparedChain := prepareSimulatedBackend(t)
 
 	for _, turnNum := range []uint64{0, 1, 2} {
@@ -82,11 +80,9 @@ func TestChallenge(t *testing.T) {
 				runChallengeWithTurnNum(t, turnNum, hyperspacePreparedChain)
 			})
 	}
-
 }
 
 func runChallengeWithTurnNum(t *testing.T, turnNum uint64, pc preparedChain) {
-
 	chain := pc.chain
 	consensusAppAddress := pc.consensusAppAddress
 	na := pc.na
@@ -239,13 +235,13 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 	// Setup transacting EOA
 	wallet, err := hdwallet.NewFromMnemonic(MNEMONIC)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// The 0th account is usually used for deployment so we grab the 1st account
 	a, err := wallet.Derive(hdwallet.MustParseDerivationPath(fmt.Sprintf("%s/%d", HD_PATH, 1)), false)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	//PK: 0x1688820ffc6a811e09ff17eccec23d8dec4850c3098ffc03ac4aa38dd8f3a994
@@ -254,8 +250,9 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 	pk, err := wallet.PrivateKey(a)
 
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
+
 	client, err := ethclient.Dial("https://api.hyperspace.node.glif.io/rpc/v1")
 	if err != nil {
 		t.Fatal(err)
@@ -265,7 +262,7 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 	// To get the correct signature we need to use the correct chain id that wallaby is expecting
 	txSubmitter, err := bind.NewKeyedTransactorWithChainID(pk, hyperspaceChainId)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	// By setting the GasTipCap we signal this is a type 2 transaction
 	// FEVM does NOT support type 1 transactions
