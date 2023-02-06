@@ -29,6 +29,13 @@ func NewNetworkService(con transport.Connection) *NetworkService {
 	return p
 }
 
+func (p *NetworkService) Subscribe(topic string, handler func([]byte) []byte) {
+	err := p.Connection.Subscribe(topic, handler)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (p *NetworkService) RegisterRequestHandler(method serde.RequestMethod, handler func(uint64, []byte)) {
 	p.handlerRequest.Store(method, handler)
 	p.Logger.Trace().Str("method", string(method)).Msg("registered request handler")

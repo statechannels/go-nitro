@@ -76,7 +76,7 @@ func TestNetworkClient(t *testing.T) {
 
 	idsToMethods := safesync.Map[serde.RequestMethod]{}
 
-	err = network.Request(&clientConnetion, objReq, logger, &idsToMethods)
+	_, err = network.Request(&clientConnetion, objReq, logger, &idsToMethods)
 	if err != nil {
 		t.Fatal(err)
 	}
