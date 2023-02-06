@@ -30,51 +30,43 @@ interface Funds {
   amount: number[]; // amount of each asset with shared index
 }
 
-interface AppData {
+interface LedgerFinancingAppData {
   dpyNum: number;
   dpyDen: number;
   blocknumber: number;
   principal: Funds;
   collectedInterest: Funds;
 }
+const ledgerFinancingAppDataTy: ParamType = {
+  type: 'tuple',
+  components: [
+    {type: 'uint128', name: 'dpyNum'},
+    {type: 'uint128', name: 'dpyDen'},
+    {type: 'uint256', name: 'blocknumber'},
+    {
+      type: 'tuple',
+      name: 'principal',
+      components: [
+        {type: 'address[]', name: 'asset'},
+        {type: 'uint256[]', name: 'amount'},
+      ],
+    },
+    {
+      type: 'tuple',
+      name: 'collectedInterest',
+      components: [
+        {type: 'address[]', name: 'asset'},
+        {type: 'uint256[]', name: 'amount'},
+      ],
+    },
+  ],
+} as ParamType;
 
-function appDataABIEncode(appData: AppData): string {
+function appDataABIEncode(appData: LedgerFinancingAppData): string {
   return ethers.utils.defaultAbiCoder.encode(
     // ['uint128', 'uint128', 'uint256', 'tuple(address[], uint256[])', 'tuple(address[], uint256[])'],
-    [
-      {
-        type: 'tuple',
-        components: [
-          {type: 'uint128', name: 'dpyNum'},
-          {type: 'uint128', name: 'dpyDen'},
-          {type: 'uint256', name: 'blocknumber'},
-          {
-            type: 'tuple',
-            name: 'principal',
-            components: [
-              {type: 'address[]', name: 'asset'},
-              {type: 'uint256[]', name: 'amount'},
-            ],
-          },
-          {
-            type: 'tuple',
-            name: 'collectedInterest',
-            components: [
-              {type: 'address[]', name: 'asset'},
-              {type: 'uint256[]', name: 'amount'},
-            ],
-          },
-        ],
-      } as ParamType,
-    ],
-    [
-      // appData.dpyNum,
-      // appData.dpyDen,
-      // appData.blocknumber,
-      // [appData.principal.asset, appData.principal.amount],
-      // [appData.collectedInterest.asset, appData.collectedInterest.amount],
-      appData,
-    ]
+    [ledgerFinancingAppDataTy],
+    [appData]
   );
 }
 
@@ -82,9 +74,9 @@ const initialOutcome = computeOutcome({
   [MAGIC_NATIVE_ASSET_ADDRESS]: {[intermediary]: 500, [merchant]: 500},
 });
 
-const baseAppData: AppData = {
-  // 101/100 -> 1% daily percentage yield.
-  dpyNum: 101,
+const baseAppData: LedgerFinancingAppData = {
+  // 1/100 -> 1% daily percentage yield.
+  dpyNum: 1,
   dpyDen: 100,
   blocknumber: 1,
   principal: {
@@ -140,22 +132,22 @@ describe('requireStateSupported', () => {
     // - candidate state with interest rate
     advanceOneDay();
 
-    const updatedState: State = {
+    const challengeState: State = {
       ...baseState,
       turnNum: baseState.turnNum + 1,
       outcome: computeOutcome({
         [MAGIC_NATIVE_ASSET_ADDRESS]: {[intermediary]: 505, [merchant]: 495}, // intermediary picks up 1% of the principal
       }),
     };
-    const withIntermediarySignature: RecoveredVariablePart = {
-      variablePart: getVariablePart(updatedState),
+    const challengeWithIntermediarySignature: RecoveredVariablePart = {
+      variablePart: getVariablePart(challengeState),
       signedBy: BigNumber.from(0b01).toHexString(),
     };
 
     await ledgerFinancingApp.requireStateSupported(
       fixedPart,
       [signedByBoth],
-      withIntermediarySignature
+      challengeWithIntermediarySignature
     );
   });
 
