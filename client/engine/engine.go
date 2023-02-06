@@ -5,13 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/big"
 
+	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
@@ -52,7 +53,7 @@ type Engine struct {
 	store       store.Store // A Store for persisting and restoring important data
 	policymaker PolicyMaker // A PolicyMaker decides whether to approve or reject objectives
 
-	logger *log.Logger
+	logger zerolog.Logger
 
 	metrics *MetricsRecorder
 
@@ -101,15 +102,14 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 
 	e.toApi = make(chan EngineEvent, 100)
 
-	// initialize a Logger
-	logPrefix := e.store.GetAddress().String()[0:8] + ": "
-	e.logger = log.New(logDestination, logPrefix, log.Lmicroseconds|log.Lshortfile)
+	logging.ConfigureZeroLogger()
+	e.logger = zerolog.New(logDestination).With().Timestamp().Str("engine", e.store.GetAddress().String()[0:8]).Caller().Logger()
 
 	e.policymaker = policymaker
 
 	e.vm = vm
 
-	e.logger.Println("Constructed Engine")
+	e.logger.Print("Constructed Engine")
 
 	if metricsApi == nil {
 		metricsApi = &NoOpMetrics{}
@@ -149,7 +149,7 @@ func (e *Engine) Run() {
 
 		// Handle errors
 		if err != nil {
-			e.logger.Panic(fmt.Errorf("%s, error in run loop: %w", e.store.GetAddress(), err))
+			e.logger.Panic().Err(err).Msgf("%s, error in run loop", e.store.GetAddress())
 			// TODO do not panic if in production.
 			// TODO report errors back to the consuming application
 		}
