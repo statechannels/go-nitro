@@ -172,6 +172,48 @@ describe('requireStateSupported', () => {
 
   it('rejects excessive interest calulations', async () => {
     // construct proof+candidate test case with unfair interest calculation, assert failure.
+    // test case:
+    //  - the appData's interest rate is 1% per day
+    //  - the initial outcome is 500:500
+    //  - the chain is advanced by 1 day
+    //  - challenge outcome is 506:495. Fraud!
+
+    const currentBlockNumber = await provider.getBlockNumber();
+    const supportproofAppData = {
+      ...baseAppData,
+      blocknumber: currentBlockNumber,
+    };
+
+    const supportproofState: State = {
+      ...baseState,
+      appData: appDataABIEncode(supportproofAppData),
+    };
+    const pfStateSignedByBoth: RecoveredVariablePart = {
+      variablePart: getVariablePart(supportproofState),
+      signedBy: BigNumber.from(0b11).toHexString(),
+    };
+
+    advanceOneDay();
+
+    const challengeState: State = {
+      ...baseState,
+      appData: appDataABIEncode(supportproofAppData),
+      turnNum: baseState.turnNum + 1,
+      outcome: computeOutcome({
+        [MAGIC_NATIVE_ASSET_ADDRESS]: {[intermediary]: 506, [merchant]: 494}, // intermediary picks up 1% of the principal
+      }),
+    };
+    const updatedWithIntermediarySignature: RecoveredVariablePart = {
+      variablePart: getVariablePart(challengeState),
+      signedBy: BigNumber.from(0b01).toHexString(),
+    };
+    await expectRevert(() => {
+      ledgerFinancingApp.requireStateSupported(
+        fixedPart,
+        [pfStateSignedByBoth],
+        updatedWithIntermediarySignature
+      );
+    }, 'Insufficient funds');
   });
 
   it('rejects unilateral unsupported candidates', async () => {
