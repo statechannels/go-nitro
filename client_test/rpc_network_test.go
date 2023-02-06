@@ -28,12 +28,7 @@ func newConnection() (transport.Connection, error) {
 		return nil, err
 	}
 
-	trp := natstrans.NewNatsTransport(nc)
-
-	con, err := trp.PollConnection()
-	if err != nil {
-		return nil, err
-	}
+	con := natstrans.NewNatsConnection(nc)
 	return con, nil
 }
 

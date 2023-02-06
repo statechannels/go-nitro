@@ -8,8 +8,8 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
-	"github.com/statechannels/go-nitro/network"
 	"github.com/statechannels/go-nitro/network/serde"
+	"github.com/statechannels/go-nitro/network/transport"
 	natstrans "github.com/statechannels/go-nitro/network/transport/nats"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -19,10 +19,11 @@ import (
 
 // RpcServer handles nitro rpc requests and executes them on the nitro client
 type RpcServer struct {
-	nts     *network.NetworkService
-	ns      *server.Server
-	client  *nitro.Client
-	chainId *big.Int
+	connection transport.Connection
+	ns         *server.Server
+	client     *nitro.Client
+	chainId    *big.Int
+	logger     zerolog.Logger
 }
 
 func (rs *RpcServer) Url() string {
@@ -31,7 +32,7 @@ func (rs *RpcServer) Url() string {
 
 func (rs *RpcServer) Close() {
 	rs.ns.Shutdown()
-	rs.nts.Close()
+	rs.connection.Close()
 }
 
 func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Logger) *RpcServer {
@@ -44,23 +45,16 @@ func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Lo
 	nc, err := nats.Connect(ns.ClientURL())
 	handleError(err)
 
-	trp := natstrans.NewNatsTransport(nc)
-
-	con, err := trp.PollConnection()
-	handleError(err)
-
-	nts := network.NewNetworkService(con)
-	nts.Logger = logger
-	rs := &RpcServer{nts, ns, nitroClient, chainId}
+	rs := &RpcServer{natstrans.NewNatsConnection(nc), ns, nitroClient, chainId, logger}
 	rs.registerHandlers()
 	return rs
 }
 
 // registerHandlers registers the handlers for the rpc server
 func (rs *RpcServer) registerHandlers() {
-	rs.nts.Subscribe(methodToTopic(serde.DirectFundRequestMethod), func(data []byte) []byte {
+	err := rs.connection.Subscribe(methodToTopic(serde.DirectFundRequestMethod), func(data []byte) []byte {
 
-		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
+		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[directfund.ObjectiveRequest]{}
 		err := json.Unmarshal(data, &rpcRequest)
@@ -89,9 +83,12 @@ func (rs *RpcServer) registerHandlers() {
 
 		return messageData
 	})
+	if err != nil {
+		panic(err)
+	}
 
-	rs.nts.Subscribe(methodToTopic(serde.DirectDefundRequestMethod), func(data []byte) []byte {
-		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
+	err = rs.connection.Subscribe(methodToTopic(serde.DirectDefundRequestMethod), func(data []byte) []byte {
+		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[directdefund.ObjectiveRequest]{}
 		err := json.Unmarshal(data, &rpcRequest)
@@ -116,10 +113,13 @@ func (rs *RpcServer) registerHandlers() {
 
 		return messageData
 	})
+	if err != nil {
+		panic(err)
+	}
 
-	rs.nts.Subscribe(methodToTopic(serde.VirtualFundRequestMethod), func(data []byte) []byte {
+	err = rs.connection.Subscribe(methodToTopic(serde.VirtualFundRequestMethod), func(data []byte) []byte {
 
-		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
+		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[virtualfund.ObjectiveRequest]{}
 		err := json.Unmarshal(data, &rpcRequest)
@@ -149,9 +149,12 @@ func (rs *RpcServer) registerHandlers() {
 
 		return messageData
 	})
+	if err != nil {
+		panic(err)
+	}
 
-	rs.nts.Subscribe(methodToTopic(serde.VirtualDefundRequestMethod), func(data []byte) []byte {
-		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
+	err = rs.connection.Subscribe(methodToTopic(serde.VirtualDefundRequestMethod), func(data []byte) []byte {
+		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[virtualdefund.ObjectiveRequest]{}
 		err := json.Unmarshal(data, &rpcRequest)
@@ -176,9 +179,12 @@ func (rs *RpcServer) registerHandlers() {
 
 		return messageData
 	})
+	if err != nil {
+		panic(err)
+	}
 
-	rs.nts.Subscribe(methodToTopic(serde.PayRequestMethod), func(data []byte) []byte {
-		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
+	err = rs.connection.Subscribe(methodToTopic(serde.PayRequestMethod), func(data []byte) []byte {
+		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[serde.PaymentRequest]{}
 		err := json.Unmarshal(data, &rpcRequest)
@@ -197,6 +203,9 @@ func (rs *RpcServer) registerHandlers() {
 
 		return messageData
 	})
+	if err != nil {
+		panic(err)
+	}
 }
 
 // handleError "handles" an error by panicking
