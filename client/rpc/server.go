@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 
 	"github.com/nats-io/nats-server/v2/server"
@@ -58,7 +59,8 @@ func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Lo
 
 // registerHandlers registers the handlers for the rpc server
 func (rs *RpcServer) registerHandlers() {
-	rs.nts.RegisterRequestHandler(serde.DirectFundRequestMethod, func(id uint64, data []byte) {
+	rs.nts.Subscribe(fmt.Sprintf("nitro.%s", serde.DirectFundRequestMethod), func(data []byte) []byte {
+
 		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[directfund.ObjectiveRequest]{}
@@ -86,7 +88,7 @@ func (rs *RpcServer) registerHandlers() {
 			panic("Could not marshal direct fund response message")
 		}
 
-		rs.nts.SendMessage(serde.DirectFundRequestMethod, messageData)
+		return messageData
 	})
 
 	rs.nts.RegisterRequestHandler(serde.DirectDefundRequestMethod, func(id uint64, data []byte) {

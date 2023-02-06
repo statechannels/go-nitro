@@ -57,6 +57,22 @@ func (c *natsConnection) Send(t string, data []byte) {
 	log.Trace().Msgf("published message on %s.\ndata: %v", t, string(data))
 }
 
+func (c *natsConnection) Request(t string, data []byte) ([]byte, error) {
+	msg, err := c.nc.Request(t, data, 3*time.Second)
+	return msg.Data, err
+}
+
+func (c *natsConnection) Subscribe(t string, handler func([]byte) []byte) error {
+	_, err := c.nc.Subscribe(t, func(msg *nats.Msg) {
+		responseData := handler(msg.Data)
+		err := c.nc.Publish(msg.Reply, responseData)
+		if err != nil {
+			panic(err)
+		}
+	})
+	return err
+}
+
 func (c *natsConnection) Recv() ([]byte, error) {
 	msg := <-c.msgChannel
 

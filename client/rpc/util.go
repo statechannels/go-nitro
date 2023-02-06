@@ -11,8 +11,6 @@ func getTopics() []string {
 
 	return []string{
 		fmt.Sprintf("nitro.%s",
-			serde.DirectFundRequestMethod),
-		fmt.Sprintf("nitro.%s",
 			serde.DirectDefundRequestMethod),
 		fmt.Sprintf("nitro.%s",
 			serde.VirtualFundRequestMethod),

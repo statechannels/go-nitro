@@ -69,7 +69,7 @@ func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty 
 	resRec := make(chan interface{})
 	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
 
-	err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
+	_, err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
 	if err != nil {
 		panic(err)
 	}
@@ -88,7 +88,7 @@ func (rc *RpcClient) CloseVirtual(id types.Destination) protocols.ObjectiveId {
 	resRec := make(chan interface{})
 	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
 
-	err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
+	_, err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
 	if err != nil {
 		panic(err)
 	}
@@ -107,18 +107,17 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 		uint64(rand.Float64()), // TODO: Since numeric fields get converted to a float64 in transit we need to prevent overflow
 		common.Address{})
 
-	// Create a channel and store it in the responses map
-	// We will use this channel to wait for the response
-	resRec := make(chan interface{})
-	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
-
-	err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
+	resChan, err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
 	if err != nil {
 		panic(err)
 	}
 
-	objRes := <-resRec
-	return objRes.(directfund.ObjectiveResponse)
+	objRes := <-resChan
+	if objRes.Error != nil {
+		panic(err)
+	}
+
+	return objRes.Data.(serde.JsonRpcResponse[directfund.ObjectiveResponse]).Result
 }
 
 // CloseLedger closes a ledger channel
@@ -130,7 +129,7 @@ func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
 	resRec := make(chan interface{})
 	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
 
-	err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
+	_, err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
 	if err != nil {
 		panic(err)
 	}
@@ -149,7 +148,7 @@ func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
 
 	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
 
-	err := network.Request(rc.clientConnection, pReq, rc.nts.Logger, &rc.idsToMethods)
+	_, err := network.Request(rc.clientConnection, pReq, rc.nts.Logger, &rc.idsToMethods)
 	if err != nil {
 		panic(err)
 	}
