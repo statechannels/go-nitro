@@ -138,11 +138,8 @@ describe('requireStateSupported', () => {
     // test case:
     // - proof state w/ some outcome + appdata
     // - candidate state with interest rate
-    // increase blocknumber on provider by 7500:
-    // each day is ~7200 blocks
-    for (let i = 0; i < 7500; i++) {
-      provider.send('evm_mine', []);
-    }
+    advanceOneDay();
+
     const updatedState: State = {
       ...baseState,
       turnNum: baseState.turnNum + 1,
@@ -239,3 +236,17 @@ describe('requireStateSupported', () => {
     );
   });
 });
+
+/**
+ * increase blocknumber on provider by 7500.
+ * each day is ~7200= blocks (24*60*60/12)
+ */
+function advanceOneDay() {
+  // note: this is a hacky way to advance so many blocks, and results
+  // in a slower test.
+  // The 'hardhat_mine' method is better, but it causes a different error
+  // in the test.
+  for (let i = 0; i < 7500; i++) {
+    provider.send('evm_mine', []);
+  }
+}
