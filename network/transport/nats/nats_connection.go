@@ -28,7 +28,7 @@ func NewNatsConnection(nc *nats.Conn, subTopicNames []string) *natsConnection {
 func (c *natsConnection) Request(t string, data []byte) ([]byte, error) {
 	msg, err := c.nc.Request(t, data, 10*time.Second)
 	if msg == nil {
-		return nil, fmt.Errorf("Received nill data for request %v with error %w", t, err)
+		return nil, fmt.Errorf("received nill data for request %v with error %w", t, err)
 	}
 	return msg.Data, err
 }
