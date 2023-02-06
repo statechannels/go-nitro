@@ -6,6 +6,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
+	"github.com/statechannels/go-nitro/network/serde"
 )
 
 type natsConnection struct {
@@ -22,16 +23,16 @@ func NewNatsConnection(nc *nats.Conn) *natsConnection {
 	return natsConnection
 }
 
-func (c *natsConnection) Request(t string, data []byte) ([]byte, error) {
-	msg, err := c.nc.Request(t, data, 10*time.Second)
+func (c *natsConnection) Request(topic serde.RequestMethod, data []byte) ([]byte, error) {
+	msg, err := c.nc.Request(methodToTopic(topic), data, 10*time.Second)
 	if msg == nil {
-		return nil, fmt.Errorf("received nill data for request %v with error %w", t, err)
+		return nil, fmt.Errorf("received nill data for request %v with error %w", topic, err)
 	}
 	return msg.Data, err
 }
 
-func (c *natsConnection) Subscribe(t string, handler func([]byte) []byte) error {
-	sub, err := c.nc.Subscribe(t, func(msg *nats.Msg) {
+func (c *natsConnection) Subscribe(topic serde.RequestMethod, handler func([]byte) []byte) error {
+	sub, err := c.nc.Subscribe(methodToTopic(topic), func(msg *nats.Msg) {
 		responseData := handler(msg.Data)
 		err := c.nc.Publish(msg.Reply, responseData)
 		if err != nil {
@@ -58,4 +59,8 @@ func (c *natsConnection) unsubscribeFromTopic(sub *nats.Subscription, try int32)
 		return c.unsubscribeFromTopic(sub, try+1)
 	}
 	return nil
+}
+
+func methodToTopic(method serde.RequestMethod) string {
+	return fmt.Sprintf("nitro.%s", method)
 }
