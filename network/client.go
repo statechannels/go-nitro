@@ -15,16 +15,12 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
 
-type ClientConnection struct {
-	Connection transport.Connection
-}
-
 type Response struct {
 	Data  any
 	Error error
 }
 
-func Request[T serde.RequestPayload](cc *ClientConnection, request T, logger zerolog.Logger) (<-chan Response, error) {
+func Request[T serde.RequestPayload](connection transport.Connection, request T, logger zerolog.Logger) (<-chan Response, error) {
 	returnChan := make(chan Response, 1)
 
 	var method serde.RequestMethod
@@ -56,7 +52,7 @@ func Request[T serde.RequestPayload](cc *ClientConnection, request T, logger zer
 		Msg("sent message")
 
 	go func() {
-		responseData, err := cc.Connection.Request(topic, data)
+		responseData, err := connection.Request(topic, data)
 		if err != nil {
 			returnChan <- Response{nil, err}
 		}

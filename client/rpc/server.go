@@ -31,8 +31,8 @@ func (rs *RpcServer) Url() string {
 }
 
 func (rs *RpcServer) Close() {
-	rs.ns.Shutdown()
 	rs.connection.Close()
+	rs.ns.Shutdown()
 }
 
 func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Logger) *RpcServer {
