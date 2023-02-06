@@ -40,7 +40,7 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int
 
 	nc, err := nats.Connect(rpcServerUrl)
 	handleError(err)
-	trp := natstrans.NewNatsTransport(nc, getTopics())
+	trp := natstrans.NewNatsTransport(nc)
 
 	con, err := trp.PollConnection()
 	handleError(err)

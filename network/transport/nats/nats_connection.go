@@ -9,17 +9,14 @@ import (
 )
 
 type natsConnection struct {
-	nc *nats.Conn
-
-	subTopicNames     []string
+	nc                *nats.Conn
 	natsSubscriptions []*nats.Subscription
 }
 
-func NewNatsConnection(nc *nats.Conn, subTopicNames []string) *natsConnection {
+func NewNatsConnection(nc *nats.Conn) *natsConnection {
 	natsConnection := &natsConnection{
 		nc:                nc,
-		subTopicNames:     subTopicNames,
-		natsSubscriptions: make([]*nats.Subscription, len(subTopicNames)),
+		natsSubscriptions: make([]*nats.Subscription, 0),
 	}
 
 	return natsConnection
@@ -46,7 +43,7 @@ func (c *natsConnection) Subscribe(t string, handler func([]byte) []byte) error 
 	return err
 }
 
-func (c *natsConnection) unsubscribeFromTopics() {
+func (c *natsConnection) Close() {
 	for _, sub := range c.natsSubscriptions {
 		err := c.unsubscribeFromTopic(sub, 0)
 		if err != nil {
@@ -61,8 +58,4 @@ func (c *natsConnection) unsubscribeFromTopic(sub *nats.Subscription, try int32)
 		return c.unsubscribeFromTopic(sub, try+1)
 	}
 	return nil
-}
-
-func (c *natsConnection) Close() {
-	c.unsubscribeFromTopics()
 }
