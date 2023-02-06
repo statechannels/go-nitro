@@ -127,9 +127,12 @@ describe('requireStateSupported', () => {
   });
 
   it('accepts legitimate interest calculations', async () => {
+    // construct a proof+candidate test case with fair interest calculation, assert passing    // with the interest rate applied.
     // test case:
-    // - proof state w/ some outcome + appdata
-    // - candidate state with interest rate
+    // - appdata interest rate is 1% per day
+    // - initial outcome is 500:500, with 500 principal
+    // - 1 day passes
+    // - challenge outcome is 505:495
     advanceOneDay();
 
     const challengeState: State = {
