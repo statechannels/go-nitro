@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/network"
 	"github.com/statechannels/go-nitro/network/serde"
+	"github.com/statechannels/go-nitro/network/transport"
 	natstrans "github.com/statechannels/go-nitro/network/transport/nats"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
@@ -22,10 +23,10 @@ import (
 
 // RpcClient is a client for making nitro rpc calls
 type RpcClient struct {
-	clientConnection *network.ClientConnection
-	myAddress        types.Address
-	chainId          *big.Int
-	logger           zerolog.Logger
+	connection transport.Connection
+	myAddress  types.Address
+	chainId    *big.Int
+	logger     zerolog.Logger
 }
 
 // NewRpcClient creates a new RpcClient
@@ -34,8 +35,7 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int
 	handleError(err)
 	con := natstrans.NewNatsConnection(nc)
 
-	clientConnection := network.ClientConnection{Connection: con}
-	c := &RpcClient{&clientConnection, myAddress, chainId, logger}
+	c := &RpcClient{con, myAddress, chainId, logger}
 	return c
 }
 
@@ -50,7 +50,7 @@ func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty 
 		uint64(rand.Float64()), // TODO: Since numeric fields get converted to a float64 in transit we need to prevent overflow
 		common.Address{})
 
-	resChan, err := network.Request(rc.clientConnection, objReq, rc.logger)
+	resChan, err := network.Request(rc.connection, objReq, rc.logger)
 	if err != nil {
 		panic(err)
 	}
@@ -68,7 +68,7 @@ func (rc *RpcClient) CloseVirtual(id types.Destination) protocols.ObjectiveId {
 	objReq := virtualdefund.NewObjectiveRequest(
 		id)
 
-	resChan, err := network.Request(rc.clientConnection, objReq, rc.logger)
+	resChan, err := network.Request(rc.connection, objReq, rc.logger)
 	if err != nil {
 		panic(err)
 	}
@@ -91,7 +91,7 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 		uint64(rand.Float64()), // TODO: Since numeric fields get converted to a float64 in transit we need to prevent overflow
 		common.Address{})
 
-	resChan, err := network.Request(rc.clientConnection, objReq, rc.logger)
+	resChan, err := network.Request(rc.connection, objReq, rc.logger)
 	if err != nil {
 		panic(err)
 	}
@@ -108,7 +108,7 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
 	objReq := directdefund.NewObjectiveRequest(id)
 
-	resChan, err := network.Request(rc.clientConnection, objReq, rc.logger)
+	resChan, err := network.Request(rc.connection, objReq, rc.logger)
 	if err != nil {
 		panic(err)
 	}
@@ -125,7 +125,7 @@ func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
 func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
 	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
 
-	resChan, err := network.Request(rc.clientConnection, pReq, rc.logger)
+	resChan, err := network.Request(rc.connection, pReq, rc.logger)
 	if err != nil {
 		panic(err)
 	}
