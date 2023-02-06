@@ -82,6 +82,9 @@ func TestChallenge(t *testing.T) {
 	}
 }
 
+// runChallengeWithTurnNum will prepare a challenge transaction with the providede turnNum,
+// submit it to the provided preparedChain
+// and read / assert on the chain state after waiting for the transaction to be mined.
 func runChallengeWithTurnNum(t *testing.T, turnNum uint64, pc preparedChain) {
 	chain := pc.chain
 	consensusAppAddress := pc.consensusAppAddress
@@ -176,6 +179,8 @@ func runChallengeWithTurnNum(t *testing.T, turnNum uint64, pc preparedChain) {
 
 }
 
+// prepareSimulatedBackend returns a preparedChain object containing a chain, txSubmitter
+// and deployed contract addresses for an ephemeral in-memory blockchain. Ready to use for testing.
 func prepareSimulatedBackend(t *testing.T) preparedChain {
 	// Setup transacting EOA
 	key, _ := crypto.GenerateKey()
@@ -222,6 +227,9 @@ func prepareSimulatedBackend(t *testing.T) preparedChain {
 
 }
 
+// prepareHyperspaceBackend returns a preparedChain object containing a chain, txSubmitter
+// and deployed contract addresses for the Hyperspace test network. The contracts need to be manually
+// redeployed following e.g. a network reset. Otherwise, it is ready to use for testing.
 func prepareHyperspaceBackend(t *testing.T) preparedChain {
 	// This is the mnemonic for the prefunded accounts on wallaby.
 	// The first 25 accounts will be prefunded.
