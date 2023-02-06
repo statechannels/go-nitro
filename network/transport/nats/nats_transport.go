@@ -11,9 +11,9 @@ type natsTransport struct {
 
 var _ transport.Transport = (*natsTransport)(nil)
 
-func NewNatsTransport(nc *nats.Conn, pubTopicNames []string) *natsTransport {
+func NewNatsTransport(nc *nats.Conn) *natsTransport {
 	// wouldn't it be better to get messaged directly into the channel?
-	connection := NewNatsConnection(nc, pubTopicNames)
+	connection := NewNatsConnection(nc)
 	natsTransport := &natsTransport{
 		connection: connection,
 	}

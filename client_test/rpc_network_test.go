@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 
@@ -10,29 +9,11 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/network"
-	"github.com/statechannels/go-nitro/network/serde"
 	"github.com/statechannels/go-nitro/network/transport"
 	natstrans "github.com/statechannels/go-nitro/network/transport/nats"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/types"
 )
-
-// getTopics returns a list of topics that the client/server should subscribe to.
-func getTopics() []string {
-
-	return []string{
-		fmt.Sprintf("nitro.%s",
-			serde.DirectFundRequestMethod),
-		fmt.Sprintf("nitro.%s",
-			serde.DirectDefundRequestMethod),
-		fmt.Sprintf("nitro.%s",
-			serde.VirtualFundRequestMethod),
-		fmt.Sprintf("nitro.%s",
-			serde.VirtualDefundRequestMethod),
-		fmt.Sprintf("nitro.%s",
-			serde.PayRequestMethod),
-	}
-}
 
 func newConnection() (transport.Connection, error) {
 	opts := &server.Options{}
@@ -47,7 +28,7 @@ func newConnection() (transport.Connection, error) {
 		return nil, err
 	}
 
-	trp := natstrans.NewNatsTransport(nc, getTopics())
+	trp := natstrans.NewNatsTransport(nc)
 
 	con, err := trp.PollConnection()
 	if err != nil {

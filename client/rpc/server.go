@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"github.com/nats-io/nats-server/v2/server"
@@ -45,7 +44,7 @@ func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Lo
 	nc, err := nats.Connect(ns.ClientURL())
 	handleError(err)
 
-	trp := natstrans.NewNatsTransport(nc, getTopics())
+	trp := natstrans.NewNatsTransport(nc)
 
 	con, err := trp.PollConnection()
 	handleError(err)
@@ -59,7 +58,7 @@ func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Lo
 
 // registerHandlers registers the handlers for the rpc server
 func (rs *RpcServer) registerHandlers() {
-	rs.nts.Subscribe(fmt.Sprintf("nitro.%s", serde.DirectFundRequestMethod), func(data []byte) []byte {
+	rs.nts.Subscribe(methodToTopic(serde.DirectFundRequestMethod), func(data []byte) []byte {
 
 		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
 
@@ -91,7 +90,7 @@ func (rs *RpcServer) registerHandlers() {
 		return messageData
 	})
 
-	rs.nts.Subscribe(fmt.Sprintf("nitro.%s", serde.DirectDefundRequestMethod), func(data []byte) []byte {
+	rs.nts.Subscribe(methodToTopic(serde.DirectDefundRequestMethod), func(data []byte) []byte {
 		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[directdefund.ObjectiveRequest]{}
@@ -118,7 +117,7 @@ func (rs *RpcServer) registerHandlers() {
 		return messageData
 	})
 
-	rs.nts.Subscribe(fmt.Sprintf("nitro.%s", serde.VirtualFundRequestMethod), func(data []byte) []byte {
+	rs.nts.Subscribe(methodToTopic(serde.VirtualFundRequestMethod), func(data []byte) []byte {
 
 		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
 
@@ -151,7 +150,7 @@ func (rs *RpcServer) registerHandlers() {
 		return messageData
 	})
 
-	rs.nts.Subscribe(fmt.Sprintf("nitro.%s", serde.VirtualDefundRequestMethod), func(data []byte) []byte {
+	rs.nts.Subscribe(methodToTopic(serde.VirtualDefundRequestMethod), func(data []byte) []byte {
 		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[virtualdefund.ObjectiveRequest]{}
@@ -178,7 +177,7 @@ func (rs *RpcServer) registerHandlers() {
 		return messageData
 	})
 
-	rs.nts.Subscribe(fmt.Sprintf("nitro.%s", serde.PayRequestMethod), func(data []byte) []byte {
+	rs.nts.Subscribe(methodToTopic(serde.PayRequestMethod), func(data []byte) []byte {
 		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[serde.PaymentRequest]{}
