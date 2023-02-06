@@ -40,7 +40,7 @@ func Request[T serde.RequestPayload](cc *ClientConnection, request T, logger zer
 	case serde.PaymentRequest:
 		method = serde.PayRequestMethod
 	default:
-		return nil, fmt.Errorf("Unknown request type %v", request)
+		return nil, fmt.Errorf("unknown request type %v", request)
 	}
 	requestId := rand.Uint64()
 	message := serde.NewJsonRpcRequest(requestId, method, request)
@@ -72,7 +72,7 @@ func Request[T serde.RequestPayload](cc *ClientConnection, request T, logger zer
 		case serde.PaymentRequest:
 			unmarshalAndSend(responseData, serde.PaymentRequest{}, returnChan)
 		default:
-			returnChan <- Response{nil, fmt.Errorf("Unknown response for request %v", request)}
+			returnChan <- Response{nil, fmt.Errorf("unknown response for request %v", request)}
 		}
 	}()
 
