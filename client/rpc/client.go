@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -64,18 +63,17 @@ func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty 
 		uint64(rand.Float64()), // TODO: Since numeric fields get converted to a float64 in transit we need to prevent overflow
 		common.Address{})
 
-	// Create a channel and store it in the responses map
-	// We will use this channel to wait for the response
-	resRec := make(chan interface{})
-	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
-
-	_, err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
+	resChan, err := network.Request(rc.clientConnection, objReq, rc.nts.Logger)
 	if err != nil {
 		panic(err)
 	}
 
-	objRes := <-resRec
-	return objRes.(virtualfund.ObjectiveResponse)
+	objRes := <-resChan
+	if objRes.Error != nil {
+		panic(err)
+	}
+
+	return objRes.Data.(serde.JsonRpcResponse[virtualfund.ObjectiveResponse]).Result
 }
 
 // CloseVirtual closes a virtual channel
@@ -83,18 +81,17 @@ func (rc *RpcClient) CloseVirtual(id types.Destination) protocols.ObjectiveId {
 	objReq := virtualdefund.NewObjectiveRequest(
 		id)
 
-	// Create a channel and store it in the responses map
-	// We will use this channel to wait for the response
-	resRec := make(chan interface{})
-	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
-
-	_, err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
+	resChan, err := network.Request(rc.clientConnection, objReq, rc.nts.Logger)
 	if err != nil {
 		panic(err)
 	}
 
-	objRes := <-resRec
-	return objRes.(protocols.ObjectiveId)
+	objRes := <-resChan
+	if objRes.Error != nil {
+		panic(err)
+	}
+
+	return objRes.Data.(serde.JsonRpcResponse[protocols.ObjectiveId]).Result
 }
 
 // CreateLedger creates a new ledger channel
@@ -107,7 +104,7 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 		uint64(rand.Float64()), // TODO: Since numeric fields get converted to a float64 in transit we need to prevent overflow
 		common.Address{})
 
-	resChan, err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
+	resChan, err := network.Request(rc.clientConnection, objReq, rc.nts.Logger)
 	if err != nil {
 		panic(err)
 	}
@@ -124,35 +121,32 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
 	objReq := directdefund.NewObjectiveRequest(id)
 
-	// Create a channel and store it in the responses map
-	// We will use this channel to wait for the response
-	resRec := make(chan interface{})
-	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
-
-	_, err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
+	resChan, err := network.Request(rc.clientConnection, objReq, rc.nts.Logger)
 	if err != nil {
 		panic(err)
 	}
 
-	objRes := <-resRec
-	return objRes.(protocols.ObjectiveId)
+	objRes := <-resChan
+	if objRes.Error != nil {
+		panic(err)
+	}
+
+	return objRes.Data.(serde.JsonRpcResponse[protocols.ObjectiveId]).Result
 }
 
 // Pay uses the specified channel to pay the specified amount
 func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
-	// Create a channel and store it in the responses map
-	// We will use this channel to wait for the response
-	resRec := make(chan interface{})
-	paymentId := fmt.Sprintf("PAYMENT-%s", id)
-	rc.responses.Store(paymentId, resRec)
-
 	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
 
-	_, err := network.Request(rc.clientConnection, pReq, rc.nts.Logger, &rc.idsToMethods)
+	resChan, err := network.Request(rc.clientConnection, pReq, rc.nts.Logger)
 	if err != nil {
 		panic(err)
 	}
-	<-resRec
+
+	res := <-resChan
+	if res.Error != nil {
+		panic(res.Error)
+	}
 }
 
 func (rc *RpcClient) Close() {
@@ -165,66 +159,4 @@ func (rc *RpcClient) registerHandlers() {
 	rc.nts.RegisterErrorHandler(func(id uint64, data []byte) {
 		panic(fmt.Sprintf("Objective failed: %v", data))
 	})
-
-	rc.nts.RegisterResponseHandler(func(id uint64, data []byte) {
-		rc.nts.Logger.Trace().Msgf("Rpc client received response: %+v", data)
-		method, reqFound := rc.idsToMethods.Load(fmt.Sprintf("%d", id))
-		if !reqFound {
-			panic(fmt.Sprintf("Could not find request for response with id %d", id))
-		}
-
-		switch method {
-		case serde.DirectFundRequestMethod:
-			handleResponse[directfund.ObjectiveResponse](rc, data)
-		case serde.DirectDefundRequestMethod:
-			handleResponse[protocols.ObjectiveId](rc, data)
-		case serde.VirtualFundRequestMethod:
-			handleResponse[virtualfund.ObjectiveResponse](rc, data)
-		case serde.VirtualDefundRequestMethod:
-			handleResponse[protocols.ObjectiveId](rc, data)
-		case serde.PayRequestMethod:
-			handleResponse[serde.PaymentRequest](rc, data)
-
-		}
-	})
-}
-
-// handleResponse handles a response from the rpc server for the given client
-// It is not a member of the RpcClient so it can take advantage of generics
-func handleResponse[T serde.ResponsePayload](rc *RpcClient, data []byte) {
-	rpcResponse := serde.JsonRpcResponse[T]{}
-	err := json.Unmarshal(data, &rpcResponse)
-	if err != nil {
-		panic("could not unmarshal objective response")
-	}
-
-	if resRec, ok := rc.responses.Load(string(getObjectiveId(rpcResponse.Result))); ok {
-
-		resRec <- rpcResponse.Result
-
-		rc.idsToMethods.Delete(fmt.Sprintf("%d", rpcResponse.Id))
-		rc.responses.Delete(fmt.Sprintf("%v", getObjectiveId(rpcResponse.Result)))
-	}
-}
-
-// getObjectiveId returns the objective id from the result of a response
-func getObjectiveId(result any) protocols.ObjectiveId {
-	id, isId := result.(protocols.ObjectiveId)
-	if isId {
-		return id
-	}
-	res, isRes := result.(directfund.ObjectiveResponse)
-	if isRes {
-		return res.Id
-	}
-	vRes, isVRes := result.(virtualfund.ObjectiveResponse)
-	if isVRes {
-		return vRes.Id
-	}
-	pRes, isPRes := result.(serde.PaymentRequest)
-	if isPRes {
-		paymentId := fmt.Sprintf("PAYMENT-%s", pRes.Channel)
-		return protocols.ObjectiveId(paymentId)
-	}
-	panic("Could not get id from result")
 }

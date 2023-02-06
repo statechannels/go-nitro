@@ -6,7 +6,6 @@ import (
 	"math/rand"
 
 	"github.com/rs/zerolog"
-	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/network/serde"
 	"github.com/statechannels/go-nitro/network/transport"
 	"github.com/statechannels/go-nitro/protocols"
@@ -25,7 +24,7 @@ type Response struct {
 	Error error
 }
 
-func Request[T serde.RequestPayload](cc *ClientConnection, request T, logger zerolog.Logger, idsToMethods *safesync.Map[serde.RequestMethod]) (<-chan Response, error) {
+func Request[T serde.RequestPayload](cc *ClientConnection, request T, logger zerolog.Logger) (<-chan Response, error) {
 	returnChan := make(chan Response, 1)
 
 	var method serde.RequestMethod
@@ -50,8 +49,6 @@ func Request[T serde.RequestPayload](cc *ClientConnection, request T, logger zer
 		return nil, err
 	}
 
-	idsToMethods.Store(string(fmt.Sprintf("%d", requestId)), method)
-
 	topic := fmt.Sprintf("nitro.%s", method)
 
 	logger.Trace().
@@ -68,8 +65,7 @@ func Request[T serde.RequestPayload](cc *ClientConnection, request T, logger zer
 		switch any(request).(type) {
 		case directfund.ObjectiveRequest:
 			unmarshalAndSend(responseData, directfund.ObjectiveResponse{}, returnChan)
-		case directdefund.ObjectiveRequest:
-		case virtualdefund.ObjectiveRequest:
+		case directdefund.ObjectiveRequest, virtualdefund.ObjectiveRequest:
 			unmarshalAndSend(responseData, protocols.ObjectiveId(""), returnChan)
 		case virtualfund.ObjectiveRequest:
 			unmarshalAndSend(responseData, virtualfund.ObjectiveResponse{}, returnChan)

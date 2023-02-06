@@ -91,7 +91,7 @@ func (rs *RpcServer) registerHandlers() {
 		return messageData
 	})
 
-	rs.nts.RegisterRequestHandler(serde.DirectDefundRequestMethod, func(id uint64, data []byte) {
+	rs.nts.Subscribe(fmt.Sprintf("nitro.%s", serde.DirectDefundRequestMethod), func(data []byte) []byte {
 		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[directdefund.ObjectiveRequest]{}
@@ -115,10 +115,10 @@ func (rs *RpcServer) registerHandlers() {
 			panic("Could not marshal direct fund response message")
 		}
 
-		rs.nts.SendMessage(serde.DirectDefundRequestMethod, messageData)
+		return messageData
 	})
 
-	rs.nts.RegisterRequestHandler(serde.VirtualFundRequestMethod, func(id uint64, data []byte) {
+	rs.nts.Subscribe(fmt.Sprintf("nitro.%s", serde.VirtualFundRequestMethod), func(data []byte) []byte {
 
 		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
 
@@ -148,10 +148,10 @@ func (rs *RpcServer) registerHandlers() {
 			panic("Could not marshal direct fund response message")
 		}
 
-		rs.nts.SendMessage(serde.VirtualFundRequestMethod, messageData)
+		return messageData
 	})
 
-	rs.nts.RegisterRequestHandler(serde.VirtualDefundRequestMethod, func(id uint64, data []byte) {
+	rs.nts.Subscribe(fmt.Sprintf("nitro.%s", serde.VirtualDefundRequestMethod), func(data []byte) []byte {
 		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[virtualdefund.ObjectiveRequest]{}
@@ -175,10 +175,10 @@ func (rs *RpcServer) registerHandlers() {
 			panic("Could not marshal direct fund response message")
 		}
 
-		rs.nts.SendMessage(serde.VirtualDefundRequestMethod, messageData)
+		return messageData
 	})
 
-	rs.nts.RegisterRequestHandler(serde.PayRequestMethod, func(id uint64, data []byte) {
+	rs.nts.Subscribe(fmt.Sprintf("nitro.%s", serde.PayRequestMethod), func(data []byte) []byte {
 		rs.nts.Logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[serde.PaymentRequest]{}
@@ -196,13 +196,12 @@ func (rs *RpcServer) registerHandlers() {
 			panic("Could not marshal pay response message")
 		}
 
-		rs.nts.SendMessage(serde.VirtualDefundRequestMethod, messageData)
+		return messageData
 	})
 }
 
 // handleError "handles" an error by panicking
 func handleError(err error) {
-
 	if err != nil {
 		panic(err)
 	}
