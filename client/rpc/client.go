@@ -25,9 +25,10 @@ import (
 
 // RpcClient is a client for making nitro rpc calls
 type RpcClient struct {
-	nts       *network.NetworkService
-	myAddress types.Address
-	chainId   *big.Int
+	nts              *network.NetworkService
+	clientConnection *network.ClientConnection
+	myAddress        types.Address
+	chainId          *big.Int
 
 	// responses is a collection of channels that are used to wait until a response is received from the RPC server
 	responses safesync.Map[chan interface{}]
@@ -45,8 +46,9 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int
 	con, err := trp.PollConnection()
 	handleError(err)
 	nts := network.NewNetworkService(con)
+	clientConnection := network.ClientConnection{Connection: con}
 	nts.Logger = logger
-	c := &RpcClient{nts, myAddress, chainId, safesync.Map[chan interface{}]{}, safesync.Map[serde.RequestMethod]{}}
+	c := &RpcClient{nts, &clientConnection, myAddress, chainId, safesync.Map[chan interface{}]{}, safesync.Map[serde.RequestMethod]{}}
 	c.registerHandlers()
 	return c
 }
@@ -67,15 +69,10 @@ func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty 
 	resRec := make(chan interface{})
 	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
 
-	requestId := rand.Uint64()
-	rc.idsToMethods.Store(string(fmt.Sprintf("%d", requestId)), serde.VirtualFundRequestMethod)
-
-	message := serde.NewJsonRpcRequest(requestId, serde.VirtualFundRequestMethod, objReq)
-	data, err := json.Marshal(message)
+	err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
 	if err != nil {
-		panic("Could not marshal direct fund request")
+		panic(err)
 	}
-	rc.nts.SendMessage(serde.VirtualFundRequestMethod, data)
 
 	objRes := <-resRec
 	return objRes.(virtualfund.ObjectiveResponse)
@@ -90,15 +87,11 @@ func (rc *RpcClient) CloseVirtual(id types.Destination) protocols.ObjectiveId {
 	// We will use this channel to wait for the response
 	resRec := make(chan interface{})
 	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
-	requestId := rand.Uint64()
-	rc.idsToMethods.Store(string(fmt.Sprintf("%d", requestId)), serde.VirtualDefundRequestMethod)
 
-	message := serde.NewJsonRpcRequest(requestId, serde.VirtualDefundRequestMethod, objReq)
-	data, err := json.Marshal(message)
+	err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
 	if err != nil {
-		panic("Could not marshal direct fund request")
+		panic(err)
 	}
-	rc.nts.SendMessage(serde.VirtualDefundRequestMethod, data)
 
 	objRes := <-resRec
 	return objRes.(protocols.ObjectiveId)
@@ -119,15 +112,10 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 	resRec := make(chan interface{})
 	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
 
-	requestId := rand.Uint64()
-	rc.idsToMethods.Store(fmt.Sprintf("%d", requestId), serde.DirectFundRequestMethod)
-
-	message := serde.NewJsonRpcRequest(requestId, serde.DirectFundRequestMethod, objReq)
-	data, err := json.Marshal(message)
+	err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
 	if err != nil {
-		panic("Could not marshal direct fund request")
+		panic(err)
 	}
-	rc.nts.SendMessage(serde.DirectFundRequestMethod, data)
 
 	objRes := <-resRec
 	return objRes.(directfund.ObjectiveResponse)
@@ -141,15 +129,11 @@ func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
 	// We will use this channel to wait for the response
 	resRec := make(chan interface{})
 	rc.responses.Store(string(objReq.Id(rc.myAddress, rc.chainId)), resRec)
-	requestId := rand.Uint64()
-	rc.idsToMethods.Store(fmt.Sprintf("%d", requestId), serde.DirectDefundRequestMethod)
 
-	message := serde.NewJsonRpcRequest(requestId, serde.DirectDefundRequestMethod, objReq)
-	data, err := json.Marshal(message)
+	err := network.Request(rc.clientConnection, objReq, rc.nts.Logger, &rc.idsToMethods)
 	if err != nil {
-		panic("Could not marshal direct fund request")
+		panic(err)
 	}
-	rc.nts.SendMessage(serde.DirectDefundRequestMethod, data)
 
 	objRes := <-resRec
 	return objRes.(protocols.ObjectiveId)
@@ -162,17 +146,13 @@ func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
 	resRec := make(chan interface{})
 	paymentId := fmt.Sprintf("PAYMENT-%s", id)
 	rc.responses.Store(paymentId, resRec)
-	requestId := rand.Uint64()
-	rc.idsToMethods.Store(fmt.Sprintf("%d", requestId), serde.PayRequestMethod)
 
 	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
-	message := serde.NewJsonRpcRequest(requestId, serde.PayRequestMethod, pReq)
-	data, err := json.Marshal(message)
-	if err != nil {
-		panic("Could not marshal direct fund request")
-	}
-	rc.nts.SendMessage(serde.PayRequestMethod, data)
 
+	err := network.Request(rc.clientConnection, pReq, rc.nts.Logger, &rc.idsToMethods)
+	if err != nil {
+		panic(err)
+	}
 	<-resRec
 }
 
