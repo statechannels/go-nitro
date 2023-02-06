@@ -149,7 +149,7 @@ describe('requireStateSupported', () => {
     };
     const withIntermediarySignature: RecoveredVariablePart = {
       variablePart: getVariablePart(updatedState),
-      signedBy: BigNumber.from(0b11).toHexString(),
+      signedBy: BigNumber.from(0b01).toHexString(),
     };
 
     await ledgerFinancingApp.requireStateSupported(
