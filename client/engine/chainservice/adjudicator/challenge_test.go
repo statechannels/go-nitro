@@ -76,7 +76,7 @@ func TestChallenge(t *testing.T) {
 	for _, turnNum := range []uint64{0, 1, 2} {
 		t.Run("HyperSpaceBackend: turnNum = "+fmt.Sprint(turnNum),
 			func(t *testing.T) {
-				// t.Skip() // We run this test manually.
+				t.Skip() // We run this test manually.
 				runChallengeWithTurnNum(t, turnNum, hyperspacePreparedChain)
 			})
 	}
