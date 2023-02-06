@@ -137,4 +137,5 @@ func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
 }
 
 func (rc *RpcClient) Close() {
+	rc.connection.Close()
 }

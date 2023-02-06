@@ -52,7 +52,7 @@ func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Lo
 
 // registerHandlers registers the handlers for the rpc server
 func (rs *RpcServer) registerHandlers() {
-	err := rs.connection.Subscribe(methodToTopic(serde.DirectFundRequestMethod), func(data []byte) []byte {
+	err := rs.connection.Subscribe(serde.DirectFundRequestMethod, func(data []byte) []byte {
 
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
 
@@ -87,7 +87,7 @@ func (rs *RpcServer) registerHandlers() {
 		panic(err)
 	}
 
-	err = rs.connection.Subscribe(methodToTopic(serde.DirectDefundRequestMethod), func(data []byte) []byte {
+	err = rs.connection.Subscribe(serde.DirectDefundRequestMethod, func(data []byte) []byte {
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[directdefund.ObjectiveRequest]{}
@@ -117,7 +117,7 @@ func (rs *RpcServer) registerHandlers() {
 		panic(err)
 	}
 
-	err = rs.connection.Subscribe(methodToTopic(serde.VirtualFundRequestMethod), func(data []byte) []byte {
+	err = rs.connection.Subscribe(serde.VirtualFundRequestMethod, func(data []byte) []byte {
 
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
 
@@ -153,7 +153,7 @@ func (rs *RpcServer) registerHandlers() {
 		panic(err)
 	}
 
-	err = rs.connection.Subscribe(methodToTopic(serde.VirtualDefundRequestMethod), func(data []byte) []byte {
+	err = rs.connection.Subscribe(serde.VirtualDefundRequestMethod, func(data []byte) []byte {
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[virtualdefund.ObjectiveRequest]{}
@@ -183,7 +183,7 @@ func (rs *RpcServer) registerHandlers() {
 		panic(err)
 	}
 
-	err = rs.connection.Subscribe(methodToTopic(serde.PayRequestMethod), func(data []byte) []byte {
+	err = rs.connection.Subscribe(serde.PayRequestMethod, func(data []byte) []byte {
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
 
 		rpcRequest := serde.JsonRpcRequest[serde.PaymentRequest]{}

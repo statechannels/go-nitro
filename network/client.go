@@ -45,14 +45,12 @@ func Request[T serde.RequestPayload](connection transport.Connection, request T,
 		return nil, err
 	}
 
-	topic := fmt.Sprintf("nitro.%s", method)
-
 	logger.Trace().
 		Str("method", string(method)).
 		Msg("sent message")
 
 	go func() {
-		responseData, err := connection.Request(topic, data)
+		responseData, err := connection.Request(method, data)
 		if err != nil {
 			returnChan <- Response{nil, err}
 		}
