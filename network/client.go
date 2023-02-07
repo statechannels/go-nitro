@@ -15,11 +15,15 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
 
+// Response includes JSONRPC response data or an error.
+// todo: Response should include an unmarshalled payload instead of the entire JSONRPC response.
 type Response struct {
 	Data  any
 	Error error
 }
 
+// Request uses the supplied connection and payload to send a non-blocking JSONRPC request.
+// It returns a channel that sends a JSONRPC response. If the request fails to send, an error is returned.
 func Request[T serde.RequestPayload](connection transport.Connection, request T, logger zerolog.Logger) (<-chan Response, error) {
 	returnChan := make(chan Response, 1)
 
