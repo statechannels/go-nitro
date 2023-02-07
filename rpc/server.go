@@ -12,9 +12,9 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
-	"github.com/statechannels/go-nitro/rpc/network/serde"
-	"github.com/statechannels/go-nitro/rpc/network/transport"
-	natstrans "github.com/statechannels/go-nitro/rpc/network/transport/nats"
+	"github.com/statechannels/go-nitro/rpc/serde"
+	"github.com/statechannels/go-nitro/rpc/transport"
+	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
 )
 
 // RpcServer handles nitro rpc requests and executes them on the nitro client
