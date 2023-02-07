@@ -213,8 +213,9 @@ describe('requireStateSupported', () => {
           fixedPart,
           [pfStateSignedByBoth],
           updatedWithIntermediarySignature
-      );
-    }, 'Insufficient funds');
+        ),
+      'earned<claimed'
+    );
   });
 
   it('rejects unilateral unsupported candidates', async () => {
