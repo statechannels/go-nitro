@@ -14,6 +14,7 @@ type natsConnection struct {
 	natsSubscriptions []*nats.Subscription
 }
 
+// NewNatsConnection creates an instance of a Connection interface that uses the nats transport
 func NewNatsConnection(nc *nats.Conn) *natsConnection {
 	natsConnection := &natsConnection{
 		nc:                nc,
@@ -23,6 +24,8 @@ func NewNatsConnection(nc *nats.Conn) *natsConnection {
 	return natsConnection
 }
 
+// Request sends a blocking request for a topic with the given data
+// It returns the response data and an error
 func (c *natsConnection) Request(topic serde.RequestMethod, data []byte) ([]byte, error) {
 	msg, err := c.nc.Request(methodToTopic(topic), data, 10*time.Second)
 	if msg == nil {
@@ -31,6 +34,9 @@ func (c *natsConnection) Request(topic serde.RequestMethod, data []byte) ([]byte
 	return msg.Data, err
 }
 
+// Subscribe subscribes to a topic and calls the handler function when a message is received
+// It returns an error if the subscription fails
+// The handler processes the incoming data and returns the response data
 func (c *natsConnection) Subscribe(topic serde.RequestMethod, handler func([]byte) []byte) error {
 	sub, err := c.nc.Subscribe(methodToTopic(topic), func(msg *nats.Msg) {
 		responseData := handler(msg.Data)
@@ -44,6 +50,7 @@ func (c *natsConnection) Subscribe(topic serde.RequestMethod, handler func([]byt
 	return err
 }
 
+// Close shuts down the connection
 func (c *natsConnection) Close() {
 	for _, sub := range c.natsSubscriptions {
 		err := c.unsubscribeFromTopic(sub, 0)
