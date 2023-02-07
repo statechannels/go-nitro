@@ -6,7 +6,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
-	"github.com/statechannels/go-nitro/network/serde"
+	"github.com/statechannels/go-nitro/rpc/network/serde"
 )
 
 type natsConnection struct {

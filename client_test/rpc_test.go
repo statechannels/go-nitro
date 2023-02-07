@@ -7,8 +7,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
-	"github.com/statechannels/go-nitro/client/rpc"
 	"github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/stretchr/testify/assert"
 )

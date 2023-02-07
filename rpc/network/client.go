@@ -6,12 +6,13 @@ import (
 	"math/rand"
 
 	"github.com/rs/zerolog"
-	"github.com/statechannels/go-nitro/network/serde"
-	"github.com/statechannels/go-nitro/network/transport"
+
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/rpc/network/serde"
+	"github.com/statechannels/go-nitro/rpc/network/transport"
 )
 
 // Response includes a payload or an error.
