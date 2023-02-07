@@ -8,24 +8,22 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/network/serde"
 	"github.com/statechannels/go-nitro/network/transport"
-	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 )
 
-// Response includes JSONRPC response data or an error.
-// todo: Response should include an unmarshalled payload instead of the entire JSONRPC response.
-type Response struct {
-	Data  any
-	Error error
+// Response includes a payload or an error.
+type Response[T serde.ResponsePayload] struct {
+	Payload T
+	Error   error
 }
 
 // Request uses the supplied connection and payload to send a non-blocking JSONRPC request.
-// It returns a channel that sends a JSONRPC response. If the request fails to send, an error is returned.
-func Request[T serde.RequestPayload](connection transport.Connection, request T, logger zerolog.Logger) (<-chan Response, error) {
-	returnChan := make(chan Response, 1)
+// It returns a channel that sends a response payload. If the request fails to send, an error is returned.
+func Request[T serde.RequestPayload, U serde.ResponsePayload](connection transport.Connection, request T, logger zerolog.Logger) (<-chan Response[U], error) {
+	returnChan := make(chan Response[U], 1)
 
 	var method serde.RequestMethod
 	switch any(request).(type) {
@@ -56,33 +54,19 @@ func Request[T serde.RequestPayload](connection transport.Connection, request T,
 	go func() {
 		responseData, err := connection.Request(method, data)
 		if err != nil {
-			returnChan <- Response{nil, err}
+			returnChan <- Response[U]{Error: err}
 		}
 
 		logger.Trace().Msgf("Rpc client received response: %+v", responseData)
-		switch any(request).(type) {
-		case directfund.ObjectiveRequest:
-			unmarshalAndSend(responseData, directfund.ObjectiveResponse{}, returnChan)
-		case directdefund.ObjectiveRequest, virtualdefund.ObjectiveRequest:
-			unmarshalAndSend(responseData, protocols.ObjectiveId(""), returnChan)
-		case virtualfund.ObjectiveRequest:
-			unmarshalAndSend(responseData, virtualfund.ObjectiveResponse{}, returnChan)
-		case serde.PaymentRequest:
-			unmarshalAndSend(responseData, serde.PaymentRequest{}, returnChan)
-		default:
-			returnChan <- Response{nil, fmt.Errorf("unknown response for request %v", request)}
+
+		jsonResponse := serde.JsonRpcResponse[U]{}
+		err = json.Unmarshal(responseData, &jsonResponse)
+		if err != nil {
+			returnChan <- Response[U]{Error: err}
 		}
+
+		returnChan <- Response[U]{serde.GetResult(jsonResponse), nil}
 	}()
 
 	return returnChan, nil
-}
-
-func unmarshalAndSend[P serde.ResponsePayload, T serde.JsonRpcResponse[P]](data []byte, payloadType P, resChan chan<- Response) {
-	response := T{}
-	err := json.Unmarshal(data, &response)
-	if err != nil {
-		resChan <- Response{nil, err}
-	}
-
-	resChan <- Response{response, nil}
 }
