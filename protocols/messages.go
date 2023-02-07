@@ -3,6 +3,7 @@ package protocols
 import (
 	"encoding/json"
 
+	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/types"
@@ -200,4 +201,45 @@ func (m Message) Summarize() MessageSummary {
 		s.RejectedObjectives[i] = string(o)
 	}
 	return s
+}
+
+type Summary interface {
+	ObjectivePayloadSummary | ProposalSummary | PaymentSummary | string
+}
+
+func (m MessageSummary) MarshalZerologObject(e *zerolog.Event) {
+	e.Str("To", m.To).
+		Array("PayloadSummaries", marshalCollection(m.PayloadSummaries)).
+		Array("ProposalSummaries", marshalCollection(m.ProposalSummaries)).
+		Array("Payments", marshalCollection(m.Payments)).
+		Array("RejectedObjectives", marshalIds(m.RejectedObjectives))
+
+}
+
+// marshalIds returns a zerolog.LogArrayMarshaler for the passed ids.
+func marshalIds(ids []string) zerolog.LogArrayMarshaler {
+	a := zerolog.Arr()
+	for _, id := range ids {
+		a.Str(id)
+	}
+	return a
+}
+
+// marshalCollection returns a zerolog.LogArrayMarshaler for the passed collection.
+func marshalCollection[T zerolog.LogObjectMarshaler](col []T) zerolog.LogArrayMarshaler {
+	a := zerolog.Arr()
+	for _, p := range col {
+		a.Object(p)
+	}
+	return a
+}
+
+func (p PaymentSummary) MarshalZerologObject(e *zerolog.Event) {
+	e.Str("ChannelId", p.ChannelId).Uint64("Amount", p.Amount)
+}
+func (o ObjectivePayloadSummary) MarshalZerologObject(e *zerolog.Event) {
+	e.Str("ObjectiveId", o.ObjectiveId).Str("Type", o.Type).Uint("PayloadDataSize", uint(o.PayloadDataSize))
+}
+func (o ProposalSummary) MarshalZerologObject(e *zerolog.Event) {
+	e.Str("ObjectiveId", o.ObjectiveId).Str("LedgerId", o.LedgerId).Str("ProposalType", o.ProposalType).Uint64("TurnNum", o.TurnNum)
 }

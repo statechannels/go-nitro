@@ -25,7 +25,9 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 }
 
 func TestRpcClient(t *testing.T) {
-	logDestination := newLogWriter("test_rpc_client.log")
+	logFile := "test_rpc_client.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
 	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
@@ -36,9 +38,9 @@ func TestRpcClient(t *testing.T) {
 	}
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 
-	clientA, msgA := setupClientWithP2PMessageService(alice.PrivateKey, 3005, chainServiceA, createLogger(logDestination, "alice", ""))
-	clientB, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, createLogger(logDestination, "bob", ""))
-	clientI, msgI := setupClientWithP2PMessageService(irene.PrivateKey, 3007, chainServiceI, createLogger(logDestination, "irene", ""))
+	clientA, msgA := setupClientWithP2PMessageService(alice.PrivateKey, 3005, chainServiceA, logDestination)
+	clientB, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, logDestination)
+	clientI, msgI := setupClientWithP2PMessageService(irene.PrivateKey, 3007, chainServiceI, logDestination)
 	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
 		{Id: msgB.Id(), IpAddress: "127.0.0.1", Port: 3006, Address: bob.Address()},
