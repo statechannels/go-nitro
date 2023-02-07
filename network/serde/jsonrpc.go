@@ -1,9 +1,6 @@
 package serde
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -23,27 +20,6 @@ const (
 )
 
 const JsonRpcVersion = "2.0"
-
-type MessageType int8
-
-const (
-	TypeRequest  MessageType = 1
-	TypeResponse MessageType = 2
-	TypeError    MessageType = 3
-)
-
-// JsonRpcMessage is union of jsonrpc request, response, and error
-type JsonRpcMessage struct {
-	Jsonrpc string        `json:"jsonrpc"`
-	Id      uint64        `json:"id"`
-	Method  RequestMethod `json:"method"`
-	Params  interface{}   `json:"params"`
-	Result  interface{}   `json:"result"`
-	Error   interface{}   `json:"error"`
-	Code    uint64        `json:"code"`
-	Message string        `json:"message"`
-	Data    interface{}   `json:"data"`
-}
 
 type PaymentRequest struct {
 	Amount  uint64
@@ -91,21 +67,4 @@ func NewJsonRpcResponse[T ResponsePayload](requestId uint64, objectiveResponse T
 		Result:  objectiveResponse,
 		Error:   nil,
 	}
-}
-
-func Deserialize(data []byte) (*JsonRpcMessage, MessageType, error) {
-	jm := JsonRpcMessage{}
-	err := json.Unmarshal(data, &jm)
-	if jm.Method != "" {
-		return &jm, TypeRequest, err
-	}
-	if jm.Result != nil {
-		return &jm, TypeResponse, err
-	}
-
-	if jm.Message != "" {
-		return &jm, TypeError, err
-	}
-
-	return nil, TypeError, fmt.Errorf("unexpected jsonrpc message format: %s", string(data))
 }
