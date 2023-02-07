@@ -41,7 +41,6 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int
 
 // CreateLedger creates a new ledger channel
 func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) virtualfund.ObjectiveResponse {
-
 	objReq := virtualfund.NewObjectiveRequest(
 		intermediaries,
 		counterparty,
@@ -50,17 +49,7 @@ func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty 
 		uint64(rand.Float64()), // TODO: Since numeric fields get converted to a float64 in transit we need to prevent overflow
 		common.Address{})
 
-	resChan, err := network.Request[virtualfund.ObjectiveRequest, virtualfund.ObjectiveResponse](rc.connection, objReq, rc.logger)
-	if err != nil {
-		panic(err)
-	}
-
-	objRes := <-resChan
-	if objRes.Error != nil {
-		panic(err)
-	}
-
-	return objRes.Payload
+	return waitForRequest[virtualfund.ObjectiveRequest, virtualfund.ObjectiveResponse](rc, objReq)
 }
 
 // CloseVirtual closes a virtual channel
@@ -68,22 +57,11 @@ func (rc *RpcClient) CloseVirtual(id types.Destination) protocols.ObjectiveId {
 	objReq := virtualdefund.NewObjectiveRequest(
 		id)
 
-	resChan, err := network.Request[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc.connection, objReq, rc.logger)
-	if err != nil {
-		panic(err)
-	}
-
-	objRes := <-resChan
-	if objRes.Error != nil {
-		panic(err)
-	}
-
-	return objRes.Payload
+	return waitForRequest[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc, objReq)
 }
 
 // CreateLedger creates a new ledger channel
 func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
-
 	objReq := directfund.NewObjectiveRequest(
 		counterparty,
 		100,
@@ -91,41 +69,29 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 		uint64(rand.Float64()), // TODO: Since numeric fields get converted to a float64 in transit we need to prevent overflow
 		common.Address{})
 
-	resChan, err := network.Request[directfund.ObjectiveRequest, directfund.ObjectiveResponse](rc.connection, objReq, rc.logger)
-	if err != nil {
-		panic(err)
-	}
-
-	objRes := <-resChan
-	if objRes.Error != nil {
-		panic(err)
-	}
-
-	return objRes.Payload
+	return waitForRequest[directfund.ObjectiveRequest, directfund.ObjectiveResponse](rc, objReq)
 }
 
 // CloseLedger closes a ledger channel
 func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
 	objReq := directdefund.NewObjectiveRequest(id)
 
-	resChan, err := network.Request[directdefund.ObjectiveRequest, protocols.ObjectiveId](rc.connection, objReq, rc.logger)
-	if err != nil {
-		panic(err)
-	}
-
-	objRes := <-resChan
-	if objRes.Error != nil {
-		panic(err)
-	}
-
-	return objRes.Payload
+	return waitForRequest[directdefund.ObjectiveRequest, protocols.ObjectiveId](rc, objReq)
 }
 
 // Pay uses the specified channel to pay the specified amount
 func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
 	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
 
-	resChan, err := network.Request[serde.PaymentRequest, serde.PaymentRequest](rc.connection, pReq, rc.logger)
+	waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, pReq)
+}
+
+func (rc *RpcClient) Close() {
+	rc.connection.Close()
+}
+
+func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, requestData T) U {
+	resChan, err := network.Request[T, U](rc.connection, requestData, rc.logger)
 	if err != nil {
 		panic(err)
 	}
@@ -134,8 +100,6 @@ func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
 	if res.Error != nil {
 		panic(res.Error)
 	}
-}
 
-func (rc *RpcClient) Close() {
-	rc.connection.Close()
+	return res.Payload
 }
