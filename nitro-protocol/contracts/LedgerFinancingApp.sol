@@ -33,11 +33,6 @@ contract LedgerFinancingApp is IForceMoveApp {
         Funds collectedInterest;
     }
 
-    enum NamedTurnNums {
-        preFund, // 0
-        postFund // 1
-    }
-
     enum AllocationIndicies {
         intermediary, // financier: makes initial deposit and earns interest
         serviceProvider // borrower: recovers service fees from intermediary's deposit
