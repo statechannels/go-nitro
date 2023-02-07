@@ -38,7 +38,7 @@ func TestRpcClient(t *testing.T) {
 
 	clientA, msgA := setupClientWithP2PMessageService(alice.PrivateKey, 3005, chainServiceA, createLogger(logDestination, "alice", ""))
 	clientB, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, createLogger(logDestination, "bob", ""))
-	_, msgI := setupClientWithP2PMessageService(irene.PrivateKey, 3007, chainServiceI, createLogger(logDestination, "irene", ""))
+	clientI, msgI := setupClientWithP2PMessageService(irene.PrivateKey, 3007, chainServiceI, createLogger(logDestination, "irene", ""))
 	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
 		{Id: msgB.Id(), IpAddress: "127.0.0.1", Port: 3006, Address: bob.Address()},
@@ -63,10 +63,12 @@ func TestRpcClient(t *testing.T) {
 	// Quick sanity check that we're getting a valid objective id
 	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, res.Id)
+	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, res.Id)
 
 	bobResponse := clientB.CreateLedgerChannel(irene.Address(), 100, testdata.Outcomes.Create(bob.Address(), irene.Address(), 100, 100, types.Address{}))
 
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, bobResponse.Id)
+	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, bobResponse.Id)
 
 	vRes := rpcClientA.CreateVirtual(
 		[]types.Address{irene.Address()},
@@ -76,13 +78,17 @@ func TestRpcClient(t *testing.T) {
 
 	assert.Regexp(t, "VirtualFund.0x.*", vRes.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, vRes.Id)
-
+	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, vRes.Id)
+	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, vRes.Id)
 	rpcClientA.Pay(vRes.ChannelId, 1)
 
 	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
 	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, closeVId)
+	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, closeVId)
+	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, closeVId)
 
 	closeId := rpcClientA.CloseLedger(res.ChannelId)
 	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, closeId)
+	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, closeId)
 
 }
