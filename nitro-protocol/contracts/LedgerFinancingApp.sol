@@ -17,8 +17,7 @@ contract LedgerFinancingApp is IForceMoveApp {
 
     struct InterestAppData {
         // a per-day simple interest rate (daily percentage yield), as a fraction.
-        // dpyNum / dpyDen should be greater than 1: ie, 1% per day is represented
-        // with dpyNum = 101 and dpyDen = 100.
+        // ie, 1% per day is represented with dpyNum = 1 and dpyDen = 100.
         //
         // Lower numbers (eg, fraction in simplest terms) produce least risk of overflow.
         uint128 dpyNum;
@@ -147,5 +146,6 @@ contract LedgerFinancingApp is IForceMoveApp {
             );
         } else {
             revert('|proof| > 1'); // does it pay to be this terse with revert messages?
+        }
     }
 }
