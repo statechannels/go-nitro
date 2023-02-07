@@ -121,9 +121,7 @@ contract LedgerFinancingApp is IForceMoveApp {
                 '!unanimous; |proof|=0'
             );
             return;
-        }
-
-        if (proof.length == 1) {
+        } else if (proof.length == 1) {
             // check that proof[0] -> candidate respects the stated interest rate.
             // Requires:
             //  - proof state is unanimous
@@ -147,8 +145,7 @@ contract LedgerFinancingApp is IForceMoveApp {
                 candidate.variablePart.outcome,
                 outstandingInterest
             );
-        }
-
-        revert('|proof| > 1'); // does it pay to be this terse with revert messages?
+        } else {
+            revert('|proof| > 1'); // does it pay to be this terse with revert messages?
     }
 }
