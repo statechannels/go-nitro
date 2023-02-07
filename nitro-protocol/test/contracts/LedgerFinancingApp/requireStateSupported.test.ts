@@ -200,7 +200,7 @@ describe('requireStateSupported', () => {
       appData: appDataABIEncode(supportproofAppData),
       turnNum: baseState.turnNum + 1,
       outcome: computeOutcome({
-        [MAGIC_NATIVE_ASSET_ADDRESS]: {[intermediary]: 506, [merchant]: 494}, // intermediary picks up 1% of the principal
+        [MAGIC_NATIVE_ASSET_ADDRESS]: {[intermediary]: 506, [merchant]: 494}, // 506 is unfair: should be 505
       }),
     };
     const updatedWithIntermediarySignature: RecoveredVariablePart = {
