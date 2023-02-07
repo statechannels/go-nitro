@@ -50,9 +50,16 @@ func TestQueryLedgerChannel(t *testing.T) {
 
 	closeId := aliceClient.CloseLedgerChannel(ledgerId)
 
-	// Irene might not have received the objective yet so we only check alice
-	checkLedgerChannel(t, ledgerId, outcome, query.Closing, &aliceClient)
-
+	// It is possible the objective completes for Alice before we query it
+	// so the status could be either Closing or Complete
+	// Irene may not have received the objective yet so we only check Alice
+	ledger, err = aliceClient.GetLedgerChannel(ledgerId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ledger.Status != query.Closing && ledger.Status != query.Complete {
+		t.Fatalf("Expected status to be Closing or Complete but got %v", ledger.Status)
+	}
 	waitTimeForCompletedObjectiveIds(t, &aliceClient, defaultTimeout, closeId)
 	waitTimeForCompletedObjectiveIds(t, &ireneClient, defaultTimeout, closeId)
 
