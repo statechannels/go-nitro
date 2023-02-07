@@ -47,28 +47,34 @@ contract LedgerFinancingApp is IForceMoveApp {
     function requireOutcomeIsEarned(
         Outcome.SingleAssetExit[] memory initialOutcome,
         Outcome.SingleAssetExit[] memory finalOutcome,
-        Funds memory earnings
+        Funds memory outstandingInterest
     ) private pure {
-        for (uint256 i = 0; i < earnings.asset.length; i++) {
-            address asset = earnings.asset[i];
-            uint256 earnedBalance = earnings.amount[i];
+        for (uint256 i = 0; i < outstandingInterest.asset.length; i++) {
+            address asset = outstandingInterest.asset[i];
+            uint256 earned = outstandingInterest.amount[i];
 
-            // combine initial balance with earnings
-            for (uint256 j = 0; j < initialOutcome.length; j++) {
-                if (finalOutcome[j].asset == asset) {
-                    earnedBalance += initialOutcome[j]
-                        .allocations[uint256(AllocationIndicies.intermediary)]
-                        .amount;
-                }
-            }
-
-            // and ensure that the claimed outcome does not exceed it
             for (uint256 j = 0; j < finalOutcome.length; j++) {
                 if (finalOutcome[j].asset == asset) {
-                    uint256 claimedBalance = finalOutcome[j]
+                    require(initialOutcome[j].asset == asset, 'Asset mismatch');
+                    require(
+                        initialOutcome[j]
+                            .allocations[uint256(AllocationIndicies.intermediary)]
+                            .destination ==
+                            finalOutcome[j]
+                                .allocations[uint256(AllocationIndicies.intermediary)]
+                                .destination,
+                        'payee mismatch'
+                    );
+                    // combine prior balance with outstandingInterest
+                    earned += initialOutcome[j]
                         .allocations[uint256(AllocationIndicies.intermediary)]
                         .amount;
-                    require(claimedBalance <= earnedBalance, 'Insufficient funds');
+                    // and compare against the claimed outcome
+                    uint256 claimed = finalOutcome[j]
+                        .allocations[uint256(AllocationIndicies.intermediary)]
+                        .amount;
+
+                    require(claimed <= earned, 'earned<claimed');
                 }
             }
         }
@@ -88,7 +94,6 @@ contract LedgerFinancingApp is IForceMoveApp {
         returns (Funds memory)
     {
         uint32 numDays = daysSince(appData.blocknumber);
-        // dpyNum*days is too large
         uint256 simpleInterestNum = numDays * appData.dpyNum;
 
         address[] memory assets = new address[](appData.principal.asset.length);
