@@ -13,9 +13,10 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/rpc/network"
-	"github.com/statechannels/go-nitro/rpc/network/serde"
-	"github.com/statechannels/go-nitro/rpc/network/transport"
-	natstrans "github.com/statechannels/go-nitro/rpc/network/transport/nats"
+	"github.com/statechannels/go-nitro/rpc/serde"
+	"github.com/statechannels/go-nitro/rpc/transport"
+
+	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
 	"github.com/statechannels/go-nitro/types"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"

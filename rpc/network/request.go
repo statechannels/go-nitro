@@ -11,8 +11,8 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
-	"github.com/statechannels/go-nitro/rpc/network/serde"
-	"github.com/statechannels/go-nitro/rpc/network/transport"
+	"github.com/statechannels/go-nitro/rpc/serde"
+	"github.com/statechannels/go-nitro/rpc/transport"
 )
 
 // Response includes a payload or an error.

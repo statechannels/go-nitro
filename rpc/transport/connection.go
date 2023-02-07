@@ -1,6 +1,6 @@
 package transport
 
-import "github.com/statechannels/go-nitro/rpc/network/serde"
+import "github.com/statechannels/go-nitro/rpc/serde"
 
 type Connection interface {
 	Close()
