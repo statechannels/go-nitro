@@ -26,6 +26,7 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 
 func TestRpcClient(t *testing.T) {
 	logFile := "test_rpc_client.log"
+	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
