@@ -143,13 +143,13 @@ func DeserializeMessage(s string) (Message, error) {
 // MessageSummary is a summary of a message suitable for logging.
 type MessageSummary struct {
 	To               string
-	PayloadSummaries ObjectivePayloadSummaries
+	PayloadSummaries []ObjectivePayloadSummary
 
-	ProposalSummaries ProposalSummaries
+	ProposalSummaries []ProposalSummary
 
-	Payments PaymentSummaries
+	Payments []PaymentSummary
 	// RejectedObjectives is a collection of objectives that have been rejected.
-	RejectedObjectives RejectedIds
+	RejectedObjectives []string
 }
 
 // ObjectivePayloadSummary is a summary of an objective payload suitable for logging.
@@ -203,43 +203,37 @@ func (m Message) Summarize() MessageSummary {
 	return s
 }
 
-// These types are used to implement the zerolog.LogObjectMarshaler interface
-type RejectedIds []string
-type ObjectivePayloadSummaries []ObjectivePayloadSummary
-type ProposalSummaries []ProposalSummary
-type PaymentSummaries []PaymentSummary
+type Summary interface {
+	ObjectivePayloadSummary | ProposalSummary | PaymentSummary | string
+}
 
 func (m MessageSummary) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("To", m.To).
-		Array("PayloadSummaries", m.PayloadSummaries).
-		Array("ProposalSummaries", (m.ProposalSummaries)).
-		Array("Payments", m.Payments).
-		Array("RejectedObjectives", m.RejectedObjectives)
+		Array("PayloadSummaries", marshalCollection(m.PayloadSummaries)).
+		Array("ProposalSummaries", marshalCollection(m.ProposalSummaries)).
+		Array("Payments", marshalCollection(m.Payments)).
+		Array("RejectedObjectives", marshalIds(m.RejectedObjectives))
 
 }
-func (o ObjectivePayloadSummaries) MarshalZerologArray(a *zerolog.Array) {
-	for _, p := range o {
+
+// marshalIds returns a zerolog.LogArrayMarshaler for the passed ids.
+func marshalIds(ids []string) zerolog.LogArrayMarshaler {
+	a := zerolog.Arr()
+	for _, id := range ids {
+		a.Str(id)
+	}
+	return a
+}
+
+// marshalCollection returns a zerolog.LogArrayMarshaler for the passed collection.
+func marshalCollection[T zerolog.LogObjectMarshaler](col []T) zerolog.LogArrayMarshaler {
+	a := zerolog.Arr()
+	for _, p := range col {
 		a.Object(p)
 	}
+	return a
 }
 
-func (o ProposalSummaries) MarshalZerologArray(a *zerolog.Array) {
-	for _, p := range o {
-		a.Object(p)
-	}
-}
-
-func (o PaymentSummaries) MarshalZerologArray(a *zerolog.Array) {
-	for _, p := range o {
-		a.Object(p)
-	}
-}
-
-func (r RejectedIds) MarshalZerologArray(a *zerolog.Array) {
-	for _, p := range r {
-		a.Str(p)
-	}
-}
 func (p PaymentSummary) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("ChannelId", p.ChannelId).Uint64("Amount", p.Amount)
 }
