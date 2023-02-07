@@ -207,11 +207,12 @@ describe('requireStateSupported', () => {
       variablePart: getVariablePart(challengeState),
       signedBy: BigNumber.from(0b01).toHexString(),
     };
-    await expectRevert(() => {
-      ledgerFinancingApp.requireStateSupported(
-        fixedPart,
-        [pfStateSignedByBoth],
-        updatedWithIntermediarySignature
+    await expectRevert(
+      () =>
+        ledgerFinancingApp.requireStateSupported(
+          fixedPart,
+          [pfStateSignedByBoth],
+          updatedWithIntermediarySignature
       );
     }, 'Insufficient funds');
   });
