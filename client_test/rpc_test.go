@@ -67,9 +67,8 @@ func TestRpcClient(t *testing.T) {
 	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
 
 	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, res.Id)
-	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, res.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, bobResponse.Id)
-	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, bobResponse.Id)
+	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, res.Id, bobResponse.Id)
 
 	vRes := rpcClientA.CreateVirtual(
 		[]types.Address{irene.Address()},
