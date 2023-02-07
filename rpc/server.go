@@ -8,13 +8,13 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
-	"github.com/statechannels/go-nitro/network/serde"
-	"github.com/statechannels/go-nitro/network/transport"
-	natstrans "github.com/statechannels/go-nitro/network/transport/nats"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/rpc/network/serde"
+	"github.com/statechannels/go-nitro/rpc/network/transport"
+	natstrans "github.com/statechannels/go-nitro/rpc/network/transport/nats"
 )
 
 // RpcServer handles nitro rpc requests and executes them on the nitro client
