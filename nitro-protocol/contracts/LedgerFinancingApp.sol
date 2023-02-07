@@ -38,75 +38,6 @@ contract LedgerFinancingApp is IForceMoveApp {
         serviceProvider // borrower: recovers service fees from intermediary's deposit
     }
 
-    // Ensures that the given outcome does not unfairly allocate to the intermediary.
-    function requireOutcomeIsEarned(
-        Outcome.SingleAssetExit[] memory initialOutcome,
-        Outcome.SingleAssetExit[] memory finalOutcome,
-        Funds memory outstandingInterest
-    ) private pure {
-        for (uint256 i = 0; i < outstandingInterest.asset.length; i++) {
-            address asset = outstandingInterest.asset[i];
-            uint256 earned = outstandingInterest.amount[i];
-
-            for (uint256 j = 0; j < finalOutcome.length; j++) {
-                if (finalOutcome[j].asset == asset) {
-                    require(initialOutcome[j].asset == asset, 'Asset mismatch');
-                    require(
-                        initialOutcome[j]
-                            .allocations[uint256(AllocationIndicies.intermediary)]
-                            .destination ==
-                            finalOutcome[j]
-                                .allocations[uint256(AllocationIndicies.intermediary)]
-                                .destination,
-                        'payee mismatch'
-                    );
-                    // combine prior balance with outstandingInterest
-                    earned += initialOutcome[j]
-                        .allocations[uint256(AllocationIndicies.intermediary)]
-                        .amount;
-                    // and compare against the claimed outcome
-                    uint256 claimed = finalOutcome[j]
-                        .allocations[uint256(AllocationIndicies.intermediary)]
-                        .amount;
-
-                    require(claimed <= earned, 'earned<claimed');
-                }
-            }
-        }
-    }
-
-    function daysSince(uint256 blocknumber) private view returns (uint32) {
-        return uint32((block.number - blocknumber) / 7200); // 7200 == 24*60*60/12
-    }
-
-    // The outstanding interest is calculated based on:
-    //  - the latest consensus principal
-    //  - the channel's interest rate
-    //  - the time elapsed since the last principal adjustment
-    function getOutstandingInterest(InterestAppData memory appData)
-        private
-        view
-        returns (Funds memory)
-    {
-        uint32 numDays = daysSince(appData.blocknumber);
-        uint256 simpleInterestNum = numDays * appData.dpyNum;
-
-        address[] memory assets = new address[](appData.principal.asset.length);
-        uint256[] memory amounts = new uint256[](appData.principal.asset.length);
-
-        Funds memory outstanding = Funds(assets, amounts);
-
-        // copy all assets from the principal, and multiply by the interest rate
-        for (uint256 i = 0; i < appData.principal.asset.length; i++) {
-            outstanding.asset[i] = appData.principal.asset[i];
-            outstanding.amount[i] =
-                (appData.principal.amount[i] * simpleInterestNum) /
-                appData.dpyDen;
-        }
-
-        return outstanding;
-    }
-
     function requireStateSupported(
         FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata proof,
@@ -147,5 +78,74 @@ contract LedgerFinancingApp is IForceMoveApp {
         } else {
             revert('|proof| > 1'); // does it pay to be this terse with revert messages?
         }
+    }
+
+    // The outstanding interest is calculated based on:
+    //  - the latest consensus principal
+    //  - the channel's interest rate
+    //  - the time elapsed since the last principal adjustment
+    function getOutstandingInterest(InterestAppData memory appData)
+        private
+        view
+        returns (Funds memory)
+    {
+        uint32 numDays = daysSince(appData.blocknumber);
+        uint256 simpleInterestNum = numDays * appData.dpyNum;
+
+        address[] memory assets = new address[](appData.principal.asset.length);
+        uint256[] memory amounts = new uint256[](appData.principal.asset.length);
+
+        Funds memory outstanding = Funds(assets, amounts);
+
+        // copy all assets from the principal, and multiply by the interest rate
+        for (uint256 i = 0; i < appData.principal.asset.length; i++) {
+            outstanding.asset[i] = appData.principal.asset[i];
+            outstanding.amount[i] =
+                (appData.principal.amount[i] * simpleInterestNum) /
+                appData.dpyDen;
+        }
+
+        return outstanding;
+    }
+
+    // Ensures that the given outcome does not unfairly allocate to the intermediary.
+    function requireOutcomeIsEarned(
+        Outcome.SingleAssetExit[] memory initialOutcome,
+        Outcome.SingleAssetExit[] memory finalOutcome,
+        Funds memory outstandingInterest
+    ) private pure {
+        for (uint256 i = 0; i < outstandingInterest.asset.length; i++) {
+            address asset = outstandingInterest.asset[i];
+            uint256 earned = outstandingInterest.amount[i];
+
+            for (uint256 j = 0; j < finalOutcome.length; j++) {
+                if (finalOutcome[j].asset == asset) {
+                    require(initialOutcome[j].asset == asset, 'Asset mismatch');
+                    require(
+                        initialOutcome[j]
+                            .allocations[uint256(AllocationIndicies.intermediary)]
+                            .destination ==
+                            finalOutcome[j]
+                                .allocations[uint256(AllocationIndicies.intermediary)]
+                                .destination,
+                        'payee mismatch'
+                    );
+                    // combine prior balance with outstandingInterest
+                    earned += initialOutcome[j]
+                        .allocations[uint256(AllocationIndicies.intermediary)]
+                        .amount;
+                    // and compare against the claimed outcome
+                    uint256 claimed = finalOutcome[j]
+                        .allocations[uint256(AllocationIndicies.intermediary)]
+                        .amount;
+
+                    require(claimed <= earned, 'earned<claimed');
+                }
+            }
+        }
+    }
+
+    function daysSince(uint256 blocknumber) private view returns (uint32) {
+        return uint32((block.number - blocknumber) / 7200); // 7200 == 24*60*60/12
     }
 }
