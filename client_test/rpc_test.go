@@ -61,14 +61,13 @@ func TestRpcClient(t *testing.T) {
 	defer rpcClientA.Close()
 
 	res := rpcClientA.CreateLedger(irene.Address(), 100, testdata.Outcomes.Create(alice.Address(), irene.Address(), 100, 100, types.Address{}))
+	bobResponse := clientB.CreateLedgerChannel(irene.Address(), 100, testdata.Outcomes.Create(bob.Address(), irene.Address(), 100, 100, types.Address{}))
 
 	// Quick sanity check that we're getting a valid objective id
 	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
+
 	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, res.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, res.Id)
-
-	bobResponse := clientB.CreateLedgerChannel(irene.Address(), 100, testdata.Outcomes.Create(bob.Address(), irene.Address(), 100, 100, types.Address{}))
-
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, bobResponse.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, bobResponse.Id)
 
