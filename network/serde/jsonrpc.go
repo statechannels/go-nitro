@@ -68,7 +68,3 @@ func NewJsonRpcResponse[T ResponsePayload](requestId uint64, objectiveResponse T
 		Error:   nil,
 	}
 }
-
-func GetResult[T ResponsePayload](response JsonRpcResponse[T]) T {
-	return response.Result
-}

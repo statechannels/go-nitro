@@ -65,7 +65,7 @@ func Request[T serde.RequestPayload, U serde.ResponsePayload](connection transpo
 			returnChan <- Response[U]{Error: err}
 		}
 
-		returnChan <- Response[U]{serde.GetResult(jsonResponse), nil}
+		returnChan <- Response[U]{jsonResponse.Result, nil}
 	}()
 
 	return returnChan, nil
