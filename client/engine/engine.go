@@ -686,9 +686,9 @@ const (
 func (e *Engine) logMessage(msg protocols.Message, direction messageDirection) {
 
 	if direction == Incoming {
-		e.logger.Printf("Receiving message %+v", msg.Summarize())
+		e.logger.Trace().EmbedObject(msg.Summarize()).Msg("Received message")
 	} else {
-		e.logger.Printf("Sending message %+v", msg.Summarize())
+		e.logger.Trace().EmbedObject(msg.Summarize()).Msg("Sending message")
 	}
 }
 

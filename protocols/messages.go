@@ -3,6 +3,7 @@ package protocols
 import (
 	"encoding/json"
 
+	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/types"
@@ -142,13 +143,13 @@ func DeserializeMessage(s string) (Message, error) {
 // MessageSummary is a summary of a message suitable for logging.
 type MessageSummary struct {
 	To               string
-	PayloadSummaries []ObjectivePayloadSummary
+	PayloadSummaries ObjectivePayloadSummaries
 
-	ProposalSummaries []ProposalSummary
+	ProposalSummaries ProposalSummaries
 
-	Payments []PaymentSummary
+	Payments PaymentSummaries
 	// RejectedObjectives is a collection of objectives that have been rejected.
-	RejectedObjectives []string
+	RejectedObjectives RejectedIds
 }
 
 // ObjectivePayloadSummary is a summary of an objective payload suitable for logging.
@@ -200,4 +201,51 @@ func (m Message) Summarize() MessageSummary {
 		s.RejectedObjectives[i] = string(o)
 	}
 	return s
+}
+
+// These types are used to implement the zerolog.LogObjectMarshaler interface
+type RejectedIds []string
+type ObjectivePayloadSummaries []ObjectivePayloadSummary
+type ProposalSummaries []ProposalSummary
+type PaymentSummaries []PaymentSummary
+
+func (m MessageSummary) MarshalZerologObject(e *zerolog.Event) {
+	e.Str("To", m.To).
+		Array("PayloadSummaries", ObjectivePayloadSummaries(m.PayloadSummaries)).
+		Array("ProposalSummaries", ProposalSummaries(m.ProposalSummaries)).
+		Array("Payments", PaymentSummaries(m.Payments)).
+		Array("RejectedObjectives", RejectedIds(m.RejectedObjectives))
+
+}
+func (o ObjectivePayloadSummaries) MarshalZerologArray(a *zerolog.Array) {
+	for _, p := range o {
+		a.Object(p)
+	}
+}
+
+func (o ProposalSummaries) MarshalZerologArray(a *zerolog.Array) {
+	for _, p := range o {
+		a.Object(p)
+	}
+}
+
+func (o PaymentSummaries) MarshalZerologArray(a *zerolog.Array) {
+	for _, p := range o {
+		a.Object(p)
+	}
+}
+
+func (r RejectedIds) MarshalZerologArray(a *zerolog.Array) {
+	for _, p := range r {
+		a.Str(p)
+	}
+}
+func (p PaymentSummary) MarshalZerologObject(e *zerolog.Event) {
+	e.Str("ChannelId", p.ChannelId).Uint64("Amount", p.Amount)
+}
+func (o ObjectivePayloadSummary) MarshalZerologObject(e *zerolog.Event) {
+	e.Str("ObjectiveId", o.ObjectiveId).Str("Type", o.Type).Uint("PayloadDataSize", uint(o.PayloadDataSize))
+}
+func (o ProposalSummary) MarshalZerologObject(e *zerolog.Event) {
+	e.Str("ObjectiveId", o.ObjectiveId).Str("LedgerId", o.LedgerId).Str("ProposalType", o.ProposalType).Uint64("TurnNum", o.TurnNum)
 }
