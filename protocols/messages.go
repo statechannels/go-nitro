@@ -211,10 +211,10 @@ type PaymentSummaries []PaymentSummary
 
 func (m MessageSummary) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("To", m.To).
-		Array("PayloadSummaries", ObjectivePayloadSummaries(m.PayloadSummaries)).
-		Array("ProposalSummaries", ProposalSummaries(m.ProposalSummaries)).
-		Array("Payments", PaymentSummaries(m.Payments)).
-		Array("RejectedObjectives", RejectedIds(m.RejectedObjectives))
+		Array("PayloadSummaries", m.PayloadSummaries).
+		Array("ProposalSummaries", (m.ProposalSummaries)).
+		Array("Payments", m.Payments).
+		Array("RejectedObjectives", m.RejectedObjectives)
 
 }
 func (o ObjectivePayloadSummaries) MarshalZerologArray(a *zerolog.Array) {
