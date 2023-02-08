@@ -76,7 +76,7 @@ contract LedgerFinancingApp is IForceMoveApp {
                 outstandingInterest
             );
         } else {
-            revert('|proof| > 1'); // does it pay to be this terse with revert messages?
+            revert('|proof| > 1'); 
         }
     }
 
