@@ -6,7 +6,7 @@ import './libraries/NitroUtils.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
 // LedgerFinancingApp is a ForceMoveApp that allows a intermediary to earn interest
-// on a deposit. It fuctions as a ConsensusApp with the following additional rule:
+// on a deposit. It functions as a ConsensusApp with the following additional rule:
 //   - the intermediary can unilaterally transition from state n to state n+1,
 //     forcing calculated interest into the intermediary's Outcome allocation
 contract LedgerFinancingApp is IForceMoveApp {
