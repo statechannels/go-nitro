@@ -8,6 +8,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
@@ -39,43 +40,37 @@ func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Lo
 
 	opts := &server.Options{}
 	ns, err := server.NewServer(opts)
-	handleError(err)
+	if err != nil {
+		panic(err)
+	}
 	ns.Start()
 
 	nc, err := nats.Connect(ns.ClientURL())
-	handleError(err)
+	if err != nil {
+		panic(err)
+	}
 
 	rs := &RpcServer{natstrans.NewNatsConnection(nc), ns, nitroClient, chainId, logger}
-	rs.registerHandlers()
+	err = rs.registerHandlers()
+	if err != nil {
+		panic(err)
+	}
+
 	return rs
 }
 
-// registerHandlers registers the handlers for the rpc server
-func (rs *RpcServer) registerHandlers() {
-	err := rs.connection.Subscribe(serde.DirectFundRequestMethod, func(data []byte) []byte {
-
+func subcribeToRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, method serde.RequestMethod, processPayload func(T) U) error {
+	return rs.connection.Subscribe(method, func(data []byte) []byte {
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
-
-		rpcRequest := serde.JsonRpcRequest[directfund.ObjectiveRequest]{}
+		rpcRequest := serde.JsonRpcRequest[T]{}
 		err := json.Unmarshal(data, &rpcRequest)
 		if err != nil {
 			panic("could not unmarshal direct fund objective request")
 		}
+		obj := rpcRequest.Params
+		objResponse := processPayload(obj)
 
-		// todo: objective request is redefined so that it has a valid objectiveStarted channel.
-		// 	Should find a better way to accomplish this.
-		objectiveRequestWithChan := directfund.NewObjectiveRequest(
-			rpcRequest.Params.CounterParty,
-			rpcRequest.Params.ChallengeDuration,
-			rpcRequest.Params.Outcome,
-			rpcRequest.Params.Nonce,
-			rpcRequest.Params.AppDefinition,
-		)
-
-		rs.client.IncomingObjectiveRequests() <- objectiveRequestWithChan
-
-		objRes := rpcRequest.Params.Response(*rs.client.Address, rs.chainId)
-		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objRes)
+		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objResponse)
 		messageData, err := json.Marshal(msg)
 		if err != nil {
 			panic("Could not marshal direct fund response message")
@@ -83,134 +78,46 @@ func (rs *RpcServer) registerHandlers() {
 
 		return messageData
 	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = rs.connection.Subscribe(serde.DirectDefundRequestMethod, func(data []byte) []byte {
-		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
-
-		rpcRequest := serde.JsonRpcRequest[directdefund.ObjectiveRequest]{}
-		err := json.Unmarshal(data, &rpcRequest)
-		if err != nil {
-			panic("could not unmarshal direct fund objective request")
-		}
-
-		// todo: objective request is redefined so that it has a valid objectiveStarted channel.
-		// 	Should find a better way to accomplish this.
-		objectiveRequestWithChan := directdefund.NewObjectiveRequest(
-			rpcRequest.Params.ChannelId,
-		)
-
-		rs.client.IncomingObjectiveRequests() <- objectiveRequestWithChan
-
-		objRes := rpcRequest.Params.Id(*rs.client.Address, rs.chainId)
-		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objRes)
-		messageData, err := json.Marshal(msg)
-		if err != nil {
-			panic("Could not marshal direct fund response message")
-		}
-
-		return messageData
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = rs.connection.Subscribe(serde.VirtualFundRequestMethod, func(data []byte) []byte {
-
-		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
-
-		rpcRequest := serde.JsonRpcRequest[virtualfund.ObjectiveRequest]{}
-		err := json.Unmarshal(data, &rpcRequest)
-		if err != nil {
-			panic("could not unmarshal virtual fund objective request")
-		}
-
-		// todo: objective request is redefined so that it has a valid objectiveStarted channel.
-		// 	Should find a better way to accomplish this.
-		objectiveRequestWithChan := virtualfund.NewObjectiveRequest(
-			rpcRequest.Params.Intermediaries,
-			rpcRequest.Params.CounterParty,
-			rpcRequest.Params.ChallengeDuration,
-			rpcRequest.Params.Outcome,
-			rpcRequest.Params.Nonce,
-			rpcRequest.Params.AppDefinition,
-		)
-
-		rs.client.IncomingObjectiveRequests() <- objectiveRequestWithChan
-
-		objRes := rpcRequest.Params.Response(*rs.client.Address)
-		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objRes)
-		messageData, err := json.Marshal(msg)
-		if err != nil {
-			panic("Could not marshal direct fund response message")
-		}
-
-		return messageData
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = rs.connection.Subscribe(serde.VirtualDefundRequestMethod, func(data []byte) []byte {
-		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
-
-		rpcRequest := serde.JsonRpcRequest[virtualdefund.ObjectiveRequest]{}
-		err := json.Unmarshal(data, &rpcRequest)
-		if err != nil {
-			panic("could not unmarshal virtual defund objective request")
-		}
-
-		// todo: objective request is redefined so that it has a valid objectiveStarted channel.
-		// 	Should find a better way to accomplish this.
-		objectiveRequestWithChan := virtualdefund.NewObjectiveRequest(
-			rpcRequest.Params.ChannelId,
-		)
-
-		rs.client.IncomingObjectiveRequests() <- objectiveRequestWithChan
-
-		objRes := rpcRequest.Params.Id(*rs.client.Address, rs.chainId)
-		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objRes)
-		messageData, err := json.Marshal(msg)
-		if err != nil {
-			panic("Could not marshal direct fund response message")
-		}
-
-		return messageData
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = rs.connection.Subscribe(serde.PayRequestMethod, func(data []byte) []byte {
-		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
-
-		rpcRequest := serde.JsonRpcRequest[serde.PaymentRequest]{}
-		err := json.Unmarshal(data, &rpcRequest)
-		if err != nil {
-			panic("could not unmarshal pay objective request")
-		}
-
-		rs.client.Pay(rpcRequest.Params.Channel, big.NewInt(int64(rpcRequest.Params.Amount)))
-
-		// TODO: What should we return here? A voucher?
-		msg := serde.NewJsonRpcResponse(rpcRequest.Id, rpcRequest.Params)
-		messageData, err := json.Marshal(msg)
-		if err != nil {
-			panic("Could not marshal pay response message")
-		}
-
-		return messageData
-	})
-	if err != nil {
-		panic(err)
-	}
 }
 
-// handleError "handles" an error by panicking
-func handleError(err error) {
+// registerHandlers registers the handlers for the rpc server
+func (rs *RpcServer) registerHandlers() error {
+	err := subcribeToRequest(rs, serde.DirectFundRequestMethod, func(obj directfund.ObjectiveRequest) directfund.ObjectiveResponse {
+		return rs.client.CreateLedgerChannel(obj.CounterParty, obj.ChallengeDuration, obj.Outcome)
+	})
+
 	if err != nil {
-		panic(err)
+		return err
 	}
+
+	err = subcribeToRequest(rs, serde.DirectDefundRequestMethod, func(obj directdefund.ObjectiveRequest) protocols.ObjectiveId {
+		return rs.client.CloseLedgerChannel(obj.ChannelId)
+	})
+
+	if err != nil {
+		return err
+	}
+
+	err = subcribeToRequest(rs, serde.VirtualFundRequestMethod, func(obj virtualfund.ObjectiveRequest) virtualfund.ObjectiveResponse {
+		return rs.client.CreateVirtualPaymentChannel(obj.Intermediaries, obj.CounterParty, obj.ChallengeDuration, obj.Outcome)
+	})
+
+	if err != nil {
+		return err
+	}
+
+	err = subcribeToRequest(rs, serde.VirtualDefundRequestMethod, func(obj virtualdefund.ObjectiveRequest) protocols.ObjectiveId {
+		return rs.client.CloseVirtualChannel(obj.ChannelId)
+	})
+
+	if err != nil {
+		return err
+	}
+
+	err = subcribeToRequest(rs, serde.PayRequestMethod, func(payReq serde.PaymentRequest) serde.PaymentRequest {
+		rs.client.Pay(payReq.Channel, big.NewInt(int64(payReq.Amount)))
+		return payReq
+	})
+
+	return err
 }

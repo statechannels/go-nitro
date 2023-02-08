@@ -33,7 +33,9 @@ type RpcClient struct {
 // NewRpcClient creates a new RpcClient
 func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int, logger zerolog.Logger) *RpcClient {
 	nc, err := nats.Connect(rpcServerUrl)
-	handleError(err)
+	if err != nil {
+		panic(err)
+	}
 	con := natstrans.NewNatsConnection(nc)
 	c := &RpcClient{con, myAddress, chainId, logger}
 	return c
