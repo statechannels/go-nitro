@@ -53,6 +53,6 @@ func TestUnmarshalJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	if diff := cmp.Diff(someRequest, got, cmpopts.IgnoreUnexported(directfund.ObjectiveRequest{})); diff != "" {
-		t.Fatalf("TestCrank: side effects mismatch (-want +got):\n%s", diff)
+		t.Fatalf("TestUnmarshalJSON: mismatch (-want +got):\n%s", diff)
 	}
 }
