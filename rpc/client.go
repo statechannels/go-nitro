@@ -35,7 +35,6 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int
 	nc, err := nats.Connect(rpcServerUrl)
 	handleError(err)
 	con := natstrans.NewNatsConnection(nc)
-
 	c := &RpcClient{con, myAddress, chainId, logger}
 	return c
 }
@@ -47,7 +46,7 @@ func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty 
 		counterparty,
 		100,
 		outcome,
-		uint64(rand.Float64()), // TODO: Since numeric fields get converted to a float64 in transit we need to prevent overflow
+		rand.Uint64(),
 		common.Address{})
 
 	return waitForRequest[virtualfund.ObjectiveRequest, virtualfund.ObjectiveResponse](rc, objReq)
@@ -67,7 +66,7 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 		counterparty,
 		100,
 		outcome,
-		uint64(rand.Float64()), // TODO: Since numeric fields get converted to a float64 in transit we need to prevent overflow
+		rand.Uint64(),
 		common.Address{})
 
 	return waitForRequest[directfund.ObjectiveRequest, directfund.ObjectiveResponse](rc, objReq)
