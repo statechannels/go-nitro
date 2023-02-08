@@ -66,7 +66,7 @@ contract LedgerFinancingApp is IForceMoveApp {
                 'turn(candidate) != turn(proof)+1'
             );
 
-            Funds memory outstandingInterest = getOutstandingInterest(
+            Funds memory outstandingInterest = computeOutstandingInterest(
                 abi.decode(proof[0].variablePart.appData, (InterestAppData))
             );
             requireOutcomeIsEarned(
@@ -83,7 +83,7 @@ contract LedgerFinancingApp is IForceMoveApp {
     //  - the latest consensus principal
     //  - the channel's interest rate
     //  - the time elapsed since the last principal adjustment
-    function getOutstandingInterest(InterestAppData memory appData)
+    function computeOutstandingInterest(InterestAppData memory appData)
         private
         view
         returns (Funds memory)
