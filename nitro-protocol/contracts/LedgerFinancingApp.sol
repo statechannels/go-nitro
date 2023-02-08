@@ -39,15 +39,14 @@ contract LedgerFinancingApp is IForceMoveApp {
     }
 
     function requireStateSupported(
-        FixedPart calldata fixedPart,
+        FixedPart calldata,
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
     ) external view override {
         if (proof.length == 0) {
             // unanimous consensus check
             require(
-                NitroUtils.getClaimedSignersNum(candidate.signedBy) ==
-                    fixedPart.participants.length,
+                NitroUtils.getClaimedSignersNum(candidate.signedBy) == 2,
                 '!unanimous; |proof|=0'
             );
             return;
