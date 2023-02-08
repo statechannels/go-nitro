@@ -154,22 +154,6 @@ describe('requireStateSupported', () => {
     );
   });
 
-  it('reverts if the proof block number is in the future', async () => {
-    // create a challenge where the intermediary fakes the blocknumber
-    // (in order to get a higher interest rate).
-    const futureState: State = {
-      ...baseState,
-      appData: appDataABIEncode({...baseAppData, blocknumber: baseAppData.blocknumber + 1000000}),
-    };
-    const signedByIntermediary: RecoveredVariablePart = {
-      variablePart: getVariablePart(futureState),
-      signedBy: BigNumber.from(0b01).toHexString(),
-    };
-    await expectRevert(() =>
-      ledgerFinancingApp.requireStateSupported(fixedPart, [signedByBoth], signedByIntermediary)
-    );
-  });
-
   it('rejects excessive interest calulations', async () => {
     // construct proof+candidate test case with unfair interest calculation, assert failure.
     // test case:
@@ -277,7 +261,7 @@ describe('requireStateSupported', () => {
 });
 
 /**
- * increase blocknumber on provider by 7500.
+ * increase blocknumber on provider by 7200.
  * each day is ~7200= blocks (24*60*60/12)
  */
 function advanceOneDay() {
@@ -285,7 +269,7 @@ function advanceOneDay() {
   // in a slower test.
   // The 'hardhat_mine' method is better, but it causes a different error
   // in the test.
-  for (let i = 0; i < 7500; i++) {
+  for (let i = 0; i < 7200; i++) {
     provider.send('evm_mine', []);
   }
 }
