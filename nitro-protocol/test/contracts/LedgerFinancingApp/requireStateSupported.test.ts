@@ -176,7 +176,7 @@ describe('requireStateSupported', () => {
     //  - the appData's interest rate is 1% per day
     //  - the initial outcome is 500:500
     //  - the chain is advanced by 1 day
-    //  - challenge outcome is 506:495. Fraud!
+    //  - challenge outcome is 506:494. Fraud!
 
     const currentBlockNumber = await provider.getBlockNumber();
     const supportproofAppData = {
