@@ -15,7 +15,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
-	"github.com/statechannels/go-nitro/rpc/transport/nats/wss"
+	"github.com/statechannels/go-nitro/rpc/transport/wss"
 )
 
 // RpcServer handles nitro rpc requests and executes them on the nitro client
