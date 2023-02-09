@@ -21,7 +21,7 @@ import (
 
 // RpcServer handles nitro rpc requests and executes them on the nitro client
 type RpcServer struct {
-	connection transport.Connection
+	connection transport.Subscriber
 	ns         *server.Server
 	client     *nitro.Client
 	chainId    *big.Int
