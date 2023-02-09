@@ -10,7 +10,7 @@ import (
 )
 
 type webSocketConnection struct {
-	createLedgerChannelConnection *websocket.Conn // we will have one connection per method initially, and look to combine them later on.
+	*websocket.Conn
 }
 
 func NewWebSocketConnectionAsClient(url string) *webSocketConnection {
@@ -19,6 +19,7 @@ func NewWebSocketConnectionAsClient(url string) *webSocketConnection {
 		log.Fatal("dial:", err)
 	}
 	defer c.Close()
+
 	return &webSocketConnection{c}
 }
 
@@ -33,7 +34,7 @@ func NewWebSocketConnectionAsServer(port string) *webSocketConnection {
 			log.Print("upgrade:", err)
 			return
 		}
-		wsc.createLedgerChannelConnection = c
+		wsc.Conn = c
 	}
 
 	http.HandleFunc("/wss", handshaker)
@@ -43,17 +44,30 @@ func NewWebSocketConnectionAsServer(port string) *webSocketConnection {
 }
 
 func (c *webSocketConnection) Request(method serde.RequestMethod, data []byte) ([]byte, error) {
-	if c.createLedgerChannelConnection == nil {
+	if c == nil {
 		return []byte{}, errors.New("No websocket connection yet (not yet connected to server)")
 	}
+	var prefix byte
 	switch method {
 	case serde.DirectFundRequestMethod:
-		err := c.createLedgerChannelConnection.WriteMessage(websocket.TextMessage, data)
-		if err != nil {
-			log.Fatal(err)
-		}
+		prefix = 0
+	case serde.DirectDefundRequestMethod:
+		prefix = 1
+	case serde.VirtualFundRequestMethod:
+		prefix = 2
+	case serde.VirtualDefundRequestMethod:
+		prefix = 3
+	case serde.PayRequestMethod:
+		prefix = 4
 	default:
 		panic("unimplemented!")
+	}
+
+	data = append([]byte{prefix}, data...)
+
+	err := c.WriteMessage(websocket.TextMessage, data)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	return []byte{}, nil // TODO grab the "return value" of this message / request and return it
@@ -64,7 +78,7 @@ func (c *webSocketConnection) Request(method serde.RequestMethod, data []byte) (
 // It returns an error if the subscription fails
 // The handler processes the incoming data and returns the response data
 func (c *webSocketConnection) Subscribe(topic serde.RequestMethod, handler func([]byte) []byte) error {
-	if c.createLedgerChannelConnection == nil {
+	if c == nil {
 		return errors.New("No websocket connection yet (client not yet connected)")
 	}
 
@@ -74,17 +88,36 @@ func (c *webSocketConnection) Subscribe(topic serde.RequestMethod, handler func(
 			var message []byte
 			var err error
 			var mt int
-			switch topic {
-			case serde.DirectFundRequestMethod:
-				mt, message, err = c.createLedgerChannelConnection.ReadMessage()
-			default:
-				panic("unimplemented")
-			}
+			mt, message, err = c.ReadMessage()
+
 			if err != nil {
 				log.Println(err)
 			}
+			switch message[0] {
+			case 0:
+				if topic != serde.DirectFundRequestMethod {
+					continue
+				}
+			case 1:
+				if topic != serde.DirectDefundRequestMethod {
+					continue
+				}
+			case 2:
+				if topic != serde.VirtualFundRequestMethod {
+					continue
+				}
+			case 3:
+				if topic != serde.VirtualDefundRequestMethod {
+					continue
+				}
+			case 4:
+				if topic != serde.PayRequestMethod {
+					continue
+				}
+
+			}
 			if mt == websocket.TextMessage {
-				handler(message)
+				handler(message[1:])
 			}
 		}
 	}
@@ -93,5 +126,5 @@ func (c *webSocketConnection) Subscribe(topic serde.RequestMethod, handler func(
 }
 
 func (c *webSocketConnection) Close() {
-	c.createLedgerChannelConnection.Close() // TODO there is probably a more graceful protocol https://github.com/fasthttp/websocket/blob/master/_examples/echo/client.go
+	c.Close() // TODO there is probably a more graceful protocol https://github.com/fasthttp/websocket/blob/master/_examples/echo/client.go
 }
