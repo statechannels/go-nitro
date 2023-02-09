@@ -24,7 +24,7 @@ import (
 
 // RpcClient is a client for making nitro rpc calls
 type RpcClient struct {
-	connection transport.Connection
+	connection transport.Requester
 	myAddress  types.Address
 	chainId    *big.Int
 	logger     zerolog.Logger
