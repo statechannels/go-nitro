@@ -120,10 +120,9 @@ func (c *webSocketConnection) Subscribe(topic serde.RequestMethod, handler func(
 				if topic != serde.PayRequestMethod {
 					continue
 				}
-
 			}
 			if mt == websocket.TextMessage {
-				handler(message[1:])
+				handler(message[1:]) // strip off prefix
 			}
 		}
 	}
