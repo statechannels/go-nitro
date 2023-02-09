@@ -55,7 +55,7 @@ func TestRpcClient(t *testing.T) {
 	defer msgB.Close()
 	defer msgI.Close()
 
-	rpcServerA := rpc.NewRpcServer(&clientA, chainId, createLogger(logDestination, "alice", "server"))
+	rpcServerA := rpc.NewRpcServer("4005", &clientA, chainId, createLogger(logDestination, "alice", "server"))
 	rpcClientA := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), chainId, createLogger(logDestination, "alice", "client"))
 	defer rpcServerA.Close()
 	defer rpcClientA.Close()
