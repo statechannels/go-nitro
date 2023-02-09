@@ -69,7 +69,7 @@ contract LedgerFinancingApp is IForceMoveApp {
             Funds memory outstandingInterest = computeOutstandingInterest(
                 abi.decode(proof[0].variablePart.appData, (InterestAppData))
             );
-            requireOutcomeIsEarned(
+            requireFairOutcomeAdjustment(
                 proof[0].variablePart.outcome,
                 candidate.variablePart.outcome,
                 outstandingInterest
@@ -108,7 +108,7 @@ contract LedgerFinancingApp is IForceMoveApp {
     }
 
     // Ensures that the given outcome does not unfairly allocate to the intermediary.
-    function requireOutcomeIsEarned(
+    function requireFairOutcomeAdjustment(
         Outcome.SingleAssetExit[] memory initialOutcome,
         Outcome.SingleAssetExit[] memory finalOutcome,
         Funds memory outstandingInterest
