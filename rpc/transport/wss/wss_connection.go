@@ -3,6 +3,7 @@ package wss
 import (
 	"errors"
 	"log"
+	"net"
 	"net/http"
 
 	"github.com/fasthttp/websocket"
@@ -18,8 +19,6 @@ func NewWebSocketConnectionAsClient(url string) (*webSocketConnection, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer c.Close()
-
 	return &webSocketConnection{c}, nil
 }
 
@@ -38,7 +37,11 @@ func NewWebSocketConnectionAsServer(port string) *webSocketConnection {
 	}
 
 	http.HandleFunc("/wss", handshaker)
-	go http.ListenAndServe(port, nil)
+	l, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		panic(err)
+	}
+	go http.Serve(l, nil)
 	return wsc
 
 }
@@ -92,6 +95,9 @@ func (c *webSocketConnection) Subscribe(topic serde.RequestMethod, handler func(
 
 			if err != nil {
 				log.Println(err)
+			}
+			if len(message) < 1 {
+				continue // not sure why we would hit this
 			}
 			switch message[0] {
 			case 0:
