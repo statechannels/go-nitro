@@ -13,14 +13,14 @@ type webSocketConnection struct {
 	*websocket.Conn
 }
 
-func NewWebSocketConnectionAsClient(url string) *webSocketConnection {
-	c, _, err := websocket.DefaultDialer.Dial(url, nil)
+func NewWebSocketConnectionAsClient(url string) (*webSocketConnection, error) {
+	c, _, err := websocket.DefaultDialer.Dial(url+"/wss", nil)
 	if err != nil {
-		log.Fatal("dial:", err)
+		return nil, err
 	}
 	defer c.Close()
 
-	return &webSocketConnection{c}
+	return &webSocketConnection{c}, nil
 }
 
 func NewWebSocketConnectionAsServer(port string) *webSocketConnection {

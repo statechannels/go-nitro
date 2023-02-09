@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/nats-io/nats-server/v2/server"
-	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/protocols"
@@ -15,20 +14,20 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
-	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
+	"github.com/statechannels/go-nitro/rpc/transport/nats/wss"
 )
 
 // RpcServer handles nitro rpc requests and executes them on the nitro client
 type RpcServer struct {
 	connection transport.Subscriber
-	ns         *server.Server
+	ns         *server.Server // TODO we don't want this nats-specific thing in here
 	client     *nitro.Client
 	chainId    *big.Int
 	logger     zerolog.Logger
 }
 
 func (rs *RpcServer) Url() string {
-	return rs.ns.ClientURL()
+	return "127.0.0.1:1234"
 }
 
 func (rs *RpcServer) Close() {
@@ -38,20 +37,10 @@ func (rs *RpcServer) Close() {
 
 func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Logger) *RpcServer {
 
-	opts := &server.Options{}
-	ns, err := server.NewServer(opts)
-	if err != nil {
-		panic(err)
-	}
-	ns.Start()
+	ws := wss.NewWebSocketConnectionAsServer("1234")
 
-	nc, err := nats.Connect(ns.ClientURL())
-	if err != nil {
-		panic(err)
-	}
-
-	rs := &RpcServer{natstrans.NewNatsConnection(nc), ns, nitroClient, chainId, logger}
-	err = rs.registerHandlers()
+	rs := &RpcServer{ws, nil, nitroClient, chainId, logger}
+	err := rs.registerHandlers()
 	if err != nil {
 		panic(err)
 	}
