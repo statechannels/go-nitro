@@ -16,7 +16,7 @@ import (
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
 
-	"github.com/statechannels/go-nitro/rpc/transport/nats/wss"
+	"github.com/statechannels/go-nitro/rpc/transport/wss"
 	"github.com/statechannels/go-nitro/types"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
