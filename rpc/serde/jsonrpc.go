@@ -19,6 +19,12 @@ const (
 	PayRequestMethod           RequestMethod = "pay"
 )
 
+type NotificationMethod string
+
+const (
+	ObjectiveCompleted NotificationMethod = "objective_completed"
+)
+
 const JsonRpcVersion = "2.0"
 
 type PaymentRequest struct {

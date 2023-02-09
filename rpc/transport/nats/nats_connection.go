@@ -50,6 +50,19 @@ func (c *natsConnection) Respond(topic serde.RequestMethod, handler func([]byte)
 	return err
 }
 
+func (c *natsConnection) Notify(topic serde.NotificationMethod, data []byte) error {
+	return c.nc.Publish(methodToTopic(topic), data)
+}
+
+func (c *natsConnection) Subscribe(topic serde.NotificationMethod, handler func([]byte)) error {
+	sub, err := c.nc.Subscribe(methodToTopic(topic), func(msg *nats.Msg) {
+		handler(msg.Data)
+	})
+	c.natsSubscriptions = append(c.natsSubscriptions, sub)
+
+	return err
+}
+
 // Close shuts down the connection
 func (c *natsConnection) Close() {
 	for _, sub := range c.natsSubscriptions {
@@ -68,6 +81,6 @@ func (c *natsConnection) unsubscribeFromTopic(sub *nats.Subscription, try int32)
 	return nil
 }
 
-func methodToTopic(method serde.RequestMethod) string {
+func methodToTopic[T serde.RequestMethod | serde.NotificationMethod](method T) string {
 	return fmt.Sprintf("nitro.%s", method)
 }
