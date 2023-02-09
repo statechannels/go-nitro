@@ -32,9 +32,18 @@ type PaymentRequest struct {
 	Channel types.Destination
 }
 type RequestPayload interface {
-	directfund.ObjectiveRequest | directdefund.ObjectiveRequest | virtualfund.ObjectiveRequest | virtualdefund.ObjectiveRequest | PaymentRequest
+	directfund.ObjectiveRequest |
+		directdefund.ObjectiveRequest |
+		virtualfund.ObjectiveRequest |
+		virtualdefund.ObjectiveRequest |
+		PaymentRequest
 }
-type JsonRpcRequest[T RequestPayload] struct {
+
+type NotificationPayload interface {
+	protocols.ObjectiveId
+}
+
+type JsonRpcRequest[T RequestPayload | NotificationPayload] struct {
 	Jsonrpc string `json:"jsonrpc"`
 	Id      uint64 `json:"id"`
 	Method  string `json:"method"`
@@ -56,7 +65,7 @@ type JsonRpcError struct {
 	Data    interface{} `json:"data"`
 }
 
-func NewJsonRpcRequest[T RequestPayload](requestId uint64, method RequestMethod, objectiveRequest T) *JsonRpcRequest[T] {
+func NewJsonRpcRequest[T RequestPayload | NotificationPayload, U RequestMethod | NotificationMethod](requestId uint64, method U, objectiveRequest T) *JsonRpcRequest[T] {
 
 	return &JsonRpcRequest[T]{
 		Jsonrpc: JsonRpcVersion,

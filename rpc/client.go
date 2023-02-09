@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/json"
 	"math/big"
 	"math/rand"
 
@@ -24,21 +25,26 @@ import (
 
 // RpcClient is a client for making nitro rpc calls
 type RpcClient struct {
-	connection transport.Connection
-	myAddress  types.Address
-	chainId    *big.Int
-	logger     zerolog.Logger
+	connection          transport.Connection
+	myAddress           types.Address
+	chainId             *big.Int
+	logger              zerolog.Logger
+	completedObjectives chan protocols.ObjectiveId
 }
 
 // NewRpcClient creates a new RpcClient
-func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int, logger zerolog.Logger) *RpcClient {
+func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int, logger zerolog.Logger) (*RpcClient, error) {
 	nc, err := nats.Connect(rpcServerUrl)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	con := natstrans.NewNatsConnection(nc)
-	c := &RpcClient{con, myAddress, chainId, logger}
-	return c
+	c := &RpcClient{con, myAddress, chainId, logger, make(chan protocols.ObjectiveId, 100)}
+	err = c.subscribeToNotifications()
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 // CreateLedger creates a new ledger channel
@@ -88,8 +94,24 @@ func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
 	waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, pReq)
 }
 
+func (rc *RpcClient) CompletedObjectives() <-chan protocols.ObjectiveId {
+	return rc.completedObjectives
+}
+
 func (rc *RpcClient) Close() {
 	rc.connection.Close()
+}
+
+func (rc *RpcClient) subscribeToNotifications() error {
+	err := rc.connection.Subscribe(serde.ObjectiveCompleted, func(data []byte) {
+		rpcRequest := serde.JsonRpcRequest[protocols.ObjectiveId]{}
+		err := json.Unmarshal(data, &rpcRequest)
+		if err != nil {
+			panic(err)
+		}
+		rc.completedObjectives <- rpcRequest.Params
+	})
+	return err
 }
 
 func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, requestData T) U {
