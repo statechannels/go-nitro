@@ -107,7 +107,7 @@ func subcribeToRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcS
 		rpcRequest := serde.JsonRpcRequest[T]{}
 		err := json.Unmarshal(data, &rpcRequest)
 		if err != nil {
-			panic("could not unmarshal direct fund objective request")
+			panic("could not unmarshal objective request")
 		}
 		obj := rpcRequest.Params
 		objResponse := processPayload(obj)
@@ -115,7 +115,7 @@ func subcribeToRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcS
 		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objResponse)
 		messageData, err := json.Marshal(msg)
 		if err != nil {
-			panic("Could not marshal direct fund response message")
+			panic("Could not marshal response message")
 		}
 
 		return messageData
