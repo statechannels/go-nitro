@@ -6,7 +6,6 @@ import (
 	"math/rand"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
@@ -17,7 +16,7 @@ import (
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
 
-	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
+	"github.com/statechannels/go-nitro/rpc/transport/nats/wss"
 	"github.com/statechannels/go-nitro/types"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -34,12 +33,12 @@ type RpcClient struct {
 
 // NewRpcClient creates a new RpcClient
 func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int, logger zerolog.Logger) (*RpcClient, error) {
-	nc, err := nats.Connect(rpcServerUrl)
+	wss, err := wss.NewWebSocketConnectionAsClient(rpcServerUrl)
 	if err != nil {
 		return nil, err
 	}
-	con := natstrans.NewNatsConnection(nc)
-	c := &RpcClient{con, myAddress, chainId, logger, make(chan protocols.ObjectiveId, 100)}
+
+	c := &RpcClient{wss, myAddress, chainId, logger}
 	err = c.subscribeToNotifications()
 	if err != nil {
 		return nil, err
