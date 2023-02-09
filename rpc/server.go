@@ -25,10 +25,11 @@ type RpcServer struct {
 	client     *nitro.Client
 	chainId    *big.Int
 	logger     zerolog.Logger
+	port       string
 }
 
 func (rs *RpcServer) Url() string {
-	return "127.0.0.1:1234"
+	return "ws://127.0.0.1:" + rs.port
 }
 
 func (rs *RpcServer) Close() {
@@ -40,7 +41,7 @@ func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Lo
 
 	ws := wss.NewWebSocketConnectionAsServer(string(rpcPort))
 
-	rs := &RpcServer{ws, nil, nitroClient, chainId, logger}
+	rs := &RpcServer{ws, nil, nitroClient, chainId, logger, string(rpcPort)}
 	rs.sendNotifications()
 	err := rs.registerHandlers()
 	if err != nil {
