@@ -102,7 +102,7 @@ func (rs *RpcServer) registerHandlers() error {
 }
 
 func subcribeToRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, method serde.RequestMethod, processPayload func(T) U) error {
-	return rs.connection.Subscribe(method, func(data []byte) []byte {
+	return rs.connection.Respond(method, func(data []byte) []byte {
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
 		rpcRequest := serde.JsonRpcRequest[T]{}
 		err := json.Unmarshal(data, &rpcRequest)

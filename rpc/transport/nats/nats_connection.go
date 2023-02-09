@@ -34,10 +34,10 @@ func (c *natsConnection) Request(topic serde.RequestMethod, data []byte) ([]byte
 	return msg.Data, err
 }
 
-// Subscribe subscribes to a topic and calls the handler function when a message is received
+// Respond subscribes to a topic and calls the handler function when a message is received
 // It returns an error if the subscription fails
 // The handler processes the incoming data and returns the response data
-func (c *natsConnection) Subscribe(topic serde.RequestMethod, handler func([]byte) []byte) error {
+func (c *natsConnection) Respond(topic serde.RequestMethod, handler func([]byte) []byte) error {
 	sub, err := c.nc.Subscribe(methodToTopic(topic), func(msg *nats.Msg) {
 		responseData := handler(msg.Data)
 		err := c.nc.Publish(msg.Reply, responseData)
