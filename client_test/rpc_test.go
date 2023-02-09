@@ -8,6 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/stretchr/testify/assert"
@@ -70,13 +71,7 @@ func TestRpcClient(t *testing.T) {
 	// Quick sanity check that we're getting a valid objective id
 	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
 
-	for objectiveId := range rpcClientA.CompletedObjectives() {
-		if objectiveId == res.Id {
-			break
-		}
-	}
-
-	//waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, res.Id)
+	waitForObjectiveCompletion(rpcClientA, res.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, bobResponse.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, res.Id, bobResponse.Id)
 
@@ -87,18 +82,27 @@ func TestRpcClient(t *testing.T) {
 		testdata.Outcomes.Create(alice.Address(), bob.Address(), 100, 100, types.Address{}))
 
 	assert.Regexp(t, "VirtualFund.0x.*", vRes.Id)
-	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, vRes.Id)
+
+	waitForObjectiveCompletion(rpcClientA, vRes.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, vRes.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, vRes.Id)
 	rpcClientA.Pay(vRes.ChannelId, 1)
 
 	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
-	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, closeVId)
+	waitForObjectiveCompletion(rpcClientA, closeVId)
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, closeVId)
 	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, closeVId)
 
 	closeId := rpcClientA.CloseLedger(res.ChannelId)
-	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, closeId)
+	waitForObjectiveCompletion(rpcClientA, closeId)
 	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, closeId)
 
+}
+
+func waitForObjectiveCompletion(c *rpc.RpcClient, expectedObjectiveId protocols.ObjectiveId) {
+	for receivedObjectiveId := range c.CompletedObjectives() {
+		if expectedObjectiveId == receivedObjectiveId {
+			return
+		}
+	}
 }
