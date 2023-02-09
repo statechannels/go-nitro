@@ -59,27 +59,6 @@ func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Lo
 	return rs
 }
 
-func subcribeToRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, method serde.RequestMethod, processPayload func(T) U) error {
-	return rs.connection.Subscribe(method, func(data []byte) []byte {
-		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
-		rpcRequest := serde.JsonRpcRequest[T]{}
-		err := json.Unmarshal(data, &rpcRequest)
-		if err != nil {
-			panic("could not unmarshal direct fund objective request")
-		}
-		obj := rpcRequest.Params
-		objResponse := processPayload(obj)
-
-		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objResponse)
-		messageData, err := json.Marshal(msg)
-		if err != nil {
-			panic("Could not marshal direct fund response message")
-		}
-
-		return messageData
-	})
-}
-
 // registerHandlers registers the handlers for the rpc server
 func (rs *RpcServer) registerHandlers() error {
 	err := subcribeToRequest(rs, serde.DirectFundRequestMethod, func(obj directfund.ObjectiveRequest) directfund.ObjectiveResponse {
@@ -120,4 +99,25 @@ func (rs *RpcServer) registerHandlers() error {
 	})
 
 	return err
+}
+
+func subcribeToRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, method serde.RequestMethod, processPayload func(T) U) error {
+	return rs.connection.Subscribe(method, func(data []byte) []byte {
+		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
+		rpcRequest := serde.JsonRpcRequest[T]{}
+		err := json.Unmarshal(data, &rpcRequest)
+		if err != nil {
+			panic("could not unmarshal direct fund objective request")
+		}
+		obj := rpcRequest.Params
+		objResponse := processPayload(obj)
+
+		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objResponse)
+		messageData, err := json.Marshal(msg)
+		if err != nil {
+			panic("Could not marshal direct fund response message")
+		}
+
+		return messageData
+	})
 }
