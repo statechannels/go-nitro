@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"math/rand"
 
@@ -39,9 +40,9 @@ func (rs *RpcServer) Close() {
 
 func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Logger, rpcPort int) *RpcServer {
 
-	ws := wss.NewWebSocketConnectionAsServer(string(rpcPort))
+	ws := wss.NewWebSocketConnectionAsServer(fmt.Sprint(rpcPort))
 
-	rs := &RpcServer{ws, nil, nitroClient, chainId, logger, string(rpcPort)}
+	rs := &RpcServer{ws, nil, nitroClient, chainId, logger, fmt.Sprint(rpcPort)}
 	rs.sendNotifications()
 	err := rs.registerHandlers()
 	if err != nil {
