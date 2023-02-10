@@ -164,12 +164,6 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 	}
 }
 
-// fatalError is called to output the error and then panic, killing the chain service.
-// If prints out the error to STDOUT, the logger and then exits the program.
-func (ecs *EthChainService) fatalError(err error) {
-	ecs.fatalF("FATAL ERROR\n%+v", err)
-}
-
 // fatalF is called to output a message and then panic, killing the chain service.
 // It accepts a format string and arguments, as per fmt.Printf.
 // If prints out the error to STDOUT, the logger and then exits the program.
@@ -245,7 +239,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 func (ecs *EthChainService) getCurrentBlockNum() *big.Int {
 	h, err := ecs.chain.HeaderByNumber(context.Background(), nil)
 	if err != nil {
-		ecs.fatalError(err)
+		ecs.fatalF("headerByNumber failed: %w", err)
 	}
 
 	return h.Number
@@ -261,13 +255,13 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 	logs := make(chan ethTypes.Log)
 	sub, err := ecs.chain.SubscribeFilterLogs(ctx, query, logs)
 	if err != nil {
-		ecs.fatalError(err)
+		ecs.fatalF("subscribeFilterLogs failed: %w", err)
 	}
 	for {
 		select {
 		case err := <-sub.Err():
 			if err != nil {
-				ecs.fatalError(err)
+				ecs.fatalF("received error from the subscription channel: %w", err)
 			}
 
 			// If the error is nil then the subscription was closed and we need to re-subscribe.
@@ -275,7 +269,7 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 			var sErr error
 			sub, sErr = ecs.chain.SubscribeFilterLogs(ctx, query, logs)
 			if sErr != nil {
-				ecs.fatalError(err)
+				ecs.fatalF("subscribeFilterLogs failed on resubscribe: %w", err)
 			}
 			ecs.logger.Print("resubscribed to filtered logs")
 
@@ -356,7 +350,7 @@ func (ecs *EthChainService) pollForLogs(ctx context.Context) {
 	toBlock := ecs.getCurrentBlockNum()
 	fetchedLogs, err := ecs.fetchLogsFromChain(big.NewInt(0), toBlock)
 	if err != nil {
-		ecs.fatalError(err)
+		ecs.fatalF("first fetchLogsFromChain failed: %w", err)
 	}
 
 	ecs.dispatchChainEvents(fetchedLogs)
@@ -372,7 +366,7 @@ func (ecs *EthChainService) pollForLogs(ctx context.Context) {
 				toBlock.Set(currentBlock)
 
 				if err != nil {
-					ecs.fatalError(err)
+					ecs.fatalF("fetchLogsFromChain failed: %w", err)
 				}
 
 				ecs.dispatchChainEvents(fetchedLogs)
