@@ -75,17 +75,17 @@ func (c *webSocketConnection) Request(method serde.RequestMethod, data []byte) (
 // It returns an error if the subscription fails
 // The handler processes the incoming data and returns the response data
 func (c *webSocketConnection) Respond(topic serde.RequestMethod, handler func([]byte) []byte) error {
-	if c == nil {
-		return errors.New("No websocket connection yet (client not yet connected)")
-	}
 
 	listen := func() {
 		for {
+			if c.Conn == nil {
+				continue // websocket connection not yet established
+			}
 			var message []byte
 			var mt int
 			mt, message, err := c.ReadMessage()
 			if err != nil {
-				panic(err)
+				panic(err) // Here's our problem.
 			}
 
 			if mt == websocket.TextMessage {
