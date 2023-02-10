@@ -37,9 +37,9 @@ func TestRpc(t *testing.T) {
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 
-	rpcClientA, msgA := setupNitroNodeWithRPCClient(alice.PrivateKey, 3005, 4005, chainServiceA, logDestination)
-	rpcClientB, msgB := setupNitroNodeWithRPCClient(bob.PrivateKey, 3006, 4006, chainServiceB, logDestination)
-	rpcClientI, msgI := setupNitroNodeWithRPCClient(irene.PrivateKey, 3007, 4007, chainServiceI, logDestination)
+	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(alice.PrivateKey, 3005, 4005, chainServiceA, logDestination)
+	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(bob.PrivateKey, 3006, 4006, chainServiceB, logDestination)
+	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(irene.PrivateKey, 3007, 4007, chainServiceI, logDestination)
 
 	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
@@ -51,9 +51,9 @@ func TestRpc(t *testing.T) {
 	msgB.AddPeers(peers)
 	msgI.AddPeers(peers)
 
-	defer msgA.Close()
-	defer msgB.Close()
-	defer msgI.Close()
+	defer cleanupFnA()
+	defer cleanupFnB()
+	defer cleanupFnC()
 
 	defer rpcClientA.Close()
 	defer rpcClientB.Close()
@@ -102,7 +102,7 @@ func setupNitroNodeWithRPCClient(
 	rpcPort int,
 	chain *chainservice.MockChainService,
 	logDestination *os.File,
-) (*rpc.RpcClient, *p2pms.P2PMessageService) {
+) (*rpc.RpcClient, *p2pms.P2PMessageService, func()) {
 	chainId, err := chain.GetChainId()
 	if err != nil {
 		panic(err)
@@ -125,5 +125,10 @@ func setupNitroNodeWithRPCClient(
 	if err != nil {
 		panic(err)
 	}
-	return rpcClient, messageservice
+	cleanupFn := func() {
+		messageservice.Close()
+		rpcClient.Close()
+		rpcServer.Close()
+	}
+	return rpcClient, messageservice, cleanupFn
 }
