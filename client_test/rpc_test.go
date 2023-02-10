@@ -55,10 +55,6 @@ func TestRpc(t *testing.T) {
 	defer cleanupFnB()
 	defer cleanupFnC()
 
-	defer rpcClientA.Close()
-	defer rpcClientB.Close()
-	defer rpcClientI.Close()
-
 	res := rpcClientA.CreateLedger(irene.Address(), 100, testdata.Outcomes.Create(alice.Address(), irene.Address(), 100, 100, types.Address{}))
 	bobResponse := rpcClientB.CreateLedger(irene.Address(), 100, testdata.Outcomes.Create(bob.Address(), irene.Address(), 100, 100, types.Address{}))
 
