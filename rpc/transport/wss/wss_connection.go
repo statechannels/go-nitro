@@ -78,10 +78,10 @@ func (c *webSocketConnection) Request(method serde.RequestMethod, data []byte) (
 
 }
 
-// Subscribe subscribes to a topic and calls the handler function when a message is received
+// Respond subscribes to a topic and calls the handler function when a message is received
 // It returns an error if the subscription fails
 // The handler processes the incoming data and returns the response data
-func (c *webSocketConnection) Subscribe(topic serde.RequestMethod, handler func([]byte) []byte) error {
+func (c *webSocketConnection) Respond(topic serde.RequestMethod, handler func([]byte) []byte) error {
 	if c == nil {
 		return errors.New("No websocket connection yet (client not yet connected)")
 	}
@@ -128,6 +128,14 @@ func (c *webSocketConnection) Subscribe(topic serde.RequestMethod, handler func(
 		}
 	}
 	go listen()
+	return nil
+}
+
+func (c *webSocketConnection) Notify(topic serde.NotificationMethod, data []byte) error {
+	return nil
+}
+
+func (c *webSocketConnection) Subscribe(topic serde.NotificationMethod, handler func([]byte)) error {
 	return nil
 }
 

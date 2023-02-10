@@ -38,7 +38,7 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int
 		return nil, err
 	}
 
-	c := &RpcClient{wss, myAddress, chainId, logger}
+	c := &RpcClient{wss, myAddress, chainId, logger, make(chan protocols.ObjectiveId, 100)}
 	err = c.subscribeToNotifications()
 	if err != nil {
 		return nil, err
