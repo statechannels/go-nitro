@@ -47,6 +47,7 @@ func NewWebSocketConnectionAsServer(port string) *webSocketConnection {
 }
 
 func (c *webSocketConnection) Request(method serde.RequestMethod, data []byte) ([]byte, error) {
+	// TODO longer term, the interface should not contain "method", since "data" contains "method" anyway.
 	if c == nil {
 		return []byte{}, errors.New("No websocket connection yet (not yet connected to server)")
 	}
