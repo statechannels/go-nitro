@@ -127,3 +127,11 @@ func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClie
 
 	return res.Payload
 }
+
+func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId protocols.ObjectiveId) {
+	for receivedObjectiveId := range rc.CompletedObjectives() {
+		if expectedObjectiveId == receivedObjectiveId {
+			return
+		}
+	}
+}
