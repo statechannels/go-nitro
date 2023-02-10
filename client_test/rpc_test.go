@@ -37,9 +37,9 @@ func TestRpc(t *testing.T) {
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 
-	rpcClientA, msgA := setupNitroNodeWithRPCClient(alice.PrivateKey, 3005, chainServiceA, logDestination)
-	rpcClientB, msgB := setupNitroNodeWithRPCClient(bob.PrivateKey, 3006, chainServiceB, logDestination)
-	rpcClientI, msgI := setupNitroNodeWithRPCClient(irene.PrivateKey, 3007, chainServiceI, logDestination)
+	rpcClientA, msgA := setupNitroNodeWithRPCClient(alice.PrivateKey, 3005, 4005, chainServiceA, logDestination)
+	rpcClientB, msgB := setupNitroNodeWithRPCClient(bob.PrivateKey, 3006, 4006, chainServiceB, logDestination)
+	rpcClientI, msgI := setupNitroNodeWithRPCClient(irene.PrivateKey, 3007, 4007, chainServiceI, logDestination)
 
 	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
@@ -99,6 +99,7 @@ func TestRpc(t *testing.T) {
 func setupNitroNodeWithRPCClient(
 	pk []byte,
 	msgPort int,
+	rpcPort int,
 	chain *chainservice.MockChainService,
 	logDestination *os.File,
 ) (*rpc.RpcClient, *p2pms.P2PMessageService) {
@@ -118,7 +119,8 @@ func setupNitroNodeWithRPCClient(
 	rpcServer := rpc.NewRpcServer(
 		&node,
 		chainId,
-		createLogger(logDestination, node.Address.Hex(), "server"))
+		createLogger(logDestination, node.Address.Hex(), "server"),
+		rpcPort)
 	rpcClient, err := rpc.NewRpcClient(rpcServer.Url(), alice.Address(), chainId, createLogger(logDestination, node.Address.Hex(), "client"))
 	if err != nil {
 		panic(err)
