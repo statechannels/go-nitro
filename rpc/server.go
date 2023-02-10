@@ -37,9 +37,9 @@ func (rs *RpcServer) Close() {
 	rs.ns.Shutdown()
 }
 
-func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Logger) *RpcServer {
+func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Logger, rpcPort int) *RpcServer {
 
-	opts := &server.Options{}
+	opts := &server.Options{Port: rpcPort}
 	ns, err := server.NewServer(opts)
 	if err != nil {
 		panic(err)

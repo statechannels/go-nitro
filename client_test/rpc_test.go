@@ -5,8 +5,11 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/client"
+	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
+	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/types"
@@ -24,7 +27,7 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 		Logger()
 }
 
-func TestRpcClient(t *testing.T) {
+func TestRpc(t *testing.T) {
 	logFile := "test_rpc_client.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
@@ -32,15 +35,12 @@ func TestRpcClient(t *testing.T) {
 	chain := chainservice.NewMockChain()
 	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
-	chainId, err := chainServiceA.GetChainId()
-	if err != nil {
-		t.Fatal(err)
-	}
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 
-	clientA, msgA := setupClientWithP2PMessageService(alice.PrivateKey, 3005, chainServiceA, logDestination)
-	clientB, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, logDestination)
-	clientI, msgI := setupClientWithP2PMessageService(irene.PrivateKey, 3007, chainServiceI, logDestination)
+	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(alice.PrivateKey, 3005, 4005, chainServiceA, logDestination)
+	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(bob.PrivateKey, 3006, 4006, chainServiceB, logDestination)
+	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(irene.PrivateKey, 3007, 4007, chainServiceI, logDestination)
+
 	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
 		{Id: msgB.Id(), IpAddress: "127.0.0.1", Port: 3006, Address: bob.Address()},
@@ -51,28 +51,20 @@ func TestRpcClient(t *testing.T) {
 	msgB.AddPeers(peers)
 	msgI.AddPeers(peers)
 
-	defer msgA.Close()
-	defer msgB.Close()
-	defer msgI.Close()
-
-	rpcServerA := rpc.NewRpcServer(&clientA, chainId, createLogger(logDestination, "alice", "server"))
-	rpcClientA, err := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), chainId, createLogger(logDestination, "alice", "client"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer rpcServerA.Close()
-	defer rpcClientA.Close()
+	defer cleanupFnA()
+	defer cleanupFnB()
+	defer cleanupFnC()
 
 	res := rpcClientA.CreateLedger(irene.Address(), 100, testdata.Outcomes.Create(alice.Address(), irene.Address(), 100, 100, types.Address{}))
-	bobResponse := clientB.CreateLedgerChannel(irene.Address(), 100, testdata.Outcomes.Create(bob.Address(), irene.Address(), 100, 100, types.Address{}))
+	bobResponse := rpcClientB.CreateLedger(irene.Address(), 100, testdata.Outcomes.Create(bob.Address(), irene.Address(), 100, 100, types.Address{}))
 
 	// Quick sanity check that we're getting a valid objective id
 	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
 
 	rpcClientA.WaitForObjectiveCompletion(res.Id)
-	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, bobResponse.Id)
-	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, res.Id, bobResponse.Id)
+	rpcClientB.WaitForObjectiveCompletion(bobResponse.Id)
+	rpcClientI.WaitForObjectiveCompletion(res.Id)
+	rpcClientI.WaitForObjectiveCompletion(bobResponse.Id)
 
 	vRes := rpcClientA.CreateVirtual(
 		[]types.Address{irene.Address()},
@@ -83,18 +75,56 @@ func TestRpcClient(t *testing.T) {
 	assert.Regexp(t, "VirtualFund.0x.*", vRes.Id)
 
 	rpcClientA.WaitForObjectiveCompletion(vRes.Id)
-	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, vRes.Id)
-	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, vRes.Id)
+	rpcClientB.WaitForObjectiveCompletion(vRes.Id)
+	rpcClientI.WaitForObjectiveCompletion(vRes.Id)
+
 	rpcClientA.Pay(vRes.ChannelId, 1)
 
 	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
 	rpcClientA.WaitForObjectiveCompletion(closeVId)
-	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, closeVId)
-	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, closeVId)
+	rpcClientB.WaitForObjectiveCompletion(closeVId)
+	rpcClientI.WaitForObjectiveCompletion(closeVId)
 
 	closeId := rpcClientA.CloseLedger(res.ChannelId)
-
 	rpcClientA.WaitForObjectiveCompletion(closeId)
-	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, closeId)
+	rpcClientI.WaitForObjectiveCompletion(closeId)
 
+}
+
+// setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
+func setupNitroNodeWithRPCClient(
+	pk []byte,
+	msgPort int,
+	rpcPort int,
+	chain *chainservice.MockChainService,
+	logDestination *os.File,
+) (*rpc.RpcClient, *p2pms.P2PMessageService, func()) {
+	chainId, err := chain.GetChainId()
+	if err != nil {
+		panic(err)
+	}
+	messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, pk)
+	storeA := store.NewMemStore(pk)
+	node := client.New(
+		messageservice,
+		chain,
+		storeA,
+		logDestination,
+		&engine.PermissivePolicy{},
+		nil)
+	rpcServer := rpc.NewRpcServer(
+		&node,
+		chainId,
+		createLogger(logDestination, node.Address.Hex(), "server"),
+		rpcPort)
+	rpcClient, err := rpc.NewRpcClient(rpcServer.Url(), alice.Address(), chainId, createLogger(logDestination, node.Address.Hex(), "client"))
+	if err != nil {
+		panic(err)
+	}
+	cleanupFn := func() {
+		messageservice.Close()
+		rpcClient.Close()
+		rpcServer.Close()
+	}
+	return rpcClient, messageservice, cleanupFn
 }
