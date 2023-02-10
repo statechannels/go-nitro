@@ -1,6 +1,7 @@
 package wss
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"net"
@@ -41,41 +42,33 @@ func NewWebSocketConnectionAsServer(port string) *webSocketConnection {
 	if err != nil {
 		panic(err)
 	}
-	go http.Serve(l, nil)
+	go func() {
+		err := http.Serve(l, nil)
+		if err != nil {
+			panic(err)
+		}
+	}()
 	return wsc
 
 }
 
 func (c *webSocketConnection) Request(method serde.RequestMethod, data []byte) ([]byte, error) {
-	// TODO longer term, the interface should not contain "method", since "data" contains "method" anyway.
-	if c == nil {
-		return []byte{}, errors.New("No websocket connection yet (not yet connected to server)")
-	}
-	var prefix byte
-	switch method {
-	case serde.DirectFundRequestMethod:
-		prefix = 0
-	case serde.DirectDefundRequestMethod:
-		prefix = 1
-	case serde.VirtualFundRequestMethod:
-		prefix = 2
-	case serde.VirtualDefundRequestMethod:
-		prefix = 3
-	case serde.PayRequestMethod:
-		prefix = 4
-	default:
-		panic("unimplemented!")
-	}
-
-	data = append([]byte{prefix}, data...)
-
-	err := c.WriteMessage(websocket.TextMessage, data)
+	jsonRequest := serde.JsonRpcRequestAny[serde.RequestMethod]{}
+	err := json.Unmarshal(data, &jsonRequest)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
+	}
+	responseChan := make(chan []byte, 1)
+	go func() {
+		responseChan <- c.listenForResponse(jsonRequest.Id)
+	}()
+
+	err = send(c, method, data)
+	if err != nil {
+		return nil, err
 	}
 
-	return []byte{}, nil // TODO grab the "return value" of this message / request and return it
-
+	return <-responseChan, nil
 }
 
 // Respond subscribes to a topic and calls the handler function when a message is received
@@ -87,43 +80,29 @@ func (c *webSocketConnection) Respond(topic serde.RequestMethod, handler func([]
 	}
 
 	listen := func() {
-
 		for {
 			var message []byte
-			var err error
 			var mt int
-			mt, message, err = c.ReadMessage()
-
+			mt, message, err := c.ReadMessage()
 			if err != nil {
-				log.Println(err)
+				panic(err)
 			}
-			if len(message) < 1 {
-				continue // not sure why we would hit this
-			}
-			switch message[0] {
-			case 0:
-				if topic != serde.DirectFundRequestMethod {
-					continue
-				}
-			case 1:
-				if topic != serde.DirectDefundRequestMethod {
-					continue
-				}
-			case 2:
-				if topic != serde.VirtualFundRequestMethod {
-					continue
-				}
-			case 3:
-				if topic != serde.VirtualDefundRequestMethod {
-					continue
-				}
-			case 4:
-				if topic != serde.PayRequestMethod {
-					continue
-				}
-			}
+
 			if mt == websocket.TextMessage {
-				handler(message[1:]) // strip off prefix
+				jsonRpc := serde.JsonRpcRequestAny[serde.RequestMethod]{}
+				err := json.Unmarshal(message, &jsonRpc)
+				if err != nil {
+					panic(err)
+				}
+
+				if jsonRpc.Method == topic {
+					response := handler(message)
+					err = send(c, topic, response)
+					if err != nil {
+						panic(err)
+					}
+					return
+				}
 			}
 		}
 	}
@@ -132,13 +111,73 @@ func (c *webSocketConnection) Respond(topic serde.RequestMethod, handler func([]
 }
 
 func (c *webSocketConnection) Notify(topic serde.NotificationMethod, data []byte) error {
-	return nil
+	return send(c, topic, data)
+
 }
 
 func (c *webSocketConnection) Subscribe(topic serde.NotificationMethod, handler func([]byte)) error {
+	if c == nil {
+		return errors.New("No websocket connection yet (client not yet connected)")
+	}
+
+	listen := func() {
+		for {
+			var message []byte
+			var mt int
+			mt, message, err := c.ReadMessage()
+			if err != nil {
+				panic(err)
+			}
+
+			if mt == websocket.TextMessage {
+				jsonRpc := serde.JsonRpcRequestAny[serde.NotificationMethod]{}
+				err := json.Unmarshal(message, &jsonRpc)
+				if err != nil {
+					panic(err)
+				}
+
+				if jsonRpc.Method == topic {
+					handler(message)
+				}
+			}
+		}
+	}
+	go listen()
 	return nil
 }
 
+func send[T serde.NotificationOrRequest](c *webSocketConnection, method T, data []byte) error {
+	// TODO longer term, the interface should not contain "method", since "data" contains "method" anyway.
+	if c == nil {
+		return errors.New("No websocket connection yet (not yet connected to server)")
+	}
+
+	return c.WriteMessage(websocket.TextMessage, data)
+}
+
+func (c *webSocketConnection) listenForResponse(id uint64) []byte {
+	for {
+		var message []byte
+		var mt int
+		mt, message, err := c.ReadMessage()
+		if err != nil {
+			panic(err)
+		}
+
+		if mt == websocket.TextMessage {
+			jsonRpc := serde.JsonRpcResponseAny{}
+			err := json.Unmarshal(message, &jsonRpc)
+			if err != nil {
+				panic(err)
+			}
+
+			if jsonRpc.Id == id {
+				return message
+			}
+		}
+	}
+}
+
 func (c *webSocketConnection) Close() {
-	c.Close() // TODO there is probably a more graceful protocol https://github.com/fasthttp/websocket/blob/master/_examples/echo/client.go
+	c.Conn.Close() // TODO there is probably a more graceful protocol https://github.com/fasthttp/websocket/blob/master/_examples/echo/client.go
 }
