@@ -8,11 +8,7 @@ import (
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
-	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
-	"github.com/statechannels/go-nitro/protocols/virtualdefund"
-	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
 	"github.com/statechannels/go-nitro/rpc/transport/wss"
@@ -57,38 +53,38 @@ func (rs *RpcServer) registerHandlers() error {
 		return rs.client.CreateLedgerChannel(obj.CounterParty, obj.ChallengeDuration, obj.Outcome)
 	})
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = subcribeToRequest(rs, serde.DirectDefundRequestMethod, func(obj directdefund.ObjectiveRequest) protocols.ObjectiveId {
-		return rs.client.CloseLedgerChannel(obj.ChannelId)
-	})
+	// err = subcribeToRequest(rs, serde.DirectDefundRequestMethod, func(obj directdefund.ObjectiveRequest) protocols.ObjectiveId {
+	// 	return rs.client.CloseLedgerChannel(obj.ChannelId)
+	// })
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = subcribeToRequest(rs, serde.VirtualFundRequestMethod, func(obj virtualfund.ObjectiveRequest) virtualfund.ObjectiveResponse {
-		return rs.client.CreateVirtualPaymentChannel(obj.Intermediaries, obj.CounterParty, obj.ChallengeDuration, obj.Outcome)
-	})
+	// err = subcribeToRequest(rs, serde.VirtualFundRequestMethod, func(obj virtualfund.ObjectiveRequest) virtualfund.ObjectiveResponse {
+	// 	return rs.client.CreateVirtualPaymentChannel(obj.Intermediaries, obj.CounterParty, obj.ChallengeDuration, obj.Outcome)
+	// })
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = subcribeToRequest(rs, serde.VirtualDefundRequestMethod, func(obj virtualdefund.ObjectiveRequest) protocols.ObjectiveId {
-		return rs.client.CloseVirtualChannel(obj.ChannelId)
-	})
+	// err = subcribeToRequest(rs, serde.VirtualDefundRequestMethod, func(obj virtualdefund.ObjectiveRequest) protocols.ObjectiveId {
+	// 	return rs.client.CloseVirtualChannel(obj.ChannelId)
+	// })
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = subcribeToRequest(rs, serde.PayRequestMethod, func(payReq serde.PaymentRequest) serde.PaymentRequest {
-		rs.client.Pay(payReq.Channel, big.NewInt(int64(payReq.Amount)))
-		return payReq
-	})
+	// err = subcribeToRequest(rs, serde.PayRequestMethod, func(payReq serde.PaymentRequest) serde.PaymentRequest {
+	// 	rs.client.Pay(payReq.Channel, big.NewInt(int64(payReq.Amount)))
+	// 	return payReq
+	// })
 
 	return err
 }
