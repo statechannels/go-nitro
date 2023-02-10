@@ -34,16 +34,29 @@ func (c *natsConnection) Request(topic serde.RequestMethod, data []byte) ([]byte
 	return msg.Data, err
 }
 
-// Subscribe subscribes to a topic and calls the handler function when a message is received
+// Respond subscribes to a topic and calls the handler function when a message is received
 // It returns an error if the subscription fails
 // The handler processes the incoming data and returns the response data
-func (c *natsConnection) Subscribe(topic serde.RequestMethod, handler func([]byte) []byte) error {
+func (c *natsConnection) Respond(topic serde.RequestMethod, handler func([]byte) []byte) error {
 	sub, err := c.nc.Subscribe(methodToTopic(topic), func(msg *nats.Msg) {
 		responseData := handler(msg.Data)
 		err := c.nc.Publish(msg.Reply, responseData)
 		if err != nil {
 			panic(err)
 		}
+	})
+	c.natsSubscriptions = append(c.natsSubscriptions, sub)
+
+	return err
+}
+
+func (c *natsConnection) Notify(topic serde.NotificationMethod, data []byte) error {
+	return c.nc.Publish(methodToTopic(topic), data)
+}
+
+func (c *natsConnection) Subscribe(topic serde.NotificationMethod, handler func([]byte)) error {
+	sub, err := c.nc.Subscribe(methodToTopic(topic), func(msg *nats.Msg) {
+		handler(msg.Data)
 	})
 	c.natsSubscriptions = append(c.natsSubscriptions, sub)
 
@@ -68,6 +81,6 @@ func (c *natsConnection) unsubscribeFromTopic(sub *nats.Subscription, try int32)
 	return nil
 }
 
-func methodToTopic(method serde.RequestMethod) string {
+func methodToTopic[T serde.RequestMethod | serde.NotificationMethod](method T) string {
 	return fmt.Sprintf("nitro.%s", method)
 }

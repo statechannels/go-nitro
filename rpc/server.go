@@ -3,6 +3,7 @@ package rpc
 import (
 	"encoding/json"
 	"math/big"
+	"math/rand"
 
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
@@ -51,6 +52,7 @@ func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Lo
 	}
 
 	rs := &RpcServer{natstrans.NewNatsConnection(nc), ns, nitroClient, chainId, logger}
+	rs.sendNotifications()
 	err = rs.registerHandlers()
 	if err != nil {
 		panic(err)
@@ -101,8 +103,24 @@ func (rs *RpcServer) registerHandlers() error {
 	return err
 }
 
+func (rs *RpcServer) sendNotifications() {
+	go func() {
+		for completedObjective := range rs.client.CompletedObjectives() {
+			request := serde.NewJsonRpcRequest(rand.Uint64(), serde.ObjectiveCompleted, completedObjective)
+			data, err := json.Marshal(request)
+			if err != nil {
+				panic(err)
+			}
+			err = rs.connection.Notify(serde.ObjectiveCompleted, data)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}()
+}
+
 func subcribeToRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, method serde.RequestMethod, processPayload func(T) U) error {
-	return rs.connection.Subscribe(method, func(data []byte) []byte {
+	return rs.connection.Respond(method, func(data []byte) []byte {
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
 		rpcRequest := serde.JsonRpcRequest[T]{}
 		err := json.Unmarshal(data, &rpcRequest)

@@ -56,7 +56,11 @@ func TestRpcClient(t *testing.T) {
 	defer msgI.Close()
 
 	rpcServerA := rpc.NewRpcServer(&clientA, chainId, createLogger(logDestination, "alice", "server"))
-	rpcClientA := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), chainId, createLogger(logDestination, "alice", "client"))
+	rpcClientA, err := rpc.NewRpcClient(rpcServerA.Url(), alice.Address(), chainId, createLogger(logDestination, "alice", "client"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	defer rpcServerA.Close()
 	defer rpcClientA.Close()
 
@@ -66,7 +70,7 @@ func TestRpcClient(t *testing.T) {
 	// Quick sanity check that we're getting a valid objective id
 	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
 
-	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, res.Id)
+	rpcClientA.WaitForObjectiveCompletion(res.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, bobResponse.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, res.Id, bobResponse.Id)
 
@@ -77,18 +81,20 @@ func TestRpcClient(t *testing.T) {
 		testdata.Outcomes.Create(alice.Address(), bob.Address(), 100, 100, types.Address{}))
 
 	assert.Regexp(t, "VirtualFund.0x.*", vRes.Id)
-	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, vRes.Id)
+
+	rpcClientA.WaitForObjectiveCompletion(vRes.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, vRes.Id)
 	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, vRes.Id)
 	rpcClientA.Pay(vRes.ChannelId, 1)
 
 	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
-	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, closeVId)
+	rpcClientA.WaitForObjectiveCompletion(closeVId)
 	waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, closeVId)
 	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, closeVId)
 
 	closeId := rpcClientA.CloseLedger(res.ChannelId)
-	waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, closeId)
+
+	rpcClientA.WaitForObjectiveCompletion(closeId)
 	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, closeId)
 
 }
