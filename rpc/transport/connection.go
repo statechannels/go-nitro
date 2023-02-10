@@ -10,7 +10,7 @@ type Connection interface {
 
 	// Notify sends data for a topic without expecting a response
 	Notify(serde.NotificationMethod, []byte) error
-	// Subscribe listens for notifications for a topic and does not repond to notifications
+	// Subscribe listens for notifications for a topic and does not respond to notifications
 	Subscribe(serde.NotificationMethod, func([]byte)) error
 
 	// Close shuts down the connection
