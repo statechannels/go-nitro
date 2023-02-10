@@ -25,6 +25,10 @@ const (
 	ObjectiveCompleted NotificationMethod = "objective_completed"
 )
 
+type NotificationOrRequest interface {
+	RequestMethod | NotificationMethod
+}
+
 const JsonRpcVersion = "2.0"
 
 type PaymentRequest struct {
@@ -49,6 +53,14 @@ type JsonRpcRequest[T RequestPayload | NotificationPayload] struct {
 	Method  string `json:"method"`
 	Params  T      `json:"params"`
 }
+
+type JsonRpcRequestAny[T NotificationOrRequest] struct {
+	Jsonrpc string `json:"jsonrpc"`
+	Id      uint64 `json:"id"`
+	Method  T      `json:"method"`
+	Params  any    `json:"params"`
+}
+
 type ResponsePayload interface {
 	directfund.ObjectiveResponse | protocols.ObjectiveId | virtualfund.ObjectiveResponse | PaymentRequest
 }
@@ -56,6 +68,13 @@ type JsonRpcResponse[T ResponsePayload] struct {
 	Jsonrpc string      `json:"jsonrpc"`
 	Id      uint64      `json:"id"`
 	Result  T           `json:"result"`
+	Error   interface{} `json:"error"`
+}
+
+type JsonRpcResponseAny struct {
+	Jsonrpc string      `json:"jsonrpc"`
+	Id      uint64      `json:"id"`
+	Result  any         `json:"result"`
 	Error   interface{} `json:"error"`
 }
 
