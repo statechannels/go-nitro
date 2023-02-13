@@ -111,6 +111,7 @@ func (rc *RpcClient) subscribeToNotifications() error {
 		}
 		rc.completedObjectives <- rpcRequest.Params
 	})
+	rc.logger.Trace().Msg("Subscribed to notifications")
 	return err
 }
 
