@@ -76,7 +76,7 @@ func (c *webSocketConnection) Request(method serde.RequestMethod, data []byte) (
 // The handler processes the incoming data and returns the response data
 func (c *webSocketConnection) Respond(topic serde.RequestMethod, handler func([]byte) []byte) error {
 	if c == nil {
-		return errors.New("No websocket connection yet (client not yet connected)")
+		return errors.New("no websocket connection yet (client not yet connected)")
 	}
 
 	listen := func() {
@@ -117,7 +117,7 @@ func (c *webSocketConnection) Notify(topic serde.NotificationMethod, data []byte
 
 func (c *webSocketConnection) Subscribe(topic serde.NotificationMethod, handler func([]byte)) error {
 	if c == nil {
-		return errors.New("No websocket connection yet (client not yet connected)")
+		return errors.New("no websocket connection yet (client not yet connected)")
 	}
 
 	listen := func() {
@@ -149,7 +149,7 @@ func (c *webSocketConnection) Subscribe(topic serde.NotificationMethod, handler 
 func send[T serde.NotificationOrRequest](c *webSocketConnection, method T, data []byte) error {
 	// TODO longer term, the interface should not contain "method", since "data" contains "method" anyway.
 	if c == nil {
-		return errors.New("No websocket connection yet (not yet connected to server)")
+		return errors.New("no websocket connection yet (not yet connected to server)")
 	}
 
 	return c.WriteMessage(websocket.TextMessage, data)
