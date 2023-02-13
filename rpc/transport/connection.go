@@ -2,6 +2,13 @@ package transport
 
 import "github.com/statechannels/go-nitro/rpc/serde"
 
+type ConnectionType string
+
+const (
+	Nats ConnectionType = "nats"
+	Ws   ConnectionType = "ws"
+)
+
 type Requester interface {
 	Close()
 

@@ -7,6 +7,7 @@ import (
 	"math/rand"
 
 	"github.com/nats-io/nats-server/v2/server"
+	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/protocols"
@@ -16,6 +17,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
+	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
 	"github.com/statechannels/go-nitro/rpc/transport/wss"
 )
 
@@ -38,18 +40,37 @@ func (rs *RpcServer) Close() {
 	rs.ns.Shutdown()
 }
 
-func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Logger, rpcPort int) *RpcServer {
+func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Logger, rpcPort int, connectionType transport.ConnectionType) (*RpcServer, error) {
+	var con transport.Subscriber
+	var err error
+	switch connectionType {
+	case transport.Nats:
+		opts := &server.Options{Port: rpcPort}
+		ns, err := server.NewServer(opts)
+		if err != nil {
+			return nil, err
+		}
+		ns.Start()
 
-	ws := wss.NewWebSocketConnectionAsServer(fmt.Sprint(rpcPort))
-
-	rs := &RpcServer{ws, nil, nitroClient, chainId, logger, fmt.Sprint(rpcPort)}
-	rs.sendNotifications()
-	err := rs.registerHandlers()
-	if err != nil {
-		panic(err)
+		nc, err := nats.Connect(ns.ClientURL())
+		if err != nil {
+			return nil, err
+		}
+		con = natstrans.NewNatsConnection(nc)
+	case transport.Ws:
+		con = wss.NewWebSocketConnectionAsServer(fmt.Sprint(rpcPort))
+	default:
+		return nil, fmt.Errorf("unknown connection type %v", connectionType)
 	}
 
-	return rs
+	rs := &RpcServer{con, nil, nitroClient, chainId, logger, fmt.Sprint(rpcPort)}
+	rs.sendNotifications()
+	err = rs.registerHandlers()
+	if err != nil {
+		return nil, err
+	}
+
+	return rs, nil
 }
 
 // registerHandlers registers the handlers for the rpc server

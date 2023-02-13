@@ -111,12 +111,16 @@ func setupNitroNodeWithRPCClient(
 		logDestination,
 		&engine.PermissivePolicy{},
 		nil)
-	rpcServer := rpc.NewRpcServer(
+	rpcServer, err := rpc.NewRpcServer(
 		&node,
 		chainId,
 		createLogger(logDestination, node.Address.Hex(), "server"),
-		rpcPort)
-	rpcClient, err := rpc.NewRpcClient(rpcServer.Url(), alice.Address(), chainId, createLogger(logDestination, node.Address.Hex(), "client"))
+		rpcPort,
+		"nats")
+	if err != nil {
+		panic(err)
+	}
+	rpcClient, err := rpc.NewRpcClient(rpcServer.Url(), alice.Address(), chainId, createLogger(logDestination, node.Address.Hex(), "client"), "nats")
 	if err != nil {
 		panic(err)
 	}
