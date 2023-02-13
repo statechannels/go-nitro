@@ -42,7 +42,7 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int
 	case transport.Nats:
 		nc, err := nats.Connect(rpcServerUrl)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to connect rpc client: %w", err)
 		}
 		con = natstrans.NewNatsConnection(nc)
 	case transport.Ws:
