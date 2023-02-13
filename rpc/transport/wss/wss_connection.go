@@ -181,3 +181,7 @@ func (c *webSocketConnection) listenForResponse(id uint64) []byte {
 func (c *webSocketConnection) Close() {
 	c.Conn.Close() // TODO there is probably a more graceful protocol https://github.com/fasthttp/websocket/blob/master/_examples/echo/client.go
 }
+
+func (c *webSocketConnection) Url() string {
+	return c.Conn.RemoteAddr().String()
+}

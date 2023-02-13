@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
 	"github.com/statechannels/go-nitro/rpc/serde"
@@ -12,16 +13,36 @@ import (
 type natsConnection struct {
 	nc                *nats.Conn
 	natsSubscriptions []*nats.Subscription
+	ns                *server.Server
 }
 
-// NewNatsConnection creates an instance of a Connection interface that uses the nats transport
-func NewNatsConnection(nc *nats.Conn) *natsConnection {
-	natsConnection := &natsConnection{
+func NewNatsConnectionAsServer(rpcPort int) (*natsConnection, error) {
+	opts := &server.Options{Port: rpcPort}
+	ns, err := server.NewServer(opts)
+	if err != nil {
+		return nil, err
+	}
+	ns.Start()
+
+	con, err := NewNatsConnectionAsClient(ns.ClientURL())
+	if err != nil {
+		return nil, err
+	}
+	con.ns = ns
+	return con, nil
+}
+
+func NewNatsConnectionAsClient(url string) (*natsConnection, error) {
+	nc, err := nats.Connect(url)
+	if err != nil {
+		return nil, err
+	}
+	con := &natsConnection{
 		nc:                nc,
 		natsSubscriptions: make([]*nats.Subscription, 0),
+		ns:                nil,
 	}
-
-	return natsConnection
+	return con, nil
 }
 
 // Request sends a blocking request for a topic with the given data
@@ -71,6 +92,13 @@ func (c *natsConnection) Close() {
 			log.Error().Err(err).Msgf("failed to unsubscribe from a topic: %s", sub.Subject)
 		}
 	}
+	if c.ns != nil {
+		c.ns.Shutdown()
+	}
+}
+
+func (c *natsConnection) Url() string {
+	return c.ns.ClientURL()
 }
 
 func (c *natsConnection) unsubscribeFromTopic(sub *nats.Subscription, try int32) error {

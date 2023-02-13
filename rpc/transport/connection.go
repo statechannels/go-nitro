@@ -20,6 +20,7 @@ type Requester interface {
 
 type Subscriber interface {
 	Close()
+	Url() string
 
 	// Respond listens for requests for a topic and calls the handler function when a request is received
 	Respond(serde.RequestMethod, func([]byte) []byte) error

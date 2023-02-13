@@ -2,12 +2,9 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
-	"math/big"
 	"math/rand"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
@@ -18,44 +15,23 @@ import (
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
 
-	"github.com/statechannels/go-nitro/rpc/transport/wss"
 	"github.com/statechannels/go-nitro/types"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
 )
 
 // RpcClient is a client for making nitro rpc calls
 type RpcClient struct {
 	connection          transport.Requester
 	myAddress           types.Address
-	chainId             *big.Int
 	logger              zerolog.Logger
 	completedObjectives chan protocols.ObjectiveId
 }
 
 // NewRpcClient creates a new RpcClient
-func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int, logger zerolog.Logger, connectionType transport.ConnectionType) (*RpcClient, error) {
-	var con transport.Requester
-	var err error
-	switch connectionType {
-	case transport.Nats:
-		nc, err := nats.Connect(rpcServerUrl)
-		if err != nil {
-			return nil, fmt.Errorf("unable to connect rpc client: %w", err)
-		}
-		con = natstrans.NewNatsConnection(nc)
-	case transport.Ws:
-		con, err = wss.NewWebSocketConnectionAsClient(rpcServerUrl)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("unknown connection type %v", connectionType)
-	}
-
-	c := &RpcClient{con, myAddress, chainId, logger, make(chan protocols.ObjectiveId, 100)}
-	err = c.subscribeToNotifications()
+func NewRpcClient(rpcServerUrl string, myAddress types.Address, logger zerolog.Logger, connection transport.Requester) (*RpcClient, error) {
+	c := &RpcClient{connection, myAddress, logger, make(chan protocols.ObjectiveId, 100)}
+	err := c.subscribeToNotifications()
 	if err != nil {
 		return nil, err
 	}

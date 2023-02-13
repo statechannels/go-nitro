@@ -2,12 +2,9 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"math/rand"
 
-	"github.com/nats-io/nats-server/v2/server"
-	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/protocols"
@@ -17,55 +14,28 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
-	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
-	"github.com/statechannels/go-nitro/rpc/transport/wss"
 )
 
 // RpcServer handles nitro rpc requests and executes them on the nitro client
 type RpcServer struct {
 	connection transport.Subscriber
-	ns         *server.Server // TODO we don't want this nats-specific thing in here
 	client     *nitro.Client
-	chainId    *big.Int
 	logger     zerolog.Logger
-	port       string
 }
 
 func (rs *RpcServer) Url() string {
-	return "ws://127.0.0.1:" + rs.port
+	return rs.connection.Url()
+	//return "ws://127.0.0.1:" + rs.port
 }
 
 func (rs *RpcServer) Close() {
 	rs.connection.Close()
-	rs.ns.Shutdown()
 }
 
-func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Logger, rpcPort int, connectionType transport.ConnectionType) (*RpcServer, error) {
-	var con transport.Subscriber
-	var err error
-	switch connectionType {
-	case transport.Nats:
-		opts := &server.Options{Port: rpcPort}
-		ns, err := server.NewServer(opts)
-		if err != nil {
-			return nil, err
-		}
-		ns.Start()
-
-		nc, err := nats.Connect(ns.ClientURL())
-		if err != nil {
-			return nil, err
-		}
-		con = natstrans.NewNatsConnection(nc)
-	case transport.Ws:
-		con = wss.NewWebSocketConnectionAsServer(fmt.Sprint(rpcPort))
-	default:
-		return nil, fmt.Errorf("unknown connection type %v", connectionType)
-	}
-
-	rs := &RpcServer{con, nil, nitroClient, chainId, logger, fmt.Sprint(rpcPort)}
+func NewRpcServer(nitroClient *nitro.Client, logger zerolog.Logger, connection transport.Subscriber) (*RpcServer, error) {
+	rs := &RpcServer{connection, nitroClient, logger}
 	rs.sendNotifications()
-	err = rs.registerHandlers()
+	err := rs.registerHandlers()
 	if err != nil {
 		return nil, err
 	}
