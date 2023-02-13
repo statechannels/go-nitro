@@ -106,6 +106,7 @@ func (rs *RpcServer) registerHandlers() error {
 func (rs *RpcServer) sendNotifications() {
 	go func() {
 		for completedObjective := range rs.client.CompletedObjectives() {
+			rs.logger.Trace().Msgf("Sending notification: %+v", completedObjective)
 			request := serde.NewJsonRpcRequest(rand.Uint64(), serde.ObjectiveCompleted, completedObjective)
 			data, err := json.Marshal(request)
 			if err != nil {
@@ -121,7 +122,7 @@ func (rs *RpcServer) sendNotifications() {
 
 func subcribeToRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, method serde.RequestMethod, processPayload func(T) U) error {
 	return rs.connection.Respond(method, func(data []byte) []byte {
-		rs.logger.Trace().Msgf("Rpc server received request: %+v", data)
+		rs.logger.Trace().Msgf("Rpc server received request: %+v", string(data))
 		rpcRequest := serde.JsonRpcRequest[T]{}
 		err := json.Unmarshal(data, &rpcRequest)
 		if err != nil {
