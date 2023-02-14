@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/rand"
 
 	"github.com/ethereum/go-ethereum/common"
