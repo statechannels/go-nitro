@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"math/rand"
 
@@ -129,9 +130,29 @@ func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClie
 	return res.Payload
 }
 
-func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId protocols.ObjectiveId) {
+func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId ...protocols.ObjectiveId) {
+	completed := make(map[protocols.ObjectiveId]bool)
+
 	for receivedObjectiveId := range rc.CompletedObjectives() {
-		if expectedObjectiveId == receivedObjectiveId {
+		isObjectiveExpected := false
+		for _, expectedObjectiveId := range expectedObjectiveId {
+			if receivedObjectiveId == expectedObjectiveId {
+				isObjectiveExpected = true
+			}
+		}
+		if !isObjectiveExpected {
+			err := fmt.Errorf("Received unexpected objective completion notification for objective %v", receivedObjectiveId)
+			panic(err)
+		}
+
+		completed[receivedObjectiveId] = true
+		done := true
+		for _, expectedObjectiveId := range expectedObjectiveId {
+			if !completed[expectedObjectiveId] {
+				done = false
+			}
+		}
+		if done {
 			return
 		}
 	}
