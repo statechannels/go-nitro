@@ -22,8 +22,8 @@ const APPDEF = process.env.LEDGER_FINANCING_APP_ADDRESS
   ? process.env.LEDGER_FINANCING_APP_ADDRESS
   : 'failfast';
 
-const intermediary = convertAddressToBytes32(participants[0]);
-const merchant = convertAddressToBytes32(participants[1]);
+const merchant = convertAddressToBytes32(participants[0]);
+const intermediary = convertAddressToBytes32(participants[1]);
 
 interface Funds {
   asset: string[]; // asset token address
@@ -71,7 +71,7 @@ function appDataABIEncode(appData: LedgerFinancingAppData): string {
 }
 
 const initialOutcome = computeOutcome({
-  [MAGIC_NATIVE_ASSET_ADDRESS]: {[intermediary]: 500, [merchant]: 500},
+  [MAGIC_NATIVE_ASSET_ADDRESS]: {[merchant]: 500, [intermediary]: 500},
 });
 
 const baseAppData: LedgerFinancingAppData = {
@@ -139,7 +139,7 @@ describe('requireStateSupported', () => {
       ...baseState,
       turnNum: baseState.turnNum + 1,
       outcome: computeOutcome({
-        [MAGIC_NATIVE_ASSET_ADDRESS]: {[intermediary]: 505, [merchant]: 495}, // intermediary picks up 1% of the principal
+        [MAGIC_NATIVE_ASSET_ADDRESS]: {[merchant]: 495, [intermediary]: 505}, // intermediary picks up 1% of the principal
       }),
     };
     const challengeWithIntermediarySignature: RecoveredVariablePart = {
@@ -184,7 +184,7 @@ describe('requireStateSupported', () => {
       appData: appDataABIEncode(supportproofAppData),
       turnNum: baseState.turnNum + 1,
       outcome: computeOutcome({
-        [MAGIC_NATIVE_ASSET_ADDRESS]: {[intermediary]: 506, [merchant]: 494}, // 506 is unfair: should be 505
+        [MAGIC_NATIVE_ASSET_ADDRESS]: {[merchant]: 494, [intermediary]: 506}, // 506 is unfair: should be 505
       }),
     };
     const updatedWithIntermediarySignature: RecoveredVariablePart = {

@@ -34,8 +34,8 @@ contract LedgerFinancingApp is IForceMoveApp {
     }
 
     enum AllocationIndicies {
-        intermediary, // financier: makes initial deposit and earns interest
-        serviceProvider // borrower: recovers service fees from intermediary's deposit
+        serviceProvider, // borrower: recovers service fees from intermediary's deposit
+        intermediary // financier: makes initial deposit and earns interest
     }
 
     function requireStateSupported(
@@ -43,7 +43,7 @@ contract LedgerFinancingApp is IForceMoveApp {
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
     ) external view override {
-        if (proof.length == 0) {
+        if (p   roof.length == 0) {
             // unanimous consensus check
             require(
                 NitroUtils.getClaimedSignersNum(candidate.signedBy) == 2,
@@ -129,14 +129,13 @@ contract LedgerFinancingApp is IForceMoveApp {
                                 .destination,
                         'payee mismatch'
                     );
-                    // combine prior balance with outstandingInterest
-                    earned += initialOutcome[j]
-                        .allocations[uint256(AllocationIndicies.intermediary)]
+                    uint256 initialProviderBalance = initialOutcome[j]
+                        .allocations[uint256(AllocationIndicies.serviceProvider)]
                         .amount;
-                    // and compare against the claimed outcome
-                    uint256 claimed = finalOutcome[j]
-                        .allocations[uint256(AllocationIndicies.intermediary)]
+                    uint256 adjustedProviderBalance = finalOutcome[j]
+                        .allocations[uint256(AllocationIndicies.serviceProvider)]
                         .amount;
+                    uint256 claimed = initialProviderBalance - adjustedProviderBalance;
 
                     require(claimed <= earned, 'earned<claimed');
                 }
