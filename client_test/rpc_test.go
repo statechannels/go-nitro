@@ -63,8 +63,7 @@ func TestRpc(t *testing.T) {
 
 	rpcClientA.WaitForObjectiveCompletion(res.Id)
 	rpcClientB.WaitForObjectiveCompletion(bobResponse.Id)
-	rpcClientI.WaitForObjectiveCompletion(res.Id)
-	rpcClientI.WaitForObjectiveCompletion(bobResponse.Id)
+	rpcClientI.WaitForObjectiveCompletion(res.Id, bobResponse.Id)
 
 	vRes := rpcClientA.CreateVirtual(
 		[]types.Address{irene.Address()},
