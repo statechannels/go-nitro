@@ -16,6 +16,7 @@ import (
 
 type serverWebSocketConnection struct {
 	serveMux        http.ServeMux
+	httpServer      *http.Server
 	logger          zerolog.Logger
 	requestHandlers map[serde.RequestMethod]func([]byte) []byte
 	serverWebsocket *websocket.Conn
@@ -40,15 +41,15 @@ func NewWebSocketConnectionAsServer(port string) (*serverWebSocketConnection, er
 		return nil, err
 	}
 
-	server := &http.Server{
+	wsc.httpServer = &http.Server{
 		Handler:      wsc,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
 	}
 
 	go func() {
-		err = server.Serve(tcpListener)
-		if err != nil {
+		err = wsc.httpServer.Serve(tcpListener)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			panic(err)
 		}
 	}()
@@ -114,6 +115,10 @@ func (wsc *serverWebSocketConnection) Notify(topic serde.NotificationMethod, dat
 }
 
 func (wsc *serverWebSocketConnection) Close() {
+	err := wsc.httpServer.Shutdown(context.Background())
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (wsc *serverWebSocketConnection) Url() string {
@@ -137,8 +142,8 @@ func NewWebSocketConnectionAsClient(url string) (*clientWebSocketConnection, err
 func (wsc *clientWebSocketConnection) readMessages(ctx context.Context) {
 	for {
 		_, data, err := wsc.clientWebsocket.Read(ctx)
-		if err != nil {
-			panic(err)
+		if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
+			return
 		}
 		wsc.logger.Trace().Msgf("Received message: %s", string(data))
 
@@ -167,7 +172,6 @@ func (wsc *clientWebSocketConnection) readMessages(ctx context.Context) {
 			}
 			wsc.responseHandlers[unmarshaledResponse.Id] <- data
 		}
-
 	}
 }
 
