@@ -95,6 +95,7 @@ func (rc *RpcClient) Close() {
 
 func (rc *RpcClient) subscribeToNotifications() error {
 	err := rc.connection.Subscribe(serde.ObjectiveCompleted, func(data []byte) {
+		rc.logger.Trace().Bytes("data", data).Msg("Received notification")
 		rpcRequest := serde.JsonRpcRequest[protocols.ObjectiveId]{}
 		err := json.Unmarshal(data, &rpcRequest)
 		if err != nil {

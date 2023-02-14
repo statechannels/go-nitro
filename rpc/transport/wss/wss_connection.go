@@ -67,14 +67,13 @@ func (wsc *serverWebSocketConnection) subscribeRequestHandler(w http.ResponseWri
 		panic(err)
 	}
 	wsc.serverWebsocket = c
-	defer c.Close(websocket.StatusInternalError, "")
+	defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
 
 	err = wsc.readRequests(r.Context())
 	if errors.Is(err, context.Canceled) {
 		return
 	}
-	if websocket.CloseStatus(err) == websocket.StatusNormalClosure ||
-		websocket.CloseStatus(err) == websocket.StatusGoingAway {
+	if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
 		return
 	}
 	if err != nil {
@@ -202,8 +201,6 @@ func (wsc *clientWebSocketConnection) Subscribe(topic serde.NotificationMethod, 
 }
 
 func (wsc *clientWebSocketConnection) Close() {
-	// Clients initiate and close websockets
-	if wsc.clientWebsocket != nil {
-		wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
-	}
+	// Clients initiate and close websockets{
+	wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
 }
