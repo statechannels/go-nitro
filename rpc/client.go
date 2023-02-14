@@ -141,7 +141,7 @@ func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId ...protocols
 			}
 		}
 		if !isObjectiveExpected {
-			err := fmt.Errorf("Received unexpected objective completion notification for objective %v", receivedObjectiveId)
+			err := fmt.Errorf("received unexpected objective completion notification for objective %v", receivedObjectiveId)
 			panic(err)
 		}
 
