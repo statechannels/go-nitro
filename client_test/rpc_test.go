@@ -41,7 +41,7 @@ func TestRpc(t *testing.T) {
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 
-	const connectionType transport.ConnectionType = "nats"
+	const connectionType transport.ConnectionType = "ws"
 	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(alice.PrivateKey, 3005, 4005, chainServiceA, logDestination, connectionType)
 	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(bob.PrivateKey, 3006, 4006, chainServiceB, logDestination, connectionType)
 	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(irene.PrivateKey, 3007, 4007, chainServiceI, logDestination, connectionType)
@@ -128,7 +128,10 @@ func setupNitroNodeWithRPCClient(
 			panic(err)
 		}
 	case "ws":
-		serverConnection = wss.NewWebSocketConnectionAsServer(fmt.Sprint(rpcPort))
+		serverConnection, err = wss.NewWebSocketConnectionAsServer(fmt.Sprint(rpcPort))
+		if err != nil {
+			panic(err)
+		}
 		clienConnection, err = wss.NewWebSocketConnectionAsClient(serverConnection.Url())
 		if err != nil {
 			panic(err)

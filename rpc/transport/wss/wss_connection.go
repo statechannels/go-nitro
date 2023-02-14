@@ -1,69 +1,190 @@
 package wss
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"net"
 	"net/http"
+	"time"
 
-	"github.com/fasthttp/websocket"
+	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/rpc/serde"
+	"nhooyr.io/websocket"
 )
 
-type webSocketConnection struct {
-	*websocket.Conn
+type serverWebSocketConnection struct {
+	serveMux        http.ServeMux
+	logger          zerolog.Logger
+	requestHandlers map[serde.RequestMethod]func([]byte) []byte
+	serverWebsocket *websocket.Conn
+	port            string
 }
 
-func NewWebSocketConnectionAsClient(url string) (*webSocketConnection, error) {
-	c, _, err := websocket.DefaultDialer.Dial(url+"/wss", nil)
+type clientWebSocketConnection struct {
+	logger               zerolog.Logger
+	notificationHandlers map[serde.NotificationMethod]func([]byte)
+	responseHandlers     map[uint64]chan ([]byte)
+	clientWebsocket      *websocket.Conn
+}
+
+func NewWebSocketConnectionAsServer(port string) (*serverWebSocketConnection, error) {
+	wsc := &serverWebSocketConnection{}
+	wsc.requestHandlers = make(map[serde.RequestMethod]func([]byte) []byte)
+	wsc.port = port
+	wsc.serveMux.HandleFunc("/", wsc.subscribeRequestHandler)
+
+	tcpListener, err := net.Listen("tcp", "127.0.0.1:"+wsc.port)
 	if err != nil {
 		return nil, err
 	}
-	return &webSocketConnection{c}, nil
-}
 
-func NewWebSocketConnectionAsServer(port string) *webSocketConnection {
-
-	wsc := &webSocketConnection{}
-
-	handshaker := func(w http.ResponseWriter, r *http.Request) {
-		var upgrader = websocket.Upgrader{} // use default options
-		c, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			log.Print("upgrade:", err)
-			return
-		}
-		wsc.Conn = c
+	server := &http.Server{
+		Handler:      wsc,
+		ReadTimeout:  time.Second * 10,
+		WriteTimeout: time.Second * 10,
 	}
 
-	http.HandleFunc("/wss", handshaker)
-	l, err := net.Listen("tcp", ":"+port)
-	if err != nil {
-		panic(err)
-	}
 	go func() {
-		err := http.Serve(l, nil)
+		err = server.Serve(tcpListener)
 		if err != nil {
 			panic(err)
 		}
 	}()
-	return wsc
 
+	return wsc, nil
 }
 
-func (c *webSocketConnection) Request(method serde.RequestMethod, data []byte) ([]byte, error) {
+func (wsc *serverWebSocketConnection) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	wsc.serveMux.ServeHTTP(w, r)
+}
+
+func (wsc *serverWebSocketConnection) subscribeRequestHandler(w http.ResponseWriter, r *http.Request) {
+	c, err := websocket.Accept(w, r, nil)
+	if err != nil {
+		panic(err)
+	}
+	wsc.serverWebsocket = c
+	defer c.Close(websocket.StatusInternalError, "")
+
+	err = wsc.readRequests(r.Context())
+	if errors.Is(err, context.Canceled) {
+		return
+	}
+	if websocket.CloseStatus(err) == websocket.StatusNormalClosure ||
+		websocket.CloseStatus(err) == websocket.StatusGoingAway {
+		return
+	}
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (wsc *serverWebSocketConnection) readRequests(ctx context.Context) error {
+	for {
+		_, data, err := wsc.serverWebsocket.Read(ctx)
+		if err != nil {
+			return err
+		}
+		jsonRpc := serde.JsonRpcRequestAny[serde.RequestMethod]{}
+		err = json.Unmarshal(data, &jsonRpc)
+		if err != nil {
+			return err
+		}
+		wsc.logger.Trace().Msgf("Received message: %v", jsonRpc)
+		responseData := wsc.requestHandlers[jsonRpc.Method](data)
+		err = wsc.serverWebsocket.Write(ctx, websocket.MessageText, responseData)
+		if err != nil {
+			return err
+		}
+	}
+}
+
+// Respond subscribes to a topic and calls the handler function when a message is received
+// It returns an error if the subscription fails
+// The handler processes the incoming data and returns the response data
+func (wsc *serverWebSocketConnection) Respond(topic serde.RequestMethod, handler func([]byte) []byte) error {
+	wsc.requestHandlers[topic] = handler
+	return nil
+}
+
+func (wsc *serverWebSocketConnection) Notify(topic serde.NotificationMethod, data []byte) error {
+	return wsc.serverWebsocket.Write(context.Background(), websocket.MessageText, data)
+}
+
+func (wsc *serverWebSocketConnection) Close() {
+}
+
+func (wsc *serverWebSocketConnection) Url() string {
+	return "ws://127.0.0.1:" + wsc.port
+}
+
+func NewWebSocketConnectionAsClient(url string) (*clientWebSocketConnection, error) {
+	wsc := &clientWebSocketConnection{}
+	wsc.responseHandlers = make(map[uint64]chan ([]byte))
+	wsc.notificationHandlers = make(map[serde.NotificationMethod]func([]byte))
+
+	conn, _, err := websocket.Dial(context.Background(), url, &websocket.DialOptions{})
+	if err != nil {
+		return nil, err
+	}
+	wsc.clientWebsocket = conn
+	go func() { wsc.readMessages(context.Background()) }()
+	return wsc, nil
+}
+
+func (wsc *clientWebSocketConnection) readMessages(ctx context.Context) {
+	for {
+		_, data, err := wsc.clientWebsocket.Read(ctx)
+		if err != nil {
+			panic(err)
+		}
+		wsc.logger.Trace().Msgf("Received message: %s", string(data))
+
+		// Is this a notification?
+		unmarshaledData := map[string]any{}
+		err = json.Unmarshal(data, &unmarshaledData)
+		if err != nil {
+			panic(err)
+		}
+		wsc.logger.Trace().Msgf("Received message: %v", unmarshaledData)
+
+		// Is this a notification?
+		if unmarshaledData["method"] != nil {
+			unmarshaledNotifacation := serde.JsonRpcRequest[protocols.ObjectiveId]{}
+			err = json.Unmarshal(data, &unmarshaledNotifacation)
+			if err != nil {
+				panic(err)
+			}
+			wsc.notificationHandlers[serde.NotificationMethod(unmarshaledNotifacation.Method)](data)
+		} else {
+			// Or is this a reply?
+			unmarshaledResponse := serde.JsonRpcResponseAny{}
+			err = json.Unmarshal(data, &unmarshaledResponse)
+			if err != nil {
+				panic(err)
+			}
+			wsc.responseHandlers[unmarshaledResponse.Id] <- data
+		}
+
+	}
+}
+
+func (wsc *clientWebSocketConnection) Request(method serde.RequestMethod, data []byte) ([]byte, error) {
 	jsonRequest := serde.JsonRpcRequestAny[serde.RequestMethod]{}
 	err := json.Unmarshal(data, &jsonRequest)
 	if err != nil {
 		return nil, err
 	}
 	responseChan := make(chan []byte, 1)
+	wsc.responseHandlers[jsonRequest.Id] = responseChan
 	go func() {
-		responseChan <- c.listenForResponse(jsonRequest.Id)
+		responseChan <- <-responseChan
+		delete(wsc.responseHandlers, jsonRequest.Id)
 	}()
 
-	err = send(c, method, data)
+	err = wsc.clientWebsocket.Write(context.Background(), websocket.MessageText, data)
 	if err != nil {
 		return nil, err
 	}
@@ -71,117 +192,14 @@ func (c *webSocketConnection) Request(method serde.RequestMethod, data []byte) (
 	return <-responseChan, nil
 }
 
-// Respond subscribes to a topic and calls the handler function when a message is received
-// It returns an error if the subscription fails
-// The handler processes the incoming data and returns the response data
-func (c *webSocketConnection) Respond(topic serde.RequestMethod, handler func([]byte) []byte) error {
-	if c == nil {
-		return errors.New("no websocket connection yet (client not yet connected)")
-	}
-
-	listen := func() {
-		for {
-			var message []byte
-			var mt int
-			mt, message, err := c.ReadMessage()
-			if err != nil {
-				panic(err)
-			}
-
-			if mt == websocket.TextMessage {
-				jsonRpc := serde.JsonRpcRequestAny[serde.RequestMethod]{}
-				err := json.Unmarshal(message, &jsonRpc)
-				if err != nil {
-					panic(err)
-				}
-
-				if jsonRpc.Method == topic {
-					response := handler(message)
-					err = send(c, topic, response)
-					if err != nil {
-						panic(err)
-					}
-					return
-				}
-			}
-		}
-	}
-	go listen()
+func (wsc *clientWebSocketConnection) Subscribe(topic serde.NotificationMethod, handler func([]byte)) error {
+	wsc.notificationHandlers[topic] = handler
 	return nil
 }
 
-func (c *webSocketConnection) Notify(topic serde.NotificationMethod, data []byte) error {
-	return send(c, topic, data)
-
-}
-
-func (c *webSocketConnection) Subscribe(topic serde.NotificationMethod, handler func([]byte)) error {
-	if c == nil {
-		return errors.New("no websocket connection yet (client not yet connected)")
+func (wsc *clientWebSocketConnection) Close() {
+	// Clients initiate and close websockets
+	if wsc.clientWebsocket != nil {
+		wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
 	}
-
-	listen := func() {
-		for {
-			var message []byte
-			var mt int
-			mt, message, err := c.ReadMessage()
-			if err != nil {
-				panic(err)
-			}
-
-			if mt == websocket.TextMessage {
-				jsonRpc := serde.JsonRpcRequestAny[serde.NotificationMethod]{}
-				err := json.Unmarshal(message, &jsonRpc)
-				if err != nil {
-					panic(err)
-				}
-
-				if jsonRpc.Method == topic {
-					handler(message)
-				}
-			}
-		}
-	}
-	go listen()
-	return nil
-}
-
-func send[T serde.NotificationOrRequest](c *webSocketConnection, method T, data []byte) error {
-	// TODO longer term, the interface should not contain "method", since "data" contains "method" anyway.
-	if c == nil {
-		return errors.New("no websocket connection yet (not yet connected to server)")
-	}
-
-	return c.WriteMessage(websocket.TextMessage, data)
-}
-
-func (c *webSocketConnection) listenForResponse(id uint64) []byte {
-	for {
-		var message []byte
-		var mt int
-		mt, message, err := c.ReadMessage()
-		if err != nil {
-			panic(err)
-		}
-
-		if mt == websocket.TextMessage {
-			jsonRpc := serde.JsonRpcResponseAny{}
-			err := json.Unmarshal(message, &jsonRpc)
-			if err != nil {
-				panic(err)
-			}
-
-			if jsonRpc.Id == id {
-				return message
-			}
-		}
-	}
-}
-
-func (c *webSocketConnection) Close() {
-	c.Conn.Close() // TODO there is probably a more graceful protocol https://github.com/fasthttp/websocket/blob/master/_examples/echo/client.go
-}
-
-func (c *webSocketConnection) Url() string {
-	return c.Conn.RemoteAddr().String()
 }
