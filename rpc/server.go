@@ -18,7 +18,7 @@ import (
 
 // RpcServer handles nitro rpc requests and executes them on the nitro client
 type RpcServer struct {
-	connection transport.Subscriber
+	connection transport.Responder
 	client     *nitro.Client
 	logger     zerolog.Logger
 }
@@ -32,7 +32,7 @@ func (rs *RpcServer) Close() {
 	rs.connection.Close()
 }
 
-func NewRpcServer(nitroClient *nitro.Client, logger zerolog.Logger, connection transport.Subscriber) (*RpcServer, error) {
+func NewRpcServer(nitroClient *nitro.Client, logger zerolog.Logger, connection transport.Responder) (*RpcServer, error) {
 	rs := &RpcServer{connection, nitroClient, logger}
 	rs.sendNotifications()
 	err := rs.registerHandlers()

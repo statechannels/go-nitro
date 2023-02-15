@@ -121,7 +121,7 @@ func setupNitroNodeWithRPCClient(
 		&engine.PermissivePolicy{},
 		nil)
 
-	var serverConnection transport.Subscriber
+	var serverConnection transport.Responder
 	var clienConnection transport.Requester
 	var err error
 	switch connectionType {
