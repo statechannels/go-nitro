@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"nhooyr.io/websocket"
 )
@@ -87,13 +86,14 @@ func (wsc *serverWebSocketConnection) readRequests(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		jsonRpc := serde.JsonRpcRequestAny[serde.RequestMethod]{}
+		// Any request payload type will do here since we are only interested in the method
+		jsonRpc := serde.JsonRpcRequest[any]{}
 		err = json.Unmarshal(data, &jsonRpc)
 		if err != nil {
 			return err
 		}
 		wsc.logger.Trace().Msgf("Received message: %v", jsonRpc)
-		responseData := wsc.requestHandlers[jsonRpc.Method](data)
+		responseData := wsc.requestHandlers[serde.RequestMethod(jsonRpc.Method)](data)
 		err = wsc.serverWebsocket.Write(ctx, websocket.MessageText, responseData)
 		if err != nil {
 			return err
@@ -147,45 +147,40 @@ func (wsc *clientWebSocketConnection) readMessages(ctx context.Context) {
 		wsc.logger.Trace().Msgf("Received message: %s", string(data))
 
 		// Is this a notification?
-		unmarshaledData := map[string]any{}
-		err = json.Unmarshal(data, &unmarshaledData)
+		// Any payload type will do here since we are only interested in the method value
+		unmarshaledNotifcation := serde.JsonRpcRequest[any]{}
+		err = json.Unmarshal(data, &unmarshaledNotifcation)
 		if err != nil {
 			panic(err)
 		}
-		wsc.logger.Trace().Msgf("Received message: %v", unmarshaledData)
+		wsc.logger.Trace().Msgf("Received message: %v", unmarshaledNotifcation)
 
 		// Is this a notification?
-		if unmarshaledData["method"] != nil {
-			unmarshaledNotifacation := serde.JsonRpcRequest[protocols.ObjectiveId]{}
-			err = json.Unmarshal(data, &unmarshaledNotifacation)
-			if err != nil {
-				panic(err)
-			}
-			wsc.notificationHandlers[serde.NotificationMethod(unmarshaledNotifacation.Method)](data)
-		} else {
+		if unmarshaledNotifcation.Method != "" {
+			wsc.notificationHandlers[serde.NotificationMethod(unmarshaledNotifcation.Method)](data)
 			// Or is this a reply?
-			unmarshaledResponse := serde.JsonRpcResponseAny{}
+		} else {
+			// Any payload type will do here since we are only interested in the id value
+			unmarshaledResponse := serde.JsonRpcResponse[any]{}
 			err = json.Unmarshal(data, &unmarshaledResponse)
 			if err != nil {
 				panic(err)
 			}
 			wsc.responseHandlers[unmarshaledResponse.Id] <- data
+			delete(wsc.responseHandlers, unmarshaledResponse.Id)
 		}
 	}
 }
 
 func (wsc *clientWebSocketConnection) Request(method serde.RequestMethod, data []byte) ([]byte, error) {
-	jsonRequest := serde.JsonRpcRequestAny[serde.RequestMethod]{}
+	// Any request payload type will do here since we are only interested in the id
+	jsonRequest := serde.JsonRpcRequest[any]{}
 	err := json.Unmarshal(data, &jsonRequest)
 	if err != nil {
 		return nil, err
 	}
 	responseChan := make(chan []byte, 1)
 	wsc.responseHandlers[jsonRequest.Id] = responseChan
-	go func() {
-		responseChan <- <-responseChan
-		delete(wsc.responseHandlers, jsonRequest.Id)
-	}()
 
 	err = wsc.clientWebsocket.Write(context.Background(), websocket.MessageText, data)
 	if err != nil {
