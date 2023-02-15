@@ -100,6 +100,9 @@ func executeRpcTest(t *testing.T, connectionType transport.ConnectionType) {
 	rpcClientA.WaitForObjectiveCompletion(closeId)
 	rpcClientI.WaitForObjectiveCompletion(closeId)
 
+	closeIdB := rpcClientB.CloseLedger(bobResponse.ChannelId)
+	rpcClientB.WaitForObjectiveCompletion(closeIdB)
+	rpcClientI.WaitForObjectiveCompletion(closeIdB)
 }
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
