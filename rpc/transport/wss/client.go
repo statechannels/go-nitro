@@ -23,6 +23,34 @@ func NewWebSocketConnectionAsClient(url string) (*clientWebSocketConnection, err
 	return wsc, nil
 }
 
+func (wsc *clientWebSocketConnection) Request(method serde.RequestMethod, data []byte) ([]byte, error) {
+	// Any request payload type will do here since we are only interested in the id
+	jsonRequest := serde.JsonRpcRequest[any]{}
+	err := json.Unmarshal(data, &jsonRequest)
+	if err != nil {
+		return nil, err
+	}
+	responseChan := make(chan []byte, 1)
+	wsc.responseHandlers[jsonRequest.Id] = responseChan
+
+	err = wsc.clientWebsocket.Write(context.Background(), websocket.MessageText, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return <-responseChan, nil
+}
+
+func (wsc *clientWebSocketConnection) Subscribe(topic serde.NotificationMethod, handler func([]byte)) error {
+	wsc.notificationHandlers[topic] = handler
+	return nil
+}
+
+func (wsc *clientWebSocketConnection) Close() {
+	// Clients initiate and close websockets{
+	wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
+}
+
 func (wsc *clientWebSocketConnection) readMessages(ctx context.Context) {
 	for {
 		_, data, err := wsc.clientWebsocket.Read(ctx)
@@ -55,32 +83,4 @@ func (wsc *clientWebSocketConnection) readMessages(ctx context.Context) {
 			delete(wsc.responseHandlers, unmarshaledResponse.Id)
 		}
 	}
-}
-
-func (wsc *clientWebSocketConnection) Request(method serde.RequestMethod, data []byte) ([]byte, error) {
-	// Any request payload type will do here since we are only interested in the id
-	jsonRequest := serde.JsonRpcRequest[any]{}
-	err := json.Unmarshal(data, &jsonRequest)
-	if err != nil {
-		return nil, err
-	}
-	responseChan := make(chan []byte, 1)
-	wsc.responseHandlers[jsonRequest.Id] = responseChan
-
-	err = wsc.clientWebsocket.Write(context.Background(), websocket.MessageText, data)
-	if err != nil {
-		return nil, err
-	}
-
-	return <-responseChan, nil
-}
-
-func (wsc *clientWebSocketConnection) Subscribe(topic serde.NotificationMethod, handler func([]byte)) error {
-	wsc.notificationHandlers[topic] = handler
-	return nil
-}
-
-func (wsc *clientWebSocketConnection) Close() {
-	// Clients initiate and close websockets{
-	wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
 }

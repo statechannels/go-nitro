@@ -57,8 +57,29 @@ func NewWebSocketConnectionAsServer(port string) (*serverWebSocketConnection, er
 	return wsc, nil
 }
 
+// ServeHTTP is a required method for the http.Handler interface
 func (wsc *serverWebSocketConnection) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wsc.serveMux.ServeHTTP(w, r)
+}
+
+func (wsc *serverWebSocketConnection) Respond(topic serde.RequestMethod, handler func([]byte) []byte) error {
+	wsc.requestHandlers[topic] = handler
+	return nil
+}
+
+func (wsc *serverWebSocketConnection) Notify(topic serde.NotificationMethod, data []byte) error {
+	return wsc.serverWebsocket.Write(context.Background(), websocket.MessageText, data)
+}
+
+func (wsc *serverWebSocketConnection) Close() {
+	err := wsc.httpServer.Shutdown(context.Background())
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (wsc *serverWebSocketConnection) Url() string {
+	return "ws://127.0.0.1:" + wsc.port
 }
 
 func (wsc *serverWebSocketConnection) subscribeRequestHandler(w http.ResponseWriter, r *http.Request) {
@@ -100,24 +121,4 @@ func (wsc *serverWebSocketConnection) readRequests(ctx context.Context) error {
 			return err
 		}
 	}
-}
-
-func (wsc *serverWebSocketConnection) Respond(topic serde.RequestMethod, handler func([]byte) []byte) error {
-	wsc.requestHandlers[topic] = handler
-	return nil
-}
-
-func (wsc *serverWebSocketConnection) Notify(topic serde.NotificationMethod, data []byte) error {
-	return wsc.serverWebsocket.Write(context.Background(), websocket.MessageText, data)
-}
-
-func (wsc *serverWebSocketConnection) Close() {
-	err := wsc.httpServer.Shutdown(context.Background())
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (wsc *serverWebSocketConnection) Url() string {
-	return "ws://127.0.0.1:" + wsc.port
 }
