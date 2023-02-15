@@ -31,7 +31,15 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 		Logger()
 }
 
-func TestRpc(t *testing.T) {
+func TestRpcWithNats(t *testing.T) {
+	executeRpcTest(t, "nats")
+}
+
+func TestRpcWithWebsockets(t *testing.T) {
+	executeRpcTest(t, "ws")
+}
+
+func executeRpcTest(t *testing.T, connectionType transport.ConnectionType) {
 	logFile := "test_rpc_client.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
@@ -41,7 +49,6 @@ func TestRpc(t *testing.T) {
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 
-	const connectionType transport.ConnectionType = "ws"
 	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(alice.PrivateKey, 3005, 4005, chainServiceA, logDestination, connectionType)
 	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(bob.PrivateKey, 3006, 4006, chainServiceB, logDestination, connectionType)
 	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(irene.PrivateKey, 3007, 4007, chainServiceI, logDestination, connectionType)
