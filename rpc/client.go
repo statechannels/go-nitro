@@ -3,11 +3,9 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"math/rand"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
@@ -18,7 +16,6 @@ import (
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
 
-	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
 	"github.com/statechannels/go-nitro/types"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -26,22 +23,16 @@ import (
 
 // RpcClient is a client for making nitro rpc calls
 type RpcClient struct {
-	connection          transport.Connection
+	connection          transport.Requester
 	myAddress           types.Address
-	chainId             *big.Int
 	logger              zerolog.Logger
 	completedObjectives chan protocols.ObjectiveId
 }
 
 // NewRpcClient creates a new RpcClient
-func NewRpcClient(rpcServerUrl string, myAddress types.Address, chainId *big.Int, logger zerolog.Logger) (*RpcClient, error) {
-	nc, err := nats.Connect(rpcServerUrl)
-	if err != nil {
-		return nil, err
-	}
-	con := natstrans.NewNatsConnection(nc)
-	c := &RpcClient{con, myAddress, chainId, logger, make(chan protocols.ObjectiveId, 100)}
-	err = c.subscribeToNotifications()
+func NewRpcClient(rpcServerUrl string, myAddress types.Address, logger zerolog.Logger, connection transport.Requester) (*RpcClient, error) {
+	c := &RpcClient{connection, myAddress, logger, make(chan protocols.ObjectiveId, 100)}
+	err := c.subscribeToNotifications()
 	if err != nil {
 		return nil, err
 	}
@@ -104,15 +95,19 @@ func (rc *RpcClient) Close() {
 }
 
 func (rc *RpcClient) subscribeToNotifications() error {
-	err := rc.connection.Subscribe(serde.ObjectiveCompleted, func(data []byte) {
-		rpcRequest := serde.JsonRpcRequest[protocols.ObjectiveId]{}
-		err := json.Unmarshal(data, &rpcRequest)
-		if err != nil {
-			panic(err)
-		}
-		rc.completedObjectives <- rpcRequest.Params
-	})
+	notificationChan, err := rc.connection.Subscribe()
 	rc.logger.Trace().Msg("Subscribed to notifications")
+	go func() {
+		for data := range notificationChan {
+			rc.logger.Trace().Bytes("data", data).Msg("Received notification")
+			rpcRequest := serde.JsonRpcRequest[protocols.ObjectiveId]{}
+			err := json.Unmarshal(data, &rpcRequest)
+			if err != nil {
+				panic(err)
+			}
+			rc.completedObjectives <- rpcRequest.Params
+		}
+	}()
 	return err
 }
 

@@ -23,7 +23,7 @@ type Response[T serde.ResponsePayload] struct {
 
 // Request uses the supplied connection and payload to send a non-blocking JSONRPC request.
 // It returns a channel that sends a response payload. If the request fails to send, an error is returned.
-func Request[T serde.RequestPayload, U serde.ResponsePayload](connection transport.Connection, request T, logger zerolog.Logger) (<-chan Response[U], error) {
+func Request[T serde.RequestPayload, U serde.ResponsePayload](connection transport.Requester, request T, logger zerolog.Logger) (<-chan Response[U], error) {
 	returnChan := make(chan Response[U], 1)
 
 	var method serde.RequestMethod
@@ -53,7 +53,7 @@ func Request[T serde.RequestPayload, U serde.ResponsePayload](connection transpo
 		Msg("sent message")
 
 	go func() {
-		responseData, err := connection.Request(method, data)
+		responseData, err := connection.Request(requestId, data)
 		if err != nil {
 			returnChan <- Response[U]{Error: err}
 		}

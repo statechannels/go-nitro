@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/rpc"
+	"github.com/statechannels/go-nitro/rpc/transport"
+	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +30,12 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 		Logger()
 }
 
-func TestRpc(t *testing.T) {
+func TestRpcWithNats(t *testing.T) {
+
+	executeRpcTest(t, "nats")
+}
+
+func executeRpcTest(t *testing.T, connectionType transport.ConnectionType) {
 	logFile := "test_rpc_client.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
@@ -37,9 +45,9 @@ func TestRpc(t *testing.T) {
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 
-	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(alice.PrivateKey, 3005, 4005, chainServiceA, logDestination)
-	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(bob.PrivateKey, 3006, 4006, chainServiceB, logDestination)
-	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(irene.PrivateKey, 3007, 4007, chainServiceI, logDestination)
+	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(alice.PrivateKey, 3005, 4005, chainServiceA, logDestination, connectionType)
+	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(bob.PrivateKey, 3006, 4006, chainServiceB, logDestination, connectionType)
+	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(irene.PrivateKey, 3007, 4007, chainServiceI, logDestination, connectionType)
 
 	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
@@ -88,6 +96,9 @@ func TestRpc(t *testing.T) {
 	rpcClientA.WaitForObjectiveCompletion(closeId)
 	rpcClientI.WaitForObjectiveCompletion(closeId)
 
+	closeIdB := rpcClientB.CloseLedger(bobResponse.ChannelId)
+	rpcClientB.WaitForObjectiveCompletion(closeIdB)
+	rpcClientI.WaitForObjectiveCompletion(closeIdB)
 }
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
@@ -97,11 +108,8 @@ func setupNitroNodeWithRPCClient(
 	rpcPort int,
 	chain *chainservice.MockChainService,
 	logDestination *os.File,
+	connectionType transport.ConnectionType,
 ) (*rpc.RpcClient, *p2pms.P2PMessageService, func()) {
-	chainId, err := chain.GetChainId()
-	if err != nil {
-		panic(err)
-	}
 	messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, pk)
 	storeA := store.NewMemStore(pk)
 	node := client.New(
@@ -111,12 +119,30 @@ func setupNitroNodeWithRPCClient(
 		logDestination,
 		&engine.PermissivePolicy{},
 		nil)
-	rpcServer := rpc.NewRpcServer(
-		&node,
-		chainId,
-		createLogger(logDestination, node.Address.Hex(), "server"),
-		rpcPort)
-	rpcClient, err := rpc.NewRpcClient(rpcServer.Url(), alice.Address(), chainId, createLogger(logDestination, node.Address.Hex(), "client"))
+
+	var serverConnection transport.Responder
+	var clienConnection transport.Requester
+	var err error
+	switch connectionType {
+	case "nats":
+		serverConnection, err = natstrans.NewNatsConnectionAsServer(rpcPort)
+		if err != nil {
+			panic(err)
+		}
+		clienConnection, err = natstrans.NewNatsConnectionAsClient(serverConnection.Url())
+		if err != nil {
+			panic(err)
+		}
+	default:
+		err = fmt.Errorf("unknown connection type %v", connectionType)
+		panic(err)
+	}
+
+	rpcServer, err := rpc.NewRpcServer(&node, createLogger(logDestination, node.Address.Hex(), "server"), serverConnection)
+	if err != nil {
+		panic(err)
+	}
+	rpcClient, err := rpc.NewRpcClient(rpcServer.Url(), alice.Address(), createLogger(logDestination, node.Address.Hex(), "client"), clienConnection)
 	if err != nil {
 		panic(err)
 	}

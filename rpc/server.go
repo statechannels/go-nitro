@@ -2,11 +2,10 @@ package rpc
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"math/rand"
 
-	"github.com/nats-io/nats-server/v2/server"
-	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/protocols"
@@ -16,91 +15,92 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
-	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
 )
 
 // RpcServer handles nitro rpc requests and executes them on the nitro client
 type RpcServer struct {
-	connection transport.Connection
-	ns         *server.Server
+	connection transport.Responder
 	client     *nitro.Client
-	chainId    *big.Int
 	logger     zerolog.Logger
 }
 
 func (rs *RpcServer) Url() string {
-	return rs.ns.ClientURL()
+	return rs.connection.Url()
+	//return "ws://127.0.0.1:" + rs.port
 }
 
 func (rs *RpcServer) Close() {
 	rs.connection.Close()
-	rs.ns.Shutdown()
 }
 
-func NewRpcServer(nitroClient *nitro.Client, chainId *big.Int, logger zerolog.Logger, rpcPort int) *RpcServer {
-
-	opts := &server.Options{Port: rpcPort}
-	ns, err := server.NewServer(opts)
-	if err != nil {
-		panic(err)
-	}
-	ns.Start()
-
-	nc, err := nats.Connect(ns.ClientURL())
-	if err != nil {
-		panic(err)
-	}
-
-	rs := &RpcServer{natstrans.NewNatsConnection(nc), ns, nitroClient, chainId, logger}
+func NewRpcServer(nitroClient *nitro.Client, logger zerolog.Logger, connection transport.Responder) (*RpcServer, error) {
+	rs := &RpcServer{connection, nitroClient, logger}
 	rs.sendNotifications()
-	err = rs.registerHandlers()
+	err := rs.registerHandlers()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return rs
+	return rs, nil
 }
 
 // registerHandlers registers the handlers for the rpc server
 func (rs *RpcServer) registerHandlers() error {
-	err := subcribeToRequest(rs, serde.DirectFundRequestMethod, func(obj directfund.ObjectiveRequest) directfund.ObjectiveResponse {
-		return rs.client.CreateLedgerChannel(obj.CounterParty, obj.ChallengeDuration, obj.Outcome)
-	})
+	subscriber := func(requestData []byte) []byte {
+		rs.logger.Trace().Msgf("Rpc server received request: %+v", string(requestData))
+		requestJson := serde.JsonRpcRequest[any]{}
+		err := json.Unmarshal(requestData, &requestJson)
+		if err != nil {
+			panic(err)
+		}
 
+		switch serde.RequestMethod(requestJson.Method) {
+		case serde.DirectFundRequestMethod:
+			return processRequest(rs, requestData, func(obj directfund.ObjectiveRequest) directfund.ObjectiveResponse {
+				return rs.client.CreateLedgerChannel(obj.CounterParty, obj.ChallengeDuration, obj.Outcome)
+			})
+		case serde.DirectDefundRequestMethod:
+			return processRequest(rs, requestData, func(obj directdefund.ObjectiveRequest) protocols.ObjectiveId {
+				return rs.client.CloseLedgerChannel(obj.ChannelId)
+			})
+		case serde.VirtualFundRequestMethod:
+			return processRequest(rs, requestData, func(obj virtualfund.ObjectiveRequest) virtualfund.ObjectiveResponse {
+				return rs.client.CreateVirtualPaymentChannel(obj.Intermediaries, obj.CounterParty, obj.ChallengeDuration, obj.Outcome)
+			})
+		case serde.VirtualDefundRequestMethod:
+			return processRequest(rs, requestData, func(obj virtualdefund.ObjectiveRequest) protocols.ObjectiveId {
+				return rs.client.CloseVirtualChannel(obj.ChannelId)
+			})
+		case serde.PayRequestMethod:
+			return processRequest(rs, requestData, func(obj serde.PaymentRequest) serde.PaymentRequest {
+				rs.client.Pay(obj.Channel, big.NewInt(int64(obj.Amount)))
+				return obj
+			})
+		default:
+			panic(fmt.Errorf("unknown method: %s", requestJson.Method))
+		}
+	}
+	return rs.connection.Respond(subscriber)
+}
+
+func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, requestData []byte, processPayload func(T) U) []byte {
+	rs.logger.Trace().Msgf("Rpc server received request: %+v", requestData)
+	rpcRequest := serde.JsonRpcRequest[T]{}
+	err := json.Unmarshal(requestData, &rpcRequest)
 	if err != nil {
-		return err
+		panic("could not unmarshal objective request")
+	}
+	obj := rpcRequest.Params
+	objResponse := processPayload(obj)
+
+	msg := serde.NewJsonRpcResponse(rpcRequest.Id, objResponse)
+	messageData, err := json.Marshal(msg)
+	if err != nil {
+		panic("Could not marshal response message")
 	}
 
-	err = subcribeToRequest(rs, serde.DirectDefundRequestMethod, func(obj directdefund.ObjectiveRequest) protocols.ObjectiveId {
-		return rs.client.CloseLedgerChannel(obj.ChannelId)
-	})
+	return messageData
 
-	if err != nil {
-		return err
-	}
-
-	err = subcribeToRequest(rs, serde.VirtualFundRequestMethod, func(obj virtualfund.ObjectiveRequest) virtualfund.ObjectiveResponse {
-		return rs.client.CreateVirtualPaymentChannel(obj.Intermediaries, obj.CounterParty, obj.ChallengeDuration, obj.Outcome)
-	})
-
-	if err != nil {
-		return err
-	}
-
-	err = subcribeToRequest(rs, serde.VirtualDefundRequestMethod, func(obj virtualdefund.ObjectiveRequest) protocols.ObjectiveId {
-		return rs.client.CloseVirtualChannel(obj.ChannelId)
-	})
-
-	if err != nil {
-		return err
-	}
-
-	err = subcribeToRequest(rs, serde.PayRequestMethod, func(payReq serde.PaymentRequest) serde.PaymentRequest {
-		rs.client.Pay(payReq.Channel, big.NewInt(int64(payReq.Amount)))
-		return payReq
-	})
-
-	return err
 }
 
 func (rs *RpcServer) sendNotifications() {
@@ -112,31 +112,10 @@ func (rs *RpcServer) sendNotifications() {
 			if err != nil {
 				panic(err)
 			}
-			err = rs.connection.Notify(serde.ObjectiveCompleted, data)
+			err = rs.connection.Notify(data)
 			if err != nil {
 				panic(err)
 			}
 		}
 	}()
-}
-
-func subcribeToRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, method serde.RequestMethod, processPayload func(T) U) error {
-	return rs.connection.Respond(method, func(data []byte) []byte {
-		rs.logger.Trace().Msgf("Rpc server received request: %+v", string(data))
-		rpcRequest := serde.JsonRpcRequest[T]{}
-		err := json.Unmarshal(data, &rpcRequest)
-		if err != nil {
-			panic("could not unmarshal objective request")
-		}
-		obj := rpcRequest.Params
-		objResponse := processPayload(obj)
-
-		msg := serde.NewJsonRpcResponse(rpcRequest.Id, objResponse)
-		messageData, err := json.Marshal(msg)
-		if err != nil {
-			panic("Could not marshal response message")
-		}
-
-		return messageData
-	})
 }
