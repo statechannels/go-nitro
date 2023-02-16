@@ -10,6 +10,7 @@ require (
 	github.com/nats-io/nats.go v1.21.0
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
 	github.com/stretchr/testify v1.8.1
+	nhooyr.io/websocket v1.8.7
 )
 
 require (

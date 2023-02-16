@@ -15,6 +15,7 @@ import (
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/rpc/transport"
 	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
+	"github.com/statechannels/go-nitro/rpc/transport/ws"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -31,8 +32,11 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 }
 
 func TestRpcWithNats(t *testing.T) {
-
 	executeRpcTest(t, "nats")
+}
+
+func TestRpcWithWebsockets(t *testing.T) {
+	executeRpcTest(t, "ws")
 }
 
 func executeRpcTest(t *testing.T, connectionType transport.ConnectionType) {
@@ -130,6 +134,15 @@ func setupNitroNodeWithRPCClient(
 			panic(err)
 		}
 		clienConnection, err = natstrans.NewNatsConnectionAsClient(serverConnection.Url())
+		if err != nil {
+			panic(err)
+		}
+	case "ws":
+		serverConnection, err = ws.NewWebSocketConnectionAsServer(fmt.Sprint(rpcPort))
+		if err != nil {
+			panic(err)
+		}
+		clienConnection, err = ws.NewWebSocketConnectionAsClient(serverConnection.Url())
 		if err != nil {
 			panic(err)
 		}
