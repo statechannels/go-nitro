@@ -75,7 +75,7 @@ contract LedgerFinancingApp is IForceMoveApp {
                 outstandingInterest
             );
         } else {
-            revert('|proof| > 1'); 
+            revert('|proof| > 1');
         }
     }
 
@@ -120,27 +120,33 @@ contract LedgerFinancingApp is IForceMoveApp {
             for (uint256 j = 0; j < finalOutcome.length; j++) {
                 if (finalOutcome[j].asset == asset) {
                     require(initialOutcome[j].asset == asset, 'Asset mismatch');
-                    require(
-                        initialOutcome[j]
-                            .allocations[uint256(AllocationIndicies.intermediary)]
-                            .destination ==
-                            finalOutcome[j]
-                                .allocations[uint256(AllocationIndicies.intermediary)]
-                                .destination,
-                        'payee mismatch'
-                    );
-                    uint256 initialProviderBalance = initialOutcome[j]
-                        .allocations[uint256(AllocationIndicies.serviceProvider)]
-                        .amount;
-                    uint256 adjustedProviderBalance = finalOutcome[j]
-                        .allocations[uint256(AllocationIndicies.serviceProvider)]
-                        .amount;
-                    uint256 claimed = initialProviderBalance - adjustedProviderBalance;
 
-                    require(claimed <= earned, 'earned<claimed');
+                    requireFairAssetAdjustment(initialOutcome[j], finalOutcome[j], earned);
                 }
             }
         }
+    }
+
+    // Ensures that the given asset outcome does not unfairly allocate to the intermediary.
+    function requireFairAssetAdjustment(
+        Outcome.SingleAssetExit memory initial,
+        Outcome.SingleAssetExit memory adjusted,
+        uint256 earned
+    ) private pure {
+        require(
+            initial.allocations[uint256(AllocationIndicies.intermediary)].destination ==
+                adjusted.allocations[uint256(AllocationIndicies.intermediary)].destination,
+            'payee mismatch'
+        );
+        uint256 initialProviderBalance = initial
+            .allocations[uint256(AllocationIndicies.serviceProvider)]
+            .amount;
+        uint256 adjustedProviderBalance = adjusted
+            .allocations[uint256(AllocationIndicies.serviceProvider)]
+            .amount;
+        uint256 claimed = initialProviderBalance - adjustedProviderBalance;
+
+        require(claimed <= earned, 'earned<claimed');
     }
 
     function daysSince(uint256 blocknumber) private view returns (uint32) {
