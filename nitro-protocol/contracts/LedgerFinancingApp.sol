@@ -43,7 +43,7 @@ contract LedgerFinancingApp is IForceMoveApp {
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
     ) external view override {
-        if (p   roof.length == 0) {
+        if (proof.length == 0) {
             // unanimous consensus check
             require(
                 NitroUtils.getClaimedSignersNum(candidate.signedBy) == 2,
