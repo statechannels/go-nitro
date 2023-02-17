@@ -134,8 +134,8 @@ contract LedgerFinancingApp is IForceMoveApp {
         uint256 earned
     ) private pure {
         require(
-            initial.allocations[uint256(AllocationIndicies.intermediary)].destination ==
-                adjusted.allocations[uint256(AllocationIndicies.intermediary)].destination,
+            initial.allocations[uint256(AllocationIndicies.serviceProvider)].destination ==
+                adjusted.allocations[uint256(AllocationIndicies.serviceProvider)].destination,
             'payee mismatch'
         );
         uint256 initialProviderBalance = initial
