@@ -31,8 +31,7 @@ interface Funds {
 }
 
 interface LedgerFinancingAppData {
-  dpyNum: number;
-  dpyDen: number;
+  bpy: number;
   blocknumber: number;
   principal: Funds;
   collectedInterest: Funds;
@@ -40,8 +39,7 @@ interface LedgerFinancingAppData {
 const ledgerFinancingAppDataTy: ParamType = {
   type: 'tuple',
   components: [
-    {type: 'uint128', name: 'dpyNum'},
-    {type: 'uint128', name: 'dpyDen'},
+    {type: 'uint256', name: 'bpy'},
     {type: 'uint256', name: 'blocknumber'},
     {
       type: 'tuple',
@@ -71,17 +69,15 @@ function appDataABIEncode(appData: LedgerFinancingAppData): string {
 }
 
 const initialOutcome = computeOutcome({
-  [MAGIC_NATIVE_ASSET_ADDRESS]: {[merchant]: 500, [intermediary]: 500},
+  [MAGIC_NATIVE_ASSET_ADDRESS]: {[merchant]: 1000, [intermediary]: 0},
 });
 
 const baseAppData: LedgerFinancingAppData = {
-  // 1/100 -> 1% daily percentage yield.
-  dpyNum: 1,
-  dpyDen: 100,
+  bpy: 1000, // 0.1% block percentage yield (1/1000)
   blocknumber: 1,
   principal: {
     asset: [MAGIC_NATIVE_ASSET_ADDRESS],
-    amount: [500],
+    amount: [1000],
   },
   collectedInterest: {
     asset: [MAGIC_NATIVE_ASSET_ADDRESS],
@@ -129,17 +125,33 @@ describe('requireStateSupported', () => {
   it('accepts legitimate interest calculations', async () => {
     // construct a proof+candidate test case with fair interest calculation, assert passing    // with the interest rate applied.
     // test case:
-    // - appdata interest rate is 1% per day
-    // - initial outcome is 500:500, with 500 principal
-    // - 1 day passes
-    // - challenge outcome is 505:495
-    advanceOneDay();
+    // - appdata interest rate is 0.1% per block
+    // - initial outcome is 1000:0, with 1000 principal
+    // - 1 block passes
+    // - challenge outcome is 999:1
+
+    const currentBlockNumber = await provider.getBlockNumber();
+    const supportproofAppData = {
+      ...baseAppData,
+      blocknumber: currentBlockNumber,
+    };
+    const supportproofState: State = {
+      ...baseState,
+      appData: appDataABIEncode(supportproofAppData),
+    };
+    const pfStateSignedByBoth: RecoveredVariablePart = {
+      variablePart: getVariablePart(supportproofState),
+      signedBy: BigNumber.from(0b11).toHexString(),
+    };
+
+    // mine a block
+    provider.send('evm_mine', []);
 
     const challengeState: State = {
       ...baseState,
       turnNum: baseState.turnNum + 1,
       outcome: computeOutcome({
-        [MAGIC_NATIVE_ASSET_ADDRESS]: {[merchant]: 495, [intermediary]: 505}, // intermediary picks up 1% of the principal
+        [MAGIC_NATIVE_ASSET_ADDRESS]: {[merchant]: 999, [intermediary]: 1}, // intermediary picks up 0.1% of the principal
       }),
     };
     const challengeWithIntermediarySignature: RecoveredVariablePart = {
@@ -149,7 +161,7 @@ describe('requireStateSupported', () => {
 
     await ledgerFinancingApp.requireStateSupported(
       fixedPart,
-      [signedByBoth],
+      [pfStateSignedByBoth],
       challengeWithIntermediarySignature
     );
   });
@@ -157,10 +169,10 @@ describe('requireStateSupported', () => {
   it('rejects excessive interest calulations', async () => {
     // construct proof+candidate test case with unfair interest calculation, assert failure.
     // test case:
-    //  - the appData's interest rate is 1% per day
-    //  - the initial outcome is 500:500
-    //  - the chain is advanced by 1 day
-    //  - challenge outcome is 506:494. Fraud!
+    //  - the appData's interest rate is 0.1% per block
+    //  - the initial outcome is 1000:0
+    //  - the chain is advanced by 1 block
+    //  - challenge outcome is 998:2. Fraud!
 
     const currentBlockNumber = await provider.getBlockNumber();
     const supportproofAppData = {
@@ -177,14 +189,15 @@ describe('requireStateSupported', () => {
       signedBy: BigNumber.from(0b11).toHexString(),
     };
 
-    advanceOneDay();
+    // advance one block
+    provider.send('evm_mine', []);
 
     const challengeState: State = {
       ...baseState,
       appData: appDataABIEncode(supportproofAppData),
       turnNum: baseState.turnNum + 1,
       outcome: computeOutcome({
-        [MAGIC_NATIVE_ASSET_ADDRESS]: {[merchant]: 494, [intermediary]: 506}, // 506 is unfair: should be 505
+        [MAGIC_NATIVE_ASSET_ADDRESS]: {[merchant]: 998, [intermediary]: 2}, // 998 is unfair: should be 999
       }),
     };
     const updatedWithIntermediarySignature: RecoveredVariablePart = {
