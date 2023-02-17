@@ -145,8 +145,4 @@ contract LedgerFinancingApp is IForceMoveApp {
 
         require(claimed <= earned, 'earned<claimed');
     }
-
-    function daysSince(uint256 blocknumber) private view returns (uint32) {
-        return uint32((block.number - blocknumber) / 7200); // 7200 == 24*60*60/12
-    }
 }

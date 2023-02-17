@@ -272,17 +272,3 @@ describe('requireStateSupported', () => {
     );
   });
 });
-
-/**
- * increase blocknumber on provider by 7200.
- * each day is ~7200= blocks (24*60*60/12)
- */
-function advanceOneDay() {
-  // note: this is a hacky way to advance so many blocks, and results
-  // in a slower test.
-  // The 'hardhat_mine' method is better, but it causes a different error
-  // in the test.
-  for (let i = 0; i < 7200; i++) {
-    provider.send('evm_mine', []);
-  }
-}
