@@ -17,11 +17,11 @@ contract LedgerFinancingApp is IForceMoveApp {
 
     struct InterestAppData {
         // the per-block interest rate, expressed as the denominator of a fraction
-        // eg, 1% per block would be expressed by bpy = 100,
-        //     2% per block would be expressed by bpy = 50,
-        //     0.1% per block would be expressed by bpy = 1000,
+        // eg, 1% per block would be expressed by interestPerBlockDivisor = 100,
+        //     2% per block would be expressed by interestPerBlockDivisor = 50,
+        //     0.1% per block would be expressed by interestPerBlockDivisor = 1000,
         // etc.
-        uint256 bpy;
+        uint256 interestPerBlockDivisor;
         // the block number of the latest principal adjustment
         uint256 blocknumber;
         // the current principal. Decreases as the serviceProvider earns via the channel.
@@ -98,7 +98,7 @@ contract LedgerFinancingApp is IForceMoveApp {
         // copy all assets from the principal, and multiply by the interest rate
         for (uint256 i = 0; i < appData.principal.asset.length; i++) {
             outstanding.asset[i] = appData.principal.asset[i];
-            outstanding.amount[i] = (appData.principal.amount[i] * numBlocks) / appData.bpy;
+            outstanding.amount[i] = (appData.principal.amount[i] * numBlocks) / appData.interestPerBlockDivisor;
         }
 
         return outstanding;
