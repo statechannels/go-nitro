@@ -13,7 +13,7 @@ type Requester interface {
 	Close()
 
 	// Request sends data for a topic and returns the response data or an error
-	Request(uint64, []byte) ([]byte, error)
+	Request([]byte) ([]byte, error)
 	// Subscribe listens for notifications for a topic.
 	// If subscription to a notification topic fails, it returns an error.
 	Subscribe() (<-chan []byte, error)

@@ -53,7 +53,7 @@ func Request[T serde.RequestPayload, U serde.ResponsePayload](connection transpo
 		Msg("sent message")
 
 	go func() {
-		responseData, err := connection.Request(requestId, data)
+		responseData, err := connection.Request(data)
 		if err != nil {
 			returnChan <- Response[U]{Error: err}
 		}
