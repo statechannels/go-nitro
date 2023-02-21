@@ -12,9 +12,9 @@ type Requester interface {
 	// Close closes the connection
 	Close()
 
-	// Request sends data for a topic and returns the response data or an error
+	// Request sends request data and returns the response data or an error
 	Request([]byte) ([]byte, error)
-	// Subscribe listens for notifications for a topic.
+	// Subscribe provides a notification channel.
 	// If subscription to a notification topic fails, it returns an error.
 	Subscribe() (<-chan []byte, error)
 }
@@ -26,8 +26,8 @@ type Responder interface {
 	// Url returns the url that the responder is listening on
 	Url() string
 
-	// Respond listens for requests for a topic and calls the handler function when a request is received
+	// Respond listens for requests and calls the handler function when a request is received
 	Respond(func([]byte) []byte) error
-	// Notify sends data for a topic without expecting a response
+	// Notify sends notification data without expecting a response
 	Notify([]byte) error
 }
