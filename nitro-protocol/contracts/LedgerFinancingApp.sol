@@ -16,12 +16,12 @@ contract LedgerFinancingApp is IForceMoveApp {
     }
 
     struct InterestAppData {
-        // a per-day simple interest rate (daily percentage yield), as a fraction.
-        // ie, 1% per day is represented with dpyNum = 1 and dpyDen = 100.
-        //
-        // Lower numbers (eg, fraction in simplest terms) produce least risk of overflow.
-        uint128 dpyNum;
-        uint128 dpyDen;
+        // the per-block interest rate, expressed as the denominator of a fraction
+        // eg, 1% per block would be expressed by interestPerBlockDivisor = 100,
+        //     2% per block would be expressed by interestPerBlockDivisor = 50,
+        //     0.1% per block would be expressed by interestPerBlockDivisor = 1000,
+        // etc.
+        uint256 interestPerBlockDivisor;
         // the block number of the latest principal adjustment
         uint256 blocknumber;
         // the current principal. Decreases as the serviceProvider earns via the channel.
@@ -88,8 +88,7 @@ contract LedgerFinancingApp is IForceMoveApp {
         view
         returns (Funds memory)
     {
-        uint32 numDays = daysSince(appData.blocknumber);
-        uint256 simpleInterestNum = numDays * appData.dpyNum;
+        uint256 numBlocks = block.number - appData.blocknumber;
 
         address[] memory assets = new address[](appData.principal.asset.length);
         uint256[] memory amounts = new uint256[](appData.principal.asset.length);
@@ -99,9 +98,7 @@ contract LedgerFinancingApp is IForceMoveApp {
         // copy all assets from the principal, and multiply by the interest rate
         for (uint256 i = 0; i < appData.principal.asset.length; i++) {
             outstanding.asset[i] = appData.principal.asset[i];
-            outstanding.amount[i] =
-                (appData.principal.amount[i] * simpleInterestNum) /
-                appData.dpyDen;
+            outstanding.amount[i] = (appData.principal.amount[i] * numBlocks) / appData.interestPerBlockDivisor;
         }
 
         return outstanding;
@@ -147,9 +144,5 @@ contract LedgerFinancingApp is IForceMoveApp {
         uint256 claimed = initialProviderBalance - adjustedProviderBalance;
 
         require(claimed <= earned, 'earned<claimed');
-    }
-
-    function daysSince(uint256 blocknumber) private view returns (uint32) {
-        return uint32((block.number - blocknumber) / 7200); // 7200 == 24*60*60/12
     }
 }
