@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/protocols"
@@ -34,42 +36,39 @@ const PERSIST_STORE_FOLDER = "../data/client_test"
 // If the timeout lapses and the objectives have not all completed, the parent test will be failed.
 func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeout time.Duration, ids ...protocols.ObjectiveId) {
 
-	waitAndSendOn := func(completed map[protocols.ObjectiveId]bool, allDone chan interface{}) {
+	incomplete := safesync.Map[<-chan struct{}]{}
 
-		// We continue to consume completed objective ids from the chan until all have been completed
-		for got := range client.CompletedObjectives() {
-			// Mark the objective as completed
-			completed[got] = true
+	var wg sync.WaitGroup
 
-			// If all objectives are completed we can send the all done signal and return
-			isDone := true
-			for _, id := range ids {
-				isDone = isDone && completed[id]
-			}
-			if isDone {
-				allDone <- struct{}{}
-				return
-
-			}
-		}
-
+	for _, id := range ids {
+		incomplete.Store(string(id), client.CompletedObjectives(id))
+		wg.Add(1)
 	}
 
-	allDone := make(chan interface{})
-	// Create a map to keep track of completed objectives
-	completed := make(map[protocols.ObjectiveId]bool)
+	incomplete.Range(
+		func(id string, ch <-chan struct{}) bool {
+			go func() {
+				<-ch
+				incomplete.Delete(string(id))
+				wg.Done()
+			}()
+			return true
+		})
 
-	go waitAndSendOn(completed, allDone)
+	allDone := make(chan struct{})
+
+	go func() {
+		wg.Wait()
+		allDone <- struct{}{}
+	}()
 
 	select {
 	case <-time.After(timeout):
-		incompleteIds := make([]protocols.ObjectiveId, 0)
-		for _, id := range ids {
-			isObjectiveDone := completed[id]
-			if !isObjectiveDone {
-				incompleteIds = append(incompleteIds, id)
-			}
-		}
+		incompleteIds := make([]string, 0)
+		incomplete.Range(func(key string, value <-chan struct{}) bool {
+			incompleteIds = append(incompleteIds, key)
+			return true
+		})
 		t.Fatalf("Objective ids %s failed to complete on client %s within %s", incompleteIds, client.Address, timeout)
 	case <-allDone:
 		return
