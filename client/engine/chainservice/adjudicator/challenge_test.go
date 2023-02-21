@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -95,12 +97,15 @@ func runChallengeWithTurnNum(t *testing.T, turnNum uint64, pc preparedChain) {
 		sim.Commit()
 	}
 
+	// Use random nonces so we can run this test multiple times against the same chain
+	rand.Seed(time.Now().Unix())
+	nonce := rand.Uint64()
 	var s = state.State{
 		Participants: []types.Address{
 			Actors.Alice.Address,
 			Actors.Bob.Address,
 		},
-		ChannelNonce:      37140676580,
+		ChannelNonce:      nonce,
 		AppDefinition:     consensusAppAddress,
 		ChallengeDuration: 60,
 		AppData:           []byte{},
@@ -248,7 +253,7 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 	}
 
 	// The 0th account is usually used for deployment and the other test could be using the 1st account so we grab the 2nd
-	a, err := wallet.Derive(hdwallet.MustParseDerivationPath(fmt.Sprintf("%s/%d", HD_PATH, 2)), false)
+	a, err := wallet.Derive(hdwallet.MustParseDerivationPath(fmt.Sprintf("%s/%d", HD_PATH, 1)), false)
 	if err != nil {
 		t.Fatal(err)
 	}
