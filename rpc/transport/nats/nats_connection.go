@@ -9,6 +9,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const nitroRequestTopic = "nitro-request"
+const nitroNotificationTopic = "nitro-notify"
+
 type natsConnection struct {
 	nc                *nats.Conn
 	natsSubscriptions []*nats.Subscription
@@ -67,7 +70,7 @@ func NewNatsConnectionAsClient(url string) (*natsConnectionClient, error) {
 // Request sends a blocking request for a topic with the given data
 // It returns the response data and an error
 func (c *natsConnectionClient) Request(data []byte) ([]byte, error) {
-	msg, err := c.nc.Request("nitro-request", data, 10*time.Second)
+	msg, err := c.nc.Request(nitroRequestTopic, data, 10*time.Second)
 	if msg == nil {
 		return nil, fmt.Errorf("received nill data for request %v with error %w", data, err)
 	}
@@ -78,7 +81,7 @@ func (c *natsConnectionClient) Request(data []byte) ([]byte, error) {
 // It returns an error if the subscription fails
 // The handler processes the incoming data and returns the response data
 func (c *natsConnectionServer) Respond(handler func([]byte) []byte) error {
-	sub, err := c.nc.Subscribe("nitro-request", func(msg *nats.Msg) {
+	sub, err := c.nc.Subscribe(nitroRequestTopic, func(msg *nats.Msg) {
 		responseData := handler(msg.Data)
 		err := c.nc.Publish(msg.Reply, responseData)
 		if err != nil {
@@ -92,7 +95,7 @@ func (c *natsConnectionServer) Respond(handler func([]byte) []byte) error {
 
 func (c *natsConnectionClient) Subscribe() (<-chan []byte, error) {
 	notificationChan := make(chan []byte)
-	subscription, err := c.nc.Subscribe("nitro-notify", func(msg *nats.Msg) {
+	subscription, err := c.nc.Subscribe(nitroNotificationTopic, func(msg *nats.Msg) {
 		notificationChan <- msg.Data
 	})
 	c.natsSubscriptions = append(c.natsSubscriptions, subscription)
@@ -101,7 +104,7 @@ func (c *natsConnectionClient) Subscribe() (<-chan []byte, error) {
 }
 
 func (c *natsConnectionServer) Notify(data []byte) error {
-	return c.nc.Publish("nitro-notify", data)
+	return c.nc.Publish(nitroNotificationTopic, data)
 }
 
 func (c *natsConnectionServer) Url() string {
