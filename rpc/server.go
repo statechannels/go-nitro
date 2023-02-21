@@ -26,7 +26,6 @@ type RpcServer struct {
 
 func (rs *RpcServer) Url() string {
 	return rs.connection.Url()
-	//return "ws://127.0.0.1:" + rs.port
 }
 
 func (rs *RpcServer) Close() {
