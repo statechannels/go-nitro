@@ -25,12 +25,12 @@ import (
 type Client struct {
 	engine              engine.Engine // The core business logic of the client
 	Address             *types.Address
-	completedObjectives chan protocols.ObjectiveId
 	failedObjectives    chan protocols.ObjectiveId
 	receivedVouchers    chan payments.Voucher
 	chainId             *big.Int
 	store               store.Store
 	vm                  *payments.VoucherManager
+	completedObjectives map[protocols.ObjectiveId][]chan struct{}
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -49,7 +49,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.store = store
 	c.vm = payments.NewVoucherManager(*store.GetAddress())
 	c.engine = engine.New(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
-	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
+	c.completedObjectives = make(map[protocols.ObjectiveId][]chan struct{})
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
 	c.receivedVouchers = make(chan payments.Voucher, 1000)
@@ -69,8 +69,9 @@ func (c *Client) handleEngineEvents() {
 	for update := range c.engine.ToApi() {
 
 		for _, completed := range update.CompletedObjectives {
-
-			c.completedObjectives <- completed.Id()
+			for _, c := range c.completedObjectives[completed.Id()] {
+				c <- struct{}{}
+			}
 
 		}
 
@@ -88,9 +89,11 @@ func (c *Client) handleEngineEvents() {
 
 // Begin API
 
-// CompletedObjectives returns a chan that receives a objective id whenever that objective is completed
-func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
-	return c.completedObjectives
+// CompletedObjectives returns a chan that receives an empty struct when the objective with given id is completed
+func (c *Client) CompletedObjectives(id protocols.ObjectiveId) <-chan struct{} {
+	ch := make(chan struct{})
+	c.completedObjectives[id] = append(c.completedObjectives[id], ch)
+	return ch
 }
 
 // FailedObjectives returns a chan that receives an objective id whenever that objective has failed
