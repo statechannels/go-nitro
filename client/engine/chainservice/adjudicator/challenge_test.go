@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
@@ -153,11 +154,20 @@ func runChallengeWithTurnNum(t *testing.T, turnNum uint64, pc preparedChain) {
 		sim.Commit()
 	}
 
-	// Compute challenge time
-	receipt, err := chain.TransactionReceipt(context.Background(), tx.Hash())
-	if err != nil {
-		t.Fatal(err)
+	var receipt *ethtypes.Receipt
+
+	// Wait for receipt to be available
+	for {
+		receipt, err = chain.TransactionReceipt(context.Background(), tx.Hash())
+		if err != nil && err.Error() != "not found" {
+			panic(err)
+		} else if err == nil && receipt != nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
+
+	// Compute challenge time
 	header, err := chain.HeaderByNumber(context.Background(), receipt.BlockNumber)
 	if err != nil {
 		t.Fatal(err)
@@ -253,7 +263,7 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 	}
 
 	// The 0th account is usually used for deployment and the other test could be using the 1st account so we grab the 2nd
-	a, err := wallet.Derive(hdwallet.MustParseDerivationPath(fmt.Sprintf("%s/%d", HD_PATH, 1)), false)
+	a, err := wallet.Derive(hdwallet.MustParseDerivationPath(fmt.Sprintf("%s/%d", HD_PATH, 2)), false)
 	if err != nil {
 		t.Fatal(err)
 	}
