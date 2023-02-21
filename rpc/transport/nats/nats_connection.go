@@ -67,8 +67,6 @@ func NewNatsConnectionAsClient(url string) (*natsConnectionClient, error) {
 	}, nil
 }
 
-// Request sends a blocking request for a topic with the given data
-// It returns the response data and an error
 func (c *natsConnectionClient) Request(data []byte) ([]byte, error) {
 	msg, err := c.nc.Request(nitroRequestTopic, data, 10*time.Second)
 	if msg == nil {
@@ -77,9 +75,6 @@ func (c *natsConnectionClient) Request(data []byte) ([]byte, error) {
 	return msg.Data, err
 }
 
-// Respond subscribes to a topic and calls the handler function when a message is received
-// It returns an error if the subscription fails
-// The handler processes the incoming data and returns the response data
 func (c *natsConnectionServer) Respond(handler func([]byte) []byte) error {
 	sub, err := c.nc.Subscribe(nitroRequestTopic, func(msg *nats.Msg) {
 		responseData := handler(msg.Data)

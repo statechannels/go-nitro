@@ -12,7 +12,7 @@ type Requester interface {
 	// Close closes the connection
 	Close()
 
-	// Request sends request data and returns the response data or an error
+	// Request sends a blocking request and returns the response data or an error
 	Request([]byte) ([]byte, error)
 	// Subscribe provides a notification channel.
 	// If subscription to a notification topic fails, it returns an error.
@@ -27,6 +27,8 @@ type Responder interface {
 	Url() string
 
 	// Respond listens for requests and calls the handler function when a request is received
+	// It returns an error if the listener setup fails
+	// The handler processes the incoming data and returns the response data
 	Respond(func([]byte) []byte) error
 	// Notify sends notification data without expecting a response
 	Notify([]byte) error
