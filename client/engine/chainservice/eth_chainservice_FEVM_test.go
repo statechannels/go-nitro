@@ -51,7 +51,7 @@ func TestEthChainServiceFEVM(t *testing.T) {
 		panic(err)
 	}
 
-	client, err := ethclient.Dial("https://api.hyperspace.node.glif.io/rpc/v0")
+	client, err := ethclient.Dial("https://api.hyperspace.node.glif.io/rpc/v1")
 
 	if err != nil {
 		t.Fatal(err)
