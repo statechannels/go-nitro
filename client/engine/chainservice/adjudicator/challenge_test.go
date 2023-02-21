@@ -282,8 +282,8 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 	// WALLABY_DEPLOYER_PK="f4d69c36885541f56f4728ddc002a6fa2fcb26c9f608910310a776c83b7fde47" npx hardhat deploy --network hyperspace --deploy-scripts ./hardhat-deploy-fvm --reset
 	// The PK corresponds to account 0xE39dce95b1A924E2472E24C20C55eA3559a09251.
 	// It should be prefunded after every hyperspace reset.
-	naAddress := common.HexToAddress("0xd354e517646872dd27d702c6f9f7a6ada3646c47")
-	caAddress := common.HexToAddress("0x91315b24Bbf0c2e640d9BD47a2ADe927e72d9173")
+	naAddress := common.HexToAddress("0xb095A67b76179dAFB5a56628378b919052f978c9")
+	caAddress := common.HexToAddress("0x64D444a7B99f07d3a1d69F82798Eaa0a98E04543")
 
 	na, err := NewNitroAdjudicator(naAddress, client)
 	if err != nil {
