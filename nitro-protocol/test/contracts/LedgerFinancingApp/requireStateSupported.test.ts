@@ -123,7 +123,7 @@ describe('requireStateSupported', () => {
   });
 
   it('accepts legitimate interest calculations', async () => {
-    // construct a proof+candidate test case with fair interest calculation, assert passing    // with the interest rate applied.
+    // construct a proof+candidate test case with fair interest calculation, assert passing
     // test case:
     // - appdata interest rate is 0.1% per block
     // - initial outcome is 1000:0, with 1000 principal
