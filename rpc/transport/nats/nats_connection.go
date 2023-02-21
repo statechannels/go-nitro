@@ -66,7 +66,7 @@ func NewNatsConnectionAsClient(url string) (*natsConnectionClient, error) {
 
 // Request sends a blocking request for a topic with the given data
 // It returns the response data and an error
-func (c *natsConnectionClient) Request(id uint64, data []byte) ([]byte, error) {
+func (c *natsConnectionClient) Request(data []byte) ([]byte, error) {
 	msg, err := c.nc.Request("nitro-request", data, 10*time.Second)
 	if msg == nil {
 		return nil, fmt.Errorf("received nill data for request %v with error %w", data, err)
