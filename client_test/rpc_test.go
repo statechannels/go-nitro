@@ -11,6 +11,7 @@ import (
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/stretchr/testify/assert"
@@ -61,9 +62,9 @@ func TestRpc(t *testing.T) {
 	// Quick sanity check that we're getting a valid objective id
 	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
 
-	rpcClientA.WaitForObjectiveCompletion(res.Id)
-	rpcClientB.WaitForObjectiveCompletion(bobResponse.Id)
-	rpcClientI.WaitForObjectiveCompletion(res.Id, bobResponse.Id)
+	waitForObjectiveCompletion(t, rpcClientA, res.Id)
+	waitForObjectiveCompletion(t, rpcClientB, bobResponse.Id)
+	waitForObjectiveCompletion(t, rpcClientI, res.Id, bobResponse.Id)
 
 	vRes := rpcClientA.CreateVirtual(
 		[]types.Address{irene.Address()},
@@ -73,20 +74,20 @@ func TestRpc(t *testing.T) {
 
 	assert.Regexp(t, "VirtualFund.0x.*", vRes.Id)
 
-	rpcClientA.WaitForObjectiveCompletion(vRes.Id)
-	rpcClientB.WaitForObjectiveCompletion(vRes.Id)
-	rpcClientI.WaitForObjectiveCompletion(vRes.Id)
+	waitForObjectiveCompletion(t, rpcClientA, vRes.Id)
+	waitForObjectiveCompletion(t, rpcClientB, vRes.Id)
+	waitForObjectiveCompletion(t, rpcClientI, vRes.Id)
 
 	rpcClientA.Pay(vRes.ChannelId, 1)
 
 	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
-	rpcClientA.WaitForObjectiveCompletion(closeVId)
-	rpcClientB.WaitForObjectiveCompletion(closeVId)
-	rpcClientI.WaitForObjectiveCompletion(closeVId)
+	waitForObjectiveCompletion(t, rpcClientA, closeVId)
+	waitForObjectiveCompletion(t, rpcClientB, closeVId)
+	waitForObjectiveCompletion(t, rpcClientI, closeVId)
 
 	closeId := rpcClientA.CloseLedger(res.ChannelId)
-	rpcClientA.WaitForObjectiveCompletion(closeId)
-	rpcClientI.WaitForObjectiveCompletion(closeId)
+	waitForObjectiveCompletion(t, rpcClientA, closeId)
+	waitForObjectiveCompletion(t, rpcClientI, closeId)
 
 }
 
@@ -126,4 +127,11 @@ func setupNitroNodeWithRPCClient(
 		rpcServer.Close()
 	}
 	return rpcClient, messageservice, cleanupFn
+}
+
+func waitForObjectiveCompletion(t *testing.T, client *rpc.RpcClient, objectiveIds ...protocols.ObjectiveId) {
+	err := client.WaitForObjectiveCompletion(objectiveIds...)
+	if err != nil {
+		t.Error(err)
+	}
 }
