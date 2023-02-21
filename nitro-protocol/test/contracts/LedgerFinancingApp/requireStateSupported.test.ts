@@ -31,7 +31,7 @@ interface Funds {
 }
 
 interface LedgerFinancingAppData {
-  bpy: number;
+  interestPerBlockDivisor: number;
   blocknumber: number;
   principal: Funds;
   collectedInterest: Funds;
@@ -39,7 +39,7 @@ interface LedgerFinancingAppData {
 const ledgerFinancingAppDataTy: ParamType = {
   type: 'tuple',
   components: [
-    {type: 'uint256', name: 'bpy'},
+    {type: 'uint256', name: 'interestPerBlockDivisor'},
     {type: 'uint256', name: 'blocknumber'},
     {
       type: 'tuple',
@@ -73,7 +73,7 @@ const initialOutcome = computeOutcome({
 });
 
 const baseAppData: LedgerFinancingAppData = {
-  bpy: 1000, // 0.1% block percentage yield (1/1000)
+  interestPerBlockDivisor: 1000, // 0.1% block percentage yield (1/1000)
   blocknumber: 1,
   principal: {
     asset: [MAGIC_NATIVE_ASSET_ADDRESS],
