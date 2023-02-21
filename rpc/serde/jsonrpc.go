@@ -47,17 +47,21 @@ type NotificationPayload interface {
 	protocols.ObjectiveId
 }
 
-type JsonRpcRequest[T RequestPayload | NotificationPayload | any] struct {
+type JsonRpcRequest[T RequestPayload | NotificationPayload] struct {
 	Jsonrpc string `json:"jsonrpc"`
 	Id      uint64 `json:"id"`
 	Method  string `json:"method"`
 	Params  T      `json:"params"`
 }
 
+type AnyJsonRpcRequest struct {
+	Method string `json:"method"`
+}
+
 type ResponsePayload interface {
 	directfund.ObjectiveResponse | protocols.ObjectiveId | virtualfund.ObjectiveResponse | PaymentRequest
 }
-type JsonRpcResponse[T ResponsePayload | any] struct {
+type JsonRpcResponse[T ResponsePayload] struct {
 	Jsonrpc string      `json:"jsonrpc"`
 	Id      uint64      `json:"id"`
 	Result  T           `json:"result"`

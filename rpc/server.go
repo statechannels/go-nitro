@@ -48,7 +48,7 @@ func NewRpcServer(nitroClient *nitro.Client, logger zerolog.Logger, connection t
 func (rs *RpcServer) registerHandlers() error {
 	subscriber := func(requestData []byte) []byte {
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", string(requestData))
-		requestJson := serde.JsonRpcRequest[any]{}
+		requestJson := serde.AnyJsonRpcRequest{}
 		err := json.Unmarshal(requestData, &requestJson)
 		if err != nil {
 			panic(err)
