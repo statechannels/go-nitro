@@ -247,8 +247,8 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 		t.Fatal(err)
 	}
 
-	// The 0th account is usually used for deployment so we grab the 1st account
-	a, err := wallet.Derive(hdwallet.MustParseDerivationPath(fmt.Sprintf("%s/%d", HD_PATH, 1)), false)
+	// The 0th account is usually used for deployment and the other test could be using the 1st account so we grab the 2nd
+	a, err := wallet.Derive(hdwallet.MustParseDerivationPath(fmt.Sprintf("%s/%d", HD_PATH, 2)), false)
 	if err != nil {
 		t.Fatal(err)
 	}
