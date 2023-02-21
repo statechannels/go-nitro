@@ -15,7 +15,7 @@ type Requester interface {
 	// Request sends a blocking request and returns the response data or an error
 	Request([]byte) ([]byte, error)
 	// Subscribe provides a notification channel.
-	// If subscription to a notification topic fails, it returns an error.
+	// If subscription to notifications fails, it returns an error.
 	Subscribe() (<-chan []byte, error)
 }
 
