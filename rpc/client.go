@@ -130,7 +130,7 @@ func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClie
 	return res.Payload
 }
 
-func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId ...protocols.ObjectiveId) {
+func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId ...protocols.ObjectiveId) error {
 	completed := make(map[protocols.ObjectiveId]bool)
 
 	for receivedObjectiveId := range rc.CompletedObjectives() {
@@ -141,8 +141,7 @@ func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId ...protocols
 			}
 		}
 		if !isObjectiveExpected {
-			err := fmt.Errorf("received unexpected objective completion notification for objective %v", receivedObjectiveId)
-			panic(err)
+			return fmt.Errorf("received unexpected objective completion notification for objective %v", receivedObjectiveId)
 		}
 
 		completed[receivedObjectiveId] = true
@@ -153,7 +152,8 @@ func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId ...protocols
 			}
 		}
 		if done {
-			return
+			return nil
 		}
 	}
+	return nil
 }
