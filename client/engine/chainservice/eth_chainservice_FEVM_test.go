@@ -72,9 +72,9 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	// WALLABY_DEPLOYER_PK="f4d69c36885541f56f4728ddc002a6fa2fcb26c9f608910310a776c83b7fde47" npx hardhat deploy --network hyperspace --deploy-scripts ./hardhat-deploy-fvm --reset
 	// The PK corresponds to account 0xE39dce95b1A924E2472E24C20C55eA3559a09251.
 	// It should be prefunded after every wallaby reset.
-	naAddress := common.HexToAddress("0x4fBeCDA4735eaF21C8ba5BD40Ab97dFa2Ed88E80")
-	caAddress := common.HexToAddress("0xC57875E317f67F2bE5D62f5c7C696D2eb7Fe79FE")
-	vpaAddress := common.HexToAddress("0xc1AcE8075ee548AA2284b61C5eD8f1a69c4cE756")
+	naAddress := common.HexToAddress("0xb095A67b76179dAFB5a56628378b919052f978c9")
+	caAddress := common.HexToAddress("0x64D444a7B99f07d3a1d69F82798Eaa0a98E04543")
+	vpaAddress := common.HexToAddress("0x76E957873156526D8BA482c4b1CE26a60dF639Ba")
 	na, err := NitroAdjudicator.NewNitroAdjudicator(naAddress, client)
 	if err != nil {
 		t.Fatal(err)
