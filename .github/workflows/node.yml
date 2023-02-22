@@ -28,10 +28,14 @@ jobs:
         run: npx hardhat compile
       - name: Run eslint (including prettier)
         run: npm run lint:check
-      - name: DEBUG fire up hardhat
-        run: npx hardhat node --no-deploy --port 9546
       - name: Run gas benchmarks
         run: npm run benchmark:diff
         timeout-minutes: 1
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: ./**/*.log
       - name: Run tests
         run: npm test
