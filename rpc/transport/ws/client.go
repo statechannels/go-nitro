@@ -32,7 +32,6 @@ func NewWebSocketConnectionAsClient(url string) (*clientWebSocketConnection, err
 }
 
 func (wsc *clientWebSocketConnection) Request(data []byte) ([]byte, error) {
-	// Any request payload type will do here since we are only interested in the id
 	responseChan := make(chan []byte, 1)
 	unmarshaledRequest := serde.JsonRpcMessage{}
 	err := json.Unmarshal(data, &unmarshaledRequest)
@@ -66,8 +65,6 @@ func (wsc *clientWebSocketConnection) readMessages(ctx context.Context) {
 		}
 		wsc.logger.Trace().Msgf("Received message: %s", string(data))
 
-		// Is this a notification?
-		// Any payload type will do here since we are only interested in the method value
 		unmarshaledNotification := serde.JsonRpcMessage{}
 		err = json.Unmarshal(data, &unmarshaledNotification)
 		if err != nil {
