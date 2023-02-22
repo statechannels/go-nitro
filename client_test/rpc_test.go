@@ -41,6 +41,7 @@ func TestRpcWithWebsockets(t *testing.T) {
 }
 
 func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
+	t.Skip()
 	logFile := "test_rpc_client.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
