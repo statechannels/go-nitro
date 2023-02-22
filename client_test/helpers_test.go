@@ -66,7 +66,7 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 	case <-time.After(timeout):
 		incompleteIds := make([]string, 0)
 		incomplete.Range(func(key string, value <-chan struct{}) bool {
-			incompleteIds = append(incompleteIds, key)
+			incompleteIds = append(incompleteIds, key+"; ")
 			return true
 		})
 		t.Fatalf("Objective ids %s failed to complete on client %s within %s", incompleteIds, client.Address, timeout)
