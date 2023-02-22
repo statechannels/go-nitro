@@ -26,6 +26,7 @@ var allocationUpdatedTopic = crypto.Keccak256Hash([]byte("AllocationUpdated(byte
 var concludedTopic = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
 var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
 var challengeRegisteredTopic = crypto.Keccak256Hash([]byte("ChallengeRegistered(bytes32 indexed channelId, uint48 turnNumRecord, uint48 finalizesAt, bool isFinal, (address[],uint64,address,uint48) fixedPart, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[])[] proof, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[]) candidate)"))
+var challengeClearedTopic = crypto.Keccak256Hash([]byte("ChallengeCleared(bytes32 indexed channelId, uint48 newTurnNumRecord)"))
 
 type ethChain interface {
 	bind.ContractBackend
@@ -230,8 +231,9 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			ecs.out <- event
 
 		case challengeRegisteredTopic:
-			ecs.logger.Info().Msg("Ignoring Challenge registered event")
-
+			ecs.logger.Info().Msg("Ignoring Challenge Registered event")
+		case challengeClearedTopic:
+			ecs.logger.Info().Msg("Ignoring Challenge Cleared event")
 		default:
 			ecs.fatalF("Unknown chain event %+v", l)
 		}
