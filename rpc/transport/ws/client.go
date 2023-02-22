@@ -31,12 +31,17 @@ func NewWebSocketConnectionAsClient(url string) (*clientWebSocketConnection, err
 	return wsc, nil
 }
 
-func (wsc *clientWebSocketConnection) Request(id uint64, data []byte) ([]byte, error) {
+func (wsc *clientWebSocketConnection) Request(data []byte) ([]byte, error) {
 	// Any request payload type will do here since we are only interested in the id
 	responseChan := make(chan []byte, 1)
-	wsc.responseHandlers[id] = responseChan
+	unmarshaledRequest := serde.JsonRpcMessage{}
+	err := json.Unmarshal(data, &unmarshaledRequest)
+	if err != nil {
+		return nil, err
+	}
+	wsc.responseHandlers[unmarshaledRequest.Id] = responseChan
 
-	err := wsc.clientWebsocket.Write(context.Background(), websocket.MessageText, data)
+	err = wsc.clientWebsocket.Write(context.Background(), websocket.MessageText, data)
 	if err != nil {
 		return nil, err
 	}
@@ -63,26 +68,20 @@ func (wsc *clientWebSocketConnection) readMessages(ctx context.Context) {
 
 		// Is this a notification?
 		// Any payload type will do here since we are only interested in the method value
-		unmarshaledNotifcation := serde.JsonRpcRequest[any]{}
-		err = json.Unmarshal(data, &unmarshaledNotifcation)
+		unmarshaledNotification := serde.JsonRpcMessage{}
+		err = json.Unmarshal(data, &unmarshaledNotification)
 		if err != nil {
 			panic(err)
 		}
-		wsc.logger.Trace().Msgf("Received message: %v", unmarshaledNotifcation)
+		wsc.logger.Trace().Msgf("Received message: %v", unmarshaledNotification)
 
 		// Is this a notification?
-		if unmarshaledNotifcation.Method != "" {
+		if unmarshaledNotification.Method != "" {
 			wsc.notificationChan <- data
 			// Or is this a reply?
 		} else {
-			// Any payload type will do here since we are only interested in the id value
-			unmarshaledResponse := serde.JsonRpcResponse[any]{}
-			err = json.Unmarshal(data, &unmarshaledResponse)
-			if err != nil {
-				panic(err)
-			}
-			wsc.responseHandlers[unmarshaledResponse.Id] <- data
-			delete(wsc.responseHandlers, unmarshaledResponse.Id)
+			wsc.responseHandlers[unmarshaledNotification.Id] <- data
+			delete(wsc.responseHandlers, unmarshaledNotification.Id)
 		}
 	}
 }
