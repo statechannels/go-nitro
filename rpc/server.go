@@ -3,7 +3,6 @@ package rpc
 import (
 	"encoding/json"
 	"math/big"
-	"math/rand"
 
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
@@ -116,19 +115,19 @@ func marshalResponse(response any, log *zerolog.Logger) []byte {
 	return responseData
 }
 
-func (rs *RpcServer) sendNotifications() {
-	go func() {
-		for completedObjective := range rs.client.CompletedObjectives() {
-			rs.logger.Trace().Msgf("Sending notification: %+v", completedObjective)
-			request := serde.NewJsonRpcRequest(rand.Uint64(), serde.ObjectiveCompleted, completedObjective)
-			data, err := json.Marshal(request)
-			if err != nil {
-				panic(err)
-			}
-			err = rs.transport.Notify(data)
-			if err != nil {
-				panic(err)
-			}
-		}
-	}()
-}
+// func (rs *RpcServer) sendNotifications() {
+// 	go func() {
+// 		for completedObjective := range rs.client.CompletedObjectives() {
+// 			rs.logger.Trace().Msgf("Sending notification: %+v", completedObjective)
+// 			request := serde.NewJsonRpcRequest(rand.Uint64(), serde.ObjectiveCompleted, completedObjective)
+// 			data, err := json.Marshal(request)
+// 			if err != nil {
+// 				panic(err)
+// 			}
+// 			err = rs.transport.Notify(data)
+// 			if err != nil {
+// 				panic(err)
+// 			}
+// 		}
+// 	}()
+// }
