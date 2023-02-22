@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -84,7 +85,10 @@ func TestEthChainServiceFEVM(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cs, err := NewEthChainService(client, na, naAddress, caAddress, vpaAddress, txSubmitter, NoopLogger{})
+	logFile := "test_FEVM_chain_service.log"
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
+	cs, err := NewEthChainService(client, na, naAddress, caAddress, vpaAddress, txSubmitter, logDestination)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,4 +217,28 @@ func TestEthChainServiceFEVM(t *testing.T) {
 
 	}
 
+}
+
+func newLogWriter(logFile string) *os.File {
+	err := os.MkdirAll("../artifacts", os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	filename := filepath.Join("../artifacts", logFile)
+	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return logDestination
+}
+func truncateLog(logFile string) {
+	logDestination := newLogWriter(logFile)
+
+	err := logDestination.Truncate(0)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
