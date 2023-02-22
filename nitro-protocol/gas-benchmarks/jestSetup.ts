@@ -33,10 +33,11 @@ const hardhatProcessClosed = new Promise(resolve => hardhatProcess.on('close', r
 let snapshot: SnapshotRestorer;
 
 beforeAll(async () => {
+  console.log('About to wait on hardhat url');
   await waitOn({resources: [hardHatNetworkEndpoint]});
-
+  console.log('About to deploy contracts');
   await deployContracts();
-
+  console.log('About to take snapshot');
   snapshot = await takeSnapshot();
 });
 
@@ -47,10 +48,12 @@ beforeEach(async () => {
 
 afterAll(async () => {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  console.log('About to kill hardhat');
   await kill(hardhatProcess.pid!);
-  console.log('Hardhat process kill command');
+  console.log('Waiting for hardhat to die');
   await hardhatProcessExited;
   await hardhatProcessClosed;
+  console.log('Hardhat dead');
 });
 
 expect.extend({
