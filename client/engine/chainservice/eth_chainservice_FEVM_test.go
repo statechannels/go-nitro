@@ -36,6 +36,15 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	if key, found := os.LookupEnv("RUN_FEVM_TESTS"); !found || strings.ToLower(key) != "true" {
 		t.Skip()
 	}
+	testAgainstEndpoint(t, "https://api.hyperspace.node.glif.io/rpc/v1", "test_fevm_https_endpoint.log")
+	testAgainstEndpoint(t, "wss://wss.hyperspace.node.glif.io/apigw/lotus/rpc/v0", "test_fevm_wss_endpoint.log")
+
+}
+
+// testAgainstEndpoint runs a simple chain test against the provided endpoint
+func testAgainstEndpoint(t *testing.T, endpoint string, logFile string) {
+	// We only run the test if the TEST_FEVM env var is set to true
+
 	wallet, err := hdwallet.NewFromMnemonic(WALLABY_MNEMONIC)
 	if err != nil {
 		panic(err)
@@ -56,7 +65,7 @@ func TestEthChainServiceFEVM(t *testing.T) {
 		panic(err)
 	}
 
-	client, err := ethclient.Dial("https://api.hyperspace.node.glif.io/rpc/v1")
+	client, err := ethclient.Dial(endpoint)
 
 	if err != nil {
 		t.Fatal(err)
@@ -85,7 +94,6 @@ func TestEthChainServiceFEVM(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	logFile := "test_FEVM_chain_service.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 	cs, err := NewEthChainService(client, na, naAddress, caAddress, vpaAddress, txSubmitter, logDestination)
