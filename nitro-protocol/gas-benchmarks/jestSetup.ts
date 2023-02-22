@@ -21,7 +21,7 @@ declare global {
 const logFile = './hardhat-network-output.log';
 const hardHatNetworkEndpoint = 'http://localhost:9546'; // the port should be unique
 
-jest.setTimeout(15_000); // give hardhat network a chance to get going
+jest.setTimeout(30_000); // give hardhat network a chance to get going
 if (existsSync(logFile)) truncateSync(logFile);
 const hardhatProcess = exec('npx hardhat node --no-deploy --port 9546', (error, stdout) => {
   promises.appendFile(logFile, stdout);
