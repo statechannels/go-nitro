@@ -17,6 +17,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: "npm"
+          cache-dependency-path: ./nitro-protocol/package-lock.json
       - name: Install dependencies
         run: npm install --legacy-peer-deps
       - name: check git tree is clean
