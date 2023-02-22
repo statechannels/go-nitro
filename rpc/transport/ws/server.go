@@ -11,6 +11,8 @@ import (
 	"nhooyr.io/websocket"
 )
 
+const webscocketServerAddress = "127.0.0.1:"
+
 type serverWebSocketConnection struct {
 	serveMux        http.ServeMux
 	httpServer      *http.Server
@@ -26,7 +28,7 @@ func NewWebSocketConnectionAsServer(port string) (*serverWebSocketConnection, er
 	wsc.port = port
 	wsc.serveMux.HandleFunc("/", wsc.subscribeRequestHandler)
 
-	tcpListener, err := net.Listen("tcp", "127.0.0.1:"+wsc.port)
+	tcpListener, err := net.Listen("tcp", webscocketServerAddress+wsc.port)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +71,7 @@ func (wsc *serverWebSocketConnection) Close() {
 }
 
 func (wsc *serverWebSocketConnection) Url() string {
-	return "ws://127.0.0.1:" + wsc.port
+	return "ws://" + webscocketServerAddress + wsc.port
 }
 
 func (wsc *serverWebSocketConnection) subscribeRequestHandler(w http.ResponseWriter, r *http.Request) {
