@@ -25,6 +25,7 @@ jest.setTimeout(120_000); // give hardhat network a chance to get going
 if (existsSync(logFile)) truncateSync(logFile);
 const hardhatProcess = exec('npx hardhat node --no-deploy --port 9546', (error, stdout) => {
   promises.appendFile(logFile, stdout);
+  console.log(stdout);
 });
 const hardhatProcessExited = new Promise(resolve => hardhatProcess.on('exit', resolve));
 const hardhatProcessClosed = new Promise(resolve => hardhatProcess.on('close', resolve));
@@ -47,6 +48,7 @@ beforeEach(async () => {
 afterAll(async () => {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   await kill(hardhatProcess.pid!);
+  console.log('Hardhat process kill command');
   await hardhatProcessExited;
   await hardhatProcessClosed;
 });
