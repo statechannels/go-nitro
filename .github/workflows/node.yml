@@ -30,5 +30,6 @@ jobs:
         run: npm run lint:check
       - name: Run gas benchmarks
         run: npm run benchmark:diff
+        timeout-minutes: 1
       - name: Run tests
         run: npm test
