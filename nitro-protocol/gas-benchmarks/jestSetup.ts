@@ -32,7 +32,7 @@ const hardhatProcessClosed = new Promise(resolve => hardhatProcess.on('close', r
 let snapshot: SnapshotRestorer;
 
 beforeAll(async () => {
-  await waitOn({resources: [hardHatNetworkEndpoint]});
+  await waitOn({resources: [hardHatNetworkEndpoint], log: true, verbose: true});
 
   await deployContracts();
 
