@@ -23,14 +23,15 @@ import (
 
 // Client provides the interface for the consuming application
 type Client struct {
-	engine              engine.Engine // The core business logic of the client
-	Address             *types.Address
-	failedObjectives    chan protocols.ObjectiveId
-	receivedVouchers    chan payments.Voucher
-	chainId             *big.Int
-	store               store.Store
-	vm                  *payments.VoucherManager
-	completedObjectives map[protocols.ObjectiveId][]chan struct{}
+	engine               engine.Engine // The core business logic of the client
+	Address              *types.Address
+	failedObjectives     chan protocols.ObjectiveId
+	receivedVouchers     chan payments.Voucher
+	chainId              *big.Int
+	store                store.Store
+	vm                   *payments.VoucherManager
+	completedObjectives  map[protocols.ObjectiveId][]chan struct{}
+	completedObjectives2 map[protocols.ObjectiveId]bool
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -50,6 +51,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.vm = payments.NewVoucherManager(*store.GetAddress())
 	c.engine = engine.New(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = make(map[protocols.ObjectiveId][]chan struct{})
+	c.completedObjectives2 = make(map[protocols.ObjectiveId]bool)
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
 	c.receivedVouchers = make(chan payments.Voucher, 1000)
@@ -69,10 +71,11 @@ func (c *Client) handleEngineEvents() {
 	for update := range c.engine.ToApi() {
 
 		for _, completed := range update.CompletedObjectives {
-			for _, c := range c.completedObjectives[completed.Id()] {
-				c <- struct{}{}
+			for _, ch := range c.completedObjectives[completed.Id()] {
+				ch <- struct{}{}
 			}
-
+			delete(c.completedObjectives, completed.Id())
+			c.completedObjectives2[completed.Id()] = true
 		}
 
 		for _, erred := range update.FailedObjectives {
@@ -91,8 +94,12 @@ func (c *Client) handleEngineEvents() {
 
 // CompletedObjectives returns a chan that receives an empty struct when the objective with given id is completed
 func (c *Client) CompletedObjectives(id protocols.ObjectiveId) <-chan struct{} {
-	ch := make(chan struct{})
-	c.completedObjectives[id] = append(c.completedObjectives[id], ch)
+	ch := make(chan struct{}, 1) // use a buffer of 1 so we can send on it without blocking (in case the consumer isn't ready)
+	if c.completedObjectives2[id] {
+		close(ch) // meaning that consumers will no longer block on receiving from the chan
+	} else {
+		c.completedObjectives[id] = append(c.completedObjectives[id], ch)
+	}
 	return ch
 }
 
