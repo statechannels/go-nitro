@@ -43,7 +43,6 @@ func TestEthChainServiceFEVM(t *testing.T) {
 
 // testAgainstEndpoint runs a simple chain test against the provided endpoint
 func testAgainstEndpoint(t *testing.T, endpoint string, logFile string) {
-	// We only run the test if the TEST_FEVM env var is set to true
 
 	wallet, err := hdwallet.NewFromMnemonic(WALLABY_MNEMONIC)
 	if err != nil {
