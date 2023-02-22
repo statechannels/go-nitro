@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -29,8 +31,10 @@ const WALLABY_MNEMONIC = "army forest resource shop tray cluster teach cause spi
 const WALLABY_HD_PATH = "m/44'/1'/0'/0"
 
 func TestEthChainServiceFEVM(t *testing.T) {
-	// Since this is hitting a contract on a test chain we only want to run it selectively
-	t.Skip()
+	// We only run the test if the RUN_FEVM_TESTS env var is set to true
+	if key, found := os.LookupEnv("RUN_FEVM_TESTS"); !found || strings.ToLower(key) != "true" {
+		t.Skip()
+	}
 	wallet, err := hdwallet.NewFromMnemonic(WALLABY_MNEMONIC)
 	if err != nil {
 		panic(err)

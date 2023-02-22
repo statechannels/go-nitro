@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -79,7 +81,10 @@ func TestChallenge(t *testing.T) {
 	for _, turnNum := range []uint64{0, 1, 2} {
 		t.Run("HyperSpaceBackend: turnNum = "+fmt.Sprint(turnNum),
 			func(t *testing.T) {
-				t.Skip() // We run this test manually.
+				// We only run the test if the RUN_FEVM_TESTS env var is set to true
+				if key, found := os.LookupEnv("RUN_FEVM_TESTS"); !found || strings.ToLower(key) != "true" {
+					t.Skip()
+				}
 				runChallengeWithTurnNum(t, turnNum, hyperspacePreparedChain)
 			})
 	}
@@ -277,7 +282,7 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 		t.Fatal(err)
 	}
 
-	client, err := ethclient.Dial("https://api.hyperspace.node.glif.io/rpc/v1")
+	client, err := ethclient.Dial("wss://wss.hyperspace.node.glif.io/apigw/lotus/rpc/v0")
 	if err != nil {
 		t.Fatal(err)
 	}
