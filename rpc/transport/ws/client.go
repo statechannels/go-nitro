@@ -78,7 +78,7 @@ func (wsc *clientWebSocketConnection) readMessages(ctx context.Context) {
 		// Is this a notification?
 		if unmarshaledNotification.Method != "" {
 			wsc.notificationChan <- data
-			// Or is this a reply?
+			// Or is this a response?
 		} else {
 			wsc.responseHandlers[unmarshaledNotification.Id] <- data
 			delete(wsc.responseHandlers, unmarshaledNotification.Id)
