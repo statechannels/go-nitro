@@ -235,7 +235,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 		case challengeClearedTopic:
 			ecs.logger.Info().Msg("Ignoring Challenge Cleared event")
 		default:
-			ecs.fatalF("Unknown chain event %+v", l)
+			ecs.logger.Info().Str("topic", l.Topics[0].String()).Msg("Ignoring unknown chain event topic")
 		}
 	}
 
