@@ -27,5 +27,11 @@ jobs:
         run: npm run lint:check
       - name: Run gas benchmarks
         run: npm run benchmark:diff
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: ./**/*.log
       - name: Run tests
         run: npm test
