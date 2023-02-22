@@ -41,7 +41,7 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 	var wg sync.WaitGroup
 
 	for _, id := range ids {
-		incomplete.Store(string(id), client.CompletedObjectives(id))
+		incomplete.Store(string(id), client.ObjectiveCompleteChan(id))
 		wg.Add(1)
 	}
 
