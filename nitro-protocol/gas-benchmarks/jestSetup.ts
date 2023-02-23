@@ -21,7 +21,7 @@ declare global {
 const logFile = './hardhat-network-output.log';
 const hardHatNetworkEndpoint = 'http://localhost:9546'; // the port should be unique
 
-jest.setTimeout(15_000); // give hardhat network a chance to get going
+jest.setTimeout(30_000); // give hardhat network a chance to get going
 if (existsSync(logFile)) truncateSync(logFile);
 const hardhatProcess = exec('npx hardhat node --no-deploy --port 9546', (error, stdout) => {
   promises.appendFile(logFile, stdout);
@@ -32,7 +32,10 @@ const hardhatProcessClosed = new Promise(resolve => hardhatProcess.on('close', r
 let snapshot: SnapshotRestorer;
 
 beforeAll(async () => {
-  await waitOn({resources: [hardHatNetworkEndpoint]});
+  // TODO: We just wait a fixed amount of time
+  // until we resolve https://github.com/statechannels/go-nitro/issues/1135
+  //   await waitOn({resources: [hardHatNetworkEndpoint]});
+  await new Promise<void>(resolve => setTimeout(() => resolve(), 1_000));
 
   await deployContracts();
 
