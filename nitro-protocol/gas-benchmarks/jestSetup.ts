@@ -34,8 +34,7 @@ let snapshot: SnapshotRestorer;
 
 beforeAll(async () => {
   console.log('About to wait on hardhat url');
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-  delay(30_000);
+  await waitOn({resources: ['http-get://localhost:9546'], simultaneous: 1, verbose: true});
   console.log('About to deploy contracts');
   await deployContracts();
   console.log('About to take snapshot');
