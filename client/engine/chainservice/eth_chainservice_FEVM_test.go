@@ -2,9 +2,13 @@ package chainservice
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"fmt"
 	"log"
 	"math/big"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -21,37 +25,48 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// This is the mnemonic for the prefunded accounts on wallaby.
+// This is the mnemonic for the prefunded accounts on hyperspace.
 // The first 25 accounts will be prefunded.
-const WALLABY_MNEMONIC = "army forest resource shop tray cluster teach cause spice judge link oppose"
+const HYPERSPACE_MNEMONIC = "army forest resource shop tray cluster teach cause spice judge link oppose"
 
 // This is the HD path to use when deriving accounts from the mnemonic
-const WALLABY_HD_PATH = "m/44'/1'/0'/0"
+const HYPERSPACE_HD_PATH = "m/44'/1'/0'/0"
 
 func TestEthChainServiceFEVM(t *testing.T) {
-	// Since this is hitting a contract on a test chain we only want to run it selectively
-	t.Skip()
-	wallet, err := hdwallet.NewFromMnemonic(WALLABY_MNEMONIC)
+	// We only run the test if the RUN_FEVM_TESTS env var is set to true
+	if key, found := os.LookupEnv("RUN_FEVM_TESTS"); !found || strings.ToLower(key) != "true" {
+		t.Skip()
+	}
+
+	testAgainstEndpoint(t, "https://api.hyperspace.node.glif.io/rpc/v1", "test_fevm_https_endpoint.log", getPK(1))
+	testAgainstEndpoint(t, "wss://wss.hyperspace.node.glif.io/apigw/lotus/rpc/v0", "test_fevm_wss_endpoint.log", getPK(2))
+
+}
+
+// getPK returns the private key for the account at the given index using the hyperspace mnemonic and path
+func getPK(index uint) *ecdsa.PrivateKey {
+	wallet, err := hdwallet.NewFromMnemonic(HYPERSPACE_MNEMONIC)
 	if err != nil {
 		panic(err)
 	}
 
-	// The 0th account is usually used for deployment so we grab the 1st account
-	a, err := wallet.Derive(hdwallet.MustParseDerivationPath(fmt.Sprintf("%s/%d", WALLABY_HD_PATH, 1)), false)
+	a, err := wallet.Derive(hdwallet.MustParseDerivationPath(fmt.Sprintf("%s/%d", HYPERSPACE_HD_PATH, 2)), false)
 	if err != nil {
 		panic(err)
 	}
-
-	//PK: 0x1688820ffc6a811e09ff17eccec23d8dec4850c3098ffc03ac4aa38dd8f3a994
-	// corresponding ETH address is 0x280c53E2C574418D8d6d8d651d4c3323F4b194Be
-	// corresponding f4 address (delegated) is t410ffagfhywforay3dlnrvsr2tbtep2ldff6xuxkrjq.
 	pk, err := wallet.PrivateKey(a)
 
 	if err != nil {
 		panic(err)
 	}
+	return pk
 
-	client, err := ethclient.Dial("https://api.hyperspace.node.glif.io/rpc/v0")
+}
+
+// testAgainstEndpoint runs a simple chain test against the provided endpoint
+func testAgainstEndpoint(t *testing.T, endpoint string, logFile string, pk *ecdsa.PrivateKey) {
+
+	client, err := ethclient.Dial(endpoint)
 
 	if err != nil {
 		t.Fatal(err)
@@ -72,15 +87,17 @@ func TestEthChainServiceFEVM(t *testing.T) {
 	// WALLABY_DEPLOYER_PK="f4d69c36885541f56f4728ddc002a6fa2fcb26c9f608910310a776c83b7fde47" npx hardhat deploy --network hyperspace --deploy-scripts ./hardhat-deploy-fvm --reset
 	// The PK corresponds to account 0xE39dce95b1A924E2472E24C20C55eA3559a09251.
 	// It should be prefunded after every wallaby reset.
-	naAddress := common.HexToAddress("0x4fBeCDA4735eaF21C8ba5BD40Ab97dFa2Ed88E80")
-	caAddress := common.HexToAddress("0xC57875E317f67F2bE5D62f5c7C696D2eb7Fe79FE")
-	vpaAddress := common.HexToAddress("0xc1AcE8075ee548AA2284b61C5eD8f1a69c4cE756")
+	naAddress := common.HexToAddress("0xb095A67b76179dAFB5a56628378b919052f978c9")
+	caAddress := common.HexToAddress("0x64D444a7B99f07d3a1d69F82798Eaa0a98E04543")
+	vpaAddress := common.HexToAddress("0x76E957873156526D8BA482c4b1CE26a60dF639Ba")
 	na, err := NitroAdjudicator.NewNitroAdjudicator(naAddress, client)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cs, err := NewEthChainService(client, na, naAddress, caAddress, vpaAddress, txSubmitter, NoopLogger{})
+	truncateLog(logFile)
+	logDestination := newLogWriter(logFile)
+	cs, err := NewEthChainService(client, na, naAddress, caAddress, vpaAddress, txSubmitter, logDestination)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,4 +226,28 @@ func TestEthChainServiceFEVM(t *testing.T) {
 
 	}
 
+}
+
+func newLogWriter(logFile string) *os.File {
+	err := os.MkdirAll("../artifacts", os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	filename := filepath.Join("../artifacts", logFile)
+	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return logDestination
+}
+func truncateLog(logFile string) {
+	logDestination := newLogWriter(logFile)
+
+	err := logDestination.Truncate(0)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

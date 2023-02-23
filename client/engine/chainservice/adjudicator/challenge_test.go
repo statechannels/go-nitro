@@ -5,13 +5,18 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"math/rand"
+	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
@@ -76,7 +81,10 @@ func TestChallenge(t *testing.T) {
 	for _, turnNum := range []uint64{0, 1, 2} {
 		t.Run("HyperSpaceBackend: turnNum = "+fmt.Sprint(turnNum),
 			func(t *testing.T) {
-				t.Skip() // We run this test manually.
+				// We only run the test if the RUN_FEVM_TESTS env var is set to true
+				if key, found := os.LookupEnv("RUN_FEVM_TESTS"); !found || strings.ToLower(key) != "true" {
+					t.Skip()
+				}
 				runChallengeWithTurnNum(t, turnNum, hyperspacePreparedChain)
 			})
 	}
@@ -95,12 +103,15 @@ func runChallengeWithTurnNum(t *testing.T, turnNum uint64, pc preparedChain) {
 		sim.Commit()
 	}
 
+	// Use random nonces so we can run this test multiple times against the same chain
+	rand.Seed(time.Now().Unix())
+	nonce := rand.Uint64()
 	var s = state.State{
 		Participants: []types.Address{
 			Actors.Alice.Address,
 			Actors.Bob.Address,
 		},
-		ChannelNonce:      37140676580,
+		ChannelNonce:      nonce,
 		AppDefinition:     consensusAppAddress,
 		ChallengeDuration: 60,
 		AppData:           []byte{},
@@ -148,11 +159,20 @@ func runChallengeWithTurnNum(t *testing.T, turnNum uint64, pc preparedChain) {
 		sim.Commit()
 	}
 
-	// Compute challenge time
-	receipt, err := chain.TransactionReceipt(context.Background(), tx.Hash())
-	if err != nil {
-		t.Fatal(err)
+	var receipt *ethtypes.Receipt
+
+	// Wait for receipt to be available
+	for {
+		receipt, err = chain.TransactionReceipt(context.Background(), tx.Hash())
+		if err != nil && err.Error() != "not found" {
+			panic(err)
+		} else if err == nil && receipt != nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
+
+	// Compute challenge time
 	header, err := chain.HeaderByNumber(context.Background(), receipt.BlockNumber)
 	if err != nil {
 		t.Fatal(err)
@@ -247,8 +267,8 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 		t.Fatal(err)
 	}
 
-	// The 0th account is usually used for deployment so we grab the 1st account
-	a, err := wallet.Derive(hdwallet.MustParseDerivationPath(fmt.Sprintf("%s/%d", HD_PATH, 1)), false)
+	// The 0th account is usually used for deployment and the other test could be using the first two accounts so we use the 3rd
+	a, err := wallet.Derive(hdwallet.MustParseDerivationPath(fmt.Sprintf("%s/%d", HD_PATH, 3)), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +282,7 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 		t.Fatal(err)
 	}
 
-	client, err := ethclient.Dial("https://api.hyperspace.node.glif.io/rpc/v1")
+	client, err := ethclient.Dial("wss://wss.hyperspace.node.glif.io/apigw/lotus/rpc/v0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,8 +302,8 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 	// WALLABY_DEPLOYER_PK="f4d69c36885541f56f4728ddc002a6fa2fcb26c9f608910310a776c83b7fde47" npx hardhat deploy --network hyperspace --deploy-scripts ./hardhat-deploy-fvm --reset
 	// The PK corresponds to account 0xE39dce95b1A924E2472E24C20C55eA3559a09251.
 	// It should be prefunded after every hyperspace reset.
-	naAddress := common.HexToAddress("0xd354e517646872dd27d702c6f9f7a6ada3646c47")
-	caAddress := common.HexToAddress("0x91315b24Bbf0c2e640d9BD47a2ADe927e72d9173")
+	naAddress := common.HexToAddress("0xb095A67b76179dAFB5a56628378b919052f978c9")
+	caAddress := common.HexToAddress("0x64D444a7B99f07d3a1d69F82798Eaa0a98E04543")
 
 	na, err := NewNitroAdjudicator(naAddress, client)
 	if err != nil {
