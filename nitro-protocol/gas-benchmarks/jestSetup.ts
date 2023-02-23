@@ -34,7 +34,7 @@ let snapshot: SnapshotRestorer;
 
 beforeAll(async () => {
   console.log('About to wait on hardhat url');
-  await waitOn({resources: [hardHatNetworkEndpoint]});
+  await waitOn({resources: [hardHatNetworkEndpoint], simultaneous: 1});
   console.log('About to deploy contracts');
   await deployContracts();
   console.log('About to take snapshot');
