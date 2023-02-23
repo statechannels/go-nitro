@@ -1,10 +1,10 @@
 import {exec} from 'child_process';
 import {promises, existsSync, truncateSync} from 'fs';
 
-import waitOn from 'wait-on';
 import kill from 'tree-kill';
 import {BigNumber} from '@ethersproject/bignumber';
 import {SnapshotRestorer, takeSnapshot} from '@nomicfoundation/hardhat-network-helpers';
+import axios from 'axios';
 
 import {deployContracts} from './localSetup';
 import {TestChannel, challengeChannel} from './fixtures';
@@ -21,6 +21,28 @@ declare global {
 const logFile = './hardhat-network-output.log';
 const hardHatNetworkEndpoint = 'http://localhost:9546'; // the port should be unique
 
+async function waitForDuration(durationMS: number): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, durationMS));
+}
+
+async function waitUntilNodeReady(url: string): Promise<void> {
+  let statusCode = 0;
+
+  while (statusCode !== 200) {
+    try {
+      statusCode = (await axios.get(url)).status;
+    } catch (e) {
+      // It seems the hardhat node will refuse connections even when it is ready
+      // We take the refusal to mean that the node is ready otherwise we could be waiting for a long time
+      if (axios.isAxiosError(e) && e.code === 'ECONNREFUSED') {
+        return;
+      }
+    }
+
+    await waitForDuration(1000);
+  }
+}
+
 jest.setTimeout(15_000); // give hardhat network a chance to get going
 if (existsSync(logFile)) truncateSync(logFile);
 const hardhatProcess = exec('npx hardhat node --no-deploy --port 9546', (error, stdout) => {
@@ -32,8 +54,7 @@ const hardhatProcessClosed = new Promise(resolve => hardhatProcess.on('close', r
 let snapshot: SnapshotRestorer;
 
 beforeAll(async () => {
-  await waitOn({resources: [hardHatNetworkEndpoint]});
-
+  await waitUntilNodeReady(hardHatNetworkEndpoint);
   await deployContracts();
 
   snapshot = await takeSnapshot();
