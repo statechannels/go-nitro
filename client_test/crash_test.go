@@ -49,8 +49,17 @@ func TestCrashTolerance(t *testing.T) {
 	// test successful condition for setup / teadown of unused ledger channel
 	{
 		channelId := directlyFundALedgerChannel(t, clientA, clientB, types.Address{})
+
 		clientA.Stop()
-		anotherClientA := client.New(messageserviceA, chainA, storeA, logDestination, &engine.PermissivePolicy{}, nil)
+		anotherMessageserviceA := messageservice.NewTestMessageService(alice.Address(), broker, 0)
+		anotherChainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
+		if err != nil {
+			t.Fatal(err)
+		}
+		anotherClientA := client.New(
+			anotherMessageserviceA,
+			anotherChainA,
+			storeA, logDestination, &engine.PermissivePolicy{}, nil)
 
 		directlyDefundALedgerChannel(t, anotherClientA, clientB, channelId)
 
