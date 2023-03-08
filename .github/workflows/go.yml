@@ -18,7 +18,7 @@ jobs:
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: v1.51.2
-          args: --timeout 3m0s --verbose
+          args: --timeout 3m0s --verbose --modules-download-mode readonly
 
       - name: Run staticcheck # see: staticcheck.io
         uses: dominikh/staticcheck-action@v1.3.0
