@@ -68,3 +68,12 @@ func (mc *MockChain) SubscribeToEvents(a types.Address) <-chan Event {
 	mc.out.Store(a.String(), c)
 	return c
 }
+
+func (mc *MockChain) Close() error {
+	f := func(key string, value chan Event) bool {
+		close(value)
+		return true
+	}
+	mc.out.Range(f)
+	return nil
+}
