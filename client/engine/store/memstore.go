@@ -40,6 +40,11 @@ func NewMemStore(key []byte) Store {
 	return &ms
 }
 
+func (ms *MemStore) Close() error {
+	// Since this is a memory store, there is nothing to close
+	return nil
+}
+
 func (ms *MemStore) GetAddress() *types.Address {
 	address := common.HexToAddress(ms.address)
 	return &address

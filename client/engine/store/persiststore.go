@@ -52,6 +52,21 @@ func NewPersistStore(key []byte, folder string) Store {
 	return &ms
 }
 
+func (ms *PersistStore) Close() error {
+	err := ms.channels.Close()
+	if err != nil {
+		return err
+	}
+	err = ms.objectives.Close()
+	if err != nil {
+		return err
+	}
+	err = ms.consensusChannels.Close()
+	if err != nil {
+		return err
+	}
+	return ms.channelToObjective.Close()
+}
 func (ms *PersistStore) GetAddress() *types.Address {
 	address := common.HexToAddress(ms.address)
 	return &address
