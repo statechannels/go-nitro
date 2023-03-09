@@ -47,6 +47,8 @@ type Engine struct {
 
 	toApi chan EngineEvent
 
+	stop chan struct{}
+
 	msg   messageservice.MessageService
 	chain chainservice.ChainService
 
@@ -93,6 +95,7 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	// bind to inbound chans
 	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest)
 	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
+	e.stop = make(chan struct{})
 
 	e.fromChain = chain.EventFeed()
 	e.fromMsg = msg.Out()
@@ -122,6 +125,10 @@ func (e *Engine) ToApi() <-chan EngineEvent {
 	return e.toApi
 }
 
+func (e *Engine) Stop() {
+	e.stop <- struct{}{}
+}
+
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
 func (e *Engine) Run() {
 	for {
@@ -145,6 +152,8 @@ func (e *Engine) Run() {
 			res, err = e.handleMessage(message)
 		case proposal := <-e.fromLedger:
 			res, err = e.handleProposal(proposal)
+		case <-e.stop:
+			return
 		}
 
 		// Handle errors

@@ -185,3 +185,8 @@ func (c *Client) GetPaymentChannel(id types.Destination) (query.PaymentChannelIn
 func (c *Client) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {
 	return query.GetLedgerChannelInfo(id, c.store)
 }
+
+// Stop stops the client's engine run loop
+func (c *Client) Stop() {
+	c.engine.Stop()
+}
