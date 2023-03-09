@@ -43,6 +43,7 @@ type EthChainService struct {
 	txSigner                 *bind.TransactOpts
 	out                      chan Event
 	logger                   zerolog.Logger
+	cancelSubscription       context.CancelFunc
 }
 
 // MAX_QUERY_BLOCK_RANGE is the maximum range of blocks we query for events at once.
@@ -70,15 +71,17 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 
 	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
 
+	context, cancel := context.WithCancel(context.Background())
+
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger}
+	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, cancel}
 
 	if ecs.subscriptionsSupported() {
 		logger.Printf("Notifications are supported by the chain. Using notifications to listen for events.")
-		go ecs.subscribeForLogs(context.Background())
+		go ecs.subscribeForLogs(context)
 	} else {
 		logger.Printf("Notifications are NOT supported by the chain. Using polling to listen for events.")
-		go ecs.pollForLogs(context.Background())
+		go ecs.pollForLogs(context)
 	}
 	return &ecs, nil
 }
@@ -265,6 +268,9 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 	}
 	for {
 		select {
+		case <-context.Background().Done():
+			close(ecs.out)
+			return
 		case err := <-sub.Err():
 			if err != nil {
 				ecs.fatalF("received error from the subscription channel: %w", err)
@@ -285,7 +291,6 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 			sub.Unsubscribe()
 		case chainEvent := <-logs:
 			ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
-
 		}
 	}
 
@@ -378,6 +383,7 @@ func (ecs *EthChainService) pollForLogs(ctx context.Context) {
 				ecs.dispatchChainEvents(fetchedLogs)
 			}
 		case <-ctx.Done():
+			close(ecs.out)
 			return
 		}
 	}
@@ -399,4 +405,9 @@ func (ecs *EthChainService) GetVirtualPaymentAppAddress() types.Address {
 
 func (ecs *EthChainService) GetChainId() (*big.Int, error) {
 	return ecs.chain.ChainID(context.Background())
+}
+
+func (ecs *EthChainService) Close() error {
+	ecs.cancelSubscription()
+	return nil
 }
