@@ -8,4 +8,6 @@ type MessageService interface {
 	Out() <-chan protocols.Message
 	// Send is for sending messages with the message service
 	Send(protocols.Message)
+	// Close closes the message service
+	Close() error
 }
