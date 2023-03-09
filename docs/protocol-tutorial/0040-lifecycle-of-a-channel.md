@@ -117,7 +117,6 @@ Open -->Challenge: challenge
 Open --> Open: checkpoint
 Open--> Finalized: conclude
 Challenge--> Challenge: challenge
-Challenge--> Open: respond
 Challenge--> Open: checkpoint
 Challenge--> Finalized: conclude
 Challenge--> Finalized': timeout
