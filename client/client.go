@@ -186,7 +186,7 @@ func (c *Client) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo
 	return query.GetLedgerChannelInfo(id, c.store)
 }
 
-// Stop stops the client's engine run loop
-func (c *Client) Stop() {
-	c.engine.Stop()
+// Close stops the client from responding to any input.
+func (c *Client) Close() error {
+	return c.engine.Close()
 }

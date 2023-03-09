@@ -125,8 +125,12 @@ func (e *Engine) ToApi() <-chan EngineEvent {
 	return e.toApi
 }
 
-func (e *Engine) Stop() {
-	e.stop <- struct{}{}
+func (e *Engine) Close() error {
+	e.msg.Close()
+	e.chain.Close()
+	close(e.stop)
+	close(e.toApi)
+	return nil
 }
 
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
