@@ -71,13 +71,12 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 
 	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
 
-	context, cancel := context.WithCancel(context.Background())
-
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, make(chan struct{})}
 
 	if ecs.subscriptionsSupported() {
 		logger.Printf("Notifications are supported by the chain. Using notifications to listen for events.")
+		context, cancel := context.WithCancel(context.Background())
 		go ecs.subscribeForLogs(context, cancel)
 	} else {
 		logger.Printf("Notifications are NOT supported by the chain. Using polling to listen for events.")
