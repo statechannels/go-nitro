@@ -191,7 +191,7 @@ func (s *P2PMessageService) Out() <-chan protocols.Message {
 }
 
 // Close closes the P2PMessageService
-func (s *P2PMessageService) Close() {
+func (s *P2PMessageService) Close() error {
 	close(s.quit)
-	s.p2pHost.Close()
+	return s.p2pHost.Close()
 }
