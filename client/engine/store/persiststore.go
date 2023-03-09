@@ -29,11 +29,8 @@ type PersistStore struct {
 	address string // the (Ethereum) address associated to the signing key
 }
 
-func (ms *PersistStore) checkError(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
+// NewPersistStore creates a new PersistStore that uses the given folder to store its data
+// It will create the folder if it does not exist
 func NewPersistStore(key []byte, folder string) Store {
 	ms := PersistStore{}
 	err := os.MkdirAll(folder, os.ModePerm)
@@ -44,7 +41,6 @@ func NewPersistStore(key []byte, folder string) Store {
 
 	ms.objectives, err = buntdb.Open(fmt.Sprintf("%s/objectives_%s.db", folder, ms.address[2:7]))
 	ms.checkError(err)
-
 	ms.channels, err = buntdb.Open(fmt.Sprintf("%s/channels_%s.db", folder, ms.address[2:7]))
 	ms.checkError(err)
 
@@ -443,4 +439,12 @@ func (ms *PersistStore) ReleaseChannelFromOwnership(channelId types.Destination)
 		return err
 	})
 	ms.checkError(err)
+}
+
+// checkError is a helper function that panics if an error is not nil
+// TODO: Longer term we should return errors instead of panicking
+func (ms *PersistStore) checkError(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
