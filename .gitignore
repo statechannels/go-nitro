@@ -17,6 +17,9 @@
 # The artifacts contains only logs, for now
 artifacts
 
+# The data folder contains storage related files
+data
+
 # OSX specific files
 .DS_Store
 
