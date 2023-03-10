@@ -12,7 +12,6 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
-	"github.com/statechannels/go-nitro/rpc/network"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
 
@@ -27,6 +26,12 @@ type RpcClient struct {
 	myAddress           types.Address
 	logger              zerolog.Logger
 	completedObjectives chan protocols.ObjectiveId
+}
+
+// response includes a payload or an error.
+type response[T serde.ResponsePayload] struct {
+	Payload T
+	Error   error
 }
 
 // NewRpcClient creates a new RpcClient
@@ -112,7 +117,7 @@ func (rc *RpcClient) subscribeToNotifications() error {
 }
 
 func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, requestData T) U {
-	resChan, err := network.Request[T, U](rc.transport, requestData, rc.logger)
+	resChan, err := request[T, U](rc.transport, requestData, rc.logger)
 	if err != nil {
 		panic(err)
 	}
@@ -151,4 +156,55 @@ func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId ...protocols
 		}
 	}
 	return nil
+}
+
+// request uses the supplied transport and payload to send a non-blocking JSONRPC request.
+// It returns a channel that sends a response payload. If the request fails to send, an error is returned.
+func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, request T, logger zerolog.Logger) (<-chan response[U], error) {
+	returnChan := make(chan response[U], 1)
+
+	var method serde.RequestMethod
+	switch any(request).(type) {
+	case directfund.ObjectiveRequest:
+		method = serde.DirectFundRequestMethod
+	case directdefund.ObjectiveRequest:
+		method = serde.DirectDefundRequestMethod
+	case virtualfund.ObjectiveRequest:
+		method = serde.VirtualFundRequestMethod
+	case virtualdefund.ObjectiveRequest:
+		method = serde.VirtualDefundRequestMethod
+	case serde.PaymentRequest:
+		method = serde.PayRequestMethod
+	default:
+		return nil, fmt.Errorf("unknown request type %v", request)
+	}
+	requestId := rand.Uint64()
+	message := serde.NewJsonRpcRequest(requestId, method, request)
+	data, err := json.Marshal(message)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Trace().
+		Str("method", string(method)).
+		Msg("sent message")
+
+	go func() {
+		responseData, err := trans.Request(data)
+		if err != nil {
+			returnChan <- response[U]{Error: err}
+		}
+
+		logger.Trace().Msgf("Rpc client received response: %+v", responseData)
+
+		jsonResponse := serde.JsonRpcResponse[U]{}
+		err = json.Unmarshal(responseData, &jsonResponse)
+		if err != nil {
+			returnChan <- response[U]{Error: err}
+		}
+
+		returnChan <- response[U]{jsonResponse.Result, nil}
+	}()
+
+	return returnChan, nil
 }
