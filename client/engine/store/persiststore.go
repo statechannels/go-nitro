@@ -31,7 +31,7 @@ type PersistStore struct {
 
 // NewPersistStore creates a new PersistStore that uses the given folder to store its data
 // It will create the folder if it does not exist
-func NewPersistStore(key []byte, folder string) Store {
+func NewPersistStore(key []byte, folder string, config buntdb.Config) Store {
 	ps := PersistStore{}
 	err := os.MkdirAll(folder, os.ModePerm)
 	ps.checkError(err)
@@ -41,13 +41,22 @@ func NewPersistStore(key []byte, folder string) Store {
 
 	ps.objectives, err = buntdb.Open(fmt.Sprintf("%s/objectives_%s.db", folder, ps.address[2:7]))
 	ps.checkError(err)
+	err = ps.objectives.SetConfig(config)
+	ps.checkError(err)
+
 	ps.channels, err = buntdb.Open(fmt.Sprintf("%s/channels_%s.db", folder, ps.address[2:7]))
+	ps.checkError(err)
+	err = ps.channels.SetConfig(config)
 	ps.checkError(err)
 
 	ps.consensusChannels, err = buntdb.Open(fmt.Sprintf("%s/con_channels_%s.db", folder, ps.address[2:7]))
 	ps.checkError(err)
+	err = ps.consensusChannels.SetConfig(config)
+	ps.checkError(err)
 
 	ps.channelToObjective, err = buntdb.Open(fmt.Sprintf("%s/chan_to_obj_%s.db", folder, ps.address[2:7]))
+	ps.checkError(err)
+	err = ps.consensusChannels.SetConfig(config)
 	ps.checkError(err)
 	return &ps
 }
