@@ -76,8 +76,7 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 
 	if ecs.subscriptionsSupported() {
 		logger.Printf("Notifications are supported by the chain. Using notifications to listen for events.")
-		context, cancel := context.WithCancel(context.Background())
-		go ecs.subscribeForLogs(context, cancel)
+		go ecs.subscribeForLogs()
 	} else {
 		logger.Printf("Notifications are NOT supported by the chain. Using polling to listen for events.")
 		go ecs.pollForLogs()
@@ -255,12 +254,13 @@ func (ecs *EthChainService) getCurrentBlockNum() *big.Int {
 
 // subscribeForLogs subscribes for logs and pushes them to the out channel.
 // It relies on notifications being supported by the chain node.
-func (ecs *EthChainService) subscribeForLogs(ctx context.Context, cancel context.CancelFunc) {
+func (ecs *EthChainService) subscribeForLogs() {
 	// Subscribe to Adjudicator events
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
 	}
 	logs := make(chan ethTypes.Log)
+	ctx, cancel := context.WithCancel(context.Background())
 	sub, err := ecs.chain.SubscribeFilterLogs(ctx, query, logs)
 	if err != nil {
 		ecs.fatalF("subscribeFilterLogs failed: %w", err)
