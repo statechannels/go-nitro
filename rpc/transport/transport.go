@@ -1,13 +1,13 @@
 package transport
 
-type ConnectionType string
+type TransportType string
 
 const (
-	Nats ConnectionType = "nats"
-	Ws   ConnectionType = "ws"
+	Nats TransportType = "nats"
+	Ws   TransportType = "ws"
 )
 
-// Requester is a connection that can send requests and subscribe to notifications
+// Requester is a transport that can send requests and subscribe to notifications
 type Requester interface {
 	// Close closes the connection
 	Close()
@@ -19,7 +19,7 @@ type Requester interface {
 	Subscribe() (<-chan []byte, error)
 }
 
-// Responder is a connection that can respond to requests and send notifications
+// Responder is a transport that can respond to requests and send notifications
 type Responder interface {
 	// Close closes the connection
 	Close()

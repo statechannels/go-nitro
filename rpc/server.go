@@ -19,21 +19,21 @@ import (
 
 // RpcServer handles nitro rpc requests and executes them on the nitro client
 type RpcServer struct {
-	connection transport.Responder
-	client     *nitro.Client
-	logger     zerolog.Logger
+	transport transport.Responder
+	client    *nitro.Client
+	logger    zerolog.Logger
 }
 
 func (rs *RpcServer) Url() string {
-	return rs.connection.Url()
+	return rs.transport.Url()
 }
 
 func (rs *RpcServer) Close() {
-	rs.connection.Close()
+	rs.transport.Close()
 }
 
-func NewRpcServer(nitroClient *nitro.Client, logger zerolog.Logger, connection transport.Responder) (*RpcServer, error) {
-	rs := &RpcServer{connection, nitroClient, logger}
+func NewRpcServer(nitroClient *nitro.Client, logger zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
+	rs := &RpcServer{trans, nitroClient, logger}
 	rs.sendNotifications()
 	err := rs.registerHandlers()
 	if err != nil {
@@ -79,7 +79,7 @@ func (rs *RpcServer) registerHandlers() error {
 			panic(fmt.Errorf("unknown method: %s", requestJson.Method))
 		}
 	}
-	return rs.connection.Respond(subscriber)
+	return rs.transport.Respond(subscriber)
 }
 
 func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, requestData []byte, processPayload func(T) U) []byte {
@@ -111,7 +111,7 @@ func (rs *RpcServer) sendNotifications() {
 			if err != nil {
 				panic(err)
 			}
-			err = rs.connection.Notify(data)
+			err = rs.transport.Notify(data)
 			if err != nil {
 				panic(err)
 			}
