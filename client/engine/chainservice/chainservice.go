@@ -76,4 +76,6 @@ type ChainService interface {
 	GetVirtualPaymentAppAddress() types.Address
 	// GetChainId returns the id of the chain the service is connected to
 	GetChainId() (*big.Int, error)
+	// Close closes the ChainService
+	Close() error
 }

@@ -56,3 +56,8 @@ func (mc *MockChainService) EventFeed() <-chan Event {
 func (mc *MockChainService) GetChainId() (*big.Int, error) {
 	return big.NewInt(TEST_CHAIN_ID), nil
 }
+
+func (mc *MockChainService) Close() error {
+	close(mc.txListener)
+	return mc.chain.Close()
+}

@@ -50,7 +50,7 @@ func TestCrashTolerance(t *testing.T) {
 	{
 		channelId := directlyFundALedgerChannel(t, clientA, clientB, types.Address{})
 
-		clientA.Stop()
+		clientA.Close()
 		anotherMessageserviceA := messageservice.NewTestMessageService(alice.Address(), broker, 0)
 		anotherChainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
 		if err != nil {

@@ -43,6 +43,7 @@ type EthChainService struct {
 	txSigner                 *bind.TransactOpts
 	out                      chan Event
 	logger                   zerolog.Logger
+	quit                     chan struct{}
 }
 
 // MAX_QUERY_BLOCK_RANGE is the maximum range of blocks we query for events at once.
@@ -71,14 +72,14 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger}
+	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, make(chan struct{})}
 
 	if ecs.subscriptionsSupported() {
 		logger.Printf("Notifications are supported by the chain. Using notifications to listen for events.")
-		go ecs.subscribeForLogs(context.Background())
+		go ecs.subscribeForLogs()
 	} else {
 		logger.Printf("Notifications are NOT supported by the chain. Using polling to listen for events.")
-		go ecs.pollForLogs(context.Background())
+		go ecs.pollForLogs()
 	}
 	return &ecs, nil
 }
@@ -253,18 +254,22 @@ func (ecs *EthChainService) getCurrentBlockNum() *big.Int {
 
 // subscribeForLogs subscribes for logs and pushes them to the out channel.
 // It relies on notifications being supported by the chain node.
-func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
+func (ecs *EthChainService) subscribeForLogs() {
 	// Subscribe to Adjudicator events
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
 	}
 	logs := make(chan ethTypes.Log)
+	ctx, cancel := context.WithCancel(context.Background())
 	sub, err := ecs.chain.SubscribeFilterLogs(ctx, query, logs)
 	if err != nil {
 		ecs.fatalF("subscribeFilterLogs failed: %w", err)
 	}
 	for {
 		select {
+		case <-ecs.quit:
+			cancel()
+			return
 		case err := <-sub.Err():
 			if err != nil {
 				ecs.fatalF("received error from the subscription channel: %w", err)
@@ -285,7 +290,6 @@ func (ecs *EthChainService) subscribeForLogs(ctx context.Context) {
 			sub.Unsubscribe()
 		case chainEvent := <-logs:
 			ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
-
 		}
 	}
 
@@ -352,7 +356,7 @@ func (ecs *EthChainService) fetchLogsFromChain(from *big.Int, to *big.Int) ([]et
 
 // pollForLogs periodically polls the chain client to check if there new events.
 // It can function over a chain node that does not support notifications.
-func (ecs *EthChainService) pollForLogs(ctx context.Context) {
+func (ecs *EthChainService) pollForLogs() {
 	toBlock := ecs.getCurrentBlockNum()
 	fetchedLogs, err := ecs.fetchLogsFromChain(big.NewInt(0), toBlock)
 	if err != nil {
@@ -377,7 +381,7 @@ func (ecs *EthChainService) pollForLogs(ctx context.Context) {
 
 				ecs.dispatchChainEvents(fetchedLogs)
 			}
-		case <-ctx.Done():
+		case <-ecs.quit:
 			return
 		}
 	}
@@ -399,4 +403,10 @@ func (ecs *EthChainService) GetVirtualPaymentAppAddress() types.Address {
 
 func (ecs *EthChainService) GetChainId() (*big.Int, error) {
 	return ecs.chain.ChainID(context.Background())
+}
+
+func (ecs *EthChainService) Close() error {
+	close(ecs.quit)
+	close(ecs.out)
+	return nil
 }
