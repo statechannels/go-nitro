@@ -9,11 +9,10 @@ require (
 	github.com/nats-io/nats-server/v2 v2.9.10
 	github.com/nats-io/nats.go v1.21.0
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
+	github.com/statechannels/buntdb v0.0.0-20230310210558-7916a96c8fff
 	github.com/stretchr/testify v1.8.1
 	nhooyr.io/websocket v1.8.7
 )
-
-require github.com/tidwall/buntdb v1.2.10
 
 require (
 	github.com/benbjohnson/clock v1.3.0 // indirect

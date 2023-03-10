@@ -34,6 +34,7 @@ type Store interface {
 
 	ConsensusChannelStore
 	io.Closer
+	Flush() error
 }
 
 type ConsensusChannelStore interface {

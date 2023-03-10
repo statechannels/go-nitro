@@ -7,13 +7,13 @@ import (
 	"os"
 	"testing"
 
+	"github.com/statechannels/buntdb"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/types"
-	"github.com/tidwall/buntdb"
 )
 
 func TestCrashTolerance(t *testing.T) {

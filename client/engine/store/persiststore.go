@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/statechannels/buntdb"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/crypto"
@@ -16,7 +17,6 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
-	"github.com/tidwall/buntdb"
 )
 
 type PersistStore struct {
@@ -75,6 +75,23 @@ func (ps *PersistStore) Close() error {
 		return err
 	}
 	return ps.channelToObjective.Close()
+}
+
+func (ps *PersistStore) Flush() error {
+	err := ps.channelToObjective.Flush()
+	if err != nil {
+		return err
+	}
+	err = ps.channels.Flush()
+	if err != nil {
+		return err
+	}
+	err = ps.consensusChannels.Flush()
+	if err != nil {
+		return err
+	}
+	return ps.objectives.Flush()
+
 }
 func (ps *PersistStore) GetAddress() *types.Address {
 	address := common.HexToAddress(ps.address)

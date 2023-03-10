@@ -168,6 +168,10 @@ func (e *Engine) Run() {
 			panic(err)
 			// TODO report errors back to the consuming application
 		}
+		err = e.store.Flush()
+		if err != nil {
+			panic(err)
+		}
 
 		// Only send out an event if there are changes
 		if len(res.CompletedObjectives) > 0 || len(res.FailedObjectives) > 0 || len(res.ReceivedVouchers) > 0 {
