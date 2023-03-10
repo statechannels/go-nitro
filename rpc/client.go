@@ -23,15 +23,15 @@ import (
 
 // RpcClient is a client for making nitro rpc calls
 type RpcClient struct {
-	connection          transport.Requester
+	transport           transport.Requester
 	myAddress           types.Address
 	logger              zerolog.Logger
 	completedObjectives chan protocols.ObjectiveId
 }
 
 // NewRpcClient creates a new RpcClient
-func NewRpcClient(rpcServerUrl string, myAddress types.Address, logger zerolog.Logger, connection transport.Requester) (*RpcClient, error) {
-	c := &RpcClient{connection, myAddress, logger, make(chan protocols.ObjectiveId, 100)}
+func NewRpcClient(rpcServerUrl string, myAddress types.Address, logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
+	c := &RpcClient{trans, myAddress, logger, make(chan protocols.ObjectiveId, 100)}
 	err := c.subscribeToNotifications()
 	if err != nil {
 		return nil, err
@@ -91,11 +91,11 @@ func (rc *RpcClient) CompletedObjectives() <-chan protocols.ObjectiveId {
 }
 
 func (rc *RpcClient) Close() {
-	rc.connection.Close()
+	rc.transport.Close()
 }
 
 func (rc *RpcClient) subscribeToNotifications() error {
-	notificationChan, err := rc.connection.Subscribe()
+	notificationChan, err := rc.transport.Subscribe()
 	rc.logger.Trace().Msg("Subscribed to notifications")
 	go func() {
 		for data := range notificationChan {
@@ -112,7 +112,7 @@ func (rc *RpcClient) subscribeToNotifications() error {
 }
 
 func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, requestData T) U {
-	resChan, err := network.Request[T, U](rc.connection, requestData, rc.logger)
+	resChan, err := network.Request[T, U](rc.transport, requestData, rc.logger)
 	if err != nil {
 		panic(err)
 	}

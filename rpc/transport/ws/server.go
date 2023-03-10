@@ -13,7 +13,7 @@ import (
 
 const webscocketServerAddress = "127.0.0.1:"
 
-type serverWebSocketConnection struct {
+type serverWebSocketTransport struct {
 	serveMux        http.ServeMux
 	httpServer      *http.Server
 	logger          zerolog.Logger
@@ -22,9 +22,9 @@ type serverWebSocketConnection struct {
 	port            string
 }
 
-// NewWebSocketConnectionAsServer starts an http server that accepts websocket connections
-func NewWebSocketConnectionAsServer(port string) (*serverWebSocketConnection, error) {
-	wsc := &serverWebSocketConnection{}
+// NewWebSocketTransportAsServer starts an http server that accepts websocket connections
+func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, error) {
+	wsc := &serverWebSocketTransport{}
 	wsc.port = port
 	wsc.serveMux.HandleFunc("/", wsc.subscribeRequestHandler)
 
@@ -50,31 +50,31 @@ func NewWebSocketConnectionAsServer(port string) (*serverWebSocketConnection, er
 }
 
 // ServeHTTP is a required method for the http.Handler interface
-func (wsc *serverWebSocketConnection) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (wsc *serverWebSocketTransport) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wsc.serveMux.ServeHTTP(w, r)
 }
 
-func (wsc *serverWebSocketConnection) Respond(handler func([]byte) []byte) error {
+func (wsc *serverWebSocketTransport) Respond(handler func([]byte) []byte) error {
 	wsc.requestHandler = handler
 	return nil
 }
 
-func (wsc *serverWebSocketConnection) Notify(data []byte) error {
+func (wsc *serverWebSocketTransport) Notify(data []byte) error {
 	return wsc.serverWebsocket.Write(context.Background(), websocket.MessageText, data)
 }
 
-func (wsc *serverWebSocketConnection) Close() {
+func (wsc *serverWebSocketTransport) Close() {
 	err := wsc.httpServer.Shutdown(context.Background())
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (wsc *serverWebSocketConnection) Url() string {
+func (wsc *serverWebSocketTransport) Url() string {
 	return "ws://" + webscocketServerAddress + wsc.port
 }
 
-func (wsc *serverWebSocketConnection) subscribeRequestHandler(w http.ResponseWriter, r *http.Request) {
+func (wsc *serverWebSocketTransport) subscribeRequestHandler(w http.ResponseWriter, r *http.Request) {
 	c, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		panic(err)
@@ -94,7 +94,7 @@ func (wsc *serverWebSocketConnection) subscribeRequestHandler(w http.ResponseWri
 	}
 }
 
-func (wsc *serverWebSocketConnection) readRequests(ctx context.Context) error {
+func (wsc *serverWebSocketTransport) readRequests(ctx context.Context) error {
 	for {
 		_, data, err := wsc.serverWebsocket.Read(ctx)
 		if err != nil {

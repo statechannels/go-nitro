@@ -40,7 +40,7 @@ func TestRpcWithWebsockets(t *testing.T) {
 	executeRpcTest(t, "ws")
 }
 
-func executeRpcTest(t *testing.T, connectionType transport.ConnectionType) {
+func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	logFile := "test_rpc_client.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
@@ -113,7 +113,7 @@ func setupNitroNodeWithRPCClient(
 	rpcPort int,
 	chain *chainservice.MockChainService,
 	logDestination *os.File,
-	connectionType transport.ConnectionType,
+	connectionType transport.TransportType,
 ) (*rpc.RpcClient, *p2pms.P2PMessageService, func()) {
 	messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, pk)
 	storeA := store.NewMemStore(pk)
@@ -130,20 +130,20 @@ func setupNitroNodeWithRPCClient(
 	var err error
 	switch connectionType {
 	case "nats":
-		serverConnection, err = natstrans.NewNatsConnectionAsServer(rpcPort)
+		serverConnection, err = natstrans.NewNatsTransportAsServer(rpcPort)
 		if err != nil {
 			panic(err)
 		}
-		clienConnection, err = natstrans.NewNatsConnectionAsClient(serverConnection.Url())
+		clienConnection, err = natstrans.NewNatsTransportAsClient(serverConnection.Url())
 		if err != nil {
 			panic(err)
 		}
 	case "ws":
-		serverConnection, err = ws.NewWebSocketConnectionAsServer(fmt.Sprint(rpcPort))
+		serverConnection, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
 		if err != nil {
 			panic(err)
 		}
-		clienConnection, err = ws.NewWebSocketConnectionAsClient(serverConnection.Url())
+		clienConnection, err = ws.NewWebSocketTransportAsClient(serverConnection.Url())
 		if err != nil {
 			panic(err)
 		}

@@ -12,32 +12,32 @@ import (
 const nitroRequestTopic = "nitro-request"
 const nitroNotificationTopic = "nitro-notify"
 
-type natsConnection struct {
+type natsTransport struct {
 	nc                *nats.Conn
 	natsSubscriptions []*nats.Subscription
 }
 
-type natsConnectionClient struct {
-	natsConnection
+type natsTransportClient struct {
+	natsTransport
 }
 
-type natsConnectionServer struct {
-	natsConnection
+type natsTransportServer struct {
+	natsTransport
 	ns *server.Server
 }
 
-func newNatsConnection(url string) (*natsConnection, error) {
+func newNatsTransport(url string) (*natsTransport, error) {
 	nc, err := nats.Connect(url)
 	if err != nil {
 		return nil, err
 	}
-	return &natsConnection{
+	return &natsTransport{
 		nc:                nc,
 		natsSubscriptions: make([]*nats.Subscription, 0)}, nil
 
 }
 
-func NewNatsConnectionAsServer(rpcPort int) (*natsConnectionServer, error) {
+func NewNatsTransportAsServer(rpcPort int) (*natsTransportServer, error) {
 	opts := &server.Options{Port: rpcPort}
 	ns, err := server.NewServer(opts)
 	if err != nil {
@@ -45,29 +45,29 @@ func NewNatsConnectionAsServer(rpcPort int) (*natsConnectionServer, error) {
 	}
 	ns.Start()
 
-	natsConnection, err := newNatsConnection(ns.ClientURL())
+	natsTransport, err := newNatsTransport(ns.ClientURL())
 	if err != nil {
 		return nil, err
 	}
 
-	con := &natsConnectionServer{
-		natsConnection: *natsConnection,
-		ns:             ns,
+	con := &natsTransportServer{
+		natsTransport: *natsTransport,
+		ns:            ns,
 	}
 	return con, nil
 }
 
-func NewNatsConnectionAsClient(url string) (*natsConnectionClient, error) {
-	natsConnection, err := newNatsConnection(url)
+func NewNatsTransportAsClient(url string) (*natsTransportClient, error) {
+	natsTransport, err := newNatsTransport(url)
 	if err != nil {
 		return nil, err
 	}
-	return &natsConnectionClient{
-		natsConnection: *natsConnection,
+	return &natsTransportClient{
+		natsTransport: *natsTransport,
 	}, nil
 }
 
-func (c *natsConnectionClient) Request(data []byte) ([]byte, error) {
+func (c *natsTransportClient) Request(data []byte) ([]byte, error) {
 	msg, err := c.nc.Request(nitroRequestTopic, data, 10*time.Second)
 	if msg == nil {
 		return nil, fmt.Errorf("received nill data for request %v with error %w", data, err)
@@ -75,7 +75,7 @@ func (c *natsConnectionClient) Request(data []byte) ([]byte, error) {
 	return msg.Data, err
 }
 
-func (c *natsConnectionServer) Respond(handler func([]byte) []byte) error {
+func (c *natsTransportServer) Respond(handler func([]byte) []byte) error {
 	sub, err := c.nc.Subscribe(nitroRequestTopic, func(msg *nats.Msg) {
 		responseData := handler(msg.Data)
 		err := c.nc.Publish(msg.Reply, responseData)
@@ -88,7 +88,7 @@ func (c *natsConnectionServer) Respond(handler func([]byte) []byte) error {
 	return err
 }
 
-func (c *natsConnectionClient) Subscribe() (<-chan []byte, error) {
+func (c *natsTransportClient) Subscribe() (<-chan []byte, error) {
 	notificationChan := make(chan []byte)
 	subscription, err := c.nc.Subscribe(nitroNotificationTopic, func(msg *nats.Msg) {
 		notificationChan <- msg.Data
@@ -98,21 +98,21 @@ func (c *natsConnectionClient) Subscribe() (<-chan []byte, error) {
 	return notificationChan, err
 }
 
-func (c *natsConnectionServer) Notify(data []byte) error {
+func (c *natsTransportServer) Notify(data []byte) error {
 	return c.nc.Publish(nitroNotificationTopic, data)
 }
 
-func (c *natsConnectionServer) Url() string {
+func (c *natsTransportServer) Url() string {
 	return c.ns.ClientURL()
 }
 
-func (c *natsConnectionServer) Close() {
-	c.natsConnection.Close()
+func (c *natsTransportServer) Close() {
+	c.natsTransport.Close()
 	c.ns.Shutdown()
 
 }
 
-func (c *natsConnection) Close() {
+func (c *natsTransport) Close() {
 	for _, sub := range c.natsSubscriptions {
 		err := c.unsubscribeFromTopic(sub, 0)
 		if err != nil {
@@ -121,7 +121,7 @@ func (c *natsConnection) Close() {
 	}
 }
 
-func (c *natsConnection) unsubscribeFromTopic(sub *nats.Subscription, try int32) error {
+func (c *natsTransport) unsubscribeFromTopic(sub *nats.Subscription, try int32) error {
 	err := sub.Unsubscribe()
 	if err != nil && try < 3 {
 		return c.unsubscribeFromTopic(sub, try+1)

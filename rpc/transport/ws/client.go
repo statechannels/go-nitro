@@ -9,16 +9,16 @@ import (
 	"nhooyr.io/websocket"
 )
 
-type clientWebSocketConnection struct {
+type clientWebSocketTransport struct {
 	logger           zerolog.Logger
 	notificationChan chan []byte
 	responseHandlers map[uint64]chan ([]byte)
 	clientWebsocket  *websocket.Conn
 }
 
-// NewWebSocketConnectionAsClient creates a websocket connection that can be used to send requests and listen for notifications
-func NewWebSocketConnectionAsClient(url string) (*clientWebSocketConnection, error) {
-	wsc := &clientWebSocketConnection{}
+// NewWebSocketTransportAsClient creates a websocket connection that can be used to send requests and listen for notifications
+func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error) {
+	wsc := &clientWebSocketTransport{}
 	wsc.responseHandlers = make(map[uint64]chan ([]byte))
 	wsc.notificationChan = make(chan []byte)
 
@@ -31,7 +31,7 @@ func NewWebSocketConnectionAsClient(url string) (*clientWebSocketConnection, err
 	return wsc, nil
 }
 
-func (wsc *clientWebSocketConnection) Request(data []byte) ([]byte, error) {
+func (wsc *clientWebSocketTransport) Request(data []byte) ([]byte, error) {
 	responseChan := make(chan []byte, 1)
 	unmarshaledRequest := serde.JsonRpcMessage{}
 	err := json.Unmarshal(data, &unmarshaledRequest)
@@ -48,16 +48,16 @@ func (wsc *clientWebSocketConnection) Request(data []byte) ([]byte, error) {
 	return <-responseChan, nil
 }
 
-func (wsc *clientWebSocketConnection) Subscribe() (<-chan []byte, error) {
+func (wsc *clientWebSocketTransport) Subscribe() (<-chan []byte, error) {
 	return wsc.notificationChan, nil
 }
 
-func (wsc *clientWebSocketConnection) Close() {
+func (wsc *clientWebSocketTransport) Close() {
 	// Clients initiate and close websockets{
 	wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
 }
 
-func (wsc *clientWebSocketConnection) readMessages(ctx context.Context) {
+func (wsc *clientWebSocketTransport) readMessages(ctx context.Context) {
 	for {
 		_, data, err := wsc.clientWebsocket.Read(ctx)
 		if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
