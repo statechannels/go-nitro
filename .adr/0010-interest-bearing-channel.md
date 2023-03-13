@@ -104,7 +104,7 @@ Meta commentary: sketches toward implementation of this model showed that the en
 > - service providers who fail to do any business will not (can not possibly) pay any fees, since they do not deposit into their ledger channels. Interest collected by intermediaries is "clawed back" from service provider earnings.
 > - creation of virtual channels in this model is _free_, both in terms of a flat networking fee and in terms of capital lockup inside of intermediary channels. Justification for this is that
 >   - we expect the networking costs to be effectively negligible vs the capital costs
->   - intermediary channels rae by definition operated by our liquidity providers, who are the best positioned participants to price these operations into their offerings to service providers
+>   - intermediary channels are by definition operated by our liquidity providers, who are the best positioned participants to price these operations into their offerings to service providers
 
 Against the above decision criteria: (on 😀 🙂 😐 🙁 😢
 scale)
