@@ -79,7 +79,7 @@ func (rs *RpcServer) registerHandlers() error {
 			panic(fmt.Errorf("unknown method: %s", requestJson.Method))
 		}
 	}
-	return rs.transport.Respond(subscriber)
+	return rs.transport.RegisterRequestHandler(subscriber)
 }
 
 func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, requestData []byte, processPayload func(T) U) []byte {

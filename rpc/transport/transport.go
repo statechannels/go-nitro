@@ -26,10 +26,9 @@ type Responder interface {
 	// Url returns the url that the responder is listening on
 	Url() string
 
-	// Respond listens for requests and calls the handler function when a request is received
-	// It returns an error if the listener setup fails
-	// The handler processes the incoming data and returns the response data
-	Respond(func([]byte) []byte) error
+	// RegisterRequestHandler registers a handler that accepts a request and returns a response.
+	// It returns an error if the registration setup fails
+	RegisterRequestHandler(func([]byte) []byte) error
 	// Notify sends notification data without expecting a response
 	Notify([]byte) error
 }

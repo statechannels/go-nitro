@@ -54,7 +54,7 @@ func (wsc *serverWebSocketTransport) ServeHTTP(w http.ResponseWriter, r *http.Re
 	wsc.serveMux.ServeHTTP(w, r)
 }
 
-func (wsc *serverWebSocketTransport) Respond(handler func([]byte) []byte) error {
+func (wsc *serverWebSocketTransport) RegisterRequestHandler(handler func([]byte) []byte) error {
 	wsc.requestHandler = handler
 	return nil
 }
