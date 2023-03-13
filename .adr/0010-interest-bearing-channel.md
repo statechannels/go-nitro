@@ -16,7 +16,7 @@ The Bitcoin Lightning Network (LN) is an in-production payment channel network (
 
 ## Similarities to Nitro-SCN
 
-In a PCN, payments between A and B are routed through intermediaries I*1, ..., I_n, where balances are pairwise adjusted along the route. Capital in intermediary channels is locked for the \_duration of the payment* - ie, until either the payment completes or times out.
+In a PCN, payments between A and B are routed through intermediaries I*1, ..., I_n, where balances are pairwise adjusted along the route. Capital in intermediary channels is locked for the _duration_ of the payment - ie, until either the payment completes or times out.
 
 In an SCN, collateral to secure channels between A and B is locked along a similar route of intermediaries, and closing balance adjustments between A and B are pairwise adjusted along the route. Capital in intermediary channels is locked for the _duration of the virtual channel_.
 
