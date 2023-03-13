@@ -75,7 +75,7 @@ func (c *natsTransportClient) Request(data []byte) ([]byte, error) {
 	return msg.Data, err
 }
 
-func (c *natsTransportServer) Respond(handler func([]byte) []byte) error {
+func (c *natsTransportServer) RegisterRequestHandler(handler func([]byte) []byte) error {
 	sub, err := c.nc.Subscribe(nitroRequestTopic, func(msg *nats.Msg) {
 		responseData := handler(msg.Data)
 		err := c.nc.Publish(msg.Reply, responseData)
