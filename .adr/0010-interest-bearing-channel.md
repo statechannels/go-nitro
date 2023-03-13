@@ -26,7 +26,7 @@ In an SCN, collateral to secure channels between A and B is locked along a simil
 
 The Bitcoin ecosystem has a strong intrinsic incentive toward participating in LN, as LN is the most (only?) viable solution to scaling BTC denominated payments with security anchored to bitcoin.
 
-Further: holders of BTC have relatively few options for activating their capital to produce a yield. Assets in EVM environments can generate yield via any number of defi protocols, including Ethereum proof-of-stake (staking pools offer approx %4 yield with near zero overhead).
+Further: holders of BTC have relatively few options for activating their capital to produce a yield. Assets in EVM environments can generate yield via any number of DeFi protocols, including Ethereum proof-of-stake (staking pools offer approx 4% yield with near zero overhead).
 
 ### Technical
 
