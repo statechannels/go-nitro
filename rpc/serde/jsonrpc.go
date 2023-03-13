@@ -70,9 +70,10 @@ type JsonRpcResponse[T ResponsePayload] struct {
 }
 
 type JsonRpcError struct {
-	Code    uint64      `json:"code"`
+	Code    int64       `json:"code"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
+	Id      uint64      `json:"id"`
 }
 
 func NewJsonRpcRequest[T RequestPayload | NotificationPayload, U RequestMethod | NotificationMethod](requestId uint64, method U, objectiveRequest T) *JsonRpcRequest[T] {
