@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"math/rand"
 
@@ -47,10 +46,15 @@ func NewRpcServer(nitroClient *nitro.Client, logger zerolog.Logger, trans transp
 func (rs *RpcServer) registerHandlers() error {
 	subscriber := func(requestData []byte) []byte {
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", string(requestData))
+
+		if !json.Valid(requestData) {
+			return marshalResponse(parseError)
+		}
+
 		requestJson := serde.JsonRpcMessage{}
 		err := json.Unmarshal(requestData, &requestJson)
 		if err != nil {
-			panic(err)
+			return marshalResponse(unexpectedRequestUnmarshalError)
 		}
 
 		switch serde.RequestMethod(requestJson.Method) {
@@ -76,30 +80,40 @@ func (rs *RpcServer) registerHandlers() error {
 				return obj
 			})
 		default:
-			panic(fmt.Errorf("unknown method: %s", requestJson.Method))
+			errorResponse := methodNotFoundError
+			errorResponse.Id = requestJson.Id
+			messageData, err := json.Marshal(errorResponse)
+			if err != nil {
+				panic("Could not marshal response message")
+			}
+
+			return messageData
 		}
 	}
 	return rs.transport.RegisterRequestHandler(subscriber)
 }
 
 func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, requestData []byte, processPayload func(T) U) []byte {
-	rs.logger.Trace().Msgf("Rpc server received request: %+v", requestData)
 	rpcRequest := serde.JsonRpcRequest[T]{}
+	// todo: unmarshal will fail only when the requestData is not valid json.
+	// At the moment, there is no validation that the required fields are populated in the request.
 	err := json.Unmarshal(requestData, &rpcRequest)
 	if err != nil {
-		panic("could not unmarshal objective request")
+		return marshalResponse(unexpectedRequestUnmarshalError2)
 	}
 	obj := rpcRequest.Params
 	objResponse := processPayload(obj)
+	response := serde.NewJsonRpcResponse(rpcRequest.Id, objResponse)
+	return marshalResponse(response)
+}
 
-	msg := serde.NewJsonRpcResponse(rpcRequest.Id, objResponse)
-	messageData, err := json.Marshal(msg)
+// Marshal and return response data
+func marshalResponse(response any) []byte {
+	responseData, err := json.Marshal(response)
 	if err != nil {
 		panic("Could not marshal response message")
 	}
-
-	return messageData
-
+	return responseData
 }
 
 func (rs *RpcServer) sendNotifications() {
