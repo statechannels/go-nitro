@@ -28,7 +28,7 @@ func (*mockResponder) Notify([]byte) error {
 
 func sendRequestAndExpectError(t *testing.T, request []byte, expectedError serde.JsonRpcError) {
 	mockClient := &nitro.Client{}
-	mockLogger := zerolog.Logger{}
+	mockLogger := &zerolog.Logger{}
 	mockResponder := &mockResponder{}
 	_, err := NewRpcServer(mockClient, mockLogger, mockResponder)
 	if err != nil {
