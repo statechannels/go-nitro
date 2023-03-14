@@ -152,7 +152,8 @@ func setupNitroNodeWithRPCClient(
 		panic(err)
 	}
 
-	rpcServer, err := rpc.NewRpcServer(&node, createLogger(logDestination, node.Address.Hex(), "server"), serverConnection)
+	logger := createLogger(logDestination, node.Address.Hex(), "server")
+	rpcServer, err := rpc.NewRpcServer(&node, &logger, serverConnection)
 	if err != nil {
 		panic(err)
 	}

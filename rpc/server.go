@@ -20,7 +20,7 @@ import (
 type RpcServer struct {
 	transport transport.Responder
 	client    *nitro.Client
-	logger    zerolog.Logger
+	logger    *zerolog.Logger
 }
 
 func (rs *RpcServer) Url() string {
@@ -31,7 +31,7 @@ func (rs *RpcServer) Close() {
 	rs.transport.Close()
 }
 
-func NewRpcServer(nitroClient *nitro.Client, logger zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
+func NewRpcServer(nitroClient *nitro.Client, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
 	rs := &RpcServer{trans, nitroClient, logger}
 	rs.sendNotifications()
 	err := rs.registerHandlers()
@@ -48,13 +48,13 @@ func (rs *RpcServer) registerHandlers() error {
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", string(requestData))
 
 		if !json.Valid(requestData) {
-			return marshalResponse(parseError)
+			return marshalResponse(parseError, rs.logger)
 		}
 
 		requestJson := serde.JsonRpcMessage{}
 		err := json.Unmarshal(requestData, &requestJson)
 		if err != nil {
-			return marshalResponse(unexpectedRequestUnmarshalError)
+			return marshalResponse(unexpectedRequestUnmarshalError, rs.logger)
 		}
 
 		switch serde.RequestMethod(requestJson.Method) {
@@ -84,7 +84,7 @@ func (rs *RpcServer) registerHandlers() error {
 			errorResponse.Id = requestJson.Id
 			messageData, err := json.Marshal(errorResponse)
 			if err != nil {
-				panic("Could not marshal response message")
+				rs.logger.Panic().Err(err).Msg("Could not marshal response error")
 			}
 
 			return messageData
@@ -99,19 +99,19 @@ func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServ
 	// At the moment, there is no validation that the required fields are populated in the request.
 	err := json.Unmarshal(requestData, &rpcRequest)
 	if err != nil {
-		return marshalResponse(unexpectedRequestUnmarshalError2)
+		return marshalResponse(unexpectedRequestUnmarshalError2, rs.logger)
 	}
 	obj := rpcRequest.Params
 	objResponse := processPayload(obj)
 	response := serde.NewJsonRpcResponse(rpcRequest.Id, objResponse)
-	return marshalResponse(response)
+	return marshalResponse(response, rs.logger)
 }
 
 // Marshal and return response data
-func marshalResponse(response any) []byte {
+func marshalResponse(response any, log *zerolog.Logger) []byte {
 	responseData, err := json.Marshal(response)
 	if err != nil {
-		panic("Could not marshal response message")
+		log.Panic().Err(err).Msg("Could not marshal response")
 	}
 	return responseData
 }
