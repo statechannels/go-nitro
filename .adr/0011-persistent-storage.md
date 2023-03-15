@@ -6,11 +6,13 @@ Accepted
 
 ## Context
 
-For the go-nitro library to be useful in a production setting there must be some kind of persistent store. There are many possible ways to implement a persistent store; ranging from a SQL database to manually writing data to a file on disk.
+For the go-nitro library to be useful in any kind of production setting it must have some way of persisting data to disk (or some form of storage). Our [memory store](../client/engine/store/memstore.go), is an in-memory store that makes use of `sync.Map` to store data.
+
+We have a [well-defined interface](../client/engine/store/store.go) for our store; this means the implementation details of the store do not influence the rest of the client.
 
 ## Decision
 
-The initial implementation of a persistent store will be done using [buntdb](https://github.com/tidwall/buntdb).
+The initial implementation of a persistent store will be done using [BuntDb](https://github.com/tidwall/buntdb).
 
 > BuntDB is a low-level, in-memory, key/value store in pure Go. It persists to disk, is ACID compliant, and uses locking for multiple readers and a single writer.
 
@@ -20,7 +22,7 @@ The choice of BuntDB was motivated by a few factors:
 - BuntDB is ACID compliant and uses locking for reader/writers. We don't have to worry about creating malformed data and have some basic guarantees about the state of the data.
 - BuntDB is file-based and lightweight. No additional services need to be installed or configured.
 
-Since we have a [well-defined interface](../client/engine/store/store.go) the selection of BuntDB is not a permanent decision. Once we establish some basic store benchmarks we can look at implementing a store using other kinds of storage/DBs (like SQL) to address performance.
+The selection of BuntDB is not a permanent decision. Once we establish some basic store benchmarks we can look at implementing a store using other kinds of storage/DBs (like SQL) to address performance.
 
 ### Sync Policy
 
@@ -59,3 +61,4 @@ Initially we will use the `EverySecond` policy as it is the default, and quite p
 
 - We need to establish some benchmarks so we can understand how the choice of BuntDB affects performance. We should especially consider the role of the hub, who could be dealing with a large amount of traffic.
 - We need to establish some tests that simulate a client crashing and see the impact of sync policies. We should especially consider the role of the hub, as it will probably be writing to the store more frequently.
+- We should look at mostly deprecating the existing `MemStore` in favour of a store using BuntDB.
