@@ -92,7 +92,7 @@ func (c *Client) handleEngineEvents() {
 
 // Begin API
 
-// CompletedObjectives returns a chan that receives an empty struct when the objective with given id is completed
+// ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
 func (c *Client) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
 	ch := make(chan struct{}, 1) // use a buffer of 1 so we can send on it without blocking (in case the consumer isn't ready)
 	if c.completedObjectivesCache[id] {
