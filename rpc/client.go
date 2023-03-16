@@ -159,7 +159,6 @@ func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId ...protocols
 		})
 
 	wg.Wait()
-	return
 
 }
 
