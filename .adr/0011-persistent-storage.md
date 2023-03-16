@@ -1,4 +1,4 @@
-# 0011 Implementing a Persistent Store
+# 0011 Implementing a Durable Store
 
 ## Status
 
@@ -12,7 +12,7 @@ We have a [well-defined interface](../client/engine/store/store.go) for our stor
 
 ## Decision
 
-The initial implementation of a persistent store will be done using [BuntDb](https://github.com/tidwall/buntdb).
+The initial implementation of a durable store will be done using [BuntDb](https://github.com/tidwall/buntdb).
 
 > BuntDB is a low-level, in-memory, key/value store in pure Go. It persists to disk, is ACID compliant, and uses locking for multiple readers and a single writer.
 
