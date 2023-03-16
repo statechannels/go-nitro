@@ -51,13 +51,12 @@ func (rs *RpcServer) registerHandlers() error {
 			return marshalResponse(parseError, rs.logger)
 		}
 
-		requestJson := serde.JsonRpcMessage{}
-		err := json.Unmarshal(requestData, &requestJson)
-		if err != nil {
-			return marshalResponse(unexpectedRequestUnmarshalError, rs.logger)
+		validationResult := validateRequest(requestData, rs.logger)
+		if validationResult.Error != nil {
+			return validationResult.Error
 		}
 
-		switch serde.RequestMethod(requestJson.Method) {
+		switch serde.RequestMethod(validationResult.Method) {
 		case serde.DirectFundRequestMethod:
 			return processRequest(rs, requestData, func(obj directfund.ObjectiveRequest) directfund.ObjectiveResponse {
 				return rs.client.CreateLedgerChannel(obj.CounterParty, obj.ChallengeDuration, obj.Outcome)
@@ -80,14 +79,9 @@ func (rs *RpcServer) registerHandlers() error {
 				return obj
 			})
 		default:
-			errorResponse := methodNotFoundError
-			errorResponse.Id = requestJson.Id
-			messageData, err := json.Marshal(errorResponse)
-			if err != nil {
-				rs.logger.Panic().Err(err).Msg("Could not marshal response error")
-			}
-
-			return messageData
+			responseErr := methodNotFoundError
+			responseErr.Id = validationResult.Id
+			return marshalResponse(responseErr, rs.logger)
 		}
 	}
 	return rs.transport.RegisterRequestHandler(subscriber)
@@ -114,6 +108,64 @@ func marshalResponse(response any, log *zerolog.Logger) []byte {
 		log.Panic().Err(err).Msg("Could not marshal response")
 	}
 	return responseData
+}
+
+type validationResult struct {
+	Error  []byte
+	Method string
+	Id     uint64
+}
+
+func validateRequest(requestData []byte, logger *zerolog.Logger) validationResult {
+	var request map[string]interface{}
+	vr := validationResult{}
+	err := json.Unmarshal(requestData, &request)
+	if err != nil {
+		vr.Error = marshalResponse(unexpectedRequestUnmarshalError, logger)
+		return vr
+	}
+
+	// jsonrpc spec says id can be a string, number.
+	// We only support numbers.
+	// When golang unmarshals JSON into an interface value, float64 is used for numbers.
+	requestId := request["id"]
+	if !assertType[float64](request["id"]) {
+		vr.Error = marshalResponse(invalidRequestError, logger)
+		return vr
+	}
+
+	// is the id an integer?
+	fRequestId := requestId.(float64)
+	if fRequestId != float64(uint64(fRequestId)) {
+		vr.Error = marshalResponse(invalidRequestError, logger)
+		return vr
+	}
+	vr.Id = uint64(fRequestId)
+
+	if !assertType[string](request["jsonrpc"]) || request["jsonrpc"] != "2.0" {
+		requestError := invalidRequestError
+		requestError.Id = vr.Id
+		vr.Error = marshalResponse(requestError, logger)
+		return vr
+	}
+
+	if !assertType[string](request["method"]) {
+		requestError := invalidRequestError
+		requestError.Id = vr.Id
+		vr.Error = marshalResponse(requestError, logger)
+		return vr
+	}
+	vr.Method = request["method"].(string)
+
+	return vr
+}
+
+func assertType[T string | float64](i interface{}) bool {
+	if i == nil {
+		return false
+	}
+	_, ok := i.(T)
+	return ok
 }
 
 func (rs *RpcServer) sendNotifications() {

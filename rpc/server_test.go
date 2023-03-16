@@ -42,39 +42,74 @@ func sendRequestAndExpectError(t *testing.T, request []byte, expectedError serde
 	if err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, jsonError, expectedError)
+	assert.Equal(t, expectedError, jsonError)
 }
 
 func TestRpcParseError(t *testing.T) {
 	request := []byte{}
-	expectedError := serde.JsonRpcError{Code: -32700, Message: "Parse error"}
-	sendRequestAndExpectError(t, request, expectedError)
+	sendRequestAndExpectError(t, request, parseError)
 }
 
-// TestRpcInvalidRequest exists to point out that the server needs request validation improvement.
-// The server receives a valid json object that does not contain any of the required feilds of a request
-// like Id or Method. The server should return an error like {-32600:	Invalid Request} or
-// {-32602:	Invalid params}.
-func TestRpcInvalidRequest(t *testing.T) {
+func TestRpcMissingRequiredFields(t *testing.T) {
 	type InvalidRequest struct {
-		Message string
+		Message string `json:"message"`
 	}
 
-	request := InvalidRequest{Message: "hello"}
+	request := InvalidRequest{Message: "direct_fund"}
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {
 		t.Error(err)
 	}
-	expectedError := serde.JsonRpcError{Code: -32601, Message: "Method not found", Id: 0}
+	sendRequestAndExpectError(t, jsonRequest, invalidRequestError)
+}
+
+func TestRpcWrongVersion(t *testing.T) {
+	request := serde.JsonRpcRequest[serde.PaymentRequest]{Jsonrpc: "1.0", Id: 2, Method: "direct_fund"}
+	jsonRequest, err := json.Marshal(request)
+	if err != nil {
+		t.Error(err)
+	}
+	expectedError := invalidRequestError
+	expectedError.Id = 2
+	sendRequestAndExpectError(t, jsonRequest, expectedError)
+}
+
+func TestRpcIncorrectId(t *testing.T) {
+	type InvalidRequest struct {
+		Jsonrpc string  `json:"jsonrpc"`
+		Id      float64 `json:"id"`
+		Method  string  `json:"method"`
+	}
+	request := InvalidRequest{Jsonrpc: "1.0", Id: 2.2, Method: "direct_fund"}
+	jsonRequest, err := json.Marshal(request)
+	if err != nil {
+		t.Error(err)
+	}
+	sendRequestAndExpectError(t, jsonRequest, invalidRequestError)
+}
+
+func TestRpcMissingMethod(t *testing.T) {
+	type InvalidRequest struct {
+		Jsonrpc string `json:"jsonrpc"`
+		Id      uint64 `json:"id"`
+	}
+	request := InvalidRequest{Jsonrpc: "1.0", Id: 2}
+	jsonRequest, err := json.Marshal(request)
+	if err != nil {
+		t.Error(err)
+	}
+	expectedError := invalidRequestError
+	expectedError.Id = 2
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
 
 func TestRpcMethodNotFound(t *testing.T) {
-	request := serde.JsonRpcMessage{Method: "invalid", Id: 1}
+	request := serde.JsonRpcRequest[serde.PaymentRequest]{Jsonrpc: "2.0", Id: 2, Method: "direct_funds"}
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {
 		t.Error(err)
 	}
-	expectedError := serde.JsonRpcError{Code: -32601, Message: "Method not found", Id: 1}
+	expectedError := methodNotFoundError
+	expectedError.Id = 2
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
