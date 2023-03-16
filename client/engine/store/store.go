@@ -3,6 +3,7 @@ package store // import "github.com/statechannels/go-nitro/client/engine/store"
 
 import (
 	"errors"
+	"io"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -32,6 +33,7 @@ type Store interface {
 	ReleaseChannelFromOwnership(types.Destination) // Release channel from being owned by any objective
 
 	ConsensusChannelStore
+	io.Closer
 }
 
 type ConsensusChannelStore interface {

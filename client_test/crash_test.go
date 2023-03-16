@@ -2,6 +2,9 @@
 package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
+	"fmt"
+	"math/rand"
+	"os"
 	"testing"
 
 	"github.com/statechannels/go-nitro/client"
@@ -10,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/types"
+	"github.com/tidwall/buntdb"
 )
 
 func TestCrashTolerance(t *testing.T) {
@@ -38,8 +42,11 @@ func TestCrashTolerance(t *testing.T) {
 
 	broker := messageservice.NewBroker()
 
+	dataFolder := fmt.Sprintf("../data/%d", rand.Uint64())
+	defer os.RemoveAll(dataFolder)
+
 	// Client setup
-	storeA := store.NewMemStore(alice.PrivateKey)
+	storeA := store.NewPersistStore(alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
 	messageserviceA := messageservice.NewTestMessageService(alice.Address(), broker, 0)
 	clientA := client.New(messageserviceA, chainA, storeA, logDestination, &engine.PermissivePolicy{}, nil)
 
@@ -53,13 +60,14 @@ func TestCrashTolerance(t *testing.T) {
 		clientA.Close()
 		anotherMessageserviceA := messageservice.NewTestMessageService(alice.Address(), broker, 0)
 		anotherChainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
+		anotherStoreA := store.NewPersistStore(alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
 		if err != nil {
 			t.Fatal(err)
 		}
 		anotherClientA := client.New(
 			anotherMessageserviceA,
 			anotherChainA,
-			storeA, logDestination, &engine.PermissivePolicy{}, nil)
+			anotherStoreA, logDestination, &engine.PermissivePolicy{}, nil)
 
 		directlyDefundALedgerChannel(t, anotherClientA, clientB, channelId)
 
