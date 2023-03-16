@@ -76,7 +76,7 @@ There are a number of decision dimensions here:
 
 ## Fee Buckets as a Protocol Primitive
 
-> (See related [Notion Doc](https://www.notion.so/statechannels/RFC-20-Introduce-a-fee-model-for-intermediaries-by-modifying-reclaim-dce28ac74d764fcf93db7d6b5cf05b3a))
+> (See related [Notion Doc](https://www.notion.so/statechannels/RFC-20-Introduce-a-fee-model-for-intermediaries-by-modifying-reclaim-dce28ac74d764fcf93db7d6b5cf05b3a)) and [ADR 10](./0010-intermediary-fees.md)
 >
 > The linked document describes a mechanism where a channel _payer_ (Alice) fronts a specified (potential run-time negotiated) fee for each funded virtual channel, which is distributed among route intermediaries at channel closing time. This is enforced at the protocol level via a modification to `reclaim`.
 
