@@ -171,8 +171,5 @@ func setupNitroNodeWithRPCClient(
 }
 
 func waitForObjectiveCompletion(t *testing.T, client *rpc.RpcClient, objectiveIds ...protocols.ObjectiveId) {
-	err := client.WaitForObjectiveCompletion(objectiveIds...)
-	if err != nil {
-		t.Error(err)
-	}
+	client.WaitForObjectiveCompletion(objectiveIds...)
 }

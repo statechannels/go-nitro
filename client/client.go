@@ -32,6 +32,12 @@ type Client struct {
 	vm                           *payments.VoucherManager
 	completedObjectivesListeners map[protocols.ObjectiveId][]chan struct{}
 	completedObjectivesCache     map[protocols.ObjectiveId]bool
+	completedObjectives          chan protocols.ObjectiveId // This is only used by the RPC server
+}
+
+// CompletedObjectives returns a chan that receives a objective id whenever that objective is completed
+func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
+	return c.completedObjectives
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -52,6 +58,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.engine = engine.New(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectivesListeners = make(map[protocols.ObjectiveId][]chan struct{})
 	c.completedObjectivesCache = make(map[protocols.ObjectiveId]bool)
+	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
 	c.receivedVouchers = make(chan payments.Voucher, 1000)
@@ -76,6 +83,12 @@ func (c *Client) handleEngineEvents() {
 			}
 			delete(c.completedObjectivesListeners, completed.Id())
 			c.completedObjectivesCache[completed.Id()] = true
+
+			// use a nonblocking send in case no one is listening
+			select {
+			case c.completedObjectives <- completed.Id():
+			default:
+			}
 		}
 
 		for _, erred := range update.FailedObjectives {
