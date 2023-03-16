@@ -52,7 +52,7 @@ A channel in a PCN is capacity limited according to its current balance. The lim
 
 Two potential inefficiencies in this fee structure come to mind:
 
-First, the existing LN fee structure does not specifically account for unbalanced channels. In the case of the 0.1-0.9 channel, the channel operators should much prefer forwarding payments to the left, since those payments re-balance the channel. That preference _could_ be expressed in the market as a discounted fee for leftward payments and a markup for rightward payments, but it is not.
+First, the existing LN fee structure does not specifically account for unbalanced channels. In the case of the 0.1-0.9 channel, the channel operators should much prefer forwarding payments to the left, since those payments re-balance the channel. That preference _could_ be expressed in the market as a discounted fee (even a negative fee) for leftward payments and a markup for rightward payments, but it is not.
 
 Second, the scalar multiplier for payments does not account for the duration of the capital lockup, which is an inaccuracy. In a PCN, this price inaccuracy is generally small, and always bounded: lockups are reasonably short in the optimistic case (where payment is successfully routed) and come with a specified timeout for the failure case. This is _very different_ from a SCN, where the default case is for lockups with non-trivial duration (channel run-time). In the SCN case, a scalar per-lockup fee mechanism is generally inaccurate, and the inaccuracy is unpredictable.
 
