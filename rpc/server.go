@@ -126,7 +126,7 @@ func validateRequest(requestData []byte, logger *zerolog.Logger) validationResul
 	}
 
 	// jsonrpc spec says id can be a string, number.
-	// We only support numbers.
+	// We only support numbers: https://github.com/statechannels/go-nitro/issues/1160
 	// When golang unmarshals JSON into an interface value, float64 is used for numbers.
 	requestId := request["id"]
 	if !assertType[float64](request["id"]) {
