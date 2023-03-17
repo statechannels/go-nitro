@@ -5,10 +5,10 @@ import './interfaces/IForceMoveApp.sol';
 import './libraries/NitroUtils.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
-// LedgerFinancingApp is a ForceMoveApp that allows a intermediary to earn interest
+// LedgerFinancingApp is a ForceMoveApp that allows a lender to earn interest
 // on a deposit. It functions as a ConsensusApp with the following additional rule:
-//   - the intermediary can unilaterally transition from state n to state n+1,
-//     forcing calculated interest into the intermediary's Outcome allocation
+//   - the lender can unilaterally transition from state n to state n+1,
+//     forcing calculated interest into the lender's Outcome allocation
 contract LedgerFinancingApp is IForceMoveApp {
     struct Funds {
         address[] asset;
@@ -24,18 +24,18 @@ contract LedgerFinancingApp is IForceMoveApp {
         uint256 interestPerBlockDivisor;
         // the block number of the latest principal adjustment
         uint256 blocknumber;
-        // the current principal. Decreases as the serviceProvider earns via the channel.
+        // the current principal. Decreases as the borrower earns via the channel.
         Funds principal;
         // the total interest collected so far. Strictly increasing.
-        // The value of the intermediary's allocation can never be less than this:
-        // ie, when the intermediary's collectedInterest grows to be equal to their
+        // The value of the lender's allocation can never be less than this:
+        // ie, when the lender's collectedInterest grows to be equal to their
         // allocation, the channel is effectively spent and can be concluded.
         Funds collectedInterest;
     }
 
     enum AllocationIndicies {
-        serviceProvider, // borrower: recovers service fees from intermediary's deposit
-        intermediary // financier: makes initial deposit and earns interest
+        borrower, // intends to earn service fees up to a limit of the financier's deposit
+        lender // makes initial deposit and earns interest
     }
 
     function requireStateSupported(
@@ -55,7 +55,7 @@ contract LedgerFinancingApp is IForceMoveApp {
             // Requires:
             //  - proof state is unanimous
             //  - candidate state immediately follows proof state (by turnNum)
-            //  - the intermediary has not taken more funds than owed according
+            //  - the lender has not taken more funds than owed according
             //    to the interest rate agreement of the channel
             require(
                 NitroUtils.getClaimedSignersNum(proof[0].signedBy) == 2,
@@ -83,11 +83,9 @@ contract LedgerFinancingApp is IForceMoveApp {
     //  - the latest consensus principal
     //  - the channel's interest rate
     //  - the time elapsed since the last principal adjustment
-    function computeOutstandingInterest(InterestAppData memory appData)
-        private
-        view
-        returns (Funds memory)
-    {
+    function computeOutstandingInterest(
+        InterestAppData memory appData
+    ) private view returns (Funds memory) {
         uint256 numBlocks = block.number - appData.blocknumber;
 
         address[] memory assets = new address[](appData.principal.asset.length);
@@ -98,13 +96,15 @@ contract LedgerFinancingApp is IForceMoveApp {
         // copy all assets from the principal, and multiply by the interest rate
         for (uint256 i = 0; i < appData.principal.asset.length; i++) {
             outstanding.asset[i] = appData.principal.asset[i];
-            outstanding.amount[i] = (appData.principal.amount[i] * numBlocks) / appData.interestPerBlockDivisor;
+            outstanding.amount[i] =
+                (appData.principal.amount[i] * numBlocks) /
+                appData.interestPerBlockDivisor;
         }
 
         return outstanding;
     }
 
-    // Ensures that the given outcome does not unfairly allocate to the intermediary.
+    // Ensures that the given outcome does not unfairly allocate to the lender.
     function requireFairOutcomeAdjustment(
         Outcome.SingleAssetExit[] memory initialOutcome,
         Outcome.SingleAssetExit[] memory finalOutcome,
@@ -124,22 +124,22 @@ contract LedgerFinancingApp is IForceMoveApp {
         }
     }
 
-    // Ensures that the given asset outcome does not unfairly allocate to the intermediary.
+    // Ensures that the given asset outcome does not unfairly allocate to the lender.
     function requireFairAssetAdjustment(
         Outcome.SingleAssetExit memory initial,
         Outcome.SingleAssetExit memory adjusted,
         uint256 earned
     ) private pure {
         require(
-            initial.allocations[uint256(AllocationIndicies.serviceProvider)].destination ==
-                adjusted.allocations[uint256(AllocationIndicies.serviceProvider)].destination,
+            initial.allocations[uint256(AllocationIndicies.borrower)].destination ==
+                adjusted.allocations[uint256(AllocationIndicies.borrower)].destination,
             'payee mismatch'
         );
         uint256 initialProviderBalance = initial
-            .allocations[uint256(AllocationIndicies.serviceProvider)]
+            .allocations[uint256(AllocationIndicies.borrower)]
             .amount;
         uint256 adjustedProviderBalance = adjusted
-            .allocations[uint256(AllocationIndicies.serviceProvider)]
+            .allocations[uint256(AllocationIndicies.borrower)]
             .amount;
         uint256 claimed = initialProviderBalance - adjustedProviderBalance;
 
