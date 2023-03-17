@@ -2,7 +2,7 @@ import {expectRevert} from '@statechannels/devtools';
 import {Contract, ethers, BigNumber} from 'ethers';
 import {ParamType} from 'ethers/lib/utils';
 
-import LedgerFinancingAppArtifact from '../../../artifacts/contracts/LedgerFinancingApp.sol/LedgerFinancingApp.json';
+import InterestBearingAppArtifact from '../../../artifacts/contracts/InterestBearingApp.sol/InterestBearingApp.json';
 import {computeOutcome, convertAddressToBytes32} from '../../../src';
 import {
   getFixedPart,
@@ -12,7 +12,7 @@ import {
 } from '../../../src/contract/state';
 import {generateParticipants, getTestProvider, setupContract} from '../../test-helpers';
 
-let ledgerFinancingApp: Contract;
+let interestBearingApp: Contract;
 const provider = getTestProvider();
 
 const {participants} = generateParticipants(2);
@@ -30,13 +30,13 @@ interface Funds {
   amount: number[]; // amount of each asset with shared index
 }
 
-interface LedgerFinancingAppData {
+interface InterestBearingAppData {
   interestPerBlockDivisor: number;
   blocknumber: number;
   principal: Funds;
   collectedInterest: Funds;
 }
-const ledgerFinancingAppDataTy: ParamType = {
+const interestBearingAppDataTy: ParamType = {
   type: 'tuple',
   components: [
     {type: 'uint256', name: 'interestPerBlockDivisor'},
@@ -60,10 +60,10 @@ const ledgerFinancingAppDataTy: ParamType = {
   ],
 } as ParamType;
 
-function appDataABIEncode(appData: LedgerFinancingAppData): string {
+function appDataABIEncode(appData: InterestBearingAppData): string {
   return ethers.utils.defaultAbiCoder.encode(
     // ['uint128', 'uint128', 'uint256', 'tuple(address[], uint256[])', 'tuple(address[], uint256[])'],
-    [ledgerFinancingAppDataTy],
+    [interestBearingAppDataTy],
     [appData]
   );
 }
@@ -72,7 +72,7 @@ const initialOutcome = computeOutcome({
   [MAGIC_NATIVE_ASSET_ADDRESS]: {[merchant]: 1000, [intermediary]: 0},
 });
 
-const baseAppData: LedgerFinancingAppData = {
+const baseAppData: InterestBearingAppData = {
   interestPerBlockDivisor: 1000, // 0.1% block percentage yield (1/1000)
   blocknumber: 1,
   principal: {
@@ -98,11 +98,11 @@ const baseState: State = {
 
 const variablePart = getVariablePart(baseState);
 
-const signedByMerchant: RecoveredVariablePart = {
+const signedByBorrower: RecoveredVariablePart = {
   variablePart,
   signedBy: BigNumber.from(0b10).toHexString(),
 };
-const signedByIntermediary: RecoveredVariablePart = {
+const signedByLender: RecoveredVariablePart = {
   variablePart,
   signedBy: BigNumber.from(0b01).toHexString(),
 };
@@ -114,12 +114,12 @@ const signedByBoth: RecoveredVariablePart = {
 const fixedPart = getFixedPart(baseState);
 
 beforeAll(async () => {
-  ledgerFinancingApp = setupContract(provider, LedgerFinancingAppArtifact, APPDEF);
+  interestBearingApp = setupContract(provider, InterestBearingAppArtifact, APPDEF);
 });
 
 describe('requireStateSupported', () => {
   it('accepts unanimous states', async () => {
-    await ledgerFinancingApp.requireStateSupported(fixedPart, [], signedByBoth);
+    await interestBearingApp.requireStateSupported(fixedPart, [], signedByBoth);
   });
 
   it('accepts legitimate interest calculations', async () => {
@@ -154,19 +154,19 @@ describe('requireStateSupported', () => {
         [MAGIC_NATIVE_ASSET_ADDRESS]: {[merchant]: 999, [intermediary]: 1}, // intermediary picks up 0.1% of the principal
       }),
     };
-    const challengeWithIntermediarySignature: RecoveredVariablePart = {
+    const challengeWithLenderSignature: RecoveredVariablePart = {
       variablePart: getVariablePart(challengeState),
       signedBy: BigNumber.from(0b01).toHexString(),
     };
 
-    await ledgerFinancingApp.requireStateSupported(
+    await interestBearingApp.requireStateSupported(
       fixedPart,
       [pfStateSignedByBoth],
-      challengeWithIntermediarySignature
+      challengeWithLenderSignature
     );
   });
 
-  it('rejects excessive interest calulations', async () => {
+  it('rejects excessive interest calculations', async () => {
     // construct proof+candidate test case with unfair interest calculation, assert failure.
     // test case:
     //  - the appData's interest rate is 0.1% per block
@@ -206,7 +206,7 @@ describe('requireStateSupported', () => {
     };
     await expectRevert(
       () =>
-        ledgerFinancingApp.requireStateSupported(
+        interestBearingApp.requireStateSupported(
           fixedPart,
           [pfStateSignedByBoth],
           updatedWithIntermediarySignature
@@ -222,11 +222,11 @@ describe('requireStateSupported', () => {
     // assert failure
 
     await expectRevert(
-      () => ledgerFinancingApp.requireStateSupported(fixedPart, [], signedByMerchant),
+      () => interestBearingApp.requireStateSupported(fixedPart, [], signedByBorrower),
       '!unanimous; |proof|=0'
     );
     await expectRevert(
-      () => ledgerFinancingApp.requireStateSupported(fixedPart, [], signedByIntermediary),
+      () => interestBearingApp.requireStateSupported(fixedPart, [], signedByLender),
       '!unanimous; |proof|=0'
     );
   });
@@ -238,22 +238,12 @@ describe('requireStateSupported', () => {
     // assert failure.
 
     await expectRevert(
-      () =>
-        ledgerFinancingApp.requireStateSupported(
-          fixedPart,
-          [signedByMerchant],
-          signedByIntermediary
-        ),
+      () => interestBearingApp.requireStateSupported(fixedPart, [signedByBorrower], signedByLender),
       '!unanimous proof state'
     );
 
     await expectRevert(
-      () =>
-        ledgerFinancingApp.requireStateSupported(
-          fixedPart,
-          [signedByIntermediary],
-          signedByMerchant
-        ),
+      () => interestBearingApp.requireStateSupported(fixedPart, [signedByLender], signedByBorrower),
       '!unanimous proof state'
     );
   });
@@ -263,10 +253,10 @@ describe('requireStateSupported', () => {
 
     await expectRevert(
       () =>
-        ledgerFinancingApp.requireStateSupported(
+        interestBearingApp.requireStateSupported(
           fixedPart,
-          [signedByMerchant, signedByIntermediary], // two proof states - should fail
-          signedByIntermediary
+          [signedByBorrower, signedByLender], // two proof states - should fail
+          signedByLender
         ),
       '|proof| > 1'
     );

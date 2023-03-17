@@ -26,6 +26,7 @@ var (
 	_ = common.Big1
 	_ = types.BloomLookup
 	_ = event.NewSubscription
+	_ = abi.ConvertType
 )
 
 // ExitFormatAllocation is an auto generated low-level Go binding around an user-defined struct.
@@ -199,11 +200,11 @@ func NewVirtualPaymentAppFilterer(address common.Address, filterer bind.Contract
 
 // bindVirtualPaymentApp binds a generic wrapper to an already deployed contract.
 func bindVirtualPaymentApp(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := abi.JSON(strings.NewReader(VirtualPaymentAppABI))
+	parsed, err := VirtualPaymentAppMetaData.GetAbi()
 	if err != nil {
 		return nil, err
 	}
-	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
+	return bind.NewBoundContract(address, *parsed, caller, transactor, filterer), nil
 }
 
 // Call invokes the (constant) contract method with params as input values and
