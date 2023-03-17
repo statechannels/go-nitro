@@ -129,27 +129,28 @@ func validateRequest(requestData []byte, logger *zerolog.Logger) validationResul
 	// We only support numbers: https://github.com/statechannels/go-nitro/issues/1160
 	// When golang unmarshals JSON into an interface value, float64 is used for numbers.
 	requestId := request["id"]
-	if !assertType[float64](request["id"]) {
+	fRequestId, ok := requestId.(float64)
+	if !ok {
 		vr.Error = marshalResponse(invalidRequestError, logger)
 		return vr
 	}
 
-	// is the id an integer?
-	fRequestId := requestId.(float64)
 	if fRequestId != float64(uint64(fRequestId)) {
 		vr.Error = marshalResponse(invalidRequestError, logger)
 		return vr
 	}
 	vr.Id = uint64(fRequestId)
 
-	if !assertType[string](request["jsonrpc"]) || request["jsonrpc"] != "2.0" {
+	sJsonrpc, ok := request["jsonrpc"].(string)
+	if !ok || sJsonrpc != "2.0" {
 		requestError := invalidRequestError
 		requestError.Id = vr.Id
 		vr.Error = marshalResponse(requestError, logger)
 		return vr
 	}
 
-	if !assertType[string](request["method"]) {
+	_, ok = request["method"].(string)
+	if !ok {
 		requestError := invalidRequestError
 		requestError.Id = vr.Id
 		vr.Error = marshalResponse(requestError, logger)
@@ -158,14 +159,6 @@ func validateRequest(requestData []byte, logger *zerolog.Logger) validationResul
 	vr.Method = request["method"].(string)
 
 	return vr
-}
-
-func assertType[T string | float64](i interface{}) bool {
-	if i == nil {
-		return false
-	}
-	_, ok := i.(T)
-	return ok
 }
 
 func (rs *RpcServer) sendNotifications() {
