@@ -5,11 +5,11 @@ import './interfaces/IForceMoveApp.sol';
 import './libraries/NitroUtils.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
-// LedgerFinancingApp is a ForceMoveApp that allows a lender to earn interest
+// InterestBearingApp is a ForceMoveApp that allows a lender to earn interest
 // on a deposit. It functions as a ConsensusApp with the following additional rule:
 //   - the lender can unilaterally transition from state n to state n+1,
 //     forcing calculated interest into the lender's Outcome allocation
-contract LedgerFinancingApp is IForceMoveApp {
+contract InterestBearingApp is IForceMoveApp {
     struct Funds {
         address[] asset;
         uint256[] amount;
