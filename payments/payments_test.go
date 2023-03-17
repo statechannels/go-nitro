@@ -14,9 +14,13 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type balance struct {
+	remaining, paid *big.Int
+}
+
 // manager lets us implement a getBalancer helper to make test assertions a little neater
 type manager interface {
-	Balance(chanId types.Destination) (Balance, error)
+	Balance(chanId types.Destination) (initial, paid, remaining *big.Int, err error)
 }
 
 // Since the store package already imports the payments package if we tried to use the mem or persist store
@@ -61,14 +65,14 @@ func TestPaymentManager(t *testing.T) {
 		triplePayment = big.NewInt(60)
 		overPayment   = big.NewInt(2000)
 
-		startingBalance = Balance{big.NewInt(1000), big.NewInt(0)}
-		onePaymentMade  = Balance{big.NewInt(980), big.NewInt(20)}
-		twoPaymentsMade = Balance{big.NewInt(960), big.NewInt(40)}
+		startingBalance = balance{big.NewInt(1000), big.NewInt(0)}
+		onePaymentMade  = balance{big.NewInt(980), big.NewInt(20)}
+		twoPaymentsMade = balance{big.NewInt(960), big.NewInt(40)}
 	)
 
-	getBalance := func(m manager) Balance {
-		bal, _ := m.Balance(channelId)
-		return bal
+	getBalance := func(m manager) balance {
+		_, paid, remaining, _ := m.Balance(channelId)
+		return balance{remaining, paid}
 	}
 
 	// Happy path: Payment manager can register channels and make payments

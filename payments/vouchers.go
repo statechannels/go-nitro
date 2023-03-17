@@ -35,13 +35,8 @@ type VoucherInfo struct {
 	ChannelPayee    common.Address
 	StartingBalance *big.Int
 	LargestVoucher  Voucher
-	CurrentBalance  Balance
-}
-
-// Balance stores the remaining and paid funds in a channel.
-type Balance struct {
-	Remaining *big.Int
-	Paid      *big.Int
+	Remaining       *big.Int
+	Paid            *big.Int
 }
 
 func (v *Voucher) Hash() (types.Bytes32, error) {

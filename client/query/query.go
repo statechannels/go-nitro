@@ -117,12 +117,12 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 
 		// If we have received vouchers we want to update the channel balance to reflect the vouchers
 		if hasVouchers := vm.ChannelRegistered(id); status == Ready && hasVouchers {
-			voucherBal, err := vm.Balance(id)
+			_, paid, remaining, err := vm.Balance(id)
 			if err != nil {
 				return PaymentChannelInfo{}, err
 			}
-			balance.PaidSoFar.Set(voucherBal.Paid)
-			balance.RemainingFunds.Set(voucherBal.Remaining)
+			balance.PaidSoFar.Set(paid)
+			balance.RemainingFunds.Set(remaining)
 		}
 
 		return PaymentChannelInfo{

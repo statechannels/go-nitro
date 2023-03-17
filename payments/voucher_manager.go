@@ -32,9 +32,8 @@ func NewVoucherManager(me types.Address, store VoucherStore) *VoucherManager {
 // Register registers a channel for use, given the payer, payee and starting balance of the channel
 func (vm *VoucherManager) Register(channelId types.Destination, payer common.Address, payee common.Address, startingBalance *big.Int) error {
 
-	balance := Balance{big.NewInt(0).Set(startingBalance), &big.Int{}}
 	voucher := Voucher{ChannelId: channelId, Amount: big.NewInt(0)}
-	data := VoucherInfo{payer, payee, big.NewInt(0).Set(startingBalance), voucher, balance}
+	data := VoucherInfo{payer, payee, big.NewInt(0).Set(startingBalance), voucher, big.NewInt(0).Set(startingBalance), &big.Int{}}
 
 	if v, _ := vm.store.GetVoucherInfo(channelId); v != nil {
 		return fmt.Errorf("channel already registered")
@@ -62,7 +61,7 @@ func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 		return Voucher{}, fmt.Errorf("channel not found")
 	}
 
-	if types.Gt(amount, pStatus.CurrentBalance.Remaining) {
+	if types.Gt(amount, pStatus.Remaining) {
 		return Voucher{}, fmt.Errorf("unable to pay amount: insufficient funds")
 	}
 
@@ -70,11 +69,11 @@ func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 		return Voucher{}, fmt.Errorf("can only sign vouchers if we're the payer")
 	}
 
-	pStatus.CurrentBalance.Remaining.Sub(pStatus.CurrentBalance.Remaining, amount)
-	pStatus.CurrentBalance.Paid.Add(pStatus.CurrentBalance.Paid, amount)
+	pStatus.Remaining.Sub(pStatus.Remaining, amount)
+	pStatus.Paid.Add(pStatus.Paid, amount)
 	pStatus.LargestVoucher = voucher
 
-	voucher.Amount.Set(pStatus.CurrentBalance.Paid)
+	voucher.Amount.Set(pStatus.Paid)
 	voucher.ChannelId = channelId
 
 	if err := voucher.Sign(pk); err != nil {
@@ -117,9 +116,9 @@ func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
 	if signer != status.ChannelPayer {
 		return &big.Int{}, fmt.Errorf("wrong signer: %+v, %+v", signer, status.ChannelPayer)
 	}
-	status.CurrentBalance.Paid.Set(received)
+	status.Paid.Set(received)
 	remaining := big.NewInt(0).Sub(status.StartingBalance, received)
-	status.CurrentBalance.Remaining.Set(remaining)
+	status.Remaining.Set(remaining)
 
 	status.LargestVoucher = voucher
 
@@ -138,12 +137,12 @@ func (vm *VoucherManager) ChannelRegistered(channelId types.Destination) bool {
 }
 
 // Balance returns the balance of the channel
-func (vm *VoucherManager) Balance(channelId types.Destination) (Balance, error) {
+func (vm *VoucherManager) Balance(channelId types.Destination) (initial, paid, remaining *big.Int, err error) {
 	data, ok := vm.store.GetVoucherInfo(channelId)
 	if !ok {
-		return Balance{}, fmt.Errorf("channel not found")
+		return nil, nil, nil, fmt.Errorf("channel not found")
 	}
 
-	return data.CurrentBalance, nil
+	return data.StartingBalance, data.Paid, data.Remaining, nil
 
 }
