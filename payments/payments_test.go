@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/internal/testactors"
 
 	"github.com/statechannels/go-nitro/types"
@@ -16,6 +17,28 @@ import (
 // manager lets us implement a getBalancer helper to make test assertions a little neater
 type manager interface {
 	Balance(chanId types.Destination) (Balance, error)
+}
+
+// Since the store package already imports the payments package if we tried to use the mem or persist store
+// we get import cycles. So we create a simple store that implements the VoucherStore interface for testing.
+func newSimpleVoucherStore() VoucherStore {
+	return &simpleVoucherStore{vouchers: safesync.Map[*VoucherInfo]{}}
+}
+
+type simpleVoucherStore struct {
+	vouchers safesync.Map[*VoucherInfo]
+}
+
+func (svs *simpleVoucherStore) SetVoucherInfo(channelId types.Destination, vs VoucherInfo) error {
+	svs.vouchers.Store(channelId.String(), &vs)
+	return nil
+}
+func (svs *simpleVoucherStore) GetVoucherInfo(channelId types.Destination) (v *VoucherInfo, ok bool) {
+	return svs.vouchers.Load(channelId.String())
+}
+func (svs *simpleVoucherStore) RemoveVoucherInfo(channelId types.Destination) error {
+	svs.vouchers.Delete(channelId.String())
+	return nil
 }
 
 func TestPaymentManager(t *testing.T) {
@@ -49,7 +72,7 @@ func TestPaymentManager(t *testing.T) {
 	}
 
 	// Happy path: Payment manager can register channels and make payments
-	paymentMgr := NewVoucherManager(testactors.Alice.Address())
+	paymentMgr := NewVoucherManager(testactors.Alice.Address(), newSimpleVoucherStore())
 
 	_, err := paymentMgr.Pay(channelId, payment, testactors.Alice.PrivateKey)
 	Assert(t, err != nil, "channel must be registered to make payments")
@@ -67,7 +90,7 @@ func TestPaymentManager(t *testing.T) {
 	Equals(t, testactors.Alice.Address(), signer)
 
 	// Happy path: receipt manager can receive vouchers
-	receiptMgr := NewVoucherManager(testactors.Bob.Address())
+	receiptMgr := NewVoucherManager(testactors.Bob.Address(), newSimpleVoucherStore())
 
 	_, err = receiptMgr.Receive(firstVoucher)
 	Assert(t, err != nil, "channel must be registered to receive vouchers")

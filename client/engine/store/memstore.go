@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/internal/safesync"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -22,6 +23,7 @@ type MemStore struct {
 	channels           safesync.Map[[]byte]
 	consensusChannels  safesync.Map[[]byte]
 	channelToObjective safesync.Map[protocols.ObjectiveId]
+	vouchers           safesync.Map[[]byte]
 
 	key     string // the signing key of the store's engine
 	address string // the (Ethereum) address associated to the signing key
@@ -36,7 +38,7 @@ func NewMemStore(key []byte) Store {
 	ms.channels = safesync.Map[[]byte]{}
 	ms.consensusChannels = safesync.Map[[]byte]{}
 	ms.channelToObjective = safesync.Map[protocols.ObjectiveId]{}
-
+	ms.vouchers = safesync.Map[[]byte]{}
 	return &ms
 }
 
@@ -384,4 +386,32 @@ func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective
 
 func (ms *MemStore) ReleaseChannelFromOwnership(channelId types.Destination) {
 	ms.channelToObjective.Delete(channelId.String())
+}
+
+func (ms *MemStore) SetVoucherInfo(channelId types.Destination, vs payments.VoucherInfo) error {
+	jsonData, err := json.Marshal(vs)
+	if err != nil {
+		return err
+	}
+	ms.vouchers.Store(channelId.String(), jsonData)
+	return nil
+}
+
+func (ms *MemStore) GetVoucherInfo(channelId types.Destination) (v *payments.VoucherInfo, ok bool) {
+	data, ok := ms.vouchers.Load(channelId.String())
+	if !ok {
+		return nil, false
+	}
+
+	v = &payments.VoucherInfo{}
+	err := json.Unmarshal(data, v)
+	if err != nil {
+		return nil, false
+	}
+	return v, true
+}
+
+func (ms *MemStore) RemoveVoucherInfo(channelId types.Destination) error {
+	ms.vouchers.Delete(channelId.String())
+	return nil
 }

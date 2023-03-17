@@ -10,6 +10,7 @@ import (
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -24,6 +25,7 @@ type PersistStore struct {
 	channels           *buntdb.DB
 	consensusChannels  *buntdb.DB
 	channelToObjective *buntdb.DB
+	vouchers           *buntdb.DB
 
 	key     string // the signing key of the store's engine
 	address string // the (Ethereum) address associated to the signing key
@@ -45,6 +47,7 @@ func NewPersistStore(key []byte, folder string, config buntdb.Config) Store {
 	ps.channels = ps.openDB("channels", config)
 	ps.consensusChannels = ps.openDB("consensus_channels", config)
 	ps.channelToObjective = ps.openDB("channel_to_objective", config)
+	ps.vouchers = ps.openDB("vouchers", config)
 
 	return &ps
 }
@@ -467,4 +470,37 @@ func (ps *PersistStore) checkError(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (ps *PersistStore) SetVoucherInfo(channelId types.Destination, vs payments.VoucherInfo) error {
+	return ps.vouchers.Update(func(tx *buntdb.Tx) error {
+		vsJSON, err := json.Marshal(vs)
+		if err != nil {
+			return err
+		}
+		_, _, err = tx.Set(channelId.String(), string(vsJSON), nil)
+
+		return err
+	})
+}
+
+func (ps *PersistStore) GetVoucherInfo(channelId types.Destination) (v *payments.VoucherInfo, ok bool) {
+	err := ps.vouchers.View(func(tx *buntdb.Tx) error {
+		vJSON, err := tx.Get(channelId.String())
+		if err != nil {
+			return nil
+		}
+		return json.Unmarshal([]byte(vJSON), &v)
+	})
+	if err == nil {
+		ok = true
+	}
+	return
+}
+
+func (ps *PersistStore) RemoveVoucherInfo(channelId types.Destination) error {
+	return ps.vouchers.Update(func(tx *buntdb.Tx) error {
+		_, err := tx.Delete(channelId.String())
+		return err
+	})
 }

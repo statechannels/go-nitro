@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	nitroAbi "github.com/statechannels/go-nitro/abi"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -25,6 +26,16 @@ type Voucher struct {
 	ChannelId types.Destination
 	Amount    *big.Int
 	Signature state.Signature
+}
+
+// VoucherInfo contains the largest voucher we've received on a channel.
+// As well as details about the balance and who the payee/payer is.
+type VoucherInfo struct {
+	ChannelPayer    common.Address
+	ChannelPayee    common.Address
+	StartingBalance *big.Int
+	LargestVoucher  Voucher
+	CurrentBalance  Balance
 }
 
 // Balance stores the remaining and paid funds in a channel.
