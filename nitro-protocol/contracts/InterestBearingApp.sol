@@ -83,9 +83,11 @@ contract InterestBearingApp is IForceMoveApp {
     //  - the latest consensus principal
     //  - the channel's interest rate
     //  - the time elapsed since the last principal adjustment
-    function computeOutstandingInterest(
-        InterestAppData memory appData
-    ) private view returns (Funds memory) {
+    function computeOutstandingInterest(InterestAppData memory appData)
+        private
+        view
+        returns (Funds memory)
+    {
         uint256 numBlocks = block.number - appData.blocknumber;
 
         address[] memory assets = new address[](appData.principal.asset.length);
