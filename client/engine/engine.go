@@ -51,9 +51,9 @@ type Engine struct {
 	fromMsg    <-chan protocols.Message
 	fromLedger chan consensus_channel.Proposal
 
-	toApi                  chan EngineEvent
-	completedObjectiveChan CompletedObjectives
-	stop                   chan struct{}
+	toApi               chan EngineEvent
+	completedObjectives CompletedObjectives
+	stop                chan struct{}
 
 	msg   messageservice.MessageService
 	chain chainservice.ChainService
@@ -110,7 +110,7 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	e.msg = msg
 
 	e.toApi = make(chan EngineEvent, 100)
-	e.completedObjectiveChan = CompletedObjectives{&sync.Mutex{}, make(map[protocols.ObjectiveId]chan struct{})}
+	e.completedObjectives = CompletedObjectives{&sync.Mutex{}, make(map[protocols.ObjectiveId]chan struct{})}
 
 	logging.ConfigureZeroLogger()
 	e.logger = zerolog.New(logDestination).With().Timestamp().Str("engine", e.store.GetAddress().String()[0:8]).Caller().Logger()
@@ -181,12 +181,12 @@ func (e *Engine) Run() {
 			for _, obj := range res.CompletedObjectives {
 				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
 				e.metrics.RecordObjectiveCompleted(obj.Id())
-				e.completedObjectiveChan.l.Lock()
-				if e.completedObjectiveChan.c[obj.Id()] == nil {
-					e.completedObjectiveChan.c[obj.Id()] = make(chan struct{})
+				e.completedObjectives.l.Lock()
+				if e.completedObjectives.c[obj.Id()] == nil {
+					e.completedObjectives.c[obj.Id()] = make(chan struct{})
 				}
-				e.completedObjectiveChan.l.Unlock()
-				close(e.completedObjectiveChan.c[obj.Id()])
+				e.completedObjectives.l.Unlock()
+				close(e.completedObjectives.c[obj.Id()])
 			}
 			e.toApi <- res
 		}
@@ -742,10 +742,10 @@ func (e *Engine) recordMessageMetrics(message protocols.Message) {
 }
 
 func (e *Engine) CompletedObjectiveChan(id protocols.ObjectiveId) <-chan struct{} {
-	e.completedObjectiveChan.l.Lock()
-	if e.completedObjectiveChan.c[id] == nil {
-		e.completedObjectiveChan.c[id] = make(chan struct{})
+	e.completedObjectives.l.Lock()
+	if e.completedObjectives.c[id] == nil {
+		e.completedObjectives.c[id] = make(chan struct{})
 	}
-	e.completedObjectiveChan.l.Unlock()
-	return e.completedObjectiveChan.c[id]
+	e.completedObjectives.l.Unlock()
+	return e.completedObjectives.c[id]
 }
