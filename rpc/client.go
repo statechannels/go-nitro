@@ -8,7 +8,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
-	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -147,30 +146,6 @@ func (rc *RpcClient) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan stru
 		close(ch)
 	}()
 	return ch
-}
-
-func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId ...protocols.ObjectiveId) {
-	incomplete := safesync.Map[<-chan struct{}]{}
-
-	var wg sync.WaitGroup
-
-	for _, id := range expectedObjectiveId {
-		incomplete.Store(string(id), rc.ObjectiveCompleteChan(id))
-		wg.Add(1)
-	}
-
-	incomplete.Range(
-		func(id string, ch <-chan struct{}) bool {
-			go func() {
-				<-ch
-				incomplete.Delete(string(id))
-				wg.Done()
-			}()
-			return true
-		})
-
-	wg.Wait()
-
 }
 
 // request uses the supplied transport and payload to send a non-blocking JSONRPC request.
