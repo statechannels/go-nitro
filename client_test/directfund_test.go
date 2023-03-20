@@ -27,8 +27,9 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 
 	response := alpha.CreateLedgerChannel(*beta.Address, 0, outcome)
 
-	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, response.Id)
-	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, response.Id)
+	<-alpha.ObjectiveCompleteChan(response.Id)
+	<-beta.ObjectiveCompleteChan(response.Id)
+
 	return response.ChannelId
 }
 
