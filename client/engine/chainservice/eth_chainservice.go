@@ -43,7 +43,8 @@ type EthChainService struct {
 	txSigner                 *bind.TransactOpts
 	out                      chan Event
 	logger                   zerolog.Logger
-	quit                     chan struct{}
+	ctx                      context.Context
+	cancel                   context.CancelFunc
 }
 
 // MAX_QUERY_BLOCK_RANGE is the maximum range of blocks we query for events at once.
@@ -70,9 +71,10 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	logging.ConfigureZeroLogger()
 
 	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
+	ctx, cancelCtx := context.WithCancel(context.Background())
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, make(chan struct{})}
+	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx}
 
 	if ecs.subscriptionsSupported() {
 		logger.Printf("Notifications are supported by the chain. Using notifications to listen for events.")
@@ -260,15 +262,14 @@ func (ecs *EthChainService) subscribeForLogs() {
 		Addresses: []common.Address{ecs.naAddress},
 	}
 	logs := make(chan ethTypes.Log)
-	ctx, cancel := context.WithCancel(context.Background())
-	sub, err := ecs.chain.SubscribeFilterLogs(ctx, query, logs)
+	sub, err := ecs.chain.SubscribeFilterLogs(ecs.ctx, query, logs)
 	if err != nil {
 		ecs.fatalF("subscribeFilterLogs failed: %w", err)
 	}
 	for {
 		select {
-		case <-ecs.quit:
-			cancel()
+		case <-ecs.ctx.Done():
+			sub.Unsubscribe()
 			return
 		case err := <-sub.Err():
 			if err != nil {
@@ -278,7 +279,7 @@ func (ecs *EthChainService) subscribeForLogs() {
 			// If the error is nil then the subscription was closed and we need to re-subscribe.
 			// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
 			var sErr error
-			sub, sErr = ecs.chain.SubscribeFilterLogs(ctx, query, logs)
+			sub, sErr = ecs.chain.SubscribeFilterLogs(ecs.ctx, query, logs)
 			if sErr != nil {
 				ecs.fatalF("subscribeFilterLogs failed on resubscribe: %w", err)
 			}
@@ -366,6 +367,8 @@ func (ecs *EthChainService) pollForLogs() {
 	ecs.dispatchChainEvents(fetchedLogs)
 	for {
 		select {
+		case <-ecs.ctx.Done():
+			return
 		case <-time.After(EVENT_POLL_INTERVAL):
 			currentBlock := ecs.getCurrentBlockNum()
 
@@ -381,8 +384,6 @@ func (ecs *EthChainService) pollForLogs() {
 
 				ecs.dispatchChainEvents(fetchedLogs)
 			}
-		case <-ecs.quit:
-			return
 		}
 	}
 
@@ -406,7 +407,7 @@ func (ecs *EthChainService) GetChainId() (*big.Int, error) {
 }
 
 func (ecs *EthChainService) Close() error {
-	close(ecs.quit)
+	ecs.cancel()
 	close(ecs.out)
 	return nil
 }

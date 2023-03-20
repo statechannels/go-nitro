@@ -67,6 +67,7 @@ func newPollingSimulatedBackendChainService(sim SimulatedChain, bindings Binding
 	logging.ConfigureZeroLogger()
 
 	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
+	ctx, ctxCancel := context.WithCancel(context.Background())
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{sim,
@@ -74,7 +75,7 @@ func newPollingSimulatedBackendChainService(sim SimulatedChain, bindings Binding
 		bindings.Adjudicator.Address,
 		bindings.ConsensusApp.Address,
 		bindings.VirtualPaymentApp.Address, txSigner,
-		make(chan Event, 10), logger, make(chan struct{}),
+		make(chan Event, 10), logger, ctx, ctxCancel,
 	}
 
 	go ecs.pollForLogs()
