@@ -74,7 +74,7 @@ func (c *Client) handleEngineEvents() {
 	for update := range c.engine.ToApi() {
 
 		for _, completed := range update.CompletedObjectives {
-			// use a nonblocking send to the RFC Client in case no one is listening
+			// use a nonblocking send to the RPC Client in case no one is listening
 			select {
 			case c.completedObjectives <- completed.Id():
 			default:
