@@ -52,6 +52,12 @@ func NewDurableStore(key []byte, folder string, config buntdb.Config) Store {
 	return &ps
 }
 
+// NewPersistStore provides backwards compatibility for testground tests built against the persist store
+// TODO: Remove this once https://github.com/statechannels/go-nitro-testground/pull/156 is merged
+func NewPersistStore(key []byte, folder string, config buntdb.Config) Store {
+	return NewDurableStore(key, folder, config)
+}
+
 func (ds *DurableStore) openDB(name string, config buntdb.Config) *buntdb.DB {
 	db, err := buntdb.Open(fmt.Sprintf("%s/%s_%s.db", ds.folder, name, ds.address[2:7]))
 	ds.checkError(err)
