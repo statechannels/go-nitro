@@ -33,8 +33,8 @@ type simpleVoucherStore struct {
 	vouchers safesync.Map[*VoucherInfo]
 }
 
-func (svs *simpleVoucherStore) SetVoucherInfo(channelId types.Destination, vs VoucherInfo) error {
-	svs.vouchers.Store(channelId.String(), &vs)
+func (svs *simpleVoucherStore) SetVoucherInfo(channelId types.Destination, v VoucherInfo) error {
+	svs.vouchers.Store(channelId.String(), &v)
 	return nil
 }
 func (svs *simpleVoucherStore) GetVoucherInfo(channelId types.Destination) (v *VoucherInfo, ok bool) {

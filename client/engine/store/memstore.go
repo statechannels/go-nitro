@@ -388,8 +388,8 @@ func (ms *MemStore) ReleaseChannelFromOwnership(channelId types.Destination) {
 	ms.channelToObjective.Delete(channelId.String())
 }
 
-func (ms *MemStore) SetVoucherInfo(channelId types.Destination, vs payments.VoucherInfo) error {
-	jsonData, err := json.Marshal(vs)
+func (ms *MemStore) SetVoucherInfo(channelId types.Destination, v payments.VoucherInfo) error {
+	jsonData, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}

@@ -11,7 +11,7 @@ import (
 // VoucherStore is an interface for storing voucher information that the voucher manager expects.
 // To avoid import cycles, this interface is defined in the payments package, but implemented in the store package.
 type VoucherStore interface {
-	SetVoucherInfo(channelId types.Destination, vs VoucherInfo) error
+	SetVoucherInfo(channelId types.Destination, v VoucherInfo) error
 	GetVoucherInfo(channelId types.Destination) (v *VoucherInfo, ok bool)
 	RemoveVoucherInfo(channelId types.Destination) error
 }

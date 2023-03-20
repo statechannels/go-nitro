@@ -472,13 +472,13 @@ func (ps *PersistStore) checkError(err error) {
 	}
 }
 
-func (ps *PersistStore) SetVoucherInfo(channelId types.Destination, vs payments.VoucherInfo) error {
+func (ps *PersistStore) SetVoucherInfo(channelId types.Destination, v payments.VoucherInfo) error {
 	return ps.vouchers.Update(func(tx *buntdb.Tx) error {
-		vsJSON, err := json.Marshal(vs)
+		vJSON, err := json.Marshal(v)
 		if err != nil {
 			return err
 		}
-		_, _, err = tx.Set(channelId.String(), string(vsJSON), nil)
+		_, _, err = tx.Set(channelId.String(), string(vJSON), nil)
 
 		return err
 	})
