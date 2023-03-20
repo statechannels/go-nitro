@@ -20,7 +20,7 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
-type PersistStore struct {
+type DurableStore struct {
 	objectives         *buntdb.DB
 	channels           *buntdb.DB
 	consensusChannels  *buntdb.DB
@@ -32,10 +32,10 @@ type PersistStore struct {
 	folder  string // the folder where the store's data is stored
 }
 
-// NewPersistStore creates a new PersistStore that uses the given folder to store its data
+// NewDurableStore creates a new DurableStore that uses the given folder to store its data
 // It will create the folder if it does not exist
-func NewPersistStore(key []byte, folder string, config buntdb.Config) Store {
-	ps := PersistStore{}
+func NewDurableStore(key []byte, folder string, config buntdb.Config) Store {
+	ps := DurableStore{}
 	err := os.MkdirAll(folder, os.ModePerm)
 	ps.checkError(err)
 
@@ -52,43 +52,43 @@ func NewPersistStore(key []byte, folder string, config buntdb.Config) Store {
 	return &ps
 }
 
-func (ps *PersistStore) openDB(name string, config buntdb.Config) *buntdb.DB {
-	db, err := buntdb.Open(fmt.Sprintf("%s/%s_%s.db", ps.folder, name, ps.address[2:7]))
-	ps.checkError(err)
+func (ds *DurableStore) openDB(name string, config buntdb.Config) *buntdb.DB {
+	db, err := buntdb.Open(fmt.Sprintf("%s/%s_%s.db", ds.folder, name, ds.address[2:7]))
+	ds.checkError(err)
 	err = db.SetConfig(config)
-	ps.checkError(err)
+	ds.checkError(err)
 	return db
 }
 
-func (ps *PersistStore) Close() error {
-	err := ps.channels.Close()
+func (ds *DurableStore) Close() error {
+	err := ds.channels.Close()
 	if err != nil {
 		return err
 	}
-	err = ps.objectives.Close()
+	err = ds.objectives.Close()
 	if err != nil {
 		return err
 	}
-	err = ps.consensusChannels.Close()
+	err = ds.consensusChannels.Close()
 	if err != nil {
 		return err
 	}
-	return ps.channelToObjective.Close()
+	return ds.channelToObjective.Close()
 }
-func (ps *PersistStore) GetAddress() *types.Address {
-	address := common.HexToAddress(ps.address)
+func (ds *DurableStore) GetAddress() *types.Address {
+	address := common.HexToAddress(ds.address)
 	return &address
 }
 
-func (ps *PersistStore) GetChannelSecretKey() *[]byte {
-	val := common.Hex2Bytes(ps.key)
+func (ds *DurableStore) GetChannelSecretKey() *[]byte {
+	val := common.Hex2Bytes(ds.key)
 	return &val
 }
 
-func (ps *PersistStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Objective, error) {
+func (ds *DurableStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Objective, error) {
 
 	var obj protocols.Objective
-	err := ps.objectives.View(func(tx *buntdb.Tx) error {
+	err := ds.objectives.View(func(tx *buntdb.Tx) error {
 		objJSON, err := tx.Get(string(id))
 		if err != nil {
 			return err
@@ -99,7 +99,7 @@ func (ps *PersistStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Ob
 			return fmt.Errorf("error decoding objective %s: %w", id, err)
 		}
 
-		err = ps.populateChannelData(obj)
+		err = ds.populateChannelData(obj)
 		if err != nil {
 			// return existing objective data along with error
 			return fmt.Errorf("error populating channel data for objective %s: %w", id, err)
@@ -114,7 +114,7 @@ func (ps *PersistStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Ob
 	return obj, nil
 }
 
-func (ps *PersistStore) SetObjective(obj protocols.Objective) error {
+func (ds *DurableStore) SetObjective(obj protocols.Objective) error {
 	// todo: locking
 	objJSON, err := obj.MarshalJSON()
 
@@ -122,7 +122,7 @@ func (ps *PersistStore) SetObjective(obj protocols.Objective) error {
 		return fmt.Errorf("error setting objective %s: %w", obj.Id(), err)
 	}
 
-	err = ps.objectives.Update(func(tx *buntdb.Tx) error {
+	err = ds.objectives.Update(func(tx *buntdb.Tx) error {
 
 		_, _, err := tx.Set(string(obj.Id()), string(objJSON), nil)
 		return err
@@ -134,12 +134,12 @@ func (ps *PersistStore) SetObjective(obj protocols.Objective) error {
 	for _, rel := range obj.Related() {
 		switch ch := rel.(type) {
 		case *channel.Channel:
-			err := ps.SetChannel(ch)
+			err := ds.SetChannel(ch)
 			if err != nil {
 				return fmt.Errorf("error setting channel %s from objective %s: %w", ch.Id, obj.Id(), err)
 			}
 		case *consensus_channel.ConsensusChannel:
-			err := ps.SetConsensusChannel(ch)
+			err := ds.SetConsensusChannel(ch)
 			if err != nil {
 				return fmt.Errorf("error setting consensus channel %s from objective %s: %w", ch.Id, obj.Id(), err)
 			}
@@ -151,7 +151,7 @@ func (ps *PersistStore) SetObjective(obj protocols.Objective) error {
 	// Objective ownership can only be transferred if the channel is not owned by another objective
 	var prevOwner protocols.ObjectiveId
 	var isOwned bool = false
-	err = ps.channelToObjective.View(func(tx *buntdb.Tx) error {
+	err = ds.channelToObjective.View(func(tx *buntdb.Tx) error {
 		res, err := tx.Get(string(obj.OwnsChannel().String()))
 		if err != nil {
 			return nil
@@ -166,12 +166,12 @@ func (ps *PersistStore) SetObjective(obj protocols.Objective) error {
 
 	if status := obj.GetStatus(); status == protocols.Approved {
 		if !isOwned {
-			err := ps.channelToObjective.Update(func(tx *buntdb.Tx) error {
+			err := ds.channelToObjective.Update(func(tx *buntdb.Tx) error {
 
 				_, _, err := tx.Set(string(obj.OwnsChannel().String()), string(obj.Id()), nil)
 				return err
 			})
-			ps.checkError(err)
+			ds.checkError(err)
 		}
 		if isOwned && prevOwner != obj.Id() {
 			return fmt.Errorf("cannot transfer ownership of channel to from objective %s to %s", prevOwner, obj.Id())
@@ -182,14 +182,14 @@ func (ps *PersistStore) SetObjective(obj protocols.Objective) error {
 }
 
 // SetChannel sets the channel in the store.
-func (ps *PersistStore) SetChannel(ch *channel.Channel) error {
+func (ds *DurableStore) SetChannel(ch *channel.Channel) error {
 	chJSON, err := ch.MarshalJSON()
 
 	if err != nil {
 		return err
 	}
 
-	err = ps.channels.Update(func(tx *buntdb.Tx) error {
+	err = ds.channels.Update(func(tx *buntdb.Tx) error {
 
 		_, _, err := tx.Set(ch.Id.String(), string(chJSON), nil)
 		return err
@@ -198,16 +198,16 @@ func (ps *PersistStore) SetChannel(ch *channel.Channel) error {
 }
 
 // DestroyChannel deletes the channel with id id.
-func (ps *PersistStore) DestroyChannel(id types.Destination) {
-	err := ps.channels.Update(func(tx *buntdb.Tx) error {
+func (ds *DurableStore) DestroyChannel(id types.Destination) {
+	err := ds.channels.Update(func(tx *buntdb.Tx) error {
 		_, err := tx.Delete(id.String())
 		return err
 	})
-	ps.checkError(err)
+	ds.checkError(err)
 }
 
 // SetConsensusChannel sets the channel in the store.
-func (ps *PersistStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel) error {
+func (ps *DurableStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel) error {
 	chJSON, err := ch.MarshalJSON()
 
 	if err != nil {
@@ -223,17 +223,17 @@ func (ps *PersistStore) SetConsensusChannel(ch *consensus_channel.ConsensusChann
 }
 
 // DestroyChannel deletes the channel with id id.
-func (ps *PersistStore) DestroyConsensusChannel(id types.Destination) {
-	err := ps.consensusChannels.Update(func(tx *buntdb.Tx) error {
+func (ds *DurableStore) DestroyConsensusChannel(id types.Destination) {
+	err := ds.consensusChannels.Update(func(tx *buntdb.Tx) error {
 		_, err := tx.Delete(id.String())
 		return err
 	})
-	ps.checkError(err)
+	ds.checkError(err)
 }
 
 // GetChannelById retrieves the channel with the supplied id, if it exists.
-func (ps *PersistStore) GetChannelById(id types.Destination) (c *channel.Channel, ok bool) {
-	ch, err := ps.getChannelById(id)
+func (ds *DurableStore) GetChannelById(id types.Destination) (c *channel.Channel, ok bool) {
+	ch, err := ds.getChannelById(id)
 
 	if err != nil {
 		return &channel.Channel{}, false
@@ -243,9 +243,9 @@ func (ps *PersistStore) GetChannelById(id types.Destination) (c *channel.Channel
 }
 
 // getChannelById returns the stored channel
-func (ps *PersistStore) getChannelById(id types.Destination) (channel.Channel, error) {
+func (ds *DurableStore) getChannelById(id types.Destination) (channel.Channel, error) {
 	var chJSON string
-	err := ps.channels.View(func(tx *buntdb.Tx) error {
+	err := ds.channels.View(func(tx *buntdb.Tx) error {
 		var err error
 		chJSON, err = tx.Get(id.String())
 		return err
@@ -266,9 +266,9 @@ func (ps *PersistStore) getChannelById(id types.Destination) (channel.Channel, e
 }
 
 // GetChannelsByParticipant returns any channels that include the given participant
-func (ps *PersistStore) GetChannelsByParticipant(participant types.Address) []*channel.Channel {
+func (ds *DurableStore) GetChannelsByParticipant(participant types.Address) []*channel.Channel {
 	toReturn := []*channel.Channel{}
-	err := ps.channels.View(func(tx *buntdb.Tx) error {
+	err := ds.channels.View(func(tx *buntdb.Tx) error {
 		err := tx.Ascend("", func(key, chJSON string) bool {
 
 			var ch channel.Channel
@@ -290,15 +290,15 @@ func (ps *PersistStore) GetChannelsByParticipant(participant types.Address) []*c
 		})
 		return err
 	})
-	ps.checkError(err)
+	ds.checkError(err)
 	return toReturn
 }
 
 // GetConsensusChannelById returns a ConsensusChannel with the given channel id
-func (ps *PersistStore) GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
+func (ds *DurableStore) GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
 
 	var ch *consensus_channel.ConsensusChannel
-	err = ps.consensusChannels.View(func(tx *buntdb.Tx) error {
+	err = ds.consensusChannels.View(func(tx *buntdb.Tx) error {
 
 		chJSON, err := tx.Get(id.String())
 
@@ -322,7 +322,7 @@ func (ps *PersistStore) GetConsensusChannelById(id types.Destination) (channel *
 
 // GetConsensusChannel returns a ConsensusChannel between the calling client and
 // the supplied counterparty, if such channel exists
-func (ps *PersistStore) GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
+func (ps *DurableStore) GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
 
 	err := ps.consensusChannels.View(func(tx *buntdb.Tx) error {
 		return tx.Ascend("", func(key, chJSON string) bool {
@@ -350,7 +350,7 @@ func (ps *PersistStore) GetConsensusChannel(counterparty types.Address) (channel
 	return
 }
 
-func (ps *PersistStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
+func (ps *DurableStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
 	var id protocols.ObjectiveId
 
 	err := ps.channelToObjective.View(func(tx *buntdb.Tx) error {
@@ -371,12 +371,12 @@ func (ps *PersistStore) GetObjectiveByChannelId(channelId types.Destination) (pr
 // populateChannelData fetches stored Channel data relevant to the given
 // objective and attaches it to the objective. The channel data is attached
 // in-place of the objectives existing channel pointers.
-func (ps *PersistStore) populateChannelData(obj protocols.Objective) error {
+func (ds *DurableStore) populateChannelData(obj protocols.Objective) error {
 	id := obj.Id()
 
 	switch o := obj.(type) {
 	case *directfund.Objective:
-		ch, err := ps.getChannelById(o.C.Id)
+		ch, err := ds.getChannelById(o.C.Id)
 
 		if err != nil {
 			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
@@ -387,7 +387,7 @@ func (ps *PersistStore) populateChannelData(obj protocols.Objective) error {
 		return nil
 	case *directdefund.Objective:
 
-		ch, err := ps.getChannelById(o.C.Id)
+		ch, err := ds.getChannelById(o.C.Id)
 
 		if err != nil {
 			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
@@ -397,7 +397,7 @@ func (ps *PersistStore) populateChannelData(obj protocols.Objective) error {
 
 		return nil
 	case *virtualfund.Objective:
-		v, err := ps.getChannelById(o.V.Id)
+		v, err := ds.getChannelById(o.V.Id)
 		if err != nil {
 			return fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
 		}
@@ -409,7 +409,7 @@ func (ps *PersistStore) populateChannelData(obj protocols.Objective) error {
 			o.ToMyLeft.Channel != nil &&
 			o.ToMyLeft.Channel.Id != zeroAddress {
 
-			left, err := ps.GetConsensusChannelById(o.ToMyLeft.Channel.Id)
+			left, err := ds.GetConsensusChannelById(o.ToMyLeft.Channel.Id)
 			if err != nil {
 				return fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
 			}
@@ -419,7 +419,7 @@ func (ps *PersistStore) populateChannelData(obj protocols.Objective) error {
 		if o.ToMyRight != nil &&
 			o.ToMyRight.Channel != nil &&
 			o.ToMyRight.Channel.Id != zeroAddress {
-			right, err := ps.GetConsensusChannelById(o.ToMyRight.Channel.Id)
+			right, err := ds.GetConsensusChannelById(o.ToMyRight.Channel.Id)
 			if err != nil {
 				return fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
 			}
@@ -434,7 +434,7 @@ func (ps *PersistStore) populateChannelData(obj protocols.Objective) error {
 		if o.ToMyLeft != nil &&
 			o.ToMyLeft.Id != zeroAddress {
 
-			left, err := ps.GetConsensusChannelById(o.ToMyLeft.Id)
+			left, err := ds.GetConsensusChannelById(o.ToMyLeft.Id)
 			if err != nil {
 				return fmt.Errorf("error retrieving left ledger channel data for objective %s: %w", id, err)
 			}
@@ -443,7 +443,7 @@ func (ps *PersistStore) populateChannelData(obj protocols.Objective) error {
 
 		if o.ToMyRight != nil &&
 			o.ToMyRight.Id != zeroAddress {
-			right, err := ps.GetConsensusChannelById(o.ToMyRight.Id)
+			right, err := ds.GetConsensusChannelById(o.ToMyRight.Id)
 			if err != nil {
 				return fmt.Errorf("error retrieving right ledger channel data for objective %s: %w", id, err)
 			}
@@ -456,24 +456,24 @@ func (ps *PersistStore) populateChannelData(obj protocols.Objective) error {
 
 }
 
-func (ps *PersistStore) ReleaseChannelFromOwnership(channelId types.Destination) {
-	err := ps.channelToObjective.Update(func(tx *buntdb.Tx) error {
+func (ds *DurableStore) ReleaseChannelFromOwnership(channelId types.Destination) {
+	err := ds.channelToObjective.Update(func(tx *buntdb.Tx) error {
 		_, err := tx.Delete(channelId.String())
 		return err
 	})
-	ps.checkError(err)
+	ds.checkError(err)
 }
 
 // checkError is a helper function that panics if an error is not nil
 // TODO: Longer term we should return errors instead of panicking
-func (ps *PersistStore) checkError(err error) {
+func (ds *DurableStore) checkError(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (ps *PersistStore) SetVoucherInfo(channelId types.Destination, v payments.VoucherInfo) error {
-	return ps.vouchers.Update(func(tx *buntdb.Tx) error {
+func (ds *DurableStore) SetVoucherInfo(channelId types.Destination, v payments.VoucherInfo) error {
+	return ds.vouchers.Update(func(tx *buntdb.Tx) error {
 		vJSON, err := json.Marshal(v)
 		if err != nil {
 			return err
@@ -484,8 +484,8 @@ func (ps *PersistStore) SetVoucherInfo(channelId types.Destination, v payments.V
 	})
 }
 
-func (ps *PersistStore) GetVoucherInfo(channelId types.Destination) (v *payments.VoucherInfo, ok bool) {
-	err := ps.vouchers.View(func(tx *buntdb.Tx) error {
+func (ds *DurableStore) GetVoucherInfo(channelId types.Destination) (v *payments.VoucherInfo, ok bool) {
+	err := ds.vouchers.View(func(tx *buntdb.Tx) error {
 		vJSON, err := tx.Get(channelId.String())
 		if err != nil {
 			return nil
@@ -498,8 +498,8 @@ func (ps *PersistStore) GetVoucherInfo(channelId types.Destination) (v *payments
 	return
 }
 
-func (ps *PersistStore) RemoveVoucherInfo(channelId types.Destination) error {
-	return ps.vouchers.Update(func(tx *buntdb.Tx) error {
+func (ds *DurableStore) RemoveVoucherInfo(channelId types.Destination) error {
+	return ds.vouchers.Update(func(tx *buntdb.Tx) error {
 		_, err := tx.Delete(channelId.String())
 		return err
 	})
