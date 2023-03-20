@@ -54,29 +54,29 @@ func (vm *VoucherManager) Remove(channelId types.Destination) {
 // Pay will deduct amount from balance and add it to paid, returning a signed voucher for the
 // total amount paid.
 func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk []byte) (Voucher, error) {
-	pStatus, ok := vm.store.GetVoucherInfo(channelId)
+	vInfo, ok := vm.store.GetVoucherInfo(channelId)
 
 	if !ok {
 		return Voucher{}, fmt.Errorf("channel not found")
 	}
 
-	if types.Gt(amount, pStatus.Remaining()) {
+	if types.Gt(amount, vInfo.Remaining()) {
 		return Voucher{}, fmt.Errorf("unable to pay amount: insufficient funds")
 	}
 
-	if pStatus.ChannelPayer != vm.me {
+	if vInfo.ChannelPayer != vm.me {
 		return Voucher{}, fmt.Errorf("can only sign vouchers if we're the payer")
 	}
-	newAmount := big.NewInt(0).Add(pStatus.LargestVoucher.Amount, amount)
+	newAmount := big.NewInt(0).Add(vInfo.LargestVoucher.Amount, amount)
 	voucher := Voucher{Amount: big.NewInt(0).Set(newAmount), ChannelId: channelId}
 
-	pStatus.LargestVoucher = voucher
+	vInfo.LargestVoucher = voucher
 
 	if err := voucher.Sign(pk); err != nil {
 		return voucher, err
 	}
 
-	err := vm.store.SetVoucherInfo(channelId, *pStatus)
+	err := vm.store.SetVoucherInfo(channelId, *vInfo)
 	if err != nil {
 		return Voucher{}, err
 	}
@@ -85,22 +85,22 @@ func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 
 // Receive validates the incoming voucher, and returns the total amount received so far
 func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
-	status, ok := vm.store.GetVoucherInfo(voucher.ChannelId)
+	vInfo, ok := vm.store.GetVoucherInfo(voucher.ChannelId)
 	if !ok {
 		return &big.Int{}, fmt.Errorf("channel not registered")
 	}
 
 	// We only care about vouchers when we are the recipient of the payment
-	if status.ChannelPayee != vm.me {
+	if vInfo.ChannelPayee != vm.me {
 		return &big.Int{}, nil
 	}
 	received := &big.Int{}
 	received.Set(voucher.Amount)
-	if types.Gt(received, status.StartingBalance) {
+	if types.Gt(received, vInfo.StartingBalance) {
 		return &big.Int{}, fmt.Errorf("channel has insufficient funds")
 	}
 
-	receivedSoFar := status.LargestVoucher.Amount
+	receivedSoFar := vInfo.LargestVoucher.Amount
 	if !types.Gt(received, receivedSoFar) {
 		return receivedSoFar, nil
 	}
@@ -109,13 +109,13 @@ func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
 	if err != nil {
 		return &big.Int{}, err
 	}
-	if signer != status.ChannelPayer {
-		return &big.Int{}, fmt.Errorf("wrong signer: %+v, %+v", signer, status.ChannelPayer)
+	if signer != vInfo.ChannelPayer {
+		return &big.Int{}, fmt.Errorf("wrong signer: %+v, %+v", signer, vInfo.ChannelPayer)
 	}
 
-	status.LargestVoucher = voucher
+	vInfo.LargestVoucher = voucher
 
-	err = vm.store.SetVoucherInfo(voucher.ChannelId, *status)
+	err = vm.store.SetVoucherInfo(voucher.ChannelId, *vInfo)
 	if err != nil {
 		return nil, err
 	}
