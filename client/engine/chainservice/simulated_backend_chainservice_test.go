@@ -45,11 +45,13 @@ func (l NoopLogger) Write(p []byte) (n int, err error) {
 func TestDepositSimulatedBackendChainService(t *testing.T) {
 	one := big.NewInt(1)
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
+	defer sim.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	cs, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], NoopLogger{})
+	defer cs.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +86,6 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 		t.Fatalf("Mismatch between the deposit transaction and the received events")
 	}
 
-	sim.Close()
 }
 func TestConcludeSimulatedBackendChainService(t *testing.T) {
 	runDepositAndConcludeTest(t, false)
@@ -95,6 +96,8 @@ func TestConcludeSimulatedBackendChainServiceWithPolling(t *testing.T) {
 
 func runDepositAndConcludeTest(t *testing.T, usePolling bool) {
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
+	defer sim.Close()
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,6 +113,7 @@ func runDepositAndConcludeTest(t *testing.T, usePolling bool) {
 			t.Fatal(err)
 		}
 	}
+	defer cs.Close()
 
 	out := cs.EventFeed()
 
@@ -184,7 +188,4 @@ func runDepositAndConcludeTest(t *testing.T, usePolling bool) {
 	if !bytes.Equal(statusOnChain[:], emptyBytes[:]) {
 		t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(emptyBytes[:]))
 	}
-
-	// Not sure if this is necessary
-	sim.Close()
 }
