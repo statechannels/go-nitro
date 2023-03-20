@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -22,10 +24,11 @@ import (
 
 // RpcClient is a client for making nitro rpc calls
 type RpcClient struct {
-	transport           transport.Requester
-	myAddress           types.Address
-	logger              zerolog.Logger
-	completedObjectives chan protocols.ObjectiveId
+	transport              transport.Requester
+	myAddress              types.Address
+	logger                 zerolog.Logger
+	completedObjectiveChan map[protocols.ObjectiveId]chan struct{}
+	l                      sync.Locker
 }
 
 // response includes a payload or an error.
@@ -36,7 +39,7 @@ type response[T serde.ResponsePayload] struct {
 
 // NewRpcClient creates a new RpcClient
 func NewRpcClient(rpcServerUrl string, myAddress types.Address, logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
-	c := &RpcClient{trans, myAddress, logger, make(chan protocols.ObjectiveId, 100)}
+	c := &RpcClient{trans, myAddress, logger, make(map[protocols.ObjectiveId]chan struct{}), &sync.Mutex{}}
 	err := c.subscribeToNotifications()
 	if err != nil {
 		return nil, err
@@ -91,10 +94,6 @@ func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
 	waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, pReq)
 }
 
-func (rc *RpcClient) CompletedObjectives() <-chan protocols.ObjectiveId {
-	return rc.completedObjectives
-}
-
 func (rc *RpcClient) Close() {
 	rc.transport.Close()
 }
@@ -110,7 +109,12 @@ func (rc *RpcClient) subscribeToNotifications() error {
 			if err != nil {
 				panic(err)
 			}
-			rc.completedObjectives <- rpcRequest.Params
+			rc.l.Lock()
+			if rc.completedObjectiveChan[rpcRequest.Params] == nil {
+				rc.completedObjectiveChan[rpcRequest.Params] = make(chan struct{})
+			}
+			rc.l.Unlock()
+			close(rc.completedObjectiveChan[rpcRequest.Params])
 		}
 	}()
 	return err
@@ -130,32 +134,43 @@ func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClie
 	return res.Payload
 }
 
-func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId ...protocols.ObjectiveId) error {
-	completed := make(map[protocols.ObjectiveId]bool)
-
-	for receivedObjectiveId := range rc.CompletedObjectives() {
-		isObjectiveExpected := false
-		for _, expectedObjectiveId := range expectedObjectiveId {
-			if receivedObjectiveId == expectedObjectiveId {
-				isObjectiveExpected = true
-			}
-		}
-		if !isObjectiveExpected {
-			return fmt.Errorf("received unexpected objective completion notification for objective %v", receivedObjectiveId)
-		}
-
-		completed[receivedObjectiveId] = true
-		done := true
-		for _, expectedObjectiveId := range expectedObjectiveId {
-			if !completed[expectedObjectiveId] {
-				done = false
-			}
-		}
-		if done {
-			return nil
-		}
+// ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
+func (rc *RpcClient) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
+	ch := make(chan struct{})
+	rc.l.Lock()
+	if rc.completedObjectiveChan[id] == nil {
+		rc.completedObjectiveChan[id] = make(chan struct{})
 	}
-	return nil
+	rc.l.Unlock()
+	go func() {
+		<-rc.completedObjectiveChan[id]
+		close(ch)
+	}()
+	return ch
+}
+
+func (rc *RpcClient) WaitForObjectiveCompletion(expectedObjectiveId ...protocols.ObjectiveId) {
+	incomplete := safesync.Map[<-chan struct{}]{}
+
+	var wg sync.WaitGroup
+
+	for _, id := range expectedObjectiveId {
+		incomplete.Store(string(id), rc.ObjectiveCompleteChan(id))
+		wg.Add(1)
+	}
+
+	incomplete.Range(
+		func(id string, ch <-chan struct{}) bool {
+			go func() {
+				<-ch
+				incomplete.Delete(string(id))
+				wg.Done()
+			}()
+			return true
+		})
+
+	wg.Wait()
+
 }
 
 // request uses the supplied transport and payload to send a non-blocking JSONRPC request.
