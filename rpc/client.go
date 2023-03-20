@@ -21,13 +21,17 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 )
 
+type CompletedObjectives struct {
+	l sync.Locker
+	c map[protocols.ObjectiveId]chan struct{}
+}
+
 // RpcClient is a client for making nitro rpc calls
 type RpcClient struct {
-	transport              transport.Requester
-	myAddress              types.Address
-	logger                 zerolog.Logger
-	completedObjectiveChan map[protocols.ObjectiveId]chan struct{}
-	l                      sync.Locker
+	transport           transport.Requester
+	myAddress           types.Address
+	logger              zerolog.Logger
+	completedObjectives CompletedObjectives
 }
 
 // response includes a payload or an error.
@@ -38,7 +42,7 @@ type response[T serde.ResponsePayload] struct {
 
 // NewRpcClient creates a new RpcClient
 func NewRpcClient(rpcServerUrl string, myAddress types.Address, logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
-	c := &RpcClient{trans, myAddress, logger, make(map[protocols.ObjectiveId]chan struct{}), &sync.Mutex{}}
+	c := &RpcClient{trans, myAddress, logger, CompletedObjectives{&sync.Mutex{}, make(map[protocols.ObjectiveId]chan struct{})}}
 	err := c.subscribeToNotifications()
 	if err != nil {
 		return nil, err
@@ -108,12 +112,12 @@ func (rc *RpcClient) subscribeToNotifications() error {
 			if err != nil {
 				panic(err)
 			}
-			rc.l.Lock()
-			if rc.completedObjectiveChan[rpcRequest.Params] == nil {
-				rc.completedObjectiveChan[rpcRequest.Params] = make(chan struct{})
+			rc.completedObjectives.l.Lock()
+			if rc.completedObjectives.c[rpcRequest.Params] == nil {
+				rc.completedObjectives.c[rpcRequest.Params] = make(chan struct{})
 			}
-			rc.l.Unlock()
-			close(rc.completedObjectiveChan[rpcRequest.Params])
+			rc.completedObjectives.l.Unlock()
+			close(rc.completedObjectives.c[rpcRequest.Params])
 		}
 	}()
 	return err
@@ -136,13 +140,13 @@ func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClie
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
 func (rc *RpcClient) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
 	ch := make(chan struct{})
-	rc.l.Lock()
-	if rc.completedObjectiveChan[id] == nil {
-		rc.completedObjectiveChan[id] = make(chan struct{})
+	rc.completedObjectives.l.Lock()
+	if rc.completedObjectives.c[id] == nil {
+		rc.completedObjectives.c[id] = make(chan struct{})
 	}
-	rc.l.Unlock()
+	rc.completedObjectives.l.Unlock()
 	go func() {
-		<-rc.completedObjectiveChan[id]
+		<-rc.completedObjectives.c[id]
 		close(ch)
 	}()
 	return ch
