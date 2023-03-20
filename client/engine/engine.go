@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"sync"
 
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -33,6 +34,11 @@ func (uce *ErrUnhandledChainEvent) Error() string {
 	return fmt.Sprintf("chain event %#v could not be handled by objective %#v due to: %s", uce.event, uce.objective, uce.reason)
 }
 
+type CompletedObjectives struct {
+	l sync.Locker
+	c map[protocols.ObjectiveId]chan struct{}
+}
+
 // Engine is the imperative part of the core business logic of a go-nitro Client
 type Engine struct {
 	// inbound go channels
@@ -45,9 +51,9 @@ type Engine struct {
 	fromMsg    <-chan protocols.Message
 	fromLedger chan consensus_channel.Proposal
 
-	toApi chan EngineEvent
-
-	stop chan struct{}
+	toApi                  chan EngineEvent
+	completedObjectiveChan CompletedObjectives
+	stop                   chan struct{}
 
 	msg   messageservice.MessageService
 	chain chainservice.ChainService
@@ -104,6 +110,7 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	e.msg = msg
 
 	e.toApi = make(chan EngineEvent, 100)
+	e.completedObjectiveChan = CompletedObjectives{&sync.Mutex{}, make(map[protocols.ObjectiveId]chan struct{})}
 
 	logging.ConfigureZeroLogger()
 	e.logger = zerolog.New(logDestination).With().Timestamp().Str("engine", e.store.GetAddress().String()[0:8]).Caller().Logger()
@@ -174,6 +181,12 @@ func (e *Engine) Run() {
 			for _, obj := range res.CompletedObjectives {
 				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
 				e.metrics.RecordObjectiveCompleted(obj.Id())
+				e.completedObjectiveChan.l.Lock()
+				if e.completedObjectiveChan.c[obj.Id()] == nil {
+					e.completedObjectiveChan.c[obj.Id()] = make(chan struct{})
+				}
+				e.completedObjectiveChan.l.Unlock()
+				close(e.completedObjectiveChan.c[obj.Id()])
 			}
 			e.toApi <- res
 		}
@@ -726,4 +739,13 @@ func (e *Engine) recordMessageMetrics(message protocols.Message) {
 	raw, _ := message.Serialize()
 	e.metrics.RecordQueueLength(fmt.Sprintf("msg_payload_size,sender=%s,receiver=%s", e.store.GetAddress(), message.To), totalPayloadsSize)
 	e.metrics.RecordQueueLength(fmt.Sprintf("msg_size,sender=%s,receiver=%s", e.store.GetAddress(), message.To), len(raw))
+}
+
+func (e *Engine) CompletedObjectiveChan(id protocols.ObjectiveId) <-chan struct{} {
+	e.completedObjectiveChan.l.Lock()
+	if e.completedObjectiveChan.c[id] == nil {
+		e.completedObjectiveChan.c[id] = make(chan struct{})
+	}
+	e.completedObjectiveChan.l.Unlock()
+	return e.completedObjectiveChan.c[id]
 }

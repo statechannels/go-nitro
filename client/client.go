@@ -25,12 +25,17 @@ import (
 type Client struct {
 	engine              engine.Engine // The core business logic of the client
 	Address             *types.Address
-	completedObjectives chan protocols.ObjectiveId
+	completedObjectives chan protocols.ObjectiveId // This is only used by the RPC server
 	failedObjectives    chan protocols.ObjectiveId
 	receivedVouchers    chan payments.Voucher
 	chainId             *big.Int
 	store               store.Store
 	vm                  *payments.VoucherManager
+}
+
+// CompletedObjectives returns a chan that receives a objective id whenever that objective is completed
+func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
+	return c.completedObjectives
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -69,9 +74,11 @@ func (c *Client) handleEngineEvents() {
 	for update := range c.engine.ToApi() {
 
 		for _, completed := range update.CompletedObjectives {
-
-			c.completedObjectives <- completed.Id()
-
+			// use a nonblocking send to the RFC Client in case no one is listening
+			select {
+			case c.completedObjectives <- completed.Id():
+			default:
+			}
 		}
 
 		for _, erred := range update.FailedObjectives {
@@ -88,9 +95,14 @@ func (c *Client) handleEngineEvents() {
 
 // Begin API
 
-// CompletedObjectives returns a chan that receives a objective id whenever that objective is completed
-func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
-	return c.completedObjectives
+// ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
+func (c *Client) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
+	ch := make(chan struct{})
+	go func() {
+		<-c.engine.CompletedObjectiveChan(id)
+		close(ch)
+	}()
+	return ch
 }
 
 // FailedObjectives returns a chan that receives an objective id whenever that objective has failed
