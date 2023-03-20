@@ -20,7 +20,8 @@ type balance struct {
 
 // manager lets us implement a getBalancer helper to make test assertions a little neater
 type manager interface {
-	Balance(chanId types.Destination) (initial, paid, remaining *big.Int, err error)
+	Paid(chanId types.Destination) (*big.Int, error)
+	Remaining(chanId types.Destination) (*big.Int, error)
 }
 
 // Since the store package already imports the payments package if we tried to use the mem or persist store
@@ -71,7 +72,8 @@ func TestPaymentManager(t *testing.T) {
 	)
 
 	getBalance := func(m manager) balance {
-		_, paid, remaining, _ := m.Balance(channelId)
+		paid, _ := m.Paid(channelId)
+		remaining, _ := m.Remaining(channelId)
 		return balance{remaining, paid}
 	}
 

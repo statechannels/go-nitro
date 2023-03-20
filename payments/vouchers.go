@@ -35,8 +35,6 @@ type VoucherInfo struct {
 	ChannelPayee    common.Address
 	StartingBalance *big.Int
 	LargestVoucher  Voucher
-	Remaining       *big.Int
-	Paid            *big.Int
 }
 
 func (v *Voucher) Hash() (types.Bytes32, error) {
@@ -79,4 +77,14 @@ func (v *Voucher) RecoverSigner() (types.Address, error) {
 // Equal returns true if the two vouchers have the same channel id, amount and signatures
 func (v *Voucher) Equal(other *Voucher) bool {
 	return v.ChannelId == other.ChannelId && v.Amount.Cmp(other.Amount) == 0 && v.Signature.Equal(other.Signature)
+}
+
+// Paid is the amount of funds that already have been used as payments
+func (v *VoucherInfo) Paid() *big.Int {
+	return v.LargestVoucher.Amount
+}
+
+// Remaining returns the amount of funds left to be used as payments
+func (v *VoucherInfo) Remaining() *big.Int {
+	return big.NewInt(0).Sub(v.StartingBalance, v.Paid())
 }

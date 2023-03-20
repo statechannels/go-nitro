@@ -406,7 +406,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 	case virtualdefund.ObjectiveRequest:
 		minAmount := big.NewInt(0)
 		if e.vm.ChannelRegistered(request.ChannelId) {
-			_, paid, _, err := e.vm.Balance(request.ChannelId)
+			paid, err := e.vm.Paid(request.ChannelId)
 			if err != nil {
 				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 			}
@@ -631,7 +631,7 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 		}
 		minAmount := big.NewInt(0)
 		if e.vm.ChannelRegistered(vId) {
-			_, paid, _, err := e.vm.Balance(vId)
+			paid, err := e.vm.Paid(vId)
 			if err != nil {
 				return &virtualdefund.Objective{}, fmt.Errorf("could not determine virtual channel id from objective %s: %w", id, err)
 			}

@@ -33,7 +33,7 @@ func NewVoucherManager(me types.Address, store VoucherStore) *VoucherManager {
 func (vm *VoucherManager) Register(channelId types.Destination, payer common.Address, payee common.Address, startingBalance *big.Int) error {
 
 	voucher := Voucher{ChannelId: channelId, Amount: big.NewInt(0)}
-	data := VoucherInfo{payer, payee, big.NewInt(0).Set(startingBalance), voucher, big.NewInt(0).Set(startingBalance), &big.Int{}}
+	data := VoucherInfo{payer, payee, big.NewInt(0).Set(startingBalance), voucher}
 
 	if v, _ := vm.store.GetVoucherInfo(channelId); v != nil {
 		return fmt.Errorf("channel already registered")
@@ -56,25 +56,21 @@ func (vm *VoucherManager) Remove(channelId types.Destination) {
 func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk []byte) (Voucher, error) {
 	pStatus, ok := vm.store.GetVoucherInfo(channelId)
 
-	voucher := Voucher{Amount: &big.Int{}}
 	if !ok {
 		return Voucher{}, fmt.Errorf("channel not found")
 	}
 
-	if types.Gt(amount, pStatus.Remaining) {
+	if types.Gt(amount, pStatus.Remaining()) {
 		return Voucher{}, fmt.Errorf("unable to pay amount: insufficient funds")
 	}
 
 	if pStatus.ChannelPayer != vm.me {
 		return Voucher{}, fmt.Errorf("can only sign vouchers if we're the payer")
 	}
+	newAmount := big.NewInt(0).Add(pStatus.LargestVoucher.Amount, amount)
+	voucher := Voucher{Amount: big.NewInt(0).Set(newAmount), ChannelId: channelId}
 
-	pStatus.Remaining.Sub(pStatus.Remaining, amount)
-	pStatus.Paid.Add(pStatus.Paid, amount)
 	pStatus.LargestVoucher = voucher
-
-	voucher.Amount.Set(pStatus.Paid)
-	voucher.ChannelId = channelId
 
 	if err := voucher.Sign(pk); err != nil {
 		return voucher, err
@@ -116,9 +112,6 @@ func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
 	if signer != status.ChannelPayer {
 		return &big.Int{}, fmt.Errorf("wrong signer: %+v, %+v", signer, status.ChannelPayer)
 	}
-	status.Paid.Set(received)
-	remaining := big.NewInt(0).Sub(status.StartingBalance, received)
-	status.Remaining.Set(remaining)
 
 	status.LargestVoucher = voucher
 
@@ -136,13 +129,21 @@ func (vm *VoucherManager) ChannelRegistered(channelId types.Destination) bool {
 
 }
 
-// Balance returns the balance of the channel
-func (vm *VoucherManager) Balance(channelId types.Destination) (initial, paid, remaining *big.Int, err error) {
-	data, ok := vm.store.GetVoucherInfo(channelId)
+// Paid returns the total amount paid so far on a channel
+func (vm *VoucherManager) Paid(chanId types.Destination) (*big.Int, error) {
+	v, ok := vm.store.GetVoucherInfo(chanId)
 	if !ok {
-		return nil, nil, nil, fmt.Errorf("channel not found")
+		return &big.Int{}, fmt.Errorf("channel not registered")
 	}
+	return v.LargestVoucher.Amount, nil
+}
 
-	return data.StartingBalance, data.Paid, data.Remaining, nil
-
+// Remaining returns the remaining amount of funds in the channel
+func (vm *VoucherManager) Remaining(chanId types.Destination) (*big.Int, error) {
+	v, ok := vm.store.GetVoucherInfo(chanId)
+	if !ok {
+		return &big.Int{}, fmt.Errorf("channel not registered")
+	}
+	remaining := big.NewInt(0).Sub(v.StartingBalance, v.LargestVoucher.Amount)
+	return remaining, nil
 }
