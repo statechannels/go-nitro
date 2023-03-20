@@ -144,6 +144,7 @@ func TestDirectFund(t *testing.T) {
 
 	// Setup long-running chain
 	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(2)
+	defer sim.Close()
 	if err != nil {
 		t.Fatal(err)
 	}

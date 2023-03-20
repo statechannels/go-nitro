@@ -25,6 +25,7 @@ func TestCrashTolerance(t *testing.T) {
 
 	// Setup chain service
 	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(3)
+	defer sim.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
