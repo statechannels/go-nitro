@@ -33,11 +33,6 @@ type Client struct {
 	vm                  *payments.VoucherManager
 }
 
-// CompletedObjectives returns a chan that receives a objective id whenever that objective is completed
-func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
-	return c.completedObjectives
-}
-
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
 func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker engine.PolicyMaker, metricsApi engine.MetricsApi) Client {
 	c := Client{}
@@ -94,6 +89,11 @@ func (c *Client) handleEngineEvents() {
 }
 
 // Begin API
+
+// CompletedObjectives returns a chan that receives a objective id whenever that objective is completed. Not suitable fo multiple subscribers.
+func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
+	return c.completedObjectives
+}
 
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
 func (c *Client) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
