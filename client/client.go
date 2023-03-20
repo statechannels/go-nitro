@@ -47,7 +47,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	}
 	c.chainId = chainId
 	c.store = store
-	c.vm = payments.NewVoucherManager(*store.GetAddress())
+	c.vm = payments.NewVoucherManager(*store.GetAddress(), store)
 	c.engine = engine.New(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)

@@ -8,14 +8,42 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/internal/testactors"
 
 	"github.com/statechannels/go-nitro/types"
 )
 
+type balance struct {
+	remaining, paid *big.Int
+}
+
 // manager lets us implement a getBalancer helper to make test assertions a little neater
 type manager interface {
-	Balance(chanId types.Destination) (Balance, error)
+	Paid(chanId types.Destination) (*big.Int, error)
+	Remaining(chanId types.Destination) (*big.Int, error)
+}
+
+// Since the store package already imports the payments package if we tried to use the mem or persist store
+// we get import cycles. So we create a simple store that implements the VoucherStore interface for testing.
+func newSimpleVoucherStore() VoucherStore {
+	return &simpleVoucherStore{vouchers: safesync.Map[*VoucherInfo]{}}
+}
+
+type simpleVoucherStore struct {
+	vouchers safesync.Map[*VoucherInfo]
+}
+
+func (svs *simpleVoucherStore) SetVoucherInfo(channelId types.Destination, v VoucherInfo) error {
+	svs.vouchers.Store(channelId.String(), &v)
+	return nil
+}
+func (svs *simpleVoucherStore) GetVoucherInfo(channelId types.Destination) (v *VoucherInfo, ok bool) {
+	return svs.vouchers.Load(channelId.String())
+}
+func (svs *simpleVoucherStore) RemoveVoucherInfo(channelId types.Destination) error {
+	svs.vouchers.Delete(channelId.String())
+	return nil
 }
 
 func TestPaymentManager(t *testing.T) {
@@ -38,18 +66,19 @@ func TestPaymentManager(t *testing.T) {
 		triplePayment = big.NewInt(60)
 		overPayment   = big.NewInt(2000)
 
-		startingBalance = Balance{big.NewInt(1000), big.NewInt(0)}
-		onePaymentMade  = Balance{big.NewInt(980), big.NewInt(20)}
-		twoPaymentsMade = Balance{big.NewInt(960), big.NewInt(40)}
+		startingBalance = balance{big.NewInt(1000), big.NewInt(0)}
+		onePaymentMade  = balance{big.NewInt(980), big.NewInt(20)}
+		twoPaymentsMade = balance{big.NewInt(960), big.NewInt(40)}
 	)
 
-	getBalance := func(m manager) Balance {
-		bal, _ := m.Balance(channelId)
-		return bal
+	getBalance := func(m manager) balance {
+		paid, _ := m.Paid(channelId)
+		remaining, _ := m.Remaining(channelId)
+		return balance{remaining, paid}
 	}
 
 	// Happy path: Payment manager can register channels and make payments
-	paymentMgr := NewVoucherManager(testactors.Alice.Address())
+	paymentMgr := NewVoucherManager(testactors.Alice.Address(), newSimpleVoucherStore())
 
 	_, err := paymentMgr.Pay(channelId, payment, testactors.Alice.PrivateKey)
 	Assert(t, err != nil, "channel must be registered to make payments")
@@ -67,7 +96,7 @@ func TestPaymentManager(t *testing.T) {
 	Equals(t, testactors.Alice.Address(), signer)
 
 	// Happy path: receipt manager can receive vouchers
-	receiptMgr := NewVoucherManager(testactors.Bob.Address())
+	receiptMgr := NewVoucherManager(testactors.Bob.Address(), newSimpleVoucherStore())
 
 	_, err = receiptMgr.Receive(firstVoucher)
 	Assert(t, err != nil, "channel must be registered to receive vouchers")

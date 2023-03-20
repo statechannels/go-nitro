@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	nitroAbi "github.com/statechannels/go-nitro/abi"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -27,10 +28,13 @@ type Voucher struct {
 	Signature state.Signature
 }
 
-// Balance stores the remaining and paid funds in a channel.
-type Balance struct {
-	Remaining *big.Int
-	Paid      *big.Int
+// VoucherInfo contains the largest voucher we've received on a channel.
+// As well as details about the balance and who the payee/payer is.
+type VoucherInfo struct {
+	ChannelPayer    common.Address
+	ChannelPayee    common.Address
+	StartingBalance *big.Int
+	LargestVoucher  Voucher
 }
 
 func (v *Voucher) Hash() (types.Bytes32, error) {
@@ -73,4 +77,14 @@ func (v *Voucher) RecoverSigner() (types.Address, error) {
 // Equal returns true if the two vouchers have the same channel id, amount and signatures
 func (v *Voucher) Equal(other *Voucher) bool {
 	return v.ChannelId == other.ChannelId && v.Amount.Cmp(other.Amount) == 0 && v.Signature.Equal(other.Signature)
+}
+
+// Paid is the amount of funds that already have been used as payments
+func (v *VoucherInfo) Paid() *big.Int {
+	return v.LargestVoucher.Amount
+}
+
+// Remaining returns the amount of funds left to be used as payments
+func (v *VoucherInfo) Remaining() *big.Int {
+	return big.NewInt(0).Sub(v.StartingBalance, v.Paid())
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -33,6 +34,7 @@ type Store interface {
 	ReleaseChannelFromOwnership(types.Destination) // Release channel from being owned by any objective
 
 	ConsensusChannelStore
+	payments.VoucherStore
 	io.Closer
 }
 
