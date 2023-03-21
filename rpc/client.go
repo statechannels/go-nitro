@@ -21,7 +21,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 )
 
-type CompletedObjectives struct {
+type completedObjectives struct {
 	l sync.Locker
 	c map[protocols.ObjectiveId]chan struct{}
 }
@@ -31,7 +31,7 @@ type RpcClient struct {
 	transport           transport.Requester
 	myAddress           types.Address
 	logger              zerolog.Logger
-	completedObjectives CompletedObjectives
+	completedObjectives completedObjectives
 }
 
 // response includes a payload or an error.
@@ -42,7 +42,7 @@ type response[T serde.ResponsePayload] struct {
 
 // NewRpcClient creates a new RpcClient
 func NewRpcClient(rpcServerUrl string, myAddress types.Address, logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
-	c := &RpcClient{trans, myAddress, logger, CompletedObjectives{&sync.Mutex{}, make(map[protocols.ObjectiveId]chan struct{})}}
+	c := &RpcClient{trans, myAddress, logger, completedObjectives{&sync.Mutex{}, make(map[protocols.ObjectiveId]chan struct{})}}
 	err := c.subscribeToNotifications()
 	if err != nil {
 		return nil, err

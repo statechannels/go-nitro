@@ -34,7 +34,7 @@ func (uce *ErrUnhandledChainEvent) Error() string {
 	return fmt.Sprintf("chain event %#v could not be handled by objective %#v due to: %s", uce.event, uce.objective, uce.reason)
 }
 
-type CompletedObjectives struct {
+type completedObjectives struct {
 	l sync.Locker
 	c map[protocols.ObjectiveId]chan struct{}
 }
@@ -52,7 +52,7 @@ type Engine struct {
 	fromLedger chan consensus_channel.Proposal
 
 	toApi               chan EngineEvent
-	completedObjectives CompletedObjectives
+	completedObjectives completedObjectives
 	stop                chan struct{}
 
 	msg   messageservice.MessageService
@@ -110,7 +110,7 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	e.msg = msg
 
 	e.toApi = make(chan EngineEvent, 100)
-	e.completedObjectives = CompletedObjectives{&sync.Mutex{}, make(map[protocols.ObjectiveId]chan struct{})}
+	e.completedObjectives = completedObjectives{&sync.Mutex{}, make(map[protocols.ObjectiveId]chan struct{})}
 
 	logging.ConfigureZeroLogger()
 	e.logger = zerolog.New(logDestination).With().Timestamp().Str("engine", e.store.GetAddress().String()[0:8]).Caller().Logger()
