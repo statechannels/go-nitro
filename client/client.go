@@ -103,13 +103,8 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
 func (c *Client) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
-	ch := make(chan struct{})
 	d, _ := c.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
-	go func() {
-		<-d
-		close(ch)
-	}()
-	return ch
+	return d
 }
 
 // FailedObjectives returns a chan that receives an objective id whenever that objective has failed

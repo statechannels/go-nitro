@@ -130,13 +130,8 @@ func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClie
 
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
 func (rc *RpcClient) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
-	ch := make(chan struct{})
 	c, _ := rc.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
-	go func() {
-		<-c
-		close(ch)
-	}()
-	return ch
+	return c
 }
 
 // request uses the supplied transport and payload to send a non-blocking JSONRPC request.
