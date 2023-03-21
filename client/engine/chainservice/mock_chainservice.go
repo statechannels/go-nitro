@@ -58,6 +58,8 @@ func (mc *MockChainService) GetChainId() (*big.Int, error) {
 }
 
 func (mc *MockChainService) Close() error {
-	close(mc.txListener)
-	return mc.chain.Close()
+	if mc.txListener != nil {
+		close(mc.txListener)
+	}
+	return nil
 }

@@ -27,7 +27,7 @@ func TestDirectDefund(t *testing.T) {
 
 	// Setup chain service
 	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(3)
-	defer sim.Close()
+	defer closeSimulatedChain(t, sim)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,8 +47,10 @@ func TestDirectDefund(t *testing.T) {
 
 	// Client setup
 	clientA, storeA := setupClient(alice.PrivateKey, chainA, broker, logDestination, 0)
+	defer closeClient(t, &clientA)
 
 	clientB, storeB := setupClient(bob.PrivateKey, chainB, broker, logDestination, 0)
+	defer closeClient(t, &clientB)
 	// End Client setup
 
 	// test successful condition for setup / teadown of unused ledger channel

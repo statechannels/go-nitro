@@ -31,8 +31,11 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 	broker := messageservice.NewBroker()
 
 	clientA, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, MAX_MESSAGE_DELAY)
+	defer closeClient(t, &clientA)
 	clientB, _ := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, MAX_MESSAGE_DELAY)
+	defer closeClient(t, &clientB)
 	clientI, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, MAX_MESSAGE_DELAY)
+	defer closeClient(t, &clientI)
 
 	directlyFundALedgerChannel(t, clientA, clientI, types.Address{})
 	directlyFundALedgerChannel(t, clientI, clientB, types.Address{})

@@ -25,7 +25,9 @@ func TestQueryLedgerChannel(t *testing.T) {
 	broker := messageservice.NewBroker()
 
 	aliceClient, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, 0)
+	defer closeClient(t, &aliceClient)
 	ireneClient, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
+	defer closeClient(t, &ireneClient)
 
 	// Set up an outcome that requires both participants to deposit
 	outcome := testdata.Outcomes.Create(alice.Address(), irene.Address(), 7, 3, types.Address{})
@@ -81,8 +83,11 @@ func TestQueryPaymentChannel(t *testing.T) {
 	broker := messageservice.NewBroker()
 
 	aliceClient, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, 0)
+	defer closeClient(t, &aliceClient)
 	ireneClient, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
+	defer closeClient(t, &ireneClient)
 	bobClient, _ := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, 0)
+	defer closeClient(t, &bobClient)
 
 	directlyFundALedgerChannel(t, aliceClient, ireneClient, types.Address{})
 	directlyFundALedgerChannel(t, bobClient, ireneClient, types.Address{})

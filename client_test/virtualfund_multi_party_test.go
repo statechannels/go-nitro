@@ -24,9 +24,13 @@ func TestVirtualFundMultiParty(t *testing.T) {
 	broker := messageservice.NewBroker()
 
 	clientAlice, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, 0)
+	defer closeClient(t, &clientAlice)
 	clientBob, _ := setupClient(bob.PrivateKey, chainServiceBo, broker, logDestination, 0)
+	defer closeClient(t, &clientBob)
 	clientBrian, _ := setupClient(brian.PrivateKey, chainServiceBr, broker, logDestination, 0)
+	defer closeClient(t, &clientBrian)
 	clientIrene, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
+	defer closeClient(t, &clientIrene)
 
 	directlyFundALedgerChannel(t, clientAlice, clientIrene, types.Address{})
 	directlyFundALedgerChannel(t, clientIrene, clientBob, types.Address{})

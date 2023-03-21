@@ -125,12 +125,11 @@ func (e *Engine) ToApi() <-chan EngineEvent {
 }
 
 func (e *Engine) Close() error {
-	close(e.stop)
-	close(e.toApi)
-	err := e.msg.Close()
-	if err != nil {
+	if err := e.msg.Close(); err != nil {
 		return err
 	}
+	close(e.stop)
+	close(e.toApi)
 	return e.chain.Close()
 }
 
