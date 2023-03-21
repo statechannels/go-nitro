@@ -61,6 +61,19 @@ Assuming a `chan` exists for each objective id, consumers simply do things like
 
 This allows for may different patterns in the consumer. For example, each of these lines could be run in a separate goroutine -- they could be intentionally raced, or a `sync.WaitGroup` could be used to wait for them all in parallel and synchronize when they are all done. 
 
+### When to create broadcast `chans`
+Above we assumed a `chan` exists for each objective id. We need to unpack this and consider when the `chan` will be allocated in memory. Since objective ids are not predictable in a permisionless protocol like Nitro, any per-channel object (such as the proposed broadcast `chans`) must be spun up on demand. 
+
+One approach might be to spin up the broadcast chan when the objective starts. But this will cause race conditions, when consumers want to subscribe before the `chan` exists. 
+
+Take the following example: a proposer may open a channel with a counterparty, and then _out of band_ send them a request for service provision referencing the channel of objective id. The proposee may then want to wait on that objective completing before starting to service the request. They subscribe to this "topic" before their `go-nitro` client knows anything about the objective. 
+
+The solution is to have the first reader or writer to the broadcast `chan` construct it (using e.g. `make(chan struct{})`). In practice this means using the `sync.Map` method `LoadOrStore`. Any later reader or writer can then (respectively) try to read or close the channel safely without risking a null pointer exception. Because `sync.Map` is concurrency safe, all of the necessary locking is taken care of automagically. 
+
+
+Please see code changes committed atomically with this ADR for the full reference code. 
+
+
 ## Future considerations
 We will want to roll this pattern out to other events in the codebase which will have multiple consumers. See the section above on "condition variable" for a pattern which can handle multiple emissions from the same event. 
 
