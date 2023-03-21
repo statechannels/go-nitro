@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
@@ -23,14 +24,15 @@ import (
 
 // Client provides the interface for the consuming application
 type Client struct {
-	engine              engine.Engine // The core business logic of the client
-	Address             *types.Address
-	completedObjectives chan protocols.ObjectiveId // This is only used by the RPC server
-	failedObjectives    chan protocols.ObjectiveId
-	receivedVouchers    chan payments.Voucher
-	chainId             *big.Int
-	store               store.Store
-	vm                  *payments.VoucherManager
+	engine                    engine.Engine // The core business logic of the client
+	Address                   *types.Address
+	completedObjectivesForRPC chan protocols.ObjectiveId // This is only used by the RPC server
+	completedObjectives       *safesync.Map[chan struct{}]
+	failedObjectives          chan protocols.ObjectiveId
+	receivedVouchers          chan payments.Voucher
+	chainId                   *big.Int
+	store                     store.Store
+	vm                        *payments.VoucherManager
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -49,7 +51,8 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.store = store
 	c.vm = payments.NewVoucherManager(*store.GetAddress(), store)
 	c.engine = engine.New(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
-	c.completedObjectives = make(chan protocols.ObjectiveId, 100)
+	c.completedObjectives = &safesync.Map[chan struct{}]{}
+	c.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
 	c.receivedVouchers = make(chan payments.Voucher, 1000)
@@ -69,9 +72,12 @@ func (c *Client) handleEngineEvents() {
 	for update := range c.engine.ToApi() {
 
 		for _, completed := range update.CompletedObjectives {
+			d, _ := c.completedObjectives.LoadOrStore(string(completed.Id()), make(chan struct{}))
+			close(d)
+
 			// use a nonblocking send to the RPC Client in case no one is listening
 			select {
-			case c.completedObjectives <- completed.Id():
+			case c.completedObjectivesForRPC <- completed.Id():
 			default:
 			}
 		}
@@ -92,14 +98,15 @@ func (c *Client) handleEngineEvents() {
 
 // CompletedObjectives returns a chan that receives a objective id whenever that objective is completed. Not suitable fo multiple subscribers.
 func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
-	return c.completedObjectives
+	return c.completedObjectivesForRPC
 }
 
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
 func (c *Client) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
 	ch := make(chan struct{})
+	d, _ := c.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
 	go func() {
-		<-c.engine.CompletedObjectiveChan(id)
+		<-d
 		close(ch)
 	}()
 	return ch

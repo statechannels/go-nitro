@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/client/engine/store/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -21,17 +21,12 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 )
 
-type completedObjectives struct {
-	l sync.Locker
-	c map[protocols.ObjectiveId]chan struct{}
-}
-
 // RpcClient is a client for making nitro rpc calls
 type RpcClient struct {
 	transport           transport.Requester
 	myAddress           types.Address
 	logger              zerolog.Logger
-	completedObjectives completedObjectives
+	completedObjectives *safesync.Map[chan struct{}]
 }
 
 // response includes a payload or an error.
@@ -42,7 +37,7 @@ type response[T serde.ResponsePayload] struct {
 
 // NewRpcClient creates a new RpcClient
 func NewRpcClient(rpcServerUrl string, myAddress types.Address, logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
-	c := &RpcClient{trans, myAddress, logger, completedObjectives{&sync.Mutex{}, make(map[protocols.ObjectiveId]chan struct{})}}
+	c := &RpcClient{trans, myAddress, logger, &safesync.Map[chan struct{}]{}}
 	err := c.subscribeToNotifications()
 	if err != nil {
 		return nil, err
@@ -112,12 +107,8 @@ func (rc *RpcClient) subscribeToNotifications() error {
 			if err != nil {
 				panic(err)
 			}
-			rc.completedObjectives.l.Lock()
-			if rc.completedObjectives.c[rpcRequest.Params] == nil {
-				rc.completedObjectives.c[rpcRequest.Params] = make(chan struct{})
-			}
-			rc.completedObjectives.l.Unlock()
-			close(rc.completedObjectives.c[rpcRequest.Params])
+			c, _ := rc.completedObjectives.LoadOrStore(string(rpcRequest.Params), make(chan struct{}))
+			close(c)
 		}
 	}()
 	return err
@@ -140,13 +131,9 @@ func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClie
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
 func (rc *RpcClient) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
 	ch := make(chan struct{})
-	rc.completedObjectives.l.Lock()
-	if rc.completedObjectives.c[id] == nil {
-		rc.completedObjectives.c[id] = make(chan struct{})
-	}
-	rc.completedObjectives.l.Unlock()
+	c, _ := rc.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
 	go func() {
-		<-rc.completedObjectives.c[id]
+		<-c
 		close(ch)
 	}()
 	return ch
