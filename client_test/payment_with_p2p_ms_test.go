@@ -36,8 +36,11 @@ func TestPayments(t *testing.T) {
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 
 	clientA, msgA := setupClientWithP2PMessageService(alice.PrivateKey, 3005, chainServiceA, logDestination)
+	defer closeClient(t, &clientA)
 	clientB, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, logDestination)
+	defer closeClient(t, &clientB)
 	clientI, msgI := setupClientWithP2PMessageService(irene.PrivateKey, 3007, chainServiceI, logDestination)
+	defer closeClient(t, &clientI)
 	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
 		{Id: msgB.Id(), IpAddress: "127.0.0.1", Port: 3006, Address: bob.Address()},
@@ -47,10 +50,6 @@ func TestPayments(t *testing.T) {
 	msgA.AddPeers(peers)
 	msgB.AddPeers(peers)
 	msgI.AddPeers(peers)
-
-	defer msgA.Close()
-	defer msgB.Close()
-	defer msgI.Close()
 
 	directlyFundALedgerChannel(t, clientA, clientI, types.Address{})
 	directlyFundALedgerChannel(t, clientI, clientB, types.Address{})

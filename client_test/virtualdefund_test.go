@@ -60,8 +60,11 @@ func runVirtualDefundIntegrationTestAs(t *testing.T, closer types.Address, messa
 	broker := messageservice.NewBroker()
 
 	clientA, storeA := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, messageDelay)
+	defer closeClient(t, &clientA)
 	clientB, storeB := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, messageDelay)
+	defer closeClient(t, &clientB)
 	clientI, storeI := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, messageDelay)
+	defer closeClient(t, &clientI)
 
 	numOfVirtualChannels := uint(5)
 	paidToBob := uint(1)
@@ -161,6 +164,7 @@ func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
 
 	meanMessageDelay := time.Duration(0)
 	clientA, storeA := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, meanMessageDelay)
+	defer closeClient(t, &clientA)
 	var (
 		clientB client.Client
 		storeB  store.Store
@@ -171,6 +175,7 @@ func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
 		clientB = client.New(messageservice, chainServiceB, storeB, logDestination, &RejectingPolicyMaker{}, nil)
 	}
 	clientI, storeI := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, meanMessageDelay)
+	defer closeClient(t, &clientI)
 
 	directlyFundALedgerChannel(t, clientA, clientI, types.Address{})
 	directlyFundALedgerChannel(t, clientB, clientI, types.Address{})

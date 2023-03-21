@@ -25,7 +25,7 @@ func TestCrashTolerance(t *testing.T) {
 
 	// Setup chain service
 	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(3)
-	defer sim.Close()
+	defer closeSimulatedChain(t, sim)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,13 +52,14 @@ func TestCrashTolerance(t *testing.T) {
 	clientA := client.New(messageserviceA, chainA, storeA, logDestination, &engine.PermissivePolicy{}, nil)
 
 	clientB, _ := setupClient(bob.PrivateKey, chainB, broker, logDestination, 0)
+	defer closeClient(t, &clientB)
 	// End Client setup
 
 	// test successful condition for setup / teadown of unused ledger channel
 	{
 		channelId := directlyFundALedgerChannel(t, clientA, clientB, types.Address{})
 
-		clientA.Close()
+		closeClient(t, &clientA)
 		anotherMessageserviceA := messageservice.NewTestMessageService(alice.Address(), broker, 0)
 		anotherChainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
 		anotherStoreA := store.NewDurableStore(alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
@@ -69,6 +70,7 @@ func TestCrashTolerance(t *testing.T) {
 			anotherMessageserviceA,
 			anotherChainA,
 			anotherStoreA, logDestination, &engine.PermissivePolicy{}, nil)
+		defer closeClient(t, &anotherClientA)
 
 		directlyDefundALedgerChannel(t, anotherClientA, clientB, channelId)
 

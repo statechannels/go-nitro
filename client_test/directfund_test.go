@@ -53,12 +53,15 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 
 	meanMessageDelay := time.Duration(0)
 	clientA, storeA := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, meanMessageDelay)
+	defer closeClient(t, &clientA)
 	var storeB store.Store
+	var clientB client.Client
 	{
 		messageservice := messageservice.NewTestMessageService(bob.Address(), broker, meanMessageDelay)
 		storeB = store.NewMemStore(bob.PrivateKey)
-		_ = client.New(messageservice, chainServiceB, storeB, logDestination, &RejectingPolicyMaker{}, nil)
+		clientB = client.New(messageservice, chainServiceB, storeB, logDestination, &RejectingPolicyMaker{}, nil)
 	}
+	defer closeClient(t, &clientB)
 
 	outcome := testdata.Outcomes.Create(alice.Address(), bob.Address(), ledgerChannelDeposit, ledgerChannelDeposit, types.Address{})
 	response := clientA.CreateLedgerChannel(bob.Address(), 0, outcome)
@@ -97,7 +100,9 @@ func testDirectFundWithAsset(asset common.Address, sim chainservice.SimulatedCha
 		broker := messageservice.NewBroker()
 
 		clientA, storeA := setupClient(alice.PrivateKey, chainA, broker, logDestination, 0)
+		defer closeClient(t, &clientA)
 		clientB, storeB := setupClient(bob.PrivateKey, chainB, broker, logDestination, 0)
+		defer closeClient(t, &clientB)
 
 		directlyFundALedgerChannel(t, clientA, clientB, asset)
 		want := testdata.Outcomes.Create(*clientA.Address, *clientB.Address, ledgerChannelDeposit, ledgerChannelDeposit, asset)
@@ -145,7 +150,7 @@ func TestDirectFund(t *testing.T) {
 
 	// Setup long-running chain
 	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(2)
-	defer sim.Close()
+	defer closeSimulatedChain(t, sim)
 	if err != nil {
 		t.Fatal(err)
 	}

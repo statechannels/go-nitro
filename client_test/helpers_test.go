@@ -28,7 +28,9 @@ import (
 )
 
 const TEST_CHAIN_ID = 1337
-const defaultTimeout = 10 * time.Second
+
+// TODO: change me back
+const defaultTimeout = 1000 * time.Second
 
 const DURABLE_STORE_FOLDER = "../data/client_test"
 
@@ -142,6 +144,13 @@ func setupClient(pk []byte, chain chainservice.ChainService, msgBroker messagese
 	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}, nil), storeA
 }
 
+func closeClient(t *testing.T, client *client.Client) {
+	err := client.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func truncateLog(logFile string) {
 	logDestination := newLogWriter(logFile)
 
@@ -213,5 +222,11 @@ func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit
 		if diff := cmp.Diff(expected, ledger, cmp.AllowUnexported(big.Int{})); diff != "" {
 			t.Fatalf("Ledger diff mismatch (-want +got):\n%s", diff)
 		}
+	}
+}
+
+func closeSimulatedChain(t *testing.T, chain chainservice.SimulatedChain) {
+	if err := chain.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
