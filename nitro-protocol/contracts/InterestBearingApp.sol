@@ -16,7 +16,8 @@ contract InterestBearingApp is IForceMoveApp {
     }
 
     struct InterestAppData {
-        // the per-block interest rate, expressed as the denominator of a fraction
+        // the per-block interest rate, expressed as the denominator of a
+        // fraction with fixed numerator 1.
         // eg, 1% per block would be expressed by interestPerBlockDivisor = 100,
         //     2% per block would be expressed by interestPerBlockDivisor = 50,
         //     0.1% per block would be expressed by interestPerBlockDivisor = 1000,
