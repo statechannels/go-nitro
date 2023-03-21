@@ -51,9 +51,13 @@ func TestVirtualFundIntegration(t *testing.T) {
 	broker := messageservice.NewBroker()
 
 	clientA, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, 0)
+	defer closeClient(t, &clientA)
 	irene, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
+	defer closeClient(t, &irene)
 	ivan, _ := setupClient(brian.PrivateKey, chainServiceBr, broker, logDestination, 0)
+	defer closeClient(t, &ivan)
 	clientB, _ := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, 0)
+	defer closeClient(t, &clientB)
 
 	openN_HopVirtualChannels(t, []client.Client{clientA, irene, ivan, clientB}, 1)
 }

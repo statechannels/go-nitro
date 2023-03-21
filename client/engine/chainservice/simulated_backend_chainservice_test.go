@@ -45,13 +45,13 @@ func (l NoopLogger) Write(p []byte) (n int, err error) {
 func TestDepositSimulatedBackendChainService(t *testing.T) {
 	one := big.NewInt(1)
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
-	defer sim.Close()
+	defer closeSimulatedChain(t, sim)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	cs, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], NoopLogger{})
-	defer cs.Close()
+	defer closeChainService(t, cs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestConcludeSimulatedBackendChainServiceWithPolling(t *testing.T) {
 
 func runDepositAndConcludeTest(t *testing.T, usePolling bool) {
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
-	defer sim.Close()
+	defer closeSimulatedChain(t, sim)
 
 	if err != nil {
 		t.Fatal(err)
@@ -187,5 +187,17 @@ func runDepositAndConcludeTest(t *testing.T, usePolling bool) {
 	// Make assertion
 	if !bytes.Equal(statusOnChain[:], emptyBytes[:]) {
 		t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(emptyBytes[:]))
+	}
+}
+
+func closeChainService(t *testing.T, cs ChainService) {
+	if err := cs.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func closeSimulatedChain(t *testing.T, chain SimulatedChain) {
+	if err := chain.Close(); err != nil {
+		t.Fatal(err)
 	}
 }

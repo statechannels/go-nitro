@@ -408,6 +408,5 @@ func (ecs *EthChainService) GetChainId() (*big.Int, error) {
 
 func (ecs *EthChainService) Close() error {
 	ecs.cancel()
-	close(ecs.out)
 	return nil
 }
