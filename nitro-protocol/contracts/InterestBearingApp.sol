@@ -34,7 +34,7 @@ contract InterestBearingApp is IForceMoveApp {
     }
 
     enum AllocationIndicies {
-        borrower, // intends to earn service fees up to a limit of the financier's deposit
+        borrower, // intends to earn service fees up to a limit of the lender's deposit
         lender // makes initial deposit and earns interest
     }
 
