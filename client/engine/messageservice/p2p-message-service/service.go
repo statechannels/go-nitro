@@ -18,6 +18,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
+	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/internal/safesync"
@@ -84,7 +85,7 @@ func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
 	}
 	options := []libp2p.Option{libp2p.Identity(messageKey),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
-		libp2p.DefaultTransports,
+		libp2p.Transport(tcp.NewTCPTransport),
 		libp2p.NoSecurity,
 		libp2p.DefaultMuxers,
 	}
