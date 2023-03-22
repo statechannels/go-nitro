@@ -25,9 +25,6 @@ type TestMessageService struct {
 	out      chan protocols.Message // for sending message to engine
 	maxDelay time.Duration          // the max delay for messages
 
-	// connection with Peers:
-	fromPeers chan []byte // for receiving serialized messages from peers
-
 	broker Broker
 }
 
@@ -51,15 +48,13 @@ func NewBroker() Broker {
 // Messages will be handled with a random delay between 0 and maxDelay
 func NewTestMessageService(address types.Address, broker Broker, maxDelay time.Duration) TestMessageService {
 	tms := TestMessageService{
-		address:   address,
-		out:       make(chan protocols.Message, 5),
-		maxDelay:  maxDelay,
-		fromPeers: make(chan []byte, 5),
-		broker:    broker,
+		address:  address,
+		out:      make(chan protocols.Message, 5),
+		maxDelay: maxDelay,
+		broker:   broker,
 	}
 
 	tms.connect(broker)
-	go tms.routeFromPeers()
 	return tms
 }
 
@@ -84,7 +79,7 @@ func (t TestMessageService) dispatchMessage(message protocols.Message) {
 		if err != nil {
 			panic(`could not serialize message`)
 		}
-		peer.fromPeers <- []byte(serializedMsg)
+		peer.HandleMessage([]byte(serializedMsg))
 	} else {
 		panic(fmt.Sprintf("client %v has no connection to client %v",
 			t.address, message.To))
@@ -101,20 +96,17 @@ func (tms TestMessageService) Send(msg protocols.Message) {
 	tms.dispatchMessage(msg)
 }
 
-// routeFromPeers listens for messages from peers, deserializes them and feeds them to the engine
-func (tms TestMessageService) routeFromPeers() {
-	for message := range tms.fromPeers {
-		msg, err := protocols.DeserializeMessage(string(message))
-		if err != nil {
-			panic(fmt.Errorf("could not deserialize message :%w", err))
-		}
-		tms.out <- msg
+// HandleMessage deserialize the message and feed it to the engine
+func (tms TestMessageService) HandleMessage(message []byte) {
+	msg, err := protocols.DeserializeMessage(string(message))
+	if err != nil {
+		panic(fmt.Errorf("could not deserialize message :%w", err))
 	}
+	tms.out <- msg
 }
 
 // Close stops the TestMessagerService from sending or receiving messages.
 func (tms TestMessageService) Close() error {
-	close(tms.fromPeers)
 	return nil
 }
 
