@@ -115,7 +115,6 @@ func (tms TestMessageService) routeFromPeers() {
 // Close stops the TestMessagerService from sending or receiving messages.
 func (tms TestMessageService) Close() error {
 	close(tms.fromPeers)
-	close(tms.out)
 	return nil
 }
 
