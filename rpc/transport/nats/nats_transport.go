@@ -19,6 +19,7 @@ type natsTransport struct {
 
 type natsTransportClient struct {
 	natsTransport
+	notificationChan chan []byte
 }
 
 type natsTransportServer struct {
@@ -89,13 +90,21 @@ func (c *natsTransportServer) RegisterRequestHandler(handler func([]byte) []byte
 }
 
 func (c *natsTransportClient) Subscribe() (<-chan []byte, error) {
-	notificationChan := make(chan []byte)
+	if c.notificationChan != nil {
+		return c.notificationChan, nil
+	}
+	c.notificationChan = make(chan []byte)
 	subscription, err := c.nc.Subscribe(nitroNotificationTopic, func(msg *nats.Msg) {
-		notificationChan <- msg.Data
+		c.notificationChan <- msg.Data
 	})
 	c.natsSubscriptions = append(c.natsSubscriptions, subscription)
 
-	return notificationChan, err
+	return c.notificationChan, err
+}
+
+func (c *natsTransportClient) Close() {
+	c.natsTransport.Close()
+	close(c.notificationChan)
 }
 
 func (c *natsTransportServer) Notify(data []byte) error {
@@ -109,7 +118,6 @@ func (c *natsTransportServer) Url() string {
 func (c *natsTransportServer) Close() {
 	c.natsTransport.Close()
 	c.ns.Shutdown()
-
 }
 
 func (c *natsTransport) Close() {
