@@ -3,7 +3,7 @@
 Nitro Protocol
 </h1>
 
-Smart contracts which implement nitro protocol for state channel networks on Ethereum and other EVM-compatible chains. Includes javascript and typescript support.
+Smart contracts which implement nitro protocol for state channel networks on Ethereum, Filecoin and other EVM-compatible chains. Includes javascript and typescript support.
 
 :new: There is an accompanying documentation [website](https://docs.statechannels.org/).
 
@@ -17,30 +17,7 @@ Smart contracts which implement nitro protocol for state channel networks on Eth
 
 ### Building your state channel application contract against our interface:
 
-```solidity
-pragma solidity ^0.7.0;
-pragma experimental ABIEncoderV2;
-
-import '@statechannels/nitro-protocol/contracts/interfaces/IForceMoveApp.sol';
-import '@statechannels/nitro-protocol/contracts/Outcome.sol';
-
-contract MyStateChannelApp is IForceMoveApp {
-  function validTransition(
-    VariablePart memory a,
-    VariablePart memory b,
-    uint256 turnNumB,
-    uint256 nParticipants
-  ) public pure override returns (bool) {
-    Outcome.OutcomeItem[] memory outcomeA = abi.decode(a.outcome, (Outcome.OutcomeItem[]));
-    Outcome.OutcomeItem[] memory outcomeB = abi.decode(b.outcome, (Outcome.OutcomeItem[]));
-
-    /* The rest of your logic */
-
-    return true;
-  }
-}
-
-```
+Please see [this section of our docs](https://docs.statechannels.org/protocol-tutorial/0020-execution-rules/#core-protocol-rules). 
 
 ### Import precompiled artifacts for deployment/testing
 
@@ -55,7 +32,6 @@ const {NitroAdjudicatorArtifact, ConsensusAppArtifact, VirtualPaymentAppArtifact
 import {State} from '@statechannels/nitro-protocol';
 
 const state: State = {
-  chainId: '0x1',
   channelNonce: 0,
   participants: ['0xalice...', '0xbob...'],
   appDefinition: '0xabc...',
@@ -66,6 +42,8 @@ const state: State = {
   isFinal: false,
 };
 ```
+
+For more information see [this section of our docs](https://docs.statechannels.org/protocol-tutorial/0010-states-channels/)
 
 ### Import javascript helper functions
 
