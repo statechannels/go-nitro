@@ -174,6 +174,7 @@ func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
 		storeB = store.NewMemStore(bob.PrivateKey)
 		clientB = client.New(messageservice, chainServiceB, storeB, logDestination, &RejectingPolicyMaker{}, nil)
 	}
+	defer closeClient(t, &clientB)
 	clientI, storeI := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, meanMessageDelay)
 	defer closeClient(t, &clientI)
 

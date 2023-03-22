@@ -73,7 +73,11 @@ func (ps *PersistStore) Close() error {
 	if err != nil {
 		return err
 	}
-	return ps.channelToObjective.Close()
+	err = ps.channelToObjective.Close()
+	if err != nil {
+		return err
+	}
+	return ps.vouchers.Close()
 }
 func (ps *PersistStore) GetAddress() *types.Address {
 	address := common.HexToAddress(ps.address)
