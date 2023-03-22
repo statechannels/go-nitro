@@ -39,7 +39,6 @@ type P2PMessageService struct {
 
 	peers *safesync.Map[peer.ID]
 
-	quit    chan struct{} // quit is used to signal the goroutine to stop
 	me      types.Address
 	key     p2pcrypto.PrivKey
 	p2pHost host.Host
@@ -99,36 +98,25 @@ func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
 		toEngine: make(chan protocols.Message, BUFFER_SIZE),
 		peers:    &safePeers,
 		p2pHost:  host,
-		quit:     make(chan struct{}),
 		key:      messageKey,
 		me:       crypto.GetAddressFromSecretKeyBytes(pk),
 	}
 
 	h.p2pHost.SetStreamHandler(PROTOCOL_ID, func(stream network.Stream) {
+		reader := bufio.NewReader(stream)
+		// Create a buffer stream for non blocking read and write.
+		raw, err := reader.ReadString(DELIMITER)
 
-		select {
-		case <-h.quit:
+		// An EOF means the stream has been closed by the other side.
+		if errors.Is(err, io.EOF) {
 			stream.Close()
 			return
-		default:
-
-			reader := bufio.NewReader(stream)
-			// Create a buffer stream for non blocking read and write.
-			raw, err := reader.ReadString(DELIMITER)
-
-			// An EOF means the stream has been closed by the other side.
-			if errors.Is(err, io.EOF) {
-				stream.Close()
-				return
-			}
-			h.checkError(err)
-			m, err := protocols.DeserializeMessage(raw)
-
-			h.checkError(err)
-			h.toEngine <- m
-			stream.Close()
 		}
-
+		h.checkError(err)
+		m, err := protocols.DeserializeMessage(raw)
+		h.checkError(err)
+		h.toEngine <- m
+		stream.Close()
 	})
 
 	return h
@@ -177,12 +165,7 @@ func (s *P2PMessageService) checkError(err error) {
 	if err == nil {
 		return
 	}
-	select {
-	case <-s.quit: // If we are quitting we can ignore the error
-		return
-	default:
-		panic(err)
-	}
+	panic(err)
 }
 
 // Out returns a channel that can be used to receive messages from the message service
@@ -192,6 +175,6 @@ func (s *P2PMessageService) Out() <-chan protocols.Message {
 
 // Close closes the P2PMessageService
 func (s *P2PMessageService) Close() error {
-	close(s.quit)
+	s.p2pHost.RemoveStreamHandler(PROTOCOL_ID)
 	return s.p2pHost.Close()
 }
