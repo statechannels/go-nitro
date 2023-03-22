@@ -272,7 +272,11 @@ func (ecs *EthChainService) subscribeForLogs() {
 			return
 		case err := <-sub.Err():
 			if err != nil {
-				ecs.fatalF("received error from the subscription channel: %w", err)
+				if err.Error() != "i/o timeout" {
+					ecs.fatalF("received error from the subscription channel: %w", err)
+				}
+				ecs.logger.Print("Received timeout error, attempting resubscribe")
+
 			}
 
 			// If the error is nil then the subscription was closed and we need to re-subscribe.
