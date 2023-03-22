@@ -162,7 +162,6 @@ func setupNitroNodeWithRPCClient(
 		panic(err)
 	}
 	cleanupFn := func() {
-		messageservice.Close()
 		rpcClient.Close()
 		rpcServer.Close()
 	}
