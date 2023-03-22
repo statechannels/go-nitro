@@ -285,9 +285,11 @@ func (ecs *EthChainService) subscribeForLogs() {
 			ecs.logger.Print("resubscribed to filtered logs")
 
 		case <-time.After(RESUB_INTERVAL):
+
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
 			// We unsub here and recreate the subscription in the next iteration of the select.
 			sub.Unsubscribe()
+			ecs.logger.Print("Unsubscribed from filter logs")
 		case chainEvent := <-logs:
 			ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
 		}
