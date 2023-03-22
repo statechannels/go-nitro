@@ -79,7 +79,11 @@ func (ds *DurableStore) Close() error {
 	if err != nil {
 		return err
 	}
-	return ds.channelToObjective.Close()
+	err = ds.channelToObjective.Close()
+	if err != nil {
+		return err
+	}
+	return ds.vouchers.Close()
 }
 func (ds *DurableStore) GetAddress() *types.Address {
 	address := common.HexToAddress(ds.address)
