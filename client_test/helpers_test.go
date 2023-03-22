@@ -28,7 +28,7 @@ import (
 const TEST_CHAIN_ID = 1337
 const defaultTimeout = 10 * time.Second
 
-const PERSIST_STORE_FOLDER = "../data/client_test"
+const DURABLE_STORE_FOLDER = "../data/client_test"
 
 // waitWithTimeoutForCompletedObjectiveIds waits up to the given timeout for completed objectives and returns when the all objective ids provided have been completed.
 // If the timeout lapses and the objectives have not all completed, the parent test will be failed.
@@ -137,9 +137,9 @@ func waitTimeForReceivedVoucher(t *testing.T, client *client.Client, timeout tim
 func setupClient(pk []byte, chain chainservice.ChainService, msgBroker messageservice.Broker, logDestination io.Writer, meanMessageDelay time.Duration) (client.Client, store.Store) {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
 	// TODO: Clean up test data folder?
-	dataFolder := fmt.Sprintf("%s/%s/%d", PERSIST_STORE_FOLDER, myAddress.String(), rand.Uint64())
+	dataFolder := fmt.Sprintf("%s/%s/%d", DURABLE_STORE_FOLDER, myAddress.String(), rand.Uint64())
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
-	storeA := store.NewPersistStore(pk, dataFolder, buntdb.Config{})
+	storeA := store.NewDurableStore(pk, dataFolder, buntdb.Config{})
 	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}, nil), storeA
 }
 
