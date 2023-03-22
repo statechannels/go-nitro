@@ -127,6 +127,7 @@ func (c *natsTransport) Close() {
 			log.Error().Err(err).Msgf("failed to unsubscribe from a topic: %s", sub.Subject)
 		}
 	}
+	c.nc.Close()
 }
 
 func (c *natsTransport) unsubscribeFromTopic(sub *nats.Subscription, try int32) error {

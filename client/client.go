@@ -205,5 +205,6 @@ func (c *Client) Close() error {
 	if err := c.engine.Close(); err != nil {
 		return err
 	}
+	close(c.completedObjectives)
 	return c.store.Close()
 }
