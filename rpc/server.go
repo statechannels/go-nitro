@@ -28,6 +28,7 @@ func (rs *RpcServer) Url() string {
 }
 
 func (rs *RpcServer) Close() {
+	rs.client.Close()
 	rs.transport.Close()
 }
 
