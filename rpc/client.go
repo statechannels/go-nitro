@@ -3,7 +3,6 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
@@ -19,6 +18,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/rand"
 )
 
 // RpcClient is a client for making nitro rpc calls
@@ -52,7 +52,7 @@ func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty 
 		counterparty,
 		100,
 		outcome,
-		rand.Uint64(),
+		rand.GetRandGenerator().Uint64(),
 		common.Address{})
 
 	return waitForRequest[virtualfund.ObjectiveRequest, virtualfund.ObjectiveResponse](rc, objReq)
@@ -72,7 +72,7 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 		counterparty,
 		100,
 		outcome,
-		rand.Uint64(),
+		rand.GetRandGenerator().Uint64(),
 		common.Address{})
 
 	return waitForRequest[directfund.ObjectiveRequest, directfund.ObjectiveResponse](rc, objReq)
@@ -154,7 +154,7 @@ func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Re
 	default:
 		return nil, fmt.Errorf("unknown request type %v", request)
 	}
-	requestId := rand.Uint64()
+	requestId := rand.GetRandGenerator().Uint64()
 	message := serde.NewJsonRpcRequest(requestId, method, request)
 	data, err := json.Marshal(message)
 	if err != nil {

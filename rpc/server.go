@@ -3,7 +3,6 @@ package rpc
 import (
 	"encoding/json"
 	"math/big"
-	"math/rand"
 
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
@@ -12,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/rand"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
 )
@@ -166,7 +166,7 @@ func (rs *RpcServer) sendNotifications() {
 	go func() {
 		for completedObjective := range rs.client.CompletedObjectives() {
 			rs.logger.Trace().Msgf("Sending notification: %+v", completedObjective)
-			request := serde.NewJsonRpcRequest(rand.Uint64(), serde.ObjectiveCompleted, completedObjective)
+			request := serde.NewJsonRpcRequest(rand.GetRandGenerator().Uint64(), serde.ObjectiveCompleted, completedObjective)
 			data, err := json.Marshal(request)
 			if err != nil {
 				panic(err)

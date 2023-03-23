@@ -4,7 +4,6 @@ package client // import "github.com/statechannels/go-nitro/client"
 import (
 	"io"
 	"math/big"
-	"math/rand"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
@@ -19,6 +18,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/rand"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -126,7 +126,7 @@ func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, Cou
 		CounterParty,
 		ChallengeDuration,
 		Outcome,
-		rand.Uint64(),
+		rand.GetRandGenerator().Uint64(),
 		c.engine.GetVirtualPaymentAppAddress(),
 	)
 
@@ -157,7 +157,7 @@ func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDurati
 		Counterparty,
 		ChallengeDuration,
 		outcome,
-		rand.Uint64(),
+		rand.GetRandGenerator().Uint64(),
 		c.engine.GetConsensusAppAddress(),
 		// Appdata implicitly zero
 	)
