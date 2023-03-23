@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"os"
 	"strings"
 	"testing"
@@ -23,6 +22,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	ConsensusApp "github.com/statechannels/go-nitro/client/engine/chainservice/consensusapp"
+	"github.com/statechannels/go-nitro/rand"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -104,7 +104,7 @@ func runChallengeWithTurnNum(t *testing.T, turnNum uint64, pc preparedChain) {
 	}
 
 	// Use random nonces so we can run this test multiple times against the same chain
-	nonce := uint64(rand.NewSource(time.Now().Unix()).Int63())
+	nonce := uint64(rand.GetRandGenerator().Int63())
 	var s = state.State{
 		Participants: []types.Address{
 			Actors.Alice.Address,
