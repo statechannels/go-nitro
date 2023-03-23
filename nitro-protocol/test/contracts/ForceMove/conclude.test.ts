@@ -143,4 +143,39 @@ describe('conclude', () => {
       }
     }
   );
+
+  it('reverts a conclude operation with repeated participant[0] signatures', async () => {
+    // this test is against a specific class of exploit where the adjudicator
+    // is tricked by counting repeated signatures as being from different participants.
+    //
+    // see github.com/statechannels/go-nitro/issues/1176 for more details
+
+    const {wallets, participants} = generateParticipants(3);
+    const state: State = {
+      isFinal: true,
+      participants,
+      channelNonce,
+      outcome,
+      appDefinition,
+      appData: defaultAbiCoder.encode(['uint256'], [0]),
+      challengeDuration,
+      turnNum: 5,
+    };
+    const first = wallets[0];
+    const variablePart = getVariablePart(state);
+    const fixedPart = getFixedPart(state);
+
+    // produce 7 signatures from the first participant in order induce
+    // the adjudicator to record a `00000111` bitmask for applied signatures
+    const signatures = await signStates(
+      [state],
+      [first, first, first, first, first, first, first],
+      [0, 0, 0, 0, 0, 0, 0]
+    );
+    const {candidate} = separateProofAndCandidate(
+      bindSignatures([variablePart], signatures, [0, 0, 0, 0, 0, 0, 0])
+    );
+    console.log('candidate', candidate);
+    await expectRevert(() => ForceMove.conclude(fixedPart, candidate), '!unaninmous');
+  });
 });
