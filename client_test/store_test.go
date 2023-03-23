@@ -3,6 +3,7 @@ package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
 	"fmt"
+	"math/big"
 	"math/rand"
 	"os"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/tidwall/buntdb"
 )
 
@@ -74,7 +76,27 @@ func TestStoreImplementations(t *testing.T) {
 			defer clientB.Close()
 			defer clientI.Close()
 
-			openVirtualChannels(t, clientA, clientB, clientI, 1)
+			cIds := openVirtualChannels(t, clientA, clientB, clientI, 3)
+			for i := 0; i < len(cIds); i++ {
+				clientA.Pay(cIds[i], big.NewInt(int64(1)))
+			}
+
+			ids := make([]protocols.ObjectiveId, len(cIds))
+			for i := 0; i < len(cIds); i++ {
+				// alternative who is responsible for closing the channel
+				switch i % 3 {
+				case 0:
+					ids[i] = clientA.CloseVirtualChannel(cIds[i])
+				case 1:
+					ids[i] = clientB.CloseVirtualChannel(cIds[i])
+				case 2:
+					ids[i] = clientI.CloseVirtualChannel(cIds[i])
+				}
+
+			}
+			waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, ids...)
+			waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, ids...)
+			waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, ids...)
 
 		})
 	}
