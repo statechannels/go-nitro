@@ -46,8 +46,7 @@ type Engine struct {
 	fromLedger chan consensus_channel.Proposal
 
 	toApi chan EngineEvent
-
-	stop chan struct{}
+	stop  chan struct{}
 
 	msg   messageservice.MessageService
 	chain chainservice.ChainService

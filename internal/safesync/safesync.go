@@ -50,3 +50,12 @@ func (o *Map[T]) Range(f func(key string, value T) bool) {
 	}
 	o.m.Range(untypedF)
 }
+
+// LoadOrStore returns the existing value for the key if present.
+// Otherwise, it stores and returns the given value.
+// The loaded result is true if the value was loaded, false if stored.
+func (o *Map[T]) LoadOrStore(key string, value T) (actual T, loaded bool) {
+	a, l := o.m.LoadOrStore(key, value)
+
+	return a.(T), l
+}
