@@ -134,6 +134,7 @@ func (e *Engine) Close() error {
 }
 
 // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
+// The loop exits when a struct is received on the stop channel. Engine.Close() sends that signal.
 func (e *Engine) Run() {
 	for {
 		var res EngineEvent
