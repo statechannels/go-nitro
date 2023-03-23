@@ -149,7 +149,7 @@ contract ForceMove is IForceMove, StatusManager {
         require(
             NitroUtils.getClaimedSignersNum(recoveredVariablePart.signedBy) ==
                 fixedPart.participants.length,
-            '!unaninmous'
+            '!unanimous'
         );
 
         // effects

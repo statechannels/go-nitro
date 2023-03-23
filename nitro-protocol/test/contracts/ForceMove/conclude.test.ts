@@ -176,6 +176,6 @@ describe('conclude', () => {
       bindSignatures([variablePart], signatures, [0, 0, 0, 0, 0, 0, 0])
     );
     console.log('candidate', candidate);
-    await expectRevert(() => ForceMove.conclude(fixedPart, candidate), '!unaninmous');
+    await expectRevert(() => ForceMove.conclude(fixedPart, candidate), '!unanimous');
   });
 });
