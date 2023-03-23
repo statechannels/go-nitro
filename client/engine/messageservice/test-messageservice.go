@@ -121,7 +121,7 @@ func (tms TestMessageService) Close() error {
 //                                │
 //                                │
 //                                │
-//                                v fromPeers
+//                                v HandleMessage
 // ┌──────────┐toMsg       in┌───────────┐
 // │          │  ───────────►|           │
 // │  Engine  │              │  Message  │
