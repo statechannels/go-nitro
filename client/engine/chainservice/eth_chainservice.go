@@ -62,6 +62,9 @@ const EVENT_POLL_INTERVAL = 500 * time.Millisecond
 // See https://github.com/ethereum/go-ethereum/blob/e14164d516600e9ac66f9060892e078f5c076229/eth/filters/filter_system.go#L43
 const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
 
+const MAX_RESUB_ATTEMPTS = 3
+const RESUB_RETRY_INTERVAL = 1 * time.Second
+
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
 func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
@@ -271,22 +274,12 @@ func (ecs *EthChainService) subscribeForLogs() {
 			cancel()
 			return
 		case err := <-sub.Err():
-			if err != nil {
-				if err.Error() != "i/o timeout" {
-					ecs.fatalF("received error from the subscription channel: %w", err)
-				}
-				ecs.logger.Print("Received timeout error, attempting resubscribe")
-
-			}
-
-			// If the error is nil then the subscription was closed and we need to re-subscribe.
-			// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
 			var sErr error
-			sub, sErr = ecs.chain.SubscribeFilterLogs(ctx, query, logs)
+			sub, sErr = ecs.reSubscribe(err, MAX_RESUB_ATTEMPTS, RESUB_RETRY_INTERVAL, ctx, query, logs)
+
 			if sErr != nil {
-				ecs.fatalF("subscribeFilterLogs failed on resubscribe: %w", err)
+				ecs.fatalF("subscribeFilterLogs failed: %w", sErr)
 			}
-			ecs.logger.Print("resubscribed to filtered logs")
 
 		case <-time.After(RESUB_INTERVAL):
 
@@ -299,6 +292,26 @@ func (ecs *EthChainService) subscribeForLogs() {
 		}
 	}
 
+}
+
+func (ecs *EthChainService) reSubscribe(err error, maxRetries uint, sleepDuration time.Duration, ctx context.Context, query ethereum.FilterQuery, logs chan ethTypes.Log) (ethereum.Subscription, error) {
+	if err != nil {
+		ecs.logger.Printf("received error from the subscription channel: %+v", err)
+	}
+
+	for retryAttempt := uint(1); retryAttempt <= maxRetries; retryAttempt++ {
+
+		ecs.logger.Printf("Resubscribe attempt %d", retryAttempt)
+
+		sub, sErr := ecs.chain.SubscribeFilterLogs(ctx, query, logs)
+		if sErr == nil {
+			return sub, nil
+		}
+
+		ecs.logger.Printf("Resubscribe attempt %d failed, sleeping for %d", retryAttempt, sleepDuration)
+		time.Sleep(sleepDuration)
+	}
+	return nil, fmt.Errorf("failed to resubscribe after %d attempts", maxRetries)
 }
 
 type blockRange struct {
