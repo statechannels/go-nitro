@@ -271,7 +271,7 @@ contract ForceMove is IForceMove, StatusManager {
             // Check each participant to see if they signed it
             for (uint256 i = 0; i < fixedPart.participants.length; i++) {
                 if (signer == fixedPart.participants[i]) {
-                    rvp.signedBy += 2**i;
+                    rvp.signedBy |= 2**i;
                     break; // Once we have found a match, assuming distinct participants, no-one else signed it
                 }
             }
