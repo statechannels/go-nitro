@@ -128,7 +128,7 @@ func (e *Engine) Close() error {
 	if err := e.msg.Close(); err != nil {
 		return err
 	}
-	close(e.stop)
+	e.stop <- struct{}{}
 	close(e.toApi)
 	return e.chain.Close()
 }
