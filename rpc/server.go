@@ -166,7 +166,7 @@ func (rs *RpcServer) sendNotifications() {
 	go func() {
 		for completedObjective := range rs.client.CompletedObjectives() {
 			rs.logger.Trace().Msgf("Sending notification: %+v", completedObjective)
-			request := serde.NewJsonRpcRequest(rand.GetRandGenerator().Uint64(), serde.ObjectiveCompleted, completedObjective)
+			request := serde.NewJsonRpcRequest(rand.Uint64(), serde.ObjectiveCompleted, completedObjective)
 			data, err := json.Marshal(request)
 			if err != nil {
 				panic(err)

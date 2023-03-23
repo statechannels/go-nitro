@@ -104,7 +104,7 @@ func runChallengeWithTurnNum(t *testing.T, turnNum uint64, pc preparedChain) {
 	}
 
 	// Use random nonces so we can run this test multiple times against the same chain
-	nonce := uint64(rand.GetRandGenerator().Int63())
+	nonce := uint64(rand.Int63())
 	var s = state.State{
 		Participants: []types.Address{
 			Actors.Alice.Address,
