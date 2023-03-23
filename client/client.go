@@ -126,7 +126,7 @@ func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, Cou
 		CounterParty,
 		ChallengeDuration,
 		Outcome,
-		rand.GetRandGenerator().Uint64(),
+		rand.Uint64(),
 		c.engine.GetVirtualPaymentAppAddress(),
 	)
 
@@ -157,7 +157,7 @@ func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDurati
 		Counterparty,
 		ChallengeDuration,
 		outcome,
-		rand.GetRandGenerator().Uint64(),
+		rand.Uint64(),
 		c.engine.GetConsensusAppAddress(),
 		// Appdata implicitly zero
 	)

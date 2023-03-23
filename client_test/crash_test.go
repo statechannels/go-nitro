@@ -3,7 +3,6 @@ package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/rand"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/tidwall/buntdb"
 )

@@ -52,7 +52,7 @@ func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty 
 		counterparty,
 		100,
 		outcome,
-		rand.GetRandGenerator().Uint64(),
+		rand.Uint64(),
 		common.Address{})
 
 	return waitForRequest[virtualfund.ObjectiveRequest, virtualfund.ObjectiveResponse](rc, objReq)
@@ -72,7 +72,7 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 		counterparty,
 		100,
 		outcome,
-		rand.GetRandGenerator().Uint64(),
+		rand.Uint64(),
 		common.Address{})
 
 	return waitForRequest[directfund.ObjectiveRequest, directfund.ObjectiveResponse](rc, objReq)
@@ -154,7 +154,7 @@ func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Re
 	default:
 		return nil, fmt.Errorf("unknown request type %v", request)
 	}
-	requestId := rand.GetRandGenerator().Uint64()
+	requestId := rand.Uint64()
 	message := serde.NewJsonRpcRequest(requestId, method, request)
 	data, err := json.Marshal(message)
 	if err != nil {
