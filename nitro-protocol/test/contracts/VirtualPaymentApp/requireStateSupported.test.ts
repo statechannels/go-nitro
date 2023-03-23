@@ -69,7 +69,7 @@ describe('requireStateSupported (lone candidate route)', () => {
   ];
 
   testcases.map(async tc => {
-    it(`${tc.reason ? 'reverts        ' : 'does not revert'} for unaninmous consensus on ${
+    it(`${tc.reason ? 'reverts        ' : 'does not revert'} for unanimous consensus on ${
       tc.isFinal ? 'final' : 'nonfinal'
     } state with turnNum ${tc.turnNum}`, async () => {
       const state: State = {
