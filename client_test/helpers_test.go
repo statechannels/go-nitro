@@ -29,8 +29,7 @@ import (
 
 const TEST_CHAIN_ID = 1337
 
-// TODO: change me back
-const defaultTimeout = 1000 * time.Second
+const defaultTimeout = 10 * time.Second
 
 const DURABLE_STORE_FOLDER = "../data/client_test"
 
