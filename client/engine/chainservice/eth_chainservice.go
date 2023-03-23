@@ -268,6 +268,9 @@ func (ecs *EthChainService) subscribeForLogs() {
 	for {
 		select {
 		case <-ecs.quit:
+			if sub != nil {
+				sub.Unsubscribe()
+			}
 			cancel()
 			return
 		case err := <-sub.Err():
