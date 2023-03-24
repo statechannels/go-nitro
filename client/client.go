@@ -92,6 +92,11 @@ func (c *Client) handleEngineEvents() {
 		}
 
 	}
+
+	// At this point, the engine ToApi channel has been closed.
+	// If there are blocking consumers (for or select channel statements) on any channel for which the client is a producer,
+	// those channels need to be closed.
+	close(c.completedObjectivesForRPC)
 }
 
 // Begin API
@@ -205,6 +210,5 @@ func (c *Client) Close() error {
 	if err := c.engine.Close(); err != nil {
 		return err
 	}
-	close(c.completedObjectivesForRPC)
 	return c.store.Close()
 }
