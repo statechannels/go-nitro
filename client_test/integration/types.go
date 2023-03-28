@@ -1,0 +1,56 @@
+package integration_test
+
+import (
+	"time"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/statechannels/go-nitro/client/engine/chainservice"
+	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
+	"github.com/statechannels/go-nitro/internal/testactors"
+)
+
+const STORE_TEST_DATA_FOLDER = "../data/store_test"
+const ledgerChannelDeposit = 5_000_000
+const defaultTimeout = 10 * time.Second
+
+type StoreType string
+
+const MemStore StoreType = "MemStore"
+const PersistStore StoreType = "PersistStore"
+
+type ChainType string
+
+const MockChain ChainType = "MockChain"
+const SimulatedChain ChainType = "SimulatedChain"
+
+type TestParticipant struct {
+	StoreType StoreType
+	Name      testactors.ActorName
+}
+
+type MessageService string
+
+const TestMessageService MessageService = "TestMessageService"
+const P2PMessageService MessageService = "P2PMessageService"
+
+type TestRun struct {
+	Description    string
+	Chain          ChainType
+	MessageService MessageService
+	NumOfChannels  uint
+	NumOfPayments  uint
+	MessageDelay   time.Duration
+	LogName        string
+	NumOfHops      uint
+	Participants   []TestParticipant
+}
+
+type sharedInra struct {
+	broker         *messageservice.Broker
+	peers          []p2pms.PeerInfo
+	mockChain      *chainservice.MockChain
+	simulatedChain *chainservice.SimulatedChain
+	bindings       *chainservice.Bindings
+	ethAccounts    []*bind.TransactOpts
+}

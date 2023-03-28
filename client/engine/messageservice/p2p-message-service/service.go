@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/libp2p/go-libp2p"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -74,15 +75,7 @@ func (ms *P2PMessageService) AddPeers(peers []PeerInfo) {
 
 // NewMessageService returns a running P2PMessageService listening on the given ip and port.
 func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
-	// We generate a random key using the hash of the pk as a seed
-	// This should mean that the message key is deterministic
-	// TODO: Ideally we would use the pk directly, but I haven't figured out of this is possible with lib p2p
-	hash := sha256.Sum256(pk)
-	seed := big.NewInt(0).SetBytes(hash[:]).Int64()
-	messageKey, _, err := p2pcrypto.GenerateECDSAKeyPair(rand.New(rand.NewSource(seed)))
-	if err != nil {
-		panic(err)
-	}
+	messageKey := generateKey(crypto.GetAddressFromSecretKeyBytes(pk))
 	options := []libp2p.Option{libp2p.Identity(messageKey),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
 		libp2p.Transport(tcp.NewTCPTransport),
@@ -178,4 +171,22 @@ func (s *P2PMessageService) Out() <-chan protocols.Message {
 func (s *P2PMessageService) Close() error {
 	s.p2pHost.RemoveStreamHandler(PROTOCOL_ID)
 	return s.p2pHost.Close()
+}
+
+func generateKey(address common.Address) p2pcrypto.PrivKey {
+	// We generate a random key using the hash of the pk as a seed
+	// This should mean that the message key is deterministic
+	// TODO: Ideally we would use the pk directly, but I haven't figured out of this is possible with lib p2p
+	hash := sha256.Sum256(address.Bytes())
+	seed := big.NewInt(0).SetBytes(hash[:]).Int64()
+	messageKey, _, err := p2pcrypto.GenerateECDSAKeyPair(rand.New(rand.NewSource(seed)))
+	if err != nil {
+		panic(err)
+	}
+	return messageKey
+}
+
+func Id(a common.Address) peer.ID {
+	id, _ := peer.IDFromPrivateKey(generateKey(a))
+	return id
 }
