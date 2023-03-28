@@ -8,54 +8,11 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/client"
-	"github.com/statechannels/go-nitro/client/engine/chainservice"
-	"github.com/statechannels/go-nitro/client/engine/messageservice"
-	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
-
-func setupSharedInra(tc TestRun) sharedInra {
-	infra := sharedInra{}
-	switch tc.Chain {
-	case MockChain:
-		infra.mockChain = chainservice.NewMockChain()
-	case SimulatedChain:
-		sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(3)
-		if err != nil {
-			panic(err)
-		}
-		infra.simulatedChain = &sim
-		infra.bindings = &bindings
-		infra.ethAccounts = ethAccounts
-	default:
-		panic("Unknown chain service")
-	}
-
-	switch tc.MessageService {
-	case TestMessageService:
-		broker := messageservice.NewBroker()
-		infra.broker = &broker
-	case P2PMessageService:
-
-		infra.peers = make([]p2pms.PeerInfo, len(tc.Participants))
-		for i, p := range tc.Participants {
-
-			actor, _ := getActorInfo(p.Name, tc)
-
-			infra.peers[i] = p2pms.PeerInfo{
-				Port:      int(actor.Port),
-				IpAddress: "127.0.0.1",
-				Address:   actor.Address(),
-				Id:        p2pms.Id(actor.Address()),
-			}
-		}
-	}
-
-	return infra
-}
 
 func TestClientIntegration(t *testing.T) {
 

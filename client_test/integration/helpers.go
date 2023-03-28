@@ -152,3 +152,43 @@ func waitForObjectives(t *testing.T, a, b client.Client, intermediaries []client
 		}
 	}
 }
+
+func setupSharedInra(tc TestRun) sharedInra {
+	infra := sharedInra{}
+	switch tc.Chain {
+	case MockChain:
+		infra.mockChain = chainservice.NewMockChain()
+	case SimulatedChain:
+		sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(3)
+		if err != nil {
+			panic(err)
+		}
+		infra.simulatedChain = &sim
+		infra.bindings = &bindings
+		infra.ethAccounts = ethAccounts
+	default:
+		panic("Unknown chain service")
+	}
+
+	switch tc.MessageService {
+	case TestMessageService:
+		broker := messageservice.NewBroker()
+		infra.broker = &broker
+	case P2PMessageService:
+
+		infra.peers = make([]p2pms.PeerInfo, len(tc.Participants))
+		for i, p := range tc.Participants {
+
+			actor, _ := getActorInfo(p.Name, tc)
+
+			infra.peers[i] = p2pms.PeerInfo{
+				Port:      int(actor.Port),
+				IpAddress: "127.0.0.1",
+				Address:   actor.Address(),
+				Id:        p2pms.Id(actor.Address()),
+			}
+		}
+	}
+
+	return infra
+}
