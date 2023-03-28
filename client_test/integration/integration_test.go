@@ -105,12 +105,7 @@ func TestClientIntegration(t *testing.T) {
 				virtualIds[i] = response.ChannelId
 			}
 
-			// TODO: This could probably be updated to use the new ObjectiveCompleted chan
-			waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, objectiveIds...)
-			waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, objectiveIds...)
-			for _, clientI := range intermediaries {
-				waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, objectiveIds...)
-			}
+			waitForObjectives(t, clientA, clientB, intermediaries, objectiveIds)
 
 			// Send payments
 			for i := 0; i < len(virtualIds); i++ {
@@ -135,12 +130,7 @@ func TestClientIntegration(t *testing.T) {
 				}
 
 			}
-			// TODO: This could probably be updated to use the new ObjectiveCompleted chan
-			waitTimeForCompletedObjectiveIds(t, &clientA, defaultTimeout, closeVirtualIds...)
-			waitTimeForCompletedObjectiveIds(t, &clientB, defaultTimeout, closeVirtualIds...)
-			for _, clientI := range intermediaries {
-				waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, closeVirtualIds...)
-			}
+			waitForObjectives(t, clientA, clientB, intermediaries, closeVirtualIds)
 
 			// Close all the ledger channels we opened
 			for i, l := range aliceLedgers {
