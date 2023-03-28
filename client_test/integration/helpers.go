@@ -161,7 +161,7 @@ func setupSharedInra(tc TestRun) sharedInra {
 	case MockChain:
 		infra.mockChain = chainservice.NewMockChain()
 	case SimulatedChain:
-		sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(3)
+		sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(MAX_PARTICIPANTS)
 		if err != nil {
 			panic(err)
 		}
