@@ -223,11 +223,11 @@ describe('requireStateSupported', () => {
 
     await expectRevert(
       () => interestBearingApp.requireStateSupported(fixedPart, [], signedByBorrower),
-      '!unanimous; |proof|=0'
+      '!unanimous'
     );
     await expectRevert(
       () => interestBearingApp.requireStateSupported(fixedPart, [], signedByLender),
-      '!unanimous; |proof|=0'
+      '!unanimous'
     );
   });
 
@@ -239,12 +239,12 @@ describe('requireStateSupported', () => {
 
     await expectRevert(
       () => interestBearingApp.requireStateSupported(fixedPart, [signedByBorrower], signedByLender),
-      '!unanimous proof state'
+      '!unanimous'
     );
 
     await expectRevert(
       () => interestBearingApp.requireStateSupported(fixedPart, [signedByLender], signedByBorrower),
-      '!unanimous proof state'
+      '!unanimous'
     );
   });
 

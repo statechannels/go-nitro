@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import './interfaces/IForceMoveApp.sol';
 import './libraries/NitroUtils.sol';
+import './libraries/signature-logic/Consensus.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
 // InterestBearingApp is a ForceMoveApp that allows a lender to earn interest
@@ -40,15 +41,16 @@ contract InterestBearingApp is IForceMoveApp {
     }
 
     function requireStateSupported(
-        FixedPart calldata,
+        FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
     ) external view override {
         if (proof.length == 0) {
             // unanimous consensus check
-            require(
-                NitroUtils.getClaimedSignersNum(candidate.signedBy) == 2,
-                '!unanimous; |proof|=0'
+            Consensus.requireConsensus(
+                fixedPart,
+                proof,
+                candidate
             );
             return;
         } else if (proof.length == 1) {
@@ -58,9 +60,11 @@ contract InterestBearingApp is IForceMoveApp {
             //  - candidate state immediately follows proof state (by turnNum)
             //  - the lender has not taken more funds than owed according
             //    to the interest rate agreement of the channel
-            require(
-                NitroUtils.getClaimedSignersNum(proof[0].signedBy) == 2,
-                '!unanimous proof state'
+            RecoveredVariablePart[] memory  nullProof;
+            Consensus.requireConsensus(
+                fixedPart,
+                nullProof,
+                proof[0]
             );
             require(
                 proof[0].variablePart.turnNum + 1 == candidate.variablePart.turnNum,
