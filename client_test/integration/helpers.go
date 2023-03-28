@@ -89,9 +89,9 @@ func setupStore(tc TestRun, actorName testactors.ActorName, si sharedInra) store
 	a, p := getActorInfo(actorName, tc)
 
 	switch p.StoreType {
-	case "MemStore":
+	case MemStore:
 		return store.NewMemStore(a.PrivateKey)
-	case "PersistStore":
+	case DurableStore:
 		dataFolder := fmt.Sprintf("%s/%s/%d%d", STORE_TEST_DATA_FOLDER, a.Address().String(), rand.Uint64(), time.Now().UnixNano())
 		return store.NewPersistStore(a.PrivateKey, dataFolder, buntdb.Config{})
 	default:

@@ -12,12 +12,11 @@ import (
 
 const STORE_TEST_DATA_FOLDER = "../data/store_test"
 const ledgerChannelDeposit = 5_000_000
-const defaultTimeout = 10 * time.Second
 
 type StoreType string
 
 const MemStore StoreType = "MemStore"
-const PersistStore StoreType = "PersistStore"
+const DurableStore StoreType = "DurableStore"
 
 type ChainType string
 
