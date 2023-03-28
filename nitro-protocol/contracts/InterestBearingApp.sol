@@ -47,11 +47,7 @@ contract InterestBearingApp is IForceMoveApp {
     ) external view override {
         if (proof.length == 0) {
             // unanimous consensus check
-            Consensus.requireConsensus(
-                fixedPart,
-                proof,
-                candidate
-            );
+            Consensus.requireConsensus(fixedPart, proof, candidate);
             return;
         } else if (proof.length == 1) {
             // check that proof[0] -> candidate respects the stated interest rate.
@@ -60,12 +56,8 @@ contract InterestBearingApp is IForceMoveApp {
             //  - candidate state immediately follows proof state (by turnNum)
             //  - the lender has not taken more funds than owed according
             //    to the interest rate agreement of the channel
-            RecoveredVariablePart[] memory  nullProof;
-            Consensus.requireConsensus(
-                fixedPart,
-                nullProof,
-                proof[0]
-            );
+            RecoveredVariablePart[] memory nullProof;
+            Consensus.requireConsensus(fixedPart, nullProof, proof[0]);
             require(
                 proof[0].variablePart.turnNum + 1 == candidate.variablePart.turnNum,
                 'turn(candidate) != turn(proof)+1'
