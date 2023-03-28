@@ -12,6 +12,7 @@ import (
 
 const STORE_TEST_DATA_FOLDER = "../data/store_test"
 const ledgerChannelDeposit = 5_000_000
+const virtualChannelDeposit = 5000
 
 type StoreType string
 

@@ -51,7 +51,7 @@ func TestClientIntegration(t *testing.T) {
 			objectiveIds := make([]protocols.ObjectiveId, tc.NumOfChannels)
 			virtualIds := make([]types.Destination, tc.NumOfChannels)
 			for i := 0; i < int(tc.NumOfChannels); i++ {
-				outcome := td.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), 1, 1, types.Address{})
+				outcome := td.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), virtualChannelDeposit, virtualChannelDeposit, types.Address{})
 				response := clientA.CreateVirtualPaymentChannel(
 					[]types.Address{testactors.Irene.Address()},
 					testactors.Bob.Address(),
