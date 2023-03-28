@@ -60,7 +60,9 @@ func setupMessageService(tc TestRun, actorName testactors.ActorName, si sharedIn
 	case TestMessageService:
 		return messageservice.NewTestMessageService(actor.Address(), *si.broker, tc.MessageDelay)
 	case P2PMessageService:
-		return p2pms.NewMessageService("127.0.0.1", int(actor.Port), actor.PrivateKey)
+		ms := p2pms.NewMessageService("127.0.0.1", int(actor.Port), actor.PrivateKey)
+		ms.AddPeers(si.peers)
+		return ms
 	default:
 		panic("Unknown message service")
 	}
@@ -180,7 +182,6 @@ func setupSharedInra(tc TestRun) sharedInra {
 		for i, p := range tc.Participants {
 
 			actor, _ := getActorInfo(p.Name, tc)
-
 			infra.peers[i] = p2pms.PeerInfo{
 				Port:      int(actor.Port),
 				IpAddress: "127.0.0.1",
