@@ -2,13 +2,11 @@ package p2pms
 
 import (
 	"bufio"
+	"bytes"
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
-	"math/rand"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -176,13 +174,15 @@ func (s *P2PMessageService) Close() error {
 	return s.p2pHost.Close()
 }
 
+// generateKey generates a ECDSA key deterministically from the given address
+// TOODO: This is probably a security hole, but it's good enough for now
 func generateKey(address common.Address) p2pcrypto.PrivKey {
-	// We generate a random key using the hash of the pk as a seed
-	// This should mean that the message key is deterministic
-	// TODO: Ideally we would use the pk directly, but I haven't figured out of this is possible with lib p2p
-	hash := sha256.Sum256(address.Bytes())
-	seed := big.NewInt(0).SetBytes(hash[:]).Int64()
-	messageKey, _, err := p2pcrypto.GenerateECDSAKeyPair(rand.New(rand.NewSource(seed)))
+
+	messageKey, _, err := p2pcrypto.GenerateECDSAKeyPair(createReader(address))
+	if err != nil {
+		panic(err)
+	}
+
 	if err != nil {
 		panic(err)
 	}
@@ -192,4 +192,16 @@ func generateKey(address common.Address) p2pcrypto.PrivKey {
 func Id(a common.Address) peer.ID {
 	id, _ := peer.IDFromPrivateKey(generateKey(a))
 	return id
+}
+
+func createReader(a common.Address) io.Reader {
+	totalSize := 256
+	large := make([]byte, totalSize)
+
+	// We fill up the byte slice with copies of the address
+	for i := 0; (i + 20) < totalSize; i += 20 {
+		copy(large[i:], a.Bytes())
+	}
+	return bytes.NewReader(large)
+
 }

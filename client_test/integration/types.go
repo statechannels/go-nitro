@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/internal/testactors"
 )
 
@@ -49,6 +50,7 @@ type TestCase struct {
 
 type sharedInra struct {
 	broker         *messageservice.Broker
+	peers          []p2pms.PeerInfo
 	mockChain      *chainservice.MockChain
 	simulatedChain *chainservice.SimulatedChain
 	bindings       *chainservice.Bindings

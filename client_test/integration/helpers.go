@@ -61,26 +61,10 @@ func setupMessageService(tc TestCase, actorName testactors.ActorName, si sharedI
 		return messageservice.NewTestMessageService(actor.Address(), *si.broker, tc.MessageDelay)
 	case P2PMessageService:
 		ms := p2pms.NewMessageService("127.0.0.1", int(actor.Port), actor.PrivateKey)
+		ms.AddPeers(si.peers)
 		return ms
 	default:
 		panic("Unknown message service")
-	}
-}
-
-func connectMessageServices(services []messageservice.MessageService) {
-	// If it's not a p2p message service, we don't need to connect it.
-	_, ok := services[0].(*p2pms.P2PMessageService)
-	if !ok {
-		return
-	}
-
-	peers := make([]p2pms.PeerInfo, len(services))
-	for i := range services {
-		peers[i] = services[i].(*p2pms.P2PMessageService).PeerInfo()
-	}
-
-	for i := range services {
-		services[i].(*p2pms.P2PMessageService).AddPeers(peers)
 	}
 }
 
@@ -117,12 +101,12 @@ func setupStore(tc TestCase, actorName testactors.ActorName, si sharedInra) stor
 	}
 }
 
-func setupIntegrationClient(tc TestCase, actorName testactors.ActorName, si sharedInra) (client.Client, messageservice.MessageService) {
+func setupIntegrationClient(tc TestCase, actorName testactors.ActorName, si sharedInra) client.Client {
 
 	messageService := setupMessageService(tc, actorName, si)
 	cs := setupChainService(tc, actorName, si)
 	store := setupStore(tc, actorName, si)
-	return client.New(messageService, cs, store, newLogWriter(tc.LogName), &engine.PermissivePolicy{}, nil), messageService
+	return client.New(messageService, cs, store, newLogWriter(tc.LogName), &engine.PermissivePolicy{}, nil)
 }
 
 func newLogWriter(logFile string) *os.File {
@@ -192,7 +176,20 @@ func setupSharedInra(tc TestCase) sharedInra {
 	case TestMessageService:
 		broker := messageservice.NewBroker()
 		infra.broker = &broker
+	case P2PMessageService:
 
+		infra.peers = make([]p2pms.PeerInfo, len(tc.Participants))
+		for i, p := range tc.Participants {
+
+			actor, _ := getActorInfo(p.Name, tc)
+
+			infra.peers[i] = p2pms.PeerInfo{
+				Port:      int(actor.Port),
+				IpAddress: "127.0.0.1",
+				Address:   actor.Address(),
+				Id:        p2pms.Id(actor.Address()),
+			}
+		}
 	}
 
 	return infra
