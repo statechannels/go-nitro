@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/client"
+	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
@@ -24,19 +25,33 @@ func TestClientIntegration(t *testing.T) {
 
 			infra := setupSharedInra(tc)
 
+			messageServices := []messageservice.MessageService{}
 			// Setup clients
-			clientA := setupIntegrationClient(tc, testactors.AliceName, infra)
-			clientB := setupIntegrationClient(tc, testactors.BobName, infra)
+			clientA, msA := setupIntegrationClient(tc, testactors.AliceName, infra)
+			clientB, msB := setupIntegrationClient(tc, testactors.BobName, infra)
 
-			intermediaries := []client.Client{setupIntegrationClient(tc, testactors.IreneName, infra)}
+			messageServices = append(messageServices, msA, msB)
+			clientIrene, msIrene := setupIntegrationClient(tc, testactors.IreneName, infra)
+			messageServices = append(messageServices, msIrene)
+
+			intermediaries := []client.Client{clientIrene}
 			if tc.NumOfHops == 2 {
-				intermediaries = append(intermediaries, setupIntegrationClient(tc, testactors.BrianName, infra))
+				clientBrian, msBrian := setupIntegrationClient(tc, testactors.BrianName, infra)
+				intermediaries = append(intermediaries, clientBrian)
+				messageServices = append(messageServices, msBrian)
 			}
+			// Defer closing all clients
+
 			defer clientA.Close()
 			defer clientB.Close()
 			for _, clientI := range intermediaries {
 				defer clientI.Close()
 			}
+
+			// TODO: This is an artifact of we generate IDs for our p2p message service
+			// We use the address as the seed, but this means multiple calls to generate the key
+			// will continue to generate new addresses.
+			connectMessageServices(messageServices)
 
 			// Setup ledger channels between Alice/Bob and intermediaries
 			aliceLedgers := make([]types.Destination, tc.NumOfHops)

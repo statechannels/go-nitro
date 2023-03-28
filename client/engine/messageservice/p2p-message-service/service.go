@@ -24,7 +24,6 @@ import (
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/types"
 )
 
 const (
@@ -41,7 +40,7 @@ type P2PMessageService struct {
 
 	peers *safesync.Map[peer.ID]
 
-	me      types.Address
+	me      PeerInfo
 	key     p2pcrypto.PrivKey
 	p2pHost host.Host
 }
@@ -52,13 +51,17 @@ func (ms *P2PMessageService) Id() peer.ID {
 	return id
 }
 
+func (ms *P2PMessageService) PeerInfo() PeerInfo {
+	return ms.me
+}
+
 // AddPeers adds the peers to the message service.
 // We ignore peers that are ourselves.
 func (ms *P2PMessageService) AddPeers(peers []PeerInfo) {
 
 	for _, p := range peers {
 		// Ignore ourselves
-		if p.Address == ms.me {
+		if p.Address == ms.me.Address {
 			continue
 		}
 		multi, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", p.IpAddress, p.Port, p.Id))
@@ -93,7 +96,7 @@ func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
 		peers:    &safePeers,
 		p2pHost:  host,
 		key:      messageKey,
-		me:       crypto.GetAddressFromSecretKeyBytes(pk),
+		me:       PeerInfo{Port: port, Id: host.ID(), Address: crypto.GetAddressFromSecretKeyBytes(pk), IpAddress: ip},
 	}
 
 	h.p2pHost.SetStreamHandler(PROTOCOL_ID, func(stream network.Stream) {
