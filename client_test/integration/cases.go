@@ -2,7 +2,7 @@ package integration_test
 
 import "github.com/statechannels/go-nitro/internal/testactors"
 
-var simpleCase = TestRun{
+var simpleCase = TestCase{
 	Description:    "Simple test: 1 channel, 1 hop, MockChain, MockMessageService",
 	Chain:          MockChain,
 	MessageService: TestMessageService,
@@ -18,4 +18,4 @@ var simpleCase = TestRun{
 	},
 }
 
-var cases = []TestRun{simpleCase}
+var cases = []TestCase{simpleCase}

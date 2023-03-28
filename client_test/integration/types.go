@@ -36,7 +36,7 @@ type MessageService string
 const TestMessageService MessageService = "TestMessageService"
 const P2PMessageService MessageService = "P2PMessageService"
 
-type TestRun struct {
+type TestCase struct {
 	Description    string
 	Chain          ChainType
 	MessageService MessageService

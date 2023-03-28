@@ -23,7 +23,7 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
-func getActorInfo(name testactors.ActorName, tc TestRun) (actor testactors.Actor, participant TestParticipant) {
+func getActorInfo(name testactors.ActorName, tc TestCase) (actor testactors.Actor, participant TestParticipant) {
 	switch name {
 	case testactors.AliceName:
 		actor = testactors.Alice
@@ -54,7 +54,7 @@ func getActorInfo(name testactors.ActorName, tc TestRun) (actor testactors.Actor
 
 }
 
-func setupMessageService(tc TestRun, actorName testactors.ActorName, si sharedInra) messageservice.MessageService {
+func setupMessageService(tc TestCase, actorName testactors.ActorName, si sharedInra) messageservice.MessageService {
 	actor, _ := getActorInfo(actorName, tc)
 	switch tc.MessageService {
 	case TestMessageService:
@@ -68,7 +68,7 @@ func setupMessageService(tc TestRun, actorName testactors.ActorName, si sharedIn
 	}
 }
 
-func setupChainService(tc TestRun, actorName testactors.ActorName, si sharedInra) chainservice.ChainService {
+func setupChainService(tc TestCase, actorName testactors.ActorName, si sharedInra) chainservice.ChainService {
 	a, _ := getActorInfo(actorName, tc)
 	switch tc.Chain {
 	case MockChain:
@@ -87,7 +87,7 @@ func setupChainService(tc TestRun, actorName testactors.ActorName, si sharedInra
 	}
 }
 
-func setupStore(tc TestRun, actorName testactors.ActorName, si sharedInra) store.Store {
+func setupStore(tc TestCase, actorName testactors.ActorName, si sharedInra) store.Store {
 	a, p := getActorInfo(actorName, tc)
 
 	switch p.StoreType {
@@ -101,7 +101,7 @@ func setupStore(tc TestRun, actorName testactors.ActorName, si sharedInra) store
 	}
 }
 
-func setupIntegrationClient(tc TestRun, actorName testactors.ActorName, si sharedInra) client.Client {
+func setupIntegrationClient(tc TestCase, actorName testactors.ActorName, si sharedInra) client.Client {
 
 	messageService := setupMessageService(tc, actorName, si)
 	cs := setupChainService(tc, actorName, si)
@@ -155,7 +155,7 @@ func waitForObjectives(t *testing.T, a, b client.Client, intermediaries []client
 	}
 }
 
-func setupSharedInra(tc TestRun) sharedInra {
+func setupSharedInra(tc TestCase) sharedInra {
 	infra := sharedInra{}
 	switch tc.Chain {
 	case MockChain:
