@@ -25,47 +25,39 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
-func getActor(name testactors.ActorName) testactors.Actor {
+func getActorInfo(name testactors.ActorName, tc TestRun) (actor testactors.Actor, participant TestParticipant) {
 	switch name {
 	case testactors.AliceName:
-		return testactors.Alice
+		actor = testactors.Alice
 	case testactors.BobName:
-		return testactors.Bob
+		actor = testactors.Bob
 	case testactors.IreneName:
-		return testactors.Irene
+		actor = testactors.Irene
 	case testactors.BrianName:
-		return testactors.Brian
+		actor = testactors.Brian
 	default:
 		panic("Unknown actor")
 	}
-}
 
-func getTestParticipant(tc TestRun, name testactors.ActorName) TestParticipant {
+	found := false
 	for _, p := range tc.Participants {
 		if p.Name == name {
-			return p
+			participant = p
+			found = true
+			break
 		}
-	}
-	panic("Unknown participant")
-}
 
-func getActorIndex(name testactors.ActorName) int {
-	switch name {
-	case testactors.AliceName:
-		return 0
-	case testactors.BobName:
-		return 1
-	case testactors.IreneName:
-		return 2
-	case testactors.BrianName:
-		return 3
-	default:
-		panic("Unknown actor")
 	}
+	if !found {
+		panic("Unknown participant")
+	}
+
+	return
+
 }
 
 func setupMessageService(tc TestRun, actorName testactors.ActorName, si sharedInra) messageservice.MessageService {
-	actor := getActor(actorName)
+	actor, _ := getActorInfo(actorName, tc)
 	switch tc.MessageService {
 	case TestMessageService:
 		return messageservice.NewTestMessageService(actor.Address(), *si.broker, tc.MessageDelay)
@@ -77,14 +69,15 @@ func setupMessageService(tc TestRun, actorName testactors.ActorName, si sharedIn
 }
 
 func setupChainService(tc TestRun, actorName testactors.ActorName, si sharedInra) chainservice.ChainService {
-	a := getActor(actorName)
+	a, _ := getActorInfo(actorName, tc)
 	switch tc.Chain {
 	case MockChain:
 		return chainservice.NewMockChainService(si.mockChain, a.Address())
 	case SimulatedChain:
 		logDestination := newLogWriter(tc.LogName)
-		// TODO: USE unique eth address
-		cs, err := chainservice.NewSimulatedBackendChainService(*si.simulatedChain, *si.bindings, si.ethAccounts[getActorIndex(actorName)], logDestination)
+
+		ethAcountIndex := a.Port - testactors.START_PORT
+		cs, err := chainservice.NewSimulatedBackendChainService(*si.simulatedChain, *si.bindings, si.ethAccounts[ethAcountIndex], logDestination)
 		if err != nil {
 			panic(err)
 		}
@@ -95,16 +88,16 @@ func setupChainService(tc TestRun, actorName testactors.ActorName, si sharedInra
 }
 
 func setupStore(tc TestRun, actorName testactors.ActorName, si sharedInra) store.Store {
-	me := getActor(actorName)
-	storeType := getTestParticipant(tc, actorName).StoreType
-	switch getTestParticipant(tc, actorName).StoreType {
+	a, p := getActorInfo(actorName, tc)
+
+	switch p.StoreType {
 	case "MemStore":
-		return store.NewMemStore(me.PrivateKey)
+		return store.NewMemStore(a.PrivateKey)
 	case "PersistStore":
-		dataFolder := fmt.Sprintf("%s/%s/%d%d", STORE_TEST_DATA_FOLDER, me.Address().String(), rand.Uint64(), time.Now().UnixNano())
-		return store.NewPersistStore(me.PrivateKey, dataFolder, buntdb.Config{})
+		dataFolder := fmt.Sprintf("%s/%s/%d%d", STORE_TEST_DATA_FOLDER, a.Address().String(), rand.Uint64(), time.Now().UnixNano())
+		return store.NewPersistStore(a.PrivateKey, dataFolder, buntdb.Config{})
 	default:
-		panic(fmt.Sprintf("Unknown store type %s", storeType))
+		panic(fmt.Sprintf("Unknown store type %s", p.StoreType))
 	}
 }
 

@@ -43,7 +43,7 @@ func setupSharedInra(tc TestRun) sharedInra {
 		infra.peers = make([]p2pms.PeerInfo, len(tc.Participants))
 		for i, p := range tc.Participants {
 
-			actor := getActor(p.Name)
+			actor, _ := getActorInfo(p.Name, tc)
 
 			infra.peers[i] = p2pms.PeerInfo{
 				Port:      int(actor.Port),
@@ -119,7 +119,7 @@ func TestClientIntegration(t *testing.T) {
 				}
 			}
 
-			// Close virtuall channels
+			// Close virtual channels
 			closeVirtualIds := make([]protocols.ObjectiveId, len(virtualIds))
 			for i := 0; i < len(virtualIds); i++ {
 				// alternative who is responsible for closing the channel
