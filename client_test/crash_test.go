@@ -14,6 +14,8 @@ import (
 	"github.com/statechannels/go-nitro/rand"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/tidwall/buntdb"
+
+	ta "github.com/statechannels/go-nitro/internal/testactors"
 )
 
 func TestCrashTolerance(t *testing.T) {
@@ -47,11 +49,11 @@ func TestCrashTolerance(t *testing.T) {
 	defer os.RemoveAll(dataFolder)
 
 	// Client setup
-	storeA := store.NewDurableStore(alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
-	messageserviceA := messageservice.NewTestMessageService(alice.Address(), broker, 0)
+	storeA := store.NewDurableStore(ta.Alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
+	messageserviceA := messageservice.NewTestMessageService(ta.Alice.Address(), broker, 0)
 	clientA := client.New(messageserviceA, chainA, storeA, logDestination, &engine.PermissivePolicy{}, nil)
 
-	clientB, _ := setupClient(bob.PrivateKey, chainB, broker, logDestination, 0)
+	clientB, _ := setupClient(ta.Bob.PrivateKey, chainB, broker, logDestination, 0)
 	defer closeClient(t, &clientB)
 	// End Client setup
 
@@ -60,9 +62,9 @@ func TestCrashTolerance(t *testing.T) {
 		channelId := directlyFundALedgerChannel(t, clientA, clientB, types.Address{})
 
 		closeClient(t, &clientA)
-		anotherMessageserviceA := messageservice.NewTestMessageService(alice.Address(), broker, 0)
+		anotherMessageserviceA := messageservice.NewTestMessageService(ta.Alice.Address(), broker, 0)
 		anotherChainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
-		anotherStoreA := store.NewDurableStore(alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
+		anotherStoreA := store.NewDurableStore(ta.Alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
 		if err != nil {
 			t.Fatal(err)
 		}

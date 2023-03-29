@@ -8,6 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/query"
+	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
 
 	"github.com/statechannels/go-nitro/types"
@@ -20,19 +21,19 @@ func TestQueryLedgerChannel(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
-	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
-	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
+	chainServiceA := chainservice.NewMockChainService(chain, ta.Alice.Address())
+	chainServiceI := chainservice.NewMockChainService(chain, ta.Irene.Address())
 	broker := messageservice.NewBroker()
 
-	aliceClient, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, 0)
+	aliceClient, _ := setupClient(ta.Alice.PrivateKey, chainServiceA, broker, logDestination, 0)
 	defer closeClient(t, &aliceClient)
-	ireneClient, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
+	ireneClient, _ := setupClient(ta.Irene.PrivateKey, chainServiceI, broker, logDestination, 0)
 	defer closeClient(t, &ireneClient)
 
 	// Set up an outcome that requires both participants to deposit
-	outcome := testdata.Outcomes.Create(alice.Address(), irene.Address(), 7, 3, types.Address{})
+	outcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Irene.Address(), 7, 3, types.Address{})
 
-	res := aliceClient.CreateLedgerChannel(irene.Address(), 0, outcome)
+	res := aliceClient.CreateLedgerChannel(ta.Irene.Address(), 0, outcome)
 	ledgerId := res.ChannelId
 
 	// It is possible the objective completes for Alice before we query it
@@ -77,24 +78,24 @@ func TestQueryPaymentChannel(t *testing.T) {
 	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()
-	chainServiceA := chainservice.NewMockChainService(chain, alice.Address())
-	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
-	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
+	chainServiceA := chainservice.NewMockChainService(chain, ta.Alice.Address())
+	chainServiceB := chainservice.NewMockChainService(chain, ta.Bob.Address())
+	chainServiceI := chainservice.NewMockChainService(chain, ta.Irene.Address())
 	broker := messageservice.NewBroker()
 
-	aliceClient, _ := setupClient(alice.PrivateKey, chainServiceA, broker, logDestination, 0)
+	aliceClient, _ := setupClient(ta.Alice.PrivateKey, chainServiceA, broker, logDestination, 0)
 	defer closeClient(t, &aliceClient)
-	ireneClient, _ := setupClient(irene.PrivateKey, chainServiceI, broker, logDestination, 0)
+	ireneClient, _ := setupClient(ta.Irene.PrivateKey, chainServiceI, broker, logDestination, 0)
 	defer closeClient(t, &ireneClient)
-	bobClient, _ := setupClient(bob.PrivateKey, chainServiceB, broker, logDestination, 0)
+	bobClient, _ := setupClient(ta.Bob.PrivateKey, chainServiceB, broker, logDestination, 0)
 	defer closeClient(t, &bobClient)
 
 	directlyFundALedgerChannel(t, aliceClient, ireneClient, types.Address{})
 	directlyFundALedgerChannel(t, bobClient, ireneClient, types.Address{})
 
 	o := testdata.Outcomes.Create(
-		alice.Address(),
-		bob.Address(),
+		ta.Alice.Address(),
+		ta.Bob.Address(),
 		2,
 		0,
 		types.Address{},
@@ -102,11 +103,11 @@ func TestQueryPaymentChannel(t *testing.T) {
 
 	res := aliceClient.CreateVirtualPaymentChannel(
 		[]types.Address{*ireneClient.Address},
-		bob.Address(),
+		ta.Bob.Address(),
 		0,
 		testdata.Outcomes.Create(
-			alice.Address(),
-			bob.Address(),
+			ta.Alice.Address(),
+			ta.Bob.Address(),
 			2,
 			0,
 			types.Address{},
@@ -123,8 +124,8 @@ func TestQueryPaymentChannel(t *testing.T) {
 
 	aliceClient.Pay(res.ChannelId, big.NewInt(1))
 	<-bobClient.ReceivedVouchers()
-	updatedOutcome := testdata.Outcomes.Create(alice.Address(),
-		bob.Address(),
+	updatedOutcome := testdata.Outcomes.Create(ta.Alice.Address(),
+		ta.Bob.Address(),
 		1,
 		1,
 		types.Address{})

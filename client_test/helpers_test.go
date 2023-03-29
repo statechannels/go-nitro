@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
@@ -21,6 +22,7 @@ import (
 	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/internal/safesync"
+	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/rand"
 	"github.com/statechannels/go-nitro/types"
@@ -32,6 +34,8 @@ const TEST_CHAIN_ID = 1337
 const defaultTimeout = 10 * time.Second
 
 const DURABLE_STORE_FOLDER = "../data/client_test"
+
+const ledgerChannelDeposit = 5_000_000
 
 // waitWithTimeoutForCompletedObjectiveIds waits up to the given timeout for completed objectives and returns when the all objective ids provided have been completed.
 // If the timeout lapses and the objectives have not all completed, the parent test will be failed.
@@ -71,63 +75,6 @@ func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeo
 			return true
 		})
 		t.Fatalf("Objective ids %s failed to complete on client %s within %s", incompleteIds, client.Address, timeout)
-	case <-allDone:
-		return
-	}
-}
-
-type BasicVoucherInfo struct {
-	Amount    *big.Int
-	ChannelId types.Destination
-}
-
-func (b BasicVoucherInfo) id() string {
-	return fmt.Sprintf("%s-%s", b.ChannelId.String(), b.Amount.String())
-}
-
-// waitTimeForReceivedVoucher waits up to the given timeout to receiver vouchers specified and returns when the all the vouchers specified have been returned.
-// If the timeout lapses and not all of the vouchers have been received, the parent test will be failed.
-// This function assumes that channelId-amount pairs are unique and can be used as a key.
-func waitTimeForReceivedVoucher(t *testing.T, client *client.Client, timeout time.Duration, vouchers ...BasicVoucherInfo) {
-
-	waitAndSendOn := func(received map[string]bool, allDone chan interface{}) {
-
-		// We continue to consume vouchers from the chan until all have been completed
-		for got := range client.ReceivedVouchers() {
-			b := BasicVoucherInfo{got.Amount, got.ChannelId}
-			// Mark the voucher as received
-			received[b.id()] = true
-
-			// If all the vouchers have been received we can send the all done signal and return
-			isDone := true
-			for _, v := range vouchers {
-				isDone = isDone && received[v.id()]
-			}
-			if isDone {
-				allDone <- struct{}{}
-				return
-
-			}
-		}
-
-	}
-
-	allDone := make(chan interface{})
-	// Create a map to keep track of received vouchers
-	completed := make(map[string]bool)
-
-	go waitAndSendOn(completed, allDone)
-
-	select {
-	case <-time.After(timeout):
-		incomplete := make([]BasicVoucherInfo, 0)
-		for _, v := range vouchers {
-			isDone := completed[v.id()]
-			if !isDone {
-				incomplete = append(incomplete, v)
-			}
-		}
-		t.Fatalf("Objective ids %s failed to complete on client %s within %s", incomplete, client.Address, timeout)
 	case <-allDone:
 		return
 	}
@@ -228,4 +175,23 @@ func closeSimulatedChain(t *testing.T, chain chainservice.SimulatedChain) {
 	if err := chain.Close(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func directlyDefundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client, channelId types.Destination) {
+
+	id := alpha.CloseLedgerChannel(channelId)
+	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, id)
+	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, id)
+
+}
+func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client, asset common.Address) types.Destination {
+	// Set up an outcome that requires both participants to deposit
+	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, ledgerChannelDeposit, ledgerChannelDeposit, asset)
+
+	response := alpha.CreateLedgerChannel(*beta.Address, 0, outcome)
+
+	<-alpha.ObjectiveCompleteChan(response.Id)
+	<-beta.ObjectiveCompleteChan(response.Id)
+
+	return response.ChannelId
 }
