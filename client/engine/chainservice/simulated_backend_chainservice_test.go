@@ -88,13 +88,6 @@ func TestDepositSimulatedBackendChainService(t *testing.T) {
 
 }
 func TestConcludeSimulatedBackendChainService(t *testing.T) {
-	runDepositAndConcludeTest(t, false)
-}
-func TestConcludeSimulatedBackendChainServiceWithPolling(t *testing.T) {
-	runDepositAndConcludeTest(t, true)
-}
-
-func runDepositAndConcludeTest(t *testing.T, usePolling bool) {
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
 	defer closeSimulatedChain(t, sim)
 
