@@ -50,9 +50,9 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 
-	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(alice.PrivateKey, 3005, 4005, chainServiceA, logDestination, connectionType)
-	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(bob.PrivateKey, 3006, 4006, chainServiceB, logDestination, connectionType)
-	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(irene.PrivateKey, 3007, 4007, chainServiceI, logDestination, connectionType)
+	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(t, alice.PrivateKey, 3005, 4005, chainServiceA, logDestination, connectionType)
+	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(t, bob.PrivateKey, 3006, 4006, chainServiceB, logDestination, connectionType)
+	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(t, irene.PrivateKey, 3007, 4007, chainServiceI, logDestination, connectionType)
 
 	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},
@@ -109,6 +109,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
 func setupNitroNodeWithRPCClient(
+	t *testing.T,
 	pk []byte,
 	msgPort int,
 	rpcPort int,
@@ -119,7 +120,7 @@ func setupNitroNodeWithRPCClient(
 	messageservice := p2pms.NewMessageService("127.0.0.1",
 		msgPort,
 		crypto.GetAddressFromSecretKeyBytes(pk),
-		generateMessageKey(pk))
+		generateMessageKey(t, pk))
 	storeA := store.NewMemStore(pk)
 	node := client.New(
 		messageservice,

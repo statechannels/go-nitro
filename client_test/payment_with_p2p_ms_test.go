@@ -17,13 +17,13 @@ import (
 )
 
 // setupClientWithP2PMessageService is a helper function that contructs a client and returns the new client and its store.
-func setupClientWithP2PMessageService(pk []byte, port int, chain *chainservice.MockChainService, logDestination io.Writer) (client.Client, *p2pms.P2PMessageService) {
+func setupClientWithP2PMessageService(t *testing.T, pk []byte, port int, chain *chainservice.MockChainService, logDestination io.Writer) (client.Client, *p2pms.P2PMessageService) {
 
 	messageservice := p2pms.NewMessageService(
 		"127.0.0.1",
 		port,
 		crypto.GetAddressFromSecretKeyBytes(pk),
-		generateMessageKey(pk))
+		generateMessageKey(t, pk))
 	storeA := store.NewMemStore(pk)
 	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}, nil), messageservice
 }
@@ -40,11 +40,11 @@ func TestPayments(t *testing.T) {
 	chainServiceB := chainservice.NewMockChainService(chain, bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, irene.Address())
 
-	clientA, msgA := setupClientWithP2PMessageService(alice.PrivateKey, 3005, chainServiceA, logDestination)
+	clientA, msgA := setupClientWithP2PMessageService(t, alice.PrivateKey, 3005, chainServiceA, logDestination)
 	defer closeClient(t, &clientA)
-	clientB, msgB := setupClientWithP2PMessageService(bob.PrivateKey, 3006, chainServiceB, logDestination)
+	clientB, msgB := setupClientWithP2PMessageService(t, bob.PrivateKey, 3006, chainServiceB, logDestination)
 	defer closeClient(t, &clientB)
-	clientI, msgI := setupClientWithP2PMessageService(irene.PrivateKey, 3007, chainServiceI, logDestination)
+	clientI, msgI := setupClientWithP2PMessageService(t, irene.PrivateKey, 3007, chainServiceI, logDestination)
 	defer closeClient(t, &clientI)
 	peers := []p2pms.PeerInfo{
 		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: alice.Address()},

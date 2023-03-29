@@ -233,7 +233,7 @@ func closeSimulatedChain(t *testing.T, chain chainservice.SimulatedChain) {
 }
 
 // generateMessageKey generates a ECDSA private key using the given pk bytes, and is idempotent.
-func generateMessageKey(pk []byte) p2pcrypto.PrivKey {
+func generateMessageKey(t *testing.T, pk []byte) p2pcrypto.PrivKey {
 
 	// GenerateECDSAKeyPair expects a source to read random bytes from.
 	// We don't know exactly how many random bytes it will read, but we know it's under 256.
@@ -245,7 +245,7 @@ func generateMessageKey(pk []byte) p2pcrypto.PrivKey {
 
 	messageKey, _, err := p2pcrypto.GenerateECDSAKeyPair(bytes.NewReader(large))
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	return messageKey
