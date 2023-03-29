@@ -10,6 +10,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/crypto"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -18,7 +19,11 @@ import (
 // setupClientWithP2PMessageService is a helper function that contructs a client and returns the new client and its store.
 func setupClientWithP2PMessageService(pk []byte, port int, chain *chainservice.MockChainService, logDestination io.Writer) (client.Client, *p2pms.P2PMessageService) {
 
-	messageservice := p2pms.NewMessageService("127.0.0.1", port, pk)
+	messageservice := p2pms.NewMessageService(
+		"127.0.0.1",
+		port,
+		crypto.GetAddressFromSecretKeyBytes(pk),
+		generateMessageKey(pk))
 	storeA := store.NewMemStore(pk)
 	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}, nil), messageservice
 }

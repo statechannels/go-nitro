@@ -3,12 +3,9 @@ package p2pms
 import (
 	"bufio"
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
-	"math/rand"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
@@ -20,7 +17,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -72,17 +68,9 @@ func (ms *P2PMessageService) AddPeers(peers []PeerInfo) {
 	}
 }
 
-// NewMessageService returns a running P2PMessageService listening on the given ip and port.
-func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
-	// We generate a random key using the hash of the pk as a seed
-	// This should mean that the message key is deterministic
-	// TODO: Ideally we would use the pk directly, but I haven't figured out of this is possible with lib p2p
-	hash := sha256.Sum256(pk)
-	seed := big.NewInt(0).SetBytes(hash[:]).Int64()
-	messageKey, _, err := p2pcrypto.GenerateECDSAKeyPair(rand.New(rand.NewSource(seed)))
-	if err != nil {
-		panic(err)
-	}
+// NewMessageService returns a running P2PMessageService listening on the given ip, port and message key.
+func NewMessageService(ip string, port int, me types.Address, messageKey p2pcrypto.PrivKey) *P2PMessageService {
+
 	options := []libp2p.Option{libp2p.Identity(messageKey),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
 		libp2p.Transport(tcp.NewTCPTransport),
@@ -100,7 +88,7 @@ func NewMessageService(ip string, port int, pk []byte) *P2PMessageService {
 		peers:    &safePeers,
 		p2pHost:  host,
 		key:      messageKey,
-		me:       crypto.GetAddressFromSecretKeyBytes(pk),
+		me:       me,
 	}
 
 	h.p2pHost.SetStreamHandler(PROTOCOL_ID, func(stream network.Stream) {
