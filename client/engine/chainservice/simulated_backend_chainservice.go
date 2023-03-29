@@ -11,12 +11,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/rs/zerolog"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	ConsensusApp "github.com/statechannels/go-nitro/client/engine/chainservice/consensusapp"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
 	VirtualPaymentApp "github.com/statechannels/go-nitro/client/engine/chainservice/virtualpaymentapp"
-	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -57,30 +55,6 @@ func (b *BackendWrapper) ChainID(ctx context.Context) (*big.Int, error) {
 type SimulatedBackendChainService struct {
 	*EthChainService
 	sim SimulatedChain
-}
-
-// newPollingSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
-// and listens to events from an eventSource
-func newPollingSimulatedBackendChainService(sim SimulatedChain, bindings Bindings,
-	txSigner *bind.TransactOpts, logDestination io.Writer) (ChainService, error) {
-
-	logging.ConfigureZeroLogger()
-
-	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
-	ctx, ctxCancel := context.WithCancel(context.Background())
-
-	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{sim,
-		bindings.Adjudicator.Contract,
-		bindings.Adjudicator.Address,
-		bindings.ConsensusApp.Address,
-		bindings.VirtualPaymentApp.Address, txSigner,
-		make(chan Event, 10), logger, ctx, ctxCancel,
-	}
-
-	go ecs.pollForLogs()
-
-	return &SimulatedBackendChainService{sim: sim, EthChainService: &ecs}, nil
 }
 
 // NewSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
