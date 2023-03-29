@@ -18,8 +18,6 @@ import (
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
-
-	"github.com/ethereum/go-ethereum/rpc"
 )
 
 var allocationUpdatedTopic = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256)"))
@@ -53,10 +51,6 @@ type EthChainService struct {
 // See https://github.com/Zondax/rosetta-filecoin/blob/b395b3e04401be26c6cdf6a419e14ce85e2f7331/tools/wallaby/files/config.toml#L243
 const MAX_QUERY_BLOCK_RANGE = 2000
 
-// Since we only fetch events if there's a new block number
-// it's safe to poll relatively frequently.
-const EVENT_POLL_INTERVAL = 500 * time.Millisecond
-
 // RESUB_INTERVAL is how often we resubscribe to log events.
 // We do this to avoid https://github.com/ethereum/go-ethereum/issues/23845
 // We use 2.5 minutes as the default filter timeout is 5 minutes.
@@ -75,36 +69,9 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx}
+	go ecs.subscribeForLogs()
 
-	if ecs.subscriptionsSupported() {
-		logger.Printf("Notifications are supported by the chain. Using notifications to listen for events.")
-		go ecs.subscribeForLogs()
-	} else {
-		logger.Printf("Notifications are NOT supported by the chain. Using polling to listen for events.")
-		go ecs.pollForLogs()
-	}
 	return &ecs, nil
-}
-
-// subscriptionsSupported returns true if the node supports subscriptions for events.
-// Otherwise returns false
-func (ecs *EthChainService) subscriptionsSupported() bool {
-	// This is slightly painful but seems like the only way to find out if notifications are supported
-	// We attempt to subscribe (with a query that should never return a result) and check the error
-	query := ethereum.FilterQuery{
-		Addresses: []common.Address{ecs.naAddress},
-		FromBlock: big.NewInt(0),
-		ToBlock:   big.NewInt(0),
-	}
-
-	logs := make(chan ethTypes.Log, 1)
-	sub, err := ecs.chain.SubscribeFilterLogs(context.Background(), query, logs)
-	if err == rpc.ErrNotificationsUnsupported {
-		return false
-	}
-
-	sub.Unsubscribe()
-	return true
 }
 
 // defaultTxOpts returns transaction options suitable for most transaction submissions
@@ -244,16 +211,6 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 
 }
 
-// getCurrentBlockNumber returns the current block number.
-func (ecs *EthChainService) getCurrentBlockNum() *big.Int {
-	h, err := ecs.chain.HeaderByNumber(context.Background(), nil)
-	if err != nil {
-		ecs.fatalF("headerByNumber failed: %w", err)
-	}
-
-	return h.Number
-}
-
 // subscribeForLogs subscribes for logs and pushes them to the out channel.
 // It relies on notifications being supported by the chain node.
 func (ecs *EthChainService) subscribeForLogs() {
@@ -324,68 +281,6 @@ func splitBlockRange(total blockRange, maxInterval *big.Int) []blockRange {
 	}
 
 	return slice
-
-}
-
-// fetchLogsFromChain fetches logs from the chain from the given block number to the given block number.
-// It splits the query into multiple queries if the range is too large.
-func (ecs *EthChainService) fetchLogsFromChain(from *big.Int, to *big.Int) ([]ethTypes.Log, error) {
-
-	logs := make([]ethTypes.Log, 0)
-
-	blockRanges := splitBlockRange(blockRange{from, to}, big.NewInt(int64(MAX_QUERY_BLOCK_RANGE)))
-
-	for _, bR := range blockRanges {
-
-		query := ethereum.FilterQuery{
-			Addresses: []common.Address{ecs.naAddress},
-			FromBlock: bR.from,
-			ToBlock:   bR.to,
-		}
-
-		fetchedLogs, err := ecs.chain.FilterLogs(context.Background(), query)
-
-		if err != nil {
-			return nil, err
-		}
-
-		logs = append(logs, fetchedLogs...)
-	}
-	return logs, nil
-
-}
-
-// pollForLogs periodically polls the chain client to check if there new events.
-// It can function over a chain node that does not support notifications.
-func (ecs *EthChainService) pollForLogs() {
-	toBlock := ecs.getCurrentBlockNum()
-	fetchedLogs, err := ecs.fetchLogsFromChain(big.NewInt(0), toBlock)
-	if err != nil {
-		ecs.fatalF("first fetchLogsFromChain failed: %w", err)
-	}
-
-	ecs.dispatchChainEvents(fetchedLogs)
-	for {
-		select {
-		case <-ecs.ctx.Done():
-			return
-		case <-time.After(EVENT_POLL_INTERVAL):
-			currentBlock := ecs.getCurrentBlockNum()
-
-			if moreRecentBlockAvailable := currentBlock.Cmp(toBlock) > 0; moreRecentBlockAvailable {
-				// The query includes the from and to blocks so we need to increment the from block to avoid duplicating events
-				fromBlock := big.NewInt(0).Add(toBlock, big.NewInt(1))
-				fetchedLogs, err = ecs.fetchLogsFromChain(fromBlock, currentBlock)
-				toBlock.Set(currentBlock)
-
-				if err != nil {
-					ecs.fatalF("fetchLogsFromChain failed: %w", err)
-				}
-
-				ecs.dispatchChainEvents(fetchedLogs)
-			}
-		}
-	}
 
 }
 

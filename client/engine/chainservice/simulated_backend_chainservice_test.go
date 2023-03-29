@@ -102,16 +102,10 @@ func runDepositAndConcludeTest(t *testing.T, usePolling bool) {
 		t.Fatal(err)
 	}
 	var cs ChainService
-	if usePolling {
-		cs, err = newPollingSimulatedBackendChainService(sim, bindings, ethAccounts[0], NoopLogger{})
-		if err != nil {
-			t.Fatal(err)
-		}
-	} else {
-		cs, err = NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], NoopLogger{})
-		if err != nil {
-			t.Fatal(err)
-		}
+
+	cs, err = NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], NoopLogger{})
+	if err != nil {
+		t.Fatal(err)
 	}
 	defer cs.Close()
 
