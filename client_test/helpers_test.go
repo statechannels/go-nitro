@@ -232,10 +232,13 @@ func closeSimulatedChain(t *testing.T, chain chainservice.SimulatedChain) {
 	}
 }
 
-// generateMessageKey generates a ECDSA private key deterministically using the given pk bytes.
+// generateMessageKey generates a ECDSA private key using the given pk bytes, and is idempotent.
 func generateMessageKey(pk []byte) p2pcrypto.PrivKey {
 
-	// We use he given
+	// GenerateECDSAKeyPair expects a source to read random bytes from.
+	// We don't know exactly how many random bytes it will read, but we know it's under 256.
+	// We generate a 256 byte slice and copy the pk into it, leaving the rest empty.
+	// This lets us generate the exact same message key for the given pk.
 	totalSize := 256
 	large := make([]byte, totalSize)
 	copy(large, pk)
@@ -245,8 +248,5 @@ func generateMessageKey(pk []byte) p2pcrypto.PrivKey {
 		panic(err)
 	}
 
-	if err != nil {
-		panic(err)
-	}
 	return messageKey
 }
