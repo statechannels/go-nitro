@@ -94,7 +94,7 @@ staticcheck ./...
 ### format:
 
 ```shell
-gofmt -w .
+gofumpt -w .
 ```
 
 ### lint:
