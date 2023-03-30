@@ -23,12 +23,10 @@ func TestConsensusChannel(t *testing.T) {
 			allocation(bob, bBal),
 			guarantee(vAmount, existingChannel, alice, bob),
 		)
-
 	}
 
 	fingerprint := func(v Vars) string {
 		h, err := v.AsState(state.TestState.FixedPart()).Hash()
-
 		if err != nil {
 			panic(err)
 		}
@@ -67,7 +65,6 @@ func TestConsensusChannel(t *testing.T) {
 		vars := Vars{TurnNum: startingTurnNum, Outcome: outcome()}
 
 		err := vars.Add(proposal)
-
 		if err != nil {
 			t.Fatalf("unable to compute next state: %v", err)
 		}
@@ -115,7 +112,6 @@ func TestConsensusChannel(t *testing.T) {
 		aAmount, bAmount := uint64(2), uint64(3)
 		proposal := remove(existingChannel, aAmount)
 		err := vars.Remove(proposal)
-
 		if err != nil {
 			t.Fatalf("unable to compute next state: %v", err)
 		}
@@ -152,7 +148,6 @@ func TestConsensusChannel(t *testing.T) {
 		if !errors.Is(err, ErrInvalidAmount) {
 			t.Fatalf("expected error when recovering too large much from a guarantee: %v", err)
 		}
-
 	}
 
 	initialVars := Vars{Outcome: outcome(), TurnNum: 0}
@@ -162,7 +157,6 @@ func TestConsensusChannel(t *testing.T) {
 
 	testConsensusChannelFunctionality := func(t *testing.T) {
 		channel, err := newConsensusChannel(fp(), Leader, 0, outcome(), sigs)
-
 		if err != nil {
 			t.Fatalf("unable to construct a new consensus channel: %v", err)
 		}

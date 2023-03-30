@@ -42,7 +42,6 @@ func (v *Voucher) Hash() (types.Bytes32, error) {
 		{Type: nitroAbi.Destination},
 		{Type: nitroAbi.Uint256},
 	}.Pack(v.ChannelId, v.Amount)
-
 	if err != nil {
 		return types.Bytes32{}, fmt.Errorf("failed to encode voucher: %w", err)
 	}
@@ -56,7 +55,6 @@ func (v *Voucher) Sign(pk []byte) error {
 	}
 
 	sig, err := nitroCrypto.SignEthereumMessage(hash.Bytes(), pk)
-
 	if err != nil {
 		return err
 	}

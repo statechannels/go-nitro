@@ -10,7 +10,6 @@ import (
 )
 
 func TestClone(t *testing.T) {
-
 	outcome := makeOutcome(
 		allocation(alice, aBal),
 		allocation(bob, bBal),
@@ -23,7 +22,6 @@ func TestClone(t *testing.T) {
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
 	cc, err := newConsensusChannel(fp(), Leader, 0, outcome, sigs)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,5 +43,4 @@ func TestClone(t *testing.T) {
 	if diff := compareConsensusChannels(cc, *clone); diff != "" {
 		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 	}
-
 }

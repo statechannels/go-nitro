@@ -13,7 +13,7 @@ import (
 )
 
 func TestReceive(t *testing.T) {
-	var vAmount = uint64(5)
+	vAmount := uint64(5)
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
 	aliceSig, _ := initialVars.AsState(fp()).Sign(alice.PrivateKey)
 	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
@@ -78,8 +78,8 @@ func TestReceive(t *testing.T) {
 	if !errors.Is(ErrInvalidTurnNum, err) {
 		t.Fatalf("expected %v, but got %v", ErrInvalidTurnNum, err)
 	}
-
 }
+
 func TestFollowerChannel(t *testing.T) {
 	initialVars := Vars{Outcome: ledgerOutcome(), TurnNum: 0}
 	aliceSig, _ := initialVars.AsState(fp()).Sign(alice.PrivateKey)

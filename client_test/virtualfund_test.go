@@ -34,10 +34,9 @@ func openVirtualChannels(t *testing.T, clientA client.Client, clientB client.Cli
 	waitTimeForCompletedObjectiveIds(t, &clientI, defaultTimeout, objectiveIds...)
 
 	return channelIds
-
 }
-func TestVirtualFundIntegration(t *testing.T) {
 
+func TestVirtualFundIntegration(t *testing.T) {
 	// Setup logging
 	logFile := "test_virtual_fund.log"
 	truncateLog(logFile)
@@ -68,7 +67,6 @@ func TestVirtualFundIntegration(t *testing.T) {
 //
 // This makes channels with 0, 1, ..., [len(participants) - 1] hops.
 func openN_HopVirtualChannels(t *testing.T, participants []client.Client, channelsPerCounterparty uint) {
-
 	// set a chain of ledger channels between incoming clients.
 	// network is a line: A <-> B <-> C <-> D ... <-> X
 	for i, participant := range participants {
@@ -81,7 +79,6 @@ func openN_HopVirtualChannels(t *testing.T, participants []client.Client, channe
 	counterparties := participants[1:]
 
 	for i := 0; i < int(channelsPerCounterparty); i++ {
-
 		// and funds channels with everyone else along the chain
 		// (including her immediate neighbor)
 		for j, bob := range counterparties {
@@ -104,7 +101,6 @@ func openN_HopVirtualChannels(t *testing.T, participants []client.Client, channe
 			waitTimeForCompletedObjectiveIds(t, &bob, defaultTimeout, response.Id)
 		}
 	}
-
 }
 
 func clientsToAddresses(clients []client.Client) []types.Address {

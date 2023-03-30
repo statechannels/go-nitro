@@ -145,7 +145,6 @@ func (c Channel) SignedPreFundState() state.SignedState {
 // PostFundState() returns the post fund setup state for the channel.
 func (c Channel) PostFundState() state.State {
 	return c.SignedStateForTurnNum[PostFundTurnNum].State()
-
 }
 
 // SignedPostFundState() returns the SIGNED post fund setup state for the channel.
@@ -241,7 +240,8 @@ func (c Channel) Total() types.Funds {
 // Both arguments are maps keyed by the same asset
 func (c Channel) Affords(
 	allocationMap map[common.Address]outcome.Allocation,
-	fundingMap types.Funds) bool {
+	fundingMap types.Funds,
+) bool {
 	lss, err := c.LatestSupportedState()
 	if err != nil {
 		return false
@@ -262,7 +262,6 @@ func (c *Channel) AddStateWithSignature(s state.State, sig state.Signature) bool
 // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
 // Returns false and does not alter the channel if the state is "stale", belongs to a different channel, or is signed by a non participant.
 func (c *Channel) AddSignedState(ss state.SignedState) bool {
-
 	s := ss.State()
 
 	if cId := s.ChannelId(); cId != c.Id {
@@ -307,7 +306,6 @@ func (c *Channel) SignAndAddPostfund(sk *[]byte) (state.SignedState, error) {
 
 // SignAndAddState signs and adds the state to the channel, returning a state.SignedState suitable for sending to peers.
 func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState, error) {
-
 	sig, err := s.Sign(*sk)
 	if err != nil {
 		return state.SignedState{}, fmt.Errorf("could not sign prefund %w", err)

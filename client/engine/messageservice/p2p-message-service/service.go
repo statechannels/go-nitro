@@ -50,7 +50,6 @@ func (ms *P2PMessageService) Id() peer.ID {
 // AddPeers adds the peers to the message service.
 // We ignore peers that are ourselves.
 func (ms *P2PMessageService) AddPeers(peers []PeerInfo) {
-
 	for _, p := range peers {
 		// Ignore ourselves
 		if p.Address == ms.me {
@@ -70,8 +69,8 @@ func (ms *P2PMessageService) AddPeers(peers []PeerInfo) {
 
 // NewMessageService returns a running P2PMessageService listening on the given ip, port and message key.
 func NewMessageService(ip string, port int, me types.Address, messageKey p2pcrypto.PrivKey) *P2PMessageService {
-
-	options := []libp2p.Option{libp2p.Identity(messageKey),
+	options := []libp2p.Option{
+		libp2p.Identity(messageKey),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
 		libp2p.Transport(tcp.NewTCPTransport),
 		libp2p.NoSecurity,
@@ -109,7 +108,6 @@ func NewMessageService(ip string, port int, me types.Address, messageKey p2pcryp
 	})
 
 	return h
-
 }
 
 // Send sends messages to other participants.
@@ -146,7 +144,6 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 		time.Sleep(RETRY_SLEEP_DURATION)
 
 	}
-
 }
 
 // checkError panics if the message service is running and there is an error, otherwise it just returns

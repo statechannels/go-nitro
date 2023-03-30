@@ -12,7 +12,6 @@ import (
 )
 
 func TestSerde(t *testing.T) {
-
 	someGuarantee := Guarantee{
 		amount: big.NewInt(1),
 		left:   alice.Destination(),
@@ -55,14 +54,15 @@ func TestSerde(t *testing.T) {
 				V: byte(0),
 			}},
 		},
-		proposalQueue: []SignedProposal{{
-			Signature: crypto.Signature{
-				S: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
-				R: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
-				V: byte(0),
+		proposalQueue: []SignedProposal{
+			{
+				Signature: crypto.Signature{
+					S: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
+					R: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
+					V: byte(0),
+				},
+				Proposal: Proposal{ToAdd: add(1, types.Destination{3}, alice, bob)},
 			},
-			Proposal: Proposal{ToAdd: add(1, types.Destination{3}, alice, bob)},
-		},
 			{
 				Signature: crypto.Signature{
 					S: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),

@@ -23,7 +23,6 @@ func TestMergeWithDuplicateSignatures(t *testing.T) {
 	_ = ss2.AddSignature(sigB)
 
 	err := ss1.Merge(ss2)
-
 	if err != nil {
 		t.Error(err)
 	}
@@ -40,10 +39,9 @@ func TestMergeWithDuplicateSignatures(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("incorrect merge:\ngot\n\t%v,\nwanted\n\t%v", got, want)
 	}
-
 }
-func TestMerge(t *testing.T) {
 
+func TestMerge(t *testing.T) {
 	ss1 := NewSignedState(TestState)
 	sigA, _ := TestState.Sign(common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`))
 	_ = ss1.AddSignature(sigA)
@@ -53,7 +51,6 @@ func TestMerge(t *testing.T) {
 	_ = ss2.AddSignature(sigB)
 
 	err := ss1.Merge(ss2)
-
 	if err != nil {
 		t.Error(err)
 	}
@@ -70,7 +67,6 @@ func TestMerge(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf(`incorrect merge, got %v, wanted %v`, got, want)
 	}
-
 }
 
 func TestJSON(t *testing.T) {
@@ -103,7 +99,6 @@ func TestJSON(t *testing.T) {
 			t.Errorf(`incorrect UnmarshalJSON, got %v, wanted %v`, got, want)
 		}
 	})
-
 }
 
 func TestSignedStateClone(t *testing.T) {
@@ -120,7 +115,6 @@ func TestSignedStateClone(t *testing.T) {
 	if diff := compareStates(ss1, clone); diff != "" {
 		t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 	}
-
 }
 
 func TestSignatureGetters(t *testing.T) {
@@ -147,5 +141,4 @@ func TestSignatureGetters(t *testing.T) {
 	if !reflect.DeepEqual(gotSigs, expectedSigs) {
 		t.Errorf("incorrect Signatures, got %v, wanted %v", gotSigs, expectedSigs)
 	}
-
 }

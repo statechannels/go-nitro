@@ -11,7 +11,6 @@ import (
 )
 
 func TestComputeReclaimEffects(t *testing.T) {
-
 	Alice := types.Destination(common.HexToHash("0xa"))
 	Bob := types.Destination(common.HexToHash("0xb"))
 
@@ -31,7 +30,6 @@ func TestComputeReclaimEffects(t *testing.T) {
 	}
 
 	metadata, err := outcome.GuaranteeMetadata{Left: Alice, Right: Bob}.Encode()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,5 +102,4 @@ func TestComputeReclaimEffects(t *testing.T) {
 	if diff := cmp.Diff(offChainNewSourceAllocations, testCase1.outputs.newSourceAllocations); diff != "" {
 		t.Fatalf("newSourceAllocations does not match expectation :\n%s", diff)
 	}
-
 }

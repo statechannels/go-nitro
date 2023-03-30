@@ -85,12 +85,18 @@ func TestSum(t *testing.T) {
 
 func TestAdd(t *testing.T) {
 	equalPairs := []fundsPair{
-		{testData["a"].Add(testData["b"]),
-			testData["ab"]},
-		{testData["a"].Add(testData["b"], testData["c"]),
-			testData["abc"]},
-		{testData["a"].Add(testData["b"]).Add(testData["c"]).Add(testData["d"]),
-			testData["abcd"]},
+		{
+			testData["a"].Add(testData["b"]),
+			testData["ab"],
+		},
+		{
+			testData["a"].Add(testData["b"], testData["c"]),
+			testData["abc"],
+		},
+		{
+			testData["a"].Add(testData["b"]).Add(testData["c"]).Add(testData["d"]),
+			testData["abcd"],
+		},
 	}
 
 	// f == f.Add(zeros), f == f.Add(blanks)
@@ -192,7 +198,6 @@ func TestEqual(t *testing.T) {
 			t.Fatalf("expected %s to not equal %s, but it did", p.a, p.b)
 		}
 	}
-
 }
 
 type fundsPair struct {
@@ -207,5 +212,4 @@ func TestFundsClone(t *testing.T) {
 	if diff := cmp.Diff(f, clone); diff != "" {
 		t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 	}
-
 }

@@ -140,7 +140,6 @@ func (a Allocations) DivertToGuarantee(
 	rightAmount *big.Int,
 	guaranteeDestination types.Destination,
 ) (Allocations, error) {
-
 	if leftDestination == rightDestination {
 		return Allocations{}, errors.New(`debtees must be distinct`)
 	}
@@ -162,7 +161,6 @@ func (a Allocations) DivertToGuarantee(
 		Left:  leftDestination,
 		Right: rightDestination,
 	}.Encode()
-
 	if err != nil {
 		return Allocations{}, errors.New(`error encoding guarantee`)
 	}

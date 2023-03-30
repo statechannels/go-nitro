@@ -23,7 +23,6 @@ type jsonConnection struct {
 func (c Connection) MarshalJSON() ([]byte, error) {
 	jsonC := jsonConnection{c.Channel.Id, c.GuaranteeInfo}
 	bytes, err := json.Marshal(jsonC)
-
 	if err != nil {
 		return []byte{}, err
 	}
@@ -48,7 +47,6 @@ func (c *Connection) UnmarshalJSON(data []byte) error {
 
 	var jsonC jsonConnection
 	err := json.Unmarshal(data, &jsonC)
-
 	if err != nil {
 		return err
 	}

@@ -50,7 +50,6 @@ var testState = state.State{
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
-
 	getByParticipant := func(id types.Address) []*channel.Channel {
 		return []*channel.Channel{}
 	}
@@ -84,7 +83,6 @@ func TestNew(t *testing.T) {
 	if _, err := NewObjective(request, false, testState.Participants[0], big.NewInt(TEST_CHAIN_ID), getByParticipant, getByConsensusHasChannel); err == nil {
 		t.Errorf("Expected an error when constructing with an objective when an existing channel consensus channel exists")
 	}
-
 }
 
 func TestConstructFromPayload(t *testing.T) {
@@ -110,14 +108,15 @@ func TestConstructFromPayload(t *testing.T) {
 		t.Error("expected an error when constructing with a participant not in the channel, but got nil")
 	}
 }
+
 func TestUpdate(t *testing.T) {
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
 	op := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
 	// Construct various variables for use in TestUpdate
-	var s, _ = ConstructFromPayload(false, op, testState.Participants[0])
+	s, _ := ConstructFromPayload(false, op, testState.Participants[0])
 
 	var stateToSign state.State = s.C.PreFundState()
-	var correctSignatureByParticipant, _ = stateToSign.Sign(alice.PrivateKey)
+	correctSignatureByParticipant, _ := stateToSign.Sign(alice.PrivateKey)
 
 	// Assert that Updating the objective with such an event returns an error
 	// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
@@ -175,7 +174,6 @@ func TestUpdate(t *testing.T) {
 	if updated.latestBlockNumber == uint64(lowBlockNum) {
 		t.Error("latestBlockNumber was updated to stale block number", updated.latestBlockNumber, lowBlockNum)
 	}
-
 }
 
 func compareSideEffect(a, b protocols.SideEffects) string {
@@ -186,12 +184,12 @@ func TestCrank(t *testing.T) {
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
 	op := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
 	// BEGIN test data preparation
-	var s, _ = ConstructFromPayload(false, op, testState.Participants[0])
-	var correctSignatureByAliceOnPreFund, _ = s.C.PreFundState().Sign(alice.PrivateKey)
-	var correctSignatureByBobOnPreFund, _ = s.C.PreFundState().Sign(bob.PrivateKey)
+	s, _ := ConstructFromPayload(false, op, testState.Participants[0])
+	correctSignatureByAliceOnPreFund, _ := s.C.PreFundState().Sign(alice.PrivateKey)
+	correctSignatureByBobOnPreFund, _ := s.C.PreFundState().Sign(bob.PrivateKey)
 
-	var correctSignatureByAliceOnPostFund, _ = s.C.PostFundState().Sign(alice.PrivateKey)
-	var correctSignatureByBobOnPostFund, _ = s.C.PostFundState().Sign(bob.PrivateKey)
+	correctSignatureByAliceOnPostFund, _ := s.C.PostFundState().Sign(alice.PrivateKey)
+	correctSignatureByBobOnPostFund, _ := s.C.PostFundState().Sign(bob.PrivateKey)
 
 	// Prepare expected side effects
 	preFundSS := state.NewSignedState(s.C.PreFundState())
@@ -209,7 +207,9 @@ func TestCrank(t *testing.T) {
 		TransactionsToSubmit: []protocols.ChainTransaction{
 			protocols.NewDepositTransaction(s.C.Id, types.Funds{
 				testState.Outcome[0].Asset: testState.Outcome[0].Allocations[0].Amount,
-			})}}
+			}),
+		},
+	}
 	// END test data preparation
 
 	// Assert that cranking an unapproved objective returns an error
@@ -305,7 +305,7 @@ func TestClone(t *testing.T) {
 
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
 	op := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
-	var s, _ = ConstructFromPayload(false, op, testState.Participants[0])
+	s, _ := ConstructFromPayload(false, op, testState.Participants[0])
 
 	clone := s.clone()
 
@@ -320,7 +320,6 @@ func TestMarshalJSON(t *testing.T) {
 	dfo, _ := ConstructFromPayload(false, op, testState.Participants[0])
 
 	encodedDfo, err := json.Marshal(dfo)
-
 	if err != nil {
 		t.Fatalf("error encoding direct-fund objective %v", dfo)
 	}

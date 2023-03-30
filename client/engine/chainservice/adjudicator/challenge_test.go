@@ -105,7 +105,7 @@ func runChallengeWithTurnNum(t *testing.T, turnNum uint64, pc preparedChain) {
 
 	// Use random nonces so we can run this test multiple times against the same chain
 	nonce := rand.Uint64()
-	var s = state.State{
+	s := state.State{
 		Participants: []types.Address{
 			Actors.Alice.Address,
 			Actors.Bob.Address,
@@ -123,7 +123,6 @@ func runChallengeWithTurnNum(t *testing.T, turnNum uint64, pc preparedChain) {
 	aSig, _ := s.Sign(Actors.Alice.PrivateKey)
 	bSig, _ := s.Sign(Actors.Bob.PrivateKey)
 	challengerSig, err := SignChallengeMessage(s, Actors.Alice.PrivateKey)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +194,6 @@ func runChallengeWithTurnNum(t *testing.T, turnNum uint64, pc preparedChain) {
 	if !bytes.Equal(statusOnChain[:], expectedOnChainStatus) {
 		t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(expectedOnChainStatus[:]))
 	}
-
 }
 
 // prepareSimulatedBackend returns a preparedChain object containing a chain, txSubmitter
@@ -223,7 +221,6 @@ func prepareSimulatedBackend(t *testing.T) preparedChain {
 
 	// Deploy Adjudicator
 	_, _, na, err := DeployNitroAdjudicator(auth, sim)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +229,6 @@ func prepareSimulatedBackend(t *testing.T) preparedChain {
 
 	// Deploy ConsensusApp
 	consensusAppAddress, _, _, err := ConsensusApp.DeployConsensusApp(auth2, sim)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +239,6 @@ func prepareSimulatedBackend(t *testing.T) preparedChain {
 		*na,
 		auth,
 	}
-
 }
 
 // prepareHyperspaceBackend returns a preparedChain object containing a chain, txSubmitter
@@ -272,11 +267,10 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 		t.Fatal(err)
 	}
 
-	//PK: 0x1688820ffc6a811e09ff17eccec23d8dec4850c3098ffc03ac4aa38dd8f3a994
+	// PK: 0x1688820ffc6a811e09ff17eccec23d8dec4850c3098ffc03ac4aa38dd8f3a994
 	// corresponding ETH address is 0x280c53E2C574418D8d6d8d651d4c3323F4b194Be
 	// corresponding f4 address (delegated) is t410ffagfhywforay3dlnrvsr2tbtep2ldff6xuxkrjq.
 	pk, err := wallet.PrivateKey(a)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,5 +312,4 @@ func prepareHyperspaceBackend(t *testing.T) preparedChain {
 		*na,
 		txSubmitter,
 	}
-
 }

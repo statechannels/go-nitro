@@ -9,8 +9,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const nitroRequestTopic = "nitro-request"
-const nitroNotificationTopic = "nitro-notify"
+const (
+	nitroRequestTopic      = "nitro-request"
+	nitroNotificationTopic = "nitro-notify"
+)
 
 type natsTransport struct {
 	nc                *nats.Conn
@@ -34,8 +36,8 @@ func newNatsTransport(url string) (*natsTransport, error) {
 	}
 	return &natsTransport{
 		nc:                nc,
-		natsSubscriptions: make([]*nats.Subscription, 0)}, nil
-
+		natsSubscriptions: make([]*nats.Subscription, 0),
+	}, nil
 }
 
 func NewNatsTransportAsServer(rpcPort int) (*natsTransportServer, error) {

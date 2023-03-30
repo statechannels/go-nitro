@@ -22,20 +22,24 @@ type actorLedgers struct {
 	left  *consensus_channel.ConsensusChannel
 	right *consensus_channel.ConsensusChannel
 }
-type ledgerLookup map[types.Destination]actorLedgers
-type testData struct {
-	vPreFund        state.State
-	vPostFund       state.State
-	leaderLedgers   ledgerLookup
-	followerLedgers ledgerLookup
-}
+type (
+	ledgerLookup map[types.Destination]actorLedgers
+	testData     struct {
+		vPreFund        state.State
+		vPostFund       state.State
+		leaderLedgers   ledgerLookup
+		followerLedgers ledgerLookup
+	}
+)
 
-var alice, p1, bob ta.Actor = ta.Alice, ta.Irene, ta.Bob
-var allActors []ta.Actor = []ta.Actor{alice, p1, bob}
+var (
+	alice, p1, bob ta.Actor   = ta.Alice, ta.Irene, ta.Bob
+	allActors      []ta.Actor = []ta.Actor{alice, p1, bob}
+)
 
 // newTestData returns new copies of consistent test data each time it is called
 func newTestData() testData {
-	var vPreFund = state.State{
+	vPreFund := state.State{
 		Participants:      []types.Address{alice.Address(), p1.Address(), bob.Address()},
 		ChannelNonce:      0,
 		AppDefinition:     types.Address{},
@@ -56,7 +60,7 @@ func newTestData() testData {
 		TurnNum: 0,
 		IsFinal: false,
 	}
-	var vPostFund = vPreFund.Clone()
+	vPostFund := vPreFund.Clone()
 	vPostFund.TurnNum = 1
 
 	leaderLedgers := make(map[types.Destination]actorLedgers)
@@ -160,7 +164,6 @@ func testCloneAs(my ta.Actor) Tester {
 		if diff := compareObjectives(o, clone); diff != "" {
 			t.Fatalf("Clone: mismatch (-want +got):\n%s", diff)
 		}
-
 	}
 }
 
@@ -515,7 +518,6 @@ func assertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.S
 		}
 	}
 	Assert(t, found, "side effects do not include signed state")
-
 }
 
 func compareStates(a, b state.SignedState) string {

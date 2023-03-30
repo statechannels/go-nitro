@@ -12,18 +12,19 @@ import (
 )
 
 // The following constants are generated from our ts nitro-protocol package
-var correctChannelId = common.HexToHash(`3f9dfeabcc41d1618dd0711102018ab6c1a1d7c25111a425401c2e524eb073a2`)
-var correctStateHash = common.HexToHash(`8e20f2e5f2cd3b3d4805eb3b98d2cf2945631042f4cb69fc629425dd28efe184`)
-var signerPrivateKey = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
-var signerAddress = common.HexToAddress(`F5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)
-var correctSignature = Signature{
-	R: common.Hex2Bytes(`2873c05a6ecebca3d2fde93ea3332b4423bbd2a60a973ec61b8abfe16294f69e`),
-	S: common.Hex2Bytes(`59ddb5b57c79924b57db6d928a0f3ef657c6e0e9879d2bf387364ace6d3284fd`),
-	V: byte(27),
-}
+var (
+	correctChannelId = common.HexToHash(`3f9dfeabcc41d1618dd0711102018ab6c1a1d7c25111a425401c2e524eb073a2`)
+	correctStateHash = common.HexToHash(`8e20f2e5f2cd3b3d4805eb3b98d2cf2945631042f4cb69fc629425dd28efe184`)
+	signerPrivateKey = common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
+	signerAddress    = common.HexToAddress(`F5A1BB5607C9D079E46d1B3Dc33f257d937b43BD`)
+	correctSignature = Signature{
+		R: common.Hex2Bytes(`2873c05a6ecebca3d2fde93ea3332b4423bbd2a60a973ec61b8abfe16294f69e`),
+		S: common.Hex2Bytes(`59ddb5b57c79924b57db6d928a0f3ef657c6e0e9879d2bf387364ace6d3284fd`),
+		V: byte(27),
+	}
+)
 
 func TestCloneSignature(t *testing.T) {
-
 	toCopy := Signature{
 		R: common.Hex2Bytes(`704b3afcc6e702102ca1af3f73cf3b37f3007f368c40e8b81ca823a65740a053`),
 		S: common.Hex2Bytes(`14040ad4c598dbb055a50430142a13518e1330b79d24eed86fcbdff1a7a95589`),
@@ -124,11 +125,9 @@ func TestEqual(t *testing.T) {
 	if got.Equal(want) {
 		t.Fatalf(`expected %v to not equal %v, but it did`, got, want)
 	}
-
 }
 
 func TestClone(t *testing.T) {
-
 	clone := TestState.Clone()
 
 	if diff := cmp.Diff(TestState, clone); diff != "" {

@@ -11,8 +11,8 @@ import (
 
 func TestDeposit(t *testing.T) {
 	// The MockChain should react to a deposit transaction for a given channel by sending an event with updated holdings for that channel
-	var a = types.Address(common.HexToAddress(`a`))
-	var b = types.Address(common.HexToAddress(`b`))
+	a := types.Address(common.HexToAddress(`a`))
+	b := types.Address(common.HexToAddress(`b`))
 
 	// Construct MockChain
 	chain := NewMockChain()

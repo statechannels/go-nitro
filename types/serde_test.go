@@ -29,5 +29,4 @@ func TestTextMarshalling(t *testing.T) {
 	if diff := cmp.Diff(newDest, dest); diff != "" {
 		t.Fatalf("unmarshaled destination does not match expected destination:\n%s", diff)
 	}
-
 }

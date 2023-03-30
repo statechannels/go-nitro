@@ -11,7 +11,6 @@ import (
 
 // TestVirtualFundMultiParty tests the scenario where Alice creates virtual channels with Bob and Brian using Irene as the intermediary.
 func TestVirtualFundMultiParty(t *testing.T) {
-
 	logFile := "test_virtual_fund_multi_party.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
@@ -65,5 +64,4 @@ func TestVirtualFundMultiParty(t *testing.T) {
 
 	waitTimeForCompletedObjectiveIds(t, &clientAlice, defaultTimeout, id, id2)
 	waitTimeForCompletedObjectiveIds(t, &clientIrene, defaultTimeout, id, id2)
-
 }

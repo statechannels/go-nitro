@@ -29,7 +29,6 @@ func getStatusFromChannel(c *channel.Channel) ChannelStatus {
 
 // getPaymentChannelBalance generates a PaymentChannelBalance from the given participants and outcome
 func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit) PaymentChannelBalance {
-
 	numParticipants := len(participants)
 	// TODO: We assume single asset outcomes
 	sao := outcome[0]
@@ -52,14 +51,12 @@ func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit
 func getLatestSupported(channel *channel.Channel) (state.State, error) {
 	if channel.HasSupportedState() {
 		return channel.LatestSupportedState()
-
 	}
 	return channel.PreFundState(), nil
 }
 
 // getLedgerBalanceFromState returns the balance of the ledger channel from the given state
 func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
-
 	// TODO: We assume single asset outcomes
 	outcome := latest.Outcome[0]
 	asset := outcome.Asset
@@ -80,7 +77,6 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 // GetPaymentChannelInfo returns the PaymentChannelInfo for the given channel
 // It does this by querying the provided store and voucher manager
 func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager) (PaymentChannelInfo, error) {
-
 	// This is slightly awkward but if the virtual defunding objective is complete it won't come back if we query by channel id
 	// We manually construct the objective id and query by that
 	virtualDefundId := protocols.ObjectiveId(virtualdefund.ObjectivePrefix + id.String())
@@ -138,7 +134,6 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 		}, nil
 	}
 	return PaymentChannelInfo{}, fmt.Errorf("could not find channel with id %v", id)
-
 }
 
 // GetLedgerChannelInfo returns the LedgerChannelInfo for the given channel
@@ -168,5 +163,4 @@ func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChanne
 		Status:  Ready,
 		Balance: getLedgerBalanceFromState(latest),
 	}, nil
-
 }

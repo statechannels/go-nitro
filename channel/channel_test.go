@@ -93,7 +93,6 @@ func TestChannel(t *testing.T) {
 		if got != want {
 			t.Error(`expected c.PreFundSignedByMe() to be false, but it is true`)
 		}
-
 	}
 
 	testPostFundSignedByMe := func(t *testing.T) {
@@ -102,7 +101,6 @@ func TestChannel(t *testing.T) {
 		if got != want {
 			t.Error(`expected c.PostFundSignedByMe() to be false, but it is true`)
 		}
-
 	}
 
 	testPreFundComplete := func(t *testing.T) {
@@ -111,7 +109,6 @@ func TestChannel(t *testing.T) {
 		if got != want {
 			t.Error(`expected c.PreFundComplete() to be false, but it is true`)
 		}
-
 	}
 
 	testPostFundComplete := func(t *testing.T) {
@@ -174,7 +171,6 @@ func TestChannel(t *testing.T) {
 		// It should properly update the latestSupportedStateNum
 		if myC.latestSupportedStateTurnNum != s.TurnNum {
 			t.Fatalf("Expected latestSupportedStateTurnNum of %d but got %d", s.TurnNum, myC.latestSupportedStateTurnNum)
-
 		}
 		// verify the signatures
 		expectedSigs := []state.Signature{sigA, sigB}
@@ -284,7 +280,6 @@ func TestChannel(t *testing.T) {
 		if diff := compareStates(latestSignedState, expectedSignedState); diff != "" {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
 		}
-
 	}
 
 	t.Run(`TestNew`, testNew)
@@ -300,7 +295,6 @@ func TestChannel(t *testing.T) {
 	t.Run(`TestTotal`, testTotal)
 	t.Run(`TestAddStateWithSignature`, testAddStateWithSignature)
 	t.Run(`TestAddSignedState`, testAddSignedState)
-
 }
 
 func TestVirtualChannel(t *testing.T) {
@@ -336,7 +330,6 @@ func TestVirtualChannel(t *testing.T) {
 		if clone != nil {
 			t.Fatal("Tried to clone a Channel via a nil pointer, but got something not nil")
 		}
-
 	}
 
 	t.Run(`TestClone SingleHop`, testClone)
@@ -345,7 +338,6 @@ func TestVirtualChannel(t *testing.T) {
 }
 
 func TestSerde(t *testing.T) {
-
 	ss := state.NewSignedState(state.TestState)
 	signedStateForTurnNum := make(map[uint64]state.SignedState)
 	signedStateForTurnNum[0] = ss
@@ -369,7 +361,7 @@ func TestSerde(t *testing.T) {
 		t.Fatalf("incorrect json marshaling, expected %v got \n%v", someChannelJSON, string(got))
 	}
 
-	//Unmarshalling
+	// Unmarshalling
 	var c Channel
 	err = json.Unmarshal([]byte(someChannelJSON), &c)
 	if err != nil {

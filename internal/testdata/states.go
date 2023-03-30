@@ -86,7 +86,6 @@ func createLedgerState(client, hub types.Address, clientBalance, hubBalance uint
 
 // createOutcome is a helper function to create a two-actor outcome
 func createOutcome(first types.Address, second types.Address, x, y uint, asset common.Address) outcome.Exit {
-
 	return outcome.Exit{outcome.SingleAssetExit{
 		Asset: asset,
 		Allocations: outcome.Allocations{

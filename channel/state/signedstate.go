@@ -42,10 +42,8 @@ func (ss SignedState) AddSignature(sig Signature) error {
 			}
 
 		}
-
 	}
 	return errors.New("signature does not match any participant")
-
 }
 
 // State returns the State part of the SignedState.
@@ -133,12 +131,10 @@ func (ss SignedState) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(rr)
-
 }
 
 // UnmarshalJSON unmarshals the passed JSON into a SignedState, implementing the Unmarshaler interface.
 func (ss *SignedState) UnmarshalJSON(j []byte) error {
-
 	rr := struct {
 		State State
 		Sigs  map[uint]Signature // keyed by participant index
@@ -149,7 +145,6 @@ func (ss *SignedState) UnmarshalJSON(j []byte) error {
 	ss.state = rr.State
 	ss.sigs = rr.Sigs
 	return err
-
 }
 
 // ChannelId returns the channel id of the state.

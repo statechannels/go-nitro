@@ -23,7 +23,6 @@ import (
 )
 
 func TestVirtualDefundIntegration(t *testing.T) {
-
 	// Setup logging
 	logFile := "test_virtual_defund.log"
 	truncateLog(logFile)
@@ -31,13 +30,11 @@ func TestVirtualDefundIntegration(t *testing.T) {
 	for _, closer := range []testactors.Actor{alice, irene, bob} {
 		t.Run(fmt.Sprintf("TestVirtualDefundIntegration_as_%s", closer.Name), func(t *testing.T) {
 			runVirtualDefundIntegrationTestAs(t, closer.Address(), 0, defaultTimeout, logDestination)
-
 		})
 	}
 }
 
 func TestVirtualDefundIntegrationWithMessageDelay(t *testing.T) {
-
 	// Setup logging
 	logFile := "test_virtual_defund_with_message_delay.log"
 	truncateLog(logFile)
@@ -48,7 +45,6 @@ func TestVirtualDefundIntegrationWithMessageDelay(t *testing.T) {
 	const OBJECTIVE_TIMEOUT = time.Second * 2
 
 	runVirtualDefundIntegrationTestAs(t, alice.Address(), MAX_MESSAGE_DELAY, OBJECTIVE_TIMEOUT, logDestination)
-
 }
 
 // runVirtualDefundIntegrationTestAs runs a virtual defund integration test using the provided message delay, objective timeout and log destination
@@ -84,7 +80,6 @@ func runVirtualDefundIntegrationTestAs(t *testing.T, closer types.Address, messa
 		case irene.Address():
 			ids[i] = clientI.CloseVirtualChannel(cIds[i])
 		}
-
 	}
 	waitTimeForCompletedObjectiveIds(t, &clientA, objectiveTimeout, ids...)
 	waitTimeForCompletedObjectiveIds(t, &clientB, objectiveTimeout, ids...)
@@ -113,7 +108,6 @@ func runVirtualDefundIntegrationTestAs(t *testing.T, closer types.Address, messa
 				checkIreneBobLedgerOutcome(t, vdfo.VId(), vdfo.ToMyRight.ConsensusVars().Outcome, totalPaidToBob)
 			}
 		}
-
 	}
 }
 
@@ -150,7 +144,6 @@ func checkIreneBobLedgerOutcome(t *testing.T, vId types.Destination, outcome con
 }
 
 func TestWhenVirtualDefundObjectiveIsRejected(t *testing.T) {
-
 	// Setup logging
 	logFile := "test_rejected_virtualdefund_fund.log"
 	truncateLog(logFile)

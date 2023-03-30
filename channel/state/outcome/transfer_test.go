@@ -9,26 +9,28 @@ import (
 )
 
 func TestComputeTransferEffectsAndInteractions(t *testing.T) {
-
 	initialHoldings := *big.NewInt(100)
 
-	var initialAllocations = Allocations{{ // [{Alice: 2}]
+	initialAllocations := Allocations{{ // [{Alice: 2}]
 		Destination:    types.Destination(common.HexToHash("0x0a")),
 		Amount:         big.NewInt(2),
 		AllocationType: 0,
-		Metadata:       make(types.Bytes, 0)}}
+		Metadata:       make(types.Bytes, 0),
+	}}
 
-	var expectedNewAllocations = Allocations{{ // [{Alice: 0}]
+	expectedNewAllocations := Allocations{{ // [{Alice: 0}]
 		Destination:    types.Destination(common.HexToHash("0x0a")),
 		Amount:         big.NewInt(0),
 		AllocationType: 0,
-		Metadata:       make(types.Bytes, 0)}}
+		Metadata:       make(types.Bytes, 0),
+	}}
 
-	var expectedExitAllocations = Allocations{{ // [{Alice: 2}]
+	expectedExitAllocations := Allocations{{ // [{Alice: 2}]
 		Destination:    types.Destination(common.HexToHash("0x0a")),
 		Amount:         big.NewInt(2),
 		AllocationType: 0,
-		Metadata:       make(types.Bytes, 0)}}
+		Metadata:       make(types.Bytes, 0),
+	}}
 
 	got1, got2 := ComputeTransferEffectsAndInteractions(initialHoldings, initialAllocations, []uint{})
 	want1 := expectedNewAllocations
@@ -41,5 +43,4 @@ func TestComputeTransferEffectsAndInteractions(t *testing.T) {
 	if !got2.Equal(want2) {
 		t.Fatalf("got %+v, wanted %+v", got2, want2)
 	}
-
 }

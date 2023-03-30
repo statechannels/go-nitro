@@ -17,25 +17,27 @@ var nullMetadata = AssetMetadata{
 }
 
 func TestEqualExits(t *testing.T) {
-	var e1 = Exit{SingleAssetExit{
+	e1 := Exit{SingleAssetExit{
 		Asset:         common.HexToAddress("0x00"),
 		AssetMetadata: nullMetadata,
 		Allocations: Allocations{{
 			Destination:    types.Destination(common.HexToHash("0x0a")),
 			Amount:         big.NewInt(2),
 			AllocationType: 0,
-			Metadata:       make(types.Bytes, 0)}},
+			Metadata:       make(types.Bytes, 0),
+		}},
 	}}
 
 	// equal to e1
-	var e2 = Exit{SingleAssetExit{
+	e2 := Exit{SingleAssetExit{
 		Asset:         common.HexToAddress("0x00"),
 		AssetMetadata: nullMetadata,
 		Allocations: Allocations{{
 			Destination:    types.Destination(common.HexToHash("0x0a")),
 			Amount:         big.NewInt(2),
 			AllocationType: 0,
-			Metadata:       make(types.Bytes, 0)}},
+			Metadata:       make(types.Bytes, 0),
+		}},
 	}}
 
 	if &e1 == &e2 {
@@ -55,7 +57,8 @@ func TestEqualExits(t *testing.T) {
 				Destination:    types.Destination(common.HexToHash("0x0a")),
 				Amount:         big.NewInt(2),
 				AllocationType: 0,
-				Metadata:       make(types.Bytes, 0)}},
+				Metadata:       make(types.Bytes, 0),
+			}},
 		}},
 		{SingleAssetExit{
 			Asset: common.HexToAddress("0x00"),
@@ -67,7 +70,8 @@ func TestEqualExits(t *testing.T) {
 				Destination:    types.Destination(common.HexToHash("0x0a")),
 				Amount:         big.NewInt(2),
 				AllocationType: 0,
-				Metadata:       make(types.Bytes, 0)}},
+				Metadata:       make(types.Bytes, 0),
+			}},
 		}},
 		{SingleAssetExit{
 			Asset:         common.HexToAddress("0x00"),
@@ -76,7 +80,8 @@ func TestEqualExits(t *testing.T) {
 				Destination:    types.Destination(common.HexToHash("0x0b")), // distinct destination
 				Amount:         big.NewInt(2),
 				AllocationType: 0,
-				Metadata:       make(types.Bytes, 0)}},
+				Metadata:       make(types.Bytes, 0),
+			}},
 		}},
 		{SingleAssetExit{
 			Asset:         common.HexToAddress("0x00"),
@@ -85,7 +90,8 @@ func TestEqualExits(t *testing.T) {
 				Destination:    types.Destination(common.HexToHash("0x0a")),
 				Amount:         big.NewInt(3), // distinct amount
 				AllocationType: 0,
-				Metadata:       make(types.Bytes, 0)}},
+				Metadata:       make(types.Bytes, 0),
+			}},
 		}},
 		{SingleAssetExit{
 			Asset:         common.HexToAddress("0x00"),
@@ -94,7 +100,8 @@ func TestEqualExits(t *testing.T) {
 				Destination:    types.Destination(common.HexToHash("0x0a")),
 				Amount:         big.NewInt(2),
 				AllocationType: 1, // distinct allocationType
-				Metadata:       make(types.Bytes, 0)}},
+				Metadata:       make(types.Bytes, 0),
+			}},
 		}},
 		{SingleAssetExit{
 			Asset:         common.HexToAddress("0x00"),
@@ -103,7 +110,8 @@ func TestEqualExits(t *testing.T) {
 				Destination:    types.Destination(common.HexToHash("0x0a")),
 				Amount:         big.NewInt(2),
 				AllocationType: 0,
-				Metadata:       []byte{1}}}, // distinct metadata
+				Metadata:       []byte{1},
+			}}, // distinct metadata
 		}},
 	}
 
@@ -131,8 +139,7 @@ func TestExitEncodeDecode(t *testing.T) {
 }
 
 func TestExitEncode(t *testing.T) {
-	var encodedExit, err = testExit.Encode()
-
+	encodedExit, err := testExit.Encode()
 	if err != nil {
 		t.Error(err)
 	}
@@ -143,7 +150,7 @@ func TestExitEncode(t *testing.T) {
 }
 
 func TestExitDecode(t *testing.T) {
-	var decodedExit, err = Decode(encodedExitReference)
+	decodedExit, err := Decode(encodedExitReference)
 	if err != nil {
 		t.Error(err)
 	}
@@ -154,7 +161,6 @@ func TestExitDecode(t *testing.T) {
 }
 
 func TestTotal(t *testing.T) {
-
 	total := allocsX.Total()
 	if total.Cmp(big.NewInt(5)) != 0 {
 		t.Fatalf(`Expected total to be 5, got %v`, total)
@@ -203,7 +209,6 @@ func TestTotalFor(t *testing.T) {
 }
 
 func TestExitAffords(t *testing.T) {
-
 	allocationMap := map[types.Address]Allocation{
 		{}: testExit[0].Allocations[0],
 	}
@@ -216,7 +221,6 @@ func TestExitAffords(t *testing.T) {
 }
 
 func TestExitDivertToGuarantee(t *testing.T) {
-
 	aliceDestination := types.Destination(common.HexToHash("0x0a"))
 	bobDestination := types.Destination(common.HexToHash("0x0b"))
 
@@ -248,7 +252,6 @@ func TestExitDivertToGuarantee(t *testing.T) {
 	}
 
 	got, err := e.DivertToGuarantee(aliceDestination, bobDestination, leftFunds, rightFunds, targetChannel)
-
 	if err != nil {
 		t.Error(err)
 	}
@@ -323,16 +326,14 @@ func TestExitDivertToGuarantee(t *testing.T) {
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("TestDivertToGuarantee: expectedGuarantee mismatch (-want +got):\n%s", diff)
 	}
-
 }
 
 func TestSingleAssetExitClone(t *testing.T) {
-
 	aliceDestination := types.Destination(common.HexToHash("0x0a"))
 	bobDestination := types.Destination(common.HexToHash("0x0b"))
 	targetChannel := types.Destination(common.HexToHash("0xabc"))
 
-	var sae = SingleAssetExit{
+	sae := SingleAssetExit{
 		Asset: types.Address{0},
 		Allocations: Allocations{
 			{
@@ -364,12 +365,11 @@ func TestSingleAssetExitClone(t *testing.T) {
 }
 
 func TestClone(t *testing.T) {
-
 	aliceDestination := types.Destination(common.HexToHash("0x0a"))
 	bobDestination := types.Destination(common.HexToHash("0x0b"))
 	targetChannel := types.Destination(common.HexToHash("0xabc"))
 
-	var e = Exit{
+	e := Exit{
 		SingleAssetExit{
 			Asset:         types.Address{0},
 			AssetMetadata: nullMetadata,

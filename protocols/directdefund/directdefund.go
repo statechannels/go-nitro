@@ -22,6 +22,7 @@ const (
 	WaitingForWithdraw     protocols.WaitingFor = "WaitingForWithdraw"
 	WaitingForNothing      protocols.WaitingFor = "WaitingForNothing" // Finished
 )
+
 const (
 	SignedStatePayload protocols.PayloadType = "SignedStatePayload"
 )
@@ -98,7 +99,7 @@ func NewObjective(
 		return Objective{}, ErrChannelUpdateInProgress
 	}
 
-	var init = Objective{}
+	init := Objective{}
 
 	if preApprove {
 		init.Status = protocols.Approved
@@ -114,7 +115,6 @@ func NewObjective(
 
 	if !latestSS.IsFinal {
 		init.finalTurnNum = latestSS.TurnNum + 1
-
 	} else {
 		init.finalTurnNum = latestSS.TurnNum
 	}
@@ -128,7 +128,6 @@ func ConstructObjectiveFromPayload(
 	preapprove bool,
 	getConsensusChannel GetConsensusChannel,
 ) (Objective, error) {
-
 	ss, err := getSignedStatePayload(p.PayloadData)
 	if err != nil {
 		return Objective{}, fmt.Errorf("could not get signed state payload: %w", err)
@@ -233,7 +232,6 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
 	}
 	return &updated, nil
-
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
@@ -299,9 +297,7 @@ func IsDirectDefundObjective(id protocols.ObjectiveId) bool {
 
 // CreateChannelFromConsensusChannel creates a Channel with (an appropriate latest supported state) from the supplied ConsensusChannel.
 func CreateChannelFromConsensusChannel(cc consensus_channel.ConsensusChannel) (*channel.Channel, error) {
-
 	c, err := channel.New(cc.ConsensusVars().AsState(cc.SupportedSignedState().State().FixedPart()), uint(cc.MyIndex))
-
 	if err != nil {
 		return &channel.Channel{}, err
 	}

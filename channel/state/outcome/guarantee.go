@@ -32,7 +32,6 @@ type rawGuaranteeMetadataType = struct {
 
 // convertToGuaranteeMetadata converts a rawGuaranteeMetadataType to a GuaranteeMetadata
 func convertToGuaranteeMetadata(r rawGuaranteeMetadataType) GuaranteeMetadata {
-
 	guaranteeMetadata := GuaranteeMetadata{Left: types.Destination(r.Left), Right: types.Destination(r.Right)}
 	return guaranteeMetadata
 }

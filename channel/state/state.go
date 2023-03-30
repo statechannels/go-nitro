@@ -28,7 +28,6 @@ func CloneSignature(s Signature) Signature {
 	copy(clone.S, s.S)
 
 	return clone
-
 }
 
 type (
@@ -81,14 +80,12 @@ func (s State) ChannelId() types.Destination {
 }
 
 func (fp FixedPart) ChannelId() types.Destination {
-
 	encodedChannelPart, err := ethAbi.Arguments{
 		{Type: abi.AddressArray},
 		{Type: abi.Uint256},
 		{Type: abi.Address},
 		{Type: abi.Uint256},
 	}.Pack(fp.Participants, new(big.Int).SetUint64(fp.ChannelNonce), fp.AppDefinition, new(big.Int).SetUint64(uint64(fp.ChallengeDuration)))
-
 	if err != nil {
 		panic(err)
 	}
@@ -96,7 +93,6 @@ func (fp FixedPart) ChannelId() types.Destination {
 	channelId := types.Destination(crypto.Keccak256Hash(encodedChannelPart))
 
 	return channelId
-
 }
 
 // encodes the state into a []bytes value
@@ -218,7 +214,6 @@ func (s State) Clone() State {
 
 // StateFromFixedAndVariablePart constructs a State from a FixedPart and a VariablePart
 func StateFromFixedAndVariablePart(f FixedPart, v VariablePart) State {
-
 	return State{
 		Participants:      f.Participants,
 		ChannelNonce:      f.ChannelNonce,
@@ -229,5 +224,4 @@ func StateFromFixedAndVariablePart(f FixedPart, v VariablePart) State {
 		TurnNum:           v.TurnNum,
 		IsFinal:           v.IsFinal,
 	}
-
 }

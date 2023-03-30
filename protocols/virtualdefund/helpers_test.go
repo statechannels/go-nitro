@@ -27,16 +27,12 @@ func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus
 		}
 	case 1:
 		{
-
 			return prepareConsensusChannel(uint(consensus_channel.Follower), ta.Alice, ta.Irene, generateGuarantee(ta.Alice, ta.Irene, vId)),
 				prepareConsensusChannel(uint(consensus_channel.Leader), ta.Irene, ta.Bob, generateGuarantee(ta.Irene, ta.Bob, vId))
-
 		}
 	case 2:
 		{
-
 			return prepareConsensusChannel(uint(consensus_channel.Follower), ta.Irene, ta.Bob, generateGuarantee(ta.Irene, ta.Bob, vId)), nil
-
 		}
 	default:
 		panic("invalid myRole")
@@ -68,7 +64,6 @@ func generateStoreGetters(myRole uint, vId types.Destination, vFinal state.State
 // generateGuarantee generates a guarantee for the given participants and vId
 func generateGuarantee(left, right ta.Actor, vId types.Destination) consensus_channel.Guarantee {
 	return consensus_channel.NewGuarantee(big.NewInt(10), vId, left.Destination(), right.Destination())
-
 }
 
 // prepareConsensusChannel prepares a consensus channel with a consensus outcome
@@ -115,7 +110,6 @@ func prepareConsensusChannel(role uint, left, right ta.Actor, guarantees ...cons
 
 // checkForFollowerProposals checks that the follower have signed and sent the appropriate proposal
 func checkForFollowerProposals(t *testing.T, se protocols.SideEffects, o *Objective, td testdata) {
-
 	switch o.MyRole {
 	case 1:
 		{
@@ -178,7 +172,6 @@ func generateProposalsResponses(myRole uint, vId types.Destination, o *Objective
 
 // checkForLeaderProposals checks that the outgoing message contains the correct proposals from the leader of a consensus channel
 func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objective, td testdata) {
-
 	switch o.MyRole {
 	case 0:
 		{
@@ -198,7 +191,6 @@ func checkForLeaderProposals(t *testing.T, se protocols.SideEffects, o *Objectiv
 
 // signProposal signs a proposal with the given actor's private key
 func signProposal(me ta.Actor, p consensus_channel.Proposal, c *consensus_channel.ConsensusChannel, turnNum uint64) (consensus_channel.SignedProposal, error) {
-
 	con := c.ConsensusVars()
 	vars := con.Clone()
 	err := vars.HandleProposal(p)
@@ -246,7 +238,6 @@ type testdata struct {
 func generateRemoveProposal(cId types.Destination, td testdata) consensus_channel.Proposal {
 	vId := td.vFinal.ChannelId()
 	return consensus_channel.NewRemoveProposal(cId, vId, big.NewInt(int64(td.finalAliceAmount)))
-
 }
 
 // generateTestData generates some test data that can be used in a test

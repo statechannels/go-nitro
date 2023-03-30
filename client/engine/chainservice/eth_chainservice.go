@@ -20,11 +20,13 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-var allocationUpdatedTopic = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256)"))
-var concludedTopic = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
-var depositedTopic = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
-var challengeRegisteredTopic = crypto.Keccak256Hash([]byte("ChallengeRegistered(bytes32 indexed channelId, uint48 turnNumRecord, uint48 finalizesAt, bool isFinal, (address[],uint64,address,uint48) fixedPart, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[])[] proof, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[]) candidate)"))
-var challengeClearedTopic = crypto.Keccak256Hash([]byte("ChallengeCleared(bytes32 indexed channelId, uint48 newTurnNumRecord)"))
+var (
+	allocationUpdatedTopic   = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256)"))
+	concludedTopic           = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
+	depositedTopic           = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256,uint256)"))
+	challengeRegisteredTopic = crypto.Keccak256Hash([]byte("ChallengeRegistered(bytes32 indexed channelId, uint48 turnNumRecord, uint48 finalizesAt, bool isFinal, (address[],uint64,address,uint48) fixedPart, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[])[] proof, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[]) candidate)"))
+	challengeClearedTopic    = crypto.Keccak256Hash([]byte("ChallengeCleared(bytes32 indexed channelId, uint48 newTurnNumRecord)"))
+)
 
 type ethChain interface {
 	bind.ContractBackend
@@ -60,8 +62,8 @@ const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
 func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
-	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer) (*EthChainService, error) {
-
+	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer,
+) (*EthChainService, error) {
 	logging.ConfigureZeroLogger()
 
 	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
@@ -140,7 +142,6 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 // It accepts a format string and arguments, as per fmt.Printf.
 // If prints out the error to STDOUT, the logger and then exits the program.
 func (ecs *EthChainService) fatalF(format string, v ...any) {
-
 	// Print to STDOUT in case we're using a noop logger
 	fmt.Println(fmt.Errorf(format, v...))
 
@@ -148,7 +149,6 @@ func (ecs *EthChainService) fatalF(format string, v ...any) {
 
 	// Manually panic in case we're using a logger that doesn't call exit(1)
 	panic(fmt.Errorf(format, v...))
-
 }
 
 // dispatchChainEvents takes in a collection of event logs from the chain
@@ -168,13 +168,11 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			au, err := ecs.na.ParseAllocationUpdated(l)
 			if err != nil {
 				ecs.fatalF("error in ParseAllocationUpdated: %v", err)
-
 			}
 
 			tx, pending, err := ecs.chain.TransactionByHash(context.Background(), l.TxHash)
 			if pending {
 				ecs.fatalF("Expected transaction to be part of the chain, but the transaction is pending")
-
 			}
 			var assetAddress types.Address
 			var amount *big.Int
@@ -194,7 +192,6 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			ce, err := ecs.na.ParseConcluded(l)
 			if err != nil {
 				ecs.fatalF("error in ParseConcluded: %v", err)
-
 			}
 
 			event := ConcludedEvent{commonEvent: commonEvent{channelID: ce.ChannelId, BlockNum: l.BlockNumber}}
@@ -208,7 +205,6 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			ecs.logger.Info().Str("topic", l.Topics[0].String()).Msg("Ignoring unknown chain event topic")
 		}
 	}
-
 }
 
 // subscribeForLogs subscribes for logs and pushes them to the out channel.
@@ -250,7 +246,6 @@ func (ecs *EthChainService) subscribeForLogs() {
 			ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
 		}
 	}
-
 }
 
 type blockRange struct {
@@ -260,7 +255,6 @@ type blockRange struct {
 
 // splitBlockRange takes a BlockRange and chunks it into a slice of BlockRanges, each having an interval no larger than the passed interval.
 func splitBlockRange(total blockRange, maxInterval *big.Int) []blockRange {
-
 	if total.from.Cmp(total.to) > 0 {
 		panic(fmt.Sprintf("splitBlockRange: from > to. from = %v, to = %v", total.from, total.to))
 	}
@@ -281,7 +275,6 @@ func splitBlockRange(total blockRange, maxInterval *big.Int) []blockRange {
 	}
 
 	return slice
-
 }
 
 // EventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.

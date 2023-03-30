@@ -14,10 +14,12 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 )
 
-var alice = ta.Alice
-var bob = ta.Bob
-var irene = ta.Irene
-var allActors = []ta.Actor{alice, irene, bob}
+var (
+	alice     = ta.Alice
+	bob       = ta.Bob
+	irene     = ta.Irene
+	allActors = []ta.Actor{alice, irene, bob}
+)
 
 func TestUpdate(t *testing.T) {
 	for _, my := range allActors {
@@ -59,7 +61,6 @@ func TestInvalidUpdate(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected error for channelId being out of scope, got %v", err)
 	}
-
 }
 
 func testUpdateAs(my ta.Actor) func(t *testing.T) {
@@ -88,7 +89,6 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 				testhelpers.Assert(t, isZero(updated.Signatures[a.Role]), "expected signature for current participant %s to be zero", a.Name)
 			}
 		}
-
 	}
 }
 
@@ -169,9 +169,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 
 		testhelpers.Equals(t, waitingFor, WaitingForNothing)
 		checkForFollowerProposals(t, se, updated, data)
-
 	}
-
 }
 
 func TestConstructObjectiveFromState(t *testing.T) {
