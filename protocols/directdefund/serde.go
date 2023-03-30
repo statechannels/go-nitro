@@ -42,7 +42,6 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 
 	var jsonDDFO jsonObjective
 	err := json.Unmarshal(data, &jsonDDFO)
-
 	if err != nil {
 		return err
 	}

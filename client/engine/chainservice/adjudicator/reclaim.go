@@ -11,18 +11,14 @@ import (
 // computeReclaimEffects mirrors on chain code.
 // It computes side effects for the reclaim function. Returns updated allocations for the source, computed by finding the guarantee in the source for the target, and moving money out of the guarantee and back into the ledger channel as regular allocations for the participants.
 func computeReclaimEffects(sourceAllocations []outcome.Allocation, targetAllocations []outcome.Allocation, indexOfTargetInSource uint) ([]outcome.Allocation, error) {
-
 	newSourceAllocations := make([]outcome.Allocation, len(sourceAllocations)-1)
 	guarantee := sourceAllocations[indexOfTargetInSource]
 	guaranteeData, err := outcome.DecodeIntoGuaranteeMetadata(guarantee.Metadata)
-
 	if err != nil {
 		return []outcome.Allocation{}, err
 	}
 
-	var (
-		foundTarget, foundLeft, foundRight bool
-	)
+	var foundTarget, foundLeft, foundRight bool
 
 	totalReclaimed := big.NewInt(0)
 
@@ -64,5 +60,4 @@ func computeReclaimEffects(sourceAllocations []outcome.Allocation, targetAllocat
 		return []outcome.Allocation{}, fmt.Errorf("totalReclaimed!=guarantee.amount")
 	}
 	return newSourceAllocations, nil
-
 }

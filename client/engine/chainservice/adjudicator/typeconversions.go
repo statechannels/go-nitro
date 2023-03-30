@@ -37,7 +37,6 @@ func convertOutcome(o outcome.Exit) []ExitFormatSingleAssetExit {
 }
 
 func convertAssetMetadata(am outcome.AssetMetadata) ExitFormatAssetMetadata {
-
 	return ExitFormatAssetMetadata{
 		AssetType: uint8(am.AssetType),
 		Metadata:  am.Metadata,

@@ -13,7 +13,6 @@ import (
 )
 
 func TestVirtualFundWithMessageDelays(t *testing.T) {
-
 	const MAX_MESSAGE_DELAY = time.Millisecond * 100
 
 	// Since we are delaying messages we allow for enough time to complete the objective
@@ -44,7 +43,6 @@ func TestVirtualFundWithMessageDelays(t *testing.T) {
 	waitTimeForCompletedObjectiveIds(t, &clientA, OBJECTIVE_TIMEOUT, ids...)
 	waitTimeForCompletedObjectiveIds(t, &clientB, OBJECTIVE_TIMEOUT, ids...)
 	waitTimeForCompletedObjectiveIds(t, &clientI, OBJECTIVE_TIMEOUT, ids...)
-
 }
 
 // createVirtualChannels creates a number of virtual channels between the given parties and returns the objective ids.

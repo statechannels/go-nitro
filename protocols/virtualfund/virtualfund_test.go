@@ -19,7 +19,6 @@ import (
 const TEST_CHAIN_ID = 1337
 
 func TestMarshalJSON(t *testing.T) {
-
 	alice, p1, bob := testactors.Alice, testactors.Irene, testactors.Bob
 
 	vPreFund := state.State{
@@ -55,14 +54,12 @@ func TestMarshalJSON(t *testing.T) {
 		nil,
 		right,
 	)
-
 	if err != nil {
 		err = fmt.Errorf("the test VirtualFundObjective was not initialized: %w", err)
 		t.Fatalf("%s", err)
 	}
 
 	encodedVfo, err := json.Marshal(vfo)
-
 	if err != nil {
 		t.Fatalf("error encoding virtualfund objective %v", vfo)
 	}
@@ -116,7 +113,6 @@ func TestMarshalJSON(t *testing.T) {
 	if !got.b0.Equal(vfo.b0) {
 		t.Fatalf("expected bob initial balance of %v but found %v", vfo.b0, got.a0)
 	}
-
 }
 
 func TestApproveReject(t *testing.T) {

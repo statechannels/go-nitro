@@ -120,7 +120,6 @@ func TestLeaderChannel(t *testing.T) {
 			latestTurnNum := latest.TurnNum
 
 			sp, err := channel.Propose(proposal, alice.PrivateKey)
-
 			if err != nil {
 				if expectedErr == nil {
 					t.Fatalf("unexpected error: %v", err)
@@ -342,7 +341,6 @@ func TestLeaderChannel(t *testing.T) {
 			latestTurnNum := latest.TurnNum
 
 			err := channel.Receive(counterProposal.SignedProposal)
-
 			if err != nil {
 				t.Fatalf("unexpected error %v", err)
 			}

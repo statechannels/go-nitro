@@ -40,7 +40,6 @@ func TestEthChainServiceFEVM(t *testing.T) {
 
 	testAgainstEndpoint(t, "https://api.hyperspace.node.glif.io/rpc/v1", "test_fevm_https_endpoint.log", getPK(1))
 	testAgainstEndpoint(t, "wss://wss.hyperspace.node.glif.io/apigw/lotus/rpc/v0", "test_fevm_wss_endpoint.log", getPK(2))
-
 }
 
 // getPK returns the private key for the account at the given index using the hyperspace mnemonic and path
@@ -55,19 +54,15 @@ func getPK(index uint) *ecdsa.PrivateKey {
 		panic(err)
 	}
 	pk, err := wallet.PrivateKey(a)
-
 	if err != nil {
 		panic(err)
 	}
 	return pk
-
 }
 
 // testAgainstEndpoint runs a simple chain test against the provided endpoint
 func testAgainstEndpoint(t *testing.T, endpoint string, logFile string, pk *ecdsa.PrivateKey) {
-
 	client, err := ethclient.Dial(endpoint)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +105,7 @@ func testAgainstEndpoint(t *testing.T, endpoint string, logFile string, pk *ecds
 		Alice = testactors.Alice
 		Bob   = testactors.Bob
 	)
-	var concludeOutcome = outcome.Exit{
+	concludeOutcome := outcome.Exit{
 		outcome.SingleAssetExit{
 			Asset: types.Address{},
 			Allocations: outcome.Allocations{
@@ -126,7 +121,7 @@ func testAgainstEndpoint(t *testing.T, endpoint string, logFile string, pk *ecds
 		},
 	}
 
-	var concludeState = state.State{
+	concludeState := state.State{
 		Participants: []types.Address{
 			Alice.Address(),
 			Bob.Address(),
@@ -225,7 +220,6 @@ func testAgainstEndpoint(t *testing.T, endpoint string, logFile string, pk *ecds
 		}
 
 	}
-
 }
 
 func newLogWriter(logFile string) *os.File {
@@ -235,14 +229,14 @@ func newLogWriter(logFile string) *os.File {
 	}
 
 	filename := filepath.Join("../artifacts", logFile)
-	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-
+	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	return logDestination
 }
+
 func truncateLog(logFile string) {
 	logDestination := newLogWriter(logFile)
 

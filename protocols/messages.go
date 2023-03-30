@@ -57,11 +57,9 @@ func (m Message) Serialize() (string, error) {
 
 // Merge accepts a SideEffects struct that is merged into the the existing SideEffects.
 func (se *SideEffects) Merge(other SideEffects) {
-
 	se.MessagesToSend = append(se.MessagesToSend, other.MessagesToSend...)
 	se.TransactionsToSubmit = append(se.TransactionsToSubmit, other.TransactionsToSubmit...)
 	se.ProposalsToProcess = append(se.ProposalsToProcess, other.ProposalsToProcess...)
-
 }
 
 // GetProposalObjectiveId returns the objectiveId for a proposal.
@@ -117,16 +115,13 @@ func CreateRejectionNoticeMessage(oId ObjectiveId, recipients ...types.Address) 
 func CreateSignedProposalMessage(recipient types.Address, proposals ...consensus_channel.SignedProposal) Message {
 	msg := Message{To: recipient, LedgerProposals: proposals}
 	return msg
-
 }
 
 // CreateVoucherMessage returns a signed voucher message for each of the recipients provided.
 func CreateVoucherMessage(voucher payments.Voucher, recipients ...types.Address) []Message {
 	messages := make([]Message, len(recipients))
 	for i, recipient := range recipients {
-
 		messages[i] = Message{To: recipient, Payments: []payments.Voucher{voucher}}
-
 	}
 
 	return messages
@@ -189,7 +184,8 @@ func (m Message) Summarize() MessageSummary {
 			ObjectiveId:  string(GetProposalObjectiveId(p.Proposal)),
 			LedgerId:     p.ChannelID().String(),
 			TurnNum:      p.TurnNum,
-			ProposalType: string(p.Proposal.Type())}
+			ProposalType: string(p.Proposal.Type()),
+		}
 	}
 	s.Payments = make([]PaymentSummary, len(m.Payments))
 	for i, p := range m.Payments {
@@ -213,7 +209,6 @@ func (m MessageSummary) MarshalZerologObject(e *zerolog.Event) {
 		Array("ProposalSummaries", marshalCollection(m.ProposalSummaries)).
 		Array("Payments", marshalCollection(m.Payments)).
 		Array("RejectedObjectives", marshalIds(m.RejectedObjectives))
-
 }
 
 // marshalIds returns a zerolog.LogArrayMarshaler for the passed ids.
@@ -237,9 +232,11 @@ func marshalCollection[T zerolog.LogObjectMarshaler](col []T) zerolog.LogArrayMa
 func (p PaymentSummary) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("ChannelId", p.ChannelId).Uint64("Amount", p.Amount)
 }
+
 func (o ObjectivePayloadSummary) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("ObjectiveId", o.ObjectiveId).Str("Type", o.Type).Uint("PayloadDataSize", uint(o.PayloadDataSize))
 }
+
 func (o ProposalSummary) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("ObjectiveId", o.ObjectiveId).Str("LedgerId", o.LedgerId).Str("ProposalType", o.ProposalType).Uint64("TurnNum", o.TurnNum)
 }

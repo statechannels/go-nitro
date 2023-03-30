@@ -38,9 +38,11 @@ func (svs *simpleVoucherStore) SetVoucherInfo(channelId types.Destination, v Vou
 	svs.vouchers.Store(channelId.String(), &v)
 	return nil
 }
+
 func (svs *simpleVoucherStore) GetVoucherInfo(channelId types.Destination) (v *VoucherInfo, ok bool) {
 	return svs.vouchers.Load(channelId.String())
 }
+
 func (svs *simpleVoucherStore) RemoveVoucherInfo(channelId types.Destination) error {
 	svs.vouchers.Delete(channelId.String())
 	return nil

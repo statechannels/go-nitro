@@ -58,7 +58,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var concludeState = state.State{
+	concludeState := state.State{
 		Participants: []types.Address{
 			Alice.Address(),
 			Bob.Address(),

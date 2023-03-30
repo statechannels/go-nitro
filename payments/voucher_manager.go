@@ -25,13 +25,11 @@ type VoucherManager struct {
 
 // NewVoucherManager creates a new voucher manager
 func NewVoucherManager(me types.Address, store VoucherStore) *VoucherManager {
-
 	return &VoucherManager{store, me}
 }
 
 // Register registers a channel for use, given the payer, payee and starting balance of the channel
 func (vm *VoucherManager) Register(channelId types.Destination, payer common.Address, payee common.Address, startingBalance *big.Int) error {
-
 	voucher := Voucher{ChannelId: channelId, Amount: big.NewInt(0)}
 	data := VoucherInfo{payer, payee, big.NewInt(0).Set(startingBalance), voucher}
 
@@ -39,7 +37,6 @@ func (vm *VoucherManager) Register(channelId types.Destination, payer common.Add
 		return fmt.Errorf("channel already registered")
 	}
 	return vm.store.SetVoucherInfo(channelId, data)
-
 }
 
 // Remove deletes the channel's status
@@ -126,7 +123,6 @@ func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
 func (vm *VoucherManager) ChannelRegistered(channelId types.Destination) bool {
 	_, ok := vm.store.GetVoucherInfo(channelId)
 	return ok
-
 }
 
 // Paid returns the total amount paid so far on a channel

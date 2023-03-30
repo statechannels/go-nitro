@@ -45,7 +45,6 @@ type Connection struct {
 
 // insertGuaranteeInfo mutates the receiver Connection struct.
 func (c *Connection) insertGuaranteeInfo(a0 types.Funds, b0 types.Funds, vId types.Destination, left types.Destination, right types.Destination) error {
-
 	guaranteeInfo := GuaranteeInfo{
 		Left:                 left,
 		Right:                right,
@@ -101,7 +100,7 @@ func (c *Connection) IsFundingTheTarget() bool {
 func (c *Connection) getExpectedGuarantee() consensus_channel.Guarantee {
 	amountFunds := c.GuaranteeInfo.LeftAmount.Add(c.GuaranteeInfo.RightAmount)
 
-	//HACK: GuaranteeInfo stores amounts as types.Funds.
+	// HACK: GuaranteeInfo stores amounts as types.Funds.
 	// We only expect a single asset type, and we want to know how much is to be
 	// diverted for that asset type.
 	// So, we loop through amountFunds and break after the first asset type ...
@@ -131,7 +130,6 @@ type Objective struct {
 
 	a0 types.Funds // Initial balance for Alice
 	b0 types.Funds // Initial balance for Bob
-
 }
 
 // NewObjective creates a new virtual funding objective from a given request.
@@ -169,7 +167,6 @@ func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Add
 		return Objective{}, fmt.Errorf("error creating objective: %w", err)
 	}
 	return objective, nil
-
 }
 
 // constructFromState initiates an Objective from an initial state and set of ledgers.
@@ -180,7 +177,6 @@ func constructFromState(
 	consensusChannelToMyLeft *consensus_channel.ConsensusChannel,
 	consensusChannelToMyRight *consensus_channel.ConsensusChannel,
 ) (Objective, error) {
-
 	var init Objective
 
 	if preApprove {
@@ -330,14 +326,12 @@ func (o *Objective) getPayload(raw protocols.ObjectivePayload) (*state.SignedSta
 	err := json.Unmarshal(raw.PayloadData, payload)
 	if err != nil {
 		return nil, err
-
 	}
 	return payload, nil
 }
 
 func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protocols.ProposalReceiver, error) {
 	if pId := protocols.GetProposalObjectiveId(sp.Proposal); o.Id() != pId {
-
 		return o, fmt.Errorf("sp and objective Ids do not match: %s and %s respectively", string(pId), string(o.Id()))
 	}
 
@@ -377,7 +371,6 @@ func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protoc
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
 // and returns the updated state.
 func (o *Objective) Update(raw protocols.ObjectivePayload) (protocols.Objective, error) {
-
 	if o.Id() != raw.ObjectiveId {
 		return o, fmt.Errorf("raw and objective Ids do not match: %s and %s respectively", string(raw.ObjectiveId), string(o.Id()))
 	}
@@ -489,7 +482,6 @@ func (o *Objective) Related() []protocols.Storable {
 
 // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
 func (o *Objective) fundingComplete() bool {
-
 	// Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
 	// A = P_0 and B=P_n are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
 
@@ -501,7 +493,6 @@ func (o *Objective) fundingComplete() bool {
 	default: // Intermediary
 		return o.ToMyRight.IsFundingTheTarget() && o.ToMyLeft.IsFundingTheTarget()
 	}
-
 }
 
 // Clone returns a deep copy of the receiver.
@@ -569,10 +560,8 @@ func ConstructObjectiveFromPayload(
 	var ok bool
 
 	if myAddress == participants[0] {
-
 		// I am Alice
 		return Objective{}, errors.New("participant[0] should not construct objectives from peer messages")
-
 	} else if myAddress == participants[len(participants)-1] {
 
 		// I am Bob
@@ -671,7 +660,6 @@ func (o *Objective) proposeLedgerUpdate(connection Connection, sk *[]byte) (prot
 func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.SideEffects, error) {
 	ledger := c.Channel
 	sp, err := ledger.SignNextProposal(c.expectedProposal(), *sk)
-
 	if err != nil {
 		return protocols.SideEffects{}, fmt.Errorf("no proposed state found for ledger channel %w", err)
 	}
@@ -693,7 +681,6 @@ func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.Side
 // If the user is the proposer a new ledger state will be created and signed.
 // If the user is the follower then they will sign a ledger state proposal if it satisfies their expected guarantees.
 func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[]byte) (protocols.SideEffects, error) {
-
 	ledger := ledgerConnection.Channel
 
 	var sideEffects protocols.SideEffects
@@ -802,7 +789,8 @@ func (r ObjectiveRequest) channelID(myAddress types.Address) types.Destination {
 	fixedPart := state.FixedPart{
 		Participants:      participants,
 		ChannelNonce:      r.Nonce,
-		ChallengeDuration: r.ChallengeDuration}
+		ChallengeDuration: r.ChallengeDuration,
+	}
 
 	return fixedPart.ChannelId()
 }

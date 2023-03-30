@@ -40,7 +40,6 @@ func (pm *RejectingPolicyMaker) ShouldApprove(obj protocols.Objective) bool {
 }
 
 func TestWhenObjectiveIsRejected(t *testing.T) {
-
 	// Setup logging
 	logFile := "test_direct_fund.log"
 	truncateLog(logFile)
@@ -86,7 +85,6 @@ func TestWhenObjectiveIsRejected(t *testing.T) {
 // testDirectFundWithAsset returns a function which tests the direct fund flow with the supplied asset. It is designed to be used as a subtest.
 func testDirectFundWithAsset(asset common.Address, sim chainservice.SimulatedChain, bindings chainservice.Bindings, ethAccounts []*bind.TransactOpts, logDestination *os.File) func(t *testing.T) {
 	return func(t *testing.T) {
-
 		// Spawn a pair of chain services
 		chainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
 		if err != nil {
@@ -147,7 +145,6 @@ func testDirectFundWithAsset(asset common.Address, sim chainservice.SimulatedCha
 
 // TestDirectFund uses the geth simulated backend
 func TestDirectFund(t *testing.T) {
-
 	// Setup long-running chain
 	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(2)
 	defer closeSimulatedChain(t, sim)

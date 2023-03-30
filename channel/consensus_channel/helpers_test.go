@@ -10,12 +10,16 @@ import (
 
 const TEST_CHAIN_ID = 1337
 
-var channel1Id = types.Destination{1}
-var targetChannel = types.Destination{2}
+var (
+	channel1Id    = types.Destination{1}
+	targetChannel = types.Destination{2}
+)
 
-const aBal = uint64(200)
-const bBal = uint64(300)
-const vAmount = uint64(5)
+const (
+	aBal    = uint64(200)
+	bBal    = uint64(300)
+	vAmount = uint64(5)
+)
 
 var alice, bob, brian testactors.Actor = testactors.Alice, testactors.Bob, testactors.Brian
 
@@ -86,7 +90,6 @@ func remove(vId types.Destination, leftAmount uint64) Remove {
 // createSignedProposal generates a signed proposal given the vars, proposal fixed parts and private key
 // The vars passed in are NOT mutated!
 func createSignedProposal(vars Vars, proposal Proposal, fp state.FixedPart, pk []byte) SignedProposal {
-
 	proposalVars := Vars{TurnNum: vars.TurnNum, Outcome: vars.Outcome.clone()}
 	_ = proposalVars.HandleProposal(proposal)
 
@@ -100,14 +103,12 @@ func createSignedProposal(vars Vars, proposal Proposal, fp state.FixedPart, pk [
 	}
 
 	return signedProposal
-
 }
 
 // fingerprint computes a fingerprint for vars by encoding and returning the hash when provided
 // with a consisted FixedPart
 func fingerprint(v Vars) string {
 	h, err := v.AsState(state.TestState.FixedPart()).Hash()
-
 	if err != nil {
 		panic(err)
 	}

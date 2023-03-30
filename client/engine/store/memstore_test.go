@@ -78,7 +78,6 @@ func TestSetGetObjective(t *testing.T) {
 }
 
 func TestGetObjectiveByChannelId(t *testing.T) {
-
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
 	ms := store.NewMemStore(sk)
@@ -161,7 +160,6 @@ func TestConsensusChannelStore(t *testing.T) {
 		0,
 		*outcome,
 		[2]state.Signature{aliceSig, bobsSig})
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,5 +207,4 @@ func TestGetChannelsByParticipant(t *testing.T) {
 	if diff := cmp.Diff(got, want, cmp.AllowUnexported(channel.Channel{}, big.Int{}, state.SignedState{})); diff != "" {
 		t.Fatalf("fetched result different than expected %s", diff)
 	}
-
 }

@@ -14,7 +14,6 @@ import (
 )
 
 func TestQueryLedgerChannel(t *testing.T) {
-
 	logFile := "test_query_ledger_channel.log"
 	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
@@ -66,11 +65,9 @@ func TestQueryLedgerChannel(t *testing.T) {
 	waitTimeForCompletedObjectiveIds(t, &ireneClient, defaultTimeout, closeId)
 
 	checkLedgerChannel(t, ledgerId, outcome, query.Complete, &aliceClient, &ireneClient)
-
 }
 
 func TestQueryPaymentChannel(t *testing.T) {
-
 	// Setup logging
 	logFile := "test_query_payment_channel.log"
 	truncateLog(logFile)
@@ -156,5 +153,6 @@ func expectedPaymentInfo(id types.Destination, outcome outcome.Exit, status quer
 			Payer:          payer,
 			RemainingFunds: outcome[0].Allocations[0].Amount,
 			PaidSoFar:      outcome[0].Allocations[1].Amount,
-		}}
+		},
+	}
 }

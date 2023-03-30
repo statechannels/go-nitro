@@ -10,18 +10,19 @@ import (
 )
 
 func TestEqualAllocations(t *testing.T) {
-
-	var a1 = Allocations{{ // [{Alice: 2}]
+	a1 := Allocations{{ // [{Alice: 2}]
 		Destination:    types.Destination(common.HexToHash("0x0a")),
 		Amount:         big.NewInt(2),
 		AllocationType: 0,
-		Metadata:       make(types.Bytes, 0)}}
+		Metadata:       make(types.Bytes, 0),
+	}}
 
-	var a2 = Allocations{{ // [{Alice: 2}]
+	a2 := Allocations{{ // [{Alice: 2}]
 		Destination:    types.Destination(common.HexToHash("0x0a")),
 		Amount:         big.NewInt(2),
 		AllocationType: 0,
-		Metadata:       make(types.Bytes, 0)}}
+		Metadata:       make(types.Bytes, 0),
+	}}
 
 	if &a1 == &a2 {
 		t.Fatalf("expected distinct pointers, but got identical pointers")
@@ -30,11 +31,9 @@ func TestEqualAllocations(t *testing.T) {
 	if !a1.Equal(a2) {
 		t.Fatalf("expected equal Allocations, but got distinct Allocations")
 	}
-
 }
 
 func TestAffords(t *testing.T) {
-
 	testCases := map[string]struct {
 		Allocations     Allocations
 		GivenAllocation Allocation
@@ -60,18 +59,16 @@ func TestAffords(t *testing.T) {
 					testcase.Allocations, testcase.GivenAllocation, testcase.Funding, testcase.Want, got)
 			}
 		})
-
 	}
-
 }
 
 func TestAllocationClone(t *testing.T) {
-
-	var a = Allocation{ // [{Alice: 2}]
+	a := Allocation{ // [{Alice: 2}]
 		Destination:    types.Destination(common.HexToHash("0x0a")),
 		Amount:         big.NewInt(2),
 		AllocationType: 0,
-		Metadata:       make(types.Bytes, 0)}
+		Metadata:       make(types.Bytes, 0),
+	}
 
 	clone := a.Clone()
 
@@ -81,17 +78,20 @@ func TestAllocationClone(t *testing.T) {
 }
 
 func TestAllocationsClone(t *testing.T) {
-
-	var as = Allocations{{ // [{Alice: 2}]
-		Destination:    types.Destination(common.HexToHash("0x0a")),
-		Amount:         big.NewInt(2),
-		AllocationType: 0,
-		Metadata:       make(types.Bytes, 0)},
+	as := Allocations{
+		{ // [{Alice: 2}]
+			Destination:    types.Destination(common.HexToHash("0x0a")),
+			Amount:         big.NewInt(2),
+			AllocationType: 0,
+			Metadata:       make(types.Bytes, 0),
+		},
 		{ // [{Bob: 3}]
 			Destination:    types.Destination(common.HexToHash("0x0b")),
 			Amount:         big.NewInt(3),
 			AllocationType: 0,
-			Metadata:       make(types.Bytes, 0)}}
+			Metadata:       make(types.Bytes, 0),
+		},
+	}
 
 	clone := as.Clone()
 

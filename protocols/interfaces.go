@@ -10,9 +10,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-var (
-	ErrNotApproved = errors.New("objective not approved")
-)
+var ErrNotApproved = errors.New("objective not approved")
 
 // ChainTransaction defines the interface that every transaction must implement
 type ChainTransaction interface {

@@ -60,8 +60,8 @@ type SimulatedBackendChainService struct {
 // NewSimulatedBackendChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
 func NewSimulatedBackendChainService(sim SimulatedChain, bindings Bindings,
-	txSigner *bind.TransactOpts, logDestination io.Writer) (ChainService, error) {
-
+	txSigner *bind.TransactOpts, logDestination io.Writer,
+) (ChainService, error) {
 	ethChainService, err := NewEthChainService(sim,
 		bindings.Adjudicator.Contract,
 		bindings.Adjudicator.Address,
@@ -69,7 +69,6 @@ func NewSimulatedBackendChainService(sim SimulatedChain, bindings Bindings,
 		bindings.VirtualPaymentApp.Address,
 		txSigner,
 		logDestination)
-
 	if err != nil {
 		return &SimulatedBackendChainService{}, err
 	}

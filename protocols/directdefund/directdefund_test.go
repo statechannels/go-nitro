@@ -85,7 +85,6 @@ func newTestObjective() (Objective, error) {
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
-
 	if _, err := newTestObjective(); err != nil {
 		t.Error(err)
 	}
@@ -134,7 +133,6 @@ func TestCrankAlice(t *testing.T) {
 
 	// The first crank. Alice is expected to create and sign a final state
 	updated, se, wf, err := o.Crank(&alice.PrivateKey)
-
 	if err != nil {
 		t.Error(err)
 	}
@@ -223,7 +221,6 @@ func TestCrankBob(t *testing.T) {
 
 	// The first crank. Bob is expected to create and sign a final state
 	updated, se, wf, err := updated.Crank(&bob.PrivateKey)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -291,7 +288,6 @@ func TestMarshalJSON(t *testing.T) {
 	ddfo, _ := newTestObjective()
 
 	encodedDdfo, err := json.Marshal(ddfo)
-
 	if err != nil {
 		t.Fatalf("error encoding directdefund objective %v", ddfo)
 	}
@@ -312,6 +308,7 @@ func TestMarshalJSON(t *testing.T) {
 		t.Fatalf("expected channel Id %s but got %s", ddfo.C.Id, got.C.Id)
 	}
 }
+
 func TestApproveReject(t *testing.T) {
 	o, err := newTestObjective()
 	testhelpers.Ok(t, err)
@@ -327,5 +324,4 @@ func TestApproveReject(t *testing.T) {
 	if len(sideEffects.MessagesToSend) != 1 {
 		t.Errorf("Expected to send one message")
 	}
-
 }

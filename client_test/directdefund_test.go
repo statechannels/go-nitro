@@ -12,14 +12,12 @@ import (
 )
 
 func directlyDefundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client, channelId types.Destination) {
-
 	id := alpha.CloseLedgerChannel(channelId)
 	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, id)
 	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, id)
-
 }
-func TestDirectDefund(t *testing.T) {
 
+func TestDirectDefund(t *testing.T) {
 	// Setup logging
 	logFile := "test_direct_defund.log"
 	truncateLog(logFile)
@@ -79,5 +77,4 @@ func TestDirectDefund(t *testing.T) {
 
 		}
 	}
-
 }

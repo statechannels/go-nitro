@@ -17,7 +17,6 @@ import (
 )
 
 func TestCrashTolerance(t *testing.T) {
-
 	// Setup logging
 	logFile := "test_crash_tolerance.log"
 	truncateLog(logFile)
@@ -75,5 +74,4 @@ func TestCrashTolerance(t *testing.T) {
 		directlyDefundALedgerChannel(t, anotherClientA, clientB, channelId)
 
 	}
-
 }

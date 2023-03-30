@@ -31,7 +31,6 @@ func (s SingleAssetExit) Equal(r SingleAssetExit) bool {
 		s.AssetMetadata.AssetType == r.AssetMetadata.AssetType &&
 		s.Asset == r.Asset &&
 		s.Allocations.Equal(r.Allocations)
-
 }
 
 // Clone returns a deep clone of the receiver.
@@ -41,7 +40,6 @@ func (s SingleAssetExit) Clone() SingleAssetExit {
 		AssetMetadata: s.AssetMetadata,
 		Allocations:   s.Allocations.Clone(),
 	}
-
 }
 
 // TotalAllocated returns the toal amount allocated, summed across all destinations (regardless of AllocationType)
@@ -217,7 +215,8 @@ func (e Exit) toEasyExit() easyExit {
 // Both arguments are maps keyed by the same assets
 func (e Exit) Affords(
 	allocationMap map[common.Address]Allocation,
-	funding types.Funds) bool {
+	funding types.Funds,
+) bool {
 	easyExit := e.toEasyExit()
 	for asset := range allocationMap {
 		x := funding[asset]
@@ -230,7 +229,6 @@ func (e Exit) Affords(
 		}
 	}
 	return true
-
 }
 
 // DivertToGuarantee returns a new Exit, identical to the receiver but with
@@ -246,7 +244,6 @@ func (e Exit) DivertToGuarantee(
 	rightFunds types.Funds,
 	guaranteeDestination types.Destination,
 ) (Exit, error) {
-
 	f := e.Clone()
 
 	leftFundsClone := leftFunds.Clone()
@@ -265,7 +262,6 @@ func (e Exit) DivertToGuarantee(
 		}
 
 		newAllocations, err := sae.Allocations.DivertToGuarantee(leftDestination, rightDestination, leftAmount, rightAmount, guaranteeDestination)
-
 		if err != nil {
 			return Exit{}, fmt.Errorf("could not divert to guarantee: %w", err)
 		}

@@ -56,7 +56,6 @@ type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger
 
 // NewObjective creates a new direct funding objective from a given request.
 func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, chainId *big.Int, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
-
 	initialState := state.State{
 		Participants:      []types.Address{myAddress, request.CounterParty},
 		ChannelNonce:      request.Nonce,
@@ -129,7 +128,7 @@ func ConstructFromPayload(
 		return Objective{}, errors.New("attempted to initiate new direct-funding objective with IsFinal == true")
 	}
 
-	var init = Objective{}
+	init := Objective{}
 
 	if preApprove {
 		init.Status = protocols.Approved
@@ -204,7 +203,6 @@ func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChan
 	assetExit := signedPostFund.State().Outcome[0]
 	turnNum := signedPostFund.State().TurnNum
 	outcome, err := consensus_channel.FromExit(assetExit)
-
 	if err != nil {
 		return nil, fmt.Errorf("could not create ledger outcome from channel exit: %w", err)
 	}
@@ -225,7 +223,6 @@ func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChan
 		}
 		return &con, nil
 	}
-
 }
 
 // Public methods on the DirectFundingObjectiveState
@@ -286,7 +283,6 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 	}
 
 	return &updated, nil
-
 }
 
 func (o *Objective) otherParticipants() []types.Address {
@@ -348,7 +344,6 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	if !updated.C.PostFundSignedByMe() {
 
 		ss, err := updated.C.SignAndAddPostfund(secretKey)
-
 		if err != nil {
 			return &updated, protocols.SideEffects{}, WaitingForCompletePostFund, fmt.Errorf("could not sign postfund %w", err)
 		}

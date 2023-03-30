@@ -18,7 +18,6 @@ import (
 
 // setupClientWithP2PMessageService is a helper function that contructs a client and returns the new client and its store.
 func setupClientWithP2PMessageService(t *testing.T, pk []byte, port int, chain *chainservice.MockChainService, logDestination io.Writer) (client.Client, *p2pms.P2PMessageService) {
-
 	messageservice := p2pms.NewMessageService(
 		"127.0.0.1",
 		port,
@@ -29,7 +28,6 @@ func setupClientWithP2PMessageService(t *testing.T, pk []byte, port int, chain *
 }
 
 func TestPayments(t *testing.T) {
-
 	// Setup logging
 	logFile := "test_payments.log"
 	truncateLog(logFile)
@@ -75,5 +73,4 @@ func TestPayments(t *testing.T) {
 
 	expected := BasicVoucherInfo{big.NewInt(5), r.ChannelId}
 	waitTimeForReceivedVoucher(t, &clientB, defaultTimeout, expected)
-
 }

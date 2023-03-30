@@ -92,7 +92,6 @@ func (c *ConsensusChannel) leaderReceive(countersigned SignedProposal) error {
 
 		if consensusCandidate.TurnNum == consensusTurnNum {
 			signer, err := consensusCandidate.AsState(c.fp).RecoverSigner(countersigned.Signature)
-
 			if err != nil {
 				return fmt.Errorf("unable to recover signer: %w", err)
 			}

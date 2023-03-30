@@ -83,7 +83,6 @@ func (ms *MemStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Object
 func (ms *MemStore) SetObjective(obj protocols.Objective) error {
 	// todo: locking
 	objJSON, err := obj.MarshalJSON()
-
 	if err != nil {
 		return fmt.Errorf("error setting objective %s: %w", obj.Id(), err)
 	}
@@ -124,7 +123,6 @@ func (ms *MemStore) SetObjective(obj protocols.Objective) error {
 // SetChannel sets the channel in the store.
 func (ms *MemStore) SetChannel(ch *channel.Channel) error {
 	chJSON, err := ch.MarshalJSON()
-
 	if err != nil {
 		return err
 	}
@@ -141,7 +139,6 @@ func (ms *MemStore) DestroyChannel(id types.Destination) {
 // SetConsensusChannel sets the channel in the store.
 func (ms *MemStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel) error {
 	chJSON, err := ch.MarshalJSON()
-
 	if err != nil {
 		return err
 	}
@@ -158,7 +155,6 @@ func (ms *MemStore) DestroyConsensusChannel(id types.Destination) {
 // GetChannelById retrieves the channel with the supplied id, if it exists.
 func (ms *MemStore) GetChannelById(id types.Destination) (c *channel.Channel, ok bool) {
 	ch, err := ms.getChannelById(id)
-
 	if err != nil {
 		return &channel.Channel{}, false
 	}
@@ -176,7 +172,6 @@ func (ms *MemStore) getChannelById(id types.Destination) (channel.Channel, error
 
 	var ch channel.Channel
 	err := ch.UnmarshalJSON(chJSON)
-
 	if err != nil {
 		return channel.Channel{}, fmt.Errorf("error unmarshaling channel %s", ch.Id)
 	}
@@ -188,10 +183,8 @@ func (ms *MemStore) getChannelById(id types.Destination) (channel.Channel, error
 func (ms *MemStore) GetChannelsByParticipant(participant types.Address) []*channel.Channel {
 	toReturn := []*channel.Channel{}
 	ms.channels.Range(func(key string, chJSON []byte) bool {
-
 		var ch channel.Channel
 		err := json.Unmarshal(chJSON, &ch)
-
 		if err != nil {
 			return true // channel not found, continue looking
 		}
@@ -201,7 +194,6 @@ func (ms *MemStore) GetChannelsByParticipant(participant types.Address) []*chann
 			if p == participant {
 				toReturn = append(toReturn, &ch)
 			}
-
 		}
 
 		return true // channel not found: continue looking
@@ -212,7 +204,6 @@ func (ms *MemStore) GetChannelsByParticipant(participant types.Address) []*chann
 
 // GetConsensusChannelById returns a ConsensusChannel with the given channel id
 func (ms *MemStore) GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
-
 	chJSON, ok := ms.consensusChannels.Load(id.String())
 
 	if !ok {
@@ -232,12 +223,9 @@ func (ms *MemStore) GetConsensusChannelById(id types.Destination) (channel *cons
 // GetConsensusChannel returns a ConsensusChannel between the calling client and
 // the supplied counterparty, if such channel exists
 func (ms *MemStore) GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
-
 	ms.consensusChannels.Range(func(key string, chJSON []byte) bool {
-
 		var ch consensus_channel.ConsensusChannel
 		err := json.Unmarshal(chJSON, &ch)
-
 		if err != nil {
 			return true // channel not found, continue looking
 		}
@@ -277,7 +265,6 @@ func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 	switch o := obj.(type) {
 	case *directfund.Objective:
 		ch, err := ms.getChannelById(o.C.Id)
-
 		if err != nil {
 			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
 		}
@@ -288,7 +275,6 @@ func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 	case *directdefund.Objective:
 
 		ch, err := ms.getChannelById(o.C.Id)
-
 		if err != nil {
 			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
 		}
@@ -353,14 +339,12 @@ func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 	default:
 		return fmt.Errorf("objective %s did not correctly represent a known Objective type", id)
 	}
-
 }
 
 // decodeObjective is a helper which encapsulates the deserialization
 // of Objective JSON data. The decoded objectives will not have any
 // channel data other than the channel Id.
 func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective, error) {
-
 	switch {
 	case directfund.IsDirectFundObjective(id):
 		dfo := directfund.Objective{}

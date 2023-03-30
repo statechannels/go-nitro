@@ -81,7 +81,6 @@ func AssertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.S
 }
 
 func AssertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_channel.SignedProposal, to testactors.Actor) {
-
 	Assert(t, len(ses.MessagesToSend) == 1, "expected one message")
 
 	found := false
@@ -93,7 +92,6 @@ func AssertProposalSent(t *testing.T, ses protocols.SideEffects, sp consensus_ch
 	toAddress := to.Address()
 	Assert(t, found, "proposal %+v not found in signed proposals %+v", sp.Proposal, msg.LedgerProposals)
 	Assert(t, bytes.Equal(msg.To[:], toAddress[:]), "exp: %+v\n\n\tgot%+v", msg.To.String(), to.Address().String())
-
 }
 
 // SignState generates a signature on the signed state with the supplied key, and adds that signature.

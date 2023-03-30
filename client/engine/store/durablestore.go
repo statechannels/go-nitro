@@ -85,6 +85,7 @@ func (ds *DurableStore) Close() error {
 	}
 	return ds.vouchers.Close()
 }
+
 func (ds *DurableStore) GetAddress() *types.Address {
 	address := common.HexToAddress(ds.address)
 	return &address
@@ -96,7 +97,6 @@ func (ds *DurableStore) GetChannelSecretKey() *[]byte {
 }
 
 func (ds *DurableStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Objective, error) {
-
 	var obj protocols.Objective
 	err := ds.objectives.View(func(tx *buntdb.Tx) error {
 		objJSON, err := tx.Get(string(id))
@@ -115,7 +115,6 @@ func (ds *DurableStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Ob
 			return fmt.Errorf("error populating channel data for objective %s: %w", id, err)
 		}
 		return nil
-
 	})
 	if err != nil && errors.Is(err, buntdb.ErrNotFound) {
 		return nil, ErrNoSuchObjective
@@ -127,13 +126,11 @@ func (ds *DurableStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Ob
 func (ds *DurableStore) SetObjective(obj protocols.Objective) error {
 	// todo: locking
 	objJSON, err := obj.MarshalJSON()
-
 	if err != nil {
 		return fmt.Errorf("error setting objective %s: %w", obj.Id(), err)
 	}
 
 	err = ds.objectives.Update(func(tx *buntdb.Tx) error {
-
 		_, _, err := tx.Set(string(obj.Id()), string(objJSON), nil)
 		return err
 	})
@@ -177,7 +174,6 @@ func (ds *DurableStore) SetObjective(obj protocols.Objective) error {
 	if status := obj.GetStatus(); status == protocols.Approved {
 		if !isOwned {
 			err := ds.channelToObjective.Update(func(tx *buntdb.Tx) error {
-
 				_, _, err := tx.Set(string(obj.OwnsChannel().String()), string(obj.Id()), nil)
 				return err
 			})
@@ -194,13 +190,11 @@ func (ds *DurableStore) SetObjective(obj protocols.Objective) error {
 // SetChannel sets the channel in the store.
 func (ds *DurableStore) SetChannel(ch *channel.Channel) error {
 	chJSON, err := ch.MarshalJSON()
-
 	if err != nil {
 		return err
 	}
 
 	err = ds.channels.Update(func(tx *buntdb.Tx) error {
-
 		_, _, err := tx.Set(ch.Id.String(), string(chJSON), nil)
 		return err
 	})
@@ -219,7 +213,6 @@ func (ds *DurableStore) DestroyChannel(id types.Destination) {
 // SetConsensusChannel sets the channel in the store.
 func (ps *DurableStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel) error {
 	chJSON, err := ch.MarshalJSON()
-
 	if err != nil {
 		return err
 	}
@@ -244,7 +237,6 @@ func (ds *DurableStore) DestroyConsensusChannel(id types.Destination) {
 // GetChannelById retrieves the channel with the supplied id, if it exists.
 func (ds *DurableStore) GetChannelById(id types.Destination) (c *channel.Channel, ok bool) {
 	ch, err := ds.getChannelById(id)
-
 	if err != nil {
 		return &channel.Channel{}, false
 	}
@@ -262,7 +254,6 @@ func (ds *DurableStore) getChannelById(id types.Destination) (channel.Channel, e
 	})
 
 	if errors.Is(err, buntdb.ErrNotFound) {
-
 		return channel.Channel{}, ErrNoSuchChannel
 	}
 	var ch channel.Channel
@@ -280,10 +271,8 @@ func (ds *DurableStore) GetChannelsByParticipant(participant types.Address) []*c
 	toReturn := []*channel.Channel{}
 	err := ds.channels.View(func(tx *buntdb.Tx) error {
 		err := tx.Ascend("", func(key, chJSON string) bool {
-
 			var ch channel.Channel
 			err := json.Unmarshal([]byte(chJSON), &ch)
-
 			if err != nil {
 				return true // channel not found, continue looking
 			}
@@ -293,7 +282,6 @@ func (ds *DurableStore) GetChannelsByParticipant(participant types.Address) []*c
 				if p == participant {
 					toReturn = append(toReturn, &ch)
 				}
-
 			}
 
 			return true // channel not found: continue looking
@@ -306,10 +294,8 @@ func (ds *DurableStore) GetChannelsByParticipant(participant types.Address) []*c
 
 // GetConsensusChannelById returns a ConsensusChannel with the given channel id
 func (ds *DurableStore) GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error) {
-
 	var ch *consensus_channel.ConsensusChannel
 	err = ds.consensusChannels.View(func(tx *buntdb.Tx) error {
-
 		chJSON, err := tx.Get(id.String())
 
 		if errors.Is(err, buntdb.ErrNotFound) {
@@ -333,13 +319,10 @@ func (ds *DurableStore) GetConsensusChannelById(id types.Destination) (channel *
 // GetConsensusChannel returns a ConsensusChannel between the calling client and
 // the supplied counterparty, if such channel exists
 func (ps *DurableStore) GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool) {
-
 	err := ps.consensusChannels.View(func(tx *buntdb.Tx) error {
 		return tx.Ascend("", func(key, chJSON string) bool {
-
 			var ch consensus_channel.ConsensusChannel
 			err := json.Unmarshal([]byte(chJSON), &ch)
-
 			if err != nil {
 				return true // channel not found, continue looking
 			}
@@ -369,7 +352,6 @@ func (ps *DurableStore) GetObjectiveByChannelId(channelId types.Destination) (pr
 
 		return err
 	})
-
 	if err != nil {
 		return &directfund.Objective{}, false
 	}
@@ -387,7 +369,6 @@ func (ds *DurableStore) populateChannelData(obj protocols.Objective) error {
 	switch o := obj.(type) {
 	case *directfund.Objective:
 		ch, err := ds.getChannelById(o.C.Id)
-
 		if err != nil {
 			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
 		}
@@ -398,7 +379,6 @@ func (ds *DurableStore) populateChannelData(obj protocols.Objective) error {
 	case *directdefund.Objective:
 
 		ch, err := ds.getChannelById(o.C.Id)
-
 		if err != nil {
 			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
 		}
@@ -463,7 +443,6 @@ func (ds *DurableStore) populateChannelData(obj protocols.Objective) error {
 	default:
 		return fmt.Errorf("objective %s did not correctly represent a known Objective type", id)
 	}
-
 }
 
 func (ds *DurableStore) ReleaseChannelFromOwnership(channelId types.Destination) {

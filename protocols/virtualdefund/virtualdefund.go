@@ -84,7 +84,8 @@ func NewObjective(request ObjectiveRequest,
 	myAddress types.Address,
 	largestPaymentAmount *big.Int,
 	getChannel GetChannelByIdFunction,
-	getConsensusChannel GetTwoPartyConsensusLedgerFunction) (Objective, error) {
+	getConsensusChannel GetTwoPartyConsensusLedgerFunction,
+) (Objective, error) {
 	var status protocols.ObjectiveStatus
 
 	if preApprove {
@@ -186,7 +187,6 @@ func ConstructObjectiveFromPayload(
 	getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction,
 	latestVoucherAmount *big.Int,
 ) (Objective, error) {
-
 	if latestVoucherAmount == nil {
 		latestVoucherAmount = big.NewInt(0)
 	}
@@ -425,7 +425,6 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	// Mark the objective as done
 	updated.Status = protocols.Completed
 	return &updated, sideEffects, WaitingForNothing, nil
-
 }
 
 // fullySigned returns whether we have a signature from every partciapant.
@@ -461,7 +460,6 @@ func (o *Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) c
 
 // updateLedgerToRemoveGuarantee updates the ledger channel to remove the guarantee that funds V.
 func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.ConsensusChannel, sk *[]byte) (protocols.SideEffects, error) {
-
 	var sideEffects protocols.SideEffects
 
 	proposed := ledger.HasRemovalBeenProposed(o.VId())
@@ -488,7 +486,6 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 		proposedNext := ledger.HasRemovalBeenProposedNext(o.VId())
 		if proposedNext {
 			sp, err := ledger.SignNextProposal(o.ledgerProposal(ledger), *sk)
-
 			if err != nil {
 				return protocols.SideEffects{}, fmt.Errorf("could not sign proposal: %w", err)
 			}
@@ -644,7 +641,6 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 	default:
 		return o, fmt.Errorf("unknown payload type %s", op.Type)
 	}
-
 }
 
 // ReceiveProposal receives a signed proposal and returns an updated VirtualDefund objective.

@@ -22,7 +22,6 @@ func TestSerde(t *testing.T) {
 
 	t.Run("Marshalling", func(t *testing.T) {
 		got, err := json.Marshal(someVoucher)
-
 		if err != nil {
 			t.Fatal(err)
 		}

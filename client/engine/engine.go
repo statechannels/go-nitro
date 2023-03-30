@@ -304,7 +304,6 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	for _, entry := range message.RejectedObjectives {
 		objective, err := e.store.GetObjectiveById(entry)
-
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -337,7 +336,6 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	}
 	return allCompleted, nil
-
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
@@ -374,7 +372,6 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 	myAddress := *e.store.GetAddress()
 
 	chainId, err := e.chain.GetChainId()
-
 	if err != nil {
 		return EngineEvent{}, fmt.Errorf("could get chain id from chain service: %w", err)
 	}
@@ -440,7 +437,6 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 	default:
 		return EngineEvent{}, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)
 	}
-
 }
 
 // handlePaymentRequest handles an PaymentRequest (triggered by a client API call).
@@ -478,7 +474,6 @@ func (e *Engine) sendMessages(msgs []protocols.Message) {
 		e.recordMessageMetrics(message)
 		e.msg.Send(message)
 	}
-
 }
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
@@ -552,7 +547,6 @@ func (e Engine) registerPaymentChannel(vfo virtualfund.Objective) error {
 	startingBalance.Set(postfund.Outcome[0].Allocations[0].Amount)
 
 	return e.vm.Register(vfo.V.Id, payments.GetPayer(postfund.Participants), payments.GetPayee(postfund.Participants), startingBalance)
-
 }
 
 // spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective if it is a directfund.Objective.
@@ -588,7 +582,6 @@ func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.O
 	} else if errors.Is(err, store.ErrNoSuchObjective) {
 
 		newObj, err := e.constructObjectiveFromMessage(id, p)
-
 		if err != nil {
 			return nil, fmt.Errorf("error constructing objective from message: %w", err)
 		}
@@ -654,7 +647,6 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 	default:
 		return &directfund.Objective{}, errors.New("cannot handle unimplemented objective type")
 	}
-
 }
 
 // fromMsgErr wraps errors from objective construction functions and
@@ -706,7 +698,6 @@ const (
 
 // logMessage logs a message to the engine's logger
 func (e *Engine) logMessage(msg protocols.Message, direction messageDirection) {
-
 	if direction == Incoming {
 		e.logger.Trace().EmbedObject(msg.Summarize()).Msg("Received message")
 	} else {

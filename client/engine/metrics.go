@@ -56,8 +56,8 @@ func (n *NoOpMetrics) Timer(name string) metrics.Timer {
 }
 
 func (n *NoOpMetrics) RecordPoint(name string, value float64) {
-
 }
+
 func (n *NoOpMetrics) Gauge(name string) metrics.GaugeFloat64 {
 	return metrics.NilGaugeFloat64{}
 }
@@ -83,7 +83,6 @@ func NewMetricsRecorder(me types.Address, metrics MetricsApi) *MetricsRecorder {
 func (o *MetricsRecorder) RecordFunctionDuration() func() {
 	start := time.Now()
 	return func() {
-
 		elapsed := time.Since(start)
 
 		// Skip this function, and fetch the PC for its parent.
@@ -119,7 +118,6 @@ func (o *MetricsRecorder) RecordObjectiveCompleted(id protocols.ObjectiveId) {
 	timer.Update(elapsed)
 
 	delete(o.startTimes, id)
-
 }
 
 // RecordQueueLength records metrics about the length of some queue

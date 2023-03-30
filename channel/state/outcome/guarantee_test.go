@@ -9,8 +9,10 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-var guaranteeMetadata = GuaranteeMetadata{Left: types.AddressToDestination(common.HexToAddress("0x0a")), Right: types.AddressToDestination(common.HexToAddress("0x0b"))}
-var encodedGuaranteeMetadata, _ = hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000b")
+var (
+	guaranteeMetadata           = GuaranteeMetadata{Left: types.AddressToDestination(common.HexToAddress("0x0a")), Right: types.AddressToDestination(common.HexToAddress("0x0b"))}
+	encodedGuaranteeMetadata, _ = hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000b")
+)
 
 func TestGuaranteeMetadataEncode(t *testing.T) {
 	encodedG, err := guaranteeMetadata.Encode()

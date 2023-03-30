@@ -40,5 +40,4 @@ func ComputeTransferEffectsAndInteractions(initialHoldings big.Int, allocations 
 	}
 
 	return
-
 }

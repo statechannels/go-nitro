@@ -77,7 +77,6 @@ type JsonRpcError struct {
 }
 
 func NewJsonRpcRequest[T RequestPayload | NotificationPayload, U RequestMethod | NotificationMethod](requestId uint64, method U, objectiveRequest T) *JsonRpcRequest[T] {
-
 	return &JsonRpcRequest[T]{
 		Jsonrpc: JsonRpcVersion,
 		Id:      requestId,

@@ -18,10 +18,12 @@ func (*mockResponder) Close() {}
 func (*mockResponder) Url() string {
 	return ""
 }
+
 func (m *mockResponder) RegisterRequestHandler(handler func([]byte) []byte) error {
 	m.Handler = handler
 	return nil
 }
+
 func (*mockResponder) Notify([]byte) error {
 	return nil
 }

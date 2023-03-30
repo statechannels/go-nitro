@@ -8,9 +8,11 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-var broker = NewBroker()
-var aliceMS = NewTestMessageService(types.Address{'a'}, broker, 0)
-var bobMS = NewTestMessageService(types.Address{'b'}, broker, 0)
+var (
+	broker  = NewBroker()
+	aliceMS = NewTestMessageService(types.Address{'a'}, broker, 0)
+	bobMS   = NewTestMessageService(types.Address{'b'}, broker, 0)
+)
 
 var testId protocols.ObjectiveId = "VirtualDefund-0x0000000000000000000000000000000000000000000000000000000000000000"
 

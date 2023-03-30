@@ -9,10 +9,12 @@ import (
 type ChannelStatus string
 
 // TODO: Think through statuses
-const Proposed ChannelStatus = "Proposed"
-const Ready ChannelStatus = "Ready"
-const Closing ChannelStatus = "Closing"
-const Complete ChannelStatus = "Complete"
+const (
+	Proposed ChannelStatus = "Proposed"
+	Ready    ChannelStatus = "Ready"
+	Closing  ChannelStatus = "Closing"
+	Complete ChannelStatus = "Complete"
+)
 
 // PaymentChannelBalance contains the balance of a uni-directional payment channel
 type PaymentChannelBalance struct {

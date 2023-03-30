@@ -8,7 +8,6 @@ import (
 )
 
 func TestSplitBlockRange(t *testing.T) {
-
 	type bR struct {
 		from uint
 		to   uint
@@ -49,5 +48,4 @@ func TestSplitBlockRange(t *testing.T) {
 			t.Fatalf("splitBlockRange output mismatch on test case %v. (-want +got):\n%s", i, diff)
 		}
 	}
-
 }

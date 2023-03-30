@@ -59,7 +59,6 @@ func newConsensusChannel(
 	outcome LedgerOutcome,
 	signatures [2]state.Signature,
 ) (ConsensusChannel, error) {
-
 	err := fp.Validate()
 	if err != nil {
 		return ConsensusChannel{}, err
@@ -97,7 +96,6 @@ func newConsensusChannel(
 		proposalQueue: make([]SignedProposal, 0),
 		current:       current,
 	}, nil
-
 }
 
 // FixedPart returns the fixed part of the channel.
@@ -129,7 +127,6 @@ func (c *ConsensusChannel) IsProposed(g Guarantee) (bool, error) {
 	}
 
 	return latest.Outcome.includes(g) && !c.Includes(g), nil
-
 }
 
 // IsProposedNext returns true if the next proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
@@ -184,14 +181,12 @@ func (c *ConsensusChannel) HasRemovalBeenProposed(target types.Destination) bool
 
 // HasRemovalBeenProposedNext returns whether or not the next proposal in the queue is a remove proposal for the given target
 func (c *ConsensusChannel) HasRemovalBeenProposedNext(target types.Destination) bool {
-
 	if len(c.proposalQueue) == 0 {
 		return false
 	}
 
 	p := c.proposalQueue[0]
 	return p.Proposal.Type() == RemoveProposal && p.Proposal.ToRemove.Target == target
-
 }
 
 // IsLeader returns true if the calling client is the leader of the channel,
@@ -294,7 +289,6 @@ func NewBalance(destination types.Destination, amount *big.Int) Balance {
 		destination: destination,
 		amount:      balanceAmount,
 	}
-
 }
 
 // Balance is a convenient, ergonomic representation of a single-asset Allocation
@@ -447,7 +441,6 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 //   - The second alloction entry is for the ledger follower
 //   - All other allocations are guarantees
 func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
-
 	var (
 		leader     = Balance{destination: sae.Allocations[0].Destination, amount: sae.Allocations[0].Amount}
 		follower   = Balance{destination: sae.Allocations[1].Destination, amount: sae.Allocations[1].Amount}
@@ -455,10 +448,8 @@ func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 	)
 
 	for _, a := range sae.Allocations {
-
 		if a.AllocationType == outcome.GuaranteeAllocationType {
 			gM, err := outcome.DecodeIntoGuaranteeMetadata(a.Metadata)
-
 			if err != nil {
 				return LedgerOutcome{}, fmt.Errorf("failed to decode guarantee metadata: %w", err)
 			}
@@ -471,11 +462,9 @@ func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 			}
 			guarantees[a.Destination] = g
 		}
-
 	}
 
 	return LedgerOutcome{leader: leader, follower: follower, guarantees: guarantees, assetAddress: sae.Asset}, nil
-
 }
 
 // AsOutcome converts a LedgerOutcome to an on-chain exit according to the following convention:
@@ -729,7 +718,6 @@ func (r Remove) equal(r2 Remove) bool {
 // HandleProposal handles a proposal to add or remove a guarantee.
 // It will mutate Vars by calling Add or Remove for the proposal.
 func (vars *Vars) HandleProposal(p Proposal) error {
-
 	switch p.Type() {
 	case AddProposal:
 		{
@@ -902,7 +890,6 @@ func (c *ConsensusChannel) Participants() []types.Address {
 
 // Clone returns a deep copy of the receiver.
 func (c *ConsensusChannel) Clone() *ConsensusChannel {
-
 	clonedProposalQueue := make([]SignedProposal, len(c.proposalQueue))
 	for i, p := range c.proposalQueue {
 		clonedProposalQueue[i] = p.Clone()

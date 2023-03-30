@@ -38,7 +38,6 @@ const DURABLE_STORE_FOLDER = "../data/client_test"
 // waitWithTimeoutForCompletedObjectiveIds waits up to the given timeout for completed objectives and returns when the all objective ids provided have been completed.
 // If the timeout lapses and the objectives have not all completed, the parent test will be failed.
 func waitTimeForCompletedObjectiveIds(t *testing.T, client *client.Client, timeout time.Duration, ids ...protocols.ObjectiveId) {
-
 	incomplete := safesync.Map[<-chan struct{}]{}
 
 	var wg sync.WaitGroup
@@ -91,9 +90,7 @@ func (b BasicVoucherInfo) id() string {
 // If the timeout lapses and not all of the vouchers have been received, the parent test will be failed.
 // This function assumes that channelId-amount pairs are unique and can be used as a key.
 func waitTimeForReceivedVoucher(t *testing.T, client *client.Client, timeout time.Duration, vouchers ...BasicVoucherInfo) {
-
 	waitAndSendOn := func(received map[string]bool, allDone chan interface{}) {
-
 		// We continue to consume vouchers from the chan until all have been completed
 		for got := range client.ReceivedVouchers() {
 			b := BasicVoucherInfo{got.Amount, got.ChannelId}
@@ -111,7 +108,6 @@ func waitTimeForReceivedVoucher(t *testing.T, client *client.Client, timeout tim
 
 			}
 		}
-
 	}
 
 	allDone := make(chan interface{})
@@ -168,8 +164,7 @@ func newLogWriter(logFile string) *os.File {
 	}
 
 	filename := filepath.Join("../artifacts", logFile)
-	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-
+	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -180,7 +175,6 @@ func newLogWriter(logFile string) *os.File {
 // checkPaymentChannel checks that the ledger channel has the expected outcome and status
 // It will fail if the channel does not exist
 func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...*client.Client) {
-
 	for _, c := range clients {
 		expected := expectedPaymentInfo(id, o, status)
 		ledger, err := c.GetPaymentChannel(id)
@@ -207,13 +201,13 @@ func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status query
 			Client:        clientAdd,
 			ClientBalance: outcome[0].Allocations[0].Amount,
 			HubBalance:    outcome[0].Allocations[1].Amount,
-		}}
+		},
+	}
 }
 
 // checkLedgerChannel checks that the ledger channel has the expected outcome and status
 // It will fail if the channel does not exist
 func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...*client.Client) {
-
 	for _, c := range clients {
 		expected := expectedLedgerInfo(ledgerId, o, status)
 		ledger, err := c.GetLedgerChannel(ledgerId)
@@ -234,7 +228,6 @@ func closeSimulatedChain(t *testing.T, chain chainservice.SimulatedChain) {
 
 // generateMessageKey generates a ECDSA private key using the given pk bytes, and is idempotent.
 func generateMessageKey(t *testing.T, pk []byte) p2pcrypto.PrivKey {
-
 	// GenerateECDSAKeyPair expects a source to read random bytes from.
 	// We don't know exactly how many random bytes it will read, but we know it's under 256.
 	// We generate a 256 byte slice and copy the pk into it, leaving the rest empty.
