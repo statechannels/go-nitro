@@ -22,7 +22,7 @@ func setupClientWithP2PMessageService(t *testing.T, pk []byte, port int, chain *
 		"127.0.0.1",
 		port,
 		crypto.GetAddressFromSecretKeyBytes(pk),
-		generateMessageKey(t, pk))
+		pk)
 	storeA := store.NewMemStore(pk)
 	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}, nil), messageservice
 }

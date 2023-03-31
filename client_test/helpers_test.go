@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine"
@@ -224,22 +222,4 @@ func closeSimulatedChain(t *testing.T, chain chainservice.SimulatedChain) {
 	if err := chain.Close(); err != nil {
 		t.Fatal(err)
 	}
-}
-
-// generateMessageKey generates a ECDSA private key using the given pk bytes, and is idempotent.
-func generateMessageKey(t *testing.T, pk []byte) p2pcrypto.PrivKey {
-	// GenerateECDSAKeyPair expects a source to read random bytes from.
-	// We don't know exactly how many random bytes it will read, but we know it's under 256.
-	// We generate a 256 byte slice and copy the pk into it, leaving the rest empty.
-	// This lets us generate the exact same message key for the given pk.
-	totalSize := 256
-	large := make([]byte, totalSize)
-	copy(large, pk)
-
-	messageKey, _, err := p2pcrypto.GenerateECDSAKeyPair(bytes.NewReader(large))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return messageKey
 }
