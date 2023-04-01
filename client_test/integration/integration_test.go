@@ -21,6 +21,10 @@ func TestClientIntegration(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Description, func(t *testing.T) {
+			err := tc.Validate()
+			if err != nil {
+				t.Fatal(err)
+			}
 			infra := setupSharedInra(tc)
 
 			// Setup clients
@@ -33,9 +37,14 @@ func TestClientIntegration(t *testing.T) {
 				intermediaries = append(intermediaries, setupIntegrationClient(tc, testactors.BrianName, infra))
 				intermediaryAddresses = append(intermediaryAddresses, *intermediaries[1].Address)
 			}
+
 			defer clientA.Close()
 			defer clientB.Close()
-
+			defer func() {
+				for _, clientI := range intermediaries {
+					clientI.Close()
+				}
+			}()
 			asset := common.Address{}
 			// Setup ledger channels between Alice/Bob and intermediaries
 			aliceLedgers := make([]types.Destination, tc.NumOfHops)
@@ -128,9 +137,6 @@ func TestClientIntegration(t *testing.T) {
 			if tc.NumOfHops == 2 {
 				closeLedgerChannel(t, intermediaries[1], clientB, bobLedgers[1])
 				checkLedgerChannel(t, bobLedgers[1], finalBobLedger(*intermediaries[1].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, &clientB)
-			}
-			for _, clientI := range intermediaries {
-				clientI.Close()
 			}
 		})
 	}

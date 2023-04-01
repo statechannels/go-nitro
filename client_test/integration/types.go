@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -54,6 +55,27 @@ type TestCase struct {
 	LogName        string
 	NumOfHops      uint
 	Participants   []TestParticipant
+}
+
+// Validate validates the test case and makes sure that the current test supports the test case.
+func (tc *TestCase) Validate() error {
+	if tc.NumOfHops < 1 || tc.NumOfHops > 2 {
+		return fmt.Errorf("NumOfHops must be 1 or 2")
+	}
+	if tc.NumOfHops == 1 && len(tc.Participants) != 3 ||
+		tc.NumOfHops == 2 && len(tc.Participants) != 4 {
+		return fmt.Errorf("NumOfHops is %d, but there are %d participants", tc.NumOfHops, len(tc.Participants))
+	}
+	if tc.NumOfChannels < 1 {
+		return fmt.Errorf("NumOfChannels must be greater than 0")
+	}
+	if tc.NumOfChannels > 10 {
+		return fmt.Errorf("NumOfChannels must be smaller than 10")
+	}
+	if tc.MessageDelay > 5*time.Second {
+		return fmt.Errorf("MessageDelay must be smaller than 5s")
+	}
+	return nil
 }
 
 type sharedInra struct {
