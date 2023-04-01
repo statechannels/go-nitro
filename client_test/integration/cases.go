@@ -25,7 +25,7 @@ var complexCase = TestCase{
 	NumOfChannels:  5,
 	MessageDelay:   0,
 	LogName:        "complex_integration_run.log",
-	NumOfHops:      1,
+	NumOfHops:      2,
 	NumOfPayments:  5,
 	Participants: []TestParticipant{
 		{StoreType: DurableStore, Name: testactors.AliceName},

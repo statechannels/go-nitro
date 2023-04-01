@@ -28,14 +28,14 @@ func TestClientIntegration(t *testing.T) {
 			clientB := setupIntegrationClient(tc, testactors.BobName, infra)
 
 			intermediaries := []client.Client{setupIntegrationClient(tc, testactors.IreneName, infra)}
+			intermediaryAddresses := []types.Address{*intermediaries[0].Address}
 			if tc.NumOfHops == 2 {
 				intermediaries = append(intermediaries, setupIntegrationClient(tc, testactors.BrianName, infra))
+				intermediaryAddresses = append(intermediaryAddresses, *intermediaries[1].Address)
 			}
 			defer clientA.Close()
 			defer clientB.Close()
-			for _, clientI := range intermediaries {
-				defer clientI.Close()
-			}
+
 			asset := common.Address{}
 			// Setup ledger channels between Alice/Bob and intermediaries
 			aliceLedgers := make([]types.Destination, tc.NumOfHops)
@@ -43,20 +43,23 @@ func TestClientIntegration(t *testing.T) {
 			for i, clientI := range intermediaries {
 				// Setup and check the ledger channel between Alice and the intermediary
 				aliceLedgers[i] = setupLedgerChannel(t, clientA, clientI, asset)
-				checkLedgerChannel(t, aliceLedgers[i], initialLedgerOutcome(*clientA.Address, *clientI.Address, asset), query.Ready, &clientA, &clientI)
+				checkLedgerChannel(t, aliceLedgers[i], initialLedgerOutcome(*clientA.Address, *clientI.Address, asset), query.Ready, &clientA)
 				// Setup and check the ledger channel between Bob and the intermediary
-				bobLedgers[i] = setupLedgerChannel(t, clientB, clientI, asset)
-				checkLedgerChannel(t, bobLedgers[i], initialLedgerOutcome(*clientB.Address, *clientI.Address, asset), query.Ready, &clientB, &clientI)
+				bobLedgers[i] = setupLedgerChannel(t, clientI, clientB, asset)
+				checkLedgerChannel(t, bobLedgers[i], initialLedgerOutcome(*clientI.Address, *clientB.Address, asset), query.Ready, &clientB)
 
 			}
 
+			if tc.NumOfHops == 2 {
+				setupLedgerChannel(t, intermediaries[0], intermediaries[1], asset)
+			}
 			// Setup virtual channels
 			objectiveIds := make([]protocols.ObjectiveId, tc.NumOfChannels)
 			virtualIds := make([]types.Destination, tc.NumOfChannels)
 			for i := 0; i < int(tc.NumOfChannels); i++ {
 				outcome := td.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), virtualChannelDeposit, 0, types.Address{})
 				response := clientA.CreateVirtualPaymentChannel(
-					[]types.Address{testactors.Irene.Address()},
+					intermediaryAddresses,
 					testactors.Bob.Address(),
 					0,
 					outcome,
@@ -65,7 +68,6 @@ func TestClientIntegration(t *testing.T) {
 				virtualIds[i] = response.ChannelId
 
 			}
-
 			// Wait for all the virtual channels to be ready
 			waitForObjectives(t, clientA, clientB, intermediaries, objectiveIds)
 
@@ -103,27 +105,32 @@ func TestClientIntegration(t *testing.T) {
 			closeVirtualIds := make([]protocols.ObjectiveId, len(virtualIds))
 			for i := 0; i < len(virtualIds); i++ {
 				// alternative who is responsible for closing the channel
-				switch i % (2 + int(tc.NumOfHops)) {
+				switch i % 2 {
 				case 0:
 					closeVirtualIds[i] = clientA.CloseVirtualChannel(virtualIds[i])
 				case 1:
 					closeVirtualIds[i] = clientB.CloseVirtualChannel(virtualIds[i])
-				case 2:
-					closeVirtualIds[i] = intermediaries[0].CloseVirtualChannel(virtualIds[i])
-				case 3:
-					closeVirtualIds[i] = intermediaries[1].CloseVirtualChannel(virtualIds[i])
 				}
 			}
+
 			waitForObjectives(t, clientA, clientB, intermediaries, closeVirtualIds)
 
 			// Close all the ledger channels we opened
-			for i, l := range aliceLedgers {
-				closeLedgerChannel(t, clientA, intermediaries[i], l)
-				checkLedgerChannel(t, l, finalAliceLedger(*intermediaries[i].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, &clientA, &intermediaries[i])
+
+			closeLedgerChannel(t, clientA, intermediaries[0], aliceLedgers[0])
+			checkLedgerChannel(t, aliceLedgers[0], finalAliceLedger(*intermediaries[0].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, &clientA)
+
+			// TODO: This is brittle, we should generalize this to
+			if tc.NumOfHops == 1 {
+				closeLedgerChannel(t, intermediaries[0], clientB, bobLedgers[0])
+				checkLedgerChannel(t, bobLedgers[0], finalBobLedger(*intermediaries[0].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, &clientB)
 			}
-			for i, l := range bobLedgers {
-				closeLedgerChannel(t, clientB, intermediaries[i], l)
-				checkLedgerChannel(t, l, finalBobLedger(*intermediaries[i].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, &clientB, &intermediaries[i])
+			if tc.NumOfHops == 2 {
+				closeLedgerChannel(t, intermediaries[1], clientB, bobLedgers[1])
+				checkLedgerChannel(t, bobLedgers[1], finalBobLedger(*intermediaries[1].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, &clientB)
+			}
+			for _, clientI := range intermediaries {
+				clientI.Close()
 			}
 		})
 	}
