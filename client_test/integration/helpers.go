@@ -161,14 +161,14 @@ func initialPaymentOutcome(alpha, beta, asset types.Address) outcome.Exit {
 	return testdata.Outcomes.Create(alpha, beta, virtualChannelDeposit, 0, asset)
 }
 
-func finalPaymentOutcome(alpha, beta, asset types.Address, numPayments, paymentAmount uint) outcome.Exit {
-	return testdata.Outcomes.Create(
-		alpha,
-		beta,
-		virtualChannelDeposit-numPayments*paymentAmount,
-		numPayments*paymentAmount,
-		asset)
-}
+// func finalPaymentOutcome(alpha, beta, asset types.Address, numPayments, paymentAmount uint) outcome.Exit {
+// 	return testdata.Outcomes.Create(
+// 		alpha,
+// 		beta,
+// 		virtualChannelDeposit-numPayments*paymentAmount,
+// 		numPayments*paymentAmount,
+// 		asset)
+// }
 
 func setupLedgerChannel(t *testing.T, alpha client.Client, beta client.Client, asset common.Address) types.Destination {
 	// Set up an outcome that requires both participants to deposit
