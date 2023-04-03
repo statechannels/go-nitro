@@ -31,7 +31,7 @@ func (a Actor) Address() types.Address {
 	return crypto.GetAddressFromSecretKeyBytes(a.PrivateKey)
 }
 
-const START_PORT = 3005
+const START_PORT = 3200
 
 // Alice has the address 0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE
 var Alice Actor = Actor{
