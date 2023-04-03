@@ -258,7 +258,7 @@ func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, sta
 			t.Fatal(err)
 		}
 		if diff := cmp.Diff(expected, ledger, cmp.AllowUnexported(big.Int{})); diff != "" {
-			t.Fatalf("Payment channel diff mismatch (-want +got):\n%s", diff)
+			panic(fmt.Errorf("payment channel diff mismatch (-want +got):\n%s", diff))
 		}
 	}
 }
@@ -291,7 +291,7 @@ func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit
 			t.Fatal(err)
 		}
 		if diff := cmp.Diff(expected, ledger, cmp.AllowUnexported(big.Int{})); diff != "" {
-			t.Fatalf("Ledger diff mismatch (-want +got):\n%s", diff)
+			panic(fmt.Errorf("ledger diff mismatch (-want +got):\n%s", diff))
 		}
 	}
 }
