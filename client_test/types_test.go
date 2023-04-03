@@ -80,7 +80,8 @@ func (tc *TestCase) Validate() error {
 	return nil
 }
 
-type sharedInra struct {
+// sharedTestInfrastructure is a struct that contains shared information liker the message broker, the simulated chain, and the ethereum accounts.
+type sharedTestInfrastructure struct {
 	broker         *messageservice.Broker
 	peers          []p2pms.PeerInfo
 	mockChain      *chainservice.MockChain

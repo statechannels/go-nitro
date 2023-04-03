@@ -151,7 +151,7 @@ func getActorInfo(name testactors.ActorName, tc TestCase) (actor testactors.Acto
 	return
 }
 
-func setupMessageService(tc TestCase, actorName testactors.ActorName, si sharedInra) messageservice.MessageService {
+func setupMessageService(tc TestCase, actorName testactors.ActorName, si sharedTestInfrastructure) messageservice.MessageService {
 	actor, _ := getActorInfo(actorName, tc)
 	switch tc.MessageService {
 	case TestMessageService:
@@ -171,7 +171,7 @@ func setupMessageService(tc TestCase, actorName testactors.ActorName, si sharedI
 	}
 }
 
-func setupChainService(tc TestCase, actorName testactors.ActorName, si sharedInra) chainservice.ChainService {
+func setupChainService(tc TestCase, actorName testactors.ActorName, si sharedTestInfrastructure) chainservice.ChainService {
 	a, _ := getActorInfo(actorName, tc)
 	switch tc.Chain {
 	case MockChain:
@@ -190,7 +190,7 @@ func setupChainService(tc TestCase, actorName testactors.ActorName, si sharedInr
 	}
 }
 
-func setupStore(tc TestCase, actorName testactors.ActorName, si sharedInra) store.Store {
+func setupStore(tc TestCase, actorName testactors.ActorName, si sharedTestInfrastructure) store.Store {
 	a, p := getActorInfo(actorName, tc)
 
 	switch p.StoreType {
@@ -204,7 +204,7 @@ func setupStore(tc TestCase, actorName testactors.ActorName, si sharedInra) stor
 	}
 }
 
-func setupIntegrationClient(tc TestCase, actorName testactors.ActorName, si sharedInra) client.Client {
+func setupIntegrationClient(tc TestCase, actorName testactors.ActorName, si sharedTestInfrastructure) client.Client {
 	messageService := setupMessageService(tc, actorName, si)
 	cs := setupChainService(tc, actorName, si)
 	store := setupStore(tc, actorName, si)
@@ -280,8 +280,8 @@ func waitForObjectives(t *testing.T, a, b client.Client, intermediaries []client
 	}
 }
 
-func setupSharedInra(tc TestCase) sharedInra {
-	infra := sharedInra{}
+func setupSharedInra(tc TestCase) sharedTestInfrastructure {
+	infra := sharedTestInfrastructure{}
 	switch tc.Chain {
 	case MockChain:
 		infra.mockChain = chainservice.NewMockChain()
