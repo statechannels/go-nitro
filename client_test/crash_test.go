@@ -1,4 +1,3 @@
-// Package client_test contains helpers and integration tests for go-nitro clients
 package client_test // import "github.com/statechannels/go-nitro/client_test"
 
 import (
@@ -84,8 +83,6 @@ func directlyDefundALedgerChannel(t *testing.T, alpha client.Client, beta client
 	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, id)
 	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, id)
 }
-
-const ledgerChannelDeposit = 5_000_000
 
 func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client, asset common.Address) types.Destination {
 	// Set up an outcome that requires both participants to deposit
