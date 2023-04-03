@@ -68,7 +68,18 @@ func (ms *P2PMessageService) AddPeers(peers []PeerInfo) {
 }
 
 // NewMessageService returns a running P2PMessageService listening on the given ip, port and message key.
-func NewMessageService(ip string, port int, me types.Address, messageKey p2pcrypto.PrivKey) *P2PMessageService {
+func NewMessageService(ip string, port int, me types.Address, pk []byte) *P2PMessageService {
+	ms := &P2PMessageService{
+		toEngine: make(chan protocols.Message, BUFFER_SIZE),
+		peers:    &safesync.Map[peer.ID]{},
+		me:       me,
+	}
+
+	messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(pk)
+	ms.checkError(err)
+
+	ms.key = messageKey
+
 	options := []libp2p.Option{
 		libp2p.Identity(messageKey),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
@@ -80,17 +91,9 @@ func NewMessageService(ip string, port int, me types.Address, messageKey p2pcryp
 	if err != nil {
 		panic(err)
 	}
+	ms.p2pHost = host
 
-	safePeers := safesync.Map[peer.ID]{}
-	h := &P2PMessageService{
-		toEngine: make(chan protocols.Message, BUFFER_SIZE),
-		peers:    &safePeers,
-		p2pHost:  host,
-		key:      messageKey,
-		me:       me,
-	}
-
-	h.p2pHost.SetStreamHandler(PROTOCOL_ID, func(stream network.Stream) {
+	ms.p2pHost.SetStreamHandler(PROTOCOL_ID, func(stream network.Stream) {
 		reader := bufio.NewReader(stream)
 		// Create a buffer stream for non blocking read and write.
 		raw, err := reader.ReadString(DELIMITER)
@@ -100,14 +103,14 @@ func NewMessageService(ip string, port int, me types.Address, messageKey p2pcryp
 			stream.Close()
 			return
 		}
-		h.checkError(err)
+		ms.checkError(err)
 		m, err := protocols.DeserializeMessage(raw)
-		h.checkError(err)
-		h.toEngine <- m
+		ms.checkError(err)
+		ms.toEngine <- m
 		stream.Close()
 	})
 
-	return h
+	return ms
 }
 
 // Send sends messages to other participants.
