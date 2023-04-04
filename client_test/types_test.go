@@ -69,11 +69,8 @@ func (tc *TestCase) Validate() error {
 		tc.NumOfHops == 2 && len(tc.Participants) != 4 {
 		return fmt.Errorf("NumOfHops is %d, but there are %d participants", tc.NumOfHops, len(tc.Participants))
 	}
-	if tc.NumOfChannels < 1 {
-		return fmt.Errorf("NumOfChannels must be greater than 0")
-	}
-	if tc.NumOfChannels > 10 {
-		return fmt.Errorf("NumOfChannels must be smaller than 10")
+	if tc.NumOfChannels < 1 || tc.NumOfChannels > 9 {
+		return fmt.Errorf("NumOfChannels must be greater than 0 and less than 10. Supplied %d", tc.NumOfChannels)
 	}
 	if tc.MessageDelay > 5*time.Second {
 		return fmt.Errorf("MessageDelay must be smaller than 5s")
