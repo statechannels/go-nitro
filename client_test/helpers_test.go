@@ -207,7 +207,6 @@ func initialPaymentOutcome(alpha, beta, asset types.Address) outcome.Exit {
 	return testdata.Outcomes.Create(alpha, beta, virtualChannelDeposit, 0, asset)
 }
 
-// TODO: This is currently unused as a the final payment check seems to flicker
 func finalPaymentOutcome(alpha, beta, asset types.Address, numPayments, paymentAmount uint) outcome.Exit {
 	return testdata.Outcomes.Create(
 		alpha,
