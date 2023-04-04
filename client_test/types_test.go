@@ -36,8 +36,8 @@ const (
 )
 
 type TestParticipant struct {
+	testactors.Actor
 	StoreType StoreType
-	Name      testactors.ActorName
 }
 
 type MessageService string

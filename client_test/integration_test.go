@@ -24,9 +24,9 @@ var simpleCase = TestCase{
 	NumOfHops:      1,
 	NumOfPayments:  1,
 	Participants: []TestParticipant{
-		{StoreType: MemStore, Name: testactors.AliceName},
-		{StoreType: MemStore, Name: testactors.BobName},
-		{StoreType: MemStore, Name: testactors.IreneName},
+		{StoreType: MemStore, Actor: testactors.Alice},
+		{StoreType: MemStore, Actor: testactors.Bob},
+		{StoreType: MemStore, Actor: testactors.Irene},
 	},
 }
 
@@ -40,10 +40,10 @@ var complexCase = TestCase{
 	NumOfHops:      2,
 	NumOfPayments:  5,
 	Participants: []TestParticipant{
-		{StoreType: DurableStore, Name: testactors.AliceName},
-		{StoreType: DurableStore, Name: testactors.BobName},
-		{StoreType: DurableStore, Name: testactors.IreneName},
-		{StoreType: DurableStore, Name: testactors.BrianName},
+		{StoreType: DurableStore, Actor: testactors.Alice},
+		{StoreType: DurableStore, Actor: testactors.Bob},
+		{StoreType: DurableStore, Actor: testactors.Irene},
+		{StoreType: DurableStore, Actor: testactors.Brian},
 	},
 }
 
@@ -60,21 +60,24 @@ func TestClientIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 			infra := setupSharedInra(tc)
-
+			defer infra.Close(t)
 			// Setup clients
-			clientA := setupIntegrationClient(tc, testactors.AliceName, infra)
+			// NOTE: We rely on the convention that Alice is the first participant, Bob the second, and the intermediaries afterwards.
+			clientA := setupIntegrationClient(tc, tc.Participants[0], infra)
 			defer clientA.Close()
 
-			clientB := setupIntegrationClient(tc, testactors.BobName, infra)
+			clientB := setupIntegrationClient(tc, tc.Participants[1], infra)
 			defer clientB.Close()
-			intermediaries := []client.Client{setupIntegrationClient(tc, testactors.IreneName, infra)}
-			defer intermediaries[0].Close()
-			intermediaryAddresses := []types.Address{*intermediaries[0].Address}
-			if tc.NumOfHops == 2 {
-				intermediaries = append(intermediaries, setupIntegrationClient(tc, testactors.BrianName, infra))
-				defer intermediaries[1].Close()
-				intermediaryAddresses = append(intermediaryAddresses, *intermediaries[1].Address)
+
+			intermediaries := make([]client.Client, len(tc.Participants)-2)
+			for i, intermediary := range tc.Participants[2:] {
+				intermediaries[i] = setupIntegrationClient(tc, intermediary, infra)
 			}
+			defer func() {
+				for i := range intermediaries {
+					intermediaries[i].Close()
+				}
+			}()
 
 			asset := common.Address{}
 			// Setup ledger channels between Alice/Bob and intermediaries
@@ -83,10 +86,10 @@ func TestClientIntegration(t *testing.T) {
 			for i, clientI := range intermediaries {
 				// Setup and check the ledger channel between Alice and the intermediary
 				aliceLedgers[i] = setupLedgerChannel(t, clientA, clientI, asset)
-				checkLedgerChannel(t, aliceLedgers[i], initialLedgerOutcome(*clientA.Address, *clientI.Address, asset), query.Ready, &clientA)
+				checkLedgerChannel(t, aliceLedgers[i], initialLedgerOutcome(*clientA.Address, *clientI.Address, asset), query.Ready, clientA)
 				// Setup and check the ledger channel between Bob and the intermediary
 				bobLedgers[i] = setupLedgerChannel(t, clientI, clientB, asset)
-				checkLedgerChannel(t, bobLedgers[i], initialLedgerOutcome(*clientI.Address, *clientB.Address, asset), query.Ready, &clientB)
+				checkLedgerChannel(t, bobLedgers[i], initialLedgerOutcome(*clientI.Address, *clientB.Address, asset), query.Ready, clientB)
 
 			}
 
@@ -99,7 +102,7 @@ func TestClientIntegration(t *testing.T) {
 			for i := 0; i < int(tc.NumOfChannels); i++ {
 				outcome := td.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), virtualChannelDeposit, 0, types.Address{})
 				response := clientA.CreateVirtualPaymentChannel(
-					intermediaryAddresses,
+					clientAddresses(intermediaries),
 					testactors.Bob.Address(),
 					0,
 					outcome,
@@ -117,7 +120,7 @@ func TestClientIntegration(t *testing.T) {
 					virtualIds[i],
 					initialPaymentOutcome(*clientA.Address, *clientB.Address, asset),
 					query.Ready,
-					&clientA, &clientB)
+					clientA, clientB)
 			}
 
 			// Send payments
@@ -134,13 +137,13 @@ func TestClientIntegration(t *testing.T) {
 
 			// TODO: This check sometime flickers
 			// // Check the payment channels have the correct outcome after the payments
-			// for i := 0; i < len(virtualIds); i++ {
-			// 	checkPaymentChannel(t,
-			// 		virtualIds[i],
-			// 		finalPaymentOutcome(*clientA.Address, *clientB.Address, asset, tc.NumOfPayments, 1),
-			// 		query.Ready,
-			// 		&clientA, &clientB)
-			// }
+			for i := 0; i < len(virtualIds); i++ {
+				checkPaymentChannel(t,
+					virtualIds[i],
+					finalPaymentOutcome(*clientA.Address, *clientB.Address, asset, tc.NumOfPayments, 1),
+					query.Ready,
+					clientA, clientB)
+			}
 
 			// Close virtual channels
 			closeVirtualIds := make([]protocols.ObjectiveId, len(virtualIds))
@@ -159,18 +162,17 @@ func TestClientIntegration(t *testing.T) {
 			// Close all the ledger channels we opened
 
 			closeLedgerChannel(t, clientA, intermediaries[0], aliceLedgers[0])
-			checkLedgerChannel(t, aliceLedgers[0], finalAliceLedger(*intermediaries[0].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, &clientA)
+			checkLedgerChannel(t, aliceLedgers[0], finalAliceLedger(*intermediaries[0].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, clientA)
 
 			// TODO: This is brittle, we should generalize this to
 			if tc.NumOfHops == 1 {
 				closeLedgerChannel(t, intermediaries[0], clientB, bobLedgers[0])
-				checkLedgerChannel(t, bobLedgers[0], finalBobLedger(*intermediaries[0].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, &clientB)
+				checkLedgerChannel(t, bobLedgers[0], finalBobLedger(*intermediaries[0].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, clientB)
 			}
 			if tc.NumOfHops == 2 {
 				closeLedgerChannel(t, intermediaries[1], clientB, bobLedgers[1])
-				checkLedgerChannel(t, bobLedgers[1], finalBobLedger(*intermediaries[1].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, &clientB)
+				checkLedgerChannel(t, bobLedgers[1], finalBobLedger(*intermediaries[1].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, clientB)
 			}
-			infra.Close(t)
 		})
 	}
 }

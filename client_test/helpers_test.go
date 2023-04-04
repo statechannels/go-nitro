@@ -122,46 +122,16 @@ func closeSimulatedChain(t *testing.T, chain chainservice.SimulatedChain) {
 	}
 }
 
-func getActorInfo(name testactors.ActorName, tc TestCase) (actor testactors.Actor, participant TestParticipant) {
-	switch name {
-	case testactors.AliceName:
-		actor = testactors.Alice
-	case testactors.BobName:
-		actor = testactors.Bob
-	case testactors.IreneName:
-		actor = testactors.Irene
-	case testactors.BrianName:
-		actor = testactors.Brian
-	default:
-		panic("Unknown actor")
-	}
-
-	found := false
-	for _, p := range tc.Participants {
-		if p.Name == name {
-			participant = p
-			found = true
-			break
-		}
-	}
-	if !found {
-		panic("Unknown participant")
-	}
-
-	return
-}
-
-func setupMessageService(tc TestCase, actorName testactors.ActorName, si sharedTestInfrastructure) messageservice.MessageService {
-	actor, _ := getActorInfo(actorName, tc)
+func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) messageservice.MessageService {
 	switch tc.MessageService {
 	case TestMessageService:
-		return messageservice.NewTestMessageService(actor.Address(), *si.broker, tc.MessageDelay)
+		return messageservice.NewTestMessageService(tp.Address(), *si.broker, tc.MessageDelay)
 	case P2PMessageService:
 		ms := p2pms.NewMessageService(
 			"127.0.0.1",
-			int(actor.Port),
-			actor.Address(),
-			actor.PrivateKey,
+			int(tp.Port),
+			tp.Address(),
+			tp.PrivateKey,
 		)
 
 		ms.AddPeers(si.peers)
@@ -171,15 +141,14 @@ func setupMessageService(tc TestCase, actorName testactors.ActorName, si sharedT
 	}
 }
 
-func setupChainService(tc TestCase, actorName testactors.ActorName, si sharedTestInfrastructure) chainservice.ChainService {
-	a, _ := getActorInfo(actorName, tc)
+func setupChainService(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) chainservice.ChainService {
 	switch tc.Chain {
 	case MockChain:
-		return chainservice.NewMockChainService(si.mockChain, a.Address())
+		return chainservice.NewMockChainService(si.mockChain, tp.Address())
 	case SimulatedChain:
 		logDestination := newLogWriter(tc.LogName)
 
-		ethAcountIndex := a.Port - testactors.START_PORT
+		ethAcountIndex := tp.Port - testactors.START_PORT
 		cs, err := chainservice.NewSimulatedBackendChainService(si.simulatedChain, *si.bindings, si.ethAccounts[ethAcountIndex], logDestination)
 		if err != nil {
 			panic(err)
@@ -190,25 +159,24 @@ func setupChainService(tc TestCase, actorName testactors.ActorName, si sharedTes
 	}
 }
 
-func setupStore(tc TestCase, actorName testactors.ActorName, si sharedTestInfrastructure) store.Store {
-	a, p := getActorInfo(actorName, tc)
-
-	switch p.StoreType {
+func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) store.Store {
+	switch tp.StoreType {
 	case MemStore:
-		return store.NewMemStore(a.PrivateKey)
+		return store.NewMemStore(tp.Actor.PrivateKey)
 	case DurableStore:
-		dataFolder := fmt.Sprintf("%s/%s/%d%d", STORE_TEST_DATA_FOLDER, a.Address().String(), rand.Uint64(), time.Now().UnixNano())
-		return store.NewPersistStore(a.PrivateKey, dataFolder, buntdb.Config{})
+		dataFolder := fmt.Sprintf("%s/%s/%d%d", STORE_TEST_DATA_FOLDER, tp.Address().String(), rand.Uint64(), time.Now().UnixNano())
+		return store.NewPersistStore(tp.PrivateKey, dataFolder, buntdb.Config{})
 	default:
-		panic(fmt.Sprintf("Unknown store type %s", p.StoreType))
+		panic(fmt.Sprintf("Unknown store type %s", tp.StoreType))
 	}
 }
 
-func setupIntegrationClient(tc TestCase, actorName testactors.ActorName, si sharedTestInfrastructure) client.Client {
-	messageService := setupMessageService(tc, actorName, si)
-	cs := setupChainService(tc, actorName, si)
-	store := setupStore(tc, actorName, si)
-	return client.New(messageService, cs, store, newLogWriter(tc.LogName), &engine.PermissivePolicy{}, nil)
+func setupIntegrationClient(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) client.Client {
+	messageService := setupMessageService(tc, tp, si)
+	cs := setupChainService(tc, tp, si)
+	store := setupStore(tc, tp, si)
+	c := client.New(messageService, cs, store, newLogWriter(tc.LogName), &engine.PermissivePolicy{}, nil)
+	return c
 }
 
 func initialLedgerOutcome(alpha, beta, asset types.Address) outcome.Exit {
@@ -240,14 +208,14 @@ func initialPaymentOutcome(alpha, beta, asset types.Address) outcome.Exit {
 }
 
 // TODO: This is currently unused as a the final payment check seems to flic
-// func finalPaymentOutcome(alpha, beta, asset types.Address, numPayments, paymentAmount uint) outcome.Exit {
-// 	return testdata.Outcomes.Create(
-// 		alpha,
-// 		beta,
-// 		virtualChannelDeposit-numPayments*paymentAmount,
-// 		numPayments*paymentAmount,
-// 		asset)
-// }
+func finalPaymentOutcome(alpha, beta, asset types.Address, numPayments, paymentAmount uint) outcome.Exit {
+	return testdata.Outcomes.Create(
+		alpha,
+		beta,
+		virtualChannelDeposit-numPayments*paymentAmount,
+		numPayments*paymentAmount,
+		asset)
+}
 
 func setupLedgerChannel(t *testing.T, alpha client.Client, beta client.Client, asset common.Address) types.Destination {
 	// Set up an outcome that requires both participants to deposit
@@ -304,10 +272,9 @@ func setupSharedInra(tc TestCase) sharedTestInfrastructure {
 	case P2PMessageService:
 
 		infra.peers = make([]p2pms.PeerInfo, len(tc.Participants))
-		for i, p := range tc.Participants {
+		for i, tp := range tc.Participants {
 
-			actor, _ := getActorInfo(p.Name, tc)
-			messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(actor.PrivateKey)
+			messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(tp.PrivateKey)
 			if err != nil {
 				panic(err)
 			}
@@ -316,9 +283,9 @@ func setupSharedInra(tc TestCase) sharedTestInfrastructure {
 				panic(err)
 			}
 			infra.peers[i] = p2pms.PeerInfo{
-				Port:      int(actor.Port),
+				Port:      int(tp.Port),
 				IpAddress: "127.0.0.1",
-				Address:   actor.Address(),
+				Address:   tp.Address(),
 				Id:        id,
 			}
 		}
@@ -329,7 +296,7 @@ func setupSharedInra(tc TestCase) sharedTestInfrastructure {
 
 // checkPaymentChannel checks that the ledger channel has the expected outcome and status
 // It will fail if the channel does not exist
-func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...*client.Client) {
+func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...client.Client) {
 	for _, c := range clients {
 		expected := expectedPaymentInfo(id, o, status)
 		ledger, err := c.GetPaymentChannel(id)
@@ -362,7 +329,7 @@ func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status query
 
 // checkLedgerChannel checks that the ledger channel has the expected outcome and status
 // It will fail if the channel does not exist
-func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...*client.Client) {
+func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...client.Client) {
 	for _, c := range clients {
 		expected := expectedLedgerInfo(ledgerId, o, status)
 		ledger, err := c.GetLedgerChannel(ledgerId)
@@ -391,4 +358,13 @@ func expectedPaymentInfo(id types.Destination, outcome outcome.Exit, status quer
 			PaidSoFar:      outcome[0].Allocations[1].Amount,
 		},
 	}
+}
+
+func clientAddresses(clients []client.Client) []common.Address {
+	addrs := make([]common.Address, len(clients))
+	for i, c := range clients {
+		addrs[i] = *c.Address
+	}
+	fmt.Printf("Client addresses: %+v\n", addrs)
+	return addrs
 }
