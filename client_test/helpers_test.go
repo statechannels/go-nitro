@@ -207,7 +207,7 @@ func initialPaymentOutcome(alpha, beta, asset types.Address) outcome.Exit {
 	return testdata.Outcomes.Create(alpha, beta, virtualChannelDeposit, 0, asset)
 }
 
-// TODO: This is currently unused as a the final payment check seems to flic
+// TODO: This is currently unused as a the final payment check seems to flicker
 func finalPaymentOutcome(alpha, beta, asset types.Address, numPayments, paymentAmount uint) outcome.Exit {
 	return testdata.Outcomes.Create(
 		alpha,
@@ -242,7 +242,7 @@ func waitForObjectives(t *testing.T, a, b client.Client, intermediaries []client
 
 		<-b.ObjectiveCompleteChan(objectiveId)
 
-		// TODO: For some reason we're not beeing an ojective complete event from the second intermediary
+		// TODO: For some reason we're not seeing an objective complete event from the second intermediary
 		<-intermediaries[0].ObjectiveCompleteChan(objectiveId)
 		// <-intermediaries[1].ObjectiveCompleteChan(objectiveId)
 	}
