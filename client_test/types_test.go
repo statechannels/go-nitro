@@ -2,6 +2,7 @@ package client_test
 
 import (
 	"fmt"
+	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -85,7 +86,13 @@ type sharedTestInfrastructure struct {
 	broker         *messageservice.Broker
 	peers          []p2pms.PeerInfo
 	mockChain      *chainservice.MockChain
-	simulatedChain *chainservice.SimulatedChain
+	simulatedChain chainservice.SimulatedChain
 	bindings       *chainservice.Bindings
 	ethAccounts    []*bind.TransactOpts
+}
+
+func (sti *sharedTestInfrastructure) Close(t *testing.T) {
+	if sti.simulatedChain != nil {
+		closeSimulatedChain(t, sti.simulatedChain)
+	}
 }

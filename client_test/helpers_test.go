@@ -180,7 +180,7 @@ func setupChainService(tc TestCase, actorName testactors.ActorName, si sharedTes
 		logDestination := newLogWriter(tc.LogName)
 
 		ethAcountIndex := a.Port - testactors.START_PORT
-		cs, err := chainservice.NewSimulatedBackendChainService(*si.simulatedChain, *si.bindings, si.ethAccounts[ethAcountIndex], logDestination)
+		cs, err := chainservice.NewSimulatedBackendChainService(si.simulatedChain, *si.bindings, si.ethAccounts[ethAcountIndex], logDestination)
 		if err != nil {
 			panic(err)
 		}
@@ -290,7 +290,7 @@ func setupSharedInra(tc TestCase) sharedTestInfrastructure {
 		if err != nil {
 			panic(err)
 		}
-		infra.simulatedChain = &sim
+		infra.simulatedChain = sim
 		infra.bindings = &bindings
 		infra.ethAccounts = ethAccounts
 	default:

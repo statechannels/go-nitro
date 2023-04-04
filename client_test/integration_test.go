@@ -173,6 +173,7 @@ func TestClientIntegration(t *testing.T) {
 				closeLedgerChannel(t, intermediaries[1], clientB, bobLedgers[1])
 				checkLedgerChannel(t, bobLedgers[1], finalBobLedger(*intermediaries[1].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, &clientB)
 			}
+			infra.Close(t)
 		})
 	}
 }
