@@ -364,6 +364,6 @@ func clientAddresses(clients []client.Client) []common.Address {
 	for i, c := range clients {
 		addrs[i] = *c.Address
 	}
-	fmt.Printf("Client addresses: %+v\n", addrs)
+
 	return addrs
 }
