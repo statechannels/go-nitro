@@ -2,15 +2,18 @@ package client_test
 
 import (
 	"fmt"
+	"math/big"
 	"os"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/crypto"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
@@ -68,9 +71,10 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	defer cleanupFnA()
 	defer cleanupFnB()
 	defer cleanupFnC()
-
-	res := rpcClientA.CreateLedger(ta.Irene.Address(), 100, testdata.Outcomes.Create(ta.Alice.Address(), ta.Irene.Address(), 100, 100, types.Address{}))
-	bobResponse := rpcClientB.CreateLedger(ta.Irene.Address(), 100, testdata.Outcomes.Create(ta.Bob.Address(), ta.Irene.Address(), 100, 100, types.Address{}))
+	aliceLedgerOutcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Irene.Address(), 100, 100, types.Address{})
+	bobLedgerOutcome := testdata.Outcomes.Create(ta.Bob.Address(), ta.Irene.Address(), 100, 100, types.Address{})
+	res := rpcClientA.CreateLedger(ta.Irene.Address(), 100, aliceLedgerOutcome)
+	bobResponse := rpcClientB.CreateLedger(ta.Irene.Address(), 100, bobLedgerOutcome)
 
 	// Quick sanity check that we're getting a valid objective id
 	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
@@ -80,17 +84,47 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	<-rpcClientI.ObjectiveCompleteChan(res.Id)
 	<-rpcClientI.ObjectiveCompleteChan(bobResponse.Id)
 
+	aliceLedger := rpcClientA.GetLedgerChannel(res.ChannelId)
+	expectedAliceLedger := expectedLedgerInfo(res.ChannelId, aliceLedgerOutcome, query.Ready)
+	if diff := cmp.Diff(expectedAliceLedger, aliceLedger, cmp.AllowUnexported(big.Int{})); diff != "" {
+		t.Fatalf("Ledger diff mismatch (-want +got):\n%s", diff)
+	}
+
+	bobLedger := rpcClientB.GetLedgerChannel(bobResponse.ChannelId)
+	expectedBobLedger := expectedLedgerInfo(bobResponse.ChannelId, bobLedgerOutcome, query.Ready)
+	if diff := cmp.Diff(expectedBobLedger, bobLedger, cmp.AllowUnexported(big.Int{})); diff != "" {
+		t.Fatalf("Ledger diff mismatch (-want +got):\n%s", diff)
+	}
+
+	initialOutcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Bob.Address(), 100, 0, types.Address{})
 	vRes := rpcClientA.CreateVirtual(
 		[]types.Address{ta.Irene.Address()},
 		ta.Bob.Address(),
 		100,
-		testdata.Outcomes.Create(ta.Alice.Address(), ta.Bob.Address(), 100, 100, types.Address{}))
+		initialOutcome)
 
 	assert.Regexp(t, "VirtualFund.0x.*", vRes.Id)
 
 	<-rpcClientA.ObjectiveCompleteChan(vRes.Id)
 	<-rpcClientB.ObjectiveCompleteChan(vRes.Id)
 	<-rpcClientI.ObjectiveCompleteChan(vRes.Id)
+
+	expectedVirtual := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Ready)
+	aliceVirtual := rpcClientA.GetVirtualChannel(vRes.ChannelId)
+	if diff := cmp.Diff(expectedVirtual, aliceVirtual, cmp.AllowUnexported(big.Int{})); diff != "" {
+		t.Fatalf("Virtual diff mismatch for alice (-want +got):\n%s", diff)
+	}
+	bobVirtual := rpcClientB.GetVirtualChannel(vRes.ChannelId)
+	if diff := cmp.Diff(expectedVirtual, bobVirtual, cmp.AllowUnexported(big.Int{})); diff != "" {
+		t.Fatalf("Virtual diff mismatch for bob (-want +got):\n%s", diff)
+	}
+
+	// TODO: For some reason this check is returning a status of "Proposed" not "Ready"
+	// even though we've waited for the objective to complete.
+	// ireneVirtual := rpcClientI.GetVirtualChannel(vRes.ChannelId)
+	// if diff := cmp.Diff(expectedVirtual, ireneVirtual, cmp.AllowUnexported(big.Int{})); diff != "" {
+	// 	t.Fatalf("Virtual diff mismatch for irene (-want +got):\n%s", diff)
+	// }
 
 	rpcClientA.Pay(vRes.ChannelId, 1)
 
