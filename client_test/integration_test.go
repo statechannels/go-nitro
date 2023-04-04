@@ -163,7 +163,7 @@ func TestClientIntegration(t *testing.T) {
 			closeLedgerChannel(t, clientA, intermediaries[0], aliceLedgers[0])
 			checkLedgerChannel(t, aliceLedgers[0], finalAliceLedger(*intermediaries[0].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, clientA)
 
-			// TODO: This is brittle, we should generalize this to
+			// TODO: This is brittle, we should generalize this to n number of intermediaries
 			if tc.NumOfHops == 1 {
 				closeLedgerChannel(t, intermediaries[0], clientB, bobLedgers[0])
 				checkLedgerChannel(t, bobLedgers[0], finalBobLedger(*intermediaries[0].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, clientB)
