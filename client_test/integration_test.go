@@ -63,22 +63,19 @@ func TestClientIntegration(t *testing.T) {
 
 			// Setup clients
 			clientA := setupIntegrationClient(tc, testactors.AliceName, infra)
-			clientB := setupIntegrationClient(tc, testactors.BobName, infra)
+			defer clientA.Close()
 
+			clientB := setupIntegrationClient(tc, testactors.BobName, infra)
+			defer clientB.Close()
 			intermediaries := []client.Client{setupIntegrationClient(tc, testactors.IreneName, infra)}
+			defer intermediaries[0].Close()
 			intermediaryAddresses := []types.Address{*intermediaries[0].Address}
 			if tc.NumOfHops == 2 {
 				intermediaries = append(intermediaries, setupIntegrationClient(tc, testactors.BrianName, infra))
+				defer intermediaries[1].Close()
 				intermediaryAddresses = append(intermediaryAddresses, *intermediaries[1].Address)
 			}
 
-			defer clientA.Close()
-			defer clientB.Close()
-			defer func() {
-				for _, clientI := range intermediaries {
-					clientI.Close()
-				}
-			}()
 			asset := common.Address{}
 			// Setup ledger channels between Alice/Bob and intermediaries
 			aliceLedgers := make([]types.Destination, tc.NumOfHops)
