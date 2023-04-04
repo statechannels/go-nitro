@@ -269,7 +269,6 @@ func setupSharedInra(tc TestCase) sharedTestInfrastructure {
 		broker := messageservice.NewBroker()
 		infra.broker = &broker
 	case P2PMessageService:
-
 		infra.peers = make([]p2pms.PeerInfo, len(tc.Participants))
 		for i, tp := range tc.Participants {
 
