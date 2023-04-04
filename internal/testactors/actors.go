@@ -30,7 +30,7 @@ const START_PORT = 3200
 var Alice Actor = Actor{
 	common.Hex2Bytes(`2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d`),
 	0,
-	"Alice",
+	"alice",
 	START_PORT + 0,
 }
 
@@ -38,7 +38,7 @@ var Alice Actor = Actor{
 var Bob Actor = Actor{
 	common.Hex2Bytes(`0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4`),
 	2,
-	"Bob",
+	"bob",
 	START_PORT + 1,
 }
 
@@ -46,7 +46,7 @@ var Bob Actor = Actor{
 var Brian Actor = Actor{
 	common.Hex2Bytes("0aca28ba64679f63d71e671ab4dbb32aaa212d4789988e6ca47da47601c18fe2"),
 	2,
-	"Brian",
+	"brian",
 	START_PORT + 2,
 }
 
@@ -54,6 +54,6 @@ var Brian Actor = Actor{
 var Irene Actor = Actor{
 	common.Hex2Bytes(`febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781`),
 	1,
-	"Irene",
+	"irene",
 	START_PORT + 3,
 }
