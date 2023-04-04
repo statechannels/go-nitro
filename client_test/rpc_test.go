@@ -119,12 +119,10 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 		t.Fatalf("Virtual diff mismatch for bob (-want +got):\n%s", diff)
 	}
 
-	// TODO: For some reason this check is returning a status of "Proposed" not "Ready"
-	// even though we've waited for the objective to complete.
-	// ireneVirtual := rpcClientI.GetVirtualChannel(vRes.ChannelId)
-	// if diff := cmp.Diff(expectedVirtual, ireneVirtual, cmp.AllowUnexported(big.Int{})); diff != "" {
-	// 	t.Fatalf("Virtual diff mismatch for irene (-want +got):\n%s", diff)
-	// }
+	ireneVirtual := rpcClientI.GetVirtualChannel(vRes.ChannelId)
+	if diff := cmp.Diff(expectedVirtual, ireneVirtual, cmp.AllowUnexported(big.Int{})); diff != "" {
+		t.Fatalf("Virtual diff mismatch for irene (-want +got):\n%s", diff)
+	}
 
 	rpcClientA.Pay(vRes.ChannelId, 1)
 
