@@ -241,9 +241,9 @@ func waitForObjectives(t *testing.T, a, b client.Client, intermediaries []client
 
 		<-b.ObjectiveCompleteChan(objectiveId)
 
-		// TODO: For some reason we're not seeing an objective complete event from the second intermediary
-		<-intermediaries[0].ObjectiveCompleteChan(objectiveId)
-		// <-intermediaries[1].ObjectiveCompleteChan(objectiveId)
+		for _, intermediary := range intermediaries {
+			intermediary.ObjectiveCompleteChan(objectiveId)
+		}
 	}
 }
 
