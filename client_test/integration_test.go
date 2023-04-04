@@ -131,12 +131,11 @@ func TestClientIntegration(t *testing.T) {
 			}
 
 			// Wait for all the vouchers to be received by bob
-			for i := 0; i < len(virtualIds); i++ {
+			for i := 0; i < len(virtualIds)*int(tc.NumOfPayments); i++ {
 				<-clientB.ReceivedVouchers()
 			}
 
-			// TODO: This check sometime flickers
-			// // Check the payment channels have the correct outcome after the payments
+			// Check the payment channels have the correct outcome after the payments
 			for i := 0; i < len(virtualIds); i++ {
 				checkPaymentChannel(t,
 					virtualIds[i],
