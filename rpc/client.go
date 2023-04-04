@@ -151,6 +151,10 @@ func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Re
 		method = serde.VirtualDefundRequestMethod
 	case serde.PaymentRequest:
 		method = serde.PayRequestMethod
+	case serde.GetLedgerChannelRequest:
+		method = serde.GetLedgerChannelRequestMethod
+	case serde.GetPaymentChannelRequest:
+		method = serde.GetPaymentChannelRequestMethod
 	default:
 		return nil, fmt.Errorf("unknown request type %v", request)
 	}
