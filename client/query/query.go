@@ -124,9 +124,9 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 	if channelFound {
 		status := getStatusFromChannel(c)
 
-		// Since ADR 0009 allows for intermediaries to not sign the post fund setup
-		// our standard check that everyone has signed the postfund setup will not work
-		// Instead we check the status of the virtual fund objective specifically
+		// Due to ADR 0009 intermediaries can exit the virtual fund protocol before receiving all the postfund signatures
+		// This means intermediaries may not have a fully signed postfund state even though the channel is "ready"
+		// To determine the the correct status we check the status of the virtual fund objective
 		fund, isVirtualFund := isVirtualFundObjective(id, store)
 		if isVirtualFund && fund.Status == protocols.Completed {
 			status = Ready
