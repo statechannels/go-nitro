@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"github.com/rs/zerolog"
@@ -58,12 +57,6 @@ func (rs *RpcServer) registerHandlers() (err error) {
 		if validationResult.Error != nil {
 			return validationResult.Error
 		}
-
-		defer func() {
-			if r := recover(); r != nil {
-				err = fmt.Errorf("panic: %v", r)
-			}
-		}()
 
 		switch serde.RequestMethod(validationResult.Method) {
 		case serde.DirectFundRequestMethod:
