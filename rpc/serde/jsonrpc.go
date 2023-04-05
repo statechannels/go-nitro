@@ -1,6 +1,7 @@
 package serde
 
 import (
+	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -12,11 +13,13 @@ import (
 type RequestMethod string
 
 const (
-	DirectFundRequestMethod    RequestMethod = "direct_fund"
-	DirectDefundRequestMethod  RequestMethod = "direct_defund"
-	VirtualFundRequestMethod   RequestMethod = "virtual_fund"
-	VirtualDefundRequestMethod RequestMethod = "virtual_defund"
-	PayRequestMethod           RequestMethod = "pay"
+	DirectFundRequestMethod        RequestMethod = "direct_fund"
+	DirectDefundRequestMethod      RequestMethod = "direct_defund"
+	VirtualFundRequestMethod       RequestMethod = "virtual_fund"
+	VirtualDefundRequestMethod     RequestMethod = "virtual_defund"
+	PayRequestMethod               RequestMethod = "pay"
+	GetPaymentChannelRequestMethod RequestMethod = "get_payment_channel"
+	GetLedgerChannelRequestMethod  RequestMethod = "get_ledger_channel"
 )
 
 type NotificationMethod string
@@ -35,12 +38,21 @@ type PaymentRequest struct {
 	Amount  uint64
 	Channel types.Destination
 }
+type GetPaymentChannelRequest struct {
+	Id types.Destination
+}
+type GetLedgerChannelRequest struct {
+	Id types.Destination
+}
+
 type RequestPayload interface {
 	directfund.ObjectiveRequest |
 		directdefund.ObjectiveRequest |
 		virtualfund.ObjectiveRequest |
 		virtualdefund.ObjectiveRequest |
-		PaymentRequest
+		PaymentRequest |
+		GetLedgerChannelRequest |
+		GetPaymentChannelRequest
 }
 
 type NotificationPayload interface {
@@ -60,8 +72,14 @@ type JsonRpcMessage struct {
 }
 
 type ResponsePayload interface {
-	directfund.ObjectiveResponse | protocols.ObjectiveId | virtualfund.ObjectiveResponse | PaymentRequest
+	directfund.ObjectiveResponse |
+		protocols.ObjectiveId |
+		virtualfund.ObjectiveResponse |
+		PaymentRequest |
+		query.PaymentChannelInfo |
+		query.LedgerChannelInfo
 }
+
 type JsonRpcResponse[T ResponsePayload] struct {
 	Jsonrpc string      `json:"jsonrpc"`
 	Id      uint64      `json:"id"`

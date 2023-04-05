@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
@@ -45,6 +46,12 @@ func NewRpcClient(rpcServerUrl string, myAddress types.Address, logger zerolog.L
 	return c, nil
 }
 
+func (rc *RpcClient) GetVirtualChannel(id types.Destination) query.PaymentChannelInfo {
+	req := serde.GetPaymentChannelRequest{Id: id}
+
+	return waitForRequest[serde.GetPaymentChannelRequest, query.PaymentChannelInfo](rc, req)
+}
+
 // CreateLedger creates a new ledger channel
 func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) virtualfund.ObjectiveResponse {
 	objReq := virtualfund.NewObjectiveRequest(
@@ -64,6 +71,12 @@ func (rc *RpcClient) CloseVirtual(id types.Destination) protocols.ObjectiveId {
 		id)
 
 	return waitForRequest[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc, objReq)
+}
+
+func (rc *RpcClient) GetLedgerChannel(id types.Destination) query.LedgerChannelInfo {
+	req := serde.GetLedgerChannelRequest{Id: id}
+
+	return waitForRequest[serde.GetLedgerChannelRequest, query.LedgerChannelInfo](rc, req)
 }
 
 // CreateLedger creates a new ledger channel
@@ -151,6 +164,10 @@ func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Re
 		method = serde.VirtualDefundRequestMethod
 	case serde.PaymentRequest:
 		method = serde.PayRequestMethod
+	case serde.GetLedgerChannelRequest:
+		method = serde.GetLedgerChannelRequestMethod
+	case serde.GetPaymentChannelRequest:
+		method = serde.GetPaymentChannelRequestMethod
 	default:
 		return nil, fmt.Errorf("unknown request type %v", request)
 	}

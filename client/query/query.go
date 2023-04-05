@@ -10,6 +10,7 @@ import (
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -74,19 +75,37 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 	}
 }
 
-// GetPaymentChannelInfo returns the PaymentChannelInfo for the given channel
-// It does this by querying the provided store and voucher manager
-func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager) (PaymentChannelInfo, error) {
+func isVirtualFundObjective(id types.Destination, store store.Store) (*virtualfund.Objective, bool) {
+	// This is slightly awkward but if the virtual defunding objective is complete it won't come back if we query by channel id
+	// We manually construct the objective id and query by that
+	virtualFundId := protocols.ObjectiveId(virtualfund.ObjectivePrefix + id.String())
+	o, err := store.GetObjectiveById(virtualFundId)
+	if err != nil {
+		return nil, false
+	}
+	return o.(*virtualfund.Objective), true
+}
+
+func isVirtualDefundObjective(id types.Destination, store store.Store) (*virtualdefund.Objective, bool) {
 	// This is slightly awkward but if the virtual defunding objective is complete it won't come back if we query by channel id
 	// We manually construct the objective id and query by that
 	virtualDefundId := protocols.ObjectiveId(virtualdefund.ObjectivePrefix + id.String())
-	fetchedDefund, err := store.GetObjectiveById(virtualDefundId)
-	isVirtualDefund := err == nil
+	o, err := store.GetObjectiveById(virtualDefundId)
+	if err != nil {
+		return nil, false
+	}
+
+	return o.(*virtualdefund.Objective), true
+}
+
+// GetPaymentChannelInfo returns the PaymentChannelInfo for the given channel
+// It does this by querying the provided store and voucher manager
+func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager) (PaymentChannelInfo, error) {
+	defund, isVirtualDefund := isVirtualDefundObjective(id, store)
 
 	// Since virtual defunding stores all state updates on the objective
 	// instead of the store we need to manually check the objective
 	if isVirtualDefund {
-		defund := fetchedDefund.(*virtualdefund.Objective)
 		status := Closing
 
 		if defund.Status == protocols.Completed {
@@ -99,12 +118,19 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 			Balance: getPaymentChannelBalance(defund.VFixed.Participants, []outcome.SingleAssetExit{defund.FinalOutcome}),
 		}, nil
 	}
-
 	// Otherwise we can just check the store
 	c, channelFound := store.GetChannelById(id)
 
 	if channelFound {
 		status := getStatusFromChannel(c)
+
+		// Due to ADR 0009 intermediaries can exit the virtual fund protocol before receiving all the postfund signatures
+		// This means intermediaries may not have a fully signed postfund state even though the channel is "ready"
+		// To determine the the correct status we check the status of the virtual fund objective
+		fund, isVirtualFund := isVirtualFundObjective(id, store)
+		if isVirtualFund && fund.Status == protocols.Completed {
+			status = Ready
+		}
 		latest, err := getLatestSupported(c)
 		if err != nil {
 			return PaymentChannelInfo{}, err

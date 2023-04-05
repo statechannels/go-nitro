@@ -6,6 +6,7 @@ import (
 
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
+	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -44,7 +45,7 @@ func NewRpcServer(nitroClient *nitro.Client, logger *zerolog.Logger, trans trans
 }
 
 // registerHandlers registers the handlers for the rpc server
-func (rs *RpcServer) registerHandlers() error {
+func (rs *RpcServer) registerHandlers() (err error) {
 	subscriber := func(requestData []byte) []byte {
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", string(requestData))
 
@@ -78,6 +79,24 @@ func (rs *RpcServer) registerHandlers() error {
 			return processRequest(rs, requestData, func(obj serde.PaymentRequest) serde.PaymentRequest {
 				rs.client.Pay(obj.Channel, big.NewInt(int64(obj.Amount)))
 				return obj
+			})
+		case serde.GetPaymentChannelRequestMethod:
+			return processRequest(rs, requestData, func(r serde.GetPaymentChannelRequest) query.PaymentChannelInfo {
+				pc, err := rs.client.GetPaymentChannel(r.Id)
+				if err != nil {
+					// TODO: What's the best way to handle this error?
+					panic(err)
+				}
+				return pc
+			})
+		case serde.GetLedgerChannelRequestMethod:
+			return processRequest(rs, requestData, func(r serde.GetLedgerChannelRequest) query.LedgerChannelInfo {
+				l, err := rs.client.GetLedgerChannel(r.Id)
+				if err != nil {
+					// TODO: What's the best way to handle this error?
+					panic(err)
+				}
+				return l
 			})
 		default:
 			responseErr := methodNotFoundError
