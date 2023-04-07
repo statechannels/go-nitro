@@ -54,19 +54,9 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	chainServiceB := chainservice.NewMockChainService(chain, ta.Bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, ta.Irene.Address())
 
-	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3005, 4005, chainServiceA, logDestination, connectionType)
-	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3006, 4006, chainServiceB, logDestination, connectionType)
-	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3007, 4007, chainServiceI, logDestination, connectionType)
-
-	peers := []p2pms.PeerInfo{
-		{Id: msgA.Id(), IpAddress: "127.0.0.1", Port: 3005, Address: ta.Alice.Address()},
-		{Id: msgB.Id(), IpAddress: "127.0.0.1", Port: 3006, Address: ta.Bob.Address()},
-		{Id: msgI.Id(), IpAddress: "127.0.0.1", Port: 3007, Address: ta.Irene.Address()},
-	}
-	// Connect nitro P2P message services
-	msgA.AddPeers(peers)
-	msgB.AddPeers(peers)
-	msgI.AddPeers(peers)
+	rpcClientA, _, cleanupFnA := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3005, 4005, chainServiceA, logDestination, connectionType)
+	rpcClientB, _, cleanupFnB := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3006, 4006, chainServiceB, logDestination, connectionType)
+	rpcClientI, _, cleanupFnC := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3007, 4007, chainServiceI, logDestination, connectionType)
 
 	defer cleanupFnA()
 	defer cleanupFnB()

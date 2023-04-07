@@ -14,8 +14,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
-	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine"
@@ -134,7 +132,6 @@ func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastru
 			tp.PrivateKey,
 		)
 
-		ms.AddPeers(si.peers)
 		return ms
 	default:
 		panic("Unknown message service")
@@ -264,31 +261,11 @@ func setupSharedInra(tc TestCase) sharedTestInfrastructure {
 		panic("Unknown chain service")
 	}
 
-	switch tc.MessageService {
-	case TestMessageService:
+	if tc.MessageService == TestMessageService {
+
 		broker := messageservice.NewBroker()
 		infra.broker = &broker
-	case P2PMessageService:
-		infra.peers = make([]p2pms.PeerInfo, len(tc.Participants))
-		for i, tp := range tc.Participants {
-
-			messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(tp.PrivateKey)
-			if err != nil {
-				panic(err)
-			}
-			id, err := peer.IDFromPrivateKey(messageKey)
-			if err != nil {
-				panic(err)
-			}
-			infra.peers[i] = p2pms.PeerInfo{
-				Port:      int(tp.Port),
-				IpAddress: "127.0.0.1",
-				Address:   tp.Address(),
-				Id:        id,
-			}
-		}
 	}
-
 	return infra
 }
 
