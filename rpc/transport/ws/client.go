@@ -3,8 +3,10 @@ package ws
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"nhooyr.io/websocket"
 )
@@ -12,14 +14,14 @@ import (
 type clientWebSocketTransport struct {
 	logger           zerolog.Logger
 	notificationChan chan []byte
-	responseHandlers map[uint64]chan ([]byte)
+	responseHandlers safesync.Map[chan []byte]
 	clientWebsocket  *websocket.Conn
 }
 
 // NewWebSocketTransportAsClient creates a websocket connection that can be used to send requests and listen for notifications
 func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error) {
 	wsc := &clientWebSocketTransport{}
-	wsc.responseHandlers = make(map[uint64]chan ([]byte))
+	wsc.responseHandlers = safesync.Map[chan []byte]{}
 	wsc.notificationChan = make(chan []byte)
 
 	conn, _, err := websocket.Dial(context.Background(), url, &websocket.DialOptions{})
@@ -38,7 +40,7 @@ func (wsc *clientWebSocketTransport) Request(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	wsc.responseHandlers[unmarshaledRequest.Id] = responseChan
+	wsc.responseHandlers.Store(fmt.Sprintf("%v", unmarshaledRequest.Id), responseChan)
 
 	err = wsc.clientWebsocket.Write(context.Background(), websocket.MessageText, data)
 	if err != nil {
@@ -78,8 +80,13 @@ func (wsc *clientWebSocketTransport) readMessages(ctx context.Context) {
 			wsc.notificationChan <- data
 			// Or is this a response?
 		} else {
-			wsc.responseHandlers[unmarshaledNotification.Id] <- data
-			delete(wsc.responseHandlers, unmarshaledNotification.Id)
+			sId := fmt.Sprintf("%v", unmarshaledNotification.Id)
+			responseHandler, ok := wsc.responseHandlers.Load(sId)
+			if !ok {
+				panic(fmt.Errorf("Expected a response handler for id %v", unmarshaledNotification.Id))
+			}
+			responseHandler <- data
+			wsc.responseHandlers.Delete(sId)
 		}
 	}
 }
