@@ -7,6 +7,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/client"
+	"github.com/statechannels/go-nitro/client/engine/messageservice"
+	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
@@ -66,23 +68,41 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 		}
 		infra := setupSharedInra(tc)
 		defer infra.Close(t)
+
+		msgServices := make([]messageservice.MessageService, 0)
+
 		// Setup clients
 		// NOTE: We rely on the convention that Alice is the first participant, Bob the second, and the intermediaries afterwards.
-		clientA := setupIntegrationClient(tc, tc.Participants[0], infra)
+		clientA, msgA := setupIntegrationClient(tc, tc.Participants[0], infra)
 		defer clientA.Close()
+		msgServices = append(msgServices, msgA)
 
-		clientB := setupIntegrationClient(tc, tc.Participants[1], infra)
+		clientB, msgB := setupIntegrationClient(tc, tc.Participants[1], infra)
 		defer clientB.Close()
+		msgServices = append(msgServices, msgB)
 
-		intermediaries := make([]client.Client, len(tc.Participants)-2)
-		for i, intermediary := range tc.Participants[2:] {
-			intermediaries[i] = setupIntegrationClient(tc, intermediary, infra)
+		intermediaries := make([]client.Client, 0)
+		for _, intermediary := range tc.Participants[2:] {
+			clientI, msgI := setupIntegrationClient(tc, intermediary, infra)
+
+			intermediaries = append(intermediaries, clientI)
+			msgServices = append(msgServices, msgI)
 		}
+
 		defer func() {
 			for i := range intermediaries {
 				intermediaries[i].Close()
 			}
 		}()
+
+		if tc.MessageService == P2PMessageService {
+			p2pServices := make([]*p2pms.P2PMessageService, len(tc.Participants))
+			for i, msgService := range msgServices {
+				p2pServices[i] = msgService.(*p2pms.P2PMessageService)
+			}
+
+			waitForPeerInfoExchange(len(tc.Participants)-1, p2pServices...)
+		}
 
 		asset := common.Address{}
 		// Setup ledger channels between Alice/Bob and intermediaries

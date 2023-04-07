@@ -24,14 +24,14 @@ import (
 )
 
 // PeerInfo contains information about a peer
-type peerInfo struct {
+type PeerInfo struct {
 	Id      peer.ID
 	Address types.Address
 }
 
 const (
 	PROTOCOL_ID                  protocol.ID = "/go-nitro/msg/1.0.0"
-	PEER_PROTOCOL_ID             protocol.ID = "/go-nitro/peerinfo/1.0.0"
+	PEER_EXCHANGE_PROTOCOL_ID    protocol.ID = "/go-nitro/peerinfo/1.0.0"
 	DELIMITER                                = '\n'
 	BUFFER_SIZE                              = 1_000
 	NUM_CONNECT_ATTEMPTS                     = 20
@@ -41,14 +41,15 @@ const (
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
 type P2PMessageService struct {
-	toEngine   chan protocols.Message // for forwarding processed messages to the engine
-	peers      *safesync.Map[peerInfo]
-	gossipedTo *safesync.Map[bool]
-	me         types.Address
-	key        p2pcrypto.PrivKey
-	p2pHost    host.Host
-	mdns       mdns.Service
-	cancel     context.CancelFunc
+	toEngine    chan protocols.Message // for forwarding processed messages to the engine
+	peers       *safesync.Map[PeerInfo]
+	gossipedTo  *safesync.Map[bool]
+	me          types.Address
+	key         p2pcrypto.PrivKey
+	p2pHost     host.Host
+	mdns        mdns.Service
+	newPeerInfo chan PeerInfo
+	cancel      context.CancelFunc
 }
 
 // Id returns the libp2p peer ID of the message service.
@@ -60,10 +61,11 @@ func (ms *P2PMessageService) Id() peer.ID {
 // NewMessageService returns a running P2PMessageService listening on the given ip, port and message key.
 func NewMessageService(ip string, port int, me types.Address, pk []byte) *P2PMessageService {
 	ms := &P2PMessageService{
-		toEngine:   make(chan protocols.Message, BUFFER_SIZE),
-		peers:      &safesync.Map[peerInfo]{},
-		gossipedTo: &safesync.Map[bool]{},
-		me:         me,
+		toEngine:    make(chan protocols.Message, BUFFER_SIZE),
+		newPeerInfo: make(chan PeerInfo, BUFFER_SIZE),
+		peers:       &safesync.Map[PeerInfo]{},
+		gossipedTo:  &safesync.Map[bool]{},
+		me:          me,
 	}
 
 	messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(pk)
@@ -94,7 +96,7 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte) *P2PMes
 	ms.p2pHost = host
 
 	ms.p2pHost.SetStreamHandler(PROTOCOL_ID, ms.msgStreamHandler)
-	ms.p2pHost.SetStreamHandler(PEER_PROTOCOL_ID, ms.gossipStreamHandler)
+	ms.p2pHost.SetStreamHandler(PEER_EXCHANGE_PROTOCOL_ID, ms.gossipStreamHandler)
 
 	go ms.gossip(ctx)
 
@@ -135,11 +137,15 @@ func (ms *P2PMessageService) gossipStreamHandler(stream network.Stream) {
 		return
 	}
 	ms.checkError(err)
-	var peerInfo *peerInfo
+
+	var peerInfo *PeerInfo
 	err = json.Unmarshal([]byte(raw), &peerInfo)
-	fmt.Printf("Received peer info: %v\n", peerInfo)
-	ms.peers.Store(peerInfo.Address.String(), *peerInfo)
 	ms.checkError(err)
+
+	fmt.Printf("Received peer info: %v\n", peerInfo)
+
+	ms.peers.Store(peerInfo.Address.String(), *peerInfo)
+	ms.newPeerInfo <- *peerInfo
 
 	stream.Close()
 }
@@ -164,10 +170,10 @@ func (ms *P2PMessageService) gossip(ctx context.Context) {
 
 // sendInfoToPeer sends our peer info to the given peer.
 func (ms *P2PMessageService) sendInfoToPeer(id peer.ID) {
-	s, err := ms.p2pHost.NewStream(context.Background(), id, PEER_PROTOCOL_ID)
+	s, err := ms.p2pHost.NewStream(context.Background(), id, PEER_EXCHANGE_PROTOCOL_ID)
 	ms.checkError(err)
 
-	raw, err := json.Marshal(peerInfo{
+	raw, err := json.Marshal(PeerInfo{
 		Id:      ms.Id(),
 		Address: ms.me,
 	})
@@ -236,4 +242,9 @@ func (s *P2PMessageService) Close() error {
 	s.mdns.Close()
 	s.p2pHost.RemoveStreamHandler(PROTOCOL_ID)
 	return s.p2pHost.Close()
+}
+
+// PeerInfoReceived returns a channel that receives a PeerInfo when a peer is discovered
+func (s *P2PMessageService) PeerInfoReceived() <-chan PeerInfo {
+	return s.newPeerInfo
 }

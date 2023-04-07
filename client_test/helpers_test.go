@@ -168,12 +168,12 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) st
 	}
 }
 
-func setupIntegrationClient(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) client.Client {
+func setupIntegrationClient(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) (client.Client, messageservice.MessageService) {
 	messageService := setupMessageService(tc, tp, si)
 	cs := setupChainService(tc, tp, si)
 	store := setupStore(tc, tp, si)
 	c := client.New(messageService, cs, store, newLogWriter(tc.LogName), &engine.PermissivePolicy{}, nil)
-	return c
+	return c, messageService
 }
 
 func initialLedgerOutcome(alpha, beta, asset types.Address) outcome.Exit {
@@ -342,4 +342,13 @@ func clientAddresses(clients []client.Client) []common.Address {
 	}
 
 	return addrs
+}
+
+// waitForPeerInfoExchange waits for all the P2PMessageServices to receive peer info from each other
+func waitForPeerInfoExchange(numOfPeers int, services ...*p2pms.P2PMessageService) {
+	for i := 0; i < numOfPeers; i++ {
+		for _, s := range services {
+			<-s.PeerInfoReceived()
+		}
+	}
 }

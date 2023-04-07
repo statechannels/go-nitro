@@ -54,10 +54,10 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	chainServiceB := chainservice.NewMockChainService(chain, ta.Bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, ta.Irene.Address())
 
-	rpcClientA, _, cleanupFnA := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3005, 4005, chainServiceA, logDestination, connectionType)
-	rpcClientB, _, cleanupFnB := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3006, 4006, chainServiceB, logDestination, connectionType)
-	rpcClientI, _, cleanupFnC := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3007, 4007, chainServiceI, logDestination, connectionType)
-
+	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3005, 4005, chainServiceA, logDestination, connectionType)
+	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3006, 4006, chainServiceB, logDestination, connectionType)
+	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3007, 4007, chainServiceI, logDestination, connectionType)
+	waitForPeerInfoExchange(2, msgA, msgB, msgI)
 	defer cleanupFnA()
 	defer cleanupFnB()
 	defer cleanupFnC()
