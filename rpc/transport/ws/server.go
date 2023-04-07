@@ -34,7 +34,7 @@ func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, erro
 	}
 
 	wsc.httpServer = &http.Server{
-		Handler:      wsc,
+		Handler:      &wsc.serveMux,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
 	}
@@ -47,11 +47,6 @@ func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, erro
 	}()
 
 	return wsc, nil
-}
-
-// ServeHTTP is a required method for the http.Handler interface
-func (wsc *serverWebSocketTransport) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	wsc.serveMux.ServeHTTP(w, r)
 }
 
 func (wsc *serverWebSocketTransport) RegisterRequestHandler(handler func([]byte) []byte) error {

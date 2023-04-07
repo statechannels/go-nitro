@@ -8,16 +8,10 @@ import (
 	"time"
 )
 
-var r *rand.Rand
-
 // getRandGenerator seeds a random number generator based on current time
 func getRandGenerator() *rand.Rand {
-	if r != nil {
-		return r
-	}
 	source := rand.NewSource(time.Now().UnixNano())
-	r = rand.New(source)
-	return r
+	return rand.New(source)
 }
 
 func Uint64() uint64 {
