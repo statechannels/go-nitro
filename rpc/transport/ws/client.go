@@ -23,7 +23,7 @@ func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error
 	wsc.notificationChan = make(chan []byte)
 	wsc.url = url
 
-	conn, _, err := websocket.Dial(context.Background(), url+"/subscribe", &websocket.DialOptions{})
+	conn, _, err := websocket.Dial(context.Background(), "ws://"+url+"/subscribe", &websocket.DialOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error
 }
 
 func (wsc *clientWebSocketTransport) Request(data []byte) ([]byte, error) {
-	resp, err := http.Post("http"+wsc.url[2:], "application/json", bytes.NewBuffer(data))
+	resp, err := http.Post("http://"+wsc.url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}
