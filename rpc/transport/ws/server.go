@@ -95,9 +95,18 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 	}
 	defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
 
+	// A client closes a connection by sending a message over the websocket
+	closeChan := make(chan error)
+	go func() {
+		_, _, err := c.Read(r.Context())
+		closeChan <- err
+	}()
+
 	done := false
 	for !done {
 		select {
+		case err = <-closeChan:
+			done = true
 		case <-r.Context().Done():
 			err = r.Context().Err()
 			done = true
