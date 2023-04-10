@@ -66,11 +66,6 @@ type JsonRpcRequest[T RequestPayload | NotificationPayload] struct {
 	Params  T      `json:"params"`
 }
 
-type JsonRpcMessage struct {
-	Method string `json:"method"`
-	Id     uint64 `json:"id"`
-}
-
 type ResponsePayload interface {
 	directfund.ObjectiveResponse |
 		protocols.ObjectiveId |

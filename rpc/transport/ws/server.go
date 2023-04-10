@@ -3,38 +3,38 @@ package ws
 import (
 	"context"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"time"
 
-	"github.com/rs/zerolog"
 	"nhooyr.io/websocket"
 )
 
 const webscocketServerAddress = "127.0.0.1:"
 
 type serverWebSocketTransport struct {
-	serveMux        http.ServeMux
-	httpServer      *http.Server
-	logger          zerolog.Logger
-	requestHandler  func([]byte) []byte
-	serverWebsocket *websocket.Conn
-	port            string
+	httpServer       *http.Server
+	requestHandler   func([]byte) []byte
+	serverWebsocket  *websocket.Conn
+	port             string
+	notificationChan chan []byte
 }
 
 // NewWebSocketTransportAsServer starts an http server that accepts websocket connections
 func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, error) {
-	wsc := &serverWebSocketTransport{}
-	wsc.port = port
-	wsc.serveMux.HandleFunc("/", wsc.subscribeRequestHandler)
+	wsc := &serverWebSocketTransport{port: port, notificationChan: make(chan []byte)}
 
 	tcpListener, err := net.Listen("tcp", webscocketServerAddress+wsc.port)
 	if err != nil {
 		return nil, err
 	}
 
+	var serveMux http.ServeMux
+	serveMux.HandleFunc("/", wsc.request)
+	serveMux.HandleFunc("/subscribe", wsc.subscribe)
 	wsc.httpServer = &http.Server{
-		Handler:      &wsc.serveMux,
+		Handler:      &serveMux,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
 	}
@@ -55,7 +55,8 @@ func (wsc *serverWebSocketTransport) RegisterRequestHandler(handler func([]byte)
 }
 
 func (wsc *serverWebSocketTransport) Notify(data []byte) error {
-	return wsc.serverWebsocket.Write(context.Background(), websocket.MessageText, data)
+	wsc.notificationChan <- data
+	return nil
 }
 
 func (wsc *serverWebSocketTransport) Close() {
@@ -69,7 +70,26 @@ func (wsc *serverWebSocketTransport) Url() string {
 	return "ws://" + webscocketServerAddress + wsc.port
 }
 
-func (wsc *serverWebSocketTransport) subscribeRequestHandler(w http.ResponseWriter, r *http.Request) {
+func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+	body := http.MaxBytesReader(w, r.Body, 8192)
+	msg, err := io.ReadAll(body)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	_, err = w.Write(wsc.requestHandler(msg))
+	if err != nil {
+		panic(err)
+	}
+}
+
+// Todo: should allow for multiple notification subscribers
+func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Request) {
 	c, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		panic(err)
@@ -77,7 +97,19 @@ func (wsc *serverWebSocketTransport) subscribeRequestHandler(w http.ResponseWrit
 	wsc.serverWebsocket = c
 	defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
 
-	err = wsc.readRequests(r.Context())
+	done := false
+	for !done {
+		select {
+		case <-r.Context().Done():
+			err = r.Context().Err()
+			done = true
+		case notificationData := <-wsc.notificationChan:
+			err := wsc.serverWebsocket.Write(r.Context(), websocket.MessageText, notificationData)
+			if err != nil {
+				done = true
+			}
+		}
+	}
 	if errors.Is(err, context.Canceled) {
 		return
 	}
@@ -86,20 +118,5 @@ func (wsc *serverWebSocketTransport) subscribeRequestHandler(w http.ResponseWrit
 	}
 	if err != nil {
 		panic(err)
-	}
-}
-
-func (wsc *serverWebSocketTransport) readRequests(ctx context.Context) error {
-	for {
-		_, data, err := wsc.serverWebsocket.Read(ctx)
-		if err != nil {
-			return err
-		}
-		wsc.logger.Trace().Msgf("Received message: %v", data)
-		responseData := wsc.requestHandler(data)
-		err = wsc.serverWebsocket.Write(ctx, websocket.MessageText, responseData)
-		if err != nil {
-			return err
-		}
 	}
 }
