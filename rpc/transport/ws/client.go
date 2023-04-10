@@ -50,7 +50,7 @@ func (wsc *clientWebSocketTransport) Subscribe() (<-chan []byte, error) {
 }
 
 func (wsc *clientWebSocketTransport) Close() {
-	// Clients initiate and close websockets{
+	// Clients initiate and close websockets
 	wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
 	close(wsc.notificationChan)
 }
