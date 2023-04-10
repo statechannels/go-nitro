@@ -72,7 +72,7 @@ func (wsc *serverWebSocketTransport) Close() {
 }
 
 func (wsc *serverWebSocketTransport) Url() string {
-	return "ws://" + webscocketServerAddress + wsc.port
+	return webscocketServerAddress + wsc.port
 }
 
 func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Request) {
