@@ -16,7 +16,6 @@ const webscocketServerAddress = "127.0.0.1:"
 type serverWebSocketTransport struct {
 	httpServer       *http.Server
 	requestHandler   func([]byte) []byte
-	serverWebsocket  *websocket.Conn
 	port             string
 	notificationChan chan []byte
 }
@@ -94,7 +93,6 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		panic(err)
 	}
-	wsc.serverWebsocket = c
 	defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
 
 	done := false
@@ -104,7 +102,7 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 			err = r.Context().Err()
 			done = true
 		case notificationData := <-wsc.notificationChan:
-			err := wsc.serverWebsocket.Write(r.Context(), websocket.MessageText, notificationData)
+			err := c.Write(r.Context(), websocket.MessageText, notificationData)
 			if err != nil {
 				done = true
 			}
