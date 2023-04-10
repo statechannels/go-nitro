@@ -6,23 +6,26 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/statechannels/go-nitro/internal/safesync"
+	"github.com/statechannels/go-nitro/rand"
 	"nhooyr.io/websocket"
 )
 
 const webscocketServerAddress = "127.0.0.1:"
 
 type serverWebSocketTransport struct {
-	httpServer       *http.Server
-	requestHandler   func([]byte) []byte
-	port             string
-	notificationChan chan []byte
+	httpServer            *http.Server
+	requestHandler        func([]byte) []byte
+	port                  string
+	notificationListeners safesync.Map[chan []byte]
 }
 
 // NewWebSocketTransportAsServer starts an http server that accepts websocket connections
 func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, error) {
-	wsc := &serverWebSocketTransport{port: port, notificationChan: make(chan []byte)}
+	wsc := &serverWebSocketTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}}
 
 	tcpListener, err := net.Listen("tcp", webscocketServerAddress+wsc.port)
 	if err != nil {
@@ -54,7 +57,10 @@ func (wsc *serverWebSocketTransport) RegisterRequestHandler(handler func([]byte)
 }
 
 func (wsc *serverWebSocketTransport) Notify(data []byte) error {
-	wsc.notificationChan <- data
+	wsc.notificationListeners.Range(func(key string, value chan []byte) bool {
+		value <- data
+		return true
+	})
 	return nil
 }
 
@@ -87,13 +93,16 @@ func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-// Todo: should allow for multiple notification subscribers
 func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Request) {
 	c, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		panic(err)
 	}
 	defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
+	notificationChan := make(chan []byte)
+	key := strconv.Itoa(int(rand.Uint64()))
+	wsc.notificationListeners.Store(key, notificationChan)
+	defer wsc.notificationListeners.Delete(key)
 
 	// A client closes a connection by sending a message over the websocket
 	closeChan := make(chan error)
@@ -110,7 +119,7 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 		case <-r.Context().Done():
 			err = r.Context().Err()
 			done = true
-		case notificationData := <-wsc.notificationChan:
+		case notificationData := <-notificationChan:
 			err := c.Write(r.Context(), websocket.MessageText, notificationData)
 			if err != nil {
 				done = true
