@@ -49,7 +49,6 @@ type P2PMessageService struct {
 	p2pHost     host.Host
 	mdns        mdns.Service
 	newPeerInfo chan PeerInfo
-	cancel      context.CancelFunc
 }
 
 // Id returns the libp2p peer ID of the message service.
@@ -230,7 +229,6 @@ func (s *P2PMessageService) Out() <-chan protocols.Message {
 
 // Close closes the P2PMessageService
 func (s *P2PMessageService) Close() error {
-	s.cancel()
 	s.mdns.Close()
 	s.p2pHost.RemoveStreamHandler(PROTOCOL_ID)
 	return s.p2pHost.Close()
