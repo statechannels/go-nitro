@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/ethereum/go-ethereum v1.11.4
 	github.com/google/go-cmp v0.5.9
-	github.com/multiformats/go-multiaddr v0.9.0 // indirect
+	github.com/multiformats/go-multiaddr v0.9.0
 	github.com/nats-io/nats-server/v2 v2.9.10
 	github.com/nats-io/nats.go v1.21.0
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0

@@ -18,13 +18,14 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
-// PeerInfo contains information about a peer
-type PeerInfo struct {
+// basicPeerInfo contains the basic information about a peer
+type basicPeerInfo struct {
 	Id      peer.ID
 	Address types.Address
 }
@@ -42,13 +43,13 @@ const (
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
 type P2PMessageService struct {
 	toEngine chan protocols.Message // for forwarding processed messages to the engine
-	peers    *safesync.Map[PeerInfo]
+	peers    *safesync.Map[basicPeerInfo]
 
 	me          types.Address
 	key         p2pcrypto.PrivKey
 	p2pHost     host.Host
 	mdns        mdns.Service
-	newPeerInfo chan PeerInfo
+	newPeerInfo chan basicPeerInfo
 }
 
 // Id returns the libp2p peer ID of the message service.
@@ -61,8 +62,8 @@ func (ms *P2PMessageService) Id() peer.ID {
 func NewMessageService(ip string, port int, me types.Address, pk []byte) *P2PMessageService {
 	ms := &P2PMessageService{
 		toEngine:    make(chan protocols.Message, BUFFER_SIZE),
-		newPeerInfo: make(chan PeerInfo, BUFFER_SIZE),
-		peers:       &safesync.Map[PeerInfo]{},
+		newPeerInfo: make(chan basicPeerInfo, BUFFER_SIZE),
+		peers:       &safesync.Map[basicPeerInfo]{},
 		me:          me,
 	}
 
@@ -131,7 +132,7 @@ func (ms *P2PMessageService) peerExchangeHandler(stream network.Stream) {
 
 // sendPeerInfo sends our peer info over the given stream
 func (ms *P2PMessageService) sendPeerInfo(stream network.Stream) {
-	raw, err := json.Marshal(PeerInfo{
+	raw, err := json.Marshal(basicPeerInfo{
 		Id:      ms.Id(),
 		Address: ms.me,
 	})
@@ -157,7 +158,7 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 	}
 	ms.checkError(err)
 
-	var peerInfo *PeerInfo
+	var peerInfo *basicPeerInfo
 	err = json.Unmarshal([]byte(raw), &peerInfo)
 	ms.checkError(err)
 
@@ -235,6 +236,29 @@ func (s *P2PMessageService) Close() error {
 }
 
 // PeerInfoReceived returns a channel that receives a PeerInfo when a peer is discovered
-func (s *P2PMessageService) PeerInfoReceived() <-chan PeerInfo {
+func (s *P2PMessageService) PeerInfoReceived() <-chan basicPeerInfo {
 	return s.newPeerInfo
+}
+
+// PeerInfo contains peer information and the ip address/port
+type PeerInfo struct {
+	Port      int
+	Id        peer.ID
+	Address   types.Address
+	IpAddress string
+}
+
+// AddPeers adds the peers to the message service.
+// We ignore peers that are ourselves.
+func (ms *P2PMessageService) AddPeers(peers []PeerInfo) {
+	for _, p := range peers {
+		// Ignore ourselves
+		if p.Address == ms.me {
+			continue
+		}
+		multi, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", p.IpAddress, p.Port, p.Id))
+		ms.p2pHost.Peerstore().AddAddr(p.Id, multi, peerstore.PermanentAddrTTL)
+
+		ms.peers.Store(p.Address.String(), basicPeerInfo{p.Id, p.Address})
+	}
 }
