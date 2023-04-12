@@ -111,18 +111,18 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 		closeChan <- err
 	}()
 
-	done := false
-	for !done {
+EventLoop:
+	for {
 		select {
 		case err = <-closeChan:
-			done = true
+			break EventLoop
 		case <-r.Context().Done():
 			err = r.Context().Err()
-			done = true
+			break EventLoop
 		case notificationData := <-notificationChan:
 			err := c.Write(r.Context(), websocket.MessageText, notificationData)
 			if err != nil {
-				done = true
+				break EventLoop
 			}
 		}
 	}
