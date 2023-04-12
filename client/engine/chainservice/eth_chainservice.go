@@ -219,6 +219,8 @@ func (ecs *EthChainService) subscribeForLogs() {
 	if err != nil {
 		ecs.fatalF("subscribeFilterLogs failed: %w", err)
 	}
+
+	// Must be in a goroutine to not block chain service constructor
 	go func() {
 		for {
 			select {
