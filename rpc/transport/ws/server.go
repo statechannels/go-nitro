@@ -105,6 +105,8 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 	defer wsc.notificationListeners.Delete(key)
 
 	// A client closes a connection by sending a message over the websocket
+	// This code converts the socket `Read` call to a channel.
+	// Ideally, all signals would be managed in the select statement below. But there is no channel API for the websocket read.
 	closeChan := make(chan error)
 	go func() {
 		_, _, err := c.Read(r.Context())
