@@ -14,7 +14,10 @@ import (
 	"nhooyr.io/websocket"
 )
 
-const webscocketServerAddress = "127.0.0.1:"
+const (
+	webscocketServerAddress = "127.0.0.1:"
+	maxRequestSize          = 8192
+)
 
 type serverWebSocketTransport struct {
 	httpServer            *http.Server
@@ -80,7 +83,7 @@ func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Requ
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
-	body := http.MaxBytesReader(w, r.Body, 8192)
+	body := http.MaxBytesReader(w, r.Body, maxRequestSize)
 	msg, err := io.ReadAll(body)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
