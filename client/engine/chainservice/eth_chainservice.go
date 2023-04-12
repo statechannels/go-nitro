@@ -71,7 +71,7 @@ func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx}
-	go ecs.subscribeForLogs()
+	ecs.subscribeForLogs()
 
 	return &ecs, nil
 }
@@ -219,33 +219,35 @@ func (ecs *EthChainService) subscribeForLogs() {
 	if err != nil {
 		ecs.fatalF("subscribeFilterLogs failed: %w", err)
 	}
-	for {
-		select {
-		case <-ecs.ctx.Done():
-			sub.Unsubscribe()
-			return
-		case err := <-sub.Err():
-			if err != nil {
-				ecs.fatalF("received error from the subscription channel: %w", err)
-			}
+	go func() {
+		for {
+			select {
+			case <-ecs.ctx.Done():
+				sub.Unsubscribe()
+				return
+			case err := <-sub.Err():
+				if err != nil {
+					ecs.fatalF("received error from the subscription channel: %w", err)
+				}
 
-			// If the error is nil then the subscription was closed and we need to re-subscribe.
-			// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
-			var sErr error
-			sub, sErr = ecs.chain.SubscribeFilterLogs(ecs.ctx, query, logs)
-			if sErr != nil {
-				ecs.fatalF("subscribeFilterLogs failed on resubscribe: %w", err)
-			}
-			ecs.logger.Print("resubscribed to filtered logs")
+				// If the error is nil then the subscription was closed and we need to re-subscribe.
+				// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
+				var sErr error
+				sub, sErr = ecs.chain.SubscribeFilterLogs(ecs.ctx, query, logs)
+				if sErr != nil {
+					ecs.fatalF("subscribeFilterLogs failed on resubscribe: %w", err)
+				}
+				ecs.logger.Print("resubscribed to filtered logs")
 
-		case <-time.After(RESUB_INTERVAL):
-			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
-			// We unsub here and recreate the subscription in the next iteration of the select.
-			sub.Unsubscribe()
-		case chainEvent := <-logs:
-			ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
+			case <-time.After(RESUB_INTERVAL):
+				// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
+				// We unsub here and recreate the subscription in the next iteration of the select.
+				sub.Unsubscribe()
+			case chainEvent := <-logs:
+				ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
+			}
 		}
-	}
+	}()
 }
 
 type blockRange struct {
