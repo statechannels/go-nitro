@@ -36,9 +36,9 @@ import (
 func main() {
 	var pkString, hardhatUrl string
 	var msgPort, rpcPort int
-	var useWs, useDurableStore bool
+	var useNats, useDurableStore bool
 
-	flag.BoolVar(&useWs, "useWS", false, "Specifies whether to use websockets or NATS for the rpc server.")
+	flag.BoolVar(&useNats, "useNats", true, "Specifies whether to use NATS or http/ws for the rpc server.")
 	flag.BoolVar(&useDurableStore, "useDurableStore", false, "Specifies whether to use a durable store or an in-memory store.")
 	flag.StringVar(&pkString, "pk", "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d", "Specifies the private key for the client. Default is Alice's private key.")
 	flag.StringVar(&hardhatUrl, "hardhatUrl", "ws://127.0.0.1:8545", "Specifies the url for the hardhat node.")
@@ -77,10 +77,10 @@ func main() {
 
 	var transport transport.Responder
 
-	if useWs {
-		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
-	} else {
+	if useNats {
 		transport, err = nats.NewNatsTransportAsServer(rpcPort)
+	} else {
+		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
 	}
 	if err != nil {
 		panic(err)
