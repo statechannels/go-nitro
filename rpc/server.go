@@ -59,6 +59,14 @@ func (rs *RpcServer) registerHandlers() (err error) {
 		}
 
 		switch serde.RequestMethod(validationResult.Method) {
+		case serde.GetAddressMethod:
+			return processRequest(rs, requestData, func(T serde.NoPayloadRequest) string {
+				return rs.client.Address.Hex()
+			})
+		case serde.VersionMethod:
+			return processRequest(rs, requestData, func(T serde.NoPayloadRequest) string {
+				return rs.client.Version()
+			})
 		case serde.DirectFundRequestMethod:
 			return processRequest(rs, requestData, func(obj directfund.ObjectiveRequest) directfund.ObjectiveResponse {
 				return rs.client.CreateLedgerChannel(obj.CounterParty, obj.ChallengeDuration, obj.Outcome)
