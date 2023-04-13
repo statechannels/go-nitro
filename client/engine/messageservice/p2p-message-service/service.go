@@ -92,7 +92,12 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte) *P2PMes
 	ms.p2pHost = host
 
 	ms.p2pHost.SetStreamHandler(PROTOCOL_ID, ms.msgStreamHandler)
-	ms.p2pHost.SetStreamHandler(PEER_EXCHANGE_PROTOCOL_ID, ms.peerExchangeHandler)
+
+	ms.p2pHost.SetStreamHandler(PEER_EXCHANGE_PROTOCOL_ID, func(stream network.Stream) {
+		ms.receivePeerInfo(stream)
+		ms.sendPeerInfo(stream)
+		stream.Close()
+	})
 
 	return ms
 }
@@ -121,12 +126,6 @@ func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 	m, err := protocols.DeserializeMessage(raw)
 	ms.checkError(err)
 	ms.toEngine <- m
-	stream.Close()
-}
-
-func (ms *P2PMessageService) peerExchangeHandler(stream network.Stream) {
-	ms.receivePeerInfo(stream)
-	ms.sendPeerInfo(stream)
 	stream.Close()
 }
 
