@@ -95,7 +95,6 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte) *P2PMes
 
 	ms.p2pHost.SetStreamHandler(PEER_EXCHANGE_PROTOCOL_ID, func(stream network.Stream) {
 		ms.receivePeerInfo(stream)
-		ms.sendPeerInfo(stream)
 		stream.Close()
 	})
 
@@ -108,7 +107,6 @@ func (ms *P2PMessageService) HandlePeerFound(pi peer.AddrInfo) {
 	stream, err := ms.p2pHost.NewStream(context.Background(), pi.ID, PEER_EXCHANGE_PROTOCOL_ID)
 	ms.checkError(err)
 	ms.sendPeerInfo(stream)
-	ms.receivePeerInfo(stream)
 	stream.Close()
 }
 
