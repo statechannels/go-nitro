@@ -35,13 +35,14 @@ import (
 )
 
 func main() {
-	var pkString string
+	var pkString, hardhatUrl string
 	var msgPort, rpcPort int
 	var useWs, useDurableStore bool
 
 	flag.BoolVar(&useWs, "useWS", false, "Specifies whether to use websockets or NATS for the rpc server.")
 	flag.BoolVar(&useDurableStore, "useDurableStore", false, "Specifies whether to use a durable store or an in-memory store.")
 	flag.StringVar(&pkString, "pk", "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d", "Specifies the private key for the client. Default is Alice's private key.")
+	flag.StringVar(&hardhatUrl, "hardhatUrl", "ws://127.0.0.1:8545", "Specifies the url for the hardhat node.")
 	flag.IntVar(&msgPort, "msgPort", 3005, "Specifies the tcp port for the  message service.")
 	flag.IntVar(&rpcPort, "rpcPort", 4005, "Specifies the tcp port for the rpc server.")
 	flag.Parse()
@@ -56,7 +57,7 @@ func main() {
 	} else {
 		ourStore = store.NewMemStore(pk)
 	}
-	chainService := NewChainService(context.Background(), *ourStore.GetAddress())
+	chainService := NewChainService(context.Background(), *ourStore.GetAddress(), hardhatUrl)
 	messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk)
 
 	node := client.New(
@@ -98,9 +99,8 @@ func main() {
 	fmt.Printf("Received signal %s, exiting..", sig)
 }
 
-func NewChainService(ctx context.Context, address types.Address) chainservice.ChainService {
-	// TODO: Don't use hardcoded values
-	client, err := ethclient.Dial("ws://127.0.0.1:8545/")
+func NewChainService(ctx context.Context, address types.Address, hardhatUrl string) chainservice.ChainService {
+	client, err := ethclient.Dial(hardhatUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
