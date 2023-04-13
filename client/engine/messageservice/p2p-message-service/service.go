@@ -85,9 +85,8 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte) *P2PMes
 	}
 
 	mdns := mdns.NewMdnsService(host, "", ms)
-	if err := mdns.Start(); err != nil {
-		panic(err)
-	}
+	err = mdns.Start()
+	ms.checkError(err)
 	ms.mdns = mdns
 	ms.p2pHost = host
 
