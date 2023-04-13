@@ -161,19 +161,9 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 	err = json.Unmarshal([]byte(raw), &peerInfo)
 	ms.checkError(err)
 
-	prev, hasPeer := ms.peers.Load(peerInfo.Address.String())
-
-	if !hasPeer {
-		fmt.Printf("Setting info received from peer: %v\n", peerInfo)
-		ms.peers.Store(peerInfo.Address.String(), *peerInfo)
-		ms.newPeerInfo <- *peerInfo
-	}
-
-	// It's possible that the a message service is using a new peer ID for the same address.
-	// We allow overriding the existing peer info in this case.
-	if isNewInfo := prev.Id != peerInfo.Id || prev.Address != peerInfo.Address; hasPeer && isNewInfo {
-		fmt.Printf("Overriding existing info: %+v with new info: %+v\n", prev, peerInfo)
-		ms.peers.Store(peerInfo.Address.String(), *peerInfo)
+	_, foundPeer := ms.peers.LoadOrStore(peerInfo.Address.String(), *peerInfo)
+	if !foundPeer {
+		fmt.Printf("Set info received from peer: %v\n", peerInfo)
 		ms.newPeerInfo <- *peerInfo
 	}
 }
