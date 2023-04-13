@@ -143,7 +143,8 @@ func setupNitroNodeWithRPCClient(
 	messageservice := p2pms.NewMessageService("127.0.0.1",
 		msgPort,
 		crypto.GetAddressFromSecretKeyBytes(pk),
-		pk)
+		pk,
+		logDestination)
 	storeA := store.NewMemStore(pk)
 	node := client.New(
 		messageservice,

@@ -19,6 +19,8 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -50,6 +52,7 @@ type P2PMessageService struct {
 	p2pHost     host.Host
 	mdns        mdns.Service
 	newPeerInfo chan basicPeerInfo
+	logger      zerolog.Logger
 }
 
 // Id returns the libp2p peer ID of the message service.
@@ -59,12 +62,15 @@ func (ms *P2PMessageService) Id() peer.ID {
 }
 
 // NewMessageService returns a running P2PMessageService listening on the given ip, port and message key.
-func NewMessageService(ip string, port int, me types.Address, pk []byte) *P2PMessageService {
+func NewMessageService(ip string, port int, me types.Address, pk []byte, logWriter io.Writer) *P2PMessageService {
+	logging.ConfigureZeroLogger()
+
 	ms := &P2PMessageService{
 		toEngine:    make(chan protocols.Message, BUFFER_SIZE),
 		newPeerInfo: make(chan basicPeerInfo, BUFFER_SIZE),
 		peers:       &safesync.Map[basicPeerInfo]{},
 		me:          me,
+		logger:      zerolog.New(logWriter).With().Timestamp().Str("message-service", me.String()[0:8]).Caller().Logger(),
 	}
 
 	messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(pk)
@@ -160,7 +166,7 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 
 	_, foundPeer := ms.peers.LoadOrStore(peerInfo.Address.String(), *peerInfo)
 	if !foundPeer {
-		fmt.Printf("Set info received from peer: %v\n", peerInfo)
+		ms.logger.Debug().Interface("peerInfo", peerInfo).Msgf("New peer found")
 		ms.newPeerInfo <- *peerInfo
 	}
 }
@@ -194,8 +200,7 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 			return
 		}
 
-		// TODO: Hook up to a logger
-		fmt.Printf("attempt %d: could not open stream to %s, retrying in %s\n", i, msg.To.String(), RETRY_SLEEP_DURATION.String())
+		ms.logger.Info().Int("attempt", i).Str("to", msg.To.String()).Msg("Could not open stream")
 		time.Sleep(RETRY_SLEEP_DURATION)
 
 	}

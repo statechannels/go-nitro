@@ -120,7 +120,7 @@ func closeSimulatedChain(t *testing.T, chain chainservice.SimulatedChain) {
 	}
 }
 
-func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) messageservice.MessageService {
+func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, logWriter io.Writer) messageservice.MessageService {
 	switch tc.MessageService {
 	case TestMessageService:
 		return messageservice.NewTestMessageService(tp.Address(), *si.broker, tc.MessageDelay)
@@ -130,6 +130,7 @@ func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastru
 			int(tp.Port),
 			tp.Address(),
 			tp.PrivateKey,
+			logWriter,
 		)
 
 		return ms
@@ -169,7 +170,7 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) st
 }
 
 func setupIntegrationClient(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) (client.Client, messageservice.MessageService) {
-	messageService := setupMessageService(tc, tp, si)
+	messageService := setupMessageService(tc, tp, si, newLogWriter(tc.LogName))
 	cs := setupChainService(tc, tp, si)
 	store := setupStore(tc, tp, si)
 	c := client.New(messageService, cs, store, newLogWriter(tc.LogName), &engine.PermissivePolicy{}, nil)
