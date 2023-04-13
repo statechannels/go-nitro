@@ -126,7 +126,6 @@ func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 
 func (ms *P2PMessageService) peerExchangeHandler(stream network.Stream) {
 	ms.receivePeerInfo(stream)
-	ms.sendPeerInfo(stream)
 	stream.Close()
 }
 
