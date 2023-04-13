@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"log"
 	"math/big"
 	"os"
 	"os/signal"
@@ -45,9 +44,12 @@ func main() {
 	flag.StringVar(&hardhatUrl, "hardhatUrl", "ws://127.0.0.1:8545", "Specifies the url for the hardhat node.")
 	flag.IntVar(&msgPort, "msgPort", 3005, "Specifies the tcp port for the  message service.")
 	flag.IntVar(&rpcPort, "rpcPort", 4005, "Specifies the tcp port for the rpc server.")
+
 	flag.Parse()
+
 	pk := common.Hex2Bytes(pkString)
 	me := crypto.GetAddressFromSecretKeyBytes(pk)
+
 	logDestination := os.Stdout
 
 	var ourStore store.Store
@@ -57,7 +59,12 @@ func main() {
 	} else {
 		ourStore = store.NewMemStore(pk)
 	}
-	chainService := NewChainService(context.Background(), *ourStore.GetAddress(), hardhatUrl)
+
+	chainService, err := newChainService(context.Background(), *ourStore.GetAddress(), hardhatUrl)
+	if err != nil {
+		panic(err)
+	}
+
 	messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk)
 
 	node := client.New(
@@ -69,7 +76,7 @@ func main() {
 		nil)
 
 	var transport transport.Responder
-	var err error
+
 	if useWs {
 		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
 	} else {
@@ -99,65 +106,80 @@ func main() {
 	fmt.Printf("Received signal %s, exiting..", sig)
 }
 
-func NewChainService(ctx context.Context, address types.Address, hardhatUrl string) chainservice.ChainService {
-	client, err := ethclient.Dial(hardhatUrl)
-	if err != nil {
-		log.Fatal(err)
-	}
-	key := GetHardhatFundedPrivateKey(address)
-	fmt.Printf("Using private key %s", common.Bytes2Hex(ethcrypto.FromECDSA(key)))
-	txSubmitter, err := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
-	if err != nil {
-		log.Fatal(err)
-	}
-	txSubmitter.GasLimit = uint64(30_000_000) // in units
-
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-	txSubmitter.GasPrice = gasPrice
-
+// deployAdjudicator deploys the NitroAdjudicator contract if it has not already been deployed.
+// It makes use of a Create2Deployer contract for deterministic deploy addresses.
+func deployAdjudicator(ctx context.Context, client *ethclient.Client, txSubmitter *bind.TransactOpts) (common.Address, error) {
 	deployer, err := Create2Deployer.NewCreate2Deployer(common.HexToAddress("0x5fbdb2315678afecb367f032d93f642f64180aa3"), client)
 	if err != nil {
-		log.Fatal(err)
+		return types.Address{}, err
 	}
-
 	hexBytecode, err := hex.DecodeString(NitroAdjudicator.NitroAdjudicatorMetaData.Bin[2:])
 	if err != nil {
-		log.Fatal(err)
+		return types.Address{}, err
 	}
 
 	naAddress, err := deployer.ComputeAddress(&bind.CallOpts{}, [32]byte{}, ethcrypto.Keccak256Hash(hexBytecode))
 	if err != nil {
-		log.Fatal(err)
+		return types.Address{}, err
 	}
 	bytecode, err := client.CodeAt(ctx, naAddress, nil) // nil is latest block
 	if err != nil {
-		log.Fatal(err)
+		return types.Address{}, err
 	}
 
 	// Has NitroAdjudicator been deployed? If not, deploy it.
 	if len(bytecode) == 0 {
 		_, err = deployer.Deploy(txSubmitter, big.NewInt(0), [32]byte{}, hexBytecode)
 		if err != nil {
-			log.Fatal(err)
+			return types.Address{}, err
 		}
+	}
+	return naAddress, nil
+}
+
+// newChainService constructs a chain service using the given node url.
+func newChainService(ctx context.Context, address types.Address, nodeUrl string) (chainservice.ChainService, error) {
+	client, err := ethclient.Dial(nodeUrl)
+	if err != nil {
+		return nil, err
+	}
+	key, err := getHardhatFundedPrivateKey(address)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("Using private key %s", common.Bytes2Hex(ethcrypto.FromECDSA(key)))
+	txSubmitter, err := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
+	if err != nil {
+		return nil, err
+	}
+	txSubmitter.GasLimit = uint64(30_000_000) // in units
+
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	txSubmitter.GasPrice = gasPrice
+
+	naAddress, err := deployAdjudicator(ctx, client, txSubmitter)
+	if err != nil {
+		return nil, err
 	}
 
 	na, err := NitroAdjudicator.NewNitroAdjudicator(naAddress, client)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	cs, err := chainservice.NewEthChainService(client, na, naAddress, common.Address{}, common.Address{}, txSubmitter, os.Stdout)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return cs
+	return cs, nil
 }
 
-func GetHardhatFundedPrivateKey(a types.Address) *ecdsa.PrivateKey {
+// getHardhatFundedPrivateKey selects a private key from one of the 1000 funded accounts in hardhat.
+// It modulates the address by 1000 to select a funded account.
+func getHardhatFundedPrivateKey(a types.Address) (*ecdsa.PrivateKey, error) {
 	// See https://hardhat.org/hardhat-network/docs/reference#accounts for defaults
 	// This is the default mnemonic used by hardhat
 	const HARDHAT_MNEMONIC = "test test test test test test test test test test test junk"
@@ -169,28 +191,20 @@ func GetHardhatFundedPrivateKey(a types.Address) *ecdsa.PrivateKey {
 
 	index := big.NewInt(0).Mod(a.Big(), big.NewInt(NUM_FUNDED)).Uint64()
 
-	return derivePrivateKey(uint(index), HARDHAT_MNEMONIC, HD_PATH, NUM_FUNDED)
-}
-
-func derivePrivateKey(index uint, mnemonic string, path string, numFunded uint) *ecdsa.PrivateKey {
-	if numFunded < index {
-		panic(fmt.Errorf("only the first %d accounts are funded", numFunded))
-	}
-
-	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
-
-	ourPath := fmt.Sprintf("%s/%d", path, index)
+	wallet, err := hdwallet.NewFromMnemonic(HARDHAT_MNEMONIC)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	a, err := wallet.Derive(hdwallet.MustParseDerivationPath(ourPath), false)
+	ourPath := fmt.Sprintf("%s/%d", HD_PATH, index)
+
+	derived, err := wallet.Derive(hdwallet.MustParseDerivationPath(ourPath), false)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	pk, err := wallet.PrivateKey(a)
+	pk, err := wallet.PrivateKey(derived)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return pk
+	return pk, nil
 }
