@@ -38,12 +38,12 @@ func main() {
 	var msgPort, rpcPort int
 	var useNats, useDurableStore bool
 
-	flag.BoolVar(&useNats, "useNats", true, "Specifies whether to use NATS or http/ws for the rpc server.")
-	flag.BoolVar(&useDurableStore, "useDurableStore", false, "Specifies whether to use a durable store or an in-memory store.")
+	flag.BoolVar(&useNats, "usenats", true, "Specifies whether to use NATS or http/ws for the rpc server.")
+	flag.BoolVar(&useDurableStore, "usedurablestore", false, "Specifies whether to use a durable store or an in-memory store.")
 	flag.StringVar(&pkString, "pk", "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d", "Specifies the private key for the client. Default is Alice's private key.")
-	flag.StringVar(&hardhatUrl, "hardhatUrl", "ws://127.0.0.1:8545", "Specifies the url for the hardhat node.")
-	flag.IntVar(&msgPort, "msgPort", 3005, "Specifies the tcp port for the  message service.")
-	flag.IntVar(&rpcPort, "rpcPort", 4005, "Specifies the tcp port for the rpc server.")
+	flag.StringVar(&hardhatUrl, "hardhaturl", "ws://127.0.0.1:8545", "Specifies the url for the hardhat node.")
+	flag.IntVar(&msgPort, "msgport", 3005, "Specifies the tcp port for the  message service.")
+	flag.IntVar(&rpcPort, "rpcport", 4005, "Specifies the tcp port for the rpc server.")
 
 	flag.Parse()
 
