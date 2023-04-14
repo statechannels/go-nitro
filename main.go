@@ -65,7 +65,7 @@ func main() {
 		panic(err)
 	}
 
-	messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk)
+	messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, logDestination)
 
 	node := client.New(
 		messageservice,
