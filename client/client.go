@@ -107,7 +107,7 @@ func (c *Client) Version() string {
 
 	version := info.Main.Version
 	// Depending on how the binary was built we may get back no version info.
-	// If there's no version we'll default to "(devel)", which seems to be the default.
+	// In this case we default to "(devel)".
 	// See https://github.com/golang/go/issues/51831#issuecomment-1074188363 for more details.
 	if version == "" {
 		version = "(devel)"

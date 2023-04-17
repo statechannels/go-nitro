@@ -62,7 +62,7 @@ func main() {
 
 	chainService, err := newChainService(context.Background(), *ourStore.GetAddress(), hardhatUrl)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("connection to chain not established: %w", err))
 	}
 
 	messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, logDestination)
@@ -99,7 +99,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Nitro as a Service listening on localhost:", rpcPort)
+	fmt.Println("Nitro as a Service listening on port", rpcPort)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-sigs
