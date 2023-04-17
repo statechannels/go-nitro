@@ -4,6 +4,7 @@ package client // import "github.com/statechannels/go-nitro/client"
 import (
 	"io"
 	"math/big"
+	"runtime/debug"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
@@ -99,6 +100,29 @@ func (c *Client) handleEngineEvents() {
 }
 
 // Begin API
+
+// Version returns the go-nitro version
+func (c *Client) Version() string {
+	info, _ := debug.ReadBuildInfo()
+
+	version := info.Main.Version
+	// Depending on how the binary was built we may get back no version info.
+	// In this case we default to "(devel)".
+	// See https://github.com/golang/go/issues/51831#issuecomment-1074188363 for more details.
+	if version == "" {
+		version = "(devel)"
+	}
+
+	// If the binary was built with the -buildvcs flag we can get the git commit hash and use that as the version.
+	for _, s := range info.Settings {
+		if s.Key == "vcs.revision" {
+			version = s.Value
+			break
+		}
+	}
+
+	return version
+}
 
 // CompletedObjectives returns a chan that receives a objective id whenever that objective is completed. Not suitable fo multiple subscribers.
 func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {

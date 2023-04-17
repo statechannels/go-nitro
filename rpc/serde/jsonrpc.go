@@ -13,6 +13,8 @@ import (
 type RequestMethod string
 
 const (
+	GetAddressMethod               RequestMethod = "get_address"
+	VersionMethod                  RequestMethod = "version"
 	DirectFundRequestMethod        RequestMethod = "direct_fund"
 	DirectDefundRequestMethod      RequestMethod = "direct_defund"
 	VirtualFundRequestMethod       RequestMethod = "virtual_fund"
@@ -45,6 +47,10 @@ type GetLedgerChannelRequest struct {
 	Id types.Destination
 }
 
+type (
+	NoPayloadRequest = struct{}
+)
+
 type RequestPayload interface {
 	directfund.ObjectiveRequest |
 		directdefund.ObjectiveRequest |
@@ -52,7 +58,8 @@ type RequestPayload interface {
 		virtualdefund.ObjectiveRequest |
 		PaymentRequest |
 		GetLedgerChannelRequest |
-		GetPaymentChannelRequest
+		GetPaymentChannelRequest |
+		NoPayloadRequest
 }
 
 type NotificationPayload interface {
@@ -66,14 +73,18 @@ type JsonRpcRequest[T RequestPayload | NotificationPayload] struct {
 	Params  T      `json:"params"`
 }
 
-type ResponsePayload interface {
-	directfund.ObjectiveResponse |
-		protocols.ObjectiveId |
-		virtualfund.ObjectiveResponse |
-		PaymentRequest |
-		query.PaymentChannelInfo |
-		query.LedgerChannelInfo
-}
+type (
+	VersionResponse = string
+	ResponsePayload interface {
+		directfund.ObjectiveResponse |
+			protocols.ObjectiveId |
+			virtualfund.ObjectiveResponse |
+			PaymentRequest |
+			query.PaymentChannelInfo |
+			query.LedgerChannelInfo |
+			VersionResponse
+	}
+)
 
 type JsonRpcResponse[T ResponsePayload] struct {
 	Jsonrpc string      `json:"jsonrpc"`
