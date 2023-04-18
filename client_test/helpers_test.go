@@ -106,6 +106,8 @@ func newLogWriter(logFile string) *os.File {
 	}
 
 	filename := filepath.Join("../artifacts", logFile)
+	// Clear the file
+	os.Remove(filename)
 	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
 	if err != nil {
 		log.Fatal(err)
