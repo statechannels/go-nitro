@@ -136,7 +136,7 @@ func NewObjective(request ObjectiveRequest,
 				if !ok {
 					return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", leftOfMe, myAddress)
 				}
-				rightLedger, ok = getConsensusChannel(bob)
+				rightLedger, ok = getConsensusChannel(rightOfMe)
 				if !ok {
 					return Objective{}, fmt.Errorf("could not find a ledger channel between %v and %v", myAddress, rightOfMe)
 				}
