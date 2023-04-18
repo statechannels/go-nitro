@@ -160,6 +160,22 @@ func (o *Objective) Id() protocols.ObjectiveId {
 
 func (o *Objective) Approve() protocols.Objective {
 	updated := o.clone()
+
+	state, err := o.C.LatestSupportedState()
+	if err != nil {
+		return &updated
+	}
+
+	// If the channel contains a guarantee, we reject the direct defund objective.
+	// This is a simplification to avoid a concurrent virtual defund objective and a ledger
+	// defund objective for a ledger channel that funds a virtual channel.
+	// Down the line, this will not be the desirable behavior.
+	// If a virtual channel has not been collaboratively concluded, ledger channel defunding
+	// will need to proceed even with a guarantee in the outcome.
+	if state.Outcome.HasGuarantee() {
+		return &updated
+	}
+
 	// todo: consider case of o.Status == Rejected
 	updated.Status = protocols.Approved
 

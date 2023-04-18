@@ -270,3 +270,13 @@ func (e Exit) DivertToGuarantee(
 
 	return f, nil
 }
+
+// HasGuarantee checks whether any of the outcome items include a guarantee
+func (e Exit) HasGuarantee() bool {
+	for _, sae := range e {
+		if sae.Allocations.hasGuarantee() {
+			return true
+		}
+	}
+	return false
+}
