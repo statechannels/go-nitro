@@ -240,7 +240,7 @@ func waitForObjectives(t *testing.T, a, b client.Client, intermediaries []client
 		<-b.ObjectiveCompleteChan(objectiveId)
 
 		for _, intermediary := range intermediaries {
-			intermediary.ObjectiveCompleteChan(objectiveId)
+			<-intermediary.ObjectiveCompleteChan(objectiveId)
 		}
 	}
 }
