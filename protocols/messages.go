@@ -171,7 +171,7 @@ type PaymentSummary struct {
 // Summarize returns a MessageSummary for the message that is suitable for logging
 func (m Message) Summarize() MessageSummary {
 	s := MessageSummary{}
-	s.To = m.To.String()
+	s.To = m.To.String()[0:8]
 
 	s.PayloadSummaries = make([]ObjectivePayloadSummary, len(m.ObjectivePayloads))
 	for i, p := range m.ObjectivePayloads {
