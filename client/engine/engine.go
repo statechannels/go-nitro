@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -164,7 +165,7 @@ func (e *Engine) Run() {
 		// Handle errors
 		if err != nil {
 			e.logger.Err(err).Msgf("%s, error in run loop", e.store.GetAddress())
-
+			<-time.After(1000 * time.Millisecond) // We wait for a bit so the previous log line has time to complete
 			// TODO do not panic if in production.
 			panic(err)
 			// TODO report errors back to the consuming application
