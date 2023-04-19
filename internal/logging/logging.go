@@ -8,9 +8,6 @@ import (
 
 func ConfigureZeroLogger() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.TimestampFieldName = "t"
-	zerolog.LevelFieldName = "l"
-	zerolog.MessageFieldName = "m"
 	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
 		short := file
 		for i := len(file) - 1; i > 0; i-- {
