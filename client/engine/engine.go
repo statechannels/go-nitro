@@ -88,6 +88,9 @@ type EngineEvent struct {
 	FailedObjectives []protocols.ObjectiveId
 	// ReceivedVouchers are vouchers we've received from other participants
 	ReceivedVouchers []payments.Voucher
+
+	// UpdatedChannels is a collection of channel ids of channels that have been updated
+	UpdatedChannels []types.Destination
 }
 
 type CompletedObjectiveEvent struct {
@@ -178,7 +181,11 @@ func (e *Engine) Run() {
 		e.checkError(err)
 
 		// Only send out an event if there are changes
-		if len(res.CompletedObjectives) > 0 || len(res.FailedObjectives) > 0 || len(res.ReceivedVouchers) > 0 {
+		if len(res.CompletedObjectives) > 0 ||
+			len(res.FailedObjectives) > 0 ||
+			len(res.ReceivedVouchers) > 0 ||
+			len(res.UpdatedChannels) > 0 {
+
 			for _, obj := range res.CompletedObjectives {
 				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
 				e.metrics.RecordObjectiveCompleted(obj.Id())
@@ -243,6 +250,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 				}
 
 				allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
+
 				err = e.executeSideEffects(sideEffects)
 				// An error would mean we failed to send a message. But the objective is still "completed".
 				// So, we should return allCompleted even if there was an error.
@@ -268,6 +276,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			return EngineEvent{}, err
 		}
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+		allCompleted.UpdatedChannels = append(allCompleted.UpdatedChannels, progressEvent.UpdatedChannels...)
 
 		if err != nil {
 			return EngineEvent{}, err
@@ -302,7 +311,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		}
 
 		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
-
+		allCompleted.UpdatedChannels = append(allCompleted.UpdatedChannels, progressEvent.UpdatedChannels...)
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -519,7 +528,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	var sideEffects protocols.SideEffects
 	var waitingFor protocols.WaitingFor
 
-	crankedObjective, sideEffects, waitingFor, err = objective.Crank(secretKey)
+	crankedObjective, sideEffects, outgoing.UpdatedChannels, waitingFor, err = objective.Crank(secretKey)
 
 	if err != nil {
 		return

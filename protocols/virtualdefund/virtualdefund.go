@@ -312,13 +312,14 @@ func (o *Objective) hasFinalStateFromAlice() bool {
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed.
-func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.ChannelsUpdated, protocols.WaitingFor, error) {
 	updated := o.clone()
 	sideEffects := protocols.SideEffects{}
+	updatedChannels := protocols.ChannelsUpdated{}
 
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return &updated, sideEffects, WaitingForNothing, protocols.ErrNotApproved
+		return &updated, sideEffects, updatedChannels, WaitingForNothing, protocols.ErrNotApproved
 	}
 
 	// If we don't know the amount yet we send a message to alice to request it
@@ -326,7 +327,8 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		alice := o.V.Participants[0]
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.VId(), RequestFinalStatePayload, alice)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-		return &updated, sideEffects, WaitingForFinalStateFromAlice, nil
+		updatedChannels = append(updatedChannels, updated.VId())
+		return &updated, sideEffects, updatedChannels, WaitingForFinalStateFromAlice, nil
 	}
 
 	// Signing of the final state
@@ -340,48 +342,52 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		// Sign and store:
 		ss, err := updated.V.SignAndAddState(s, secretKey)
 		if err != nil {
-			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not sign final state: %w", err)
+			return &updated, sideEffects, updatedChannels, WaitingForNothing, fmt.Errorf("could not sign final state: %w", err)
 		}
 
 		if err != nil {
-			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not get signed final state: %w", err)
+			return &updated, sideEffects, updatedChannels, WaitingForNothing, fmt.Errorf("could not get signed final state: %w", err)
 		}
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+		updatedChannels = append(updatedChannels, updated.VId())
 	}
 
 	// Check if all participants have signed the final state
 	if !updated.V.FinalCompleted() {
-		return &updated, sideEffects, WaitingForSupportedFinalState, nil
+		return &updated, sideEffects, updatedChannels, WaitingForSupportedFinalState, nil
 	}
 
 	if !updated.isAlice() && !updated.leftHasDefunded() {
-		ledgerSideEffects, err := updated.updateLedgerToRemoveGuarantee(updated.ToMyLeft, secretKey)
+		ledgerSideEffects, ledgersUpdated, err := updated.updateLedgerToRemoveGuarantee(updated.ToMyLeft, secretKey)
 		if err != nil {
-			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
+			return o, protocols.SideEffects{}, updatedChannels, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
+		updatedChannels = append(updatedChannels, ledgersUpdated...)
 		sideEffects.Merge(ledgerSideEffects)
 	}
 
 	if !updated.isBob() && !updated.rightHasDefunded() {
-		ledgerSideEffects, err := updated.updateLedgerToRemoveGuarantee(updated.ToMyRight, secretKey)
+		ledgerSideEffects, ledgersUpdated, err := updated.updateLedgerToRemoveGuarantee(updated.ToMyRight, secretKey)
 		if err != nil {
-			return o, protocols.SideEffects{}, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
+			return o, protocols.SideEffects{}, updatedChannels, WaitingForNothing, fmt.Errorf("error updating ledger funding: %w", err)
 		}
+		updatedChannels = append(updatedChannels, ledgersUpdated...)
 		sideEffects.Merge(ledgerSideEffects)
+
 	}
 
 	if !updated.leftHasDefunded() {
-		return &updated, sideEffects, WaitingForDefundingOnMyLeft, nil
+		return &updated, sideEffects, updatedChannels, WaitingForDefundingOnMyLeft, nil
 	}
 
 	if !updated.rightHasDefunded() {
-		return &updated, sideEffects, WaitingForDefundingOnMyRight, nil
+		return &updated, sideEffects, updatedChannels, WaitingForDefundingOnMyRight, nil
 	}
 
 	// Mark the objective as done
 	updated.Status = protocols.Completed
-	return &updated, sideEffects, WaitingForNothing, nil
+	return &updated, sideEffects, updatedChannels, WaitingForNothing, nil
 }
 
 // isAlice returns true if the receiver represents participant 0 in the virtualdefund protocol.
@@ -401,26 +407,26 @@ func (o *Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) c
 }
 
 // updateLedgerToRemoveGuarantee updates the ledger channel to remove the guarantee that funds V.
-func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.ConsensusChannel, sk *[]byte) (protocols.SideEffects, error) {
+func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.ConsensusChannel, sk *[]byte) (protocols.SideEffects, protocols.ChannelsUpdated, error) {
 	var sideEffects protocols.SideEffects
-
+	var updatedChannels protocols.ChannelsUpdated
 	proposed := ledger.HasRemovalBeenProposed(o.VId())
 
 	if ledger.IsLeader() {
 		if proposed { // If we've already proposed a remove proposal we can return
-			return protocols.SideEffects{}, nil
+			return protocols.SideEffects{}, updatedChannels, nil
 		}
 
 		_, err := ledger.Propose(o.ledgerProposal(ledger), *sk)
 		if err != nil {
-			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
+			return protocols.SideEffects{}, updatedChannels, fmt.Errorf("error proposing ledger update: %w", err)
 		}
 		recipient := ledger.Follower()
 
 		// Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
 		// to create a valid message with ordered proposals:
 		message := protocols.CreateSignedProposalMessage(recipient, ledger.ProposalQueue()...)
-
+		updatedChannels = append(updatedChannels, ledger.Id)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	} else {
@@ -429,7 +435,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 		if proposedNext {
 			sp, err := ledger.SignNextProposal(o.ledgerProposal(ledger), *sk)
 			if err != nil {
-				return protocols.SideEffects{}, fmt.Errorf("could not sign proposal: %w", err)
+				return protocols.SideEffects{}, updatedChannels, fmt.Errorf("could not sign proposal: %w", err)
 			}
 			// ledger sideEffect
 			if proposals := ledger.ProposalQueue(); len(proposals) != 0 {
@@ -440,10 +446,11 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 			recipient := ledger.Leader()
 			message := protocols.CreateSignedProposalMessage(recipient, sp)
 			sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
+			updatedChannels = append(updatedChannels, ledger.Id)
 		}
 	}
 
-	return sideEffects, nil
+	return sideEffects, updatedChannels, nil
 }
 
 // VId returns the channel id of the virtual channel.

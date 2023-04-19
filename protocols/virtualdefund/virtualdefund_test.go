@@ -110,7 +110,8 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		virtualDefund, err := NewObjective(request, true, my.Address(), ourPaymentAmount, getChannel, getConsensusChannel)
 		testhelpers.Ok(t, err)
 
-		updatedObj, se, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
+		updatedObj, se, uc, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
+		testhelpers.Equals(t, uc[0], vId)
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
 
@@ -126,7 +127,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 			err = ss.AddSignature(aliceSig)
 			testhelpers.Ok(t, err)
 			updated.V.AddSignedState(ss)
-			updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
+			updatedObj, se,uc,waitingFor, err = updated.Crank(&my.PrivateKey)
 			testhelpers.Ok(t, err)
 			updated = updatedObj.(*Objective)
 		}
@@ -148,9 +149,18 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		}
 		updated.V.AddSignedState(ss)
 
-		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
+		updatedObj, se, uc, waitingFor, err = updated.Crank(&my.PrivateKey)
 		updated = updatedObj.(*Objective)
 		testhelpers.Ok(t, err)
+		switch my.Role {
+		case 0:
+			testhelpers.Equals(t, uc[0], updated.ToMyRight.Id)
+		case 1:
+
+			testhelpers.Equals(t, uc[0], updated.ToMyRight.Id)
+		case 2:
+
+		}
 
 		// We wait for the ledger on our left first by default, unless we have no such channel:
 		if my.Role == 0 {
@@ -169,12 +179,21 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 			updated = updatedObj.(*Objective)
 		}
 
-		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
+		updatedObj, se, uc, waitingFor, err = updated.Crank(&my.PrivateKey)
 		updated = updatedObj.(*Objective)
 		testhelpers.Ok(t, err)
 
 		testhelpers.Equals(t, waitingFor, WaitingForNothing)
 		checkForFollowerProposals(t, se, updated, data)
+
+		switch my.Role {
+		case 0:
+			testhelpers.Equals(t, len(uc), 0)
+		case 1:
+			testhelpers.Equals(t, uc[0], updated.ToMyLeft.Id)
+		case 2:
+			testhelpers.Equals(t, uc[0], updated.ToMyLeft.Id)
+		}
 	}
 }
 

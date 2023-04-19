@@ -132,13 +132,17 @@ func TestCrankAlice(t *testing.T) {
 	o, _ := newTestObjective()
 
 	// The first crank. Alice is expected to create and sign a final state
-	updated, se, wf, err := o.Crank(&alice.PrivateKey)
+	updated, se, uc, wf, err := o.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
 
 	if wf != WaitingForFinalization {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
+	}
+
+	if uc[0] != o.C.Id {
+		t.Fatalf(`Updated Channel: expected %v, got %v`, o.C.Id, uc[0])
 	}
 
 	// Create the state we expect Alice to send
@@ -165,7 +169,7 @@ func TestCrankAlice(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	updated, se, wf, err = updated.Crank(&alice.PrivateKey)
+	updated, se, uc, wf, err = updated.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -176,6 +180,9 @@ func TestCrankAlice(t *testing.T) {
 	if wf != WaitingForWithdraw {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
 	}
+	if uc[0] != o.C.Id {
+		t.Fatalf(`Updated Channel: expected %v, got %v`, o.C.Id, uc[0])
+	}
 
 	expectedSE = protocols.SideEffects{TransactionsToSubmit: []protocols.ChainTransaction{protocols.NewWithdrawAllTransaction(o.C.Id, finalStateSignedByAliceBob)}}
 
@@ -185,7 +192,7 @@ func TestCrankAlice(t *testing.T) {
 
 	// The third crank. Alice is expected to enter the terminal state of the defunding protocol.
 	updated.(*Objective).C.OnChainFunding = types.Funds{}
-	_, se, wf, err = updated.Crank(&alice.PrivateKey)
+	_, se, uc, wf, err = updated.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -196,6 +203,9 @@ func TestCrankAlice(t *testing.T) {
 	expectedSE = protocols.SideEffects{}
 	if diff := cmp.Diff(expectedSE, se); diff != "" {
 		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
+	}
+	if len(uc) > 0 {
+		t.Fatalf(`Expected no updated channels, received %v`, uc)
 	}
 }
 
@@ -220,7 +230,7 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The first crank. Bob is expected to create and sign a final state
-	updated, se, wf, err := updated.Crank(&bob.PrivateKey)
+	updated, se, uc, wf, err := updated.Crank(&bob.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,6 +244,9 @@ func TestCrankBob(t *testing.T) {
 	expectedSE := protocols.SideEffects{
 		MessagesToSend: protocols.CreateObjectivePayloadMessage(updated.Id(), finalStateSignedByBob, SignedStatePayload, o.otherParticipants()...),
 	}
+	if uc[0] != o.C.Id {
+		t.Fatalf(`Updated Channel: expected %v, got %v`, o.C.Id, uc[0])
+	}
 
 	if diff := compareSideEffect(expectedSE, se); diff != "" {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
@@ -244,7 +257,7 @@ func TestCrankBob(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	updated, se, wf, err = updated.Crank(&bob.PrivateKey)
+	updated, se, uc, wf, err = updated.Crank(&bob.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -262,6 +275,9 @@ func TestCrankBob(t *testing.T) {
 	if diff := cmp.Diff(expectedSE, se); diff != "" {
 		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
 	}
+	if len(uc) > 0 {
+		t.Fatalf(`Expected no updated channels, received %v`, uc)
+	}
 
 	// The third crank. Bob is expected to enter the terminal state of the defunding protocol.
 	updated, err = updated.(*Objective).UpdateWithChainEvent(chainservice.NewAllocationUpdatedEvent(types.Destination{}, 0, common.Address{}, common.Big0))
@@ -270,7 +286,7 @@ func TestCrankBob(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, se, wf, err = updated.Crank(&bob.PrivateKey)
+	_, se, uc, wf, err = updated.Crank(&bob.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -281,6 +297,9 @@ func TestCrankBob(t *testing.T) {
 	expectedSE = protocols.SideEffects{}
 	if diff := cmp.Diff(expectedSE, se); diff != "" {
 		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
+	}
+	if len(uc) > 0 {
+		t.Fatalf(`Expected no updated channels, received %v`, uc)
 	}
 }
 

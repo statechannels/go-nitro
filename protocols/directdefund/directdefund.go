@@ -235,18 +235,18 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
-func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.ChannelsUpdated, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
-
+	updatedChannels := protocols.ChannelsUpdated{}
 	if updated.Status != protocols.Approved {
-		return &updated, sideEffects, WaitingForNothing, protocols.ErrNotApproved
+		return &updated, sideEffects, updatedChannels, WaitingForNothing, protocols.ErrNotApproved
 	}
 
 	latestSignedState, err := updated.C.LatestSignedState()
 	if err != nil {
-		return &updated, sideEffects, WaitingForNothing, errors.New("the channel must contain at least one signed state to crank the defund objective")
+		return &updated, sideEffects, updatedChannels, WaitingForNothing, errors.New("the channel must contain at least one signed state to crank the defund objective")
 	}
 
 	// Finalize and sign a state if no supported, finalized state exists
@@ -257,8 +257,9 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 			stateToSign.IsFinal = true
 		}
 		ss, err := updated.C.SignAndAddState(stateToSign, secretKey)
+		updatedChannels = append(updatedChannels, ss.ChannelId())
 		if err != nil {
-			return &updated, protocols.SideEffects{}, WaitingForFinalization, fmt.Errorf("could not sign final state %w", err)
+			return &updated, protocols.SideEffects{}, updatedChannels, WaitingForFinalization, fmt.Errorf("could not sign final state %w", err)
 		}
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
@@ -266,10 +267,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	latestSupportedState, err := updated.C.LatestSupportedState()
 	if err != nil {
-		return &updated, sideEffects, WaitingForFinalization, fmt.Errorf("error finding a supported state: %w", err)
+		return &updated, sideEffects, updatedChannels, WaitingForFinalization, fmt.Errorf("error finding a supported state: %w", err)
 	}
 	if !latestSupportedState.IsFinal {
-		return &updated, sideEffects, WaitingForFinalization, nil
+		return &updated, sideEffects, updatedChannels, WaitingForFinalization, nil
 	}
 
 	// Withdrawal of funds
@@ -278,14 +279,15 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if updated.C.MyIndex == 0 && !updated.transactionSubmitted {
 			withdrawAll := protocols.NewWithdrawAllTransaction(updated.C.Id, latestSignedState)
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
+			updatedChannels = append(updatedChannels, updated.C.Id)
 			updated.transactionSubmitted = true
 		}
 		// Every participant waits for all channel funds to be distributed, even if the participant has no funds in the channel
-		return &updated, sideEffects, WaitingForWithdraw, nil
+		return &updated, sideEffects, updatedChannels, WaitingForWithdraw, nil
 	}
 
 	updated.Status = protocols.Completed
-	return &updated, sideEffects, WaitingForNothing, nil
+	return &updated, sideEffects, updatedChannels, WaitingForNothing, nil
 }
 
 // IsDirectDefundObjective inspects a objective id and returns true if the objective id is for a direct defund objective.
