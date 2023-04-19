@@ -2,10 +2,12 @@
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
+	"fmt"
 	"io"
 	"math/big"
 	"runtime/debug"
 
+	eb "github.com/asaskevich/EventBus"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -27,6 +29,8 @@ import (
 type Client struct {
 	engine                    engine.Engine // The core business logic of the client
 	Address                   *types.Address
+	ledgerUpdates             *safesync.Map[chan query.LedgerChannelInfo]
+	ledgerUpdatesForRPC       chan query.LedgerChannelInfo
 	completedObjectivesForRPC chan protocols.ObjectiveId // This is only used by the RPC server
 	completedObjectives       *safesync.Map[chan struct{}]
 	failedObjectives          chan protocols.ObjectiveId
@@ -34,6 +38,7 @@ type Client struct {
 	chainId                   *big.Int
 	store                     store.Store
 	vm                        *payments.VoucherManager
+	updateBus                 eb.Bus
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -54,9 +59,17 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.engine = engine.New(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = &safesync.Map[chan struct{}]{}
 	c.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
+
+	c.ledgerUpdates = &safesync.Map[chan query.LedgerChannelInfo]{}
+	c.ledgerUpdatesForRPC = make(chan query.LedgerChannelInfo, 100)
+
+	c.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
+
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
 	c.receivedVouchers = make(chan payments.Voucher, 1000)
+
+	c.updateBus = eb.New()
 	// Start the engine in a go routine
 	go c.engine.Run()
 
@@ -91,6 +104,22 @@ func (c *Client) handleEngineEvents() {
 			c.receivedVouchers <- payment
 		}
 
+		for _, ledgerId := range update.UpdatedChannels {
+
+			ledger, err := query.GetLedgerChannelInfo(ledgerId, c.store)
+			// TODO: What's the best way of handling this error?
+			if err != nil {
+				panic(err)
+			}
+
+			c.updateBus.Publish(ledgerId.String(), ledger)
+
+			// use a nonblocking send to the RPC Client in case no one is listening
+			select {
+			case c.ledgerUpdatesForRPC <- ledger:
+			default:
+			}
+		}
 	}
 
 	// At this point, the engine ToApi channel has been closed.
@@ -129,10 +158,26 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 	return c.completedObjectivesForRPC
 }
 
-// ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
+func (c *Client) LedgerUpdates() <-chan query.LedgerChannelInfo {
+	return c.ledgerUpdatesForRPC
+}
+
+// LedgerUpdatedChan returns a chan that receives an empty struct when the objective with given id is completed
 func (c *Client) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
 	d, _ := c.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
 	return d
+}
+
+func (c *Client) LedgerUpdatedChan(ledgerId types.Destination) <-chan query.LedgerChannelInfo {
+	ledgerChan := make(chan query.LedgerChannelInfo, 100)
+	err := c.updateBus.Subscribe(ledgerId.String(), func(ledger query.LedgerChannelInfo) {
+		fmt.Printf("LedgerUpdatedChan: %+v\n", ledger)
+		ledgerChan <- ledger
+	})
+	if err != nil {
+		panic(err)
+	}
+	return ledgerChan
 }
 
 // FailedObjectives returns a chan that receives an objective id whenever that objective has failed
