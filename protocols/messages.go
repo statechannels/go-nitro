@@ -35,7 +35,8 @@ func CreateObjectivePayload(id ObjectiveId, payloadType PayloadType, p interface
 
 // Message is an object to be sent across the wire.
 type Message struct {
-	To types.Address
+	To   types.Address
+	From types.Address
 	// ObjectivePayloads contains a collection of payloads for various objectives.
 	// Protocols are responsible for parsing the payload.
 	ObjectivePayloads []ObjectivePayload
@@ -138,6 +139,7 @@ func DeserializeMessage(s string) (Message, error) {
 // MessageSummary is a summary of a message suitable for logging.
 type MessageSummary struct {
 	To               string
+	From             string
 	PayloadSummaries []ObjectivePayloadSummary
 
 	ProposalSummaries []ProposalSummary
@@ -172,6 +174,7 @@ type PaymentSummary struct {
 func (m Message) Summarize() MessageSummary {
 	s := MessageSummary{}
 	s.To = m.To.String()[0:8]
+	s.From = m.From.String()[0:8]
 
 	s.PayloadSummaries = make([]ObjectivePayloadSummary, len(m.ObjectivePayloads))
 	for i, p := range m.ObjectivePayloads {
@@ -205,6 +208,7 @@ type Summary interface {
 
 func (m MessageSummary) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("To", m.To).
+		Str("From", m.From).
 		Array("PayloadSummaries", marshalCollection(m.PayloadSummaries)).
 		Array("ProposalSummaries", marshalCollection(m.ProposalSummaries)).
 		Array("Payments", marshalCollection(m.Payments)).
