@@ -109,8 +109,11 @@ func (c *Client) handleEngineEvents() {
 				panic(err)
 			}
 
-			c.channelNotifier.NotifyLedger(ledgerId)
-
+			err = c.channelNotifier.NotifyLedgerUpdated(ledgerId)
+			// TODO: What's the best way of handling this error?
+			if err != nil {
+				panic(err)
+			}
 			// use a nonblocking send to the RPC Client in case no one is listening
 			select {
 			case c.ledgerUpdatesForRPC <- ledger:

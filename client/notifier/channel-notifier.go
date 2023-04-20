@@ -23,22 +23,18 @@ func NewChannelNotifier(store store.Store) *ChannelNotifier {
 
 // RegisterForLedgerUpdates returns a buffered channel that will receive ledger channel updates when they occur.
 func (cn *ChannelNotifier) RegisterForLedgerUpdates(cId types.Destination) <-chan query.LedgerChannelInfo {
-	lChan := make(chan query.LedgerChannelInfo, 100)
-
 	li, _ := cn.listeners.LoadOrStore(cId.String(), newListener(cId))
 
-	li.listenersLock.Lock()
-	li.Listeners = append(li.Listeners, lChan)
-	li.listenersLock.Unlock()
+	lChan := li.AddListener()
 
 	cn.listeners.Store(cId.String(), li)
 	return lChan
 }
 
-// NotifyLedger notifies all listeners of a ledger channel update.
+// NotifyLedgerUpdated notifies all listeners of a ledger channel update.
 // It will query the store for the latest ledger channel info and output an event to listeners if the ledger channel has changed.
-// NOTE: NotifyLedger is dependent on the current state of the store, so must be called before the store is updated.
-func (cn *ChannelNotifier) NotifyLedger(lId types.Destination) error {
+// NOTE: NotifyLedgerUpdated is dependent on the current state of the store, so must be called before the store is updated.
+func (cn *ChannelNotifier) NotifyLedgerUpdated(lId types.Destination) error {
 	// Fetch the current state of the ledger channel
 	latest, err := query.GetLedgerChannelInfo(lId, cn.store)
 	if err != nil {
@@ -53,12 +49,7 @@ func (cn *ChannelNotifier) NotifyLedger(lId types.Destination) error {
 	// We only want to notify listeners if the ledger channel has changed from the perspective of the client.
 	if ledgerUpdated := li.prev == nil || li.prev.Equal(latest); ledgerUpdated {
 
-		// Send out the ledger channel update to all listeners
-		for _, list := range li.Listeners {
-			list <- latest
-		}
-		// Update our previous ledger info
-		li.prev = &latest
+		li.Notify(latest)
 
 		cn.listeners.Store(lId.String(), li)
 	}
@@ -75,6 +66,26 @@ type listeners struct {
 	// listenersLock is used to protect against concurrent access to the listeners slice.
 	listenersLock sync.Mutex
 	ledgerId      types.Destination
+}
+
+func (li *listeners) Notify(info query.LedgerChannelInfo) {
+	li.listenersLock.Lock()
+	defer li.listenersLock.Unlock()
+	for _, list := range li.Listeners {
+		list <- info
+	}
+	li.prev = &info
+}
+
+func (li *listeners) AddListener() chan query.LedgerChannelInfo {
+	lChan := make(chan query.LedgerChannelInfo, 100)
+
+	li.listenersLock.Lock()
+	defer li.listenersLock.Unlock()
+
+	li.Listeners = append(li.Listeners, lChan)
+
+	return lChan
 }
 
 func newListener(ledgerId types.Destination) *listeners {
