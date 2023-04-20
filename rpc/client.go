@@ -188,7 +188,7 @@ func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Re
 			returnChan <- response[U]{Error: err}
 		}
 
-		logger.Trace().Msgf("Rpc client received response: %+v", responseData)
+		logger.Trace().Msgf("Rpc client received response: %+v", string(responseData))
 
 		jsonResponse := serde.JsonRpcResponse[U]{}
 		err = json.Unmarshal(responseData, &jsonResponse)
