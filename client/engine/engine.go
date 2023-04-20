@@ -346,7 +346,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 //   - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
-	e.logger.Printf("handling chain event %v", chainEvent)
+	e.logger.Printf("handling chain event: %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
 	if !ok {
 		// TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
