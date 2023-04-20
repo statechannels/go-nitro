@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -164,7 +165,7 @@ func (e *Engine) Run() {
 		// Handle errors
 		if err != nil {
 			e.logger.Err(err).Msgf("%s, error in run loop", e.store.GetAddress())
-
+			<-time.After(1000 * time.Millisecond) // We wait for a bit so the previous log line has time to complete
 			// TODO do not panic if in production.
 			panic(err)
 			// TODO report errors back to the consuming application
@@ -345,7 +346,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 //   - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
-	e.logger.Printf("handling chain event %v", chainEvent)
+	e.logger.Printf("handling chain event: %v", chainEvent)
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
 	if !ok {
 		// TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
@@ -470,6 +471,7 @@ func (e *Engine) sendMessages(msgs []protocols.Message) {
 	defer e.metrics.RecordFunctionDuration()()
 
 	for _, message := range msgs {
+		message.From = *e.store.GetAddress()
 		e.logMessage(message, Outgoing)
 		e.recordMessageMetrics(message)
 		e.msg.Send(message)

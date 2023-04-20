@@ -139,3 +139,25 @@ TIP: if you find that the github action still reports a mismatch despite regener
 # Testground
 
 We run deeper tests of the code on your PR using a hosted [testground](https://docs.testground.ai/) runner. You may see a comment appear with links to dashboards containing performance metrics and statistics. The tests may also be run locally. For more information, see our testground [test plan repository](https://github.com/statechannels/go-nitro-testground).
+
+# Logs
+Go-nitro uses a configurable logger. It outputs [ndjson](http://ndjson.org/) which is optimized for machine-readability. Integration tests typically write logs from several go-nitro nodes to a single file in the `artifacts` directory. 
+
+A typical log line is
+```json
+{"level":"debug","engine":"0x111A00","time":1681911828835,"caller":"engine.go:115","message":"Constructed Engine"}
+```
+
+To make parsing logs easier for humans, install [`pino-pretty`](https://github.com/pinojs/pino-pretty) and do something like:
+
+
+```shell
+cat artifacts/simple_integration_run.log | pino-pretty -S -o "{engine} {To} < {From}" > output.log
+```
+
+You may then view `output.log` in VSCode. A typical log line is then: 
+
+
+```log
+[14:37:36.517] DEBUG <engine.go:114>: 0x111A00  <  {"engine":"0x111A00","message":"Constructed Engine"}
+```

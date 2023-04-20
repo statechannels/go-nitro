@@ -2,6 +2,7 @@
 package chainservice // import "github.com/statechannels/go-nitro/client/chainservice"
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -29,11 +30,19 @@ type assetAndAmount struct {
 	AssetAmount  *big.Int
 }
 
+func (aaa assetAndAmount) String() string {
+	return aaa.AssetAmount.String() + " units of " + aaa.AssetAddress.Hex() + " token"
+}
+
 // DepositedEvent is an internal representation of the deposited blockchain event
 type DepositedEvent struct {
 	commonEvent
 	assetAndAmount
 	NowHeld *big.Int
+}
+
+func (de DepositedEvent) String() string {
+	return "Deposited " + de.assetAndAmount.String() + " leaving " + de.NowHeld.String() + " now held against channel " + de.channelID.String() + " at Block " + fmt.Sprint(de.BlockNum)
 }
 
 // AllocationUpdated is an internal representation of the AllocatonUpdated blockchain event
@@ -43,9 +52,17 @@ type AllocationUpdatedEvent struct {
 	assetAndAmount
 }
 
+func (aue AllocationUpdatedEvent) String() string {
+	return "Channel " + aue.channelID.String() + " has had allocation updated to " + aue.assetAndAmount.String() + " at Block " + fmt.Sprint(aue.BlockNum)
+}
+
 // ConcludedEvent is an internal representation of the Concluded blockchain event
 type ConcludedEvent struct {
 	commonEvent
+}
+
+func (ce ConcludedEvent) String() string {
+	return "Channel " + ce.channelID.String() + " concluded at Block " + fmt.Sprint(ce.BlockNum)
 }
 
 func NewDepositedEvent(channelId types.Destination, blockNum uint64, assetAddress common.Address, assetAmount *big.Int, nowHeld *big.Int) DepositedEvent {
