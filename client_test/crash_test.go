@@ -80,8 +80,8 @@ func TestCrashTolerance(t *testing.T) {
 
 func directlyDefundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client, channelId types.Destination) {
 	id := alpha.CloseLedgerChannel(channelId)
-	waitTimeForCompletedObjectiveIds(t, &alpha, defaultTimeout, id)
-	waitTimeForCompletedObjectiveIds(t, &beta, defaultTimeout, id)
+	<-alpha.ObjectiveCompleteChan(id)
+	<-beta.ObjectiveCompleteChan(id)
 }
 
 func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client, asset common.Address) types.Destination {
