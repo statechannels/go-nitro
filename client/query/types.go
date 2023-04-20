@@ -47,3 +47,15 @@ type LedgerChannelBalance struct {
 	HubBalance    *big.Int
 	ClientBalance *big.Int
 }
+
+func (lcb LedgerChannelBalance) Equal(other LedgerChannelBalance) bool {
+	return lcb.AssetAddress == other.AssetAddress &&
+		lcb.Hub == other.Hub &&
+		lcb.Client == other.Client &&
+		lcb.HubBalance.Cmp(other.HubBalance) == 0 &&
+		lcb.ClientBalance.Cmp(other.ClientBalance) == 0
+}
+
+func (li LedgerChannelInfo) Equal(other LedgerChannelInfo) bool {
+	return li.ID == other.ID && li.Status == other.Status && li.Balance.Equal(other.Balance)
+}
