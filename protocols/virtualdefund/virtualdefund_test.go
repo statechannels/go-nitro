@@ -151,7 +151,12 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		updated = updatedObj.(*Objective)
 		testhelpers.Ok(t, err)
 
-		testhelpers.Equals(t, WaitingForCompleteLedgerDefunding, waitingFor)
+		// We wait for the ledger on our left first by default, unless we have no such channel:
+		if my.Role == 0 {
+			testhelpers.Equals(t, WaitingForDefundingOnMyRight, waitingFor)
+		} else {
+			testhelpers.Equals(t, WaitingForDefundingOnMyLeft, waitingFor)
+		}
 
 		checkForLeaderProposals(t, se, updated, data)
 

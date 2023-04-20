@@ -17,10 +17,11 @@ import (
 )
 
 const (
-	WaitingForFinalStateFromAlice     protocols.WaitingFor = "WaitingForFinalStateFromAlice"
-	WaitingForSignedFinal             protocols.WaitingFor = "WaitingForSignedFinal"             // Round 1
-	WaitingForCompleteLedgerDefunding protocols.WaitingFor = "WaitingForCompleteLedgerDefunding" // Round 2
-	WaitingForNothing                 protocols.WaitingFor = "WaitingForNothing"                 // Finished
+	WaitingForFinalStateFromAlice protocols.WaitingFor = "WaitingForFinalStateFromAlice"
+	WaitingForSignedFinal         protocols.WaitingFor = "WaitingForSignedFinal"        // Round 1
+	WaitingForDefundingOnMyLeft   protocols.WaitingFor = "WaitingForDefundingOnMyLeft"  // Round 2
+	WaitingForDefundingOnMyRight  protocols.WaitingFor = "WaitingForDefundingOnMyRight" // Round 2
+	WaitingForNothing             protocols.WaitingFor = "WaitingForNothing"            // Finished
 )
 
 const (
@@ -418,8 +419,12 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		sideEffects.Merge(ledgerSideEffects)
 	}
 
-	if fullyDefunded := updated.leftHasDefunded() && updated.rightHasDefunded(); !fullyDefunded {
-		return &updated, sideEffects, WaitingForCompleteLedgerDefunding, nil
+	if !updated.leftHasDefunded() {
+		return &updated, sideEffects, WaitingForDefundingOnMyLeft, nil
+	}
+
+	if !updated.rightHasDefunded() {
+		return &updated, sideEffects, WaitingForDefundingOnMyRight, nil
 	}
 
 	// Mark the objective as done
