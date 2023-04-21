@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/crypto"
@@ -34,12 +35,11 @@ const (
 
 // ConsensusChannel is used to manage states in a running ledger channel.
 type ConsensusChannel struct {
+	channel.Channel
+
 	// constants
 
-	MyIndex        ledgerIndex
-	fp             state.FixedPart
-	Id             types.Destination
-	OnChainFunding types.Funds
+	MyIndex ledgerIndex
 
 	// variables
 
@@ -90,17 +90,14 @@ func newConsensusChannel(
 	}
 
 	return ConsensusChannel{
-		fp:            fp,
-		Id:            cId,
+		Channel: channel.Channel{
+			FixedPart: fp,
+			Id:        cId,
+		},
 		MyIndex:       myIndex,
 		proposalQueue: make([]SignedProposal, 0),
 		current:       current,
 	}, nil
-}
-
-// FixedPart returns the fixed part of the channel.
-func (c *ConsensusChannel) FixedPart() state.FixedPart {
-	return c.fp
 }
 
 // Receive accepts a proposal signed by the ConsensusChannel counterparty,
@@ -203,13 +200,13 @@ func (c *ConsensusChannel) IsFollower() bool {
 
 // Leader returns the address of the participant responsible for proposing.
 func (c *ConsensusChannel) Leader() common.Address {
-	return c.fp.Participants[Leader]
+	return c.FixedPart.Participants[Leader]
 }
 
 // Follower returns the address of the participant who receives and contersigns
 // proposals.
 func (c *ConsensusChannel) Follower() common.Address {
-	return c.fp.Participants[Follower]
+	return c.FixedPart.Participants[Follower]
 }
 
 // FundingTargets returns a list of channels funded by the ConsensusChannel
@@ -225,17 +222,17 @@ func (c *ConsensusChannel) Accept(p SignedProposal) error {
 // values. It signs the resulting state using sk.
 func (c *ConsensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
 	signer := crypto.GetAddressFromSecretKeyBytes(sk)
-	if c.fp.Participants[c.MyIndex] != signer {
+	if c.FixedPart.Participants[c.MyIndex] != signer {
 		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
 	}
 
-	state := vars.AsState(c.fp)
+	state := vars.AsState(c.FixedPart)
 	return state.Sign(sk)
 }
 
 // recoverSigner returns the signer of the vars using the given signature.
 func (c *ConsensusChannel) recoverSigner(vars Vars, sig state.Signature) (common.Address, error) {
-	state := vars.AsState(c.fp)
+	state := vars.AsState(c.FixedPart)
 	return state.RecoverSigner(sig)
 }
 
@@ -275,7 +272,7 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 // validateProposalID checks that the given proposal's ID matches
 // the channel's ID.
 func (c *ConsensusChannel) validateProposalID(propsal Proposal) error {
-	if propsal.LedgerID != c.Id {
+	if propsal.LedgerID != c.Channel.Id {
 		return ErrIncorrectChannelID
 	}
 
@@ -885,7 +882,7 @@ func (v Vars) AsState(fp state.FixedPart) state.State {
 
 // Participants returns the channel participants.
 func (c *ConsensusChannel) Participants() []types.Address {
-	return c.fp.Participants
+	return c.FixedPart.Participants
 }
 
 // Clone returns a deep copy of the receiver.
@@ -894,13 +891,16 @@ func (c *ConsensusChannel) Clone() *ConsensusChannel {
 	for i, p := range c.proposalQueue {
 		clonedProposalQueue[i] = p.Clone()
 	}
-	d := ConsensusChannel{c.MyIndex, c.fp.Clone(), c.Id, c.OnChainFunding.Clone(), c.current.clone(), clonedProposalQueue}
+	d := ConsensusChannel{
+		*c.Channel.Clone(),
+		c.MyIndex, c.current.clone(), clonedProposalQueue,
+	}
 	return &d
 }
 
 // SupportedSignedState returns the latest supported signed state.
 func (cc *ConsensusChannel) SupportedSignedState() state.SignedState {
-	s := cc.ConsensusVars().AsState(cc.fp)
+	s := cc.ConsensusVars().AsState(cc.FixedPart)
 	sigs := cc.current.Signatures
 	ss := state.NewSignedState(s)
 	_ = ss.AddSignature(sigs[0])

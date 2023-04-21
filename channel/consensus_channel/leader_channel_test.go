@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/types"
@@ -78,8 +79,10 @@ func TestLeaderChannel(t *testing.T) {
 		}
 
 		return ConsensusChannel{
-			fp:            fp(),
-			Id:            cId,
+			Channel: channel.Channel{
+				FixedPart: fp(),
+				Id:        cId,
+			},
 			MyIndex:       Leader,
 			proposalQueue: proposalQueue,
 			current:       current,

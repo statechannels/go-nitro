@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -33,12 +34,15 @@ func TestSerde(t *testing.T) {
 	someOutcomeJSON := `{"AssetAddress":"0x0000000000000000000000000000000000000000","Leader":{"Destination":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Amount":2},"Follower":{"Destination":"0x000000000000000000000000bbb676f9cff8d242e9eac39d063848807d3d1d94","Amount":7},"Guarantees":{"0x6300000000000000000000000000000000000000000000000000000000000000":{"Amount":1,"Target":"0x6300000000000000000000000000000000000000000000000000000000000000","Left":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce","Right":"0x000000000000000000000000aaa6628ec44a8a742987ef3a114ddfe2d4f7adce"}}}`
 
 	someConsensusChannel := ConsensusChannel{
-		MyIndex: Leader,
-		fp:      fp(),
-		Id:      types.Destination{1},
-		OnChainFunding: types.Funds{
-			common.HexToAddress("0x00"): big.NewInt(9),
+		Channel: channel.Channel{
+			FixedPart: fp(),
+			Id:        types.Destination{1},
+			OnChainFunding: types.Funds{
+				common.HexToAddress("0x00"): big.NewInt(9),
+			},
 		},
+		MyIndex: Leader,
+
 		current: SignedVars{
 			Vars: Vars{
 				TurnNum: 0,

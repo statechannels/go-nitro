@@ -183,7 +183,7 @@ func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChanne
 		return LedgerChannelInfo{}, err
 	}
 
-	latest := con.ConsensusVars().AsState(con.FixedPart())
+	latest := con.ConsensusVars().AsState(con.FixedPart)
 	return LedgerChannelInfo{
 		ID:      con.Id,
 		Status:  Ready,

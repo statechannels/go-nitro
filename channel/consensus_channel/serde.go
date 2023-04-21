@@ -207,17 +207,20 @@ func (l *LedgerOutcome) UnmarshalJSON(data []byte) error {
 type jsonConsensusChannel struct {
 	Id             types.Destination
 	OnChainFunding types.Funds
-	MyIndex        ledgerIndex
-	FP             state.FixedPart
-	Current        SignedVars
-	ProposalQueue  []SignedProposal
+	state.FixedPart
+	SignedStateForTurnNum map[uint64]state.SignedState
+
+	LatestSupportedStateTurnNum uint64
+	MyIndex                     ledgerIndex
+	Current                     SignedVars
+	ProposalQueue               []SignedProposal
 }
 
 // MarshalJSON returns a JSON representation of the ConsensusChannel
 func (c ConsensusChannel) MarshalJSON() ([]byte, error) {
 	jsonCh := jsonConsensusChannel{
 		MyIndex:        c.MyIndex,
-		FP:             c.fp,
+		FixedPart:      c.FixedPart,
 		Id:             c.Id,
 		OnChainFunding: c.OnChainFunding,
 		Current:        c.current,
@@ -238,7 +241,7 @@ func (c *ConsensusChannel) UnmarshalJSON(data []byte) error {
 	c.Id = jsonCh.Id
 	c.OnChainFunding = jsonCh.OnChainFunding
 	c.MyIndex = jsonCh.MyIndex
-	c.fp = jsonCh.FP
+	c.FixedPart = jsonCh.FixedPart
 	c.current = jsonCh.Current
 	c.proposalQueue = jsonCh.ProposalQueue
 

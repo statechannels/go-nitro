@@ -59,8 +59,8 @@ func TestChannel(t *testing.T) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
-		r.fp.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
-		if r.fp.Participants[0] == c.fp.Participants[0] {
+		r.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
+		if r.Participants[0] == c.Participants[0] {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
@@ -188,7 +188,7 @@ func TestChannel(t *testing.T) {
 		}
 		// verify the signatures
 		expectedSigs := []state.Signature{sigA, sigB}
-		for i := range myC.fp.Participants {
+		for i := range myC.Participants {
 			gotSig, err := myC.SignedStateForTurnNum[s.TurnNum].GetParticipantSignature(uint(i))
 			if err != nil {
 				panic(err)
@@ -334,8 +334,8 @@ func TestVirtualChannel(t *testing.T) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
-		r.fp.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
-		if r.fp.Participants[0] == c.fp.Participants[0] {
+		r.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
+		if r.Participants[0] == c.Participants[0] {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
@@ -359,7 +359,7 @@ func TestSerde(t *testing.T) {
 	someChannel := Channel{
 		Id:                          types.Destination{1},
 		MyIndex:                     1,
-		fp:                          state.TestState.FixedPart(),
+		FixedPart:                   state.TestState.FixedPart(),
 		SignedStateForTurnNum:       signedStateForTurnNum,
 		latestSupportedStateTurnNum: 2,
 	}
