@@ -231,7 +231,7 @@ func (c *ConsensusChannel) UnmarshalJSON(data []byte) error {
 	var jsonCh jsonConsensusChannel
 	err := json.Unmarshal(data, &jsonCh)
 	if err != nil {
-		return fmt.Errorf("error unmarshaling channel data: %w", err)
+		return fmt.Errorf("error unmarshaling consensus channel data: %w", err)
 	}
 
 	ch := &channel.Channel{}
