@@ -135,7 +135,7 @@ func createTestLedger(leader, follower testactors.Actor) TestLedger {
 	sigs := [2]state.Signature{leaderSig, followSig}
 
 	leaderCh, err := consensus_channel.NewLeaderChannel(
-		fp,
+		initVars.AsState(fp),
 		0,
 		*outcome,
 		sigs,
@@ -144,7 +144,7 @@ func createTestLedger(leader, follower testactors.Actor) TestLedger {
 		panic(fmt.Sprintf("error creating leader channel in testLedger: %v", err))
 	}
 	followCh, err := consensus_channel.NewFollowerChannel(
-		fp,
+		initVars.AsState(fp),
 		0,
 		*outcome,
 		sigs,
