@@ -19,7 +19,7 @@ type Channel struct {
 
 	OnChainFunding types.Funds
 
-	state.FixedPart
+	fp state.FixedPart
 	// Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain
 	// It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
 
@@ -45,7 +45,7 @@ func New(s state.State, myIndex uint) (*Channel, error) {
 	}
 	c.MyIndex = myIndex
 	c.OnChainFunding = make(types.Funds)
-	c.FixedPart = s.FixedPart().Clone()
+	c.fp = s.FixedPart().Clone()
 	c.latestSupportedStateTurnNum = MaxTurnNum // largest uint64 value reserved for "no supported state"
 	// c.Support =  // TODO
 
@@ -84,7 +84,7 @@ func (c Channel) MarshalJSON() ([]byte, error) {
 		Id:                    c.Id,
 		MyIndex:               c.MyIndex,
 		OnChainFunding:        c.OnChainFunding,
-		FixedPart:             c.FixedPart,
+		FixedPart:             c.fp,
 		SignedStateForTurnNum: c.SignedStateForTurnNum,
 
 		LatestSupportedStateTurnNum: c.latestSupportedStateTurnNum,
@@ -107,14 +107,14 @@ func (c *Channel) UnmarshalJSON(data []byte) error {
 	c.latestSupportedStateTurnNum = jsonCh.LatestSupportedStateTurnNum
 	c.SignedStateForTurnNum = jsonCh.SignedStateForTurnNum
 
-	c.FixedPart = jsonCh.FixedPart
+	c.fp = jsonCh.FixedPart
 
 	return nil
 }
 
 // MyDestination returns the client's destination
 func (c Channel) MyDestination() types.Destination {
-	return types.AddressToDestination(c.Participants[c.MyIndex])
+	return types.AddressToDestination(c.fp.Participants[c.MyIndex])
 }
 
 // Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.
@@ -128,7 +128,7 @@ func (c *Channel) Clone() *Channel {
 		d.SignedStateForTurnNum[i] = ss.Clone()
 	}
 	d.OnChainFunding = c.OnChainFunding.Clone()
-	d.FixedPart = c.FixedPart.Clone()
+	d.fp = c.fp.Clone()
 	return d
 }
 
