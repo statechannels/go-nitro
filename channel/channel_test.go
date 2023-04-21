@@ -3,6 +3,7 @@ package channel
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -10,9 +11,22 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/types"
 )
+
+// Duplicated here to avoid an import cycle
+// SignState generates a signature on the signed state with the supplied key, and adds that signature.
+// If an error occurs the function panics
+func SignState(ss *state.SignedState, secretKey *[]byte) {
+	sig, err := ss.State().Sign(*secretKey)
+	if err != nil {
+		panic(fmt.Errorf("SignAndAdd failed to sign the state: %w", err))
+	}
+	err = ss.AddSignature(sig)
+	if err != nil {
+		panic(fmt.Errorf("SignAndAdd failed to sign the state: %w", err))
+	}
+}
 
 func TestChannel(t *testing.T) {
 	compareChannels := func(a, b *Channel) string {
@@ -45,8 +59,8 @@ func TestChannel(t *testing.T) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
-		r.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
-		if r.Participants[0] == c.Participants[0] {
+		r.fp.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
+		if r.fp.Participants[0] == c.fp.Participants[0] {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
@@ -174,7 +188,7 @@ func TestChannel(t *testing.T) {
 		}
 		// verify the signatures
 		expectedSigs := []state.Signature{sigA, sigB}
-		for i := range myC.Participants {
+		for i := range myC.fp.Participants {
 			gotSig, err := myC.SignedStateForTurnNum[s.TurnNum].GetParticipantSignature(uint(i))
 			if err != nil {
 				panic(err)
@@ -239,7 +253,7 @@ func TestChannel(t *testing.T) {
 			t.Error(err)
 		}
 		expectedSignedState := state.NewSignedState(c.PostFundState())
-		testhelpers.SignState(&expectedSignedState, &alicePrivateKey)
+		SignState(&expectedSignedState, &alicePrivateKey)
 
 		if diff := cmp.Diff(expectedSignedState, latestSignedState, cmp.AllowUnexported(expectedSignedState)); diff != "" {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
@@ -275,7 +289,7 @@ func TestChannel(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		testhelpers.SignState(&expectedSignedState, &bobPrivateKey)
+		SignState(&expectedSignedState, &bobPrivateKey)
 
 		if diff := compareStates(latestSignedState, expectedSignedState); diff != "" {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
@@ -320,8 +334,8 @@ func TestVirtualChannel(t *testing.T) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
-		r.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
-		if r.Participants[0] == c.Participants[0] {
+		r.fp.Participants[0] = common.HexToAddress("0x0000000000000000000000000000000000000001")
+		if r.fp.Participants[0] == c.fp.Participants[0] {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
 
@@ -345,7 +359,7 @@ func TestSerde(t *testing.T) {
 	someChannel := Channel{
 		Id:                          types.Destination{1},
 		MyIndex:                     1,
-		FixedPart:                   state.TestState.FixedPart(),
+		fp:                          state.TestState.FixedPart(),
 		SignedStateForTurnNum:       signedStateForTurnNum,
 		latestSupportedStateTurnNum: 2,
 	}
