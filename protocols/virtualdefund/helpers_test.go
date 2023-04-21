@@ -198,7 +198,7 @@ func signProposal(me ta.Actor, p consensus_channel.Proposal, c *consensus_channe
 		return consensus_channel.SignedProposal{}, err
 	}
 
-	state := vars.AsState(c.FixedPart())
+	state := vars.AsState(c.FixedPart)
 	sig, err := state.Sign(me.PrivateKey)
 	if err != nil {
 		return consensus_channel.SignedProposal{}, fmt.Errorf("unable to sign state update: %f", err)
