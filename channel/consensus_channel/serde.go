@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -205,26 +205,22 @@ func (l *LedgerOutcome) UnmarshalJSON(data []byte) error {
 // jsonConsensusChannel replaces ConsensusChannel's private fields with public ones,
 // making it suitable for serialization
 type jsonConsensusChannel struct {
-	Id             types.Destination
-	OnChainFunding types.Funds
-	state.FixedPart
-	SignedStateForTurnNum map[uint64]state.SignedState
-
-	LatestSupportedStateTurnNum uint64
-	MyIndex                     ledgerIndex
-	Current                     SignedVars
-	ProposalQueue               []SignedProposal
+	Channel       string
+	MyIndex       ledgerIndex
+	Current       SignedVars
+	ProposalQueue []SignedProposal
 }
 
 // MarshalJSON returns a JSON representation of the ConsensusChannel
 func (c ConsensusChannel) MarshalJSON() ([]byte, error) {
+	marshalledChannel, err := c.Channel.MarshalJSON()
+	if err != nil {
+		return []byte{}, err
+	}
 	jsonCh := jsonConsensusChannel{
-		MyIndex:        c.MyIndex,
-		FixedPart:      c.FixedPart,
-		Id:             c.Id,
-		OnChainFunding: c.OnChainFunding,
-		Current:        c.current,
-		ProposalQueue:  c.proposalQueue,
+		Channel:       string(marshalledChannel),
+		Current:       c.current,
+		ProposalQueue: c.proposalQueue,
 	}
 	return json.Marshal(jsonCh)
 }
@@ -238,10 +234,13 @@ func (c *ConsensusChannel) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("error unmarshaling channel data: %w", err)
 	}
 
-	c.Id = jsonCh.Id
-	c.OnChainFunding = jsonCh.OnChainFunding
+	ch := &channel.Channel{}
+	err = ch.UnmarshalJSON([]byte(jsonCh.Channel))
+	if err != nil {
+		return err
+	}
+	c.Channel = *ch
 	c.MyIndex = jsonCh.MyIndex
-	c.FixedPart = jsonCh.FixedPart
 	c.current = jsonCh.Current
 	c.proposalQueue = jsonCh.ProposalQueue
 
