@@ -194,12 +194,10 @@ func finalAliceLedger(intermediary, asset types.Address, numPayments, paymentAmo
 
 func finalBobLedger(intermediary, asset types.Address, numPayments, paymentAmount, numChannels uint) outcome.Exit {
 	return testdata.Outcomes.Create(
-		intermediary,
 		testactors.Bob.Address(),
-
-		ledgerChannelDeposit-(numPayments*paymentAmount*numChannels),
+		intermediary,
 		ledgerChannelDeposit+(numPayments*paymentAmount*numChannels),
-
+		ledgerChannelDeposit-(numPayments*paymentAmount*numChannels),
 		asset)
 }
 
