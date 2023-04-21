@@ -55,9 +55,9 @@ func prepareConsensusChannelHelper(role uint, leader, follower, leftActor testac
 	var cc consensus_channel.ConsensusChannel
 
 	if role == 0 {
-		cc, err = consensus_channel.NewLeaderChannel(fp, uint64(turnNum), lo, sigs)
+		cc, err = consensus_channel.NewLeaderChannel(signedVars.Vars.AsState(fp), uint64(turnNum), lo, sigs)
 	} else {
-		cc, err = consensus_channel.NewFollowerChannel(fp, uint64(turnNum), lo, sigs)
+		cc, err = consensus_channel.NewFollowerChannel(signedVars.Vars.AsState(fp), uint64(turnNum), lo, sigs)
 	}
 	if err != nil {
 		panic(err)

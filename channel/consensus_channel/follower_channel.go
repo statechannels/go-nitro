@@ -17,8 +17,8 @@ var (
 )
 
 // NewFollowerChannel constructs a new FollowerChannel
-func NewFollowerChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
-	return newConsensusChannel(fp, Follower, turnNum, outcome, signatures)
+func NewFollowerChannel(s state.State, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
+	return newConsensusChannel(s, Follower, turnNum, outcome, signatures)
 }
 
 // SignNextProposal is called by the follower and inspects whether the

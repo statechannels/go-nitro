@@ -156,7 +156,7 @@ func TestConsensusChannelStore(t *testing.T) {
 	bobsSig, _ := initialVars.AsState(fp).Sign(ta.Bob.PrivateKey)
 
 	leader, err := cc.NewLeaderChannel(
-		fp,
+		initialVars.AsState(fp),
 		0,
 		*outcome,
 		[2]state.Signature{aliceSig, bobsSig})

@@ -97,9 +97,9 @@ func prepareConsensusChannel(role uint, left, right ta.Actor, guarantees ...cons
 	var cc consensus_channel.ConsensusChannel
 
 	if role == 0 {
-		cc, err = consensus_channel.NewLeaderChannel(fp, 1, lo, sigs)
+		cc, err = consensus_channel.NewLeaderChannel(signedVars.Vars.AsState(fp), 1, lo, sigs)
 	} else {
-		cc, err = consensus_channel.NewFollowerChannel(fp, 1, lo, sigs)
+		cc, err = consensus_channel.NewFollowerChannel(signedVars.Vars.AsState(fp), 1, lo, sigs)
 	}
 	if err != nil {
 		panic(err)

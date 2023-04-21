@@ -13,8 +13,8 @@ var (
 )
 
 // NewLeaderChannel constructs a new LeaderChannel
-func NewLeaderChannel(fp state.FixedPart, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
-	return newConsensusChannel(fp, Leader, turnNum, outcome, signatures)
+func NewLeaderChannel(s state.State, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
+	return newConsensusChannel(s, Leader, turnNum, outcome, signatures)
 }
 
 // Propose is called by the Leader and receives a proposal to add or remove a guarantee,

@@ -53,35 +53,32 @@ type ConsensusChannel struct {
 // newConsensusChannel constructs a new consensus channel, validating its input by
 // checking that the signatures are as expected for the given fp, initialTurnNum and outcome.
 func newConsensusChannel(
-	fp state.FixedPart,
+	s state.State,
 	myIndex ledgerIndex,
 	initialTurnNum uint64,
 	outcome LedgerOutcome,
 	signatures [2]state.Signature,
 ) (ConsensusChannel, error) {
-	err := fp.Validate()
+	channel, err := channel.New(s, uint(myIndex))
 	if err != nil {
 		return ConsensusChannel{}, err
 	}
-
-	cId := fp.ChannelId()
-
 	vars := Vars{TurnNum: initialTurnNum, Outcome: outcome.clone()}
 
-	leaderAddr, err := vars.AsState(fp).RecoverSigner(signatures[Leader])
+	leaderAddr, err := s.RecoverSigner(signatures[Leader])
 	if err != nil {
 		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
-	if leaderAddr != fp.Participants[Leader] {
-		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, fp.Participants[Leader])
+	if leaderAddr != s.Participants[Leader] {
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, s.Participants[Leader])
 	}
 
-	followerAddr, err := vars.AsState(fp).RecoverSigner(signatures[Follower])
+	followerAddr, err := s.RecoverSigner(signatures[Follower])
 	if err != nil {
 		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
 	}
-	if followerAddr != fp.Participants[Follower] {
-		return ConsensusChannel{}, fmt.Errorf("follower did not sign initial state: %v, %v", followerAddr, fp.Participants[Leader])
+	if followerAddr != s.Participants[Follower] {
+		return ConsensusChannel{}, fmt.Errorf("follower did not sign initial state: %v, %v", followerAddr, s.Participants[Leader])
 	}
 
 	current := SignedVars{
@@ -90,10 +87,7 @@ func newConsensusChannel(
 	}
 
 	return ConsensusChannel{
-		Channel: channel.Channel{
-			FixedPart: fp,
-			Id:        cId,
-		},
+		Channel:       *channel,
 		MyIndex:       myIndex,
 		proposalQueue: make([]SignedProposal, 0),
 		current:       current,
@@ -891,9 +885,10 @@ func (c *ConsensusChannel) Clone() *ConsensusChannel {
 	for i, p := range c.proposalQueue {
 		clonedProposalQueue[i] = p.Clone()
 	}
+	clonedChannel := c.Channel.Clone()
 	d := ConsensusChannel{
-		*c.Channel.Clone(),
-		c.MyIndex, c.current.clone(), clonedProposalQueue,
+		Channel: *clonedChannel,
+		MyIndex: c.MyIndex, current: c.current.clone(), proposalQueue: clonedProposalQueue,
 	}
 	return &d
 }
