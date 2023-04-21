@@ -240,7 +240,6 @@ func (c *ConsensusChannel) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	c.Channel = *ch
-	c.MyIndex = jsonCh.MyIndex
 	c.current = jsonCh.Current
 	c.proposalQueue = jsonCh.ProposalQueue
 
