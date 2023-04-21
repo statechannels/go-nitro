@@ -83,7 +83,6 @@ func TestLeaderChannel(t *testing.T) {
 				FixedPart: fp(),
 				Id:        cId,
 			},
-			MyIndex:       Leader,
 			proposalQueue: proposalQueue,
 			current:       current,
 		}

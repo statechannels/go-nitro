@@ -41,8 +41,6 @@ func TestSerde(t *testing.T) {
 				common.HexToAddress("0x00"): big.NewInt(9),
 			},
 		},
-		MyIndex: Leader,
-
 		current: SignedVars{
 			Vars: Vars{
 				TurnNum: 0,

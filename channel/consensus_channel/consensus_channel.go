@@ -16,7 +16,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-type ledgerIndex uint
+type ledgerIndex = uint
 
 var (
 	ErrIncorrectChannelID = fmt.Errorf("proposal ID and channel ID do not match")
@@ -36,12 +36,6 @@ const (
 // ConsensusChannel is used to manage states in a running ledger channel.
 type ConsensusChannel struct {
 	channel.Channel
-
-	// constants
-
-	MyIndex ledgerIndex
-
-	// variables
 
 	// current represents the "consensus state", signed by both parties
 	current SignedVars
@@ -88,7 +82,6 @@ func newConsensusChannel(
 
 	return ConsensusChannel{
 		Channel:       *channel,
-		MyIndex:       myIndex,
 		proposalQueue: make([]SignedProposal, 0),
 		current:       current,
 	}, nil
@@ -887,8 +880,7 @@ func (c *ConsensusChannel) Clone() *ConsensusChannel {
 	}
 	clonedChannel := c.Channel.Clone()
 	d := ConsensusChannel{
-		Channel: *clonedChannel,
-		MyIndex: c.MyIndex, current: c.current.clone(), proposalQueue: clonedProposalQueue,
+		Channel: *clonedChannel, current: c.current.clone(), proposalQueue: clonedProposalQueue,
 	}
 	return &d
 }
