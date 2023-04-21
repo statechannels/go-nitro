@@ -210,7 +210,7 @@ func (c *ConsensusChannel) Accept(p SignedProposal) error {
 func (c *ConsensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
 	signer := crypto.GetAddressFromSecretKeyBytes(sk)
 	if c.FixedPart.Participants[c.MyIndex] != signer {
-		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: %s", signer)
+		return state.Signature{}, fmt.Errorf("attempting to sign from wrong address: signer %s participants %s, my index %v", signer, c.FixedPart.Participants, c.MyIndex)
 	}
 
 	state := vars.AsState(c.FixedPart)
