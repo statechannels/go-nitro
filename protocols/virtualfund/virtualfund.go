@@ -696,7 +696,7 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 		}
 		se, err := o.proposeLedgerUpdate(ledgerConnection, sk)
 		if err != nil {
-			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
+			return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update as leader: %w", err)
 		}
 		sideEffects = se
 	} else {
@@ -709,7 +709,7 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 
 			se, err := o.acceptLedgerUpdate(ledgerConnection, sk)
 			if err != nil {
-				return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update: %w", err)
+				return protocols.SideEffects{}, fmt.Errorf("error proposing ledger update as follower: %w", err)
 			}
 
 			sideEffects = se
