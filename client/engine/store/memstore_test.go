@@ -189,7 +189,7 @@ func TestConsensusChannelStore(t *testing.T) {
 		t.Fatalf("expected to retrieve same channel Id as was passed in, but didn't")
 	}
 
-	if diff := cmp.Diff(*got, want, cmp.AllowUnexported(channel.Channel{}, cc.ConsensusChannel{}, big.Int{}, cc.LedgerOutcome{}, cc.Balance{}, cc.Guarantee{}, cc.Add{}, cc.Proposal{}, cc.Remove{})); diff != "" {
+	if diff := cmp.Diff(*got, want, cmp.AllowUnexported(state.SignedState{}, channel.Channel{}, cc.ConsensusChannel{}, big.Int{}, cc.LedgerOutcome{}, cc.Balance{}, cc.Guarantee{}, cc.Add{}, cc.Proposal{}, cc.Remove{})); diff != "" {
 		t.Fatalf("fetched result different than expected %s", diff)
 	}
 }
