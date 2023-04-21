@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -31,6 +32,7 @@ func TestClone(t *testing.T) {
 	compareConsensusChannels := func(a, b ConsensusChannel) string {
 		return cmp.Diff(&a, &b,
 			cmp.AllowUnexported(
+				channel.Channel{},
 				ConsensusChannel{},
 				Vars{},
 				LedgerOutcome{},
