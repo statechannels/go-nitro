@@ -264,22 +264,22 @@ func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 
 	switch o := obj.(type) {
 	case *directfund.Objective:
-		ch, err := ms.getChannelById(o.C.Id)
+		ch, err := ms.GetConsensusChannelById(o.C.Id)
 		if err != nil {
 			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
 		}
 
-		o.C = &ch
+		o.C = ch
 
 		return nil
 	case *directdefund.Objective:
 
-		ch, err := ms.getChannelById(o.C.Id)
+		ch, err := ms.GetConsensusChannelById(o.C.Id)
 		if err != nil {
 			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
 		}
 
-		o.C = &ch
+		o.C = ch
 
 		return nil
 	case *virtualfund.Objective:
