@@ -23,7 +23,7 @@ func TestClone(t *testing.T) {
 	bobsSig, _ := s.Sign(bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
-	cc, err := newConsensusChannel(s, Leader, 0, outcome, sigs)
+	cc, err := newConsensusChannel(s, Leader, sigs)
 	if err != nil {
 		t.Fatal(err)
 	}

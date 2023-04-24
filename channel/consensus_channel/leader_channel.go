@@ -12,6 +12,11 @@ var (
 	ErrWrongSigner            = fmt.Errorf("proposal incorrectly signed")
 )
 
+// NewLeaderChannel constructs a new LeaderChannel
+func NewLeaderChannel(s state.State, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
+	return newConsensusChannel(s, Leader, signatures)
+}
+
 // Propose is called by the Leader and receives a proposal to add or remove a guarantee,
 // and generates and stores a SignedProposal in the queue, returning the
 // resulting SignedProposal

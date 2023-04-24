@@ -44,11 +44,53 @@ type ConsensusChannel struct {
 	proposalQueue []SignedProposal
 }
 
-// FromChannel constructs a ConsensusChannel with empty proposal queue and null current SignedVards
+// FromChannel constructs a ConsensusChannel with empty proposal queue and null current SignedVars
 func FromChannel(c channel.Channel) ConsensusChannel {
 	return ConsensusChannel{
 		Channel: c, proposalQueue: make([]SignedProposal, 0), current: SignedVars{},
 	}
+}
+
+// newConsensusChannel constructs a new consensus channel, validating its input by
+// checking that the signatures are as expected for the given fp, initialTurnNum and outcome.
+func newConsensusChannel(
+	s state.State,
+	myIndex ledgerIndex,
+	signatures [2]state.Signature,
+) (ConsensusChannel, error) {
+	leaderAddr, err := s.RecoverSigner(signatures[Leader])
+	if err != nil {
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+	}
+	if leaderAddr != s.Participants[Leader] {
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, s.Participants[Leader])
+	}
+
+	followerAddr, err := s.RecoverSigner(signatures[Follower])
+	if err != nil {
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+	}
+	if followerAddr != s.Participants[Follower] {
+		return ConsensusChannel{}, fmt.Errorf("follower did not sign initial state: %v, %v", followerAddr, s.Participants[Leader])
+	}
+
+	ss := state.NewSignedState(s)
+	err = ss.AddSignature(signatures[0])
+	if err != nil {
+		return ConsensusChannel{}, err
+	}
+	err = ss.AddSignature(signatures[1])
+	if err != nil {
+		return ConsensusChannel{}, err
+	}
+	channel, err := channel.New(s, uint(myIndex))
+	if err != nil {
+		return ConsensusChannel{}, err
+	}
+	cc := FromChannel(*channel)
+	cc.AddSignedState(ss)
+
+	return cc, nil
 }
 
 // AddSignedState adds the signed state to the embedded Channel, and then updates the current consensus vars if appropriate.
@@ -274,10 +316,13 @@ func (b Balance) Equal(b2 Balance) bool {
 
 // Clone returns a deep copy of the receiver.
 func (b *Balance) Clone() Balance {
-	return Balance{
+	c := Balance{
 		destination: b.destination,
-		amount:      big.NewInt(0).Set(b.amount),
 	}
+	if b.amount != nil {
+		c.amount = big.NewInt(0).Set(b.amount)
+	}
+	return *b
 }
 
 // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type.
@@ -347,16 +392,19 @@ type LedgerOutcome struct {
 
 // Clone returns a deep copy of the receiver.
 func (lo *LedgerOutcome) Clone() LedgerOutcome {
-	clonedGuarantees := make(map[types.Destination]Guarantee)
-	for key, g := range lo.guarantees {
-		clonedGuarantees[key] = g.Clone()
-	}
-	return LedgerOutcome{
+	mo := LedgerOutcome{
 		assetAddress: lo.assetAddress,
 		leader:       lo.leader.Clone(),
 		follower:     lo.follower.Clone(),
-		guarantees:   clonedGuarantees,
 	}
+	if lo.guarantees != nil {
+		clonedGuarantees := make(map[types.Destination]Guarantee)
+		for key, g := range lo.guarantees {
+			clonedGuarantees[key] = g.Clone()
+		}
+		mo.guarantees = clonedGuarantees
+	}
+	return mo
 }
 
 // Leader returns the leader's balance.
@@ -858,13 +906,16 @@ func (c *ConsensusChannel) Participants() []types.Address {
 
 // Clone returns a deep copy of the receiver.
 func (c *ConsensusChannel) Clone() *ConsensusChannel {
-	clonedProposalQueue := make([]SignedProposal, len(c.proposalQueue))
-	for i, p := range c.proposalQueue {
-		clonedProposalQueue[i] = p.Clone()
-	}
 	clonedChannel := c.Channel.Clone()
 	d := ConsensusChannel{
-		Channel: *clonedChannel, current: c.current.clone(), proposalQueue: clonedProposalQueue,
+		Channel: *clonedChannel, current: c.current.clone(),
+	}
+	if c.proposalQueue != nil {
+		clonedProposalQueue := make([]SignedProposal, len(c.proposalQueue))
+		for i, p := range c.proposalQueue {
+			clonedProposalQueue[i] = p.Clone()
+		}
+		d.proposalQueue = clonedProposalQueue
 	}
 	return &d
 }
