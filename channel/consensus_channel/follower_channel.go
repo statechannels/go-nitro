@@ -16,11 +16,6 @@ var (
 	ErrInvalidTurnNum              = fmt.Errorf("the proposal turn number is not the next turn number")
 )
 
-// NewFollowerChannel constructs a new FollowerChannel
-func NewFollowerChannel(s state.State, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
-	return newConsensusChannel(s, Follower, turnNum, outcome, signatures)
-}
-
 // SignNextProposal is called by the follower and inspects whether the
 // expected proposal matches the first proposal in the queue. If so,
 // the proposal is removed from the queue and integrated into the channel state.

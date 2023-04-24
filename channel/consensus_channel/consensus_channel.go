@@ -44,47 +44,31 @@ type ConsensusChannel struct {
 	proposalQueue []SignedProposal
 }
 
-// newConsensusChannel constructs a new consensus channel, validating its input by
-// checking that the signatures are as expected for the given fp, initialTurnNum and outcome.
-func newConsensusChannel(
-	s state.State,
-	myIndex ledgerIndex,
-	initialTurnNum uint64,
-	outcome LedgerOutcome,
-	signatures [2]state.Signature,
-) (ConsensusChannel, error) {
-	channel, err := channel.New(s, uint(myIndex))
-	if err != nil {
-		return ConsensusChannel{}, err
-	}
-	vars := Vars{TurnNum: initialTurnNum, Outcome: outcome.clone()}
-
-	leaderAddr, err := s.RecoverSigner(signatures[Leader])
-	if err != nil {
-		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
-	}
-	if leaderAddr != s.Participants[Leader] {
-		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, s.Participants[Leader])
-	}
-
-	followerAddr, err := s.RecoverSigner(signatures[Follower])
-	if err != nil {
-		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
-	}
-	if followerAddr != s.Participants[Follower] {
-		return ConsensusChannel{}, fmt.Errorf("follower did not sign initial state: %v, %v", followerAddr, s.Participants[Leader])
-	}
-
-	current := SignedVars{
-		vars,
-		signatures,
-	}
-
+// FromChannel constructs a ConsensusChannel with empty proposal queue and null current SignedVards
+func FromChannel(c channel.Channel) ConsensusChannel {
 	return ConsensusChannel{
-		Channel:       *channel,
-		proposalQueue: make([]SignedProposal, 0),
-		current:       current,
-	}, nil
+		Channel: c, proposalQueue: make([]SignedProposal, 0), current: SignedVars{},
+	}
+}
+
+// AddSignedState adds the signed state to the embedded Channel, and then updates the current consensus vars if appropriate.
+func (c *ConsensusChannel) AddSignedState(
+	ss state.SignedState,
+) bool {
+	ok := c.Channel.AddSignedState(ss)
+	if ok && ss.HasAllSignatures() {
+		lo, err := FromExit(ss.State().Outcome[0])
+		if err != nil {
+			panic(err) // TODO
+		}
+		c.current = SignedVars{
+			Vars: Vars{
+				TurnNum: ss.State().TurnNum,
+				Outcome: lo,
+			},
+		}
+	}
+	return ok
 }
 
 // Receive accepts a proposal signed by the ConsensusChannel counterparty,
