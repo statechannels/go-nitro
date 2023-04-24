@@ -28,6 +28,9 @@ type jsonObjective struct {
 }
 
 // MarshalJSON returns a JSON representation of the VirtualDefundObjective
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+// (other than Id) from the fields ToMyLeft,ToMyRight are discarded
 func (o Objective) MarshalJSON() ([]byte, error) {
 	var left types.Destination
 	var right types.Destination
@@ -56,6 +59,9 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON populates the calling VirtualDefundObjective with the
 // json-encoded data
+//
+// NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+// (other than Id) from the fields ToMyLeft,ToMyRight are discarded
 func (o *Objective) UnmarshalJSON(data []byte) error {
 	if string(data) == "null" {
 		return nil
