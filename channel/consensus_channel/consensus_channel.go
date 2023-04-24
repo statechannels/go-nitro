@@ -328,7 +328,10 @@ func (b *Balance) Clone() Balance {
 
 // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type.
 func (b Balance) AsAllocation() outcome.Allocation {
-	amount := big.NewInt(0).Set(b.amount)
+	amount := big.NewInt(0)
+	if b.amount != nil {
+		amount.Set(b.amount)
+	}
 	return outcome.Allocation{Destination: b.destination, Amount: amount, AllocationType: outcome.NormalAllocationType}
 }
 
