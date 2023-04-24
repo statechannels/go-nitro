@@ -533,10 +533,6 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	if waitingFor == "WaitingForNothing" {
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
 		e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
-		err = e.spawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
-		if err != nil {
-			return
-		}
 	}
 	err = e.executeSideEffects(sideEffects)
 	return
@@ -549,27 +545,6 @@ func (e Engine) registerPaymentChannel(vfo virtualfund.Objective) error {
 	startingBalance.Set(postfund.Outcome[0].Allocations[0].Amount)
 
 	return e.vm.Register(vfo.V.Id, payments.GetPayer(postfund.Participants), payments.GetPayee(postfund.Participants), startingBalance)
-}
-
-// spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective if it is a directfund.Objective.
-//
-// The associated Channel will remain in the store.
-func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
-	defer e.metrics.RecordFunctionDuration()()
-
-	if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
-		c, err := dfo.CreateConsensusChannel()
-		if err != nil {
-			return fmt.Errorf("could not create consensus channel for objective %s: %w", crankedObjective.Id(), err)
-		}
-		err = e.store.SetConsensusChannel(c)
-		if err != nil {
-			return fmt.Errorf("could not store consensus channel for objective %s: %w", crankedObjective.Id(), err)
-		}
-		// Destroy the channel since the consensus channel takes over governance:
-		e.store.DestroyChannel(c.Id)
-	}
-	return nil
 }
 
 // getOrCreateObjective retrieves the objective from the store.
