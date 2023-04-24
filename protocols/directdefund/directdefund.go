@@ -38,7 +38,7 @@ var (
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
 	Status               protocols.ObjectiveStatus
-	C                    *channel.Channel
+	C                    *consensus_channel.ConsensusChannel
 	finalTurnNum         uint64
 	transactionSubmitted bool // whether a transition for the objective has been submitted or not
 }
@@ -83,15 +83,10 @@ func NewObjective(
 		return Objective{}, ErrNotEmpty
 	}
 
-	c, err := CreateChannelFromConsensusChannel(*cc)
-	if err != nil {
-		return Objective{}, fmt.Errorf("could not create Channel from ConsensusChannel; %w", err)
-	}
-
 	// We choose to disallow creating an objective if the channel has an in-progress update.
 	// We allow the creation of of an objective if the channel has some final states.
 	// In the future, we can add a restriction that only defund objectives can add final states to the channel.
-	canCreateObjective, err := isInConsensusOrFinalState(c)
+	canCreateObjective, err := isInConsensusOrFinalState(&cc.Channel)
 	if err != nil {
 		return Objective{}, err
 	}
@@ -106,9 +101,9 @@ func NewObjective(
 	} else {
 		init.Status = protocols.Unapproved
 	}
-	init.C = c.Clone()
+	init.C = cc.Clone()
 
-	latestSS, err := c.LatestSupportedState()
+	latestSS, err := cc.LatestSupportedState()
 	if err != nil {
 		return init, err
 	}
@@ -169,7 +164,7 @@ func (o *Objective) Approve() protocols.Objective {
 func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
-	peer := o.C.Participants[1-o.C.MyIndex]
+	peer := o.C.Participants()[1-o.C.MyIndex]
 
 	sideEffects := protocols.SideEffects{MessagesToSend: protocols.CreateRejectionNoticeMessage(o.Id(), peer)}
 	return &updated, sideEffects
@@ -367,7 +362,7 @@ func getSignedStatePayload(b []byte) (state.SignedState, error) {
 // otherParticipants returns the participants in the channel that are not the current participant.
 func (o *Objective) otherParticipants() []types.Address {
 	others := make([]types.Address, 0)
-	for i, p := range o.C.Participants {
+	for i, p := range o.C.Participants() {
 		if i != int(o.C.MyIndex) {
 			others = append(others, p)
 		}

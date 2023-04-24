@@ -3,7 +3,7 @@ package directdefund
 import (
 	"encoding/json"
 
-	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -46,7 +46,7 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	o.C = &channel.Channel{}
+	o.C = &consensus_channel.ConsensusChannel{}
 
 	o.Status = jsonDDFO.Status
 	o.C.Id = jsonDDFO.C
