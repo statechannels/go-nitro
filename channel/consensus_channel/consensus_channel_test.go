@@ -2,15 +2,68 @@ package consensus_channel
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/types"
 )
+
+// newConsensusChannel constructs a new consensus channel, validating its input by
+// checking that the signatures are as expected for the given fp, initialTurnNum and outcome.
+func newConsensusChannel(
+	s state.State,
+	myIndex ledgerIndex,
+	initialTurnNum uint64,
+	outcome LedgerOutcome,
+	signatures [2]state.Signature,
+) (ConsensusChannel, error) {
+	channel, err := channel.New(s, uint(myIndex))
+	if err != nil {
+		return ConsensusChannel{}, err
+	}
+	cc := FromChannel(*channel)
+
+	vars := Vars{TurnNum: initialTurnNum, Outcome: outcome.clone()}
+
+	leaderAddr, err := s.RecoverSigner(signatures[Leader])
+	if err != nil {
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+	}
+	if leaderAddr != s.Participants[Leader] {
+		return ConsensusChannel{}, fmt.Errorf("leader did not sign initial state: %v, %v", leaderAddr, s.Participants[Leader])
+	}
+
+	followerAddr, err := s.RecoverSigner(signatures[Follower])
+	if err != nil {
+		return ConsensusChannel{}, fmt.Errorf("could not verify sig: %w", err)
+	}
+	if followerAddr != s.Participants[Follower] {
+		return ConsensusChannel{}, fmt.Errorf("follower did not sign initial state: %v, %v", followerAddr, s.Participants[Leader])
+	}
+
+	cc.current = SignedVars{
+		vars,
+		signatures,
+	}
+
+	return cc, nil
+}
+
+// newFollowerChannel constructs a new FollowerChannel
+func newFollowerChannel(s state.State, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
+	return newConsensusChannel(s, Follower, turnNum, outcome, signatures)
+}
+
+// newLeaderChannel constructs a new LeaderChannel
+func newLeaderChannel(s state.State, turnNum uint64, outcome LedgerOutcome, signatures [2]state.Signature) (ConsensusChannel, error) {
+	return newConsensusChannel(s, Leader, turnNum, outcome, signatures)
+}
 
 func TestConsensusChannel(t *testing.T) {
 	existingChannel := types.Destination{1}

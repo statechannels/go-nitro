@@ -21,7 +21,7 @@ func TestNewLeaderChannel(t *testing.T) {
 	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
-	channel, err := NewLeaderChannel(initialVars.AsState(fp()), 0, o.clone(), sigs)
+	channel, err := newLeaderChannel(initialVars.AsState(fp()), 0, o.clone(), sigs)
 	if err != nil {
 		t.Fatal("unable to construct channel")
 	}
@@ -467,7 +467,7 @@ func TestRestrictedFollowerMethods(t *testing.T) {
 	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
-	channel, _ := NewLeaderChannel(initialVars.AsState(fp()), 0, ledgerOutcome(), sigs)
+	channel, _ := newLeaderChannel(initialVars.AsState(fp()), 0, ledgerOutcome(), sigs)
 
 	if _, err := channel.SignNextProposal(Proposal{}, alice.PrivateKey); err != ErrNotFollower {
 		t.Errorf("Expected error when calling SignNextProposal as a leader, but found none")

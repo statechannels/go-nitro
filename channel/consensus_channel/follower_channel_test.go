@@ -19,7 +19,7 @@ func TestReceive(t *testing.T) {
 	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
-	channel, err := NewFollowerChannel(initialVars.AsState(fp()), 0, ledgerOutcome(), sigs)
+	channel, err := newFollowerChannel(initialVars.AsState(fp()), 0, ledgerOutcome(), sigs)
 	if err != nil {
 		t.Fatal("unable to construct channel")
 	}
@@ -86,7 +86,7 @@ func TestFollowerChannel(t *testing.T) {
 	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
-	channel, err := NewFollowerChannel(initialVars.AsState(fp()), 0, ledgerOutcome(), sigs)
+	channel, err := newFollowerChannel(initialVars.AsState(fp()), 0, ledgerOutcome(), sigs)
 	if err != nil {
 		t.Fatal("unable to construct channel")
 	}
@@ -144,7 +144,7 @@ func TestRestrictedLeaderMethods(t *testing.T) {
 	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
-	channel, _ := NewFollowerChannel(initialVars.AsState(fp()), 0, ledgerOutcome(), sigs)
+	channel, _ := newFollowerChannel(initialVars.AsState(fp()), 0, ledgerOutcome(), sigs)
 
 	if _, err := channel.Propose(Proposal{ToAdd: Add{}}, alice.PrivateKey); err != ErrNotLeader {
 		t.Errorf("Expected error when calling Propose() as a follower, but found none")
@@ -161,8 +161,8 @@ func TestFollowerIncorrectlyAddressedProposals(t *testing.T) {
 	bobsSig, _ := initialVars.AsState(fp()).Sign(bob.PrivateKey)
 	sigs := [2]state.Signature{aliceSig, bobsSig}
 
-	leaderCh, _ := NewLeaderChannel(initialVars.AsState(fp()), 0, ledgerOutcome(), sigs)
-	followerCh, _ := NewFollowerChannel(initialVars.AsState(fp()), 0, ledgerOutcome(), sigs)
+	leaderCh, _ := newLeaderChannel(initialVars.AsState(fp()), 0, ledgerOutcome(), sigs)
+	followerCh, _ := newFollowerChannel(initialVars.AsState(fp()), 0, ledgerOutcome(), sigs)
 
 	someProposal, _ := leaderCh.Propose(Proposal{ToAdd: add(1, types.Destination{}, alice, bob)}, alice.PrivateKey)
 	someProposal.Proposal.LedgerID = types.Destination{} // alter the ChannelID so that it doesn't match
