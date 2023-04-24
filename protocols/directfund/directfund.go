@@ -38,7 +38,7 @@ func FundOnChainEffect(cId types.Destination, asset string, amount types.Funds) 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
 	Status protocols.ObjectiveStatus
-	C      *channel.Channel
+	C      *consensus_channel.ConsensusChannel
 
 	myDepositSafetyThreshold types.Funds // if the on chain holdings are equal to this amount it is safe for me to deposit
 	myDepositTarget          types.Funds // I want to get the on chain holdings up to this much
@@ -149,8 +149,12 @@ func ConstructFromPayload(
 		return Objective{}, errors.New("my address not found in participants")
 	}
 
-	init.C = &channel.Channel{}
-	init.C, err = channel.New(initialState, myIndex)
+	c, err := channel.New(initialState, myIndex)
+	if err != nil {
+		return Objective{}, fmt.Errorf("failed to initialize channel for direct-fund objective: %w", err)
+	}
+	cc := consensus_channel.FromChannel(*c)
+	init.C = &cc
 
 	if err != nil {
 		return Objective{}, fmt.Errorf("failed to initialize channel for direct-fund objective: %w", err)
@@ -179,50 +183,6 @@ func (dfo *Objective) GetStatus() protocols.ObjectiveStatus {
 	return dfo.Status
 }
 
-// CreateConsensusChannel creates a ConsensusChannel from the Objective by extracting signatures and a single asset outcome from the post fund state.
-func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChannel, error) {
-	ledger := dfo.C
-
-	if !ledger.PostFundComplete() {
-		return nil, fmt.Errorf("expected funding for channel %s to be complete", dfo.C.Id)
-	}
-	signedPostFund := ledger.SignedPostFundState()
-	leaderSig, err := signedPostFund.GetParticipantSignature(uint(consensus_channel.Leader))
-	if err != nil {
-		return nil, fmt.Errorf("could not get leader signature: %w", err)
-	}
-	followerSig, err := signedPostFund.GetParticipantSignature(uint(consensus_channel.Follower))
-	if err != nil {
-		return nil, fmt.Errorf("could not get follower signature: %w", err)
-	}
-	signatures := [2]state.Signature{leaderSig, followerSig}
-
-	if len(signedPostFund.State().Outcome) != 1 {
-		return nil, fmt.Errorf("a consensus channel only supports a single asset")
-	}
-	assetExit := signedPostFund.State().Outcome[0]
-	turnNum := signedPostFund.State().TurnNum
-	outcome, err := consensus_channel.FromExit(assetExit)
-	if err != nil {
-		return nil, fmt.Errorf("could not create ledger outcome from channel exit: %w", err)
-	}
-
-	if ledger.MyIndex == uint(consensus_channel.Leader) {
-		con, err := consensus_channel.NewLeaderChannel(ledger.PostFundState(), turnNum, outcome, signatures)
-		if err != nil {
-			return nil, fmt.Errorf("could not create consensus channel as leader: %w", err)
-		}
-		return &con, nil
-
-	} else {
-		con, err := consensus_channel.NewFollowerChannel(ledger.PostFundState(), turnNum, outcome, signatures)
-		if err != nil {
-			return nil, fmt.Errorf("could not create consensus channel as follower: %w", err)
-		}
-		return &con, nil
-	}
-}
-
 // Public methods on the DirectFundingObjectiveState
 
 func (o *Objective) Id() protocols.ObjectiveId {
@@ -241,7 +201,7 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 	updated := o.clone()
 
 	updated.Status = protocols.Rejected
-	peer := o.C.Participants[1-o.C.MyIndex]
+	peer := o.C.Participants()[1-o.C.MyIndex]
 
 	sideEffects := protocols.SideEffects{MessagesToSend: protocols.CreateRejectionNoticeMessage(o.Id(), peer)}
 	return &updated, sideEffects
@@ -285,7 +245,7 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 
 func (o *Objective) otherParticipants() []types.Address {
 	others := make([]types.Address, 0)
-	for i, p := range o.C.Participants {
+	for i, p := range o.C.Participants() {
 		if i != int(o.C.MyIndex) {
 			others = append(others, p)
 		}
