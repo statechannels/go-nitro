@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
+	"github.com/statechannels/go-nitro/types"
 )
 
 // jsonObjective replaces the virtualfund Objective's channel pointers
@@ -20,36 +21,23 @@ type jsonObjective struct {
 	FinalOutcome   outcome.SingleAssetExit
 	Signatures     []state.Signature
 
-	ToMyLeft             []byte
-	ToMyRight            []byte
+	ToMyLeft             types.Destination
+	ToMyRight            types.Destination
 	MinimumPaymentAmount *big.Int
 	MyRole               uint
 }
 
 // MarshalJSON returns a JSON representation of the VirtualDefundObjective
 func (o Objective) MarshalJSON() ([]byte, error) {
-	var left []byte
-	var right []byte
-	var err error
+	var left types.Destination
+	var right types.Destination
 
-	if o.ToMyLeft == nil {
-		left = []byte("null")
-	} else {
-		left, err = o.ToMyLeft.MarshalJSON()
-
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling left channel of %v: %w", o, err)
-		}
+	if o.ToMyLeft != nil {
+		left = o.ToMyLeft.Id
 	}
 
-	if o.ToMyRight == nil {
-		right = []byte("null")
-	} else {
-		right, err = o.ToMyRight.MarshalJSON()
-
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling right channel of %v: %w", o, err)
-		}
+	if o.ToMyRight != nil {
+		right = o.ToMyRight.Id
 	}
 
 	jsonVFO := jsonObjective{
@@ -79,13 +67,9 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	}
 
 	o.ToMyLeft = &consensus_channel.ConsensusChannel{}
+	o.ToMyLeft.Id = jsonVFO.ToMyLeft
 	o.ToMyRight = &consensus_channel.ConsensusChannel{}
-	if err := o.ToMyLeft.UnmarshalJSON(jsonVFO.ToMyLeft); err != nil {
-		return fmt.Errorf("failed to unmarshal left ledger channel: %w", err)
-	}
-	if err := o.ToMyRight.UnmarshalJSON(jsonVFO.ToMyRight); err != nil {
-		return fmt.Errorf("failed to unmarshal right ledger channel: %w", err)
-	}
+	o.ToMyRight.Id = jsonVFO.ToMyRight
 
 	o.Status = jsonVFO.Status
 
