@@ -108,6 +108,7 @@ func (c *ConsensusChannel) AddSignedState(
 				TurnNum: ss.State().TurnNum,
 				Outcome: lo,
 			},
+			Signatures: [2]crypto.Signature(ss.Signatures()),
 		}
 	}
 	return ok
