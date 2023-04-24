@@ -40,13 +40,9 @@ func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel
 	testObj.C.AddStateWithSignature(testObj.C.PostFundState(), correctSignatureByAliceOnPostFund)
 	testObj.C.AddStateWithSignature(testObj.C.PostFundState(), correctSignatureByBobOnPostFund)
 
-	cc, err := testObj.CreateConsensusChannel()
+	cc := testObj.C
 	cc.OnChainFunding = types.Funds{
 		common.HexToAddress("0x00"): big.NewInt(2),
-	}
-
-	if err != nil {
-		panic(err)
 	}
 
 	return cc, true

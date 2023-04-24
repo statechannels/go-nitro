@@ -300,7 +300,8 @@ func TestCrank(t *testing.T) {
 
 func TestClone(t *testing.T) {
 	compareObjectives := func(a, b protocols.Objective) string {
-		return cmp.Diff(&a, &b, cmp.AllowUnexported(Objective{}, channel.Channel{}, big.Int{}, state.SignedState{}))
+		return cmp.Diff(&a, &b, cmp.AllowUnexported(consensus_channel.ConsensusChannel{},
+			consensus_channel.LedgerOutcome{}, Objective{}, channel.Channel{}, big.Int{}, state.SignedState{}))
 	}
 
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
