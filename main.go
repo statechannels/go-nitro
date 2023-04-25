@@ -2,26 +2,19 @@ package main
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"encoding/hex"
 	"flag"
 	"fmt"
-	"math/big"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
-	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
-	Create2Deployer "github.com/statechannels/go-nitro/client/engine/chainservice/create2deployer"
+	chainutils "github.com/statechannels/go-nitro/client/engine/chainservice/utils"
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/crypto"
@@ -29,7 +22,6 @@ import (
 	"github.com/statechannels/go-nitro/rpc/transport"
 	"github.com/statechannels/go-nitro/rpc/transport/nats"
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
-	"github.com/statechannels/go-nitro/types"
 	"github.com/tidwall/buntdb"
 )
 
@@ -62,12 +54,16 @@ func main() {
 		ourStore = store.NewMemStore(pk)
 	}
 
-	ethClient, txSubmitter, err := connectToChain(context.Background(), chainUrl, *ourStore.GetAddress())
+	chainPk, err := chainutils.GetHardhatFundedPrivateKey(*ourStore.GetAddress())
+	if err != nil {
+		panic(err)
+	}
+	ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), chainUrl, 1337, chainPk)
 	if err != nil {
 		panic(err)
 	}
 	if deployContracts {
-		deployedAddress, err := deployAdjudicator(context.Background(), ethClient, txSubmitter)
+		deployedAddress, err := chainutils.DeployAdjudicator(context.Background(), ethClient, txSubmitter)
 		if err != nil {
 			panic(err)
 		}
@@ -125,91 +121,4 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-sigs
 	fmt.Printf("Received signal %s, exiting..", sig)
-}
-
-// deployAdjudicator deploys the Create2Deployer and NitroAdjudicator contracts.
-// The nitro adjudicator is deployed to the address computed by the Create2Deployer contract.
-func deployAdjudicator(ctx context.Context, client *ethclient.Client, txSubmitter *bind.TransactOpts) (common.Address, error) {
-	_, _, deployer, err := Create2Deployer.DeployCreate2Deployer(txSubmitter, client)
-	if err != nil {
-		return types.Address{}, err
-	}
-	hexBytecode, err := hex.DecodeString(NitroAdjudicator.NitroAdjudicatorMetaData.Bin[2:])
-	if err != nil {
-		return types.Address{}, err
-	}
-
-	naAddress, err := deployer.ComputeAddress(&bind.CallOpts{}, [32]byte{}, ethcrypto.Keccak256Hash(hexBytecode))
-	if err != nil {
-		return types.Address{}, err
-	}
-	bytecode, err := client.CodeAt(ctx, naAddress, nil) // nil is latest block
-	if err != nil {
-		return types.Address{}, err
-	}
-
-	// Has NitroAdjudicator been deployed? If not, deploy it.
-	if len(bytecode) == 0 {
-		_, err = deployer.Deploy(txSubmitter, big.NewInt(0), [32]byte{}, hexBytecode)
-		if err != nil {
-			return types.Address{}, err
-		}
-	}
-	return naAddress, nil
-}
-
-// connectToChain connects to the chain at the given url and returns a client and a transactor.
-func connectToChain(ctx context.Context, chainUrl string, myAddress types.Address) (*ethclient.Client, *bind.TransactOpts, error) {
-	client, err := ethclient.Dial(chainUrl)
-	if err != nil {
-		return nil, nil, err
-	}
-	key, err := getHardhatFundedPrivateKey(myAddress)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	txSubmitter, err := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
-	if err != nil {
-		return nil, nil, err
-	}
-	txSubmitter.GasLimit = uint64(30_000_000) // in units
-
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return nil, nil, err
-	}
-	txSubmitter.GasPrice = gasPrice
-	return client, txSubmitter, nil
-}
-
-// getHardhatFundedPrivateKey selects a private key from one of the 1000 funded accounts in hardhat.
-// It modulates the address by 1000 to select a funded account.
-func getHardhatFundedPrivateKey(a types.Address) (*ecdsa.PrivateKey, error) {
-	// See https://hardhat.org/hardhat-network/docs/reference#accounts for defaults
-	// This is the default mnemonic used by hardhat
-	const HARDHAT_MNEMONIC = "test test test test test test test test test test test junk"
-	// This is the number of accounts hardhat funds by default
-	const NUM_FUNDED = 20
-	// This is the default hd wallet path used by hardhat
-	const HD_PATH = "m/44'/60'/0'/0"
-
-	index := big.NewInt(0).Mod(a.Big(), big.NewInt(NUM_FUNDED)).Uint64()
-
-	wallet, err := hdwallet.NewFromMnemonic(HARDHAT_MNEMONIC)
-	if err != nil {
-		return nil, err
-	}
-
-	ourPath := fmt.Sprintf("%s/%d", HD_PATH, index)
-
-	derived, err := wallet.Derive(hdwallet.MustParseDerivationPath(ourPath), false)
-	if err != nil {
-		return nil, err
-	}
-	pk, err := wallet.PrivateKey(derived)
-	if err != nil {
-		return nil, err
-	}
-	return pk, nil
 }
