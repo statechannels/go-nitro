@@ -5,10 +5,23 @@ go-nitro
 
 <p align="center">Implementation of the <a href="https://docs.statechannels.org">Nitro State Channels Framework</a> in Golang and Solidity.</p>
 
-
 ## Usage
 
-Go-nitro is work-in-progress library code with an evolving API.
+> ⚠️ Go-nitro is pre-production software ⚠️
+
+### As a Service
+
+Go-nitro can be run as a system service with an RPC api. Go-nitro is configured to seek out a local hardhat blockchain with some specific configuration. The configured hardhat node is available here: https://github.com/statechannels/hardhat-docker.
+
+After the hardhat docker node is running, go-nitro can be started from the root directory with
+
+```
+go run ./...
+```
+
+### As a Library
+
+Go-nitro is also work-in-progress library code with an evolving API.
 
 Our [integration tests](./client_test/readme.md) give the best idea of how to use the API. Another useful resource is [the godoc](https://pkg.go.dev/github.com/statechannels/go-nitro@v0.0.0-20221013015616-00c5614be2d2/client#Client) description of the `go-nitro.Client` API (please check for the latest version).
 
