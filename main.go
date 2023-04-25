@@ -34,14 +34,16 @@ import (
 )
 
 func main() {
-	var pkString, hardhatUrl string
+	var pkString, chainUrl, naAddress string
 	var msgPort, rpcPort int
-	var useNats, useDurableStore bool
+	var useNats, useDurableStore, deployContracts bool
 
+	flag.BoolVar(&deployContracts, "deploycontracts", false, "Specifies whether to deploy the adjudicator and create2deployer contracts.")
 	flag.BoolVar(&useNats, "usenats", true, "Specifies whether to use NATS or http/ws for the rpc server.")
 	flag.BoolVar(&useDurableStore, "usedurablestore", false, "Specifies whether to use a durable store or an in-memory store.")
 	flag.StringVar(&pkString, "pk", "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d", "Specifies the private key for the client. Default is Alice's private key.")
-	flag.StringVar(&hardhatUrl, "hardhaturl", "ws://127.0.0.1:8545", "Specifies the url for the hardhat node.")
+	flag.StringVar(&chainUrl, "chainurl", "ws://127.0.0.1:8545", "Specifies the url of a RPC endpoint for the chain.")
+	flag.StringVar(&naAddress, "naaddress", "0xC6A55E07566416274dBF020b5548eecEdB56290c", "Specifies the address of the nitro adjudicator contract. Default is the address computed by the Create2Deployer contract.")
 	flag.IntVar(&msgPort, "msgport", 3005, "Specifies the tcp port for the  message service.")
 	flag.IntVar(&rpcPort, "rpcport", 4005, "Specifies the tcp port for the rpc server.")
 
@@ -60,13 +62,32 @@ func main() {
 		ourStore = store.NewMemStore(pk)
 	}
 
-	chainService, err := newChainService(context.Background(), *ourStore.GetAddress(), hardhatUrl)
+	ethClient, txSubmitter, err := connectToChain(context.Background(), chainUrl, *ourStore.GetAddress())
 	if err != nil {
-		panic(fmt.Errorf("connection to chain not established: %w", err))
+		panic(err)
+	}
+	if deployContracts {
+		deployedAddress, err := deployAdjudicator(context.Background(), ethClient, txSubmitter)
+		if err != nil {
+			panic(err)
+		}
+		if naAddress != deployedAddress.String() {
+			fmt.Printf("WARNING: The deploycontracts flag is set so the adjucator has been deployed to %s.\nThis is different from the naaddress flag which is set to %s. The naaddress flag will be ignored.\n", deployedAddress.String(), naAddress)
+			naAddress = deployedAddress.String()
+		}
+	}
+
+	na, err := NitroAdjudicator.NewNitroAdjudicator(common.HexToAddress(naAddress), ethClient)
+	if err != nil {
+		panic(err)
+	}
+
+	chainService, err := chainservice.NewEthChainService(ethClient, na, common.HexToAddress(naAddress), common.Address{}, common.Address{}, txSubmitter, os.Stdout)
+	if err != nil {
+		panic(err)
 	}
 
 	messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, logDestination)
-
 	node := client.New(
 		messageservice,
 		chainService,
@@ -106,10 +127,10 @@ func main() {
 	fmt.Printf("Received signal %s, exiting..", sig)
 }
 
-// deployAdjudicator deploys the NitroAdjudicator contract if it has not already been deployed.
-// It makes use of a Create2Deployer contract for deterministic deploy addresses.
+// deployAdjudicator deploys the Create2Deployer and NitroAdjudicator contracts.
+// The nitro adjudicator is deployed to the address computed by the Create2Deployer contract.
 func deployAdjudicator(ctx context.Context, client *ethclient.Client, txSubmitter *bind.TransactOpts) (common.Address, error) {
-	deployer, err := Create2Deployer.NewCreate2Deployer(common.HexToAddress("0x5fbdb2315678afecb367f032d93f642f64180aa3"), client)
+	_, _, deployer, err := Create2Deployer.DeployCreate2Deployer(txSubmitter, client)
 	if err != nil {
 		return types.Address{}, err
 	}
@@ -137,44 +158,29 @@ func deployAdjudicator(ctx context.Context, client *ethclient.Client, txSubmitte
 	return naAddress, nil
 }
 
-// newChainService constructs a chain service using the given node url.
-func newChainService(ctx context.Context, address types.Address, nodeUrl string) (chainservice.ChainService, error) {
-	client, err := ethclient.Dial(nodeUrl)
+// connectToChain connects to the chain at the given url and returns a client and a transactor.
+func connectToChain(ctx context.Context, chainUrl string, myAddress types.Address) (*ethclient.Client, *bind.TransactOpts, error) {
+	client, err := ethclient.Dial(chainUrl)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	key, err := getHardhatFundedPrivateKey(address)
+	key, err := getHardhatFundedPrivateKey(myAddress)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	fmt.Printf("Using private key %s", common.Bytes2Hex(ethcrypto.FromECDSA(key)))
+
 	txSubmitter, err := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	txSubmitter.GasLimit = uint64(30_000_000) // in units
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	txSubmitter.GasPrice = gasPrice
-
-	naAddress, err := deployAdjudicator(ctx, client, txSubmitter)
-	if err != nil {
-		return nil, err
-	}
-
-	na, err := NitroAdjudicator.NewNitroAdjudicator(naAddress, client)
-	if err != nil {
-		return nil, err
-	}
-
-	cs, err := chainservice.NewEthChainService(client, na, naAddress, common.Address{}, common.Address{}, txSubmitter, os.Stdout)
-	if err != nil {
-		return nil, err
-	}
-	return cs, nil
+	return client, txSubmitter, nil
 }
 
 // getHardhatFundedPrivateKey selects a private key from one of the 1000 funded accounts in hardhat.
