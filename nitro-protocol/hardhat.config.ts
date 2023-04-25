@@ -60,7 +60,8 @@ const config: HardhatUserConfig & {watcher: any} = {
   },
   networks: {
     hardhat: {
-      chainId: 31337,
+      chainId: 1337,
+      accounts: {count: 1000},
     },
     goerli: {
       url: infuraToken ? 'https://goerli.infura.io/v3/' + infuraToken : '',
