@@ -34,6 +34,18 @@ func (uce *ErrUnhandledChainEvent) Error() string {
 	return fmt.Sprintf("chain event %#v could not be handled by objective %#v due to: %s", uce.event, uce.objective, uce.reason)
 }
 
+type ErrGetObjective struct {
+	wrappedError error
+	objectiveId  protocols.ObjectiveId
+}
+
+func (e *ErrGetObjective) Error() string {
+	return fmt.Sprintf("unexpected error getting/creating objective %s: %v", e.objectiveId, e.wrappedError)
+}
+
+// nonFatalErrors is a list of errors for which the engine should not panic
+var nonFatalErrors = []error{&ErrGetObjective{}}
+
 // Engine is the imperative part of the core business logic of a go-nitro Client
 type Engine struct {
 	// inbound go channels
@@ -163,13 +175,7 @@ func (e *Engine) Run() {
 		}
 
 		// Handle errors
-		if err != nil {
-			e.logger.Err(err).Msgf("%s, error in run loop", e.store.GetAddress())
-			<-time.After(1000 * time.Millisecond) // We wait for a bit so the previous log line has time to complete
-			// TODO do not panic if in production.
-			panic(err)
-			// TODO report errors back to the consuming application
-		}
+		e.checkError(err)
 
 		// Only send out an event if there are changes
 		if len(res.CompletedObjectives) > 0 || len(res.FailedObjectives) > 0 || len(res.ReceivedVouchers) > 0 {
@@ -596,7 +602,7 @@ func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.O
 		return newObj, nil
 
 	} else {
-		return nil, fmt.Errorf("unexpected error getting/creating objective %s: %w", id, err)
+		return nil, &ErrGetObjective{err, id}
 	}
 }
 
@@ -720,4 +726,23 @@ func (e *Engine) recordMessageMetrics(message protocols.Message) {
 	raw, _ := message.Serialize()
 	e.metrics.RecordQueueLength(fmt.Sprintf("msg_payload_size,sender=%s,receiver=%s", e.store.GetAddress(), message.To), totalPayloadsSize)
 	e.metrics.RecordQueueLength(fmt.Sprintf("msg_size,sender=%s,receiver=%s", e.store.GetAddress(), message.To), len(raw))
+}
+
+func (e *Engine) checkError(err error) {
+	if err != nil {
+
+		e.logger.Err(err).Msgf("%s, error in run loop", e.store.GetAddress())
+
+		for _, nonFatalError := range nonFatalErrors {
+			if errors.Is(err, nonFatalError) {
+				return
+			}
+		}
+
+		<-time.After(1000 * time.Millisecond) // We wait for a bit so the previous log line has time to complete
+		// TODO do not panic if in production.
+		panic(err)
+		// TODO report errors back to the consuming application
+
+	}
 }
