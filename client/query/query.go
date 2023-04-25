@@ -115,7 +115,7 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 		return PaymentChannelInfo{
 			ID:      id,
 			Status:  status,
-			Balance: getPaymentChannelBalance(defund.VFixed.Participants, []outcome.SingleAssetExit{defund.FinalOutcome}),
+			Balance: getPaymentChannelBalance(defund.V.Participants, []outcome.SingleAssetExit{defund.V.SignedStateForTurnNum[virtualdefund.FinalTurnNum].State().Outcome[0]}),
 		}, nil
 	}
 	// Otherwise we can just check the store
