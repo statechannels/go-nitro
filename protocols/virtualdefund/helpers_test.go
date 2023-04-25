@@ -17,6 +17,13 @@ import (
 
 const TEST_CHAIN_ID = 1337
 
+var (
+	alice     = ta.Alice
+	bob       = ta.Bob
+	irene     = ta.Irene
+	allActors = []ta.Actor{alice, irene, bob}
+)
+
 // generateLedgers generates the left and right ledger channels based on myRole
 // The ledger channels will include a guarantee that funds V
 func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus_channel.ConsensusChannel) {
@@ -258,7 +265,6 @@ func generateTestData() testdata {
 
 	vInitial := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{initialOutcome}, TurnNum: 1})
 	vFinal := state.StateFromFixedAndVariablePart(vFixed, state.VariablePart{IsFinal: true, Outcome: outcome.Exit{finalOutcome}, TurnNum: FinalTurnNum})
-
 	return testdata{vInitial, vFinal, paid, finalAliceAmount, finalBobAmount}
 }
 

@@ -7,18 +7,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
-)
-
-var (
-	alice     = ta.Alice
-	bob       = ta.Bob
-	irene     = ta.Irene
-	allActors = []ta.Actor{alice, irene, bob}
 )
 
 func TestUpdate(t *testing.T) {
@@ -82,11 +76,16 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		updatedObj, err := virtualDefund.Update(e)
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
+		ss, err := updated.signedFinalState()
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		for _, a := range allActors {
 			if a.Role != my.Role {
-				testhelpers.Assert(t, !isZero(updated.Signatures[a.Role]), "expected signature for participant %s to be non-zero", a.Name)
+				testhelpers.Assert(t, !isZero(ss.Signatures()[a.Role]), "expected signature for participant %s to be non-zero", a.Name)
 			} else {
-				testhelpers.Assert(t, isZero(updated.Signatures[a.Role]), "expected signature for current participant %s to be zero", a.Name)
+				testhelpers.Assert(t, isZero(ss.Signatures()[a.Role]), "expected signature for current participant %s to be zero", a.Name)
 			}
 		}
 	}
@@ -114,26 +113,28 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
 
+		ss, err := updated.signedFinalState()
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		if my.Role != 0 {
 			testhelpers.Equals(t, se.MessagesToSend[0].ObjectivePayloads[0].Type, RequestFinalStatePayload)
 			testhelpers.Equals(t, waitingFor, WaitingForFinalStateFromAlice)
 
 			// mimic Alice sending the final state by setting PaidToBob to the paid value
-			updated.FinalOutcome = data.vFinal.Outcome[0]
+			updated.V.AddSignedState(ss)
 			updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 			testhelpers.Ok(t, err)
 			updated = updatedObj.(*Objective)
 		}
 
-		for _, a := range allActors {
-			if a.Role == my.Role {
-				testhelpers.Assert(t, !isZero(updated.Signatures[a.Role]), "expected signature for participant %s to be non-zero", a.Name)
-			} else {
-				testhelpers.Assert(t, isZero(updated.Signatures[a.Role]), "expected signature for current participant %s to be zero", a.Name)
-			}
+		if my.Role == alice.Role {
+			testhelpers.Equals(t, WaitingForSignedFinal, waitingFor)
+		} else {
+			testhelpers.Equals(t, WaitingForFinalStateFromAlice, waitingFor)
 		}
 
-		testhelpers.Equals(t, waitingFor, WaitingForSignedFinal)
 		signedByMe := state.NewSignedState(data.vFinal)
 		testhelpers.SignState(&signedByMe, &my.PrivateKey)
 
@@ -143,9 +144,13 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		signedByOthers := signStateByOthers(my, state.NewSignedState(data.vFinal))
 		for i, sig := range signedByOthers.Signatures() {
 			if uint(i) != my.Role {
-				updated.Signatures[i] = sig
+				err := ss.AddSignature(sig)
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
+		updated.V.AddSignedState(ss)
 
 		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 		updated = updatedObj.(*Objective)
@@ -193,12 +198,15 @@ func TestConstructObjectiveFromState(t *testing.T) {
 	}
 	left, right := generateLedgers(alice.Role, vId)
 
+	s := state.StateFromFixedAndVariablePart(data.vFinal.FixedPart(), data.vInitial.VariablePart())
+	v, err := channel.New(s, 0)
+	if err != nil {
+		panic(err)
+	}
+
 	want := Objective{
 		Status:               protocols.Approved,
-		InitialOutcome:       data.vInitial.Outcome[0],
-		FinalOutcome:         data.vFinal.Outcome[0],
-		VFixed:               data.vFinal.FixedPart(),
-		Signatures:           make([]state.Signature, 3),
+		V:                    v,
 		ToMyLeft:             left,
 		ToMyRight:            right,
 		MinimumPaymentAmount: big.NewInt(int64(data.paid)),
