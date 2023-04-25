@@ -27,7 +27,7 @@ import (
 
 func main() {
 	var pkString, chainUrl, naAddress string
-	var msgPort, rpcPort int
+	var msgPort, rpcPort, chainId int
 	var useNats, useDurableStore, deployContracts bool
 
 	flag.BoolVar(&deployContracts, "deploycontracts", false, "Specifies whether to deploy the adjudicator and create2deployer contracts.")
@@ -38,7 +38,7 @@ func main() {
 	flag.StringVar(&naAddress, "naaddress", "0xC6A55E07566416274dBF020b5548eecEdB56290c", "Specifies the address of the nitro adjudicator contract. Default is the address computed by the Create2Deployer contract.")
 	flag.IntVar(&msgPort, "msgport", 3005, "Specifies the tcp port for the  message service.")
 	flag.IntVar(&rpcPort, "rpcport", 4005, "Specifies the tcp port for the rpc server.")
-
+	flag.IntVar(&chainId, "chainid", 1337, "Specifies the chain id of the chain.")
 	flag.Parse()
 
 	pk := common.Hex2Bytes(pkString)
@@ -58,7 +58,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), chainUrl, 1337, chainPk)
+	ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainId, chainPk)
 	if err != nil {
 		panic(err)
 	}
