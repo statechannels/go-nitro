@@ -189,9 +189,8 @@ func getHardhatFundedPrivateKey(a types.Address) (*ecdsa.PrivateKey, error) {
 	// See https://hardhat.org/hardhat-network/docs/reference#accounts for defaults
 	// This is the default mnemonic used by hardhat
 	const HARDHAT_MNEMONIC = "test test test test test test test test test test test junk"
-	// We manually set the amount of funded accounts in our hardhat config
-	// If that value changes, this value must change as well
-	const NUM_FUNDED = 1000
+	// This is the number of accounts hardhat funds by default
+	const NUM_FUNDED = 20
 	// This is the default hd wallet path used by hardhat
 	const HD_PATH = "m/44'/60'/0'/0"
 
