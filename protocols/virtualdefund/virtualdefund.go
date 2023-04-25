@@ -327,7 +327,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	}
 
 	// Signing of the final state
-	if updated.V.FinalSignedByMe() {
+	if !updated.V.FinalSignedByMe() {
 
 		sig, err := o.finalState().Sign(*secretKey)
 		if err != nil {
