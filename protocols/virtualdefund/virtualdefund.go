@@ -199,21 +199,18 @@ func (o *Objective) initialOutcome() outcome.SingleAssetExit {
 	return o.V.PostFundState().Outcome[0]
 }
 
-func (o *Objective) finalOutcome() outcome.SingleAssetExit {
-	finalOutcome := outcome.SingleAssetExit{}
+func (o *Objective) generateFinalOutcome() outcome.SingleAssetExit {
 	// Since Alice is responsible for issuing vouchers she always has the largest payment amount
 	// This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent
-	if o.isAlice() {
-		finalOutcome = o.initialOutcome().Clone()
-		finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.MinimumPaymentAmount)
-		finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.MinimumPaymentAmount)
-	}
+	finalOutcome := o.initialOutcome().Clone()
+	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.MinimumPaymentAmount)
+	finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.MinimumPaymentAmount)
 	return finalOutcome
 }
 
 // finalState returns the final state for the virtual channel
-func (o *Objective) finalState() state.State {
-	vp := state.VariablePart{Outcome: outcome.Exit{o.finalOutcome()}, TurnNum: FinalTurnNum, IsFinal: true}
+func (o *Objective) generateFinalState() state.State {
+	vp := state.VariablePart{Outcome: outcome.Exit{o.generateFinalOutcome()}, TurnNum: FinalTurnNum, IsFinal: true}
 	return state.StateFromFixedAndVariablePart(o.V.FixedPart, vp)
 }
 
@@ -305,7 +302,11 @@ func (o *Objective) otherParticipants() []types.Address {
 }
 
 func (o *Objective) hasFinalStateFromAlice() bool {
-	return !o.finalOutcome().Equal(outcome.SingleAssetExit{})
+	ss, err := o.V.LatestSignedState()
+	if err != nil {
+		return false
+	}
+	return ss.State().IsFinal
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed.
@@ -328,15 +329,17 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	// Signing of the final state
 	if !updated.V.FinalSignedByMe() {
-
-		sig, err := o.finalState().Sign(*secretKey)
+		ss, err := updated.signedFinalState()
+		if err != nil {
+			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not get signed final state: %w", err)
+		}
+		sig, err := ss.State().Sign(*secretKey)
 		if err != nil {
 			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not sign final state: %w", err)
 		}
 		// Update the signature stored on the objective
-		updated.V.AddStateWithSignature(o.finalState(), sig)
+		updated.V.AddStateWithSignature(ss.State(), sig)
 
-		ss, err := updated.signedFinalState()
 		if err != nil {
 			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not get signed final state: %w", err)
 		}
@@ -390,7 +393,7 @@ func (o *Objective) isBob() bool {
 
 // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
 func (o *Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) consensus_channel.Proposal {
-	left := o.finalOutcome().Allocations[0].Amount
+	left := o.generateFinalOutcome().Allocations[0].Amount
 
 	return consensus_channel.NewRemoveProposal(ledger.Id, o.VId(), left)
 }
@@ -510,7 +513,10 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 		if err != nil {
 			return o, fmt.Errorf("outcome from Alice failed validation %w", err)
 		}
-		updated.V.AddSignedState(ss)
+		ok := updated.V.AddSignedState(ss)
+		if !ok {
+			return o, fmt.Errorf("could not add signed state %v", ss)
+		}
 		return &updated, nil
 	case RequestFinalStatePayload:
 		// Since the objective is already created we don't need to do anything else with the payload
