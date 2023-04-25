@@ -36,10 +36,10 @@ const (
 type ConsensusChannel struct {
 	// constants
 
-	MyIndex        ledgerIndex
-	fp             state.FixedPart
 	Id             types.Destination
+	MyIndex        ledgerIndex
 	OnChainFunding types.Funds
+	fp             state.FixedPart
 
 	// variables
 
@@ -894,7 +894,10 @@ func (c *ConsensusChannel) Clone() *ConsensusChannel {
 	for i, p := range c.proposalQueue {
 		clonedProposalQueue[i] = p.Clone()
 	}
-	d := ConsensusChannel{c.MyIndex, c.fp.Clone(), c.Id, c.OnChainFunding.Clone(), c.current.clone(), clonedProposalQueue}
+	d := ConsensusChannel{
+		MyIndex: c.MyIndex, fp: c.fp.Clone(),
+		Id: c.Id, OnChainFunding: c.OnChainFunding.Clone(), current: c.current.clone(), proposalQueue: clonedProposalQueue,
+	}
 	return &d
 }
 
