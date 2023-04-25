@@ -44,7 +44,7 @@ type Objective struct {
 	// If this is not set then virtual defunding will accept any final outcome from Alice.
 	MinimumPaymentAmount *big.Int
 
-	V *channel.Channel
+	V *channel.Channel // This is a Virtual Channel. TODO should this be a literal channel.VirtualChannel?
 
 	ToMyLeft  *consensus_channel.ConsensusChannel
 	ToMyRight *consensus_channel.ConsensusChannel
@@ -470,24 +470,6 @@ func (o *Objective) leftHasDefunded() bool {
 
 	included := o.ToMyLeft.IncludesTarget(o.VId())
 	return !included
-}
-
-// validateSignature returns whether the given signature is valid for the given participant.
-// If a signature is invalid an error will be returned containing the reason.
-func (o *Objective) validateSignature(sig state.Signature, participantIndex uint) (bool, error) {
-	if participantIndex >= uint(len(o.V.Participants)) {
-		return false, fmt.Errorf("participant index %d is out of bounds", participantIndex)
-	}
-
-	finalState := o.finalState()
-	signer, err := finalState.RecoverSigner(sig)
-	if err != nil {
-		return false, fmt.Errorf("failed to recover signer from signature: %w", err)
-	}
-	if signer != o.V.Participants[participantIndex] {
-		return false, fmt.Errorf("signature is from %s, but expected signature from %s ", signer, o.V.Participants[participantIndex])
-	}
-	return true, nil
 }
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
