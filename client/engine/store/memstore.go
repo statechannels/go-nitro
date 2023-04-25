@@ -314,6 +314,11 @@ func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 
 		return nil
 	case *virtualdefund.Objective:
+		v, err := ms.getChannelById(o.V.Id)
+		if err != nil {
+			return fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
+		}
+		o.V = &v
 
 		zeroAddress := types.Destination{}
 
