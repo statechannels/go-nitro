@@ -30,7 +30,6 @@ type jsonObjective struct {
 func (o Objective) MarshalJSON() ([]byte, error) {
 	var left types.Destination
 	var right types.Destination
-	var V types.Destination
 
 	if o.ToMyLeft != nil {
 		left = o.ToMyLeft.Id
@@ -42,7 +41,7 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 
 	jsonVFO := jsonObjective{
 		Status:               o.Status,
-		V:                    V,
+		V:                    o.VId(),
 		ToMyLeft:             left,
 		ToMyRight:            right,
 		MyRole:               o.MyRole,
