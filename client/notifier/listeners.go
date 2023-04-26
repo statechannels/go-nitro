@@ -24,14 +24,17 @@ type listeners struct {
 	ledgerId      types.Destination
 }
 
+// NotifyLedger notifies all listeners of a ledger channel update.
 func (li *listeners) NotifyLedger(info query.LedgerChannelInfo) error {
 	return notify(li, info)
 }
 
+// NotifyPayment notifies all listeners of a payment channel update.
 func (li *listeners) NotifyPayment(info query.PaymentChannelInfo) error {
 	return notify(li, info)
 }
 
+// newListener constructs a new listener for a channel.
 func newListener(ledgerId types.Destination) *listeners {
 	return &listeners{LedgerListeners: []chan query.LedgerChannelInfo{}, listenersLock: sync.Mutex{}, ledgerId: ledgerId, prevLedger: nil}
 }

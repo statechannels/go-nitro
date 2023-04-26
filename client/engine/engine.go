@@ -89,7 +89,7 @@ type EngineEvent struct {
 	// ReceivedVouchers are vouchers we've received from other participants
 	ReceivedVouchers []payments.Voucher
 
-	// UpdatedChannels is a collection of channel ids of channels that have been updated
+	// UpdatedChannels contains basic info (channel id and type) about a channel that has been updated
 	UpdatedChannels []protocols.UpdatedChannelInfo
 }
 

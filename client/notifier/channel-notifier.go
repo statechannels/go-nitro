@@ -86,6 +86,7 @@ func (cn *ChannelNotifier) NotifyPaymentUpdated(pId types.Destination) error {
 	return nil
 }
 
+// Register returns a channel that will receive channel updates when they occur.
 func register[T query.ChannelInfo](cn *ChannelNotifier, cId types.Destination) (<-chan T, error) {
 	li, _ := cn.listeners.LoadOrStore(cId.String(), newListener(cId))
 

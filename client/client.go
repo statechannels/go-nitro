@@ -142,6 +142,7 @@ func (c *Client) Version() string {
 	return version
 }
 
+// handleUpdatedChannel handles notifying the client of an updated channel.
 func (c *Client) handleUpdatedChannel(updated protocols.UpdatedChannelInfo) error {
 	switch updated.Type {
 	case "ledger":
@@ -183,20 +184,23 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 	return c.completedObjectivesForRPC
 }
 
+// LedgerUpdates returns a chan that receives ledger channel info whenever that ledger channel is updated. Not suitable fo multiple subscribers.
 func (c *Client) LedgerUpdates() <-chan query.LedgerChannelInfo {
 	return c.ledgerUpdatesForRPC
 }
 
+// PaymentUpdates returns a chan that receives payment channel info whenever that payment channel is updated. Not suitable fo multiple subscribers.
 func (c *Client) PaymentUpdates() <-chan query.PaymentChannelInfo {
 	return c.paymentUpdatesForRPC
 }
 
-// LedgerUpdatedChan returns a chan that receives an empty struct when the objective with given id is completed
+// ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
 func (c *Client) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
 	d, _ := c.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
 	return d
 }
 
+// LedgerUpdatedChan returns a chan that receives a ledger channel info whenever the ledger with given id is updated
 func (c *Client) LedgerUpdatedChan(ledgerId types.Destination) <-chan query.LedgerChannelInfo {
 	l, err := c.channelNotifier.RegisterForLedgerUpdates(ledgerId)
 	// TODO: Should we just return an error?
@@ -206,8 +210,10 @@ func (c *Client) LedgerUpdatedChan(ledgerId types.Destination) <-chan query.Ledg
 	return l
 }
 
+// PaymentChannelUpdatedChan returns a chan that receives a payment channel info whenever the payment channel with given id is updated
 func (c *Client) PaymentChannelUpdatedChan(ledgerId types.Destination) <-chan query.PaymentChannelInfo {
 	p, err := c.channelNotifier.RegisterForPaymentChannelUpdates(ledgerId)
+	// TODO: Should we just return an error?
 	if err != nil {
 		panic(err)
 	}
