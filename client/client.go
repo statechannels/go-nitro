@@ -103,41 +103,10 @@ func (c *Client) handleEngineEvents() {
 		}
 
 		for _, updated := range update.UpdatedChannels {
-			switch updated.Type {
-			case "ledger":
-				ledger, err := query.GetLedgerChannelInfo(updated.ChannelId, c.store)
-				// TODO: What's the best way of handling this error?
-				if err != nil {
-					panic(err)
-				}
-
-				err = c.channelNotifier.NotifyLedgerUpdated(updated.ChannelId)
-				// TODO: What's the best way of handling this error?
-				if err != nil {
-					panic(err)
-				}
-				// use a nonblocking send to the RPC Client in case no one is listening
-				select {
-				case c.ledgerUpdatesForRPC <- ledger:
-				default:
-				}
-			case "payment":
-				paymentC, err := query.GetPaymentChannelInfo(updated.ChannelId, c.store, c.vm)
-				// TODO: What's the best way of handling this error?
-				if err != nil {
-					panic(err)
-				}
-
-				err = c.channelNotifier.NotifyPaymentUpdated(updated.ChannelId)
-				// TODO: What's the best way of handling this error?
-				if err != nil {
-					panic(err)
-				}
-				// use a nonblocking send to the RPC Client in case no one is listening
-				select {
-				case c.paymentUpdatesForRPC <- paymentC:
-				default:
-				}
+			err := c.handleUpdatedChannel(updated)
+			// TODO: What's the best way of handling this error
+			if err != nil {
+				panic(err)
 			}
 		}
 	}
@@ -171,6 +140,42 @@ func (c *Client) Version() string {
 	}
 
 	return version
+}
+
+func (c *Client) handleUpdatedChannel(updated protocols.UpdatedChannelInfo) error {
+	switch updated.Type {
+	case "ledger":
+		ledger, err := query.GetLedgerChannelInfo(updated.ChannelId, c.store)
+		if err != nil {
+			return err
+		}
+
+		err = c.channelNotifier.NotifyLedgerUpdated(updated.ChannelId)
+		if err != nil {
+			return err
+		}
+		// use a nonblocking send to the RPC Client in case no one is listening
+		select {
+		case c.ledgerUpdatesForRPC <- ledger:
+		default:
+		}
+	case "payment":
+		paymentC, err := query.GetPaymentChannelInfo(updated.ChannelId, c.store, c.vm)
+		if err != nil {
+			return err
+		}
+
+		err = c.channelNotifier.NotifyPaymentUpdated(updated.ChannelId)
+		if err != nil {
+			return err
+		}
+		// use a nonblocking send to the RPC Client in case no one is listening
+		select {
+		case c.paymentUpdatesForRPC <- paymentC:
+		default:
+		}
+	}
+	return nil
 }
 
 // CompletedObjectives returns a chan that receives a objective id whenever that objective is completed. Not suitable fo multiple subscribers.
