@@ -113,27 +113,28 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
 
-		ss, err := updated.signedFinalState()
-		if err != nil {
-			t.Fatal(err)
-		}
+		ss := state.NewSignedState(data.vFinal)
 
 		if my.Role != 0 {
 			testhelpers.Equals(t, se.MessagesToSend[0].ObjectivePayloads[0].Type, RequestFinalStatePayload)
 			testhelpers.Equals(t, waitingFor, WaitingForFinalStateFromAlice)
 
 			// mimic Alice sending the final state by setting PaidToBob to the paid value
+			aliceSig, err := ss.State().Sign(alice.PrivateKey)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = ss.AddSignature(aliceSig)
+			if err != nil {
+				t.Fatal(err)
+			}
 			updated.V.AddSignedState(ss)
 			updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 			testhelpers.Ok(t, err)
 			updated = updatedObj.(*Objective)
 		}
 
-		if my.Role == alice.Role {
-			testhelpers.Equals(t, WaitingForSupportedFinalState, waitingFor)
-		} else {
-			testhelpers.Equals(t, WaitingForFinalStateFromAlice, waitingFor)
-		}
+		testhelpers.Equals(t, WaitingForSupportedFinalState, waitingFor)
 
 		signedByMe := state.NewSignedState(data.vFinal)
 		testhelpers.SignState(&signedByMe, &my.PrivateKey)
@@ -141,13 +142,11 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		testhelpers.AssertStateSentToEveryone(t, se, signedByMe, my, allActors)
 
 		// Update the signatures on the objective so the final state is fully signed
-		signedByOthers := signStateByOthers(my, state.NewSignedState(data.vFinal))
+		signedByOthers := signStateByOthers(my, signedByMe)
 		for i, sig := range signedByOthers.Signatures() {
-			if uint(i) != my.Role {
+			if uint(i) != my.Role && uint(i) != alice.Role {
 				err := ss.AddSignature(sig)
-				if err != nil {
-					panic(err)
-				}
+				testhelpers.Ok(t, err)
 			}
 		}
 		updated.V.AddSignedState(ss)
