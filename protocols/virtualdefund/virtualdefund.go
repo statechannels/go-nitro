@@ -257,6 +257,8 @@ func (o *Objective) GetStatus() protocols.ObjectiveStatus {
 func (o *Objective) Related() []protocols.Storable {
 	related := []protocols.Storable{}
 
+	related = append(related, o.V)
+
 	if o.ToMyLeft != nil {
 		related = append(related, o.ToMyLeft)
 	}
@@ -519,6 +521,7 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 		if !ok {
 			return o, fmt.Errorf("could not add signed state %v", ss)
 		}
+
 		return &updated, nil
 	case RequestFinalStatePayload:
 		// Since the objective is already created we don't need to do anything else with the payload
