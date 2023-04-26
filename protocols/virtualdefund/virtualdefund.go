@@ -18,10 +18,10 @@ import (
 
 const (
 	WaitingForFinalStateFromAlice protocols.WaitingFor = "WaitingForFinalStateFromAlice"
-	WaitingForSupportedFinalState protocols.WaitingFor = "WaitingForSignedFinal"        // Round 1
-	WaitingForDefundingOnMyLeft   protocols.WaitingFor = "WaitingForDefundingOnMyLeft"  // Round 2
-	WaitingForDefundingOnMyRight  protocols.WaitingFor = "WaitingForDefundingOnMyRight" // Round 2
-	WaitingForNothing             protocols.WaitingFor = "WaitingForNothing"            // Finished
+	WaitingForSupportedFinalState protocols.WaitingFor = "WaitingForSupportedFinalState" // Round 1
+	WaitingForDefundingOnMyLeft   protocols.WaitingFor = "WaitingForDefundingOnMyLeft"   // Round 2
+	WaitingForDefundingOnMyRight  protocols.WaitingFor = "WaitingForDefundingOnMyRight"  // Round 2
+	WaitingForNothing             protocols.WaitingFor = "WaitingForNothing"             // Finished
 )
 
 const (
