@@ -516,7 +516,7 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 		updated := o.clone()
 		err = validateFinalOutcome(updated.V.FixedPart, updated.initialOutcome(), ss.State().Outcome[0], o.V.Participants[o.MyRole], updated.MinimumPaymentAmount)
 		if err != nil {
-			return o, fmt.Errorf("outcome from Alice failed validation %w", err)
+			return o, fmt.Errorf("outcome failed validation %w", err)
 		}
 		ok := updated.V.AddSignedState(ss)
 		if !ok {
@@ -608,10 +608,10 @@ func validateFinalOutcome(vFixed state.FixedPart, initialOutcome outcome.SingleA
 	// Check the outcome participants are correct
 	alice, bob := vFixed.Participants[0], vFixed.Participants[len(vFixed.Participants)-1]
 	if initialOutcome.Allocations[0].Destination != types.AddressToDestination(alice) {
-		return fmt.Errorf("first allocation is not to Alice but to %s", initialOutcome.Allocations[0].Destination)
+		return fmt.Errorf("0th allocation is not to Alice but to %s", initialOutcome.Allocations[0].Destination)
 	}
 	if initialOutcome.Allocations[1].Destination != types.AddressToDestination(bob) {
-		return fmt.Errorf("first allocation is not to Alice but to %s", initialOutcome.Allocations[0].Destination)
+		return fmt.Errorf("1st allocation is not to Bob but to %s", initialOutcome.Allocations[0].Destination)
 	}
 
 	// Check the amounts are correct
