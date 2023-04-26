@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
-	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -15,11 +14,8 @@ import (
 // jsonObjective replaces the virtualfund Objective's channel pointers
 // with the channel's respective IDs, making jsonObjective suitable for serialization
 type jsonObjective struct {
-	Status         protocols.ObjectiveStatus
-	VFixed         state.FixedPart
-	InitialOutcome outcome.SingleAssetExit
-	FinalOutcome   outcome.SingleAssetExit
-	Signatures     []state.Signature
+	Status protocols.ObjectiveStatus
+	V      types.Destination
 
 	ToMyLeft             types.Destination
 	ToMyRight            types.Destination
@@ -45,10 +41,7 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 
 	jsonVFO := jsonObjective{
 		Status:               o.Status,
-		VFixed:               o.VFixed,
-		Signatures:           o.Signatures,
-		FinalOutcome:         o.FinalOutcome,
-		InitialOutcome:       o.InitialOutcome,
+		V:                    o.VId(),
 		ToMyLeft:             left,
 		ToMyRight:            right,
 		MyRole:               o.MyRole,
@@ -80,10 +73,10 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.Status = jsonVFO.Status
 
 	o.MyRole = jsonVFO.MyRole
-	o.Signatures = jsonVFO.Signatures
-	o.InitialOutcome = jsonVFO.InitialOutcome
-	o.VFixed = jsonVFO.VFixed
-	o.FinalOutcome = jsonVFO.FinalOutcome
+
+	o.V = &channel.Channel{}
+	o.V.Id = jsonVFO.V
+
 	o.MinimumPaymentAmount = jsonVFO.MinimumPaymentAmount
 
 	return nil
