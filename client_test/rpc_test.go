@@ -47,9 +47,9 @@ func TestRpcWithWebsockets(t *testing.T) {
 func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	logSubDir := "test_rpc_client"
 
-	engineLogDestinationA := newLogWriter(logSubDir, "a-eng")
-	engineLogDestinationB := newLogWriter(logSubDir, "b-eng")
-	engineLogDestinationI := newLogWriter(logSubDir, "i-eng")
+	engineLogDestinationA := newLogWriter(logSubDir, "a-eng.log")
+	engineLogDestinationB := newLogWriter(logSubDir, "b-eng.log")
+	engineLogDestinationI := newLogWriter(logSubDir, "i-eng.log")
 
 	chain := chainservice.NewMockChain()
 	chainServiceA := chainservice.NewMockChainService(chain, ta.Alice.Address())
