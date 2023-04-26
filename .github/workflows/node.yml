@@ -2,9 +2,10 @@ name: Node
 
 on:
   push:
-    branches: [main]
+    branches: ["*"]
   pull_request:
-    paths: ["nitro-protocol/**", ".github/workflows/node.yml"]
+    paths:
+      ["nitro-protocol/contracts/**", generate-adjudicator-bindings.sh, "*"]
 
 jobs:
   build:
