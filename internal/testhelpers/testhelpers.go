@@ -74,7 +74,7 @@ func AssertStateSentTo(t *testing.T, ses protocols.SideEffects, expected state.S
 		toAddress := to.Address()
 		if bytes.Equal(msg.To[:], toAddress[:]) {
 			for _, op := range msg.ObjectivePayloads {
-				Equals(t, string(op.PayloadData), string(b))
+				Equals(t, string(b), string(op.PayloadData))
 			}
 		}
 	}
