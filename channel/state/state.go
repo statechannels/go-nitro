@@ -203,8 +203,10 @@ func (s State) Clone() State {
 	clone.ChallengeDuration = cloneFixedPart.ChallengeDuration
 
 	// Variable part
-	clone.AppData = make(types.Bytes, 0, len(s.AppData))
-	copy(clone.AppData, s.AppData)
+	if s.AppData != nil {
+		clone.AppData = make(types.Bytes, 0, len(s.AppData))
+		copy(clone.AppData, s.AppData)
+	}
 	clone.Outcome = s.Outcome.Clone()
 	clone.TurnNum = s.TurnNum
 	clone.IsFinal = s.IsFinal
