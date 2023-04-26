@@ -23,7 +23,7 @@ func TestSimpleIntegrationScenario(t *testing.T) {
 		MessageService: TestMessageService,
 		NumOfChannels:  1,
 		MessageDelay:   0,
-		LogName:        "simple_integration_run.log",
+		LogSubDir:      "simple_integration_run",
 		NumOfHops:      1,
 		NumOfPayments:  1,
 		Participants: []TestParticipant{
@@ -43,7 +43,7 @@ func TestComplexIntegrationScenario(t *testing.T) {
 		MessageService: P2PMessageService,
 		NumOfChannels:  5,
 		MessageDelay:   0,
-		LogName:        "complex_integration_run.log",
+		LogSubDir:      "complex_integration_run",
 		NumOfHops:      2,
 		NumOfPayments:  5,
 		Participants: []TestParticipant{

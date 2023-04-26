@@ -20,9 +20,12 @@ import (
 
 func TestCrashTolerance(t *testing.T) {
 	// Setup logging
-	logFile := "test_crash_tolerance.log"
-	truncateLog(logFile)
-	logDestination := newLogWriter(logFile)
+	logSubDir := "test_crash_tolerance"
+
+	engineLogDestinationA := newLogWriter(logSubDir, "a-eng.log")
+	engineLogDestinationB := newLogWriter(logSubDir, "b-eng.log")
+	chainLogDestinationA := newLogWriter(logSubDir, "a-ch.log")
+	chainLogDestinationB := newLogWriter(logSubDir, "b-ch.log")
 
 	// Setup chain service
 	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(3)
@@ -31,12 +34,12 @@ func TestCrashTolerance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	chainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
+	chainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], chainLogDestinationA)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	chainB, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[2], logDestination)
+	chainB, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[2], chainLogDestinationB)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,9 +53,9 @@ func TestCrashTolerance(t *testing.T) {
 	// Client setup
 	storeA := store.NewDurableStore(ta.Alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
 	messageserviceA := messageservice.NewTestMessageService(ta.Alice.Address(), broker, 0)
-	clientA := client.New(messageserviceA, chainA, storeA, logDestination, &engine.PermissivePolicy{}, nil)
+	clientA := client.New(messageserviceA, chainA, storeA, engineLogDestinationA, &engine.PermissivePolicy{}, nil)
 
-	clientB, _ := setupClient(ta.Bob.PrivateKey, chainB, broker, logDestination, 0)
+	clientB, _ := setupClient(ta.Bob.PrivateKey, chainB, broker, engineLogDestinationB, 0)
 	defer closeClient(t, &clientB)
 	// End Client setup
 
@@ -62,7 +65,7 @@ func TestCrashTolerance(t *testing.T) {
 
 		closeClient(t, &clientA)
 		anotherMessageserviceA := messageservice.NewTestMessageService(ta.Alice.Address(), broker, 0)
-		anotherChainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
+		anotherChainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], chainLogDestinationA)
 		anotherStoreA := store.NewDurableStore(ta.Alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
 		if err != nil {
 			t.Fatal(err)
@@ -70,7 +73,7 @@ func TestCrashTolerance(t *testing.T) {
 		anotherClientA := client.New(
 			anotherMessageserviceA,
 			anotherChainA,
-			anotherStoreA, logDestination, &engine.PermissivePolicy{}, nil)
+			anotherStoreA, engineLogDestinationA, &engine.PermissivePolicy{}, nil)
 		defer closeClient(t, &anotherClientA)
 
 		directlyDefundALedgerChannel(t, anotherClientA, clientB, channelId)

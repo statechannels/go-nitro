@@ -46,22 +46,14 @@ func closeClient(t *testing.T, client *client.Client) {
 	}
 }
 
-func truncateLog(logFile string) {
-	logDestination := newLogWriter(logFile)
-
-	err := logDestination.Truncate(0)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func newLogWriter(logFile string) *os.File {
-	err := os.MkdirAll("../artifacts", os.ModePerm)
+// newLogWriter will create the given subDir under ../artifacts, remove any file of name logFile in that dir, and open a new one, returning a pointer.
+func newLogWriter(logSubDir string, logFile string) *os.File {
+	err := os.MkdirAll(filepath.Join("../artifacts", logSubDir), os.ModePerm)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	filename := filepath.Join("../artifacts", logFile)
+	filename := filepath.Join("../artifacts", logSubDir, logFile)
 	// Clear the file
 	os.Remove(filename)
 	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
@@ -102,7 +94,7 @@ func setupChainService(tc TestCase, tp TestParticipant, si sharedTestInfrastruct
 	case MockChain:
 		return chainservice.NewMockChainService(si.mockChain, tp.Address())
 	case SimulatedChain:
-		logDestination := newLogWriter(tc.LogName)
+		logDestination := newLogWriter(tc.LogSubDir, string(tp.Name)+"-ch.log")
 
 		ethAcountIndex := tp.Port - testactors.START_PORT
 		cs, err := chainservice.NewSimulatedBackendChainService(si.simulatedChain, *si.bindings, si.ethAccounts[ethAcountIndex], logDestination)
@@ -128,10 +120,10 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) st
 }
 
 func setupIntegrationClient(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) (client.Client, messageservice.MessageService) {
-	messageService := setupMessageService(tc, tp, si, newLogWriter(tc.LogName))
+	messageService := setupMessageService(tc, tp, si, newLogWriter(tc.LogSubDir, string(tp.Name)+"-msg.log"))
 	cs := setupChainService(tc, tp, si)
 	store := setupStore(tc, tp, si)
-	c := client.New(messageService, cs, store, newLogWriter(tc.LogName), &engine.PermissivePolicy{}, nil)
+	c := client.New(messageService, cs, store, newLogWriter(tc.LogSubDir, string(tp.Name)+"-eng.log"), &engine.PermissivePolicy{}, nil)
 	return c, messageService
 }
 

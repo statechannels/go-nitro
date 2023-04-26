@@ -36,6 +36,7 @@ func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, erro
 	}
 
 	var serveMux http.ServeMux
+
 	serveMux.HandleFunc("/", wsc.request)
 	serveMux.HandleFunc("/subscribe", wsc.subscribe)
 	wsc.httpServer = &http.Server{
@@ -79,25 +80,34 @@ func (wsc *serverWebSocketTransport) Url() string {
 }
 
 func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	switch r.Method {
+	case "OPTIONS": // OPTIONS is used for a pre-flight CORS check by the browser before POST
+		enableCors(&w)
+		// This header value indicates which request headers can be used when making the actual request.
+		// See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+	case "POST":
+		enableCors(&w)
+		body := http.MaxBytesReader(w, r.Body, maxRequestSize)
+		msg, err := io.ReadAll(body)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
+			return
+		}
+		_, err = w.Write(wsc.requestHandler(msg))
+		if err != nil {
+			panic(err)
+		}
+	default:
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return
-	}
-	body := http.MaxBytesReader(w, r.Body, maxRequestSize)
-	msg, err := io.ReadAll(body)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
-		return
-	}
 
-	_, err = w.Write(wsc.requestHandler(msg))
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Request) {
-	c, err := websocket.Accept(w, r, nil)
+	// Allow all localhost origins to connect via websocket
+	opts := &websocket.AcceptOptions{OriginPatterns: []string{"*localhost*"}}
+	c, err := websocket.Accept(w, r, opts)
 	if err != nil {
 		panic(err)
 	}
@@ -140,4 +150,9 @@ EventLoop:
 	if err != nil {
 		panic(err)
 	}
+}
+
+// enableCors sets the CORS headers on the response allowing all origins
+func enableCors(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 }
