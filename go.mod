@@ -13,10 +13,7 @@ require (
 	nhooyr.io/websocket v1.8.7
 )
 
-require (
-	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/tidwall/buntdb v1.2.10
-)
+require github.com/tidwall/buntdb v1.2.10
 
 require (
 	github.com/DataDog/zstd v1.5.2 // indirect
