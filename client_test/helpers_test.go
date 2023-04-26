@@ -46,15 +46,7 @@ func closeClient(t *testing.T, client *client.Client) {
 	}
 }
 
-func truncateLog(logSubDir string, logFile string) {
-	logDestination := newLogWriter(logSubDir, logFile)
-
-	err := logDestination.Truncate(0)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
+// newLogWriter will create the given subDir under ../artifacts, remove any file of name logFile in that dir, and open a new one, returning a pointer.
 func newLogWriter(logSubDir string, logFile string) *os.File {
 	err := os.MkdirAll(filepath.Join("../artifacts", logSubDir), os.ModePerm)
 	if err != nil {

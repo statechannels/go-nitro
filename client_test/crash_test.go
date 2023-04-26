@@ -22,15 +22,10 @@ func TestCrashTolerance(t *testing.T) {
 	// Setup logging
 	logSubDir := "test_crash_tolerance"
 
-	engineLogDestinationA := newLogWriter(logSubDir, "eng-a")
-	engineLogDestinationB := newLogWriter(logSubDir, "eng-b")
-	chainLogDestinationA := newLogWriter(logSubDir, "ch-a")
-	chainLogDestinationB := newLogWriter(logSubDir, "ch-b")
-
-	truncateLog(logSubDir, "eng-a")
-	truncateLog(logSubDir, "eng-b")
-	truncateLog(logSubDir, "ch-a")
-	truncateLog(logSubDir, "ch-b")
+	engineLogDestinationA := newLogWriter(logSubDir, "a-eng.log")
+	engineLogDestinationB := newLogWriter(logSubDir, "b-eng.log")
+	chainLogDestinationA := newLogWriter(logSubDir, "a-ch.log")
+	chainLogDestinationB := newLogWriter(logSubDir, "b-ch.log")
 
 	// Setup chain service
 	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(3)
