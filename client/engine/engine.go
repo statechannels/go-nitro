@@ -740,9 +740,10 @@ func (e *Engine) checkError(err error) {
 		}
 
 		<-time.After(1000 * time.Millisecond) // We wait for a bit so the previous log line has time to complete
-		// TODO do not panic if in production.
+
+		// TODO instead of a panic, errors should be sent to the manager of the engine via a channel. At the moment,
+		// the engine manager is the nitro client.
 		panic(err)
-		// TODO report errors back to the consuming application
 
 	}
 }
