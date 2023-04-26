@@ -191,8 +191,8 @@ func IsVirtualDefundObjective(id protocols.ObjectiveId) bool {
 }
 
 // signedFinalState returns the final state for the virtual channel
-func (o *Objective) signedFinalState() (state.SignedState, error) {
-	return o.V.SignedStateForTurnNum[FinalTurnNum], nil
+func (o *Objective) finalState() (state.State, error) {
+	return o.V.SignedStateForTurnNum[FinalTurnNum].State(), nil
 }
 
 func (o *Objective) initialOutcome() outcome.SingleAssetExit {
@@ -306,7 +306,7 @@ func (o *Objective) hasFinalStateFromAlice() bool {
 	if err != nil {
 		return false
 	}
-	return ss.State().IsFinal
+	return ss.State().IsFinal && isZero(ss.Signatures()[0])
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed.
@@ -329,16 +329,21 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	// Signing of the final state
 	if !updated.V.FinalSignedByMe() {
-		ss, err := updated.signedFinalState()
-		if err != nil {
-			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not get signed final state: %w", err)
+		var s state.State
+		var err error
+		if updated.isAlice() {
+			s = updated.generateFinalState()
+		} else {
+			s, err = updated.finalState()
+			if err != nil {
+				return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not get signed final state: %w", err)
+			}
 		}
-		sig, err := ss.State().Sign(*secretKey)
+		// Sign and store:
+		ss, err := updated.V.SignAndAddState(s, secretKey)
 		if err != nil {
 			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not sign final state: %w", err)
 		}
-		// Update the signature stored on the objective
-		updated.V.AddStateWithSignature(ss.State(), sig)
 
 		if err != nil {
 			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not get signed final state: %w", err)
