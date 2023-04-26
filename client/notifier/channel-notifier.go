@@ -10,24 +10,34 @@ import (
 
 // ChannelNotifier is used to notify multiple listeners of a channel update.
 type ChannelNotifier struct {
-	listeners *safesync.Map[*listeners]
-	store     store.Store
-	vm        *payments.VoucherManager
+	ledgerListeners  *safesync.Map[*ledgerChannelListeners]
+	paymentListeners *safesync.Map[*paymentChannelListeners]
+	store            store.Store
+	vm               *payments.VoucherManager
 }
 
 // NewChannelNotifier constructs a channel notifier using the provided store.
 func NewChannelNotifier(store store.Store, vm *payments.VoucherManager) *ChannelNotifier {
-	return &ChannelNotifier{listeners: &safesync.Map[*listeners]{}, store: store, vm: vm}
+	return &ChannelNotifier{
+		ledgerListeners:  &safesync.Map[*ledgerChannelListeners]{},
+		paymentListeners: &safesync.Map[*paymentChannelListeners]{},
+		store:            store,
+		vm:               vm,
+	}
 }
 
 // RegisterForLedgerUpdates returns a buffered channel that will receive ledger channel updates when they occur.
-func (cn *ChannelNotifier) RegisterForLedgerUpdates(cId types.Destination) (<-chan query.LedgerChannelInfo, error) {
-	return register[query.LedgerChannelInfo](cn, cId)
+func (cn *ChannelNotifier) RegisterForLedgerUpdates(cId types.Destination) <-chan query.LedgerChannelInfo {
+	li, _ := cn.ledgerListeners.LoadOrStore(cId.String(), newLedgerChannelListeners())
+
+	return li.createListener()
 }
 
 // RegisterForLedgerUpdates returns a buffered channel that will receive ledger channel updates when they occur.
-func (cn *ChannelNotifier) RegisterForPaymentChannelUpdates(cId types.Destination) (<-chan query.PaymentChannelInfo, error) {
-	return register[query.PaymentChannelInfo](cn, cId)
+func (cn *ChannelNotifier) RegisterForPaymentChannelUpdates(cId types.Destination) <-chan query.PaymentChannelInfo {
+	li, _ := cn.paymentListeners.LoadOrStore(cId.String(), newPaymentChannelListeners())
+
+	return li.createListener()
 }
 
 // NotifyLedgerUpdated notifies all listeners of a ledger channel update.
@@ -40,20 +50,18 @@ func (cn *ChannelNotifier) NotifyLedgerUpdated(lId types.Destination) error {
 		return err
 	}
 	// Fetch the listeners for the ledger channel
-	li, ok := cn.listeners.Load(lId.String())
+	li, ok := cn.ledgerListeners.Load(lId.String())
 	// If no one has registered for this channel, we don't need to notify anyone.
 	if !ok {
 		return nil
 	}
 
 	// We only want to notify listeners if the ledger channel has changed from the perspective of the client.
-	if ledgerUpdated := li.prevLedger == nil || li.prevLedger.Equal(latest); ledgerUpdated {
+	if ledgerUpdated := li.prev == nil || li.prev.Equal(latest); ledgerUpdated {
 
-		err = li.NotifyLedger(latest)
-		if err != nil {
-			return err
-		}
-		cn.listeners.Store(lId.String(), li)
+		li.Notify(latest)
+
+		cn.ledgerListeners.Store(lId.String(), li)
 	}
 	return nil
 }
@@ -68,33 +76,18 @@ func (cn *ChannelNotifier) NotifyPaymentUpdated(pId types.Destination) error {
 		return err
 	}
 	// Fetch the listeners for the ledger channel
-	li, ok := cn.listeners.Load(pId.String())
+	li, ok := cn.paymentListeners.Load(pId.String())
 	// If no one has registered for this channel, we don't need to notify anyone.
 	if !ok {
 		return nil
 	}
 
 	// We only want to notify listeners if the payment channel has changed from the perspective of the client.
-	if channelUpdated := li.prevPayment == nil || li.prevPayment.Equal(latest); channelUpdated {
+	if channelUpdated := li.prev == nil || li.prev.Equal(latest); channelUpdated {
 
-		err = li.NotifyPayment(latest)
-		if err != nil {
-			return err
-		}
-		cn.listeners.Store(pId.String(), li)
+		li.Notify(latest)
+
+		cn.paymentListeners.Store(pId.String(), li)
 	}
 	return nil
-}
-
-// Register returns a channel that will receive channel updates when they occur.
-func register[T query.ChannelInfo](cn *ChannelNotifier, cId types.Destination) (<-chan T, error) {
-	li, _ := cn.listeners.LoadOrStore(cId.String(), newListener(cId))
-
-	lChan, err := addListener[T](li)
-	if err != nil {
-		return nil, err
-	}
-
-	cn.listeners.Store(cId.String(), li)
-	return lChan, nil
 }

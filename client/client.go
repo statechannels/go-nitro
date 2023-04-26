@@ -202,22 +202,12 @@ func (c *Client) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{}
 
 // LedgerUpdatedChan returns a chan that receives a ledger channel info whenever the ledger with given id is updated
 func (c *Client) LedgerUpdatedChan(ledgerId types.Destination) <-chan query.LedgerChannelInfo {
-	l, err := c.channelNotifier.RegisterForLedgerUpdates(ledgerId)
-	// TODO: Should we just return an error?
-	if err != nil {
-		panic(err)
-	}
-	return l
+	return c.channelNotifier.RegisterForLedgerUpdates(ledgerId)
 }
 
 // PaymentChannelUpdatedChan returns a chan that receives a payment channel info whenever the payment channel with given id is updated
 func (c *Client) PaymentChannelUpdatedChan(ledgerId types.Destination) <-chan query.PaymentChannelInfo {
-	p, err := c.channelNotifier.RegisterForPaymentChannelUpdates(ledgerId)
-	// TODO: Should we just return an error?
-	if err != nil {
-		panic(err)
-	}
-	return p
+	return c.channelNotifier.RegisterForPaymentChannelUpdates(ledgerId)
 }
 
 // FailedObjectives returns a chan that receives an objective id whenever that objective has failed
