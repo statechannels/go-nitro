@@ -6,6 +6,9 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type ChannelInfo interface {
+	LedgerChannelInfo | PaymentChannelInfo
+}
 type ChannelStatus string
 
 // TODO: Think through statuses
@@ -58,4 +61,16 @@ func (lcb LedgerChannelBalance) Equal(other LedgerChannelBalance) bool {
 
 func (li LedgerChannelInfo) Equal(other LedgerChannelInfo) bool {
 	return li.ID == other.ID && li.Status == other.Status && li.Balance.Equal(other.Balance)
+}
+
+func (pci PaymentChannelInfo) Equal(other PaymentChannelInfo) bool {
+	return pci.ID == other.ID && pci.Status == other.Status && pci.Balance.Equal(other.Balance)
+}
+
+func (pcb PaymentChannelBalance) Equal(other PaymentChannelBalance) bool {
+	return pcb.AssetAddress == other.AssetAddress &&
+		pcb.Payee == other.Payee &&
+		pcb.Payer == other.Payer &&
+		pcb.PaidSoFar.Cmp(other.PaidSoFar) == 0 &&
+		pcb.RemainingFunds.Cmp(other.RemainingFunds) == 0
 }

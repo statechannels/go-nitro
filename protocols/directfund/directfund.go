@@ -298,11 +298,11 @@ func (o *Objective) otherParticipants() []types.Address {
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
-func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.ChannelsUpdated, protocols.WaitingFor, error) {
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, []protocols.UpdatedChannelInfo, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
-	updatedChannels := protocols.ChannelsUpdated{}
+	updatedChannels := []protocols.UpdatedChannelInfo{}
 	// Input validation
 	if updated.Status != protocols.Approved {
 		return &updated, protocols.SideEffects{}, updatedChannels, WaitingForNothing, protocols.ErrNotApproved
@@ -316,7 +316,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		}
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, updated.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-		updatedChannels = append(updatedChannels, o.C.ChannelId())
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.C.ChannelId(), Type: "ledger"})
 	}
 
 	if !updated.C.PreFundComplete() {
@@ -336,7 +336,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		deposit := protocols.NewDepositTransaction(updated.C.Id, amountToDeposit)
 		updated.transactionSubmitted = true
 		sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, deposit)
-		updatedChannels = append(updatedChannels, o.C.ChannelId())
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.C.ChannelId(), Type: "ledger"})
 	}
 
 	if !fundingComplete {
@@ -352,7 +352,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		}
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, updated.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-		updatedChannels = append(updatedChannels, o.C.ChannelId())
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.C.ChannelId(), Type: "ledger"})
 	}
 
 	if !updated.C.PostFundComplete() {

@@ -235,11 +235,11 @@ func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Ob
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
-func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.ChannelsUpdated, protocols.WaitingFor, error) {
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, []protocols.UpdatedChannelInfo, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
-	updatedChannels := protocols.ChannelsUpdated{}
+	updatedChannels := []protocols.UpdatedChannelInfo{}
 	if updated.Status != protocols.Approved {
 		return &updated, sideEffects, updatedChannels, WaitingForNothing, protocols.ErrNotApproved
 	}
@@ -257,7 +257,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 			stateToSign.IsFinal = true
 		}
 		ss, err := updated.C.SignAndAddState(stateToSign, secretKey)
-		updatedChannels = append(updatedChannels, ss.ChannelId())
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: ss.ChannelId(), Type: "ledger"})
 		if err != nil {
 			return &updated, protocols.SideEffects{}, updatedChannels, WaitingForFinalization, fmt.Errorf("could not sign final state %w", err)
 		}
@@ -279,7 +279,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if updated.C.MyIndex == 0 && !updated.transactionSubmitted {
 			withdrawAll := protocols.NewWithdrawAllTransaction(updated.C.Id, latestSignedState)
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
-			updatedChannels = append(updatedChannels, updated.C.Id)
+			updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: updated.C.Id, Type: "ledger"})
 			updated.transactionSubmitted = true
 		}
 		// Every participant waits for all channel funds to be distributed, even if the participant has no funds in the channel

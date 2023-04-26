@@ -68,10 +68,6 @@ type Storable interface {
 	json.Unmarshaler
 }
 
-// ChannelsUpdated is a list of channel ids for channels that have been updated.
-// This is used to notify the engine of any channel notifications that need to be sent.
-type ChannelsUpdated = []types.Destination
-
 // Objective is the interface for off-chain protocols.
 // The lifecycle of an objective is as follows:
 //   - It is initialized by a single client (passing in various parameters). It is implicitly approved by that client. It is communicated to the other clients.
@@ -82,10 +78,10 @@ type ChannelsUpdated = []types.Destination
 type Objective interface {
 	Id() ObjectiveId
 
-	Approve() Objective                                                                   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Reject() (Objective, SideEffects)                                                     // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Update(payload ObjectivePayload) (Objective, error)                                   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Crank(secretKey *[]byte) (Objective, SideEffects, ChannelsUpdated, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
+	Approve() Objective                                                                        // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Reject() (Objective, SideEffects)                                                          // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Update(payload ObjectivePayload) (Objective, error)                                        // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Crank(secretKey *[]byte) (Objective, SideEffects, []UpdatedChannelInfo, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
 
 	// Related returns a slice of related objects that need to be stored along with the objective
 	Related() []Storable
@@ -122,4 +118,16 @@ type ObjectiveRequest interface {
 	Id(types.Address, *big.Int) ObjectiveId
 	WaitForObjectiveToStart()
 	SignalObjectiveStarted()
+}
+
+type ChannelType string
+
+const (
+	LedgerChannel  ChannelType = "ledger"
+	VirtualChannel ChannelType = "virtual"
+)
+
+type UpdatedChannelInfo struct {
+	ChannelId types.Destination
+	Type      ChannelType
 }

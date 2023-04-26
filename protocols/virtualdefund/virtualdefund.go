@@ -312,10 +312,10 @@ func (o *Objective) hasFinalStateFromAlice() bool {
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed.
-func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.ChannelsUpdated, protocols.WaitingFor, error) {
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, []protocols.UpdatedChannelInfo, protocols.WaitingFor, error) {
 	updated := o.clone()
 	sideEffects := protocols.SideEffects{}
-	updatedChannels := protocols.ChannelsUpdated{}
+	updatedChannels := []protocols.UpdatedChannelInfo{}
 
 	// Input validation
 	if updated.Status != protocols.Approved {
@@ -327,7 +327,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		alice := o.V.Participants[0]
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.VId(), RequestFinalStatePayload, alice)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-		updatedChannels = append(updatedChannels, updated.VId())
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: updated.VId(), Type: "payment"})
 		return &updated, sideEffects, updatedChannels, WaitingForFinalStateFromAlice, nil
 	}
 
@@ -350,7 +350,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		}
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-		updatedChannels = append(updatedChannels, updated.VId())
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: updated.VId(), Type: "payment"})
 	}
 
 	// Check if all participants have signed the final state
@@ -407,9 +407,9 @@ func (o *Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) c
 }
 
 // updateLedgerToRemoveGuarantee updates the ledger channel to remove the guarantee that funds V.
-func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.ConsensusChannel, sk *[]byte) (protocols.SideEffects, protocols.ChannelsUpdated, error) {
+func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.ConsensusChannel, sk *[]byte) (protocols.SideEffects, []protocols.UpdatedChannelInfo, error) {
 	var sideEffects protocols.SideEffects
-	var updatedChannels protocols.ChannelsUpdated
+	var updatedChannels []protocols.UpdatedChannelInfo
 	proposed := ledger.HasRemovalBeenProposed(o.VId())
 
 	if ledger.IsLeader() {
@@ -426,7 +426,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 		// Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
 		// to create a valid message with ordered proposals:
 		message := protocols.CreateSignedProposalMessage(recipient, ledger.ProposalQueue()...)
-		updatedChannels = append(updatedChannels, ledger.Id)
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: ledger.Id, Type: "ledger"})
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
 
 	} else {
@@ -446,7 +446,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 			recipient := ledger.Leader()
 			message := protocols.CreateSignedProposalMessage(recipient, sp)
 			sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, message)
-			updatedChannels = append(updatedChannels, ledger.Id)
+			updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: ledger.Id, Type: "ledger"})
 		}
 	}
 

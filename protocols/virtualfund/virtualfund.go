@@ -390,11 +390,11 @@ func (o *Objective) Update(raw protocols.ObjectivePayload) (protocols.Objective,
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all.
-func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.ChannelsUpdated, protocols.WaitingFor, error) {
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, []protocols.UpdatedChannelInfo, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
-	updatedChannels := protocols.ChannelsUpdated{}
+	updatedChannels := []protocols.UpdatedChannelInfo{}
 	// Input validation
 	if updated.Status != protocols.Approved {
 		return &updated, sideEffects, updatedChannels, WaitingForNothing, protocols.ErrNotApproved
@@ -407,7 +407,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if err != nil {
 			return o, protocols.SideEffects{}, updatedChannels, WaitingForNothing, err
 		}
-		updatedChannels = append(updatedChannels, ss.ChannelId())
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: ss.ChannelId(), Type: "payment"})
 		messages := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
@@ -447,7 +447,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if err != nil {
 			return o, protocols.SideEffects{}, updatedChannels, WaitingForNothing, err
 		}
-		updatedChannels = append(updatedChannels, updated.V.Id)
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: updated.V.Id, Type: "payment"})
 		messages := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
@@ -684,11 +684,11 @@ func (o *Objective) acceptLedgerUpdate(c Connection, sk *[]byte) (protocols.Side
 // updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
 // If the user is the proposer a new ledger state will be created and signed.
 // If the user is the follower then they will sign a ledger state proposal if it satisfies their expected guarantees.
-func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[]byte) (protocols.SideEffects, protocols.ChannelsUpdated, error) {
+func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[]byte) (protocols.SideEffects, []protocols.UpdatedChannelInfo, error) {
 	ledger := ledgerConnection.Channel
 
 	var sideEffects protocols.SideEffects
-	var channelsUpdated protocols.ChannelsUpdated
+	var channelsUpdated []protocols.UpdatedChannelInfo
 	g := ledgerConnection.getExpectedGuarantee()
 	proposed, err := ledger.IsProposed(g)
 	if err != nil {
@@ -703,7 +703,7 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 		if err != nil {
 			return protocols.SideEffects{}, channelsUpdated, fmt.Errorf("error proposing ledger update: %w", err)
 		}
-		channelsUpdated = append(channelsUpdated, ledger.Id)
+		channelsUpdated = append(channelsUpdated, protocols.UpdatedChannelInfo{ChannelId: ledger.Id, Type: "ledger"})
 		sideEffects = se
 	} else {
 		if err != nil {
@@ -717,7 +717,7 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 			if err != nil {
 				return protocols.SideEffects{}, channelsUpdated, fmt.Errorf("error proposing ledger update: %w", err)
 			}
-			channelsUpdated = append(channelsUpdated, ledger.Id)
+			channelsUpdated = append(channelsUpdated, protocols.UpdatedChannelInfo{ChannelId: ledger.Id, Type: "ledger"})
 			sideEffects = se
 		}
 	}

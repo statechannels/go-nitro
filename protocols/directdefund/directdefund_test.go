@@ -141,7 +141,7 @@ func TestCrankAlice(t *testing.T) {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForFinalization, wf)
 	}
 
-	if uc[0] != o.C.Id {
+	if uc[0].ChannelId != o.C.Id {
 		t.Fatalf(`Updated Channel: expected %v, got %v`, o.C.Id, uc[0])
 	}
 
@@ -180,7 +180,7 @@ func TestCrankAlice(t *testing.T) {
 	if wf != WaitingForWithdraw {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForWithdraw, wf)
 	}
-	if uc[0] != o.C.Id {
+	if uc[0].ChannelId != o.C.Id {
 		t.Fatalf(`Updated Channel: expected %v, got %v`, o.C.Id, uc[0])
 	}
 
@@ -244,7 +244,7 @@ func TestCrankBob(t *testing.T) {
 	expectedSE := protocols.SideEffects{
 		MessagesToSend: protocols.CreateObjectivePayloadMessage(updated.Id(), finalStateSignedByBob, SignedStatePayload, o.otherParticipants()...),
 	}
-	if uc[0] != o.C.Id {
+	if uc[0].ChannelId != o.C.Id {
 		t.Fatalf(`Updated Channel: expected %v, got %v`, o.C.Id, uc[0])
 	}
 

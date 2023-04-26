@@ -131,6 +131,7 @@ func (vm *VoucherManager) Paid(chanId types.Destination) (*big.Int, error) {
 	if !ok {
 		return &big.Int{}, fmt.Errorf("channel not registered")
 	}
+	fmt.Printf("Voucher %+v\n", v)
 	return v.LargestVoucher.Amount, nil
 }
 

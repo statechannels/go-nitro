@@ -321,3 +321,8 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 	}
 	return ss, nil
 }
+
+func (c *Channel) IsVirtualPaymentChannel() bool {
+	// TODO: Is this check sufficient?
+	return len(c.Participants) != 2
+}

@@ -90,7 +90,7 @@ type EngineEvent struct {
 	ReceivedVouchers []payments.Voucher
 
 	// UpdatedChannels is a collection of channel ids of channels that have been updated
-	UpdatedChannels []types.Destination
+	UpdatedChannels []protocols.UpdatedChannelInfo
 }
 
 type CompletedObjectiveEvent struct {

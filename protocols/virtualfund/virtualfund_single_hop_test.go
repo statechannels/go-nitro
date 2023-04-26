@@ -239,7 +239,7 @@ func TestCrankAsAlice(t *testing.T) {
 	oObj, effects, updatedChannels, waitingFor, err := o.Crank(&my.PrivateKey)
 
 	o = oObj.(*Objective)
-	Equals(t, updatedChannels[0], o.V.Id)
+	Equals(t, updatedChannels[0].ChannelId, o.V.Id)
 	expectedSignedState := state.NewSignedState(o.V.PreFundState())
 	mySig, _ := o.V.PreFundState().Sign(my.PrivateKey)
 	_ = expectedSignedState.AddSignature(mySig)
@@ -263,7 +263,7 @@ func TestCrankAsAlice(t *testing.T) {
 	// TODO: Check that ledger channel is updated as expected
 	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-	Equals(t, updatedChannels[0], o.ToMyRight.Channel.Id)
+	Equals(t, updatedChannels[0].ChannelId, o.ToMyRight.Channel.Id)
 	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[0], TurnNum: 2}
 	Ok(t, err)
@@ -289,7 +289,7 @@ func TestCrankAsAlice(t *testing.T) {
 
 	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-	Equals(t, updatedChannels[0], o.V.Id)
+	Equals(t, updatedChannels[0].ChannelId, o.V.Id)
 	postFS := state.NewSignedState(o.V.PostFundState())
 	mySig, _ = postFS.State().Sign(my.PrivateKey)
 	_ = postFS.AddSignature(mySig)
@@ -332,7 +332,7 @@ func TestCrankAsBob(t *testing.T) {
 	Equals(t, waitingFor, WaitingForCompletePrefund)
 	assertStateSentTo(t, effects, expectedSignedState, alice)
 	assertStateSentTo(t, effects, expectedSignedState, p1)
-	Equals(t, updatedChannels[0], o.V.Id)
+	Equals(t, updatedChannels[0].ChannelId, o.V.Id)
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
 
@@ -363,8 +363,8 @@ func TestCrankAsBob(t *testing.T) {
 	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
-	Equals(t, updatedChannels[0], o.ToMyLeft.Channel.Id)
-	Equals(t, updatedChannels[1], o.V.Id)
+	Equals(t, updatedChannels[0].ChannelId, o.ToMyLeft.Channel.Id)
+	Equals(t, updatedChannels[1].ChannelId, o.V.Id)
 
 	postFS := state.NewSignedState(o.V.PostFundState())
 	mySig, _ = postFS.State().Sign(my.PrivateKey)
@@ -402,7 +402,7 @@ func TestCrankAsP1(t *testing.T) {
 	// Initial Crank
 	oObj, effects, updatedChannels, waitingFor, err := o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-	Equals(t, updatedChannels[0], o.V.Id)
+	Equals(t, updatedChannels[0].ChannelId, o.V.Id)
 	expectedSignedState := state.NewSignedState(o.V.PreFundState())
 	mySig, _ := o.V.PreFundState().Sign(my.PrivateKey)
 	_ = expectedSignedState.AddSignature(mySig)
@@ -418,13 +418,13 @@ func TestCrankAsP1(t *testing.T) {
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
-	Equals(t, updatedChannels[0], o.V.Id)
+	Equals(t, updatedChannels[0].ChannelId, o.V.Id)
 	assertSupportedPrefund(o, t)
 
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-	Equals(t, updatedChannels[0], o.ToMyLeft.Channel.Id)
+	Equals(t, updatedChannels[0].ChannelId, o.ToMyLeft.Channel.Id)
 	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[0], TurnNum: 2}
 	Ok(t, err)

@@ -111,7 +111,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		testhelpers.Ok(t, err)
 
 		updatedObj, se, uc, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
-		testhelpers.Equals(t, uc[0], vId)
+		testhelpers.Equals(t, uc[0].ChannelId, vId)
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
 
@@ -127,7 +127,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 			err = ss.AddSignature(aliceSig)
 			testhelpers.Ok(t, err)
 			updated.V.AddSignedState(ss)
-			updatedObj, se,uc,waitingFor, err = updated.Crank(&my.PrivateKey)
+			updatedObj, se, _, waitingFor, err = updated.Crank(&my.PrivateKey)
 			testhelpers.Ok(t, err)
 			updated = updatedObj.(*Objective)
 		}
@@ -154,10 +154,10 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		testhelpers.Ok(t, err)
 		switch my.Role {
 		case 0:
-			testhelpers.Equals(t, uc[0], updated.ToMyRight.Id)
+			testhelpers.Equals(t, uc[0].ChannelId, updated.ToMyRight.Id)
 		case 1:
 
-			testhelpers.Equals(t, uc[0], updated.ToMyRight.Id)
+			testhelpers.Equals(t, uc[0].ChannelId, updated.ToMyRight.Id)
 		case 2:
 
 		}
@@ -190,9 +190,9 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		case 0:
 			testhelpers.Equals(t, len(uc), 0)
 		case 1:
-			testhelpers.Equals(t, uc[0], updated.ToMyLeft.Id)
+			testhelpers.Equals(t, uc[0].ChannelId, updated.ToMyLeft.Id)
 		case 2:
-			testhelpers.Equals(t, uc[0], updated.ToMyLeft.Id)
+			testhelpers.Equals(t, uc[0].ChannelId, updated.ToMyLeft.Id)
 		}
 	}
 }

@@ -233,7 +233,7 @@ func TestCrank(t *testing.T) {
 	if waitingFor != WaitingForCompletePrefund {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
 	}
-	if updatedChannels[0] != o.C.Id {
+	if updatedChannels[0].ChannelId != o.C.Id {
 		t.Fatalf(`Updated Channel: expected %v, got %v`, o.C.Id, updatedChannels[0])
 	}
 
@@ -267,7 +267,7 @@ func TestCrank(t *testing.T) {
 	if waitingFor != WaitingForCompleteFunding {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
 	}
-	if updatedChannels[0] != o.C.Id {
+	if updatedChannels[0].ChannelId != o.C.Id {
 		t.Fatalf(`Updated Channel: expected %v, got %v`, o.C.Id, updatedChannels[0])
 	}
 
@@ -288,7 +288,7 @@ func TestCrank(t *testing.T) {
 	if diff := compareSideEffect(expectedPostFundSideEffects, sideEffects); diff != "" {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
-	if updatedChannels[0] != o.C.Id {
+	if updatedChannels[0].ChannelId != o.C.Id {
 		t.Fatalf(`Updated Channel: expected %v, got %v`, o.C.Id, updatedChannels[0])
 	}
 	// Manually progress the extended state by collecting postfund signatures

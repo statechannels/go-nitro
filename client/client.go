@@ -30,6 +30,7 @@ type Client struct {
 	Address                   *types.Address
 	channelNotifier           *notifier.ChannelNotifier
 	ledgerUpdatesForRPC       chan query.LedgerChannelInfo
+	paymentUpdatesForRPC      chan query.PaymentChannelInfo
 	completedObjectivesForRPC chan protocols.ObjectiveId // This is only used by the RPC server
 	completedObjectives       *safesync.Map[chan struct{}]
 	failedObjectives          chan protocols.ObjectiveId
@@ -66,7 +67,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	// Using a larger buffer since payments can be sent frequently.
 	c.receivedVouchers = make(chan payments.Voucher, 1000)
 
-	c.channelNotifier = notifier.NewChannelNotifier(store)
+	c.channelNotifier = notifier.NewChannelNotifier(store, c.vm)
 	// Start the engine in a go routine
 	go c.engine.Run()
 
@@ -101,23 +102,42 @@ func (c *Client) handleEngineEvents() {
 			c.receivedVouchers <- payment
 		}
 
-		for _, ledgerId := range update.UpdatedChannels {
+		for _, updated := range update.UpdatedChannels {
+			switch updated.Type {
+			case "ledger":
+				ledger, err := query.GetLedgerChannelInfo(updated.ChannelId, c.store)
+				// TODO: What's the best way of handling this error?
+				if err != nil {
+					panic(err)
+				}
 
-			ledger, err := query.GetLedgerChannelInfo(ledgerId, c.store)
-			// TODO: What's the best way of handling this error?
-			if err != nil {
-				panic(err)
-			}
+				err = c.channelNotifier.NotifyLedgerUpdated(updated.ChannelId)
+				// TODO: What's the best way of handling this error?
+				if err != nil {
+					panic(err)
+				}
+				// use a nonblocking send to the RPC Client in case no one is listening
+				select {
+				case c.ledgerUpdatesForRPC <- ledger:
+				default:
+				}
+			case "payment":
+				paymentC, err := query.GetPaymentChannelInfo(updated.ChannelId, c.store, c.vm)
+				// TODO: What's the best way of handling this error?
+				if err != nil {
+					panic(err)
+				}
 
-			err = c.channelNotifier.NotifyLedgerUpdated(ledgerId)
-			// TODO: What's the best way of handling this error?
-			if err != nil {
-				panic(err)
-			}
-			// use a nonblocking send to the RPC Client in case no one is listening
-			select {
-			case c.ledgerUpdatesForRPC <- ledger:
-			default:
+				err = c.channelNotifier.NotifyPaymentUpdated(updated.ChannelId)
+				// TODO: What's the best way of handling this error?
+				if err != nil {
+					panic(err)
+				}
+				// use a nonblocking send to the RPC Client in case no one is listening
+				select {
+				case c.paymentUpdatesForRPC <- paymentC:
+				default:
+				}
 			}
 		}
 	}
@@ -162,6 +182,10 @@ func (c *Client) LedgerUpdates() <-chan query.LedgerChannelInfo {
 	return c.ledgerUpdatesForRPC
 }
 
+func (c *Client) PaymentUpdates() <-chan query.PaymentChannelInfo {
+	return c.paymentUpdatesForRPC
+}
+
 // LedgerUpdatedChan returns a chan that receives an empty struct when the objective with given id is completed
 func (c *Client) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
 	d, _ := c.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
@@ -169,7 +193,20 @@ func (c *Client) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{}
 }
 
 func (c *Client) LedgerUpdatedChan(ledgerId types.Destination) <-chan query.LedgerChannelInfo {
-	return c.channelNotifier.RegisterForLedgerUpdates(ledgerId)
+	l, err := c.channelNotifier.RegisterForLedgerUpdates(ledgerId)
+	// TODO: Should we just return an error?
+	if err != nil {
+		panic(err)
+	}
+	return l
+}
+
+func (c *Client) PaymentChannelUpdatedChan(ledgerId types.Destination) <-chan query.PaymentChannelInfo {
+	p, err := c.channelNotifier.RegisterForPaymentChannelUpdates(ledgerId)
+	if err != nil {
+		panic(err)
+	}
+	return p
 }
 
 // FailedObjectives returns a chan that receives an objective id whenever that objective has failed
