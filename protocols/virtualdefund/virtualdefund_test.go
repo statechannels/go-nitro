@@ -130,7 +130,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		}
 
 		if my.Role == alice.Role {
-			testhelpers.Equals(t, WaitingForSignedFinal, waitingFor)
+			testhelpers.Equals(t, WaitingForSupportedFinalState, waitingFor)
 		} else {
 			testhelpers.Equals(t, WaitingForFinalStateFromAlice, waitingFor)
 		}
