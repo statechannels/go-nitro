@@ -200,6 +200,9 @@ func (o *Objective) initialOutcome() outcome.SingleAssetExit {
 }
 
 func (o *Objective) generateFinalOutcome() outcome.SingleAssetExit {
+	if o.MyRole != 0 {
+		panic("Only Alice should call generateFinalOutcome")
+	}
 	// Since Alice is responsible for issuing vouchers she always has the largest payment amount
 	// This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent
 	finalOutcome := o.initialOutcome().Clone()
@@ -397,8 +400,7 @@ func (o *Objective) isBob() bool {
 
 // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
 func (o *Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) consensus_channel.Proposal {
-	left := o.generateFinalOutcome().Allocations[0].Amount
-
+	left := o.V.SignedStateForTurnNum[FinalTurnNum].State().Outcome[0].Allocations[0].Amount
 	return consensus_channel.NewRemoveProposal(ledger.Id, o.VId(), left)
 }
 
