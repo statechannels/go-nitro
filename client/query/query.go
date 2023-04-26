@@ -9,7 +9,6 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -86,38 +85,9 @@ func isVirtualFundObjective(id types.Destination, store store.Store) (*virtualfu
 	return o.(*virtualfund.Objective), true
 }
 
-func isVirtualDefundObjective(id types.Destination, store store.Store) (*virtualdefund.Objective, bool) {
-	// This is slightly awkward but if the virtual defunding objective is complete it won't come back if we query by channel id
-	// We manually construct the objective id and query by that
-	virtualDefundId := protocols.ObjectiveId(virtualdefund.ObjectivePrefix + id.String())
-	o, err := store.GetObjectiveById(virtualDefundId)
-	if err != nil {
-		return nil, false
-	}
-
-	return o.(*virtualdefund.Objective), true
-}
-
 // GetPaymentChannelInfo returns the PaymentChannelInfo for the given channel
 // It does this by querying the provided store and voucher manager
 func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager) (PaymentChannelInfo, error) {
-	defund, isVirtualDefund := isVirtualDefundObjective(id, store)
-
-	// Since virtual defunding stores all state updates on the objective
-	// instead of the store we need to manually check the objective
-	if isVirtualDefund {
-		status := Closing
-
-		if defund.Status == protocols.Completed {
-			status = Complete
-		}
-
-		return PaymentChannelInfo{
-			ID:      id,
-			Status:  status,
-			Balance: getPaymentChannelBalance(defund.VFixed.Participants, []outcome.SingleAssetExit{defund.FinalOutcome}),
-		}, nil
-	}
 	// Otherwise we can just check the store
 	c, channelFound := store.GetChannelById(id)
 
