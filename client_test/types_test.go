@@ -54,7 +54,7 @@ type TestCase struct {
 	NumOfChannels  uint
 	NumOfPayments  uint
 	MessageDelay   time.Duration
-	LogName        string
+	LogSubDir      string
 	NumOfHops      uint
 	Participants   []TestParticipant
 }

@@ -45,18 +45,25 @@ func TestRpcWithWebsockets(t *testing.T) {
 }
 
 func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
-	logFile := "test_rpc_client.log"
-	truncateLog(logFile)
-	logDestination := newLogWriter(logFile)
+	logSubDir := "test_rpc_client"
+
+	engineLogDestinationA := newLogWriter(logSubDir, "eng-a")
+	engineLogDestinationB := newLogWriter(logSubDir, "eng-b")
+	engineLogDestinationI := newLogWriter(logSubDir, "eng-i")
+
+	truncateLog(logSubDir, "eng-a")
+	truncateLog(logSubDir, "eng-b")
+	truncateLog(logSubDir, "ch-a")
+	truncateLog(logSubDir, "ch-b")
 
 	chain := chainservice.NewMockChain()
 	chainServiceA := chainservice.NewMockChainService(chain, ta.Alice.Address())
 	chainServiceB := chainservice.NewMockChainService(chain, ta.Bob.Address())
 	chainServiceI := chainservice.NewMockChainService(chain, ta.Irene.Address())
 
-	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3005, 4005, chainServiceA, logDestination, connectionType)
-	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3006, 4006, chainServiceB, logDestination, connectionType)
-	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3007, 4007, chainServiceI, logDestination, connectionType)
+	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3005, 4005, chainServiceA, engineLogDestinationA, connectionType)
+	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3006, 4006, chainServiceB, engineLogDestinationB, connectionType)
+	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3007, 4007, chainServiceI, engineLogDestinationI, connectionType)
 	waitForPeerInfoExchange(2, msgA, msgB, msgI)
 	defer cleanupFnA()
 	defer cleanupFnB()
