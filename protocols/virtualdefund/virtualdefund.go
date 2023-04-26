@@ -302,11 +302,8 @@ func (o *Objective) otherParticipants() []types.Address {
 }
 
 func (o *Objective) hasFinalStateFromAlice() bool {
-	ss, err := o.V.LatestSignedState()
-	if err != nil {
-		return false
-	}
-	return ss.State().IsFinal && isZero(ss.Signatures()[0])
+	ss, ok := o.V.SignedStateForTurnNum[FinalTurnNum]
+	return ok && ss.State().IsFinal && !isZero(ss.Signatures()[0])
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed.
