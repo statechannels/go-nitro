@@ -210,7 +210,7 @@ func TestConstructObjectiveFromState(t *testing.T) {
 		ToMyRight:            right,
 		MinimumPaymentAmount: big.NewInt(int64(data.paid)),
 	}
-	if diff := cmp.Diff(want, got, cmp.AllowUnexported(big.Int{}, consensus_channel.ConsensusChannel{}, consensus_channel.LedgerOutcome{}, consensus_channel.Guarantee{})); diff != "" {
+	if diff := cmp.Diff(want, got, cmp.AllowUnexported(channel.Channel{}, state.SignedState{}, state.State{}, big.Int{}, consensus_channel.ConsensusChannel{}, consensus_channel.LedgerOutcome{}, consensus_channel.Guarantee{})); diff != "" {
 		t.Errorf("objective mismatch (-want +got):\n%s", diff)
 	}
 }
