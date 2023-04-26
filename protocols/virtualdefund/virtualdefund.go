@@ -18,7 +18,7 @@ import (
 
 const (
 	WaitingForFinalStateFromAlice protocols.WaitingFor = "WaitingForFinalStateFromAlice"
-	WaitingForSignedFinal         protocols.WaitingFor = "WaitingForSignedFinal"        // Round 1
+	WaitingForSupportedFinalState protocols.WaitingFor = "WaitingForSignedFinal"        // Round 1
 	WaitingForDefundingOnMyLeft   protocols.WaitingFor = "WaitingForDefundingOnMyLeft"  // Round 2
 	WaitingForDefundingOnMyRight  protocols.WaitingFor = "WaitingForDefundingOnMyRight" // Round 2
 	WaitingForNothing             protocols.WaitingFor = "WaitingForNothing"            // Finished
@@ -354,7 +354,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	// Check if all participants have signed the final state
 	if !updated.V.FinalCompleted() {
-		return &updated, sideEffects, WaitingForSignedFinal, nil
+		return &updated, sideEffects, WaitingForSupportedFinalState, nil
 	}
 
 	if !updated.isAlice() && !updated.leftHasDefunded() {
