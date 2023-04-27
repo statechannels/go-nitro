@@ -190,9 +190,9 @@ func IsVirtualDefundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
 
-// signedFinalState returns the final state for the virtual channel
-func (o *Objective) finalState() (state.State, error) {
-	return o.V.SignedStateForTurnNum[FinalTurnNum].State(), nil
+// finalState returns the final state for the virtual channel
+func (o *Objective) finalState() state.State {
+	return o.V.SignedStateForTurnNum[FinalTurnNum].State()
 }
 
 func (o *Objective) initialOutcome() outcome.SingleAssetExit {
@@ -332,14 +332,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	// Signing of the final state
 	if !updated.V.FinalSignedByMe() {
 		var s state.State
-		var err error
 		if updated.isAlice() {
 			s = updated.generateFinalState()
 		} else {
-			s, err = updated.finalState()
-			if err != nil {
-				return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not get signed final state: %w", err)
-			}
+			s = updated.finalState()
 		}
 		// Sign and store:
 		ss, err := updated.V.SignAndAddState(s, secretKey)
@@ -400,7 +396,7 @@ func (o *Objective) isBob() bool {
 
 // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
 func (o *Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) consensus_channel.Proposal {
-	left := o.V.SignedStateForTurnNum[FinalTurnNum].State().Outcome[0].Allocations[0].Amount
+	left := o.finalState().Outcome[0].Allocations[0].Amount
 	return consensus_channel.NewRemoveProposal(ledger.Id, o.VId(), left)
 }
 

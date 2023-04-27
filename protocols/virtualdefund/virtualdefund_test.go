@@ -44,9 +44,7 @@ func TestInvalidUpdate(t *testing.T) {
 	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vFinal)
 
 	virtualDefund, err := NewObjective(request, false, alice.Address(), nil, getChannel, getConsensusChannel)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testhelpers.Ok(t, err)
 	invalidFinal := data.vFinal.Clone()
 	invalidFinal.ChannelNonce = 5
 
@@ -72,9 +70,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
 
 		virtualDefund, err := NewObjective(request, false, my.Address(), nil, getChannel, getConsensusChannel)
-		if err != nil {
-			t.Fatal(err)
-		}
+		testhelpers.Ok(t, err)
 		signedFinal := state.NewSignedState(data.vFinal)
 		// Sign the final state by some other participant
 		signStateByOthers(my, signedFinal)
@@ -112,9 +108,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		}
 		getChannel, getConsensusChannel := generateStoreGetters(my.Role, vId, data.vInitial)
 		virtualDefund, err := NewObjective(request, true, my.Address(), ourPaymentAmount, getChannel, getConsensusChannel)
-		if err != nil {
-			t.Fatal(err)
-		}
+		testhelpers.Ok(t, err)
 
 		updatedObj, se, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
 		testhelpers.Ok(t, err)
@@ -128,13 +122,9 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 
 			// mimic Alice sending the final state
 			aliceSig, err := ss.State().Sign(alice.PrivateKey)
-			if err != nil {
-				t.Fatal(err)
-			}
+			testhelpers.Ok(t, err)
 			err = ss.AddSignature(aliceSig)
-			if err != nil {
-				t.Fatal(err)
-			}
+			testhelpers.Ok(t, err)
 			updated.V.AddSignedState(ss)
 			updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 			testhelpers.Ok(t, err)
@@ -199,9 +189,7 @@ func TestConstructObjectiveFromState(t *testing.T) {
 	b, _ := json.Marshal(signedFinal)
 	payload := protocols.ObjectivePayload{Type: SignedStatePayload, PayloadData: b, ObjectiveId: protocols.ObjectiveId(fmt.Sprintf("%s%s", ObjectivePrefix, vId))}
 	got, err := ConstructObjectiveFromPayload(payload, true, alice.Address(), getChannel, getConsensusChannel, big.NewInt(int64(data.paid)))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testhelpers.Ok(t, err)
 	left, right := generateLedgers(alice.Role, vId)
 
 	s := state.StateFromFixedAndVariablePart(data.vFinal.FixedPart(), data.vInitial.VariablePart())
@@ -228,9 +216,7 @@ func TestApproveReject(t *testing.T) {
 	getChannel, getConsensusChannel := generateStoreGetters(0, vId, data.vInitial)
 
 	virtualDefund, err := NewObjective(request, false, alice.Address(), nil, getChannel, getConsensusChannel)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testhelpers.Ok(t, err)
 	approved := virtualDefund.Approve()
 	if approved.GetStatus() != protocols.Approved {
 		t.Errorf("Expected approved status, got %v", approved.GetStatus())
