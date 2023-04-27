@@ -90,7 +90,6 @@ func testAgainstEndpoint(t *testing.T, endpoint string, logFile string, pk *ecds
 		t.Fatal(err)
 	}
 
-	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 	cs, err := NewEthChainService(client, na, naAddress, caAddress, vpaAddress, txSubmitter, logDestination)
 	if err != nil {
@@ -235,13 +234,4 @@ func newLogWriter(logFile string) *os.File {
 	}
 
 	return logDestination
-}
-
-func truncateLog(logFile string) {
-	logDestination := newLogWriter(logFile)
-
-	err := logDestination.Truncate(0)
-	if err != nil {
-		log.Fatal(err)
-	}
 }

@@ -46,7 +46,6 @@ func TestRpcWithWebsockets(t *testing.T) {
 
 func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	logFile := "test_rpc_client.log"
-	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
 	chain := chainservice.NewMockChain()

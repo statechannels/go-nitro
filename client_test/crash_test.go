@@ -21,7 +21,6 @@ import (
 func TestCrashTolerance(t *testing.T) {
 	// Setup logging
 	logFile := "test_crash_tolerance.log"
-	truncateLog(logFile)
 	logDestination := newLogWriter(logFile)
 
 	// Setup chain service
