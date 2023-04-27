@@ -18,10 +18,10 @@ import (
 
 const (
 	WaitingForFinalStateFromAlice protocols.WaitingFor = "WaitingForFinalStateFromAlice"
-	WaitingForSignedFinal         protocols.WaitingFor = "WaitingForSignedFinal"        // Round 1
-	WaitingForDefundingOnMyLeft   protocols.WaitingFor = "WaitingForDefundingOnMyLeft"  // Round 2
-	WaitingForDefundingOnMyRight  protocols.WaitingFor = "WaitingForDefundingOnMyRight" // Round 2
-	WaitingForNothing             protocols.WaitingFor = "WaitingForNothing"            // Finished
+	WaitingForSupportedFinalState protocols.WaitingFor = "WaitingForSupportedFinalState" // Round 1
+	WaitingForDefundingOnMyLeft   protocols.WaitingFor = "WaitingForDefundingOnMyLeft"   // Round 2
+	WaitingForDefundingOnMyRight  protocols.WaitingFor = "WaitingForDefundingOnMyRight"  // Round 2
+	WaitingForNothing             protocols.WaitingFor = "WaitingForNothing"             // Finished
 )
 
 const (
@@ -39,26 +39,12 @@ const FinalTurnNum = 2
 type Objective struct {
 	Status protocols.ObjectiveStatus
 
-	// InitialOutcome is the initial outcome of the virtual channel
-	InitialOutcome outcome.SingleAssetExit
-
-	// FinalOutcome is the final outcome of the virtual channel from Alice
-	FinalOutcome outcome.SingleAssetExit
-
 	// MinimumPaymentAmount is the latest payment amount we have received from Alice before starting defunding.
 	// This is set by Bob so he can ensure he receives the latest amount from any vouchers he's received.
 	// If this is not set then virtual defunding will accept any final outcome from Alice.
 	MinimumPaymentAmount *big.Int
 
-	// VFixed is the fixed channel information for the virtual channel
-	VFixed state.FixedPart
-
-	// Signatures are the signatures for the final virtual state from each participant.
-	//
-	// Signatures are ordered by participant order: Signatures[0] is Alice's signature,
-	// Signatures[last] is Bob's signature, Signatures[1,...,n] are the intermediaries'
-	// signatures.
-	Signatures []state.Signature
+	V *channel.Channel // This is a Virtual Channel. TODO should this be a literal channel.VirtualChannel?
 
 	ToMyLeft  *consensus_channel.ConsensusChannel
 	ToMyRight *consensus_channel.ConsensusChannel
@@ -99,8 +85,6 @@ func NewObjective(request ObjectiveRequest,
 	if !found {
 		return Objective{}, fmt.Errorf("could not find channel %s", request.ChannelId)
 	}
-
-	initialOutcome := V.PostFundState().Outcome[0]
 
 	alice := V.Participants[0]
 	bob := V.Participants[len(V.Participants)-1]
@@ -155,24 +139,10 @@ func NewObjective(request ObjectiveRequest,
 		largestPaymentAmount = big.NewInt(0)
 	}
 
-	finalOutcome := outcome.SingleAssetExit{}
-	// Since Alice is responsible for issuing vouchers she always has the largest payment amount
-	// This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent
-	if myAddress == alice {
-
-		finalOutcome = initialOutcome.Clone()
-		finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, largestPaymentAmount)
-		finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, largestPaymentAmount)
-
-	}
-
 	return Objective{
 		Status:               status,
-		InitialOutcome:       initialOutcome,
-		FinalOutcome:         finalOutcome,
 		MinimumPaymentAmount: largestPaymentAmount,
-		VFixed:               V.FixedPart,
-		Signatures:           make([]state.Signature, len(V.FixedPart.Participants)),
+		V:                    V,
 		MyRole:               V.MyIndex,
 		ToMyLeft:             leftLedger,
 		ToMyRight:            rightLedger,
@@ -191,53 +161,28 @@ func ConstructObjectiveFromPayload(
 	if latestVoucherAmount == nil {
 		latestVoucherAmount = big.NewInt(0)
 	}
+	var cId types.Destination
+	var err error
 	switch p.Type {
 	case RequestFinalStatePayload:
-		cId, err := getRequestFinalStatePayload(p.PayloadData)
-		if err != nil {
-			return Objective{}, err
-		}
-		return NewObjective(
-			NewObjectiveRequest(cId),
-			preapprove,
-			myAddress,
-			latestVoucherAmount,
-			getChannel,
-			getTwoPartyConsensusLedger)
-
+		cId, err = getRequestFinalStatePayload(p.PayloadData)
 	case SignedStatePayload:
-		ss, err := getSignedStatePayload(p.PayloadData)
-		if err != nil {
-			return Objective{}, err
-		}
-
-		if !ss.State().IsFinal {
-			return Objective{}, fmt.Errorf("expected final state")
-		}
-		cId := ss.ChannelId()
-		c, found := getChannel(cId)
-		pf := c.PreFundState()
-
-		if !found {
-			return Objective{}, fmt.Errorf("could not find channel %s", cId)
-		}
-
-		err = validateFinalOutcome(pf.FixedPart(), pf.Outcome[0], ss.State().Outcome[0], myAddress, latestVoucherAmount)
-		if err != nil {
-			return Objective{}, fmt.Errorf("final outcome from alice failed validation: %w", err)
-		}
-
-		return NewObjective(
-			NewObjectiveRequest(ss.ChannelId()),
-			preapprove,
-			myAddress,
-			latestVoucherAmount,
-			getChannel,
-			getTwoPartyConsensusLedger)
-
+		var ss state.SignedState
+		ss, err = getSignedStatePayload(p.PayloadData)
+		cId = ss.ChannelId()
 	default:
 		return Objective{}, fmt.Errorf("unknown payload type %s", p.Type)
 	}
+	if err != nil {
+		return Objective{}, err
+	}
+	return NewObjective(
+		NewObjectiveRequest(cId),
+		preapprove,
+		myAddress,
+		latestVoucherAmount,
+		getChannel,
+		getTwoPartyConsensusLedger)
 }
 
 // IsVirtualDefundObjective inspects a objective id and returns true if the objective id is for a virtualdefund objective.
@@ -245,24 +190,31 @@ func IsVirtualDefundObjective(id protocols.ObjectiveId) bool {
 	return strings.HasPrefix(string(id), ObjectivePrefix)
 }
 
-// signedFinalState returns the final state for the virtual channel
-func (o *Objective) signedFinalState() (state.SignedState, error) {
-	signed := state.NewSignedState(o.finalState())
-	for _, sig := range o.Signatures {
-		if !isZero(sig) {
-			err := signed.AddSignature(sig)
-			if err != nil {
-				return state.SignedState{}, err
-			}
-		}
+// finalState returns the final state for the virtual channel
+func (o *Objective) finalState() state.State {
+	return o.V.SignedStateForTurnNum[FinalTurnNum].State()
+}
+
+func (o *Objective) initialOutcome() outcome.SingleAssetExit {
+	return o.V.PostFundState().Outcome[0]
+}
+
+func (o *Objective) generateFinalOutcome() outcome.SingleAssetExit {
+	if o.MyRole != 0 {
+		panic("Only Alice should call generateFinalOutcome")
 	}
-	return signed, nil
+	// Since Alice is responsible for issuing vouchers she always has the largest payment amount
+	// This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent
+	finalOutcome := o.initialOutcome().Clone()
+	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.MinimumPaymentAmount)
+	finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.MinimumPaymentAmount)
+	return finalOutcome
 }
 
 // finalState returns the final state for the virtual channel
-func (o *Objective) finalState() state.State {
-	vp := state.VariablePart{Outcome: outcome.Exit{o.FinalOutcome}, TurnNum: FinalTurnNum, IsFinal: true}
-	return state.StateFromFixedAndVariablePart(o.VFixed, vp)
+func (o *Objective) generateFinalState() state.State {
+	vp := state.VariablePart{Outcome: outcome.Exit{o.generateFinalOutcome()}, TurnNum: FinalTurnNum, IsFinal: true}
+	return state.StateFromFixedAndVariablePart(o.V.FixedPart, vp)
 }
 
 // Id returns the objective id.
@@ -284,7 +236,7 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 	updated := o.clone()
 	updated.Status = protocols.Rejected
 	peers := []common.Address{}
-	for i, peer := range o.VFixed.Participants {
+	for i, peer := range o.V.Participants {
 		if i != int(o.MyRole) {
 			peers = append(peers, peer)
 		}
@@ -308,6 +260,8 @@ func (o *Objective) GetStatus() protocols.ObjectiveStatus {
 func (o *Objective) Related() []protocols.Storable {
 	related := []protocols.Storable{}
 
+	related = append(related, o.V)
+
 	if o.ToMyLeft != nil {
 		related = append(related, o.ToMyLeft)
 	}
@@ -323,16 +277,10 @@ func (o *Objective) clone() Objective {
 	clone := Objective{}
 	clone.Status = o.Status
 
-	clone.VFixed = o.VFixed.Clone()
-	clone.InitialOutcome = o.InitialOutcome.Clone()
-	clone.FinalOutcome = o.FinalOutcome.Clone()
+	clone.V = o.V.Clone()
 
 	if o.MinimumPaymentAmount != nil {
 		clone.MinimumPaymentAmount = big.NewInt(0).Set(o.MinimumPaymentAmount)
-	}
-	clone.Signatures = []state.Signature{}
-	for _, sig := range o.Signatures {
-		clone.Signatures = append(clone.Signatures, state.CloneSignature(sig))
 	}
 	clone.MyRole = o.MyRole
 
@@ -350,7 +298,7 @@ func (o *Objective) clone() Objective {
 // otherParticipants returns the participants in the channel that are not the current participant.
 func (o *Objective) otherParticipants() []types.Address {
 	others := make([]types.Address, 0)
-	for i, p := range o.VFixed.Participants {
+	for i, p := range o.V.Participants {
 		if i != int(o.MyRole) {
 			others = append(others, p)
 		}
@@ -359,7 +307,8 @@ func (o *Objective) otherParticipants() []types.Address {
 }
 
 func (o *Objective) hasFinalStateFromAlice() bool {
-	return !o.FinalOutcome.Equal(outcome.SingleAssetExit{})
+	ss, ok := o.V.SignedStateForTurnNum[FinalTurnNum]
+	return ok && ss.State().IsFinal && !isZero(ss.Signatures()[0])
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed.
@@ -374,23 +323,26 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	// If we don't know the amount yet we send a message to alice to request it
 	if !updated.isAlice() && !updated.hasFinalStateFromAlice() {
-		alice := o.VFixed.Participants[0]
+		alice := o.V.Participants[0]
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.VId(), RequestFinalStatePayload, alice)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 		return &updated, sideEffects, WaitingForFinalStateFromAlice, nil
 	}
 
 	// Signing of the final state
-	if !updated.signedByMe() {
-
-		sig, err := o.finalState().Sign(*secretKey)
+	if !updated.V.FinalSignedByMe() {
+		var s state.State
+		if updated.isAlice() {
+			s = updated.generateFinalState()
+		} else {
+			s = updated.finalState()
+		}
+		// Sign and store:
+		ss, err := updated.V.SignAndAddState(s, secretKey)
 		if err != nil {
 			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not sign final state: %w", err)
 		}
-		// Update the signature stored on the objective
-		updated.Signatures[updated.MyRole] = sig
 
-		ss, err := updated.signedFinalState()
 		if err != nil {
 			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not get signed final state: %w", err)
 		}
@@ -399,8 +351,8 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	}
 
 	// Check if all participants have signed the final state
-	if !updated.fullySigned() {
-		return &updated, sideEffects, WaitingForSignedFinal, nil
+	if !updated.V.FinalCompleted() {
+		return &updated, sideEffects, WaitingForSupportedFinalState, nil
 	}
 
 	if !updated.isAlice() && !updated.leftHasDefunded() {
@@ -432,20 +384,6 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	return &updated, sideEffects, WaitingForNothing, nil
 }
 
-// fullySigned returns whether we have a signature from every partciapant.
-func (o *Objective) fullySigned() bool {
-	if len(o.Signatures) != len(o.VFixed.Participants) {
-		return false
-	}
-
-	for _, sig := range o.Signatures {
-		if isZero(sig) {
-			return false
-		}
-	}
-	return true
-}
-
 // isAlice returns true if the receiver represents participant 0 in the virtualdefund protocol.
 func (o *Objective) isAlice() bool {
 	return o.MyRole == 0
@@ -453,13 +391,12 @@ func (o *Objective) isAlice() bool {
 
 // isBob returns true if the receiver represents the last participant in the virtualdefund protocol.
 func (o *Objective) isBob() bool {
-	return int(o.MyRole) == len(o.VFixed.Participants)-1
+	return int(o.MyRole) == len(o.V.Participants)-1
 }
 
 // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
 func (o *Objective) ledgerProposal(ledger *consensus_channel.ConsensusChannel) consensus_channel.Proposal {
-	left := o.FinalOutcome.Allocations[0].Amount
-
+	left := o.finalState().Outcome[0].Allocations[0].Amount
 	return consensus_channel.NewRemoveProposal(ledger.Id, o.VId(), left)
 }
 
@@ -511,17 +448,7 @@ func (o *Objective) updateLedgerToRemoveGuarantee(ledger *consensus_channel.Cons
 
 // VId returns the channel id of the virtual channel.
 func (o *Objective) VId() types.Destination {
-	return o.VFixed.ChannelId()
-}
-
-// signedBy returns whether we have a valid signature for the given participant
-func (o *Objective) signedBy(participant uint) bool {
-	return !isZero(o.Signatures[participant])
-}
-
-// signedByMe returns whether the current participant has signed the final state.
-func (o *Objective) signedByMe() bool {
-	return o.signedBy(o.MyRole)
+	return o.V.ChannelId()
 }
 
 // rightHasDefunded returns whether the ledger channel ToMyRight has removed
@@ -548,24 +475,6 @@ func (o *Objective) leftHasDefunded() bool {
 
 	included := o.ToMyLeft.IncludesTarget(o.VId())
 	return !included
-}
-
-// validateSignature returns whether the given signature is valid for the given participant.
-// If a signature is invalid an error will be returned containing the reason.
-func (o *Objective) validateSignature(sig state.Signature, participantIndex uint) (bool, error) {
-	if participantIndex >= uint(len(o.VFixed.Participants)) {
-		return false, fmt.Errorf("participant index %d is out of bounds", participantIndex)
-	}
-
-	finalState := o.finalState()
-	signer, err := finalState.RecoverSigner(sig)
-	if err != nil {
-		return false, fmt.Errorf("failed to recover signer from signature: %w", err)
-	}
-	if signer != o.VFixed.Participants[participantIndex] {
-		return false, fmt.Errorf("signature is from %s, but expected signature from %s ", signer, o.VFixed.Participants[participantIndex])
-	}
-	return true, nil
 }
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
@@ -602,44 +511,16 @@ func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, 
 			return &Objective{}, err
 		}
 		updated := o.clone()
-		err = validateFinalOutcome(updated.VFixed, updated.InitialOutcome, ss.State().Outcome[0], o.VFixed.Participants[o.MyRole], updated.MinimumPaymentAmount)
+		err = validateFinalOutcome(updated.V.FixedPart, updated.initialOutcome(), ss.State().Outcome[0], o.V.Participants[o.MyRole], updated.MinimumPaymentAmount)
 		if err != nil {
-			return o, fmt.Errorf("outcome from Alice failed validation %w", err)
+			return o, fmt.Errorf("outcome failed validation %w", err)
+		}
+		ok := updated.V.AddSignedState(ss)
+		if !ok {
+			return o, fmt.Errorf("could not add signed state %v", ss)
 		}
 
-		updated.FinalOutcome = ss.State().Outcome[0]
-		if err != nil {
-			return o, fmt.Errorf("could not get signed state payload: %w", err)
-		}
-
-		incomingSignatures := ss.Signatures()
-		for i := range o.VFixed.Participants {
-			existingSig := o.Signatures[i]
-			incomingSig := incomingSignatures[i]
-
-			// If the incoming signature is zeroed we ignore it
-			if isZero(incomingSig) {
-				continue
-			}
-			// If the existing signature is not zeroed we check that it matches the incoming signature
-			if !isZero(existingSig) {
-				if existingSig.Equal(incomingSig) {
-					continue
-				} else {
-					return o, fmt.Errorf("incoming signature %+v does not match existing %+v", incomingSig, existingSig)
-				}
-			}
-			// Otherwise we validate the incoming signature and update our signatures
-			isValid, err := updated.validateSignature(incomingSig, uint(i))
-			if isValid {
-				// Update the signature
-				updated.Signatures[i] = incomingSig
-			} else {
-				return o, fmt.Errorf("failed to validate signature: %w", err)
-			}
-		}
 		return &updated, nil
-
 	case RequestFinalStatePayload:
 		// Since the objective is already created we don't need to do anything else with the payload
 		return o, nil
@@ -725,10 +606,10 @@ func validateFinalOutcome(vFixed state.FixedPart, initialOutcome outcome.SingleA
 	// Check the outcome participants are correct
 	alice, bob := vFixed.Participants[0], vFixed.Participants[len(vFixed.Participants)-1]
 	if initialOutcome.Allocations[0].Destination != types.AddressToDestination(alice) {
-		return fmt.Errorf("first allocation is not to Alice but to %s", initialOutcome.Allocations[0].Destination)
+		return fmt.Errorf("0th allocation is not to Alice but to %s", initialOutcome.Allocations[0].Destination)
 	}
 	if initialOutcome.Allocations[1].Destination != types.AddressToDestination(bob) {
-		return fmt.Errorf("first allocation is not to Alice but to %s", initialOutcome.Allocations[0].Destination)
+		return fmt.Errorf("1st allocation is not to Bob but to %s", initialOutcome.Allocations[0].Destination)
 	}
 
 	// Check the amounts are correct
