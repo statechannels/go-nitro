@@ -11,9 +11,11 @@ go-nitro
 
 ### As a Service
 
-Go-nitro can be run as a system service with an RPC api. Go-nitro is configured to seek out a local hardhat blockchain with some specific configuration. The configured hardhat node is available here: https://github.com/statechannels/hardhat-docker.
+Go-nitro can be run as a system service with an RPC api. Go-nitro's default configuration is to connect with a local hardhat blockchain on port `8548` with chainid `1337`.
 
-After the hardhat docker node is running, go-nitro can be started from the root directory with
+A suitably configured node as a docker container is maintained here: https://github.com/statechannels/hardhat-docker, but default hardhat nodes work as well.
+
+After a hardhat node is running, go-nitro can be started from the root directory with
 
 ```
 go run .
