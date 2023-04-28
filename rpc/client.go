@@ -174,6 +174,16 @@ func (rc *RpcClient) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan stru
 	return c
 }
 
+func (rc *RpcClient) LedgerChannelUpdatesChan(ledgerChannelId types.Destination) <-chan query.LedgerChannelInfo {
+	c, _ := rc.ledgerChannelUpdates.LoadOrStore(string(ledgerChannelId.String()), make(chan query.LedgerChannelInfo, 100))
+	return c
+}
+
+func (rc *RpcClient) PaymentChannelUpdatesChan(paymentChannelId types.Destination) <-chan query.PaymentChannelInfo {
+	c, _ := rc.paymentChannelUpdates.LoadOrStore(string(paymentChannelId.String()), make(chan query.PaymentChannelInfo, 100))
+	return c
+}
+
 // request uses the supplied transport and payload to send a non-blocking JSONRPC request.
 // It returns a channel that sends a response payload. If the request fails to send, an error is returned.
 func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, request T, logger zerolog.Logger) (<-chan response[U], error) {
