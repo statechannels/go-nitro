@@ -5,10 +5,54 @@ go-nitro
 
 <p align="center">Implementation of the <a href="https://docs.statechannels.org">Nitro State Channels Framework</a> in Golang and Solidity.</p>
 
-
 ## Usage
 
-Go-nitro is work-in-progress library code with an evolving API.
+> ⚠️ Go-nitro is pre-production software ⚠️
+
+### As a Service
+
+Go-nitro can be run as a system service with an RPC api. Go-nitro's default configuration is to connect with a local hardhat blockchain on port `8548` with chainid `1337`.
+
+A suitably configured node as a docker container is maintained here: https://github.com/statechannels/hardhat-docker, but default hardhat nodes work as well.
+
+After a hardhat node is running, go-nitro can be started from the root directory with
+
+```
+go run .
+```
+
+Or, built to an executable binary with
+
+```
+go build -o gonitro
+```
+
+Go nitro accepts the following command flags, which can also be displayed via `go run . -help` (or `gonitro -help` for the build binary).
+
+```
+-chainid int
+    Specifies the chain id of the chain. (default 1337)
+-chainurl string
+    Specifies the url of a RPC endpoint for the chain. (default "ws://127.0.0.1:8545")
+-deploycontracts
+    Specifies whether to deploy the adjudicator and create2deployer contracts.
+-msgport int
+    Specifies the tcp port for the  message service. (default 3005)
+-naaddress string
+    Specifies the address of the nitro adjudicator contract. Default is the address computed by the Create2Deployer contract. (default "0xC6A55E07566416274dBF020b5548eecEdB56290c")
+-pk string
+    Specifies the private key for the client. Default is Alice's private key. (default "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d")
+-rpcport int
+    Specifies the tcp port for the rpc server. (default 4005)
+-usedurablestore
+    Specifies whether to use a durable store or an in-memory store.
+-usenats
+    Specifies whether to use NATS or http/ws for the rpc server. (default true)
+```
+
+### As a Library
+
+Go-nitro is also work-in-progress library code with an evolving API.
 
 Our [integration tests](./client_test/readme.md) give the best idea of how to use the API. Another useful resource is [the godoc](https://pkg.go.dev/github.com/statechannels/go-nitro@v0.0.0-20221013015616-00c5614be2d2/client#Client) description of the `go-nitro.Client` API (please check for the latest version).
 
