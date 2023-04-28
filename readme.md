@@ -16,7 +16,14 @@ Go-nitro can be run as a system service with an RPC api. Go-nitro is configured 
 After the hardhat docker node is running, go-nitro can be started from the root directory with
 
 ```
-go run ./...
+go run .
+```
+
+Or, built to an executable binary with
+
+```
+go build -o gonitro
+```
 ```
 
 ### As a Library
