@@ -53,6 +53,13 @@ func ConnectToChain(ctx context.Context, chainUrl string, chainId int, chainPK [
 	if err != nil {
 		return nil, nil, err
 	}
+	foundChainId, err := client.ChainID(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not get chain id: %w", err)
+	}
+	if foundChainId.Cmp(big.NewInt(int64(chainId))) != 0 {
+		return nil, nil, fmt.Errorf("chain id mismatch: expected %d, got %d", chainId, foundChainId)
+	}
 	key, err := ethcrypto.ToECDSA(chainPK)
 	if err != nil {
 		return nil, nil, err
