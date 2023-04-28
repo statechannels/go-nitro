@@ -27,7 +27,9 @@ const (
 type NotificationMethod string
 
 const (
-	ObjectiveCompleted NotificationMethod = "objective_completed"
+	ObjectiveCompleted    NotificationMethod = "objective_completed"
+	LedgerChannelUpdated  NotificationMethod = "ledger_channel_updated"
+	PaymentChannelUpdated NotificationMethod = "payment_channel_updated"
 )
 
 type NotificationOrRequest interface {
@@ -63,7 +65,9 @@ type RequestPayload interface {
 }
 
 type NotificationPayload interface {
-	protocols.ObjectiveId
+	protocols.ObjectiveId |
+		query.PaymentChannelInfo |
+		query.LedgerChannelInfo
 }
 
 type JsonRpcRequest[T RequestPayload | NotificationPayload] struct {
