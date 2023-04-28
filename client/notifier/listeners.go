@@ -7,12 +7,12 @@ import (
 )
 
 func newPaymentChannelListeners() *paymentChannelListeners {
-	return &paymentChannelListeners{listeners: []chan query.PaymentChannelInfo{}, listenersLock: sync.Mutex{}, prev: nil}
+	return &paymentChannelListeners{listeners: []chan query.PaymentChannelInfo{}, listenersLock: sync.Mutex{}}
 }
 
 type paymentChannelListeners struct {
 	listeners []chan query.PaymentChannelInfo
-	prev      *query.PaymentChannelInfo
+	prev      query.PaymentChannelInfo
 	// listenersLock is used to protect against concurrent access to the listeners slice.
 	listenersLock sync.Mutex
 }
@@ -20,10 +20,13 @@ type paymentChannelListeners struct {
 func (li *paymentChannelListeners) Notify(info query.PaymentChannelInfo) {
 	li.listenersLock.Lock()
 	defer li.listenersLock.Unlock()
+	if li.prev.Equal(info) {
+		return
+	}
 	for _, list := range li.listeners {
 		list <- info
 	}
-	li.prev = &info
+	li.prev = info
 }
 
 func (li *paymentChannelListeners) createListener() <-chan query.PaymentChannelInfo {
@@ -36,12 +39,12 @@ func (li *paymentChannelListeners) createListener() <-chan query.PaymentChannelI
 }
 
 func newLedgerChannelListeners() *ledgerChannelListeners {
-	return &ledgerChannelListeners{listeners: []chan query.LedgerChannelInfo{}, listenersLock: sync.Mutex{}, prev: nil}
+	return &ledgerChannelListeners{listeners: []chan query.LedgerChannelInfo{}, listenersLock: sync.Mutex{}}
 }
 
 type ledgerChannelListeners struct {
 	listeners []chan query.LedgerChannelInfo
-	prev      *query.LedgerChannelInfo
+	prev      query.LedgerChannelInfo
 	// listenersLock is used to protect against concurrent access to the listeners slice.
 	listenersLock sync.Mutex
 }
@@ -49,10 +52,14 @@ type ledgerChannelListeners struct {
 func (li *ledgerChannelListeners) Notify(info query.LedgerChannelInfo) {
 	li.listenersLock.Lock()
 	defer li.listenersLock.Unlock()
+	if li.prev.Equal(info) {
+		return
+	}
+
 	for _, list := range li.listeners {
 		list <- info
 	}
-	li.prev = &info
+	li.prev = info
 }
 
 func (li *ledgerChannelListeners) createListener() <-chan query.LedgerChannelInfo {

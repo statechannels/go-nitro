@@ -26,11 +26,10 @@ import (
 
 // Client provides the interface for the consuming application
 type Client struct {
-	engine                    engine.Engine // The core business logic of the client
-	Address                   *types.Address
-	channelNotifier           *notifier.ChannelNotifier
-	ledgerUpdatesForRPC       chan query.LedgerChannelInfo
-	paymentUpdatesForRPC      chan query.PaymentChannelInfo
+	engine          engine.Engine // The core business logic of the client
+	Address         *types.Address
+	channelNotifier *notifier.ChannelNotifier
+
 	completedObjectivesForRPC chan protocols.ObjectiveId // This is only used by the RPC server
 	completedObjectives       *safesync.Map[chan struct{}]
 	failedObjectives          chan protocols.ObjectiveId
@@ -58,8 +57,6 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.engine = engine.New(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = &safesync.Map[chan struct{}]{}
 	c.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
-
-	c.ledgerUpdatesForRPC = make(chan query.LedgerChannelInfo, 100)
 
 	c.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
 
@@ -146,36 +143,20 @@ func (c *Client) Version() string {
 func (c *Client) handleUpdatedChannel(updated protocols.UpdatedChannelInfo) error {
 	switch updated.Type {
 	case "ledger":
-		ledger, err := query.GetLedgerChannelInfo(updated.ChannelId, c.store)
+
+		err := c.channelNotifier.NotifyLedgerUpdated(updated.ChannelId)
 		if err != nil {
 			return err
 		}
 
-		err = c.channelNotifier.NotifyLedgerUpdated(updated.ChannelId)
-		if err != nil {
-			return err
-		}
-		// use a nonblocking send to the RPC Client in case no one is listening
-		select {
-		case c.ledgerUpdatesForRPC <- ledger:
-		default:
-		}
 	case "payment":
-		paymentC, err := query.GetPaymentChannelInfo(updated.ChannelId, c.store, c.vm)
-		if err != nil {
-			return err
-		}
 
-		err = c.channelNotifier.NotifyPaymentUpdated(updated.ChannelId)
+		err := c.channelNotifier.NotifyPaymentUpdated(updated.ChannelId)
 		if err != nil {
 			return err
-		}
-		// use a nonblocking send to the RPC Client in case no one is listening
-		select {
-		case c.paymentUpdatesForRPC <- paymentC:
-		default:
 		}
 	}
+
 	return nil
 }
 
@@ -186,12 +167,12 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 
 // LedgerUpdates returns a chan that receives ledger channel info whenever that ledger channel is updated. Not suitable fo multiple subscribers.
 func (c *Client) LedgerUpdates() <-chan query.LedgerChannelInfo {
-	return c.ledgerUpdatesForRPC
+	return c.channelNotifier.RegisterForAllLedgerUpdates()
 }
 
 // PaymentUpdates returns a chan that receives payment channel info whenever that payment channel is updated. Not suitable fo multiple subscribers.
 func (c *Client) PaymentUpdates() <-chan query.PaymentChannelInfo {
-	return c.paymentUpdatesForRPC
+	return c.channelNotifier.RegisterForAllPaymentUpdates()
 }
 
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed

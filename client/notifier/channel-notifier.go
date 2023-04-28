@@ -1,6 +1,8 @@
 package notifier
 
 import (
+	"fmt"
+
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/internal/safesync"
@@ -26,18 +28,38 @@ func NewChannelNotifier(store store.Store, vm *payments.VoucherManager) *Channel
 	}
 }
 
+func (cn *ChannelNotifier) RegisterForAllLedgerUpdates() <-chan query.LedgerChannelInfo {
+	li, _ := cn.ledgerListeners.LoadOrStore("all", newLedgerChannelListeners())
+
+	newList := li.createListener()
+	cn.ledgerListeners.Store("all", li)
+	return newList
+}
+
 // RegisterForLedgerUpdates returns a buffered channel that will receive ledger channel updates when they occur.
 func (cn *ChannelNotifier) RegisterForLedgerUpdates(cId types.Destination) <-chan query.LedgerChannelInfo {
 	li, _ := cn.ledgerListeners.LoadOrStore(cId.String(), newLedgerChannelListeners())
 
-	return li.createListener()
+	newList := li.createListener()
+	cn.ledgerListeners.Store(cId.String(), li)
+	return newList
+}
+
+func (cn *ChannelNotifier) RegisterForAllPaymentUpdates() <-chan query.PaymentChannelInfo {
+	li, _ := cn.paymentListeners.LoadOrStore("all", newPaymentChannelListeners())
+
+	newList := li.createListener()
+	cn.paymentListeners.Store("all", li)
+	return newList
 }
 
 // RegisterForLedgerUpdates returns a buffered channel that will receive ledger channel updates when they occur.
 func (cn *ChannelNotifier) RegisterForPaymentChannelUpdates(cId types.Destination) <-chan query.PaymentChannelInfo {
 	li, _ := cn.paymentListeners.LoadOrStore(cId.String(), newPaymentChannelListeners())
 
-	return li.createListener()
+	newList := li.createListener()
+	cn.paymentListeners.Store(cId.String(), li)
+	return newList
 }
 
 // NotifyLedgerUpdated notifies all listeners of a ledger channel update.
@@ -50,19 +72,18 @@ func (cn *ChannelNotifier) NotifyLedgerUpdated(lId types.Destination) error {
 		return err
 	}
 	// Fetch the listeners for the ledger channel
-	li, ok := cn.ledgerListeners.Load(lId.String())
-	// If no one has registered for this channel, we don't need to notify anyone.
+	li, _ := cn.ledgerListeners.LoadOrStore(lId.String(), newLedgerChannelListeners())
+	li.Notify(latest)
+	cn.ledgerListeners.Store(lId.String(), li)
+
+	allLi, ok := cn.ledgerListeners.Load("all")
 	if !ok {
+		fmt.Println("No listeners for all")
 		return nil
 	}
+	allLi.Notify(latest)
+	cn.ledgerListeners.Store("all", allLi)
 
-	// We only want to notify listeners if the ledger channel has changed from the perspective of the client.
-	if ledgerUpdated := li.prev == nil || li.prev.Equal(latest); ledgerUpdated {
-
-		li.Notify(latest)
-
-		cn.ledgerListeners.Store(lId.String(), li)
-	}
 	return nil
 }
 
@@ -76,18 +97,13 @@ func (cn *ChannelNotifier) NotifyPaymentUpdated(pId types.Destination) error {
 		return err
 	}
 	// Fetch the listeners for the ledger channel
-	li, ok := cn.paymentListeners.Load(pId.String())
-	// If no one has registered for this channel, we don't need to notify anyone.
-	if !ok {
-		return nil
-	}
+	li, _ := cn.paymentListeners.LoadOrStore(pId.String(), newPaymentChannelListeners())
+	li.Notify(latest)
+	cn.paymentListeners.Store(pId.String(), li)
 
-	// We only want to notify listeners if the payment channel has changed from the perspective of the client.
-	if channelUpdated := li.prev == nil || li.prev.Equal(latest); channelUpdated {
+	allLi, _ := cn.paymentListeners.LoadOrStore("all", newPaymentChannelListeners())
+	allLi.Notify(latest)
+	cn.paymentListeners.Store("all", allLi)
 
-		li.Notify(latest)
-
-		cn.paymentListeners.Store(pId.String(), li)
-	}
 	return nil
 }

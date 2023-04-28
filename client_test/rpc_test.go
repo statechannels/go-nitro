@@ -79,6 +79,12 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 		t.Fatalf("Ledger diff mismatch (-want +got):\n%s", diff)
 	}
 
+	go func() {
+		for li := range rpcClientA.LedgerChannelUpdatesChan(res.ChannelId) {
+			fmt.Printf("Ledger update %+v\n", li)
+		}
+	}()
+
 	bobLedger := rpcClientB.GetLedgerChannel(bobResponse.ChannelId)
 	expectedBobLedger := expectedLedgerInfo(bobResponse.ChannelId, bobLedgerOutcome, query.Ready)
 	if diff := cmp.Diff(expectedBobLedger, bobLedger, cmp.AllowUnexported(big.Int{})); diff != "" {
