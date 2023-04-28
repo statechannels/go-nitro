@@ -91,6 +91,6 @@ After deployment, run
 ETHERSCAN_API_KEY=<a-secret> INFURA_TOKEN=<another-secret> yarn hardhat --network rinkeby verify <DeployedContractAddress> 'ConstructorArgs'
 ```
 
-for each contract you wish to verify. Swap rinkeby for mainnet as appropriate.
+for each contract you wish to verify. Swap rinkeby for mainnet as appropriate!
 
 You need to provide both `ETHERSCAN_API_KEY` and `INFURA_TOKEN` for this to work. For more info, see the [docs](https://hardhat.org/plugins/nomiclabs-hardhat-etherscan.html).
