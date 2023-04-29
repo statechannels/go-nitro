@@ -65,6 +65,9 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	res := rpcClientA.CreateLedger(ta.Irene.Address(), 100, aliceLedgerOutcome)
 	bobResponse := rpcClientB.CreateLedger(ta.Irene.Address(), 100, bobLedgerOutcome)
 
+	aliceLedgerNotifs := rpcClientA.LedgerChannelUpdatesChan(res.ChannelId)
+	bobledgerNotifs := rpcClientB.LedgerChannelUpdatesChan(bobResponse.ChannelId)
+
 	// Quick sanity check that we're getting a valid objective id
 	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
 
@@ -73,23 +76,14 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	<-rpcClientI.ObjectiveCompleteChan(res.Id)
 	<-rpcClientI.ObjectiveCompleteChan(bobResponse.Id)
 
-	aliceLedger := rpcClientA.GetLedgerChannel(res.ChannelId)
+	checkNotification(t, expectedLedgerInfo(res.ChannelId, aliceLedgerOutcome, query.Proposed), aliceLedgerNotifs)
+	checkNotification(t, expectedLedgerInfo(bobResponse.ChannelId, bobLedgerOutcome, query.Proposed), bobledgerNotifs)
+
 	expectedAliceLedger := expectedLedgerInfo(res.ChannelId, aliceLedgerOutcome, query.Ready)
-	if diff := cmp.Diff(expectedAliceLedger, aliceLedger, cmp.AllowUnexported(big.Int{})); diff != "" {
-		t.Fatalf("Ledger diff mismatch (-want +got):\n%s", diff)
-	}
+	checkQueryInfo(t, expectedAliceLedger, rpcClientA.GetLedgerChannel(res.ChannelId))
 
-	go func() {
-		for li := range rpcClientA.LedgerChannelUpdatesChan(res.ChannelId) {
-			fmt.Printf("Ledger update %+v\n", li)
-		}
-	}()
-
-	bobLedger := rpcClientB.GetLedgerChannel(bobResponse.ChannelId)
 	expectedBobLedger := expectedLedgerInfo(bobResponse.ChannelId, bobLedgerOutcome, query.Ready)
-	if diff := cmp.Diff(expectedBobLedger, bobLedger, cmp.AllowUnexported(big.Int{})); diff != "" {
-		t.Fatalf("Ledger diff mismatch (-want +got):\n%s", diff)
-	}
+	checkQueryInfo(t, expectedBobLedger, rpcClientB.GetLedgerChannel(bobResponse.ChannelId))
 
 	initialOutcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Bob.Address(), 100, 0, types.Address{})
 	vRes := rpcClientA.CreateVirtual(
@@ -104,21 +98,34 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	<-rpcClientB.ObjectiveCompleteChan(vRes.Id)
 	<-rpcClientI.ObjectiveCompleteChan(vRes.Id)
 
-	expectedVirtual := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Ready)
+	// TODO: For some reason we don't get these notifications until after objective completed is read
+	checkNotification(t, expectedAliceLedger, aliceLedgerNotifs)
+	checkNotification(t, expectedBobLedger, bobledgerNotifs)
+
+	aliceVirtualNotifs := rpcClientA.PaymentChannelUpdatesChan(vRes.ChannelId)
+	bobVirtualNotifs := rpcClientB.PaymentChannelUpdatesChan(vRes.ChannelId)
+	ireneVirtualNotifs := rpcClientI.PaymentChannelUpdatesChan(vRes.ChannelId)
+
+	expectedVirtual := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Proposed)
+	// TODO: For some reason we don't get these notifications until after objective completed is ready
+	checkNotification(t, expectedVirtual, aliceVirtualNotifs)
+	checkNotification(t, expectedVirtual, bobVirtualNotifs)
+	checkNotification(t, expectedVirtual, ireneVirtualNotifs)
+
+	expectedVirtual = expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Ready)
 	aliceVirtual := rpcClientA.GetVirtualChannel(vRes.ChannelId)
-	if diff := cmp.Diff(expectedVirtual, aliceVirtual, cmp.AllowUnexported(big.Int{})); diff != "" {
-		t.Fatalf("Virtual diff mismatch for alice (-want +got):\n%s", diff)
-	}
+	checkQueryInfo(t, expectedVirtual, aliceVirtual)
+
 	bobVirtual := rpcClientB.GetVirtualChannel(vRes.ChannelId)
-	if diff := cmp.Diff(expectedVirtual, bobVirtual, cmp.AllowUnexported(big.Int{})); diff != "" {
-		t.Fatalf("Virtual diff mismatch for bob (-want +got):\n%s", diff)
-	}
+	checkQueryInfo(t, expectedVirtual, bobVirtual)
 
 	ireneVirtual := rpcClientI.GetVirtualChannel(vRes.ChannelId)
-	if diff := cmp.Diff(expectedVirtual, ireneVirtual, cmp.AllowUnexported(big.Int{})); diff != "" {
-		t.Fatalf("Virtual diff mismatch for irene (-want +got):\n%s", diff)
-	}
+	checkQueryInfo(t, expectedVirtual, ireneVirtual)
 
+	// TODO: I expect an event here, but it doesn't seem to be happening
+	// checkNotification(t, expectedVirtual, aliceVirtualNotifs)
+	// checkNotification(t, expectedVirtual, bobVirtualNotifs)
+	// checkNotification(t, expectedVirtual, ireneVirtualNotifs)
 	rpcClientA.Pay(vRes.ChannelId, 1)
 
 	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
@@ -133,6 +140,12 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	closeIdB := rpcClientB.CloseLedger(bobResponse.ChannelId)
 	<-rpcClientB.ObjectiveCompleteChan(closeIdB)
 	<-rpcClientI.ObjectiveCompleteChan(closeIdB)
+	finalOutcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Bob.Address(), 99, 1, types.Address{})
+
+	checkNotification(t, expectedPaymentInfo(vRes.ChannelId, finalOutcome, query.Ready), aliceVirtualNotifs)
+	checkNotification(t, expectedPaymentInfo(vRes.ChannelId, finalOutcome, query.Ready), bobVirtualNotifs)
+	// TODO Irene doesn't seem to get a notification here. Is that ok?
+	// checkNotification(t, expectedPaymentInfo(vRes.ChannelId, finalOutcome, query.Ready), ireneVirtualNotifs)
 }
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
@@ -200,4 +213,18 @@ func setupNitroNodeWithRPCClient(
 		rpcServer.Close()
 	}
 	return rpcClient, messageservice, cleanupFn
+}
+
+func checkQueryInfo[T query.ChannelInfo](t *testing.T, expected T, fetched T) {
+	if diff := cmp.Diff(expected, fetched, cmp.AllowUnexported(big.Int{})); diff != "" {
+		panic(fmt.Errorf("Ledger diff mismatch (-want +got):\n%s", diff))
+	}
+}
+
+func checkNotification[T query.ChannelInfo](t *testing.T, expected T, notifChan <-chan T) {
+	notif := <-notifChan
+	fmt.Printf("notif: %v\n", notif)
+	if diff := cmp.Diff(expected, notif, cmp.AllowUnexported(big.Int{})); diff != "" {
+		panic(fmt.Errorf("Notification diff mismatch (-want +got):\n%s", diff))
+	}
 }
