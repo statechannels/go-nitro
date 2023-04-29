@@ -1,8 +1,6 @@
 package notifier
 
 import (
-	"fmt"
-
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/internal/safesync"
@@ -78,7 +76,6 @@ func (cn *ChannelNotifier) NotifyLedgerUpdated(lId types.Destination) error {
 
 	allLi, ok := cn.ledgerListeners.Load("all")
 	if !ok {
-		fmt.Println("No listeners for all")
 		return nil
 	}
 	allLi.Notify(latest)

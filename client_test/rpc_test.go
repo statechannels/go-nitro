@@ -223,7 +223,6 @@ func checkQueryInfo[T query.ChannelInfo](t *testing.T, expected T, fetched T) {
 
 func checkNotification[T query.ChannelInfo](t *testing.T, expected T, notifChan <-chan T) {
 	notif := <-notifChan
-	fmt.Printf("notif: %v\n", notif)
 	if diff := cmp.Diff(expected, notif, cmp.AllowUnexported(big.Int{})); diff != "" {
 		panic(fmt.Errorf("Notification diff mismatch (-want +got):\n%s", diff))
 	}
