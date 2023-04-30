@@ -120,7 +120,7 @@ func TestUpdate(t *testing.T) {
 
 	// Assert that Updating the objective with such an event returns an error
 	// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
-	if _, err := s.Update(protocols.CreateObjectivePayload("some-id", SignedStatePayload, testState)); err == nil {
+	if _, _, err := s.Update(protocols.CreateObjectivePayload("some-id", SignedStatePayload, testState)); err == nil {
 		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
 	}
 
@@ -132,7 +132,7 @@ func TestUpdate(t *testing.T) {
 		t.Error(err)
 	}
 
-	updatedObjective, err := s.Update(protocols.CreateObjectivePayload(s.Id(), SignedStatePayload, ss))
+	updatedObjective, _, err := s.Update(protocols.CreateObjectivePayload(s.Id(), SignedStatePayload, ss))
 	if err != nil {
 		t.Error(err)
 	}

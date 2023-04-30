@@ -251,20 +251,26 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 
 // Update receives an ObjectivePayload, applies all applicable data to the DirectFundingObjectiveState,
 // and returns the updated state
-func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, error) {
+func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, []protocols.UpdatedChannelInfo, error) {
+	updatedChannels := []protocols.UpdatedChannelInfo{}
 	if o.Id() != p.ObjectiveId {
-		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(p.ObjectiveId), string(o.Id()))
+		return o, updatedChannels, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(p.ObjectiveId), string(o.Id()))
 	}
 
 	updated := o.clone()
+
 	ss, err := getSignedStatePayload(p.PayloadData)
 	if err != nil {
 		if err != nil {
-			return o, fmt.Errorf("could not get signed state payload: %w", err)
+			return o, updatedChannels, fmt.Errorf("could not get signed state payload: %w", err)
 		}
 	}
 	updated.C.AddSignedState(ss)
-	return &updated, nil
+	updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{
+		ChannelId: o.C.Id,
+		Type:      protocols.LedgerChannel,
+	})
+	return &updated, updatedChannels, nil
 }
 
 // UpdateWithChainEvent updates the objective with observed on-chain data.

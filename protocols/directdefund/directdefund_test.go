@@ -96,7 +96,7 @@ func TestUpdate(t *testing.T) {
 	// Prepare an event with a mismatched channelId
 	op := protocols.CreateObjectivePayload("some-id", SignedStatePayload, testState)
 	// Assert that Updating the objective with such an event returns an error
-	if _, err := o.Update(op); err == nil {
+	if _, _, err := o.Update(op); err == nil {
 		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
 	}
 
@@ -107,7 +107,7 @@ func TestUpdate(t *testing.T) {
 	ss, _ := signedTestState(s, []bool{true, false})
 	op = protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, ss)
 
-	if _, err := o.Update(op); err.Error() != "direct defund objective can only be updated with final states" {
+	if _, _, err := o.Update(op); err.Error() != "direct defund objective can only be updated with final states" {
 		t.Error(err)
 	}
 
@@ -116,7 +116,7 @@ func TestUpdate(t *testing.T) {
 	s.IsFinal = true
 	ss, _ = signedTestState(s, []bool{true, false})
 	op = protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, ss)
-	if _, err := o.Update(op); err.Error() != "expected state with turn number 2, received turn number 4" {
+	if _, _, err := o.Update(op); err.Error() != "expected state with turn number 2, received turn number 4" {
 		t.Error(err)
 	}
 }
@@ -165,7 +165,7 @@ func TestCrankAlice(t *testing.T) {
 	// The second update and crank. Alice is expected to create a withdrawAll transaction
 	finalStateSignedByAliceBob, _ := signedTestState(finalState, []bool{true, true})
 	op := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, finalStateSignedByAliceBob)
-	updated, err = updated.Update(op)
+	updated, _, err = updated.Update(op)
 	if err != nil {
 		t.Error(err)
 	}
@@ -224,7 +224,7 @@ func TestCrankBob(t *testing.T) {
 	finalStateSignedByAlice, _ := signedTestState(finalState, []bool{true, false})
 
 	op := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, finalStateSignedByAlice)
-	updated, err := o.Update(op)
+	updated, _, err := o.Update(op)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestCrankBob(t *testing.T) {
 	}
 
 	// The second update and crank. Bob is expected to NOT create any transactions or side effects
-	updated, err = updated.Update(op)
+	updated, _, err = updated.Update(op)
 	if err != nil {
 		t.Error(err)
 	}

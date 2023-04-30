@@ -209,7 +209,7 @@ func TestMisaddressedUpdate(t *testing.T) {
 		}
 	)
 
-	if _, err := vfo.Update(event); err == nil {
+	if _, _, err := vfo.Update(event); err == nil {
 		t.Fatal("expected error updating vfo with objective ID mismatch, but found none")
 	}
 }
@@ -253,7 +253,7 @@ func TestCrankAsAlice(t *testing.T) {
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
 	ss := c.SignedPreFundState()
 	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, &ss)
-	oObj, err = o.Update(e)
+	oObj, _, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
 
@@ -337,7 +337,7 @@ func TestCrankAsBob(t *testing.T) {
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
 
 	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, c.SignedPreFundState())
-	oObj, err = o.Update(e)
+	oObj, _, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
 
@@ -415,7 +415,7 @@ func TestCrankAsP1(t *testing.T) {
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
 	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, c.SignedPreFundState())
-	oObj, err = o.Update(e)
+	oObj, _, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
 	Equals(t, updatedChannels[0].ChannelId, o.V.Id)

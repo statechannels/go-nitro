@@ -327,7 +327,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		alice := o.V.Participants[0]
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.VId(), RequestFinalStatePayload, alice)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: updated.VId(), Type: "payment"})
+
 		return &updated, sideEffects, updatedChannels, WaitingForFinalStateFromAlice, nil
 	}
 
@@ -341,6 +341,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		}
 		// Sign and store:
 		ss, err := updated.V.SignAndAddState(s, secretKey)
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: updated.VId(), Type: "payment"})
 		if err != nil {
 			return &updated, sideEffects, updatedChannels, WaitingForNothing, fmt.Errorf("could not sign final state: %w", err)
 		}
@@ -506,33 +507,35 @@ func getRequestFinalStatePayload(b []byte) (types.Destination, error) {
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
 // and returns the updated state.
-func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, error) {
+func (o *Objective) Update(op protocols.ObjectivePayload) (protocols.Objective, []protocols.UpdatedChannelInfo, error) {
+	updatedChannels := []protocols.UpdatedChannelInfo{}
 	if o.Id() != op.ObjectiveId {
-		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(op.ObjectiveId), string(o.Id()))
+		return o, updatedChannels, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(op.ObjectiveId), string(o.Id()))
 	}
 
 	switch op.Type {
 	case SignedStatePayload:
 		ss, err := getSignedStatePayload(op.PayloadData)
 		if err != nil {
-			return &Objective{}, err
+			return &Objective{}, updatedChannels, err
 		}
 		updated := o.clone()
 		err = validateFinalOutcome(updated.V.FixedPart, updated.initialOutcome(), ss.State().Outcome[0], o.V.Participants[o.MyRole], updated.MinimumPaymentAmount)
 		if err != nil {
-			return o, fmt.Errorf("outcome failed validation %w", err)
+			return o, updatedChannels, fmt.Errorf("outcome failed validation %w", err)
 		}
 		ok := updated.V.AddSignedState(ss)
-		if !ok {
-			return o, fmt.Errorf("could not add signed state %v", ss)
-		}
 
-		return &updated, nil
+		if !ok {
+			return o, updatedChannels, fmt.Errorf("could not add signed state %v", ss)
+		}
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.VId(), Type: "virtual"})
+		return &updated, updatedChannels, nil
 	case RequestFinalStatePayload:
 		// Since the objective is already created we don't need to do anything else with the payload
-		return o, nil
+		return o, updatedChannels, nil
 	default:
-		return o, fmt.Errorf("unknown payload type %s", op.Type)
+		return o, updatedChannels, fmt.Errorf("unknown payload type %s", op.Type)
 	}
 }
 

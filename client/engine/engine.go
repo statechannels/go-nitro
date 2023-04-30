@@ -267,9 +267,11 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			continue
 		}
 
-		updatedObjective, err := objective.Update(payload)
+		updatedObjective, _, err := objective.Update(payload)
+		// allCompleted.UpdatedChannels = append(allCompleted.UpdatedChannels, updatedChannels...)
 		if err != nil {
-			return EngineEvent{}, err
+			panic((err))
+			// return EngineEvent{}, err
 		}
 		progressEvent, err := e.attemptProgress(updatedObjective)
 		if err != nil {

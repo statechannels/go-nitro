@@ -54,7 +54,7 @@ func TestInvalidUpdate(t *testing.T) {
 	signStateByOthers(alice, signedFinal)
 
 	e := protocols.CreateObjectivePayload(virtualDefund.Id(), SignedStatePayload, signedFinal)
-	_, err = virtualDefund.Update(e)
+	_, _, err = virtualDefund.Update(e)
 	// TODO: the protocol should probably handle this properly with a nice error
 	// if err.Error() != "event channelId out of scope of objective" {
 	if err == nil {
@@ -76,7 +76,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		signStateByOthers(my, signedFinal)
 
 		e := protocols.CreateObjectivePayload(virtualDefund.Id(), SignedStatePayload, signedFinal)
-		updatedObj, err := virtualDefund.Update(e)
+		updatedObj, _, err := virtualDefund.Update(e)
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
 		ss, ok := updated.V.SignedStateForTurnNum[FinalTurnNum]

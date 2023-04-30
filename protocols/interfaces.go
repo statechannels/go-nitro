@@ -80,7 +80,7 @@ type Objective interface {
 
 	Approve() Objective                                                                        // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Reject() (Objective, SideEffects)                                                          // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-	Update(payload ObjectivePayload) (Objective, error)                                        // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+	Update(payload ObjectivePayload) (Objective, []UpdatedChannelInfo, error)                  // returns an updated Objective (a copy, no mutation allowed), does not declare effects
 	Crank(secretKey *[]byte) (Objective, SideEffects, []UpdatedChannelInfo, WaitingFor, error) // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
 
 	// Related returns a slice of related objects that need to be stored along with the objective

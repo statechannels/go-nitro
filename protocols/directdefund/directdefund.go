@@ -191,30 +191,35 @@ func (o *Objective) Related() []protocols.Storable {
 
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectDefundingObjective,
 // and returns the updated objective
-func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, error) {
+func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, []protocols.UpdatedChannelInfo, error) {
+	updatedChannels := []protocols.UpdatedChannelInfo{}
 	if o.Id() != p.ObjectiveId {
-		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(p.ObjectiveId), string(o.Id()))
+		return o, updatedChannels, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(p.ObjectiveId), string(o.Id()))
 	}
 	ss, err := getSignedStatePayload(p.PayloadData)
 	if err != nil {
-		return o, fmt.Errorf("could not get signed state payload: %w", err)
+		return o, updatedChannels, fmt.Errorf("could not get signed state payload: %w", err)
 	}
 	if len(ss.Signatures()) != 0 {
 
 		if !ss.State().IsFinal {
-			return o, errors.New("direct defund objective can only be updated with final states")
+			return o, updatedChannels, errors.New("direct defund objective can only be updated with final states")
 		}
 		if o.finalTurnNum != ss.State().TurnNum {
-			return o, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, ss.State().TurnNum)
+			return o, updatedChannels, fmt.Errorf("expected state with turn number %d, received turn number %d", o.finalTurnNum, ss.State().TurnNum)
 		}
 	} else {
-		return o, fmt.Errorf("event does not contain a signed state")
+		return o, updatedChannels, fmt.Errorf("event does not contain a signed state")
 	}
 
 	updated := o.clone()
 	updated.C.AddSignedState(ss)
+	updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{
+		ChannelId: o.C.Id,
+		Type:      protocols.LedgerChannel,
+	})
 
-	return &updated, nil
+	return &updated, updatedChannels, nil
 }
 
 // UpdateWithChainEvent updates the objective with observed on-chain data.

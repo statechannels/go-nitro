@@ -370,21 +370,27 @@ func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protoc
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
 // and returns the updated state.
-func (o *Objective) Update(raw protocols.ObjectivePayload) (protocols.Objective, error) {
+func (o *Objective) Update(raw protocols.ObjectivePayload) (protocols.Objective, []protocols.UpdatedChannelInfo, error) {
+	updatedChannels := []protocols.UpdatedChannelInfo{}
 	if o.Id() != raw.ObjectiveId {
-		return o, fmt.Errorf("raw and objective Ids do not match: %s and %s respectively", string(raw.ObjectiveId), string(o.Id()))
+		return o, updatedChannels, fmt.Errorf("raw and objective Ids do not match: %s and %s respectively", string(raw.ObjectiveId), string(o.Id()))
 	}
 	payload, err := o.getPayload(raw)
 	if err != nil {
-		return o, fmt.Errorf("error parsing payload: %w", err)
+		return o, updatedChannels, fmt.Errorf("error parsing payload: %w", err)
 	}
 	updated := o.clone()
 
 	if ss := payload; len(ss.Signatures()) != 0 {
+
 		updated.V.AddSignedState(*ss)
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{
+			ChannelId: updated.V.ChannelId(),
+			Type:      protocols.VirtualChannel,
+		})
 	}
 
-	return &updated, nil
+	return &updated, updatedChannels, nil
 }
 
 // Crank inspects the extended state and declares a list of Effects to be executed
