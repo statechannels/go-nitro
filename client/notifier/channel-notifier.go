@@ -44,7 +44,11 @@ func (cn *ChannelNotifier) RegisterForLedgerUpdates(cId types.Destination) <-cha
 }
 
 func (cn *ChannelNotifier) RegisterForAllPaymentUpdates() <-chan query.PaymentChannelInfo {
-	li, _ := cn.paymentListeners.LoadOrStore("all", newPaymentChannelListeners())
+	li, loaded := cn.paymentListeners.LoadOrStore("all", newPaymentChannelListeners())
+	if loaded {
+		// Use the existing listener instead of always spawning a new one
+		return li.getListener(0)
+	}
 
 	newList := li.createListener()
 	cn.paymentListeners.Store("all", li)

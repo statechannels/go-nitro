@@ -29,6 +29,10 @@ func (li *paymentChannelListeners) Notify(info query.PaymentChannelInfo) {
 	li.prev = info
 }
 
+func (li *paymentChannelListeners) getListener(index int) <-chan query.PaymentChannelInfo {
+	return li.listeners[index]
+}
+
 func (li *paymentChannelListeners) createListener() <-chan query.PaymentChannelInfo {
 	li.listenersLock.Lock()
 	defer li.listenersLock.Unlock()
