@@ -33,6 +33,17 @@ func (rs *RpcServer) Close() {
 	rs.transport.Close()
 }
 
+func NewRpcServerWithoutNotifications(nitroClient *nitro.Client, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
+	rs := &RpcServer{trans, nitroClient, logger}
+
+	err := rs.registerHandlers()
+	if err != nil {
+		return nil, err
+	}
+
+	return rs, nil
+}
+
 func NewRpcServer(nitroClient *nitro.Client, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
 	rs := &RpcServer{trans, nitroClient, logger}
 	rs.sendNotifications()

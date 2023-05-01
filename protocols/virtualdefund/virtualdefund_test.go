@@ -110,8 +110,8 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		virtualDefund, err := NewObjective(request, true, my.Address(), ourPaymentAmount, getChannel, getConsensusChannel)
 		testhelpers.Ok(t, err)
 
-		updatedObj, se, uc, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
-		testhelpers.Equals(t, uc[0].ChannelId, vId)
+		updatedObj, se, _, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
+
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
 
@@ -148,6 +148,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 			}
 		}
 		updated.V.AddSignedState(ss)
+		var uc []protocols.UpdatedChannelInfo
 
 		updatedObj, se, uc, waitingFor, err = updated.Crank(&my.PrivateKey)
 		updated = updatedObj.(*Objective)

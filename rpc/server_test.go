@@ -32,7 +32,7 @@ func sendRequestAndExpectError(t *testing.T, request []byte, expectedError serde
 	mockClient := &nitro.Client{}
 	mockLogger := &zerolog.Logger{}
 	mockResponder := &mockResponder{}
-	_, err := NewRpcServer(mockClient, mockLogger, mockResponder)
+	_, err := NewRpcServerWithoutNotifications(mockClient, mockLogger, mockResponder)
 	if err != nil {
 		t.Error(err)
 	}

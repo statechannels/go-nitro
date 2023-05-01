@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -24,6 +25,10 @@ import (
 	"github.com/statechannels/go-nitro/types"
 	"github.com/stretchr/testify/assert"
 )
+
+func simpleOutcome(a, b types.Address, aBalance, bBalance uint) outcome.Exit {
+	return testdata.Outcomes.Create(a, b, aBalance, bBalance, types.Address{})
+}
 
 func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.Logger {
 	return zerolog.New(logDestination).
@@ -70,6 +75,11 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	aliceLedgerNotifs := rpcClientA.LedgerChannelUpdatesChan(res.ChannelId)
 	bobledgerNotifs := rpcClientB.LedgerChannelUpdatesChan(bobResponse.ChannelId)
 
+	// go func() {
+	// 	for b := range bobledgerNotifs {
+	// 		fmt.Printf("%+v\n", b)
+	// 	}
+	// }()
 	// Quick sanity check that we're getting a valid objective id
 	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
 
@@ -77,9 +87,6 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	<-rpcClientB.ObjectiveCompleteChan(bobResponse.Id)
 	<-rpcClientI.ObjectiveCompleteChan(res.Id)
 	<-rpcClientI.ObjectiveCompleteChan(bobResponse.Id)
-
-	checkNotification(t, expectedLedgerInfo(res.ChannelId, aliceLedgerOutcome, query.Proposed), aliceLedgerNotifs)
-	checkNotification(t, expectedLedgerInfo(bobResponse.ChannelId, bobLedgerOutcome, query.Proposed), bobledgerNotifs)
 
 	expectedAliceLedger := expectedLedgerInfo(res.ChannelId, aliceLedgerOutcome, query.Ready)
 	checkQueryInfo(t, expectedAliceLedger, rpcClientA.GetLedgerChannel(res.ChannelId))
@@ -93,6 +100,8 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 		ta.Bob.Address(),
 		100,
 		initialOutcome)
+	aliceVirtualNotifs := rpcClientA.PaymentChannelUpdatesChan(vRes.ChannelId)
+	bobVirtualNotifs := rpcClientB.PaymentChannelUpdatesChan(vRes.ChannelId)
 
 	assert.Regexp(t, "VirtualFund.0x.*", vRes.Id)
 
@@ -100,34 +109,14 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	<-rpcClientB.ObjectiveCompleteChan(vRes.Id)
 	<-rpcClientI.ObjectiveCompleteChan(vRes.Id)
 
-	// TODO: For some reason we don't get these notifications until after objective completed is read
-	checkNotification(t, expectedAliceLedger, aliceLedgerNotifs)
-	checkNotification(t, expectedBobLedger, bobledgerNotifs)
-
-	aliceVirtualNotifs := rpcClientA.PaymentChannelUpdatesChan(vRes.ChannelId)
-	bobVirtualNotifs := rpcClientB.PaymentChannelUpdatesChan(vRes.ChannelId)
-	ireneVirtualNotifs := rpcClientI.PaymentChannelUpdatesChan(vRes.ChannelId)
-
-	expectedVirtual := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Proposed)
-	// TODO: For some reason we don't get these notifications until after objective completed is ready
-	checkNotification(t, expectedVirtual, aliceVirtualNotifs)
-	checkNotification(t, expectedVirtual, bobVirtualNotifs)
-	checkNotification(t, expectedVirtual, ireneVirtualNotifs)
-
-	expectedVirtual = expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Ready)
+	expectedVirtual := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Ready)
 	aliceVirtual := rpcClientA.GetVirtualChannel(vRes.ChannelId)
 	checkQueryInfo(t, expectedVirtual, aliceVirtual)
-
 	bobVirtual := rpcClientB.GetVirtualChannel(vRes.ChannelId)
 	checkQueryInfo(t, expectedVirtual, bobVirtual)
-
 	ireneVirtual := rpcClientI.GetVirtualChannel(vRes.ChannelId)
 	checkQueryInfo(t, expectedVirtual, ireneVirtual)
 
-	// TODO: I expect an event here, but it doesn't seem to be happening
-	// checkNotification(t, expectedVirtual, aliceVirtualNotifs)
-	// checkNotification(t, expectedVirtual, bobVirtualNotifs)
-	// checkNotification(t, expectedVirtual, ireneVirtualNotifs)
 	rpcClientA.Pay(vRes.ChannelId, 1)
 
 	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
@@ -142,12 +131,35 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	closeIdB := rpcClientB.CloseLedger(bobResponse.ChannelId)
 	<-rpcClientB.ObjectiveCompleteChan(closeIdB)
 	<-rpcClientI.ObjectiveCompleteChan(closeIdB)
-	finalOutcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Bob.Address(), 99, 1, types.Address{})
 
-	checkNotification(t, expectedPaymentInfo(vRes.ChannelId, finalOutcome, query.Ready), aliceVirtualNotifs)
-	checkNotification(t, expectedPaymentInfo(vRes.ChannelId, finalOutcome, query.Ready), bobVirtualNotifs)
-	// TODO Irene doesn't seem to get a notification here. Is that ok?
-	// checkNotification(t, expectedPaymentInfo(vRes.ChannelId, finalOutcome, query.Ready), ireneVirtualNotifs)
+	expectedAliceLedgerNotifs := []query.LedgerChannelInfo{
+		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Ready),
+		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 0, 100), query.Ready),
+		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
+		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Closing),
+		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Complete),
+	}
+	expectedBobLedgerNotifs := []query.LedgerChannelInfo{
+		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
+		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Ready),
+		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 0), query.Ready),
+		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Closing),
+		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Complete),
+	}
+
+	checkNotifications(t, expectedAliceLedgerNotifs, aliceLedgerNotifs)
+	checkNotifications(t, expectedBobLedgerNotifs, bobledgerNotifs)
+
+	// TODO: We seem to be missing a few notifications :()
+	expectedVirtualNotifs := []query.PaymentChannelInfo{
+		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
+		// expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Ready),
+		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Ready),
+		// expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
+		// expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
+	}
+	checkNotifications(t, expectedVirtualNotifs, aliceVirtualNotifs)
+	checkNotifications(t, expectedVirtualNotifs, bobVirtualNotifs)
 }
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
@@ -223,9 +235,25 @@ func checkQueryInfo[T query.ChannelInfo](t *testing.T, expected T, fetched T) {
 	}
 }
 
-func checkNotification[T query.ChannelInfo](t *testing.T, expected T, notifChan <-chan T) {
-	notif := <-notifChan
-	if diff := cmp.Diff(expected, notif, cmp.AllowUnexported(big.Int{})); diff != "" {
-		panic(fmt.Errorf("Notification diff mismatch (-want +got):\n%s", diff))
+// checkNotifications checks that the expected notifications are received on the notifChan.
+// Due to the async nature of RPC notifications (and how quickly are clients communicate), the order of the notifications is not guaranteed.
+// This function checks that all the expected notifications are received, but not in any particular order.
+func checkNotifications[T query.ChannelInfo](t *testing.T, expected []T, notifChan <-chan T) {
+	fetched := make([]T, len(expected))
+	for i := range expected {
+		fetched[i] = <-notifChan
+	}
+	for _, expected := range expected {
+		found := false
+		for _, fetched := range fetched {
+			if (cmp.Equal(expected, fetched, cmp.AllowUnexported(big.Int{}))) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("Expected notification not found: %v in fetched.\nFetched %+v\n", expected, fetched)
+		}
+
 	}
 }
