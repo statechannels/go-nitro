@@ -144,14 +144,14 @@ func (c *Client) Version() string {
 // handleUpdatedChannel handles notifying the client of an updated channel.
 func (c *Client) handleUpdatedChannel(updated protocols.UpdatedChannelInfo) error {
 	switch updated.Type {
-	case "ledger":
+	case protocols.LedgerChannel:
 
 		err := c.channelNotifier.NotifyLedgerUpdated(updated.ChannelId)
 		if err != nil {
 			return err
 		}
 
-	case "payment":
+	case protocols.VirtualChannel:
 
 		err := c.channelNotifier.NotifyPaymentUpdated(updated.ChannelId)
 		if err != nil {

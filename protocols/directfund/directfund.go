@@ -322,7 +322,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		}
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, updated.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.C.ChannelId(), Type: "ledger"})
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.C.ChannelId(), Type: protocols.LedgerChannel})
 	}
 
 	if !updated.C.PreFundComplete() {
@@ -342,7 +342,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		deposit := protocols.NewDepositTransaction(updated.C.Id, amountToDeposit)
 		updated.transactionSubmitted = true
 		sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, deposit)
-		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.C.ChannelId(), Type: "ledger"})
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.C.ChannelId(), Type: protocols.LedgerChannel})
 	}
 
 	if !fundingComplete {
@@ -358,7 +358,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		}
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, updated.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.C.ChannelId(), Type: "ledger"})
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.C.ChannelId(), Type: protocols.LedgerChannel})
 	}
 
 	if !updated.C.PostFundComplete() {

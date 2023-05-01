@@ -283,7 +283,7 @@ func TestCrankAsAlice(t *testing.T) {
 	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
 	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[1], TurnNum: 2}
 
-	oObj, err = o.ReceiveProposal(sp)
+	oObj, _, err = o.ReceiveProposal(sp)
 	o = oObj.(*Objective)
 	Ok(t, err)
 
@@ -356,7 +356,7 @@ func TestCrankAsBob(t *testing.T) {
 	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, bob, o.ToMyLeft.getExpectedGuarantee())[0], TurnNum: 2}
 
-	oObj, err = o.ReceiveProposal(sp)
+	oObj, _, err = o.ReceiveProposal(sp)
 	o = oObj.(*Objective)
 	Ok(t, err)
 
@@ -445,7 +445,7 @@ func TestCrankAsP1(t *testing.T) {
 	p = consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[1], TurnNum: 2}
 
-	oObj, err = o.ReceiveProposal(sp)
+	oObj, _, err = o.ReceiveProposal(sp)
 	o = oObj.(*Objective)
 	Ok(t, err)
 

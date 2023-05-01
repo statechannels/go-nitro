@@ -330,9 +330,10 @@ func (o *Objective) getPayload(raw protocols.ObjectivePayload) (*state.SignedSta
 	return payload, nil
 }
 
-func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protocols.ProposalReceiver, error) {
+func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protocols.ProposalReceiver, []protocols.UpdatedChannelInfo, error) {
+	updatedChannels := []protocols.UpdatedChannelInfo{}
 	if pId := protocols.GetProposalObjectiveId(sp.Proposal); o.Id() != pId {
-		return o, fmt.Errorf("sp and objective Ids do not match: %s and %s respectively", string(pId), string(o.Id()))
+		return o, updatedChannels, fmt.Errorf("sp and objective Ids do not match: %s and %s respectively", string(pId), string(o.Id()))
 	}
 
 	updated := o.clone()
@@ -352,20 +353,22 @@ func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protoc
 
 		switch sp.Proposal.LedgerID {
 		case types.Destination{}:
-			return o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
+			return o, updatedChannels, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
 		case toMyLeftId:
 			err = updated.ToMyLeft.handleProposal(sp)
+			updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: toMyLeftId, Type: protocols.LedgerChannel})
 		case toMyRightId:
 			err = updated.ToMyRight.handleProposal(sp)
+			updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: toMyRightId, Type: protocols.LedgerChannel})
 		default:
-			return o, fmt.Errorf("signed proposal is not addressed to a known ledger connection")
+			return o, updatedChannels, fmt.Errorf("signed proposal is not addressed to a known ledger connection")
 		}
 
 		if err != nil {
-			return o, fmt.Errorf("error incorporating signed proposal %+v into objective: %w", sp, err)
+			return o, updatedChannels, fmt.Errorf("error incorporating signed proposal %+v into objective: %w", sp, err)
 		}
 	}
-	return &updated, nil
+	return &updated, updatedChannels, nil
 }
 
 // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualFundObjective,
@@ -413,7 +416,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if err != nil {
 			return o, protocols.SideEffects{}, updatedChannels, WaitingForNothing, err
 		}
-		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: ss.ChannelId(), Type: "payment"})
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: ss.ChannelId(), Type: protocols.VirtualChannel})
 		messages := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
@@ -453,7 +456,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if err != nil {
 			return o, protocols.SideEffects{}, updatedChannels, WaitingForNothing, err
 		}
-		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: updated.V.Id, Type: "payment"})
+		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: updated.V.Id, Type: protocols.VirtualChannel})
 		messages := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
@@ -709,7 +712,7 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 		if err != nil {
 			return protocols.SideEffects{}, channelsUpdated, fmt.Errorf("error proposing ledger update: %w", err)
 		}
-		channelsUpdated = append(channelsUpdated, protocols.UpdatedChannelInfo{ChannelId: ledger.Id, Type: "ledger"})
+		channelsUpdated = append(channelsUpdated, protocols.UpdatedChannelInfo{ChannelId: ledger.Id, Type: protocols.LedgerChannel})
 		sideEffects = se
 	} else {
 		if err != nil {
@@ -723,7 +726,7 @@ func (o *Objective) updateLedgerWithGuarantee(ledgerConnection Connection, sk *[
 			if err != nil {
 				return protocols.SideEffects{}, channelsUpdated, fmt.Errorf("error proposing ledger update: %w", err)
 			}
-			channelsUpdated = append(channelsUpdated, protocols.UpdatedChannelInfo{ChannelId: ledger.Id, Type: "ledger"})
+			channelsUpdated = append(channelsUpdated, protocols.UpdatedChannelInfo{ChannelId: ledger.Id, Type: protocols.LedgerChannel})
 			sideEffects = se
 		}
 	}

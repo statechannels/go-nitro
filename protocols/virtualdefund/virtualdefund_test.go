@@ -174,7 +174,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		proposals := generateProposalsResponses(my.Role, vId, updated, data)
 		for _, p := range proposals {
 
-			updatedObj, err = updated.ReceiveProposal(p)
+			updatedObj, _, err = updated.ReceiveProposal(p)
 			testhelpers.Ok(t, err)
 			updated = updatedObj.(*Objective)
 		}

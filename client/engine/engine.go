@@ -267,11 +267,10 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			continue
 		}
 
-		updatedObjective, _, err := objective.Update(payload)
-		// allCompleted.UpdatedChannels = append(allCompleted.UpdatedChannels, updatedChannels...)
+		updatedObjective, updatedChannels, err := objective.Update(payload)
+		allCompleted.UpdatedChannels = append(allCompleted.UpdatedChannels, updatedChannels...)
 		if err != nil {
-			panic((err))
-			// return EngineEvent{}, err
+			return EngineEvent{}, err
 		}
 		progressEvent, err := e.attemptProgress(updatedObjective)
 		if err != nil {
@@ -302,11 +301,11 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			return EngineEvent{}, fmt.Errorf("received a proposal for an objective which cannot receive proposals %s", objective.Id())
 		}
 
-		updatedObjective, err := objective.ReceiveProposal(entry)
+		updatedObjective, updatedChannels, err := objective.ReceiveProposal(entry)
 		if err != nil {
 			return EngineEvent{}, err
 		}
-
+		allCompleted.UpdatedChannels = append(allCompleted.UpdatedChannels, updatedChannels...)
 		progressEvent, err := e.attemptProgress(updatedObjective)
 		if err != nil {
 			return EngineEvent{}, err

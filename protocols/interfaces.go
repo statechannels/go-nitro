@@ -98,7 +98,7 @@ type ProposalReceiver interface {
 	Objective
 	// ReceiveProposal receives a signed proposal and returns an updated VirtualObjective.
 	// It is used to update the objective with a proposal received from a peer.
-	ReceiveProposal(signedProposal consensus_channel.SignedProposal) (ProposalReceiver, error)
+	ReceiveProposal(signedProposal consensus_channel.SignedProposal) (ProposalReceiver, []UpdatedChannelInfo, error)
 }
 
 // ObjectiveId is a unique identifier for an Objective.
