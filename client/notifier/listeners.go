@@ -70,3 +70,23 @@ func (li *ledgerChannelListeners) createListener() <-chan query.LedgerChannelInf
 	li.listeners = append(li.listeners, listener)
 	return listener
 }
+
+func (li *ledgerChannelListeners) Close() error {
+	li.listenersLock.Lock()
+	defer li.listenersLock.Unlock()
+	for _, c := range li.listeners {
+		close(c)
+	}
+
+	return nil
+}
+
+func (li *paymentChannelListeners) Close() error {
+	li.listenersLock.Lock()
+	defer li.listenersLock.Unlock()
+	for _, c := range li.listeners {
+		close(c)
+	}
+
+	return nil
+}

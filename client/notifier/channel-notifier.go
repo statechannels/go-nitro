@@ -104,3 +104,16 @@ func (cn *ChannelNotifier) NotifyPaymentUpdated(pId types.Destination) error {
 
 	return nil
 }
+
+func (cn *ChannelNotifier) Close() error {
+	var err error
+	cn.ledgerListeners.Range(func(k string, v *ledgerChannelListeners) bool {
+		err = v.Close()
+		return err == nil
+	})
+	cn.paymentListeners.Range(func(k string, v *paymentChannelListeners) bool {
+		err = v.Close()
+		return err == nil
+	})
+	return err
+}

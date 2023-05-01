@@ -279,6 +279,9 @@ func (c *Client) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo
 
 // Close stops the client from responding to any input.
 func (c *Client) Close() error {
+	if err := c.channelNotifier.Close(); err != nil {
+		return err
+	}
 	if err := c.engine.Close(); err != nil {
 		return err
 	}

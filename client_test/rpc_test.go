@@ -37,10 +37,12 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 }
 
 func TestRpcWithNats(t *testing.T) {
+	// t.Skip()
 	executeRpcTest(t, "nats")
 }
 
 func TestRpcWithWebsockets(t *testing.T) {
+	// t.Skip()
 	executeRpcTest(t, "ws")
 }
 
