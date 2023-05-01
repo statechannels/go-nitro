@@ -42,12 +42,10 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 }
 
 func TestRpcWithNats(t *testing.T) {
-	// t.Skip()
 	executeRpcTest(t, "nats")
 }
 
 func TestRpcWithWebsockets(t *testing.T) {
-	// t.Skip()
 	executeRpcTest(t, "ws")
 }
 
@@ -75,11 +73,6 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	aliceLedgerNotifs := rpcClientA.LedgerChannelUpdatesChan(res.ChannelId)
 	bobledgerNotifs := rpcClientB.LedgerChannelUpdatesChan(bobResponse.ChannelId)
 
-	// go func() {
-	// 	for b := range bobledgerNotifs {
-	// 		fmt.Printf("%+v\n", b)
-	// 	}
-	// }()
 	// Quick sanity check that we're getting a valid objective id
 	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
 
@@ -150,13 +143,14 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	checkNotifications(t, expectedAliceLedgerNotifs, aliceLedgerNotifs)
 	checkNotifications(t, expectedBobLedgerNotifs, bobledgerNotifs)
 
-	// TODO: We seem to be missing a few notifications :()
+	// TODO: We seem to be missing a few notifications :(
 	expectedVirtualNotifs := []query.PaymentChannelInfo{
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
-		// expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Ready),
+		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Ready),
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Ready),
-		// expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
-		// expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
+		// TODO: Why are we getting an outcome of [A:100, B:0] here?
+		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Closing),
+		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
 	}
 	checkNotifications(t, expectedVirtualNotifs, aliceVirtualNotifs)
 	checkNotifications(t, expectedVirtualNotifs, bobVirtualNotifs)

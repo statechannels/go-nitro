@@ -388,6 +388,8 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	// Mark the objective as done
 	updated.Status = protocols.Completed
+	// TODO: Why do we manually need to flag this to get our completed notification?
+	updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: updated.VId(), Type: protocols.VirtualChannel})
 	return &updated, sideEffects, updatedChannels, WaitingForNothing, nil
 }
 

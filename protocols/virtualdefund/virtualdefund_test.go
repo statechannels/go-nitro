@@ -189,7 +189,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 
 		switch my.Role {
 		case 0:
-			testhelpers.Equals(t, len(uc), 0)
+			testhelpers.Equals(t, uc[0].ChannelId, updated.V.Id)
 		case 1:
 			testhelpers.Equals(t, uc[0].ChannelId, updated.ToMyLeft.Id)
 		case 2:
