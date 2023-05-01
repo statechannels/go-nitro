@@ -496,6 +496,11 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
 	if payer != *e.store.GetAddress() {
 		return fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
 	}
+	info, err := query.GetPaymentChannelInfo(cId, e.store, e.vm)
+	if err != nil {
+		return fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
+	}
+	e.toApi <- EngineEvent{PaymentChannelUpdates: []query.PaymentChannelInfo{info}}
 	se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
 	return e.executeSideEffects(se)
 }
@@ -554,12 +559,12 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 
 	err = e.store.SetObjective(crankedObjective)
 
-	ledgerNofifs, PaymentNotifs, err := e.createNotifications(updatedChannels)
+	ledgerNofifs, paymentNotifs, err := e.createNotifications(updatedChannels)
 	if err != nil {
 		return EngineEvent{}, err
 	}
 	outgoing.LedgerChannelUpdates = ledgerNofifs
-	outgoing.PaymentChannelUpdates = PaymentNotifs
+	outgoing.PaymentChannelUpdates = paymentNotifs
 
 	if err != nil {
 		return
