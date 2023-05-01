@@ -13,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
@@ -89,8 +90,17 @@ type EngineEvent struct {
 	// ReceivedVouchers are vouchers we've received from other participants
 	ReceivedVouchers []payments.Voucher
 
-	// UpdatedChannels contains basic info (channel id and type) about a channel that has been updated
-	UpdatedChannels []protocols.UpdatedChannelInfo
+	LedgerChannelUpdates []query.LedgerChannelInfo
+
+	PaymentChannelUpdates []query.PaymentChannelInfo
+}
+
+func (ee *EngineEvent) Merge(other EngineEvent) {
+	ee.CompletedObjectives = append(ee.CompletedObjectives, other.CompletedObjectives...)
+	ee.FailedObjectives = append(ee.FailedObjectives, other.FailedObjectives...)
+	ee.ReceivedVouchers = append(ee.ReceivedVouchers, other.ReceivedVouchers...)
+	ee.LedgerChannelUpdates = append(ee.LedgerChannelUpdates, other.LedgerChannelUpdates...)
+	ee.PaymentChannelUpdates = append(ee.PaymentChannelUpdates, other.PaymentChannelUpdates...)
 }
 
 type CompletedObjectiveEvent struct {
@@ -184,7 +194,8 @@ func (e *Engine) Run() {
 		if len(res.CompletedObjectives) > 0 ||
 			len(res.FailedObjectives) > 0 ||
 			len(res.ReceivedVouchers) > 0 ||
-			len(res.UpdatedChannels) > 0 {
+			len(res.LedgerChannelUpdates) > 0 ||
+			len(res.PaymentChannelUpdates) > 0 {
 
 			for _, obj := range res.CompletedObjectives {
 				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
@@ -268,16 +279,22 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		}
 
 		updatedObjective, updatedChannels, err := objective.Update(payload)
-		allCompleted.UpdatedChannels = append(allCompleted.UpdatedChannels, updatedChannels...)
 		if err != nil {
 			return EngineEvent{}, err
 		}
+		ledgerNofifs, paymentNotifs, err := e.createNotifications(updatedChannels)
+		if err != nil {
+			return EngineEvent{}, err
+		}
+		allCompleted.LedgerChannelUpdates = append(allCompleted.LedgerChannelUpdates, ledgerNofifs...)
+		allCompleted.PaymentChannelUpdates = append(allCompleted.PaymentChannelUpdates, paymentNotifs...)
+
 		progressEvent, err := e.attemptProgress(updatedObjective)
 		if err != nil {
 			return EngineEvent{}, err
 		}
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
-		allCompleted.UpdatedChannels = append(allCompleted.UpdatedChannels, progressEvent.UpdatedChannels...)
+
+		allCompleted.Merge(progressEvent)
 
 		if err != nil {
 			return EngineEvent{}, err
@@ -305,17 +322,18 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if err != nil {
 			return EngineEvent{}, err
 		}
-		allCompleted.UpdatedChannels = append(allCompleted.UpdatedChannels, updatedChannels...)
+		ledgerNofifs, paymentNotifs, err := e.createNotifications(updatedChannels)
+		if err != nil {
+			return EngineEvent{}, err
+		}
+		allCompleted.LedgerChannelUpdates = append(allCompleted.LedgerChannelUpdates, ledgerNofifs...)
+		allCompleted.PaymentChannelUpdates = append(allCompleted.PaymentChannelUpdates, paymentNotifs...)
 		progressEvent, err := e.attemptProgress(updatedObjective)
 		if err != nil {
 			return EngineEvent{}, err
 		}
 
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
-		allCompleted.UpdatedChannels = append(allCompleted.UpdatedChannels, progressEvent.UpdatedChannels...)
-		if err != nil {
-			return EngineEvent{}, err
-		}
+		allCompleted.Merge(progressEvent)
 
 	}
 
@@ -528,14 +546,20 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	var crankedObjective protocols.Objective
 	var sideEffects protocols.SideEffects
 	var waitingFor protocols.WaitingFor
-
-	crankedObjective, sideEffects, outgoing.UpdatedChannels, waitingFor, err = objective.Crank(secretKey)
-
+	var updatedChannels []protocols.UpdatedChannelInfo
+	crankedObjective, sideEffects, updatedChannels, waitingFor, err = objective.Crank(secretKey)
 	if err != nil {
 		return
 	}
 
 	err = e.store.SetObjective(crankedObjective)
+
+	ledgerNofifs, PaymentNotifs, err := e.createNotifications(updatedChannels)
+	if err != nil {
+		return EngineEvent{}, err
+	}
+	outgoing.LedgerChannelUpdates = ledgerNofifs
+	outgoing.PaymentChannelUpdates = PaymentNotifs
 
 	if err != nil {
 		return
@@ -756,4 +780,27 @@ func (e *Engine) checkError(err error) {
 		panic(err)
 
 	}
+}
+
+func (e *Engine) createNotifications(updated []protocols.UpdatedChannelInfo) ([]query.LedgerChannelInfo, []query.PaymentChannelInfo, error) {
+	ledgers := make([]query.LedgerChannelInfo, 0)
+	payments := make([]query.PaymentChannelInfo, 0)
+	for _, u := range updated {
+		switch u.Type {
+		case protocols.LedgerChannel:
+			l, err := query.GetLedgerChannelInfo(u.ChannelId, e.store)
+			if err != nil {
+				return []query.LedgerChannelInfo{}, []query.PaymentChannelInfo{}, err
+			}
+
+			ledgers = append(ledgers, l)
+		case protocols.VirtualChannel:
+			p, err := query.GetPaymentChannelInfo(u.ChannelId, e.store, e.vm)
+			if err != nil {
+				return []query.LedgerChannelInfo{}, []query.PaymentChannelInfo{}, err
+			}
+			payments = append(payments, p)
+		}
+	}
+	return ledgers, payments, nil
 }

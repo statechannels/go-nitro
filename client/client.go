@@ -99,9 +99,17 @@ func (c *Client) handleEngineEvents() {
 			c.receivedVouchers <- payment
 		}
 
-		for _, updated := range update.UpdatedChannels {
+		for _, updated := range update.LedgerChannelUpdates {
 
-			err := c.handleUpdatedChannel(updated)
+			err := c.channelNotifier.NotifyLedgerUpdated(updated)
+			// TODO: What's the best way of handling this error
+			if err != nil {
+				panic(err)
+			}
+		}
+		for _, updated := range update.PaymentChannelUpdates {
+
+			err := c.channelNotifier.NotifyPaymentUpdated(updated)
 			// TODO: What's the best way of handling this error
 			if err != nil {
 				panic(err)
@@ -138,27 +146,6 @@ func (c *Client) Version() string {
 	}
 
 	return version
-}
-
-// handleUpdatedChannel handles notifying the client of an updated channel.
-func (c *Client) handleUpdatedChannel(updated protocols.UpdatedChannelInfo) error {
-	switch updated.Type {
-	case protocols.LedgerChannel:
-
-		err := c.channelNotifier.NotifyLedgerUpdated(updated.ChannelId)
-		if err != nil {
-			return err
-		}
-
-	case protocols.VirtualChannel:
-
-		err := c.channelNotifier.NotifyPaymentUpdated(updated.ChannelId)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // CompletedObjectives returns a chan that receives a objective id whenever that objective is completed. Not suitable fo multiple subscribers.

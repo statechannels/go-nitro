@@ -61,24 +61,18 @@ func (cn *ChannelNotifier) RegisterForPaymentChannelUpdates(cId types.Destinatio
 }
 
 // NotifyLedgerUpdated notifies all listeners of a ledger channel update.
-// It will query the store for the latest ledger channel info and output an event to listeners if the ledger channel has changed.
-// NOTE: NotifyLedgerUpdated is dependent on the current state of the store, so must be called before the store is updated.
-func (cn *ChannelNotifier) NotifyLedgerUpdated(lId types.Destination) error {
-	// Fetch the current state of the ledger channel
-	latest, err := query.GetLedgerChannelInfo(lId, cn.store)
-	if err != nil {
-		return err
-	}
+
+func (cn *ChannelNotifier) NotifyLedgerUpdated(info query.LedgerChannelInfo) error {
 	// Fetch the listeners for the ledger channel
-	li, _ := cn.ledgerListeners.LoadOrStore(lId.String(), newLedgerChannelListeners())
-	li.Notify(latest)
-	cn.ledgerListeners.Store(lId.String(), li)
+	li, _ := cn.ledgerListeners.LoadOrStore(info.ID.String(), newLedgerChannelListeners())
+	li.Notify(info)
+	cn.ledgerListeners.Store(info.ID.String(), li)
 
 	allLi, ok := cn.ledgerListeners.Load("all")
 	if !ok {
 		return nil
 	}
-	allLi.Notify(latest)
+	allLi.Notify(info)
 	cn.ledgerListeners.Store("all", allLi)
 
 	return nil
@@ -87,19 +81,14 @@ func (cn *ChannelNotifier) NotifyLedgerUpdated(lId types.Destination) error {
 // NotifyPaymentUpdated notifies all listeners of a payment channel update.
 // It will query the store for the latest payment channel info and output an event to listeners if the payment channel has changed.
 // NOTE: NotifyPaymentUpdated is dependent on the current state of the store, so must be called before the store is updated.
-func (cn *ChannelNotifier) NotifyPaymentUpdated(pId types.Destination) error {
-	// Fetch the current state of the payment channel
-	latest, err := query.GetPaymentChannelInfo(pId, cn.store, cn.vm)
-	if err != nil {
-		return err
-	}
-	// Fetch the listeners for the ledger channel
-	li, _ := cn.paymentListeners.LoadOrStore(pId.String(), newPaymentChannelListeners())
-	li.Notify(latest)
-	cn.paymentListeners.Store(pId.String(), li)
+func (cn *ChannelNotifier) NotifyPaymentUpdated(info query.PaymentChannelInfo) error {
+	// Fetch the listeners for the payment channel
+	li, _ := cn.paymentListeners.LoadOrStore(info.ID.String(), newPaymentChannelListeners())
+	li.Notify(info)
+	cn.paymentListeners.Store(info.ID.String(), li)
 
 	allLi, _ := cn.paymentListeners.LoadOrStore("all", newPaymentChannelListeners())
-	allLi.Notify(latest)
+	allLi.Notify(info)
 	cn.paymentListeners.Store("all", allLi)
 
 	return nil
