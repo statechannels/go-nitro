@@ -472,6 +472,8 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	// Completion
 	updated.Status = protocols.Completed
+	// Due to ADR 009 we manually need to flag the channel as updated, since the status only changes when the VF objective status changes
+	updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: updated.V.Id, Type: protocols.VirtualChannel})
 	return &updated, sideEffects, updatedChannels, WaitingForNothing, nil
 }
 
