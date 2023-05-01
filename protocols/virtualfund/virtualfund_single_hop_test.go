@@ -274,7 +274,7 @@ func TestCrankAsAlice(t *testing.T) {
 	emptySideEffects := protocols.SideEffects{}
 	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-	fmt.Printf("Updated %+v\n", updatedChannels)
+
 	Assert(t, len(updatedChannels) == 0, "No channels should be updated")
 	Ok(t, err)
 	Equals(t, effects, emptySideEffects)

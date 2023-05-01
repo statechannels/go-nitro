@@ -2,7 +2,6 @@
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
-	"fmt"
 	"io"
 	"math/big"
 	"runtime/debug"
@@ -101,7 +100,7 @@ func (c *Client) handleEngineEvents() {
 		}
 
 		for _, updated := range update.UpdatedChannels {
-			fmt.Printf("Updated channel from engine %v\n", updated)
+
 			err := c.handleUpdatedChannel(updated)
 			// TODO: What's the best way of handling this error
 			if err != nil {
