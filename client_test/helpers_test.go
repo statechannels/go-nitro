@@ -46,15 +46,6 @@ func closeClient(t *testing.T, client *client.Client) {
 	}
 }
 
-func truncateLog(logFile string) {
-	logDestination := newLogWriter(logFile)
-
-	err := logDestination.Truncate(0)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 func newLogWriter(logFile string) *os.File {
 	err := os.MkdirAll("../artifacts", os.ModePerm)
 	if err != nil {
