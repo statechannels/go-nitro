@@ -176,7 +176,7 @@ func (e *Engine) Run() {
 		case or := <-e.ObjectiveRequestsFromAPI:
 			res, err = e.handleObjectiveRequest(or)
 		case pr := <-e.PaymentRequestsFromAPI:
-			err = e.handlePaymentRequest(pr)
+			res, err = e.handlePaymentRequest(pr)
 		case chainEvent := <-e.fromChain:
 			res, err = e.handleChainEvent(chainEvent)
 		case message := <-e.fromMsg:
@@ -476,7 +476,8 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 
 // handlePaymentRequest handles an PaymentRequest (triggered by a client API call).
 // It prepares and dispatches a payment message to the counterparty.
-func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
+func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, error) {
+	ee := EngineEvent{}
 	if (request == PaymentRequest{}) {
 		panic("tried to handle nil payment request")
 	}
@@ -486,23 +487,24 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
 		request.Amount,
 		*e.store.GetChannelSecretKey())
 	if err != nil {
-		return fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
+		return ee, fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
 	}
 	c, ok := e.store.GetChannelById(cId)
 	if !ok {
-		return fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
+		return ee, fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
 	}
 	payer, payee := payments.GetPayer(c.Participants), payments.GetPayee(c.Participants)
 	if payer != *e.store.GetAddress() {
-		return fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
+		return ee, fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
 	}
 	info, err := query.GetPaymentChannelInfo(cId, e.store, e.vm)
 	if err != nil {
-		return fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
+		return ee, fmt.Errorf("handleAPIEvent: Error querying channel info: %w", err)
 	}
-	e.toApi <- EngineEvent{PaymentChannelUpdates: []query.PaymentChannelInfo{info}}
+	ee.PaymentChannelUpdates = append(ee.PaymentChannelUpdates, info)
+
 	se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
-	return e.executeSideEffects(se)
+	return ee, e.executeSideEffects(se)
 }
 
 // sendMessages sends out the messages and records the metrics.
