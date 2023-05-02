@@ -94,3 +94,7 @@ func (li *paymentChannelListeners) Close() error {
 
 	return nil
 }
+
+func (li *ledgerChannelListeners) getListener(index int) <-chan query.LedgerChannelInfo {
+	return li.listeners[index]
+}

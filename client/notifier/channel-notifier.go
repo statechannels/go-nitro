@@ -27,7 +27,11 @@ func NewChannelNotifier(store store.Store, vm *payments.VoucherManager) *Channel
 }
 
 func (cn *ChannelNotifier) RegisterForAllLedgerUpdates() <-chan query.LedgerChannelInfo {
-	li, _ := cn.ledgerListeners.LoadOrStore("all", newLedgerChannelListeners())
+	li, loaded := cn.ledgerListeners.LoadOrStore("all", newLedgerChannelListeners())
+	if loaded {
+		// Use the existing listener instead of always spawning a new one
+		return li.getListener(0)
+	}
 
 	newList := li.createListener()
 	cn.ledgerListeners.Store("all", li)
