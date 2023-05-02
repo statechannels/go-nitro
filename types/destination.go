@@ -15,6 +15,16 @@ func (d Destination) IsExternal() bool {
 	return true
 }
 
+// IsZero returns true if the destination is all zeros, and false otherwise.
+func (d Destination) IsZero() bool {
+	for _, b := range d {
+		if b != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // ToAddress returns a types.Address encoded external destination, or an error if
 // destination is not an external address
 func (d Destination) ToAddress() (Address, error) {

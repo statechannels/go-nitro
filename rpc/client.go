@@ -24,10 +24,12 @@ import (
 
 // RpcClient is a client for making nitro rpc calls
 type RpcClient struct {
-	transport           transport.Requester
-	myAddress           types.Address
-	logger              zerolog.Logger
-	completedObjectives *safesync.Map[chan struct{}]
+	transport             transport.Requester
+	myAddress             types.Address
+	logger                zerolog.Logger
+	completedObjectives   *safesync.Map[chan struct{}]
+	ledgerChannelUpdates  *safesync.Map[chan query.LedgerChannelInfo]
+	paymentChannelUpdates *safesync.Map[chan query.PaymentChannelInfo]
 }
 
 // response includes a payload or an error.
@@ -38,7 +40,7 @@ type response[T serde.ResponsePayload] struct {
 
 // NewRpcClient creates a new RpcClient
 func NewRpcClient(rpcServerUrl string, myAddress types.Address, logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
-	c := &RpcClient{trans, myAddress, logger, &safesync.Map[chan struct{}]{}}
+	c := &RpcClient{trans, myAddress, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}}
 	err := c.subscribeToNotifications()
 	if err != nil {
 		return nil, err
@@ -115,13 +117,38 @@ func (rc *RpcClient) subscribeToNotifications() error {
 	go func() {
 		for data := range notificationChan {
 			rc.logger.Trace().Bytes("data", data).Msg("Received notification")
-			rpcRequest := serde.JsonRpcRequest[protocols.ObjectiveId]{}
-			err := json.Unmarshal(data, &rpcRequest)
+			method, err := getNotificationMethod(data)
 			if err != nil {
 				panic(err)
 			}
-			c, _ := rc.completedObjectives.LoadOrStore(string(rpcRequest.Params), make(chan struct{}))
-			close(c)
+			switch method {
+			case serde.ObjectiveCompleted:
+				rpcRequest := serde.JsonRpcRequest[protocols.ObjectiveId]{}
+				err := json.Unmarshal(data, &rpcRequest)
+				if err != nil {
+					panic(err)
+				}
+				c, _ := rc.completedObjectives.LoadOrStore(string(rpcRequest.Params), make(chan struct{}))
+				close(c)
+			case serde.LedgerChannelUpdated:
+				rpcRequest := serde.JsonRpcRequest[query.LedgerChannelInfo]{}
+				err := json.Unmarshal(data, &rpcRequest)
+				if err != nil {
+					panic(err)
+				}
+				c, _ := rc.ledgerChannelUpdates.LoadOrStore(string(rpcRequest.Params.ID.String()), make(chan query.LedgerChannelInfo, 100))
+				c <- rpcRequest.Params
+
+			case serde.PaymentChannelUpdated:
+				rpcRequest := serde.JsonRpcRequest[query.PaymentChannelInfo]{}
+				err := json.Unmarshal(data, &rpcRequest)
+				if err != nil {
+					panic(err)
+				}
+				c, _ := rc.paymentChannelUpdates.LoadOrStore(string(rpcRequest.Params.ID.String()), make(chan query.PaymentChannelInfo, 100))
+				c <- rpcRequest.Params
+			}
+
 		}
 	}()
 	return err
@@ -144,6 +171,18 @@ func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClie
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
 func (rc *RpcClient) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
 	c, _ := rc.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
+	return c
+}
+
+// LedgerChannelUpdatesChan returns a chan that receives ledger channel updates.
+func (rc *RpcClient) LedgerChannelUpdatesChan(ledgerChannelId types.Destination) <-chan query.LedgerChannelInfo {
+	c, _ := rc.ledgerChannelUpdates.LoadOrStore(string(ledgerChannelId.String()), make(chan query.LedgerChannelInfo, 100))
+	return c
+}
+
+// PaymentChannelUpdatesChan returns a chan that receives payment channel updates.
+func (rc *RpcClient) PaymentChannelUpdatesChan(paymentChannelId types.Destination) <-chan query.PaymentChannelInfo {
+	c, _ := rc.paymentChannelUpdates.LoadOrStore(string(paymentChannelId.String()), make(chan query.PaymentChannelInfo, 100))
 	return c
 }
 
@@ -200,4 +239,20 @@ func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Re
 	}()
 
 	return returnChan, nil
+}
+
+// getNotificationMethod parses the raw notification and returns the notification method
+func getNotificationMethod(raw []byte) (serde.NotificationMethod, error) {
+	var notif map[string]interface{}
+
+	err := json.Unmarshal(raw, &notif)
+	if err != nil {
+		return "", err
+	}
+
+	method, ok := notif["method"].(string)
+	if !ok {
+		return "", fmt.Errorf("method not found in notification")
+	}
+	return serde.NotificationMethod(method), nil
 }

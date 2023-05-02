@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/client/notifier"
 	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/payments"
@@ -25,8 +26,10 @@ import (
 
 // Client provides the interface for the consuming application
 type Client struct {
-	engine                    engine.Engine // The core business logic of the client
-	Address                   *types.Address
+	engine          engine.Engine // The core business logic of the client
+	Address         *types.Address
+	channelNotifier *notifier.ChannelNotifier
+
 	completedObjectivesForRPC chan protocols.ObjectiveId // This is only used by the RPC server
 	completedObjectives       *safesync.Map[chan struct{}]
 	failedObjectives          chan protocols.ObjectiveId
@@ -54,9 +57,14 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.engine = engine.New(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = &safesync.Map[chan struct{}]{}
 	c.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
+
+	c.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
+
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
 	c.receivedVouchers = make(chan payments.Voucher, 1000)
+
+	c.channelNotifier = notifier.NewChannelNotifier(store, c.vm)
 	// Start the engine in a go routine
 	go c.engine.Run()
 
@@ -91,6 +99,22 @@ func (c *Client) handleEngineEvents() {
 			c.receivedVouchers <- payment
 		}
 
+		for _, updated := range update.LedgerChannelUpdates {
+
+			err := c.channelNotifier.NotifyLedgerUpdated(updated)
+			// TODO: What's the best way of handling this error
+			if err != nil {
+				panic(err)
+			}
+		}
+		for _, updated := range update.PaymentChannelUpdates {
+
+			err := c.channelNotifier.NotifyPaymentUpdated(updated)
+			// TODO: What's the best way of handling this error
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
 
 	// At this point, the engine ToApi channel has been closed.
@@ -129,10 +153,30 @@ func (c *Client) CompletedObjectives() <-chan protocols.ObjectiveId {
 	return c.completedObjectivesForRPC
 }
 
+// LedgerUpdates returns a chan that receives ledger channel info whenever that ledger channel is updated. Not suitable fo multiple subscribers.
+func (c *Client) LedgerUpdates() <-chan query.LedgerChannelInfo {
+	return c.channelNotifier.RegisterForAllLedgerUpdates()
+}
+
+// PaymentUpdates returns a chan that receives payment channel info whenever that payment channel is updated. Not suitable fo multiple subscribers.
+func (c *Client) PaymentUpdates() <-chan query.PaymentChannelInfo {
+	return c.channelNotifier.RegisterForAllPaymentUpdates()
+}
+
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
 func (c *Client) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
 	d, _ := c.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
 	return d
+}
+
+// LedgerUpdatedChan returns a chan that receives a ledger channel info whenever the ledger with given id is updated
+func (c *Client) LedgerUpdatedChan(ledgerId types.Destination) <-chan query.LedgerChannelInfo {
+	return c.channelNotifier.RegisterForLedgerUpdates(ledgerId)
+}
+
+// PaymentChannelUpdatedChan returns a chan that receives a payment channel info whenever the payment channel with given id is updated
+func (c *Client) PaymentChannelUpdatedChan(ledgerId types.Destination) <-chan query.PaymentChannelInfo {
+	return c.channelNotifier.RegisterForPaymentChannelUpdates(ledgerId)
 }
 
 // FailedObjectives returns a chan that receives an objective id whenever that objective has failed
@@ -222,6 +266,9 @@ func (c *Client) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo
 
 // Close stops the client from responding to any input.
 func (c *Client) Close() error {
+	if err := c.channelNotifier.Close(); err != nil {
+		return err
+	}
 	if err := c.engine.Close(); err != nil {
 		return err
 	}

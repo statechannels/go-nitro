@@ -32,7 +32,9 @@ func sendRequestAndExpectError(t *testing.T, request []byte, expectedError serde
 	mockClient := &nitro.Client{}
 	mockLogger := &zerolog.Logger{}
 	mockResponder := &mockResponder{}
-	_, err := NewRpcServer(mockClient, mockLogger, mockResponder)
+	// Since we're using an empty client we want to disable notifications
+	// otherwise the server will try to send notifications to the client and fail
+	_, err := newRpcServerWithoutNotifications(mockClient, mockLogger, mockResponder)
 	if err != nil {
 		t.Error(err)
 	}
