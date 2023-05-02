@@ -323,7 +323,11 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	// Funding
 	fundingComplete := updated.fundingComplete() // note all information stored in state (since there are no real events)
-	amountToDeposit := updated.amountToDeposit()
+	amountToDeposit, err := updated.amountToDeposit()
+	if err != nil {
+		return &updated, protocols.SideEffects{}, WaitingForCompletePrefund, err
+	}
+
 	safeToDeposit := updated.safeToDeposit()
 
 	if !fundingComplete && !safeToDeposit {
@@ -402,18 +406,18 @@ func (o *Objective) safeToDeposit() bool {
 }
 
 // amountToDeposit computes the appropriate amount to deposit given the current recorded OnChainHoldings
-func (o *Objective) amountToDeposit() types.Funds {
+func (o *Objective) amountToDeposit() (types.Funds, error) {
 	deposits := make(types.Funds, len(o.C.OnChainFunding))
 
 	for asset, target := range o.myDepositTarget {
 		holding, ok := o.C.OnChainFunding[asset]
 		if !ok {
-			panic("nil chainHolding for asset in myDepositTarget")
+			return types.Funds{}, errors.New("nil chainHolding for asset in myDepositTarget")
 		}
 		deposits[asset] = big.NewInt(0).Sub(target, holding)
 	}
 
-	return deposits
+	return deposits, nil
 }
 
 // clone returns a deep copy of the receiver.
