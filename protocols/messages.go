@@ -2,6 +2,7 @@ package protocols
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -64,25 +65,25 @@ func (se *SideEffects) Merge(other SideEffects) {
 }
 
 // GetProposalObjectiveId returns the objectiveId for a proposal.
-func GetProposalObjectiveId(p consensus_channel.Proposal) ObjectiveId {
+func GetProposalObjectiveId(p consensus_channel.Proposal) (ObjectiveId, error) {
 	switch p.Type() {
 	case "AddProposal":
 		{
 			const prefix = "VirtualFund-"
 			channelId := p.ToAdd.Guarantee.Target().String()
-			return ObjectiveId(prefix + channelId)
+			return ObjectiveId(prefix + channelId), nil
 
 		}
 	case "RemoveProposal":
 		{
 			const prefix = "VirtualDefund-"
 			channelId := p.ToRemove.Target.String()
-			return ObjectiveId(prefix + channelId)
+			return ObjectiveId(prefix + channelId), nil
 
 		}
 	default:
 		{
-			panic("invalid proposal type")
+			return "", errors.New("invalid proposal type")
 		}
 	}
 }
@@ -183,8 +184,13 @@ func (m Message) Summarize() MessageSummary {
 
 	s.ProposalSummaries = make([]ProposalSummary, len(m.LedgerProposals))
 	for i, p := range m.LedgerProposals {
+		objId, err := GetProposalObjectiveId(p.Proposal)
+		objIdString := string(objId)
+		if err != nil {
+			objIdString = err.Error() // Use error message as objective id
+		}
 		s.ProposalSummaries[i] = ProposalSummary{
-			ObjectiveId:  string(GetProposalObjectiveId(p.Proposal)),
+			ObjectiveId:  objIdString,
 			LedgerId:     p.ChannelID().String(),
 			TurnNum:      p.TurnNum,
 			ProposalType: string(p.Proposal.Type()),

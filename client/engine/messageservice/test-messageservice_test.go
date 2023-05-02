@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -32,8 +33,13 @@ func TestConnect(t *testing.T) {
 	got := <-bobOut
 
 	prop := got.LedgerProposals[0]
-	if protocols.GetProposalObjectiveId(prop.Proposal) != testId {
+
+	objId, err := protocols.GetProposalObjectiveId(prop.Proposal)
+
+	testhelpers.Ok(t, err)
+
+	if objId != testId {
 		t.Fatalf("expected bob to receive ObjectiveId %v, but received %v",
-			testId, protocols.GetProposalObjectiveId(prop.Proposal))
+			testId, objId)
 	}
 }
