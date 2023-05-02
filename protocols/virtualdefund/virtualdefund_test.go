@@ -54,7 +54,7 @@ func TestInvalidUpdate(t *testing.T) {
 	signStateByOthers(alice, signedFinal)
 
 	e := protocols.CreateObjectivePayload(virtualDefund.Id(), SignedStatePayload, signedFinal)
-	_, _, err = virtualDefund.Update(e)
+	_, err = virtualDefund.Update(e)
 	// TODO: the protocol should probably handle this properly with a nice error
 	// if err.Error() != "event channelId out of scope of objective" {
 	if err == nil {
@@ -76,7 +76,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		signStateByOthers(my, signedFinal)
 
 		e := protocols.CreateObjectivePayload(virtualDefund.Id(), SignedStatePayload, signedFinal)
-		updatedObj, _, err := virtualDefund.Update(e)
+		updatedObj, err := virtualDefund.Update(e)
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
 		ss, ok := updated.V.SignedStateForTurnNum[FinalTurnNum]
@@ -110,7 +110,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		virtualDefund, err := NewObjective(request, true, my.Address(), ourPaymentAmount, getChannel, getConsensusChannel)
 		testhelpers.Ok(t, err)
 
-		updatedObj, se, _, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
+		updatedObj, se, waitingFor, err := virtualDefund.Crank(&my.PrivateKey)
 
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
@@ -127,7 +127,7 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 			err = ss.AddSignature(aliceSig)
 			testhelpers.Ok(t, err)
 			updated.V.AddSignedState(ss)
-			updatedObj, se, _, waitingFor, err = updated.Crank(&my.PrivateKey)
+			updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 			testhelpers.Ok(t, err)
 			updated = updatedObj.(*Objective)
 		}
@@ -148,20 +148,10 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 			}
 		}
 		updated.V.AddSignedState(ss)
-		var uc []protocols.UpdatedChannelInfo
 
-		updatedObj, se, uc, waitingFor, err = updated.Crank(&my.PrivateKey)
+		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 		updated = updatedObj.(*Objective)
 		testhelpers.Ok(t, err)
-		switch my.Role {
-		case 0:
-			testhelpers.Equals(t, uc[0].ChannelId, updated.ToMyRight.Id)
-		case 1:
-
-			testhelpers.Equals(t, uc[0].ChannelId, updated.ToMyRight.Id)
-		case 2:
-
-		}
 
 		// We wait for the ledger on our left first by default, unless we have no such channel:
 		if my.Role == 0 {
@@ -175,26 +165,17 @@ func testCrankAs(my ta.Actor) func(t *testing.T) {
 		proposals := generateProposalsResponses(my.Role, vId, updated, data)
 		for _, p := range proposals {
 
-			updatedObj, _, err = updated.ReceiveProposal(p)
+			updatedObj, err = updated.ReceiveProposal(p)
 			testhelpers.Ok(t, err)
 			updated = updatedObj.(*Objective)
 		}
 
-		updatedObj, se, uc, waitingFor, err = updated.Crank(&my.PrivateKey)
+		updatedObj, se, waitingFor, err = updated.Crank(&my.PrivateKey)
 		updated = updatedObj.(*Objective)
 		testhelpers.Ok(t, err)
 
 		testhelpers.Equals(t, waitingFor, WaitingForNothing)
 		checkForFollowerProposals(t, se, updated, data)
-
-		switch my.Role {
-		case 0:
-			testhelpers.Equals(t, uc[0].ChannelId, updated.V.Id)
-		case 1:
-			testhelpers.Equals(t, uc[0].ChannelId, updated.ToMyLeft.Id)
-		case 2:
-			testhelpers.Equals(t, uc[0].ChannelId, updated.ToMyLeft.Id)
-		}
 	}
 }
 

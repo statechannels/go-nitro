@@ -279,7 +279,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			continue
 		}
 
-		updatedObjective, _, err := objective.Update(payload)
+		updatedObjective, err := objective.Update(payload)
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -313,7 +313,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			return EngineEvent{}, fmt.Errorf("received a proposal for an objective which cannot receive proposals %s", objective.Id())
 		}
 
-		updatedObjective, _, err := objective.ReceiveProposal(entry)
+		updatedObjective, err := objective.ReceiveProposal(entry)
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -564,7 +564,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	var sideEffects protocols.SideEffects
 	var waitingFor protocols.WaitingFor
 
-	crankedObjective, sideEffects, _, waitingFor, err = objective.Crank(secretKey)
+	crankedObjective, sideEffects, waitingFor, err = objective.Crank(secretKey)
 	if err != nil {
 		return
 	}

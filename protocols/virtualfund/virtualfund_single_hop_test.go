@@ -209,7 +209,7 @@ func TestMisaddressedUpdate(t *testing.T) {
 		}
 	)
 
-	if _, _, err := vfo.Update(event); err == nil {
+	if _, err := vfo.Update(event); err == nil {
 		t.Fatal("expected error updating vfo with objective ID mismatch, but found none")
 	}
 }
@@ -224,7 +224,7 @@ func TestCrankAsAlice(t *testing.T) {
 		s, _     = constructFromState(false, vPreFund, my.Address(), ledgers[my.Destination()].left, ledgers[my.Destination()].right)
 	)
 	// Assert that cranking an unapproved objective returns an error
-	_, _, _, _, err := s.Crank(&my.PrivateKey)
+	_, _, _, err := s.Crank(&my.PrivateKey)
 	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
 
 	// Approve the objective, so that the rest of the test cases can run.
@@ -236,10 +236,10 @@ func TestCrankAsAlice(t *testing.T) {
 	// need to remember to convert the result back to a virtualfund.Objective struct
 
 	// Initial Crank
-	oObj, effects, updatedChannels, waitingFor, err := o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err := o.Crank(&my.PrivateKey)
 
 	o = oObj.(*Objective)
-	Equals(t, updatedChannels[0].ChannelId, o.V.Id)
+
 	expectedSignedState := state.NewSignedState(o.V.PreFundState())
 	mySig, _ := o.V.PreFundState().Sign(my.PrivateKey)
 	_ = expectedSignedState.AddSignature(mySig)
@@ -253,7 +253,7 @@ func TestCrankAsAlice(t *testing.T) {
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
 	ss := c.SignedPreFundState()
 	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, &ss)
-	oObj, _, err = o.Update(e)
+	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
 
@@ -261,9 +261,9 @@ func TestCrankAsAlice(t *testing.T) {
 
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
 	// TODO: Check that ledger channel is updated as expected
-	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-	Equals(t, updatedChannels[0].ChannelId, o.ToMyRight.Channel.Id)
+
 	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[0], TurnNum: 2}
 	Ok(t, err)
@@ -272,10 +272,9 @@ func TestCrankAsAlice(t *testing.T) {
 
 	// Check idempotency
 	emptySideEffects := protocols.SideEffects{}
-	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
-	Assert(t, len(updatedChannels) == 0, "No channels should be updated")
 	Ok(t, err)
 	Equals(t, effects, emptySideEffects)
 	Equals(t, waitingFor, WaitingForCompleteFunding)
@@ -283,13 +282,13 @@ func TestCrankAsAlice(t *testing.T) {
 	// If Alice had received a signed counterproposal, she should proceed to postFundSetup
 	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[1], TurnNum: 2}
 
-	oObj, _, err = o.ReceiveProposal(sp)
+	oObj, err = o.ReceiveProposal(sp)
 	o = oObj.(*Objective)
 	Ok(t, err)
 
-	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-	Equals(t, updatedChannels[0].ChannelId, o.V.Id)
+
 	postFS := state.NewSignedState(o.V.PostFundState())
 	mySig, _ = postFS.State().Sign(my.PrivateKey)
 	_ = postFS.AddSignature(mySig)
@@ -309,7 +308,7 @@ func TestCrankAsBob(t *testing.T) {
 		s, _     = constructFromState(false, vPreFund, my.Address(), ledgers[my.Destination()].left, ledgers[my.Destination()].right)
 	)
 	// Assert that cranking an unapproved objective returns an error
-	_, _, _, _, err := s.Crank(&my.PrivateKey)
+	_, _, _, err := s.Crank(&my.PrivateKey)
 	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
 
 	// Approve the objective, so that the rest of the test cases can run.
@@ -321,7 +320,7 @@ func TestCrankAsBob(t *testing.T) {
 	// need to remember to convert the result back to a virtualfund.Objective struct
 
 	// Initial Crank
-	oObj, effects, updatedChannels, waitingFor, err := o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err := o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
 	expectedSignedState := state.NewSignedState(o.V.PreFundState())
@@ -332,12 +331,12 @@ func TestCrankAsBob(t *testing.T) {
 	Equals(t, waitingFor, WaitingForCompletePrefund)
 	assertStateSentTo(t, effects, expectedSignedState, alice)
 	assertStateSentTo(t, effects, expectedSignedState, p1)
-	Equals(t, updatedChannels[0].ChannelId, o.V.Id)
+
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
 
 	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, c.SignedPreFundState())
-	oObj, _, err = o.Update(e)
+	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
 
@@ -345,26 +344,22 @@ func TestCrankAsBob(t *testing.T) {
 
 	emptySideEffects := protocols.SideEffects{}
 	// Check idempotency
-	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 	Ok(t, err)
 	Equals(t, effects, emptySideEffects)
-	Assert(t, len(updatedChannels) == 0, "No channels should be updated")
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If Bob had received a signed counterproposal, he should proceed to postFundSetup
 	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, bob, o.ToMyLeft.getExpectedGuarantee())[0], TurnNum: 2}
 
-	oObj, _, err = o.ReceiveProposal(sp)
+	oObj, err = o.ReceiveProposal(sp)
 	o = oObj.(*Objective)
 	Ok(t, err)
 
-	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-
-	Equals(t, updatedChannels[0].ChannelId, o.ToMyLeft.Channel.Id)
-	Equals(t, updatedChannels[1].ChannelId, o.V.Id)
 
 	postFS := state.NewSignedState(o.V.PostFundState())
 	mySig, _ = postFS.State().Sign(my.PrivateKey)
@@ -388,7 +383,7 @@ func TestCrankAsP1(t *testing.T) {
 		s, _     = constructFromState(false, vPreFund, my.Address(), left, right)
 	)
 	// Assert that cranking an unapproved objective returns an error
-	_, _, _, _, err := s.Crank(&my.PrivateKey)
+	_, _, _, err := s.Crank(&my.PrivateKey)
 	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
 
 	// Approve the objective, so that the rest of the test cases can run.
@@ -400,9 +395,9 @@ func TestCrankAsP1(t *testing.T) {
 	// need to remember to convert the result back to a virtualfund.Objective struct
 
 	// Initial Crank
-	oObj, effects, updatedChannels, waitingFor, err := o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err := o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-	Equals(t, updatedChannels[0].ChannelId, o.V.Id)
+
 	expectedSignedState := state.NewSignedState(o.V.PreFundState())
 	mySig, _ := o.V.PreFundState().Sign(my.PrivateKey)
 	_ = expectedSignedState.AddSignature(mySig)
@@ -415,16 +410,16 @@ func TestCrankAsP1(t *testing.T) {
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
 	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, c.SignedPreFundState())
-	oObj, _, err = o.Update(e)
+	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
-	Equals(t, updatedChannels[0].ChannelId, o.V.Id)
+
 	assertSupportedPrefund(o, t)
 
 	// Cranking should move us to the next waiting point, update the ledger channel, and alter the extended state to reflect that
-	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
-	Equals(t, updatedChannels[0].ChannelId, o.ToMyLeft.Channel.Id)
+
 	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[0], TurnNum: 2}
 	Ok(t, err)
@@ -433,23 +428,22 @@ func TestCrankAsP1(t *testing.T) {
 
 	// Check idempotency
 	emptySideEffects := protocols.SideEffects{}
-	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
 	Ok(t, err)
 	Equals(t, effects, emptySideEffects)
 	Equals(t, waitingFor, WaitingForCompleteFunding)
-	Assert(t, len(updatedChannels) == 0, "No channels should be updated")
 
 	// If P1 had received a signed counterproposal, she should proceed to postFundSetup
 	p = consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
 	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[1], TurnNum: 2}
 
-	oObj, _, err = o.ReceiveProposal(sp)
+	oObj, err = o.ReceiveProposal(sp)
 	o = oObj.(*Objective)
 	Ok(t, err)
 
-	oObj, effects, updatedChannels, waitingFor, err = o.Crank(&my.PrivateKey)
+	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
 	postFS := state.NewSignedState(o.V.PostFundState())
@@ -459,7 +453,6 @@ func TestCrankAsP1(t *testing.T) {
 	Ok(t, err)
 	// We need to receive a proposal from Bob before funding is completed!
 	Equals(t, waitingFor, WaitingForCompleteFunding)
-	Assert(t, len(updatedChannels) == 0, "No channels should be updated")
 
 	Equals(t, effects, emptySideEffects)
 }

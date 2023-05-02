@@ -251,10 +251,9 @@ func (o *Objective) Reject() (protocols.Objective, protocols.SideEffects) {
 
 // Update receives an ObjectivePayload, applies all applicable data to the DirectFundingObjectiveState,
 // and returns the updated state
-func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, []protocols.UpdatedChannelInfo, error) {
-	updatedChannels := []protocols.UpdatedChannelInfo{}
+func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, error) {
 	if o.Id() != p.ObjectiveId {
-		return o, updatedChannels, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(p.ObjectiveId), string(o.Id()))
+		return o, fmt.Errorf("event and objective Ids do not match: %s and %s respectively", string(p.ObjectiveId), string(o.Id()))
 	}
 
 	updated := o.clone()
@@ -262,15 +261,12 @@ func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, [
 	ss, err := getSignedStatePayload(p.PayloadData)
 	if err != nil {
 		if err != nil {
-			return o, updatedChannels, fmt.Errorf("could not get signed state payload: %w", err)
+			return o, fmt.Errorf("could not get signed state payload: %w", err)
 		}
 	}
 	updated.C.AddSignedState(ss)
-	updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{
-		ChannelId: o.C.Id,
-		Type:      protocols.LedgerChannel,
-	})
-	return &updated, updatedChannels, nil
+
+	return &updated, nil
 }
 
 // UpdateWithChainEvent updates the objective with observed on-chain data.
@@ -304,29 +300,29 @@ func (o *Objective) otherParticipants() []types.Address {
 // Crank inspects the extended state and declares a list of Effects to be executed
 // It's like a state machine transition function where the finite / enumerable state is returned (computed from the extended state)
 // rather than being independent of the extended state; and where there is only one type of event ("the crank") with no data on it at all
-func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, []protocols.UpdatedChannelInfo, protocols.WaitingFor, error) {
+func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.SideEffects, protocols.WaitingFor, error) {
 	updated := o.clone()
 
 	sideEffects := protocols.SideEffects{}
-	updatedChannels := []protocols.UpdatedChannelInfo{}
+
 	// Input validation
 	if updated.Status != protocols.Approved {
-		return &updated, protocols.SideEffects{}, updatedChannels, WaitingForNothing, protocols.ErrNotApproved
+		return &updated, protocols.SideEffects{}, WaitingForNothing, protocols.ErrNotApproved
 	}
 
 	// Prefunding
 	if !updated.C.PreFundSignedByMe() {
 		ss, err := updated.C.SignAndAddPrefund(secretKey)
 		if err != nil {
-			return &updated, protocols.SideEffects{}, updatedChannels, WaitingForCompletePrefund, fmt.Errorf("could not sign prefund %w", err)
+			return &updated, protocols.SideEffects{}, WaitingForCompletePrefund, fmt.Errorf("could not sign prefund %w", err)
 		}
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, updated.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.C.ChannelId(), Type: protocols.LedgerChannel})
+
 	}
 
 	if !updated.C.PreFundComplete() {
-		return &updated, sideEffects, updatedChannels, WaitingForCompletePrefund, nil
+		return &updated, sideEffects, WaitingForCompletePrefund, nil
 	}
 
 	// Funding
@@ -335,18 +331,18 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	safeToDeposit := updated.safeToDeposit()
 
 	if !fundingComplete && !safeToDeposit {
-		return &updated, sideEffects, updatedChannels, WaitingForMyTurnToFund, nil
+		return &updated, sideEffects, WaitingForMyTurnToFund, nil
 	}
 
 	if !fundingComplete && safeToDeposit && amountToDeposit.IsNonZero() && !updated.transactionSubmitted {
 		deposit := protocols.NewDepositTransaction(updated.C.Id, amountToDeposit)
 		updated.transactionSubmitted = true
 		sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, deposit)
-		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.C.ChannelId(), Type: protocols.LedgerChannel})
+
 	}
 
 	if !fundingComplete {
-		return &updated, sideEffects, updatedChannels, WaitingForCompleteFunding, nil
+		return &updated, sideEffects, WaitingForCompleteFunding, nil
 	}
 
 	// Postfunding
@@ -354,20 +350,20 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 		ss, err := updated.C.SignAndAddPostfund(secretKey)
 		if err != nil {
-			return &updated, protocols.SideEffects{}, updatedChannels, WaitingForCompletePostFund, fmt.Errorf("could not sign postfund %w", err)
+			return &updated, protocols.SideEffects{}, WaitingForCompletePostFund, fmt.Errorf("could not sign postfund %w", err)
 		}
 		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, updated.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-		updatedChannels = append(updatedChannels, protocols.UpdatedChannelInfo{ChannelId: o.C.ChannelId(), Type: protocols.LedgerChannel})
+
 	}
 
 	if !updated.C.PostFundComplete() {
-		return &updated, sideEffects, updatedChannels, WaitingForCompletePostFund, nil
+		return &updated, sideEffects, WaitingForCompletePostFund, nil
 	}
 
 	// Completion
 	updated.Status = protocols.Completed
-	return &updated, sideEffects, updatedChannels, WaitingForNothing, nil
+	return &updated, sideEffects, WaitingForNothing, nil
 }
 
 func (o *Objective) Related() []protocols.Storable {

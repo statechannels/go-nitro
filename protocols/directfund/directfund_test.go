@@ -120,7 +120,7 @@ func TestUpdate(t *testing.T) {
 
 	// Assert that Updating the objective with such an event returns an error
 	// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
-	if _, _, err := s.Update(protocols.CreateObjectivePayload("some-id", SignedStatePayload, testState)); err == nil {
+	if _, err := s.Update(protocols.CreateObjectivePayload("some-id", SignedStatePayload, testState)); err == nil {
 		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
 	}
 
@@ -132,7 +132,7 @@ func TestUpdate(t *testing.T) {
 		t.Error(err)
 	}
 
-	updatedObjective, _, err := s.Update(protocols.CreateObjectivePayload(s.Id(), SignedStatePayload, ss))
+	updatedObjective, err := s.Update(protocols.CreateObjectivePayload(s.Id(), SignedStatePayload, ss))
 	if err != nil {
 		t.Error(err)
 	}
@@ -213,7 +213,7 @@ func TestCrank(t *testing.T) {
 	// END test data preparation
 
 	// Assert that cranking an unapproved objective returns an error
-	if _, _, _, _, err := s.Crank(&alice.PrivateKey); err == nil {
+	if _, _, _, err := s.Crank(&alice.PrivateKey); err == nil {
 		t.Error(`Expected error when cranking unapproved objective, but got nil`)
 	}
 
@@ -226,15 +226,12 @@ func TestCrank(t *testing.T) {
 	//  - what side effects are declared.
 
 	// Initial Crank
-	_, sideEffects, updatedChannels, waitingFor, err := o.Crank(&alice.PrivateKey)
+	_, sideEffects, waitingFor, err := o.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
 	if waitingFor != WaitingForCompletePrefund {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompletePrefund, waitingFor)
-	}
-	if updatedChannels[0].ChannelId != o.C.Id {
-		t.Fatalf(`Updated Channel: expected %v, got %v`, o.C.Id, updatedChannels[0])
 	}
 
 	if diff := compareSideEffect(expectedPreFundSideEffects, sideEffects); diff != "" {
@@ -246,7 +243,7 @@ func TestCrank(t *testing.T) {
 	o.C.AddStateWithSignature(o.C.PreFundState(), correctSignatureByBobOnPreFund)
 
 	// Cranking should move us to the next waiting point
-	_, _, _, waitingFor, err = o.Crank(&alice.PrivateKey)
+	_, _, waitingFor, err = o.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -256,7 +253,7 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the first "deposit"
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
-	updated, sideEffects, updatedChannels, waitingFor, err := o.Crank(&alice.PrivateKey)
+	updated, sideEffects, waitingFor, err := o.Crank(&alice.PrivateKey)
 
 	if !updated.(*Objective).transactionSubmitted {
 		t.Fatalf("Expected transactionSubmitted flag to be set to true")
@@ -267,9 +264,6 @@ func TestCrank(t *testing.T) {
 	if waitingFor != WaitingForCompleteFunding {
 		t.Fatalf(`WaitingFor: expected %v, got %v`, WaitingForCompleteFunding, waitingFor)
 	}
-	if updatedChannels[0].ChannelId != o.C.Id {
-		t.Fatalf(`Updated Channel: expected %v, got %v`, o.C.Id, updatedChannels[0])
-	}
 
 	if diff := cmp.Diff(expectedFundingSideEffects, sideEffects, cmp.AllowUnexported(expectedFundingSideEffects, protocols.ChainTransactionBase{})); diff != "" {
 		t.Fatalf("Side effects mismatch (-want +got):\n%s", diff)
@@ -278,7 +272,7 @@ func TestCrank(t *testing.T) {
 	// Manually make the second "deposit"
 	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
-	_, sideEffects, updatedChannels, waitingFor, err = o.Crank(&alice.PrivateKey)
+	_, sideEffects, waitingFor, err = o.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -288,16 +282,14 @@ func TestCrank(t *testing.T) {
 	if diff := compareSideEffect(expectedPostFundSideEffects, sideEffects); diff != "" {
 		t.Errorf("Side effects mismatch (-want +got):\n%s", diff)
 	}
-	if updatedChannels[0].ChannelId != o.C.Id {
-		t.Fatalf(`Updated Channel: expected %v, got %v`, o.C.Id, updatedChannels[0])
-	}
+
 	// Manually progress the extended state by collecting postfund signatures
 	o.C.AddStateWithSignature(o.C.PostFundState(), correctSignatureByAliceOnPostFund)
 	o.C.AddStateWithSignature(o.C.PostFundState(), correctSignatureByBobOnPostFund)
 
 	// This should be the final crank
 	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
-	_, _, _, waitingFor, err = o.Crank(&alice.PrivateKey)
+	_, _, waitingFor, err = o.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
 	}
