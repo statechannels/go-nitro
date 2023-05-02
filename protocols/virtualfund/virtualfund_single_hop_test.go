@@ -13,7 +13,6 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
-	"github.com/statechannels/go-nitro/internal/testhelpers"
 	. "github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -253,7 +252,7 @@ func TestCrankAsAlice(t *testing.T) {
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
 	ss := c.SignedPreFundState()
 	e, err := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, &ss)
-	testhelpers.Ok(t, err)
+	Ok(t, err)
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -336,7 +335,7 @@ func TestCrankAsBob(t *testing.T) {
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
 
 	e, err := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, c.SignedPreFundState())
-	testhelpers.Ok(t, err)
+	Ok(t, err)
 
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
@@ -421,7 +420,7 @@ func TestCrankAsP1(t *testing.T) {
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
 	e, err := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, c.SignedPreFundState())
-	testhelpers.Ok(t, err)
+	Ok(t, err)
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
