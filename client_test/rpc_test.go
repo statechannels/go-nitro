@@ -146,23 +146,15 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	checkNotifications(t, expectedBobLedgerNotifs, bobLedgerNotifs)
 
 	// TODO: We seem to be missing a few notifications :(
-	expectedAliceVirtualNotifs := []query.PaymentChannelInfo{
+	expectedVirtualNotifs := []query.PaymentChannelInfo{
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Ready),
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Ready),
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
 	}
-	checkNotifications(t, expectedAliceVirtualNotifs, aliceVirtualNotifs)
-	expectedBobVirtualNotifs := []query.PaymentChannelInfo{
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Ready),
-		// TODO: Bob doesn't seem to get a notif for this
-		// expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Ready),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
-	}
-	checkNotifications(t, expectedBobVirtualNotifs, bobVirtualNotifs)
+	checkNotifications(t, expectedVirtualNotifs, aliceVirtualNotifs)
+	checkNotifications(t, expectedVirtualNotifs, bobVirtualNotifs)
 }
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.

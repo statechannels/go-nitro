@@ -353,11 +353,31 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 		// TODO: return the amount we paid?
 		_, err := e.vm.Receive(voucher)
-
-		allCompleted.ReceivedVouchers = append(allCompleted.ReceivedVouchers, voucher)
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("error accepting payment voucher: %w", err)
 		}
+		c, ok := e.store.GetChannelById(voucher.ChannelId)
+		if !ok {
+			return EngineEvent{}, fmt.Errorf("could not fetch channel for voucher %+v", voucher)
+		}
+		paid, remaining := big.NewInt(0), big.NewInt(0)
+		if e.vm.ChannelRegistered(c.Id) {
+			var err error
+			paid, err = e.vm.Paid(c.Id)
+			if err != nil {
+				return EngineEvent{}, err
+			}
+			remaining, err = e.vm.Remaining(c.Id)
+			if err != nil {
+				return EngineEvent{}, err
+			}
+
+		}
+		info, err := query.PaymentInfo(c, nil, paid, remaining)
+		if err != nil {
+			return EngineEvent{}, err
+		}
+		allCompleted.PaymentChannelUpdates = append(allCompleted.PaymentChannelUpdates, info)
 
 	}
 	return allCompleted, nil

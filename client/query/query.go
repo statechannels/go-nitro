@@ -174,13 +174,14 @@ func LedgerFromChannel(c *channel.Channel) LedgerChannelInfo {
 func PaymentInfo(c *channel.Channel, objective protocols.Objective, paid, remaining *big.Int) (PaymentChannelInfo, error) {
 	status := getStatusFromChannel(c)
 
-	// This means intermediaries may not have a fully signed postfund state even though the channel is "ready"
-	// To determine the the correct status we check the status of the virtual fund objective
-	fund, isVirtualFund := objective.(*virtualfund.Objective)
-	if status == Proposed && isVirtualFund && fund.Status == protocols.Completed {
-		status = Ready
+	if objective != nil {
+		// This means intermediaries may not have a fully signed postfund state even though the channel is "ready"
+		// To determine the the correct status we check the status of the virtual fund objective
+		fund, isVirtualFund := objective.(*virtualfund.Objective)
+		if status == Proposed && isVirtualFund && fund.Status == protocols.Completed {
+			status = Ready
+		}
 	}
-
 	latest, err := getLatestSupported(c)
 	if err != nil {
 		return PaymentChannelInfo{}, err
