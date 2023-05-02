@@ -2,8 +2,10 @@ package query
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/statechannels/go-nitro/channel"
+	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/store"
@@ -35,8 +37,8 @@ func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit
 	asset := sao.Asset
 	payer := participants[0]
 	payee := participants[numParticipants-1]
-	paidSoFar := sao.Allocations[1].Amount
-	remaining := sao.Allocations[0].Amount
+	paidSoFar := big.NewInt(0).Set(sao.Allocations[1].Amount)
+	remaining := big.NewInt(0).Set(sao.Allocations[0].Amount)
 	return PaymentChannelBalance{
 		AssetAddress:   asset,
 		Payer:          payer,
@@ -61,9 +63,9 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 	outcome := latest.Outcome[0]
 	asset := outcome.Asset
 	client := latest.Participants[0]
-	clientBalance := outcome.Allocations[0].Amount
+	clientBalance := big.NewInt(0).Set(outcome.Allocations[0].Amount)
 	hub := latest.Participants[1]
-	hubBalance := outcome.Allocations[1].Amount
+	hubBalance := big.NewInt(0).Set(outcome.Allocations[1].Amount)
 
 	return LedgerChannelBalance{
 		AssetAddress:  asset,
@@ -137,15 +139,7 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
 	c, ok := store.GetChannelById(id)
 	if ok {
-		latest, err := getLatestSupported(c)
-		if err != nil {
-			return LedgerChannelInfo{}, err
-		}
-		return LedgerChannelInfo{
-			ID:      c.Id,
-			Status:  getStatusFromChannel(c),
-			Balance: getLedgerBalanceFromState(latest),
-		}, nil
+		return LedgerFromChannel(c), nil
 	}
 
 	con, err := store.GetConsensusChannelById(id)
@@ -153,10 +147,53 @@ func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChanne
 		return LedgerChannelInfo{}, err
 	}
 
+	return LedgerFromConsensus(con), nil
+}
+
+func LedgerFromConsensus(con *consensus_channel.ConsensusChannel) LedgerChannelInfo {
 	latest := con.ConsensusVars().AsState(con.FixedPart())
 	return LedgerChannelInfo{
 		ID:      con.Id,
 		Status:  Ready,
 		Balance: getLedgerBalanceFromState(latest),
+	}
+}
+
+func LedgerFromChannel(c *channel.Channel) LedgerChannelInfo {
+	latest, err := getLatestSupported(c)
+	if err != nil {
+		panic(err)
+	}
+	return LedgerChannelInfo{
+		ID:      c.Id,
+		Status:  getStatusFromChannel(c),
+		Balance: getLedgerBalanceFromState(latest),
+	}
+}
+
+func PaymentInfo(c *channel.Channel, objective protocols.Objective, paid, remaining *big.Int) (PaymentChannelInfo, error) {
+	status := getStatusFromChannel(c)
+
+	// This means intermediaries may not have a fully signed postfund state even though the channel is "ready"
+	// To determine the the correct status we check the status of the virtual fund objective
+	fund, isVirtualFund := objective.(*virtualfund.Objective)
+	if status == Proposed && isVirtualFund && fund.Status == protocols.Completed {
+		status = Ready
+	}
+
+	latest, err := getLatestSupported(c)
+	if err != nil {
+		return PaymentChannelInfo{}, err
+	}
+	balance := getPaymentChannelBalance(c.Participants, latest.Outcome)
+
+	balance.PaidSoFar.Set(paid)
+
+	balance.RemainingFunds.Set(remaining)
+
+	return PaymentChannelInfo{
+		ID:      c.Id,
+		Status:  status,
+		Balance: balance,
 	}, nil
 }

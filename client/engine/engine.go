@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
@@ -278,16 +279,10 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			continue
 		}
 
-		updatedObjective, updatedChannels, err := objective.Update(payload)
+		updatedObjective, _, err := objective.Update(payload)
 		if err != nil {
 			return EngineEvent{}, err
 		}
-		ledgerNofifs, paymentNotifs, err := e.createNotifications(updatedChannels)
-		if err != nil {
-			return EngineEvent{}, err
-		}
-		allCompleted.LedgerChannelUpdates = append(allCompleted.LedgerChannelUpdates, ledgerNofifs...)
-		allCompleted.PaymentChannelUpdates = append(allCompleted.PaymentChannelUpdates, paymentNotifs...)
 
 		progressEvent, err := e.attemptProgress(updatedObjective)
 		if err != nil {
@@ -318,16 +313,11 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			return EngineEvent{}, fmt.Errorf("received a proposal for an objective which cannot receive proposals %s", objective.Id())
 		}
 
-		updatedObjective, updatedChannels, err := objective.ReceiveProposal(entry)
+		updatedObjective, _, err := objective.ReceiveProposal(entry)
 		if err != nil {
 			return EngineEvent{}, err
 		}
-		ledgerNofifs, paymentNotifs, err := e.createNotifications(updatedChannels)
-		if err != nil {
-			return EngineEvent{}, err
-		}
-		allCompleted.LedgerChannelUpdates = append(allCompleted.LedgerChannelUpdates, ledgerNofifs...)
-		allCompleted.PaymentChannelUpdates = append(allCompleted.PaymentChannelUpdates, paymentNotifs...)
+
 		progressEvent, err := e.attemptProgress(updatedObjective)
 		if err != nil {
 			return EngineEvent{}, err
@@ -553,24 +543,19 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	var crankedObjective protocols.Objective
 	var sideEffects protocols.SideEffects
 	var waitingFor protocols.WaitingFor
-	var updatedChannels []protocols.UpdatedChannelInfo
-	crankedObjective, sideEffects, updatedChannels, waitingFor, err = objective.Crank(secretKey)
+
+	crankedObjective, sideEffects, _, waitingFor, err = objective.Crank(secretKey)
 	if err != nil {
 		return
 	}
 
 	err = e.store.SetObjective(crankedObjective)
 
-	ledgerNofifs, paymentNotifs, err := e.createNotifications(updatedChannels)
+	notifEvents, err := e.handleNotifications(crankedObjective)
 	if err != nil {
 		return EngineEvent{}, err
 	}
-	outgoing.LedgerChannelUpdates = ledgerNofifs
-	outgoing.PaymentChannelUpdates = paymentNotifs
-
-	if err != nil {
-		return
-	}
+	outgoing.Merge(notifEvents)
 
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 
@@ -587,6 +572,52 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	}
 	err = e.executeSideEffects(sideEffects)
 	return
+}
+
+func (e *Engine) handleNotifications(o protocols.Objective) (EngineEvent, error) {
+	outgoing := EngineEvent{}
+	for _, rel := range o.Related() {
+		switch c := rel.(type) {
+		case *channel.Channel:
+
+			_, isDF := o.(*directfund.Objective)
+			_, isDDF := o.(*directdefund.Objective)
+			if isDDF || isDF {
+				outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.LedgerFromChannel(c))
+			} else {
+
+				paid, remaining := big.NewInt(0), big.NewInt(0)
+				if e.vm.ChannelRegistered(c.Id) {
+					var err error
+					paid, err = e.vm.Paid(c.Id)
+					if err != nil {
+						return outgoing, err
+					}
+					remaining, err = e.vm.Remaining(c.Id)
+					if err != nil {
+						return outgoing, err
+					}
+
+				}
+				info, err := query.PaymentInfo(c, o, paid, remaining)
+				if err != nil {
+					return outgoing, err
+				}
+
+				outgoing.PaymentChannelUpdates = append(outgoing.PaymentChannelUpdates, info)
+
+			}
+		case *consensus_channel.ConsensusChannel:
+
+			if id := big.NewInt(0).SetBytes(c.Id.Bytes()); !types.IsZero(id) {
+				outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.LedgerFromConsensus(c))
+			}
+
+		default:
+			return outgoing, fmt.Errorf("handleNotifications: Unknown related type %T", c)
+		}
+	}
+	return outgoing, nil
 }
 
 func (e Engine) registerPaymentChannel(vfo virtualfund.Objective) error {
@@ -787,27 +818,4 @@ func (e *Engine) checkError(err error) {
 		panic(err)
 
 	}
-}
-
-func (e *Engine) createNotifications(updated []protocols.UpdatedChannelInfo) ([]query.LedgerChannelInfo, []query.PaymentChannelInfo, error) {
-	ledgers := make([]query.LedgerChannelInfo, 0)
-	payments := make([]query.PaymentChannelInfo, 0)
-	for _, u := range updated {
-		switch u.Type {
-		case protocols.LedgerChannel:
-			l, err := query.GetLedgerChannelInfo(u.ChannelId, e.store)
-			if err != nil {
-				return []query.LedgerChannelInfo{}, []query.PaymentChannelInfo{}, err
-			}
-
-			ledgers = append(ledgers, l)
-		case protocols.VirtualChannel:
-			p, err := query.GetPaymentChannelInfo(u.ChannelId, e.store, e.vm)
-			if err != nil {
-				return []query.LedgerChannelInfo{}, []query.PaymentChannelInfo{}, err
-			}
-			payments = append(payments, p)
-		}
-	}
-	return ledgers, payments, nil
 }
