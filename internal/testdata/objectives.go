@@ -53,7 +53,10 @@ func genericDFO() directfund.Objective {
 	ts.TurnNum = 0
 	ss := state.NewSignedState(ts)
 	id := protocols.ObjectiveId(directfund.ObjectivePrefix + testState.ChannelId().String())
-	op := protocols.CreateObjectivePayload(id, directfund.SignedStatePayload, ss)
+	op, err := protocols.CreateObjectivePayload(id, directfund.SignedStatePayload, ss)
+	if err != nil {
+		panic(fmt.Errorf("error constructing objective payload: %w", err))
+	}
 	testObj, err := directfund.ConstructFromPayload(false, op, ts.Participants[0])
 	if err != nil {
 		panic(fmt.Errorf("error constructing genericDFO: %w", err))

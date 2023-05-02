@@ -88,7 +88,8 @@ func TestNew(t *testing.T) {
 func TestConstructFromPayload(t *testing.T) {
 	ss := state.NewSignedState(testState)
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
-	op := protocols.CreateObjectivePayload(id, SignedStatePayload, ss)
+	op, err := protocols.CreateObjectivePayload(id, SignedStatePayload, ss)
+	testhelpers.Ok(t, err)
 	// Assert that valid constructor args do not result in error
 	if _, err := ConstructFromPayload(false, op, testState.Participants[0]); err != nil {
 		t.Error(err)
@@ -98,7 +99,8 @@ func TestConstructFromPayload(t *testing.T) {
 	finalState := testState.Clone()
 	finalState.IsFinal = true
 
-	op = protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(finalState))
+	op, err = protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(finalState))
+	testhelpers.Ok(t, err)
 	if _, err := ConstructFromPayload(false, op, testState.Participants[0]); err == nil {
 		t.Error("expected an error when constructing with an initial state marked final, but got nil")
 	}
@@ -111,7 +113,8 @@ func TestConstructFromPayload(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
-	op := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
+	op, err := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
+	testhelpers.Ok(t, err)
 	// Construct various variables for use in TestUpdate
 	s, _ := ConstructFromPayload(false, op, testState.Participants[0])
 
@@ -120,19 +123,25 @@ func TestUpdate(t *testing.T) {
 
 	// Assert that Updating the objective with such an event returns an error
 	// TODO is this the behaviour we want? Below with the signatures, we prefer a log + NOOP (no error)
-	if _, err := s.Update(protocols.CreateObjectivePayload("some-id", SignedStatePayload, testState)); err == nil {
+	op, err = protocols.CreateObjectivePayload("some-id", SignedStatePayload, testState)
+	testhelpers.Ok(t, err)
+
+	if _, err := s.Update(op); err == nil {
 		t.Error(`ChannelId mismatch -- expected an error but did not get one`)
 	}
 
 	// Next, attempt to update the objective with correct signature by a participant on a relevant state
 	// Assert that this results in an appropriate change in the extended state of the objective
 	ss := state.NewSignedState(stateToSign)
-	err := ss.AddSignature(correctSignatureByParticipant)
+	err = ss.AddSignature(correctSignatureByParticipant)
 	if err != nil {
 		t.Error(err)
 	}
 
-	updatedObjective, err := s.Update(protocols.CreateObjectivePayload(s.Id(), SignedStatePayload, ss))
+	op, err = protocols.CreateObjectivePayload(s.Id(), SignedStatePayload, ss)
+	testhelpers.Ok(t, err)
+
+	updatedObjective, err := s.Update(op)
 	if err != nil {
 		t.Error(err)
 	}
@@ -182,7 +191,9 @@ func compareSideEffect(a, b protocols.SideEffects) string {
 
 func TestCrank(t *testing.T) {
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
-	op := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
+	op, err := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
+	testhelpers.Ok(t, err)
+
 	// BEGIN test data preparation
 	s, _ := ConstructFromPayload(false, op, testState.Participants[0])
 	correctSignatureByAliceOnPreFund, _ := s.C.PreFundState().Sign(alice.PrivateKey)
@@ -194,15 +205,16 @@ func TestCrank(t *testing.T) {
 	// Prepare expected side effects
 	preFundSS := state.NewSignedState(s.C.PreFundState())
 	_ = preFundSS.AddSignature(correctSignatureByAliceOnPreFund)
-	expectedPreFundSideEffects := protocols.SideEffects{
-		MessagesToSend: protocols.CreateObjectivePayloadMessage(s.Id(), preFundSS, SignedStatePayload, s.otherParticipants()...),
-	}
+	msgs, err := protocols.CreateObjectivePayloadMessage(s.Id(), preFundSS, SignedStatePayload, s.otherParticipants()...)
+	testhelpers.Ok(t, err)
+
+	expectedPreFundSideEffects := protocols.SideEffects{MessagesToSend: msgs}
 
 	postFundSS := state.NewSignedState(s.C.PostFundState())
 	_ = postFundSS.AddSignature(correctSignatureByAliceOnPostFund)
-	expectedPostFundSideEffects := protocols.SideEffects{
-		MessagesToSend: protocols.CreateObjectivePayloadMessage(s.Id(), postFundSS, SignedStatePayload, s.otherParticipants()...),
-	}
+	msgs, err = protocols.CreateObjectivePayloadMessage(s.Id(), postFundSS, SignedStatePayload, s.otherParticipants()...)
+	testhelpers.Ok(t, err)
+	expectedPostFundSideEffects := protocols.SideEffects{MessagesToSend: msgs}
 	expectedFundingSideEffects := protocols.SideEffects{
 		TransactionsToSubmit: []protocols.ChainTransaction{
 			protocols.NewDepositTransaction(s.C.Id, types.Funds{
@@ -304,7 +316,9 @@ func TestClone(t *testing.T) {
 	}
 
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
-	op := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
+	op, err := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
+	testhelpers.Ok(t, err)
+
 	s, _ := ConstructFromPayload(false, op, testState.Participants[0])
 
 	clone := s.clone()
@@ -316,7 +330,9 @@ func TestClone(t *testing.T) {
 
 func TestMarshalJSON(t *testing.T) {
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
-	op := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
+	op, err := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
+	testhelpers.Ok(t, err)
+
 	dfo, _ := ConstructFromPayload(false, op, testState.Participants[0])
 
 	encodedDfo, err := json.Marshal(dfo)
@@ -351,7 +367,9 @@ func TestMarshalJSON(t *testing.T) {
 
 func TestApproveReject(t *testing.T) {
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
-	op := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
+	op, err := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
+	testhelpers.Ok(t, err)
+
 	o, err := ConstructFromPayload(false, op, testState.Participants[0])
 	testhelpers.Ok(t, err)
 

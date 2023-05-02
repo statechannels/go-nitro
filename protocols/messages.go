@@ -25,13 +25,13 @@ type PayloadType string
 
 // CreateObjectivePayload generates an objective message from the given objective id and payload.
 // CreateObjectivePayload handles serializing `p` into json.
-func CreateObjectivePayload(id ObjectiveId, payloadType PayloadType, p interface{}) ObjectivePayload {
+func CreateObjectivePayload(id ObjectiveId, payloadType PayloadType, p interface{}) (ObjectivePayload, error) {
 	b, err := json.Marshal(p)
 	if err != nil {
-		panic(err)
+		return ObjectivePayload{}, err
 	}
 
-	return ObjectivePayload{PayloadData: b, ObjectiveId: id, Type: payloadType}
+	return ObjectivePayload{PayloadData: b, ObjectiveId: id, Type: payloadType}, nil
 }
 
 // Message is an object to be sent across the wire.
@@ -89,14 +89,18 @@ func GetProposalObjectiveId(p consensus_channel.Proposal) (ObjectiveId, error) {
 }
 
 // CreateObjectivePayloadMessage returns a message for each recipient tht contains an objective payload.
-func CreateObjectivePayloadMessage(id ObjectiveId, p interface{}, payloadType PayloadType, recipients ...types.Address) []Message {
+func CreateObjectivePayloadMessage(id ObjectiveId, p interface{}, payloadType PayloadType, recipients ...types.Address) ([]Message, error) {
 	messages := make([]Message, 0)
 
 	for _, participant := range recipients {
-		message := Message{To: participant, ObjectivePayloads: []ObjectivePayload{CreateObjectivePayload(id, payloadType, p)}}
+		payload, err := CreateObjectivePayload(id, payloadType, p)
+		if err != nil {
+			return []Message{}, err
+		}
+		message := Message{To: participant, ObjectivePayloads: []ObjectivePayload{payload}}
 		messages = append(messages, message)
 	}
-	return messages
+	return messages, nil
 }
 
 // CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger

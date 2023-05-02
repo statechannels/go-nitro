@@ -411,7 +411,11 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 			return o, protocols.SideEffects{}, WaitingForNothing, err
 		}
 
-		messages := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
+		messages, err := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
+		if err != nil {
+			return o, protocols.SideEffects{}, WaitingForNothing, err
+		}
+
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
@@ -449,7 +453,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 			return o, protocols.SideEffects{}, WaitingForNothing, err
 		}
 
-		messages := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
+		messages, err := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
+		if err != nil {
+			return o, protocols.SideEffects{}, WaitingForNothing, err
+		}
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
