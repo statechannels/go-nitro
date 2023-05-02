@@ -313,11 +313,11 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 	ss := state.NewSignedState(s)
 	err = ss.AddSignature(sig)
 	if err != nil {
-		panic("could not add own signature")
+		return state.SignedState{}, fmt.Errorf("could not add own signature %w", err)
 	}
 	ok := c.AddSignedState(ss)
 	if !ok {
-		panic("could not add signed state to channel")
+		return state.SignedState{}, fmt.Errorf("could not add signed state to channel %w", err)
 	}
 	return ss, nil
 }
