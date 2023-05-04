@@ -54,7 +54,7 @@ func main() {
 		ourStore = store.NewMemStore(pk)
 	}
 
-	chainPk, err := chainutils.GetHardhatFundedPrivateKey(*ourStore.GetAddress())
+	chainPk, err := chainutils.GetFundedTestPrivateKey(*ourStore.GetAddress())
 	if err != nil {
 		panic(err)
 	}

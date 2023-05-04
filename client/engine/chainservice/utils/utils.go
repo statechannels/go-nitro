@@ -78,20 +78,19 @@ func ConnectToChain(ctx context.Context, chainUrl string, chainId int, chainPK [
 	return client, txSubmitter, nil
 }
 
-// GetHardhatFundedPrivateKey selects a private key from one of the 1000 funded accounts in hardhat.
-// It modulates the address by 1000 to select a funded account.
-func GetHardhatFundedPrivateKey(a types.Address) ([]byte, error) {
-	// See https://hardhat.org/hardhat-network/docs/reference#accounts for defaults
-	// This is the default mnemonic used by hardhat
-	const HARDHAT_MNEMONIC = "test test test test test test test test test test test junk"
-	// This is the number of accounts hardhat funds by default
-	const NUM_FUNDED = 20
-	// This is the default hd wallet path used by hardhat
+// GetFundedTestPrivateKey selects a private key from one of 10 derived accounts using the
+//
+//	"test test test test test test test test test test test junk" mnemonic.
+//
+// Most test chains(hardhat/anvil) fund the first 10 accounts.
+func GetFundedTestPrivateKey(a types.Address) ([]byte, error) {
+	const TEST_MNEMONIC = "test test test test test test test test test test test junk"
+	const NUM_FUNDED = 10
 	const HD_PATH = "m/44'/60'/0'/0"
 
 	index := big.NewInt(0).Mod(a.Big(), big.NewInt(NUM_FUNDED)).Uint64()
 
-	wallet, err := hdwallet.NewFromMnemonic(HARDHAT_MNEMONIC)
+	wallet, err := hdwallet.NewFromMnemonic(TEST_MNEMONIC)
 	if err != nil {
 		return nil, err
 	}
