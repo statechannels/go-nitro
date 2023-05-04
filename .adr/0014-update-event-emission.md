@@ -1,4 +1,4 @@
-# 0012 Channel Update Event Emission
+# 0014 Channel Update Event Emission
 
 ## Status
 
@@ -8,11 +8,18 @@ Review
 
 We want to enhance the our go-nitro RPC client and server with the ability to receive notifications whenever a channel is updated. This allows us to design a UI that can easily update when a channel changes.
 
-Previously in [ADR 00012](./0012-event-emission.md) we decided to `close` channels to notify that objectives have been completed. While this approach work well for one-off events (that contain no information) with multiple subscribers. We need another approach that lets us broadcast updates to multiple consumers.
+Previously in [ADR 0012](./0012-event-emission.md) we decided to `close` channels to notify consumers that an objective have been completed. Using `close` allowed us to broadcast a signal to multiple consumers at once. While this works well for the objective completed event, it does not work for channel updates. This is because:
+
+1. `close` doesn't allow us to pass any information (like channel data)
+2. `close` can only be used once as a signal on a channel.
+
+To support channel updates we need another approach that let's us dispatch channel updates to multiple consumers.
 
 ## Decision
 
-A client store a slice of event listener `chans` for each channel id. A consumer can "subscribe" by calling a method which appends a `chan` to that slice and returns it. Then, Whenever the client receives a channel update from the engine it iterates on over the slice and sends an update to any event listener `chans`.
+We will implement the "Slice of chans" pattern similiar to the one outlined in [ADR 0012](./0012-event-emission.md).
+
+The nitro client will store a slice of event listener `chans` for each channel id. A consumer can "subscribe" by calling a method which appends a `chan` to that slice and returns it. Whenever the client receives a channel update from the engine it iterates on over the slice and sends an update to any event listener `chans`.
 
 To prevent duplicate notifications being emitted, the client keeps track of the previous emitted channel update. A channel update notification is only emitted if the channel has changed from the previous emitted notification.
 
@@ -20,11 +27,11 @@ To prevent duplicate notifications being emitted, the client keeps track of the 
 
 ### Using a Third Party Library
 
-A third party library, like [EventBus](https://github.com/asaskevich/EventBus), could handle registering and notifying event listeners. However it wouldn't allow us to easily prevent duplicate notifications.
+We could use a third-party library, like [EventBus](https://github.com/asaskevich/EventBus), to handle the work of pubsub. However by writing our own eventhandler logic we can adjust it to our needs. One example is comparing the new event against the previously emitted event to prevent duplicate events being fired.
 
 ### Sync.Cond
 
-While `sync.Cond` allows for broadcasting updates to multiple consumers, it requires the consumers and broadcaster to be goroutines. This means we'd have to spin up goroutines for each event listener.
+While `sync.Cond` allows for broadcasting updates to multiple consumers, it requires the consumers and broadcaster to be goroutines. This means we'd have to spin up goroutines for each event listener which does not seem like a natural fit,.
 
 ## Consequences
 
