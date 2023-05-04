@@ -9,7 +9,7 @@ export class HttpTransport {
 
   public static async createTransport(server: string): Promise<Transport> {
     // eslint-disable-next-line new-cap
-    const ws = new w3cwebsocket(`ws://${server}/subscribe`, undefined, '*');
+    const ws = new w3cwebsocket(`ws://${server}/subscribe`, undefined);
     // Wait for onopen to fire so we know the connection is ready
     await new Promise<void>((resolve) => (ws.onopen = () => resolve()));
 
