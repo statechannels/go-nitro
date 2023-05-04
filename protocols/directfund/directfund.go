@@ -313,7 +313,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if err != nil {
 			return &updated, protocols.SideEffects{}, WaitingForCompletePrefund, fmt.Errorf("could not sign prefund %w", err)
 		}
-		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, updated.otherParticipants()...)
+		messages, err := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, updated.otherParticipants()...)
+		if err != nil {
+			return &updated, protocols.SideEffects{}, WaitingForCompletePrefund, fmt.Errorf("could not create payload message %w", err)
+		}
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
@@ -347,7 +350,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		if err != nil {
 			return &updated, protocols.SideEffects{}, WaitingForCompletePostFund, fmt.Errorf("could not sign postfund %w", err)
 		}
-		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, updated.otherParticipants()...)
+		messages, err := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, updated.otherParticipants()...)
+		if err != nil {
+			return &updated, protocols.SideEffects{}, WaitingForCompletePostFund, fmt.Errorf("could not create paylaod message %w", err)
+		}
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
@@ -390,7 +396,7 @@ func (o *Objective) safeToDeposit() bool {
 		chainHolding, ok := o.C.OnChainFunding[asset]
 
 		if !ok {
-			panic("nil chainHolding for asset in myDepositSafetyThreshold")
+			return false // nil chainHolding for asset
 		}
 
 		if types.Gt(safetyThreshold, chainHolding) {
@@ -408,7 +414,7 @@ func (o *Objective) amountToDeposit() types.Funds {
 	for asset, target := range o.myDepositTarget {
 		holding, ok := o.C.OnChainFunding[asset]
 		if !ok {
-			panic("nil chainHolding for asset in myDepositTarget")
+			holding = big.NewInt(0)
 		}
 		deposits[asset] = big.NewInt(0).Sub(target, holding)
 	}

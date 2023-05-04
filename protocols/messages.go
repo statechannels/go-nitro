@@ -2,6 +2,8 @@ package protocols
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -24,13 +26,13 @@ type PayloadType string
 
 // CreateObjectivePayload generates an objective message from the given objective id and payload.
 // CreateObjectivePayload handles serializing `p` into json.
-func CreateObjectivePayload(id ObjectiveId, payloadType PayloadType, p interface{}) ObjectivePayload {
+func CreateObjectivePayload(id ObjectiveId, payloadType PayloadType, p interface{}) (ObjectivePayload, error) {
 	b, err := json.Marshal(p)
 	if err != nil {
-		panic(err)
+		return ObjectivePayload{}, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	return ObjectivePayload{PayloadData: b, ObjectiveId: id, Type: payloadType}
+	return ObjectivePayload{PayloadData: b, ObjectiveId: id, Type: payloadType}, nil
 }
 
 // Message is an object to be sent across the wire.
@@ -64,38 +66,42 @@ func (se *SideEffects) Merge(other SideEffects) {
 }
 
 // GetProposalObjectiveId returns the objectiveId for a proposal.
-func GetProposalObjectiveId(p consensus_channel.Proposal) ObjectiveId {
+func GetProposalObjectiveId(p consensus_channel.Proposal) (ObjectiveId, error) {
 	switch p.Type() {
 	case "AddProposal":
 		{
 			const prefix = "VirtualFund-"
 			channelId := p.ToAdd.Guarantee.Target().String()
-			return ObjectiveId(prefix + channelId)
+			return ObjectiveId(prefix + channelId), nil
 
 		}
 	case "RemoveProposal":
 		{
 			const prefix = "VirtualDefund-"
 			channelId := p.ToRemove.Target.String()
-			return ObjectiveId(prefix + channelId)
+			return ObjectiveId(prefix + channelId), nil
 
 		}
 	default:
 		{
-			panic("invalid proposal type")
+			return "", errors.New("invalid proposal type")
 		}
 	}
 }
 
 // CreateObjectivePayloadMessage returns a message for each recipient tht contains an objective payload.
-func CreateObjectivePayloadMessage(id ObjectiveId, p interface{}, payloadType PayloadType, recipients ...types.Address) []Message {
+func CreateObjectivePayloadMessage(id ObjectiveId, p interface{}, payloadType PayloadType, recipients ...types.Address) ([]Message, error) {
 	messages := make([]Message, 0)
 
 	for _, participant := range recipients {
-		message := Message{To: participant, ObjectivePayloads: []ObjectivePayload{CreateObjectivePayload(id, payloadType, p)}}
+		payload, err := CreateObjectivePayload(id, payloadType, p)
+		if err != nil {
+			return []Message{}, err
+		}
+		message := Message{To: participant, ObjectivePayloads: []ObjectivePayload{payload}}
 		messages = append(messages, message)
 	}
-	return messages
+	return messages, nil
 }
 
 // CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
@@ -183,8 +189,13 @@ func (m Message) Summarize() MessageSummary {
 
 	s.ProposalSummaries = make([]ProposalSummary, len(m.LedgerProposals))
 	for i, p := range m.LedgerProposals {
+		objId, err := GetProposalObjectiveId(p.Proposal)
+		objIdString := string(objId)
+		if err != nil {
+			objIdString = err.Error() // Use error message as objective id
+		}
 		s.ProposalSummaries[i] = ProposalSummary{
-			ObjectiveId:  string(GetProposalObjectiveId(p.Proposal)),
+			ObjectiveId:  objIdString,
 			LedgerId:     p.ChannelID().String(),
 			TurnNum:      p.TurnNum,
 			ProposalType: string(p.Proposal.Type()),

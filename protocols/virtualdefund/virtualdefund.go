@@ -324,7 +324,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	// If we don't know the amount yet we send a message to alice to request it
 	if !updated.isAlice() && !updated.hasFinalStateFromAlice() {
 		alice := o.V.Participants[0]
-		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), o.VId(), RequestFinalStatePayload, alice)
+		messages, err := protocols.CreateObjectivePayloadMessage(updated.Id(), o.VId(), RequestFinalStatePayload, alice)
+		if err != nil {
+			return &updated, sideEffects, WaitingForNothing, err
+		}
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 		return &updated, sideEffects, WaitingForFinalStateFromAlice, nil
 	}
@@ -343,10 +346,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not sign final state: %w", err)
 		}
 
+		messages, err := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		if err != nil {
-			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not get signed final state: %w", err)
+			return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not get create payload message: %w", err)
 		}
-		messages := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, o.otherParticipants()...)
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 

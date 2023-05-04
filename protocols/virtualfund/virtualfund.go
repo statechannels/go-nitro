@@ -331,7 +331,11 @@ func (o *Objective) getPayload(raw protocols.ObjectivePayload) (*state.SignedSta
 }
 
 func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protocols.ProposalReceiver, error) {
-	if pId := protocols.GetProposalObjectiveId(sp.Proposal); o.Id() != pId {
+	pId, err := protocols.GetProposalObjectiveId(sp.Proposal)
+	if err != nil {
+		return o, err
+	}
+	if o.Id() != pId {
 		return o, fmt.Errorf("sp and objective Ids do not match: %s and %s respectively", string(pId), string(o.Id()))
 	}
 
@@ -407,7 +411,11 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 			return o, protocols.SideEffects{}, WaitingForNothing, err
 		}
 
-		messages := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
+		messages, err := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
+		if err != nil {
+			return o, protocols.SideEffects{}, WaitingForNothing, err
+		}
+
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 
@@ -445,7 +453,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 			return o, protocols.SideEffects{}, WaitingForNothing, err
 		}
 
-		messages := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
+		messages, err := protocols.CreateObjectivePayloadMessage(o.Id(), ss, SignedStatePayload, o.otherParticipants()...)
+		if err != nil {
+			return o, protocols.SideEffects{}, WaitingForNothing, err
+		}
 		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
 	}
 

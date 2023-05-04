@@ -28,7 +28,10 @@ func mockConsensusChannel(counterparty types.Address) (ledger *consensus_channel
 	ts.TurnNum = 0
 	ss := state.NewSignedState(ts)
 	id := protocols.ObjectiveId(directfund.ObjectivePrefix + testState.ChannelId().String())
-	op := protocols.CreateObjectivePayload(id, directfund.SignedStatePayload, ss)
+	op, err := protocols.CreateObjectivePayload(id, directfund.SignedStatePayload, ss)
+	if err != nil {
+		return &consensus_channel.ConsensusChannel{}, false
+	}
 	testObj, err := directfund.ConstructFromPayload(true, op, ts.Participants[0])
 	if err != nil {
 		return &consensus_channel.ConsensusChannel{}, false

@@ -251,7 +251,8 @@ func TestCrankAsAlice(t *testing.T) {
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
 	ss := c.SignedPreFundState()
-	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, &ss)
+	e, err := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, &ss)
+	Ok(t, err)
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -333,7 +334,9 @@ func TestCrankAsBob(t *testing.T) {
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
 
-	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, c.SignedPreFundState())
+	e, err := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, c.SignedPreFundState())
+	Ok(t, err)
+
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
@@ -416,7 +419,8 @@ func TestCrankAsP1(t *testing.T) {
 
 	// Update the objective with prefund signatures
 	c := cloneAndSignSetupStateByPeers(*o.V, my.Role, true)
-	e := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, c.SignedPreFundState())
+	e, err := protocols.CreateObjectivePayload(o.Id(), SignedStatePayload, c.SignedPreFundState())
+	Ok(t, err)
 	oObj, err = o.Update(e)
 	o = oObj.(*Objective)
 	Ok(t, err)
