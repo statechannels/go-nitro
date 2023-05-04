@@ -1,11 +1,11 @@
 {
-  "name": "nitro-rpc-client",
+  "name": "@statechannels/nitro-rpc-client",
   "version": "0.0.8",
   "description": "Typescript RPC client for go-nitro",
   "repository": "https://github.com/statechannels/nitro-rpc-client.git",
   "license": "MIT",
   "author": "Alex Gap",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "bin": "src/cli.ts",
   "scripts": {
     "build": "npx tsc",
