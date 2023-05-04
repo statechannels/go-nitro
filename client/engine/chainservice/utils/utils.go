@@ -85,7 +85,7 @@ func GetHardhatFundedPrivateKey(a types.Address) ([]byte, error) {
 	// This is the default mnemonic used by hardhat
 	const HARDHAT_MNEMONIC = "test test test test test test test test test test test junk"
 	// This is the number of accounts hardhat funds by default
-	const NUM_FUNDED = 20
+	const NUM_FUNDED = 10
 	// This is the default hd wallet path used by hardhat
 	const HD_PATH = "m/44'/60'/0'/0"
 
