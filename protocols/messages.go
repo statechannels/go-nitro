@@ -3,6 +3,7 @@ package protocols
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -28,7 +29,7 @@ type PayloadType string
 func CreateObjectivePayload(id ObjectiveId, payloadType PayloadType, p interface{}) (ObjectivePayload, error) {
 	b, err := json.Marshal(p)
 	if err != nil {
-		return ObjectivePayload{}, err
+		return ObjectivePayload{}, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
 	return ObjectivePayload{PayloadData: b, ObjectiveId: id, Type: payloadType}, nil

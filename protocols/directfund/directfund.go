@@ -327,7 +327,6 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	// Funding
 	fundingComplete := updated.fundingComplete() // note all information stored in state (since there are no real events)
 	amountToDeposit := updated.amountToDeposit()
-
 	safeToDeposit := updated.safeToDeposit()
 
 	if !fundingComplete && !safeToDeposit {
