@@ -19,7 +19,7 @@ import (
 // DeployAdjudicator deploys the Create2Deployer and NitroAdjudicator contracts.
 // The nitro adjudicator is deployed to the address computed by the Create2Deployer contract.
 func DeployAdjudicator(ctx context.Context, client *ethclient.Client, txSubmitter *bind.TransactOpts) (common.Address, error) {
-	_, _, deployer, err := Create2Deployer.DeployCreate2Deployer(txSubmitter, client)
+	deployer, err := getCreate2Deployer(ctx, client, txSubmitter)
 	if err != nil {
 		return types.Address{}, err
 	}
@@ -45,6 +45,28 @@ func DeployAdjudicator(ctx context.Context, client *ethclient.Client, txSubmitte
 		}
 	}
 	return naAddress, nil
+}
+
+// getCreate2Deployer deploys or connects to the Create2Deployer contract at a known address
+// If the contract is not deployed, it deploys it.
+func getCreate2Deployer(ctx context.Context, client *ethclient.Client, txSubmitter *bind.TransactOpts) (*Create2Deployer.Create2Deployer, error) {
+	const deployAddress = "0xbdEd0D2bf404bdcBa897a74E6657f1f12e5C6fb6"
+	bytecode, err := client.CodeAt(ctx, common.HexToAddress(deployAddress), nil) // nil is latest block
+	if err != nil {
+		return nil, err
+	}
+	if len(bytecode) == 0 {
+		deployedAdd, _, deployer, err := Create2Deployer.DeployCreate2Deployer(txSubmitter, client)
+		if err != nil {
+			return nil, err
+		}
+		if deployedAdd != common.HexToAddress(deployAddress) {
+			return nil, fmt.Errorf("deployed address %v does not match expected address %v", deployedAdd, deployAddress)
+		}
+		return deployer, nil
+	} else {
+		return Create2Deployer.NewCreate2Deployer(common.HexToAddress(deployAddress), client)
+	}
 }
 
 // ConnectToChain connects to the chain at the given url and returns a client and a transactor.
