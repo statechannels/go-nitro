@@ -76,7 +76,8 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 	}
 }
 
-func isVirtualFundObjective(id types.Destination, store store.Store) (*virtualfund.Objective, bool) {
+// GetVirtualFundObjective returns the virtual fund objective for the given channel if it exists.
+func GetVirtualFundObjective(id types.Destination, store store.Store) (*virtualfund.Objective, bool) {
 	// This is slightly awkward but if the virtual defunding objective is complete it won't come back if we query by channel id
 	// We manually construct the objective id and query by that
 	virtualFundId := protocols.ObjectiveId(virtualfund.ObjectivePrefix + id.String())
@@ -87,6 +88,27 @@ func isVirtualFundObjective(id types.Destination, store store.Store) (*virtualfu
 	return o.(*virtualfund.Objective), true
 }
 
+// GetVoucherBalance returns the amount paid and remaining for a given channel based on vouchers received.
+// If not vouchers are received for the channel, it returns 0 for paid and remaining.
+func GetVoucherBalance(id types.Destination, vm *payments.VoucherManager) (paid, remaining *big.Int, err error) {
+	paid, remaining = big.NewInt(0), big.NewInt(0)
+
+	if noVouchers := !vm.ChannelRegistered(id); noVouchers {
+		return
+	}
+	paid, err = vm.Paid(id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	remaining, err = vm.Remaining(id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return paid, remaining, nil
+}
+
 // GetPaymentChannelInfo returns the PaymentChannelInfo for the given channel
 // It does this by querying the provided store and voucher manager
 func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager) (PaymentChannelInfo, error) {
@@ -94,42 +116,13 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 	c, channelFound := store.GetChannelById(id)
 
 	if channelFound {
-		status := getStatusFromChannel(c)
 
-		// This means intermediaries may not have a fully signed postfund state even though the channel is "ready"
-		// To determine the the correct status we check the status of the virtual fund objective
-		fund, isVirtualFund := isVirtualFundObjective(id, store)
-		if status == Proposed && isVirtualFund && fund.Status == protocols.Completed {
-			status = Ready
-		}
-
-		latest, err := getLatestSupported(c)
+		paid, remaining, err := GetVoucherBalance(id, vm)
 		if err != nil {
 			return PaymentChannelInfo{}, err
 		}
-		balance := getPaymentChannelBalance(c.Participants, latest.Outcome)
-
-		// If we have received vouchers we want to update the channel balance to reflect the vouchers
-		if hasVouchers := vm.ChannelRegistered(id); status == Ready && hasVouchers {
-
-			paid, err := vm.Paid(id)
-			if err != nil {
-				return PaymentChannelInfo{}, err
-			}
-			balance.PaidSoFar.Set(paid)
-
-			remaining, err := vm.Remaining(id)
-			if err != nil {
-				return PaymentChannelInfo{}, err
-			}
-			balance.RemainingFunds.Set(remaining)
-		}
-
-		return PaymentChannelInfo{
-			ID:      id,
-			Status:  status,
-			Balance: balance,
-		}, nil
+		o, _ := GetVirtualFundObjective(id, store)
+		return ConstructPaymentInfo(c, o, paid, remaining)
 	}
 	return PaymentChannelInfo{}, fmt.Errorf("could not find channel with id %v", id)
 }
@@ -139,7 +132,7 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
 	c, ok := store.GetChannelById(id)
 	if ok {
-		return ConstructLedgerFromChannel(c), nil
+		return ConstructLedgerInfoFromChannel(c), nil
 	}
 
 	con, err := store.GetConsensusChannelById(id)
@@ -159,7 +152,7 @@ func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel) L
 	}
 }
 
-func ConstructLedgerFromChannel(c *channel.Channel) LedgerChannelInfo {
+func ConstructLedgerInfoFromChannel(c *channel.Channel) LedgerChannelInfo {
 	latest, err := getLatestSupported(c)
 	if err != nil {
 		panic(err)
@@ -171,16 +164,14 @@ func ConstructLedgerFromChannel(c *channel.Channel) LedgerChannelInfo {
 	}
 }
 
-func ConstructPaymentInfo(c *channel.Channel, objective protocols.Objective, paid, remaining *big.Int) (PaymentChannelInfo, error) {
+func ConstructPaymentInfo(c *channel.Channel, vfo *virtualfund.Objective, paid, remaining *big.Int) (PaymentChannelInfo, error) {
 	status := getStatusFromChannel(c)
 
-	if objective != nil {
+	if vfo != nil && vfo.Status == protocols.Completed {
 		// This means intermediaries may not have a fully signed postfund state even though the channel is "ready"
 		// To determine the the correct status we check the status of the virtual fund objective
-		fund, isVirtualFund := objective.(*virtualfund.Objective)
-		if status == Proposed && isVirtualFund && fund.Status == protocols.Completed {
-			status = Ready
-		}
+
+		status = Ready
 	}
 	latest, err := getLatestSupported(c)
 	if err != nil {

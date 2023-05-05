@@ -368,7 +368,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if !ok {
 			return EngineEvent{}, fmt.Errorf("could not fetch channel for voucher %+v", voucher)
 		}
-		paid, remaining, err := e.getVoucherBalance(c.Id)
+		paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -380,25 +380,6 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	}
 	return allCompleted, nil
-}
-
-// getVoucherBalance returns the amount paid and remaining for a given channel based on vouchers received.
-// If not vouchers are received for the channel, it returns 0,0
-func (e *Engine) getVoucherBalance(id types.Destination) (paid, remaining *big.Int, err error) {
-	paid, remaining = big.NewInt(0), big.NewInt(0)
-	if e.vm.ChannelRegistered(id) {
-
-		paid, err = e.vm.Paid(id)
-		if err != nil {
-			return nil, nil, err
-		}
-		remaining, err = e.vm.Remaining(id)
-		if err != nil {
-			return nil, nil, err
-		}
-
-	}
-	return paid, remaining, nil
 }
 
 // handleChainEvent handles a Chain Event from the blockchain.
@@ -623,15 +604,15 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 			_, isDF := o.(*directfund.Objective)
 			_, isDDF := o.(*directdefund.Objective)
 			if isDDF || isDF {
-				outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerFromChannel(c))
+				outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromChannel(c))
 			} else { // otherwise we must have a payment channel
 
-				paid, remaining, err := e.getVoucherBalance(c.Id)
+				paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
 				if err != nil {
 					return outgoing, err
 				}
-
-				info, err := query.ConstructPaymentInfo(c, o, paid, remaining)
+				vfo, _ := o.(*virtualfund.Objective)
+				info, err := query.ConstructPaymentInfo(c, vfo, paid, remaining)
 				if err != nil {
 					return outgoing, err
 				}
