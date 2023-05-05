@@ -33,6 +33,18 @@ func (rs *RpcServer) Close() {
 	rs.transport.Close()
 }
 
+// newRpcServerWithoutNotifications creates a new rpc server without notifications enabled
+func newRpcServerWithoutNotifications(nitroClient *nitro.Client, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
+	rs := &RpcServer{trans, nitroClient, logger}
+
+	err := rs.registerHandlers()
+	if err != nil {
+		return nil, err
+	}
+
+	return rs, nil
+}
+
 func NewRpcServer(nitroClient *nitro.Client, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
 	rs := &RpcServer{trans, nitroClient, logger}
 	rs.sendNotifications()
@@ -191,17 +203,46 @@ func validateRequest(requestData []byte, logger *zerolog.Logger) validationResul
 
 func (rs *RpcServer) sendNotifications() {
 	go func() {
-		for completedObjective := range rs.client.CompletedObjectives() {
-			rs.logger.Trace().Msgf("Sending notification: %+v", completedObjective)
-			request := serde.NewJsonRpcRequest(rand.Uint64(), serde.ObjectiveCompleted, completedObjective)
-			data, err := json.Marshal(request)
-			if err != nil {
-				panic(err)
-			}
-			err = rs.transport.Notify(data)
-			if err != nil {
-				panic(err)
+		for {
+			select {
+			case completedObjective, ok := <-rs.client.CompletedObjectives():
+				if !ok {
+					rs.logger.Warn().Msg("CompletedObjectives channel closed, exiting sendNotifications")
+					return
+				}
+				err := sendNotification(rs, serde.ObjectiveCompleted, completedObjective)
+				if err != nil {
+					panic(err)
+				}
+			case ledgerInfo, ok := <-rs.client.LedgerUpdates():
+				if !ok {
+					rs.logger.Warn().Msg("LedgerUpdates channel closed, exiting sendNotifications")
+					return
+				}
+				err := sendNotification(rs, serde.LedgerChannelUpdated, ledgerInfo)
+				if err != nil {
+					panic(err)
+				}
+			case paymentInfo, ok := <-rs.client.PaymentUpdates():
+				if !ok {
+					rs.logger.Warn().Msg("PaymentUpdates channel closed, exiting sendNotifications")
+					return
+				}
+				err := sendNotification(rs, serde.PaymentChannelUpdated, paymentInfo)
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 	}()
+}
+
+func sendNotification[T serde.NotificationMethod, U serde.NotificationPayload](rs *RpcServer, method T, payload U) error {
+	rs.logger.Trace().Msgf("Sending notification: %+v", payload)
+	request := serde.NewJsonRpcRequest(rand.Uint64(), method, payload)
+	data, err := json.Marshal(request)
+	if err != nil {
+		return err
+	}
+	return rs.transport.Notify(data)
 }

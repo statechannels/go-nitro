@@ -47,3 +47,31 @@ type LedgerChannelBalance struct {
 	HubBalance    *big.Int
 	ClientBalance *big.Int
 }
+
+// Equal returns true if the other LedgerChannelBalance is equal to this one
+func (lcb LedgerChannelBalance) Equal(other LedgerChannelBalance) bool {
+	return lcb.AssetAddress == other.AssetAddress &&
+		lcb.Hub == other.Hub &&
+		lcb.Client == other.Client &&
+		lcb.HubBalance.Cmp(other.HubBalance) == 0 &&
+		lcb.ClientBalance.Cmp(other.ClientBalance) == 0
+}
+
+// Equal returns true if the other LedgerChannelInfo is equal to this one
+func (li LedgerChannelInfo) Equal(other LedgerChannelInfo) bool {
+	return li.ID == other.ID && li.Status == other.Status && li.Balance.Equal(other.Balance)
+}
+
+// Equal returns true if the other PaymentChannelInfo is equal to this one
+func (pci PaymentChannelInfo) Equal(other PaymentChannelInfo) bool {
+	return pci.ID == other.ID && pci.Status == other.Status && pci.Balance.Equal(other.Balance)
+}
+
+// Equal returns true if the other PaymentChannelBalance is equal to this one
+func (pcb PaymentChannelBalance) Equal(other PaymentChannelBalance) bool {
+	return pcb.AssetAddress == other.AssetAddress &&
+		pcb.Payee == other.Payee &&
+		pcb.Payer == other.Payer &&
+		pcb.PaidSoFar.Cmp(other.PaidSoFar) == 0 &&
+		pcb.RemainingFunds.Cmp(other.RemainingFunds) == 0
+}

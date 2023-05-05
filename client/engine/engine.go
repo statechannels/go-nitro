@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	"github.com/statechannels/go-nitro/client/engine/store"
+	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
@@ -88,6 +90,28 @@ type EngineEvent struct {
 	FailedObjectives []protocols.ObjectiveId
 	// ReceivedVouchers are vouchers we've received from other participants
 	ReceivedVouchers []payments.Voucher
+
+	// LedgerChannelUpdates contains channel info for ledger channels that have been updated
+	LedgerChannelUpdates []query.LedgerChannelInfo
+	// PaymentChannelUpdates contains channel info for payment channels that have been updated
+	PaymentChannelUpdates []query.PaymentChannelInfo
+}
+
+// IsEmpty returns true if the EngineEvent contains no changes
+func (ee *EngineEvent) IsEmpty() bool {
+	return len(ee.CompletedObjectives) == 0 &&
+		len(ee.FailedObjectives) == 0 &&
+		len(ee.ReceivedVouchers) == 0 &&
+		len(ee.LedgerChannelUpdates) == 0 &&
+		len(ee.PaymentChannelUpdates) == 0
+}
+
+func (ee *EngineEvent) Merge(other EngineEvent) {
+	ee.CompletedObjectives = append(ee.CompletedObjectives, other.CompletedObjectives...)
+	ee.FailedObjectives = append(ee.FailedObjectives, other.FailedObjectives...)
+	ee.ReceivedVouchers = append(ee.ReceivedVouchers, other.ReceivedVouchers...)
+	ee.LedgerChannelUpdates = append(ee.LedgerChannelUpdates, other.LedgerChannelUpdates...)
+	ee.PaymentChannelUpdates = append(ee.PaymentChannelUpdates, other.PaymentChannelUpdates...)
 }
 
 type CompletedObjectiveEvent struct {
@@ -163,7 +187,7 @@ func (e *Engine) Run() {
 		case or := <-e.ObjectiveRequestsFromAPI:
 			res, err = e.handleObjectiveRequest(or)
 		case pr := <-e.PaymentRequestsFromAPI:
-			err = e.handlePaymentRequest(pr)
+			res, err = e.handlePaymentRequest(pr)
 		case chainEvent := <-e.fromChain:
 			res, err = e.handleChainEvent(chainEvent)
 		case message := <-e.fromMsg:
@@ -178,7 +202,8 @@ func (e *Engine) Run() {
 		e.checkError(err)
 
 		// Only send out an event if there are changes
-		if len(res.CompletedObjectives) > 0 || len(res.FailedObjectives) > 0 || len(res.ReceivedVouchers) > 0 {
+		if !res.IsEmpty() {
+
 			for _, obj := range res.CompletedObjectives {
 				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
 				e.metrics.RecordObjectiveCompleted(obj.Id())
@@ -243,6 +268,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 				}
 
 				allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
+
 				err = e.executeSideEffects(sideEffects)
 				// An error would mean we failed to send a message. But the objective is still "completed".
 				// So, we should return allCompleted even if there was an error.
@@ -263,11 +289,13 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if err != nil {
 			return EngineEvent{}, err
 		}
+
 		progressEvent, err := e.attemptProgress(updatedObjective)
 		if err != nil {
 			return EngineEvent{}, err
 		}
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
+
+		allCompleted.Merge(progressEvent)
 
 		if err != nil {
 			return EngineEvent{}, err
@@ -301,11 +329,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			return EngineEvent{}, err
 		}
 
-		allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, progressEvent.CompletedObjectives...)
-
-		if err != nil {
-			return EngineEvent{}, err
-		}
+		allCompleted.Merge(progressEvent)
 
 	}
 
@@ -340,6 +364,19 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if err != nil {
 			return EngineEvent{}, fmt.Errorf("error accepting payment voucher: %w", err)
 		}
+		c, ok := e.store.GetChannelById(voucher.ChannelId)
+		if !ok {
+			return EngineEvent{}, fmt.Errorf("could not fetch channel for voucher %+v", voucher)
+		}
+		paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
+		if err != nil {
+			return EngineEvent{}, err
+		}
+		info, err := query.ConstructPaymentInfo(c, nil, paid, remaining)
+		if err != nil {
+			return EngineEvent{}, err
+		}
+		allCompleted.PaymentChannelUpdates = append(allCompleted.PaymentChannelUpdates, info)
 
 	}
 	return allCompleted, nil
@@ -448,7 +485,8 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 
 // handlePaymentRequest handles an PaymentRequest (triggered by a client API call).
 // It prepares and dispatches a payment message to the counterparty.
-func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
+func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, error) {
+	ee := EngineEvent{}
 	if (request == PaymentRequest{}) {
 		panic("tried to handle nil payment request")
 	}
@@ -458,18 +496,24 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) error {
 		request.Amount,
 		*e.store.GetChannelSecretKey())
 	if err != nil {
-		return fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
+		return ee, fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
 	}
 	c, ok := e.store.GetChannelById(cId)
 	if !ok {
-		return fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
+		return ee, fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
 	}
 	payer, payee := payments.GetPayer(c.Participants), payments.GetPayee(c.Participants)
 	if payer != *e.store.GetAddress() {
-		return fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
+		return ee, fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
 	}
+	info, err := query.GetPaymentChannelInfo(cId, e.store, e.vm)
+	if err != nil {
+		return ee, fmt.Errorf("handleAPIEvent: Error querying channel info: %w", err)
+	}
+	ee.PaymentChannelUpdates = append(ee.PaymentChannelUpdates, info)
+
 	se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
-	return e.executeSideEffects(se)
+	return ee, e.executeSideEffects(se)
 }
 
 // sendMessages sends out the messages and records the metrics.
@@ -520,16 +564,17 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	var waitingFor protocols.WaitingFor
 
 	crankedObjective, sideEffects, waitingFor, err = objective.Crank(secretKey)
-
 	if err != nil {
 		return
 	}
 
 	err = e.store.SetObjective(crankedObjective)
 
+	notifEvents, err := e.generateNotifications(crankedObjective)
 	if err != nil {
-		return
+		return EngineEvent{}, err
 	}
+	outgoing.Merge(notifEvents)
 
 	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
 
@@ -546,6 +591,48 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	}
 	err = e.executeSideEffects(sideEffects)
 	return
+}
+
+// generateNotifications takes an objective and constructs notifications for any related channels for that objective.
+func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, error) {
+	outgoing := EngineEvent{}
+
+	for _, rel := range o.Related() {
+		switch c := rel.(type) {
+		case *channel.Channel:
+			// If we're in direct funding/defunding then we're dealing with a leadger channel
+			_, isDF := o.(*directfund.Objective)
+			_, isDDF := o.(*directdefund.Objective)
+			if isDDF || isDF {
+				outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromChannel(c))
+			} else { // otherwise we must have a payment channel
+
+				paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
+				if err != nil {
+					return outgoing, err
+				}
+				vfo, _ := o.(*virtualfund.Objective)
+				info, err := query.ConstructPaymentInfo(c, vfo, paid, remaining)
+				if err != nil {
+					return outgoing, err
+				}
+
+				outgoing.PaymentChannelUpdates = append(outgoing.PaymentChannelUpdates, info)
+
+			}
+		case *consensus_channel.ConsensusChannel:
+
+			// TODO: Some of the related consensus channels are zeroed out (possibly deleted?)
+			// For now we just ignore them
+			if !c.Id.IsZero() {
+				outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromConsensus(c))
+			}
+
+		default:
+			return outgoing, fmt.Errorf("handleNotifications: Unknown related type %T", c)
+		}
+	}
+	return outgoing, nil
 }
 
 func (e Engine) registerPaymentChannel(vfo virtualfund.Objective) error {
