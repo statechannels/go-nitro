@@ -5,7 +5,9 @@ import (
 	"io"
 	"math/big"
 	"runtime/debug"
+	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
@@ -37,6 +39,7 @@ type Client struct {
 	chainId                   *big.Int
 	store                     store.Store
 	vm                        *payments.VoucherManager
+	logger                    zerolog.Logger
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -54,6 +57,8 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.chainId = chainId
 	c.store = store
 	c.vm = payments.NewVoucherManager(*store.GetAddress(), store)
+	c.logger = zerolog.New(logDestination).With().Timestamp().Str("API-client", c.Address.String()[0:8]).Caller().Logger()
+
 	c.engine = engine.New(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	c.completedObjectives = &safesync.Map[chan struct{}]{}
 	c.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
@@ -100,18 +105,12 @@ func (c *Client) handleEngineEvents() {
 		for _, updated := range update.LedgerChannelUpdates {
 
 			err := c.channelNotifier.NotifyLedgerUpdated(updated)
-			// TODO: What's the best way of handling this error
-			if err != nil {
-				panic(err)
-			}
+			c.handleError(err)
 		}
 		for _, updated := range update.PaymentChannelUpdates {
 
 			err := c.channelNotifier.NotifyPaymentUpdated(updated)
-			// TODO: What's the best way of handling this error
-			if err != nil {
-				panic(err)
-			}
+			c.handleError(err)
 		}
 	}
 
@@ -271,4 +270,19 @@ func (c *Client) Close() error {
 		return err
 	}
 	return c.store.Close()
+}
+
+// handleError logs the error and panics
+// Eventually it should return the error to the caller
+func (c *Client) handleError(err error) {
+	if err != nil {
+
+		c.logger.Err(err).Msgf("%s, error in API client", c.Address)
+
+		<-time.After(1000 * time.Millisecond) // We wait for a bit so the previous log line has time to complete
+
+		// TODO instead of a panic, errors should be returned to the caller.
+		panic(err)
+
+	}
 }
