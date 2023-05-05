@@ -1,15 +1,37 @@
-import reactLogo from "./assets/react.svg";
+import { useEffect, useState } from "react";
+import { NitroRpcClient } from "@statechannels/nitro-rpc-client";
+
+import { NetworkBalance } from "./components/NetworkBalance";
 import statechannelsLogo from "./assets/statechannels.svg";
 import "./App.css";
-import { NetworkBalance } from "./components/NetworkBalance";
 
 function App() {
+  const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
+  const [version, setVersion] = useState("");
+
+  useEffect(() => {
+    const setupClient = async () => {
+      const nitroClient = await NitroRpcClient.CreateHttpNitroClient(
+        "http://localhost:4005"
+      );
+      setNitroClient(nitroClient);
+    };
+    setupClient();
+  }, []);
+
+  useEffect(() => {
+    const getVersion = async () => {
+      if (nitroClient) {
+        console.log("getting version");
+        const version = await nitroClient.GetVersion();
+        setVersion(version);
+      }
+    };
+    getVersion();
+  }, [nitroClient]);
   return (
     <>
       <div>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
         <a href="http://statechannels.org" className="href">
           <img src={statechannelsLogo} className="logo" />
         </a>
@@ -23,9 +45,7 @@ function App() {
           theirBalanceFree={BigInt(200)}
         ></NetworkBalance>
 
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+        <p>The nitro client version is {version}</p>
       </div>
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
