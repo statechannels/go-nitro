@@ -58,8 +58,6 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.completedObjectives = &safesync.Map[chan struct{}]{}
 	c.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
 
-	c.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
-
 	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
 	c.receivedVouchers = make(chan payments.Voucher, 1000)
