@@ -161,7 +161,7 @@ func (c *Client) PaymentUpdates() <-chan query.PaymentChannelInfo {
 	return c.channelNotifier.RegisterForAllPaymentUpdates()
 }
 
-// ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
+// ObjectiveCompleteChan returns a chan that is closed when the objective with given id is completed
 func (c *Client) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
 	d, _ := c.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
 	return d
