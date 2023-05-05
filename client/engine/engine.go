@@ -97,6 +97,15 @@ type EngineEvent struct {
 	PaymentChannelUpdates []query.PaymentChannelInfo
 }
 
+// IsEmpty returns true if the EngineEvent contains no changes
+func (ee *EngineEvent) IsEmpty() bool {
+	return len(ee.CompletedObjectives) == 0 &&
+		len(ee.FailedObjectives) == 0 &&
+		len(ee.ReceivedVouchers) == 0 &&
+		len(ee.LedgerChannelUpdates) == 0 &&
+		len(ee.PaymentChannelUpdates) == 0
+}
+
 func (ee *EngineEvent) Merge(other EngineEvent) {
 	ee.CompletedObjectives = append(ee.CompletedObjectives, other.CompletedObjectives...)
 	ee.FailedObjectives = append(ee.FailedObjectives, other.FailedObjectives...)
@@ -193,11 +202,7 @@ func (e *Engine) Run() {
 		e.checkError(err)
 
 		// Only send out an event if there are changes
-		if len(res.CompletedObjectives) > 0 ||
-			len(res.FailedObjectives) > 0 ||
-			len(res.ReceivedVouchers) > 0 ||
-			len(res.LedgerChannelUpdates) > 0 ||
-			len(res.PaymentChannelUpdates) > 0 {
+		if !res.IsEmpty() {
 
 			for _, obj := range res.CompletedObjectives {
 				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
