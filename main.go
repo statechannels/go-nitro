@@ -35,7 +35,7 @@ func main() {
 	flag.BoolVar(&useDurableStore, "usedurablestore", false, "Specifies whether to use a durable store or an in-memory store.")
 	flag.StringVar(&pkString, "pk", "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d", "Specifies the private key for the client. Default is Alice's private key.")
 	flag.StringVar(&chainUrl, "chainurl", "ws://127.0.0.1:8545", "Specifies the url of a RPC endpoint for the chain.")
-	flag.StringVar(&naAddress, "naaddress", "0x3f1E9229cd27051CF7eE76dc9579BCbF649509be", "Specifies the address of the nitro adjudicator contract. Default is the address computed by the Create2Deployer contract.")
+	flag.StringVar(&naAddress, "naaddress", "0xD5978Be8636bB9C4912617ae8389888d85108fcf", "Specifies the address of the nitro adjudicator contract. Default is the address computed by the Create2Deployer contract.")
 	flag.IntVar(&msgPort, "msgport", 3005, "Specifies the tcp port for the  message service.")
 	flag.IntVar(&rpcPort, "rpcport", 4005, "Specifies the tcp port for the rpc server.")
 	flag.IntVar(&chainId, "chainid", 1337, "Specifies the chain id of the chain.")
@@ -63,7 +63,7 @@ func main() {
 		panic(err)
 	}
 	if deployContracts {
-		deployedAddress, err := chainutils.DeployAdjudicator(context.Background(), ethClient, txSubmitter)
+		deployedAddress, err := chainutils.DeployAdjudicator(context.Background(), ethClient)
 		if err != nil {
 			panic(err)
 		}
