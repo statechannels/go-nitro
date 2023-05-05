@@ -12,7 +12,7 @@ function App() {
   useEffect(() => {
     const setupClient = async () => {
       const nitroClient = await NitroRpcClient.CreateHttpNitroClient(
-        "http://localhost:4005"
+        "localhost:4005"
       );
       setNitroClient(nitroClient);
     };
@@ -22,13 +22,13 @@ function App() {
   useEffect(() => {
     const getVersion = async () => {
       if (nitroClient) {
-        console.log("getting version");
         const version = await nitroClient.GetVersion();
         setVersion(version);
       }
     };
     getVersion();
   }, [nitroClient]);
+
   return (
     <>
       <div>
