@@ -28,25 +28,25 @@ func NewChannelNotifier(store store.Store, vm *payments.VoucherManager) *Channel
 	}
 }
 
-// RegisterForAllLedgerUpdates returns a buffered channel that will receive ledger channel updates when they occur for all ledger channels.
+// RegisterForAllLedgerUpdates returns a buffered channel that will receive updates for all ledger channels.
 func (cn *ChannelNotifier) RegisterForAllLedgerUpdates() <-chan query.LedgerChannelInfo {
 	li, _ := cn.ledgerListeners.LoadOrStore(ALL_NOTIFICATIONS, newLedgerChannelListeners())
 	return li.getOrCreateListener()
 }
 
-// RegisterForLedgerUpdates returns a buffered channel that will receive ledger channel updates when they occur for a specific ledger channel.
+// RegisterForLedgerUpdates returns a buffered channel that will receive updates for a specific ledger channel.
 func (cn *ChannelNotifier) RegisterForLedgerUpdates(cId types.Destination) <-chan query.LedgerChannelInfo {
 	li, _ := cn.ledgerListeners.LoadOrStore(cId.String(), newLedgerChannelListeners())
 	return li.createNewListener()
 }
 
-// RegisterForAllPaymentUpdates returns a buffered channel that will receive payment channel updates when they occur for all payment channels.
+// RegisterForAllPaymentUpdates returns a buffered channel that will receive updates for all payment channels.
 func (cn *ChannelNotifier) RegisterForAllPaymentUpdates() <-chan query.PaymentChannelInfo {
 	li, _ := cn.paymentListeners.LoadOrStore(ALL_NOTIFICATIONS, newPaymentChannelListeners())
 	return li.getOrCreateListener()
 }
 
-// RegisterForLedgerUpdates returns a buffered channel that will receive payment channel updates when they occur for a specific payment channel.
+// RegisterForLedgerUpdates returns a buffered channel that will receive updates or a specific payment channel.
 func (cn *ChannelNotifier) RegisterForPaymentChannelUpdates(cId types.Destination) <-chan query.PaymentChannelInfo {
 	li, _ := cn.paymentListeners.LoadOrStore(cId.String(), newPaymentChannelListeners())
 	return li.createNewListener()
