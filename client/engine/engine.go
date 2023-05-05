@@ -589,7 +589,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 
 	err = e.store.SetObjective(crankedObjective)
 
-	notifEvents, err := e.handleNotifications(crankedObjective)
+	notifEvents, err := e.generateNotifications(crankedObjective)
 	if err != nil {
 		return EngineEvent{}, err
 	}
@@ -612,8 +612,8 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	return
 }
 
-// handleNotifications takes an objective and constructs notifications for any related channels for that objective.
-func (e *Engine) handleNotifications(o protocols.Objective) (EngineEvent, error) {
+// generateNotifications takes an objective and constructs notifications for any related channels for that objective.
+func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, error) {
 	outgoing := EngineEvent{}
 
 	for _, rel := range o.Related() {
