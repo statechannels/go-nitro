@@ -63,7 +63,7 @@ func main() {
 		panic(err)
 	}
 	if deployContracts {
-		deployedAddress, err := chainutils.DeployAdjudicator(context.Background(), ethClient)
+		deployedAddress, err := chainutils.DeployAdjudicator(context.Background(), ethClient, nil)
 		if err != nil {
 			panic(err)
 		}

@@ -27,7 +27,9 @@ const (
 
 // DeployAdjudicator deploys the Create2Deployer and NitroAdjudicator contracts.
 // The nitro adjudicator is deployed to the address computed by the Create2Deployer contract.
-func DeployAdjudicator(ctx context.Context, client *ethclient.Client) (common.Address, error) {
+// TODO: The *bind.TransactOpts param is ignored. It's only there for compatibility with the testground test.
+// We should remove it when the testground test is updated.
+func DeployAdjudicator(ctx context.Context, client *ethclient.Client, _ *bind.TransactOpts) (common.Address, error) {
 	// We want to use the same account for deployments
 	// so we use one specific account when handling deployments.
 	chainPk, err := deriveFundedPk(deployerIndex)
