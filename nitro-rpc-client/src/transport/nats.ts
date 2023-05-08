@@ -1,14 +1,16 @@
-import { NatsConnection, connect, JSONCodec, Subscription } from 'nats';
-import { EventEmitter } from 'eventemitter3';
+import { NatsConnection, connect, JSONCodec, Subscription } from "nats";
+import { EventEmitter } from "eventemitter3";
+
 import {
   ObjectiveCompleteNotification,
   RPCMethod,
   RPCRequestAndResponses,
-} from '../types';
-import { Transport } from '.';
+} from "../types";
 
-const NITRO_REQUEST_TOPIC = 'nitro-request';
-const NITRO_NOTIFICATION_TOPIC = 'nitro-notify';
+import { Transport } from ".";
+
+const NITRO_REQUEST_TOPIC = "nitro-request";
+const NITRO_NOTIFICATION_TOPIC = "nitro-notify";
 
 export class NatsTransport {
   private natsConn: NatsConnection;
@@ -40,23 +42,23 @@ export class NatsTransport {
   private async listenForMessages(sub: Subscription) {
     for await (const msg of sub) {
       const notif = JSONCodec().decode(
-        msg.data,
+        msg.data
       ) as ObjectiveCompleteNotification;
 
-      this.objectiveCompleteEmitter.emit('objective_completed', notif);
+      this.objectiveCompleteEmitter.emit("objective_completed", notif);
     }
   }
 
   public async sendRequest<K extends RPCMethod>(
-    req: RPCRequestAndResponses[K][0],
+    req: RPCRequestAndResponses[K][0]
   ): Promise<RPCRequestAndResponses[K][1]> {
     const natsRes = await this.natsConn?.request(
       NITRO_REQUEST_TOPIC,
-      JSONCodec().encode(req),
+      JSONCodec().encode(req)
     );
 
     if (!natsRes) {
-      throw new Error('No response');
+      throw new Error("No response");
     }
     const decoded = JSONCodec().decode(natsRes?.data);
 

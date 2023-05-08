@@ -3,25 +3,25 @@
  */
 export type JsonRpcRequest<MethodName extends RPCMethod, RequestParams> = {
   id: number; // in the json-rpc spec this is optional, but we require it for all our requests
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   method: MethodName;
   params: RequestParams;
 };
 export type JsonRpcResponse<ResultType> = {
   id: number;
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   result: ResultType;
 };
 
 export type JsonRpcNotification<NotificationName, NotificationParams> = {
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   method: NotificationName;
   params: NotificationParams;
 };
 
 export type JsonRpcError<Code, Message, Data = undefined> = {
   id: number;
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   error: Data extends undefined
     ? { code: Code; message: Message }
     : { code: Code; message: Message; data: Data };
@@ -65,30 +65,30 @@ export type ObjectiveResponse = {
  * RPC Requests
  */
 export type GetAddressRequest = JsonRpcRequest<
-  'get_address',
+  "get_address",
   Record<string, never>
 >;
-export type DirectFundRequest = JsonRpcRequest<'direct_fund', DirectFundParams>;
-export type PaymentRequest = JsonRpcRequest<'pay', PaymentParams>;
+export type DirectFundRequest = JsonRpcRequest<"direct_fund", DirectFundParams>;
+export type PaymentRequest = JsonRpcRequest<"pay", PaymentParams>;
 export type VirtualFundRequest = JsonRpcRequest<
-  'virtual_fund',
+  "virtual_fund",
   VirtualFundParams
 >;
 export type GetLedgerChannelRequest = JsonRpcRequest<
-  'get_ledger_channel',
+  "get_ledger_channel",
   GetChannelRequest
 >;
 export type GetPaymentChannelRequest = JsonRpcRequest<
-  'get_payment_channel',
+  "get_payment_channel",
   GetChannelRequest
 >;
-export type VersionRequest = JsonRpcRequest<'version', Record<string, never>>;
+export type VersionRequest = JsonRpcRequest<"version", Record<string, never>>;
 export type DirectDefundRequest = JsonRpcRequest<
-  'direct_defund',
+  "direct_defund",
   DefundObjectiveRequest
 >;
 export type VirtualDefundRequest = JsonRpcRequest<
-  'virtual_defund',
+  "virtual_defund",
   DefundObjectiveRequest
 >;
 
@@ -132,7 +132,7 @@ export type RPCResponse =
  * RPC Notifications
  */
 export type ObjectiveCompleteNotification = JsonRpcNotification<
-  'objective_completed',
+  "objective_completed",
   string
 >;
 
@@ -186,4 +186,4 @@ export type AssetMetadata = {
   Metadata: null;
 };
 
-export type ChannelStatus = 'Proposed' | 'Ready' | 'Closing' | 'Complete';
+export type ChannelStatus = "Proposed" | "Ready" | "Closing" | "Complete";

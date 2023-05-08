@@ -1,8 +1,10 @@
-import axios from 'axios';
-import { w3cwebsocket } from 'websocket';
-import { EventEmitter } from 'eventemitter3';
-import { RPCMethod, RPCRequestAndResponses } from '../types';
-import { Transport } from '.';
+import axios from "axios";
+import { w3cwebsocket } from "websocket";
+import { EventEmitter } from "eventemitter3";
+
+import { RPCMethod, RPCRequestAndResponses } from "../types";
+
+import { Transport } from ".";
 
 export class HttpTransport {
   Notifications: EventEmitter;
@@ -18,7 +20,7 @@ export class HttpTransport {
   }
 
   public async sendRequest<K extends RPCMethod>(
-    req: RPCRequestAndResponses[K][0],
+    req: RPCRequestAndResponses[K][0]
   ): Promise<RPCRequestAndResponses[K][1]> {
     const url = `http://${this.server}`;
 

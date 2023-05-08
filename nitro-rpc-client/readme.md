@@ -5,12 +5,12 @@ The nitro RPC client is a typescript client that can make RPC calls against a go
 ## Using the RPC Client
 
 ```typescript
-import { NitroRpcClient } from './rpc-client';
+import { NitroRpcClient } from "./rpc-client";
 
 const rpcPort = 4222;
 
 const rpcClient = await NitroRpcClient.CreateNatsRpcClient(
-  `127.0.0.1:${rpcPort}`,
+  `127.0.0.1:${rpcPort}`
 );
 
 const counterParty = `0xDEADBEEF`;
@@ -18,7 +18,7 @@ const counterParty = `0xDEADBEEF`;
 const paymentChannelInfo = await rpcClient.DirectFund(counterParty);
 
 console.log(
-  `Created channel ${paymentChannelInfo.ChannelId} with counterparty ${counterParty}`,
+  `Created channel ${paymentChannelInfo.ChannelId} with counterparty ${counterParty}`
 );
 
 await rpcClient.Close();

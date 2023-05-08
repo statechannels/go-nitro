@@ -1,1 +1,1 @@
-export { NitroRpcClient } from './rpc-client';
+export { NitroRpcClient } from "./rpc-client";

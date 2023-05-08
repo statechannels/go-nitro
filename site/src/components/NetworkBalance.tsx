@@ -6,13 +6,15 @@ import {
 } from "@material-ui/core";
 import bigDecimal from "js-big-decimal-esm";
 import { PieChart } from "react-minimal-pie-chart";
+
 import "./NetworkBalance.scss";
 import colors from "../styles/colors.module.css";
 import { prettyPrintWei } from "../utils";
 
 // This prevents a runtime error in storybook
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-// eslint-disable-next-line no-extend-native
+
 BigInt.prototype.toJSON = function (): string {
   return this.toString();
 };

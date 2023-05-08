@@ -1,14 +1,9 @@
-import { useState } from "react";
 import reactLogo from "./assets/react.svg";
 import statechannelsLogo from "./assets/statechannels.svg";
 import "./App.css";
 import { NetworkBalance } from "./components/NetworkBalance";
 
-
-
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
     <>
       <div>

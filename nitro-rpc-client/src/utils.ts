@@ -1,4 +1,4 @@
-import { Outcome, RPCMethod, RPCRequestAndResponses } from './types';
+import { Outcome, RPCMethod, RPCRequestAndResponses } from "./types";
 
 /**
  * createDirectFundOutcome creates a basic outcome for a directly funded channel
@@ -11,7 +11,7 @@ import { Outcome, RPCMethod, RPCRequestAndResponses } from './types';
 export function createDirectFundOutcome(
   asset: string,
   alpha: string,
-  beta: string,
+  beta: string
 ): Outcome {
   return [
     {
@@ -49,8 +49,8 @@ export function createDirectFundOutcome(
  * @returns 32 byte padded hex string
  */
 export function convertAddressToBytes32(address: string): string {
-  const digits = address.startsWith('0x') ? address.substring(2) : address;
-  return `0x${digits.padStart(24, '0')}`;
+  const digits = address.startsWith("0x") ? address.substring(2) : address;
+  return `0x${digits.padStart(24, "0")}`;
 }
 
 /**
@@ -62,10 +62,10 @@ export function convertAddressToBytes32(address: string): string {
  */
 export function generateRequest<
   K extends RPCMethod,
-  T extends RPCRequestAndResponses[K][0],
->(method: K, params: T['params']): T {
+  T extends RPCRequestAndResponses[K][0]
+>(method: K, params: T["params"]): T {
   return {
-    jsonrpc: '2.0',
+    jsonrpc: "2.0",
     method,
     params,
     id: Date.now(),
