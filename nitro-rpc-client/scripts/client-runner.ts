@@ -24,6 +24,11 @@ yargs(process.argv.slice(2))
           type: "number",
           default: 5,
         })
+        .option("numclosevirtual", {
+          describe: "The number of virtual channels to close and defund.",
+          type: "number",
+          default: 2,
+        })
         .option("numpayments", {
           describe:
             "The number of payments to make from Alice to Bob.Each payment is made on a random virtual channel",
@@ -51,13 +56,16 @@ yargs(process.argv.slice(2))
         console.log("Constructing ledger channels");
         const aliceLedger = await aliceClient.DirectFund(ireneAddress);
         console.log(`Ledger channel ${aliceLedger.ChannelId} created`);
+
         const bobLedger = await ireneClient.DirectFund(bobAddress);
         console.log(`Ledger channel ${bobLedger.ChannelId} created`);
+
         await wait(1000);
       }
 
-      const virtualChannels: string[] = [];
       // Setup virtual channels
+      const virtualChannels: string[] = [];
+      console.log(`Constructing ${yargs.numvirtual} virtual channels`);
       for (let i = 0; i < yargs.numvirtual; i++) {
         const res = await aliceClient.VirtualFund(bobAddress, [ireneAddress]);
         console.log(`Virtual channel ${res.ChannelId} created`);
@@ -66,10 +74,28 @@ yargs(process.argv.slice(2))
       await wait(1000);
 
       // Make payments
+      console.log(`Making ${yargs.numpayments} payments`);
       for (let i = 0; i < yargs.numpayments; i++) {
         const channelId = getRandomElement(virtualChannels);
         const res = await aliceClient.Pay(channelId, 1);
         console.log(`Paid ${res.Amount} on channel ${res.Channel}`);
+      }
+
+      await wait(1000);
+
+      // Close virtual channels
+      console.log(`Closing ${yargs.numclosevirtual} virtual channels`);
+      let closeCount = 0;
+      for (const channelId of virtualChannels) {
+        if (closeCount >= yargs.numclosevirtual) {
+          break;
+        }
+
+        const res = await aliceClient.VirtualDefund(channelId);
+        console.log(
+          `Virtual channel ${getChannelIdFromObjectiveId(res)} closed`
+        );
+        closeCount++;
       }
 
       aliceClient.Close();
@@ -89,4 +115,8 @@ function getRandomElement(col: any[]) {
 }
 async function wait(ms: number) {
   await new Promise((res) => setTimeout(res, ms));
+}
+
+function getChannelIdFromObjectiveId(objectiveId: string): string {
+  return objectiveId.split("-")[1];
 }
