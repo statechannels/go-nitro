@@ -243,6 +243,7 @@ yargs(hideBin(process.argv))
 
   .demandCommand(1, "You need at least one command before moving on")
   .parserConfiguration({ "parse-numbers": false })
+  .strict()
   .parse();
 
 function getLocalRPCUrl(port: number): string {
