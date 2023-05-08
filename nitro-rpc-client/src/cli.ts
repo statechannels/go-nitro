@@ -127,7 +127,7 @@ yargs(process.argv.slice(2))
         intermediaries
       );
 
-      const { Id } = vfObjective.result;
+      const { Id } = vfObjective;
       console.log(`Objective started ${Id}`);
       await rpcClient.WaitForObjective(Id);
       console.log(`Objective complete ${Id}`);

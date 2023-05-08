@@ -5,7 +5,6 @@ import {
   PaymentChannelInfo,
   PaymentParams,
   VirtualFundParams,
-  VirtualFundResponse,
   RPCMethod,
   RPCRequestAndResponses,
   ObjectiveResponse,
@@ -71,7 +70,7 @@ export class NitroRpcClient {
   public async VirtualFund(
     counterParty: string,
     intermediaries: string[]
-  ): Promise<VirtualFundResponse> {
+  ): Promise<ObjectiveResponse> {
     const asset = `0x${"00".repeat(20)}`;
     const params: VirtualFundParams = {
       CounterParty: counterParty,
@@ -86,8 +85,7 @@ export class NitroRpcClient {
       Nonce: Date.now(),
     };
 
-    const request = generateRequest("virtual_fund", params);
-    return this.transport.sendRequest<"virtual_fund">(request);
+    return this.sendRequest("virtual_fund", params);
   }
 
   /**
