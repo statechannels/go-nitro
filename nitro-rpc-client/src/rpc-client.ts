@@ -10,7 +10,7 @@ import {
   ObjectiveResponse,
 } from "./types";
 import { Transport } from "./transport";
-import { createDirectFundOutcome, generateRequest } from "./utils";
+import { createOutcome, generateRequest } from "./utils";
 import { HttpTransport } from "./transport/http";
 
 export class NitroRpcClient {
@@ -48,10 +48,11 @@ export class NitroRpcClient {
     const params: DirectFundParams = {
       CounterParty: counterParty,
       ChallengeDuration: 0,
-      Outcome: createDirectFundOutcome(
+      Outcome: createOutcome(
         asset,
         await this.GetAddress(),
-        counterParty
+        counterParty,
+        1_000_000
       ),
       AppDefinition: asset,
       AppData: "0x00",
@@ -76,10 +77,11 @@ export class NitroRpcClient {
       CounterParty: counterParty,
       Intermediaries: intermediaries,
       ChallengeDuration: 0,
-      Outcome: createDirectFundOutcome(
+      Outcome: createOutcome(
         asset,
         await this.GetAddress(),
-        counterParty
+        counterParty,
+        1_000
       ),
       AppDefinition: asset,
       Nonce: Date.now(),
