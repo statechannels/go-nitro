@@ -3,9 +3,10 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 
 import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
 
 import { NitroRpcClient } from "../src/rpc-client";
-yargs(process.argv.slice(2))
+yargs(hideBin(process.argv))
   .scriptName("client-runner")
   .command(
     "create-channels",

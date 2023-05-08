@@ -3,10 +3,11 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 
 import yargs from "yargs/yargs";
+import { hideBin } from "yargs/helpers";
 
 import { NitroRpcClient } from "./rpc-client";
 
-yargs(process.argv.slice(2))
+yargs(hideBin(process.argv))
   .scriptName("nitro-rpc-client")
   .option({
     p: { alias: "port", default: 4005, type: "number" },
