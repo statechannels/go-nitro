@@ -305,6 +305,33 @@ func (ds *DurableStore) GetChannelsByIds(ids []types.Destination) ([]*channel.Ch
 	return toReturn, nil
 }
 
+// GetObjectiveByChannelIds returns a collection of objectives for the given channel ids
+func (ds *DurableStore) GetObjectiveByChannelIds(ids []types.Destination) (map[types.Destination]protocols.Objective, error) {
+	toReturn := map[types.Destination]protocols.Objective{}
+	var err error
+
+	txError := ds.channels.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend("", func(key, chJSON string) bool {
+			var o protocols.Objective
+			err = json.Unmarshal([]byte(chJSON), &o)
+			if err != nil {
+				return false
+			}
+			toReturn[o.OwnsChannel()] = o
+
+			// Keep iterating through if we haven't found all the channels yet
+			return len(toReturn) < len(ids)
+		})
+	})
+	if txError != nil {
+		return map[types.Destination]protocols.Objective{}, txError
+	}
+	if err != nil {
+		return map[types.Destination]protocols.Objective{}, err
+	}
+	return toReturn, nil
+}
+
 // GetChannelsByAppDefinition returns any channels that include the given app definition
 func (ds *DurableStore) GetChannelsByAppDefinition(appDef types.Address) []*channel.Channel {
 	toReturn := []*channel.Channel{}
