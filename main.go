@@ -26,15 +26,15 @@ import (
 )
 
 func main() {
-	var pkString, chainUrl, naAddress string
+	var pkString, chainUrl, naAddress, chainPk string
 	var msgPort, rpcPort, chainId int
-	var useNats, useDurableStore, deployContracts bool
+	var useNats, useDurableStore bool
 
-	flag.BoolVar(&deployContracts, "deploycontracts", false, "Specifies whether to deploy the adjudicator and create2deployer contracts.")
 	flag.BoolVar(&useNats, "usenats", false, "Specifies whether to use NATS or http/ws for the rpc server.")
 	flag.BoolVar(&useDurableStore, "usedurablestore", false, "Specifies whether to use a durable store or an in-memory store.")
 	flag.StringVar(&pkString, "pk", "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d", "Specifies the private key for the client. Default is Alice's private key.")
 	flag.StringVar(&chainUrl, "chainurl", "ws://127.0.0.1:8545", "Specifies the url of a RPC endpoint for the chain.")
+	flag.StringVar(&chainPk, "chainpk", "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "Specifies the private key to use when interacting with the chain. Default is a hardhat/anvil funded account.")
 	flag.StringVar(&naAddress, "naaddress", "0xC6A55E07566416274dBF020b5548eecEdB56290c", "Specifies the address of the nitro adjudicator contract. Default is the address computed by the Create2Deployer contract.")
 	flag.IntVar(&msgPort, "msgport", 3005, "Specifies the tcp port for the  message service.")
 	flag.IntVar(&rpcPort, "rpcport", 4005, "Specifies the tcp port for the rpc server.")
@@ -54,23 +54,9 @@ func main() {
 		ourStore = store.NewMemStore(pk)
 	}
 
-	chainPk, err := chainutils.GetFundedTestPrivateKey(*ourStore.GetAddress())
+	ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainId, common.Hex2Bytes(chainPk))
 	if err != nil {
 		panic(err)
-	}
-	ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainId, chainPk)
-	if err != nil {
-		panic(err)
-	}
-	if deployContracts {
-		deployedAddress, err := chainutils.DeployAdjudicator(context.Background(), ethClient, txSubmitter)
-		if err != nil {
-			panic(err)
-		}
-		if naAddress != deployedAddress.String() {
-			fmt.Printf("WARNING: The deploycontracts flag is set so the adjucator has been deployed to %s.\nThis is different from the naaddress flag which is set to %s. The naaddress flag will be ignored.\n", deployedAddress.String(), naAddress)
-			naAddress = deployedAddress.String()
-		}
 	}
 
 	na, err := NitroAdjudicator.NewNitroAdjudicator(common.HexToAddress(naAddress), ethClient)

@@ -1,12 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"os/signal"
 	"syscall"
+	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
+	chainutils "github.com/statechannels/go-nitro/client/engine/chainservice/utils"
+	"github.com/statechannels/go-nitro/types"
 )
 
 type participant string
@@ -31,6 +38,8 @@ const (
 	gray    color = "[90m"
 )
 
+const FUNDED_TEST_PK = "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+
 func main() {
 	running := []*exec.Cmd{}
 
@@ -43,22 +52,31 @@ func main() {
 		panic(err)
 	}
 	running = append(running, chainCmd)
+	// Give the chain a second to start up
+	time.Sleep(1 * time.Second)
 
-	aliceClient, err := setupRPCServer(alice, blue)
+	adjudicatorAddress, err := deployAdjudicator(context.Background())
+	if err != nil {
+		stopCommands(running...)
+		panic(err)
+	}
+	fmt.Printf("Deployed adjudicator at %v\n", adjudicatorAddress)
+
+	aliceClient, err := setupRPCServer(alice, blue, adjudicatorAddress)
 	if err != nil {
 		stopCommands(running...)
 		panic(err)
 	}
 	running = append(running, aliceClient)
 
-	ireneClient, err := setupRPCServer(irene, green)
+	ireneClient, err := setupRPCServer(irene, green, adjudicatorAddress)
 	if err != nil {
 		stopCommands(running...)
 		panic(err)
 	}
 	running = append(running, ireneClient)
 
-	bobClient, err := setupRPCServer(bob, yellow)
+	bobClient, err := setupRPCServer(bob, yellow, adjudicatorAddress)
 	if err != nil {
 		stopCommands(running...)
 		panic(err)
@@ -94,7 +112,7 @@ func waitForKillSignal() {
 }
 
 // setupRPCServer starts up an RPC server for the given participant
-func setupRPCServer(p participant, c color) (*exec.Cmd, error) {
+func setupRPCServer(p participant, c color, na types.Address) (*exec.Cmd, error) {
 	args := []string{"run", ".", "-usedurablestore"}
 
 	switch p {
@@ -117,6 +135,7 @@ func setupRPCServer(p participant, c color) (*exec.Cmd, error) {
 		panic("Invalid participant")
 
 	}
+	args = append(args, "-naaddress", na.String())
 	cmd := exec.Command("go", args...)
 	cmd.Stdout = newColorWriter(c, os.Stdout)
 	cmd.Stderr = os.Stderr
@@ -146,4 +165,18 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 		writer: w,
 		color:  c,
 	}
+}
+
+// deployAdjudicator deploys th  NitroAdjudicator contract.
+
+func deployAdjudicator(ctx context.Context) (common.Address, error) {
+	client, txSubmitter, err := chainutils.ConnectToChain(context.Background(), "ws://127.0.0.1:8545", 1337, common.Hex2Bytes(FUNDED_TEST_PK))
+	if err != nil {
+		return types.Address{}, err
+	}
+	naAddress, _, _, err := NitroAdjudicator.DeployNitroAdjudicator(txSubmitter, client)
+	if err != nil {
+		return types.Address{}, err
+	}
+	return naAddress, nil
 }
