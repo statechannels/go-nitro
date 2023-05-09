@@ -52,6 +52,7 @@ func main() {
 		panic(err)
 	}
 	running = append(running, chainCmd)
+
 	// Give the chain a second to start up
 	time.Sleep(1 * time.Second)
 
@@ -160,6 +161,7 @@ func (cw colorWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+// newColorWriter creates a writer that colors the output with the given color
 func newColorWriter(c color, w io.Writer) colorWriter {
 	return colorWriter{
 		writer: w,
@@ -168,7 +170,6 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 }
 
 // deployAdjudicator deploys th  NitroAdjudicator contract.
-
 func deployAdjudicator(ctx context.Context) (common.Address, error) {
 	client, txSubmitter, err := chainutils.ConnectToChain(context.Background(), "ws://127.0.0.1:8545", 1337, common.Hex2Bytes(FUNDED_TEST_PK))
 	if err != nil {
