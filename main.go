@@ -35,7 +35,7 @@ func main() {
 	flag.StringVar(&pkString, "pk", "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d", "Specifies the private key for the client. Default is Alice's private key.")
 	flag.StringVar(&chainUrl, "chainurl", "ws://127.0.0.1:8545", "Specifies the url of a RPC endpoint for the chain.")
 	flag.StringVar(&chainPk, "chainpk", "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "Specifies the private key to use when interacting with the chain. Default is a hardhat/anvil funded account.")
-	flag.StringVar(&naAddress, "naaddress", "0xC6A55E07566416274dBF020b5548eecEdB56290c", "Specifies the address of the nitro adjudicator contract. Default is the address computed by the Create2Deployer contract.")
+	flag.StringVar(&naAddress, "naaddress", "0xC6A55E07566416274dBF020b5548eecEdB56290c", "Specifies the address of the nitro adjudicator contract.")
 	flag.IntVar(&msgPort, "msgport", 3005, "Specifies the tcp port for the  message service.")
 	flag.IntVar(&rpcPort, "rpcport", 4005, "Specifies the tcp port for the rpc server.")
 	flag.IntVar(&chainId, "chainid", 1337, "Specifies the chain id of the chain.")
