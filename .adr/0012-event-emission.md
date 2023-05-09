@@ -42,7 +42,7 @@ This approach would not be idiomatic and has the following drawbacks:
 
 A `sync.Cond` https://pkg.go.dev/sync#Cond is "a rendezvous point for goroutines waiting for or announcing the occurrence of an event.". It would allow events be emitted more than once by using the `Broadcast()` method. For example, if we wanted to have an "objective updated' event stream.
 
-There are many downsides to trying to build an event system with this type, however. Firstly, the event consumers would have to be goroutines. Secondly, no information can be passed with `Broadcast()`, so those goroutines would have to query information when they are woken up by `Broadcast()`. This introduces race conditions. Thirdly, usage of `sync.Cond` is veryy low and there are proposals to deprecate it https://github.com/golang/go/issues/21165.
+There are many downsides to trying to build an event system with this type, however. Firstly, the event consumers would have to be goroutines. Secondly, no information can be passed with `Broadcast()`, so those goroutines would have to query information when they are woken up by `Broadcast()`. This introduces race conditions. Thirdly, usage of `sync.Cond` is [very low](https://lukechampine.com/cond.html) and there are proposals to deprecate it https://github.com/golang/go/issues/21165.
 
 
 ## Decision
