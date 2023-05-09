@@ -8,7 +8,7 @@ Review
 
 We want to enhance the our go-nitro RPC client and server with the ability to receive notifications whenever a channel is updated. This allows us to design a UI that can easily update when a channel changes.
 
-Previously in [ADR 0012](./0012-event-emission.md) we decided to `close` channels to notify consumers that an objective have been completed. Using `close` allowed us to broadcast a signal to multiple consumers at once. While this works well for the objective completed event, it does not work for channel updates. This is because:
+Previously in [ADR 0013](./0013-event-emission.md) we decided to `close` channels to notify consumers that an objective have been completed. Using `close` allowed us to broadcast a signal to multiple consumers at once. While this works well for the objective completed event, it does not work for channel updates. This is because:
 
 1. `close` doesn't allow us to pass any information (like channel data)
 2. `close` can only be used once as a signal on a channel.
@@ -17,7 +17,7 @@ To support channel updates we need another approach that let's us dispatch chann
 
 ## Decision
 
-We will implement the "Slice of chans" pattern similiar to the one outlined in [ADR 0012](./0012-event-emission.md).
+We will implement the "Slice of chans" pattern similiar to the one outlined in [ADR 0013](./0013-event-emission.md).
 
 The nitro client will store a slice of event listener `chans` for each channel id. A consumer can "subscribe" by calling a method which appends a `chan` to that slice and returns it. Whenever the client receives a channel update from the engine it iterates on over the slice and sends an update to any event listener `chans`.
 
@@ -31,8 +31,8 @@ We could use a third-party library, like [EventBus](https://github.com/asaskevic
 
 ### Sync.Cond
 
-We considered this option again, but discarded it for the same reasons as in [ADR 0012](./0012-event-emission.md).
+We considered this option again, but discarded it for the same reasons as in [ADR 0013](./0013-event-emission.md).
 
 ## Consequences
 
-[ADR 0012](./0012-event-emission.md) identified some drawbacks with this approach, specifically that if the subscriber is too late it can "miss" the event. This still remains an issue, a channel may be updated before a listener is subscribed.
+[ADR 0013](./0013-event-emission.md) identified some drawbacks with this approach, specifically that if the subscriber is too late it can "miss" the event. This still remains an issue, a channel may be updated before a listener is subscribed.
