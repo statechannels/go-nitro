@@ -31,7 +31,7 @@ We could use a third-party library, like [EventBus](https://github.com/asaskevic
 
 ### Sync.Cond
 
-While `sync.Cond` allows for broadcasting updates to multiple consumers, it requires the consumers and broadcaster to be goroutines. This means we'd have to spin up goroutines for each event listener which does not seem like a natural fit,.
+We considered this option again, but discarded it for the same reasons as in [ADR 0012](./0012-event-emission.md).
 
 ## Consequences
 
