@@ -214,7 +214,7 @@ func (c *ConsensusChannel) Follower() common.Address {
 
 // FundingTargets returns a list of channels funded by the ConsensusChannel
 func (c *ConsensusChannel) FundingTargets() []types.Destination {
-	return c.current.Outcome.fundingTargets()
+	return c.current.Outcome.FundingTargets()
 }
 
 func (c *ConsensusChannel) Accept(p SignedProposal) error {
@@ -496,8 +496,8 @@ func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 	}
 }
 
-// fundingTargets returns a list of channels funded by the LedgerOutcome
-func (o *LedgerOutcome) fundingTargets() []types.Destination {
+// FundingTargets returns a list of channels funded by the LedgerOutcome
+func (o LedgerOutcome) FundingTargets() []types.Destination {
 	targets := []types.Destination{}
 
 	for dest := range o.guarantees {

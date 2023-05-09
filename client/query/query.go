@@ -127,6 +127,60 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 	return PaymentChannelInfo{}, fmt.Errorf("could not find channel with id %v", id)
 }
 
+func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Address) ([]LedgerChannelInfo, error) {
+	toReturn := []LedgerChannelInfo{}
+
+	allConsensus, err := store.GetAllConsensusChannels()
+	if err != nil {
+		return []LedgerChannelInfo{}, err
+	}
+	for _, con := range allConsensus {
+		toReturn = append(toReturn, ConstructLedgerInfoFromConsensus(con))
+	}
+	allChannels := store.GetChannelsByAppDefinition(consensusAppDefinition)
+	for _, c := range allChannels {
+		toReturn = append(toReturn, ConstructLedgerInfoFromChannel(c))
+	}
+	return toReturn, nil
+}
+
+func GetPaymentChannelsByLedger(ledgerId types.Destination, store store.Store, vm *payments.VoucherManager) ([]PaymentChannelInfo, error) {
+	// If a ledger channel is actively funding payment channels it must be in the form of a consensus channel
+	con, err := store.GetConsensusChannelById(ledgerId)
+	if err != nil {
+		return []PaymentChannelInfo{}, fmt.Errorf("could not find any payment channels funded by %s: %w", ledgerId, err)
+	}
+
+	toQuery := con.ConsensusVars().Outcome.FundingTargets()
+
+	paymentChannels, err := store.GetChannelsByIds(toQuery)
+	if err != nil {
+		return []PaymentChannelInfo{}, fmt.Errorf("could not query the store about ids %v: %w", toQuery, err)
+	}
+	objectives, err := store.GetObjectiveByChannelIds(toQuery)
+	if err != nil {
+		return []PaymentChannelInfo{}, fmt.Errorf("could not query the store about ids %v: %w", toQuery, err)
+	}
+
+	toReturn := []PaymentChannelInfo{}
+	for _, p := range paymentChannels {
+		paid, remaining, err := GetVoucherBalance(p.Id, vm)
+		o := objectives[p.Id]
+
+		if err != nil {
+			return []PaymentChannelInfo{}, err
+		}
+
+		vfo, _ := o.(*virtualfund.Objective)
+		info, err := ConstructPaymentInfo(p, vfo, paid, remaining)
+		if err != nil {
+			return []PaymentChannelInfo{}, err
+		}
+		toReturn = append(toReturn, info)
+	}
+	return toReturn, nil
+}
+
 // GetLedgerChannelInfo returns the LedgerChannelInfo for the given channel
 // It does this by querying the provided store
 func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
