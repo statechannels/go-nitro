@@ -266,7 +266,46 @@ func (ds *DurableStore) getChannelById(id types.Destination) (channel.Channel, e
 	return ch, nil
 }
 
-// GetChannelsByAppDefinition returns any channels that include the given participant
+// GetChannelsByIds returns any channels with ids in the supplied list.
+func (ds *DurableStore) GetChannelsByIds(ids []types.Destination) ([]*channel.Channel, error) {
+	toReturn := []*channel.Channel{}
+	// We know every channel has a unique id
+	// so we can stop looking once we've found the correct number of channels
+
+	var err error
+
+	txError := ds.channels.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend("", func(key, chJSON string) bool {
+			var ch channel.Channel
+			err = json.Unmarshal([]byte(chJSON), &ch)
+			if err != nil {
+				return false
+			}
+
+			// If the channel is one of the ones we're looking for, add it to the list
+			if contains(ids, ch.Id) {
+				toReturn = append(toReturn, &ch)
+			}
+
+			// If we've found all the channels we need, stop looking
+			if len(toReturn) == len(ids) {
+				return false
+			}
+			return true // otherwise, continue looking
+		})
+	})
+
+	if txError != nil {
+		return []*channel.Channel{}, txError
+	}
+	if err != nil {
+		return []*channel.Channel{}, err
+	}
+
+	return toReturn, nil
+}
+
+// GetChannelsByAppDefinition returns any channels that include the given app definition
 func (ds *DurableStore) GetChannelsByAppDefinition(appDef types.Address) []*channel.Channel {
 	toReturn := []*channel.Channel{}
 	err := ds.channels.View(func(tx *buntdb.Tx) error {
