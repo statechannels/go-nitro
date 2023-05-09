@@ -40,14 +40,9 @@ This approach would not be idiomatic and has the following drawbacks:
 
 ### Condition variable
 
-This is actually the most idiomatic approach in the standard library if we want to emit events more than once. For example, if we wanted to have an "objective updated' event stream. See `sync.Cond` https://pkg.go.dev/sync#Cond .
+A `sync.Cond` https://pkg.go.dev/sync#Cond is "a rendezvous point for goroutines waiting for or announcing the occurrence of an event.". It would allow events be emitted more than once by using the `Broadcast()` method. For example, if we wanted to have an "objective updated' event stream.
 
-Note in the godoc of this type: 
-
-> For many simple use cases, users will be better off using channels than a Cond (Broadcast corresponds to closing a channel, and Signal corresponds to sending on a channel).
-
-Note also that it has been proposed to [deprecate `sync.Cond`](https://github.com/golang/go/issues/21165).
-
+There are many downsides to trying to build an event system with this type, however. Firstly, the event consumers would have to be goroutines. Secondly, no information can be passed with `Broadcast()`, so those goroutines would have to query information when they are woken up by `Broadcast()`. This introduces race conditions. Thirdly, usage of `sync.Cond` is [very low](https://lukechampine.com/cond.html) and there are proposals to deprecate it https://github.com/golang/go/issues/21165.
 
 
 ## Decision
@@ -80,7 +75,7 @@ Please see code changes committed atomically with this ADR for the full referenc
 
 1. We will want to roll this pattern out to other events in the codebase which will have multiple consumers.  
 
-2. An obvious thought might be: instead of closing the channel couldn't we just leave the channel open and send empty structs, allowing us to implement a stream of "objective updated" events? Unfotunately, we can't simply send empty structs on the channel, because they would be read by only one consumer at a time. That doesn't give us a true "broadcast" pattern -- more like a "signal" pattern. See the section above on "condition variable" for a pattern which can handle multiple emissions on the same event stream.
+2. An obvious thought might be: instead of closing the channel couldn't we just leave the channel open and send empty structs, allowing us to implement a stream of "objective updated" events? Unfotunately, we can't simply send empty structs on the channel, because they would be read by only one consumer at a time. That doesn't give us a true "broadcast" pattern -- more like a "signal" pattern. See the section above on "condition variable" for a pattern which similar to a chan which can be closed multiple times. 
 
 
 
