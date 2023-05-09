@@ -6,27 +6,24 @@ import statechannelsLogo from "./assets/statechannels.svg";
 import "./App.css";
 
 function App() {
+  const url = "localhost:4005";
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
   const [version, setVersion] = useState("");
+  const [address, setAddress] = useState("");
 
   useEffect(() => {
     const setupClient = async () => {
-      const nitroClient = await NitroRpcClient.CreateHttpNitroClient(
-        "localhost:4005"
-      );
+      const nitroClient = await NitroRpcClient.CreateHttpNitroClient(url);
       setNitroClient(nitroClient);
     };
     setupClient();
   }, []);
 
   useEffect(() => {
-    const getVersion = async () => {
-      if (nitroClient) {
-        const version = await nitroClient.GetVersion();
-        setVersion(version);
-      }
-    };
-    getVersion();
+    if (nitroClient) {
+      nitroClient.GetVersion().then((v) => setVersion(v));
+      nitroClient.GetAddress().then((a) => setAddress(a));
+    }
   }, [nitroClient]);
 
   return (
@@ -46,6 +43,9 @@ function App() {
         ></NetworkBalance>
 
         <p>The nitro client version is {version}</p>
+        <p>
+          The nitro node at {url} has address {address}
+        </p>
       </div>
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
