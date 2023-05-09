@@ -179,6 +179,25 @@ func (ms *MemStore) getChannelById(id types.Destination) (channel.Channel, error
 	return ch, nil
 }
 
+// GetChannelsByAppDefinition returns any channels that include the given participant
+func (ms *MemStore) GetChannelsByAppDefinition(appDef types.Address) []*channel.Channel {
+	toReturn := []*channel.Channel{}
+	ms.channels.Range(func(key string, chJSON []byte) bool {
+		var ch channel.Channel
+		err := json.Unmarshal(chJSON, &ch)
+		if err != nil {
+			return true // channel not found, continue looking
+		}
+		if ch.AppDefinition == appDef {
+			toReturn = append(toReturn, &ch)
+		}
+
+		return true // channel not found: continue looking
+	})
+
+	return toReturn
+}
+
 // GetChannelsByParticipant returns any channels that include the given participant
 func (ms *MemStore) GetChannelsByParticipant(participant types.Address) []*channel.Channel {
 	toReturn := []*channel.Channel{}
@@ -243,6 +262,26 @@ func (ms *MemStore) GetConsensusChannel(counterparty types.Address) (channel *co
 	})
 
 	return
+}
+
+func (ms *MemStore) GetAllConsensusChannels() ([]*consensus_channel.ConsensusChannel, error) {
+	toReturn := []*consensus_channel.ConsensusChannel{}
+	var err error
+	ms.consensusChannels.Range(func(key string, chJSON []byte) bool {
+		var ch consensus_channel.ConsensusChannel
+
+		err = json.Unmarshal(chJSON, &ch)
+		if err != nil {
+			return false
+		}
+
+		toReturn = append(toReturn, &ch)
+		return true // channel not found: continue looking
+	})
+	if err != nil {
+		return nil, err
+	}
+	return toReturn, nil
 }
 
 func (ms *MemStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {

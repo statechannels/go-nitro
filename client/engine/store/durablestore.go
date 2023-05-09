@@ -266,6 +266,29 @@ func (ds *DurableStore) getChannelById(id types.Destination) (channel.Channel, e
 	return ch, nil
 }
 
+// GetChannelsByAppDefinition returns any channels that include the given participant
+func (ds *DurableStore) GetChannelsByAppDefinition(appDef types.Address) []*channel.Channel {
+	toReturn := []*channel.Channel{}
+	err := ds.channels.View(func(tx *buntdb.Tx) error {
+		err := tx.Ascend("", func(key, chJSON string) bool {
+			var ch channel.Channel
+			err := json.Unmarshal([]byte(chJSON), &ch)
+			if err != nil {
+				ds.checkError(err)
+			}
+
+			if ch.AppDefinition == appDef {
+				toReturn = append(toReturn, &ch)
+			}
+
+			return true // channel not found: continue looking
+		})
+		return err
+	})
+	ds.checkError(err)
+	return toReturn
+}
+
 // GetChannelsByParticipant returns any channels that include the given participant
 func (ds *DurableStore) GetChannelsByParticipant(participant types.Address) []*channel.Channel {
 	toReturn := []*channel.Channel{}
@@ -290,6 +313,26 @@ func (ds *DurableStore) GetChannelsByParticipant(participant types.Address) []*c
 	})
 	ds.checkError(err)
 	return toReturn
+}
+
+func (ds *DurableStore) GetAllConsensusChannels() ([]*consensus_channel.ConsensusChannel, error) {
+	toReturn := []*consensus_channel.ConsensusChannel{}
+	err := ds.consensusChannels.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend("", func(key, chJSON string) bool {
+			var ch consensus_channel.ConsensusChannel
+
+			err := json.Unmarshal([]byte(chJSON), &ch)
+			if err != nil {
+				ds.checkError(err)
+			}
+			toReturn = append(toReturn, &ch)
+			return true // channel not found: continue looking
+		})
+	})
+	if err != nil {
+		return []*consensus_channel.ConsensusChannel{}, err
+	}
+	return toReturn, nil
 }
 
 // GetConsensusChannelById returns a ConsensusChannel with the given channel id

@@ -30,8 +30,8 @@ type Store interface {
 	GetChannelsByParticipant(participant types.Address) []*channel.Channel // Returns any channels that includes the given participant
 	SetChannel(*channel.Channel) error
 	DestroyChannel(id types.Destination)
-
-	ReleaseChannelFromOwnership(types.Destination) // Release channel from being owned by any objective
+	GetChannelsByAppDefinition(appDef types.Address) []*channel.Channel // Returns any channels that includes the given participant
+	ReleaseChannelFromOwnership(types.Destination)                      // Release channel from being owned by any objective
 
 	ConsensusChannelStore
 	payments.VoucherStore
@@ -39,6 +39,7 @@ type Store interface {
 }
 
 type ConsensusChannelStore interface {
+	GetAllConsensusChannels() ([]*consensus_channel.ConsensusChannel, error)
 	GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool)
 	GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error)
 	SetConsensusChannel(*consensus_channel.ConsensusChannel) error
