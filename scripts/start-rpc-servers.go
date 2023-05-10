@@ -118,19 +118,11 @@ func setupRPCServer(p participant, c color, na types.Address) (*exec.Cmd, error)
 
 	switch p {
 	case alice:
-		args = append(args, "-msgport", "3005")
-		args = append(args, "-rpcport", "4005")
-		args = append(args, "-pk", "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d")
-
+		args = append(args, "-config", "alice.toml")
 	case irene:
-		args = append(args, "-msgport", "3006")
-		args = append(args, "-rpcport", "4006")
-		args = append(args, "-pk", "febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781")
-
+		args = append(args, "-config", "irene.toml")
 	case bob:
-		args = append(args, "-msgport", "3007")
-		args = append(args, "-rpcport", "4007")
-		args = append(args, "-pk", "0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4")
+		args = append(args, "-config", "bob.toml")
 
 	default:
 		panic("Invalid participant")

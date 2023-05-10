@@ -1,0 +1,8 @@
+# Alice's test Config
+
+usedurablestore = true
+
+msgport = 3005
+rpcport = 4005
+
+pk = "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d"

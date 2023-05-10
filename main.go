@@ -22,10 +22,12 @@ import (
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
 	"github.com/tidwall/buntdb"
 	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2/altsrc"
 )
 
 func main() {
 	const (
+		CONFIG            = "config"
 		USE_NATS          = "usenats"
 		USE_DURABLE_STORE = "usedurablestore"
 		PK                = "pk"
@@ -39,79 +41,86 @@ func main() {
 	var pkString, chainUrl, naAddress, chainPk string
 	var msgPort, rpcPort, chainId int
 	var useNats, useDurableStore bool
-	app := &cli.App{
-		Name:  "go-nitro",
-		Usage: "Nitro as a service. State channel client with RPC server.",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:        USE_NATS,
-				Usage:       "Specifies whether to use NATS or http/ws for the rpc server.",
-				Value:       false,
-				Category:    "Connectivity:",
-				Destination: &useNats,
-			},
-			&cli.BoolFlag{
-				Name:        USE_DURABLE_STORE,
-				Usage:       "Specifies whether to use a durable store or an in-memory store.",
-				Category:    "Storage",
-				Value:       false,
-				Destination: &useDurableStore,
-			},
-			&cli.StringFlag{
-				Name:        PK,
-				Usage:       "Specifies the private key for the client.",
-				Value:       "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d",
-				DefaultText: "Alice's private key",
-				Category:    "Keys:",
-				Destination: &pkString,
-			},
-			&cli.StringFlag{
-				Name:        CHAIN_URL,
-				Usage:       "Specifies the url of a RPC endpoint for the chain.",
-				Value:       "ws://127.0.0.1:8545",
-				DefaultText: "hardhat / anvil default",
-				Category:    "Connectivity:",
-				Destination: &chainUrl,
-			},
-			&cli.StringFlag{
-				Name:        CHAIN_PK,
-				Usage:       "Specifies the private key to use when interacting with the chain.",
-				Value:       "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-				DefaultText: "A hardhat / annvil default funded account",
-				Category:    "Keys:",
-				Destination: &chainPk,
-			},
-			&cli.StringFlag{
-				Name:        NA_ADDRESS,
-				Usage:       "Specifies the address of the nitro adjudicator contract.",
-				Value:       "0xC6A55E07566416274dBF020b5548eecEdB56290c",
-				DefaultText: "Address of first contract deployed by default " + CHAIN_PK,
-				Category:    "Connectivity:",
-				Destination: &naAddress,
-			},
-			&cli.IntFlag{
-				Name:        MSG_PORT,
-				Usage:       "Specifies the tcp port for the message service.",
-				Value:       3005,
-				Category:    "Connectivity:",
-				Destination: &msgPort,
-			},
-			&cli.IntFlag{
-				Name:        RPC_PORT,
-				Usage:       "Specifies the tcp port for the rpc server.",
-				Value:       4005,
-				Category:    "Connectivity:",
-				Destination: &rpcPort,
-			},
-			&cli.IntFlag{
-				Name:        CHAIN_ID,
-				Usage:       "Specifies the chain id of the chain.",
-				Value:       1337,
-				DefaultText: "hardhat default",
-				Category:    "Connectivity:",
-				Destination: &chainId,
-			},
+
+	flags := []cli.Flag{
+		&cli.StringFlag{
+			Name:  CONFIG,
+			Usage: "Load config options from `config.toml`",
 		},
+		altsrc.NewBoolFlag(&cli.BoolFlag{
+			Name:        USE_NATS,
+			Usage:       "Specifies whether to use NATS or http/ws for the rpc server.",
+			Value:       false,
+			Category:    "Connectivity:",
+			Destination: &useNats,
+		}),
+		altsrc.NewBoolFlag(&cli.BoolFlag{
+			Name:        USE_DURABLE_STORE,
+			Usage:       "Specifies whether to use a durable store or an in-memory store.",
+			Category:    "Storage",
+			Value:       false,
+			Destination: &useDurableStore,
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:        PK,
+			Usage:       "Specifies the private key for the client.",
+			Value:       "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d",
+			DefaultText: "Alice's private key",
+			Category:    "Keys:",
+			Destination: &pkString,
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:        CHAIN_URL,
+			Usage:       "Specifies the url of a RPC endpoint for the chain.",
+			Value:       "ws://127.0.0.1:8545",
+			DefaultText: "hardhat / anvil default",
+			Category:    "Connectivity:",
+			Destination: &chainUrl,
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:        CHAIN_PK,
+			Usage:       "Specifies the private key to use when interacting with the chain.",
+			Value:       "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+			DefaultText: "A hardhat / annvil default funded account",
+			Category:    "Keys:",
+			Destination: &chainPk,
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:        NA_ADDRESS,
+			Usage:       "Specifies the address of the nitro adjudicator contract.",
+			Value:       "0xC6A55E07566416274dBF020b5548eecEdB56290c",
+			DefaultText: "Address of first contract deployed by default " + CHAIN_PK,
+			Category:    "Connectivity:",
+			Destination: &naAddress,
+		}),
+		altsrc.NewIntFlag(&cli.IntFlag{
+			Name:        MSG_PORT,
+			Usage:       "Specifies the tcp port for the message service.",
+			Value:       3005,
+			Category:    "Connectivity:",
+			Destination: &msgPort,
+		}),
+		altsrc.NewIntFlag(&cli.IntFlag{
+			Name:        RPC_PORT,
+			Usage:       "Specifies the tcp port for the rpc server.",
+			Value:       4005,
+			Category:    "Connectivity:",
+			Destination: &rpcPort,
+		}),
+		altsrc.NewIntFlag(&cli.IntFlag{
+			Name:        CHAIN_ID,
+			Usage:       "Specifies the chain id of the chain.",
+			Value:       1337,
+			DefaultText: "hardhat default",
+			Category:    "Connectivity:",
+			Destination: &chainId,
+		}),
+	}
+	app := &cli.App{
+		Name:   "go-nitro",
+		Usage:  "Nitro as a service. State channel client with RPC server.",
+		Flags:  flags,
+		Before: altsrc.InitInputSourceWithContext(flags, altsrc.NewTomlSourceFromFlagFunc(CONFIG)),
 		Action: func(cCtx *cli.Context) error {
 			pk := common.Hex2Bytes(pkString)
 			me := crypto.GetAddressFromSecretKeyBytes(pk)
