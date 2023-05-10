@@ -25,75 +25,86 @@ import (
 )
 
 func main() {
+	const (
+		USE_NATS          = "usenats"
+		USE_DURABLE_STORE = "usedureablestore"
+		PK                = "pk"
+		CHAIN_URL         = "chainurl"
+		CHAIN_PK          = "chainpk"
+		NA_ADDRESS        = "naaddress"
+		MSG_PORT          = "msgport"
+		RPC_PORT          = "rpcport"
+		CHAIN_ID          = "chainid"
+	)
 	app := &cli.App{
 		Name:  "go-nitro",
 		Usage: "Nitro as a service. State channel client with RPC server.",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
-				Name:     "usenats",
+				Name:     USE_NATS,
 				Usage:    "Specifies whether to use NATS or http/ws for the rpc server.",
 				Category: "Connectivity:",
 			},
 			&cli.BoolFlag{
-				Name:     "usedurablestore",
+				Name:     USE_DURABLE_STORE,
 				Usage:    "Specifies whether to use a durable store or an in-memory store.",
 				Category: "Storage",
 			},
 			&cli.StringFlag{
-				Name:        "pk",
+				Name:        PK,
 				Usage:       "Specifies the private key for the client. Default is Alice's private key.",
 				DefaultText: "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d",
 				Category:    "Keys:",
 			},
 			&cli.StringFlag{
-				Name:        "chainurl",
+				Name:        CHAIN_URL,
 				Usage:       "Specifies the url of a RPC endpoint for the chain.",
 				DefaultText: "ws://127.0.0.1:8545",
 				Category:    "Connectivity:",
 			},
 			&cli.StringFlag{
-				Name:        "chainpk",
+				Name:        CHAIN_PK,
 				Usage:       "Specifies the private key to use when interacting with the chain. Default is a hardhat/anvil funded account.",
 				DefaultText: "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
 				Category:    "Keys:",
 			},
 			&cli.StringFlag{
-				Name:        "naaddress",
+				Name:        NA_ADDRESS,
 				Usage:       "Specifies the address of the nitro adjudicator contract.",
 				DefaultText: "0xC6A55E07566416274dBF020b5548eecEdB56290c",
 				Category:    "Connectivity:",
 			},
 			&cli.IntFlag{
-				Name:        "msgport",
+				Name:        MSG_PORT,
 				Usage:       "Specifies the tcp port for the message service.",
 				DefaultText: "3005",
 				Category:    "Connectivity:",
 			},
 			&cli.IntFlag{
-				Name:        "rpcport",
+				Name:        RPC_PORT,
 				Usage:       "Specifies the tcp port for the rpc server.",
 				DefaultText: "4005",
 				Category:    "Connectivity:",
 			},
 			&cli.IntFlag{
-				Name:        "chainid",
+				Name:        CHAIN_ID,
 				Usage:       "Specifies the chain id of the chain.",
 				DefaultText: "1337",
 				Category:    "Connectivity:",
 			},
 		},
 		Action: func(cCtx *cli.Context) error {
-			pkString := cCtx.String("pkstring")
-			chainUrl := cCtx.String("chainurl")
-			naAddress := cCtx.String("naaddress")
-			chainPk := cCtx.String("chainpk")
+			pkString := cCtx.String(PK)
+			chainUrl := cCtx.String(CHAIN_URL)
+			naAddress := cCtx.String(NA_ADDRESS)
+			chainPk := cCtx.String(CHAIN_PK)
 
-			msgPort := cCtx.Int("msgport")
-			rpcPort := cCtx.Int("rpcPort")
-			chainId := cCtx.Int("chainid")
+			msgPort := cCtx.Int(MSG_PORT)
+			rpcPort := cCtx.Int(RPC_PORT)
+			chainId := cCtx.Int(CHAIN_ID)
 
-			useNats := cCtx.Bool("usenats")
-			useDurableStore := cCtx.Bool("usedurablestore")
+			useNats := cCtx.Bool(USE_NATS)
+			useDurableStore := cCtx.Bool(USE_DURABLE_STORE)
 
 			pk := common.Hex2Bytes(pkString)
 			me := crypto.GetAddressFromSecretKeyBytes(pk)
