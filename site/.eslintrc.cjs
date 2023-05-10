@@ -4,12 +4,7 @@ module.exports = {
     browser: true,
     es2020: true,
   },
-  extends: [
-    "plugin:@typescript-eslint/recommended",
-    "plugin:react-hooks/recommended",
-    "plugin:storybook/recommended",
-  ],
-  parser: "@typescript-eslint/parser",
+  extends: ["plugin:react-hooks/recommended", "plugin:storybook/recommended"],
   parserOptions: {
     ecmaVersion: "latest",
     sourceType: "module",
