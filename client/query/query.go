@@ -1,6 +1,7 @@
 package query
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -144,16 +145,20 @@ func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Addres
 	return toReturn, nil
 }
 
-func GetPaymentChannelsByLedger(ledgerId types.Destination, store store.Store, vm *payments.VoucherManager) ([]PaymentChannelInfo, error) {
+func GetPaymentChannelsByLedger(ledgerId types.Destination, s store.Store, vm *payments.VoucherManager) ([]PaymentChannelInfo, error) {
 	// If a ledger channel is actively funding payment channels it must be in the form of a consensus channel
-	con, err := store.GetConsensusChannelById(ledgerId)
+	con, err := s.GetConsensusChannelById(ledgerId)
+	// If the ledger channel is not a consensus channel we know that there are no payment channels funded by it
+	if errors.Is(err, store.ErrNoSuchChannel) {
+		return []PaymentChannelInfo{}, nil
+	}
 	if err != nil {
 		return []PaymentChannelInfo{}, fmt.Errorf("could not find any payment channels funded by %s: %w", ledgerId, err)
 	}
 
 	toQuery := con.ConsensusVars().Outcome.FundingTargets()
 
-	paymentChannels, err := store.GetChannelsByIds(toQuery)
+	paymentChannels, err := s.GetChannelsByIds(toQuery)
 	if err != nil {
 		return []PaymentChannelInfo{}, fmt.Errorf("could not query the store about ids %v: %w", toQuery, err)
 	}
@@ -167,7 +172,7 @@ func GetPaymentChannelsByLedger(ledgerId types.Destination, store store.Store, v
 		// TODO: n+1 query problem
 		// We should query for the vfos in bulk, rather than one at a time
 		// Or we should be able to determine the status soley from the channel
-		vfo, _ := GetVirtualFundObjective(p.Id, store)
+		vfo, _ := GetVirtualFundObjective(p.Id, s)
 		info, err := ConstructPaymentInfo(p, vfo, paid, remaining)
 		if err != nil {
 			return []PaymentChannelInfo{}, err

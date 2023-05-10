@@ -132,6 +132,19 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	<-rpcClientB.ObjectiveCompleteChan(closeIdB)
 	<-rpcClientI.ObjectiveCompleteChan(closeIdB)
 
+	if len(rpcClientA.GetPaymentChannelsByLedger(res.ChannelId)) != 0 {
+		t.Error("Alice should not have any payment channels open")
+	}
+	if len(rpcClientB.GetPaymentChannelsByLedger(bobResponse.ChannelId)) != 0 {
+		t.Error("Bob should not have any payment channels open")
+	}
+	if len(rpcClientI.GetPaymentChannelsByLedger(res.ChannelId)) != 0 {
+		t.Error("Irene should not have any payment channels open")
+	}
+	if len(rpcClientI.GetPaymentChannelsByLedger(bobResponse.ChannelId)) != 0 {
+		t.Error("Irene should not have any payment channels open")
+	}
+
 	expectedAliceLedgerNotifs := []query.LedgerChannelInfo{
 		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
 		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Ready),
