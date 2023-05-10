@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
+	"log"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
@@ -23,88 +21,153 @@ import (
 	"github.com/statechannels/go-nitro/rpc/transport/nats"
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
 	"github.com/tidwall/buntdb"
+	"github.com/urfave/cli/v2"
 )
 
 func main() {
-	var pkString, chainUrl, naAddress, chainPk string
-	var msgPort, rpcPort, chainId int
-	var useNats, useDurableStore bool
+	app := &cli.App{
+		Name:  "go-nitro",
+		Usage: "Nitro as a service. State channel client with RPC server.",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:     "usenats",
+				Usage:    "Specifies whether to use NATS or http/ws for the rpc server.",
+				Category: "Connectivity:",
+			},
+			&cli.BoolFlag{
+				Name:     "usedurablestore",
+				Usage:    "Specifies whether to use a durable store or an in-memory store.",
+				Category: "Storage",
+			},
+			&cli.StringFlag{
+				Name:        "pk",
+				Usage:       "Specifies the private key for the client. Default is Alice's private key.",
+				DefaultText: "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d",
+				Category:    "Keys:",
+			},
+			&cli.StringFlag{
+				Name:        "chainurl",
+				Usage:       "Specifies the url of a RPC endpoint for the chain.",
+				DefaultText: "ws://127.0.0.1:8545",
+				Category:    "Connectivity:",
+			},
+			&cli.StringFlag{
+				Name:        "chainpk",
+				Usage:       "Specifies the private key to use when interacting with the chain. Default is a hardhat/anvil funded account.",
+				DefaultText: "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+				Category:    "Keys:",
+			},
+			&cli.StringFlag{
+				Name:        "naaddress",
+				Usage:       "Specifies the address of the nitro adjudicator contract.",
+				DefaultText: "0xC6A55E07566416274dBF020b5548eecEdB56290c",
+				Category:    "Connectivity:",
+			},
+			&cli.IntFlag{
+				Name:        "msgport",
+				Usage:       "Specifies the tcp port for the message service.",
+				DefaultText: "3005",
+				Category:    "Connectivity:",
+			},
+			&cli.IntFlag{
+				Name:        "rpcport",
+				Usage:       "Specifies the tcp port for the rpc server.",
+				DefaultText: "4005",
+				Category:    "Connectivity:",
+			},
+			&cli.IntFlag{
+				Name:        "chainid",
+				Usage:       "Specifies the chain id of the chain.",
+				DefaultText: "1337",
+				Category:    "Connectivity:",
+			},
+		},
+		Action: func(cCtx *cli.Context) error {
+			pkString := cCtx.String("pkstring")
+			chainUrl := cCtx.String("chainurl")
+			naAddress := cCtx.String("naaddress")
+			chainPk := cCtx.String("chainpk")
 
-	flag.BoolVar(&useNats, "usenats", false, "Specifies whether to use NATS or http/ws for the rpc server.")
-	flag.BoolVar(&useDurableStore, "usedurablestore", false, "Specifies whether to use a durable store or an in-memory store.")
-	flag.StringVar(&pkString, "pk", "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d", "Specifies the private key for the client. Default is Alice's private key.")
-	flag.StringVar(&chainUrl, "chainurl", "ws://127.0.0.1:8545", "Specifies the url of a RPC endpoint for the chain.")
-	flag.StringVar(&chainPk, "chainpk", "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "Specifies the private key to use when interacting with the chain. Default is a hardhat/anvil funded account.")
-	flag.StringVar(&naAddress, "naaddress", "0xC6A55E07566416274dBF020b5548eecEdB56290c", "Specifies the address of the nitro adjudicator contract.")
-	flag.IntVar(&msgPort, "msgport", 3005, "Specifies the tcp port for the  message service.")
-	flag.IntVar(&rpcPort, "rpcport", 4005, "Specifies the tcp port for the rpc server.")
-	flag.IntVar(&chainId, "chainid", 1337, "Specifies the chain id of the chain.")
-	flag.Parse()
+			msgPort := cCtx.Int("msgport")
+			rpcPort := cCtx.Int("rpcPort")
+			chainId := cCtx.Int("chainid")
 
-	pk := common.Hex2Bytes(pkString)
-	me := crypto.GetAddressFromSecretKeyBytes(pk)
+			useNats := cCtx.Bool("usenats")
+			useDurableStore := cCtx.Bool("usedurablestore")
 
-	logDestination := os.Stdout
+			pk := common.Hex2Bytes(pkString)
+			me := crypto.GetAddressFromSecretKeyBytes(pk)
 
-	var ourStore store.Store
-	if useDurableStore {
-		dataFolder := fmt.Sprintf("./data/nitro-service/%s", me.String())
-		ourStore = store.NewDurableStore(pk, dataFolder, buntdb.Config{})
-	} else {
-		ourStore = store.NewMemStore(pk)
+			logDestination := os.Stdout
+
+			var ourStore store.Store
+			if useDurableStore {
+				dataFolder := fmt.Sprintf("./data/nitro-service/%s", me.String())
+				ourStore = store.NewDurableStore(pk, dataFolder, buntdb.Config{})
+			} else {
+				ourStore = store.NewMemStore(pk)
+			}
+
+			ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainId, common.Hex2Bytes(chainPk))
+			if err != nil {
+				panic(err)
+			}
+
+			na, err := NitroAdjudicator.NewNitroAdjudicator(common.HexToAddress(naAddress), ethClient)
+			if err != nil {
+				panic(err)
+			}
+
+			chainService, err := chainservice.NewEthChainService(ethClient, na, common.HexToAddress(naAddress), common.Address{}, common.Address{}, txSubmitter, os.Stdout)
+			if err != nil {
+				panic(err)
+			}
+
+			messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, logDestination)
+			node := client.New(
+				messageservice,
+				chainService,
+				ourStore,
+				logDestination,
+				&engine.PermissivePolicy{},
+				nil)
+
+			var transport transport.Responder
+
+			if useNats {
+				transport, err = nats.NewNatsTransportAsServer(rpcPort)
+			} else {
+				transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
+			}
+			if err != nil {
+				panic(err)
+			}
+
+			logger := zerolog.New(logDestination).
+				Level(zerolog.TraceLevel).
+				With().
+				Timestamp().
+				Str("client", ourStore.GetAddress().String()).
+				Str("rpc", "server").
+				Str("scope", "").
+				Logger()
+			_, err = rpc.NewRpcServer(&node, &logger, transport)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println("Nitro as a Service listening on port", rpcPort)
+			// NOT SURE IF WE NEED THIS?
+			// sigs := make(chan os.Signal, 1)
+			// signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+			// sig := <-sigs
+			// fmt.Printf("Received signal %s, exiting..", sig)
+
+			return nil
+		},
 	}
 
-	ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainId, common.Hex2Bytes(chainPk))
-	if err != nil {
-		panic(err)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
 	}
-
-	na, err := NitroAdjudicator.NewNitroAdjudicator(common.HexToAddress(naAddress), ethClient)
-	if err != nil {
-		panic(err)
-	}
-
-	chainService, err := chainservice.NewEthChainService(ethClient, na, common.HexToAddress(naAddress), common.Address{}, common.Address{}, txSubmitter, os.Stdout)
-	if err != nil {
-		panic(err)
-	}
-
-	messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, logDestination)
-	node := client.New(
-		messageservice,
-		chainService,
-		ourStore,
-		logDestination,
-		&engine.PermissivePolicy{},
-		nil)
-
-	var transport transport.Responder
-
-	if useNats {
-		transport, err = nats.NewNatsTransportAsServer(rpcPort)
-	} else {
-		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
-	}
-	if err != nil {
-		panic(err)
-	}
-
-	logger := zerolog.New(logDestination).
-		Level(zerolog.TraceLevel).
-		With().
-		Timestamp().
-		Str("client", ourStore.GetAddress().String()).
-		Str("rpc", "server").
-		Str("scope", "").
-		Logger()
-	_, err = rpc.NewRpcServer(&node, &logger, transport)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Nitro as a Service listening on port", rpcPort)
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-sigs
-	fmt.Printf("Received signal %s, exiting..", sig)
 }
