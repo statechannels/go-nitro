@@ -84,9 +84,11 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 
 	expectedAliceLedger := expectedLedgerInfo(res.ChannelId, aliceLedgerOutcome, query.Ready)
 	checkQueryInfo(t, expectedAliceLedger, rpcClientA.GetLedgerChannel(res.ChannelId))
+	checkQueryInfoCollection(t, expectedAliceLedger, 1, rpcClientA.GetAllLedgerChannels())
 
 	expectedBobLedger := expectedLedgerInfo(bobResponse.ChannelId, bobLedgerOutcome, query.Ready)
 	checkQueryInfo(t, expectedBobLedger, rpcClientB.GetLedgerChannel(bobResponse.ChannelId))
+	checkQueryInfoCollection(t, expectedBobLedger, 1, rpcClientB.GetAllLedgerChannels())
 
 	initialOutcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Bob.Address(), 100, 0, types.Address{})
 	vRes := rpcClientA.CreateVirtual(
@@ -105,11 +107,16 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	expectedVirtual := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Ready)
 	aliceVirtual := rpcClientA.GetVirtualChannel(vRes.ChannelId)
 	checkQueryInfo(t, expectedVirtual, aliceVirtual)
+	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientA.GetPaymentChannelsByLedger(res.ChannelId))
+
 	bobVirtual := rpcClientB.GetVirtualChannel(vRes.ChannelId)
 	checkQueryInfo(t, expectedVirtual, bobVirtual)
+	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientB.GetPaymentChannelsByLedger(bobResponse.ChannelId))
+
 	ireneVirtual := rpcClientI.GetVirtualChannel(vRes.ChannelId)
 	checkQueryInfo(t, expectedVirtual, ireneVirtual)
-
+	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientI.GetPaymentChannelsByLedger(bobResponse.ChannelId))
+	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientI.GetPaymentChannelsByLedger(res.ChannelId))
 	rpcClientA.Pay(vRes.ChannelId, 1)
 
 	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
@@ -232,6 +239,22 @@ type channelInfo interface {
 func checkQueryInfo[T channelInfo](t *testing.T, expected T, fetched T) {
 	if diff := cmp.Diff(expected, fetched, cmp.AllowUnexported(big.Int{})); diff != "" {
 		panic(fmt.Errorf("Channel query info diff mismatch (-want +got):\n%s", diff))
+	}
+}
+
+func checkQueryInfoCollection[T channelInfo](t *testing.T, expected T, expectedLength int, fetched []T) {
+	if len(fetched) != expectedLength {
+		t.Fatalf("expected %d channel infos, got %d", expectedLength, len(fetched))
+	}
+	found := false
+	for _, fetched := range fetched {
+		if cmp.Equal(expected, fetched, cmp.AllowUnexported(big.Int{})) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		panic(fmt.Errorf("did not find info %v in channel infos: %v", expected, fetched))
 	}
 }
 
