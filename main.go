@@ -88,10 +88,9 @@ func main() {
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        NA_ADDRESS,
 			Usage:       "Specifies the address of the nitro adjudicator contract.",
-			Value:       "0xC6A55E07566416274dBF020b5548eecEdB56290c",
-			DefaultText: "Address of first contract deployed by default " + CHAIN_PK,
 			Category:    "Connectivity:",
 			Destination: &naAddress,
+			Required:    true,
 		}),
 		altsrc.NewIntFlag(&cli.IntFlag{
 			Name:        MSG_PORT,
