@@ -187,11 +187,6 @@ func main() {
 			}
 
 			fmt.Println("Nitro as a Service listening on port", rpcPort)
-			// NOT SURE IF WE NEED THIS?
-			// sigs := make(chan os.Signal, 1)
-			// signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-			// sig := <-sigs
-			// fmt.Printf("Received signal %s, exiting..", sig)
 
 			return nil
 		},
