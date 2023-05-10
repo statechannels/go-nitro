@@ -46,6 +46,7 @@ func main() {
 			&cli.BoolFlag{
 				Name:        USE_NATS,
 				Usage:       "Specifies whether to use NATS or http/ws for the rpc server.",
+				Value:       false,
 				Category:    "Connectivity:",
 				Destination: &useNats,
 			},
@@ -53,11 +54,12 @@ func main() {
 				Name:        USE_DURABLE_STORE,
 				Usage:       "Specifies whether to use a durable store or an in-memory store.",
 				Category:    "Storage",
+				Value:       false,
 				Destination: &useDurableStore,
 			},
 			&cli.StringFlag{
 				Name:        PK,
-				Usage:       "Specifies the private key for the client. Default is Alice's private key.",
+				Usage:       "Specifies the private key for the client.",
 				Value:       "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d",
 				DefaultText: "Alice's private key",
 				Category:    "Keys:",
@@ -73,7 +75,7 @@ func main() {
 			},
 			&cli.StringFlag{
 				Name:        CHAIN_PK,
-				Usage:       "Specifies the private key to use when interacting with the chain. Default is a hardhat/anvil funded account.",
+				Usage:       "Specifies the private key to use when interacting with the chain.",
 				Value:       "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
 				DefaultText: "A hardhat / annvil default funded account",
 				Category:    "Keys:",
