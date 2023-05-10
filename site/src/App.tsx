@@ -12,11 +12,7 @@ function App() {
   const [address, setAddress] = useState("");
 
   useEffect(() => {
-    const setupClient = async () => {
-      const nitroClient = await NitroRpcClient.CreateHttpNitroClient(url);
-      setNitroClient(nitroClient);
-    };
-    setupClient();
+    NitroRpcClient.CreateHttpNitroClient(url).then((c) => setNitroClient(c));
   }, []);
 
   useEffect(() => {
