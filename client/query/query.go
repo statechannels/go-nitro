@@ -128,6 +128,7 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 	return PaymentChannelInfo{}, fmt.Errorf("could not find channel with id %v", id)
 }
 
+// GetAllLedgerChannels returns a `LedgerChannelInfo` for each ledger channel in the store.
 func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Address) ([]LedgerChannelInfo, error) {
 	toReturn := []LedgerChannelInfo{}
 
@@ -145,6 +146,7 @@ func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Addres
 	return toReturn, nil
 }
 
+// GetPaymentChannelsByLedger returns a `PaymentChannelInfo` for each active payment channel funded by the given ledger channel.
 func GetPaymentChannelsByLedger(ledgerId types.Destination, s store.Store, vm *payments.VoucherManager) ([]PaymentChannelInfo, error) {
 	// If a ledger channel is actively funding payment channels it must be in the form of a consensus channel
 	con, err := s.GetConsensusChannelById(ledgerId)

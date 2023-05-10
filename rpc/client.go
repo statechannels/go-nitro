@@ -81,10 +81,12 @@ func (rc *RpcClient) GetLedgerChannel(id types.Destination) query.LedgerChannelI
 	return waitForRequest[serde.GetLedgerChannelRequest, query.LedgerChannelInfo](rc, serde.GetLedgerChannelRequestMethod, req)
 }
 
+// GetAllLedgerChannels returns all ledger channels
 func (rc *RpcClient) GetAllLedgerChannels() []query.LedgerChannelInfo {
 	return waitForRequest[serde.NoPayloadRequest, []query.LedgerChannelInfo](rc, serde.GetAllLedgerChannelsMethod, struct{}{})
 }
 
+// GetPaymentChannelsByLedger returns all active payment channels for a given ledger channel
 func (rc *RpcClient) GetPaymentChannelsByLedger(ledgerId types.Destination) []query.PaymentChannelInfo {
 	return waitForRequest[serde.GetPaymentChannelsByLedgerRequest, []query.PaymentChannelInfo](rc, serde.GetPaymentChannelsByLedgerMethod, serde.GetPaymentChannelsByLedgerRequest{LedgerId: ledgerId})
 }

@@ -24,12 +24,12 @@ type Store interface {
 	GetObjectiveById(protocols.ObjectiveId) (protocols.Objective, error)          // Read an existing objective
 	GetObjectiveByChannelId(types.Destination) (obj protocols.Objective, ok bool) // Get the objective that currently owns the channel with the supplied ChannelId
 	SetObjective(protocols.Objective) error                                       // Write an objective
-	GetChannelsByIds(ids []types.Destination) ([]*channel.Channel, error)
+	GetChannelsByIds(ids []types.Destination) ([]*channel.Channel, error)         // Returns a collection of channels with the given ids
 	GetChannelById(id types.Destination) (c *channel.Channel, ok bool)
 	GetChannelsByParticipant(participant types.Address) []*channel.Channel // Returns any channels that includes the given participant
 	SetChannel(*channel.Channel) error
 	DestroyChannel(id types.Destination)
-	GetChannelsByAppDefinition(appDef types.Address) []*channel.Channel // Returns any channels that includes the given participant
+	GetChannelsByAppDefinition(appDef types.Address) []*channel.Channel // Returns any channels that includes the given app definition
 	ReleaseChannelFromOwnership(types.Destination)                      // Release channel from being owned by any objective
 
 	ConsensusChannelStore
