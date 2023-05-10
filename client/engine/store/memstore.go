@@ -179,30 +179,6 @@ func (ms *MemStore) getChannelById(id types.Destination) (channel.Channel, error
 	return ch, nil
 }
 
-// GetObjectiveByChannelIds returns a collection of objectives for the given channel ids
-func (ms *MemStore) GetObjectiveByChannelIds(ids []types.Destination) (map[types.Destination]protocols.Objective, error) {
-	toReturn := map[types.Destination]protocols.Objective{}
-	var err error
-
-	ms.objectives.Range(func(key string, oJSON []byte) bool {
-		var o protocols.Objective
-		o, err = decodeObjective(protocols.ObjectiveId(key), []byte(oJSON))
-		if err != nil {
-			return false
-		}
-		if !contains(ids, o.OwnsChannel()) {
-			toReturn[o.OwnsChannel()] = o
-		}
-
-		// Keep iterating through if we haven't found all the channels yet
-		return len(toReturn) < len(ids)
-	})
-	if err != nil {
-		return map[types.Destination]protocols.Objective{}, err
-	}
-	return toReturn, nil
-}
-
 // GetChannelsByIds returns a collection of channels with the given ids
 func (ms *MemStore) GetChannelsByIds(ids []types.Destination) ([]*channel.Channel, error) {
 	toReturn := []*channel.Channel{}

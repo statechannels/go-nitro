@@ -157,21 +157,17 @@ func GetPaymentChannelsByLedger(ledgerId types.Destination, store store.Store, v
 	if err != nil {
 		return []PaymentChannelInfo{}, fmt.Errorf("could not query the store about ids %v: %w", toQuery, err)
 	}
-	objectives, err := store.GetObjectiveByChannelIds(toQuery)
-	if err != nil {
-		return []PaymentChannelInfo{}, fmt.Errorf("could not query the store about objectives for ids %v: %w", toQuery, err)
-	}
 
 	toReturn := []PaymentChannelInfo{}
 	for _, p := range paymentChannels {
 		paid, remaining, err := GetVoucherBalance(p.Id, vm)
-		o := objectives[p.Id]
-
 		if err != nil {
 			return []PaymentChannelInfo{}, err
 		}
-
-		vfo, _ := o.(*virtualfund.Objective)
+		// TODO: n+1 query problem
+		// We should query for the vfos in bulk, rather than one at a time
+		// Or we should be able to determine the status soley from the channel
+		vfo, _ := GetVirtualFundObjective(p.Id, store)
 		info, err := ConstructPaymentInfo(p, vfo, paid, remaining)
 		if err != nil {
 			return []PaymentChannelInfo{}, err
@@ -220,7 +216,6 @@ func ConstructLedgerInfoFromChannel(c *channel.Channel) LedgerChannelInfo {
 
 func ConstructPaymentInfo(c *channel.Channel, vfo *virtualfund.Objective, paid, remaining *big.Int) (PaymentChannelInfo, error) {
 	status := getStatusFromChannel(c)
-
 	if vfo != nil && vfo.Status == protocols.Completed {
 		// This means intermediaries may not have a fully signed postfund state even though the channel is "ready"
 		// To determine the the correct status we check the status of the virtual fund objective
