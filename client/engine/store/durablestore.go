@@ -310,7 +310,7 @@ func (ds *DurableStore) GetObjectiveByChannelIds(ids []types.Destination) (map[t
 	toReturn := map[types.Destination]protocols.Objective{}
 	var err error
 
-	txError := ds.channels.View(func(tx *buntdb.Tx) error {
+	txError := ds.objectives.View(func(tx *buntdb.Tx) error {
 		return tx.Ascend("", func(key, chJSON string) bool {
 			var o protocols.Objective
 			err = json.Unmarshal([]byte(chJSON), &o)
