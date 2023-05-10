@@ -1,3 +1,6 @@
 {
-  "recommendations": ["golang.go"]
+  "recommendations": [
+    "golang.go",
+    "bungcip.better-toml"
+  ]
 }

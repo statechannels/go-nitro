@@ -30,24 +30,25 @@ go build -o gonitro
 Go nitro accepts the following command flags, which can also be displayed via `go run . -help` (or `gonitro -help` for the build binary).
 
 ```
--chainid int
-    Specifies the chain id of the chain. (default 1337)
--chainurl string
-    Specifies the url of a RPC endpoint for the chain. (default "ws://127.0.0.1:8545")
--deploycontracts
-    Specifies whether to deploy the adjudicator and create2deployer contracts.
--msgport int
-    Specifies the tcp port for the  message service. (default 3005)
--naaddress string
-    Specifies the address of the nitro adjudicator contract. Default is the address computed by the Create2Deployer contract. (default "0xC6A55E07566416274dBF020b5548eecEdB56290c")
--pk string
-    Specifies the private key for the client. Default is Alice's private key. (default "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d")
--rpcport int
-    Specifies the tcp port for the rpc server. (default 4005)
--usedurablestore
-    Specifies whether to use a durable store or an in-memory store.
--usenats
-    Specifies whether to use NATS or http/ws for the rpc server. (default true)
+Usage of ./nitro-rpc-server:
+  -chainid int
+        Specifies the chain id of the chain. (default 1337)
+  -chainurl string
+        Specifies the url of a RPC endpoint for the chain. (default "ws://127.0.0.1:8545")
+  -deploycontracts
+        Specifies whether to deploy the adjudicator and create2deployer contracts.
+  -msgport int
+        Specifies the tcp port for the  message service. (default 3005)
+  -naaddress string
+        Specifies the address of the nitro adjudicator contract. Default is the address computed by the Create2Deployer contract. (default "0xC6A55E07566416274dBF020b5548eecEdB56290c")
+  -pk string
+        Specifies the private key for the client. Default is Alice's private key. (default "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d")
+  -rpcport int
+        Specifies the tcp port for the rpc server. (default 4005)
+  -usedurablestore
+        Specifies whether to use a durable store or an in-memory store.
+  -usenats
+        Specifies whether to use NATS or http/ws for the rpc server.
 ```
 
 ### As a Library
@@ -82,6 +83,22 @@ for i := 0; i < len(10); i++ {
 response = nitroClient.CloseVirtualChannel(response.ChannelId)
 nitroClient.WaitForCompletedObjective(response.objectiveId)
 ```
+
+### Start RPC servers test script
+
+A [test script](./scripts/start-rpc-servers.go) is available to start up multiple RPC servers and a test chain. This is used to easily and quickly spin up a test environment. The script requires that `foundry` is installed locally; `foundry` installation instructions are available [here](https://book.getfoundry.sh/getting-started/installation).
+
+The script will:
+
+1. Start an `foundry anvil` test chain
+2. Deploy the adjudicator contract to the test chain
+3. Start an RPC server for Alice (`0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE`) listening for RPCs on port `4005`
+4. Start an RPC server for Irene (`0x111A00868581f73AB42FEEF67D235Ca09ca1E8db`) listening for RPCs on port `4006`
+5. Start an RPC server for Bob (`0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94`) listening for RPCs on port `4007`
+
+Stopping the test script will shutdown all RPC servers and `anvil`.
+
+To run the script from the `go-nitro` directory run `go run ./scripts/start-rpc-servers.go`
 
 ## Contributing
 
