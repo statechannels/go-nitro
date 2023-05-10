@@ -64,3 +64,42 @@ Options:
       --version  Show version number                                   [boolean]
   -p, --port                                            [number] [default: 4005]
 ```
+
+### Using the create-channels script
+
+A test script is available to easily create channels. It requires 3 running RPC servers for Alice,Bob, and Irene. The `go-nitro` repository contains a [test script to start and run the required RPC servers](https://github.com/statechannels/go-nitro#start-rpc-servers-test-script)
+
+The `create-channels` script will do the following (using the `nitro-rpc-client`):
+
+1. Create a ledger channel between Alice and Irene.
+2. Create a ledger channel between Bon and Irene.
+3. Create some virtual channels.
+4. Make some payments.
+5. Close some virtual channels.
+
+The script can be run from the `packages/nitro-rpc-client` folder with `npx ts-node ./scripts/client-runner.ts create-channels`.
+
+The script also accepts a few options for the amount of channels to create/close.
+
+```
+❯ npx ts-node ./scripts/client-runner.ts create-channels --help
+client-runner create-channels
+
+Creates some virtual channels and makes some payments
+
+Options:
+  --help             Show help                                         [boolean]
+  --version          Show version number                               [boolean]
+  --createledgers    Whether we attempt to create new ledger channels.
+                     Set to false if you already have some ledger channels
+                     created.                          [boolean] [default: true]
+  --numvirtual       The number of virtual channels to create between Alice and
+                     Bob.                                  [number] [default: 5]
+  --numclosevirtual  The number of virtual channels to close and defund.
+                                                           [number] [default: 2]
+  --numpayments      The number of payments to make from Alice to Bob.Each
+                     payment is made on a random virtual channel
+                                                           [number] [default: 5]
+```
+
+The `--createledgers` option is helpful when you want to create some additional virtual channels using existing ledger channels. Setting it to `false` means the script will just use the existing ledger channels when creating new virtual channels.
