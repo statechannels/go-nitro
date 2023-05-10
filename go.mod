@@ -13,7 +13,10 @@ require (
 	nhooyr.io/websocket v1.8.7
 )
 
-require github.com/tidwall/buntdb v1.2.10
+require (
+	github.com/tidwall/buntdb v1.2.10
+	github.com/urfave/cli/v2 v2.25.3
+)
 
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
@@ -118,7 +121,6 @@ require (
 	github.com/tidwall/rtred v0.1.2 // indirect
 	github.com/tidwall/tinyqueue v0.1.1 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
-	github.com/urfave/cli/v2 v2.25.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/dig v1.16.1 // indirect
