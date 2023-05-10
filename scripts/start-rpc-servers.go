@@ -114,21 +114,21 @@ func waitForKillSignal() {
 
 // setupRPCServer starts up an RPC server for the given participant
 func setupRPCServer(p participant, c color, na types.Address) (*exec.Cmd, error) {
-	args := []string{"run", ".", "-usedurablestore"}
+	args := []string{"run", ".", "-naaddress", na.String()}
 
 	switch p {
 	case alice:
-		args = append(args, "-config", "alice.toml")
+		args = append(args, "-config", "./scripts/test-configs/alice.toml")
 	case irene:
-		args = append(args, "-config", "irene.toml")
+		args = append(args, "-config", "./scripts/test-configs/irene.toml")
 	case bob:
-		args = append(args, "-config", "bob.toml")
+		args = append(args, "-config", "./scripts/test-configs/bob.toml")
 
 	default:
 		panic("Invalid participant")
 
 	}
-	args = append(args, "-naaddress", na.String())
+
 	cmd := exec.Command("go", args...)
 	cmd.Stdout = newColorWriter(c, os.Stdout)
 	cmd.Stderr = os.Stderr
