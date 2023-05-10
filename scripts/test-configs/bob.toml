@@ -1,0 +1,8 @@
+# Bob's test Config
+
+usedurablestore = true
+
+msgport = 3007
+rpcport = 4007
+
+pk = "0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4"
