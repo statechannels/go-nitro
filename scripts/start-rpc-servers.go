@@ -169,7 +169,7 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 	}
 }
 
-// deployAdjudicator deploys th  NitroAdjudicator contract.
+// deployAdjudicator deploys the  NitroAdjudicator contract.
 func deployAdjudicator(ctx context.Context) (common.Address, error) {
 	client, txSubmitter, err := chainutils.ConnectToChain(context.Background(), "ws://127.0.0.1:8545", 1337, common.Hex2Bytes(FUNDED_TEST_PK))
 	if err != nil {
