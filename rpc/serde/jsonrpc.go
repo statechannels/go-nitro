@@ -13,15 +13,17 @@ import (
 type RequestMethod string
 
 const (
-	GetAddressMethod               RequestMethod = "get_address"
-	VersionMethod                  RequestMethod = "version"
-	DirectFundRequestMethod        RequestMethod = "direct_fund"
-	DirectDefundRequestMethod      RequestMethod = "direct_defund"
-	VirtualFundRequestMethod       RequestMethod = "virtual_fund"
-	VirtualDefundRequestMethod     RequestMethod = "virtual_defund"
-	PayRequestMethod               RequestMethod = "pay"
-	GetPaymentChannelRequestMethod RequestMethod = "get_payment_channel"
-	GetLedgerChannelRequestMethod  RequestMethod = "get_ledger_channel"
+	GetAddressMethod                 RequestMethod = "get_address"
+	VersionMethod                    RequestMethod = "version"
+	DirectFundRequestMethod          RequestMethod = "direct_fund"
+	DirectDefundRequestMethod        RequestMethod = "direct_defund"
+	VirtualFundRequestMethod         RequestMethod = "virtual_fund"
+	VirtualDefundRequestMethod       RequestMethod = "virtual_defund"
+	PayRequestMethod                 RequestMethod = "pay"
+	GetPaymentChannelRequestMethod   RequestMethod = "get_payment_channel"
+	GetLedgerChannelRequestMethod    RequestMethod = "get_ledger_channel"
+	GetPaymentChannelsByLedgerMethod RequestMethod = "get_payment_channels_by_ledger"
+	GetAllLedgerChannelsMethod       RequestMethod = "get_all_ledger_channels"
 )
 
 type NotificationMethod string
@@ -48,6 +50,9 @@ type GetPaymentChannelRequest struct {
 type GetLedgerChannelRequest struct {
 	Id types.Destination
 }
+type GetPaymentChannelsByLedgerRequest struct {
+	LedgerId types.Destination
+}
 
 type (
 	NoPayloadRequest = struct{}
@@ -61,6 +66,7 @@ type RequestPayload interface {
 		PaymentRequest |
 		GetLedgerChannelRequest |
 		GetPaymentChannelRequest |
+		GetPaymentChannelsByLedgerRequest |
 		NoPayloadRequest
 }
 
@@ -77,18 +83,24 @@ type JsonRpcRequest[T RequestPayload | NotificationPayload] struct {
 	Params  T      `json:"params"`
 }
 
+type VersionResponse = string
+
 type (
-	VersionResponse = string
-	ResponsePayload interface {
-		directfund.ObjectiveResponse |
-			protocols.ObjectiveId |
-			virtualfund.ObjectiveResponse |
-			PaymentRequest |
-			query.PaymentChannelInfo |
-			query.LedgerChannelInfo |
-			VersionResponse
-	}
+	GetAllLedgersResponse              = []query.LedgerChannelInfo
+	GetPaymentChannelsByLedgerResponse = []query.PaymentChannelInfo
 )
+
+type ResponsePayload interface {
+	directfund.ObjectiveResponse |
+		protocols.ObjectiveId |
+		virtualfund.ObjectiveResponse |
+		PaymentRequest |
+		query.PaymentChannelInfo |
+		query.LedgerChannelInfo |
+		VersionResponse |
+		GetAllLedgersResponse |
+		GetPaymentChannelsByLedgerResponse
+}
 
 type JsonRpcResponse[T ResponsePayload] struct {
 	Jsonrpc string      `json:"jsonrpc"`

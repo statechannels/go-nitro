@@ -186,11 +186,13 @@ func (ms *MemStore) GetObjectiveByChannelIds(ids []types.Destination) (map[types
 
 	ms.objectives.Range(func(key string, oJSON []byte) bool {
 		var o protocols.Objective
-		err = json.Unmarshal(oJSON, &o)
+		o, err = decodeObjective(protocols.ObjectiveId(key), []byte(oJSON))
 		if err != nil {
 			return false
 		}
-		toReturn[o.OwnsChannel()] = o
+		if !contains(ids, o.OwnsChannel()) {
+			toReturn[o.OwnsChannel()] = o
+		}
 
 		// Keep iterating through if we haven't found all the channels yet
 		return len(toReturn) < len(ids)

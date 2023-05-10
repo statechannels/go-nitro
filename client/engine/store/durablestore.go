@@ -311,13 +311,15 @@ func (ds *DurableStore) GetObjectiveByChannelIds(ids []types.Destination) (map[t
 	var err error
 
 	txError := ds.objectives.View(func(tx *buntdb.Tx) error {
-		return tx.Ascend("", func(key, chJSON string) bool {
+		return tx.Ascend("", func(key, objJSON string) bool {
 			var o protocols.Objective
-			err = json.Unmarshal([]byte(chJSON), &o)
+			o, err = decodeObjective(protocols.ObjectiveId(key), []byte(objJSON))
 			if err != nil {
 				return false
 			}
-			toReturn[o.OwnsChannel()] = o
+			if !contains(ids, o.OwnsChannel()) {
+				toReturn[o.OwnsChannel()] = o
+			}
 
 			// Keep iterating through if we haven't found all the channels yet
 			return len(toReturn) < len(ids)

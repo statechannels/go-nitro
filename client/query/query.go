@@ -159,7 +159,7 @@ func GetPaymentChannelsByLedger(ledgerId types.Destination, store store.Store, v
 	}
 	objectives, err := store.GetObjectiveByChannelIds(toQuery)
 	if err != nil {
-		return []PaymentChannelInfo{}, fmt.Errorf("could not query the store about ids %v: %w", toQuery, err)
+		return []PaymentChannelInfo{}, fmt.Errorf("could not query the store about objectives for ids %v: %w", toQuery, err)
 	}
 
 	toReturn := []PaymentChannelInfo{}

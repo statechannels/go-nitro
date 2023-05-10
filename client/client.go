@@ -255,6 +255,14 @@ func (c *Client) GetPaymentChannel(id types.Destination) (query.PaymentChannelIn
 	return query.GetPaymentChannelInfo(id, c.store, c.vm)
 }
 
+func (c *Client) GetPaymentChannelsByLedger(ledgerId types.Destination) ([]query.PaymentChannelInfo, error) {
+	return query.GetPaymentChannelsByLedger(ledgerId, c.store, c.vm)
+}
+
+func (c *Client) GetAllLedgerChannels() ([]query.LedgerChannelInfo, error) {
+	return query.GetAllLedgerChannels(c.store, c.engine.GetConsensusAppAddress())
+}
+
 // GetLedgerChannel returns the ledger channel with the given id.
 // If no ledger channel exists with the given id an error is returned.
 func (c *Client) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {

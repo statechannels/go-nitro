@@ -81,6 +81,14 @@ func (rc *RpcClient) GetLedgerChannel(id types.Destination) query.LedgerChannelI
 	return waitForRequest[serde.GetLedgerChannelRequest, query.LedgerChannelInfo](rc, serde.GetLedgerChannelRequestMethod, req)
 }
 
+func (rc *RpcClient) GetAllLedgerChannels() []query.LedgerChannelInfo {
+	return waitForRequest[serde.NoPayloadRequest, []query.LedgerChannelInfo](rc, serde.GetAllLedgerChannelsMethod, struct{}{})
+}
+
+func (rc *RpcClient) GetPaymentChannelsByLedger(ledgerId types.Destination) []query.PaymentChannelInfo {
+	return waitForRequest[serde.GetPaymentChannelsByLedgerRequest, []query.PaymentChannelInfo](rc, serde.GetPaymentChannelsByLedgerMethod, serde.GetPaymentChannelsByLedgerRequest{LedgerId: ledgerId})
+}
+
 // CreateLedger creates a new ledger channel
 func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
 	objReq := directfund.NewObjectiveRequest(
