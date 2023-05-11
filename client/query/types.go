@@ -3,17 +3,8 @@ package query
 import (
 	"math/big"
 
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/types"
-)
-
-type ChannelStatus string
-
-const (
-	Proposed ChannelStatus = "Proposed"
-	Enabled  ChannelStatus = "Enabled"
-	Open     ChannelStatus = "Open"
-	Closing  ChannelStatus = "Closing"
-	Closed   ChannelStatus = "Closed"
 )
 
 // PaymentChannelBalance contains the balance of a uni-directional payment channel
@@ -28,14 +19,14 @@ type PaymentChannelBalance struct {
 // PaymentChannelInfo contains balance and status info about a payment channel
 type PaymentChannelInfo struct {
 	ID      types.Destination
-	Status  ChannelStatus
+	Status  channel.ChannelStatus
 	Balance PaymentChannelBalance
 }
 
 // LedgerChannelInfo contains balance and status info about a ledger channel
 type LedgerChannelInfo struct {
 	ID      types.Destination
-	Status  ChannelStatus
+	Status  channel.ChannelStatus
 	Balance LedgerChannelBalance
 }
 

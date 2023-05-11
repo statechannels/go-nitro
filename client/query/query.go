@@ -16,23 +16,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// getStatusFromChannel returns the status of the channel
-func getStatusFromChannel(c *channel.Channel) ChannelStatus {
-	if c.FinalSignedByMe() {
-		if c.FinalCompleted() {
-			return Closed
-		}
-		return Closing
-	}
-	if c.PostFundSignedByMe() {
-		if c.PostFundComplete() {
-			return Open
-		}
-		return Enabled
-	}
-	return Proposed
-}
-
 // getPaymentChannelBalance generates a PaymentChannelBalance from the given participants and outcome
 func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit) PaymentChannelBalance {
 	numParticipants := len(participants)
@@ -203,7 +186,7 @@ func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel) L
 	latest := con.ConsensusVars().AsState(con.FixedPart())
 	return LedgerChannelInfo{
 		ID:      con.Id,
-		Status:  Open,
+		Status:  channel.Open,
 		Balance: getLedgerBalanceFromState(latest),
 	}
 }
@@ -215,13 +198,13 @@ func ConstructLedgerInfoFromChannel(c *channel.Channel) LedgerChannelInfo {
 	}
 	return LedgerChannelInfo{
 		ID:      c.Id,
-		Status:  getStatusFromChannel(c),
+		Status:  c.Status(),
 		Balance: getLedgerBalanceFromState(latest),
 	}
 }
 
 func ConstructPaymentInfo(c *channel.Channel, paid, remaining *big.Int) (PaymentChannelInfo, error) {
-	status := getStatusFromChannel(c)
+	status := c.Status()
 	latest, err := getLatestSupported(c)
 	if err != nil {
 		return PaymentChannelInfo{}, err

@@ -29,6 +29,16 @@ type Channel struct {
 	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
 }
 
+type ChannelStatus string
+
+const (
+	Proposed ChannelStatus = "Proposed"
+	Enabled  ChannelStatus = "Enabled"
+	Open     ChannelStatus = "Open"
+	Closing  ChannelStatus = "Closing"
+	Closed   ChannelStatus = "Closed"
+)
+
 // New constructs a new Channel from the supplied state.
 func New(s state.State, myIndex uint) (*Channel, error) {
 	c := Channel{}
@@ -110,6 +120,23 @@ func (c *Channel) UnmarshalJSON(data []byte) error {
 	c.FixedPart = jsonCh.FixedPart
 
 	return nil
+}
+
+// getStatusFromChannel returns the status of the channel
+func (c *Channel) Status() ChannelStatus {
+	if c.FinalSignedByMe() {
+		if c.FinalCompleted() {
+			return Closed
+		}
+		return Closing
+	}
+	if c.PostFundSignedByMe() {
+		if c.PostFundComplete() {
+			return Open
+		}
+		return Enabled
+	}
+	return Proposed
 }
 
 // MyDestination returns the client's destination
