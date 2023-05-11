@@ -210,7 +210,7 @@ func (ms *MemStore) GetChannelsByIds(ids []types.Destination) ([]*channel.Channe
 	return toReturn, nil
 }
 
-// GetChannelsByAppDefinition returns any channels that include the given participant
+// GetChannelsByAppDefinition returns any channels that include the given app definition
 func (ms *MemStore) GetChannelsByAppDefinition(appDef types.Address) []*channel.Channel {
 	toReturn := []*channel.Channel{}
 	ms.channels.Range(func(key string, chJSON []byte) bool {
