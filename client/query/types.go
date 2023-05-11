@@ -11,9 +11,10 @@ type ChannelStatus string
 // TODO: Think through statuses
 const (
 	Proposed ChannelStatus = "Proposed"
-	Ready    ChannelStatus = "Ready"
+	Enabled  ChannelStatus = "Enabled"
+	Open     ChannelStatus = "Open"
 	Closing  ChannelStatus = "Closing"
-	Complete ChannelStatus = "Complete"
+	Closed   ChannelStatus = "Closed"
 )
 
 // PaymentChannelBalance contains the balance of a uni-directional payment channel
