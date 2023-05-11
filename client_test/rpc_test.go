@@ -105,7 +105,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	<-rpcClientI.ObjectiveCompleteChan(vRes.Id)
 
 	expectedVirtual := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Open)
-	expectedVirtualIrene := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Enabled) // Irene is an intermediary, she only sees "enabled" virtual channels
+	expectedVirtualIntermediary := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Enabled) // Irene is an intermediary, she only sees "enabled" virtual channels
 	aliceVirtual := rpcClientA.GetVirtualChannel(vRes.ChannelId)
 	checkQueryInfo(t, expectedVirtual, aliceVirtual)
 	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientA.GetPaymentChannelsByLedger(res.ChannelId))
@@ -115,9 +115,9 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientB.GetPaymentChannelsByLedger(bobResponse.ChannelId))
 
 	ireneVirtual := rpcClientI.GetVirtualChannel(vRes.ChannelId)
-	checkQueryInfo(t, expectedVirtualIrene, ireneVirtual)
-	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientI.GetPaymentChannelsByLedger(bobResponse.ChannelId))
-	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientI.GetPaymentChannelsByLedger(res.ChannelId))
+	checkQueryInfo(t, expectedVirtualIntermediary, ireneVirtual)
+	checkQueryInfoCollection(t, expectedVirtualIntermediary, 1, rpcClientI.GetPaymentChannelsByLedger(bobResponse.ChannelId))
+	checkQueryInfoCollection(t, expectedVirtualIntermediary, 1, rpcClientI.GetPaymentChannelsByLedger(res.ChannelId))
 	rpcClientA.Pay(vRes.ChannelId, 1)
 
 	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
@@ -148,6 +148,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 
 	expectedAliceLedgerNotifs := []query.LedgerChannelInfo{
 		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
+		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Enabled),
 		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Open),
 		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 0, 100), query.Open),
 		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Open),
@@ -158,6 +159,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 
 	expectedBobLedgerNotifs := []query.LedgerChannelInfo{
 		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
+		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Enabled),
 		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Open),
 		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 0), query.Open),
 		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Open),
@@ -168,6 +170,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 
 	expectedVirtualNotifs := []query.PaymentChannelInfo{
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
+		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Enabled),
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Open),
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Open),
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
