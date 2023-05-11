@@ -82,11 +82,11 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	<-rpcClientI.ObjectiveCompleteChan(res.Id)
 	<-rpcClientI.ObjectiveCompleteChan(bobResponse.Id)
 
-	expectedAliceLedger := expectedLedgerInfo(res.ChannelId, aliceLedgerOutcome, query.Ready)
+	expectedAliceLedger := expectedLedgerInfo(res.ChannelId, aliceLedgerOutcome, query.Open)
 	checkQueryInfo(t, expectedAliceLedger, rpcClientA.GetLedgerChannel(res.ChannelId))
 	checkQueryInfoCollection(t, expectedAliceLedger, 1, rpcClientA.GetAllLedgerChannels())
 
-	expectedBobLedger := expectedLedgerInfo(bobResponse.ChannelId, bobLedgerOutcome, query.Ready)
+	expectedBobLedger := expectedLedgerInfo(bobResponse.ChannelId, bobLedgerOutcome, query.Open)
 	checkQueryInfo(t, expectedBobLedger, rpcClientB.GetLedgerChannel(bobResponse.ChannelId))
 	checkQueryInfoCollection(t, expectedBobLedger, 1, rpcClientB.GetAllLedgerChannels())
 
@@ -104,7 +104,8 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	<-rpcClientB.ObjectiveCompleteChan(vRes.Id)
 	<-rpcClientI.ObjectiveCompleteChan(vRes.Id)
 
-	expectedVirtual := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Ready)
+	expectedVirtual := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Open)
+	expectedVirtualIrene := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Enabled) // Irene is an intermediary, she only sees "enabled" virtual channels
 	aliceVirtual := rpcClientA.GetVirtualChannel(vRes.ChannelId)
 	checkQueryInfo(t, expectedVirtual, aliceVirtual)
 	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientA.GetPaymentChannelsByLedger(res.ChannelId))
@@ -114,7 +115,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientB.GetPaymentChannelsByLedger(bobResponse.ChannelId))
 
 	ireneVirtual := rpcClientI.GetVirtualChannel(vRes.ChannelId)
-	checkQueryInfo(t, expectedVirtual, ireneVirtual)
+	checkQueryInfo(t, expectedVirtualIrene, ireneVirtual)
 	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientI.GetPaymentChannelsByLedger(bobResponse.ChannelId))
 	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientI.GetPaymentChannelsByLedger(res.ChannelId))
 	rpcClientA.Pay(vRes.ChannelId, 1)
@@ -147,30 +148,30 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 
 	expectedAliceLedgerNotifs := []query.LedgerChannelInfo{
 		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Ready),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 0, 100), query.Ready),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Ready),
+		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Open),
+		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 0, 100), query.Open),
+		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Open),
 		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Closing),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Complete),
+		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Closed),
 	}
 	checkNotifications(t, expectedAliceLedgerNotifs, aliceLedgerNotifs, defaultTimeout)
 
 	expectedBobLedgerNotifs := []query.LedgerChannelInfo{
 		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Ready),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 0), query.Ready),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Ready),
+		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Open),
+		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 0), query.Open),
+		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Open),
 		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Closing),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Complete),
+		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Closed),
 	}
 	checkNotifications(t, expectedBobLedgerNotifs, bobLedgerNotifs, defaultTimeout)
 
 	expectedVirtualNotifs := []query.PaymentChannelInfo{
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Ready),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Ready),
+		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Open),
+		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Open),
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
+		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closed),
 	}
 	checkNotifications(t, expectedVirtualNotifs, aliceVirtualNotifs, defaultTimeout)
 	// TODO: Since we don't know exactly when bob receives and starts on the virtual channel
