@@ -118,6 +118,24 @@ func (rs *RpcServer) registerHandlers() (err error) {
 				}
 				return l
 			})
+		case serde.GetAllLedgerChannelsMethod:
+			return processRequest(rs, requestData, func(r serde.NoPayloadRequest) []query.LedgerChannelInfo {
+				ledgers, err := rs.client.GetAllLedgerChannels()
+				if err != nil {
+					// TODO: What's the best way to handle this error?
+					panic(err)
+				}
+				return ledgers
+			})
+		case serde.GetPaymentChannelsByLedgerMethod:
+			return processRequest(rs, requestData, func(r serde.GetPaymentChannelsByLedgerRequest) []query.PaymentChannelInfo {
+				payChs, err := rs.client.GetPaymentChannelsByLedger(r.LedgerId)
+				if err != nil {
+					// TODO: What's the best way to handle this error?
+					panic(err)
+				}
+				return payChs
+			})
 		default:
 			responseErr := methodNotFoundError
 			responseErr.Id = validationResult.Id

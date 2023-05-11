@@ -179,6 +179,61 @@ func (ms *MemStore) getChannelById(id types.Destination) (channel.Channel, error
 	return ch, nil
 }
 
+// GetChannelsByIds returns a collection of channels with the given ids
+func (ms *MemStore) GetChannelsByIds(ids []types.Destination) ([]*channel.Channel, error) {
+	toReturn := []*channel.Channel{}
+
+	var err error
+
+	ms.channels.Range(func(key string, chJSON []byte) bool {
+		var ch channel.Channel
+		err = json.Unmarshal(chJSON, &ch)
+		if err != nil {
+			return false
+		}
+
+		// If the channel is one of the ones we're looking for, add it to the list
+		if contains(ids, ch.Id) {
+			toReturn = append(toReturn, &ch)
+		}
+
+		// If we've found all the channels we need, stop looking
+		if len(toReturn) == len(ids) {
+			return false
+		}
+
+		return true // otherwise, continue looking
+	})
+	if err != nil {
+		return []*channel.Channel{}, err
+	}
+	return toReturn, nil
+}
+
+// GetChannelsByAppDefinition returns any channels that include the given app definition
+func (ms *MemStore) GetChannelsByAppDefinition(appDef types.Address) ([]*channel.Channel, error) {
+	toReturn := []*channel.Channel{}
+	var err error
+	ms.channels.Range(func(key string, chJSON []byte) bool {
+		var ch channel.Channel
+		err = json.Unmarshal(chJSON, &ch)
+		if err != nil {
+			return false
+		}
+		if ch.AppDefinition == appDef {
+			toReturn = append(toReturn, &ch)
+		}
+
+		return true // channel not found: continue looking
+	})
+
+	if err != nil {
+		return []*channel.Channel{}, err
+	}
+
+	return toReturn, nil
+}
+
 // GetChannelsByParticipant returns any channels that include the given participant
 func (ms *MemStore) GetChannelsByParticipant(participant types.Address) []*channel.Channel {
 	toReturn := []*channel.Channel{}
@@ -243,6 +298,26 @@ func (ms *MemStore) GetConsensusChannel(counterparty types.Address) (channel *co
 	})
 
 	return
+}
+
+func (ms *MemStore) GetAllConsensusChannels() ([]*consensus_channel.ConsensusChannel, error) {
+	toReturn := []*consensus_channel.ConsensusChannel{}
+	var err error
+	ms.consensusChannels.Range(func(key string, chJSON []byte) bool {
+		var ch consensus_channel.ConsensusChannel
+
+		err = json.Unmarshal(chJSON, &ch)
+		if err != nil {
+			return false
+		}
+
+		toReturn = append(toReturn, &ch)
+		return true // channel not found: continue looking
+	})
+	if err != nil {
+		return nil, err
+	}
+	return toReturn, nil
 }
 
 func (ms *MemStore) GetObjectiveByChannelId(channelId types.Destination) (protocols.Objective, bool) {
@@ -403,4 +478,14 @@ func (ms *MemStore) GetVoucherInfo(channelId types.Destination) (v *payments.Vou
 func (ms *MemStore) RemoveVoucherInfo(channelId types.Destination) error {
 	ms.vouchers.Delete(channelId.String())
 	return nil
+}
+
+// contains is a helper function which returns true if the given item is included in col
+func contains[T types.Destination | protocols.ObjectiveId](col []T, item T) bool {
+	for _, i := range col {
+		if i == item {
+			return true
+		}
+	}
+	return false
 }

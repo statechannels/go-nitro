@@ -1,6 +1,7 @@
 package query
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -127,6 +128,65 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 	return PaymentChannelInfo{}, fmt.Errorf("could not find channel with id %v", id)
 }
 
+// GetAllLedgerChannels returns a `LedgerChannelInfo` for each ledger channel in the store.
+func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Address) ([]LedgerChannelInfo, error) {
+	toReturn := []LedgerChannelInfo{}
+
+	allConsensus, err := store.GetAllConsensusChannels()
+	if err != nil {
+		return []LedgerChannelInfo{}, err
+	}
+	for _, con := range allConsensus {
+		toReturn = append(toReturn, ConstructLedgerInfoFromConsensus(con))
+	}
+	allChannels, err := store.GetChannelsByAppDefinition(consensusAppDefinition)
+	if err != nil {
+		return []LedgerChannelInfo{}, err
+	}
+	for _, c := range allChannels {
+		toReturn = append(toReturn, ConstructLedgerInfoFromChannel(c))
+	}
+	return toReturn, nil
+}
+
+// GetPaymentChannelsByLedger returns a `PaymentChannelInfo` for each active payment channel funded by the given ledger channel.
+func GetPaymentChannelsByLedger(ledgerId types.Destination, s store.Store, vm *payments.VoucherManager) ([]PaymentChannelInfo, error) {
+	// If a ledger channel is actively funding payment channels it must be in the form of a consensus channel
+	con, err := s.GetConsensusChannelById(ledgerId)
+	// If the ledger channel is not a consensus channel we know that there are no payment channels funded by it
+	if errors.Is(err, store.ErrNoSuchChannel) {
+		return []PaymentChannelInfo{}, nil
+	}
+	if err != nil {
+		return []PaymentChannelInfo{}, fmt.Errorf("could not find any payment channels funded by %s: %w", ledgerId, err)
+	}
+
+	toQuery := con.ConsensusVars().Outcome.FundingTargets()
+
+	paymentChannels, err := s.GetChannelsByIds(toQuery)
+	if err != nil {
+		return []PaymentChannelInfo{}, fmt.Errorf("could not query the store about ids %v: %w", toQuery, err)
+	}
+
+	toReturn := []PaymentChannelInfo{}
+	for _, p := range paymentChannels {
+		paid, remaining, err := GetVoucherBalance(p.Id, vm)
+		if err != nil {
+			return []PaymentChannelInfo{}, err
+		}
+		// TODO: n+1 query problem
+		// We should query for the vfos in bulk, rather than one at a time
+		// Or we should be able to determine the status soley from the channel
+		vfo, _ := GetVirtualFundObjective(p.Id, s)
+		info, err := ConstructPaymentInfo(p, vfo, paid, remaining)
+		if err != nil {
+			return []PaymentChannelInfo{}, err
+		}
+		toReturn = append(toReturn, info)
+	}
+	return toReturn, nil
+}
+
 // GetLedgerChannelInfo returns the LedgerChannelInfo for the given channel
 // It does this by querying the provided store
 func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
@@ -166,7 +226,6 @@ func ConstructLedgerInfoFromChannel(c *channel.Channel) LedgerChannelInfo {
 
 func ConstructPaymentInfo(c *channel.Channel, vfo *virtualfund.Objective, paid, remaining *big.Int) (PaymentChannelInfo, error) {
 	status := getStatusFromChannel(c)
-
 	if vfo != nil && vfo.Status == protocols.Completed {
 		// This means intermediaries may not have a fully signed postfund state even though the channel is "ready"
 		// To determine the the correct status we check the status of the virtual fund objective

@@ -19,19 +19,18 @@ var (
 
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
 type Store interface {
-	GetChannelSecretKey() *[]byte // Get a pointer to a secret key for signing channel updates
-	GetAddress() *types.Address   // Get the (Ethereum) address associated with the ChannelSecretKey
-
+	GetChannelSecretKey() *[]byte                                                 // Get a pointer to a secret key for signing channel updates
+	GetAddress() *types.Address                                                   // Get the (Ethereum) address associated with the ChannelSecretKey
 	GetObjectiveById(protocols.ObjectiveId) (protocols.Objective, error)          // Read an existing objective
 	GetObjectiveByChannelId(types.Destination) (obj protocols.Objective, ok bool) // Get the objective that currently owns the channel with the supplied ChannelId
 	SetObjective(protocols.Objective) error                                       // Write an objective
-
+	GetChannelsByIds(ids []types.Destination) ([]*channel.Channel, error)         // Returns a collection of channels with the given ids
 	GetChannelById(id types.Destination) (c *channel.Channel, ok bool)
 	GetChannelsByParticipant(participant types.Address) []*channel.Channel // Returns any channels that includes the given participant
 	SetChannel(*channel.Channel) error
 	DestroyChannel(id types.Destination)
-
-	ReleaseChannelFromOwnership(types.Destination) // Release channel from being owned by any objective
+	GetChannelsByAppDefinition(appDef types.Address) ([]*channel.Channel, error) // Returns any channels that includes the given app definition
+	ReleaseChannelFromOwnership(types.Destination)                               // Release channel from being owned by any objective
 
 	ConsensusChannelStore
 	payments.VoucherStore
@@ -39,6 +38,7 @@ type Store interface {
 }
 
 type ConsensusChannelStore interface {
+	GetAllConsensusChannels() ([]*consensus_channel.ConsensusChannel, error)
 	GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool)
 	GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error)
 	SetConsensusChannel(*consensus_channel.ConsensusChannel) error
