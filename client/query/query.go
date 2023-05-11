@@ -139,7 +139,10 @@ func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Addres
 	for _, con := range allConsensus {
 		toReturn = append(toReturn, ConstructLedgerInfoFromConsensus(con))
 	}
-	allChannels := store.GetChannelsByAppDefinition(consensusAppDefinition)
+	allChannels, err := store.GetChannelsByAppDefinition(consensusAppDefinition)
+	if err != nil {
+		return []LedgerChannelInfo{}, err
+	}
 	for _, c := range allChannels {
 		toReturn = append(toReturn, ConstructLedgerInfoFromChannel(c))
 	}

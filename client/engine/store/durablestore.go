@@ -306,26 +306,31 @@ func (ds *DurableStore) GetChannelsByIds(ids []types.Destination) ([]*channel.Ch
 }
 
 // GetChannelsByAppDefinition returns any channels that include the given app definition
-func (ds *DurableStore) GetChannelsByAppDefinition(appDef types.Address) []*channel.Channel {
+func (ds *DurableStore) GetChannelsByAppDefinition(appDef types.Address) ([]*channel.Channel, error) {
 	toReturn := []*channel.Channel{}
+	var unmarshErr error
 	err := ds.channels.View(func(tx *buntdb.Tx) error {
-		err := tx.Ascend("", func(key, chJSON string) bool {
+		return tx.Ascend("", func(key, chJSON string) bool {
 			var ch channel.Channel
-			err := json.Unmarshal([]byte(chJSON), &ch)
-			if err != nil {
-				ds.checkError(err)
+			unmarshErr = json.Unmarshal([]byte(chJSON), &ch)
+			if unmarshErr != nil {
+				return false
 			}
 
 			if ch.AppDefinition == appDef {
 				toReturn = append(toReturn, &ch)
 			}
 
-			return true // channel not found: continue looking
+			return true
 		})
-		return err
 	})
-	ds.checkError(err)
-	return toReturn
+	if err != nil {
+		return []*channel.Channel{}, err
+	}
+	if unmarshErr != nil {
+		return []*channel.Channel{}, unmarshErr
+	}
+	return toReturn, nil
 }
 
 // GetChannelsByParticipant returns any channels that include the given participant
@@ -356,20 +361,25 @@ func (ds *DurableStore) GetChannelsByParticipant(participant types.Address) []*c
 
 func (ds *DurableStore) GetAllConsensusChannels() ([]*consensus_channel.ConsensusChannel, error) {
 	toReturn := []*consensus_channel.ConsensusChannel{}
+	var unmarshErr error
 	err := ds.consensusChannels.View(func(tx *buntdb.Tx) error {
 		return tx.Ascend("", func(key, chJSON string) bool {
 			var ch consensus_channel.ConsensusChannel
 
-			err := json.Unmarshal([]byte(chJSON), &ch)
-			if err != nil {
-				ds.checkError(err)
+			unmarshErr = json.Unmarshal([]byte(chJSON), &ch)
+			if unmarshErr != nil {
+				return false
 			}
 			toReturn = append(toReturn, &ch)
-			return true // channel not found: continue looking
+			return true
 		})
 	})
 	if err != nil {
 		return []*consensus_channel.ConsensusChannel{}, err
+	}
+
+	if unmarshErr != nil {
+		return []*consensus_channel.ConsensusChannel{}, unmarshErr
 	}
 	return toReturn, nil
 }

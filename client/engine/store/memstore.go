@@ -211,13 +211,14 @@ func (ms *MemStore) GetChannelsByIds(ids []types.Destination) ([]*channel.Channe
 }
 
 // GetChannelsByAppDefinition returns any channels that include the given app definition
-func (ms *MemStore) GetChannelsByAppDefinition(appDef types.Address) []*channel.Channel {
+func (ms *MemStore) GetChannelsByAppDefinition(appDef types.Address) ([]*channel.Channel, error) {
 	toReturn := []*channel.Channel{}
+	var err error
 	ms.channels.Range(func(key string, chJSON []byte) bool {
 		var ch channel.Channel
-		err := json.Unmarshal(chJSON, &ch)
+		err = json.Unmarshal(chJSON, &ch)
 		if err != nil {
-			return true // channel not found, continue looking
+			return false
 		}
 		if ch.AppDefinition == appDef {
 			toReturn = append(toReturn, &ch)
@@ -226,7 +227,11 @@ func (ms *MemStore) GetChannelsByAppDefinition(appDef types.Address) []*channel.
 		return true // channel not found: continue looking
 	})
 
-	return toReturn
+	if err != nil {
+		return []*channel.Channel{}, err
+	}
+
+	return toReturn, nil
 }
 
 // GetChannelsByParticipant returns any channels that include the given participant

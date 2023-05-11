@@ -29,8 +29,8 @@ type Store interface {
 	GetChannelsByParticipant(participant types.Address) []*channel.Channel // Returns any channels that includes the given participant
 	SetChannel(*channel.Channel) error
 	DestroyChannel(id types.Destination)
-	GetChannelsByAppDefinition(appDef types.Address) []*channel.Channel // Returns any channels that includes the given app definition
-	ReleaseChannelFromOwnership(types.Destination)                      // Release channel from being owned by any objective
+	GetChannelsByAppDefinition(appDef types.Address) ([]*channel.Channel, error) // Returns any channels that includes the given app definition
+	ReleaseChannelFromOwnership(types.Destination)                               // Release channel from being owned by any objective
 
 	ConsensusChannelStore
 	payments.VoucherStore
