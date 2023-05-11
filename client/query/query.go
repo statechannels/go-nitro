@@ -30,7 +30,6 @@ func getStatusFromChannel(c *channel.Channel) ChannelStatus {
 		}
 		return Enabled
 	}
-
 	return Proposed
 }
 
