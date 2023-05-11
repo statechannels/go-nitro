@@ -182,6 +182,11 @@ func (c Channel) PostFundComplete() bool {
 	return c.SignedStateForTurnNum[PostFundTurnNum].HasAllSignatures()
 }
 
+// PostFundSignedBy returns true if the participant with the given index has signed the post fund setup state, false otherwise.
+func (c Channel) PostFundSignedBy(participantIndex uint) bool {
+	return c.SignedStateForTurnNum[PostFundTurnNum].HasSignatureForParticipant(participantIndex)
+}
+
 // FinalSignedByMe returns true if the calling client has signed a final state, false otherwise.
 func (c Channel) FinalSignedByMe() bool {
 	for _, ss := range c.SignedStateForTurnNum {

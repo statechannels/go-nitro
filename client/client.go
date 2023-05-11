@@ -252,12 +252,12 @@ func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
 // GetPaymentChannel returns the payment channel with the given id.
 // If no ledger channel exists with the given id an error is returned.
 func (c *Client) GetPaymentChannel(id types.Destination) (query.PaymentChannelInfo, error) {
-	return query.GetPaymentChannelInfo(id, c.store, c.vm)
+	return query.GetPaymentChannelInfo(id, c.store, c.vm, c.engine.GetVirtualPaymentAppAddress())
 }
 
 // GetPaymentChannelsByLedger returns all active payment channels that are funded by the given ledger channel.
 func (c *Client) GetPaymentChannelsByLedger(ledgerId types.Destination) ([]query.PaymentChannelInfo, error) {
-	return query.GetPaymentChannelsByLedger(ledgerId, c.store, c.vm)
+	return query.GetPaymentChannelsByLedger(ledgerId, c.store, c.vm, c.engine.GetVirtualPaymentAppAddress())
 }
 
 // GetAllLedgerChannels returns all ledger channels.
