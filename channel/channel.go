@@ -29,14 +29,14 @@ type Channel struct {
 	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
 }
 
-type ChannelStatus string
+type Status string
 
 const (
-	Proposed ChannelStatus = "Proposed"
-	Enabled  ChannelStatus = "Enabled"
-	Open     ChannelStatus = "Open"
-	Closing  ChannelStatus = "Closing"
-	Closed   ChannelStatus = "Closed"
+	Proposed Status = "Proposed"
+	Enabled  Status = "Enabled"
+	Open     Status = "Open"
+	Closing  Status = "Closing"
+	Closed   Status = "Closed"
 )
 
 // New constructs a new Channel from the supplied state.
@@ -123,7 +123,7 @@ func (c *Channel) UnmarshalJSON(data []byte) error {
 }
 
 // getStatusFromChannel returns the status of the channel
-func (c *Channel) Status() ChannelStatus {
+func (c *Channel) Status() Status {
 	if c.FinalSignedByMe() {
 		if c.FinalCompleted() {
 			return Closed

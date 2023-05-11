@@ -19,14 +19,14 @@ type PaymentChannelBalance struct {
 // PaymentChannelInfo contains balance and status info about a payment channel
 type PaymentChannelInfo struct {
 	ID      types.Destination
-	Status  channel.ChannelStatus
+	Status  channel.Status
 	Balance PaymentChannelBalance
 }
 
 // LedgerChannelInfo contains balance and status info about a ledger channel
 type LedgerChannelInfo struct {
 	ID      types.Destination
-	Status  channel.ChannelStatus
+	Status  channel.Status
 	Balance LedgerChannelBalance
 }
 
