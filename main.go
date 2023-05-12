@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
@@ -192,6 +194,10 @@ func main() {
 			}
 
 			fmt.Println("Nitro as a Service listening on port", rpcPort)
+
+			stopChan := make(chan os.Signal, 2)
+			signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+			<-stopChan // wait for interrupt or terminate signal
 
 			return nil
 		},
