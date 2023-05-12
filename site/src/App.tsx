@@ -4,16 +4,17 @@ import { NitroRpcClient } from "@statechannels/nitro-rpc-client";
 import { NetworkBalance } from "./components/NetworkBalance";
 import statechannelsLogo from "./assets/statechannels.svg";
 import "./App.css";
+import RpcConnect from "./components/RpcConnect";
 
 function App() {
-  const url = "localhost:4005";
+  const [url, setUrl] = useState("127.0.0.0:4005");
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
   const [version, setVersion] = useState("");
   const [address, setAddress] = useState("");
 
   useEffect(() => {
     NitroRpcClient.CreateHttpNitroClient(url).then((c) => setNitroClient(c));
-  }, []);
+  }, [url]);
 
   useEffect(() => {
     if (nitroClient) {
@@ -29,7 +30,7 @@ function App() {
           <img src={statechannelsLogo} className="logo" />
         </a>
       </div>
-      <h1>Vite + React + StateChannels</h1>
+      <RpcConnect url={url} setUrl={setUrl} />
       <div className="card">
         <NetworkBalance
           status="running"
@@ -43,9 +44,6 @@ function App() {
           The nitro node at {url} has address {address}
         </p>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
   );
 }
