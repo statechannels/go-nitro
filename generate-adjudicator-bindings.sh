@@ -18,7 +18,6 @@ runAbigen "NitroAdjudicator" "adjudicator"
 runAbigen "ConsensusApp" "consensusapp"
 runAbigen "Token" "erc20"
 runAbigen "VirtualPaymentApp" "virtualpaymentapp"
-runAbigen "Create2Deployer" "create2deployer"
 
 rm -rf $(pwd)/tmp-build
 echo "Deleted tmp-build directory."
