@@ -31,15 +31,6 @@ func getStatusFromChannel(c *channel.Channel) ChannelStatus {
 	return Ready
 }
 
-func getVirtualChannelStatus(c *channel.Channel) ChannelStatus {
-	amIntermediary := c.MyIndex != 0 && c.MyIndex != uint(len(c.Participants)-1)
-	if amIntermediary && c.PostFundSignedByMe() {
-		return Ready
-	}
-
-	return getStatusFromChannel(c)
-}
-
 // getPaymentChannelBalance generates a PaymentChannelBalance from the given participants and outcome
 func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit) PaymentChannelBalance {
 	numParticipants := len(participants)
@@ -232,7 +223,14 @@ func ConstructLedgerInfoFromChannel(c *channel.Channel) LedgerChannelInfo {
 }
 
 func ConstructPaymentInfo(c *channel.Channel, paid, remaining *big.Int) (PaymentChannelInfo, error) {
-	status := getVirtualChannelStatus(c)
+	status := getStatusFromChannel(c)
+	// ADR 0009 allows for intermediaries to exit the protocol before receiving all signed post funds
+	// So for intermediaries we return ready once they have signed their post fund state
+	amIntermediary := c.MyIndex != 0 && c.MyIndex != uint(len(c.Participants)-1)
+	if amIntermediary && c.PostFundSignedByMe() {
+		status = Ready
+	}
+
 	latest, err := getLatestSupported(c)
 	if err != nil {
 		return PaymentChannelInfo{}, err
