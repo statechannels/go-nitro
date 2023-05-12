@@ -28,7 +28,7 @@ func getStatusFromChannel(c *channel.Channel) ChannelStatus {
 	if !c.PostFundComplete() {
 		return Proposed
 	}
-	return Ready
+	return Open
 }
 
 // getPaymentChannelBalance generates a PaymentChannelBalance from the given participants and outcome
@@ -205,7 +205,7 @@ func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel) L
 	latest := con.ConsensusVars().AsState(con.FixedPart())
 	return LedgerChannelInfo{
 		ID:      con.Id,
-		Status:  Ready,
+		Status:  Open,
 		Balance: getLedgerBalanceFromState(latest),
 	}
 }
@@ -228,7 +228,7 @@ func ConstructPaymentInfo(c *channel.Channel, paid, remaining *big.Int) (Payment
 	// So for intermediaries we return ready once they have signed their post fund state
 	amIntermediary := c.MyIndex != 0 && c.MyIndex != uint(len(c.Participants)-1)
 	if amIntermediary && c.PostFundSignedByMe() {
-		status = Ready
+		status = Open
 	}
 
 	latest, err := getLatestSupported(c)
