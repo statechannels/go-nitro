@@ -1,4 +1,4 @@
-import { Outcome, RPCMethod, RPCRequestAndResponses } from "./types";
+import { Outcome, RequestMethod, RPCRequestAndResponses } from "./types";
 
 /**
  * createOutcome creates a basic outcome for a channel
@@ -63,7 +63,7 @@ export function convertAddressToBytes32(address: string): string {
  * @returns A request object of the correct type
  */
 export function generateRequest<
-  K extends RPCMethod,
+  K extends RequestMethod,
   T extends RPCRequestAndResponses[K][0]
 >(method: K, params: T["params"]): T {
   return {

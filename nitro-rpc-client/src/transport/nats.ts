@@ -3,7 +3,7 @@ import { EventEmitter } from "eventemitter3";
 
 import {
   ObjectiveCompleteNotification,
-  RPCMethod,
+  RequestMethod,
   RPCRequestAndResponses,
 } from "../types";
 
@@ -49,7 +49,7 @@ export class NatsTransport {
     }
   }
 
-  public async sendRequest<K extends RPCMethod>(
+  public async sendRequest<K extends RequestMethod>(
     req: RPCRequestAndResponses[K][0]
   ): Promise<RPCRequestAndResponses[K][1]> {
     const natsRes = await this.natsConn?.request(

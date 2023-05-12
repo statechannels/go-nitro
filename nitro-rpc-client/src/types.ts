@@ -1,7 +1,7 @@
 /**
  * JSON RPC Types
  */
-export type JsonRpcRequest<MethodName extends RPCMethod, RequestParams> = {
+export type JsonRpcRequest<MethodName extends RequestMethod, RequestParams> = {
   id: number; // in the json-rpc spec this is optional, but we require it for all our requests
   jsonrpc: "2.0";
   method: MethodName;
@@ -120,9 +120,9 @@ export type RPCRequestAndResponses = {
   pay: [PaymentRequest, PaymentResponse];
   virtual_defund: [VirtualDefundRequest, VirtualDefundResponse];
 };
-
 export type RPCNotification = ObjectiveCompleteNotification;
-export type RPCMethod = keyof RPCRequestAndResponses;
+export type RequestMethod = keyof RPCRequestAndResponses;
+
 export type RPCRequest =
   RPCRequestAndResponses[keyof RPCRequestAndResponses][0];
 export type RPCResponse =

@@ -1,6 +1,10 @@
 import { EventEmitter } from "eventemitter3";
 
-import { RPCMethod, RPCNotification, RPCRequestAndResponses } from "../types";
+import {
+  RequestMethod,
+  RPCNotification,
+  RPCRequestAndResponses,
+} from "../types";
 
 export { HttpTransport } from "./http";
 
@@ -22,7 +26,7 @@ export type Transport = {
    *
    * @param req - The request to send
    */
-  sendRequest<K extends RPCMethod>(
+  sendRequest<K extends RequestMethod>(
     req: RPCRequestAndResponses[K][0]
   ): Promise<RPCRequestAndResponses[K][1]>;
 
