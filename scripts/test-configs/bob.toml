@@ -6,3 +6,4 @@ msgport = 3007
 rpcport = 4007
 
 pk = "0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4"
+chainpk = "5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"

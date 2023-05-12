@@ -38,7 +38,7 @@ const (
 	gray    color = "[90m"
 )
 
-const FUNDED_TEST_PK = "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+const FUNDED_TEST_PK = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
 func main() {
 	running := []*exec.Cmd{}
@@ -131,7 +131,7 @@ func setupRPCServer(p participant, c color, na types.Address) (*exec.Cmd, error)
 
 	cmd := exec.Command("go", args...)
 	cmd.Stdout = newColorWriter(c, os.Stdout)
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = newColorWriter(c, os.Stderr)
 	err := cmd.Start()
 	if err != nil {
 		return nil, err
