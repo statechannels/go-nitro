@@ -64,8 +64,6 @@ func main() {
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        PK,
 			Usage:       "Specifies the private key for the client.",
-			Value:       "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d",
-			DefaultText: "Alice's private key",
 			Category:    "Keys:",
 			Destination: &pkString,
 		}),
@@ -80,8 +78,6 @@ func main() {
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CHAIN_PK,
 			Usage:       "Specifies the private key to use when interacting with the chain.",
-			Value:       "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-			DefaultText: "A hardhat / annvil default funded account",
 			Category:    "Keys:",
 			Destination: &chainPk,
 		}),
@@ -121,21 +117,29 @@ func main() {
 		Flags:  flags,
 		Before: altsrc.InitInputSourceWithContext(flags, altsrc.NewTomlSourceFromFlagFunc(CONFIG)),
 		Action: func(cCtx *cli.Context) error {
+			if pkString == "" {
+				panic("pk must be set")
+			}
+			if chainPk == "" {
+				panic("chainpk must be set")
+			}
 			pk := common.Hex2Bytes(pkString)
 			me := crypto.GetAddressFromSecretKeyBytes(pk)
 
 			logDestination := os.Stdout
 
 			var ourStore store.Store
-			fmt.Println("Initialising store...")
+
 			if useDurableStore {
+				fmt.Println("Initialising durable store...")
 				dataFolder := fmt.Sprintf("./data/nitro-service/%s", me.String())
 				ourStore = store.NewDurableStore(pk, dataFolder, buntdb.Config{})
 			} else {
+				fmt.Println("Initialising mem store...")
 				ourStore = store.NewMemStore(pk)
 			}
 
-			fmt.Println("Connecting to chain...")
+			fmt.Println("Connecting to chain " + chainUrl + " with chain id " + fmt.Sprint(chainId) + "...")
 			ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainId, common.Hex2Bytes(chainPk))
 			if err != nil {
 				panic(err)
@@ -151,7 +155,7 @@ func main() {
 				panic(err)
 			}
 
-			fmt.Println("Initializing message service...")
+			fmt.Println("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
 			messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, logDestination)
 			node := client.New(
 				messageservice,
@@ -164,8 +168,10 @@ func main() {
 			var transport transport.Responder
 
 			if useNats {
+				fmt.Println("Initializing NATS RPC transport...")
 				transport, err = nats.NewNatsTransportAsServer(rpcPort)
 			} else {
+				fmt.Println("Initializing websocketNATS RPC transport...")
 				transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
 			}
 			if err != nil {
