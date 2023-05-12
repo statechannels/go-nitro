@@ -6,6 +6,8 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 import { NitroRpcClient } from "../src/rpc-client";
+import { getLocalRPCUrl, logOutChannelUpdates } from "../src/utils";
+
 yargs(hideBin(process.argv))
   .scriptName("client-runner")
   .command(
@@ -35,6 +37,12 @@ yargs(hideBin(process.argv))
             "The number of payments to make from Alice to Bob.Each payment is made on a random virtual channel",
           type: "number",
           default: 5,
+        })
+        .option("printnotifications", {
+          alias: "n",
+          describe: "Whether channel notifications are printed to the console",
+          type: "boolean",
+          default: false,
         });
     },
     async (yargs) => {
@@ -51,6 +59,12 @@ yargs(hideBin(process.argv))
         getLocalRPCUrl(4007)
       );
       const bobAddress = await bobClient.GetAddress();
+
+      if (yargs.printnotifications) {
+        logOutChannelUpdates(aliceClient);
+        logOutChannelUpdates(ireneClient);
+        logOutChannelUpdates(bobClient);
+      }
 
       if (yargs.createledgers) {
         // Setup ledger channels
@@ -109,9 +123,6 @@ yargs(hideBin(process.argv))
   .strict()
   .parse();
 
-function getLocalRPCUrl(port: number): string {
-  return `127.0.0.1:${port}`;
-}
 function getRandomElement(col: any[]) {
   return col[Math.floor(Math.random() * col.length)];
 }

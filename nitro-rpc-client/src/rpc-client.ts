@@ -19,6 +19,10 @@ export class NitroRpcClient {
   // We fetch the address from the RPC server on first use
   private myAddress: string | undefined;
 
+  public get Notifications() {
+    return this.transport.Notifications;
+  }
+
   /**
    * WaitForObjective blocks until the objective with the given ID to complete.
    *

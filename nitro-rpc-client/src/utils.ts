@@ -1,4 +1,11 @@
-import { Outcome, RequestMethod, RPCRequestAndResponses } from "./types";
+import { NitroRpcClient } from "./rpc-client";
+import {
+  LedgerChannelInfo,
+  Outcome,
+  PaymentChannelInfo,
+  RequestMethod,
+  RPCRequestAndResponses,
+} from "./types";
 
 /**
  * createOutcome creates a basic outcome for a channel
@@ -72,4 +79,33 @@ export function generateRequest<
     params,
     id: Date.now(),
   } as T; // TODO: We shouldn't have to cast here
+}
+
+export function getLocalRPCUrl(port: number): string {
+  return `127.0.0.1:${port}`;
+}
+
+export async function logOutChannelUpdates(rpcClient: NitroRpcClient) {
+  const shortAddress = (await rpcClient.GetAddress()).slice(0, 8);
+
+  rpcClient.Notifications.addListener(
+    "ledger_channel_updated",
+    (info: LedgerChannelInfo) => {
+      console.log(
+        `${shortAddress}: Ledger channel update\n${prettyJson(info)}`
+      );
+    }
+  );
+  rpcClient.Notifications.addListener(
+    "payment_channel_updated",
+    (info: PaymentChannelInfo) => {
+      console.log(
+        `${shortAddress}: Payment channel update\n${prettyJson(info)}`
+      );
+    }
+  );
+}
+
+function prettyJson(obj: unknown): string {
+  return JSON.stringify(obj, null, 2);
 }

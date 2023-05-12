@@ -6,11 +6,18 @@ import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 
 import { NitroRpcClient } from "./rpc-client";
+import { getLocalRPCUrl, logOutChannelUpdates } from "./utils";
 
 yargs(hideBin(process.argv))
   .scriptName("nitro-rpc-client")
   .option({
     p: { alias: "port", default: 4005, type: "number" },
+    n: {
+      alias: "printnotifications",
+      default: false,
+      type: "boolean",
+      description: "Whether channel notifications are printed to the console",
+    },
   })
   .command(
     "version",
@@ -60,9 +67,11 @@ yargs(hideBin(process.argv))
       const rpcClient = await NitroRpcClient.CreateHttpNitroClient(
         getLocalRPCUrl(rpcPort)
       );
+      if (yargs.n) logOutChannelUpdates(rpcClient);
 
       const dfObjective = await rpcClient.DirectFund(yargs.counterparty);
       const { Id } = dfObjective;
+
       console.log(`Objective started ${Id}`);
       await rpcClient.WaitForObjective(Id);
       console.log(`Objective complete ${Id}`);
@@ -86,6 +95,7 @@ yargs(hideBin(process.argv))
       const rpcClient = await NitroRpcClient.CreateHttpNitroClient(
         getLocalRPCUrl(rpcPort)
       );
+      if (yargs.n) logOutChannelUpdates(rpcClient);
 
       const id = await rpcClient.DirectDefund(yargs.channelId);
       console.log(`Objective started ${id}`);
@@ -113,6 +123,7 @@ yargs(hideBin(process.argv))
       const rpcClient = await NitroRpcClient.CreateHttpNitroClient(
         getLocalRPCUrl(rpcPort)
       );
+      if (yargs.n) logOutChannelUpdates(rpcClient);
 
       // Parse all intermediary args to strings
       const intermediaries =
@@ -152,6 +163,8 @@ yargs(hideBin(process.argv))
       const rpcClient = await NitroRpcClient.CreateHttpNitroClient(
         getLocalRPCUrl(rpcPort)
       );
+
+      if (yargs.n) logOutChannelUpdates(rpcClient);
 
       const id = await rpcClient.VirtualDefund(yargs.channelId);
 
@@ -231,6 +244,8 @@ yargs(hideBin(process.argv))
       const rpcClient = await NitroRpcClient.CreateHttpNitroClient(
         getLocalRPCUrl(rpcPort)
       );
+      if (yargs.n) logOutChannelUpdates(rpcClient);
+
       const paymentChannelInfo = await rpcClient.Pay(
         yargs.channelId,
         yargs.amount
@@ -245,7 +260,3 @@ yargs(hideBin(process.argv))
   .parserConfiguration({ "parse-numbers": false })
   .strict()
   .parse();
-
-function getLocalRPCUrl(port: number): string {
-  return `127.0.0.1:${port}`;
-}

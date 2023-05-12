@@ -120,7 +120,7 @@ export type RPCRequestAndResponses = {
   pay: [PaymentRequest, PaymentResponse];
   virtual_defund: [VirtualDefundRequest, VirtualDefundResponse];
 };
-export type RPCNotification = ObjectiveCompleteNotification;
+
 export type RequestMethod = keyof RPCRequestAndResponses;
 
 export type RPCRequest =
@@ -131,6 +131,22 @@ export type RPCResponse =
 /**
  * RPC Notifications
  */
+export type RPCNotification =
+  | ObjectiveCompleteNotification
+  | PaymentChannelUpdatedNotification
+  | LedgerChannelUpdatedNotification;
+export type NotificationMethod = RPCNotification["method"];
+export type NotificationPayload = RPCNotification["params"];
+export type PaymentChannelUpdatedNotification = JsonRpcNotification<
+  "payment_channel_updated",
+  PaymentChannelInfo
+>;
+
+export type LedgerChannelUpdatedNotification = JsonRpcNotification<
+  "ledger_channel_updated",
+  LedgerChannelInfo
+>;
+
 export type ObjectiveCompleteNotification = JsonRpcNotification<
   "objective_completed",
   string

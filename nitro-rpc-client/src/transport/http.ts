@@ -2,12 +2,17 @@ import axios from "axios";
 import { w3cwebsocket } from "websocket";
 import { EventEmitter } from "eventemitter3";
 
-import { RequestMethod, RPCRequestAndResponses } from "../types";
+import {
+  NotificationMethod,
+  NotificationPayload,
+  RequestMethod,
+  RPCRequestAndResponses,
+} from "../types";
 
 import { Transport } from ".";
 
 export class HttpTransport {
-  Notifications: EventEmitter;
+  Notifications: EventEmitter<NotificationMethod, NotificationPayload>;
 
   public static async createTransport(server: string): Promise<Transport> {
     // eslint-disable-next-line new-cap
@@ -44,7 +49,7 @@ export class HttpTransport {
     this.Notifications = new EventEmitter();
     this.ws.onmessage = (event) => {
       const data = JSON.parse(event.data.toString());
-      this.Notifications.emit(data.method, data);
+      this.Notifications.emit(data.method, data.params);
     };
   }
 }
