@@ -1,8 +1,9 @@
 import { useState } from "react";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
-import Box from "@mui/material/Box";
 import * as React from "react";
+import "../styles/styles.css";
+import { Container, Grid, Typography } from "@material-ui/core";
 
 export default function RpcConnect() {
   const [text, setText] = useState("localhost:4005");
@@ -12,8 +13,8 @@ export default function RpcConnect() {
   }
 
   return (
-    <Box>
-      Nitro RPC Connect:
+    <Grid>
+      <Typography display="inline">Nitro RPC Connect:</Typography>
       <TextField value={text} onChange={handleChange} />
       <Button
         variant="contained"
@@ -23,6 +24,6 @@ export default function RpcConnect() {
       >
         Connect
       </Button>
-    </Box>
+    </Grid>
   );
 }
