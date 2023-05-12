@@ -15,6 +15,7 @@ import (
 	"github.com/rs/zerolog"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
+	chainutils "github.com/statechannels/go-nitro/client/engine/chainservice/utils"
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -58,6 +59,21 @@ const MAX_QUERY_BLOCK_RANGE = 2000
 // We use 2.5 minutes as the default filter timeout is 5 minutes.
 // See https://github.com/ethereum/go-ethereum/blob/e14164d516600e9ac66f9060892e078f5c076229/eth/filters/filter_system.go#L43
 const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
+
+// NewEthChainService2 is a convenient wrapper around NewEthChainService, which provides a simpler API
+func NewEthChainService2(chainUrl, chainPk string, chainId int, naAddress, caAddress, vpaAddress common.Address, logDestination io.Writer) (*EthChainService, error) {
+	ethClient, txSigner, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainId, common.Hex2Bytes(chainPk))
+	if err != nil {
+		panic(err)
+	}
+
+	na, err := NitroAdjudicator.NewNitroAdjudicator(naAddress, ethClient)
+	if err != nil {
+		panic(err)
+	}
+
+	return NewEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination)
+}
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource

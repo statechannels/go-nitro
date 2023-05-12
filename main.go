@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -13,8 +12,6 @@ import (
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
-	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
-	chainutils "github.com/statechannels/go-nitro/client/engine/chainservice/utils"
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/crypto"
@@ -141,18 +138,8 @@ func main() {
 				ourStore = store.NewMemStore(pk)
 			}
 
-			fmt.Println("Connecting to chain " + chainUrl + " with chain id " + fmt.Sprint(chainId) + "...")
-			ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainId, common.Hex2Bytes(chainPk))
-			if err != nil {
-				panic(err)
-			}
-
-			na, err := NitroAdjudicator.NewNitroAdjudicator(common.HexToAddress(naAddress), ethClient)
-			if err != nil {
-				panic(err)
-			}
-
-			chainService, err := chainservice.NewEthChainService(ethClient, na, common.HexToAddress(naAddress), common.Address{}, common.Address{}, txSubmitter, os.Stdout)
+			fmt.Println("Initializing chain service and connecting to " + chainUrl + " with chain id " + fmt.Sprint(chainId) + "...")
+			chainService, err := chainservice.NewEthChainService2(chainUrl, chainPk, chainId, common.HexToAddress(naAddress), common.Address{}, common.Address{}, os.Stdout)
 			if err != nil {
 				panic(err)
 			}
