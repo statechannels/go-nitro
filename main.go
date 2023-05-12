@@ -35,10 +35,9 @@ func main() {
 		NA_ADDRESS        = "naaddress"
 		MSG_PORT          = "msgport"
 		RPC_PORT          = "rpcport"
-		CHAIN_ID          = "chainid"
 	)
 	var pkString, chainUrl, naAddress, chainPk string
-	var msgPort, rpcPort, chainId int
+	var msgPort, rpcPort int
 	var useNats, useDurableStore bool
 
 	flags := []cli.Flag{
@@ -101,14 +100,6 @@ func main() {
 			Category:    "Connectivity:",
 			Destination: &rpcPort,
 		}),
-		altsrc.NewIntFlag(&cli.IntFlag{
-			Name:        CHAIN_ID,
-			Usage:       "Specifies the chain id of the chain.",
-			Value:       1337,
-			DefaultText: "hardhat default",
-			Category:    "Connectivity:",
-			Destination: &chainId,
-		}),
 	}
 	app := &cli.App{
 		Name:   "go-nitro",
@@ -138,8 +129,8 @@ func main() {
 				ourStore = store.NewMemStore(pk)
 			}
 
-			fmt.Println("Initializing chain service and connecting to " + chainUrl + " with chain id " + fmt.Sprint(chainId) + "...")
-			chainService, err := chainservice.NewEthChainService2(chainUrl, chainPk, chainId, common.HexToAddress(naAddress), common.Address{}, common.Address{}, os.Stdout)
+			fmt.Println("Initializing chain service and connecting to " + chainUrl + "...")
+			chainService, err := chainservice.NewEthChainService2(chainUrl, chainPk, common.HexToAddress(naAddress), common.Address{}, common.Address{}, os.Stdout)
 			if err != nil {
 				panic(err)
 			}

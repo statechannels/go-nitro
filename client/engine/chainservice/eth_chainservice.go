@@ -61,8 +61,8 @@ const MAX_QUERY_BLOCK_RANGE = 2000
 const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
 
 // NewEthChainService2 is a convenient wrapper around NewEthChainService, which provides a simpler API
-func NewEthChainService2(chainUrl, chainPk string, chainId int, naAddress, caAddress, vpaAddress common.Address, logDestination io.Writer) (*EthChainService, error) {
-	ethClient, txSigner, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainId, common.Hex2Bytes(chainPk))
+func NewEthChainService2(chainUrl, chainPk string, naAddress, caAddress, vpaAddress common.Address, logDestination io.Writer) (*EthChainService, error) {
+	ethClient, txSigner, err := chainutils.ConnectToChain(context.Background(), chainUrl, common.Hex2Bytes(chainPk))
 	if err != nil {
 		panic(err)
 	}
