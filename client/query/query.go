@@ -31,11 +31,9 @@ func getStatusFromChannel(c *channel.Channel) ChannelStatus {
 	return Ready
 }
 
-func getVirtualChannelStatus(c *channel.Channel, virtualAppDef types.Address) ChannelStatus {
-	// ADR 0009: Allows for intermediaries to exit the protocol before receiving all signed post funds
-	isVirtual := c.AppDefinition == virtualAppDef
+func getVirtualChannelStatus(c *channel.Channel) ChannelStatus {
 	amIntermediary := c.MyIndex != 0 && c.MyIndex != uint(len(c.Participants)-1)
-	if isVirtual && amIntermediary && c.PostFundSignedByMe() {
+	if amIntermediary && c.PostFundSignedByMe() {
 		return Ready
 	}
 
@@ -124,7 +122,7 @@ func GetVoucherBalance(id types.Destination, vm *payments.VoucherManager) (paid,
 
 // GetPaymentChannelInfo returns the PaymentChannelInfo for the given channel
 // It does this by querying the provided store and voucher manager
-func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager, virtualAppDefinition types.Address) (PaymentChannelInfo, error) {
+func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager) (PaymentChannelInfo, error) {
 	// Otherwise we can just check the store
 	c, channelFound := store.GetChannelById(id)
 
@@ -135,7 +133,7 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 			return PaymentChannelInfo{}, err
 		}
 
-		return ConstructPaymentInfo(c, virtualAppDefinition, paid, remaining)
+		return ConstructPaymentInfo(c, paid, remaining)
 	}
 	return PaymentChannelInfo{}, fmt.Errorf("could not find channel with id %v", id)
 }
@@ -162,7 +160,7 @@ func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Addres
 }
 
 // GetPaymentChannelsByLedger returns a `PaymentChannelInfo` for each active payment channel funded by the given ledger channel.
-func GetPaymentChannelsByLedger(ledgerId types.Destination, s store.Store, vm *payments.VoucherManager, virtualAppDefintion types.Address) ([]PaymentChannelInfo, error) {
+func GetPaymentChannelsByLedger(ledgerId types.Destination, s store.Store, vm *payments.VoucherManager) ([]PaymentChannelInfo, error) {
 	// If a ledger channel is actively funding payment channels it must be in the form of a consensus channel
 	con, err := s.GetConsensusChannelById(ledgerId)
 	// If the ledger channel is not a consensus channel we know that there are no payment channels funded by it
@@ -187,7 +185,7 @@ func GetPaymentChannelsByLedger(ledgerId types.Destination, s store.Store, vm *p
 			return []PaymentChannelInfo{}, err
 		}
 
-		info, err := ConstructPaymentInfo(p, virtualAppDefintion, paid, remaining)
+		info, err := ConstructPaymentInfo(p, paid, remaining)
 		if err != nil {
 			return []PaymentChannelInfo{}, err
 		}
@@ -233,8 +231,8 @@ func ConstructLedgerInfoFromChannel(c *channel.Channel) LedgerChannelInfo {
 	}
 }
 
-func ConstructPaymentInfo(c *channel.Channel, virtualFundAddress types.Address, paid, remaining *big.Int) (PaymentChannelInfo, error) {
-	status := getVirtualChannelStatus(c, virtualFundAddress)
+func ConstructPaymentInfo(c *channel.Channel, paid, remaining *big.Int) (PaymentChannelInfo, error) {
+	status := getVirtualChannelStatus(c)
 	latest, err := getLatestSupported(c)
 	if err != nil {
 		return PaymentChannelInfo{}, err

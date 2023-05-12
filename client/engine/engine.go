@@ -372,7 +372,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if err != nil {
 			return EngineEvent{}, err
 		}
-		info, err := query.ConstructPaymentInfo(c, e.GetVirtualPaymentAppAddress(), paid, remaining)
+		info, err := query.ConstructPaymentInfo(c, paid, remaining)
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -506,7 +506,7 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, erro
 	if payer != *e.store.GetAddress() {
 		return ee, fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
 	}
-	info, err := query.GetPaymentChannelInfo(cId, e.store, e.vm, e.chain.GetVirtualPaymentAppAddress())
+	info, err := query.GetPaymentChannelInfo(cId, e.store, e.vm)
 	if err != nil {
 		return ee, fmt.Errorf("handleAPIEvent: Error querying channel info: %w", err)
 	}
@@ -612,7 +612,7 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 					return outgoing, err
 				}
 
-				info, err := query.ConstructPaymentInfo(c, e.GetVirtualPaymentAppAddress(), paid, remaining)
+				info, err := query.ConstructPaymentInfo(c, paid, remaining)
 				if err != nil {
 					return outgoing, err
 				}
