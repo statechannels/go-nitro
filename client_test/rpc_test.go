@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
@@ -97,7 +98,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 		100,
 		initialOutcome)
 	aliceVirtualNotifs := rpcClientA.PaymentChannelUpdatesChan(vRes.ChannelId)
-
+	bobVirtualNotifs := rpcClientB.PaymentChannelUpdatesChan(vRes.ChannelId)
 	assert.Regexp(t, "VirtualFund.0x.*", vRes.Id)
 
 	<-rpcClientA.ObjectiveCompleteChan(vRes.Id)
@@ -153,7 +154,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Closing),
 		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Complete),
 	}
-	checkNotifications(t, expectedAliceLedgerNotifs, aliceLedgerNotifs, defaultTimeout)
+	checkNotifications(t, expectedAliceLedgerNotifs, []query.LedgerChannelInfo{}, aliceLedgerNotifs, defaultTimeout)
 
 	expectedBobLedgerNotifs := []query.LedgerChannelInfo{
 		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
@@ -163,19 +164,20 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Closing),
 		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Complete),
 	}
-	checkNotifications(t, expectedBobLedgerNotifs, bobLedgerNotifs, defaultTimeout)
+	checkNotifications(t, expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
 
-	expectedVirtualNotifs := []query.PaymentChannelInfo{
+	requiredVirtualNotifs := []query.PaymentChannelInfo{
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Ready),
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Ready),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
 		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
 	}
-	checkNotifications(t, expectedVirtualNotifs, aliceVirtualNotifs, defaultTimeout)
-	// TODO: Since we don't know exactly when bob receives and starts on the virtual channel
-	// it's possible we could miss the first notification so for now we skip the check
-	// checkNotifications(t, expectedVirtualNotifs, bobVirtualNotifs, defaultTimeout)
+	optionalVirtualNotifs := []query.PaymentChannelInfo{
+		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
+	}
+	checkNotifications(t, requiredVirtualNotifs, optionalVirtualNotifs, aliceVirtualNotifs, defaultTimeout)
+
+	checkNotifications(t, requiredVirtualNotifs, optionalVirtualNotifs, bobVirtualNotifs, defaultTimeout)
 }
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
@@ -271,30 +273,60 @@ func checkQueryInfoCollection[T channelInfo](t *testing.T, expected T, expectedL
 	}
 }
 
-// checkNotifications checks that the expected notifications are received on the notifChan.
-// Due to the async nature of RPC notifications (and how quickly are clients communicate), the order of the notifications is not guaranteed.
-// This function checks that all the expected notifications are received, but not in any particular order.
-func checkNotifications[T channelInfo](t *testing.T, expected []T, notifChan <-chan T, timeout time.Duration) {
-	fetched := make([]T, len(expected))
-	for i := range expected {
+// marshalToJson marshals the given object to json and returns the string representation.
+func marshalToJson[T channelInfo](t *testing.T, info T) string {
+	jsonBytes, err := json.Marshal(info)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(jsonBytes)
+}
+
+// checkNotifications checks that notifications are received on the notifChan.
+// required specifics the notifications that must be received. checkNotifications will fail if any of these notifications are not received.
+// optional specifics the notifications that may be received. checkNotifications will not fail if any of these notifications are not received.
+// If a notification is received that is neither in required or optional, checkNotifications will fail.
+func checkNotifications[T channelInfo](t *testing.T, required []T, optional []T, notifChan <-chan T, timeout time.Duration) {
+	// This is map containing both required and optional notifications.
+	// We use the json representation of the notification as the key and a boolean as the value.
+	// The boolean value is true if the notification is required and false if it is optional.
+	// When a notification is received it is removed from acceptableNotifications
+	acceptableNotifications := make(map[string]bool)
+
+	for _, r := range required {
+		acceptableNotifications[marshalToJson(t, r)] = true
+	}
+	for _, o := range optional {
+		acceptableNotifications[marshalToJson(t, o)] = false
+	}
+
+	for !areRequiredComplete(acceptableNotifications) {
 		select {
 		case info := <-notifChan:
-			fetched[i] = info
-		case <-time.After(timeout):
-			t.Fatalf("Timed out waiting for notification.\n Fetched:%+v\n", fetched)
-		}
-	}
-	for _, expected := range expected {
-		found := false
-		for _, fetched := range fetched {
-			if (cmp.Equal(expected, fetched, cmp.AllowUnexported(big.Int{}))) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatalf("Expected notification not found: %v in fetched.\nFetched %+v\n", expected, fetched)
-		}
 
+			js := marshalToJson(t, info)
+
+			// Check that the notification is a required or optional one.
+			_, found := acceptableNotifications[js]
+			if !found {
+				t.Fatalf("Received unexpected notification: %v", info)
+			}
+			// To signal we received a notification we delete it from the map
+			delete(acceptableNotifications, js)
+
+		case <-time.After(timeout):
+			t.Fatalf("Timed out waiting for notification.\n")
+		}
 	}
+}
+
+// areRequiredComplete checks if all the required notifications have been received.
+// It does this by checking that there are no members of the map that are true.
+func areRequiredComplete(notifs map[string]bool) bool {
+	for _, isRequired := range notifs {
+		if isRequired {
+			return false
+		}
+	}
+	return true
 }
