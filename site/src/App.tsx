@@ -7,7 +7,7 @@ import "./App.css";
 import RpcConnect from "./components/RpcConnect";
 
 function App() {
-  const [url, setUrl] = useState("127.0.0.0:4005");
+  const [url, setUrl] = useState("localhost:4005");
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
   const [version, setVersion] = useState("");
   const [address, setAddress] = useState("");
