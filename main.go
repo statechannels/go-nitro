@@ -173,7 +173,7 @@ func main() {
 				fmt.Println("Initializing NATS RPC transport...")
 				transport, err = nats.NewNatsTransportAsServer(rpcPort)
 			} else {
-				fmt.Println("Initializing websocketNATS RPC transport...")
+				fmt.Println("Initializing websocket RPC transport...")
 				transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
 			}
 			if err != nil {
