@@ -17,7 +17,6 @@ export default function RpcConnect({ url, setUrl }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("submitting" + urlToEdit);
     setUrl(urlToEdit);
   };
 
