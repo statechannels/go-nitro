@@ -1,13 +1,12 @@
-import {
-  Box,
-  LinearProgress,
-  LinearProgressProps,
-  Typography,
-} from "@material-ui/core";
 import bigDecimal from "js-big-decimal-esm";
 import { PieChart } from "react-minimal-pie-chart";
-
 import "./NetworkBalance.scss";
+import Typography from "@mui/material/Typography";
+import LinearProgress, {
+  LinearProgressProps,
+} from "@mui/material/LinearProgress";
+import Box from "@mui/material/Box";
+
 import colors from "../styles/colors.module.css";
 import { prettyPrintWei } from "../utils";
 

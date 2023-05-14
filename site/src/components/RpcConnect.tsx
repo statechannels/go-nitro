@@ -1,7 +1,7 @@
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import React, { useState } from "react";
-import { Typography } from "@material-ui/core";
+import Typography from "@mui/material/Typography";
 
 type Props = {
   url: string;

@@ -12,8 +12,7 @@ export type Palette = {
   cRed: string;
 };
 
-const colors: Palette;
+declare colors: Palette;
 
 export default colors;
 
-export default Palette;
