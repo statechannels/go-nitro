@@ -123,8 +123,7 @@ yargs(hideBin(process.argv))
   .strict()
   .parse();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getRandomElement(col: any[]) {
+function getRandomElement<T>(col: T[]): T {
   return col[Math.floor(Math.random() * col.length)];
 }
 async function wait(ms: number) {
