@@ -2,12 +2,17 @@ import axios from "axios";
 import { w3cwebsocket } from "websocket";
 import { EventEmitter } from "eventemitter3";
 
-import { RPCMethod, RPCRequestAndResponses } from "../types";
+import {
+  NotificationMethod,
+  NotificationPayload,
+  RequestMethod,
+  RPCRequestAndResponses,
+} from "../types";
 
 import { Transport } from ".";
 
 export class HttpTransport {
-  Notifications: EventEmitter;
+  Notifications: EventEmitter<NotificationMethod, NotificationPayload>;
 
   public static async createTransport(server: string): Promise<Transport> {
     // eslint-disable-next-line new-cap
@@ -19,7 +24,7 @@ export class HttpTransport {
     return transport;
   }
 
-  public async sendRequest<K extends RPCMethod>(
+  public async sendRequest<K extends RequestMethod>(
     req: RPCRequestAndResponses[K][0]
   ): Promise<RPCRequestAndResponses[K][1]> {
     const url = `http://${this.server}`;
@@ -44,7 +49,7 @@ export class HttpTransport {
     this.Notifications = new EventEmitter();
     this.ws.onmessage = (event) => {
       const data = JSON.parse(event.data.toString());
-      this.Notifications.emit(data.method, data);
+      this.Notifications.emit(data.method, data.params);
     };
   }
 }

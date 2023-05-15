@@ -5,7 +5,7 @@ import {
   PaymentChannelInfo,
   PaymentParams,
   VirtualFundParams,
-  RPCMethod,
+  RequestMethod,
   RPCRequestAndResponses,
   ObjectiveResponse,
 } from "./types";
@@ -18,6 +18,10 @@ export class NitroRpcClient {
 
   // We fetch the address from the RPC server on first use
   private myAddress: string | undefined;
+
+  public get Notifications() {
+    return this.transport.Notifications;
+  }
 
   /**
    * WaitForObjective blocks until the objective with the given ID to complete.
@@ -173,7 +177,7 @@ export class NitroRpcClient {
     return this.sendRequest("get_payment_channel", { Id: channelId });
   }
 
-  async sendRequest<K extends RPCMethod>(
+  async sendRequest<K extends RequestMethod>(
     method: K,
     params: RPCRequestAndResponses[K][0]["params"]
   ): Promise<RPCRequestAndResponses[K][1]["result"]> {
