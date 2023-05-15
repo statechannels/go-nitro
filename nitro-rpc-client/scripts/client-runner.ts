@@ -4,10 +4,12 @@
 
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+import axios, { AxiosResponse } from "axios";
 
 import { NitroRpcClient } from "../src/rpc-client";
 import {
   compactJson,
+  generateRequest,
   getLocalRPCUrl,
   logOutChannelUpdates,
 } from "../src/utils";
@@ -95,10 +97,24 @@ yargs(hideBin(process.argv))
           describe: "Whether channel notifications are printed to the console",
           type: "boolean",
           default: false,
+        })
+        .option("waitforservers", {
+          alias: "w",
+          describe:
+            "Whether to wait for the RPC servers to be ready. If set to true we wait for 1 minute for the servers to be ready",
+          type: "boolean",
+          default: false,
         });
     },
     async (yargs) => {
-      console.log("CLIENT RUNNER SCRIPT STARTED");
+      if (yargs.waitforservers) {
+        const TWO_MIN = 120_000;
+        await Promise.all([
+          waitForRPCServer(4005, TWO_MIN),
+          waitForRPCServer(4006, TWO_MIN),
+          waitForRPCServer(4007, TWO_MIN),
+        ]);
+      }
       const aliceClient = await NitroRpcClient.CreateHttpNitroClient(
         getLocalRPCUrl(4005)
       );
@@ -185,4 +201,42 @@ async function wait(ms: number) {
 
 function getChannelIdFromObjectiveId(objectiveId: string): string {
   return objectiveId.split("-")[1];
+}
+
+// Waits for the RPC server to be available by sending a simple get_address POST request until we get a response
+async function waitForRPCServer(
+  port: number,
+  waitDuration: number
+): Promise<void> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < waitDuration) {
+    const isUp = await isServerUp(port);
+    if (isUp) {
+      console.log(`RPC server ${getLocalRPCUrl(port)} is responding!`);
+      return;
+    } else {
+      console.log(`RPC server ${getLocalRPCUrl(port)} not available, waiting!`);
+      await wait(1000);
+    }
+  }
+  throw new Error(
+    `RPC server ${getLocalRPCUrl(port)} not reachable in ${waitDuration} ms`
+  );
+}
+
+// Checks if the server is up by sending a simple get_address POST request
+// This is specific to the HTTP/WS RPC transport
+async function isServerUp(port: number): Promise<boolean> {
+  let result: AxiosResponse<unknown, unknown>;
+
+  try {
+    const req = generateRequest("get_address", {});
+    result = await axios.post(
+      `http://${getLocalRPCUrl(port)}`,
+      JSON.stringify(req)
+    );
+  } catch (e) {
+    return false;
+  }
+  return result.status === 200;
 }
