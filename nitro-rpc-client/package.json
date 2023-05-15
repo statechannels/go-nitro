@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "yarn lint:eslint && yarn lint:misc --check",
-    "lint:eslint": "eslint . --cache --ext js,ts",
+    "lint:eslint": "eslint . --cache --ext js,ts --max-warnings 0",
     "lint:fix": "yarn lint:eslint --fix && yarn lint:misc --write",
     "lint:misc": "prettier '**/*.json' '**/*.md' '!CHANGELOG.md' --ignore-path .gitignore",
     "start": "npx ts-node src/cli.ts"
