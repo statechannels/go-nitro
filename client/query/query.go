@@ -225,7 +225,7 @@ func ConstructLedgerInfoFromChannel(c *channel.Channel) LedgerChannelInfo {
 func ConstructPaymentInfo(c *channel.Channel, paid, remaining *big.Int) (PaymentChannelInfo, error) {
 	status := getStatusFromChannel(c)
 	// ADR 0009 allows for intermediaries to exit the protocol before receiving all signed post funds
-	// So for intermediaries we return ready once they have signed their post fund state
+	// So for intermediaries we return Open once they have signed their post fund state
 	amIntermediary := c.MyIndex != 0 && c.MyIndex != uint(len(c.Participants)-1)
 	if amIntermediary && c.PostFundSignedByMe() {
 		status = Open
