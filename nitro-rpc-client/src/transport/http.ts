@@ -22,6 +22,13 @@ export class HttpTransport {
       new URL(`${rpcPath}/subscribe`, `ws://${server}`).toString(),
       undefined
     );
+
+    // throw any websocket errors so we don't fail silently
+    ws.onerror = (e) => {
+      console.error("Error with websocket connection to server");
+      throw e;
+    };
+
     // Wait for onopen to fire so we know the connection is ready
     await new Promise<void>((resolve) => (ws.onopen = () => resolve()));
 
