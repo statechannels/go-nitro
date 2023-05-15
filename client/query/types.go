@@ -11,7 +11,7 @@ type ChannelStatus string
 // TODO: Think through statuses
 const (
 	Proposed ChannelStatus = "Proposed"
-	Ready    ChannelStatus = "Ready"
+	Open     ChannelStatus = "Open"
 	Closing  ChannelStatus = "Closing"
 	Complete ChannelStatus = "Complete"
 )

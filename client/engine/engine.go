@@ -372,7 +372,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if err != nil {
 			return EngineEvent{}, err
 		}
-		info, err := query.ConstructPaymentInfo(c, nil, paid, remaining)
+		info, err := query.ConstructPaymentInfo(c, paid, remaining)
 		if err != nil {
 			return EngineEvent{}, err
 		}
@@ -611,8 +611,8 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 				if err != nil {
 					return outgoing, err
 				}
-				vfo, _ := o.(*virtualfund.Objective)
-				info, err := query.ConstructPaymentInfo(c, vfo, paid, remaining)
+
+				info, err := query.ConstructPaymentInfo(c, paid, remaining)
 				if err != nil {
 					return outgoing, err
 				}

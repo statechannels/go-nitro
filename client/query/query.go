@@ -24,10 +24,11 @@ func getStatusFromChannel(c *channel.Channel) ChannelStatus {
 		}
 		return Closing
 	}
+
 	if !c.PostFundComplete() {
 		return Proposed
 	}
-	return Ready
+	return Open
 }
 
 // getPaymentChannelBalance generates a PaymentChannelBalance from the given participants and outcome
@@ -122,8 +123,8 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 		if err != nil {
 			return PaymentChannelInfo{}, err
 		}
-		o, _ := GetVirtualFundObjective(id, store)
-		return ConstructPaymentInfo(c, o, paid, remaining)
+
+		return ConstructPaymentInfo(c, paid, remaining)
 	}
 	return PaymentChannelInfo{}, fmt.Errorf("could not find channel with id %v", id)
 }
@@ -174,11 +175,8 @@ func GetPaymentChannelsByLedger(ledgerId types.Destination, s store.Store, vm *p
 		if err != nil {
 			return []PaymentChannelInfo{}, err
 		}
-		// TODO: n+1 query problem
-		// We should query for the vfos in bulk, rather than one at a time
-		// Or we should be able to determine the status soley from the channel
-		vfo, _ := GetVirtualFundObjective(p.Id, s)
-		info, err := ConstructPaymentInfo(p, vfo, paid, remaining)
+
+		info, err := ConstructPaymentInfo(p, paid, remaining)
 		if err != nil {
 			return []PaymentChannelInfo{}, err
 		}
@@ -207,7 +205,7 @@ func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel) L
 	latest := con.ConsensusVars().AsState(con.FixedPart())
 	return LedgerChannelInfo{
 		ID:      con.Id,
-		Status:  Ready,
+		Status:  Open,
 		Balance: getLedgerBalanceFromState(latest),
 	}
 }
@@ -224,14 +222,15 @@ func ConstructLedgerInfoFromChannel(c *channel.Channel) LedgerChannelInfo {
 	}
 }
 
-func ConstructPaymentInfo(c *channel.Channel, vfo *virtualfund.Objective, paid, remaining *big.Int) (PaymentChannelInfo, error) {
+func ConstructPaymentInfo(c *channel.Channel, paid, remaining *big.Int) (PaymentChannelInfo, error) {
 	status := getStatusFromChannel(c)
-	if vfo != nil && vfo.Status == protocols.Completed {
-		// This means intermediaries may not have a fully signed postfund state even though the channel is "ready"
-		// To determine the the correct status we check the status of the virtual fund objective
-
-		status = Ready
+	// ADR 0009 allows for intermediaries to exit the protocol before receiving all signed post funds
+	// So for intermediaries we return Open once they have signed their post fund state
+	amIntermediary := c.MyIndex != 0 && c.MyIndex != uint(len(c.Participants)-1)
+	if amIntermediary && c.PostFundSignedByMe() {
+		status = Open
 	}
+
 	latest, err := getLatestSupported(c)
 	if err != nil {
 		return PaymentChannelInfo{}, err
