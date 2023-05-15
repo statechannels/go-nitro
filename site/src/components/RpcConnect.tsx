@@ -3,12 +3,12 @@ import TextField from "@mui/material/TextField";
 import React, { useState } from "react";
 import Typography from "@mui/material/Typography";
 
-type Props = {
+export type RPCConnectProps = {
   url: string;
   setUrl: (url: string) => void;
 };
 
-export default function RpcConnect({ url, setUrl }: Props) {
+export default function RpcConnect({ url, setUrl }: RPCConnectProps) {
   const [urlToEdit, setUrlToEdit] = useState(url);
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setUrlToEdit(e.target.value);

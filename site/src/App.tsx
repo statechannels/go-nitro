@@ -3,7 +3,7 @@ import { NitroRpcClient } from "@statechannels/nitro-rpc-client";
 
 import { NetworkBalance } from "./components/NetworkBalance";
 import "./App.css";
-import RpcConnect from "./components/RpcConnect";
+import TopBar from "./components/TopBar";
 
 function App() {
   const [url, setUrl] = useState("localhost:4005");
@@ -24,19 +24,21 @@ function App() {
 
   return (
     <>
-      <RpcConnect url={url} setUrl={setUrl} />
-      <div className="card">
-        <NetworkBalance
-          status="running"
-          lockedBalances={[]}
-          myBalanceFree={BigInt(50)}
-          theirBalanceFree={BigInt(200)}
-        ></NetworkBalance>
-
-        <p>The nitro client version is {version}</p>
-        <p>
-          The nitro node at {url} has address {address}
-        </p>
+      <TopBar url={url} setUrl={setUrl} />
+      <div style={{ display: "flex", justifyContent: "space-around" }}>
+        <div className="card">
+          <NetworkBalance
+            status="running"
+            lockedBalances={[]}
+            myBalanceFree={BigInt(50)}
+            theirBalanceFree={BigInt(200)}
+          ></NetworkBalance>
+          <p>Version: {version}</p>
+          <p> Url: {url}</p>
+          <p> Address: {address}</p>
+        </div>
+        <div>Payment channel list</div>
+        <div>Payment channel details</div>
       </div>
     </>
   );
