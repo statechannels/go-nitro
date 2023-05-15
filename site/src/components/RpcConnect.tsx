@@ -11,7 +11,6 @@ type Props = {
 export default function RpcConnect({ url, setUrl }: Props) {
   const [urlToEdit, setUrlToEdit] = useState(url);
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    e.preventDefault();
     setUrlToEdit(e.target.value);
   }
 
