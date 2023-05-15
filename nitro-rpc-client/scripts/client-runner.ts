@@ -98,23 +98,23 @@ yargs(hideBin(process.argv))
           type: "boolean",
           default: false,
         })
-        .option("waitforservers", {
+        .option("waitduration", {
           alias: "w",
           describe:
-            "Whether to wait for the RPC servers to be ready. If set to true we wait for 1 minute for the servers to be ready",
-          type: "boolean",
-          default: false,
+            "The amount of time, in milliseconds, to wait for the RPC servers to be responsive",
+          type: "number",
+          default: 0,
         });
     },
     async (yargs) => {
-      if (yargs.waitforservers) {
-        const TWO_MIN = 120_000;
+      if (yargs.waitduration > 0) {
         await Promise.all([
-          waitForRPCServer(4005, TWO_MIN),
-          waitForRPCServer(4006, TWO_MIN),
-          waitForRPCServer(4007, TWO_MIN),
+          waitForRPCServer(4005, yargs.waitduration),
+          waitForRPCServer(4006, yargs.waitduration),
+          waitForRPCServer(4007, yargs.waitduration),
         ]);
       }
+
       const aliceClient = await NitroRpcClient.CreateHttpNitroClient(
         getLocalRPCUrl(4005)
       );
