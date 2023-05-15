@@ -98,6 +98,7 @@ yargs(hideBin(process.argv))
         });
     },
     async (yargs) => {
+      console.log("CLIENT RUNNER SCRIPT STARTED");
       const aliceClient = await NitroRpcClient.CreateHttpNitroClient(
         getLocalRPCUrl(4005)
       );
