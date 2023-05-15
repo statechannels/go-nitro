@@ -3,10 +3,11 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 
 import yargs from "yargs/yargs";
+import { hideBin } from "yargs/helpers";
 
 import { NitroRpcClient } from "./rpc-client";
 
-yargs(process.argv.slice(2))
+yargs(hideBin(process.argv))
   .scriptName("nitro-rpc-client")
   .option({
     p: { alias: "port", default: 4005, type: "number" },
@@ -127,7 +128,7 @@ yargs(process.argv.slice(2))
         intermediaries
       );
 
-      const { Id } = vfObjective.result;
+      const { Id } = vfObjective;
       console.log(`Objective started ${Id}`);
       await rpcClient.WaitForObjective(Id);
       console.log(`Objective complete ${Id}`);
@@ -242,6 +243,7 @@ yargs(process.argv.slice(2))
 
   .demandCommand(1, "You need at least one command before moving on")
   .parserConfiguration({ "parse-numbers": false })
+  .strict()
   .parse();
 
 function getLocalRPCUrl(port: number): string {

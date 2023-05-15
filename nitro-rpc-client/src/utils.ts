@@ -1,17 +1,19 @@
 import { Outcome, RPCMethod, RPCRequestAndResponses } from "./types";
 
 /**
- * createDirectFundOutcome creates a basic outcome for a directly funded channel
+ * createOutcome creates a basic outcome for a channel
  *
  * @param asset - The asset to fund the channel with
  * @param alpha - The address of the first participant
  * @param beta - The address of the second participant
+ * @param amount - The amount to allocate to each participant
  * @returns An outcome for a directly funded channel with 100 wei allocated to each participant
  */
-export function createDirectFundOutcome(
+export function createOutcome(
   asset: string,
   alpha: string,
-  beta: string
+  beta: string,
+  amount: number
 ): Outcome {
   return [
     {
@@ -24,13 +26,13 @@ export function createDirectFundOutcome(
       Allocations: [
         {
           Destination: convertAddressToBytes32(alpha),
-          Amount: 100,
+          Amount: amount,
           AllocationType: 0,
           Metadata: null,
         },
         {
           Destination: convertAddressToBytes32(beta),
-          Amount: 100,
+          Amount: amount,
           AllocationType: 0,
           Metadata: null,
         },

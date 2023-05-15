@@ -5,13 +5,12 @@ import {
   PaymentChannelInfo,
   PaymentParams,
   VirtualFundParams,
-  VirtualFundResponse,
   RPCMethod,
   RPCRequestAndResponses,
   ObjectiveResponse,
 } from "./types";
 import { Transport } from "./transport";
-import { createDirectFundOutcome, generateRequest } from "./utils";
+import { createOutcome, generateRequest } from "./utils";
 import { HttpTransport } from "./transport/http";
 
 export class NitroRpcClient {
@@ -49,10 +48,11 @@ export class NitroRpcClient {
     const params: DirectFundParams = {
       CounterParty: counterParty,
       ChallengeDuration: 0,
-      Outcome: createDirectFundOutcome(
+      Outcome: createOutcome(
         asset,
         await this.GetAddress(),
-        counterParty
+        counterParty,
+        1_000_000
       ),
       AppDefinition: asset,
       AppData: "0x00",
@@ -71,23 +71,23 @@ export class NitroRpcClient {
   public async VirtualFund(
     counterParty: string,
     intermediaries: string[]
-  ): Promise<VirtualFundResponse> {
+  ): Promise<ObjectiveResponse> {
     const asset = `0x${"00".repeat(20)}`;
     const params: VirtualFundParams = {
       CounterParty: counterParty,
       Intermediaries: intermediaries,
       ChallengeDuration: 0,
-      Outcome: createDirectFundOutcome(
+      Outcome: createOutcome(
         asset,
         await this.GetAddress(),
-        counterParty
+        counterParty,
+        1_000
       ),
       AppDefinition: asset,
       Nonce: Date.now(),
     };
 
-    const request = generateRequest("virtual_fund", params);
-    return this.transport.sendRequest<"virtual_fund">(request);
+    return this.sendRequest("virtual_fund", params);
   }
 
   /**
