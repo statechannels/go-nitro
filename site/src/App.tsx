@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { NitroRpcClient } from "@statechannels/nitro-rpc-client";
 
 import { NetworkBalance } from "./components/NetworkBalance";
-import statechannelsLogo from "./assets/statechannels.svg";
 import "./App.css";
 import RpcConnect from "./components/RpcConnect";
 
@@ -25,11 +24,6 @@ function App() {
 
   return (
     <>
-      <div>
-        <a href="http://statechannels.org" className="href">
-          <img src={statechannelsLogo} className="logo" />
-        </a>
-      </div>
       <RpcConnect url={url} setUrl={setUrl} />
       <div className="card">
         <NetworkBalance
