@@ -212,7 +212,13 @@ async function waitForRPCServer(
   while (Date.now() - startTime < waitDuration) {
     const isUp = await isServerUp(port);
     if (isUp) {
-      console.log(`RPC server ${getLocalRPCUrl(port)} is responding!`);
+      console.log(
+        `RPC server ${getLocalRPCUrl(port)} is responding!
+        Waited ${
+          Date.now() - startTime
+        } milliseconds for server to be responsive`
+      );
+
       return;
     } else {
       console.log(`RPC server ${getLocalRPCUrl(port)} not available, waiting!`);
