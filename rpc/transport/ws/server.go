@@ -105,8 +105,8 @@ func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Requ
 }
 
 func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Request) {
-	// Allow all localhost origins to connect via websocket
-	opts := &websocket.AcceptOptions{OriginPatterns: []string{"*localhost*"}}
+	// TODO: We currently allow requests from any origins. We should probably use a whitelist.
+	opts := &websocket.AcceptOptions{InsecureSkipVerify: true}
 	c, err := websocket.Accept(w, r, opts)
 	if err != nil {
 		panic(err)
