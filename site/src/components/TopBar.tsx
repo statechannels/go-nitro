@@ -3,7 +3,13 @@ import RpcConnect, { RPCConnectProps } from "./RpcConnect";
 
 export default function TopBar(props: RPCConnectProps) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between" }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        borderBottom: "1px solid black",
+      }}
+    >
       <LedgerChannelList
         ledgerChannels={[
           {
