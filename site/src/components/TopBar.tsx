@@ -1,13 +1,16 @@
+import Box from "@mui/material/Box";
+
 import LedgerChannelList from "./LedgerChannelList";
 import RpcConnect, { RPCConnectProps } from "./RpcConnect";
 
 export default function TopBar(props: RPCConnectProps) {
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         display: "flex",
         justifyContent: "space-between",
-        borderBottom: "1px solid black",
+        borderBottom: 1,
+        borderColor: "divider",
       }}
     >
       <LedgerChannelList
@@ -24,6 +27,6 @@ export default function TopBar(props: RPCConnectProps) {
         ]}
       />
       <RpcConnect {...props} />
-    </div>
+    </Box>
   );
 }

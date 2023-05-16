@@ -1,4 +1,5 @@
-import Button from "@mui/material/Button";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 
 type LedgerChannel = {
   ID: string;
@@ -14,12 +15,10 @@ function formatId(id: string): string {
 
 export default function LedgerChannelList({ ledgerChannels }: Props) {
   return (
-    <ul style={{ display: "flex" }}>
+    <Tabs>
       {ledgerChannels.map((ledgerChannel) => (
-        <li key={ledgerChannel.ID}>
-          <Button variant="text">{formatId(ledgerChannel.ID)}</Button>
-        </li>
+        <Tab label={formatId(ledgerChannel.ID)} />
       ))}
-    </ul>
+    </Tabs>
   );
 }
