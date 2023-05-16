@@ -262,7 +262,7 @@ func (o *Objective) GetStatus() protocols.ObjectiveStatus {
 func (o *Objective) Related() []protocols.Storable {
 	related := []protocols.Storable{}
 
-	related = append(related, &o.V.Channel)
+	related = append(related, o.V)
 
 	if o.ToMyLeft != nil {
 		related = append(related, o.ToMyLeft)

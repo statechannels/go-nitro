@@ -475,7 +475,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 }
 
 func (o *Objective) Related() []protocols.Storable {
-	ret := []protocols.Storable{&o.V.Channel}
+	ret := []protocols.Storable{o.V}
 
 	if o.ToMyLeft != nil {
 		ret = append(ret, o.ToMyLeft.Channel)
