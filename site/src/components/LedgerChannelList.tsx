@@ -5,19 +5,27 @@ type LedgerChannel = {
   ID: string;
 };
 
-type Props = {
+export type LedgerChannelListProps = {
   ledgerChannels: LedgerChannel[];
+  focusedLedgerChannel: string;
+  setFocusedLedgerChannel: (id: string) => void;
 };
 
 function formatId(id: string): string {
   return id.slice(0, 8);
 }
 
-export default function LedgerChannelList({ ledgerChannels }: Props) {
+function focusedIndex(id: string, ids: LedgerChannel[]): number {
+  return ids.findIndex((c) => c.ID === id);
+}
+
+export default function LedgerChannelList(props: LedgerChannelListProps) {
   return (
-    <Tabs>
-      {ledgerChannels.map((ledgerChannel) => (
-        <Tab label={formatId(ledgerChannel.ID)} />
+    <Tabs
+      value={focusedIndex(props.focusedLedgerChannel, props.ledgerChannels)}
+    >
+      {props.ledgerChannels.map((ledgerChannel) => (
+        <Tab key={ledgerChannel.ID} label={formatId(ledgerChannel.ID)} />
       ))}
     </Tabs>
   );
