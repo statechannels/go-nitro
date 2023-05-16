@@ -6,7 +6,7 @@ import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 
 import { NitroRpcClient } from "./rpc-client";
-import { getLocalRPCUrl, logOutChannelUpdates } from "./utils";
+import { compactJson, getLocalRPCUrl, logOutChannelUpdates } from "./utils";
 
 yargs(hideBin(process.argv))
   .scriptName("nitro-rpc-client")
@@ -51,6 +51,52 @@ yargs(hideBin(process.argv))
       process.exit(0);
     }
   )
+  .command(
+    "get-all-ledger-channels",
+    "Get all ledger channels",
+    async () => {},
+    async (yargs) => {
+      const rpcPort = yargs.p;
+
+      const rpcClient = await NitroRpcClient.CreateHttpNitroClient(
+        getLocalRPCUrl(rpcPort)
+      );
+      const ledgers = await rpcClient.GetAllLedgerChannels();
+      for (const ledger of ledgers) {
+        console.log(`${compactJson(ledger)}`);
+      }
+      await rpcClient.Close();
+      process.exit(0);
+    }
+  )
+  .command(
+    "get-payment-channels-by-ledger <ledgerId>",
+    "Gets any payment channels funded by the given ledger",
+    (yargsBuilder) => {
+      return yargsBuilder.positional("ledgerId", {
+        describe: "The id of the ledger channel to defund",
+        type: "string",
+        demandOption: true,
+      });
+    },
+
+    async (yargs) => {
+      const rpcPort = yargs.p;
+
+      const rpcClient = await NitroRpcClient.CreateHttpNitroClient(
+        getLocalRPCUrl(rpcPort)
+      );
+      const paymentChans = await rpcClient.GetPaymentChannelsByLedger(
+        yargs.ledgerId
+      );
+      for (const p of paymentChans) {
+        console.log(`${compactJson(p)}`);
+      }
+      await rpcClient.Close();
+      process.exit(0);
+    }
+  )
+
   .command(
     "direct-fund <counterparty>",
     "Creates a directly funded ledger channel",

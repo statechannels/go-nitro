@@ -6,7 +6,11 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 import { NitroRpcClient } from "../src/rpc-client";
-import { getLocalRPCUrl, logOutChannelUpdates } from "../src/utils";
+import {
+  compactJson,
+  getLocalRPCUrl,
+  logOutChannelUpdates,
+} from "../src/utils";
 
 yargs(hideBin(process.argv))
   .scriptName("client-runner")
@@ -180,7 +184,4 @@ async function wait(ms: number) {
 
 function getChannelIdFromObjectiveId(objectiveId: string): string {
   return objectiveId.split("-")[1];
-}
-export function compactJson(obj: unknown): string {
-  return JSON.stringify(obj, null, 0);
 }
