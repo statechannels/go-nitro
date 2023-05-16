@@ -19,10 +19,23 @@ function focusedIndex(id: string, ids: LedgerChannel[]): number {
   return ids.findIndex((c) => c.ID === id);
 }
 
+function handleChange(
+  ledgerChannels: LedgerChannel[],
+  setter: (id: string) => void
+) {
+  return (_: React.SyntheticEvent, newValue: number) => {
+    setter(ledgerChannels[newValue].ID);
+  };
+}
+
 export default function LedgerChannelList(props: LedgerChannelListProps) {
   return (
     <Tabs
       value={focusedIndex(props.focusedLedgerChannel, props.ledgerChannels)}
+      onChange={handleChange(
+        props.ledgerChannels,
+        props.setFocusedLedgerChannel
+      )}
     >
       {props.ledgerChannels.map((ledgerChannel) => (
         <Tab key={ledgerChannel.ID} label={formatId(ledgerChannel.ID)} />
