@@ -621,13 +621,7 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 
 			}
 		case *consensus_channel.ConsensusChannel:
-
-			// TODO: Some of the related consensus channels are zeroed out (possibly deleted?)
-			// For now we just ignore them
-			if !c.Id.IsZero() {
-				outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromConsensus(c))
-			}
-
+			outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromConsensus(c))
 		default:
 			return outgoing, fmt.Errorf("handleNotifications: Unknown related type %T", c)
 		}

@@ -138,6 +138,9 @@ func (ms *MemStore) DestroyChannel(id types.Destination) {
 
 // SetConsensusChannel sets the channel in the store.
 func (ms *MemStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel) error {
+	if ch.Id.IsZero() {
+		return fmt.Errorf("cannot store a channel with a zero id")
+	}
 	chJSON, err := ch.MarshalJSON()
 	if err != nil {
 		return err

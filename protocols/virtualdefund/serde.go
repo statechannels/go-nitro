@@ -64,11 +64,16 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &jsonVFO); err != nil {
 		return fmt.Errorf("failed to unmarshal the VirtualDefundObjective: %w", err)
 	}
+	empty := types.Destination{}
 
-	o.ToMyLeft = &consensus_channel.ConsensusChannel{}
-	o.ToMyLeft.Id = jsonVFO.ToMyLeft
-	o.ToMyRight = &consensus_channel.ConsensusChannel{}
-	o.ToMyRight.Id = jsonVFO.ToMyRight
+	if jsonVFO.ToMyLeft != empty {
+		o.ToMyLeft = &consensus_channel.ConsensusChannel{}
+		o.ToMyLeft.Id = jsonVFO.ToMyLeft
+	}
+	if jsonVFO.ToMyRight != empty {
+		o.ToMyRight = &consensus_channel.ConsensusChannel{}
+		o.ToMyRight.Id = jsonVFO.ToMyRight
+	}
 
 	o.Status = jsonVFO.Status
 
