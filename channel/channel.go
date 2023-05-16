@@ -321,3 +321,27 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 	}
 	return ss, nil
 }
+
+type Status string
+
+// TODO: Think through statuses
+const (
+	Proposed Status = "Proposed"
+	Open     Status = "Open"
+	Closing  Status = "Closing"
+	Complete Status = "Complete"
+)
+
+func (c *Channel) Status() Status {
+	if c.FinalSignedByMe() {
+		if c.FinalCompleted() {
+			return Complete
+		}
+		return Closing
+	}
+
+	if !c.PostFundComplete() {
+		return Proposed
+	}
+	return Open
+}

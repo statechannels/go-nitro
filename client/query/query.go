@@ -16,21 +16,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// getStatusFromChannel returns the status of the channel
-func getStatusFromChannel(c *channel.Channel) ChannelStatus {
-	if c.FinalSignedByMe() {
-		if c.FinalCompleted() {
-			return Complete
-		}
-		return Closing
-	}
-
-	if !c.PostFundComplete() {
-		return Proposed
-	}
-	return Open
-}
-
 // getPaymentChannelBalance generates a PaymentChannelBalance from the given participants and outcome
 func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit) PaymentChannelBalance {
 	numParticipants := len(participants)
@@ -124,7 +109,7 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 			return PaymentChannelInfo{}, err
 		}
 
-		return ConstructPaymentInfo(c, paid, remaining)
+		return ConstructPaymentInfo(&channel.VirtualChannel{Channel: *c}, paid, remaining)
 	}
 	return PaymentChannelInfo{}, fmt.Errorf("could not find channel with id %v", id)
 }
@@ -176,7 +161,7 @@ func GetPaymentChannelsByLedger(ledgerId types.Destination, s store.Store, vm *p
 			return []PaymentChannelInfo{}, err
 		}
 
-		info, err := ConstructPaymentInfo(p, paid, remaining)
+		info, err := ConstructPaymentInfo(&channel.VirtualChannel{Channel: *p}, paid, remaining)
 		if err != nil {
 			return []PaymentChannelInfo{}, err
 		}
@@ -205,7 +190,7 @@ func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel) L
 	latest := con.ConsensusVars().AsState(con.FixedPart())
 	return LedgerChannelInfo{
 		ID:      con.Id,
-		Status:  Open,
+		Status:  channel.Open,
 		Balance: getLedgerBalanceFromState(latest),
 	}
 }
@@ -217,21 +202,21 @@ func ConstructLedgerInfoFromChannel(c *channel.Channel) LedgerChannelInfo {
 	}
 	return LedgerChannelInfo{
 		ID:      c.Id,
-		Status:  getStatusFromChannel(c),
+		Status:  c.Status(),
 		Balance: getLedgerBalanceFromState(latest),
 	}
 }
 
-func ConstructPaymentInfo(c *channel.Channel, paid, remaining *big.Int) (PaymentChannelInfo, error) {
-	status := getStatusFromChannel(c)
+func ConstructPaymentInfo(c *channel.VirtualChannel, paid, remaining *big.Int) (PaymentChannelInfo, error) {
+	status := c.Status()
 	// ADR 0009 allows for intermediaries to exit the protocol before receiving all signed post funds
 	// So for intermediaries we return Open once they have signed their post fund state
 	amIntermediary := c.MyIndex != 0 && c.MyIndex != uint(len(c.Participants)-1)
 	if amIntermediary && c.PostFundSignedByMe() {
-		status = Open
+		status = channel.Open
 	}
 
-	latest, err := getLatestSupported(c)
+	latest, err := c.LatestSupportedState()
 	if err != nil {
 		return PaymentChannelInfo{}, err
 	}
