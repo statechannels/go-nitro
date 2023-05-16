@@ -31,7 +31,7 @@ yargs(hideBin(process.argv))
         getLocalRPCUrl(4007)
       );
 
-      for (const client of [aliceClient]) {
+      for (const client of [aliceClient, ireneClient, bobClient]) {
         const ledgers = await client.GetAllLedgerChannels();
 
         console.log(
