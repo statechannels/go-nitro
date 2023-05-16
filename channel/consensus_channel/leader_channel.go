@@ -45,7 +45,10 @@ func (c *ConsensusChannel) Propose(proposal Proposal, sk []byte) (SignedProposal
 
 	signed := SignedProposal{Proposal: proposal, Signature: signature, TurnNum: vars.TurnNum}
 
-	c.appendToProposalQueue(signed)
+	err = c.appendToProposalQueue(signed)
+	if err != nil {
+		return SignedProposal{}, fmt.Errorf("could not append to proposal queue: %w", err)
+	}
 
 	return signed, nil
 }
@@ -116,10 +119,11 @@ func (c *ConsensusChannel) leaderReceive(countersigned SignedProposal) error {
 }
 
 // appendToProposalQueue safely appends the given SignedProposal to the proposal queue of the receiver.
-// It will panic if the turn number of the signedproposal is not consecutive with the existing queue.
-func (c *ConsensusChannel) appendToProposalQueue(signed SignedProposal) {
+// It will return an error if the turn number of the signedproposal is not consecutive with the existing queue.
+func (c *ConsensusChannel) appendToProposalQueue(signed SignedProposal) error {
 	if len(c.proposalQueue) > 0 && c.proposalQueue[len(c.proposalQueue)-1].TurnNum+1 != signed.TurnNum {
-		panic("Appending to ConsensusChannel.proposalQueue: not a consecutive TurnNum")
+		return fmt.Errorf("Appending to ConsensusChannel.proposalQueue: not a consecutive TurnNum")
 	}
 	c.proposalQueue = append(c.proposalQueue, signed)
+	return nil
 }

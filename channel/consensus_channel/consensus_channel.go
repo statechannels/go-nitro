@@ -217,10 +217,6 @@ func (c *ConsensusChannel) FundingTargets() []types.Destination {
 	return c.current.Outcome.FundingTargets()
 }
 
-func (c *ConsensusChannel) Accept(p SignedProposal) error {
-	panic("UNIMPLEMENTED")
-}
-
 // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
 // values. It signs the resulting state using sk.
 func (c *ConsensusChannel) sign(vars Vars, sk []byte) (state.Signature, error) {
@@ -624,19 +620,19 @@ func (p SignedProposal) SortInfo() (types.Destination, uint64) {
 }
 
 // Target returns the target channel of the proposal.
-func (p *Proposal) Target() types.Destination {
+func (p *Proposal) Target() (types.Destination, error) {
 	switch p.Type() {
 	case "AddProposal":
 		{
-			return p.ToAdd.Target()
+			return p.ToAdd.Target(), nil
 		}
 	case "RemoveProposal":
 		{
-			return p.ToRemove.Target
+			return p.ToRemove.Target, nil
 		}
 	default:
 		{
-			panic("invalid proposal type")
+			return types.Destination{}, fmt.Errorf("invalid proposal type")
 		}
 	}
 }
