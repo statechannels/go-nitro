@@ -7,10 +7,9 @@ import TopBar from "./components/TopBar";
 import { QUERY_KEY } from "./constants";
 
 function App() {
-  const [url, _] = useState(
+  const url =
     new URLSearchParams(window.location.search).get(QUERY_KEY) ??
-      "localhost:4005"
-  );
+    "localhost:4005";
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
   const [version, setVersion] = useState("");
   const [address, setAddress] = useState("");
