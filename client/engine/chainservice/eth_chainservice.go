@@ -90,7 +90,20 @@ func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx}
-	ecs.subscribeForLogs()
+	errChan, err := ecs.subscribeForLogs()
+	// TODO: Return error from chain service instead of panicking
+	go func() {
+		for err := range errChan {
+			// Print to STDOUT in case we're using a noop logger
+			fmt.Println(err)
+			ecs.logger.Fatal().Err(err)
+			// Manually panic in case we're using a logger that doesn't call exit(1)
+			panic(err)
+		}
+	}()
+	if err != nil {
+		return nil, err
+	}
 
 	return &ecs, nil
 }
@@ -157,28 +170,15 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 	}
 }
 
-// fatalF is called to output a message and then panic, killing the chain service.
-// It accepts a format string and arguments, as per fmt.Printf.
-// If prints out the error to STDOUT, the logger and then exits the program.
-func (ecs *EthChainService) fatalF(format string, v ...any) {
-	// Print to STDOUT in case we're using a noop logger
-	fmt.Println(fmt.Errorf(format, v...))
-
-	ecs.logger.Fatal().Msgf(format, v...)
-
-	// Manually panic in case we're using a logger that doesn't call exit(1)
-	panic(fmt.Errorf(format, v...))
-}
-
 // dispatchChainEvents takes in a collection of event logs from the chain
 // and dispatches events to the out channel
-func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
+func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 	for _, l := range logs {
 		switch l.Topics[0] {
 		case depositedTopic:
 			nad, err := ecs.na.ParseDeposited(l)
 			if err != nil {
-				ecs.fatalF("error in ParseDeposited: %v", err)
+				return fmt.Errorf("error in ParseDeposited: %w", err)
 			}
 
 			event := NewDepositedEvent(nad.Destination, l.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
@@ -186,23 +186,23 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 		case allocationUpdatedTopic:
 			au, err := ecs.na.ParseAllocationUpdated(l)
 			if err != nil {
-				ecs.fatalF("error in ParseAllocationUpdated: %v", err)
+				return fmt.Errorf("error in ParseAllocationUpdated: %w", err)
 			}
 
 			tx, pending, err := ecs.chain.TransactionByHash(context.Background(), l.TxHash)
 			if pending {
-				ecs.fatalF("Expected transaction to be part of the chain, but the transaction is pending")
+				return fmt.Errorf("Expected transaction to be part of the chain, but the transaction is pending")
 			}
 			var assetAddress types.Address
 			var amount *big.Int
 
 			if err != nil {
-				ecs.fatalF("error in TransactionByHash: %v", err)
+				return fmt.Errorf("error in TransactionByHash: %w", err)
 			}
 
 			assetAddress, amount, err = getChainHolding(ecs.na, tx, au)
 			if err != nil {
-				ecs.fatalF("error in getChainHoldings: %v", err)
+				return fmt.Errorf("error in getChainHoldings: %w", err)
 			}
 
 			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, amount)
@@ -210,7 +210,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 		case concludedTopic:
 			ce, err := ecs.na.ParseConcluded(l)
 			if err != nil {
-				ecs.fatalF("error in ParseConcluded: %v", err)
+				return fmt.Errorf("error in ParseConcluded: %w", err)
 			}
 
 			event := ConcludedEvent{commonEvent: commonEvent{channelID: ce.ChannelId, BlockNum: l.BlockNumber}}
@@ -224,11 +224,12 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) {
 			ecs.logger.Info().Str("topic", l.Topics[0].String()).Msg("Ignoring unknown chain event topic")
 		}
 	}
+	return nil
 }
 
 // subscribeForLogs subscribes for logs and pushes them to the out channel.
 // It relies on notifications being supported by the chain node.
-func (ecs *EthChainService) subscribeForLogs() {
+func (ecs *EthChainService) subscribeForLogs() (<-chan error, error) {
 	// Subscribe to Adjudicator events
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
@@ -236,11 +237,12 @@ func (ecs *EthChainService) subscribeForLogs() {
 	logs := make(chan ethTypes.Log)
 	sub, err := ecs.chain.SubscribeFilterLogs(ecs.ctx, query, logs)
 	if err != nil {
-		ecs.fatalF("subscribeFilterLogs failed: %w", err)
+		return nil, fmt.Errorf("subscribeFilterLogs failed: %w", err)
 	}
-
+	errorChan := make(chan error)
 	// Must be in a goroutine to not block chain service constructor
 	go func() {
+	out:
 		for {
 			select {
 			case <-ecs.ctx.Done():
@@ -248,7 +250,8 @@ func (ecs *EthChainService) subscribeForLogs() {
 				return
 			case err := <-sub.Err():
 				if err != nil {
-					ecs.fatalF("received error from the subscription channel: %w", err)
+					errorChan <- fmt.Errorf("received error from the subscription channel: %w", err)
+					break out
 				}
 
 				// If the error is nil then the subscription was closed and we need to re-subscribe.
@@ -256,7 +259,8 @@ func (ecs *EthChainService) subscribeForLogs() {
 				var sErr error
 				sub, sErr = ecs.chain.SubscribeFilterLogs(ecs.ctx, query, logs)
 				if sErr != nil {
-					ecs.fatalF("subscribeFilterLogs failed on resubscribe: %w", err)
+					errorChan <- fmt.Errorf("subscribeFilterLogs failed on resubscribe: %w", err)
+					break out
 				}
 				ecs.logger.Print("resubscribed to filtered logs")
 
@@ -265,10 +269,16 @@ func (ecs *EthChainService) subscribeForLogs() {
 				// We unsub here and recreate the subscription in the next iteration of the select.
 				sub.Unsubscribe()
 			case chainEvent := <-logs:
-				ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
+				err = ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
+				if err != nil {
+					errorChan <- fmt.Errorf("error in dispatchChainEvents: %w", err)
+					break out
+				}
 			}
 		}
 	}()
+
+	return errorChan, nil
 }
 
 type blockRange struct {
@@ -277,9 +287,9 @@ type blockRange struct {
 }
 
 // splitBlockRange takes a BlockRange and chunks it into a slice of BlockRanges, each having an interval no larger than the passed interval.
-func splitBlockRange(total blockRange, maxInterval *big.Int) []blockRange {
+func splitBlockRange(total blockRange, maxInterval *big.Int) ([]blockRange, error) {
 	if total.from.Cmp(total.to) > 0 {
-		panic(fmt.Sprintf("splitBlockRange: from > to. from = %v, to = %v", total.from, total.to))
+		return []blockRange{}, fmt.Errorf("splitBlockRange: from > to. from = %v, to = %v", total.from, total.to)
 	}
 
 	slice := make([]blockRange, 0) // TODO precompute a capacity by dividing total interval by max interval
@@ -297,7 +307,7 @@ func splitBlockRange(total blockRange, maxInterval *big.Int) []blockRange {
 		start = big.NewInt(0).Add(finish, big.NewInt(1))
 	}
 
-	return slice
+	return slice, nil
 }
 
 // EventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
