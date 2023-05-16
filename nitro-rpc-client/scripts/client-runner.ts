@@ -11,6 +11,54 @@ import { getLocalRPCUrl, logOutChannelUpdates } from "../src/utils";
 yargs(hideBin(process.argv))
   .scriptName("client-runner")
   .command(
+    "print-channels",
+    "Prints all channels",
+    async () => {},
+    async () => {
+      const aliceClient = await NitroRpcClient.CreateHttpNitroClient(
+        getLocalRPCUrl(4005)
+      );
+
+      const ireneClient = await NitroRpcClient.CreateHttpNitroClient(
+        getLocalRPCUrl(4006)
+      );
+
+      const bobClient = await NitroRpcClient.CreateHttpNitroClient(
+        getLocalRPCUrl(4007)
+      );
+
+      for (const client of [aliceClient]) {
+        const ledgers = await client.GetAllLedgerChannels();
+
+        console.log(
+          `Client ${await client.GetAddress()} found ${ledgers.length} ledgers`
+        );
+
+        if (ledgers.length > 0) {
+          console.log(`LEDGERS`);
+        }
+        for (const ledger of ledgers) {
+          console.log(`${compactJson(ledger)}`);
+
+          const paymentChans = await client.GetPaymentChannelsByLedger(
+            ledger.ID
+          );
+          if (paymentChans.length > 0) {
+            console.log(`PAYMENT CHANNELS FUNDED BY ${ledger.ID}`);
+
+            for (const paymentChan of paymentChans) {
+              console.log(`${compactJson(paymentChan)}`);
+            }
+          }
+        }
+      }
+      await aliceClient.Close();
+      await ireneClient.Close();
+      await bobClient.Close();
+      process.exit(0);
+    }
+  )
+  .command(
     "create-channels",
     "Creates some virtual channels and makes some payments",
     (yargsBuilder) => {
@@ -132,4 +180,7 @@ async function wait(ms: number) {
 
 function getChannelIdFromObjectiveId(objectiveId: string): string {
   return objectiveId.split("-")[1];
+}
+export function compactJson(obj: unknown): string {
+  return JSON.stringify(obj, null, 0);
 }
