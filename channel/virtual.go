@@ -39,3 +39,15 @@ func (v *VirtualChannel) Clone() *VirtualChannel {
 	w := VirtualChannel{*v.Channel.Clone()}
 	return &w
 }
+
+func (v *VirtualChannel) Status() Status {
+	s := v.Channel.Status()
+
+	// ADR 0009 allows for intermediaries to exit the protocol before receiving all signed post funds
+	// So for intermediaries we return Open once they have signed their post fund state
+	amIntermediary := v.MyIndex != 0 && v.MyIndex != uint(len(v.Participants)-1)
+	if amIntermediary && v.PostFundSignedByMe() {
+		s = Open
+	}
+	return s
+}
