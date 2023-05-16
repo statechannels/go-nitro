@@ -396,7 +396,7 @@ func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 		if err != nil {
 			return fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
 		}
-		o.V = &v
+		o.V = &channel.VirtualChannel{Channel: v}
 
 		zeroAddress := types.Destination{}
 

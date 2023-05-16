@@ -13,6 +13,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine"
@@ -221,7 +222,7 @@ func setupSharedInra(tc TestCase) sharedTestInfrastructure {
 
 // checkPaymentChannel checks that the ledger channel has the expected outcome and status
 // It will fail if the channel does not exist
-func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...client.Client) {
+func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, status channel.Status, clients ...client.Client) {
 	for _, c := range clients {
 		expected := expectedPaymentInfo(id, o, status)
 		ledger, err := c.GetPaymentChannel(id)
@@ -235,7 +236,7 @@ func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, sta
 }
 
 // expectedLedgerInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetLedgerChannel
-func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.LedgerChannelInfo {
+func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status channel.Status) query.LedgerChannelInfo {
 	clientAdd, _ := outcome[0].Allocations[0].Destination.ToAddress()
 	hubAdd, _ := outcome[0].Allocations[1].Destination.ToAddress()
 
@@ -254,7 +255,7 @@ func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status query
 
 // checkLedgerChannel checks that the ledger channel has the expected outcome and status
 // It will fail if the channel does not exist
-func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...client.Client) {
+func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status channel.Status, clients ...client.Client) {
 	for _, c := range clients {
 		expected := expectedLedgerInfo(ledgerId, o, status)
 		ledger, err := c.GetLedgerChannel(ledgerId)
@@ -268,7 +269,7 @@ func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit
 }
 
 // expectedPaymentInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetPaymentChannel
-func expectedPaymentInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.PaymentChannelInfo {
+func expectedPaymentInfo(id types.Destination, outcome outcome.Exit, status channel.Status) query.PaymentChannelInfo {
 	payer, _ := outcome[0].Allocations[0].Destination.ToAddress()
 	payee, _ := outcome[0].Allocations[1].Destination.ToAddress()
 

@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine/messageservice"
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
-	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/protocols"
@@ -111,10 +111,10 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 		for i, clientI := range intermediaries {
 			// Setup and check the ledger channel between Alice and the intermediary
 			aliceLedgers[i] = setupLedgerChannel(t, clientA, clientI, asset)
-			checkLedgerChannel(t, aliceLedgers[i], initialLedgerOutcome(*clientA.Address, *clientI.Address, asset), query.Open, clientA)
+			checkLedgerChannel(t, aliceLedgers[i], initialLedgerOutcome(*clientA.Address, *clientI.Address, asset), channel.Open, clientA)
 			// Setup and check the ledger channel between Bob and the intermediary
 			bobLedgers[i] = setupLedgerChannel(t, clientI, clientB, asset)
-			checkLedgerChannel(t, bobLedgers[i], initialLedgerOutcome(*clientI.Address, *clientB.Address, asset), query.Open, clientB)
+			checkLedgerChannel(t, bobLedgers[i], initialLedgerOutcome(*clientI.Address, *clientB.Address, asset), channel.Open, clientB)
 
 		}
 
@@ -144,7 +144,7 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 			checkPaymentChannel(t,
 				virtualIds[i],
 				initialPaymentOutcome(*clientA.Address, *clientB.Address, asset),
-				query.Open,
+				channel.Open,
 				clientA, clientB)
 		}
 
@@ -165,7 +165,7 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 			checkPaymentChannel(t,
 				virtualIds[i],
 				finalPaymentOutcome(*clientA.Address, *clientB.Address, asset, tc.NumOfPayments, 1),
-				query.Open,
+				channel.Open,
 				clientA, clientB)
 		}
 
@@ -186,16 +186,16 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 		// Close all the ledger channels we opened
 
 		closeLedgerChannel(t, clientA, intermediaries[0], aliceLedgers[0])
-		checkLedgerChannel(t, aliceLedgers[0], finalAliceLedger(*intermediaries[0].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, clientA)
+		checkLedgerChannel(t, aliceLedgers[0], finalAliceLedger(*intermediaries[0].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), channel.Complete, clientA)
 
 		// TODO: This is brittle, we should generalize this to n number of intermediaries
 		if tc.NumOfHops == 1 {
 			closeLedgerChannel(t, intermediaries[0], clientB, bobLedgers[0])
-			checkLedgerChannel(t, bobLedgers[0], finalBobLedger(*intermediaries[0].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, clientB)
+			checkLedgerChannel(t, bobLedgers[0], finalBobLedger(*intermediaries[0].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), channel.Complete, clientB)
 		}
 		if tc.NumOfHops == 2 {
 			closeLedgerChannel(t, intermediaries[1], clientB, bobLedgers[1])
-			checkLedgerChannel(t, bobLedgers[1], finalBobLedger(*intermediaries[1].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, clientB)
+			checkLedgerChannel(t, bobLedgers[1], finalBobLedger(*intermediaries[1].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), channel.Complete, clientB)
 		}
 	})
 }
