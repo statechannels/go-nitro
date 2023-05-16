@@ -130,7 +130,7 @@ func main() {
 			}
 
 			fmt.Println("Initializing chain service and connecting to " + chainUrl + "...")
-			chainService, err := chainservice.NewEthChainService2(chainUrl, chainPk, common.HexToAddress(naAddress), common.Address{}, common.Address{}, os.Stdout)
+			chainService, err := chainservice.NewEthChainService(chainUrl, chainPk, common.HexToAddress(naAddress), common.Address{}, common.Address{}, os.Stdout)
 			if err != nil {
 				panic(err)
 			}

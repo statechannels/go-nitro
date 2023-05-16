@@ -60,8 +60,8 @@ const MAX_QUERY_BLOCK_RANGE = 2000
 // See https://github.com/ethereum/go-ethereum/blob/e14164d516600e9ac66f9060892e078f5c076229/eth/filters/filter_system.go#L43
 const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
 
-// NewEthChainService2 is a convenient wrapper around NewEthChainService, which provides a simpler API
-func NewEthChainService2(chainUrl, chainPk string, naAddress, caAddress, vpaAddress common.Address, logDestination io.Writer) (*EthChainService, error) {
+// NewEthChainService is a convenient wrapper around NewEthChainService, which provides a simpler API
+func NewEthChainService(chainUrl, chainPk string, naAddress, caAddress, vpaAddress common.Address, logDestination io.Writer) (*EthChainService, error) {
 	ethClient, txSigner, err := chainutils.ConnectToChain(context.Background(), chainUrl, common.Hex2Bytes(chainPk))
 	if err != nil {
 		panic(err)
@@ -72,12 +72,12 @@ func NewEthChainService2(chainUrl, chainPk string, naAddress, caAddress, vpaAddr
 		panic(err)
 	}
 
-	return NewEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination)
+	return newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination)
 }
 
 // NewEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func NewEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
+func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer,
 ) (*EthChainService, error) {
 	logging.ConfigureZeroLogger()
