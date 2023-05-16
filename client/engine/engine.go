@@ -220,7 +220,10 @@ func (e *Engine) Run() {
 func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
 
-	id := getProposalObjectiveId(proposal)
+	id, err := getProposalObjectiveId(proposal)
+	if err != nil {
+		return EngineEvent{}, err
+	}
 	obj, err := e.store.GetObjectiveById(id)
 	if err != nil {
 		return EngineEvent{}, err
@@ -305,7 +308,10 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	for _, entry := range message.LedgerProposals { // The ledger protocol requires us to process these proposals in turnNum order.
 		// Here we rely on the sender having packed them into the message in that order, and do not apply any checks or sorting of our own.
-		id := getProposalObjectiveId(entry.Proposal)
+		id, err := getProposalObjectiveId(entry.Proposal)
+		if err != nil {
+			return EngineEvent{}, err
+		}
 		o, err := e.store.GetObjectiveById(id)
 		if err != nil {
 			return EngineEvent{}, err
@@ -488,7 +494,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, error) {
 	ee := EngineEvent{}
 	if (request == PaymentRequest{}) {
-		panic("tried to handle nil payment request")
+		return ee, fmt.Errorf("handleAPIEvent: Empty payment request")
 	}
 	cId := request.ChannelId
 	voucher, err := e.vm.Pay(
@@ -736,25 +742,25 @@ func fromMsgErr(id protocols.ObjectiveId, err error) error {
 }
 
 // getProposalObjectiveId returns the objectiveId for a proposal.
-func getProposalObjectiveId(p consensus_channel.Proposal) protocols.ObjectiveId {
+func getProposalObjectiveId(p consensus_channel.Proposal) (protocols.ObjectiveId, error) {
 	switch p.Type() {
 	case consensus_channel.AddProposal:
 		{
 			const prefix = virtualfund.ObjectivePrefix
 			channelId := p.ToAdd.Guarantee.Target().String()
-			return protocols.ObjectiveId(prefix + channelId)
+			return protocols.ObjectiveId(prefix + channelId), nil
 
 		}
 	case consensus_channel.RemoveProposal:
 		{
 			const prefix = virtualdefund.ObjectivePrefix
 			channelId := p.ToRemove.Target.String()
-			return protocols.ObjectiveId(prefix + channelId)
+			return protocols.ObjectiveId(prefix + channelId), nil
 
 		}
 	default:
 		{
-			panic("invalid proposal type")
+			return protocols.ObjectiveId(""), fmt.Errorf("invalid proposal type")
 		}
 	}
 }
