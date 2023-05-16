@@ -53,6 +53,10 @@ export type PaymentParams = {
 type GetChannelRequest = {
   Id: string;
 };
+
+type GetByLedgerRequest = {
+  LedgerId: string;
+};
 export type DefundObjectiveRequest = {
   ChannelId: string;
 };
@@ -78,10 +82,19 @@ export type GetLedgerChannelRequest = JsonRpcRequest<
   "get_ledger_channel",
   GetChannelRequest
 >;
+export type GetAllLedgerChannelsRequest = JsonRpcRequest<
+  "get_all_ledger_channels",
+  Record<string, never>
+>;
 export type GetPaymentChannelRequest = JsonRpcRequest<
   "get_payment_channel",
   GetChannelRequest
 >;
+export type GetPaymentChannelsByLedgerRequest = JsonRpcRequest<
+  "get_payment_channels_by_ledger",
+  GetByLedgerRequest
+>;
+
 export type VersionRequest = JsonRpcRequest<"version", Record<string, never>>;
 export type DirectDefundRequest = JsonRpcRequest<
   "direct_defund",
@@ -104,6 +117,10 @@ export type GetAddressResponse = JsonRpcResponse<string>;
 export type DirectFundResponse = JsonRpcResponse<ObjectiveResponse>;
 export type DirectDefundResponse = JsonRpcResponse<string>;
 export type VirtualDefundResponse = JsonRpcResponse<string>;
+export type GetAllLedgerChannelsResponse = JsonRpcResponse<LedgerChannelInfo[]>;
+export type GetPaymentChannelsByLedgerResponse = JsonRpcResponse<
+  PaymentChannelInfo[]
+>;
 
 /**
  * RPC Request/Response map
@@ -119,6 +136,14 @@ export type RPCRequestAndResponses = {
   get_payment_channel: [GetPaymentChannelRequest, GetPaymentChannelResponse];
   pay: [PaymentRequest, PaymentResponse];
   virtual_defund: [VirtualDefundRequest, VirtualDefundResponse];
+  get_all_ledger_channels: [
+    GetAllLedgerChannelsRequest,
+    GetAllLedgerChannelsResponse
+  ];
+  get_payment_channels_by_ledger: [
+    GetPaymentChannelsByLedgerRequest,
+    GetPaymentChannelsByLedgerResponse
+  ];
 };
 
 export type RequestMethod = keyof RPCRequestAndResponses;

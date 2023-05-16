@@ -166,6 +166,14 @@ export class NitroRpcClient {
   }
 
   /**
+   * GetAllLedgerChannels queries the RPC server for all ledger channels.
+   * @returns A `LedgerChannelInfo` object containing the channel's information for each ledger channel
+   */
+  public async GetAllLedgerChannels(): Promise<LedgerChannelInfo[]> {
+    return this.sendRequest("get_all_ledger_channels", {});
+  }
+
+  /**
    * GetPaymentChannel queries the RPC server for a payment channel.
    *
    * @param channelId - The ID of the channel to query for
@@ -175,6 +183,19 @@ export class NitroRpcClient {
     channelId: string
   ): Promise<PaymentChannelInfo> {
     return this.sendRequest("get_payment_channel", { Id: channelId });
+  }
+  /**
+   * GetPaymentChannelsByLedger queries the RPC server for any payment channels that are actively funded by the given ledger.
+   *
+   * @param ledgerId - The ID of the ledger to find payment channels for
+   * @returns A `PaymentChannelInfo` object containing the channel's information for each payment channel
+   */
+  public async GetPaymentChannelsByLedger(
+    ledgerId: string
+  ): Promise<PaymentChannelInfo[]> {
+    return this.sendRequest("get_payment_channels_by_ledger", {
+      LedgerId: ledgerId,
+    });
   }
 
   async sendRequest<K extends RequestMethod>(
