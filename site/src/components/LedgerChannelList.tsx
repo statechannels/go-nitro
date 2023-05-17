@@ -16,7 +16,11 @@ function formatId(id: string): string {
 }
 
 function focusedIndex(id: string, ids: LedgerChannel[]): number {
-  return ids.findIndex((c) => c.ID === id);
+  const index = ids.findIndex((c) => c.ID === id);
+  if (index != -1) {
+    return index;
+  }
+  return 0;
 }
 
 function handleChange(

@@ -29,9 +29,7 @@ function App() {
   const [version, setVersion] = useState("");
   const [address, setAddress] = useState("");
   const [ledgerChannels, setLedgerChannels] = useState<LedgerChannelInfo[]>([]);
-  const [focusedLedgerChannel, setFocusedLedgerChannel] = useState<string>(
-    "0x9823fa3d37ec304f90d1bef2c03c1fc70f86b6417f022d5e9ab88902a874f0cc"
-  );
+  const [focusedLedgerChannel, setFocusedLedgerChannel] = useState<string>("");
 
   const [focusedPaymentChannel, setFocusedPaymentChannel] = useState<string>(
     "0x9823fa3d37ec304f90d1bef2c03c1fc70f86b6417f022d5e9ab88902a874f0cc"
