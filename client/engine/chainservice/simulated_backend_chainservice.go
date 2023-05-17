@@ -62,7 +62,7 @@ type SimulatedBackendChainService struct {
 func NewSimulatedBackendChainService(sim SimulatedChain, bindings Bindings,
 	txSigner *bind.TransactOpts, logDestination io.Writer,
 ) (ChainService, error) {
-	ethChainService, err := NewEthChainService(sim,
+	ethChainService, err := newEthChainService(sim,
 		bindings.Adjudicator.Contract,
 		bindings.Adjudicator.Address,
 		bindings.ConsensusApp.Address,

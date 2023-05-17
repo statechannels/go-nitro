@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -13,8 +12,6 @@ import (
 	"github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/engine"
 	"github.com/statechannels/go-nitro/client/engine/chainservice"
-	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
-	chainutils "github.com/statechannels/go-nitro/client/engine/chainservice/utils"
 	p2pms "github.com/statechannels/go-nitro/client/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	"github.com/statechannels/go-nitro/crypto"
@@ -38,10 +35,9 @@ func main() {
 		NA_ADDRESS        = "naaddress"
 		MSG_PORT          = "msgport"
 		RPC_PORT          = "rpcport"
-		CHAIN_ID          = "chainid"
 	)
 	var pkString, chainUrl, naAddress, chainPk string
-	var msgPort, rpcPort, chainId int
+	var msgPort, rpcPort int
 	var useNats, useDurableStore bool
 
 	flags := []cli.Flag{
@@ -104,14 +100,6 @@ func main() {
 			Category:    "Connectivity:",
 			Destination: &rpcPort,
 		}),
-		altsrc.NewIntFlag(&cli.IntFlag{
-			Name:        CHAIN_ID,
-			Usage:       "Specifies the chain id of the chain.",
-			Value:       1337,
-			DefaultText: "hardhat default",
-			Category:    "Connectivity:",
-			Destination: &chainId,
-		}),
 	}
 	app := &cli.App{
 		Name:   "go-nitro",
@@ -141,18 +129,8 @@ func main() {
 				ourStore = store.NewMemStore(pk)
 			}
 
-			fmt.Println("Connecting to chain " + chainUrl + " with chain id " + fmt.Sprint(chainId) + "...")
-			ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainId, common.Hex2Bytes(chainPk))
-			if err != nil {
-				panic(err)
-			}
-
-			na, err := NitroAdjudicator.NewNitroAdjudicator(common.HexToAddress(naAddress), ethClient)
-			if err != nil {
-				panic(err)
-			}
-
-			chainService, err := chainservice.NewEthChainService(ethClient, na, common.HexToAddress(naAddress), common.Address{}, common.Address{}, txSubmitter, os.Stdout)
+			fmt.Println("Initializing chain service and connecting to " + chainUrl + "...")
+			chainService, err := chainservice.NewEthChainService(chainUrl, chainPk, common.HexToAddress(naAddress), common.Address{}, common.Address{}, os.Stdout)
 			if err != nil {
 				panic(err)
 			}
