@@ -350,9 +350,11 @@ func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protoc
 	if !o.isBob() {
 		toMyRightId = o.ToMyRight.Channel.Id // Avoid this if it is nil
 	}
-
-	if sp.Proposal.Target() == o.V.Id {
-		var err error
+	target, err := sp.Proposal.Target()
+	if err != nil {
+		return nil, err
+	}
+	if target == o.V.Id {
 
 		switch sp.Proposal.LedgerID {
 		case types.Destination{}:
