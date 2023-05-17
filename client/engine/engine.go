@@ -616,7 +616,11 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 			}
 			outgoing.PaymentChannelUpdates = append(outgoing.PaymentChannelUpdates, info)
 		case *channel.Channel:
-			outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromChannel(c))
+			l, err := query.ConstructLedgerInfoFromChannel(c)
+			if err != nil {
+				return outgoing, err
+			}
+			outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, l)
 		case *consensus_channel.ConsensusChannel:
 			outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromConsensus(c))
 		default:

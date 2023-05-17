@@ -146,7 +146,11 @@ func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Addres
 		return []LedgerChannelInfo{}, err
 	}
 	for _, c := range allChannels {
-		toReturn = append(toReturn, ConstructLedgerInfoFromChannel(c))
+		l, err := ConstructLedgerInfoFromChannel(c)
+		if err != nil {
+			return []LedgerChannelInfo{}, err
+		}
+		toReturn = append(toReturn, l)
 	}
 	return toReturn, nil
 }
@@ -191,7 +195,7 @@ func GetPaymentChannelsByLedger(ledgerId types.Destination, s store.Store, vm *p
 func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
 	c, ok := store.GetChannelById(id)
 	if ok {
-		return ConstructLedgerInfoFromChannel(c), nil
+		return ConstructLedgerInfoFromChannel(c)
 	}
 
 	con, err := store.GetConsensusChannelById(id)
@@ -211,16 +215,16 @@ func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel) L
 	}
 }
 
-func ConstructLedgerInfoFromChannel(c *channel.Channel) LedgerChannelInfo {
+func ConstructLedgerInfoFromChannel(c *channel.Channel) (LedgerChannelInfo, error) {
 	latest, err := getLatestSupportedOrPreFund(c)
 	if err != nil {
-		panic(err)
+		return LedgerChannelInfo{}, err
 	}
 	return LedgerChannelInfo{
 		ID:      c.Id,
 		Status:  getStatusFromChannel(c),
 		Balance: getLedgerBalanceFromState(latest),
-	}
+	}, nil
 }
 
 func ConstructPaymentInfo(c *channel.Channel, paid, remaining *big.Int) (PaymentChannelInfo, error) {
