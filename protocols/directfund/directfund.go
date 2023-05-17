@@ -48,7 +48,7 @@ type Objective struct {
 }
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
-type GetChannelsByParticipantFunction func(participant types.Address) []*channel.Channel
+type GetChannelsByParticipantFunction func(participant types.Address) ([]*channel.Channel, error)
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
@@ -80,27 +80,33 @@ func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Add
 	if err != nil {
 		return Objective{}, fmt.Errorf("could not create new objective: %w", err)
 	}
-	if channelsExistWithCounterparty(request.CounterParty, getChannels, getTwoPartyConsensusLedger) {
+	channelExists, err := channelsExistWithCounterparty(request.CounterParty, getChannels, getTwoPartyConsensusLedger)
+	if err != nil {
+		return Objective{}, fmt.Errorf("counterparty check failed: %w", err)
+	}
+	if channelExists {
 		return Objective{}, fmt.Errorf("a channel already exists with counterparty %s", request.CounterParty)
 	}
 	return objective, nil
 }
 
 // channelsExistWithCounterparty returns true if a channel or consensus_channel exists with the counterparty
-func channelsExistWithCounterparty(counterparty types.Address, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) bool {
+func channelsExistWithCounterparty(counterparty types.Address, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (bool, error) {
 	// check for any channels that may be in the process of direct funding
-	channels := getChannels(counterparty)
-
+	channels, err := getChannels(counterparty)
+	if err != nil {
+		return false, err
+	}
 	for _, c := range channels {
 		// We only want to find directly funded channels that would have two participants
 		if len(c.Participants) == 2 {
-			return true
+			return true, nil
 		}
 	}
 
 	_, ok := getTwoPartyConsensusLedger(counterparty)
 
-	return ok
+	return ok, nil
 }
 
 // ConstructFromPayload initiates a Objective with data calculated from

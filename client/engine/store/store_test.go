@@ -210,7 +210,10 @@ func TestGetChannelsByParticipant(t *testing.T) {
 	want := []*channel.Channel{c}
 	_ = ms.SetChannel(c)
 
-	got := ms.GetChannelsByParticipant(c.Participants[0])
+	got, err := ms.GetChannelsByParticipant(c.Participants[0])
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if diff := cmp.Diff(got, want, cmp.AllowUnexported(channel.Channel{}, big.Int{}, state.SignedState{})); diff != "" {
 		t.Fatalf("fetched result different than expected %s", diff)

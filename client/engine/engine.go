@@ -261,7 +261,10 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 				ddfo, ok := objective.(*directdefund.Objective)
 				if ok {
 					// If we just approved a direct defund objective, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
-					e.store.DestroyConsensusChannel(ddfo.C.Id)
+					err := e.store.DestroyConsensusChannel(ddfo.C.Id)
+					if err != nil {
+						return EngineEvent{}, err
+					}
 				}
 			} else {
 				objective, sideEffects := objective.Reject()
@@ -481,7 +484,10 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 			}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
 		}
 		// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
-		e.store.DestroyConsensusChannel(request.ChannelId)
+		err = e.store.DestroyConsensusChannel(request.ChannelId)
+		if err != nil {
+			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not destroy consensus channel for %+v: %w", request, err)
+		}
 		return e.attemptProgress(&ddfo)
 
 	default:
@@ -589,7 +595,10 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
 	if waitingFor == "WaitingForNothing" {
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
-		e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
+		err = e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
+		if err != nil {
+			return
+		}
 		err = e.spawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
 		if err != nil {
 			return
@@ -655,7 +664,10 @@ func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 			return fmt.Errorf("could not store consensus channel for objective %s: %w", crankedObjective.Id(), err)
 		}
 		// Destroy the channel since the consensus channel takes over governance:
-		e.store.DestroyChannel(c.Id)
+		err = e.store.DestroyChannel(c.Id)
+		if err != nil {
+			return fmt.Errorf("could not destroy consensus channel for objective %s: %w", crankedObjective.Id(), err)
+		}
 	}
 	return nil
 }

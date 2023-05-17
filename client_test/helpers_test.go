@@ -36,7 +36,10 @@ func setupClient(pk []byte, chain chainservice.ChainService, msgBroker messagese
 	// TODO: Clean up test data folder?
 	dataFolder := fmt.Sprintf("%s/%s/%d", DURABLE_STORE_FOLDER, myAddress.String(), rand.Uint64())
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
-	storeA := store.NewDurableStore(pk, dataFolder, buntdb.Config{})
+	storeA, err := store.NewDurableStore(pk, dataFolder, buntdb.Config{})
+	if err != nil {
+		panic(err)
+	}
 	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}, nil), storeA
 }
 
@@ -114,7 +117,11 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) st
 		return store.NewMemStore(tp.Actor.PrivateKey)
 	case DurableStore:
 		dataFolder := fmt.Sprintf("%s/%s/%d%d", STORE_TEST_DATA_FOLDER, tp.Address().String(), rand.Uint64(), time.Now().UnixNano())
-		return store.NewPersistStore(tp.PrivateKey, dataFolder, buntdb.Config{})
+		s, err := store.NewPersistStore(tp.PrivateKey, dataFolder, buntdb.Config{})
+		if err != nil {
+			panic(err)
+		}
+		return s
 	default:
 		panic(fmt.Sprintf("Unknown store type %s", tp.StoreType))
 	}
