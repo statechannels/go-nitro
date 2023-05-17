@@ -281,35 +281,6 @@ func (ecs *EthChainService) subscribeForLogs() (<-chan error, error) {
 	return errorChan, nil
 }
 
-type blockRange struct {
-	from *big.Int
-	to   *big.Int
-}
-
-// splitBlockRange takes a BlockRange and chunks it into a slice of BlockRanges, each having an interval no larger than the passed interval.
-func splitBlockRange(total blockRange, maxInterval *big.Int) ([]blockRange, error) {
-	if total.from.Cmp(total.to) > 0 {
-		return []blockRange{}, fmt.Errorf("splitBlockRange: from > to. from = %v, to = %v", total.from, total.to)
-	}
-
-	slice := make([]blockRange, 0) // TODO precompute a capacity by dividing total interval by max interval
-
-	start := big.NewInt(0).Set(total.from)
-	for {
-		finish := types.Min(total.to, big.NewInt(0).Add(start, maxInterval))
-		slice = append(slice, blockRange{
-			from: big.NewInt(0).Set(start),
-			to:   big.NewInt(0).Set(finish),
-		})
-		if finish.Cmp(total.to) >= 0 {
-			break
-		}
-		start = big.NewInt(0).Add(finish, big.NewInt(1))
-	}
-
-	return slice, nil
-}
-
 // EventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
 func (ecs *EthChainService) EventFeed() <-chan Event {
 	return ecs.out
