@@ -203,7 +203,7 @@ func (o *Objective) initialOutcome() outcome.SingleAssetExit {
 
 func (o *Objective) generateFinalOutcome() (outcome.SingleAssetExit, error) {
 	if o.MyRole != 0 {
-		return outcome.SingleAssetExit{}, fmt.Errorf("Only Alice should call generateFinalOutcome")
+		return outcome.SingleAssetExit{}, fmt.Errorf("only Alice should call generateFinalOutcome")
 	}
 	// Since Alice is responsible for issuing vouchers she always has the largest payment amount
 	// This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent

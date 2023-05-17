@@ -191,7 +191,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 
 			tx, pending, err := ecs.chain.TransactionByHash(context.Background(), l.TxHash)
 			if pending {
-				return fmt.Errorf("Expected transaction to be part of the chain, but the transaction is pending")
+				return fmt.Errorf("expected transaction to be part of the chain, but the transaction is pending")
 			}
 			var assetAddress types.Address
 			var amount *big.Int
