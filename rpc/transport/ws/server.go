@@ -144,7 +144,8 @@ EventLoop:
 	if errors.Is(err, context.Canceled) {
 		return
 	}
-	if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
+	if websocket.CloseStatus(err) == websocket.StatusNormalClosure ||
+		websocket.CloseStatus(err) == websocket.StatusGoingAway {
 		return
 	}
 	if err != nil {
