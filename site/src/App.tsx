@@ -13,8 +13,6 @@ function App() {
     new URLSearchParams(window.location.search).get(QUERY_KEY) ??
     "localhost:4005";
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
-  const [version, setVersion] = useState("");
-  const [address, setAddress] = useState("");
   const [ledgerChannels, setLedgerChannels] = useState<LedgerChannelInfo[]>([]);
   const [focusedLedgerChannel, setFocusedLedgerChannel] = useState<string>("");
 
@@ -24,8 +22,6 @@ function App() {
 
   useEffect(() => {
     if (nitroClient) {
-      nitroClient.GetVersion().then((v) => setVersion(v));
-      nitroClient.GetAddress().then((a) => setAddress(a));
       nitroClient.GetAllLedgerChannels().then((l) => {
         setLedgerChannels(l);
         if (l.length > 0) {
@@ -44,7 +40,10 @@ function App() {
         setFocusedLedgerChannel={setFocusedLedgerChannel}
       />
       <div style={{ display: "flex", justifyContent: "space-around" }}>
-        <LedgerChannelDetails version={version} url={url} address={address} />
+        <LedgerChannelDetails
+          nitroClient={nitroClient}
+          channelId={focusedLedgerChannel}
+        />
         <PaymentChannelContainer
           nitroClient={nitroClient}
           ledgerChannel={focusedLedgerChannel}
