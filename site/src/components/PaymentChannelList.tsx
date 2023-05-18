@@ -1,19 +1,18 @@
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
-
-import { PaymentChannel } from "../types";
+import { PaymentChannelInfo } from "@statechannels/nitro-rpc-client/src/types";
 
 type Props = {
-  paymentChannels: PaymentChannel[];
+  paymentChannels: PaymentChannelInfo[];
   focusedPaymentChannel: string;
   setFocusedPaymentChannel: (channel: string) => void;
 };
 
-function formatPaymentChannel(chan: PaymentChannel): string {
+function formatPaymentChannel(chan: PaymentChannelInfo): string {
   return chan.ID.slice(0, 8);
 }
 
-function focusedIndex(id: string, ids: PaymentChannel[]): number {
+function focusedIndex(id: string, ids: PaymentChannelInfo[]): number {
   const index = ids.findIndex((c) => c.ID === id);
   if (index != -1) {
     return index;
@@ -23,7 +22,7 @@ function focusedIndex(id: string, ids: PaymentChannel[]): number {
 }
 
 function handleChange(
-  ledgerChannels: PaymentChannel[],
+  ledgerChannels: PaymentChannelInfo[],
   setter: (id: string) => void
 ) {
   return (_: React.SyntheticEvent, newValue: number) => {
