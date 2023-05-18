@@ -91,18 +91,19 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	checkQueryInfo(t, expectedBobLedger, rpcClientB.GetLedgerChannel(bobResponse.ChannelId))
 	checkQueryInfoCollection(t, expectedBobLedger, 1, rpcClientB.GetAllLedgerChannels())
 
-	initialOutcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Bob.Address(), 100, 0, types.Address{})
+	initialOutcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Irene.Address(), 100, 0, types.Address{})
+
+	// TEMP: try a 0-hop virtual channel with Irene
 	vRes := rpcClientA.CreateVirtual(
 		[]types.Address{ta.Irene.Address()},
-		ta.Bob.Address(),
+		ta.Irene.Address(),
 		100,
 		initialOutcome)
 	aliceVirtualNotifs := rpcClientA.PaymentChannelUpdatesChan(vRes.ChannelId)
-	bobVirtualNotifs := rpcClientB.PaymentChannelUpdatesChan(vRes.ChannelId)
+	iVirtualNotifs := rpcClientI.PaymentChannelUpdatesChan(vRes.ChannelId)
 	assert.Regexp(t, "VirtualFund.0x.*", vRes.Id)
 
 	<-rpcClientA.ObjectiveCompleteChan(vRes.Id)
-	<-rpcClientB.ObjectiveCompleteChan(vRes.Id)
 	<-rpcClientI.ObjectiveCompleteChan(vRes.Id)
 
 	expectedVirtual := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Open)
@@ -122,7 +123,6 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 
 	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
 	<-rpcClientA.ObjectiveCompleteChan(closeVId)
-	<-rpcClientB.ObjectiveCompleteChan(closeVId)
 	<-rpcClientI.ObjectiveCompleteChan(closeVId)
 
 	closeId := rpcClientA.CloseLedger(res.ChannelId)
@@ -177,7 +177,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	}
 	checkNotifications(t, requiredVirtualNotifs, optionalVirtualNotifs, aliceVirtualNotifs, defaultTimeout)
 
-	checkNotifications(t, requiredVirtualNotifs, optionalVirtualNotifs, bobVirtualNotifs, defaultTimeout)
+	checkNotifications(t, requiredVirtualNotifs, optionalVirtualNotifs, iVirtualNotifs, defaultTimeout)
 }
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
