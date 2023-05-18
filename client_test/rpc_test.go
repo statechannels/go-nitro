@@ -194,6 +194,7 @@ func setupNitroNodeWithRPCClient(
 		msgPort,
 		crypto.GetAddressFromSecretKeyBytes(pk),
 		pk,
+		true,
 		logDestination)
 	storeA := store.NewMemStore(pk)
 	node := client.New(

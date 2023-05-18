@@ -136,7 +136,7 @@ func main() {
 			}
 
 			fmt.Println("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
-			messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, logDestination)
+			messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, true, logDestination)
 			node := client.New(
 				messageservice,
 				chainService,

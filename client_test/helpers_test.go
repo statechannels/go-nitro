@@ -79,6 +79,7 @@ func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastru
 			int(tp.Port),
 			tp.Address(),
 			tp.PrivateKey,
+			true,
 			logWriter,
 		)
 
