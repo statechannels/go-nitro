@@ -12,7 +12,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
+	ConsensusApp "github.com/statechannels/go-nitro/client/engine/chainservice/consensusapp"
 	chainutils "github.com/statechannels/go-nitro/client/engine/chainservice/utils"
+	VirtualPaymentApp "github.com/statechannels/go-nitro/client/engine/chainservice/virtualpaymentapp"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -56,28 +58,27 @@ func main() {
 	// Give the chain a second to start up
 	time.Sleep(1 * time.Second)
 
-	adjudicatorAddress, err := deployAdjudicator(context.Background())
+	naAddress, vpaAddress, caAddress, err := deployContracts(context.Background())
 	if err != nil {
 		stopCommands(running...)
 		panic(err)
 	}
-	fmt.Printf("Deployed adjudicator at %v\n", adjudicatorAddress)
 
-	aliceClient, err := setupRPCServer(alice, blue, adjudicatorAddress)
+	aliceClient, err := setupRPCServer(alice, blue, naAddress, vpaAddress, caAddress)
 	if err != nil {
 		stopCommands(running...)
 		panic(err)
 	}
 	running = append(running, aliceClient)
 
-	ireneClient, err := setupRPCServer(irene, green, adjudicatorAddress)
+	ireneClient, err := setupRPCServer(irene, green, naAddress, vpaAddress, caAddress)
 	if err != nil {
 		stopCommands(running...)
 		panic(err)
 	}
 	running = append(running, ireneClient)
 
-	bobClient, err := setupRPCServer(bob, yellow, adjudicatorAddress)
+	bobClient, err := setupRPCServer(bob, yellow, naAddress, vpaAddress, caAddress)
 	if err != nil {
 		stopCommands(running...)
 		panic(err)
@@ -113,9 +114,10 @@ func waitForKillSignal() {
 }
 
 // setupRPCServer starts up an RPC server for the given participant
-func setupRPCServer(p participant, c color, na types.Address) (*exec.Cmd, error) {
+func setupRPCServer(p participant, c color, na, vpa, ca types.Address) (*exec.Cmd, error) {
 	args := []string{"run", ".", "-naaddress", na.String()}
-
+	args = append(args, "-vpaaddress", vpa.String())
+	args = append(args, "-caaddress", ca.String())
 	switch p {
 	case alice:
 		args = append(args, "-config", "./scripts/test-configs/alice.toml")
@@ -161,15 +163,26 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 	}
 }
 
-// deployAdjudicator deploys the  NitroAdjudicator contract.
-func deployAdjudicator(ctx context.Context) (common.Address, error) {
+// deployContracts deploys the  NitroAdjudicator contract.
+func deployContracts(ctx context.Context) (na common.Address, vpa common.Address, ca common.Address, err error) {
 	client, txSubmitter, err := chainutils.ConnectToChain(context.Background(), "ws://127.0.0.1:8545", common.Hex2Bytes(FUNDED_TEST_PK))
 	if err != nil {
-		return types.Address{}, err
+		return types.Address{}, types.Address{}, types.Address{}, err
 	}
-	naAddress, _, _, err := NitroAdjudicator.DeployNitroAdjudicator(txSubmitter, client)
+	na, _, _, err = NitroAdjudicator.DeployNitroAdjudicator(txSubmitter, client)
 	if err != nil {
-		return types.Address{}, err
+		return types.Address{}, types.Address{}, types.Address{}, err
 	}
-	return naAddress, nil
+	fmt.Printf("Deployed NitroAdjudicator at %s\n", na.String())
+	vpa, _, _, err = VirtualPaymentApp.DeployVirtualPaymentApp(txSubmitter, client)
+	if err != nil {
+		return types.Address{}, types.Address{}, types.Address{}, err
+	}
+	fmt.Printf("Deployed VirtualPaymentApp at %s\n", vpa.String())
+	ca, _, _, err = ConsensusApp.DeployConsensusApp(txSubmitter, client)
+	if err != nil {
+		return types.Address{}, types.Address{}, types.Address{}, err
+	}
+	fmt.Printf("Deployed ConsensusApp at %s\n", ca.String())
+	return
 }

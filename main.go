@@ -33,10 +33,12 @@ func main() {
 		CHAIN_URL         = "chainurl"
 		CHAIN_PK          = "chainpk"
 		NA_ADDRESS        = "naaddress"
+		VPA_ADDRESS       = "vpaaddress"
+		CA_ADDRESS        = "caaddress"
 		MSG_PORT          = "msgport"
 		RPC_PORT          = "rpcport"
 	)
-	var pkString, chainUrl, naAddress, chainPk string
+	var pkString, chainUrl, naAddress, vpaAddress, caAddress, chainPk string
 	var msgPort, rpcPort int
 	var useNats, useDurableStore bool
 
@@ -86,6 +88,20 @@ func main() {
 			Destination: &naAddress,
 			Required:    true,
 		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:        VPA_ADDRESS,
+			Usage:       "Specifies the address of the virtual payment app.",
+			Category:    "Connectivity:",
+			Destination: &vpaAddress,
+			Required:    true,
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:        CA_ADDRESS,
+			Usage:       "Specifies the address of the consensus app.",
+			Category:    "Connectivity:",
+			Destination: &caAddress,
+			Required:    true,
+		}),
 		altsrc.NewIntFlag(&cli.IntFlag{
 			Name:        MSG_PORT,
 			Usage:       "Specifies the tcp port for the message service.",
@@ -130,7 +146,13 @@ func main() {
 			}
 
 			fmt.Println("Initializing chain service and connecting to " + chainUrl + "...")
-			chainService, err := chainservice.NewEthChainService(chainUrl, chainPk, common.HexToAddress(naAddress), common.Address{1}, common.Address{2}, os.Stdout)
+			chainService, err := chainservice.NewEthChainService(
+				chainUrl,
+				chainPk,
+				common.HexToAddress(naAddress),
+				common.HexToAddress(caAddress),
+				common.HexToAddress(vpaAddress),
+				os.Stdout)
 			if err != nil {
 				panic(err)
 			}
