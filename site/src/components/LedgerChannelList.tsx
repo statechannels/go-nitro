@@ -20,6 +20,7 @@ function focusedIndex(id: string, ids: LedgerChannel[]): number {
   if (index != -1) {
     return index;
   }
+  // The channel id is not found in the channel list.
   return 0;
 }
 

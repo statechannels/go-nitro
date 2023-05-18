@@ -14,7 +14,12 @@ function formatPaymentChannel(chan: PaymentChannel): string {
 }
 
 function focusedIndex(id: string, ids: PaymentChannel[]): number {
-  return ids.findIndex((c) => c.ID === id);
+  const index = ids.findIndex((c) => c.ID === id);
+  if (index != -1) {
+    return index;
+  }
+  // The channel id is not found in the channel list.
+  return 0;
 }
 
 function handleChange(
