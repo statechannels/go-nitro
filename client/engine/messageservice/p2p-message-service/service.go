@@ -108,6 +108,8 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, logWrit
 
 // HandlePeerFound is called by the mDNS service when a peer is found.
 func (ms *P2PMessageService) HandlePeerFound(pi peer.AddrInfo) {
+	fmt.Printf("Found peer %s\n", pi.ID)
+	fmt.Printf("%+v\n", pi.Addrs)
 	ms.p2pHost.Peerstore().AddAddr(pi.ID, pi.Addrs[0], peerstore.PermanentAddrTTL)
 	stream, err := ms.p2pHost.NewStream(context.Background(), pi.ID, PEER_EXCHANGE_PROTOCOL_ID)
 	ms.checkError(err)
