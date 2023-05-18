@@ -62,7 +62,9 @@ func (ms *P2PMessageService) Id() peer.ID {
 }
 
 // NewMessageService returns a running P2PMessageService listening on the given ip, port and message key.
-func NewMessageService(ip string, port int, me types.Address, pk []byte, logWriter io.Writer) *P2PMessageService {
+// If useMdnsPeerDiscovery is true, the message service will use mDNS to discover peers.
+// Otherwise, peers must be added manually via `AddPeers`.
+func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdnsPeerDiscovery bool, logWriter io.Writer) *P2PMessageService {
 	logging.ConfigureZeroLogger()
 
 	ms := &P2PMessageService{
@@ -89,11 +91,12 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, logWrit
 	if err != nil {
 		panic(err)
 	}
-
-	mdns := mdns.NewMdnsService(host, "", ms)
-	err = mdns.Start()
-	ms.checkError(err)
-	ms.mdns = mdns
+	if useMdnsPeerDiscovery {
+		mdns := mdns.NewMdnsService(host, "", ms)
+		err = mdns.Start()
+		ms.checkError(err)
+		ms.mdns = mdns
+	}
 	ms.p2pHost = host
 
 	ms.p2pHost.SetStreamHandler(PROTOCOL_ID, ms.msgStreamHandler)
@@ -221,7 +224,10 @@ func (s *P2PMessageService) Out() <-chan protocols.Message {
 
 // Close closes the P2PMessageService
 func (s *P2PMessageService) Close() error {
-	s.mdns.Close()
+	// The mdns service is optional so we only close it if it exists
+	if s.mdns != nil {
+		s.mdns.Close()
+	}
 	s.p2pHost.RemoveStreamHandler(PROTOCOL_ID)
 	return s.p2pHost.Close()
 }
