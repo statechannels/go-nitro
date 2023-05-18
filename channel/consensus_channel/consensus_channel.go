@@ -590,11 +590,11 @@ func (p *Proposal) Clone() Proposal {
 }
 
 const (
-	AddProposal    ProposalType = "AddProposal"
-	RemoveProposal ProposalType = "RemoveProposal"
+	AddProposal    ProposalType = true
+	RemoveProposal ProposalType = false
 )
 
-type ProposalType string
+type ProposalType bool
 
 // Type returns the type of the proposal based on whether it contains an Add or a Remove proposal.
 func (p *Proposal) Type() ProposalType {
@@ -626,17 +626,13 @@ func (p SignedProposal) SortInfo() (types.Destination, uint64) {
 // Target returns the target channel of the proposal.
 func (p *Proposal) Target() types.Destination {
 	switch p.Type() {
-	case "AddProposal":
+	default:
 		{
 			return p.ToAdd.Target()
 		}
-	case "RemoveProposal":
+	case RemoveProposal:
 		{
 			return p.ToRemove.Target
-		}
-	default:
-		{
-			panic("invalid proposal type")
 		}
 	}
 }

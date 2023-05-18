@@ -2,7 +2,6 @@ package protocols
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/rs/zerolog"
@@ -66,25 +65,21 @@ func (se *SideEffects) Merge(other SideEffects) {
 }
 
 // GetProposalObjectiveId returns the objectiveId for a proposal.
-func GetProposalObjectiveId(p consensus_channel.Proposal) (ObjectiveId, error) {
+func GetProposalObjectiveId(p consensus_channel.Proposal) ObjectiveId {
 	switch p.Type() {
-	case "AddProposal":
+	default:
 		{
 			const prefix = "VirtualFund-"
 			channelId := p.ToAdd.Guarantee.Target().String()
-			return ObjectiveId(prefix + channelId), nil
+			return ObjectiveId(prefix + channelId)
 
 		}
-	case "RemoveProposal":
+	case consensus_channel.RemoveProposal:
 		{
 			const prefix = "VirtualDefund-"
 			channelId := p.ToRemove.Target.String()
-			return ObjectiveId(prefix + channelId), nil
+			return ObjectiveId(prefix + channelId)
 
-		}
-	default:
-		{
-			return "", errors.New("invalid proposal type")
 		}
 	}
 }
@@ -189,16 +184,18 @@ func (m Message) Summarize() MessageSummary {
 
 	s.ProposalSummaries = make([]ProposalSummary, len(m.LedgerProposals))
 	for i, p := range m.LedgerProposals {
-		objId, err := GetProposalObjectiveId(p.Proposal)
+		objId := GetProposalObjectiveId(p.Proposal)
 		objIdString := string(objId)
-		if err != nil {
-			objIdString = err.Error() // Use error message as objective id
+		proposalType := "Add"
+		if p.Proposal.Type() == consensus_channel.RemoveProposal {
+			proposalType = "Remove"
 		}
+
 		s.ProposalSummaries[i] = ProposalSummary{
 			ObjectiveId:  objIdString,
 			LedgerId:     p.ChannelID().String(),
 			TurnNum:      p.TurnNum,
-			ProposalType: string(p.Proposal.Type()),
+			ProposalType: proposalType,
 		}
 	}
 	s.Payments = make([]PaymentSummary, len(m.Payments))
