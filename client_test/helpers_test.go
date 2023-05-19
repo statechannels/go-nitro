@@ -224,7 +224,7 @@ func setupSharedInra(tc TestCase) sharedTestInfrastructure {
 // It will fail if the channel does not exist
 func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...client.Client) {
 	for _, c := range clients {
-		expected := expectedPaymentInfo(id, o, status)
+		expected := createPaychInfo(id, o, status)
 		ledger, err := c.GetPaymentChannel(id)
 		if err != nil {
 			t.Fatal(err)
