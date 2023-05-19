@@ -316,7 +316,7 @@ func createPaychInfo(id types.Destination, outcome outcome.Exit, status query.Ch
 func createPaychStory(
 	id types.Destination,
 	payerAddr, payeeAddr common.Address,
-	states []channelStatusShorthand
+	states []channelStatusShorthand,
 ) []query.PaymentChannelInfo {
 	story := make([]query.PaymentChannelInfo, len(states))
 	for i, state := range states {
