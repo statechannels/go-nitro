@@ -1,6 +1,6 @@
 # Alice's test Config
 
-usedurablestore = true
+usedurablestore = false
 
 msgport = 3005
 rpcport = 4005
