@@ -152,7 +152,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 
 	expectedAliceLedgerNotifs := createLedgerStory(
 		laiRes.ChannelId, ta.Alice.Address(), ta.Irene.Address(),
-		[]ledgerStatusShorthand{
+		[]channelStatusShorthand{
 			{100, 100, query.Proposed},
 			{100, 100, query.Open},
 			{0, 100, query.Open},
@@ -166,7 +166,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 
 	expectedBobLedgerNotifs := createLedgerStory(
 		lbiRes.ChannelId, ta.Bob.Address(), ta.Irene.Address(),
-		[]ledgerStatusShorthand{
+		[]channelStatusShorthand{
 			{100, 100, query.Proposed},
 			{100, 100, query.Open},
 			{100, 0, query.Open},

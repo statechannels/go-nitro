@@ -253,10 +253,10 @@ func createLedgerInfo(id types.Destination, outcome outcome.Exit, status query.C
 	}
 }
 
-type ledgerStatusShorthand struct {
-	client uint
-	hub    uint
-	status query.ChannelStatus
+type channelStatusShorthand struct {
+	clientA uint
+	clientB uint
+	status  query.ChannelStatus
 }
 
 // createLedgerStory returns a sequence of LedgerChannelInfo structs according
@@ -264,13 +264,13 @@ type ledgerStatusShorthand struct {
 func createLedgerStory(
 	id types.Destination,
 	clientAddr, hubAddr common.Address,
-	states []ledgerStatusShorthand,
+	states []channelStatusShorthand,
 ) []query.LedgerChannelInfo {
 	story := make([]query.LedgerChannelInfo, len(states))
 	for i, state := range states {
 		story[i] = createLedgerInfo(
 			id,
-			simpleOutcome(clientAddr, hubAddr, state.client, state.hub),
+			simpleOutcome(clientAddr, hubAddr, state.clientA, state.clientB),
 			state.status,
 		)
 	}
