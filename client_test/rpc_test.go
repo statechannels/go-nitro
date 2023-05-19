@@ -67,113 +67,115 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	defer cleanupFnA()
 	defer cleanupFnB()
 	defer cleanupFnC()
+
 	aliceLedgerOutcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Irene.Address(), 100, 100, types.Address{})
 	bobLedgerOutcome := testdata.Outcomes.Create(ta.Bob.Address(), ta.Irene.Address(), 100, 100, types.Address{})
-	res := rpcClientA.CreateLedger(ta.Irene.Address(), 100, aliceLedgerOutcome)
-	bobResponse := rpcClientB.CreateLedger(ta.Irene.Address(), 100, bobLedgerOutcome)
 
-	aliceLedgerNotifs := rpcClientA.LedgerChannelUpdatesChan(res.ChannelId)
-	bobLedgerNotifs := rpcClientB.LedgerChannelUpdatesChan(bobResponse.ChannelId)
+	laiRes := rpcClientA.CreateLedger(ta.Irene.Address(), 100, aliceLedgerOutcome)
+	lbiRes := rpcClientB.CreateLedger(ta.Irene.Address(), 100, bobLedgerOutcome)
+
+	aliceLedgerNotifs := rpcClientA.LedgerChannelUpdatesChan(laiRes.ChannelId)
+	bobLedgerNotifs := rpcClientB.LedgerChannelUpdatesChan(lbiRes.ChannelId)
 
 	// Quick sanity check that we're getting a valid objective id
-	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
+	assert.Regexp(t, "DirectFunding.0x.*", laiRes.Id)
 
-	<-rpcClientA.ObjectiveCompleteChan(res.Id)
-	<-rpcClientB.ObjectiveCompleteChan(bobResponse.Id)
-	<-rpcClientI.ObjectiveCompleteChan(res.Id)
-	<-rpcClientI.ObjectiveCompleteChan(bobResponse.Id)
+	<-rpcClientA.ObjectiveCompleteChan(laiRes.Id)
+	<-rpcClientB.ObjectiveCompleteChan(lbiRes.Id)
+	<-rpcClientI.ObjectiveCompleteChan(laiRes.Id)
+	<-rpcClientI.ObjectiveCompleteChan(lbiRes.Id)
 
-	expectedAliceLedger := expectedLedgerInfo(res.ChannelId, aliceLedgerOutcome, query.Open)
-	checkQueryInfo(t, expectedAliceLedger, rpcClientA.GetLedgerChannel(res.ChannelId))
+	expectedAliceLedger := expectedLedgerInfo(laiRes.ChannelId, aliceLedgerOutcome, query.Open)
+	checkQueryInfo(t, expectedAliceLedger, rpcClientA.GetLedgerChannel(laiRes.ChannelId))
 	checkQueryInfoCollection(t, expectedAliceLedger, 1, rpcClientA.GetAllLedgerChannels())
 
-	expectedBobLedger := expectedLedgerInfo(bobResponse.ChannelId, bobLedgerOutcome, query.Open)
-	checkQueryInfo(t, expectedBobLedger, rpcClientB.GetLedgerChannel(bobResponse.ChannelId))
+	expectedBobLedger := expectedLedgerInfo(lbiRes.ChannelId, bobLedgerOutcome, query.Open)
+	checkQueryInfo(t, expectedBobLedger, rpcClientB.GetLedgerChannel(lbiRes.ChannelId))
 	checkQueryInfoCollection(t, expectedBobLedger, 1, rpcClientB.GetAllLedgerChannels())
 
 	initialOutcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Bob.Address(), 100, 0, types.Address{})
-	vRes := rpcClientA.CreateVirtual(
+	vabRes := rpcClientA.CreateVirtual(
 		[]types.Address{ta.Irene.Address()},
 		ta.Bob.Address(),
 		100,
 		initialOutcome)
-	aliceVirtualNotifs := rpcClientA.PaymentChannelUpdatesChan(vRes.ChannelId)
-	bobVirtualNotifs := rpcClientB.PaymentChannelUpdatesChan(vRes.ChannelId)
-	assert.Regexp(t, "VirtualFund.0x.*", vRes.Id)
+	aliceVirtualNotifs := rpcClientA.PaymentChannelUpdatesChan(vabRes.ChannelId)
+	bobVirtualNotifs := rpcClientB.PaymentChannelUpdatesChan(vabRes.ChannelId)
+	assert.Regexp(t, "VirtualFund.0x.*", vabRes.Id)
 
-	<-rpcClientA.ObjectiveCompleteChan(vRes.Id)
-	<-rpcClientB.ObjectiveCompleteChan(vRes.Id)
-	<-rpcClientI.ObjectiveCompleteChan(vRes.Id)
+	<-rpcClientA.ObjectiveCompleteChan(vabRes.Id)
+	<-rpcClientB.ObjectiveCompleteChan(vabRes.Id)
+	<-rpcClientI.ObjectiveCompleteChan(vabRes.Id)
 
-	expectedVirtual := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Open)
-	aliceVirtual := rpcClientA.GetVirtualChannel(vRes.ChannelId)
-	checkQueryInfo(t, expectedVirtual, aliceVirtual)
-	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientA.GetPaymentChannelsByLedger(res.ChannelId))
+	expectedVirtual := expectedPaymentInfo(vabRes.ChannelId, initialOutcome, query.Open)
+	aliceVab := rpcClientA.GetVirtualChannel(vabRes.ChannelId)
+	checkQueryInfo(t, expectedVirtual, aliceVab)
+	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientA.GetPaymentChannelsByLedger(laiRes.ChannelId))
 
-	bobVirtual := rpcClientB.GetVirtualChannel(vRes.ChannelId)
-	checkQueryInfo(t, expectedVirtual, bobVirtual)
-	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientB.GetPaymentChannelsByLedger(bobResponse.ChannelId))
+	bobVab := rpcClientB.GetVirtualChannel(vabRes.ChannelId)
+	checkQueryInfo(t, expectedVirtual, bobVab)
+	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientB.GetPaymentChannelsByLedger(lbiRes.ChannelId))
 
-	ireneVirtual := rpcClientI.GetVirtualChannel(vRes.ChannelId)
-	checkQueryInfo(t, expectedVirtual, ireneVirtual)
-	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientI.GetPaymentChannelsByLedger(bobResponse.ChannelId))
-	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientI.GetPaymentChannelsByLedger(res.ChannelId))
-	rpcClientA.Pay(vRes.ChannelId, 1)
+	ireneVab := rpcClientI.GetVirtualChannel(vabRes.ChannelId)
+	checkQueryInfo(t, expectedVirtual, ireneVab)
+	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientI.GetPaymentChannelsByLedger(lbiRes.ChannelId))
+	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientI.GetPaymentChannelsByLedger(laiRes.ChannelId))
+	rpcClientA.Pay(vabRes.ChannelId, 1)
 
-	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
+	closeVId := rpcClientA.CloseVirtual(vabRes.ChannelId)
 	<-rpcClientA.ObjectiveCompleteChan(closeVId)
 	<-rpcClientB.ObjectiveCompleteChan(closeVId)
 	<-rpcClientI.ObjectiveCompleteChan(closeVId)
 
-	closeId := rpcClientA.CloseLedger(res.ChannelId)
+	closeId := rpcClientA.CloseLedger(laiRes.ChannelId)
 	<-rpcClientA.ObjectiveCompleteChan(closeId)
 	<-rpcClientI.ObjectiveCompleteChan(closeId)
 
-	closeIdB := rpcClientB.CloseLedger(bobResponse.ChannelId)
+	closeIdB := rpcClientB.CloseLedger(lbiRes.ChannelId)
 	<-rpcClientB.ObjectiveCompleteChan(closeIdB)
 	<-rpcClientI.ObjectiveCompleteChan(closeIdB)
 
-	if len(rpcClientA.GetPaymentChannelsByLedger(res.ChannelId)) != 0 {
+	if len(rpcClientA.GetPaymentChannelsByLedger(laiRes.ChannelId)) != 0 {
 		t.Error("Alice should not have any payment channels open")
 	}
-	if len(rpcClientB.GetPaymentChannelsByLedger(bobResponse.ChannelId)) != 0 {
+	if len(rpcClientB.GetPaymentChannelsByLedger(lbiRes.ChannelId)) != 0 {
 		t.Error("Bob should not have any payment channels open")
 	}
-	if len(rpcClientI.GetPaymentChannelsByLedger(res.ChannelId)) != 0 {
+	if len(rpcClientI.GetPaymentChannelsByLedger(laiRes.ChannelId)) != 0 {
 		t.Error("Irene should not have any payment channels open")
 	}
-	if len(rpcClientI.GetPaymentChannelsByLedger(bobResponse.ChannelId)) != 0 {
+	if len(rpcClientI.GetPaymentChannelsByLedger(lbiRes.ChannelId)) != 0 {
 		t.Error("Irene should not have any payment channels open")
 	}
 
 	expectedAliceLedgerNotifs := []query.LedgerChannelInfo{
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Open),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 0, 100), query.Open),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Open),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Closing),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Complete),
+		expectedLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
+		expectedLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Open),
+		expectedLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 0, 100), query.Open),
+		expectedLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Open),
+		expectedLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Closing),
+		expectedLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Complete),
 	}
 	checkNotifications(t, expectedAliceLedgerNotifs, []query.LedgerChannelInfo{}, aliceLedgerNotifs, defaultTimeout)
 
 	expectedBobLedgerNotifs := []query.LedgerChannelInfo{
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Open),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 0), query.Open),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Open),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Closing),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Complete),
+		expectedLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
+		expectedLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Open),
+		expectedLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 0), query.Open),
+		expectedLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Open),
+		expectedLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Closing),
+		expectedLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Complete),
 	}
 	checkNotifications(t, expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
 
 	requiredVirtualNotifs := []query.PaymentChannelInfo{
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Open),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Open),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
+		expectedPaymentInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
+		expectedPaymentInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Open),
+		expectedPaymentInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Open),
+		expectedPaymentInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
 	}
 	optionalVirtualNotifs := []query.PaymentChannelInfo{
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
+		expectedPaymentInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
 	}
 	checkNotifications(t, requiredVirtualNotifs, optionalVirtualNotifs, aliceVirtualNotifs, defaultTimeout)
 
