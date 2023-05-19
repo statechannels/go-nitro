@@ -620,19 +620,19 @@ func (p SignedProposal) SortInfo() (types.Destination, uint64) {
 }
 
 // Target returns the target channel of the proposal.
-func (p *Proposal) Target() (types.Destination, error) {
+func (p *Proposal) Target() types.Destination {
 	switch p.Type() {
 	case "AddProposal":
 		{
-			return p.ToAdd.Target(), nil
+			return p.ToAdd.Target()
 		}
 	case "RemoveProposal":
 		{
-			return p.ToRemove.Target, nil
+			return p.ToRemove.Target
 		}
 	default:
 		{
-			return types.Destination{}, fmt.Errorf("invalid proposal type")
+			panic(fmt.Errorf("invalid proposal type %T", p))
 		}
 	}
 }

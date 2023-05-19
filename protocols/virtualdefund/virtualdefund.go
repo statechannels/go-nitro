@@ -555,11 +555,8 @@ func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protoc
 	}
 
 	updated := o.clone()
-	target, err := sp.Proposal.Target()
-	if err != nil {
-		return o, fmt.Errorf("could not get target from signed proposal: %w", err)
-	}
-	if target == o.VId() {
+	var err error
+	if sp.Proposal.Target() == o.VId() {
 		switch sp.Proposal.LedgerID {
 		case types.Destination{}:
 			return o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because of Alice or Bob we allow a null channel.
