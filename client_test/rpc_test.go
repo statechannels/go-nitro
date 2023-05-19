@@ -87,11 +87,11 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	<-rpcClientI.ObjectiveCompleteChan(laiRes.Id)
 	<-rpcClientI.ObjectiveCompleteChan(lbiRes.Id)
 
-	expectedAliceLedger := expectedLedgerInfo(laiRes.ChannelId, aliceLedgerOutcome, query.Open)
+	expectedAliceLedger := createLedgerInfo(laiRes.ChannelId, aliceLedgerOutcome, query.Open)
 	checkQueryInfo(t, expectedAliceLedger, rpcClientA.GetLedgerChannel(laiRes.ChannelId))
 	checkQueryInfoCollection(t, expectedAliceLedger, 1, rpcClientA.GetAllLedgerChannels())
 
-	expectedBobLedger := expectedLedgerInfo(lbiRes.ChannelId, bobLedgerOutcome, query.Open)
+	expectedBobLedger := createLedgerInfo(lbiRes.ChannelId, bobLedgerOutcome, query.Open)
 	checkQueryInfo(t, expectedBobLedger, rpcClientB.GetLedgerChannel(lbiRes.ChannelId))
 	checkQueryInfoCollection(t, expectedBobLedger, 1, rpcClientB.GetAllLedgerChannels())
 
@@ -151,22 +151,22 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	}
 
 	expectedAliceLedgerNotifs := []query.LedgerChannelInfo{
-		expectedLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
-		expectedLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Open),
-		expectedLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 0, 100), query.Open),
-		expectedLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Open),
-		expectedLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Closing),
-		expectedLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Complete),
+		createLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
+		createLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Open),
+		createLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 0, 100), query.Open),
+		createLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Open),
+		createLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Closing),
+		createLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Complete),
 	}
 	checkNotifications(t, expectedAliceLedgerNotifs, []query.LedgerChannelInfo{}, aliceLedgerNotifs, defaultTimeout)
 
 	expectedBobLedgerNotifs := []query.LedgerChannelInfo{
-		expectedLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
-		expectedLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Open),
-		expectedLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 0), query.Open),
-		expectedLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Open),
-		expectedLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Closing),
-		expectedLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Complete),
+		createLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
+		createLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Open),
+		createLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 0), query.Open),
+		createLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Open),
+		createLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Closing),
+		createLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Complete),
 	}
 	checkNotifications(t, expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
 

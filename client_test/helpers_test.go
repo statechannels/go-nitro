@@ -235,8 +235,8 @@ func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, sta
 	}
 }
 
-// expectedLedgerInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetLedgerChannel
-func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.LedgerChannelInfo {
+// createLedgerInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetLedgerChannel
+func createLedgerInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.LedgerChannelInfo {
 	clientAdd, _ := outcome[0].Allocations[0].Destination.ToAddress()
 	hubAdd, _ := outcome[0].Allocations[1].Destination.ToAddress()
 
@@ -257,7 +257,7 @@ func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status query
 // It will fail if the channel does not exist
 func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...client.Client) {
 	for _, c := range clients {
-		expected := expectedLedgerInfo(ledgerId, o, status)
+		expected := createLedgerInfo(ledgerId, o, status)
 		ledger, err := c.GetLedgerChannel(ledgerId)
 		if err != nil {
 			t.Fatal(err)
