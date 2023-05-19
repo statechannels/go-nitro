@@ -4,6 +4,7 @@ module.exports = {
     browser: true,
     es2020: true,
   },
+  ignorePatterns: ["!.storybook"],
   extends: ["plugin:react-hooks/recommended", "plugin:storybook/recommended"],
   parserOptions: {
     ecmaVersion: "latest",
