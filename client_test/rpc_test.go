@@ -178,12 +178,16 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 
 	checkNotifications(t, expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
 
-	requiredVirtualNotifs := []query.PaymentChannelInfo{
-		createPaychInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
-		createPaychInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Open),
-		createPaychInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Open),
-		createPaychInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
-	}
+	requiredVirtualNotifs := createPaychStory(
+		vabRes.ChannelId, ta.Alice.Address(), ta.Bob.Address(),
+		[]channelStatusShorthand{
+			{100, 0, query.Proposed},
+			{100, 0, query.Open},
+			{99, 1, query.Open},
+			{99, 1, query.Complete},
+		},
+	)
+
 	optionalVirtualNotifs := []query.PaymentChannelInfo{
 		createPaychInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
 	}

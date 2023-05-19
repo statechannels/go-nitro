@@ -311,6 +311,24 @@ func createPaychInfo(id types.Destination, outcome outcome.Exit, status query.Ch
 	}
 }
 
+// createPaychStory returns a sequence of PaymentChannelInfo structs according
+// to the supplied states.
+func createPaychStory(
+	id types.Destination,
+	payerAddr, payeeAddr common.Address,
+	states []channelStatusShorthand
+) []query.PaymentChannelInfo {
+	story := make([]query.PaymentChannelInfo, len(states))
+	for i, state := range states {
+		story[i] = createPaychInfo(
+			id,
+			simpleOutcome(payerAddr, payeeAddr, state.clientA, state.clientB),
+			state.status
+		)
+	}
+	return story
+}
+
 func clientAddresses(clients []client.Client) []common.Address {
 	addrs := make([]common.Address, len(clients))
 	for i, c := range clients {
