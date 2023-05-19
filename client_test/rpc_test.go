@@ -95,7 +95,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 
 	// TEMP: try a 0-hop virtual channel with Irene
 	vRes := rpcClientA.CreateVirtual(
-		[]types.Address{ta.Irene.Address()},
+		[]types.Address{},
 		ta.Irene.Address(),
 		100,
 		initialOutcome)
