@@ -288,8 +288,8 @@ func marshalToJson[T channelInfo](t *testing.T, info T) string {
 }
 
 // checkNotifications checks that notifications are received on the notifChan.
-// required specifics the notifications that must be received. checkNotifications will fail if any of these notifications are not received.
-// optional specifics the notifications that may be received. checkNotifications will not fail if any of these notifications are not received.
+// required specifies the notifications that must be received. checkNotifications will fail if any of these notifications are not received.
+// optional specifies notifications that may be received. checkNotifications will not fail if any of these notifications are not received.
 // If a notification is received that is neither in required or optional, checkNotifications will fail.
 func checkNotifications[T channelInfo](t *testing.T, required []T, optional []T, notifChan <-chan T, timeout time.Duration) {
 	// This is map containing both required and optional notifications.
