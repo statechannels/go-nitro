@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"path"
 	"strconv"
 	"time"
 
@@ -37,8 +38,8 @@ func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, erro
 
 	var serveMux http.ServeMux
 
-	serveMux.HandleFunc("/", wsc.request)
-	serveMux.HandleFunc("/subscribe", wsc.subscribe)
+	serveMux.HandleFunc(path.Join("/", rpcPath), wsc.request)
+	serveMux.HandleFunc(path.Join("/", rpcPath, "subscribe"), wsc.subscribe)
 	wsc.httpServer = &http.Server{
 		Handler:      &serveMux,
 		ReadTimeout:  time.Second * 10,
