@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
@@ -247,8 +248,8 @@ func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status query
 			AssetAddress:  types.Address{},
 			Hub:           hubAdd,
 			Client:        clientAdd,
-			ClientBalance: outcome[0].Allocations[0].Amount,
-			HubBalance:    outcome[0].Allocations[1].Amount,
+			ClientBalance: (*hexutil.Big)(outcome[0].Allocations[0].Amount),
+			HubBalance:    (*hexutil.Big)(outcome[0].Allocations[1].Amount),
 		},
 	}
 }
@@ -280,8 +281,8 @@ func expectedPaymentInfo(id types.Destination, outcome outcome.Exit, status quer
 			AssetAddress:   types.Address{},
 			Payee:          payee,
 			Payer:          payer,
-			RemainingFunds: outcome[0].Allocations[0].Amount,
-			PaidSoFar:      outcome[0].Allocations[1].Amount,
+			RemainingFunds: (*hexutil.Big)(outcome[0].Allocations[0].Amount),
+			PaidSoFar:      (*hexutil.Big)(outcome[0].Allocations[1].Amount),
 		},
 	}
 }
