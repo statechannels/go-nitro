@@ -44,7 +44,7 @@ type Objective struct {
 	// If this is not set then virtual defunding will accept any final outcome from Alice.
 	MinimumPaymentAmount *big.Int
 
-	V *channel.Channel // This is a Virtual Channel. TODO should this be a literal channel.VirtualChannel?
+	V *channel.VirtualChannel
 
 	ToMyLeft  *consensus_channel.ConsensusChannel
 	ToMyRight *consensus_channel.ConsensusChannel
@@ -81,10 +81,12 @@ func NewObjective(request ObjectiveRequest,
 		status = protocols.Unapproved
 	}
 
-	V, found := getChannel(request.ChannelId)
+	c, found := getChannel(request.ChannelId)
+
 	if !found {
 		return Objective{}, fmt.Errorf("could not find channel %s", request.ChannelId)
 	}
+	V := &channel.VirtualChannel{Channel: *c}
 
 	alice := V.Participants[0]
 	bob := V.Participants[len(V.Participants)-1]
