@@ -323,7 +323,7 @@ func createPaychStory(
 		story[i] = createPaychInfo(
 			id,
 			simpleOutcome(payerAddr, payeeAddr, state.clientA, state.clientB),
-			state.status
+			state.status,
 		)
 	}
 	return story
