@@ -150,24 +150,32 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 		t.Error("Irene should not have any payment channels open")
 	}
 
-	expectedAliceLedgerNotifs := []query.LedgerChannelInfo{
-		createLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
-		createLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Open),
-		createLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 0, 100), query.Open),
-		createLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Open),
-		createLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Closing),
-		createLedgerInfo(laiRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Complete),
-	}
+	expectedAliceLedgerNotifs := createLedgerStory(
+		laiRes.ChannelId, ta.Alice.Address(), ta.Irene.Address(),
+		[]ledgerStatusShorthand{
+			{100, 100, query.Proposed},
+			{100, 100, query.Open},
+			{0, 100, query.Open},
+			{99, 101, query.Open},
+			{99, 101, query.Closing},
+			{99, 101, query.Complete},
+		},
+	)
+
 	checkNotifications(t, expectedAliceLedgerNotifs, []query.LedgerChannelInfo{}, aliceLedgerNotifs, defaultTimeout)
 
-	expectedBobLedgerNotifs := []query.LedgerChannelInfo{
-		createLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
-		createLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Open),
-		createLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 0), query.Open),
-		createLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Open),
-		createLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Closing),
-		createLedgerInfo(lbiRes.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Complete),
-	}
+	expectedBobLedgerNotifs := createLedgerStory(
+		lbiRes.ChannelId, ta.Bob.Address(), ta.Irene.Address(),
+		[]ledgerStatusShorthand{
+			{100, 100, query.Proposed},
+			{100, 100, query.Open},
+			{100, 0, query.Open},
+			{101, 99, query.Open},
+			{101, 99, query.Closing},
+			{101, 99, query.Complete},
+		},
+	)
+
 	checkNotifications(t, expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
 
 	requiredVirtualNotifs := []query.PaymentChannelInfo{
