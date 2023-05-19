@@ -101,7 +101,7 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 				p2pServices[i] = msgService.(*p2pms.P2PMessageService)
 			}
 
-			waitForPeerInfoExchange(len(tc.Participants)-1, p2pServices...)
+			waitForPeerInfoExchange(p2pServices...)
 		}
 
 		asset := common.Address{}

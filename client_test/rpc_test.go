@@ -51,6 +51,8 @@ func TestRpcWithWebsockets(t *testing.T) {
 	executeRpcTest(t, "ws")
 }
 
+// func executeNRpcTest(t)
+
 func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	logFile := "test_rpc_client.log"
 	logDestination := newLogWriter(logFile)
@@ -63,7 +65,7 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3005, 4005, chainServiceA, logDestination, connectionType)
 	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3006, 4006, chainServiceB, logDestination, connectionType)
 	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3007, 4007, chainServiceI, logDestination, connectionType)
-	waitForPeerInfoExchange(2, msgA, msgB, msgI)
+	waitForPeerInfoExchange(msgA, msgB, msgI)
 	defer cleanupFnA()
 	defer cleanupFnB()
 	defer cleanupFnC()
