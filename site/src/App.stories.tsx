@@ -18,7 +18,7 @@ export const AppPopulated = () => <App />;
 AppPopulated.parameters = {
   msw: {
     handlers: [
-      rest.post("http://localhost:4005", async (req, res, ctx) => {
+      rest.post("http://localhost:4005/api", async (req, res, ctx) => {
         const json = await req.json();
         let retVal = {};
         switch (json.method) {

@@ -11,12 +11,17 @@ import {
 
 import { Transport } from ".";
 
+const rpcPath = "/api";
+
 export class HttpTransport {
   Notifications: EventEmitter<NotificationMethod, NotificationPayload>;
 
   public static async createTransport(server: string): Promise<Transport> {
     // eslint-disable-next-line new-cap
-    const ws = new w3cwebsocket(`ws://${server}/subscribe`, undefined);
+    const ws = new w3cwebsocket(
+      new URL(`${rpcPath}/subscribe`, `ws://${server}`).toString(),
+      undefined
+    );
     // Wait for onopen to fire so we know the connection is ready
     await new Promise<void>((resolve) => (ws.onopen = () => resolve()));
 
@@ -27,9 +32,9 @@ export class HttpTransport {
   public async sendRequest<K extends RequestMethod>(
     req: RPCRequestAndResponses[K][0]
   ): Promise<RPCRequestAndResponses[K][1]> {
-    const url = `http://${this.server}`;
+    const url = new URL(`${rpcPath}`, `http://${this.server}`).toString();
 
-    const result = await axios.post(url, JSON.stringify(req));
+    const result = await axios.post(url.toString(), JSON.stringify(req));
 
     return result.data as RPCRequestAndResponses[K][1];
   }
