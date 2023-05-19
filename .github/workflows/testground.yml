@@ -3,7 +3,6 @@ name: Run Testground
 on:
   pull_request:
     paths: ["**/*.go", ".github/workflows/testground.yml"]
-  workflow_dispatch:
 jobs:
   run-testground:
     runs-on: ubuntu-latest
