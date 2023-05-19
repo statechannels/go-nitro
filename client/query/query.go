@@ -50,9 +50,9 @@ func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit
 	}
 }
 
-// getLatestSupported returns the latest supported state of the channel
+// getLatestSupportedOrPreFund returns the latest supported state of the channel
 // or the prefund state if no supported state exists
-func getLatestSupported(channel *channel.Channel) (state.State, error) {
+func getLatestSupportedOrPreFund(channel *channel.Channel) (state.State, error) {
 	if channel.HasSupportedState() {
 		return channel.LatestSupportedState()
 	}
@@ -211,7 +211,7 @@ func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel) L
 }
 
 func ConstructLedgerInfoFromChannel(c *channel.Channel) LedgerChannelInfo {
-	latest, err := getLatestSupported(c)
+	latest, err := getLatestSupportedOrPreFund(c)
 	if err != nil {
 		panic(err)
 	}
@@ -231,7 +231,7 @@ func ConstructPaymentInfo(c *channel.Channel, paid, remaining *big.Int) (Payment
 		status = Open
 	}
 
-	latest, err := getLatestSupported(c)
+	latest, err := getLatestSupportedOrPreFund(c)
 	if err != nil {
 		return PaymentChannelInfo{}, err
 	}
