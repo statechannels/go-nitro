@@ -293,8 +293,8 @@ func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit
 	}
 }
 
-// expectedPaymentInfo constructs a PaymentChannelInfo so we can easily compare it to the result of GetPaymentChannel
-func expectedPaymentInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.PaymentChannelInfo {
+// createPaychInfo constructs a PaymentChannelInfo so we can easily compare it to the result of GetPaymentChannel
+func createPaychInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.PaymentChannelInfo {
 	payer, _ := outcome[0].Allocations[0].Destination.ToAddress()
 	payee, _ := outcome[0].Allocations[1].Destination.ToAddress()
 

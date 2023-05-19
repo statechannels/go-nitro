@@ -179,13 +179,13 @@ func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
 	checkNotifications(t, expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
 
 	requiredVirtualNotifs := []query.PaymentChannelInfo{
-		expectedPaymentInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
-		expectedPaymentInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Open),
-		expectedPaymentInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Open),
-		expectedPaymentInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
+		createPaychInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
+		createPaychInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Open),
+		createPaychInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Open),
+		createPaychInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
 	}
 	optionalVirtualNotifs := []query.PaymentChannelInfo{
-		expectedPaymentInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
+		createPaychInfo(vabRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
 	}
 	checkNotifications(t, requiredVirtualNotifs, optionalVirtualNotifs, aliceVirtualNotifs, defaultTimeout)
 
