@@ -140,6 +140,11 @@ func (ds *DurableStore) SetObjective(obj protocols.Objective) error {
 	}
 	for _, rel := range obj.Related() {
 		switch ch := rel.(type) {
+		case *channel.VirtualChannel:
+			err := ds.SetChannel(&ch.Channel)
+			if err != nil {
+				return fmt.Errorf("error setting virtual channel %s from objective %s: %w", ch.Id, obj.Id(), err)
+			}
 		case *channel.Channel:
 			err := ds.SetChannel(ch)
 			if err != nil {
@@ -517,7 +522,7 @@ func (ds *DurableStore) populateChannelData(obj protocols.Objective) error {
 		if err != nil {
 			return fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
 		}
-		o.V = &v
+		o.V = &channel.VirtualChannel{Channel: v}
 
 		zeroAddress := types.Destination{}
 

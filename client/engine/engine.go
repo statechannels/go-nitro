@@ -599,27 +599,18 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 
 	for _, rel := range o.Related() {
 		switch c := rel.(type) {
-		case *channel.Channel:
-			// If we're in direct funding/defunding then we're dealing with a leadger channel
-			_, isDF := o.(*directfund.Objective)
-			_, isDDF := o.(*directdefund.Objective)
-			if isDDF || isDF {
-				outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromChannel(c))
-			} else { // otherwise we must have a payment channel
-
-				paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
-				if err != nil {
-					return outgoing, err
-				}
-
-				info, err := query.ConstructPaymentInfo(c, paid, remaining)
-				if err != nil {
-					return outgoing, err
-				}
-
-				outgoing.PaymentChannelUpdates = append(outgoing.PaymentChannelUpdates, info)
-
+		case *channel.VirtualChannel:
+			paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
+			if err != nil {
+				return outgoing, err
 			}
+			info, err := query.ConstructPaymentInfo(&c.Channel, paid, remaining)
+			if err != nil {
+				return outgoing, err
+			}
+			outgoing.PaymentChannelUpdates = append(outgoing.PaymentChannelUpdates, info)
+		case *channel.Channel:
+			outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromChannel(c))
 		case *consensus_channel.ConsensusChannel:
 			outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromConsensus(c))
 		default:

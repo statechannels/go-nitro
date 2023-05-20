@@ -79,7 +79,7 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 
 	o.MyRole = jsonVFO.MyRole
 
-	o.V = &channel.Channel{}
+	o.V = &channel.VirtualChannel{}
 	o.V.Id = jsonVFO.V
 
 	o.MinimumPaymentAmount = jsonVFO.MinimumPaymentAmount
