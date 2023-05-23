@@ -1,8 +1,7 @@
 package query
 
 import (
-	"math/big"
-
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -21,8 +20,8 @@ type PaymentChannelBalance struct {
 	AssetAddress   types.Address
 	Payee          types.Address
 	Payer          types.Address
-	PaidSoFar      *big.Int
-	RemainingFunds *big.Int
+	PaidSoFar      *hexutil.Big
+	RemainingFunds *hexutil.Big
 }
 
 // PaymentChannelInfo contains balance and status info about a payment channel
@@ -44,8 +43,8 @@ type LedgerChannelBalance struct {
 	AssetAddress  types.Address
 	Hub           types.Address
 	Client        types.Address
-	HubBalance    *big.Int
-	ClientBalance *big.Int
+	HubBalance    *hexutil.Big
+	ClientBalance *hexutil.Big
 }
 
 // Equal returns true if the other LedgerChannelBalance is equal to this one
@@ -53,8 +52,8 @@ func (lcb LedgerChannelBalance) Equal(other LedgerChannelBalance) bool {
 	return lcb.AssetAddress == other.AssetAddress &&
 		lcb.Hub == other.Hub &&
 		lcb.Client == other.Client &&
-		lcb.HubBalance.Cmp(other.HubBalance) == 0 &&
-		lcb.ClientBalance.Cmp(other.ClientBalance) == 0
+		lcb.HubBalance.ToInt().Cmp(other.HubBalance.ToInt()) == 0 &&
+		lcb.ClientBalance.ToInt().Cmp(other.ClientBalance.ToInt()) == 0
 }
 
 // Equal returns true if the other LedgerChannelInfo is equal to this one
@@ -72,6 +71,6 @@ func (pcb PaymentChannelBalance) Equal(other PaymentChannelBalance) bool {
 	return pcb.AssetAddress == other.AssetAddress &&
 		pcb.Payee == other.Payee &&
 		pcb.Payer == other.Payer &&
-		pcb.PaidSoFar.Cmp(other.PaidSoFar) == 0 &&
-		pcb.RemainingFunds.Cmp(other.RemainingFunds) == 0
+		pcb.PaidSoFar.ToInt().Cmp(other.PaidSoFar.ToInt()) == 0 &&
+		pcb.RemainingFunds.ToInt().Cmp(other.RemainingFunds.ToInt()) == 0
 }

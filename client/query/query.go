@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -45,8 +46,8 @@ func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit
 		AssetAddress:   asset,
 		Payer:          payer,
 		Payee:          payee,
-		PaidSoFar:      paidSoFar,
-		RemainingFunds: remaining,
+		PaidSoFar:      (*hexutil.Big)(paidSoFar),
+		RemainingFunds: (*hexutil.Big)(remaining),
 	}
 }
 
@@ -73,8 +74,8 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 		AssetAddress:  asset,
 		Hub:           hub,
 		Client:        client,
-		HubBalance:    hubBalance,
-		ClientBalance: clientBalance,
+		HubBalance:    (*hexutil.Big)(hubBalance),
+		ClientBalance: (*hexutil.Big)(clientBalance),
 	}
 }
 
@@ -237,9 +238,9 @@ func ConstructPaymentInfo(c *channel.Channel, paid, remaining *big.Int) (Payment
 	}
 	balance := getPaymentChannelBalance(c.Participants, latest.Outcome)
 
-	balance.PaidSoFar.Set(paid)
+	balance.PaidSoFar.ToInt().Set(paid)
 
-	balance.RemainingFunds.Set(remaining)
+	balance.RemainingFunds.ToInt().Set(remaining)
 
 	return PaymentChannelInfo{
 		ID:      c.Id,
