@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "yarn tsc -b && vite build",
+    "build": "vite build",
     "build-storybook": "storybook build",
     "dev": "vite",
     "lint": "eslint . --ext js,jsx,cjs,ts,tsx --report-unused-disable-directives --max-warnings 0",
