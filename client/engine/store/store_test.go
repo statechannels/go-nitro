@@ -1,14 +1,19 @@
 package store_test
 
 import (
+	"fmt"
+	"math"
 	"math/big"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel"
 	cc "github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/engine/store"
 	nc "github.com/statechannels/go-nitro/crypto"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
@@ -17,7 +22,10 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/types"
+	"github.com/tidwall/buntdb"
 )
+
+const STORE_TEST_DATA_FOLDER = "../data/store_test"
 
 func compareObjectives(a, b protocols.Objective) string {
 	return cmp.Diff(&a, &b, cmp.AllowUnexported(
@@ -206,5 +214,50 @@ func TestGetChannelsByParticipant(t *testing.T) {
 
 	if diff := cmp.Diff(got, want, cmp.AllowUnexported(channel.Channel{}, big.Int{}, state.SignedState{})); diff != "" {
 		t.Fatalf("fetched result different than expected %s", diff)
+	}
+}
+
+func TestBigNumberStorage(t *testing.T) {
+	pk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
+
+	dataFolder := fmt.Sprintf("%s/%d%d", STORE_TEST_DATA_FOLDER, rand.Uint64(), time.Now().UnixNano())
+	durableStore := store.NewPersistStore(pk, dataFolder, buntdb.Config{})
+	memStore := store.NewMemStore(pk)
+
+	for _, store := range []store.Store{durableStore, memStore} {
+		// Set the large amount to 100 * math.MaxInt64
+		// 9223372036854775807 * 100 = 922337203685477580700
+		largeAmount := big.NewInt(math.MaxInt64)
+		largeAmount = largeAmount.Mul(largeAmount, big.NewInt(100))
+
+		reallyLargeOutcome := outcome.Exit{outcome.SingleAssetExit{
+			Asset: types.Address{},
+			Allocations: outcome.Allocations{
+				outcome.Allocation{
+					Destination: types.AddressToDestination(ta.Alice.Address()),
+					Amount:      big.NewInt(0).Set(largeAmount), // Create a copy of the big.Int in case to avoid any mutation issues
+				},
+			},
+		}}
+		s := state.State{Outcome: reallyLargeOutcome}
+		c, err := channel.New(s, 0)
+		if err != nil {
+			t.Fatalf("error constructing channel: %v", err)
+		}
+
+		err = store.SetChannel(c)
+		if err != nil {
+			t.Fatalf("error setting channel: %v", err)
+		}
+
+		got, ok := store.GetChannelById(c.Id)
+		if !ok {
+			t.Fatalf("expected to find the inserted channel, but didn't")
+		}
+
+		//  Check that the *big.Int we get back represents the same value as the one we put in
+		if got.PreFundState().Outcome[0].Allocations[0].Amount.Cmp(largeAmount) != 0 {
+			t.Fatalf("Expected amount to be %v but got %v", largeAmount, got.PreFundState().Outcome[0].Allocations[0].Amount)
+		}
 	}
 }
