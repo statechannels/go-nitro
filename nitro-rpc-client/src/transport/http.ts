@@ -11,7 +11,7 @@ import {
 
 import { Transport } from ".";
 
-const rpcPath = "api";
+export const RPC_PATH = "api";
 
 export class HttpTransport {
   Notifications: EventEmitter<NotificationMethod, NotificationPayload>;
@@ -19,9 +19,16 @@ export class HttpTransport {
   public static async createTransport(server: string): Promise<Transport> {
     // eslint-disable-next-line new-cap
     const ws = new w3cwebsocket(
-      new URL(`${rpcPath}/subscribe`, `ws://${server}`).toString(),
+      new URL(`${RPC_PATH}/subscribe`, `ws://${server}`).toString(),
       undefined
     );
+
+    // throw any websocket errors so we don't fail silently
+    ws.onerror = (e) => {
+      console.error("Error with websocket connection to server");
+      throw e;
+    };
+
     // Wait for onopen to fire so we know the connection is ready
     await new Promise<void>((resolve) => (ws.onopen = () => resolve()));
 
@@ -32,7 +39,7 @@ export class HttpTransport {
   public async sendRequest<K extends RequestMethod>(
     req: RPCRequestAndResponses[K][0]
   ): Promise<RPCRequestAndResponses[K][1]> {
-    const url = new URL(`${rpcPath}`, `http://${this.server}`).toString();
+    const url = new URL(`${RPC_PATH}`, `http://${this.server}`).toString();
 
     const result = await axios.post(url.toString(), JSON.stringify(req));
 

@@ -13,6 +13,7 @@ import {
   getLocalRPCUrl,
   logOutChannelUpdates,
 } from "../src/utils";
+import { RPC_PATH } from "../src/transport/http";
 
 yargs(hideBin(process.argv))
   .scriptName("client-runner")
@@ -234,13 +235,14 @@ async function waitForRPCServer(
 // This is specific to the HTTP/WS RPC transport
 async function isServerUp(port: number): Promise<boolean> {
   let result: AxiosResponse<unknown, unknown>;
+  const url = new URL(
+    `${RPC_PATH}`,
+    `http://${getLocalRPCUrl(port)}`
+  ).toString();
 
   try {
     const req = generateRequest("get_address", {});
-    result = await axios.post(
-      `http://${getLocalRPCUrl(port)}`,
-      JSON.stringify(req)
-    );
+    result = await axios.post(url, JSON.stringify(req));
   } catch (e) {
     return false;
   }
