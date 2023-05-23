@@ -1,5 +1,7 @@
 import { rest } from "msw";
 import { Meta } from "@storybook/react";
+import { Server } from "mock-socket";
+import { useEffect } from "react";
 
 import App from "./App";
 import {
@@ -9,12 +11,32 @@ import {
   getPaymentChannelsByLedgerMock,
 } from "./mocks/request";
 
+function createMockServer() {
+  const mockServer = new Server("ws://localhost:4005/api/subscribe");
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  mockServer.on("connection", () => {});
+  return mockServer;
+}
+
 const meta: Meta<typeof App> = {
   title: "App",
   component: App,
 };
+
 export default meta;
-export const AppPopulated = () => <App />;
+export const AppPopulated = () => {
+  const mockServer = createMockServer();
+
+  // Clean up after the story is unmounted
+  useEffect(() => {
+    return () => {
+      mockServer.stop();
+    };
+  }, [mockServer]);
+
+  return <App />;
+};
+
 AppPopulated.parameters = {
   msw: {
     handlers: [

@@ -1,8 +1,14 @@
 import type { Preview } from "@storybook/react";
 import { initialize, mswDecorator } from "msw-storybook-addon";
+import { WebSocket } from "mock-socket";
+
+// Override the global WebSocket object with the mock one
+global.WebSocket = WebSocket;
 
 // Initialize MSW
-initialize();
+initialize({
+  onUnhandledRequest: "bypass",
+});
 
 // Provide the MSW addon decorator globally
 export const decorators = [mswDecorator];
