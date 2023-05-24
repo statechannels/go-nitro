@@ -50,7 +50,17 @@ Usage of ./nitro-rpc-server:
   -usenats
         Specifies whether to use NATS or http/ws for the rpc server.
 ```
+  
+You can make remote procedure calls like so:
+  
+  ```shell
+  curl -X POST \   
+     -H 'Content-Type: application/json' \
+     -d '{"jsonrpc":"2.0","id":1,"method":"get_address","params":{}}' \
+     http://localhost:4005/api
+  ```
 
+  but see https://github.com/statechannels/nitro-gui for an RPC client to do so programmatically. 
 ### As a Library
 
 Go-nitro is also work-in-progress library code with an evolving API.
