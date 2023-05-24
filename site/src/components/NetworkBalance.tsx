@@ -51,18 +51,18 @@ function interpolateColor(
   const hex = (x: string) => parseInt(x, 16);
 
   const r = Math.round(
-    hex(colorA.substr(1, 2)) * (1 - percentage) +
-      hex(colorB.substr(1, 2)) * percentage
+    hex(colorA.slice(1, 3)) * (1 - percentage) +
+      hex(colorB.slice(1, 3)) * percentage
   ).toString(16);
 
   const g = Math.round(
-    hex(colorA.substr(3, 2)) * (1 - percentage) +
-      hex(colorB.substr(3, 2)) * percentage
+    hex(colorA.slice(3, 5)) * (1 - percentage) +
+      hex(colorB.slice(3, 5)) * percentage
   ).toString(16);
 
   const b = Math.round(
-    hex(colorA.substr(5, 2)) * (1 - percentage) +
-      hex(colorB.substr(5, 2)) * percentage
+    hex(colorA.slice(5, 7)) * (1 - percentage) +
+      hex(colorB.slice(5, 7)) * percentage
   ).toString(16);
 
   return `#${r}${g}${b}`;
