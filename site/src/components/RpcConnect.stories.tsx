@@ -11,6 +11,8 @@ export default meta;
 
 type Story = StoryObj<typeof RpcConnect>;
 
-export const Primary: Story = {
-  render: () => <RpcConnect url="localhost:8545" />,
+export const Connect: Story = {
+  args: {
+    url: "localhost:8545",
+  },
 };
