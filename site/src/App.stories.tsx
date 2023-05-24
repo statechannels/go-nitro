@@ -13,8 +13,6 @@ import {
 
 function createMockServer() {
   const mockServer = new Server("ws://localhost:4005/api/subscribe");
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  mockServer.on("connection", () => {});
   return mockServer;
 }
 
