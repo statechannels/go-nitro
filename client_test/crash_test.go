@@ -47,7 +47,10 @@ func TestCrashTolerance(t *testing.T) {
 	defer os.RemoveAll(dataFolder)
 
 	// Client setup
-	storeA := store.NewDurableStore(ta.Alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
+	storeA, err := store.NewDurableStore(ta.Alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
+	if err != nil {
+		t.Fatal(err)
+	}
 	messageserviceA := messageservice.NewTestMessageService(ta.Alice.Address(), broker, 0)
 	clientA := client.New(messageserviceA, chainA, storeA, logDestination, &engine.PermissivePolicy{}, nil)
 
@@ -62,7 +65,10 @@ func TestCrashTolerance(t *testing.T) {
 		closeClient(t, &clientA)
 		anotherMessageserviceA := messageservice.NewTestMessageService(ta.Alice.Address(), broker, 0)
 		anotherChainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
-		anotherStoreA := store.NewDurableStore(ta.Alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
+		if err != nil {
+			t.Fatal(err)
+		}
+		anotherStoreA, err := store.NewDurableStore(ta.Alice.PrivateKey, dataFolder, buntdb.Config{SyncPolicy: buntdb.Always})
 		if err != nil {
 			t.Fatal(err)
 		}

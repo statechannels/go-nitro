@@ -210,7 +210,10 @@ func TestGetChannelsByParticipant(t *testing.T) {
 	want := []*channel.Channel{c}
 	_ = ms.SetChannel(c)
 
-	got := ms.GetChannelsByParticipant(c.Participants[0])
+	got, err := ms.GetChannelsByParticipant(c.Participants[0])
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if diff := cmp.Diff(got, want, cmp.AllowUnexported(channel.Channel{}, big.Int{}, state.SignedState{})); diff != "" {
 		t.Fatalf("fetched result different than expected %s", diff)
@@ -221,7 +224,10 @@ func TestBigNumberStorage(t *testing.T) {
 	pk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
 	dataFolder := fmt.Sprintf("%s/%d%d", STORE_TEST_DATA_FOLDER, rand.Uint64(), time.Now().UnixNano())
-	durableStore := store.NewPersistStore(pk, dataFolder, buntdb.Config{})
+	durableStore, err := store.NewDurableStore(pk, dataFolder, buntdb.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
 	memStore := store.NewMemStore(pk)
 
 	for _, store := range []store.Store{durableStore, memStore} {

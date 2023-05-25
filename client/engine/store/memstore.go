@@ -137,8 +137,9 @@ func (ms *MemStore) SetChannel(ch *channel.Channel) error {
 }
 
 // DestroyChannel deletes the channel with id id.
-func (ms *MemStore) DestroyChannel(id types.Destination) {
+func (ms *MemStore) DestroyChannel(id types.Destination) error {
 	ms.channels.Delete(id.String())
+	return nil
 }
 
 // SetConsensusChannel sets the channel in the store.
@@ -156,8 +157,9 @@ func (ms *MemStore) SetConsensusChannel(ch *consensus_channel.ConsensusChannel) 
 }
 
 // DestroyChannel deletes the channel with id id.
-func (ms *MemStore) DestroyConsensusChannel(id types.Destination) {
+func (ms *MemStore) DestroyConsensusChannel(id types.Destination) error {
 	ms.consensusChannels.Delete(id.String())
+	return nil
 }
 
 // GetChannelById retrieves the channel with the supplied id, if it exists.
@@ -243,7 +245,7 @@ func (ms *MemStore) GetChannelsByAppDefinition(appDef types.Address) ([]*channel
 }
 
 // GetChannelsByParticipant returns any channels that include the given participant
-func (ms *MemStore) GetChannelsByParticipant(participant types.Address) []*channel.Channel {
+func (ms *MemStore) GetChannelsByParticipant(participant types.Address) ([]*channel.Channel, error) {
 	toReturn := []*channel.Channel{}
 	ms.channels.Range(func(key string, chJSON []byte) bool {
 		var ch channel.Channel
@@ -262,7 +264,7 @@ func (ms *MemStore) GetChannelsByParticipant(participant types.Address) []*chann
 		return true // channel not found: continue looking
 	})
 
-	return toReturn
+	return toReturn, nil
 }
 
 // GetConsensusChannelById returns a ConsensusChannel with the given channel id
@@ -456,8 +458,9 @@ func decodeObjective(id protocols.ObjectiveId, data []byte) (protocols.Objective
 	}
 }
 
-func (ms *MemStore) ReleaseChannelFromOwnership(channelId types.Destination) {
+func (ms *MemStore) ReleaseChannelFromOwnership(channelId types.Destination) error {
 	ms.channelToObjective.Delete(channelId.String())
+	return nil
 }
 
 func (ms *MemStore) SetVoucherInfo(channelId types.Destination, v payments.VoucherInfo) error {
