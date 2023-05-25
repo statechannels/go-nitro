@@ -337,9 +337,21 @@ func checkNotifications[T channelInfo](t *testing.T, required []T, optional []T,
 			delete(acceptableNotifications, js)
 
 		case <-time.After(timeout):
-			t.Fatalf("Timed out waiting for notification.\n")
+			t.Fatalf("Timed out waiting for notification(s): \n%v", incompleteRequired(acceptableNotifications))
 		}
 	}
+}
+
+// incompleteRequired returns a debug string listing
+// required notifications that have not been received.
+func incompleteRequired(notifs map[string]bool) string {
+	required := ""
+	for k, isRequired := range notifs {
+		if isRequired {
+			required += k + "\n"
+		}
+	}
+	return required
 }
 
 // areRequiredComplete checks if all the required notifications have been received.
