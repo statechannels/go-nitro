@@ -220,10 +220,8 @@ func (e *Engine) Run() {
 func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
 
-	id, err := getProposalObjectiveId(proposal)
-	if err != nil {
-		return EngineEvent{}, err
-	}
+	id := getProposalObjectiveId(proposal)
+
 	obj, err := e.store.GetObjectiveById(id)
 	if err != nil {
 		return EngineEvent{}, err
@@ -311,10 +309,8 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 	for _, entry := range message.LedgerProposals { // The ledger protocol requires us to process these proposals in turnNum order.
 		// Here we rely on the sender having packed them into the message in that order, and do not apply any checks or sorting of our own.
-		id, err := getProposalObjectiveId(entry.Proposal)
-		if err != nil {
-			return EngineEvent{}, err
-		}
+		id := getProposalObjectiveId(entry.Proposal)
+
 		o, err := e.store.GetObjectiveById(id)
 		if err != nil {
 			return EngineEvent{}, err
@@ -758,25 +754,25 @@ func fromMsgErr(id protocols.ObjectiveId, err error) error {
 }
 
 // getProposalObjectiveId returns the objectiveId for a proposal.
-func getProposalObjectiveId(p consensus_channel.Proposal) (protocols.ObjectiveId, error) {
+func getProposalObjectiveId(p consensus_channel.Proposal) protocols.ObjectiveId {
 	switch p.Type() {
 	case consensus_channel.AddProposal:
 		{
 			const prefix = virtualfund.ObjectivePrefix
 			channelId := p.ToAdd.Guarantee.Target().String()
-			return protocols.ObjectiveId(prefix + channelId), nil
+			return protocols.ObjectiveId(prefix + channelId)
 
 		}
 	case consensus_channel.RemoveProposal:
 		{
 			const prefix = virtualdefund.ObjectivePrefix
 			channelId := p.ToRemove.Target.String()
-			return protocols.ObjectiveId(prefix + channelId), nil
+			return protocols.ObjectiveId(prefix + channelId)
 
 		}
 	default:
 		{
-			return protocols.ObjectiveId(""), fmt.Errorf("invalid proposal type")
+			panic("invalid proposal type")
 		}
 	}
 }
