@@ -151,7 +151,7 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/holiman/uint256 v1.2.0 // indirect
-	github.com/libp2p/go-libp2p v0.27.0
+	github.com/libp2p/go-libp2p v0.26.2
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/miguelmota/go-ethereum-hdwallet v0.1.1
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
