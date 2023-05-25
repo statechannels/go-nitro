@@ -308,7 +308,7 @@ func marshalToJson[T channelInfo](t *testing.T, info T) string {
 // if any of these notifications are not received.
 //
 // If a notification is received that is neither in required or optional, checkNotifications will fail.
-func checkNotifications[T channelInfo](t *testing.T, required []T, optional []T, notifChan <-chan T, timeout time.Duration) {
+func checkNotifications[T channelInfo](t *testing.T, client string, required []T, optional []T, notifChan <-chan T, timeout time.Duration) {
 	// This is map containing both required and optional notifications.
 	// We use the json representation of the notification as the key and a boolean as the value.
 	// The boolean value is true if the notification is required and false if it is optional.
@@ -331,13 +331,13 @@ func checkNotifications[T channelInfo](t *testing.T, required []T, optional []T,
 			// Check that the notification is a required or optional one.
 			_, found := acceptableNotifications[js]
 			if !found {
-				t.Fatalf("Received unexpected notification: %v", info)
+				t.Fatalf("%s received unexpected notification: %v", client, info)
 			}
 			// To signal we received a notification we delete it from the map
 			delete(acceptableNotifications, js)
 
 		case <-time.After(timeout):
-			t.Fatalf("Timed out waiting for notification(s): \n%v", incompleteRequired(acceptableNotifications))
+			t.Fatalf("%s timed out waiting for notification(s): \n%v", client, incompleteRequired(acceptableNotifications))
 		}
 	}
 }
