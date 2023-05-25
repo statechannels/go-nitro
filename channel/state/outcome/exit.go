@@ -7,7 +7,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -183,14 +182,17 @@ func Decode(data types.Bytes) (Exit, error) {
 	return convertToExit(unpacked[0].(rawExitType)), nil
 }
 
-// Hash returns the keccak256 hash of the Exit
-func (e *Exit) Hash() (types.Bytes32, error) {
-	if encoded, err := e.Encode(); err == nil {
-		return crypto.Keccak256Hash(encoded), nil
-	} else {
-		return types.Bytes32{}, err
-	}
-}
+// TODO: Disabling this allows the rpc client to be imported
+// without importing go-ethereum/crypto
+// This allows the rpc client to be used in the boost repo
+// // Hash returns the keccak256 hash of the Exit
+// func (e *Exit) Hash() (types.Bytes32, error) {
+// 	if encoded, err := e.Encode(); err == nil {
+// 		return crypto.Keccak256Hash(encoded), nil
+// 	} else {
+// 		return types.Bytes32{}, err
+// 	}
+// }
 
 // easyExit is a more ergonomic data type which can be derived from an Exit
 type easyExit map[common.Address]SingleAssetExit

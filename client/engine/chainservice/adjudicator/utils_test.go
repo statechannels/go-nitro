@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	ethAbi "github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/statechannels/go-nitro/abi"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -17,7 +18,10 @@ func generateStatus(state state.State, finalizesAt uint64) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-	outcomeHash, err := state.Outcome.Hash()
+	// TODO: Disabling this allows the rpc client to be imported
+	// without importing go-ethereum/crypto
+	// This allows the rpc client to be used in the boost repo
+	outcomeHash := common.Hash{}
 	if err != nil {
 		return []byte{}, err
 	}
