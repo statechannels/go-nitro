@@ -80,6 +80,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	defer logDestination.Close()
 
 	chain := chainservice.NewMockChain()
+	defer chain.Close()
 
 	// create n actors
 	actors := make([]ta.Actor, n)
