@@ -50,8 +50,8 @@ var testState = state.State{
 
 // TestNew tests the constructor using a TestState fixture
 func TestNew(t *testing.T) {
-	getByParticipant := func(id types.Address) []*channel.Channel {
-		return []*channel.Channel{}
+	getByParticipant := func(id types.Address) ([]*channel.Channel, error) {
+		return []*channel.Channel{}, nil
 	}
 	getByConsensus := func(id types.Address) (*consensus_channel.ConsensusChannel, bool) {
 		return nil, false
@@ -68,9 +68,9 @@ func TestNew(t *testing.T) {
 		t.Error(err)
 	}
 
-	getByParticipantHasChannel := func(id types.Address) []*channel.Channel {
+	getByParticipantHasChannel := func(id types.Address) ([]*channel.Channel, error) {
 		c, _ := channel.New(testState, 0)
-		return []*channel.Channel{c}
+		return []*channel.Channel{c}, nil
 	}
 
 	if _, err := NewObjective(request, false, testState.Participants[0], big.NewInt(TEST_CHAIN_ID), getByParticipantHasChannel, getByConsensus); err == nil {

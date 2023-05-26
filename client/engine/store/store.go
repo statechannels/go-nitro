@@ -26,11 +26,11 @@ type Store interface {
 	SetObjective(protocols.Objective) error                                       // Write an objective
 	GetChannelsByIds(ids []types.Destination) ([]*channel.Channel, error)         // Returns a collection of channels with the given ids
 	GetChannelById(id types.Destination) (c *channel.Channel, ok bool)
-	GetChannelsByParticipant(participant types.Address) []*channel.Channel // Returns any channels that includes the given participant
+	GetChannelsByParticipant(participant types.Address) ([]*channel.Channel, error) // Returns any channels that includes the given participant
 	SetChannel(*channel.Channel) error
-	DestroyChannel(id types.Destination)
+	DestroyChannel(id types.Destination) error
 	GetChannelsByAppDefinition(appDef types.Address) ([]*channel.Channel, error) // Returns any channels that includes the given app definition
-	ReleaseChannelFromOwnership(types.Destination)                               // Release channel from being owned by any objective
+	ReleaseChannelFromOwnership(types.Destination) error                         // Release channel from being owned by any objective
 
 	ConsensusChannelStore
 	payments.VoucherStore
@@ -42,5 +42,5 @@ type ConsensusChannelStore interface {
 	GetConsensusChannel(counterparty types.Address) (channel *consensus_channel.ConsensusChannel, ok bool)
 	GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error)
 	SetConsensusChannel(*consensus_channel.ConsensusChannel) error
-	DestroyConsensusChannel(id types.Destination)
+	DestroyConsensusChannel(id types.Destination) error
 }

@@ -40,12 +40,12 @@ func (vm *VoucherManager) Register(channelId types.Destination, payer common.Add
 }
 
 // Remove deletes the channel's status
-func (vm *VoucherManager) Remove(channelId types.Destination) {
+func (vm *VoucherManager) Remove(channelId types.Destination) error {
 	err := vm.store.RemoveVoucherInfo(channelId)
-	// TODO: Return error instead of panicking
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 // Pay will deduct amount from balance and add it to paid, returning a signed voucher for the

@@ -221,6 +221,7 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 	defer e.metrics.RecordFunctionDuration()()
 
 	id := getProposalObjectiveId(proposal)
+
 	obj, err := e.store.GetObjectiveById(id)
 	if err != nil {
 		return EngineEvent{}, err
@@ -258,7 +259,10 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 				ddfo, ok := objective.(*directdefund.Objective)
 				if ok {
 					// If we just approved a direct defund objective, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
-					e.store.DestroyConsensusChannel(ddfo.C.Id)
+					err := e.store.DestroyConsensusChannel(ddfo.C.Id)
+					if err != nil {
+						return EngineEvent{}, err
+					}
 				}
 			} else {
 				objective, sideEffects := objective.Reject()
@@ -306,6 +310,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 	for _, entry := range message.LedgerProposals { // The ledger protocol requires us to process these proposals in turnNum order.
 		// Here we rely on the sender having packed them into the message in that order, and do not apply any checks or sorting of our own.
 		id := getProposalObjectiveId(entry.Proposal)
+
 		o, err := e.store.GetObjectiveById(id)
 		if err != nil {
 			return EngineEvent{}, err
@@ -475,7 +480,10 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 			}, fmt.Errorf("handleAPIEvent: Could not create directdefund objective for %+v: %w", request, err)
 		}
 		// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
-		e.store.DestroyConsensusChannel(request.ChannelId)
+		err = e.store.DestroyConsensusChannel(request.ChannelId)
+		if err != nil {
+			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not destroy consensus channel for %+v: %w", request, err)
+		}
 		return e.attemptProgress(&ddfo)
 
 	default:
@@ -488,7 +496,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, error) {
 	ee := EngineEvent{}
 	if (request == PaymentRequest{}) {
-		panic("tried to handle nil payment request")
+		return ee, fmt.Errorf("handleAPIEvent: Empty payment request")
 	}
 	cId := request.ChannelId
 	voucher, err := e.vm.Pay(
@@ -583,7 +591,10 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
 	if waitingFor == "WaitingForNothing" {
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
-		e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
+		err = e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
+		if err != nil {
+			return
+		}
 		err = e.spawnConsensusChannelIfDirectFundObjective(crankedObjective) // Here we assume that every directfund.Objective is for a ledger channel.
 		if err != nil {
 			return
@@ -599,27 +610,22 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 
 	for _, rel := range o.Related() {
 		switch c := rel.(type) {
-		case *channel.Channel:
-			// If we're in direct funding/defunding then we're dealing with a leadger channel
-			_, isDF := o.(*directfund.Objective)
-			_, isDDF := o.(*directdefund.Objective)
-			if isDDF || isDF {
-				outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromChannel(c))
-			} else { // otherwise we must have a payment channel
-
-				paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
-				if err != nil {
-					return outgoing, err
-				}
-
-				info, err := query.ConstructPaymentInfo(c, paid, remaining)
-				if err != nil {
-					return outgoing, err
-				}
-
-				outgoing.PaymentChannelUpdates = append(outgoing.PaymentChannelUpdates, info)
-
+		case *channel.VirtualChannel:
+			paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
+			if err != nil {
+				return outgoing, err
 			}
+			info, err := query.ConstructPaymentInfo(&c.Channel, paid, remaining)
+			if err != nil {
+				return outgoing, err
+			}
+			outgoing.PaymentChannelUpdates = append(outgoing.PaymentChannelUpdates, info)
+		case *channel.Channel:
+			l, err := query.ConstructLedgerInfoFromChannel(c)
+			if err != nil {
+				return outgoing, err
+			}
+			outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, l)
 		case *consensus_channel.ConsensusChannel:
 			outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromConsensus(c))
 		default:
@@ -654,7 +660,10 @@ func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 			return fmt.Errorf("could not store consensus channel for objective %s: %w", crankedObjective.Id(), err)
 		}
 		// Destroy the channel since the consensus channel takes over governance:
-		e.store.DestroyChannel(c.Id)
+		err = e.store.DestroyChannel(c.Id)
+		if err != nil {
+			return fmt.Errorf("could not destroy consensus channel for objective %s: %w", crankedObjective.Id(), err)
+		}
 	}
 	return nil
 }

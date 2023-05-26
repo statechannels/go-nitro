@@ -34,36 +34,57 @@ type DurableStore struct {
 
 // NewDurableStore creates a new DurableStore that uses the given folder to store its data
 // It will create the folder if it does not exist
-func NewDurableStore(key []byte, folder string, config buntdb.Config) Store {
+func NewDurableStore(key []byte, folder string, config buntdb.Config) (Store, error) {
 	ps := DurableStore{}
 	err := os.MkdirAll(folder, os.ModePerm)
-	ps.checkError(err)
+	if err != nil {
+		return nil, err
+	}
 
 	ps.key = common.Bytes2Hex(key)
 	ps.address = crypto.GetAddressFromSecretKeyBytes(key).String()
 	ps.folder = folder
 
-	ps.objectives = ps.openDB("objectives", config)
-	ps.channels = ps.openDB("channels", config)
-	ps.consensusChannels = ps.openDB("consensus_channels", config)
-	ps.channelToObjective = ps.openDB("channel_to_objective", config)
-	ps.vouchers = ps.openDB("vouchers", config)
+	ps.objectives, err = ps.openDB("objectives", config)
+	if err != nil {
+		return nil, err
+	}
+	ps.channels, err = ps.openDB("channels", config)
+	if err != nil {
+		return nil, err
+	}
+	ps.consensusChannels, err = ps.openDB("consensus_channels", config)
+	if err != nil {
+		return nil, err
+	}
+	ps.channelToObjective, err = ps.openDB("channel_to_objective", config)
+	if err != nil {
+		return nil, err
+	}
+	ps.vouchers, err = ps.openDB("vouchers", config)
+	if err != nil {
+		return nil, err
+	}
 
-	return &ps
+	return &ps, nil
 }
 
 // NewPersistStore provides backwards compatibility for testground tests built against the persist store
 // TODO: Remove this once https://github.com/statechannels/go-nitro-testground/pull/156 is merged
-func NewPersistStore(key []byte, folder string, config buntdb.Config) Store {
+func NewPersistStore(key []byte, folder string, config buntdb.Config) (Store, error) {
 	return NewDurableStore(key, folder, config)
 }
 
-func (ds *DurableStore) openDB(name string, config buntdb.Config) *buntdb.DB {
+func (ds *DurableStore) openDB(name string, config buntdb.Config) (*buntdb.DB, error) {
 	db, err := buntdb.Open(fmt.Sprintf("%s/%s_%s.db", ds.folder, name, ds.address[2:7]))
-	ds.checkError(err)
+	if err != nil {
+		return nil, err
+	}
 	err = db.SetConfig(config)
-	ds.checkError(err)
-	return db
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
 }
 
 func (ds *DurableStore) Close() error {
@@ -140,6 +161,11 @@ func (ds *DurableStore) SetObjective(obj protocols.Objective) error {
 	}
 	for _, rel := range obj.Related() {
 		switch ch := rel.(type) {
+		case *channel.VirtualChannel:
+			err := ds.SetChannel(&ch.Channel)
+			if err != nil {
+				return fmt.Errorf("error setting virtual channel %s from objective %s: %w", ch.Id, obj.Id(), err)
+			}
 		case *channel.Channel:
 			err := ds.SetChannel(ch)
 			if err != nil {
@@ -177,7 +203,10 @@ func (ds *DurableStore) SetObjective(obj protocols.Objective) error {
 				_, _, err := tx.Set(string(obj.OwnsChannel().String()), string(obj.Id()), nil)
 				return err
 			})
-			ds.checkError(err)
+			if err != nil {
+				return fmt.Errorf("cannot transfer ownership of channel: %w", err)
+			}
+
 		}
 		if isOwned && prevOwner != obj.Id() {
 			return fmt.Errorf("cannot transfer ownership of channel to from objective %s to %s", prevOwner, obj.Id())
@@ -202,12 +231,11 @@ func (ds *DurableStore) SetChannel(ch *channel.Channel) error {
 }
 
 // DestroyChannel deletes the channel with id id.
-func (ds *DurableStore) DestroyChannel(id types.Destination) {
-	err := ds.channels.Update(func(tx *buntdb.Tx) error {
+func (ds *DurableStore) DestroyChannel(id types.Destination) error {
+	return ds.channels.Update(func(tx *buntdb.Tx) error {
 		_, err := tx.Delete(id.String())
 		return err
 	})
-	ds.checkError(err)
 }
 
 // SetConsensusChannel sets the channel in the store.
@@ -229,12 +257,11 @@ func (ps *DurableStore) SetConsensusChannel(ch *consensus_channel.ConsensusChann
 }
 
 // DestroyChannel deletes the channel with id id.
-func (ds *DurableStore) DestroyConsensusChannel(id types.Destination) {
-	err := ds.consensusChannels.Update(func(tx *buntdb.Tx) error {
+func (ds *DurableStore) DestroyConsensusChannel(id types.Destination) error {
+	return ds.consensusChannels.Update(func(tx *buntdb.Tx) error {
 		_, err := tx.Delete(id.String())
 		return err
 	})
-	ds.checkError(err)
 }
 
 // GetChannelById retrieves the channel with the supplied id, if it exists.
@@ -337,7 +364,7 @@ func (ds *DurableStore) GetChannelsByAppDefinition(appDef types.Address) ([]*cha
 }
 
 // GetChannelsByParticipant returns any channels that include the given participant
-func (ds *DurableStore) GetChannelsByParticipant(participant types.Address) []*channel.Channel {
+func (ds *DurableStore) GetChannelsByParticipant(participant types.Address) ([]*channel.Channel, error) {
 	toReturn := []*channel.Channel{}
 	err := ds.channels.View(func(tx *buntdb.Tx) error {
 		err := tx.Ascend("", func(key, chJSON string) bool {
@@ -358,8 +385,10 @@ func (ds *DurableStore) GetChannelsByParticipant(participant types.Address) []*c
 		})
 		return err
 	})
-	ds.checkError(err)
-	return toReturn
+	if err != nil {
+		return []*channel.Channel{}, err
+	}
+	return toReturn, nil
 }
 
 func (ds *DurableStore) GetAllConsensusChannels() ([]*consensus_channel.ConsensusChannel, error) {
@@ -434,7 +463,9 @@ func (ps *DurableStore) GetConsensusChannel(counterparty types.Address) (channel
 			return true // channel not found: continue looking
 		})
 	})
-	ps.checkError(err)
+	if err != nil {
+		return nil, false
+	}
 	return
 }
 
@@ -517,7 +548,7 @@ func (ds *DurableStore) populateChannelData(obj protocols.Objective) error {
 		if err != nil {
 			return fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
 		}
-		o.V = &v
+		o.V = &channel.VirtualChannel{Channel: v}
 
 		zeroAddress := types.Destination{}
 
@@ -545,20 +576,11 @@ func (ds *DurableStore) populateChannelData(obj protocols.Objective) error {
 	}
 }
 
-func (ds *DurableStore) ReleaseChannelFromOwnership(channelId types.Destination) {
-	err := ds.channelToObjective.Update(func(tx *buntdb.Tx) error {
+func (ds *DurableStore) ReleaseChannelFromOwnership(channelId types.Destination) error {
+	return ds.channelToObjective.Update(func(tx *buntdb.Tx) error {
 		_, err := tx.Delete(channelId.String())
 		return err
 	})
-	ds.checkError(err)
-}
-
-// checkError is a helper function that panics if an error is not nil
-// TODO: Longer term we should return errors instead of panicking
-func (ds *DurableStore) checkError(err error) {
-	if err != nil {
-		panic(err)
-	}
 }
 
 func (ds *DurableStore) SetVoucherInfo(channelId types.Destination, v payments.VoucherInfo) error {

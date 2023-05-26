@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client"
@@ -35,7 +36,10 @@ func setupClient(pk []byte, chain chainservice.ChainService, msgBroker messagese
 	// TODO: Clean up test data folder?
 	dataFolder := fmt.Sprintf("%s/%s/%d", DURABLE_STORE_FOLDER, myAddress.String(), rand.Uint64())
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
-	storeA := store.NewDurableStore(pk, dataFolder, buntdb.Config{})
+	storeA, err := store.NewDurableStore(pk, dataFolder, buntdb.Config{})
+	if err != nil {
+		panic(err)
+	}
 	return client.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}, nil), storeA
 }
 
@@ -113,7 +117,11 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) st
 		return store.NewMemStore(tp.Actor.PrivateKey)
 	case DurableStore:
 		dataFolder := fmt.Sprintf("%s/%s/%d%d", STORE_TEST_DATA_FOLDER, tp.Address().String(), rand.Uint64(), time.Now().UnixNano())
-		return store.NewPersistStore(tp.PrivateKey, dataFolder, buntdb.Config{})
+		s, err := store.NewPersistStore(tp.PrivateKey, dataFolder, buntdb.Config{})
+		if err != nil {
+			panic(err)
+		}
+		return s
 	default:
 		panic(fmt.Sprintf("Unknown store type %s", tp.StoreType))
 	}
@@ -247,8 +255,8 @@ func createLedgerInfo(id types.Destination, outcome outcome.Exit, status query.C
 			AssetAddress:  types.Address{},
 			Hub:           hubAdd,
 			Client:        clientAdd,
-			ClientBalance: outcome[0].Allocations[0].Amount,
-			HubBalance:    outcome[0].Allocations[1].Amount,
+			ClientBalance: (*hexutil.Big)(outcome[0].Allocations[0].Amount),
+			HubBalance:    (*hexutil.Big)(outcome[0].Allocations[1].Amount),
 		},
 	}
 }
@@ -305,8 +313,8 @@ func createPaychInfo(id types.Destination, outcome outcome.Exit, status query.Ch
 			AssetAddress:   types.Address{},
 			Payee:          payee,
 			Payer:          payer,
-			RemainingFunds: outcome[0].Allocations[0].Amount,
-			PaidSoFar:      outcome[0].Allocations[1].Amount,
+			RemainingFunds: (*hexutil.Big)(outcome[0].Allocations[0].Amount),
+			PaidSoFar:      (*hexutil.Big)(outcome[0].Allocations[1].Amount),
 		},
 	}
 }

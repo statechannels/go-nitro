@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -45,14 +46,14 @@ func getPaymentChannelBalance(participants []types.Address, outcome outcome.Exit
 		AssetAddress:   asset,
 		Payer:          payer,
 		Payee:          payee,
-		PaidSoFar:      paidSoFar,
-		RemainingFunds: remaining,
+		PaidSoFar:      (*hexutil.Big)(paidSoFar),
+		RemainingFunds: (*hexutil.Big)(remaining),
 	}
 }
 
-// getLatestSupported returns the latest supported state of the channel
+// getLatestSupportedOrPreFund returns the latest supported state of the channel
 // or the prefund state if no supported state exists
-func getLatestSupported(channel *channel.Channel) (state.State, error) {
+func getLatestSupportedOrPreFund(channel *channel.Channel) (state.State, error) {
 	if channel.HasSupportedState() {
 		return channel.LatestSupportedState()
 	}
@@ -73,8 +74,8 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 		AssetAddress:  asset,
 		Hub:           hub,
 		Client:        client,
-		HubBalance:    hubBalance,
-		ClientBalance: clientBalance,
+		HubBalance:    (*hexutil.Big)(hubBalance),
+		ClientBalance: (*hexutil.Big)(clientBalance),
 	}
 }
 
@@ -145,7 +146,11 @@ func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Addres
 		return []LedgerChannelInfo{}, err
 	}
 	for _, c := range allChannels {
-		toReturn = append(toReturn, ConstructLedgerInfoFromChannel(c))
+		l, err := ConstructLedgerInfoFromChannel(c)
+		if err != nil {
+			return []LedgerChannelInfo{}, err
+		}
+		toReturn = append(toReturn, l)
 	}
 	return toReturn, nil
 }
@@ -190,7 +195,7 @@ func GetPaymentChannelsByLedger(ledgerId types.Destination, s store.Store, vm *p
 func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
 	c, ok := store.GetChannelById(id)
 	if ok {
-		return ConstructLedgerInfoFromChannel(c), nil
+		return ConstructLedgerInfoFromChannel(c)
 	}
 
 	con, err := store.GetConsensusChannelById(id)
@@ -210,16 +215,16 @@ func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel) L
 	}
 }
 
-func ConstructLedgerInfoFromChannel(c *channel.Channel) LedgerChannelInfo {
-	latest, err := getLatestSupported(c)
+func ConstructLedgerInfoFromChannel(c *channel.Channel) (LedgerChannelInfo, error) {
+	latest, err := getLatestSupportedOrPreFund(c)
 	if err != nil {
-		panic(err)
+		return LedgerChannelInfo{}, err
 	}
 	return LedgerChannelInfo{
 		ID:      c.Id,
 		Status:  getStatusFromChannel(c),
 		Balance: getLedgerBalanceFromState(latest),
-	}
+	}, nil
 }
 
 func ConstructPaymentInfo(c *channel.Channel, paid, remaining *big.Int) (PaymentChannelInfo, error) {
@@ -231,15 +236,15 @@ func ConstructPaymentInfo(c *channel.Channel, paid, remaining *big.Int) (Payment
 		status = Open
 	}
 
-	latest, err := getLatestSupported(c)
+	latest, err := getLatestSupportedOrPreFund(c)
 	if err != nil {
 		return PaymentChannelInfo{}, err
 	}
 	balance := getPaymentChannelBalance(c.Participants, latest.Outcome)
 
-	balance.PaidSoFar.Set(paid)
+	balance.PaidSoFar.ToInt().Set(paid)
 
-	balance.RemainingFunds.Set(remaining)
+	balance.RemainingFunds.ToInt().Set(remaining)
 
 	return PaymentChannelInfo{
 		ID:      c.Id,

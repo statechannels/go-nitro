@@ -135,11 +135,16 @@ func main() {
 			logDestination := os.Stdout
 
 			var ourStore store.Store
+			var err error
 
 			if useDurableStore {
 				fmt.Println("Initialising durable store...")
 				dataFolder := fmt.Sprintf("./data/nitro-service/%s", me.String())
-				ourStore = store.NewDurableStore(pk, dataFolder, buntdb.Config{})
+				ourStore, err = store.NewDurableStore(pk, dataFolder, buntdb.Config{})
+				if err != nil {
+					panic(err)
+				}
+
 			} else {
 				fmt.Println("Initialising mem store...")
 				ourStore = store.NewMemStore(pk)

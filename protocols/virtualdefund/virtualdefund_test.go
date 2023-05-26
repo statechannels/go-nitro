@@ -201,7 +201,7 @@ func TestConstructObjectiveFromState(t *testing.T) {
 
 	want := Objective{
 		Status:               protocols.Approved,
-		V:                    v,
+		V:                    &channel.VirtualChannel{Channel: *v},
 		ToMyLeft:             left,
 		ToMyRight:            right,
 		MinimumPaymentAmount: big.NewInt(int64(data.paid)),

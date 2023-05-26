@@ -44,7 +44,7 @@ type Objective struct {
 	// If this is not set then virtual defunding will accept any final outcome from Alice.
 	MinimumPaymentAmount *big.Int
 
-	V *channel.Channel // This is a Virtual Channel. TODO should this be a literal channel.VirtualChannel?
+	V *channel.VirtualChannel
 
 	ToMyLeft  *consensus_channel.ConsensusChannel
 	ToMyRight *consensus_channel.ConsensusChannel
@@ -81,10 +81,12 @@ func NewObjective(request ObjectiveRequest,
 		status = protocols.Unapproved
 	}
 
-	V, found := getChannel(request.ChannelId)
+	c, found := getChannel(request.ChannelId)
+
 	if !found {
 		return Objective{}, fmt.Errorf("could not find channel %s", request.ChannelId)
 	}
+	V := &channel.VirtualChannel{Channel: *c}
 
 	alice := V.Participants[0]
 	bob := V.Participants[len(V.Participants)-1]
@@ -199,22 +201,26 @@ func (o *Objective) initialOutcome() outcome.SingleAssetExit {
 	return o.V.PostFundState().Outcome[0]
 }
 
-func (o *Objective) generateFinalOutcome() outcome.SingleAssetExit {
+func (o *Objective) generateFinalOutcome() (outcome.SingleAssetExit, error) {
 	if o.MyRole != 0 {
-		panic("Only Alice should call generateFinalOutcome")
+		return outcome.SingleAssetExit{}, fmt.Errorf("only Alice should call generateFinalOutcome")
 	}
 	// Since Alice is responsible for issuing vouchers she always has the largest payment amount
 	// This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent
 	finalOutcome := o.initialOutcome().Clone()
 	finalOutcome.Allocations[0].Amount.Sub(finalOutcome.Allocations[0].Amount, o.MinimumPaymentAmount)
 	finalOutcome.Allocations[1].Amount.Add(finalOutcome.Allocations[1].Amount, o.MinimumPaymentAmount)
-	return finalOutcome
+	return finalOutcome, nil
 }
 
 // finalState returns the final state for the virtual channel
-func (o *Objective) generateFinalState() state.State {
-	vp := state.VariablePart{Outcome: outcome.Exit{o.generateFinalOutcome()}, TurnNum: FinalTurnNum, IsFinal: true}
-	return state.StateFromFixedAndVariablePart(o.V.FixedPart, vp)
+func (o *Objective) generateFinalState() (state.State, error) {
+	exit, err := o.generateFinalOutcome()
+	if err != nil {
+		return state.State{}, err
+	}
+	vp := state.VariablePart{Outcome: outcome.Exit{exit}, TurnNum: FinalTurnNum, IsFinal: true}
+	return state.StateFromFixedAndVariablePart(o.V.FixedPart, vp), nil
 }
 
 // Id returns the objective id.
@@ -335,8 +341,12 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	// Signing of the final state
 	if !updated.V.FinalSignedByMe() {
 		var s state.State
+		var err error
 		if updated.isAlice() {
-			s = updated.generateFinalState()
+			s, err = updated.generateFinalState()
+			if err != nil {
+				return &updated, sideEffects, WaitingForNothing, fmt.Errorf("could not generate final state: %w", err)
+			}
 		} else {
 			s = updated.finalState()
 		}
@@ -545,9 +555,8 @@ func (o *Objective) ReceiveProposal(sp consensus_channel.SignedProposal) (protoc
 	}
 
 	updated := o.clone()
-
+	var err error
 	if sp.Proposal.Target() == o.VId() {
-		var err error
 		switch sp.Proposal.LedgerID {
 		case types.Destination{}:
 			return o, fmt.Errorf("signed proposal is for a zero-addressed ledger channel") // catch this case to avoid unspecified behaviour -- because of Alice or Bob we allow a null channel.
