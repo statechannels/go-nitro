@@ -85,7 +85,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	// create n actors
 	actors := make([]ta.Actor, n)
 	for i := 0; i < n; i++ {
-		sk := `000000000000000000000000000000000000000000000000000000000000000` + fmt.Sprintf("%d", i+1)
+		sk := `000000000000000000000000000000000000000000000000000000000000000` + strconv.Itoa(i+1)
 		actors[i] = ta.Actor{
 			PrivateKey: common.Hex2Bytes(sk),
 		}
