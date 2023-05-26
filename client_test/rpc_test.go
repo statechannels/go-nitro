@@ -129,6 +129,20 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	}
 	t.Log("Ledger channels created")
 
+	// assert existence & reporting of expected ledger channels
+	for i, client := range clients {
+		if i != 0 {
+			leftLC := ledgerChannels[i-1]
+			expectedLeftLC := createLedgerInfo(leftLC.ChannelId, simpleOutcome(actors[i-1].Address(), actors[i].Address(), 100, 100), query.Open)
+			checkQueryInfo(t, expectedLeftLC, client.GetLedgerChannel(leftLC.ChannelId))
+		}
+		if i != n-1 {
+			rightLC := ledgerChannels[i]
+			expectedRightLC := createLedgerInfo(rightLC.ChannelId, simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100), query.Open)
+			checkQueryInfo(t, expectedRightLC, client.GetLedgerChannel(rightLC.ChannelId))
+		}
+	}
+
 	//////////////////////////////////////////////////////////////////
 	// create virtual channel, execute payment, close virtual channel
 	//////////////////////////////////////////////////////////////////
@@ -178,9 +192,9 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		<-bobClient.ObjectiveCompleteChan(libClosure)
 	}
 
-	//////////////////////
-	// perform checks
-	//////////////////////
+	//////////////////////////
+	// perform wrap-up checks 
+	//////////////////////////
 
 	for i, client := range clients {
 		if i != 0 {
