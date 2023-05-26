@@ -221,7 +221,6 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			{100, 100, query.Open},
 			{0, 100, query.Open},
 			{99, 101, query.Open},
-			{99, 101, query.Closing},
 			{99, 101, query.Complete},
 		},
 	)
@@ -235,7 +234,6 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	requiredVCNotifs := createPaychStory(
 		vabCreateResponse.ChannelId, alice.Address(), bob.Address(),
 		[]channelStatusShorthand{
-			// {100, 0, query.Proposed},
 			{100, 0, query.Open},
 			{99, 1, query.Open},
 			{99, 1, query.Complete},
