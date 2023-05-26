@@ -359,7 +359,7 @@ type channelInfo interface {
 
 func checkQueryInfo[T channelInfo](t *testing.T, expected T, fetched T) {
 	if diff := cmp.Diff(expected, fetched, cmp.AllowUnexported(big.Int{})); diff != "" {
-		panic(fmt.Errorf("Channel query info diff mismatch (-want +got):\n%s", diff))
+		t.Errorf("Channel query info diff mismatch (-want +got):\n%s", diff)
 	}
 }
 
