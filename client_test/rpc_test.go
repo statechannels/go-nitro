@@ -120,11 +120,14 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		if !directfund.IsDirectFundObjective(ledgerChannels[i].Id) {
 			t.Errorf("expected direct fund objective, got %s", ledgerChannels[i].Id)
 		}
-
-		// wait for the ledger channel to be ready
-		<-clients[i].ObjectiveCompleteChan(ledgerChannels[i].Id)
-		if i > 0 {
-			<-clients[i].ObjectiveCompleteChan(ledgerChannels[i-1].Id)
+	}
+	// wait for the ledger channels to be ready for each client
+	for i, client := range clients {
+		if i != 0 { // not alice
+			<-client.ObjectiveCompleteChan(ledgerChannels[i-1].Id) // left channel
+		}
+		if i != n-1 { // not bob
+			<-client.ObjectiveCompleteChan(ledgerChannels[i].Id) // right channel
 		}
 	}
 	t.Log("Ledger channels created")
