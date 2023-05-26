@@ -234,8 +234,8 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		[]channelStatusShorthand{
 			{100, 100, query.Proposed},
 			{100, 100, query.Open},
-			{0, 100, query.Open},
-			{99, 101, query.Open},
+			{0, 100, query.Open},  // alice's balance forwarded to the guarantee for the virtual channel
+			{99, 101, query.Open}, // returns to alice & actors[1] after closure
 			{99, 101, query.Closing},
 			{99, 101, query.Complete},
 		},
