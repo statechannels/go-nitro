@@ -193,7 +193,6 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	}
 
 	aliceClient.Pay(vabCreateResponse.ChannelId, 1)
-	<-bobClient.PaymentChannelUpdatesChan(vabCreateResponse.ChannelId)
 
 	vabClosure := aliceClient.CloseVirtual(vabCreateResponse.ChannelId)
 	for _, client := range clients {
@@ -265,6 +264,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	requiredVCNotifs := createPaychStory(
 		vabCreateResponse.ChannelId, alice.Address(), bob.Address(),
 		[]channelStatusShorthand{
+			{100, 0, query.Proposed},
 			{100, 0, query.Open},
 			{99, 1, query.Open},
 			{99, 1, query.Complete},
@@ -273,7 +273,6 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	optionalVCNotifs := createPaychStory(
 		vabCreateResponse.ChannelId, alice.Address(), bob.Address(),
 		[]channelStatusShorthand{
-			{100, 0, query.Proposed},
 			{99, 1, query.Closing},
 		},
 	)
