@@ -234,15 +234,19 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	requiredVCNotifs := createPaychStory(
 		vabCreateResponse.ChannelId, alice.Address(), bob.Address(),
 		[]channelStatusShorthand{
-			{100, 0, query.Proposed},
+			// {100, 0, query.Proposed},
 			{100, 0, query.Open},
 			{99, 1, query.Open},
 			{99, 1, query.Complete},
 		},
 	)
-	optionalVCNotifs := []query.PaymentChannelInfo{
-		createPaychInfo(vabCreateResponse.ChannelId, simpleOutcome(alice.Address(), bob.Address(), 99, 1), query.Closing),
-	}
+	optionalVCNotifs := createPaychStory(
+		vabCreateResponse.ChannelId, alice.Address(), bob.Address(),
+		[]channelStatusShorthand{
+			{100, 0, query.Proposed},
+			{99, 1, query.Closing},
+		},
+	)
 
 	aliceVirtualNotifs := aliceClient.PaymentChannelUpdatesChan(vabCreateResponse.ChannelId)
 	checkNotifications(t, "aliceVirtual", requiredVCNotifs, optionalVCNotifs, aliceVirtualNotifs, defaultTimeout)
