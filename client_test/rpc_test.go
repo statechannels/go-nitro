@@ -167,8 +167,25 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		100,
 		initialOutcome,
 	)
-	for _, client := range clients {
+	expectedVirtualChannel := createPaychInfo(
+		vabCreateResponse.ChannelId,
+		initialOutcome,
+		query.Open,
+	)
+
+	// wait for the virtual channel to be ready, and
+	// assert correct reporting from query api
+	for i, client := range clients {
 		<-client.ObjectiveCompleteChan(vabCreateResponse.Id)
+		checkQueryInfo(t, expectedVirtualChannel, client.GetVirtualChannel(vabCreateResponse.ChannelId))
+		if i != 0 {
+			checkQueryInfoCollection(t, expectedVirtualChannel, 1,
+				client.GetPaymentChannelsByLedger(ledgerChannels[i-1].ChannelId))
+		}
+		if i != n-1 {
+			checkQueryInfoCollection(t, expectedVirtualChannel, 1,
+				client.GetPaymentChannelsByLedger(ledgerChannels[i].ChannelId))
+		}
 	}
 
 	if !virtualfund.IsVirtualFundObjective(vabCreateResponse.Id) {
