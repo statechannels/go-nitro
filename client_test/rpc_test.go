@@ -266,7 +266,6 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		[]channelStatusShorthand{
 			{100, 0, query.Proposed},
 			{100, 0, query.Open},
-			{99, 1, query.Open},
 			{99, 1, query.Complete},
 		},
 	)
@@ -276,6 +275,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			{99, 1, query.Closing},
 			// TODO: Sometimes we see a closing notification with the original balance.
 			// See https://github.com/statechannels/go-nitro/issues/1306
+			{99, 1, query.Open},
 			{100, 0, query.Closing},
 		},
 	)
