@@ -117,7 +117,7 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) st
 		return store.NewMemStore(tp.Actor.PrivateKey)
 	case DurableStore:
 		dataFolder := fmt.Sprintf("%s/%s/%d%d", STORE_TEST_DATA_FOLDER, tp.Address().String(), rand.Uint64(), time.Now().UnixNano())
-		s, err := store.NewPersistStore(tp.PrivateKey, dataFolder, buntdb.Config{})
+		s, err := store.NewDurableStore(tp.PrivateKey, dataFolder, buntdb.Config{})
 		if err != nil {
 			panic(err)
 		}
