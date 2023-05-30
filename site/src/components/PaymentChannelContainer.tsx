@@ -1,21 +1,30 @@
 import { NitroRpcClient } from "@statechannels/nitro-rpc-client";
 import { PaymentChannelInfo } from "@statechannels/nitro-rpc-client/src/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, FC } from "react";
+import { makeStyles } from "tss-react/mui";
 
 import PaymentChannelList from "./PaymentChannelList";
 import PaymentChannelDetails from "./PaymentChannelDetails";
 
-type Props = {
+interface Props {
   nitroClient: NitroRpcClient | null;
   ledgerChannel: string;
-};
-export default function PaymentChannelContainer({
+}
+
+const useStyles = makeStyles()(() => ({
+  paymentDetails: {
+    padding: "4rem",
+  },
+}));
+
+const PaymentChannelContainer: FC<Props> = ({
   nitroClient,
   ledgerChannel,
-}: Props) {
+}: Props) => {
   const [paymentChannels, setPaymentChannels] = useState<PaymentChannelInfo[]>(
     []
   );
+  const { classes } = useStyles();
 
   const [focusedPaymentChannel, setFocusedPaymentChannel] =
     useState<string>("");
@@ -38,7 +47,17 @@ export default function PaymentChannelContainer({
         focusedPaymentChannel={focusedPaymentChannel}
         setFocusedPaymentChannel={setFocusedPaymentChannel}
       />
-      <PaymentChannelDetails paymentChannel={focusedPaymentChannel} />
+      <div className={classes.paymentDetails}>
+        <PaymentChannelDetails
+          channelID={focusedPaymentChannel}
+          counterparty={"0x123"}
+          capacity={1000}
+          myBalance={150}
+          status={"running"}
+        />
+      </div>
     </>
   );
-}
+};
+
+export default PaymentChannelContainer;

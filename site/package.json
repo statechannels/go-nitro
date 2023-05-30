@@ -14,12 +14,14 @@
   "dependencies": {
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
+    "@heroicons/react": "^2.0.18",
     "@mui/material": "^5.13.0",
     "@statechannels/nitro-rpc-client": "workspace:*",
     "js-big-decimal-esm": "^1.5.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-minimal-pie-chart": "^8.4.0"
+    "react-minimal-pie-chart": "^8.4.0",
+    "tss-react": "^4.8.5"
   },
   "devDependencies": {
     "@storybook/addon-essentials": "^7.0.7",
