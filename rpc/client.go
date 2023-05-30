@@ -3,6 +3,7 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
@@ -15,6 +16,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
+	"github.com/statechannels/go-nitro/rpc/transport/ws"
 
 	"github.com/statechannels/go-nitro/types"
 
@@ -25,7 +27,6 @@ import (
 // RpcClient is a client for making nitro rpc calls
 type RpcClient struct {
 	transport             transport.Requester
-	myAddress             types.Address
 	logger                zerolog.Logger
 	completedObjectives   *safesync.Map[chan struct{}]
 	ledgerChannelUpdates  *safesync.Map[chan query.LedgerChannelInfo]
@@ -39,9 +40,23 @@ type response[T serde.ResponsePayload] struct {
 }
 
 // NewRpcClient creates a new RpcClient
-func NewRpcClient(rpcServerUrl string, myAddress types.Address, logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
-	c := &RpcClient{trans, myAddress, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}}
+func NewRpcClient(rpcServerUrl string, logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
+	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}}
 	err := c.subscribeToNotifications()
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+// NewHttpRpcClient creates a new RpcClient using an http transport
+func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
+	transport, err := ws.NewWebSocketTransportAsClient(rpcServerUrl)
+	if err != nil {
+		return nil, err
+	}
+	c := &RpcClient{transport, zerolog.New(os.Stdout), &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}}
+	err = c.subscribeToNotifications()
 	if err != nil {
 		return nil, err
 	}
