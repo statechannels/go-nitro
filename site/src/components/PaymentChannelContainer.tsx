@@ -1,6 +1,10 @@
 import { NitroRpcClient } from "@statechannels/nitro-rpc-client";
-import { PaymentChannelInfo } from "@statechannels/nitro-rpc-client/src/types";
-import { useEffect, useState, FC } from "react";
+import {
+  ChannelStatus,
+  PaymentChannelBalance,
+  PaymentChannelInfo,
+} from "@statechannels/nitro-rpc-client/src/types";
+import { useEffect, useState, FC, useCallback } from "react";
 import { makeStyles } from "tss-react/mui";
 
 import PaymentChannelList from "./PaymentChannelList";
@@ -17,6 +21,18 @@ const useStyles = makeStyles()(() => ({
   },
 }));
 
+const DEFAULT_CHANNEL: PaymentChannelInfo = {
+  ID: "",
+  Status: "Complete" as ChannelStatus,
+  Balance: {
+    AssetAddress: "",
+    Payee: "",
+    Payer: "",
+    PaidSoFar: BigInt(0),
+    RemainingFunds: BigInt(0),
+  } as PaymentChannelBalance,
+};
+
 const PaymentChannelContainer: FC<Props> = ({
   nitroClient,
   ledgerChannel,
@@ -27,33 +43,43 @@ const PaymentChannelContainer: FC<Props> = ({
   const { classes } = useStyles();
 
   const [focusedPaymentChannel, setFocusedPaymentChannel] =
-    useState<string>("");
+    useState<PaymentChannelInfo>(DEFAULT_CHANNEL);
+
+  const handleGetPaymentChannels = useCallback(
+    async (client: NitroRpcClient, channel: string) => {
+      const paymentChannelsList = await client.GetPaymentChannelsByLedger(
+        channel
+      );
+
+      setPaymentChannels(paymentChannelsList);
+      if (paymentChannelsList.length) {
+        setFocusedPaymentChannel(paymentChannelsList[0]);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (nitroClient && ledgerChannel) {
-      nitroClient.GetPaymentChannelsByLedger(ledgerChannel).then((p) => {
-        setPaymentChannels(p);
-        if (p.length > 0) {
-          setFocusedPaymentChannel(p[0].ID);
-        }
-      });
+      handleGetPaymentChannels(nitroClient, ledgerChannel);
     }
-  }, [nitroClient, ledgerChannel]);
+  }, [nitroClient, ledgerChannel, handleGetPaymentChannels]);
 
   return (
     <>
       <PaymentChannelList
         paymentChannels={paymentChannels}
-        focusedPaymentChannel={focusedPaymentChannel}
+        focusedPaymentChannel={focusedPaymentChannel?.ID || ""}
         setFocusedPaymentChannel={setFocusedPaymentChannel}
       />
       <div className={classes.paymentDetails}>
         <PaymentChannelDetails
-          channelID={focusedPaymentChannel}
-          counterparty={"0x123"}
-          capacity={1000}
-          myBalance={150}
-          status={"running"}
+          channelID={focusedPaymentChannel.ID}
+          payer={focusedPaymentChannel.Balance.Payer}
+          payee={focusedPaymentChannel.Balance.Payee}
+          remainingFunds={focusedPaymentChannel.Balance.RemainingFunds}
+          paidSoFar={focusedPaymentChannel.Balance.PaidSoFar}
+          status={focusedPaymentChannel?.Status}
         />
       </div>
     </>

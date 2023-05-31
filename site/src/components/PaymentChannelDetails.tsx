@@ -9,13 +9,15 @@ import {
 import { FC, useEffect, useMemo, useState } from "react";
 import { makeStyles } from "tss-react/mui";
 import { PhoneArrowUpRightIcon, UserIcon } from "@heroicons/react/24/outline";
+import { ChannelStatus } from "@statechannels/nitro-rpc-client/src/types";
 
 interface PaymentChannelDetails {
   channelID: string;
-  counterparty: string; // address for now - can abstract to something richer later
-  capacity: number; // total value locked in channel
-  myBalance: number; // balance of the viewing participant
-  status: "prefund" | "running" | "unresponsive-peer" | "under-challenge";
+  payee: string;
+  payer: string;
+  paidSoFar: bigint;
+  remainingFunds: bigint;
+  status: ChannelStatus;
 }
 
 const useStyles = makeStyles()(() => ({
@@ -38,19 +40,26 @@ const useStyles = makeStyles()(() => ({
   },
 }));
 
+const shortString = (value: string, count: number) => {
+  return `${value.slice(0, count)}...`;
+};
+
 const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
   channelID,
-  counterparty,
-  capacity,
-  myBalance,
+  payee,
+  payer,
+  paidSoFar,
+  remainingFunds,
   status,
 }: PaymentChannelDetails) => {
-  const [progress, setProgress] = useState<number>(myBalance);
+  const [progress, setProgress] = useState<number>(0);
   const { classes, cx } = useStyles();
 
   useEffect(() => {
-    setProgress((myBalance * 100) / capacity);
-  }, [myBalance, capacity]);
+    setProgress(
+      (Number(paidSoFar) / (Number(remainingFunds) + Number(paidSoFar))) * 100
+    );
+  }, [paidSoFar, remainingFunds]);
 
   const capitalizedStatus = useMemo(() => {
     return status.charAt(0).toUpperCase() + status.slice(1);
@@ -71,7 +80,7 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
           Outbound Payment Channel
         </Typography>
         <Typography variant="h6" component="h6">
-          {channelID}
+          {shortString(channelID, 5)}
         </Typography>
       </Stack>
       <Stack
@@ -101,7 +110,14 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
             component="span"
             className={classes.typography}
           >
-            {myBalance} wei
+            {paidSoFar.toString()} wei
+          </Typography>
+          <Typography
+            variant="body1"
+            component="span"
+            className={classes.typography}
+          >
+            {shortString(payee, 8)}
           </Typography>
         </Stack>
         <Stack
@@ -142,14 +158,14 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
             component="span"
             className={classes.typography}
           >
-            {capacity - myBalance} wei
+            {remainingFunds.toString()} wei
           </Typography>
           <Typography
             variant="body1"
             component="span"
             className={classes.typography}
           >
-            {counterparty}
+            {shortString(payer, 8)}
           </Typography>
         </Stack>
       </Stack>
