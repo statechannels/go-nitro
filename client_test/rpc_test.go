@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -20,12 +22,13 @@ import (
 	"github.com/statechannels/go-nitro/crypto"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/protocols/directfund"
+	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/rpc/transport"
 	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
 	"github.com/statechannels/go-nitro/types"
-	"github.com/stretchr/testify/assert"
 )
 
 func simpleOutcome(a, b types.Address, aBalance, bBalance uint) outcome.Exit {
@@ -44,143 +47,246 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 }
 
 func TestRpcWithNats(t *testing.T) {
-	executeRpcTest(t, "nats")
+	executeNRpcTest(t, "nats", 2)
+	executeNRpcTest(t, "nats", 3)
+	executeNRpcTest(t, "nats", 4)
 }
 
 func TestRpcWithWebsockets(t *testing.T) {
-	executeRpcTest(t, "ws")
+	executeNRpcTest(t, "ws", 2)
+	executeNRpcTest(t, "ws", 3)
+	executeNRpcTest(t, "ws", 4)
 }
 
-func executeRpcTest(t *testing.T, connectionType transport.TransportType) {
-	logFile := "test_rpc_client.log"
+func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Test panicked: %v", r)
+			t.FailNow()
+		}
+	}()
+
+	if n < 2 {
+		t.Errorf("n must be at least 2: alice and bob")
+		return
+	}
+
+	//////////////////////
+	// Setup
+	//////////////////////
+
+	t.Logf("Starting test with %d clients", n)
+	logFile := fmt.Sprintf("test_%d_rpc_clients_over_%s.log", n, connectionType)
 	logDestination := newLogWriter(logFile)
+	defer logDestination.Close()
 
 	chain := chainservice.NewMockChain()
-	chainServiceA := chainservice.NewMockChainService(chain, ta.Alice.Address())
-	chainServiceB := chainservice.NewMockChainService(chain, ta.Bob.Address())
-	chainServiceI := chainservice.NewMockChainService(chain, ta.Irene.Address())
+	defer chain.Close()
 
-	rpcClientA, msgA, cleanupFnA := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3005, 4005, chainServiceA, logDestination, connectionType)
-	rpcClientB, msgB, cleanupFnB := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3006, 4006, chainServiceB, logDestination, connectionType)
-	rpcClientI, msgI, cleanupFnC := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3007, 4007, chainServiceI, logDestination, connectionType)
-	waitForPeerInfoExchange(2, msgA, msgB, msgI)
-	defer cleanupFnA()
-	defer cleanupFnB()
-	defer cleanupFnC()
-	aliceLedgerOutcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Irene.Address(), 100, 100, types.Address{})
-	bobLedgerOutcome := testdata.Outcomes.Create(ta.Bob.Address(), ta.Irene.Address(), 100, 100, types.Address{})
-	res := rpcClientA.CreateLedger(ta.Irene.Address(), 100, aliceLedgerOutcome)
-	bobResponse := rpcClientB.CreateLedger(ta.Irene.Address(), 100, bobLedgerOutcome)
+	// create n actors
+	actors := make([]ta.Actor, n)
+	for i := 0; i < n; i++ {
+		sk := `000000000000000000000000000000000000000000000000000000000000000` + strconv.Itoa(i+1)
+		actors[i] = ta.Actor{
+			PrivateKey: common.Hex2Bytes(sk),
+		}
+	}
+	t.Logf("%d actors created", n)
 
-	aliceLedgerNotifs := rpcClientA.LedgerChannelUpdatesChan(res.ChannelId)
-	bobLedgerNotifs := rpcClientB.LedgerChannelUpdatesChan(bobResponse.ChannelId)
+	chainServices := make([]*chainservice.MockChainService, n)
+	for i := 0; i < n; i++ {
+		chainServices[i] = chainservice.NewMockChainService(chain, actors[i].Address())
+	}
 
-	// Quick sanity check that we're getting a valid objective id
-	assert.Regexp(t, "DirectFunding.0x.*", res.Id)
+	clients := make([]*rpc.RpcClient, n)
+	msgServices := make([]*p2pms.P2PMessageService, n)
 
-	<-rpcClientA.ObjectiveCompleteChan(res.Id)
-	<-rpcClientB.ObjectiveCompleteChan(bobResponse.Id)
-	<-rpcClientI.ObjectiveCompleteChan(res.Id)
-	<-rpcClientI.ObjectiveCompleteChan(bobResponse.Id)
+	for i := 0; i < n; i++ {
+		rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3005+i, 4005+i, chainServices[i], logDestination, connectionType)
+		clients[i] = rpcClient
+		msgServices[i] = msg
+		defer cleanup()
+	}
+	t.Logf("%d Clients created", n)
 
-	expectedAliceLedger := expectedLedgerInfo(res.ChannelId, aliceLedgerOutcome, query.Open)
-	checkQueryInfo(t, expectedAliceLedger, rpcClientA.GetLedgerChannel(res.ChannelId))
-	checkQueryInfoCollection(t, expectedAliceLedger, 1, rpcClientA.GetAllLedgerChannels())
+	waitForPeerInfoExchange(msgServices...)
+	t.Logf("Peerexchange complete")
 
-	expectedBobLedger := expectedLedgerInfo(bobResponse.ChannelId, bobLedgerOutcome, query.Open)
-	checkQueryInfo(t, expectedBobLedger, rpcClientB.GetLedgerChannel(bobResponse.ChannelId))
-	checkQueryInfoCollection(t, expectedBobLedger, 1, rpcClientB.GetAllLedgerChannels())
+	// create n-1 ledger channels
+	ledgerChannels := make([]directfund.ObjectiveResponse, n-1)
+	for i := 0; i < n-1; i++ {
+		outcome := simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100)
+		ledgerChannels[i] = clients[i].CreateLedger(actors[i+1].Address(), 100, outcome)
 
-	initialOutcome := testdata.Outcomes.Create(ta.Alice.Address(), ta.Bob.Address(), 100, 0, types.Address{})
-	vRes := rpcClientA.CreateVirtual(
-		[]types.Address{ta.Irene.Address()},
-		ta.Bob.Address(),
+		if !directfund.IsDirectFundObjective(ledgerChannels[i].Id) {
+			t.Errorf("expected direct fund objective, got %s", ledgerChannels[i].Id)
+		}
+	}
+	// wait for the ledger channels to be ready for each client
+	for i, client := range clients {
+		if i != 0 { // not alice
+			<-client.ObjectiveCompleteChan(ledgerChannels[i-1].Id) // left channel
+		}
+		if i != n-1 { // not bob
+			<-client.ObjectiveCompleteChan(ledgerChannels[i].Id) // right channel
+		}
+	}
+	t.Log("Ledger channels created")
+
+	// assert existence & reporting of expected ledger channels
+	for i, client := range clients {
+		if i != 0 {
+			leftLC := ledgerChannels[i-1]
+			expectedLeftLC := createLedgerInfo(leftLC.ChannelId, simpleOutcome(actors[i-1].Address(), actors[i].Address(), 100, 100), query.Open)
+			checkQueryInfo(t, expectedLeftLC, client.GetLedgerChannel(leftLC.ChannelId))
+		}
+		if i != n-1 {
+			rightLC := ledgerChannels[i]
+			expectedRightLC := createLedgerInfo(rightLC.ChannelId, simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100), query.Open)
+			checkQueryInfo(t, expectedRightLC, client.GetLedgerChannel(rightLC.ChannelId))
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// create virtual channel, execute payment, close virtual channel
+	//////////////////////////////////////////////////////////////////
+
+	intermediaries := make([]types.Address, len(actors)-2)
+	for i, actor := range actors[1 : len(actors)-1] {
+		intermediaries[i] = actor.Address()
+	}
+
+	alice := actors[0]
+	aliceClient := clients[0]
+	bob := actors[n-1]
+	bobClient := clients[n-1]
+	aliceLedger := ledgerChannels[0]
+	bobLedger := ledgerChannels[n-2]
+
+	initialOutcome := simpleOutcome(actors[0].Address(), actors[n-1].Address(), 100, 0)
+
+	vabCreateResponse := aliceClient.CreateVirtual(
+		intermediaries,
+		bob.Address(),
 		100,
-		initialOutcome)
-	aliceVirtualNotifs := rpcClientA.PaymentChannelUpdatesChan(vRes.ChannelId)
-	bobVirtualNotifs := rpcClientB.PaymentChannelUpdatesChan(vRes.ChannelId)
-	assert.Regexp(t, "VirtualFund.0x.*", vRes.Id)
+		initialOutcome,
+	)
+	expectedVirtualChannel := createPaychInfo(
+		vabCreateResponse.ChannelId,
+		initialOutcome,
+		query.Open,
+	)
 
-	<-rpcClientA.ObjectiveCompleteChan(vRes.Id)
-	<-rpcClientB.ObjectiveCompleteChan(vRes.Id)
-	<-rpcClientI.ObjectiveCompleteChan(vRes.Id)
-
-	expectedVirtual := expectedPaymentInfo(vRes.ChannelId, initialOutcome, query.Open)
-	aliceVirtual := rpcClientA.GetVirtualChannel(vRes.ChannelId)
-	checkQueryInfo(t, expectedVirtual, aliceVirtual)
-	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientA.GetPaymentChannelsByLedger(res.ChannelId))
-
-	bobVirtual := rpcClientB.GetVirtualChannel(vRes.ChannelId)
-	checkQueryInfo(t, expectedVirtual, bobVirtual)
-	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientB.GetPaymentChannelsByLedger(bobResponse.ChannelId))
-
-	ireneVirtual := rpcClientI.GetVirtualChannel(vRes.ChannelId)
-	checkQueryInfo(t, expectedVirtual, ireneVirtual)
-	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientI.GetPaymentChannelsByLedger(bobResponse.ChannelId))
-	checkQueryInfoCollection(t, expectedVirtual, 1, rpcClientI.GetPaymentChannelsByLedger(res.ChannelId))
-	rpcClientA.Pay(vRes.ChannelId, 1)
-
-	closeVId := rpcClientA.CloseVirtual(vRes.ChannelId)
-	<-rpcClientA.ObjectiveCompleteChan(closeVId)
-	<-rpcClientB.ObjectiveCompleteChan(closeVId)
-	<-rpcClientI.ObjectiveCompleteChan(closeVId)
-
-	closeId := rpcClientA.CloseLedger(res.ChannelId)
-	<-rpcClientA.ObjectiveCompleteChan(closeId)
-	<-rpcClientI.ObjectiveCompleteChan(closeId)
-
-	closeIdB := rpcClientB.CloseLedger(bobResponse.ChannelId)
-	<-rpcClientB.ObjectiveCompleteChan(closeIdB)
-	<-rpcClientI.ObjectiveCompleteChan(closeIdB)
-
-	if len(rpcClientA.GetPaymentChannelsByLedger(res.ChannelId)) != 0 {
-		t.Error("Alice should not have any payment channels open")
-	}
-	if len(rpcClientB.GetPaymentChannelsByLedger(bobResponse.ChannelId)) != 0 {
-		t.Error("Bob should not have any payment channels open")
-	}
-	if len(rpcClientI.GetPaymentChannelsByLedger(res.ChannelId)) != 0 {
-		t.Error("Irene should not have any payment channels open")
-	}
-	if len(rpcClientI.GetPaymentChannelsByLedger(bobResponse.ChannelId)) != 0 {
-		t.Error("Irene should not have any payment channels open")
+	// wait for the virtual channel to be ready, and
+	// assert correct reporting from query api
+	for i, client := range clients {
+		<-client.ObjectiveCompleteChan(vabCreateResponse.Id)
+		checkQueryInfo(t, expectedVirtualChannel, client.GetVirtualChannel(vabCreateResponse.ChannelId))
+		if i != 0 {
+			checkQueryInfoCollection(t, expectedVirtualChannel, 1,
+				client.GetPaymentChannelsByLedger(ledgerChannels[i-1].ChannelId))
+		}
+		if i != n-1 {
+			checkQueryInfoCollection(t, expectedVirtualChannel, 1,
+				client.GetPaymentChannelsByLedger(ledgerChannels[i].ChannelId))
+		}
 	}
 
-	expectedAliceLedgerNotifs := []query.LedgerChannelInfo{
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100), query.Open),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 0, 100), query.Open),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Open),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Closing),
-		expectedLedgerInfo(res.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 99, 101), query.Complete),
+	if !virtualfund.IsVirtualFundObjective(vabCreateResponse.Id) {
+		t.Errorf("expected virtual fund objective, got %s", vabCreateResponse.Id)
 	}
-	checkNotifications(t, expectedAliceLedgerNotifs, []query.LedgerChannelInfo{}, aliceLedgerNotifs, defaultTimeout)
 
-	expectedBobLedgerNotifs := []query.LedgerChannelInfo{
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Proposed),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 100), query.Open),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 100, 0), query.Open),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Open),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Closing),
-		expectedLedgerInfo(bobResponse.ChannelId, simpleOutcome(ta.Bob.Address(), ta.Irene.Address(), 101, 99), query.Complete),
-	}
-	checkNotifications(t, expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
+	aliceClient.Pay(vabCreateResponse.ChannelId, 1)
 
-	requiredVirtualNotifs := []query.PaymentChannelInfo{
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Proposed),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Open),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Open),
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Complete),
+	vabClosure := aliceClient.CloseVirtual(vabCreateResponse.ChannelId)
+	for _, client := range clients {
+		<-client.ObjectiveCompleteChan(vabClosure)
 	}
-	optionalVirtualNotifs := []query.PaymentChannelInfo{
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 99, 1), query.Closing),
-		// TODO: Sometimes we see a closing notification with the original balance.
-		// See https://github.com/statechannels/go-nitro/issues/1306
-		expectedPaymentInfo(vRes.ChannelId, simpleOutcome(ta.Alice.Address(), ta.Bob.Address(), 100, 0), query.Closing),
-	}
-	checkNotifications(t, requiredVirtualNotifs, optionalVirtualNotifs, aliceVirtualNotifs, defaultTimeout)
 
-	checkNotifications(t, requiredVirtualNotifs, optionalVirtualNotifs, bobVirtualNotifs, defaultTimeout)
+	laiClosure := aliceClient.CloseLedger(aliceLedger.ChannelId)
+	<-aliceClient.ObjectiveCompleteChan(laiClosure)
+
+	if n != 2 { // for n=2, alice and bob share a ledger, which should only be closed once.
+		libClosure := bobClient.CloseLedger(bobLedger.ChannelId)
+		<-bobClient.ObjectiveCompleteChan(libClosure)
+	}
+
+	//////////////////////////
+	// perform wrap-up checks
+	//////////////////////////
+
+	for i, client := range clients {
+		if i != 0 {
+			leftLC := ledgerChannels[i-1]
+			vcCount := len(client.GetPaymentChannelsByLedger(leftLC.ChannelId))
+			if vcCount != 0 {
+				t.Errorf("expected no virtual channels in ledger channel %s, got %d", leftLC.ChannelId, vcCount)
+			}
+		}
+		if i != n-1 {
+			rightLC := ledgerChannels[i]
+			vcCount := len(client.GetPaymentChannelsByLedger(rightLC.ChannelId))
+			if vcCount != 0 {
+				t.Errorf("expected no virtual channels in ledger channel %s, got %d", rightLC.ChannelId, vcCount)
+			}
+		}
+	}
+
+	aliceLedgerNotifs := aliceClient.LedgerChannelUpdatesChan(ledgerChannels[0].ChannelId)
+	expectedAliceLedgerNotifs := createLedgerStory(
+		aliceLedger.ChannelId, alice.Address(), actors[1].Address(), // actor[1] is the first intermediary - can be Bob if n=2 (0-hop)
+		[]channelStatusShorthand{
+			{100, 100, query.Proposed},
+			{100, 100, query.Open},
+			{0, 100, query.Open},  // alice's balance forwarded to the guarantee for the virtual channel
+			{99, 101, query.Open}, // returns to alice & actors[1] after closure
+			{99, 101, query.Closing},
+			{99, 101, query.Complete},
+		},
+	)
+	checkNotifications(t, "aliceLedger", expectedAliceLedgerNotifs, []query.LedgerChannelInfo{}, aliceLedgerNotifs, defaultTimeout)
+
+	bobLedgerNotifs := bobClient.LedgerChannelUpdatesChan(bobLedger.ChannelId)
+	expectedBobLedgerNotifs := createLedgerStory(
+		bobLedger.ChannelId, actors[n-2].Address(), bob.Address(),
+		[]channelStatusShorthand{
+			{100, 100, query.Proposed},
+			{100, 100, query.Open},
+			{0, 100, query.Open},
+			{99, 101, query.Open},
+			{99, 101, query.Complete},
+		},
+	)
+	if n != 2 { // bob does not trigger a ledger-channel close if n=2 - alice does
+		expectedBobLedgerNotifs = append(expectedBobLedgerNotifs,
+			createLedgerInfo(bobLedger.ChannelId, simpleOutcome(actors[n-2].Address(), bob.Address(), 99, 101), query.Closing),
+		)
+	}
+	checkNotifications(t, "bobLedger", expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
+
+	requiredVCNotifs := createPaychStory(
+		vabCreateResponse.ChannelId, alice.Address(), bob.Address(),
+		[]channelStatusShorthand{
+			{100, 0, query.Proposed},
+			{100, 0, query.Open},
+			{99, 1, query.Complete},
+		},
+	)
+	optionalVCNotifs := createPaychStory(
+		vabCreateResponse.ChannelId, alice.Address(), bob.Address(),
+		[]channelStatusShorthand{
+			{99, 1, query.Closing},
+			// TODO: Sometimes we see a closing notification with the original balance.
+			// See https://github.com/statechannels/go-nitro/issues/1306
+			{99, 1, query.Open},
+			{100, 0, query.Closing},
+		},
+	)
+
+	aliceVirtualNotifs := aliceClient.PaymentChannelUpdatesChan(vabCreateResponse.ChannelId)
+	checkNotifications(t, "aliceVirtual", requiredVCNotifs, optionalVCNotifs, aliceVirtualNotifs, defaultTimeout)
+	bobVirtualNotifs := bobClient.PaymentChannelUpdatesChan(vabCreateResponse.ChannelId)
+	checkNotifications(t, "bobVirtual", requiredVCNotifs, optionalVCNotifs, bobVirtualNotifs, defaultTimeout)
 }
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
@@ -257,7 +363,7 @@ type channelInfo interface {
 
 func checkQueryInfo[T channelInfo](t *testing.T, expected T, fetched T) {
 	if diff := cmp.Diff(expected, fetched, cmp.AllowUnexported(big.Int{})); diff != "" {
-		panic(fmt.Errorf("Channel query info diff mismatch (-want +got):\n%s", diff))
+		t.Errorf("Channel query info diff mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -273,7 +379,7 @@ func checkQueryInfoCollection[T channelInfo](t *testing.T, expected T, expectedL
 		}
 	}
 	if !found {
-		panic(fmt.Errorf("did not find info %v in channel infos: %v", expected, fetched))
+		t.Fatalf("did not find info %v in channel infos: %v", expected, fetched)
 	}
 }
 
@@ -287,10 +393,15 @@ func marshalToJson[T channelInfo](t *testing.T, info T) string {
 }
 
 // checkNotifications checks that notifications are received on the notifChan.
-// required specifics the notifications that must be received. checkNotifications will fail if any of these notifications are not received.
-// optional specifics the notifications that may be received. checkNotifications will not fail if any of these notifications are not received.
+//
+// required specifies the notifications that must be received. checkNotifications will fail
+// if any of these notifications are not received.
+//
+// optional specifies notifications that may be received. checkNotifications will not fail
+// if any of these notifications are not received.
+//
 // If a notification is received that is neither in required or optional, checkNotifications will fail.
-func checkNotifications[T channelInfo](t *testing.T, required []T, optional []T, notifChan <-chan T, timeout time.Duration) {
+func checkNotifications[T channelInfo](t *testing.T, client string, required []T, optional []T, notifChan <-chan T, timeout time.Duration) {
 	// This is map containing both required and optional notifications.
 	// We use the json representation of the notification as the key and a boolean as the value.
 	// The boolean value is true if the notification is required and false if it is optional.
@@ -309,19 +420,32 @@ func checkNotifications[T channelInfo](t *testing.T, required []T, optional []T,
 		case info := <-notifChan:
 
 			js := marshalToJson(t, info)
+			t.Logf("%s received %v+", client, info)
 
 			// Check that the notification is a required or optional one.
 			_, found := acceptableNotifications[js]
 			if !found {
-				t.Fatalf("Received unexpected notification: %v", info)
+				t.Fatalf("%s received unexpected notification: %v", client, info)
 			}
 			// To signal we received a notification we delete it from the map
 			delete(acceptableNotifications, js)
 
 		case <-time.After(timeout):
-			t.Fatalf("Timed out waiting for notification.\n")
+			t.Fatalf("%s timed out waiting for notification(s): \n%v", client, incompleteRequired(acceptableNotifications))
 		}
 	}
+}
+
+// incompleteRequired returns a debug string listing
+// required notifications that have not been received.
+func incompleteRequired(notifs map[string]bool) string {
+	required := ""
+	for k, isRequired := range notifs {
+		if isRequired {
+			required += k + "\n"
+		}
+	}
+	return required
 }
 
 // areRequiredComplete checks if all the required notifications have been received.

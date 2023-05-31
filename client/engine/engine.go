@@ -434,7 +434,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 	case virtualfund.ObjectiveRequest:
 		vfo, err := virtualfund.NewObjective(request, true, myAddress, chainId, e.store.GetConsensusChannel)
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create virtualfund objective for %+v: %w", request, err)
 		}
 		// Only Alice or Bob care about registering the objective and keeping track of vouchers
 		lastParticipant := uint(len(vfo.V.Participants) - 1)
@@ -455,20 +455,20 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		if e.vm.ChannelRegistered(request.ChannelId) {
 			paid, err := e.vm.Paid(request.ChannelId)
 			if err != nil {
-				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create virtualdefund objective for %+v: %w", request, err)
 			}
 			minAmount = paid
 		}
 		vdfo, err := virtualdefund.NewObjective(request, true, myAddress, minAmount, e.store.GetChannelById, e.store.GetConsensusChannel)
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create virtualdefund objective for %+v: %w", request, err)
 		}
 		return e.attemptProgress(&vdfo)
 
 	case directfund.ObjectiveRequest:
 		dfo, err := directfund.NewObjective(request, true, myAddress, chainId, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create directfund objective for %+v: %w", request, err)
 		}
 		return e.attemptProgress(&dfo)
 
@@ -477,7 +477,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		if err != nil {
 			return EngineEvent{
 				FailedObjectives: []protocols.ObjectiveId{objectiveId},
-			}, fmt.Errorf("handleAPIEvent: Could not create objective for %+v: %w", request, err)
+			}, fmt.Errorf("handleAPIEvent: Could not create directdefund objective for %+v: %w", request, err)
 		}
 		// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 		err = e.store.DestroyConsensusChannel(request.ChannelId)
