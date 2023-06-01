@@ -411,10 +411,10 @@ func TestLeaderChannel(t *testing.T) {
 		}
 	}
 
-	for i, signedbyAlice := range populatedQueue() {
+	for i, signedByAlice := range populatedQueue() {
 		msg := fmt.Sprintf("ok: receiving a valid counter proposal in position %v", i)
 
-		counterP := bobSignedProposal(signedbyAlice.Vars, signedbyAlice.Proposal, signedbyAlice.SignedProposal.TurnNum)
+		counterP := bobSignedProposal(signedByAlice.Vars, signedByAlice.Proposal, signedByAlice.SignedProposal.TurnNum)
 		t.Run(msg, testUpdateConsensusOk(counterP))
 	}
 
