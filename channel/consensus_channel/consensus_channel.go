@@ -270,8 +270,8 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 
 // validateProposalID checks that the given proposal's ID matches
 // the channel's ID.
-func (c *ConsensusChannel) validateProposalID(propsal Proposal) error {
-	if propsal.LedgerID != c.Id {
+func (c *ConsensusChannel) validateProposalID(proposal Proposal) error {
+	if proposal.LedgerID != c.Id {
 		return ErrIncorrectChannelID
 	}
 
