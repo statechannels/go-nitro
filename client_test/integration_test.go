@@ -66,7 +66,7 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		infra := setupSharedInra(tc)
+		infra := setupSharedInfra(tc)
 		defer infra.Close(t)
 
 		msgServices := make([]messageservice.MessageService, 0)
