@@ -115,14 +115,17 @@ export const NetworkBalance: React.FC<NetworkBalanceProps> = (props) => {
   })(props.status);
 
   const total = myBalanceFree + theirBalanceFree + lockedTotal;
-  const myTotal =
-    myBalanceFree +
-    sortedVirtualChannels.reduce(
-      (acc, x) =>
-        acc +
-        (x.budget * BigInt(Math.round(10_000 * x.myPercentage))) / 10_000n,
-      BigInt(0)
-    );
+
+  const virtualChannelsBalance = sortedVirtualChannels.reduce(
+    (acc, x) =>
+      acc + (x.budget * BigInt(Math.round(10_000 * x.myPercentage))) / 10_000n,
+    BigInt(0)
+  );
+
+  const myTotal = BigInt(
+    Number(virtualChannelsBalance) + Number(myBalanceFree)
+  );
+
   let data = [];
   let myBalanceFreePercentage: number;
   let theirBalanceFreePercentage: number;
