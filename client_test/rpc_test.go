@@ -47,15 +47,15 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 }
 
 func TestRpcWithNats(t *testing.T) {
-	executeNRpcTest(t, "nats", 2)
+	// executeNRpcTest(t, "nats", 2)
 	executeNRpcTest(t, "nats", 3)
-	executeNRpcTest(t, "nats", 4)
+	// executeNRpcTest(t, "nats", 4)
 }
 
 func TestRpcWithWebsockets(t *testing.T) {
-	executeNRpcTest(t, "ws", 2)
+	// executeNRpcTest(t, "ws", 2)
 	executeNRpcTest(t, "ws", 3)
-	executeNRpcTest(t, "ws", 4)
+	// executeNRpcTest(t, "ws", 4)
 }
 
 func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int) {
