@@ -203,7 +203,7 @@ func waitForObjectives(t *testing.T, a, b client.Client, intermediaries []client
 	}
 }
 
-func setupSharedInra(tc TestCase) sharedTestInfrastructure {
+func setupSharedInfra(tc TestCase) sharedTestInfrastructure {
 	infra := sharedTestInfrastructure{}
 	switch tc.Chain {
 	case MockChain:
