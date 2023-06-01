@@ -100,8 +100,8 @@ func setupChainService(tc TestCase, tp TestParticipant, si sharedTestInfrastruct
 	case SimulatedChain:
 		logDestination := newLogWriter(tc.LogName)
 
-		ethAcountIndex := tp.Port - testactors.START_PORT
-		cs, err := chainservice.NewSimulatedBackendChainService(si.simulatedChain, *si.bindings, si.ethAccounts[ethAcountIndex], logDestination)
+		ethAccountIndex := tp.Port - testactors.START_PORT
+		cs, err := chainservice.NewSimulatedBackendChainService(si.simulatedChain, *si.bindings, si.ethAccounts[ethAccountIndex], logDestination)
 		if err != nil {
 			panic(err)
 		}
