@@ -232,7 +232,7 @@ func setupSharedInra(tc TestCase) sharedTestInfrastructure {
 // It will fail if the channel does not exist
 func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...client.Client) {
 	for _, c := range clients {
-		expected := createPaychInfo(id, o, status)
+		expected := expectedPaymentInfo(id, o, status)
 		ledger, err := c.GetPaymentChannel(id)
 		if err != nil {
 			t.Fatal(err)
@@ -243,8 +243,8 @@ func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, sta
 	}
 }
 
-// createLedgerInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetLedgerChannel
-func createLedgerInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.LedgerChannelInfo {
+// expectedLedgerInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetLedgerChannel
+func expectedLedgerInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.LedgerChannelInfo {
 	clientAdd, _ := outcome[0].Allocations[0].Destination.ToAddress()
 	hubAdd, _ := outcome[0].Allocations[1].Destination.ToAddress()
 
@@ -261,36 +261,11 @@ func createLedgerInfo(id types.Destination, outcome outcome.Exit, status query.C
 	}
 }
 
-type channelStatusShorthand struct {
-	clientA uint
-	clientB uint
-	status  query.ChannelStatus
-}
-
-// createLedgerStory returns a sequence of LedgerChannelInfo structs according
-// to the supplied states.
-func createLedgerStory(
-	id types.Destination,
-	clientAddr, hubAddr common.Address,
-	states []channelStatusShorthand,
-) []query.LedgerChannelInfo {
-	story := make([]query.LedgerChannelInfo, len(states))
-	for i, state := range states {
-		story[i] = createLedgerInfo(
-			id,
-			simpleOutcome(clientAddr, hubAddr, state.clientA, state.clientB),
-			state.status,
-		)
-	}
-
-	return story
-}
-
 // checkLedgerChannel checks that the ledger channel has the expected outcome and status
 // It will fail if the channel does not exist
 func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...client.Client) {
 	for _, c := range clients {
-		expected := createLedgerInfo(ledgerId, o, status)
+		expected := expectedLedgerInfo(ledgerId, o, status)
 		ledger, err := c.GetLedgerChannel(ledgerId)
 		if err != nil {
 			t.Fatal(err)
@@ -301,8 +276,8 @@ func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit
 	}
 }
 
-// createPaychInfo constructs a PaymentChannelInfo so we can easily compare it to the result of GetPaymentChannel
-func createPaychInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.PaymentChannelInfo {
+// expectedPaymentInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetPaymentChannel
+func expectedPaymentInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.PaymentChannelInfo {
 	payer, _ := outcome[0].Allocations[0].Destination.ToAddress()
 	payee, _ := outcome[0].Allocations[1].Destination.ToAddress()
 
@@ -319,24 +294,6 @@ func createPaychInfo(id types.Destination, outcome outcome.Exit, status query.Ch
 	}
 }
 
-// createPaychStory returns a sequence of PaymentChannelInfo structs according
-// to the supplied states.
-func createPaychStory(
-	id types.Destination,
-	payerAddr, payeeAddr common.Address,
-	states []channelStatusShorthand,
-) []query.PaymentChannelInfo {
-	story := make([]query.PaymentChannelInfo, len(states))
-	for i, state := range states {
-		story[i] = createPaychInfo(
-			id,
-			simpleOutcome(payerAddr, payeeAddr, state.clientA, state.clientB),
-			state.status,
-		)
-	}
-	return story
-}
-
 func clientAddresses(clients []client.Client) []common.Address {
 	addrs := make([]common.Address, len(clients))
 	for i, c := range clients {
@@ -347,9 +304,9 @@ func clientAddresses(clients []client.Client) []common.Address {
 }
 
 // waitForPeerInfoExchange waits for all the P2PMessageServices to receive peer info from each other
-func waitForPeerInfoExchange(services ...*p2pms.P2PMessageService) {
-	for _, s := range services {
-		for i := 0; i < len(services)-1; i++ {
+func waitForPeerInfoExchange(numOfPeers int, services ...*p2pms.P2PMessageService) {
+	for i := 0; i < numOfPeers; i++ {
+		for _, s := range services {
 			<-s.PeerInfoReceived()
 		}
 	}
