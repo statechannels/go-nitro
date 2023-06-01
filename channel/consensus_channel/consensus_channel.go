@@ -433,8 +433,8 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 // FromExit creates a new LedgerOutcome from the given SingleAssetExit.
 //
 // It makes the following assumptions about the exit:
-//   - The first alloction entry is for the ledger leader
-//   - The second alloction entry is for the ledger follower
+//   - The first allocation entry is for the ledger leader
+//   - The second allocation entry is for the ledger follower
 //   - All other allocations are guarantees
 func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 	var (
