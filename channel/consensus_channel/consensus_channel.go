@@ -365,7 +365,7 @@ func (g Guarantee) AsAllocation() outcome.Allocation {
 // participant.
 //
 // This struct does not store items in sorted order. The conventional ordering of allocation items is:
-// [leader, follower, ...guaranteesSortedbyTargetDestination]
+// [leader, follower, ...guaranteesSortedByTargetDestination]
 type LedgerOutcome struct {
 	assetAddress types.Address // Address of the asset type
 	leader       Balance       // Balance of participants[0]
