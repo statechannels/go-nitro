@@ -678,7 +678,7 @@ func NewAdd(g Guarantee, leftDeposit *big.Int) Add {
 	}
 }
 
-// NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
+// NewAddProposal constructs a proposal with a valid Add proposal and empty remove proposal.
 func NewAddProposal(ledgerID types.Destination, g Guarantee, leftDeposit *big.Int) Proposal {
 	return Proposal{ToAdd: NewAdd(g, leftDeposit), LedgerID: ledgerID}
 }
@@ -688,7 +688,7 @@ func NewRemove(target types.Destination, leftAmount *big.Int) Remove {
 	return Remove{Target: target, LeftAmount: leftAmount}
 }
 
-// NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
+// NewRemoveProposal constructs a proposal with a valid Remove proposal and empty Add proposal.
 func NewRemoveProposal(ledgerID types.Destination, target types.Destination, leftAmount *big.Int) Proposal {
 	return Proposal{ToRemove: NewRemove(target, leftAmount), LedgerID: ledgerID}
 }
