@@ -60,7 +60,7 @@ beforeAll(async () => {
 
 describe('stateIsSupported', () => {
   it('Transitions between random VariableParts are valid', async () => {
-    expect.assertions(5);
+    expect.assertions(15);
     for (let i = 0; i < 5; i++) {
       const from: RecoveredVariablePart = getRandomRecoveredVariablePart();
       const to: RecoveredVariablePart = getRandomRecoveredVariablePart();

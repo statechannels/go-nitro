@@ -48,7 +48,7 @@ describe('stateIsSupported', () => {
     [0, 0, 0]
   )[0];
   it('A single state signed by everyone is considered supported', async () => {
-    expect.assertions(1);
+    expect.assertions(3);
     await expectSupportedState(() => consensusApp.stateIsSupported(fixedPart, [], candidate));
   });
 
