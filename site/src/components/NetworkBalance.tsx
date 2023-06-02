@@ -122,9 +122,7 @@ export const NetworkBalance: React.FC<NetworkBalanceProps> = (props) => {
     BigInt(0)
   );
 
-  const myTotal = BigInt(
-    Number(virtualChannelsBalance) + Number(myBalanceFree)
-  );
+  const myTotal = virtualChannelsBalance + myBalanceFree;
 
   let data = [];
   let myBalanceFreePercentage: number;
