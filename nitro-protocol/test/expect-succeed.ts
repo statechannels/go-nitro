@@ -18,3 +18,15 @@ export async function expectSupportedState(fn: () => void) {
   expect(txResult[0]).toBe(true);
   expect(txResult[1]).toBe('');
 }
+
+/**
+ * Wrapper for calls to `stateIsSupported` that are expected to fail.
+ * Checks that the reason for failure matches the supplied `reason` string.
+ */
+export async function expectFailure(fn: () => void, reason?: string) {
+  const txResult = (await fn()) as any;
+
+  expect(txResult.length).toBe(2);
+  expect(txResult[0]).toBe(false);
+  if (reason) expect(txResult[1]).toBe(reason);
+}
