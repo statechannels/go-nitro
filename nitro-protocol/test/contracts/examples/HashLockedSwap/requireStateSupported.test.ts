@@ -26,7 +26,7 @@ import {
   setupContract,
   generateParticipants,
 } from '../../../test-helpers';
-import {expectSucceed} from '../../../expect-succeed';
+import {expectSupportedState} from '../../../expect-succeed';
 import {replaceAddressesAndBigNumberify} from '../../../../src/helpers';
 
 // Utilities
@@ -80,7 +80,7 @@ const incorrectPreImage: HashLockedSwapData = {
   h: HashZero,
 };
 
-describe('requireStateSupported', () => {
+describe('stateIsSupported', () => {
   let channelNonce = getRandomNonce('HashLockedSwap');
   beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
   it.each`
@@ -171,10 +171,12 @@ describe('requireStateSupported', () => {
       );
 
       if (isValid) {
-        await expectSucceed(() => hashTimeLock.requireStateSupported(fixedPart, proof, candidate));
+        await expectSupportedState(() =>
+          hashTimeLock.stateIsSupported(fixedPart, proof, candidate)
+        );
       } else {
         await expectRevert(
-          () => hashTimeLock.requireStateSupported(fixedPart, proof, candidate),
+          () => hashTimeLock.stateIsSupported(fixedPart, proof, candidate),
           'incorrect preimage'
         );
       }

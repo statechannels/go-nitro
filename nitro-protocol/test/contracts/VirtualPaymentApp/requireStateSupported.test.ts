@@ -52,7 +52,7 @@ beforeAll(async () => {
   );
 });
 
-describe('requireStateSupported (lone candidate route)', () => {
+describe('stateIsSupported (lone candidate route)', () => {
   interface TestCase {
     turnNum: number;
     isFinal: boolean;
@@ -87,17 +87,17 @@ describe('requireStateSupported (lone candidate route)', () => {
 
       if (tc.reason) {
         await expectRevert(
-          () => virtualPaymentApp.requireStateSupported(fixedPart, [], candidate),
+          () => virtualPaymentApp.stateIsSupported(fixedPart, [], candidate),
           tc.reason
         );
       } else {
-        await virtualPaymentApp.requireStateSupported(fixedPart, [], candidate);
+        await virtualPaymentApp.stateIsSupported(fixedPart, [], candidate);
       }
     });
   });
 });
 
-describe('requireStateSupported (candidate plus single proof state route)', () => {
+describe('stateIsSupported (candidate plus single proof state route)', () => {
   interface TestCase {
     proofTurnNum: number;
     candidateTurnNum: number;
@@ -206,17 +206,17 @@ describe('requireStateSupported (candidate plus single proof state route)', () =
 
       if (tc.reason) {
         await expectRevert(
-          () => virtualPaymentApp.requireStateSupported(fixedPart, proof, candidate),
+          () => virtualPaymentApp.stateIsSupported(fixedPart, proof, candidate),
           tc.reason
         );
       } else {
-        await virtualPaymentApp.requireStateSupported(fixedPart, proof, candidate);
+        await virtualPaymentApp.stateIsSupported(fixedPart, proof, candidate);
       }
     });
   });
 });
 
-describe('requireStateSupported (longer proof state route)', () => {
+describe('stateIsSupported (longer proof state route)', () => {
   it(`reverts for |support|>1`, async () => {
     const variablePart = getVariablePart(baseState);
 
@@ -226,7 +226,7 @@ describe('requireStateSupported (longer proof state route)', () => {
     };
 
     await expectRevert(
-      () => virtualPaymentApp.requireStateSupported(fixedPart, [candidate, candidate], candidate),
+      () => virtualPaymentApp.stateIsSupported(fixedPart, [candidate, candidate], candidate),
       'bad proof length'
     );
   });
