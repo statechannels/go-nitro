@@ -15,4 +15,6 @@ export async function expectSupportedState(fn: () => void) {
 
   // `.stateIsSupported` returns a (bool, string) tuple
   expect(txResult.length).toBe(2);
+  expect(txResult[0]).toBe(true);
+  expect(txResult[1]).toBe('');
 }
