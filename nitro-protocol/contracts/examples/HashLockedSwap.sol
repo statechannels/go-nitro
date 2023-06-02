@@ -26,8 +26,8 @@ contract HashLockedSwap is IForceMoveApp {
     }
 
     /**
-     * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
-     * @dev Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
+     * @notice Encodes rules to enforce a hash locked swap.
+     * @dev Encodes rules to enforce a hash locked swap.
      * @param fixedPart Fixed part of the state channel.
      * @param proof Array of recovered variable parts which constitutes a support proof for the candidate.
      * @param candidate Recovered variable part the proof was supplied for.
@@ -36,7 +36,7 @@ contract HashLockedSwap is IForceMoveApp {
         FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
-    ) external pure override returns (bool, string memory){
+    ) external pure override returns (bool, string memory) {
         VariablePart memory to = candidate.variablePart;
 
         // is this the first and only swap?
@@ -82,11 +82,9 @@ contract HashLockedSwap is IForceMoveApp {
         return (true, '');
     }
 
-    function decode2PartyAllocation(Outcome.SingleAssetExit[] memory outcome)
-        private
-        pure
-        returns (Outcome.Allocation[] memory allocations)
-    {
+    function decode2PartyAllocation(
+        Outcome.SingleAssetExit[] memory outcome
+    ) private pure returns (Outcome.Allocation[] memory allocations) {
         Outcome.SingleAssetExit memory assetOutcome = outcome[0];
 
         allocations = assetOutcome.allocations; // TODO should we check each allocation is a "simple" one?
