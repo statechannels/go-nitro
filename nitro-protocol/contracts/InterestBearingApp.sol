@@ -72,7 +72,7 @@ contract InterestBearingApp is IForceMoveApp {
                 outstandingInterest
             );
         } else {
-            revert('|proof| > 1');
+            return(false, '|proof| > 1');
         }
 
         return (true, '');
