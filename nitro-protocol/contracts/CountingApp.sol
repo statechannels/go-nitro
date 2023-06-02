@@ -31,11 +31,11 @@ contract CountingApp is IForceMoveApp {
      * @param proof Array of recovered variable parts which constitutes a support proof for the candidate.
      * @param candidate Recovered variable part the proof was supplied for.
      */
-    function requireStateSupported(
+    function stateIsSupported(
         FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
-    ) external pure override {
+    ) external pure override returns (bool, string memory) {
         StrictTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate);
 
         require(proof.length != 0, '|proof| = 0');
@@ -48,6 +48,8 @@ contract CountingApp is IForceMoveApp {
 
         _requireIncrementedCounter(candidate, proof[proof.length - 1]);
         _requireEqualOutcomes(candidate, proof[proof.length - 1]);
+
+        return (true, '');
     }
 
     /**

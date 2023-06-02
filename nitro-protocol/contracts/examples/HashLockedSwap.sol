@@ -32,11 +32,11 @@ contract HashLockedSwap is IForceMoveApp {
      * @param proof Array of recovered variable parts which constitutes a support proof for the candidate.
      * @param candidate Recovered variable part the proof was supplied for.
      */
-    function requireStateSupported(
+    function stateIsSupported(
         FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
-    ) external pure override {
+    ) external pure override returns (bool, string memory){
         VariablePart memory to = candidate.variablePart;
 
         // is this the first and only swap?
@@ -78,6 +78,8 @@ contract HashLockedSwap is IForceMoveApp {
                 allocationsA[1].amount == allocationsB[0].amount,
             'amounts must be permuted'
         );
+
+        return (true, '');
     }
 
     function decode2PartyAllocation(Outcome.SingleAssetExit[] memory outcome)

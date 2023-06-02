@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 import './INitroTypes.sol';
 
 /**
- * @dev The IForceMoveApp interface calls for its children to implement an application-specific requireStateSupported function, defining the state machine of a ForceMove state channel DApp.
+ * @dev The IForceMoveApp interface calls for its children to implement an application-specific stateIsSupported function, defining the state machine of a ForceMove state channel DApp.
  */
 interface IForceMoveApp is INitroTypes {
     /**
@@ -15,9 +15,9 @@ interface IForceMoveApp is INitroTypes {
      * @param proof Array of recovered variable parts which constitutes a support proof for the candidate. May be omitted when `candidate` constitutes a support proof itself.
      * @param candidate Recovered variable part the proof was supplied for. Also may constitute a support proof itself.
      */
-    function requireStateSupported(
+    function stateIsSupported(
         FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
-    ) external view;
+    ) external view returns (bool, string memory);
 }
