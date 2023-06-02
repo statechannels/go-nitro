@@ -11,7 +11,7 @@ import {
   State,
 } from '../../../src/contract/state';
 import {generateParticipants, getTestProvider, setupContract} from '../../test-helpers';
-import {expectFailure} from '../../expect-succeed';
+import {expectFailure} from '../../tx-expect-wrappers';
 
 let interestBearingApp: Contract;
 const provider = getTestProvider();

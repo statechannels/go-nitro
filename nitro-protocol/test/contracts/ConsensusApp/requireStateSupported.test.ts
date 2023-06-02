@@ -9,7 +9,7 @@ import {
   RecoveredVariablePart,
   State,
 } from '../../../src/contract/state';
-import {expectSupportedState} from '../../expect-succeed';
+import {expectSupportedState} from '../../tx-expect-wrappers';
 import {generateParticipants, getTestProvider, setupContract} from '../../test-helpers';
 const {HashZero} = ethers.constants;
 

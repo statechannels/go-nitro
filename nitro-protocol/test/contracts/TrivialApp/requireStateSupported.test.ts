@@ -10,7 +10,7 @@ import {
   State,
   VariablePart,
 } from '../../../src/contract/state';
-import {expectSupportedState} from '../../expect-succeed';
+import {expectSupportedState} from '../../tx-expect-wrappers';
 import {getTestProvider, setupContract} from '../../test-helpers';
 
 const provider = getTestProvider();

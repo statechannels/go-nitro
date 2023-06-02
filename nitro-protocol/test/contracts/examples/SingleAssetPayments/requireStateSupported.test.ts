@@ -25,7 +25,7 @@ import {
   signStates,
 } from '../../../../src';
 import {INVALID_SIGNED_BY} from '../../../../src/contract/transaction-creators/revert-reasons';
-import {expectSupportedState} from '../../../expect-succeed';
+import {expectSupportedState} from '../../../tx-expect-wrappers';
 import {replaceAddressesAndBigNumberify} from '../../../../src/helpers';
 
 const provider = getTestProvider();

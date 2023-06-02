@@ -18,7 +18,7 @@ import {
   PROOF_SUPPLIED,
 } from '../../../../src/contract/transaction-creators/revert-reasons';
 import {separateProofAndCandidate} from '../../../../src/contract/state';
-import {expectSucceed} from '../../../expect-succeed';
+import {expectSucceed} from '../../../tx-expect-wrappers';
 const provider = getTestProvider();
 let Consensus: Contract & TESTConsensus;
 

@@ -26,7 +26,7 @@ import {
   setupContract,
   generateParticipants,
 } from '../../../test-helpers';
-import {expectSupportedState} from '../../../expect-succeed';
+import {expectSupportedState} from '../../../tx-expect-wrappers';
 import {replaceAddressesAndBigNumberify} from '../../../../src/helpers';
 
 // Utilities

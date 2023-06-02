@@ -23,7 +23,7 @@ import {
 } from '../../../../src/contract/transaction-creators/revert-reasons';
 import {RecoveredVariablePart, separateProofAndCandidate} from '../../../../src/contract/state';
 import {getSignedBy} from '../../../../src/bitfield-utils';
-import {expectSucceed} from '../../../expect-succeed';
+import {expectSucceed} from '../../../tx-expect-wrappers';
 const provider = getTestProvider();
 let StrictTurnTaking: Contract & TESTStrictTurnTaking;
 
