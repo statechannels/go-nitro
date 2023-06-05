@@ -100,8 +100,8 @@ func setupChainService(tc TestCase, tp TestParticipant, si sharedTestInfrastruct
 	case SimulatedChain:
 		logDestination := newLogWriter(tc.LogName)
 
-		ethAcountIndex := tp.Port - testactors.START_PORT
-		cs, err := chainservice.NewSimulatedBackendChainService(si.simulatedChain, *si.bindings, si.ethAccounts[ethAcountIndex], logDestination)
+		ethAccountIndex := tp.Port - testactors.START_PORT
+		cs, err := chainservice.NewSimulatedBackendChainService(si.simulatedChain, *si.bindings, si.ethAccounts[ethAccountIndex], logDestination)
 		if err != nil {
 			panic(err)
 		}
@@ -203,7 +203,7 @@ func waitForObjectives(t *testing.T, a, b client.Client, intermediaries []client
 	}
 }
 
-func setupSharedInra(tc TestCase) sharedTestInfrastructure {
+func setupSharedInfra(tc TestCase) sharedTestInfrastructure {
 	infra := sharedTestInfrastructure{}
 	switch tc.Chain {
 	case MockChain:

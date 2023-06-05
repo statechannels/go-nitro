@@ -110,7 +110,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	t.Logf("%d Clients created", n)
 
 	waitForPeerInfoExchange(msgServices...)
-	t.Logf("Peerexchange complete")
+	t.Logf("Peer exchange complete")
 
 	// create n-1 ledger channels
 	ledgerChannels := make([]directfund.ObjectiveResponse, n-1)
@@ -315,7 +315,7 @@ func setupNitroNodeWithRPCClient(
 		nil)
 
 	var serverConnection transport.Responder
-	var clienConnection transport.Requester
+	var clientConnection transport.Requester
 	var err error
 	switch connectionType {
 	case "nats":
@@ -323,7 +323,7 @@ func setupNitroNodeWithRPCClient(
 		if err != nil {
 			panic(err)
 		}
-		clienConnection, err = natstrans.NewNatsTransportAsClient(serverConnection.Url())
+		clientConnection, err = natstrans.NewNatsTransportAsClient(serverConnection.Url())
 		if err != nil {
 			panic(err)
 		}
@@ -332,7 +332,7 @@ func setupNitroNodeWithRPCClient(
 		if err != nil {
 			panic(err)
 		}
-		clienConnection, err = ws.NewWebSocketTransportAsClient(serverConnection.Url())
+		clientConnection, err = ws.NewWebSocketTransportAsClient(serverConnection.Url())
 		if err != nil {
 			panic(err)
 		}
@@ -346,7 +346,7 @@ func setupNitroNodeWithRPCClient(
 	if err != nil {
 		panic(err)
 	}
-	rpcClient, err := rpc.NewRpcClient(rpcServer.Url(), createLogger(logDestination, node.Address.Hex(), "client"), clienConnection)
+	rpcClient, err := rpc.NewRpcClient(rpcServer.Url(), createLogger(logDestination, node.Address.Hex(), "client"), clientConnection)
 	if err != nil {
 		panic(err)
 	}

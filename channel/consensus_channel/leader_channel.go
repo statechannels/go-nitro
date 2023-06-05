@@ -119,7 +119,7 @@ func (c *ConsensusChannel) leaderReceive(countersigned SignedProposal) error {
 }
 
 // appendToProposalQueue safely appends the given SignedProposal to the proposal queue of the receiver.
-// It will return an error if the turn number of the signedproposal is not consecutive with the existing queue.
+// It will return an error if the turn number of the SignedProposal is not consecutive with the existing queue.
 func (c *ConsensusChannel) appendToProposalQueue(signed SignedProposal) error {
 	if len(c.proposalQueue) > 0 && c.proposalQueue[len(c.proposalQueue)-1].TurnNum+1 != signed.TurnNum {
 		return fmt.Errorf("appending to ConsensusChannel.proposalQueue: not a consecutive TurnNum")

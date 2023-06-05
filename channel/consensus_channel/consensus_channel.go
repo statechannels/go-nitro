@@ -166,7 +166,7 @@ func (c *ConsensusChannel) IncludesTarget(target types.Destination) bool {
 	return c.current.Outcome.IncludesTarget(target)
 }
 
-// HasRemovalBeenProposed returns whether or not a proposal exists to remove the guaranatee for the target.
+// HasRemovalBeenProposed returns whether or not a proposal exists to remove the guarantee for the target.
 func (c *ConsensusChannel) HasRemovalBeenProposed(target types.Destination) bool {
 	for _, p := range c.proposalQueue {
 		if p.Proposal.Type() == RemoveProposal {
@@ -270,8 +270,8 @@ func (c *ConsensusChannel) latestProposedVars() (Vars, error) {
 
 // validateProposalID checks that the given proposal's ID matches
 // the channel's ID.
-func (c *ConsensusChannel) validateProposalID(propsal Proposal) error {
-	if propsal.LedgerID != c.Id {
+func (c *ConsensusChannel) validateProposalID(proposal Proposal) error {
+	if proposal.LedgerID != c.Id {
 		return ErrIncorrectChannelID
 	}
 
@@ -365,7 +365,7 @@ func (g Guarantee) AsAllocation() outcome.Allocation {
 // participant.
 //
 // This struct does not store items in sorted order. The conventional ordering of allocation items is:
-// [leader, follower, ...guaranteesSortedbyTargetDestination]
+// [leader, follower, ...guaranteesSortedByTargetDestination]
 type LedgerOutcome struct {
 	assetAddress types.Address // Address of the asset type
 	leader       Balance       // Balance of participants[0]
@@ -433,8 +433,8 @@ func (o *LedgerOutcome) includes(g Guarantee) bool {
 // FromExit creates a new LedgerOutcome from the given SingleAssetExit.
 //
 // It makes the following assumptions about the exit:
-//   - The first alloction entry is for the ledger leader
-//   - The second alloction entry is for the ledger follower
+//   - The first allocation entry is for the ledger leader
+//   - The second allocation entry is for the ledger follower
 //   - All other allocations are guarantees
 func FromExit(sae outcome.SingleAssetExit) (LedgerOutcome, error) {
 	var (
@@ -678,7 +678,7 @@ func NewAdd(g Guarantee, leftDeposit *big.Int) Add {
 	}
 }
 
-// NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
+// NewAddProposal constructs a proposal with a valid Add proposal and empty remove proposal.
 func NewAddProposal(ledgerID types.Destination, g Guarantee, leftDeposit *big.Int) Proposal {
 	return Proposal{ToAdd: NewAdd(g, leftDeposit), LedgerID: ledgerID}
 }
@@ -688,7 +688,7 @@ func NewRemove(target types.Destination, leftAmount *big.Int) Remove {
 	return Remove{Target: target, LeftAmount: leftAmount}
 }
 
-// NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
+// NewRemoveProposal constructs a proposal with a valid Remove proposal and empty Add proposal.
 func NewRemoveProposal(ledgerID types.Destination, target types.Destination, leftAmount *big.Int) Proposal {
 	return Proposal{ToRemove: NewRemove(target, leftAmount), LedgerID: ledgerID}
 }
