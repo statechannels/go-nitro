@@ -80,8 +80,10 @@ function App() {
     setErrorText("");
     if (nitroClient && selectedChannel) {
       nitroClient.Pay(selectedChannel, 100);
-
-      updateSelectedInfo(selectedChannel);
+      // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
+      setTimeout(() => {
+        updateSelectedInfo(selectedChannel);
+      }, 50);
     }
   };
 
