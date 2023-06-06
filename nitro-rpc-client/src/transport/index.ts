@@ -30,7 +30,8 @@ export type Transport = {
    */
   sendRequest<K extends RequestMethod>(
     req: RPCRequestAndResponses[K][0]
-  ): Promise<RPCRequestAndResponses[K][1]>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<any>;
 
   Close(): Promise<void>;
 };

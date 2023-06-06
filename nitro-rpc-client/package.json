@@ -14,10 +14,12 @@
     "lint:fix": "yarn lint:eslint --fix && yarn lint:misc --write",
     "lint:misc": "prettier '**/*.json' '**/*.md' '!CHANGELOG.md' --ignore-path .gitignore",
     "prepack": "yarn build",
-    "start": "npx ts-node src/cli.ts"
+    "start": "npx ts-node src/cli.ts",
+    "test": "jest"
   },
   "dependencies": {
     "@statechannels/exit-format": "^0.2.0",
+    "ajv": "^8.12.0",
     "axios": "^1.3.6",
     "eventemitter3": "^5.0.0",
     "json-rpc-2.0": "^1.5.1",
@@ -27,6 +29,7 @@
     "websocket": "^1.0.34"
   },
   "devDependencies": {
+    "@types/ajv": "^1.0.0",
     "@types/jest": "^29.5.1",
     "@types/node": "^18.15.11",
     "@types/websocket": "^1.0.5",
