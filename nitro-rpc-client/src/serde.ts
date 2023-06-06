@@ -68,6 +68,13 @@ const paymentChannelSchema = {
 } as const;
 type PaymentChannelSchemaType = JTDDataType<typeof paymentChannelSchema>;
 
+const ledgerChannelsSchema = {
+  elements: {
+    ...ledgerChannelSchema,
+  },
+} as const;
+type LedgerChannelsSchemaType = JTDDataType<typeof ledgerChannelsSchema>;
+
 const paymentChannelsSchema = {
   elements: {
     ...paymentChannelSchema,
@@ -75,18 +82,31 @@ const paymentChannelsSchema = {
 } as const;
 type PaymentChannelsSchemaType = JTDDataType<typeof paymentChannelsSchema>;
 
+const paymentSchema = {
+  properties: {
+    Amount: { type: "uint32" },
+    Channel: { type: "string" },
+  },
+} as const;
+type PaymentSchemaType = JTDDataType<typeof paymentSchema>;
+
 type ResponseSchema =
   | typeof objectiveSchema
   | typeof stringSchema
   | typeof ledgerChannelSchema
+  | typeof ledgerChannelsSchema
   | typeof paymentChannelSchema
-  | typeof paymentChannelsSchema;
+  | typeof paymentChannelsSchema
+  | typeof paymentSchema;
+
 type ResponseSchemaType =
   | ObjectiveSchemaType
   | StringSchemaType
   | LedgerChannelSchemaType
+  | LedgerChannelsSchemaType
   | PaymentChannelSchemaType
-  | PaymentChannelsSchemaType;
+  | PaymentChannelsSchemaType
+  | PaymentSchemaType;
 
 export function validateResponse<T extends RequestMethod>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,6 +137,13 @@ export function validateResponse<T extends RequestMethod>(
         result,
         convertToInternalLedgerChannelType
       );
+
+    case "get_all_ledger_channels":
+      return validateResult(
+        ledgerChannelsSchema,
+        result,
+        convertToInternalLedgerChannelsType
+      );
     case "get_payment_channel":
       return validateResult(
         paymentChannelSchema,
@@ -128,6 +155,12 @@ export function validateResponse<T extends RequestMethod>(
         paymentChannelsSchema,
         result,
         convertToInternalPaymentChannelsType
+      );
+    case "pay":
+      return validateResult(
+        paymentSchema,
+        result,
+        (result: PaymentSchemaType) => result
       );
     default:
       throw new Error(`Unknown method: ${method}`);
@@ -168,6 +201,12 @@ function convertToInternalLedgerChannelType(
       ClientBalance: BigInt(result.Balance.ClientBalance),
     },
   };
+}
+
+function convertToInternalLedgerChannelsType(
+  result: LedgerChannelsSchemaType
+): LedgerChannelInfo[] {
+  return result.map((lc) => convertToInternalLedgerChannelType(lc));
 }
 
 function convertToInternalPaymentChannelType(

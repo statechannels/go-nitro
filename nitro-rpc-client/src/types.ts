@@ -47,6 +47,7 @@ export type VirtualFundParams = {
   AppDefinition: string;
 };
 export type PaymentParams = {
+  // todo: this should be a bigint
   Amount: number;
   Channel: string;
 };
