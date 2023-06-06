@@ -77,7 +77,8 @@ export function generateRequest<
     jsonrpc: "2.0",
     method,
     params,
-    id: Date.now(),
+    // Our schema defines id as a uint32. We mod the current time to ensure that we don't overflow
+    id: Date.now() % 1_000_000_000,
   } as T; // TODO: We shouldn't have to cast here
 }
 

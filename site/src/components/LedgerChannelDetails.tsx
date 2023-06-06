@@ -23,25 +23,16 @@ async function getLedgerDetails(
     channelId
   );
 
-  // todo: remove this construction once big number over rpc is fixed
-  // At the moment, fields that are defined as big numbers are populated as numbers
-  const ledgerBalance = {
-    ...ledgerChannel.Balance,
-    ClientBalance: BigInt(ledgerChannel.Balance.ClientBalance),
-    HubBalance: BigInt(ledgerChannel.Balance.HubBalance),
-  };
-
   const lockedBalances = paymentChannels.map((pc) => {
     const total = pc.Balance.PaidSoFar + pc.Balance.RemainingFunds;
     return {
-      // todo: this conversion should be removed once big number over rpc is fixed
-      budget: BigInt(total),
+      budget: total,
       myPercentage: Number(pc.Balance.RemainingFunds / total),
     };
   });
 
   return {
-    ledgerBalance,
+    ledgerBalance: ledgerChannel.Balance,
     lockedBalances,
   };
 }
