@@ -35,6 +35,10 @@ function App() {
   const [selectedChannelInfo, setSelectedChannelInfo] = useState<
     PaymentChannelInfo | undefined
   >();
+
+  // TODO: For now the default is a hardcoded value based on a local file
+  // If you're running this locally you'll need to override this value
+  // Ideally we should just query boost/lotus for the list of available payloads>
   const [payloadId, setPayloadId] = useState<string>(
     "bafk2bzaceapnitekx4sp3mtitqatm5zpxn6nvjicwtltomttrlof65wlcfjpa"
   );
@@ -45,9 +49,10 @@ function App() {
     NitroRpcClient.CreateHttpNitroClient(url).then((c) => setNitroClient(c));
   }, [url]);
 
+  // Fetch all the payment channels for the retrieval provider
   useEffect(() => {
     if (nitroClient) {
-      // TODO: We should update the nitro API so this isn't as painful
+      // TODO: We should consider adding a API function so this ins't as painful
       nitroClient.GetAllLedgerChannels().then((ledgers) => {
         for (const l of ledgers) {
           if (l.Balance.Hub != hub) continue;
@@ -63,17 +68,18 @@ function App() {
     }
   }, [nitroClient]);
 
-  const updateSelectedInfo = async (channelId: string) => {
+  const updateChannelInfo = async (channelId: string) => {
     const paymentChannel = await nitroClient?.GetPaymentChannel(channelId);
-    if (selectedChannelInfo?.Balance.PaidSoFar) {
-      console.log(BigInt(selectedChannelInfo?.Balance.PaidSoFar).toString(10));
-    }
     setSelectedChannelInfo(paymentChannel);
   };
 
-  const handleSelectedChanged = async (event: SelectChangeEvent) => {
+  const handleSelectedChannelChanged = async (event: SelectChangeEvent) => {
     setSelectedChannel(event.target.value);
-    updateSelectedInfo(event.target.value);
+    updateChannelInfo(event.target.value);
+  };
+
+  const updatePayloadId = (e: ChangeEvent<HTMLInputElement>) => {
+    setPayloadId(e.target.value);
   };
 
   const makePayment = () => {
@@ -82,7 +88,7 @@ function App() {
       nitroClient.Pay(selectedChannel, 100);
       // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
       setTimeout(() => {
-        updateSelectedInfo(selectedChannel);
+        updateChannelInfo(selectedChannel);
       }, 50);
     }
   };
@@ -94,14 +100,15 @@ function App() {
       .get(
         `http://localhost:7777/ipfs/${payloadId}?channelId=${selectedChannel}`,
         {
-          responseType: "blob",
+          responseType: "blob", // This lets us download the file
           headers: {
-            Accept: "*/*",
+            Accept: "*/*", // TODO: Do we need to specify this?
           },
         }
       )
 
       .then((result) => {
+        // This will prompt the browser to download the file
         const blob = result.data;
         const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -112,8 +119,6 @@ function App() {
         window.URL.revokeObjectURL(blobUrl);
       })
       .catch((e) => {
-        console.log(e);
-        console.log(isAxiosError(e));
         if (isAxiosError(e)) {
           setErrorText(`${e.message}: ${e.response?.statusText}`);
         } else {
@@ -122,16 +127,12 @@ function App() {
       });
   };
 
-  const updatePayloadId = (e: ChangeEvent<HTMLInputElement>) => {
-    setPayloadId(e.target.value);
-  };
-
   return (
     <Box>
       <Box p={10} minHeight={200}>
         <Select
           label="virtual channels"
-          onChange={handleSelectedChanged}
+          onChange={handleSelectedChannelChanged}
           value={selectedChannel}
         >
           {...paymentChannels.map((p) => (
@@ -150,11 +151,10 @@ function App() {
               </TableCell>
             </TableRow>
             <TableRow>
-              <TableCell>Remainding funds</TableCell>
+              <TableCell>Remaining funds</TableCell>
               <TableCell>
                 {selectedChannelInfo &&
                   // TODO: We shouldn't have to cast to a BigInt here, the client should return a BigInt
-
                   BigInt(selectedChannelInfo?.Balance.RemainingFunds).toString(
                     10
                   )}
