@@ -23,6 +23,17 @@ const jsonRpcSchema = {
 } as const;
 type JsonRpcSchemaType = JTDDataType<typeof jsonRpcSchema>;
 
+const objectiveSchema = {
+  properties: {
+    Id: { type: "string" },
+    ChannelId: { type: "string" },
+  },
+} as const;
+type ObjectiveSchemaType = JTDDataType<typeof objectiveSchema>;
+
+const stringSchema = { type: "string" } as const;
+type StringSchemaType = JTDDataType<typeof stringSchema>;
+
 const ledgerChannelSchema = {
   properties: {
     ID: { type: "string" },
@@ -65,10 +76,14 @@ const paymentChannelsSchema = {
 type PaymentChannelsSchemaType = JTDDataType<typeof paymentChannelsSchema>;
 
 type ResponseSchema =
+  | typeof objectiveSchema
+  | typeof stringSchema
   | typeof ledgerChannelSchema
   | typeof paymentChannelSchema
   | typeof paymentChannelsSchema;
 type ResponseSchemaType =
+  | ObjectiveSchemaType
+  | StringSchemaType
   | LedgerChannelSchemaType
   | PaymentChannelSchemaType
   | PaymentChannelsSchemaType;
@@ -80,6 +95,22 @@ export function validateResponse<T extends RequestMethod>(
 ): RPCRequestAndResponses[T][1]["result"] {
   const result = getJsonRpcResult(response);
   switch (method) {
+    case "direct_fund":
+    case "virtual_fund":
+      return validateResult(
+        objectiveSchema,
+        result,
+        (result: ObjectiveSchemaType) => result
+      );
+    case "direct_defund":
+    case "version":
+    case "get_address":
+    case "virtual_defund":
+      return validateResult(
+        stringSchema,
+        result,
+        (result: StringSchemaType) => result
+      );
     case "get_ledger_channel":
       return validateResult(
         ledgerChannelSchema,

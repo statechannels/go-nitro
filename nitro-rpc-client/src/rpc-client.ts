@@ -205,12 +205,8 @@ export class NitroRpcClient {
   ): Promise<RPCRequestAndResponses[K][1]["result"]> {
     const request = generateRequest(method, params);
     const res = await this.transport.sendRequest<K>(request);
-    const whitelist = [
-      "get_ledger_channel",
-      "get_payment_channel",
-      "get_payment_channels_by_ledger",
-    ];
-    if (whitelist.includes(method)) {
+    const blacklist = ["pay", "get_all_ledger_channels"];
+    if (!blacklist.includes(method)) {
       return validateResponse(res, method);
     }
 
