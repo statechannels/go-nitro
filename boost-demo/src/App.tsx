@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import axios, { isAxiosError } from "axios";
 
-import { QUERY_KEY } from "../../site/src/constants";
+const QUERY_KEY = "rpcUrl";
 
 import "./App.css";
 

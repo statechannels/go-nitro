@@ -22,7 +22,6 @@
   "include": ["src"],
   "references": [
     { "path": "./tsconfig.node.json" },
-    { "path": "../nitro-rpc-client" },
-    { "path": "../site" }
+    { "path": "../nitro-rpc-client" }
   ]
 }
