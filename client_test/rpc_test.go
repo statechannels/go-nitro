@@ -408,6 +408,11 @@ func checkNotifications[T channelInfo](t *testing.T, client string, required []T
 	// When a notification is received it is removed from acceptableNotifications
 	acceptableNotifications := make(map[string]bool)
 	unacceptableNotifications := make(map[string]bool)
+	logUnexpected := func() {
+		for notif := range unacceptableNotifications {
+			t.Logf("%s received unexpected notification: %v", client, notif)
+		}
+	}
 
 	for _, r := range required {
 		acceptableNotifications[marshalToJson(t, r)] = true
@@ -432,13 +437,12 @@ func checkNotifications[T channelInfo](t *testing.T, client string, required []T
 			delete(acceptableNotifications, js)
 
 		case <-time.After(timeout):
+			logUnexpected()
 			t.Fatalf("%s timed out waiting for notification(s): \n%v", client, incompleteRequired(acceptableNotifications))
 		}
 	}
 	if len(unacceptableNotifications) > 0 {
-		for notif := range unacceptableNotifications {
-			t.Logf("%s received unexpected notification: %v", client, notif)
-		}
+		logUnexpected()
 		t.FailNow()
 	}
 }
