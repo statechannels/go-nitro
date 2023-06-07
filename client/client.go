@@ -118,6 +118,7 @@ func (c *Client) handleEngineEvents() {
 	// If there are blocking consumers (for or select channel statements) on any channel for which the client is a producer,
 	// those channels need to be closed.
 	close(c.completedObjectivesForRPC)
+	c.channelNotifier.Close()
 }
 
 // Begin API
@@ -273,9 +274,6 @@ func (c *Client) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo
 
 // Close stops the client from responding to any input.
 func (c *Client) Close() error {
-	if err := c.channelNotifier.Close(); err != nil {
-		return err
-	}
 	if err := c.engine.Close(); err != nil {
 		return err
 	}
