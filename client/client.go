@@ -2,6 +2,7 @@
 package client // import "github.com/statechannels/go-nitro/client"
 
 import (
+	"context"
 	"io"
 	"math/big"
 	"runtime/debug"
@@ -40,6 +41,7 @@ type Client struct {
 	store                     store.Store
 	vm                        *payments.VoucherManager
 	logger                    zerolog.Logger
+	cancelEventHandler        context.CancelFunc
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -71,53 +73,55 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	// Start the engine in a go routine
 	go c.engine.Run()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	c.cancelEventHandler = cancel
 	// Start the event handler in a go routine
 	// It will listen for events from the engine and dispatch events to client channels
-	go c.handleEngineEvents()
+	go c.handleEngineEvents(ctx)
 
 	return c
 }
 
 // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
 // It parses events from the ToApi chan and then dispatches events to the necessary client chan.
-func (c *Client) handleEngineEvents() {
-	for update := range c.engine.ToApi() {
+func (c *Client) handleEngineEvents(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
 
-		for _, completed := range update.CompletedObjectives {
-			d, _ := c.completedObjectives.LoadOrStore(string(completed.Id()), make(chan struct{}))
-			close(d)
+			return
+		case update := <-c.engine.ToApi():
+			for _, completed := range update.CompletedObjectives {
+				d, _ := c.completedObjectives.LoadOrStore(string(completed.Id()), make(chan struct{}))
+				close(d)
 
-			// use a nonblocking send to the RPC Client in case no one is listening
-			select {
-			case c.completedObjectivesForRPC <- completed.Id():
-			default:
+				// use a nonblocking send to the RPC Client in case no one is listening
+				select {
+				case c.completedObjectivesForRPC <- completed.Id():
+				default:
+				}
+			}
+
+			for _, erred := range update.FailedObjectives {
+				c.failedObjectives <- erred
+			}
+
+			for _, payment := range update.ReceivedVouchers {
+				c.receivedVouchers <- payment
+			}
+
+			for _, updated := range update.LedgerChannelUpdates {
+
+				err := c.channelNotifier.NotifyLedgerUpdated(updated)
+				c.handleError(err)
+			}
+			for _, updated := range update.PaymentChannelUpdates {
+
+				err := c.channelNotifier.NotifyPaymentUpdated(updated)
+				c.handleError(err)
 			}
 		}
-
-		for _, erred := range update.FailedObjectives {
-			c.failedObjectives <- erred
-		}
-
-		for _, payment := range update.ReceivedVouchers {
-			c.receivedVouchers <- payment
-		}
-
-		for _, updated := range update.LedgerChannelUpdates {
-
-			err := c.channelNotifier.NotifyLedgerUpdated(updated)
-			c.handleError(err)
-		}
-		for _, updated := range update.PaymentChannelUpdates {
-
-			err := c.channelNotifier.NotifyPaymentUpdated(updated)
-			c.handleError(err)
-		}
 	}
-
-	// At this point, the engine ToApi channel has been closed.
-	// If there are blocking consumers (for or select channel statements) on any channel for which the client is a producer,
-	// those channels need to be closed.
-	close(c.completedObjectivesForRPC)
 }
 
 // Begin API
@@ -273,12 +277,19 @@ func (c *Client) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo
 
 // Close stops the client from responding to any input.
 func (c *Client) Close() error {
+	c.cancelEventHandler()
+
 	if err := c.channelNotifier.Close(); err != nil {
 		return err
 	}
 	if err := c.engine.Close(); err != nil {
 		return err
 	}
+	// At this point, the engine ToApi channel has been closed.
+	// If there are blocking consumers (for or select channel statements) on any channel for which the client is a producer,
+	// those channels need to be closed.
+	close(c.completedObjectivesForRPC)
+
 	return c.store.Close()
 }
 
