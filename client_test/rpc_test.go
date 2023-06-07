@@ -46,6 +46,38 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 		Logger()
 }
 
+func TestStartStop(t *testing.T) {
+	chain := chainservice.NewMockChain()
+	_, msg1, cleanup1 := setupNitroNodeWithRPCClient(
+		t,
+		common.Hex2Bytes(`febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781`),
+		3005,
+		4005,
+		chainservice.NewMockChainService(chain, types.Address{0}),
+		os.Stdout,
+		"ws")
+	_, msg2, cleanup2 := setupNitroNodeWithRPCClient(
+		t,
+		common.Hex2Bytes(`febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c782`),
+		3006,
+		4006,
+		chainservice.NewMockChainService(chain, types.Address{1}),
+		os.Stdout,
+		"ws")
+	_, msg3, cleanup3 := setupNitroNodeWithRPCClient(
+		t,
+		common.Hex2Bytes(`febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c783`),
+		3007,
+		4007,
+		chainservice.NewMockChainService(chain, types.Address{1}),
+		os.Stdout,
+		"ws")
+	waitForPeerInfoExchange(msg1, msg2, msg3)
+	cleanup1()
+	cleanup2()
+	cleanup3()
+}
+
 func TestRpcWithNats(t *testing.T) {
 	executeNRpcTest(t, "nats", 2)
 	executeNRpcTest(t, "nats", 3)
