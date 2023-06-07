@@ -108,7 +108,7 @@ export class NitroRpcClient {
     };
     const request = generateRequest("pay", params);
     const res = await this.transport.sendRequest<"pay">(request);
-    return res.result;
+    return validateResponse(res, "pay");
   }
 
   /**

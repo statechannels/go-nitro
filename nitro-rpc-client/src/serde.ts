@@ -109,8 +109,7 @@ type ResponseSchemaType =
   | PaymentSchemaType;
 
 export function validateResponse<T extends RequestMethod>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  response: any,
+  response: unknown,
   method: T
 ): RPCRequestAndResponses[T][1]["result"] {
   const result = getJsonRpcResult(response);
@@ -173,8 +172,7 @@ function validateResult<
   T extends RequestMethod
 >(
   schema: S,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  result: any,
+  result: unknown,
   converstionFn: (result: U) => RPCRequestAndResponses[T][1]["result"]
 ): RPCRequestAndResponses[T][1]["result"] {
   const validate = ajv.compile<U>(schema);
@@ -230,8 +228,7 @@ function convertToInternalPaymentChannelsType(
   return result.map((pc) => convertToInternalPaymentChannelType(pc));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getJsonRpcResult(response: any): any {
+function getJsonRpcResult(response: unknown): unknown {
   const validate = ajv.compile<JsonRpcSchemaType>(jsonRpcSchema);
   if (validate(response)) {
     return response.result;

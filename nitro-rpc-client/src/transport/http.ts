@@ -38,8 +38,7 @@ export class HttpTransport {
 
   public async sendRequest<K extends RequestMethod>(
     req: RPCRequestAndResponses[K][0]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): Promise<any> {
+  ): Promise<unknown> {
     const url = new URL(`${RPC_PATH}`, `http://${this.server}`).toString();
 
     const result = await axios.post(url.toString(), JSON.stringify(req));
