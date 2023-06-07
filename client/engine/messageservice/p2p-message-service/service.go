@@ -91,12 +91,7 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	if err != nil {
 		panic(err)
 	}
-	if useMdnsPeerDiscovery {
-		mdns := mdns.NewMdnsService(host, "", ms)
-		err = mdns.Start()
-		ms.checkError(err)
-		ms.mdns = mdns
-	}
+
 	ms.p2pHost = host
 
 	ms.p2pHost.SetStreamHandler(PROTOCOL_ID, ms.msgStreamHandler)
@@ -106,6 +101,14 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 		stream.Close()
 	})
 
+	// Since the mdns service could trigger a call to  `HandlePeerFound` at any time once started
+	// We want to start mdns after the message service has been fully constructed
+	if useMdnsPeerDiscovery {
+		mdns := mdns.NewMdnsService(host, "", ms)
+		err = mdns.Start()
+		ms.checkError(err)
+		ms.mdns = mdns
+	}
 	return ms
 }
 
