@@ -1,4 +1,4 @@
-import { validateResponse } from "./serde";
+import { getAndValidateResult } from "./serde";
 
 const getLedgerChannelResponse = {
   jsonrpc: "2.0",
@@ -29,7 +29,7 @@ const validatedGetLedgerChannelResponse = {
 };
 
 it("validate ledger details", () => {
-  const validatedResponse = validateResponse(
+  const validatedResponse = getAndValidateResult(
     getLedgerChannelResponse,
     "get_ledger_channel"
   );

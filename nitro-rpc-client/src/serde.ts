@@ -108,7 +108,13 @@ type ResponseSchemaType =
   | PaymentChannelsSchemaType
   | PaymentSchemaType;
 
-export function validateResponse<T extends RequestMethod>(
+/**
+ * Validates that the response is a valid JSON RPC response with a valid result
+ * @param response - JSON RPC response
+ * @param method - JSON RPC method
+ * @returns The validated result of the JSON RPC response
+ */
+export function getAndValidateResult<T extends RequestMethod>(
   response: unknown,
   method: T
 ): RPCRequestAndResponses[T][1]["result"] {
@@ -116,7 +122,7 @@ export function validateResponse<T extends RequestMethod>(
   switch (method) {
     case "direct_fund":
     case "virtual_fund":
-      return validateResult(
+      return validateAndConvertResult(
         objectiveSchema,
         result,
         (result: ObjectiveSchemaType) => result
@@ -125,38 +131,38 @@ export function validateResponse<T extends RequestMethod>(
     case "version":
     case "get_address":
     case "virtual_defund":
-      return validateResult(
+      return validateAndConvertResult(
         stringSchema,
         result,
         (result: StringSchemaType) => result
       );
     case "get_ledger_channel":
-      return validateResult(
+      return validateAndConvertResult(
         ledgerChannelSchema,
         result,
         convertToInternalLedgerChannelType
       );
 
     case "get_all_ledger_channels":
-      return validateResult(
+      return validateAndConvertResult(
         ledgerChannelsSchema,
         result,
         convertToInternalLedgerChannelsType
       );
     case "get_payment_channel":
-      return validateResult(
+      return validateAndConvertResult(
         paymentChannelSchema,
         result,
         convertToInternalPaymentChannelType
       );
     case "get_payment_channels_by_ledger":
-      return validateResult(
+      return validateAndConvertResult(
         paymentChannelsSchema,
         result,
         convertToInternalPaymentChannelsType
       );
     case "pay":
-      return validateResult(
+      return validateAndConvertResult(
         paymentSchema,
         result,
         (result: PaymentSchemaType) => result
@@ -166,7 +172,32 @@ export function validateResponse<T extends RequestMethod>(
   }
 }
 
-function validateResult<
+/**
+ * Validates that the response is a valid JSON RPC response and pulls out the result
+ * @param response - JSON RPC response
+ * @returns The result of the response
+ */
+function getJsonRpcResult(response: unknown): unknown {
+  const validate = ajv.compile<JsonRpcSchemaType>(jsonRpcSchema);
+  if (validate(response)) {
+    return response.result;
+  }
+  throw new Error(
+    `Invalid json rpc response: ${JSON.stringify(
+      validate.errors
+    )}. The response is ${JSON.stringify(response)}`
+  );
+}
+
+/**
+ * validateAndConvertResult validates that the result object conforms to the schema and converts it to the internal type
+ *
+ * @param schema - JSON Type Definition
+ * @param result - Object to validate
+ * @param converstionFn - Function to convert the valiated object to internal type
+ * @returns A validated object of internal type
+ */
+function validateAndConvertResult<
   U extends ResponseSchemaType,
   S extends ResponseSchema,
   T extends RequestMethod
@@ -226,16 +257,4 @@ function convertToInternalPaymentChannelsType(
   result: PaymentChannelsSchemaType
 ): PaymentChannelInfo[] {
   return result.map((pc) => convertToInternalPaymentChannelType(pc));
-}
-
-function getJsonRpcResult(response: unknown): unknown {
-  const validate = ajv.compile<JsonRpcSchemaType>(jsonRpcSchema);
-  if (validate(response)) {
-    return response.result;
-  }
-  throw new Error(
-    `Invalid json rpc response: ${JSON.stringify(
-      validate.errors
-    )}. The response is ${JSON.stringify(response)}`
-  );
 }

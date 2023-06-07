@@ -12,7 +12,7 @@ import {
 import { Transport } from "./transport";
 import { createOutcome, generateRequest } from "./utils";
 import { HttpTransport } from "./transport/http";
-import { validateResponse } from "./serde";
+import { getAndValidateResult } from "./serde";
 
 export class NitroRpcClient {
   private transport: Transport;
@@ -108,7 +108,7 @@ export class NitroRpcClient {
     };
     const request = generateRequest("pay", params);
     const res = await this.transport.sendRequest<"pay">(request);
-    return validateResponse(res, "pay");
+    return getAndValidateResult(res, "pay");
   }
 
   /**
@@ -205,7 +205,7 @@ export class NitroRpcClient {
   ): Promise<RPCRequestAndResponses[K][1]["result"]> {
     const request = generateRequest(method, params);
     const res = await this.transport.sendRequest<K>(request);
-    return validateResponse(res, method);
+    return getAndValidateResult(res, method);
   }
 
   /**
