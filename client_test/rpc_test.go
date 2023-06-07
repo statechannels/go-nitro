@@ -47,6 +47,7 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 }
 
 func TestStartStop(t *testing.T) {
+	logDest := newLogWriter("test_rpc_start_stop.log")
 	chain := chainservice.NewMockChain()
 	_, msg1, cleanup1 := setupNitroNodeWithRPCClient(
 		t,
@@ -54,7 +55,7 @@ func TestStartStop(t *testing.T) {
 		3005,
 		4005,
 		chainservice.NewMockChainService(chain, types.Address{0}),
-		os.Stdout,
+		logDest,
 		"ws")
 	_, msg2, cleanup2 := setupNitroNodeWithRPCClient(
 		t,
@@ -62,7 +63,7 @@ func TestStartStop(t *testing.T) {
 		3006,
 		4006,
 		chainservice.NewMockChainService(chain, types.Address{1}),
-		os.Stdout,
+		logDest,
 		"ws")
 	_, msg3, cleanup3 := setupNitroNodeWithRPCClient(
 		t,
@@ -70,7 +71,7 @@ func TestStartStop(t *testing.T) {
 		3007,
 		4007,
 		chainservice.NewMockChainService(chain, types.Address{1}),
-		os.Stdout,
+		logDest,
 		"ws")
 	waitForPeerInfoExchange(msg1, msg2, msg3)
 	cleanup1()
