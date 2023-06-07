@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/big"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -42,6 +43,8 @@ type Client struct {
 	vm                        *payments.VoucherManager
 	logger                    zerolog.Logger
 	cancelEventHandler        context.CancelFunc
+
+	wg *sync.WaitGroup
 }
 
 // New is the constructor for a Client. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -70,9 +73,13 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.receivedVouchers = make(chan payments.Voucher, 1000)
 
 	c.channelNotifier = notifier.NewChannelNotifier(store, c.vm)
+
 	// Start the engine in a go routine
+
 	go c.engine.Run()
 
+	c.wg = &sync.WaitGroup{}
+	c.wg.Add(1)
 	ctx, cancel := context.WithCancel(context.Background())
 	c.cancelEventHandler = cancel
 	// Start the event handler in a go routine
@@ -88,7 +95,7 @@ func (c *Client) handleEngineEvents(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-
+			c.wg.Done()
 			return
 		case update := <-c.engine.ToApi():
 			for _, completed := range update.CompletedObjectives {
@@ -275,9 +282,15 @@ func (c *Client) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo
 	return query.GetLedgerChannelInfo(id, c.store)
 }
 
+// stopEventHandler stops the event handler goroutine and waits for it to quit successfully.
+func (c *Client) stopEventHandler() {
+	c.cancelEventHandler()
+	c.wg.Wait()
+}
+
 // Close stops the client from responding to any input.
 func (c *Client) Close() error {
-	c.cancelEventHandler()
+	c.stopEventHandler()
 
 	if err := c.channelNotifier.Close(); err != nil {
 		return err
