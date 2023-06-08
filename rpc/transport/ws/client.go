@@ -18,15 +18,13 @@ type clientWebSocketTransport struct {
 	url              string
 }
 
-const rpcPath = "api"
-
 // NewWebSocketTransportAsClient creates a websocket connection that can be used to send requests and listen for notifications
 func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error) {
 	wsc := &clientWebSocketTransport{}
 	wsc.notificationChan = make(chan []byte)
 	wsc.url = url
 
-	subscribeUrl, err := urlUtil.JoinPath("ws://", url, rpcPath, "subscribe")
+	subscribeUrl, err := urlUtil.JoinPath("ws://", url, apiVersionPath, "subscribe")
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +38,7 @@ func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error
 }
 
 func (wsc *clientWebSocketTransport) Request(data []byte) ([]byte, error) {
-	requestUrl, err := urlUtil.JoinPath("http://", wsc.url, rpcPath)
+	requestUrl, err := urlUtil.JoinPath("http://", wsc.url, apiVersionPath)
 	if err != nil {
 		return nil, err
 	}

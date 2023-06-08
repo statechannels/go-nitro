@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	webscocketServerAddress = "127.0.0.1:"
-	maxRequestSize          = 8192
+	websocketServerAddress = "127.0.0.1:"
+	maxRequestSize         = 8192
+	apiVersionPath         = "/api/v1"
 )
 
 type serverWebSocketTransport struct {
@@ -31,15 +32,15 @@ type serverWebSocketTransport struct {
 func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, error) {
 	wsc := &serverWebSocketTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}}
 
-	tcpListener, err := net.Listen("tcp", webscocketServerAddress+wsc.port)
+	tcpListener, err := net.Listen("tcp", websocketServerAddress+wsc.port)
 	if err != nil {
 		return nil, err
 	}
 
 	var serveMux http.ServeMux
 
-	serveMux.HandleFunc(path.Join("/", rpcPath), wsc.request)
-	serveMux.HandleFunc(path.Join("/", rpcPath, "subscribe"), wsc.subscribe)
+	serveMux.HandleFunc(apiVersionPath, wsc.request)
+	serveMux.HandleFunc(path.Join(apiVersionPath, "subscribe"), wsc.subscribe)
 	wsc.httpServer = &http.Server{
 		Handler:      &serveMux,
 		ReadTimeout:  time.Second * 10,
@@ -77,7 +78,7 @@ func (wsc *serverWebSocketTransport) Close() {
 }
 
 func (wsc *serverWebSocketTransport) Url() string {
-	return webscocketServerAddress + wsc.port
+	return websocketServerAddress + wsc.port
 }
 
 func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Request) {
