@@ -231,7 +231,10 @@ func (s *P2PMessageService) Out() <-chan protocols.Message {
 func (s *P2PMessageService) Close() error {
 	// The mdns service is optional so we only close it if it exists
 	if s.mdns != nil {
-		s.mdns.Close()
+		err := s.mdns.Close()
+		if err != nil {
+			return err
+		}
 	}
 	s.p2pHost.RemoveStreamHandler(PROTOCOL_ID)
 	return s.p2pHost.Close()
