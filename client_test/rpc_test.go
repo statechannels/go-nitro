@@ -429,12 +429,14 @@ func checkNotifications[T channelInfo](t *testing.T, client string, required []T
 			t.Logf("%s received %v+", client, info)
 
 			// Check that the notification is a required or optional one.
-			_, found := acceptableNotifications[notifJSON]
-			if !found {
+			_, isExpected := acceptableNotifications[notifJSON]
+
+			if isExpected {
+				// To signal we received a notification we delete it from the map
+				delete(acceptableNotifications, notifJSON)
+			} else {
 				unexpectedNotifications[notifJSON] = true
 			}
-			// To signal we received a notification we delete it from the map
-			delete(acceptableNotifications, notifJSON)
 
 		case <-time.After(timeout):
 			logUnexpected()
