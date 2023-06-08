@@ -6,9 +6,9 @@ Review
 
 ## Context
 
-We have multiple structs that use long-running go-routines to handle tasks asynchronously (often things like sending out messages/notifications). However we don't always consider how to stop and clean up after these go-routines, and when we do we the implementation can vary between structs. In some scenarios these long-running go-routines can continue running after `Close` has been called on the struct resulting in go-routines accessing resources that are already closed.
+In our codebase we have a few structs that use long-running go-routines to handle tasks asynchronously (often things like sending out messages/notifications). However we don't always consider how to stop and clean up after these go-routines, and we aren't always consistent on how we approach it. In some scenarios these long-running go-routines can continue running after `Close` has been called. This can easily introduce subtle race conditions.
 
-Here's a list of structs that spin up long-running go-routines:
+Here's a list of structs that spin up long-running go-routines.
 
 - [The RPC client](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/client.go#L14)
 - [The RPC server](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/server.go#L223)
@@ -21,28 +21,15 @@ Here's a list of structs that spin up long-running go-routines:
 
 When a struct's `Close` function is called, it should block and not return until:
 
-- all go-routines a struct owns have stopped executing.
-- any closeable resources are closed.
+- all go-routines it owns stop executing.
+- any closeable resources it owns are closed.
 
-By enforcing these constraints a running go-routine can be guaranteed that it's parent struct is in a "running" state. This rules out a large amount of confusing situations or possible footguns when implementing the go-routine, as we don't have to worry about the possibility that resources have been closed.
+By enforcing these constraints a running go-routine can be guaranteed that it's parent struct is in a "running" state. This rules out a large class of race conditions and errors such as a go-routine attempting to use a parent struct's resource that has been closed.
 
-#### What if we don't want to block on `Close`?
+To enforce these constraints we should follow this pattern in a struct's `Close` function:
 
-Maybe there's some scenarios where we don't care about waiting until all a struct's go-routines fully exit, we just want to trigger `Close` and move on. Due to the flexibility of golang, it's very easy to accomplish this by wrapping the blocking `Close` in a go-routine.
-
-```golang
-c:= SomeClient{}
-	go func() {
-		c.Close()
-	}()
-```
-
-## Close Pattern
-
-To enforce these constraints we should implement the following pattern in a struct's `Close`. It should:
-
-1. Signal to any go-routines to exit.
-2. Block until all go-routine finish executing.
+1. Signal any go-routines we own to exit.
+2. Wait until all go-routines have completed execution.
 3. Close any resources it owns.
 
 ### Step 1: Signal go-routines to exit
@@ -69,9 +56,9 @@ This works, however a [cancelable context](https://cs.opensource.google/go/go/+/
 
 - A buffered chan will only get closed once it's buffer is read. This means a go-routine will read all the buffered entries before it finishes executing. By using a context we can halt the execution almost immediately.
 - It makes go-routine cleanup logic explicit and easy to see. It's now just a case statement for `ctx.Done`.
-- Minor but it would allow us to use other context features (such as timeouts) in the future.
+- Minor but it would allow us to use other context features, such as timeouts, in the future.
 
-Due to these benefits, and the limited use of go-routines, we should update our structs to use a cancelable context where reasonable.
+Due to these benefits, and the limited use of go-routines, we should update our structs to use a cancelable context to signal to a go-routine to stop executing.
 
 ```golang
 	toRoutine := make(chan int)
@@ -91,7 +78,7 @@ Due to these benefits, and the limited use of go-routines, we should update our 
 	cancel()
 ```
 
-### 2: Block until all go-routine finishes executing
+### 2: Wait until all go-routines have completed execution.
 
 After we have signalled our go-routines to exit we should wait for them to complete. The easiest way to accomplish this is with a `sync.WaitGroup`
 
@@ -122,7 +109,7 @@ wg := sync.WaitGroup{}
 
 ### Step 3: Close Resources
 
-Once a struct has waited for all go-routines to finish executing, it can dispose of any resources like network connections or child structs. We do this by calling `Close` on any child structs that implement [io.Closer interface](https://pkg.go.dev/io#Closer). **In general, if a child struct implements the `Closer` interface, we should probably call it in our `Close`**
+Once a struct has waited for all go-routines to finish executing, it can dispose of any resources like network connections or child structs. We do this by calling `Close` on any child structs that implement [io.Closer interface](https://pkg.go.dev/io#Closer). **In general, if a child struct implements the `Closer` interface, we should consider calling it in our struct's `Close`**
 
 ## Prior Art
 
