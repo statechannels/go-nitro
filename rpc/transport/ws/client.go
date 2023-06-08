@@ -24,7 +24,7 @@ func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error
 	wsc.notificationChan = make(chan []byte)
 	wsc.url = url
 
-	subscribeUrl, err := urlUtil.JoinPath("ws://", url, apiVersionPath, "subscribe")
+	subscribeUrl, err := urlUtil.JoinPath("ws://", url, "subscribe")
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error
 }
 
 func (wsc *clientWebSocketTransport) Request(data []byte) ([]byte, error) {
-	requestUrl, err := urlUtil.JoinPath("http://", wsc.url, apiVersionPath)
+	requestUrl, err := urlUtil.JoinPath("http://", wsc.url)
 	if err != nil {
 		return nil, err
 	}
