@@ -12,7 +12,6 @@ Here's a list of structs that spin up long-running go-routines:
 
 - [The RPC client](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/client.go#L14)
 - [The RPC server](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/server.go#L223)
-- [RPC Websocket Transport](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/transport/ws/server.go#L49)
 - [Eth Chain service](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/client/engine/chainservice/eth_chainservice.go#L244)
 - [The API client](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/client/client.go#L87)
 
