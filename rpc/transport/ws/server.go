@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/statechannels/go-nitro/internal/safesync"
@@ -23,7 +24,7 @@ const (
 
 type serverWebSocketTransport struct {
 	httpServer            *http.Server
-	requestHandler        func([]byte) []byte
+	requestHandlers       map[string]func([]byte) []byte
 	port                  string
 	notificationListeners safesync.Map[chan []byte]
 }
@@ -47,6 +48,8 @@ func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, erro
 		WriteTimeout: time.Second * 10,
 	}
 
+	wsc.requestHandlers = make(map[string]func([]byte) []byte)
+
 	go func() {
 		err = wsc.httpServer.Serve(tcpListener)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -57,8 +60,8 @@ func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, erro
 	return wsc, nil
 }
 
-func (wsc *serverWebSocketTransport) RegisterRequestHandler(handler func([]byte) []byte) error {
-	wsc.requestHandler = handler
+func (wsc *serverWebSocketTransport) RegisterRequestHandler(apiVersion string, handler func([]byte) []byte) error {
+	wsc.requestHandlers[apiVersion] = handler
 	return nil
 }
 
@@ -82,6 +85,20 @@ func (wsc *serverWebSocketTransport) Url() string {
 }
 
 func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Request) {
+	// Pull api version from the url and determine if the version is supported
+	pathSegments := strings.Split(r.URL.Path, "/")
+	if len(pathSegments) < 3 {
+		http.Error(w, "Invalid API version", http.StatusBadRequest)
+		return
+	}
+
+	apiVersion := pathSegments[2] // first segment is an empty string
+	handler, ok := wsc.requestHandlers[apiVersion]
+	if !ok {
+		http.Error(w, "Invalid API version", http.StatusBadRequest)
+		return
+	}
+
 	switch r.Method {
 	case "OPTIONS": // OPTIONS is used for a pre-flight CORS check by the browser before POST
 		enableCors(&w)
@@ -96,13 +113,12 @@ func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Requ
 			http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
 			return
 		}
-		_, err = w.Write(wsc.requestHandler(msg))
+		_, err = w.Write(handler(msg))
 		if err != nil {
 			panic(err)
 		}
 	default:
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-
 	}
 }
 

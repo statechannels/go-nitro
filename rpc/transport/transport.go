@@ -28,7 +28,7 @@ type Responder interface {
 
 	// RegisterRequestHandler registers a handler that accepts a request and returns a response.
 	// It returns an error if the registration setup fails
-	RegisterRequestHandler(func([]byte) []byte) error
+	RegisterRequestHandler(string, func([]byte) []byte) error
 	// Notify sends notification data without expecting a response
 	Notify([]byte) error
 }

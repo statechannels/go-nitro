@@ -58,7 +58,7 @@ func NewRpcServer(nitroClient *nitro.Client, logger *zerolog.Logger, trans trans
 
 // registerHandlers registers the handlers for the rpc server
 func (rs *RpcServer) registerHandlers() (err error) {
-	subscriber := func(requestData []byte) []byte {
+	handlerV1 := func(requestData []byte) []byte {
 		rs.logger.Trace().Msgf("Rpc server received request: %+v", string(requestData))
 
 		if !json.Valid(requestData) {
@@ -142,7 +142,9 @@ func (rs *RpcServer) registerHandlers() (err error) {
 			return marshalResponse(responseErr, rs.logger)
 		}
 	}
-	return rs.transport.RegisterRequestHandler(subscriber)
+
+	err = rs.transport.RegisterRequestHandler("v1", handlerV1)
+	return err
 }
 
 func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, requestData []byte, processPayload func(T) U) []byte {
