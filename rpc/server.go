@@ -1,8 +1,10 @@
 package rpc
 
 import (
+	"context"
 	"encoding/json"
 	"math/big"
+	"sync"
 
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
@@ -22,6 +24,8 @@ type RpcServer struct {
 	transport transport.Responder
 	client    *nitro.Client
 	logger    *zerolog.Logger
+	cancel    context.CancelFunc
+	wg        sync.WaitGroup
 }
 
 func (rs *RpcServer) Url() string {
@@ -29,13 +33,20 @@ func (rs *RpcServer) Url() string {
 }
 
 func (rs *RpcServer) Close() error {
+	rs.cancel()
+	rs.wg.Wait()
+	err := rs.client.Close()
+	if err != nil {
+		return err
+	}
+
 	rs.transport.Close()
 	return rs.client.Close()
 }
 
 // newRpcServerWithoutNotifications creates a new rpc server without notifications enabled
 func newRpcServerWithoutNotifications(nitroClient *nitro.Client, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
-	rs := &RpcServer{trans, nitroClient, logger}
+	rs := &RpcServer{trans, nitroClient, logger, func() {}, sync.WaitGroup{}}
 
 	err := rs.registerHandlers()
 	if err != nil {
@@ -46,8 +57,11 @@ func newRpcServerWithoutNotifications(nitroClient *nitro.Client, logger *zerolog
 }
 
 func NewRpcServer(nitroClient *nitro.Client, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
-	rs := &RpcServer{trans, nitroClient, logger}
-	rs.sendNotifications()
+	ctx, cancel := context.WithCancel(context.Background())
+	rs := &RpcServer{trans, nitroClient, logger, cancel, sync.WaitGroup{}}
+
+	rs.wg.Add(1)
+	go rs.sendNotifications(ctx)
 	err := rs.registerHandlers()
 	if err != nil {
 		return nil, err
@@ -221,40 +235,41 @@ func validateRequest(requestData []byte, logger *zerolog.Logger) validationResul
 	return vr
 }
 
-func (rs *RpcServer) sendNotifications() {
-	go func() {
-		for {
-			select {
-			case completedObjective, ok := <-rs.client.CompletedObjectives():
-				if !ok {
-					rs.logger.Warn().Msg("CompletedObjectives channel closed, exiting sendNotifications")
-					return
-				}
-				err := sendNotification(rs, serde.ObjectiveCompleted, completedObjective)
-				if err != nil {
-					panic(err)
-				}
-			case ledgerInfo, ok := <-rs.client.LedgerUpdates():
-				if !ok {
-					rs.logger.Warn().Msg("LedgerUpdates channel closed, exiting sendNotifications")
-					return
-				}
-				err := sendNotification(rs, serde.LedgerChannelUpdated, ledgerInfo)
-				if err != nil {
-					panic(err)
-				}
-			case paymentInfo, ok := <-rs.client.PaymentUpdates():
-				if !ok {
-					rs.logger.Warn().Msg("PaymentUpdates channel closed, exiting sendNotifications")
-					return
-				}
-				err := sendNotification(rs, serde.PaymentChannelUpdated, paymentInfo)
-				if err != nil {
-					panic(err)
-				}
+func (rs *RpcServer) sendNotifications(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			rs.wg.Done()
+			return
+		case completedObjective, ok := <-rs.client.CompletedObjectives():
+			if !ok {
+				rs.logger.Warn().Msg("CompletedObjectives channel closed, exiting sendNotifications")
+				return
+			}
+			err := sendNotification(rs, serde.ObjectiveCompleted, completedObjective)
+			if err != nil {
+				panic(err)
+			}
+		case ledgerInfo, ok := <-rs.client.LedgerUpdates():
+			if !ok {
+				rs.logger.Warn().Msg("LedgerUpdates channel closed, exiting sendNotifications")
+				return
+			}
+			err := sendNotification(rs, serde.LedgerChannelUpdated, ledgerInfo)
+			if err != nil {
+				panic(err)
+			}
+		case paymentInfo, ok := <-rs.client.PaymentUpdates():
+			if !ok {
+				rs.logger.Warn().Msg("PaymentUpdates channel closed, exiting sendNotifications")
+				return
+			}
+			err := sendNotification(rs, serde.PaymentChannelUpdated, paymentInfo)
+			if err != nil {
+				panic(err)
 			}
 		}
-	}()
+	}
 }
 
 func sendNotification[T serde.NotificationMethod, U serde.NotificationPayload](rs *RpcServer, method T, payload U) error {
