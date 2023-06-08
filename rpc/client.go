@@ -1,9 +1,11 @@
 package rpc
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
@@ -31,6 +33,8 @@ type RpcClient struct {
 	completedObjectives   *safesync.Map[chan struct{}]
 	ledgerChannelUpdates  *safesync.Map[chan query.LedgerChannelInfo]
 	paymentChannelUpdates *safesync.Map[chan query.PaymentChannelInfo]
+	cancel                context.CancelFunc
+	wg                    sync.WaitGroup
 }
 
 // response includes a payload or an error.
@@ -41,11 +45,16 @@ type response[T serde.ResponsePayload] struct {
 
 // NewRpcClient creates a new RpcClient
 func NewRpcClient(rpcServerUrl string, logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
-	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}}
-	err := c.subscribeToNotifications()
+	ctx, cancel := context.WithCancel(context.Background())
+	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, sync.WaitGroup{}}
+
+	notificationChan, err := c.transport.Subscribe()
 	if err != nil {
 		return nil, err
 	}
+	c.wg.Add(1)
+	go c.subscribeToNotifications(ctx, notificationChan)
+
 	return c, nil
 }
 
@@ -55,8 +64,16 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &RpcClient{transport, zerolog.New(os.Stdout), &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}}
-	err = c.subscribeToNotifications()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	c := &RpcClient{transport, zerolog.New(os.Stdout), &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, sync.WaitGroup{}}
+
+	notificationChan, err := c.transport.Subscribe()
+	if err != nil {
+		return nil, err
+	}
+	c.wg.Add(1)
+	go c.subscribeToNotifications(ctx, notificationChan)
 	if err != nil {
 		return nil, err
 	}
@@ -133,14 +150,19 @@ func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
 }
 
 func (rc *RpcClient) Close() {
+	rc.cancel()
+	rc.wg.Wait()
 	rc.transport.Close()
 }
 
-func (rc *RpcClient) subscribeToNotifications() error {
-	notificationChan, err := rc.transport.Subscribe()
+func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationChan <-chan []byte) {
 	rc.logger.Trace().Msg("Subscribed to notifications")
-	go func() {
-		for data := range notificationChan {
+	for {
+		select {
+		case <-ctx.Done():
+			rc.wg.Done()
+			return
+		case data := <-notificationChan:
 			rc.logger.Trace().Bytes("data", data).Msg("Received notification")
 			method, err := getNotificationMethod(data)
 			if err != nil {
@@ -175,8 +197,7 @@ func (rc *RpcClient) subscribeToNotifications() error {
 			}
 
 		}
-	}()
-	return err
+	}
 }
 
 func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, method serde.RequestMethod, requestData T) U {
