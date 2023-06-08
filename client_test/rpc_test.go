@@ -407,6 +407,12 @@ func checkNotifications[T channelInfo](t *testing.T, client string, required []T
 	// The boolean value is true if the notification is required and false if it is optional.
 	// When a notification is received it is removed from acceptableNotifications
 	acceptableNotifications := make(map[string]bool)
+	unexpectedNotifications := make(map[string]bool)
+	logUnexpected := func() {
+		for notif := range unexpectedNotifications {
+			t.Logf("%s received unexpected notification: %v", client, notif)
+		}
+	}
 
 	for _, r := range required {
 		acceptableNotifications[marshalToJson(t, r)] = true
@@ -419,20 +425,27 @@ func checkNotifications[T channelInfo](t *testing.T, client string, required []T
 		select {
 		case info := <-notifChan:
 
-			js := marshalToJson(t, info)
+			notifJSON := marshalToJson(t, info)
 			t.Logf("%s received %v+", client, info)
 
 			// Check that the notification is a required or optional one.
-			_, found := acceptableNotifications[js]
-			if !found {
-				t.Fatalf("%s received unexpected notification: %v", client, info)
+			_, isExpected := acceptableNotifications[notifJSON]
+
+			if isExpected {
+				// To signal we received a notification we delete it from the map
+				delete(acceptableNotifications, notifJSON)
+			} else {
+				unexpectedNotifications[notifJSON] = true
 			}
-			// To signal we received a notification we delete it from the map
-			delete(acceptableNotifications, js)
 
 		case <-time.After(timeout):
+			logUnexpected()
 			t.Fatalf("%s timed out waiting for notification(s): \n%v", client, incompleteRequired(acceptableNotifications))
 		}
+	}
+	if len(unexpectedNotifications) > 0 {
+		logUnexpected()
+		t.FailNow()
 	}
 }
 
