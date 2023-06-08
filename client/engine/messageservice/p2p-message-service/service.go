@@ -105,9 +105,11 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	// We want to start mdns after the message service has been fully constructed
 	if useMdnsPeerDiscovery {
 		mdns := mdns.NewMdnsService(host, "", ms)
+
+		ms.mdns = mdns
+
 		err = mdns.Start()
 		ms.checkError(err)
-		ms.mdns = mdns
 	}
 	return ms
 }
