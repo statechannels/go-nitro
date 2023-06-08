@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -46,6 +47,7 @@ type EthChainService struct {
 	logger                   zerolog.Logger
 	ctx                      context.Context
 	cancel                   context.CancelFunc
+	wg                       sync.WaitGroup
 }
 
 // MAX_QUERY_BLOCK_RANGE is the maximum range of blocks we query for events at once.
@@ -89,16 +91,23 @@ func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	ctx, cancelCtx := context.WithCancel(context.Background())
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx}
+	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, sync.WaitGroup{}}
 	errChan, err := ecs.subscribeForLogs()
 	// TODO: Return error from chain service instead of panicking
+	ecs.wg.Add(1)
 	go func() {
-		for err := range errChan {
-			// Print to STDOUT in case we're using a noop logger
-			fmt.Println(err)
-			ecs.logger.Fatal().Err(err)
-			// Manually panic in case we're using a logger that doesn't call exit(1)
-			panic(err)
+		for {
+			select {
+			case <-ecs.ctx.Done():
+				ecs.wg.Done()
+				return
+			case err := <-errChan:
+				// Print to STDOUT in case we're using a noop logger
+				fmt.Println(err)
+				ecs.logger.Fatal().Err(err)
+				// Manually panic in case we're using a logger that doesn't call exit(1)
+				panic(err)
+			}
 		}
 	}()
 	if err != nil {
@@ -241,12 +250,14 @@ func (ecs *EthChainService) subscribeForLogs() (<-chan error, error) {
 	}
 	errorChan := make(chan error)
 	// Must be in a goroutine to not block chain service constructor
+	ecs.wg.Add(1)
 	go func() {
 	out:
 		for {
 			select {
 			case <-ecs.ctx.Done():
 				sub.Unsubscribe()
+				ecs.wg.Done()
 				return
 			case err := <-sub.Err():
 				if err != nil {
@@ -300,5 +311,6 @@ func (ecs *EthChainService) GetChainId() (*big.Int, error) {
 
 func (ecs *EthChainService) Close() error {
 	ecs.cancel()
+	ecs.wg.Wait()
 	return nil
 }
