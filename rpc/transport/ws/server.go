@@ -9,6 +9,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/statechannels/go-nitro/internal/safesync"
@@ -27,6 +28,8 @@ type serverWebSocketTransport struct {
 	requestHandlers       map[string]func([]byte) []byte
 	port                  string
 	notificationListeners safesync.Map[chan []byte]
+
+	wg *sync.WaitGroup
 }
 
 // NewWebSocketTransportAsServer starts an http server that accepts websocket connections
@@ -49,15 +52,27 @@ func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, erro
 	}
 
 	wsc.requestHandlers = make(map[string]func([]byte) []byte)
+	wsc.wg = &sync.WaitGroup{}
 
-	go func() {
-		err = wsc.httpServer.Serve(tcpListener)
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			panic(err)
-		}
-	}()
+	wsc.wg.Add(1)
+	go wsc.serveHttp(tcpListener)
 
 	return wsc, nil
+}
+
+func (wsc *serverWebSocketTransport) serveHttp(tcpListener net.Listener) {
+	for {
+
+		err := wsc.httpServer.Serve(tcpListener)
+		if err != nil && errors.Is(err, http.ErrServerClosed) {
+			wsc.wg.Done()
+			return
+		}
+		if err != nil {
+			panic(err)
+		}
+
+	}
 }
 
 func (wsc *serverWebSocketTransport) RegisterRequestHandler(apiVersion string, handler func([]byte) []byte) error {
@@ -74,10 +89,13 @@ func (wsc *serverWebSocketTransport) Notify(data []byte) error {
 }
 
 func (wsc *serverWebSocketTransport) Close() {
+	// This will cause the serveHttp gand listenForClose goroutines to exit
 	err := wsc.httpServer.Shutdown(context.Background())
 	if err != nil {
 		panic(err)
 	}
+
+	wsc.wg.Wait()
 }
 
 func (wsc *serverWebSocketTransport) Url() string {
@@ -122,6 +140,12 @@ func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+func (wsc *serverWebSocketTransport) listenForClose(ctx context.Context, c *websocket.Conn, closeChan chan<- error) {
+	_, _, err := c.Read(ctx)
+	closeChan <- err
+	wsc.wg.Done()
+}
+
 func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Request) {
 	// TODO: We currently allow requests from any origins. We should probably use a whitelist.
 	opts := &websocket.AcceptOptions{InsecureSkipVerify: true}
@@ -139,10 +163,8 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 	// This code converts the socket `Read` call to a channel.
 	// Ideally, all signals would be managed in the select statement below. But there is no channel API for the websocket read.
 	closeChan := make(chan error)
-	go func() {
-		_, _, err := c.Read(r.Context())
-		closeChan <- err
-	}()
+	wsc.wg.Add(1)
+	go wsc.listenForClose(r.Context(), c, closeChan)
 
 EventLoop:
 	for {
