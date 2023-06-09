@@ -32,6 +32,8 @@ To enforce these constraints we should follow this pattern in a struct's `Close`
 2. Wait until all go-routines have completed execution.
 3. Close any resources it owns.
 
+We want to adhere to the [io.Closer interface](https://pkg.go.dev/io#Closer) so the `Close` function should return an `error`.
+
 ### Step 1: Signal go-routines to exit
 
 Long-running `go-routines` need some kind of trigger to stop executing. A common and simple pattern we often use is simply closing the chan the go-routine is consuming from.
@@ -110,6 +112,10 @@ wg := sync.WaitGroup{}
 ### Step 3: Close Resources
 
 Once a struct has waited for all go-routines to finish executing, it can dispose of any resources like network connections or child structs. We do this by calling `Close` on any child structs that implement [io.Closer interface](https://pkg.go.dev/io#Closer). **In general, if a child struct implements the `Closer` interface, we should consider calling it in our struct's `Close`**
+
+### Step 4: Return any errors
+
+If any error has
 
 ## Prior Art
 
