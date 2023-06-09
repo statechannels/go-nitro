@@ -45,17 +45,23 @@ type response[T serde.ResponsePayload] struct {
 
 // NewRpcClient creates a new RpcClient
 func NewRpcClient(rpcServerUrl string, logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, sync.WaitGroup{}}
+	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, func() {}, sync.WaitGroup{}}
 
 	notificationChan, err := c.transport.Subscribe()
 	if err != nil {
 		return nil, err
 	}
-	c.wg.Add(1)
-	go c.subscribeToNotifications(ctx, notificationChan)
+
+	c.cancel = GO(&c.wg, c.subscribeToNotifications, notificationChan)
 
 	return c, nil
+}
+
+func GO[P any](wg *sync.WaitGroup, f func(context.Context, P), param P) context.CancelFunc {
+	ctx, cancel := context.WithCancel(context.Background())
+	wg.Add(1)
+	go f(ctx, param)
+	return cancel
 }
 
 // NewHttpRpcClient creates a new RpcClient using an http transport
