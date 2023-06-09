@@ -75,6 +75,21 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         }
     }
 
+    function deposit_batch(
+        address asset,
+        bytes32[] calldata channelIds,
+        uint256[] calldata expectedHelds,
+        uint256[] calldata amounts
+    ) external payable virtual {
+        require(
+            channelIds.length == expectedHelds.length && expectedHelds.length == amounts.length,
+            'Array lengths must match'
+        );
+        for (uint256 i = 0; i < channelIds.length; i++) {
+            this.deposit(asset, channelIds[i], expectedHelds[i], amounts[i]);
+        }
+    }
+
     /**
      * @notice Transfers as many funds escrowed against `channelId` as can be afforded for a specific destination. Assumes no repeated entries.
      * @dev Transfers as many funds escrowed against `channelId` as can be afforded for a specific destination. Assumes no repeated entries.
