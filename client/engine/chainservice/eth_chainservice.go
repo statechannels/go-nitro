@@ -16,7 +16,6 @@ import (
 	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/client/engine/chainservice/erc20"
 	chainutils "github.com/statechannels/go-nitro/client/engine/chainservice/utils"
-	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -83,8 +82,6 @@ func NewEthChainService(chainUrl, chainPk string, naAddress, caAddress, vpaAddre
 func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer,
 ) (*EthChainService, error) {
-	logging.ConfigureZeroLogger()
-
 	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
 	ctx, cancelCtx := context.WithCancel(context.Background())
 

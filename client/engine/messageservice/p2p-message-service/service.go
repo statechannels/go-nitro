@@ -20,7 +20,6 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/rs/zerolog"
-	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -65,8 +64,6 @@ func (ms *P2PMessageService) Id() peer.ID {
 // If useMdnsPeerDiscovery is true, the message service will use mDNS to discover peers.
 // Otherwise, peers must be added manually via `AddPeers`.
 func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdnsPeerDiscovery bool, logWriter io.Writer) *P2PMessageService {
-	logging.ConfigureZeroLogger()
-
 	ms := &P2PMessageService{
 		toEngine:    make(chan protocols.Message, BUFFER_SIZE),
 		newPeerInfo: make(chan basicPeerInfo, BUFFER_SIZE),
