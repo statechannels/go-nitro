@@ -240,6 +240,44 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 	return nil
 }
 
+func (ecs *EthChainService) listenForLogs(sub ethereum.Subscription, errorChan chan<- error, logs chan ethTypes.Log, query ethereum.FilterQuery) {
+out:
+	for {
+		select {
+		case <-ecs.ctx.Done():
+			sub.Unsubscribe()
+			ecs.wg.Done()
+			return
+		case err := <-sub.Err():
+			if err != nil {
+				errorChan <- fmt.Errorf("received error from the subscription channel: %w", err)
+				break out
+			}
+
+			// If the error is nil then the subscription was closed and we need to re-subscribe.
+			// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
+			var sErr error
+			sub, sErr = ecs.chain.SubscribeFilterLogs(ecs.ctx, query, logs)
+			if sErr != nil {
+				errorChan <- fmt.Errorf("subscribeFilterLogs failed on resubscribe: %w", err)
+				break out
+			}
+			ecs.logger.Print("resubscribed to filtered logs")
+
+		case <-time.After(RESUB_INTERVAL):
+			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
+			// We unsub here and recreate the subscription in the next iteration of the select.
+			sub.Unsubscribe()
+		case chainEvent := <-logs:
+			err := ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
+			if err != nil {
+				errorChan <- fmt.Errorf("error in dispatchChainEvents: %w", err)
+				break out
+			}
+		}
+	}
+}
+
 // subscribeForLogs subscribes for logs and pushes them to the out channel.
 // It relies on notifications being supported by the chain node.
 func (ecs *EthChainService) subscribeForLogs() (<-chan error, error) {
@@ -255,43 +293,7 @@ func (ecs *EthChainService) subscribeForLogs() (<-chan error, error) {
 	errorChan := make(chan error)
 	// Must be in a goroutine to not block chain service constructor
 	ecs.wg.Add(1)
-	go func() {
-	out:
-		for {
-			select {
-			case <-ecs.ctx.Done():
-				sub.Unsubscribe()
-				ecs.wg.Done()
-				return
-			case err := <-sub.Err():
-				if err != nil {
-					errorChan <- fmt.Errorf("received error from the subscription channel: %w", err)
-					break out
-				}
-
-				// If the error is nil then the subscription was closed and we need to re-subscribe.
-				// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
-				var sErr error
-				sub, sErr = ecs.chain.SubscribeFilterLogs(ecs.ctx, query, logs)
-				if sErr != nil {
-					errorChan <- fmt.Errorf("subscribeFilterLogs failed on resubscribe: %w", err)
-					break out
-				}
-				ecs.logger.Print("resubscribed to filtered logs")
-
-			case <-time.After(RESUB_INTERVAL):
-				// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
-				// We unsub here and recreate the subscription in the next iteration of the select.
-				sub.Unsubscribe()
-			case chainEvent := <-logs:
-				err = ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
-				if err != nil {
-					errorChan <- fmt.Errorf("error in dispatchChainEvents: %w", err)
-					break out
-				}
-			}
-		}
-	}()
+	go ecs.listenForLogs(sub, errorChan, logs, query)
 
 	return errorChan, nil
 }
