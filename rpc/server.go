@@ -25,7 +25,7 @@ type RpcServer struct {
 	client    *nitro.Client
 	logger    *zerolog.Logger
 	cancel    context.CancelFunc
-	wg        sync.WaitGroup
+	wg        *sync.WaitGroup
 }
 
 func (rs *RpcServer) Url() string {
@@ -46,7 +46,7 @@ func (rs *RpcServer) Close() error {
 
 // newRpcServerWithoutNotifications creates a new rpc server without notifications enabled
 func newRpcServerWithoutNotifications(nitroClient *nitro.Client, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
-	rs := &RpcServer{trans, nitroClient, logger, func() {}, sync.WaitGroup{}}
+	rs := &RpcServer{trans, nitroClient, logger, func() {}, &sync.WaitGroup{}}
 
 	err := rs.registerHandlers()
 	if err != nil {
@@ -58,7 +58,7 @@ func newRpcServerWithoutNotifications(nitroClient *nitro.Client, logger *zerolog
 
 func NewRpcServer(nitroClient *nitro.Client, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	rs := &RpcServer{trans, nitroClient, logger, cancel, sync.WaitGroup{}}
+	rs := &RpcServer{trans, nitroClient, logger, cancel, &sync.WaitGroup{}}
 
 	rs.wg.Add(1)
 	go rs.sendNotifications(ctx)

@@ -47,7 +47,7 @@ type EthChainService struct {
 	logger                   zerolog.Logger
 	ctx                      context.Context
 	cancel                   context.CancelFunc
-	wg                       sync.WaitGroup
+	wg                       *sync.WaitGroup
 }
 
 // MAX_QUERY_BLOCK_RANGE is the maximum range of blocks we query for events at once.
@@ -91,7 +91,7 @@ func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	ctx, cancelCtx := context.WithCancel(context.Background())
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, sync.WaitGroup{}}
+	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}}
 	errChan, err := ecs.subscribeForLogs()
 	if err != nil {
 		return nil, err

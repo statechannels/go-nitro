@@ -34,7 +34,7 @@ type RpcClient struct {
 	ledgerChannelUpdates  *safesync.Map[chan query.LedgerChannelInfo]
 	paymentChannelUpdates *safesync.Map[chan query.PaymentChannelInfo]
 	cancel                context.CancelFunc
-	wg                    sync.WaitGroup
+	wg                    *sync.WaitGroup
 }
 
 // response includes a payload or an error.
@@ -46,7 +46,7 @@ type response[T serde.ResponsePayload] struct {
 // NewRpcClient creates a new RpcClient
 func NewRpcClient(rpcServerUrl string, logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, sync.WaitGroup{}}
+	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}}
 
 	notificationChan, err := c.transport.Subscribe()
 	if err != nil {
@@ -66,7 +66,7 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 
-	c := &RpcClient{transport, zerolog.New(os.Stdout), &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, sync.WaitGroup{}}
+	c := &RpcClient{transport, zerolog.New(os.Stdout), &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}}
 
 	notificationChan, err := c.transport.Subscribe()
 	if err != nil {
@@ -201,7 +201,7 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 }
 
 func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, method serde.RequestMethod, requestData T) U {
-	resChan, err := request[T, U](rc.transport, method, requestData, rc.logger, &rc.wg)
+	resChan, err := request[T, U](rc.transport, method, requestData, rc.logger, rc.wg)
 	if err != nil {
 		panic(err)
 	}
