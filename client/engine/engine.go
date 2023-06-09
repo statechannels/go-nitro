@@ -2,10 +2,12 @@
 package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -61,7 +63,6 @@ type Engine struct {
 	fromLedger chan consensus_channel.Proposal
 
 	toApi chan EngineEvent
-	stop  chan struct{}
 
 	msg   messageservice.MessageService
 	chain chainservice.ChainService
@@ -74,6 +75,9 @@ type Engine struct {
 	metrics *MetricsRecorder
 
 	vm *payments.VoucherManager
+
+	wg     *sync.WaitGroup
+	cancel context.CancelFunc
 }
 
 // PaymentRequest represents a request from the API to make a payment using a channel
@@ -131,7 +135,6 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	// bind to inbound chans
 	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest)
 	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
-	e.stop = make(chan struct{})
 
 	e.fromChain = chain.EventFeed()
 	e.fromMsg = msg.Out()
@@ -154,6 +157,15 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 		metricsApi = &NoOpMetrics{}
 	}
 	e.metrics = NewMetricsRecorder(*e.store.GetAddress(), metricsApi)
+
+	e.wg = &sync.WaitGroup{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	e.cancel = cancel
+
+	e.wg.Add(1)
+	go e.run(ctx)
+
 	return e
 }
 
@@ -162,17 +174,19 @@ func (e *Engine) ToApi() <-chan EngineEvent {
 }
 
 func (e *Engine) Close() error {
+	e.cancel()
+	e.wg.Wait()
 	if err := e.msg.Close(); err != nil {
 		return err
 	}
-	e.stop <- struct{}{}
+
 	close(e.toApi)
 	return e.chain.Close()
 }
 
-// Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
-// The loop exits when a struct is received on the stop channel. Engine.Close() sends that signal.
-func (e *Engine) Run() {
+// run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
+// The loop exits when the context is cancelled.
+func (e *Engine) run(ctx context.Context) {
 	for {
 		var res EngineEvent
 		var err error
@@ -184,6 +198,7 @@ func (e *Engine) Run() {
 		e.metrics.RecordQueueLength("proposal_queue", len(e.fromLedger))
 
 		select {
+
 		case or := <-e.ObjectiveRequestsFromAPI:
 			res, err = e.handleObjectiveRequest(or)
 		case pr := <-e.PaymentRequestsFromAPI:
@@ -194,7 +209,8 @@ func (e *Engine) Run() {
 			res, err = e.handleMessage(message)
 		case proposal := <-e.fromLedger:
 			res, err = e.handleProposal(proposal)
-		case <-e.stop:
+		case <-ctx.Done():
+			e.wg.Done()
 			return
 		}
 
