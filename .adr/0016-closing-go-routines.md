@@ -10,7 +10,7 @@ In our codebase we have a few structs that use long-running go-routines to handl
 
 Here's a list of structs that spin up long-running go-routines.
 
-- [The RPC client](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/client.go#L14)
+- [The RPC client](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/client.go#L142)
 - [The RPC server](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/server.go#L223)
 - [Eth Chain service](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/client/engine/chainservice/eth_chainservice.go#L244)
 - [The API client](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/client/client.go#L87)
