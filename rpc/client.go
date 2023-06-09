@@ -235,14 +235,9 @@ func (rc *RpcClient) PaymentChannelUpdatesChan(paymentChannelId types.Destinatio
 // request uses the supplied transport and payload to send a non-blocking JSONRPC request.
 // It returns a channel that sends a response payload. If the request fails to send, an error is returned.
 func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T, logger zerolog.Logger, wg *sync.WaitGroup) (<-chan response[U], error) {
-	return sendRPCRequest[T, U](method, reqPayload, trans, logger, wg)
-}
-
-func sendRPCRequest[T serde.RequestPayload, U serde.ResponsePayload](method serde.RequestMethod, request T, trans transport.Requester, logger zerolog.Logger, wg *sync.WaitGroup) (<-chan response[U], error) {
 	returnChan := make(chan response[U], 1)
-
 	requestId := rand.Uint64()
-	message := serde.NewJsonRpcRequest(requestId, method, request)
+	message := serde.NewJsonRpcRequest(requestId, method, reqPayload)
 	data, err := json.Marshal(message)
 	if err != nil {
 		return nil, err
@@ -253,24 +248,26 @@ func sendRPCRequest[T serde.RequestPayload, U serde.ResponsePayload](method serd
 		Msg("sent message")
 
 	wg.Add(1)
-	go func() {
-		responseData, err := trans.Request(data)
-		if err != nil {
-			returnChan <- response[U]{Error: err}
-		}
-
-		logger.Trace().Msgf("Rpc client received response: %+v", string(responseData))
-
-		jsonResponse := serde.JsonRpcResponse[U]{}
-		err = json.Unmarshal(responseData, &jsonResponse)
-		if err != nil {
-			returnChan <- response[U]{Error: err}
-		}
-
-		returnChan <- response[U]{jsonResponse.Result, nil}
-		wg.Done()
-	}()
+	go sendRPCRequest[T, U](data, trans, returnChan, logger, wg)
 	return returnChan, nil
+}
+
+func sendRPCRequest[T serde.RequestPayload, U serde.ResponsePayload](data []byte, trans transport.Requester, returnChan chan response[U], logger zerolog.Logger, wg *sync.WaitGroup) {
+	responseData, err := trans.Request(data)
+	if err != nil {
+		returnChan <- response[U]{Error: err}
+	}
+
+	logger.Trace().Msgf("Rpc client received response: %+v", string(responseData))
+
+	jsonResponse := serde.JsonRpcResponse[U]{}
+	err = json.Unmarshal(responseData, &jsonResponse)
+	if err != nil {
+		returnChan <- response[U]{Error: err}
+	}
+
+	returnChan <- response[U]{jsonResponse.Result, nil}
+	wg.Done()
 }
 
 // getNotificationMethod parses the raw notification and returns the notification method
