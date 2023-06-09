@@ -2,11 +2,18 @@ package logging
 
 import (
 	"strconv"
+	"sync"
 
 	"github.com/rs/zerolog"
 )
 
+var once sync.Once
+
 func ConfigureZeroLogger() {
+	once.Do(configureZeroLogger)
+}
+
+func configureZeroLogger() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
 		short := file
