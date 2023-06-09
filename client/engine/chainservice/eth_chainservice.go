@@ -93,28 +93,32 @@ func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, sync.WaitGroup{}}
 	errChan, err := ecs.subscribeForLogs()
-	// TODO: Return error from chain service instead of panicking
-	ecs.wg.Add(1)
-	go func() {
-		for {
-			select {
-			case <-ecs.ctx.Done():
-				ecs.wg.Done()
-				return
-			case err := <-errChan:
-				// Print to STDOUT in case we're using a noop logger
-				fmt.Println(err)
-				ecs.logger.Fatal().Err(err)
-				// Manually panic in case we're using a logger that doesn't call exit(1)
-				panic(err)
-			}
-		}
-	}()
 	if err != nil {
 		return nil, err
 	}
+	// TODO: Return error from chain service instead of panicking
+	ecs.wg.Add(1)
+	go ecs.listenForErrors(ctx, errChan)
 
 	return &ecs, nil
+}
+
+// listenForErrors listens for errors on the error channel and attempts to handle them if they occur.
+// TODO: Currently "handle" is panicking
+func (ecs *EthChainService) listenForErrors(ctx context.Context, errChan <-chan error) {
+	for {
+		select {
+		case <-ecs.ctx.Done():
+			ecs.wg.Done()
+			return
+		case err := <-errChan:
+			// Print to STDOUT in case we're using a noop logger
+			fmt.Println(err)
+			ecs.logger.Fatal().Err(err)
+			// Manually panic in case we're using a logger that doesn't call exit(1)
+			panic(err)
+		}
+	}
 }
 
 // defaultTxOpts returns transaction options suitable for most transaction submissions
