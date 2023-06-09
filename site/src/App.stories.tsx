@@ -12,7 +12,7 @@ import {
 } from "./mocks/request";
 
 function createMockServer() {
-  const mockServer = new Server("ws://localhost:4005/api/subscribe");
+  const mockServer = new Server("ws://localhost:4005/api/v1/subscribe");
   return mockServer;
 }
 
@@ -38,7 +38,7 @@ export const AppPopulated = () => {
 AppPopulated.parameters = {
   msw: {
     handlers: [
-      rest.post("http://localhost:4005/api", async (req, res, ctx) => {
+      rest.post("http://localhost:4005/api/v1", async (req, res, ctx) => {
         const json = await req.json();
         let retVal = {};
         switch (json.method) {

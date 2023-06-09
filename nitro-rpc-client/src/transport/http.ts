@@ -11,7 +11,7 @@ import {
 
 import { Transport } from ".";
 
-export const RPC_PATH = "api";
+export const RPC_PATH = "api/v1";
 
 export class HttpTransport {
   Notifications: EventEmitter<NotificationMethod, NotificationPayload>;
