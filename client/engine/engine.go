@@ -550,12 +550,14 @@ func (e *Engine) sendMessages(msgs []protocols.Message) {
 		e.recordMessageMetrics(message)
 		e.msg.Send(message)
 	}
+	e.wg.Done()
 }
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	defer e.metrics.RecordFunctionDuration()()
 
+	e.wg.Add(1)
 	// Send messages in a go routine so that we don't block on message delivery
 	go e.sendMessages(sideEffects.MessagesToSend)
 
