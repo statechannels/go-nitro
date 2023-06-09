@@ -6,9 +6,9 @@ Review
 
 ## Context
 
-In our codebase we have a few structs that use long-running go-routines to handle tasks asynchronously (often things like sending out messages/notifications). However we don't always consider how to stop and clean up after these go-routines, and we aren't always consistent on how we approach it. In some scenarios these long-running go-routines can continue running after `Close` has been called. This can easily introduce subtle race conditions.
+In our codebase we have a few structs that use go-routines to handle tasks asynchronously (often things like sending out messages/notifications). However we don't always consider how to stop and clean up after these go-routines, and we aren't always consistent on how we approach it. In some scenarios go-routines continue running after `Close` has been called. This can easily introduce subtle race conditions.
 
-Here's a list of structs that spin up long-running go-routines.
+Here's are some example usages of go-routines.
 
 - [The RPC client](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/client.go#L142)
 - [The RPC server](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/server.go#L223)
@@ -16,8 +16,6 @@ Here's a list of structs that spin up long-running go-routines.
 - [The API client](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/client/client.go#L87)
 
 ## Decision
-
-**Note:** I use the term struct as a shorthand for a struct with a long-running go-routine, like the examples above.
 
 When a struct's `Close` function is called, it should block and not return until:
 
@@ -28,7 +26,7 @@ By enforcing these constraints a running go-routine can be guaranteed that it's 
 
 To enforce these constraints we should follow this pattern in a struct's `Close` function:
 
-1. Signal any go-routines we own to exit.
+1. Signal any "long-running" go-routines we own to exit.
 2. Wait until all go-routines have completed execution.
 3. Close any resources it owns.
 
@@ -36,7 +34,9 @@ We want to adhere to the [io.Closer interface](https://pkg.go.dev/io#Closer) so 
 
 ### Step 1: Signal go-routines to exit
 
-Long-running `go-routines` need some kind of trigger to stop executing. A common and simple pattern we often use is simply closing the chan the go-routine is consuming from.
+A "long-running" go-routine is a go-routine that will either execute forever or for long enough that is not practical to wait for it to naturally complete execution. When closing we want to signal to these go-routines to stop executing, so we don't get stuck waiting a very long time. If a go-routine is short-lived it may not be necessary to implement a signal. The struct can just wait for the execution to complete normally.
+
+A common and simple pattern we often use is simply closing the chan the go-routine is consuming from.
 
 ```golang
 	toRoutine := make(chan int)
@@ -82,7 +82,7 @@ Due to these benefits, and the limited use of go-routines, we should update our 
 
 ### 2: Wait until all go-routines have completed execution.
 
-After we have signalled our go-routines to exit we should wait for them to complete. The easiest way to accomplish this is with a `sync.WaitGroup`
+After we have signalled our "long-running" go-routines to exit we should wait for **all** go-routines to exit(both long and short lived). The easiest way to accomplish this is with a `sync.WaitGroup`
 
 ```golang
 wg := sync.WaitGroup{}
