@@ -113,10 +113,6 @@ wg := sync.WaitGroup{}
 
 Once a struct has waited for all go-routines to finish executing, it can dispose of any resources like network connections or child structs. We do this by calling `Close` on any child structs that implement [io.Closer interface](https://pkg.go.dev/io#Closer). **In general, if a child struct implements the `Closer` interface, we should consider calling it in our struct's `Close`**
 
-### Step 4: Return any errors
-
-If any error has
-
 ## Prior Art
 
 A example of this pattern can be found in the libp2p codebase, such as the [mdns service Close function](https://github.com/libp2p/go-libp2p/blob/c9de1665054229bdfd40884cd0b893744ec8ef7e/p2p/discovery/mdns/mdns.go#L75).
