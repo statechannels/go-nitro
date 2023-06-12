@@ -261,6 +261,37 @@ export const LforV = new TestChannel(
   ]
 );
 
+/**
+ * @returns An array of n channels, each with balance [Alice: 10, Bob: 0]
+ */
+export const getChannelBatch: (n: number) => TestChannel[] = (n: number) => {
+  const channels: TestChannel[] = [];
+
+  for (let i = 0; i < n; i++) {
+    const channel = new TestChannel(
+      `0x${i}`,
+      [Alice, Bob],
+      [
+        {
+          destination: convertAddressToBytes32(Alice.address),
+          amount: amountForAlice,
+          metadata: '0x',
+          allocationType: AllocationType.simple,
+        },
+        {
+          destination: convertAddressToBytes32(Bob.address),
+          amount: amountForBob,
+          metadata: '0x',
+          allocationType: AllocationType.simple,
+        },
+      ]
+    );
+
+    channels.push(channel);
+  }
+  return channels;
+};
+
 // Utils
 export async function getFinalizesAtFromTransactionHash(hash: string): Promise<number> {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
