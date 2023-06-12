@@ -8,6 +8,13 @@ import { QUERY_KEY } from "./constants";
 import LedgerChannelDetails from "./components/LedgerChannelDetails";
 import PaymentChannelContainer from "./components/PaymentChannelContainer";
 
+async function fetchLedgerChannels(
+  nitroClient: NitroRpcClient,
+  setLedgerChannels: (l: LedgerChannelInfo[]) => void
+) {
+  setLedgerChannels(await nitroClient.GetAllLedgerChannels());
+}
+
 function App() {
   const url =
     new URLSearchParams(window.location.search).get(QUERY_KEY) ??
@@ -22,14 +29,19 @@ function App() {
 
   useEffect(() => {
     if (nitroClient) {
-      nitroClient.GetAllLedgerChannels().then((l) => {
-        setLedgerChannels(l);
-        if (l.length > 0) {
-          setFocusedLedgerChannel(l[0].ID);
-        }
-      });
+      fetchLedgerChannels(nitroClient, setLedgerChannels);
+      nitroClient?.Notifications.on("objective_completed", () =>
+        fetchLedgerChannels(nitroClient, setLedgerChannels)
+      );
     }
   }, [nitroClient]);
+
+  const focusedChannelInLedgerChannels = ledgerChannels.some(
+    (lc) => lc.ID === focusedLedgerChannel
+  );
+  if (!focusedChannelInLedgerChannels && ledgerChannels.length > 0) {
+    setFocusedLedgerChannel(ledgerChannels[0].ID);
+  }
 
   return (
     <>
