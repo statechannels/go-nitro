@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/statechannels/go-nitro/internal/safesync"
@@ -16,13 +17,14 @@ import (
 )
 
 const (
-	webscocketServerAddress = "127.0.0.1:"
-	maxRequestSize          = 8192
+	websocketServerAddress = "127.0.0.1:"
+	maxRequestSize         = 8192
+	apiVersionPath         = "/api/v1"
 )
 
 type serverWebSocketTransport struct {
 	httpServer            *http.Server
-	requestHandler        func([]byte) []byte
+	requestHandlers       map[string]func([]byte) []byte
 	port                  string
 	notificationListeners safesync.Map[chan []byte]
 }
@@ -31,20 +33,22 @@ type serverWebSocketTransport struct {
 func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, error) {
 	wsc := &serverWebSocketTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}}
 
-	tcpListener, err := net.Listen("tcp", webscocketServerAddress+wsc.port)
+	tcpListener, err := net.Listen("tcp", websocketServerAddress+wsc.port)
 	if err != nil {
 		return nil, err
 	}
 
 	var serveMux http.ServeMux
 
-	serveMux.HandleFunc(path.Join("/", rpcPath), wsc.request)
-	serveMux.HandleFunc(path.Join("/", rpcPath, "subscribe"), wsc.subscribe)
+	serveMux.HandleFunc(apiVersionPath, wsc.request)
+	serveMux.HandleFunc(path.Join(apiVersionPath, "subscribe"), wsc.subscribe)
 	wsc.httpServer = &http.Server{
 		Handler:      &serveMux,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
 	}
+
+	wsc.requestHandlers = make(map[string]func([]byte) []byte)
 
 	go func() {
 		err = wsc.httpServer.Serve(tcpListener)
@@ -56,8 +60,8 @@ func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, erro
 	return wsc, nil
 }
 
-func (wsc *serverWebSocketTransport) RegisterRequestHandler(handler func([]byte) []byte) error {
-	wsc.requestHandler = handler
+func (wsc *serverWebSocketTransport) RegisterRequestHandler(apiVersion string, handler func([]byte) []byte) error {
+	wsc.requestHandlers[apiVersion] = handler
 	return nil
 }
 
@@ -77,10 +81,24 @@ func (wsc *serverWebSocketTransport) Close() {
 }
 
 func (wsc *serverWebSocketTransport) Url() string {
-	return webscocketServerAddress + wsc.port
+	return websocketServerAddress + wsc.port + apiVersionPath
 }
 
 func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Request) {
+	// Pull api version from the url and determine if the version is supported
+	pathSegments := strings.Split(r.URL.Path, "/")
+	if len(pathSegments) < 3 {
+		http.Error(w, "Invalid API version", http.StatusBadRequest)
+		return
+	}
+
+	apiVersion := pathSegments[2] // first segment is an empty string
+	handler, ok := wsc.requestHandlers[apiVersion]
+	if !ok {
+		http.Error(w, "Invalid API version", http.StatusBadRequest)
+		return
+	}
+
 	switch r.Method {
 	case "OPTIONS": // OPTIONS is used for a pre-flight CORS check by the browser before POST
 		enableCors(&w)
@@ -95,13 +113,12 @@ func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Requ
 			http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
 			return
 		}
-		_, err = w.Write(wsc.requestHandler(msg))
+		_, err = w.Write(handler(msg))
 		if err != nil {
 			panic(err)
 		}
 	default:
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-
 	}
 }
 

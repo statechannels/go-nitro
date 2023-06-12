@@ -19,7 +19,7 @@ func (*mockResponder) Url() string {
 	return ""
 }
 
-func (m *mockResponder) RegisterRequestHandler(handler func([]byte) []byte) error {
+func (m *mockResponder) RegisterRequestHandler(apiVersion string, handler func([]byte) []byte) error {
 	m.Handler = handler
 	return nil
 }

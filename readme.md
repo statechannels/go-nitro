@@ -11,7 +11,7 @@ go-nitro
 
 ### As a Service
 
-Go-nitro can be run as a system service with an RPC api. Go-nitro's default configuration is to connect with a local hardhat blockchain on port `8548` with chainid `1337`.
+Go-nitro can be run as a system service with an RPC api. Go-nitro's default configuration looks for a local blockchain network on port `8545` with chainid `1337`.
 
 A suitably configured node as a docker container is maintained here: https://github.com/statechannels/hardhat-docker, but default hardhat nodes work as well.
 
@@ -50,17 +50,18 @@ Usage of ./nitro-rpc-server:
   -usenats
         Specifies whether to use NATS or http/ws for the rpc server.
 ```
-  
-You can make remote procedure calls like so:
-  
-  ```shell
-  curl -X POST \   
-     -H 'Content-Type: application/json' \
-     -d '{"jsonrpc":"2.0","id":1,"method":"get_address","params":{}}' \
-     http://localhost:4005/api
-  ```
 
-  but see https://github.com/statechannels/nitro-gui for an RPC client to do so programmatically. 
+You can make remote procedure calls like so:
+
+```shell
+curl -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"get_address","params":{}}' \
+  http://localhost:4005/api/v1
+```
+
+but see https://github.com/statechannels/nitro-gui for an RPC client to do so programmatically.
+
 ### As a Library
 
 Go-nitro is also work-in-progress library code with an evolving API.
