@@ -20,8 +20,9 @@ import {
   Bob,
   challengeVirtualPaymentChannelWithVoucher,
   paymentAmount,
+  getChannelBatch,
 } from './fixtures';
-import {emptyGasResults} from './gas';
+import {batchSizes, emptyGasResults} from './gas';
 import {deployContracts, nitroAdjudicator, token} from './localSetup';
 
 /**
@@ -87,6 +88,32 @@ async function main() {
       await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 5, 5, {value: 5})
     );
   });
+
+  for (const batchSize of batchSizes) {
+    const batch = getChannelBatch(batchSize);
+    await executeAndRevert(async () => {
+      // batch funding channels with ETH (first deposit)
+      gasResults.batchFundChannelsWithETHFirst.satp['' + batchSize] = await gasUsed(
+        await nitroAdjudicator.deposit_batch(
+          MAGIC_ADDRESS_INDICATING_ETH,
+          batch.map(c => c.channelId),
+          batch.map(() => 0),
+          batch.map(() => 5),
+          {value: 5 * batchSize}
+        )
+      );
+      // batch funding channels with ETH (second deposit)
+      gasResults.batchFundChannelsWithETHSecond.satp['' + batchSize] = await gasUsed(
+        await nitroAdjudicator.deposit_batch(
+          MAGIC_ADDRESS_INDICATING_ETH,
+          batch.map(c => c.channelId),
+          batch.map(() => 5),
+          batch.map(() => 5),
+          {value: 5 * batchSize}
+        )
+      );
+    });
+  }
 
   // directly funding a channel with an ERC20 (first deposit)
   // The depositor begins with zero tokens approved for the AssetHolder

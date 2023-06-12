@@ -12,6 +12,7 @@ import {
   X,
   LforX,
   LforV,
+  getChannelBatch,
   assertEthBalancesAndHoldings,
   amountForAlice,
   amountForAliceAndBob,
@@ -21,9 +22,10 @@ import {
   Bob,
   paymentAmount,
 } from './fixtures';
-import {GasResults} from './gas';
+import {batchSizes, GasResults} from './gas';
 import {challengeChannelAndExpectGas} from './jestSetup';
 import {nitroAdjudicator, token} from './localSetup';
+import {hashMessage} from 'ethers/lib/utils';
 
 /**
  * Ensures the asset holding contract always has a nonzero token balance.
@@ -73,6 +75,46 @@ describe('Consumes the expected gas for deposits', () => {
       await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 5, 5, {value: 5})
     ).toConsumeGas(gasRequiredTo.directlyFundAChannelWithETHSecond.satp);
   });
+
+  for (const batchSize of batchSizes) {
+    const batch = getChannelBatch(batchSize);
+
+    it(`when batch funding ${batchSize} channels with ETH (first deposit)`, async () => {  
+      await expect(
+        await nitroAdjudicator.deposit_batch(
+          MAGIC_ADDRESS_INDICATING_ETH,
+          batch.map(c => c.channelId),
+          batch.map(() => 0),
+          batch.map(() => 5),
+          {value: 5 * batch.length}
+        )
+      ).toConsumeGas(gasRequiredTo.batchFundChannelsWithETHFirst.satp[batchSize]);
+    });
+
+    it(`when batch funding ${batchSize} channels with ETH (second deposit)`, async () => {
+      // begin setup
+      await (
+        await nitroAdjudicator.deposit_batch(
+          MAGIC_ADDRESS_INDICATING_ETH,
+          batch.map(c => c.channelId),
+          batch.map(c => 0),
+          batch.map(c => 5),
+          {value: 5 * batch.length}
+        )
+      ).wait();
+      // end setup
+
+      await expect(
+        await nitroAdjudicator.deposit_batch(
+          MAGIC_ADDRESS_INDICATING_ETH,
+          batch.map(c => c.channelId),
+          batch.map(c => 5),
+          batch.map(c => 5),
+          {value: 5 * batch.length}
+        )
+      ).toConsumeGas(gasRequiredTo.batchFundChannelsWithETHSecond.satp[batchSize]);
+    });
+  }
 
   it(`when directly funding a channel with an ERC20 (first deposit)`, async () => {
     // begin setup
