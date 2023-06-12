@@ -45,7 +45,7 @@ func ConnectToChain(ctx context.Context, chainUrl, chainAuthToken string, chainP
 	}
 	txSubmitter.GasLimit = uint64(30_000_000) // in units
 
-	gasPrice, err := client.SuggestGasPrice(ctx)
+	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		return nil, nil, err
 	}
