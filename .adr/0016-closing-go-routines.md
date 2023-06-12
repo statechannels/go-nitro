@@ -82,7 +82,7 @@ Due to these benefits, and the limited use of go-routines, we should update our 
 
 ### 2: Wait until all go-routines have completed execution.
 
-After we have signalled our "long-running" go-routines to exit we should wait for **all** go-routines to exit(both long and short lived). The easiest way to accomplish this is with a `sync.WaitGroup`
+After we have signalled our "long-running" go-routines to exit we should wait for **all** go-routines to exit (both long and short lived). The easiest way to accomplish this is with a `sync.WaitGroup`
 
 ```golang
 wg := sync.WaitGroup{}
