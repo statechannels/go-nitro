@@ -1,7 +1,6 @@
 import {readFileSync, existsSync} from 'fs';
 
 import {BigNumber} from 'ethers';
-import {hashMessage} from 'ethers/lib/utils';
 
 import {encodeOutcome, Outcome} from '../src';
 import {computeReclaimEffects} from '../src/contract/multi-asset-holder';
@@ -97,8 +96,8 @@ describe('Consumes the expected gas for deposits', () => {
         await nitroAdjudicator.deposit_batch(
           MAGIC_ADDRESS_INDICATING_ETH,
           batch.map(c => c.channelId),
-          batch.map(c => 0),
-          batch.map(c => 5),
+          batch.map(() => 0),
+          batch.map(() => 5),
           {value: 5 * batch.length}
         )
       ).wait();
@@ -108,8 +107,8 @@ describe('Consumes the expected gas for deposits', () => {
         await nitroAdjudicator.deposit_batch(
           MAGIC_ADDRESS_INDICATING_ETH,
           batch.map(c => c.channelId),
-          batch.map(c => 5),
-          batch.map(c => 5),
+          batch.map(() => 5),
+          batch.map(() => 5),
           {value: 5 * batch.length}
         )
       ).toConsumeGas(gasRequiredTo.batchFundChannelsWithETHSecond.satp[batchSize]);
