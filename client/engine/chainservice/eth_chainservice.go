@@ -61,11 +61,11 @@ const MAX_QUERY_BLOCK_RANGE = 2000
 const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
 
 // NewEthChainService is a convenient wrapper around NewEthChainService, which provides a simpler API
-func NewEthChainService(chainUrl, chainPk string, naAddress, caAddress, vpaAddress common.Address, logDestination io.Writer) (*EthChainService, error) {
+func NewEthChainService(chainUrl, chainAuthToken, chainPk string, naAddress, caAddress, vpaAddress common.Address, logDestination io.Writer) (*EthChainService, error) {
 	if vpaAddress == caAddress {
 		return nil, fmt.Errorf("virtual payment app address and consensus app address cannot be the same: %s", vpaAddress.String())
 	}
-	ethClient, txSigner, err := chainutils.ConnectToChain(context.Background(), chainUrl, common.Hex2Bytes(chainPk))
+	ethClient, txSigner, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainAuthToken, common.Hex2Bytes(chainPk))
 	if err != nil {
 		panic(err)
 	}
