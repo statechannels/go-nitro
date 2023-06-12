@@ -28,9 +28,9 @@ func (rs *RpcServer) Url() string {
 	return rs.transport.Url()
 }
 
-func (rs *RpcServer) Close() {
-	rs.client.Close()
+func (rs *RpcServer) Close() error {
 	rs.transport.Close()
+	return rs.client.Close()
 }
 
 // newRpcServerWithoutNotifications creates a new rpc server without notifications enabled

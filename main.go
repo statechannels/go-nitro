@@ -193,7 +193,8 @@ func main() {
 				Str("rpc", "server").
 				Str("scope", "").
 				Logger()
-			_, err = rpc.NewRpcServer(&node, &logger, transport)
+
+			rpcServer, err := rpc.NewRpcServer(&node, &logger, transport)
 			if err != nil {
 				return err
 			}
@@ -204,7 +205,7 @@ func main() {
 			signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 			<-stopChan // wait for interrupt or terminate signal
 
-			return nil
+			return rpcServer.Close()
 		},
 	}
 
