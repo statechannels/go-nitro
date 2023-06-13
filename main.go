@@ -31,6 +31,7 @@ func main() {
 		USE_DURABLE_STORE = "usedurablestore"
 		PK                = "pk"
 		CHAIN_URL         = "chainurl"
+		CHAIN_AUTH_TOKEN  = "chainauthtoken"
 		CHAIN_PK          = "chainpk"
 		NA_ADDRESS        = "naaddress"
 		VPA_ADDRESS       = "vpaaddress"
@@ -38,7 +39,7 @@ func main() {
 		MSG_PORT          = "msgport"
 		RPC_PORT          = "rpcport"
 	)
-	var pkString, chainUrl, naAddress, vpaAddress, caAddress, chainPk string
+	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk string
 	var msgPort, rpcPort int
 	var useNats, useDurableStore bool
 
@@ -74,6 +75,12 @@ func main() {
 			DefaultText: "hardhat / anvil default",
 			Category:    "Connectivity:",
 			Destination: &chainUrl,
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:        CHAIN_AUTH_TOKEN,
+			Usage:       "The bearer token used for auth when making requests to the chain's RPC endpoint.",
+			Category:    "Connectivity:",
+			Destination: &chainAuthToken,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CHAIN_PK,
@@ -153,6 +160,7 @@ func main() {
 			fmt.Println("Initializing chain service and connecting to " + chainUrl + "...")
 			chainService, err := chainservice.NewEthChainService(
 				chainUrl,
+				chainAuthToken,
 				chainPk,
 				common.HexToAddress(naAddress),
 				common.HexToAddress(caAddress),

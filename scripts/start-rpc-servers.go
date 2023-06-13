@@ -175,7 +175,7 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 
 // deployContracts deploys the  NitroAdjudicator contract.
 func deployContracts(ctx context.Context) (na common.Address, vpa common.Address, ca common.Address, err error) {
-	client, txSubmitter, err := chainutils.ConnectToChain(context.Background(), "ws://127.0.0.1:8545", common.Hex2Bytes(FUNDED_TEST_PK))
+	client, txSubmitter, err := chainutils.ConnectToChain(context.Background(), "ws://127.0.0.1:8545", "", common.Hex2Bytes(FUNDED_TEST_PK))
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
