@@ -35,10 +35,6 @@ func (rs *RpcServer) Url() string {
 func (rs *RpcServer) Close() error {
 	rs.cancel()
 	rs.wg.Wait()
-	err := rs.client.Close()
-	if err != nil {
-		return err
-	}
 
 	rs.transport.Close()
 	return rs.client.Close()
