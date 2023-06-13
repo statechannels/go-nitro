@@ -1,0 +1,9 @@
+# Ivan's test Config
+
+usedurablestore = true
+
+msgport = 3008
+rpcport = 4008
+
+pk = "1ea91a2724b40fb8fed6a3648d49e9431996c09744fb841b718377fb0700f3e7"
+chainpk = "47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
