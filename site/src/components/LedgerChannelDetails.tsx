@@ -27,7 +27,10 @@ async function getLedgerDetails(
     const total = pc.Balance.PaidSoFar + pc.Balance.RemainingFunds;
     return {
       budget: total,
-      myPercentage: Number(pc.Balance.RemainingFunds / total),
+      // bigint division outputs a bigint. To have decimal precision,
+      // we multiply the numerator by a factor, divide, convert to JS number,
+      // and then divide by the same factor.
+      myPercentage: Number((pc.Balance.RemainingFunds * 1_000n) / total) / 1000,
     };
   });
 
