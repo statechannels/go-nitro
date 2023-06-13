@@ -38,6 +38,10 @@ function closeClients(clients: Clients): Promise<void[]> {
   );
 }
 
+function isValidClientName(name: string): name is ClientNames {
+  return clientNames.includes(name as ClientNames);
+}
+
 yargs(hideBin(process.argv))
   .scriptName("client-runner")
   .command(
@@ -192,6 +196,49 @@ yargs(hideBin(process.argv))
 
       await closeClients(clients);
       process.exit(0);
+    }
+  )
+  .command(
+    "create-ledger",
+    "Create a ledger channel",
+    (yargsBuilder) => {
+      return yargsBuilder
+        .option("left", {
+          describe: "Left rpc node",
+          type: "string",
+          default: "alice",
+        })
+        .option("right", {
+          describe: "Right rpc node",
+          type: "string",
+          default: "irene",
+        });
+    },
+    async (yargs) => {
+      const { left, right } = yargs;
+      if (!isValidClientName(left) || !isValidClientName(right)) {
+        throw new Error("Invalid client name");
+      }
+
+      const clients = await initializeClients();
+      const leftClient = clients.get(left);
+      const rightClient = clients.get(right);
+      if (!leftClient || !rightClient) {
+        throw new Error("A client is undefined");
+      }
+      const rightAddress = await rightClient.GetAddress();
+
+      if (yargs.printnotifications) {
+        [leftClient, rightClient].forEach(logOutChannelUpdates);
+      }
+
+      // Setup ledger channels
+      console.log("Constructing ledger channels");
+      const ledger = await leftClient.DirectFund(rightAddress);
+      console.log(`Ledger channel ${ledger.ChannelId} created`);
+
+      await wait(1000);
+      await closeClients(clients);
     }
   )
   .demandCommand(1, "You need at least one command before moving on")
