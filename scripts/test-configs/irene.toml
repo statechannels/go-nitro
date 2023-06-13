@@ -5,8 +5,8 @@ usedurablestore = true
 msgport = 3006
 rpcport = 4006
 
-pk = "febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781"
 chainpk = "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"
+pk = "febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781"
 
-chainurl = "ws://127.0.0.1:8545"
-chainauthtoken = ""
+chainauthtoken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.PyJt3GZtJrLu-bs_3Kmy1VrFpcGoCZEZ8JhX-YWQ4Pc"
+chainurl = "ws://127.0.0.1:1234/rpc/v1"
