@@ -24,6 +24,7 @@ const (
 	alice participant = "alice"
 	bob   participant = "bob"
 	irene participant = "irene"
+	ivan  participant = "ivan"
 )
 
 type color string
@@ -78,6 +79,13 @@ func main() {
 	}
 	running = append(running, ireneClient)
 
+	ivanClient, err := setupRPCServer(ivan, cyan, naAddress, vpaAddress, caAddress)
+	if err != nil {
+		stopCommands(running...)
+		panic(err)
+	}
+	running = append(running, ivanClient)
+
 	bobClient, err := setupRPCServer(bob, yellow, naAddress, vpaAddress, caAddress)
 	if err != nil {
 		stopCommands(running...)
@@ -123,6 +131,8 @@ func setupRPCServer(p participant, c color, na, vpa, ca types.Address) (*exec.Cm
 		args = append(args, "-config", "./scripts/test-configs/alice.toml")
 	case irene:
 		args = append(args, "-config", "./scripts/test-configs/irene.toml")
+	case ivan:
+		args = append(args, "-config", "./scripts/test-configs/ivan.toml")
 	case bob:
 		args = append(args, "-config", "./scripts/test-configs/bob.toml")
 
