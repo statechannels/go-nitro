@@ -1,6 +1,5 @@
 #!/usr/bin/env ts-node
 /* eslint-disable @typescript-eslint/no-empty-function */
-/* eslint-disable @typescript-eslint/no-shadow */
 
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -15,6 +14,30 @@ import {
 } from "../src/utils";
 import { RPC_PATH } from "../src/transport/http";
 
+const clientNames = ["alice", "irene", "bob", "ivan"] as const;
+type ClientNames = (typeof clientNames)[number];
+type Clients = Map<ClientNames, NitroRpcClient>;
+
+async function initializeClients(): Promise<Clients> {
+  let port = 4005;
+
+  const clients: Clients = new Map<ClientNames, NitroRpcClient>();
+  for (const clientName of clientNames) {
+    const client = await NitroRpcClient.CreateHttpNitroClient(
+      getLocalRPCUrl(port)
+    );
+    clients.set(clientName, client);
+    port++;
+  }
+  return clients;
+}
+
+function closeClients(clients: Clients): Promise<void[]> {
+  return Promise.all(
+    Array.from(clients.values()).map((client) => client.Close())
+  );
+}
+
 yargs(hideBin(process.argv))
   .scriptName("client-runner")
   .command(
@@ -22,19 +45,9 @@ yargs(hideBin(process.argv))
     "Prints all channels",
     async () => {},
     async () => {
-      const aliceClient = await NitroRpcClient.CreateHttpNitroClient(
-        getLocalRPCUrl(4005)
-      );
+      const clients = await initializeClients();
 
-      const ireneClient = await NitroRpcClient.CreateHttpNitroClient(
-        getLocalRPCUrl(4006)
-      );
-
-      const bobClient = await NitroRpcClient.CreateHttpNitroClient(
-        getLocalRPCUrl(4007)
-      );
-
-      for (const client of [aliceClient, ireneClient, bobClient]) {
+      for (const client of clients.values()) {
         const ledgers = await client.GetAllLedgerChannels();
 
         console.log(
@@ -59,9 +72,7 @@ yargs(hideBin(process.argv))
           }
         }
       }
-      await aliceClient.Close();
-      await ireneClient.Close();
-      await bobClient.Close();
+      await closeClients(clients);
       process.exit(0);
     }
   )
@@ -116,25 +127,21 @@ yargs(hideBin(process.argv))
         ]);
       }
 
-      const aliceClient = await NitroRpcClient.CreateHttpNitroClient(
-        getLocalRPCUrl(4005)
-      );
-
-      const ireneClient = await NitroRpcClient.CreateHttpNitroClient(
-        getLocalRPCUrl(4006)
-      );
-
-      const ireneAddress = await ireneClient.GetAddress();
-      const bobClient = await NitroRpcClient.CreateHttpNitroClient(
-        getLocalRPCUrl(4007)
-      );
-      const bobAddress = await bobClient.GetAddress();
+      const clients = await initializeClients();
 
       if (yargs.printnotifications) {
-        logOutChannelUpdates(aliceClient);
-        logOutChannelUpdates(ireneClient);
-        logOutChannelUpdates(bobClient);
+        clients.forEach(logOutChannelUpdates);
       }
+
+      const aliceClient = clients.get("alice");
+      const ireneClient = clients.get("irene");
+      const bobClient = clients.get("bob");
+      if (!aliceClient || !ireneClient || !bobClient) {
+        throw new Error("An client is undefined");
+      }
+
+      const ireneAddress = await ireneClient.GetAddress();
+      const bobAddress = await bobClient.GetAddress();
 
       if (yargs.createledgers) {
         // Setup ledger channels
@@ -183,9 +190,7 @@ yargs(hideBin(process.argv))
         closeCount++;
       }
 
-      aliceClient.Close();
-      ireneClient.Close();
-      bobClient.Close();
+      await closeClients(clients);
       process.exit(0);
     }
   )
