@@ -16,5 +16,5 @@ Version 0 works against [this](https://github.com/statechannels/boost/releases/t
 - HTTP requests have a channel id as a query param
 - Retrievals are charged at a flat rate
 - The retrieval provider will serve the request as long as the channel with supplied id has had a payment
-- This is vulernable to replays!
+- This is vulnerable to replays!
   ![](./version-0.gif)
