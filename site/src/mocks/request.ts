@@ -1,13 +1,19 @@
+const bg_100 = "0x64";
+const bg_500 = "0x1F4";
+const bg_900 = "0x384";
+const bg_1000 = "0x3E8";
+const bg_9970 = "0x26B2";
+
 export const getAddressMock = {
   jsonrpc: "2.0",
-  id: 1684516515941,
+  id: 516515941,
   result: "0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE",
   error: null,
 };
 
 export const allLedgerChannelMock = {
   jsonrpc: "2.0",
-  id: 1684511523089,
+  id: 511523089,
   result: [
     {
       ID: "0x411ae0023593f5a2c9fe99c8017ff7c1a78c0071a072dc93ab2acfd7a87f1059",
@@ -16,8 +22,8 @@ export const allLedgerChannelMock = {
         AssetAddress: "0x0000000000000000000000000000000000000000",
         Hub: "0x111a00868581f73ab42feef67d235ca09ca1e8db",
         Client: "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
-        HubBalance: 997000,
-        ClientBalance: 997000,
+        HubBalance: bg_9970,
+        ClientBalance: bg_9970,
       },
     },
     {
@@ -27,8 +33,8 @@ export const allLedgerChannelMock = {
         AssetAddress: "0x0000000000000000000000000000000000000000",
         Hub: "0x111a00868581f73ab42feef67d235ca09ca1e8db",
         Client: "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
-        HubBalance: 1000,
-        ClientBalance: 1000,
+        HubBalance: bg_1000,
+        ClientBalance: bg_1000,
       },
     },
     {
@@ -38,8 +44,8 @@ export const allLedgerChannelMock = {
         AssetAddress: "0x0000000000000000000000000000000000000000",
         Hub: "0x111a00868581f73ab42feef67d235ca09ca1e8db",
         Client: "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
-        HubBalance: 1000,
-        ClientBalance: 1000,
+        HubBalance: bg_1000,
+        ClientBalance: bg_1000,
       },
     },
   ],
@@ -48,7 +54,7 @@ export const allLedgerChannelMock = {
 
 export const getLedgerChannelMock = {
   jsonrpc: "2.0",
-  id: 1684516515960,
+  id: 516515960,
   result: {
     ID: "0x411ae0023593f5a2c9fe99c8017ff7c1a78c0071a072dc93ab2acfd7a87f1059",
     Status: "Open",
@@ -56,8 +62,8 @@ export const getLedgerChannelMock = {
       AssetAddress: "0x0000000000000000000000000000000000000000",
       Hub: "0x111a00868581f73ab42feef67d235ca09ca1e8db",
       Client: "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
-      HubBalance: 9970,
-      ClientBalance: 9970,
+      HubBalance: bg_9970,
+      ClientBalance: bg_9970,
     },
   },
   error: null,
@@ -65,7 +71,7 @@ export const getLedgerChannelMock = {
 
 export const getPaymentChannelsByLedgerMock = {
   jsonrpc: "2.0",
-  id: 1684516515966,
+  id: 516515966,
   result: [
     {
       ID: "0x128c577ea4da25d7c91df9efa88ce8df4d41a262c969f3dc21558180ec7af044",
@@ -74,8 +80,8 @@ export const getPaymentChannelsByLedgerMock = {
         AssetAddress: "0x0000000000000000000000000000000000000000",
         Payee: "0xbbb676f9cff8d242e9eac39d063848807d3d1d94",
         Payer: "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
-        PaidSoFar: 900,
-        RemainingFunds: 100,
+        PaidSoFar: bg_900,
+        RemainingFunds: bg_100,
       },
     },
     {
@@ -85,8 +91,8 @@ export const getPaymentChannelsByLedgerMock = {
         AssetAddress: "0x0000000000000000000000000000000000000000",
         Payee: "0xbbb676f9cff8d242e9eac39d063848807d3d1d94",
         Payer: "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
-        PaidSoFar: 100,
-        RemainingFunds: 900,
+        PaidSoFar: bg_100,
+        RemainingFunds: bg_900,
       },
     },
     {
@@ -96,8 +102,8 @@ export const getPaymentChannelsByLedgerMock = {
         AssetAddress: "0x0000000000000000000000000000000000000000",
         Payee: "0xbbb676f9cff8d242e9eac39d063848807d3d1d94",
         Payer: "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
-        PaidSoFar: 500,
-        RemainingFunds: 500,
+        PaidSoFar: bg_500,
+        RemainingFunds: bg_500,
       },
     },
   ],
