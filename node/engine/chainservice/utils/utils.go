@@ -43,12 +43,15 @@ func ConnectToChain(ctx context.Context, chainUrl, chainAuthToken string, chainP
 	if err != nil {
 		return nil, nil, err
 	}
-	txSubmitter.GasLimit = uint64(30_000_000) // in units
 
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return nil, nil, err
-	}
-	txSubmitter.GasPrice = gasPrice
+	// TODO: Filecoin only uses v2 transactions so we want to avoid setting a gas limit
+
+	// txSubmitter.GasLimit = uint64(30_000_000) // in units
+
+	// gasPrice, err := client.SuggestGasPrice(context.Background())
+	// if err != nil {
+	// 	return nil, nil, err
+	// }
+	// txSubmitter.GasPrice = gasPrice
 	return client, txSubmitter, nil
 }
