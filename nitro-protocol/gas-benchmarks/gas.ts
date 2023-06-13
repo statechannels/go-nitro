@@ -23,7 +23,7 @@ type Path =
 /**
  * the number of channels to batch fund
  */
-export const batchSizes = [1, 5, 10, 20];
+export const batchSizes = [1, 5, 10, 20, 50, 100];
 
 // The channel being benchmarked is a 2 party null app funded with 5 wei / tokens each.
 // KEY
@@ -51,6 +51,8 @@ export const emptyGasResults: GasResults = {
       '5': 0,
       '10': 0,
       '20': 0,
+      '50': 0,
+      '100': 0,
     },
   },
   batchFundChannelsWithETHSecond: {
@@ -59,6 +61,8 @@ export const emptyGasResults: GasResults = {
       '5': 0,
       '10': 0,
       '20': 0,
+      '50': 0,
+      '100': 0,
     },
   },
   directlyFundAChannelWithERC20First: {
