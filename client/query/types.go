@@ -18,11 +18,12 @@ const (
 type PaymentReceiptStatus string
 
 const (
-	PRSreceived        PaymentReceiptStatus = "Received"
-	PRSmisaddressed    PaymentReceiptStatus = "Misaddressed"
-	PRSchannelNotFound PaymentReceiptStatus = "ChannelNotFound"
-	PRSincorrectSigner PaymentReceiptStatus = "IncorrectSigner"
-	PRSengineError     PaymentReceiptStatus = "EngineError"
+	PRSreceived          PaymentReceiptStatus = "Received"
+	PRSmisaddressed      PaymentReceiptStatus = "Misaddressed"
+	PRSchannelNotFound   PaymentReceiptStatus = "ChannelNotFound"
+	PRSincorrectSigner   PaymentReceiptStatus = "IncorrectSigner"
+	PRSengineError       PaymentReceiptStatus = "EngineError"
+	PRSinsufficientFunds PaymentReceiptStatus = "InsufficientFunds"
 )
 
 // PaymentChannelBalance contains the balance of a uni-directional payment channel
