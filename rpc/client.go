@@ -149,10 +149,10 @@ func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
 	waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
 }
 
-func (rc *RpcClient) Close() {
+func (rc *RpcClient) Close() error {
 	rc.cancel()
 	rc.wg.Wait()
-	rc.transport.Close()
+	return rc.transport.Close()
 }
 
 func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationChan <-chan []byte) {

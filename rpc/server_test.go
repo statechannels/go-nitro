@@ -14,7 +14,10 @@ type mockResponder struct {
 	Handler func([]byte) []byte
 }
 
-func (*mockResponder) Close() {}
+func (*mockResponder) Close() error {
+	return nil
+}
+
 func (*mockResponder) Url() string {
 	return ""
 }
