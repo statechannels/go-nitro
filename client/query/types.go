@@ -15,6 +15,16 @@ const (
 	Complete ChannelStatus = "Complete"
 )
 
+type PaymentReceiptStatus string
+
+const (
+	PRSreceived        PaymentReceiptStatus = "Received"
+	PRSmisaddressed    PaymentReceiptStatus = "Misaddressed"
+	PRSchannelNotFound PaymentReceiptStatus = "ChannelNotFound"
+	PRSincorrectSigner PaymentReceiptStatus = "IncorrectSigner"
+	PRSengineError     PaymentReceiptStatus = "EngineError"
+)
+
 // PaymentChannelBalance contains the balance of a uni-directional payment channel
 type PaymentChannelBalance struct {
 	AssetAddress   types.Address
@@ -22,6 +32,14 @@ type PaymentChannelBalance struct {
 	Payer          types.Address
 	PaidSoFar      *hexutil.Big
 	RemainingFunds *hexutil.Big
+}
+
+// PaymentChannelPaymentReceipt contains the net-result of applying a voucher
+// against a payment channel, or an error status if the voucher was invalid.
+type PaymentChannelPaymentReceipt struct {
+	ID             types.Destination
+	AmountReceived *hexutil.Big
+	Status         PaymentReceiptStatus
 }
 
 // PaymentChannelInfo contains balance and status info about a payment channel
