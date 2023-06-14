@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/internal/safesync"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -87,6 +88,11 @@ func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
 	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
 
 	waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
+}
+
+// ReceivePayment receives a voucher and forwards it to go-nitro.
+func (rc *RpcClient) ReceivePayment(voucher payments.Voucher) query.PaymentChannelPaymentReceipt {
+	return waitForRequest[serde.ReceivePaymentRequest, query.PaymentChannelPaymentReceipt](rc, serde.ReceiveVoucherRequestMethod, voucher)
 }
 
 // CloseVirtual closes a virtual channel
