@@ -196,9 +196,10 @@ func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 	return c.receivedVouchers
 }
 
-// ReceiveSideEffects provides an external pipe for to trigger side effects crafted by client software.
-func (c *Client) ReceiveSideEffects(se protocols.SideEffects) error {
-	return c.engine.ExecuteSideEffects(se)
+// PushMessage provides an external pipe for out-of-band protocol messages.
+// IE, messages that arrive via some route other than the normal messaging service.
+func (c *Client) PushMessage(m protocols.Message) {
+	c.engine.MessagesFromAPI <- m
 }
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
