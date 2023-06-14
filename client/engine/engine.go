@@ -276,7 +276,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 
 				allCompleted.CompletedObjectives = append(allCompleted.CompletedObjectives, objective)
 
-				err = e.ExecuteSideEffects(sideEffects)
+				err = e.executeSideEffects(sideEffects)
 				// An error would mean we failed to send a message. But the objective is still "completed".
 				// So, we should return allCompleted even if there was an error.
 				return allCompleted, err
@@ -524,7 +524,7 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, erro
 	ee.PaymentChannelUpdates = append(ee.PaymentChannelUpdates, info)
 
 	se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
-	return ee, e.ExecuteSideEffects(se)
+	return ee, e.executeSideEffects(se)
 }
 
 // sendMessages sends out the messages and records the metrics.
@@ -539,8 +539,8 @@ func (e *Engine) sendMessages(msgs []protocols.Message) {
 	}
 }
 
-// ExecuteSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
-func (e *Engine) ExecuteSideEffects(sideEffects protocols.SideEffects) error {
+// executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
+func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	defer e.metrics.RecordFunctionDuration()()
 
 	// Send messages in a go routine so that we don't block on message delivery
@@ -603,7 +603,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 			return
 		}
 	}
-	err = e.ExecuteSideEffects(sideEffects)
+	err = e.executeSideEffects(sideEffects)
 	return
 }
 
