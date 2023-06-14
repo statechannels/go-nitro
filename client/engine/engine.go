@@ -55,6 +55,7 @@ type Engine struct {
 	// From API
 	ObjectiveRequestsFromAPI chan protocols.ObjectiveRequest
 	PaymentRequestsFromAPI   chan PaymentRequest
+	MessagesFromAPI          chan protocols.Message
 
 	fromChain  <-chan chainservice.Event
 	fromMsg    <-chan protocols.Message
@@ -191,6 +192,8 @@ func (e *Engine) Run() {
 		case chainEvent := <-e.fromChain:
 			res, err = e.handleChainEvent(chainEvent)
 		case message := <-e.fromMsg:
+			res, err = e.handleMessage(message)
+		case message := <-e.MessagesFromAPI:
 			res, err = e.handleMessage(message)
 		case proposal := <-e.fromLedger:
 			res, err = e.handleProposal(proposal)

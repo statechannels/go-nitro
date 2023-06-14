@@ -139,20 +139,12 @@ func (rs *RpcServer) registerHandlers() (err error) {
 
 				// construct the "message" for engine consumption. Engine will use msgService
 				// to "send" to itself and then process as any other voucher.
-				engineMessage := protocols.Message{
+				voucherMessage := protocols.Message{
 					To:       *me,
 					From:     signer,
 					Payments: []payments.Voucher{v},
 				}
-				err = rs.client.ReceiveSideEffects(protocols.SideEffects{
-					MessagesToSend: []protocols.Message{engineMessage},
-				})
-				if err != nil {
-					return query.PaymentChannelPaymentReceipt{
-						ID:     v.ChannelId,
-						Status: query.PRSengineError,
-					}
-				}
+				rs.client.PushMessage(voucherMessage)
 
 				// return an *optimistic* appraisal of amount received. Engine processing could feasibly
 				// fail, but above checks are pretty comprehensive
