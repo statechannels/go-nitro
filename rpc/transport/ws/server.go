@@ -88,14 +88,15 @@ func (wsc *serverWebSocketTransport) Notify(data []byte) error {
 	return nil
 }
 
-func (wsc *serverWebSocketTransport) Close() {
+func (wsc *serverWebSocketTransport) Close() error {
 	// This will cause the serveHttp gand listenForClose goroutines to exit
 	err := wsc.httpServer.Shutdown(context.Background())
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	wsc.wg.Wait()
+	return nil
 }
 
 func (wsc *serverWebSocketTransport) Url() string {

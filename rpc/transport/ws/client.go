@@ -65,14 +65,16 @@ func (wsc *clientWebSocketTransport) Subscribe() (<-chan []byte, error) {
 	return wsc.notificationChan, nil
 }
 
-func (wsc *clientWebSocketTransport) Close() {
-	// Clients initiate and close websockets
+func (wsc *clientWebSocketTransport) Close() error {
 	// This will also cause the go-routine to unblock waiting on `Read` and thus serves as a signal to exit
-	wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
-
+	err := wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
+	if err != nil {
+		return err
+	}
 	wsc.wg.Wait()
 
 	close(wsc.notificationChan)
+	return nil
 }
 
 func (wsc *clientWebSocketTransport) readMessages() {
