@@ -196,6 +196,11 @@ func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 	return c.receivedVouchers
 }
 
+// ReceiveSideEffects provides an external pipe for to trigger side effects crafted by client software.
+func (c *Client) ReceiveSideEffects(se protocols.SideEffects) error {
+	return c.engine.ExecuteSideEffects(se)
+}
+
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
 // with the supplied intermediaries.
 func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) virtualfund.ObjectiveResponse {
