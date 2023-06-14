@@ -82,6 +82,13 @@ func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty 
 	return waitForRequest[virtualfund.ObjectiveRequest, virtualfund.ObjectiveResponse](rc, serde.VirtualFundRequestMethod, objReq)
 }
 
+// Pay uses the specified channel to pay the specified amount
+func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
+	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
+
+	waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
+}
+
 // CloseVirtual closes a virtual channel
 func (rc *RpcClient) CloseVirtual(id types.Destination) protocols.ObjectiveId {
 	objReq := virtualdefund.NewObjectiveRequest(
@@ -123,13 +130,6 @@ func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
 	objReq := directdefund.NewObjectiveRequest(id)
 
 	return waitForRequest[directdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.DirectDefundRequestMethod, objReq)
-}
-
-// Pay uses the specified channel to pay the specified amount
-func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
-	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
-
-	waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
 }
 
 func (rc *RpcClient) Close() {
