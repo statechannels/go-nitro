@@ -143,7 +143,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 				if !affords {
 					return query.PaymentChannelPaymentReceipt{
 						ID:     v.ChannelId,
-						Status: query.PRSengineError,
+						Status: query.PRSinsufficientFunds,
 					}
 				}
 
