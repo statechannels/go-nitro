@@ -6,9 +6,11 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/client/query"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -110,6 +112,66 @@ func (rs *RpcServer) registerHandlers() (err error) {
 			return processRequest(rs, requestData, func(obj serde.PaymentRequest) (serde.PaymentRequest, error) {
 				rs.client.Pay(obj.Channel, big.NewInt(int64(obj.Amount)))
 				return obj, nil
+			})
+		case serde.ReceiveVoucherRequestMethod:
+			return processRequest(rs, requestData, func(v serde.ReceivePaymentRequest) query.PaymentChannelPaymentReceipt {
+				pc, err := rs.client.GetPaymentChannel(v.ChannelId)
+				if err != nil {
+					return query.PaymentChannelPaymentReceipt{
+						Status: query.PRSchannelNotFound,
+					}
+				}
+
+				me := rs.client.Address
+				if me != &pc.Balance.Payee {
+					return query.PaymentChannelPaymentReceipt{
+						ID:     v.ChannelId,
+						Status: query.PRSmisaddressed,
+					}
+				}
+
+				signer, err := v.RecoverSigner()
+
+				if signer != pc.Balance.Payee || err != nil {
+					return query.PaymentChannelPaymentReceipt{
+						ID:     v.ChannelId,
+						Status: query.PRSincorrectSigner,
+					}
+				}
+
+				amountReceived := big.NewInt(0).Sub(v.Amount, (*big.Int)(pc.Balance.PaidSoFar))
+				affords := (*big.Int)(pc.Balance.RemainingFunds).Cmp(amountReceived) >= 0
+				if !affords {
+					return query.PaymentChannelPaymentReceipt{
+						ID:     v.ChannelId,
+						Status: query.PRSengineError,
+					}
+				}
+
+				// construct the "message" for engine consumption. Engine will use msgService
+				// to "send" to itself and then process as any other voucher.
+				engineMessage := protocols.Message{
+					To:       *me,
+					From:     signer,
+					Payments: []payments.Voucher{v},
+				}
+				err = rs.client.ReceiveSideEffects(protocols.SideEffects{
+					MessagesToSend: []protocols.Message{engineMessage},
+				})
+				if err != nil {
+					return query.PaymentChannelPaymentReceipt{
+						ID:     v.ChannelId,
+						Status: query.PRSengineError,
+					}
+				}
+
+				// return an *optimistic* appraisal of amount received. Engine processing could feasibly
+				// fail, but above checks are pretty comprehensive
+				return query.PaymentChannelPaymentReceipt{
+					ID:             v.ChannelId,
+					AmountReceived: (*hexutil.Big)(amountReceived),
+					Status:         query.PRSreceived,
+				}
 			})
 		case serde.GetPaymentChannelRequestMethod:
 			return processRequest(rs, requestData, func(r serde.GetPaymentChannelRequest) (query.PaymentChannelInfo, error) {
