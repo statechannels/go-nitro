@@ -8,7 +8,7 @@ import { QUERY_KEY } from "./constants";
 import LedgerChannelDetails from "./components/LedgerChannelDetails";
 import PaymentChannelContainer from "./components/PaymentChannelContainer";
 
-async function fetchLedgerChannels(
+async function fetchAndSetLedgerChannels(
   nitroClient: NitroRpcClient,
   setLedgerChannels: (l: LedgerChannelInfo[]) => void
 ) {
@@ -29,9 +29,9 @@ function App() {
 
   useEffect(() => {
     if (nitroClient) {
-      fetchLedgerChannels(nitroClient, setLedgerChannels);
+      fetchAndSetLedgerChannels(nitroClient, setLedgerChannels);
       nitroClient?.Notifications.on("objective_completed", () =>
-        fetchLedgerChannels(nitroClient, setLedgerChannels)
+        fetchAndSetLedgerChannels(nitroClient, setLedgerChannels)
       );
     }
   }, [nitroClient]);
