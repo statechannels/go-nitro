@@ -117,13 +117,6 @@ type JsonRpcResponse[T ResponsePayload] struct {
 	Error   interface{} `json:"error"`
 }
 
-type JsonRpcError struct {
-	Code    int64       `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
-	Id      uint64      `json:"id"`
-}
-
 func NewJsonRpcRequest[T RequestPayload | NotificationPayload, U RequestMethod | NotificationMethod](requestId uint64, method U, objectiveRequest T) *JsonRpcRequest[T] {
 	return &JsonRpcRequest[T]{
 		Jsonrpc: JsonRpcVersion,
