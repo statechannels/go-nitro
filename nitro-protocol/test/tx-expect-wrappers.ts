@@ -23,7 +23,7 @@ export async function expectSupportedState(fn: () => void) {
  * Wrapper for calls to `stateIsSupported` that are expected to fail.
  * Checks that the reason for failure matches the supplied `reason` string.
  */
-export async function expectFailure(fn: () => void, reason?: string) {
+export async function expectUnsupportedState(fn: () => void, reason?: string) {
   const txResult = (await fn()) as any;
 
   expect(txResult.length).toBe(2);

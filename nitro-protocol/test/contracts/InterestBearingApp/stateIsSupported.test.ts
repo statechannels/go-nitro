@@ -11,7 +11,7 @@ import {
   State,
 } from '../../../src/contract/state';
 import {generateParticipants, getTestProvider, setupContract} from '../../test-helpers';
-import {expectFailure} from '../../tx-expect-wrappers';
+import {expectUnsupportedState} from '../../tx-expect-wrappers';
 
 let interestBearingApp: Contract;
 const provider = getTestProvider();
@@ -252,7 +252,7 @@ describe('stateIsSupported', () => {
   it('rejects too-long proofs', async () => {
     // construct a challenge with two proof states, assert failure.
 
-    await expectFailure(
+    await expectUnsupportedState(
       () =>
         interestBearingApp.stateIsSupported(
           fixedPart,
