@@ -115,20 +115,20 @@ func (rs *RpcServer) registerHandlers() (err error) {
 				return obj, nil
 			})
 		case serde.CreatePaymentMethod:
-			return processRequest(rs, requestData, func(obj serde.PaymentRequest) payments.Voucher {
+			return processRequest(rs, requestData, func(obj serde.PaymentRequest) (payments.Voucher, error) {
 				v, err := rs.client.CreatePayment(obj.Channel, big.NewInt(int64(obj.Amount)))
 				if err != nil {
-					return payments.Voucher{}
+					return payments.Voucher{}, err
 				}
-				return <-v
+				return <-v, nil
 			})
 		case serde.ReceiveVoucherRequestMethod:
-			return processRequest(rs, requestData, func(v serde.ReceivePaymentRequest) query.PaymentChannelPaymentReceipt {
+			return processRequest(rs, requestData, func(v serde.ReceivePaymentRequest) (query.PaymentChannelPaymentReceipt, error) {
 				pc, err := rs.client.GetPaymentChannel(v.ChannelId)
 				if err != nil {
 					return query.PaymentChannelPaymentReceipt{
 						Status: query.PRSchannelNotFound,
-					}
+					}, err
 				}
 
 				me := rs.client.Address
@@ -137,7 +137,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 					return query.PaymentChannelPaymentReceipt{
 						ID:     v.ChannelId,
 						Status: query.PRSmisaddressed,
-					}
+					}, err
 				}
 
 				signer, err := v.RecoverSigner()
@@ -146,7 +146,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 					return query.PaymentChannelPaymentReceipt{
 						ID:     v.ChannelId,
 						Status: query.PRSincorrectSigner,
-					}
+					}, err
 				}
 
 				amountReceived := big.NewInt(0).Sub(v.Amount, (*big.Int)(pc.Balance.PaidSoFar))
@@ -155,7 +155,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 					return query.PaymentChannelPaymentReceipt{
 						ID:     v.ChannelId,
 						Status: query.PRSinsufficientFunds,
-					}
+					}, err
 				}
 
 				// construct the "message" for engine consumption. Engine will use msgService
@@ -173,7 +173,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 					ID:             v.ChannelId,
 					AmountReceived: (*hexutil.Big)(amountReceived),
 					Status:         query.PRSreceived,
-				}
+				}, nil
 			})
 		case serde.GetPaymentChannelRequestMethod:
 			return processRequest(rs, requestData, func(r serde.GetPaymentChannelRequest) (query.PaymentChannelInfo, error) {
