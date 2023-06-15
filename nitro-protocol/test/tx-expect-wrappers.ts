@@ -1,7 +1,7 @@
 /**
  * Wrapper for transactions that are expected to succeed with no return values.
  */
-export async function expectSucceed(fn: () => void) {
+export async function expectSucceedWithNoReturnValues(fn: () => void) {
   const txResult = (await fn()) as any;
 
   expect(txResult.length).toBe(0);

@@ -23,7 +23,7 @@ import {
 } from '../../../../src/contract/transaction-creators/revert-reasons';
 import {RecoveredVariablePart, separateProofAndCandidate} from '../../../../src/contract/state';
 import {getSignedBy} from '../../../../src/bitfield-utils';
-import {expectSucceed} from '../../../tx-expect-wrappers';
+import {expectSucceedWithNoReturnValues} from '../../../tx-expect-wrappers';
 const provider = getTestProvider();
 let StrictTurnTaking: Contract & TESTStrictTurnTaking;
 
@@ -82,7 +82,7 @@ describe('isSignedByMover', () => {
     if (reason) {
       await expectRevert(() => StrictTurnTaking.isSignedByMover(fixedPart, rvp), reason);
     } else {
-      await expectSucceed(() => StrictTurnTaking.isSignedByMover(fixedPart, rvp));
+      await expectSucceedWithNoReturnValues(() => StrictTurnTaking.isSignedByMover(fixedPart, rvp));
     }
   });
 });
@@ -148,7 +148,7 @@ describe('requireValidInput', () => {
           reason
         );
       } else {
-        await expectSucceed(() => StrictTurnTaking.requireValidInput(nParticipants, numProof));
+        await expectSucceedWithNoReturnValues(() => StrictTurnTaking.requireValidInput(nParticipants, numProof));
       }
     }
   );
@@ -205,7 +205,7 @@ describe('requireValidTurnTaking', () => {
           StrictTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate)
         );
       } else {
-        await expectSucceed(() =>
+        await expectSucceedWithNoReturnValues(() =>
           StrictTurnTaking.requireValidTurnTaking(fixedPart, proof, candidate)
         );
       }
