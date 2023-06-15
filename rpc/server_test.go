@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/client"
 	"github.com/statechannels/go-nitro/rpc/serde"
+	"github.com/statechannels/go-nitro/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +32,7 @@ func (*mockResponder) Notify([]byte) error {
 	return nil
 }
 
-func sendRequestAndExpectError(t *testing.T, request []byte, expectedError serde.JsonRpcError) {
+func sendRequestAndExpectError(t *testing.T, request []byte, expectedError types.JsonRpcError) {
 	mockClient := &nitro.Client{}
 	mockLogger := &zerolog.Logger{}
 	mockResponder := &mockResponder{}
@@ -44,7 +45,7 @@ func sendRequestAndExpectError(t *testing.T, request []byte, expectedError serde
 
 	response := mockResponder.Handler(request)
 
-	jsonError := serde.JsonRpcError{}
+	jsonError := types.JsonRpcError{}
 	err = json.Unmarshal(response, &jsonError)
 	if err != nil {
 		t.Error(err)
@@ -54,7 +55,7 @@ func sendRequestAndExpectError(t *testing.T, request []byte, expectedError serde
 
 func TestRpcParseError(t *testing.T) {
 	request := []byte{}
-	sendRequestAndExpectError(t, request, parseError)
+	sendRequestAndExpectError(t, request, types.ParseError)
 }
 
 func TestRpcMissingRequiredFields(t *testing.T) {
@@ -67,7 +68,7 @@ func TestRpcMissingRequiredFields(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	sendRequestAndExpectError(t, jsonRequest, invalidRequestError)
+	sendRequestAndExpectError(t, jsonRequest, types.InvalidRequestError)
 }
 
 func TestRpcWrongVersion(t *testing.T) {
@@ -76,7 +77,7 @@ func TestRpcWrongVersion(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	expectedError := invalidRequestError
+	expectedError := types.InvalidRequestError
 	expectedError.Id = 2
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
@@ -92,7 +93,7 @@ func TestRpcIncorrectId(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	sendRequestAndExpectError(t, jsonRequest, invalidRequestError)
+	sendRequestAndExpectError(t, jsonRequest, types.InvalidRequestError)
 }
 
 func TestRpcMissingMethod(t *testing.T) {
@@ -105,7 +106,7 @@ func TestRpcMissingMethod(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	expectedError := invalidRequestError
+	expectedError := types.InvalidRequestError
 	expectedError.Id = 2
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
@@ -116,7 +117,7 @@ func TestRpcMethodNotFound(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	expectedError := methodNotFoundError
+	expectedError := types.MethodNotFoundError
 	expectedError.Id = 2
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
