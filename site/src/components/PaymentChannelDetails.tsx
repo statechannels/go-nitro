@@ -6,7 +6,7 @@ import {
   Button,
   SvgIcon,
 } from "@mui/material";
-import { FC, useEffect, useMemo, useState } from "react";
+import { FC } from "react";
 import { makeStyles } from "tss-react/mui";
 import { PhoneArrowUpRightIcon, UserIcon } from "@heroicons/react/24/outline";
 import { ChannelStatus } from "@statechannels/nitro-rpc-client/src/types";
@@ -44,6 +44,10 @@ const shortString = (value: string, count: number) => {
   return `${value.slice(0, count)}...`;
 };
 
+const capitalizeStatus = (status: string) => {
+  return status.charAt(0).toUpperCase() + status.slice(1);
+};
+
 const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
   channelID,
   payee,
@@ -52,18 +56,12 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
   remainingFunds,
   status,
 }: PaymentChannelDetails) => {
-  const [progress, setProgress] = useState<number>(0);
   const { classes, cx } = useStyles();
-
-  useEffect(() => {
-    setProgress(
-      (Number(paidSoFar) / (Number(remainingFunds) + Number(paidSoFar))) * 100
-    );
-  }, [paidSoFar, remainingFunds]);
-
-  const capitalizedStatus = useMemo(() => {
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  }, [status]);
+  const totalFunds = paidSoFar + remainingFunds;
+  // Avoids division by zero
+  const progress = totalFunds
+    ? Number((paidSoFar * 100n) / (remainingFunds + paidSoFar))
+    : 0;
 
   return (
     <Stack
@@ -178,7 +176,7 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
           component="span"
           className={classes.typography}
         >
-          {capitalizedStatus}
+          {capitalizeStatus(status)}
         </Typography>
       </Stack>
     </Stack>
