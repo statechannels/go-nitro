@@ -5,19 +5,19 @@ pragma experimental ABIEncoderV2;
 import './INitroTypes.sol';
 
 /**
- * @dev The IForceMoveApp interface calls for its children to implement an application-specific requireStateSupported function, defining the state machine of a ForceMove state channel DApp.
+ * @dev The IForceMoveApp interface calls for its children to implement an application-specific stateIsSupported function, defining the state machine of a ForceMove state channel DApp.
  */
 interface IForceMoveApp is INitroTypes {
     /**
-     * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert when invalid support proof and a candidate are supplied.
+     * @notice Encodes application-specific rules for a particular ForceMove-compliant state channel. Must revert or return false when invalid support proof and a candidate are supplied.
      * @dev Depending on the application, it might be desirable to narrow the state mutability of an implementation to 'pure' to make security analysis easier.
      * @param fixedPart Fixed part of the state channel.
      * @param proof Array of recovered variable parts which constitutes a support proof for the candidate. May be omitted when `candidate` constitutes a support proof itself.
      * @param candidate Recovered variable part the proof was supplied for. Also may constitute a support proof itself.
      */
-    function requireStateSupported(
+    function stateIsSupported(
         FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
-    ) external view;
+    ) external view returns (bool, string memory);
 }

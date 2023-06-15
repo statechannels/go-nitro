@@ -123,7 +123,7 @@ scale)
 
 Meta commentary: sketches toward implementation of this model were reasonably straight forward, and security analysis likewise seems straightforward.
 
-Meta commentary two: building a production application channel against the protocol's own `requireStateSupported` interface is a great dog-fooding opportunity.
+Meta commentary two: building a production application channel against the protocol's own `stateIsSupported` interface is a great dog-fooding opportunity.
 
 ## Decision
 

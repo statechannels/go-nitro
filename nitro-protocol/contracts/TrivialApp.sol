@@ -12,9 +12,11 @@ contract TrivialApp is IForceMoveApp {
      * @notice Encodes trivial rules.
      * @dev Encodes trivial rules.
      */
-    function requireStateSupported(
+    function stateIsSupported(
         FixedPart calldata, // fixedPart, unused
         RecoveredVariablePart[] calldata, // proof, unused
         RecoveredVariablePart calldata // candidate, unused
-    ) external pure override {} //solhint-disable-line no-empty-blocks
+    ) external pure override returns (bool, string memory) {
+        return (true, '');
+    }
 }

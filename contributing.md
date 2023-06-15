@@ -127,8 +127,8 @@ We use `solc` and `abigen` to generate Go bindings from our `*.sol` source files
 This is achieved by running the `generate_adjudicator_bindings.sh` script at the top level of the repo. Because our `*.sol` files depend on external projects via `node_modules`, to run this script successfully you must:
 
 - have successfully run `npm install` in the `nitro-protocol` directory.
-- have [solc](https://docs.soliditylang.org/en/v0.8.17/installing-solidity.html) installed at the correct version (currently 0.8.17, see the CI or linting config for a hint if you think it may have changed)
-- have [abigen](https://geth.ethereum.org/docs/install-and-build/installing-geth) (a tool shipped with go-ethereum) installed.
+- have [solc](https://docs.soliditylang.org/en/v0.8.17/installing-solidity.html) installed at the correct version (currently 0.8.17, see the [CI](.github/workflows/bindings-check.yml) or linting config for a hint if you think it may have changed)
+- have [abigen](https://geth.ethereum.org/docs/install-and-build/installing-geth) (a tool shipped with go-ethereum) installed. Currently we use version 1.10.8, see the [CI](.github/workflows/bindings-check.yml) for a hint if you think it may have changed.
 
 The resulting Go bindings file is _checked-in_ to the repository. Although it is auto-generated from on-chain source code, it effectively forms part of the off-chain source code.
 
@@ -141,22 +141,28 @@ TIP: if you find that the github action still reports a mismatch despite regener
 We run deeper tests of the code on your PR using a hosted [testground](https://docs.testground.ai/) runner. You may see a comment appear with links to dashboards containing performance metrics and statistics. The tests may also be run locally. For more information, see our testground [test plan repository](https://github.com/statechannels/go-nitro-testground).
 
 # Logs
-Go-nitro uses a configurable logger. It outputs [ndjson](http://ndjson.org/) which is optimized for machine-readability. Integration tests typically write logs from several go-nitro nodes to a single file in the `artifacts` directory. 
+
+Go-nitro uses a configurable logger. It outputs [ndjson](http://ndjson.org/) which is optimized for machine-readability. Integration tests typically write logs from several go-nitro nodes to a single file in the `artifacts` directory.
 
 A typical log line is
+
 ```json
-{"level":"debug","engine":"0x111A00","time":1681911828835,"caller":"engine.go:115","message":"Constructed Engine"}
+{
+  "level": "debug",
+  "engine": "0x111A00",
+  "time": 1681911828835,
+  "caller": "engine.go:115",
+  "message": "Constructed Engine"
+}
 ```
 
 To make parsing logs easier for humans, install [`pino-pretty`](https://github.com/pinojs/pino-pretty) and do something like:
-
 
 ```shell
 cat artifacts/simple_integration_run.log | pino-pretty -S -o "{engine} {To} < {From}" > output.log
 ```
 
-You may then view `output.log` in VSCode. A typical log line is then: 
-
+You may then view `output.log` in VSCode. A typical log line is then:
 
 ```log
 [14:37:36.517] DEBUG <engine.go:114>: 0x111A00  <  {"engine":"0x111A00","message":"Constructed Engine"}
