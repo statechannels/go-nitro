@@ -4,7 +4,7 @@ import {
   PaymentChannelBalance,
   PaymentChannelInfo,
 } from "@statechannels/nitro-rpc-client/src/types";
-import { useEffect, useState, FC, useCallback } from "react";
+import { useEffect, useState, FC } from "react";
 import { makeStyles } from "tss-react/mui";
 
 import PaymentChannelList from "./PaymentChannelList";
@@ -45,8 +45,11 @@ const PaymentChannelContainer: FC<Props> = ({
   const [focusedPaymentChannel, setFocusedPaymentChannel] =
     useState<PaymentChannelInfo>(DEFAULT_CHANNEL);
 
-  const handleGetPaymentChannels = useCallback(
-    async (client: NitroRpcClient, channel: string) => {
+  useEffect(() => {
+    async function handleGetPaymentChannels(
+      client: NitroRpcClient,
+      channel: string
+    ) {
       const paymentChannelsList = await client.GetPaymentChannelsByLedger(
         channel
       );
@@ -55,15 +58,12 @@ const PaymentChannelContainer: FC<Props> = ({
       if (paymentChannelsList.length) {
         setFocusedPaymentChannel(paymentChannelsList[0]);
       }
-    },
-    []
-  );
+    }
 
-  useEffect(() => {
     if (nitroClient && ledgerChannel) {
       handleGetPaymentChannels(nitroClient, ledgerChannel);
     }
-  }, [nitroClient, ledgerChannel, handleGetPaymentChannels]);
+  }, [nitroClient, ledgerChannel]);
 
   return (
     <>
