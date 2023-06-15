@@ -1,7 +1,7 @@
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import { PaymentChannelInfo } from "@statechannels/nitro-rpc-client/src/types";
-import { FC, useCallback, useMemo } from "react";
+import { FC } from "react";
 
 interface PaymentChannelListProps {
   paymentChannels: PaymentChannelInfo[];
@@ -18,23 +18,13 @@ const PaymentChannelList: FC<PaymentChannelListProps> = ({
   focusedPaymentChannel,
   setFocusedPaymentChannel,
 }: PaymentChannelListProps) => {
-  const handleChange = useCallback(
-    (_: object, value: number) => {
-      setFocusedPaymentChannel(paymentChannels[value]);
-    },
-    [paymentChannels, setFocusedPaymentChannel]
-  );
+  const handleChange = (_: object, value: number) => {
+    setFocusedPaymentChannel(paymentChannels[value]);
+  };
 
-  const focusedIndex = useMemo(() => {
-    const index = paymentChannels.findIndex(
-      (c) => c.ID === focusedPaymentChannel
-    );
-    if (index != -1) {
-      return index;
-    }
-    // The channel id is not found in the channel list.
-    return 0;
-  }, [paymentChannels, focusedPaymentChannel]);
+  const focusedIndex = paymentChannels.findIndex(
+    (c) => c.ID === focusedPaymentChannel
+  );
 
   return (
     <Tabs value={focusedIndex} onChange={handleChange} orientation="vertical">
