@@ -339,7 +339,6 @@ async function main() {
 
   writeFileSync(__dirname + '/gasResults.json', JSON.stringify(gasResults, null, 2));
   console.log('Benchmark results updated successfully!');
-  // todo: console.log a summary of the results for a commit message
 }
 
 main().catch(error => {
