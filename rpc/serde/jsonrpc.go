@@ -21,6 +21,7 @@ const (
 	VirtualFundRequestMethod         RequestMethod = "virtual_fund"
 	VirtualDefundRequestMethod       RequestMethod = "virtual_defund"
 	PayRequestMethod                 RequestMethod = "pay"
+	CreatePaymentMethod              RequestMethod = "create_payment"
 	ReceiveVoucherRequestMethod      RequestMethod = "receive_payment"
 	GetPaymentChannelRequestMethod   RequestMethod = "get_payment_channel"
 	GetLedgerChannelRequestMethod    RequestMethod = "get_ledger_channel"
@@ -103,6 +104,7 @@ type ResponsePayload interface {
 		query.PaymentChannelInfo |
 		query.LedgerChannelInfo |
 		query.PaymentChannelPaymentReceipt |
+		payments.Voucher |
 		VersionResponse |
 		GetAllLedgersResponse |
 		GetPaymentChannelsByLedgerResponse
