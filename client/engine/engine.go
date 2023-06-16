@@ -635,10 +635,11 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 		switch c := rel.(type) {
 		case *channel.VirtualChannel:
 			var paid, remaining *big.Int
-		
+
 			if !c.FinalCompleted() {
-				// If the channel is open, we inspect vouchers for that channel to get the future resolvable balance 
-				paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
+				// If the channel is open, we inspect vouchers for that channel to get the future resolvable balance
+				var err error
+				paid, remaining, err = query.GetVoucherBalance(c.Id, e.vm)
 				if err != nil {
 					return outgoing, err
 				}
