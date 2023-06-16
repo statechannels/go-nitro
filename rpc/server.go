@@ -113,6 +113,14 @@ func (rs *RpcServer) registerHandlers() (err error) {
 				rs.client.Pay(obj.Channel, big.NewInt(int64(obj.Amount)))
 				return obj, nil
 			})
+		case serde.CreatePaymentMethod:
+			return processRequest(rs, requestData, func(obj serde.PaymentRequest) payments.Voucher {
+				v, err := rs.client.CreatePayment(obj.Channel, big.NewInt(int64(obj.Amount)))
+				if err != nil {
+					return payments.Voucher{}
+				}
+				return <-v
+			})
 		case serde.ReceiveVoucherRequestMethod:
 			return processRequest(rs, requestData, func(v serde.ReceivePaymentRequest) query.PaymentChannelPaymentReceipt {
 				pc, err := rs.client.GetPaymentChannel(v.ChannelId)
