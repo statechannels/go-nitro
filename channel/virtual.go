@@ -39,3 +39,10 @@ func (v *VirtualChannel) Clone() *VirtualChannel {
 	w := VirtualChannel{*v.Channel.Clone()}
 	return &w
 }
+
+func (v *VirtualChannel) GetPaidAndRemaining() {
+	remaining := v.SignedStateForTurnNum[v.latestSupportedStateTurnNum].State().Outcome[0].Allocations[0].Amount
+	paid := v.SignedStateForTurnNum[v.latestSupportedStateTurnNum].State().Outcome[0].Allocations[1].Amount
+
+	return paid,remaining
+}
