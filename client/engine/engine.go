@@ -85,6 +85,9 @@ type Engine struct {
 type PaymentRequest struct {
 	ChannelId types.Destination
 	Amount    *big.Int
+	// if true, go-nitro will not send the payment to the counterparty, instead
+	// returning it to the calling client for sending.
+	Withhold bool
 }
 
 // EngineEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
