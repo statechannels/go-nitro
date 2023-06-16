@@ -88,6 +88,9 @@ type PaymentRequest struct {
 	// if true, go-nitro will not send the payment to the counterparty, instead
 	// returning it to the calling client for sending.
 	Withhold bool
+	// PaymentID is a pseudo-unique identifier for this request. It is used to identify
+	// and return the correct payment to the client.
+	PaymentID uint64
 }
 
 // EngineEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
@@ -530,6 +533,8 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, erro
 		cId,
 		request.Amount,
 		*e.store.GetChannelSecretKey())
+	voucher.PaymentID = request.PaymentID
+
 	if err != nil {
 		return ee, fmt.Errorf("handleAPIEvent: Error making payment: %w", err)
 	}
@@ -542,10 +547,17 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, erro
 		return ee, fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
 	}
 	info, err := query.GetPaymentChannelInfo(cId, e.store, e.vm)
+	info.LatestVoucher = voucher
+
 	if err != nil {
 		return ee, fmt.Errorf("handleAPIEvent: Error querying channel info: %w", err)
 	}
 	ee.PaymentChannelUpdates = append(ee.PaymentChannelUpdates, info)
+
+	// do not send the voucher to the counterparty if the API requested it
+	if request.Withhold {
+		return ee, nil
+	}
 
 	se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
 	return ee, e.executeSideEffects(se)
