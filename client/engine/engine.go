@@ -649,7 +649,6 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 				paid, remaining = c.GetPaidAndRemaining()
 			}
 			info, err := query.ConstructPaymentInfo(&c.Channel, paid, remaining)
-			// If Bob's payment channel was updated by Alice's FINAL state, then paid/remaining could be out of date here
 			if err != nil {
 				return outgoing, err
 			}
