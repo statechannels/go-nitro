@@ -26,6 +26,7 @@ type Voucher struct {
 	ChannelId types.Destination
 	Amount    *big.Int
 	Signature state.Signature
+	PaymentID uint64
 }
 
 // VoucherInfo contains the largest voucher we've received on a channel.
