@@ -83,69 +83,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	chain := chainservice.NewMockChain()
 	defer chain.Close()
 
-	// create n actors
-	actors := make([]ta.Actor, n)
-	for i := 0; i < n; i++ {
-		sk := `000000000000000000000000000000000000000000000000000000000000000` + strconv.Itoa(i+1)
-		actors[i] = ta.Actor{
-			PrivateKey: common.Hex2Bytes(sk),
-		}
-	}
-	t.Logf("%d actors created", n)
-
-	chainServices := make([]*chainservice.MockChainService, n)
-	for i := 0; i < n; i++ {
-		chainServices[i] = chainservice.NewMockChainService(chain, actors[i].Address())
-	}
-
-	clients := make([]*rpc.RpcClient, n)
-	msgServices := make([]*p2pms.P2PMessageService, n)
-
-	for i := 0; i < n; i++ {
-		rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3005+i, 4005+i, chainServices[i], logDestination, connectionType)
-		clients[i] = rpcClient
-		msgServices[i] = msg
-		defer cleanup()
-	}
-	t.Logf("%d Clients created", n)
-
-	waitForPeerInfoExchange(msgServices...)
-	t.Logf("Peer exchange complete")
-
-	// create n-1 ledger channels
-	ledgerChannels := make([]directfund.ObjectiveResponse, n-1)
-	for i := 0; i < n-1; i++ {
-		outcome := simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100)
-		ledgerChannels[i] = clients[i].CreateLedger(actors[i+1].Address(), 100, outcome)
-
-		if !directfund.IsDirectFundObjective(ledgerChannels[i].Id) {
-			t.Errorf("expected direct fund objective, got %s", ledgerChannels[i].Id)
-		}
-	}
-	// wait for the ledger channels to be ready for each client
-	for i, client := range clients {
-		if i != 0 { // not alice
-			<-client.ObjectiveCompleteChan(ledgerChannels[i-1].Id) // left channel
-		}
-		if i != n-1 { // not bob
-			<-client.ObjectiveCompleteChan(ledgerChannels[i].Id) // right channel
-		}
-	}
-	t.Log("Ledger channels created")
-
-	// assert existence & reporting of expected ledger channels
-	for i, client := range clients {
-		if i != 0 {
-			leftLC := ledgerChannels[i-1]
-			expectedLeftLC := createLedgerInfo(leftLC.ChannelId, simpleOutcome(actors[i-1].Address(), actors[i].Address(), 100, 100), query.Open)
-			checkQueryInfo(t, expectedLeftLC, client.GetLedgerChannel(leftLC.ChannelId))
-		}
-		if i != n-1 {
-			rightLC := ledgerChannels[i]
-			expectedRightLC := createLedgerInfo(rightLC.ChannelId, simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100), query.Open)
-			checkQueryInfo(t, expectedRightLC, client.GetLedgerChannel(rightLC.ChannelId))
-		}
-	}
+	actors, clients, ledgerChannels := createActorsWithFundedLedgerChain(n, t, chain, logDestination, connectionType)
 
 	//////////////////////////////////////////////////////////////////
 	// create virtual channel, execute payment, close virtual channel
@@ -287,6 +225,75 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	checkNotifications(t, "aliceVirtual", requiredVCNotifs, optionalVCNotifs, aliceVirtualNotifs, defaultTimeout)
 	bobVirtualNotifs := bobClient.PaymentChannelUpdatesChan(vabCreateResponse.ChannelId)
 	checkNotifications(t, "bobVirtual", requiredVCNotifs, optionalVCNotifs, bobVirtualNotifs, defaultTimeout)
+}
+
+func createActorsWithFundedLedgerChain(n int, t *testing.T, chain *chainservice.MockChain, logDestination *os.File, connectionType transport.TransportType) ([]ta.Actor, []*rpc.RpcClient, []directfund.ObjectiveResponse) {
+	actors := make([]ta.Actor, n)
+	for i := 0; i < n; i++ {
+		sk := `000000000000000000000000000000000000000000000000000000000000000` + strconv.Itoa(i+1)
+		actors[i] = ta.Actor{
+			PrivateKey: common.Hex2Bytes(sk),
+		}
+	}
+	t.Logf("%d actors created", n)
+
+	chainServices := make([]*chainservice.MockChainService, n)
+	for i := 0; i < n; i++ {
+		chainServices[i] = chainservice.NewMockChainService(chain, actors[i].Address())
+	}
+
+	clients := make([]*rpc.RpcClient, n)
+	msgServices := make([]*p2pms.P2PMessageService, n)
+
+	for i := 0; i < n; i++ {
+		rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3005+i, 4005+i, chainServices[i], logDestination, connectionType)
+		clients[i] = rpcClient
+		msgServices[i] = msg
+		defer cleanup()
+	}
+	t.Logf("%d Clients created", n)
+
+	waitForPeerInfoExchange(msgServices...)
+	t.Logf("Peer exchange complete")
+
+	// create n-1 ledger channels
+	ledgerChannels := make([]directfund.ObjectiveResponse, n-1)
+	for i := 0; i < n-1; i++ {
+		outcome := simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100)
+		ledgerChannels[i] = clients[i].CreateLedger(actors[i+1].Address(), 100, outcome)
+
+		if !directfund.IsDirectFundObjective(ledgerChannels[i].Id) {
+			t.Errorf("expected direct fund objective, got %s", ledgerChannels[i].Id)
+		}
+	}
+
+	// wait for the ledger channels to be ready for each client
+	for i, client := range clients {
+		if i != 0 {
+			// left channel
+			<-client.ObjectiveCompleteChan(ledgerChannels[i-1].Id)
+		}
+		if i != n-1 {
+			// right channel
+			<-client.ObjectiveCompleteChan(ledgerChannels[i].Id)
+		}
+	}
+	t.Log("Ledger channels created")
+
+	// assert existence & reporting of expected ledger channels
+	for i, client := range clients {
+		if i != 0 { // not alice
+			leftLC := ledgerChannels[i-1]
+			expectedLeftLC := createLedgerInfo(leftLC.ChannelId, simpleOutcome(actors[i-1].Address(), actors[i].Address(), 100, 100), query.Open)
+			checkQueryInfo(t, expectedLeftLC, client.GetLedgerChannel(leftLC.ChannelId))
+		}
+		if i != n-1 { // not bob
+			rightLC := ledgerChannels[i]
+			expectedRightLC := createLedgerInfo(rightLC.ChannelId, simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100), query.Open)
+			checkQueryInfo(t, expectedRightLC, client.GetLedgerChannel(rightLC.ChannelId))
+		}
+	}
+	return actors, clients, ledgerChannels
 }
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
