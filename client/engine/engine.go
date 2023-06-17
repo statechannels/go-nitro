@@ -389,15 +389,20 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if !ok {
 			return EngineEvent{}, fmt.Errorf("could not fetch channel for voucher %+v", voucher)
 		}
-		paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
-		if err != nil {
-			return EngineEvent{}, err
+
+		// Vouchers only count as payment channel updates if the channel is open.
+		if !c.FinalCompleted() {
+
+			paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
+			if err != nil {
+				return EngineEvent{}, err
+			}
+			info, err := query.ConstructPaymentInfo(c, paid, remaining)
+			if err != nil {
+				return EngineEvent{}, err
+			}
+			allCompleted.PaymentChannelUpdates = append(allCompleted.PaymentChannelUpdates, info)
 		}
-		info, err := query.ConstructPaymentInfo(c, paid, remaining)
-		if err != nil {
-			return EngineEvent{}, err
-		}
-		allCompleted.PaymentChannelUpdates = append(allCompleted.PaymentChannelUpdates, info)
 
 	}
 	return allCompleted, nil
@@ -629,9 +634,20 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 	for _, rel := range o.Related() {
 		switch c := rel.(type) {
 		case *channel.VirtualChannel:
-			paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
-			if err != nil {
-				return outgoing, err
+			var paid, remaining *big.Int
+
+			if !c.FinalCompleted() {
+				// If the channel is open, we inspect vouchers for that channel to get the future resolvable balance
+				var err error
+				paid, remaining, err = query.GetVoucherBalance(c.Id, e.vm)
+				if err != nil {
+					return outgoing, err
+				}
+			} else {
+				// If the channel is closed, vouchers have already been resolved.
+				// Note that when virtual defunding, this information may in fact be more up to date than
+				// the voucher balance due to a race condition https://github.com/statechannels/go-nitro/issues/1323
+				paid, remaining = c.GetPaidAndRemaining()
 			}
 			info, err := query.ConstructPaymentInfo(&c.Channel, paid, remaining)
 			if err != nil {
