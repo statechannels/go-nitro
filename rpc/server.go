@@ -108,15 +108,27 @@ func (rs *RpcServer) registerHandlers() (err error) {
 			})
 		case serde.PayRequestMethod:
 			return processRequest(rs, requestData, func(obj serde.PaymentRequest) (serde.PaymentRequest, error) {
+				if obj.Amount == 0 {
+					return serde.PaymentRequest{}, types.InvalidParamsError
+				}
+				if (obj.Channel == types.Destination{}) {
+					return serde.PaymentRequest{}, types.InvalidParamsError
+				}
 				rs.client.Pay(obj.Channel, big.NewInt(int64(obj.Amount)))
 				return obj, nil
 			})
 		case serde.GetPaymentChannelRequestMethod:
 			return processRequest(rs, requestData, func(r serde.GetPaymentChannelRequest) (query.PaymentChannelInfo, error) {
+				if (r.Id == types.Destination{}) {
+					return query.PaymentChannelInfo{}, types.InvalidParamsError
+				}
 				return rs.client.GetPaymentChannel(r.Id)
 			})
 		case serde.GetLedgerChannelRequestMethod:
 			return processRequest(rs, requestData, func(r serde.GetLedgerChannelRequest) (query.LedgerChannelInfo, error) {
+				if (r.Id == types.Destination{}) {
+					return query.LedgerChannelInfo{}, types.InvalidParamsError
+				}
 				return rs.client.GetLedgerChannel(r.Id)
 			})
 		case serde.GetAllLedgerChannelsMethod:
@@ -125,6 +137,9 @@ func (rs *RpcServer) registerHandlers() (err error) {
 			})
 		case serde.GetPaymentChannelsByLedgerMethod:
 			return processRequest(rs, requestData, func(r serde.GetPaymentChannelsByLedgerRequest) ([]query.PaymentChannelInfo, error) {
+				if r.LedgerId == (types.Destination{}) {
+					return []query.PaymentChannelInfo{}, types.InvalidParamsError
+				}
 				return rs.client.GetPaymentChannelsByLedger(r.LedgerId)
 			})
 		default:
@@ -140,12 +155,13 @@ func (rs *RpcServer) registerHandlers() (err error) {
 
 func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, requestData []byte, processPayload func(T) (U, error)) []byte {
 	rpcRequest := serde.JsonRpcRequest[T]{}
-	// todo: unmarshal will fail only when the requestData is not valid json.
-	// At the moment, there is no validation that the required fields are populated in the request.
+	// This unmarshal will fail only when the requestData is not valid json.
+	// Request-specific params validation is optionally performed as part of the processPayload function
 	err := json.Unmarshal(requestData, &rpcRequest)
 	if err != nil {
 		return marshalResponse(types.UnexpectedRequestUnmarshalError2, rs.logger)
 	}
+
 	obj := rpcRequest.Params
 	objResponse, err := processPayload(obj)
 	if err != nil {
