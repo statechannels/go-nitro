@@ -59,9 +59,11 @@ func TestRpcWithWebsockets(t *testing.T) {
 }
 
 func TestOutOfBandVoucher(t *testing.T) {
-	actors, clients, _ := createActorsWithFundedLedgerChain(
-		2,
-		t, chainservice.NewMockChain(), newLogWriter("TestOutOfBandVoucher.log"), "nats")
+	actors, clients, _, cleanup := createActorsWithFundedLedgerChain(
+		2, t, chainservice.NewMockChain(), newLogWriter("TestOutOfBandVoucher.log"), "nats",
+	)
+	defer cleanup()
+
 	alice := clients[0]
 	bob := clients[1]
 
@@ -119,7 +121,8 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	chain := chainservice.NewMockChain()
 	defer chain.Close()
 
-	actors, clients, ledgerChannels := createActorsWithFundedLedgerChain(n, t, chain, logDestination, connectionType)
+	actors, clients, ledgerChannels, cleanup := createActorsWithFundedLedgerChain(n, t, chain, logDestination, connectionType)
+	defer cleanup()
 
 	//////////////////////////////////////////////////////////////////
 	// create virtual channel, execute payment, close virtual channel
