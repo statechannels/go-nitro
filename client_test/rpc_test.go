@@ -270,11 +270,12 @@ func createActorsWithFundedLedgerChain(
 	logDestination *os.File,
 	connectionType transport.TransportType,
 ) (
-	[]ta.Actor,
-	[]*rpc.RpcClient,
-	[]directfund.ObjectiveResponse,
+	actors []ta.Actor,
+	clients []*rpc.RpcClient,
+	ledgers []directfund.ObjectiveResponse,
+	cleanup func(),
 ) {
-	actors := make([]ta.Actor, n)
+	actors = make([]ta.Actor, n)
 	for i := 0; i < n; i++ {
 		sk := `000000000000000000000000000000000000000000000000000000000000000` + strconv.Itoa(i+1)
 		actors[i] = ta.Actor{
@@ -288,14 +289,16 @@ func createActorsWithFundedLedgerChain(
 		chainServices[i] = chainservice.NewMockChainService(chain, actors[i].Address())
 	}
 
-	clients := make([]*rpc.RpcClient, n)
+	clients = make([]*rpc.RpcClient, n)
 	msgServices := make([]*p2pms.P2PMessageService, n)
+
+	cleanupFuncs := make([]func(), n)
 
 	for i := 0; i < n; i++ {
 		rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3005+i, 4005+i, chainServices[i], logDestination, connectionType)
 		clients[i] = rpcClient
 		msgServices[i] = msg
-		defer cleanup()
+		cleanupFuncs[i] = cleanup
 	}
 	t.Logf("%d Clients created", n)
 
@@ -303,13 +306,13 @@ func createActorsWithFundedLedgerChain(
 	t.Logf("Peer exchange complete")
 
 	// create n-1 ledger channels
-	ledgerChannels := make([]directfund.ObjectiveResponse, n-1)
+	ledgers = make([]directfund.ObjectiveResponse, n-1)
 	for i := 0; i < n-1; i++ {
 		outcome := simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100)
-		ledgerChannels[i] = clients[i].CreateLedger(actors[i+1].Address(), 100, outcome)
+		ledgers[i] = clients[i].CreateLedger(actors[i+1].Address(), 100, outcome)
 
-		if !directfund.IsDirectFundObjective(ledgerChannels[i].Id) {
-			t.Errorf("expected direct fund objective, got %s", ledgerChannels[i].Id)
+		if !directfund.IsDirectFundObjective(ledgers[i].Id) {
+			t.Errorf("expected direct fund objective, got %s", ledgers[i].Id)
 		}
 	}
 
@@ -317,11 +320,11 @@ func createActorsWithFundedLedgerChain(
 	for i, client := range clients {
 		if i != 0 {
 			// left channel
-			<-client.ObjectiveCompleteChan(ledgerChannels[i-1].Id)
+			<-client.ObjectiveCompleteChan(ledgers[i-1].Id)
 		}
 		if i != n-1 {
 			// right channel
-			<-client.ObjectiveCompleteChan(ledgerChannels[i].Id)
+			<-client.ObjectiveCompleteChan(ledgers[i].Id)
 		}
 	}
 	t.Log("Ledger channels created")
@@ -329,17 +332,21 @@ func createActorsWithFundedLedgerChain(
 	// assert existence & reporting of expected ledger channels
 	for i, client := range clients {
 		if i != 0 { // not alice
-			leftLC := ledgerChannels[i-1]
+			leftLC := ledgers[i-1]
 			expectedLeftLC := createLedgerInfo(leftLC.ChannelId, simpleOutcome(actors[i-1].Address(), actors[i].Address(), 100, 100), query.Open)
 			checkQueryInfo(t, expectedLeftLC, client.GetLedgerChannel(leftLC.ChannelId))
 		}
 		if i != n-1 { // not bob
-			rightLC := ledgerChannels[i]
+			rightLC := ledgers[i]
 			expectedRightLC := createLedgerInfo(rightLC.ChannelId, simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100), query.Open)
 			checkQueryInfo(t, expectedRightLC, client.GetLedgerChannel(rightLC.ChannelId))
 		}
 	}
-	return actors, clients, ledgerChannels
+	return actors, clients, ledgers, func() {
+		for _, cleanup := range cleanupFuncs {
+			cleanup()
+		}
+	}
 }
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
