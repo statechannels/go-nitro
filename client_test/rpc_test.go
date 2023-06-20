@@ -227,7 +227,17 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	checkNotifications(t, "bobVirtual", requiredVCNotifs, optionalVCNotifs, bobVirtualNotifs, defaultTimeout)
 }
 
-func createActorsWithFundedLedgerChain(n int, t *testing.T, chain *chainservice.MockChain, logDestination *os.File, connectionType transport.TransportType) ([]ta.Actor, []*rpc.RpcClient, []directfund.ObjectiveResponse) {
+func createActorsWithFundedLedgerChain(
+	n int,
+	t *testing.T,
+	chain *chainservice.MockChain,
+	logDestination *os.File,
+	connectionType transport.TransportType,
+) (
+	[]ta.Actor,
+	[]*rpc.RpcClient,
+	[]directfund.ObjectiveResponse,
+) {
 	actors := make([]ta.Actor, n)
 	for i := 0; i < n; i++ {
 		sk := `000000000000000000000000000000000000000000000000000000000000000` + strconv.Itoa(i+1)
