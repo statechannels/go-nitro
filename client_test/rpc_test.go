@@ -58,6 +58,42 @@ func TestRpcWithWebsockets(t *testing.T) {
 	executeNRpcTest(t, "ws", 4)
 }
 
+func TestOutOfBandVoucher(t *testing.T) {
+	actors, clients, _ := createActorsWithFundedLedgerChain(
+		2,
+		t, chainservice.NewMockChain(), newLogWriter("TestOutOfBandVoucher.log"), "nats")
+	alice := clients[0]
+	bob := clients[1]
+
+	vAB := alice.CreateVirtual(
+		[]types.Address{},
+		actors[1].Address(),
+		100,
+		simpleOutcome(actors[0].Address(), actors[1].Address(), 100, 0),
+	)
+	firstVoucher := alice.CreatePayment(vAB.ChannelId, 1)
+	firstReceipt := bob.ReceivePayment(firstVoucher)
+
+	if firstReceipt.AmountReceived.ToInt().Cmp(big.NewInt(1)) != 0 {
+		t.Errorf("expected bob to receive 1, got %s", firstReceipt.AmountReceived)
+	}
+
+	secondVoucher := alice.CreatePayment(vAB.ChannelId, 2)
+	secondReceipt := bob.ReceivePayment(secondVoucher)
+
+	// ensure that "2" (current increment) is returned instead of "3" (current balance)
+	if secondReceipt.AmountReceived.ToInt().Cmp(big.NewInt(2)) != 0 {
+		t.Errorf("expected bob to receive 2, got %s", secondReceipt.AmountReceived)
+	}
+
+	bob.CloseVirtual(vAB.ChannelId)
+
+	final := bob.GetVirtualChannel(vAB.ChannelId)
+	if final.Balance.PaidSoFar.ToInt().Cmp(big.NewInt(3)) != 0 {
+		t.Errorf("expected bob to have received 3, got %s", final.Balance.PaidSoFar)
+	}
+}
+
 func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int) {
 	defer func() {
 		if r := recover(); r != nil {
