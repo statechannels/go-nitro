@@ -34,6 +34,6 @@ var (
 	MethodNotFoundError              = JsonRpcError{Code: -32601, Message: "Method not found"}
 	InvalidParamsError               = JsonRpcError{Code: -32602, Message: "Invalid params"}
 	InternalServerError              = JsonRpcError{Code: -32603, Message: "Internal error"}
-	UnexpectedRequestUnmarshalError  = JsonRpcError{Code: -32010, Message: "Unexpected unmarshal error"}
-	UnexpectedRequestUnmarshalError2 = JsonRpcError{Code: -32009, Message: "Unexpected unmarshal error"}
+	UnexpectedRequestUnmarshalError  = JsonRpcError{Code: -32010, Message: "Could not unmarshal request object"}
+	UnexpectedRequestUnmarshalError2 = JsonRpcError{Code: -32009, Message: "Could not unmarshal params object"}
 )
