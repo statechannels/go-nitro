@@ -131,7 +131,8 @@ func (rs *RpcServer) registerHandlers() (err error) {
 				}
 
 				me := rs.client.Address
-				if me != &pc.Balance.Payee {
+
+				if !bytes.Equal(me.Bytes(), pc.Balance.Payee.Bytes()) {
 					return query.PaymentChannelPaymentReceipt{
 						ID:     v.ChannelId,
 						Status: query.PRSmisaddressed,
@@ -140,7 +141,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 
 				signer, err := v.RecoverSigner()
 
-				if signer != pc.Balance.Payee || err != nil {
+				if !bytes.Equal(signer.Bytes(), pc.Balance.Payer.Bytes()) || err != nil {
 					return query.PaymentChannelPaymentReceipt{
 						ID:     v.ChannelId,
 						Status: query.PRSincorrectSigner,
