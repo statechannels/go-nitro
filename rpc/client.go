@@ -3,7 +3,9 @@ package rpc
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"sync"
 
@@ -80,13 +82,16 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 	return c, nil
 }
 
-func (rc *RpcClient) GetVirtualChannel(id types.Destination) query.PaymentChannelInfo {
-	req := serde.GetPaymentChannelRequest{Id: id}
+func (rc *RpcClient) GetVirtualChannel(chId types.Destination) (query.PaymentChannelInfo, int, error) {
+	if (chId == types.Destination{}) {
+		return query.PaymentChannelInfo{}, http.StatusBadRequest, errors.New("Valid channel id must be provided")
+	}
+	req := serde.GetPaymentChannelRequest{Id: chId}
 
-	return waitForRequest[serde.GetPaymentChannelRequest, query.PaymentChannelInfo](rc, serde.GetPaymentChannelRequestMethod, req)
+	return waitForRequest[serde.GetPaymentChannelRequest, query.PaymentChannelInfo](rc, serde.GetPaymentChannelRequestMethod, req), http.StatusOK, nil
 }
 
-// CreateLedger creates a new ledger channel
+// CreateVirtual creates a new virtual channel
 func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) virtualfund.ObjectiveResponse {
 	objReq := virtualfund.NewObjectiveRequest(
 		intermediaries,
@@ -143,10 +148,10 @@ func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
 }
 
 // Pay uses the specified channel to pay the specified amount
-func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
+func (rc *RpcClient) Pay(id types.Destination, amount uint64) serde.PaymentRequest {
 	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
 
-	waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
+	return waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
 }
 
 func (rc *RpcClient) Close() error {
