@@ -24,6 +24,7 @@ const (
 	alice participant = "alice"
 	bob   participant = "bob"
 	irene participant = "irene"
+	ivan  participant = "ivan"
 )
 
 type color string
@@ -78,6 +79,13 @@ func main() {
 	}
 	running = append(running, ireneClient)
 
+	ivanClient, err := setupRPCServer(ivan, cyan, naAddress, vpaAddress, caAddress)
+	if err != nil {
+		stopCommands(running...)
+		panic(err)
+	}
+	running = append(running, ivanClient)
+
 	bobClient, err := setupRPCServer(bob, yellow, naAddress, vpaAddress, caAddress)
 	if err != nil {
 		stopCommands(running...)
@@ -123,6 +131,8 @@ func setupRPCServer(p participant, c color, na, vpa, ca types.Address) (*exec.Cm
 		args = append(args, "-config", "./scripts/test-configs/alice.toml")
 	case irene:
 		args = append(args, "-config", "./scripts/test-configs/irene.toml")
+	case ivan:
+		args = append(args, "-config", "./scripts/test-configs/ivan.toml")
 	case bob:
 		args = append(args, "-config", "./scripts/test-configs/bob.toml")
 
@@ -165,7 +175,7 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 
 // deployContracts deploys the  NitroAdjudicator contract.
 func deployContracts(ctx context.Context) (na common.Address, vpa common.Address, ca common.Address, err error) {
-	client, txSubmitter, err := chainutils.ConnectToChain(context.Background(), "ws://127.0.0.1:8545", common.Hex2Bytes(FUNDED_TEST_PK))
+	client, txSubmitter, err := chainutils.ConnectToChain(context.Background(), "ws://127.0.0.1:8545", "", common.Hex2Bytes(FUNDED_TEST_PK))
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}

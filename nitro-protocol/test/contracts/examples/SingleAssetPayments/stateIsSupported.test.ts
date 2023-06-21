@@ -25,7 +25,7 @@ import {
   signStates,
 } from '../../../../src';
 import {INVALID_SIGNED_BY} from '../../../../src/contract/transaction-creators/revert-reasons';
-import {expectSucceed} from '../../../expect-succeed';
+import {expectSupportedState} from '../../../tx-expect-wrappers';
 import {replaceAddressesAndBigNumberify} from '../../../../src/helpers';
 
 const provider = getTestProvider();
@@ -59,7 +59,7 @@ const reason2 = 'not a simple allocation';
 const reason3 = 'Total allocated cannot change';
 const reason4 = 'outcome: Only one asset allowed';
 
-describe('requireStateSupported', () => {
+describe('stateIsSupported', () => {
   let channelNonce = getRandomNonce('SingleAssetPayments');
   beforeEach(() => (channelNonce = BigNumber.from(channelNonce).add(1).toHexString()));
   it.each`
@@ -172,12 +172,12 @@ describe('requireStateSupported', () => {
 
       if (reason) {
         await expectRevert(
-          () => singleAssetPayments.requireStateSupported(fixedPart, proof, candidate),
+          () => singleAssetPayments.stateIsSupported(fixedPart, proof, candidate),
           reason
         );
       } else {
-        await expectSucceed(() =>
-          singleAssetPayments.requireStateSupported(fixedPart, proof, candidate)
+        await expectSupportedState(() =>
+          singleAssetPayments.stateIsSupported(fixedPart, proof, candidate)
         );
       }
     }

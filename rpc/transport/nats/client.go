@@ -43,7 +43,11 @@ func (c *natsTransportClient) Subscribe() (<-chan []byte, error) {
 	return c.notificationChan, err
 }
 
-func (c *natsTransportClient) Close() {
-	c.natsTransport.Close()
+func (c *natsTransportClient) Close() error {
+	err := c.natsTransport.Close()
+	if err != nil {
+		return err
+	}
 	close(c.notificationChan)
+	return nil
 }

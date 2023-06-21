@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	urlUtil "net/url"
+	"sync"
 
 	"github.com/rs/zerolog"
 	"nhooyr.io/websocket"
@@ -16,6 +17,7 @@ type clientWebSocketTransport struct {
 	notificationChan chan []byte
 	clientWebsocket  *websocket.Conn
 	url              string
+	wg               *sync.WaitGroup
 }
 
 // NewWebSocketTransportAsClient creates a websocket connection that can be used to send requests and listen for notifications
@@ -33,7 +35,12 @@ func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error
 		return nil, err
 	}
 	wsc.clientWebsocket = conn
-	go func() { wsc.readMessages(context.Background()) }()
+
+	wsc.wg = &sync.WaitGroup{}
+
+	wsc.wg.Add(1)
+	go wsc.readMessages()
+
 	return wsc, nil
 }
 
@@ -58,16 +65,24 @@ func (wsc *clientWebSocketTransport) Subscribe() (<-chan []byte, error) {
 	return wsc.notificationChan, nil
 }
 
-func (wsc *clientWebSocketTransport) Close() {
-	// Clients initiate and close websockets
-	wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
+func (wsc *clientWebSocketTransport) Close() error {
+	// This will also cause the go-routine to unblock waiting on `Read` and thus serves as a signal to exit
+	err := wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
+	if err != nil {
+		return err
+	}
+	wsc.wg.Wait()
+
 	close(wsc.notificationChan)
+	return nil
 }
 
-func (wsc *clientWebSocketTransport) readMessages(ctx context.Context) {
+func (wsc *clientWebSocketTransport) readMessages() {
 	for {
-		_, data, err := wsc.clientWebsocket.Read(ctx)
+
+		_, data, err := wsc.clientWebsocket.Read(context.Background())
 		if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
+			wsc.wg.Done()
 			return
 		}
 		wsc.logger.Trace().Msgf("Received message: %s", string(data))

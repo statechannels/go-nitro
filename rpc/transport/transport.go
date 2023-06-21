@@ -10,7 +10,7 @@ const (
 // Requester is a transport that can send requests and subscribe to notifications
 type Requester interface {
 	// Close closes the connection
-	Close()
+	Close() error
 
 	// Request sends a blocking request and returns the response data or an error
 	Request([]byte) ([]byte, error)
@@ -22,7 +22,7 @@ type Requester interface {
 // Responder is a transport that can respond to requests and send notifications
 type Responder interface {
 	// Close closes the connection
-	Close()
+	Close() error
 	// Url returns the url that the responder is listening on
 	Url() string
 

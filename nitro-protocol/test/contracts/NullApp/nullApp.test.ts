@@ -18,7 +18,7 @@ beforeAll(async () => {
 });
 
 describe('null app', () => {
-  it('should revert when requireStateSupported is called', async () => {
+  it('should revert when stateIsSupported is called', async () => {
     const fromState: State = {
       participants: [Wallet.createRandom().address, Wallet.createRandom().address],
       channelNonce: getRandomNonce('nullApp'),
@@ -42,7 +42,7 @@ describe('null app', () => {
     };
 
     await expectRevert(async () => {
-      await NitroAdjudicator.requireStateSupported(fixedPart, [from], to);
+      await NitroAdjudicator.stateIsSupported(fixedPart, [from], to);
     }, 'VM Exception while processing transaction: revert');
   });
 });

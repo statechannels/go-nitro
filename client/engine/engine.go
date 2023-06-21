@@ -2,10 +2,12 @@
 package engine // import "github.com/statechannels/go-nitro/client/engine"
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -62,7 +64,6 @@ type Engine struct {
 	fromLedger chan consensus_channel.Proposal
 
 	toApi chan EngineEvent
-	stop  chan struct{}
 
 	msg   messageservice.MessageService
 	chain chainservice.ChainService
@@ -75,6 +76,9 @@ type Engine struct {
 	metrics *MetricsRecorder
 
 	vm *payments.VoucherManager
+
+	wg     *sync.WaitGroup
+	cancel context.CancelFunc
 }
 
 // PaymentRequest represents a request from the API to make a payment using a channel
@@ -139,7 +143,6 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest)
 	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
 	e.MessagesFromAPI = make(chan protocols.Message)
-	e.stop = make(chan struct{})
 
 	e.fromChain = chain.EventFeed()
 	e.fromMsg = msg.Out()
@@ -162,6 +165,15 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 		metricsApi = &NoOpMetrics{}
 	}
 	e.metrics = NewMetricsRecorder(*e.store.GetAddress(), metricsApi)
+
+	e.wg = &sync.WaitGroup{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	e.cancel = cancel
+
+	e.wg.Add(1)
+	go e.run(ctx)
+
 	return e
 }
 
@@ -170,17 +182,19 @@ func (e *Engine) ToApi() <-chan EngineEvent {
 }
 
 func (e *Engine) Close() error {
+	e.cancel()
+	e.wg.Wait()
 	if err := e.msg.Close(); err != nil {
 		return err
 	}
-	e.stop <- struct{}{}
+
 	close(e.toApi)
 	return e.chain.Close()
 }
 
-// Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
-// The loop exits when a struct is received on the stop channel. Engine.Close() sends that signal.
-func (e *Engine) Run() {
+// run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
+// The loop exits when the context is cancelled.
+func (e *Engine) run(ctx context.Context) {
 	for {
 		var res EngineEvent
 		var err error
@@ -192,6 +206,7 @@ func (e *Engine) Run() {
 		e.metrics.RecordQueueLength("proposal_queue", len(e.fromLedger))
 
 		select {
+
 		case or := <-e.ObjectiveRequestsFromAPI:
 			res, err = e.handleObjectiveRequest(or)
 		case pr := <-e.PaymentRequestsFromAPI:
@@ -204,7 +219,8 @@ func (e *Engine) Run() {
 			res, err = e.handleMessage(message)
 		case proposal := <-e.fromLedger:
 			res, err = e.handleProposal(proposal)
-		case <-e.stop:
+		case <-ctx.Done():
+			e.wg.Done()
 			return
 		}
 
@@ -383,15 +399,20 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		if !ok {
 			return EngineEvent{}, fmt.Errorf("could not fetch channel for voucher %+v", voucher)
 		}
-		paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
-		if err != nil {
-			return EngineEvent{}, err
+
+		// Vouchers only count as payment channel updates if the channel is open.
+		if !c.FinalCompleted() {
+
+			paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
+			if err != nil {
+				return EngineEvent{}, err
+			}
+			info, err := query.ConstructPaymentInfo(c, paid, remaining)
+			if err != nil {
+				return EngineEvent{}, err
+			}
+			allCompleted.PaymentChannelUpdates = append(allCompleted.PaymentChannelUpdates, info)
 		}
-		info, err := query.ConstructPaymentInfo(c, paid, remaining)
-		if err != nil {
-			return EngineEvent{}, err
-		}
-		allCompleted.PaymentChannelUpdates = append(allCompleted.PaymentChannelUpdates, info)
 
 	}
 	return allCompleted, nil
@@ -553,12 +574,14 @@ func (e *Engine) sendMessages(msgs []protocols.Message) {
 		e.recordMessageMetrics(message)
 		e.msg.Send(message)
 	}
+	e.wg.Done()
 }
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	defer e.metrics.RecordFunctionDuration()()
 
+	e.wg.Add(1)
 	// Send messages in a go routine so that we don't block on message delivery
 	go e.sendMessages(sideEffects.MessagesToSend)
 
@@ -630,9 +653,20 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 	for _, rel := range o.Related() {
 		switch c := rel.(type) {
 		case *channel.VirtualChannel:
-			paid, remaining, err := query.GetVoucherBalance(c.Id, e.vm)
-			if err != nil {
-				return outgoing, err
+			var paid, remaining *big.Int
+
+			if !c.FinalCompleted() {
+				// If the channel is open, we inspect vouchers for that channel to get the future resolvable balance
+				var err error
+				paid, remaining, err = query.GetVoucherBalance(c.Id, e.vm)
+				if err != nil {
+					return outgoing, err
+				}
+			} else {
+				// If the channel is closed, vouchers have already been resolved.
+				// Note that when virtual defunding, this information may in fact be more up to date than
+				// the voucher balance due to a race condition https://github.com/statechannels/go-nitro/issues/1323
+				paid, remaining = c.GetPaidAndRemaining()
 			}
 			info, err := query.ConstructPaymentInfo(&c.Channel, paid, remaining)
 			if err != nil {

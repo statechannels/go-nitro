@@ -40,15 +40,15 @@ contract InterestBearingApp is IForceMoveApp {
         lender // makes initial deposit and earns interest
     }
 
-    function requireStateSupported(
+    function stateIsSupported(
         FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
-    ) external view override {
+    ) external view override returns (bool, string memory) {
         if (proof.length == 0) {
             // unanimous consensus check
             Consensus.requireConsensus(fixedPart, proof, candidate);
-            return;
+            return (true, '');
         } else if (proof.length == 1) {
             // check that proof[0] -> candidate respects the stated interest rate.
             // Requires:
@@ -72,8 +72,10 @@ contract InterestBearingApp is IForceMoveApp {
                 outstandingInterest
             );
         } else {
-            revert('|proof| > 1');
+            return (false, '|proof| > 1');
         }
+
+        return (true, '');
     }
 
     // The outstanding interest is calculated based on:

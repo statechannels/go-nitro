@@ -33,22 +33,27 @@ func newNatsTransport(url string) (*natsTransport, error) {
 	}, nil
 }
 
-func (c *natsTransport) Close() {
+func (c *natsTransport) Close() error {
 	for _, sub := range c.natsSubscriptions {
-		err := c.unsubscribeFromTopic(sub, 0)
+		err := c.unsubscribeFromTopic(sub, 3)
 		if err != nil {
 			log.Error().Err(err).Msgf("failed to unsubscribe from a topic: %s", sub.Subject)
+			return err
 		}
 	}
 	c.nc.Close()
+	return nil
 }
 
-func (c *natsTransport) unsubscribeFromTopic(sub *nats.Subscription, try int32) error {
+// unsubscribeFromTopic will attempt to unsubscribe the supplied subscription. On error, it will retry up to retries times.
+func (c *natsTransport) unsubscribeFromTopic(sub *nats.Subscription, retries uint32) error {
+	var try uint32
 	err := sub.Unsubscribe()
-	if err != nil && try < 3 {
-		return c.unsubscribeFromTopic(sub, try+1)
+	for err != nil && try < retries {
+		err = sub.Unsubscribe()
+		try++
 	}
-	return nil
+	return err
 }
 
 func NewNatsTransportAsServer(rpcPort int) (*natsTransportServer, error) {
@@ -92,7 +97,11 @@ func (c *natsTransportServer) Url() string {
 	return c.ns.ClientURL()
 }
 
-func (c *natsTransportServer) Close() {
-	c.natsTransport.Close()
+func (c *natsTransportServer) Close() error {
+	err := c.natsTransport.Close()
+	if err != nil {
+		return err
+	}
 	c.ns.Shutdown()
+	return nil
 }

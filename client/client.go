@@ -75,12 +75,11 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	c.channelNotifier = notifier.NewChannelNotifier(store, c.vm)
 
 	// Start the engine in a go routine
-
-	go c.engine.Run()
+	ctx, cancel := context.WithCancel(context.Background())
 
 	c.wg = &sync.WaitGroup{}
 	c.wg.Add(1)
-	ctx, cancel := context.WithCancel(context.Background())
+
 	c.cancelEventHandler = cancel
 	// Start the event handler in a go routine
 	// It will listen for events from the engine and dispatch events to client channels

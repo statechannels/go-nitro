@@ -11,6 +11,7 @@ import {
   State,
 } from '../../../src/contract/state';
 import {generateParticipants, getTestProvider, setupContract} from '../../test-helpers';
+import {expectUnsupportedState} from '../../tx-expect-wrappers';
 
 let interestBearingApp: Contract;
 const provider = getTestProvider();
@@ -117,9 +118,9 @@ beforeAll(async () => {
   interestBearingApp = setupContract(provider, InterestBearingAppArtifact, APPDEF);
 });
 
-describe('requireStateSupported', () => {
+describe('stateIsSupported', () => {
   it('accepts unanimous states', async () => {
-    await interestBearingApp.requireStateSupported(fixedPart, [], signedByBoth);
+    await interestBearingApp.stateIsSupported(fixedPart, [], signedByBoth);
   });
 
   it('accepts legitimate interest calculations', async () => {
@@ -159,7 +160,7 @@ describe('requireStateSupported', () => {
       signedBy: BigNumber.from(0b01).toHexString(),
     };
 
-    await interestBearingApp.requireStateSupported(
+    await interestBearingApp.stateIsSupported(
       fixedPart,
       [pfStateSignedByBoth],
       challengeWithLenderSignature
@@ -206,7 +207,7 @@ describe('requireStateSupported', () => {
     };
     await expectRevert(
       () =>
-        interestBearingApp.requireStateSupported(
+        interestBearingApp.stateIsSupported(
           fixedPart,
           [pfStateSignedByBoth],
           updatedWithIntermediarySignature
@@ -222,11 +223,11 @@ describe('requireStateSupported', () => {
     // assert failure
 
     await expectRevert(
-      () => interestBearingApp.requireStateSupported(fixedPart, [], signedByBorrower),
+      () => interestBearingApp.stateIsSupported(fixedPart, [], signedByBorrower),
       '!unanimous'
     );
     await expectRevert(
-      () => interestBearingApp.requireStateSupported(fixedPart, [], signedByLender),
+      () => interestBearingApp.stateIsSupported(fixedPart, [], signedByLender),
       '!unanimous'
     );
   });
@@ -238,12 +239,12 @@ describe('requireStateSupported', () => {
     // assert failure.
 
     await expectRevert(
-      () => interestBearingApp.requireStateSupported(fixedPart, [signedByBorrower], signedByLender),
+      () => interestBearingApp.stateIsSupported(fixedPart, [signedByBorrower], signedByLender),
       '!unanimous'
     );
 
     await expectRevert(
-      () => interestBearingApp.requireStateSupported(fixedPart, [signedByLender], signedByBorrower),
+      () => interestBearingApp.stateIsSupported(fixedPart, [signedByLender], signedByBorrower),
       '!unanimous'
     );
   });
@@ -251,9 +252,9 @@ describe('requireStateSupported', () => {
   it('rejects too-long proofs', async () => {
     // construct a challenge with two proof states, assert failure.
 
-    await expectRevert(
+    await expectUnsupportedState(
       () =>
-        interestBearingApp.requireStateSupported(
+        interestBearingApp.stateIsSupported(
           fixedPart,
           [signedByBorrower, signedByLender], // two proof states - should fail
           signedByLender

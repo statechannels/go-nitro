@@ -96,13 +96,13 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
      * @param proof Variable parts of the states with signatures in the support proof. The proof is a validation for the supplied candidate.
      * @param candidate Variable part of the state to change to. The candidate state is supported by proof states.
      */
-    function requireStateSupported(
+    function stateIsSupported(
         FixedPart calldata fixedPart,
         SignedVariablePart[] calldata proof,
         SignedVariablePart calldata candidate
-    ) external view {
+    ) external view returns (bool, string memory) {
         return
-            IForceMoveApp(fixedPart.appDefinition).requireStateSupported(
+            IForceMoveApp(fixedPart.appDefinition).stateIsSupported(
                 fixedPart,
                 recoverVariableParts(fixedPart, proof),
                 recoverVariablePart(fixedPart, candidate)

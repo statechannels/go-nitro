@@ -62,7 +62,10 @@ contract ForceMove is IForceMove, StatusManager {
             _requireChannelNotFinalized(channelId);
         }
 
-        _requireStateSupported(fixedPart, proof, candidate);
+        bool supported;
+        string memory reason;
+        (supported, reason) = _stateIsSupported(fixedPart, proof, candidate);
+        require(supported, reason);
 
         bytes32 supportedStateHash = NitroUtils.hashState(fixedPart, candidate.variablePart);
         _requireChallengerIsParticipant(supportedStateHash, fixedPart.participants, challengerSig);
@@ -107,7 +110,10 @@ contract ForceMove is IForceMove, StatusManager {
         // checks
         _requireChannelNotFinalized(channelId);
         _requireIncreasedTurnNumber(channelId, candidateTurnNum);
-        _requireStateSupported(fixedPart, proof, candidate);
+        bool supported;
+        string memory reason;
+        (supported, reason) = _stateIsSupported(fixedPart, proof, candidate);
+        require(supported, reason);
 
         // effects
         _clearChallenge(channelId, candidateTurnNum);
@@ -215,16 +221,17 @@ contract ForceMove is IForceMove, StatusManager {
      * @param proof Variable parts of the states with signatures in the support proof. The proof is a validation for the supplied candidate.
      * @param candidate Variable part of the state to change to. The candidate state is supported by proof states.
      */
-    function _requireStateSupported(
+    function _stateIsSupported(
         FixedPart memory fixedPart,
         SignedVariablePart[] memory proof,
         SignedVariablePart memory candidate
-    ) internal view {
-        IForceMoveApp(fixedPart.appDefinition).requireStateSupported(
-            fixedPart,
-            recoverVariableParts(fixedPart, proof),
-            recoverVariablePart(fixedPart, candidate)
-        );
+    ) internal view returns (bool isSupported, string memory reason) {
+        return
+            IForceMoveApp(fixedPart.appDefinition).stateIsSupported(
+                fixedPart,
+                recoverVariableParts(fixedPart, proof),
+                recoverVariablePart(fixedPart, candidate)
+            );
     }
 
     /**

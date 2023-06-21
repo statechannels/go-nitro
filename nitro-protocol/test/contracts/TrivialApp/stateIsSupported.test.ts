@@ -10,7 +10,7 @@ import {
   State,
   VariablePart,
 } from '../../../src/contract/state';
-import {expectSucceed} from '../../expect-succeed';
+import {expectSupportedState} from '../../tx-expect-wrappers';
 import {getTestProvider, setupContract} from '../../test-helpers';
 
 const provider = getTestProvider();
@@ -58,14 +58,16 @@ beforeAll(async () => {
   trivialApp = setupContract(provider, TrivialAppArtifact, process.env.TRIVIAL_APP_ADDRESS);
 });
 
-describe('requireStateSupported', () => {
+describe('stateIsSupported', () => {
   it('Transitions between random VariableParts are valid', async () => {
-    expect.assertions(5);
+    expect.assertions(15);
     for (let i = 0; i < 5; i++) {
       const from: RecoveredVariablePart = getRandomRecoveredVariablePart();
       const to: RecoveredVariablePart = getRandomRecoveredVariablePart();
 
-      await expectSucceed(() => trivialApp.requireStateSupported(getMockedFixedPart(), [from], to));
+      await expectSupportedState(() =>
+        trivialApp.stateIsSupported(getMockedFixedPart(), [from], to)
+      );
     }
   });
 
@@ -85,8 +87,8 @@ describe('requireStateSupported', () => {
     const from: RecoveredVariablePart = mockSigs(getVariablePart(fromState));
     const to: RecoveredVariablePart = mockSigs(getVariablePart(toState));
 
-    await expectSucceed(() =>
-      trivialApp.requireStateSupported(getFixedPart(fromState), [from], to)
+    await expectSupportedState(() =>
+      trivialApp.stateIsSupported(getFixedPart(fromState), [from], to)
     );
   });
 });

@@ -16,11 +16,12 @@ contract ConsensusApp is IForceMoveApp {
      * @param proof Array of recovered variable parts which constitutes a support proof for the candidate.
      * @param candidate Recovered variable part the proof was supplied for.
      */
-    function requireStateSupported(
+    function stateIsSupported(
         FixedPart calldata fixedPart,
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
-    ) external pure override {
+    ) external pure override returns (bool, string memory) {
         Consensus.requireConsensus(fixedPart, proof, candidate);
+        return (true, '');
     }
 }

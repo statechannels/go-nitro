@@ -18,7 +18,7 @@ import {
   PROOF_SUPPLIED,
 } from '../../../../src/contract/transaction-creators/revert-reasons';
 import {separateProofAndCandidate} from '../../../../src/contract/state';
-import {expectSucceed} from '../../../expect-succeed';
+import {expectSucceedWithNoReturnValues} from '../../../tx-expect-wrappers';
 const provider = getTestProvider();
 let Consensus: Contract & TESTConsensus;
 
@@ -86,7 +86,7 @@ describe('requireConsensus', () => {
       if (reason) {
         await expectRevert(() => Consensus.requireConsensus(fixedPart, proof, candidate));
       } else {
-        await expectSucceed(() => Consensus.requireConsensus(fixedPart, proof, candidate));
+        await expectSucceedWithNoReturnValues(() => Consensus.requireConsensus(fixedPart, proof, candidate));
       }
     }
   );
