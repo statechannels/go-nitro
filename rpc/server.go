@@ -76,60 +76,69 @@ func (rs *RpcServer) registerHandlers() (err error) {
 			return marshalResponse(types.ParseError, rs.logger)
 		}
 
-		validationResult := validateRequest(requestData, rs.logger)
-		if validationResult.Error != nil {
-			return validationResult.Error
+		jsonrpcReq := validateJsonrpcRequest(requestData, rs.logger)
+		if jsonrpcReq.Error != nil {
+			return jsonrpcReq.Error
 		}
 
-		switch serde.RequestMethod(validationResult.Method) {
+		switch serde.RequestMethod(jsonrpcReq.Method) {
 		case serde.GetAddressMethod:
-			return processRequest(rs, requestData, func(T serde.NoPayloadRequest) (string, error) {
+			return processRequest(rs, requestData, func(req serde.NoPayloadRequest) (string, error) {
 				return rs.client.Address.Hex(), nil
 			})
 		case serde.VersionMethod:
-			return processRequest(rs, requestData, func(T serde.NoPayloadRequest) (string, error) {
+			return processRequest(rs, requestData, func(req serde.NoPayloadRequest) (string, error) {
 				return rs.client.Version(), nil
 			})
 		case serde.DirectFundRequestMethod:
-			return processRequest(rs, requestData, func(obj directfund.ObjectiveRequest) (directfund.ObjectiveResponse, error) {
-				return rs.client.CreateLedgerChannel(obj.CounterParty, obj.ChallengeDuration, obj.Outcome), nil
+			return processRequest(rs, requestData, func(req directfund.ObjectiveRequest) (directfund.ObjectiveResponse, error) {
+				return rs.client.CreateLedgerChannel(req.CounterParty, req.ChallengeDuration, req.Outcome)
 			})
 		case serde.DirectDefundRequestMethod:
-			return processRequest(rs, requestData, func(obj directdefund.ObjectiveRequest) (protocols.ObjectiveId, error) {
-				return rs.client.CloseLedgerChannel(obj.ChannelId), nil
+			return processRequest(rs, requestData, func(req directdefund.ObjectiveRequest) (protocols.ObjectiveId, error) {
+				return rs.client.CloseLedgerChannel(req.ChannelId)
 			})
 		case serde.VirtualFundRequestMethod:
-			return processRequest(rs, requestData, func(obj virtualfund.ObjectiveRequest) (virtualfund.ObjectiveResponse, error) {
-				return rs.client.CreateVirtualPaymentChannel(obj.Intermediaries, obj.CounterParty, obj.ChallengeDuration, obj.Outcome), nil
+			return processRequest(rs, requestData, func(req virtualfund.ObjectiveRequest) (virtualfund.ObjectiveResponse, error) {
+				return rs.client.CreateVirtualPaymentChannel(req.Intermediaries, req.CounterParty, req.ChallengeDuration, req.Outcome)
 			})
 		case serde.VirtualDefundRequestMethod:
-			return processRequest(rs, requestData, func(obj virtualdefund.ObjectiveRequest) (protocols.ObjectiveId, error) {
-				return rs.client.CloseVirtualChannel(obj.ChannelId), nil
+			return processRequest(rs, requestData, func(req virtualdefund.ObjectiveRequest) (protocols.ObjectiveId, error) {
+				return rs.client.CloseVirtualChannel(req.ChannelId)
 			})
 		case serde.PayRequestMethod:
-			return processRequest(rs, requestData, func(obj serde.PaymentRequest) (serde.PaymentRequest, error) {
-				rs.client.Pay(obj.Channel, big.NewInt(int64(obj.Amount)))
-				return obj, nil
+			return processRequest(rs, requestData, func(req serde.PaymentRequest) (serde.PaymentRequest, error) {
+				if err := serde.ValidatePaymentRequest(req); err != nil {
+					return serde.PaymentRequest{}, err
+				}
+				rs.client.Pay(req.Channel, big.NewInt(int64(req.Amount)))
+				return req, nil
 			})
 		case serde.GetPaymentChannelRequestMethod:
-			return processRequest(rs, requestData, func(r serde.GetPaymentChannelRequest) (query.PaymentChannelInfo, error) {
-				return rs.client.GetPaymentChannel(r.Id)
+			return processRequest(rs, requestData, func(req serde.GetPaymentChannelRequest) (query.PaymentChannelInfo, error) {
+				if err := serde.ValidateGetPaymentChannelRequest(req); err != nil {
+					return query.PaymentChannelInfo{}, err
+				}
+				return rs.client.GetPaymentChannel(req.Id)
 			})
 		case serde.GetLedgerChannelRequestMethod:
-			return processRequest(rs, requestData, func(r serde.GetLedgerChannelRequest) (query.LedgerChannelInfo, error) {
-				return rs.client.GetLedgerChannel(r.Id)
+			return processRequest(rs, requestData, func(req serde.GetLedgerChannelRequest) (query.LedgerChannelInfo, error) {
+				return rs.client.GetLedgerChannel(req.Id)
 			})
 		case serde.GetAllLedgerChannelsMethod:
-			return processRequest(rs, requestData, func(r serde.NoPayloadRequest) ([]query.LedgerChannelInfo, error) {
+			return processRequest(rs, requestData, func(req serde.NoPayloadRequest) ([]query.LedgerChannelInfo, error) {
 				return rs.client.GetAllLedgerChannels()
 			})
 		case serde.GetPaymentChannelsByLedgerMethod:
-			return processRequest(rs, requestData, func(r serde.GetPaymentChannelsByLedgerRequest) ([]query.PaymentChannelInfo, error) {
-				return rs.client.GetPaymentChannelsByLedger(r.LedgerId)
+			return processRequest(rs, requestData, func(req serde.GetPaymentChannelsByLedgerRequest) ([]query.PaymentChannelInfo, error) {
+				if err := serde.ValidateGetPaymentChannelsByLedgerRequest(req); err != nil {
+					return []query.PaymentChannelInfo{}, err
+				}
+				return rs.client.GetPaymentChannelsByLedger(req.LedgerId)
 			})
 		default:
 			responseErr := types.MethodNotFoundError
-			responseErr.Id = validationResult.Id
+			responseErr.Id = jsonrpcReq.Id
 			return marshalResponse(responseErr, rs.logger)
 		}
 	}
@@ -140,14 +149,15 @@ func (rs *RpcServer) registerHandlers() (err error) {
 
 func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, requestData []byte, processPayload func(T) (U, error)) []byte {
 	rpcRequest := serde.JsonRpcRequest[T]{}
-	// todo: unmarshal will fail only when the requestData is not valid json.
-	// At the moment, there is no validation that the required fields are populated in the request.
+	// This unmarshal will fail only when the requestData is not valid json.
+	// Request-specific params validation is optionally performed as part of the processPayload function
 	err := json.Unmarshal(requestData, &rpcRequest)
 	if err != nil {
 		return marshalResponse(types.UnexpectedRequestUnmarshalError2, rs.logger)
 	}
-	obj := rpcRequest.Params
-	objResponse, err := processPayload(obj)
+
+	payload := rpcRequest.Params
+	processedResponse, err := processPayload(payload)
 	if err != nil {
 		responseErr := types.JsonRpcError{
 			Code:    types.InternalServerError.Code, // default error code
@@ -162,7 +172,7 @@ func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServ
 		return marshalResponse(responseErr, rs.logger)
 	}
 
-	response := serde.NewJsonRpcResponse(rpcRequest.Id, objResponse)
+	response := serde.NewJsonRpcResponse(rpcRequest.Id, processedResponse)
 	return marshalResponse(response, rs.logger)
 }
 
@@ -175,15 +185,15 @@ func marshalResponse(response any, log *zerolog.Logger) []byte {
 	return responseData
 }
 
-type validationResult struct {
+type jsonrpcReq struct {
 	Error  []byte
 	Method string
 	Id     uint64
 }
 
-func validateRequest(requestData []byte, logger *zerolog.Logger) validationResult {
+func validateJsonrpcRequest(requestData []byte, logger *zerolog.Logger) jsonrpcReq {
 	var request map[string]interface{}
-	vr := validationResult{}
+	vr := jsonrpcReq{}
 	err := json.Unmarshal(requestData, &request)
 	if err != nil {
 		vr.Error = marshalResponse(types.UnexpectedRequestUnmarshalError, logger)

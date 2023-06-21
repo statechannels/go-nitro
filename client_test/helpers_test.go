@@ -176,7 +176,10 @@ func setupLedgerChannel(t *testing.T, alpha client.Client, beta client.Client, a
 	// Set up an outcome that requires both participants to deposit
 	outcome := initialLedgerOutcome(*alpha.Address, *beta.Address, asset)
 
-	response := alpha.CreateLedgerChannel(*beta.Address, 0, outcome)
+	response, err := alpha.CreateLedgerChannel(*beta.Address, 0, outcome)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	<-alpha.ObjectiveCompleteChan(response.Id)
 	<-beta.ObjectiveCompleteChan(response.Id)
@@ -185,7 +188,10 @@ func setupLedgerChannel(t *testing.T, alpha client.Client, beta client.Client, a
 }
 
 func closeLedgerChannel(t *testing.T, alpha client.Client, beta client.Client, channelId types.Destination) {
-	response := alpha.CloseLedgerChannel(channelId)
+	response, err := alpha.CloseLedgerChannel(channelId)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	<-alpha.ObjectiveCompleteChan(response)
 	<-beta.ObjectiveCompleteChan(response)

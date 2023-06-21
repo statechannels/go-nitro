@@ -198,7 +198,7 @@ func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 
 // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
 // with the supplied intermediaries.
-func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) virtualfund.ObjectiveResponse {
+func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) (virtualfund.ObjectiveResponse, error) {
 	objectiveRequest := virtualfund.NewObjectiveRequest(
 		Intermediaries,
 		CounterParty,
@@ -212,22 +212,22 @@ func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, Cou
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Response(*c.Address)
+	return objectiveRequest.Response(*c.Address), nil
 }
 
 // CloseVirtualChannel attempts to close and defund the given virtually funded channel.
-func (c *Client) CloseVirtualChannel(channelId types.Destination) protocols.ObjectiveId {
+func (c *Client) CloseVirtualChannel(channelId types.Destination) (protocols.ObjectiveId, error) {
 	objectiveRequest := virtualdefund.NewObjectiveRequest(channelId)
 
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Id(*c.Address, c.chainId)
+	return objectiveRequest.Id(*c.Address, c.chainId), nil
 }
 
 // CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
 // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
-func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
+func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (directfund.ObjectiveResponse, error) {
 	objectiveRequest := directfund.NewObjectiveRequest(
 		Counterparty,
 		ChallengeDuration,
@@ -240,17 +240,17 @@ func (c *Client) CreateLedgerChannel(Counterparty types.Address, ChallengeDurati
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Response(*c.Address, c.chainId)
+	return objectiveRequest.Response(*c.Address, c.chainId), nil
 }
 
 // CloseLedgerChannel attempts to close and defund the given directly funded channel.
-func (c *Client) CloseLedgerChannel(channelId types.Destination) protocols.ObjectiveId {
+func (c *Client) CloseLedgerChannel(channelId types.Destination) (protocols.ObjectiveId, error) {
 	objectiveRequest := directdefund.NewObjectiveRequest(channelId)
 
 	// Send the event to the engine
 	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Id(*c.Address, c.chainId)
+	return objectiveRequest.Id(*c.Address, c.chainId), nil
 }
 
 // Pay will send a signed voucher to the payee that they can redeem for the given amount.
