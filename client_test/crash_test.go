@@ -84,7 +84,7 @@ func TestCrashTolerance(t *testing.T) {
 }
 
 func directlyDefundALedgerChannel(t *testing.T, alpha client.Client, beta client.Client, channelId types.Destination) {
-	id := alpha.CloseLedgerChannel(channelId)
+	id, _ := alpha.CloseLedgerChannel(channelId)
 	<-alpha.ObjectiveCompleteChan(id)
 	<-beta.ObjectiveCompleteChan(id)
 }
@@ -93,7 +93,7 @@ func directlyFundALedgerChannel(t *testing.T, alpha client.Client, beta client.C
 	// Set up an outcome that requires both participants to deposit
 	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, ledgerChannelDeposit, ledgerChannelDeposit, asset)
 
-	response := alpha.CreateLedgerChannel(*beta.Address, 0, outcome)
+	response, _ := alpha.CreateLedgerChannel(*beta.Address, 0, outcome)
 
 	<-alpha.ObjectiveCompleteChan(response.Id)
 	<-beta.ObjectiveCompleteChan(response.Id)
