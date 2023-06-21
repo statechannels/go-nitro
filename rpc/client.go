@@ -196,7 +196,7 @@ func (rc *RpcClient) subscribeToNotifications() error {
 }
 
 func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, method serde.RequestMethod, requestData T) U {
-	resChan, err := request[T, U](rc.transport, method, requestData, rc.logger)
+	resChan, err := sendRPCRequest[T, U](method, requestData, rc.transport, rc.logger)
 	if err != nil {
 		panic(err)
 	}
@@ -227,12 +227,8 @@ func (rc *RpcClient) PaymentChannelUpdatesChan(paymentChannelId types.Destinatio
 	return c
 }
 
-// request uses the supplied transport and payload to send a non-blocking JSONRPC request.
+// sendRPCRequest uses the supplied transport and payload to send a non-blocking JSONRPC request.
 // It returns a channel that sends a response payload. If the request fails to send, an error is returned.
-func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T, logger zerolog.Logger) (<-chan response[U], error) {
-	return sendRPCRequest[T, U](method, reqPayload, trans, logger)
-}
-
 func sendRPCRequest[T serde.RequestPayload, U serde.ResponsePayload](method serde.RequestMethod, request T, trans transport.Requester, logger zerolog.Logger) (<-chan response[U], error) {
 	returnChan := make(chan response[U], 1)
 
