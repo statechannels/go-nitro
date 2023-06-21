@@ -138,6 +138,7 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	// bind to inbound chans
 	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest)
 	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
+	e.MessagesFromAPI = make(chan protocols.Message)
 	e.stop = make(chan struct{})
 
 	e.fromChain = chain.EventFeed()
