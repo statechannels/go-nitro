@@ -248,7 +248,7 @@ func (rc *RpcClient) PaymentChannelUpdatesChan(paymentChannelId types.Destinatio
 	return c
 }
 
-// sendRPCRequest uses the supplied transport and payload to send a non-blocking JSONRPC request.
+// request uses the supplied transport and payload to send a non-blocking JSONRPC request.
 // It returns a channel that sends a response payload. If the request fails to send, an error is returned.
 func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T, logger zerolog.Logger, wg *sync.WaitGroup) (<-chan response[U], error) {
 	returnChan := make(chan response[U], 1)
