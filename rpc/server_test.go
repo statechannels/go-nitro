@@ -121,3 +121,36 @@ func TestRpcMethodNotFound(t *testing.T) {
 	expectedError.Id = 2
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
+
+func TestRpcGetPaymentChannelMissingParam(t *testing.T) {
+	request := serde.JsonRpcRequest[serde.GetPaymentChannelRequest]{Jsonrpc: "2.0", Id: 2, Method: "get_payment_channel"}
+	jsonRequest, err := json.Marshal(request)
+	if err != nil {
+		t.Error(err)
+	}
+	expectedError := types.InvalidParamsError
+	expectedError.Id = 2
+	sendRequestAndExpectError(t, jsonRequest, expectedError)
+}
+
+func TestRpcPayInvalidParam(t *testing.T) {
+	paymentRequest := serde.PaymentRequest{
+		Amount:  100,
+		Channel: types.Destination{},
+	}
+
+	request := serde.JsonRpcRequest[serde.PaymentRequest]{
+		Jsonrpc: "2.0",
+		Id:      2,
+		Method:  "pay",
+		Params:  paymentRequest,
+	}
+
+	jsonRequest, err := json.Marshal(request)
+	if err != nil {
+		t.Error(err)
+	}
+	expectedError := types.InvalidParamsError
+	expectedError.Id = 2
+	sendRequestAndExpectError(t, jsonRequest, expectedError)
+}
