@@ -73,8 +73,14 @@ func TestOutOfBandVoucher(t *testing.T) {
 		100,
 		simpleOutcome(actors[0].Address(), actors[1].Address(), 100, 0),
 	)
+
+	<-alice.ObjectiveCompleteChan(vAB.Id)
+
 	firstVoucher := alice.CreatePayment(vAB.ChannelId, 1)
+	t.Logf("Created voucher %+v", firstVoucher)
+
 	firstReceipt := bob.ReceivePayment(firstVoucher)
+	t.Logf("Received %+v", firstReceipt)
 
 	if firstReceipt.AmountReceived.ToInt().Cmp(big.NewInt(1)) != 0 {
 		t.Errorf("expected bob to receive 1, got %s", firstReceipt.AmountReceived)
