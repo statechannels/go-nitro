@@ -84,7 +84,7 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 
 func (rc *RpcClient) GetVirtualChannel(chId types.Destination) (query.PaymentChannelInfo, int, error) {
 	if (chId == types.Destination{}) {
-		return query.PaymentChannelInfo{}, http.StatusBadRequest, errors.New("Valid channel id must be provided")
+		return query.PaymentChannelInfo{}, http.StatusBadRequest, errors.New("a valid channel id must be provided")
 	}
 	req := serde.GetPaymentChannelRequest{Id: chId}
 
