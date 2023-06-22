@@ -158,8 +158,8 @@ func (rs *RpcServer) registerHandlers() (err error) {
 					}, err
 				}
 
-				// construct the "message" for engine consumption. Engine will use msgService
-				// to "send" to itself and then process as any other voucher.
+				// construct the "message" for engine consumption. Engine will consume this
+				// as if it were a message from the counterparty and update the channel balance
 				voucherMessage := protocols.Message{
 					To:       *me,
 					From:     signer,
