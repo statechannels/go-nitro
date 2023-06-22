@@ -90,19 +90,19 @@ func (rs *RpcServer) registerHandlers() (err error) {
 			return processRequest(rs, requestData, func(T serde.NoPayloadRequest) (string, error) {
 				return rs.client.Version(), nil
 			})
-		case serde.DirectFundRequestMethod:
+		case serde.CreateLedgerChannelRequestMethod:
 			return processRequest(rs, requestData, func(obj directfund.ObjectiveRequest) (directfund.ObjectiveResponse, error) {
 				return rs.client.CreateLedgerChannel(obj.CounterParty, obj.ChallengeDuration, obj.Outcome), nil
 			})
-		case serde.DirectDefundRequestMethod:
+		case serde.CloseLedgerChannelRequestMethod:
 			return processRequest(rs, requestData, func(obj directdefund.ObjectiveRequest) (protocols.ObjectiveId, error) {
 				return rs.client.CloseLedgerChannel(obj.ChannelId), nil
 			})
-		case serde.VirtualFundRequestMethod:
+		case serde.CreatePaymentChannelRequestMethod:
 			return processRequest(rs, requestData, func(obj virtualfund.ObjectiveRequest) (virtualfund.ObjectiveResponse, error) {
 				return rs.client.CreateVirtualPaymentChannel(obj.Intermediaries, obj.CounterParty, obj.ChallengeDuration, obj.Outcome), nil
 			})
-		case serde.VirtualDefundRequestMethod:
+		case serde.ClosePaymentChannelRequestMethod:
 			return processRequest(rs, requestData, func(obj virtualdefund.ObjectiveRequest) (protocols.ObjectiveId, error) {
 				return rs.client.CloseVirtualChannel(obj.ChannelId), nil
 			})

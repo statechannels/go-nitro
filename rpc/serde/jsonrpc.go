@@ -13,17 +13,17 @@ import (
 type RequestMethod string
 
 const (
-	GetAddressMethod                 RequestMethod = "get_address"
-	VersionMethod                    RequestMethod = "version"
-	DirectFundRequestMethod          RequestMethod = "direct_fund"
-	DirectDefundRequestMethod        RequestMethod = "direct_defund"
-	VirtualFundRequestMethod         RequestMethod = "virtual_fund"
-	VirtualDefundRequestMethod       RequestMethod = "virtual_defund"
-	PayRequestMethod                 RequestMethod = "pay"
-	GetPaymentChannelRequestMethod   RequestMethod = "get_payment_channel"
-	GetLedgerChannelRequestMethod    RequestMethod = "get_ledger_channel"
-	GetPaymentChannelsByLedgerMethod RequestMethod = "get_payment_channels_by_ledger"
-	GetAllLedgerChannelsMethod       RequestMethod = "get_all_ledger_channels"
+	GetAddressMethod                  RequestMethod = "get_address"
+	VersionMethod                     RequestMethod = "version"
+	CreateLedgerChannelRequestMethod  RequestMethod = "create_ledger_channel"
+	CloseLedgerChannelRequestMethod   RequestMethod = "close_ledger_channel"
+	CreatePaymentChannelRequestMethod RequestMethod = "create_payment_channel"
+	ClosePaymentChannelRequestMethod  RequestMethod = "close_payment_channel"
+	PayRequestMethod                  RequestMethod = "pay"
+	GetPaymentChannelRequestMethod    RequestMethod = "get_payment_channel"
+	GetLedgerChannelRequestMethod     RequestMethod = "get_ledger_channel"
+	GetPaymentChannelsByLedgerMethod  RequestMethod = "get_payment_channels_by_ledger"
+	GetAllLedgerChannelsMethod        RequestMethod = "get_all_ledger_channels"
 )
 
 type NotificationMethod string
