@@ -181,7 +181,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	// assert correct reporting from query api
 	for i, client := range clients {
 		<-client.ObjectiveCompleteChan(vabCreateResponse.Id)
-		channelInfo, _, _ := client.GetVirtualChannel(vabCreateResponse.ChannelId)
+		channelInfo := client.GetPaymentChannel(vabCreateResponse.ChannelId)
 		checkQueryInfo(t, expectedVirtualChannel, channelInfo)
 		if i != 0 {
 			checkQueryInfoCollection(t, expectedVirtualChannel, 1,

@@ -3,14 +3,14 @@ package rpc
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
+
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/protocols"
@@ -18,14 +18,11 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/rand"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
-
 	"github.com/statechannels/go-nitro/types"
-
-	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/rand"
 )
 
 // RpcClient is a client for making nitro rpc calls
@@ -82,13 +79,10 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 	return c, nil
 }
 
-func (rc *RpcClient) GetVirtualChannel(chId types.Destination) (query.PaymentChannelInfo, int, error) {
-	if (chId == types.Destination{}) {
-		return query.PaymentChannelInfo{}, http.StatusBadRequest, errors.New("a valid channel id must be provided")
-	}
+func (rc *RpcClient) GetPaymentChannel(chId types.Destination) query.PaymentChannelInfo {
 	req := serde.GetPaymentChannelRequest{Id: chId}
 
-	return waitForRequest[serde.GetPaymentChannelRequest, query.PaymentChannelInfo](rc, serde.GetPaymentChannelRequestMethod, req), http.StatusOK, nil
+	return waitForRequest[serde.GetPaymentChannelRequest, query.PaymentChannelInfo](rc, serde.GetPaymentChannelRequestMethod, req)
 }
 
 // CreateVirtual creates a new virtual channel

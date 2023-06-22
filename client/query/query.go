@@ -115,6 +115,11 @@ func GetVoucherBalance(id types.Destination, vm *payments.VoucherManager) (paid,
 // GetPaymentChannelInfo returns the PaymentChannelInfo for the given channel
 // It does this by querying the provided store and voucher manager
 func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager) (PaymentChannelInfo, error) {
+	if (id == types.Destination{}) {
+		err := types.InvalidParamsError
+		err.Message = "a valid channel id must be provided"
+		return PaymentChannelInfo{}, err
+	}
 	// Otherwise we can just check the store
 	c, channelFound := store.GetChannelById(id)
 
