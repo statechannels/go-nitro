@@ -117,7 +117,7 @@ func (rc *RpcClient) CreatePayment(id types.Destination, amount uint64) payments
 	return waitForRequest[serde.PaymentRequest, payments.Voucher](rc, serde.CreatePaymentMethod, pReq)
 }
 
-// ReceivePayment receives a voucher and forwards it to go-nitro.
+// ReceivePayment receives a voucher and forwards it to a go-nitro rpc server.
 func (rc *RpcClient) ReceivePayment(voucher payments.Voucher) query.PaymentChannelPaymentReceipt {
 	return waitForRequest[serde.ReceivePaymentRequest, query.PaymentChannelPaymentReceipt](rc, serde.ReceiveVoucherRequestMethod, voucher)
 }
