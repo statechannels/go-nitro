@@ -6,6 +6,7 @@ site_url: https://docs.statechannels.org
 site_description: "Nitro: A state channel framework for ultra-low cost, near-zero-latency conditional transfer of cryptoassets."
 plugins:
   - social
+  - search
 theme:
   name: material
   palette:
@@ -18,6 +19,8 @@ theme:
     - navigation.tabs
     - content.tabs.link
     - content.action.edit
+    - search.suggest
+    - search.highlight
 extra_css:
   - stylesheets/extra.css
 markdown_extensions:

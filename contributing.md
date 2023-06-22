@@ -63,7 +63,15 @@ go test ./...
 
 # Documenation website
 
-This is built using a variant of `mkdocs`. First, follow [these instructions](https://squidfunk.github.io/mkdocs-material/getting-started/#installation) to install. Then run
+This is built using a variant of `mkdocs`. First, follow [these instructions](https://squidfunk.github.io/mkdocs-material/getting-started/#installation) to install. Or even better, run
+
+```
+pip install -r requirements.txt
+```
+
+You may also need to follow [these additional instructions](https://squidfunk.github.io/mkdocs-material/setup/dependencies/image-processing/?h=cairo#cairo-graphics).
+
+Then run
 
 ```
 mkdocs serve
