@@ -569,7 +569,7 @@ func (e *Engine) sendMessages(msgs []protocols.Message) {
 	defer e.metrics.RecordFunctionDuration()()
 
 	for _, message := range msgs {
-		message.From = *e.store.GetAddress() // read from disk on each msg: bottleneck?
+		message.From = *e.store.GetAddress()
 		e.logMessage(message, Outgoing)
 		e.recordMessageMetrics(message)
 		e.msg.Send(message)
