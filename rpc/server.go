@@ -100,11 +100,11 @@ func (rs *RpcServer) registerHandlers() (err error) {
 			})
 		case serde.CreatePaymentChannelRequestMethod:
 			return processRequest(rs, requestData, func(req virtualfund.ObjectiveRequest) (virtualfund.ObjectiveResponse, error) {
-				return rs.client.CreateVirtualPaymentChannel(req.Intermediaries, req.CounterParty, req.ChallengeDuration, req.Outcome)
+				return rs.client.CreatePaymentChannel(req.Intermediaries, req.CounterParty, req.ChallengeDuration, req.Outcome)
 			})
 		case serde.ClosePaymentChannelRequestMethod:
 			return processRequest(rs, requestData, func(req virtualdefund.ObjectiveRequest) (protocols.ObjectiveId, error) {
-				return rs.client.CloseVirtualChannel(req.ChannelId)
+				return rs.client.ClosePaymentChannel(req.ChannelId)
 			})
 		case serde.PayRequestMethod:
 			return processRequest(rs, requestData, func(req serde.PaymentRequest) (serde.PaymentRequest, error) {
