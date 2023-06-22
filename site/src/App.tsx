@@ -18,7 +18,7 @@ async function fetchAndSetLedgerChannels(
 function App() {
   const url =
     new URLSearchParams(window.location.search).get(QUERY_KEY) ??
-    "localhost:4005";
+    "localhost:4005/api/v1";
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
   const [ledgerChannels, setLedgerChannels] = useState<LedgerChannelInfo[]>([]);
   const [focusedLedgerChannel, setFocusedLedgerChannel] = useState<string>("");

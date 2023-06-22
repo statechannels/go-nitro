@@ -7,6 +7,8 @@ import {
   RPCRequestAndResponses,
 } from "./types";
 
+export const RPC_PATH = "api/v1";
+
 /**
  * createOutcome creates a basic outcome for a channel
  *
@@ -83,7 +85,7 @@ export function generateRequest<
 }
 
 export function getLocalRPCUrl(port: number): string {
-  return `127.0.0.1:${port}`;
+  return `127.0.0.1:${port}/${RPC_PATH}`;
 }
 
 export async function logOutChannelUpdates(rpcClient: NitroRpcClient) {

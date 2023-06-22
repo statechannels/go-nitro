@@ -12,7 +12,6 @@ import {
   getLocalRPCUrl,
   logOutChannelUpdates,
 } from "../src/utils";
-import { RPC_PATH } from "../src/transport/http";
 
 const clientNames = ["alice", "irene", "bob", "ivan"] as const;
 type ClientNames = (typeof clientNames)[number];
@@ -287,10 +286,7 @@ async function waitForRPCServer(
 // This is specific to the HTTP/WS RPC transport
 async function isServerUp(port: number): Promise<boolean> {
   let result: AxiosResponse<unknown, unknown>;
-  const url = new URL(
-    `${RPC_PATH}`,
-    `http://${getLocalRPCUrl(port)}`
-  ).toString();
+  const url = new URL(`http://${getLocalRPCUrl(port)}`).toString();
 
   try {
     const req = generateRequest("get_address", {});

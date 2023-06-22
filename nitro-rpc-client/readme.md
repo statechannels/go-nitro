@@ -10,7 +10,7 @@ import { NitroRpcClient } from "./rpc-client";
 const rpcPort = 4222;
 
 const rpcClient = await NitroRpcClient.CreateHttpRpcClient(
-  `127.0.0.1:${rpcPort}`
+  `127.0.0.1:${rpcPort}/api/v1`
 );
 
 const counterParty = `0xDEADBEEF`;

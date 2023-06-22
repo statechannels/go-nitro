@@ -11,17 +11,12 @@ import {
 
 import { Transport } from ".";
 
-export const RPC_PATH = "api/v1";
-
 export class HttpTransport {
   Notifications: EventEmitter<NotificationMethod, NotificationPayload>;
 
   public static async createTransport(server: string): Promise<Transport> {
     // eslint-disable-next-line new-cap
-    const ws = new w3cwebsocket(
-      new URL(`${RPC_PATH}/subscribe`, `ws://${server}`).toString(),
-      undefined
-    );
+    const ws = new w3cwebsocket(`ws://${server}/subscribe`, undefined);
 
     // throw any websocket errors so we don't fail silently
     ws.onerror = (e) => {
@@ -39,7 +34,7 @@ export class HttpTransport {
   public async sendRequest<K extends RequestMethod>(
     req: RPCRequestAndResponses[K][0]
   ): Promise<unknown> {
-    const url = new URL(`${RPC_PATH}`, `http://${this.server}`).toString();
+    const url = new URL(`http://${this.server}`).toString();
 
     const result = await axios.post(url.toString(), JSON.stringify(req));
 
