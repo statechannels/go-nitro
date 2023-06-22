@@ -116,7 +116,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	ledgerChannels := make([]directfund.ObjectiveResponse, n-1)
 	for i := 0; i < n-1; i++ {
 		outcome := simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100)
-		ledgerChannels[i] = clients[i].CreateLedger(actors[i+1].Address(), 100, outcome)
+		ledgerChannels[i] = clients[i].CreateLedgerChannel(actors[i+1].Address(), 100, outcome)
 
 		if !directfund.IsDirectFundObjective(ledgerChannels[i].Id) {
 			t.Errorf("expected direct fund objective, got %s", ledgerChannels[i].Id)
@@ -165,7 +165,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 
 	initialOutcome := simpleOutcome(actors[0].Address(), actors[n-1].Address(), 100, 0)
 
-	vabCreateResponse := aliceClient.CreateVirtual(
+	vabCreateResponse := aliceClient.CreatePaymentChannel(
 		intermediaries,
 		bob.Address(),
 		100,
@@ -199,16 +199,16 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 
 	aliceClient.Pay(vabCreateResponse.ChannelId, 1)
 
-	vabClosure := aliceClient.CloseVirtual(vabCreateResponse.ChannelId)
+	vabClosure := aliceClient.ClosePaymentChannel(vabCreateResponse.ChannelId)
 	for _, client := range clients {
 		<-client.ObjectiveCompleteChan(vabClosure)
 	}
 
-	laiClosure := aliceClient.CloseLedger(aliceLedger.ChannelId)
+	laiClosure := aliceClient.CloseLedgerChannel(aliceLedger.ChannelId)
 	<-aliceClient.ObjectiveCompleteChan(laiClosure)
 
 	if n != 2 { // for n=2, alice and bob share a ledger, which should only be closed once.
-		libClosure := bobClient.CloseLedger(bobLedger.ChannelId)
+		libClosure := bobClient.CloseLedgerChannel(bobLedger.ChannelId)
 		<-bobClient.ObjectiveCompleteChan(libClosure)
 	}
 
