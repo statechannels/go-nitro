@@ -265,24 +265,20 @@ func (c *Client) Pay(channelId types.Destination, amount *big.Int) {
 	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
 }
 
-// CreatePayment returns (via a go channel) a voucher that increases the redeemable balance
+// CreatePayment returns a voucher that increases the redeemable balance
 // of the given payment channel by the given amount.
 //
 // The returned voucher must be sent to the payee.
-func (c *Client) CreatePayment(channelId types.Destination, amount *big.Int) (<-chan payments.Voucher, error) {
-	vChan := make(chan payments.Voucher, 1)
+func (c *Client) CreatePayment(channelId types.Destination, amount *big.Int) (payments.Voucher, error) {
 	id := rand.Uint64()
 	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount, Withhold: true, PaymentID: id}
 	for {
 		payment := <-c.PaymentChannelUpdatedChan(channelId)
 
 		if payment.LatestVoucher.PaymentID == id {
-			vChan <- payment.LatestVoucher
-			break
+			return payment.LatestVoucher, nil
 		}
 	}
-
-	return vChan, nil
 }
 
 // GetPaymentChannel returns the payment channel with the given id.

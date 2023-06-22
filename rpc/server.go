@@ -120,7 +120,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 				if err != nil {
 					return payments.Voucher{}, err
 				}
-				return <-v, nil
+				return v, nil
 			})
 		case serde.ReceiveVoucherRequestMethod:
 			return processRequest(rs, requestData, func(v serde.ReceivePaymentRequest) (query.PaymentChannelPaymentReceipt, error) {
