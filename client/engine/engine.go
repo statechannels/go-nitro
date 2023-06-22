@@ -548,7 +548,12 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, erro
 		return ee, fmt.Errorf("handleAPIEvent: Not the sender in channel %s", cId)
 	}
 	info, err := query.GetPaymentChannelInfo(cId, e.store, e.vm)
-	info.LatestVoucher = voucher
+
+	// return voucher information to any listening clients only if the payment
+	// request is for an out-of-band payment
+	if request.Withhold {
+		info.LatestVoucher = voucher
+	}
 
 	if err != nil {
 		return ee, fmt.Errorf("handleAPIEvent: Error querying channel info: %w", err)
