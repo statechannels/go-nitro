@@ -36,7 +36,7 @@ type serverWebSocketTransport struct {
 func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, error) {
 	wsc := &serverWebSocketTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}}
 
-	tcpListener, err := net.Listen("tcp", websocketServerAddress+wsc.port)
+	tcpListener, err := net.Listen("tcp", ":"+wsc.port)
 	if err != nil {
 		return nil, err
 	}
