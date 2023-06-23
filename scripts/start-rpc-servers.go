@@ -41,6 +41,11 @@ const (
 	gray    color = "[90m"
 )
 
+var (
+	participants     = []participant{alice, bob, irene, ivan}
+	participantColor = map[participant]color{alice: blue, irene: green, ivan: cyan, bob: yellow}
+)
+
 const FUNDED_TEST_PK = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
 func main() {
@@ -65,33 +70,14 @@ func main() {
 		panic(err)
 	}
 
-	aliceClient, err := setupRPCServer(alice, blue, naAddress, vpaAddress, caAddress)
-	if err != nil {
-		stopCommands(running...)
-		panic(err)
+	for _, p := range participants {
+		client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress)
+		if err != nil {
+			stopCommands(running...)
+			panic(err)
+		}
+		running = append(running, client)
 	}
-	running = append(running, aliceClient)
-
-	ireneClient, err := setupRPCServer(irene, green, naAddress, vpaAddress, caAddress)
-	if err != nil {
-		stopCommands(running...)
-		panic(err)
-	}
-	running = append(running, ireneClient)
-
-	ivanClient, err := setupRPCServer(ivan, cyan, naAddress, vpaAddress, caAddress)
-	if err != nil {
-		stopCommands(running...)
-		panic(err)
-	}
-	running = append(running, ivanClient)
-
-	bobClient, err := setupRPCServer(bob, yellow, naAddress, vpaAddress, caAddress)
-	if err != nil {
-		stopCommands(running...)
-		panic(err)
-	}
-	running = append(running, bobClient)
 
 	waitForKillSignal()
 
@@ -126,20 +112,7 @@ func setupRPCServer(p participant, c color, na, vpa, ca types.Address) (*exec.Cm
 	args := []string{"run", ".", "-naaddress", na.String()}
 	args = append(args, "-vpaaddress", vpa.String())
 	args = append(args, "-caaddress", ca.String())
-	switch p {
-	case alice:
-		args = append(args, "-config", "./scripts/test-configs/alice.toml")
-	case irene:
-		args = append(args, "-config", "./scripts/test-configs/irene.toml")
-	case ivan:
-		args = append(args, "-config", "./scripts/test-configs/ivan.toml")
-	case bob:
-		args = append(args, "-config", "./scripts/test-configs/bob.toml")
-
-	default:
-		panic("Invalid participant")
-
-	}
+	args = append(args, "-config", fmt.Sprintf("./scripts/test-configs/%s.toml", p))
 
 	cmd := exec.Command("go", args...)
 	cmd.Stdout = newColorWriter(c, os.Stdout)
