@@ -124,8 +124,7 @@ func (rc *RpcClient) ReceivePayment(voucher payments.Voucher) query.PaymentChann
 
 // CloseVirtual closes a virtual channel
 func (rc *RpcClient) CloseVirtual(id types.Destination) protocols.ObjectiveId {
-	objReq := virtualdefund.NewObjectiveRequest(
-		id)
+	objReq := virtualdefund.NewObjectiveRequest(id)
 
 	return waitForRequest[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.VirtualDefundRequestMethod, objReq)
 }
