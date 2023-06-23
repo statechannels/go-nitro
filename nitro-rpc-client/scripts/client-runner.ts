@@ -162,7 +162,9 @@ yargs(hideBin(process.argv))
       const virtualChannels: string[] = [];
       console.log(`Constructing ${yargs.numvirtual} virtual channels`);
       for (let i = 0; i < yargs.numvirtual; i++) {
-        const res = await aliceClient.CreatePaymentChannel(bobAddress, [ireneAddress]);
+        const res = await aliceClient.CreatePaymentChannel(bobAddress, [
+          ireneAddress,
+        ]);
         console.log(`Virtual channel ${res.ChannelId} created`);
         virtualChannels.push(res.ChannelId);
       }

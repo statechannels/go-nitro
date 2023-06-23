@@ -48,7 +48,9 @@ export class NitroRpcClient {
    * @param counterParty - The counterparty to create the channel with
    * @returns A promise that resolves to an objective response, containing the ID of the objective and the channel id.
    */
-  public async CreateLedgerChannel(counterParty: string): Promise<ObjectiveResponse> {
+  public async CreateLedgerChannel(
+    counterParty: string
+  ): Promise<ObjectiveResponse> {
     const asset = `0x${"00".repeat(20)}`;
     const params: DirectFundParams = {
       CounterParty: counterParty,

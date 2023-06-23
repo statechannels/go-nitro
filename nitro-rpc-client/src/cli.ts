@@ -115,7 +115,9 @@ yargs(hideBin(process.argv))
       );
       if (yargs.n) logOutChannelUpdates(rpcClient);
 
-      const dfObjective = await rpcClient.CreateLedgerChannel(yargs.counterparty);
+      const dfObjective = await rpcClient.CreateLedgerChannel(
+        yargs.counterparty
+      );
       const { Id } = dfObjective;
 
       console.log(`Objective started ${Id}`);

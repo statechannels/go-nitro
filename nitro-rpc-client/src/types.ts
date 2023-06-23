@@ -77,10 +77,7 @@ export type DirectFundRequest = JsonRpcRequest<
   "create_ledger_channel",
   DirectFundParams
 >;
-export type PaymentRequest = JsonRpcRequest<
-  "pay", 
-  PaymentParams
->;
+export type PaymentRequest = JsonRpcRequest<"pay", PaymentParams>;
 export type VirtualFundRequest = JsonRpcRequest<
   "create_payment_channel",
   VirtualFundParams
@@ -102,10 +99,7 @@ export type GetPaymentChannelsByLedgerRequest = JsonRpcRequest<
   GetByLedgerRequest
 >;
 
-export type VersionRequest = JsonRpcRequest<
-  "version",
-  Record<string, never>
->;
+export type VersionRequest = JsonRpcRequest<"version", Record<string, never>>;
 export type DirectDefundRequest = JsonRpcRequest<
   "close_ledger_channel",
   DefundObjectiveRequest
