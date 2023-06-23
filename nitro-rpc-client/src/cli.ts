@@ -115,7 +115,7 @@ yargs(hideBin(process.argv))
       );
       if (yargs.n) logOutChannelUpdates(rpcClient);
 
-      const dfObjective = await rpcClient.DirectFund(yargs.counterparty);
+      const dfObjective = await rpcClient.CreateLedgerChannel(yargs.counterparty);
       const { Id } = dfObjective;
 
       console.log(`Objective started ${Id}`);
@@ -143,7 +143,7 @@ yargs(hideBin(process.argv))
       );
       if (yargs.n) logOutChannelUpdates(rpcClient);
 
-      const id = await rpcClient.DirectDefund(yargs.channelId);
+      const id = await rpcClient.CloseLedgerChannel(yargs.channelId);
       console.log(`Objective started ${id}`);
       await rpcClient.WaitForObjective(id);
       console.log(`Objective complete ${id}`);
@@ -180,7 +180,7 @@ yargs(hideBin(process.argv))
           return intermediary.toString(16);
         }) ?? [];
 
-      const vfObjective = await rpcClient.VirtualFund(
+      const vfObjective = await rpcClient.CreatePaymentChannel(
         yargs.counterparty,
         intermediaries
       );
@@ -212,7 +212,7 @@ yargs(hideBin(process.argv))
 
       if (yargs.n) logOutChannelUpdates(rpcClient);
 
-      const id = await rpcClient.VirtualDefund(yargs.channelId);
+      const id = await rpcClient.ClosePaymentChannel(yargs.channelId);
 
       console.log(`Objective started ${id}`);
       await rpcClient.WaitForObjective(id);

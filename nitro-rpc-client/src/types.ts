@@ -73,10 +73,16 @@ export type GetAddressRequest = JsonRpcRequest<
   "get_address",
   Record<string, never>
 >;
-export type DirectFundRequest = JsonRpcRequest<"direct_fund", DirectFundParams>;
-export type PaymentRequest = JsonRpcRequest<"pay", PaymentParams>;
+export type DirectFundRequest = JsonRpcRequest<
+  "create_ledger_channel",
+  DirectFundParams
+>;
+export type PaymentRequest = JsonRpcRequest<
+  "pay", 
+  PaymentParams
+>;
 export type VirtualFundRequest = JsonRpcRequest<
-  "virtual_fund",
+  "create_payment_channel",
   VirtualFundParams
 >;
 export type GetLedgerChannelRequest = JsonRpcRequest<
@@ -96,13 +102,16 @@ export type GetPaymentChannelsByLedgerRequest = JsonRpcRequest<
   GetByLedgerRequest
 >;
 
-export type VersionRequest = JsonRpcRequest<"version", Record<string, never>>;
+export type VersionRequest = JsonRpcRequest<
+  "version",
+  Record<string, never>
+>;
 export type DirectDefundRequest = JsonRpcRequest<
-  "direct_defund",
+  "close_ledger_channel",
   DefundObjectiveRequest
 >;
 export type VirtualDefundRequest = JsonRpcRequest<
-  "virtual_defund",
+  "close_payment_channel",
   DefundObjectiveRequest
 >;
 
@@ -128,15 +137,15 @@ export type GetPaymentChannelsByLedgerResponse = JsonRpcResponse<
  * This is a map of all the RPC methods to their request and response types
  */
 export type RPCRequestAndResponses = {
-  direct_fund: [DirectFundRequest, DirectFundResponse];
-  direct_defund: [DirectDefundRequest, DirectDefundResponse];
+  create_ledger_channel: [DirectFundRequest, DirectFundResponse];
+  close_ledger_channel: [DirectDefundRequest, DirectDefundResponse];
   version: [VersionRequest, VersionResponse];
-  virtual_fund: [VirtualFundRequest, VirtualFundResponse];
+  create_payment_channel: [VirtualFundRequest, VirtualFundResponse];
   get_address: [GetAddressRequest, GetAddressResponse];
   get_ledger_channel: [GetLedgerChannelRequest, GetLedgerChannelResponse];
   get_payment_channel: [GetPaymentChannelRequest, GetPaymentChannelResponse];
   pay: [PaymentRequest, PaymentResponse];
-  virtual_defund: [VirtualDefundRequest, VirtualDefundResponse];
+  close_payment_channel: [VirtualDefundRequest, VirtualDefundResponse];
   get_all_ledger_channels: [
     GetAllLedgerChannelsRequest,
     GetAllLedgerChannelsResponse

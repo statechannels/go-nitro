@@ -120,17 +120,17 @@ export function getAndValidateResult<T extends RequestMethod>(
 ): RPCRequestAndResponses[T][1]["result"] {
   const result = getJsonRpcResult(response);
   switch (method) {
-    case "direct_fund":
-    case "virtual_fund":
+    case "create_ledger_channel":
+    case "create_payment_channel":
       return validateAndConvertResult(
         objectiveSchema,
         result,
         (result: ObjectiveSchemaType) => result
       );
-    case "direct_defund":
+    case "close_ledger_channel":
     case "version":
     case "get_address":
-    case "virtual_defund":
+    case "close_payment_channel":
       return validateAndConvertResult(
         stringSchema,
         result,

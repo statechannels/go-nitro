@@ -43,12 +43,12 @@ export class NitroRpcClient {
   }
 
   /**
-   * DirectFund creates a directly funded ledger channel with the counterparty.
+   * CreateLedgerChannel creates a directly funded ledger channel with the counterparty.
    *
    * @param counterParty - The counterparty to create the channel with
    * @returns A promise that resolves to an objective response, containing the ID of the objective and the channel id.
    */
-  public async DirectFund(counterParty: string): Promise<ObjectiveResponse> {
+  public async CreateLedgerChannel(counterParty: string): Promise<ObjectiveResponse> {
     const asset = `0x${"00".repeat(20)}`;
     const params: DirectFundParams = {
       CounterParty: counterParty,
@@ -63,17 +63,17 @@ export class NitroRpcClient {
       AppData: "0x00",
       Nonce: Date.now(),
     };
-    return this.sendRequest("direct_fund", params);
+    return this.sendRequest("create_ledger_channel", params);
   }
 
   /**
-   * VirtualFund creates a virtually funded channel with the counterparty, using the given intermediaries.
+   * CreatePaymentChannel creates a virtually funded channel with the counterparty, using the given intermediaries.
    *
    * @param counterParty - The counterparty to create the channel with
    * @param intermediaries - The intermerdiaries to use
    * @returns A promise that resolves to an objective response, containing the ID of the objective and the channel id.
    */
-  public async VirtualFund(
+  public async CreatePaymentChannel(
     counterParty: string,
     intermediaries: string[]
   ): Promise<ObjectiveResponse> {
@@ -92,7 +92,7 @@ export class NitroRpcClient {
       Nonce: Date.now(),
     };
 
-    return this.sendRequest("virtual_fund", params);
+    return this.sendRequest("create_payment_channel", params);
   }
 
   /**
@@ -112,25 +112,25 @@ export class NitroRpcClient {
   }
 
   /**
-   * DirectDefund defunds a directly funded ledger channel.
+   * CloseLedgerChannel defunds a directly funded ledger channel.
    *
    * @param channelId - The ID of the channel to defund
    * @returns The ID of the objective that was created
    */
-  public async DirectDefund(channelId: string): Promise<string> {
+  public async CloseLedgerChannel(channelId: string): Promise<string> {
     const params: DefundObjectiveRequest = { ChannelId: channelId };
-    return this.sendRequest("direct_defund", params);
+    return this.sendRequest("close_ledger_channel", params);
   }
   /**
-   * VirtualDefund defunds a virtually funded payment channel.
+   * ClosePaymentChannel defunds a virtually funded payment channel.
    *
    * @param channelId - The ID of the channel to defund
    * @returns The ID of the objective that was created
    */
 
-  public async VirtualDefund(channelId: string): Promise<string> {
+  public async ClosePaymentChannel(channelId: string): Promise<string> {
     const params: DefundObjectiveRequest = { ChannelId: channelId };
-    return this.sendRequest("virtual_defund", params);
+    return this.sendRequest("close_payment_channel", params);
   }
 
   /**
