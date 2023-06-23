@@ -177,6 +177,8 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		query.Open,
 	)
 
+	aliceClient.GetPaymentChannel(types.Destination{0x000}) // Confirms server won't crash if invalid chId is provided
+
 	// wait for the virtual channel to be ready, and
 	// assert correct reporting from query api
 	for i, client := range clients {
