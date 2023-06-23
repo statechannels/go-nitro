@@ -94,7 +94,8 @@ func TestOutOfBandVoucher(t *testing.T) {
 		t.Errorf("expected bob to receive 2, got %s", secondReceipt.AmountReceived)
 	}
 
-	bob.CloseVirtual(vAB.ChannelId)
+	closeVab := bob.CloseVirtual(vAB.ChannelId)
+	<-bob.ObjectiveCompleteChan(closeVab)
 
 	final := bob.GetVirtualChannel(vAB.ChannelId)
 	if final.Balance.PaidSoFar.ToInt().Cmp(big.NewInt(3)) != 0 {
