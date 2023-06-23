@@ -85,7 +85,7 @@ func (rc *RpcClient) GetPaymentChannel(chId types.Destination) query.PaymentChan
 	return waitForRequest[serde.GetPaymentChannelRequest, query.PaymentChannelInfo](rc, serde.GetPaymentChannelRequestMethod, req)
 }
 
-// CreatePaymentChannel creates a new virtual channel
+// CreatePaymentChannel creates a new virtual payment channel
 func (rc *RpcClient) CreatePaymentChannel(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) virtualfund.ObjectiveResponse {
 	objReq := virtualfund.NewObjectiveRequest(
 		intermediaries,
@@ -98,7 +98,7 @@ func (rc *RpcClient) CreatePaymentChannel(intermediaries []types.Address, counte
 	return waitForRequest[virtualfund.ObjectiveRequest, virtualfund.ObjectiveResponse](rc, serde.CreatePaymentChannelRequestMethod, objReq)
 }
 
-// ClosePaymentChannel closes a virtual channel
+// ClosePaymentChannel attempts to close the payment channel with supplied id
 func (rc *RpcClient) ClosePaymentChannel(id types.Destination) protocols.ObjectiveId {
 	objReq := virtualdefund.NewObjectiveRequest(
 		id)
@@ -142,10 +142,10 @@ func (rc *RpcClient) CloseLedgerChannel(id types.Destination) protocols.Objectiv
 }
 
 // Pay uses the specified channel to pay the specified amount
-func (rc *RpcClient) Pay(id types.Destination, amount uint64) serde.PaymentRequest {
+func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
 	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
 
-	return waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
+	waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
 }
 
 func (rc *RpcClient) Close() error {
