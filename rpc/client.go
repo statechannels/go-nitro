@@ -9,6 +9,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
+
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/client/query"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/protocols"
@@ -16,14 +18,11 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
+	"github.com/statechannels/go-nitro/rand"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
-
 	"github.com/statechannels/go-nitro/types"
-
-	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/rand"
 )
 
 // RpcClient is a client for making nitro rpc calls
@@ -80,14 +79,14 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 	return c, nil
 }
 
-func (rc *RpcClient) GetVirtualChannel(id types.Destination) query.PaymentChannelInfo {
-	req := serde.GetPaymentChannelRequest{Id: id}
+func (rc *RpcClient) GetPaymentChannel(chId types.Destination) query.PaymentChannelInfo {
+	req := serde.GetPaymentChannelRequest{Id: chId}
 
 	return waitForRequest[serde.GetPaymentChannelRequest, query.PaymentChannelInfo](rc, serde.GetPaymentChannelRequestMethod, req)
 }
 
-// CreateLedger creates a new ledger channel
-func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) virtualfund.ObjectiveResponse {
+// CreatePaymentChannel creates a new virtual payment channel
+func (rc *RpcClient) CreatePaymentChannel(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) virtualfund.ObjectiveResponse {
 	objReq := virtualfund.NewObjectiveRequest(
 		intermediaries,
 		counterparty,
@@ -96,15 +95,15 @@ func (rc *RpcClient) CreateVirtual(intermediaries []types.Address, counterparty 
 		rand.Uint64(),
 		common.Address{})
 
-	return waitForRequest[virtualfund.ObjectiveRequest, virtualfund.ObjectiveResponse](rc, serde.VirtualFundRequestMethod, objReq)
+	return waitForRequest[virtualfund.ObjectiveRequest, virtualfund.ObjectiveResponse](rc, serde.CreatePaymentChannelRequestMethod, objReq)
 }
 
-// CloseVirtual closes a virtual channel
-func (rc *RpcClient) CloseVirtual(id types.Destination) protocols.ObjectiveId {
+// ClosePaymentChannel attempts to close the payment channel with supplied id
+func (rc *RpcClient) ClosePaymentChannel(id types.Destination) protocols.ObjectiveId {
 	objReq := virtualdefund.NewObjectiveRequest(
 		id)
 
-	return waitForRequest[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.VirtualDefundRequestMethod, objReq)
+	return waitForRequest[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.ClosePaymentChannelRequestMethod, objReq)
 }
 
 func (rc *RpcClient) GetLedgerChannel(id types.Destination) query.LedgerChannelInfo {
@@ -124,7 +123,7 @@ func (rc *RpcClient) GetPaymentChannelsByLedger(ledgerId types.Destination) []qu
 }
 
 // CreateLedger creates a new ledger channel
-func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
+func (rc *RpcClient) CreateLedgerChannel(counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
 	objReq := directfund.NewObjectiveRequest(
 		counterparty,
 		100,
@@ -132,14 +131,14 @@ func (rc *RpcClient) CreateLedger(counterparty types.Address, ChallengeDuration 
 		rand.Uint64(),
 		common.Address{})
 
-	return waitForRequest[directfund.ObjectiveRequest, directfund.ObjectiveResponse](rc, serde.DirectFundRequestMethod, objReq)
+	return waitForRequest[directfund.ObjectiveRequest, directfund.ObjectiveResponse](rc, serde.CreateLedgerChannelRequestMethod, objReq)
 }
 
 // CloseLedger closes a ledger channel
-func (rc *RpcClient) CloseLedger(id types.Destination) protocols.ObjectiveId {
+func (rc *RpcClient) CloseLedgerChannel(id types.Destination) protocols.ObjectiveId {
 	objReq := directdefund.NewObjectiveRequest(id)
 
-	return waitForRequest[directdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.DirectDefundRequestMethod, objReq)
+	return waitForRequest[directdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.CloseLedgerChannelRequestMethod, objReq)
 }
 
 // Pay uses the specified channel to pay the specified amount

@@ -90,21 +90,21 @@ func (rs *RpcServer) registerHandlers() (err error) {
 			return processRequest(rs, requestData, func(req serde.NoPayloadRequest) (string, error) {
 				return rs.client.Version(), nil
 			})
-		case serde.DirectFundRequestMethod:
+		case serde.CreateLedgerChannelRequestMethod:
 			return processRequest(rs, requestData, func(req directfund.ObjectiveRequest) (directfund.ObjectiveResponse, error) {
 				return rs.client.CreateLedgerChannel(req.CounterParty, req.ChallengeDuration, req.Outcome)
 			})
-		case serde.DirectDefundRequestMethod:
+		case serde.CloseLedgerChannelRequestMethod:
 			return processRequest(rs, requestData, func(req directdefund.ObjectiveRequest) (protocols.ObjectiveId, error) {
 				return rs.client.CloseLedgerChannel(req.ChannelId)
 			})
-		case serde.VirtualFundRequestMethod:
+		case serde.CreatePaymentChannelRequestMethod:
 			return processRequest(rs, requestData, func(req virtualfund.ObjectiveRequest) (virtualfund.ObjectiveResponse, error) {
-				return rs.client.CreateVirtualPaymentChannel(req.Intermediaries, req.CounterParty, req.ChallengeDuration, req.Outcome)
+				return rs.client.CreatePaymentChannel(req.Intermediaries, req.CounterParty, req.ChallengeDuration, req.Outcome)
 			})
-		case serde.VirtualDefundRequestMethod:
+		case serde.ClosePaymentChannelRequestMethod:
 			return processRequest(rs, requestData, func(req virtualdefund.ObjectiveRequest) (protocols.ObjectiveId, error) {
-				return rs.client.CloseVirtualChannel(req.ChannelId)
+				return rs.client.ClosePaymentChannel(req.ChannelId)
 			})
 		case serde.PayRequestMethod:
 			return processRequest(rs, requestData, func(req serde.PaymentRequest) (serde.PaymentRequest, error) {

@@ -196,9 +196,9 @@ func (c *Client) ReceivedVouchers() <-chan payments.Voucher {
 	return c.receivedVouchers
 }
 
-// CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
+// CreatePaymentChannel creates a virtual channel with the counterParty using ledger channels
 // with the supplied intermediaries.
-func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) (virtualfund.ObjectiveResponse, error) {
+func (c *Client) CreatePaymentChannel(Intermediaries []types.Address, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) (virtualfund.ObjectiveResponse, error) {
 	objectiveRequest := virtualfund.NewObjectiveRequest(
 		Intermediaries,
 		CounterParty,
@@ -215,8 +215,8 @@ func (c *Client) CreateVirtualPaymentChannel(Intermediaries []types.Address, Cou
 	return objectiveRequest.Response(*c.Address), nil
 }
 
-// CloseVirtualChannel attempts to close and defund the given virtually funded channel.
-func (c *Client) CloseVirtualChannel(channelId types.Destination) (protocols.ObjectiveId, error) {
+// ClosePaymentChannel attempts to close and defund the given virtually funded channel.
+func (c *Client) ClosePaymentChannel(channelId types.Destination) (protocols.ObjectiveId, error) {
 	objectiveRequest := virtualdefund.NewObjectiveRequest(channelId)
 
 	// Send the event to the engine

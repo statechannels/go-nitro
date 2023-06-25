@@ -126,7 +126,7 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 		virtualIds := make([]types.Destination, tc.NumOfChannels)
 		for i := 0; i < int(tc.NumOfChannels); i++ {
 			outcome := td.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), virtualChannelDeposit, 0, types.Address{})
-			response, err := clientA.CreateVirtualPaymentChannel(
+			response, err := clientA.CreatePaymentChannel(
 				clientAddresses(intermediaries),
 				testactors.Bob.Address(),
 				0,
@@ -178,12 +178,12 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 			// alternative who is responsible for closing the channel
 			switch i % 2 {
 			case 0:
-				closeVirtualIds[i], err = clientA.CloseVirtualChannel(virtualIds[i])
+				closeVirtualIds[i], err = clientA.ClosePaymentChannel(virtualIds[i])
 				if err != nil {
 					t.Fatal(err)
 				}
 			case 1:
-				closeVirtualIds[i], err = clientB.CloseVirtualChannel(virtualIds[i])
+				closeVirtualIds[i], err = clientB.ClosePaymentChannel(virtualIds[i])
 				if err != nil {
 					t.Fatal(err)
 				}
