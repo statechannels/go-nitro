@@ -69,7 +69,7 @@ export class NitroRpcClient {
   }
 
   /**
-   * CreatePaymentChannel creates a virtually funded channel with the counterparty, using the given intermediaries.
+   * CreatePaymentChannel creates a virtually funded payment channel with the counterparty, using the given intermediaries.
    *
    * @param counterParty - The counterparty to create the channel with
    * @param intermediaries - The intermerdiaries to use
