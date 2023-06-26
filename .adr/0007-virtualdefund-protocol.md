@@ -41,7 +41,7 @@ The roles in the virtual channel are very distinct. We can leverage these distin
 
 Alice will be programmed to construct a final state for V **which has its outcome adjusted with the latest voucher.** There is an opportunity for her to be malicious here and send a lower voucher / stale voucher. She sends the state to the other participants in a message. The message has a header (or type) “virtual defund instigation message” and includes sufficient data for those participants to verify that the update is acceptable: the final state and the signature. Bob will need to compute the effective voucher amount himself (Alice could send it, but Bob needs to verify anyway). This is so he can check it against his local largest voucher. Intermediaries need to check for reclaimability.
 
-Bob’s client will get the message and trigger a verification procedure. All he cares about is that the adjusted outcome is **as good or better as** he expects given _his_ latest voucher. So if the special message comes in ahead of the actual latest voucher, he will be pleasantly surprised and continue with the protocol. If a malicious message comes in (Alice knowingly sending a low voucher), he will ignore it.
+Bob’s node will get the message and trigger a verification procedure. All he cares about is that the adjusted outcome is **as good or better as** he expects given _his_ latest voucher. So if the special message comes in ahead of the actual latest voucher, he will be pleasantly surprised and continue with the protocol. If a malicious message comes in (Alice knowingly sending a low voucher), he will ignore it.
 
 If every one is happy / successfully verifies, signatures will be broadcast and all parties now hold a finalization proof.
 

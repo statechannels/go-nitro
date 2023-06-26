@@ -6,9 +6,9 @@ Accepted
 
 ## Context
 
-For the go-nitro library to be useful in any kind of production setting it must have some way of persisting data to disk (or some form of storage). Our [memory store](../client/engine/store/memstore.go), is an in-memory store that makes use of `sync.Map` to store data.
+For the go-nitro library to be useful in any kind of production setting it must have some way of persisting data to disk (or some form of storage). Our [memory store](../node/engine/store/memstore.go), is an in-memory store that makes use of `sync.Map` to store data.
 
-We have a [well-defined interface](../client/engine/store/store.go) for our store; this means the implementation details of the store do not influence the rest of the client.
+We have a [well-defined interface](../node/engine/store/store.go) for our store; this means the implementation details of the store do not influence the rest of the node.
 
 ## Decision
 
@@ -18,7 +18,7 @@ The initial implementation of a durable store will be done using [BuntDb](https:
 
 The choice of BuntDB was motivated by a few factors:
 
-- BuntDB uses a key/value interface, conceptually similar to the existing [memory store](../client/engine/store/memstore.go). This allows us to quickly implement a persistent store.
+- BuntDB uses a key/value interface, conceptually similar to the existing [memory store](../node/engine/store/memstore.go). This allows us to quickly implement a persistent store.
 - BuntDB is ACID compliant and uses locking for reader/writers. We don't have to worry about creating malformed data and have some basic guarantees about the state of the data.
 - BuntDB is file-based and lightweight. No additional services need to be installed or configured.
 
@@ -60,5 +60,5 @@ Initially we will use the `EverySecond` policy as it is the default, and quite p
 ## Consequences
 
 - We need to establish some benchmarks so we can understand how the choice of BuntDB affects performance. We should especially consider the role of the hub, who could be dealing with a large amount of traffic.
-- We need to establish some tests that simulate a client crashing and see the impact of sync policies. We should especially consider the role of the hub, as it will probably be writing to the store more frequently.
+- We need to establish some tests that simulate a node crashing and see the impact of sync policies. We should especially consider the role of the hub, as it will probably be writing to the store more frequently.
 - We should look at mostly deprecating the existing `MemStore` in favour of a store using BuntDB.

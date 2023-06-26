@@ -10,10 +10,10 @@ In our codebase we have a few structs that use go-routines to handle tasks async
 
 Here's are some example usages of go-routines.
 
-- [The RPC client](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/client.go#L142)
-- [The RPC server](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/server.go#L223)
-- [Eth Chain service](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/client/engine/chainservice/eth_chainservice.go#L244)
-- [The API client](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/client/client.go#L87)
+- [RPC client](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/client.go#L142)
+- [RPC server](https://github.com/statechannels/go-nitro/blob/0b5fa37613363720c91c115c3de252a39b1b1f0a/rpc/server.go#L223)
+- [Eth Chain service](https://github.com/statechannels/go-nitro/blob/066d000349f08386e8e68c5073b7f0f62d4b52ca/node/engine/chainservice/eth_chainservice.go#L296)
+- [Node orchestrator](https://github.com/statechannels/go-nitro/blob/066d000349f08386e8e68c5073b7f0f62d4b52ca/node/node.go#L86)
 
 ## Decision
 

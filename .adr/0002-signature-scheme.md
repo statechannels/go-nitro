@@ -14,7 +14,7 @@ Our state signing scheme involves encoding a data structure into a string of byt
 
 **This key should not be used in any other protocol.**
 
-Nitro clients should verify the decoding from the contract where funds are locked.
+Nitro nodes should verify the decoding from the contract where funds are locked.
 
 ## Consequences
 

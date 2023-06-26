@@ -19,9 +19,9 @@ To support channel updates we need another approach that let's us dispatch chann
 
 We will implement the "Slice of chans" pattern similiar to the one outlined in [ADR 0013](./0013-event-emission.md).
 
-The nitro client will store a slice of event listener `chans` for each channel id. A consumer can "subscribe" by calling a method which appends a `chan` to that slice and returns it. Whenever the client receives a channel update from the engine it iterates on over the slice and sends an update to any event listener `chans`.
+The nitro node will store a slice of event listener `chans` for each channel id. A consumer can "subscribe" by calling a method which appends a `chan` to that slice and returns it. Whenever the node receives a channel update from the engine it iterates on over the slice and sends an update to any event listener `chans`.
 
-To prevent duplicate notifications being emitted, the client keeps track of the previous emitted channel update. A channel update notification is only emitted if the channel has changed from the previous emitted notification.
+To prevent duplicate notifications being emitted, the node keeps track of the previous emitted channel update. A channel update notification is only emitted if the channel has changed from the previous emitted notification.
 
 ## Alternatives considered
 

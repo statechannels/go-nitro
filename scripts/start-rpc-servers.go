@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	NitroAdjudicator "github.com/statechannels/go-nitro/client/engine/chainservice/adjudicator"
-	ConsensusApp "github.com/statechannels/go-nitro/client/engine/chainservice/consensusapp"
-	chainutils "github.com/statechannels/go-nitro/client/engine/chainservice/utils"
-	VirtualPaymentApp "github.com/statechannels/go-nitro/client/engine/chainservice/virtualpaymentapp"
+	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
+	ConsensusApp "github.com/statechannels/go-nitro/node/engine/chainservice/consensusapp"
+	chainutils "github.com/statechannels/go-nitro/node/engine/chainservice/utils"
+	VirtualPaymentApp "github.com/statechannels/go-nitro/node/engine/chainservice/virtualpaymentapp"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -148,21 +148,21 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 
 // deployContracts deploys the  NitroAdjudicator contract.
 func deployContracts(ctx context.Context) (na common.Address, vpa common.Address, ca common.Address, err error) {
-	client, txSubmitter, err := chainutils.ConnectToChain(context.Background(), "ws://127.0.0.1:8545", "", common.Hex2Bytes(FUNDED_TEST_PK))
+	ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), "ws://127.0.0.1:8545", "", common.Hex2Bytes(FUNDED_TEST_PK))
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
-	na, _, _, err = NitroAdjudicator.DeployNitroAdjudicator(txSubmitter, client)
+	na, _, _, err = NitroAdjudicator.DeployNitroAdjudicator(txSubmitter, ethClient)
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
 	fmt.Printf("Deployed NitroAdjudicator at %s\n", na.String())
-	vpa, _, _, err = VirtualPaymentApp.DeployVirtualPaymentApp(txSubmitter, client)
+	vpa, _, _, err = VirtualPaymentApp.DeployVirtualPaymentApp(txSubmitter, ethClient)
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
 	fmt.Printf("Deployed VirtualPaymentApp at %s\n", vpa.String())
-	ca, _, _, err = ConsensusApp.DeployConsensusApp(txSubmitter, client)
+	ca, _, _, err = ConsensusApp.DeployConsensusApp(txSubmitter, ethClient)
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}

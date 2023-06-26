@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
-	nitro "github.com/statechannels/go-nitro/client"
+	nitro "github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/stretchr/testify/assert"
@@ -33,12 +33,12 @@ func (*mockResponder) Notify([]byte) error {
 }
 
 func sendRequestAndExpectError(t *testing.T, request []byte, expectedError types.JsonRpcError) {
-	mockClient := &nitro.Client{}
+	mockNode := &nitro.Node{}
 	mockLogger := &zerolog.Logger{}
 	mockResponder := &mockResponder{}
-	// Since we're using an empty client we want to disable notifications
-	// otherwise the server will try to send notifications to the client and fail
-	_, err := newRpcServerWithoutNotifications(mockClient, mockLogger, mockResponder)
+	// Since we're using an empty node we want to disable notifications
+	// otherwise the server will try to send notifications to the node and fail
+	_, err := newRpcServerWithoutNotifications(mockNode, mockLogger, mockResponder)
 	if err != nil {
 		t.Error(err)
 	}

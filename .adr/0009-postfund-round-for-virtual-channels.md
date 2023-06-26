@@ -18,19 +18,19 @@ Let’s review the point of the `virtualfund` protocol and its various stages.
 
 The prerequisites for `virtualfund` are a **route** between Alice and Bob through `n > 0` intermediaries, where the route is composed of pairwise **ledger channel** links with sufficient “free” capital to guarantee some net movement of funds between Alice and Bob.
 
-The ultimate aim of `virtualfund` is to result in the creation of a new channel `V` in each of the `n+2` participants’ client’s store, guaranteed by the existing ledger channels in the route. The channel will be **safe to use**.
+The ultimate aim of `virtualfund` is to result in the creation of a new channel `V` in each of the `n+2` participants’ node’s store, guaranteed by the existing ledger channels in the route. The channel will be **safe to use**.
 
 **Safe to use** means that each party has **an unbeatable strategy** to extract a **fair amount of money** from the channel. For each participant, a **fair amount of money** is that participant's deposit (i.e. their total deductions in favour of `V` across all ledger channels guaranteeing `V`) plus the net amount of assets signed over (by way of vouchers or any other mechanism enforceable on chain). The net amount would be zero for intermediaries (assuming no fees are extracted, for simplicity), positive for a net receipient of funds and negative for a net remitter of funds.
 
 The **unbeatable strategy** depends on the states and signatures which each party holds.
 
-To reach this goal, each party’s client goes through some intermediate states (”states” here not to be confused with state channel states). The `virtualfund` protocol is designed such that the intermediate states imply each participant is able to recover their **fair amount of money**.
+To reach this goal, each party’s node goes through some intermediate states (”states” here not to be confused with state channel states). The `virtualfund` protocol is designed such that the intermediate states imply each participant is able to recover their **fair amount of money**.
 
 ### How is this achieved through the use of objectives?
 
 An objective is a running protocol, in the same way that an OS process is a running program. "Task" might be a better name.
 
-The way objectives implicitly protect users is to **wait** for certain events to happen before creating (and broadcasting) commitments on behalf of the user. One such event is objective approval, which is an explicit permission given by the user to the client — to begin progress toward the ultimate goal of the objective. The other events tend to be state commitments (i.e. a state plus a signature).
+The way objectives implicitly protect users is to **wait** for certain events to happen before creating (and broadcasting) commitments on behalf of the user. One such event is objective approval, which is an explicit permission given by the user to the node — to begin progress toward the ultimate goal of the objective. The other events tend to be state commitments (i.e. a state plus a signature).
 
 In the case of `virtualfund`, objective approval results in a prefund state (`turnNum = 0` ) for the virtual channel `V` being signed and broadcast.
 
@@ -38,7 +38,7 @@ In the case of `virtualfund`, objective approval results in a prefund state (`tu
 
 The pause-points of the `virtualfund` protocol, arranged in a flowchart / statechart. When the objective clears a pause point, it typically makes new state commitments. If this RFC were adopted, intermediaries would skip the final pause point altogether.
 
-Whenever a state commitment is made by one client, it confers rights/abilities on other clients. Another way to think about that is that by making a state commitment, a party has relinquished their ability to prevent other clients finalising the state in question on chain. In the terminology of the [nitro paper](https://magmo.com/nitro-protocol.pdf), the state (and its outcome) have been **enabled**.
+Whenever a state commitment is made by one node, it confers rights/abilities on other nodes. Another way to think about that is that by making a state commitment, a party has relinquished their ability to prevent other nodes finalising the state in question on chain. In the terminology of the [nitro paper](https://magmo.com/nitro-protocol.pdf), the state (and its outcome) have been **enabled**.
 
 ### Step-by-step protocol walkthrough
 
@@ -54,9 +54,9 @@ The rules of `VirtualPaymentApp` dictate that the prefund is supported when all 
 
 This is shown in the diagram above as `n+2` check marks (one for each intermediary plus one from each of the payer and payee).
 
-For each client, it is safe to divert funds to the virtual channel only when they hold a support proof for the prefund state (since those funds may otherwise get locked forever). Moving funds out of a channel on chain can only happen if the channel is finalized on chain. Moving funds out of a channel off chain should only happen if the funds could be moved out of the channel on chain. No client should move funds into a channel without assurance that they can be moved out again.
+For each node, it is safe to divert funds to the virtual channel only when they hold a support proof for the prefund state (since those funds may otherwise get locked forever). Moving funds out of a channel on chain can only happen if the channel is finalized on chain. Moving funds out of a channel off chain should only happen if the funds could be moved out of the channel on chain. No node should move funds into a channel without assurance that they can be moved out again.
 
-Next, a client will enable an update to one or two ledger channels `L_i` which will divert funds to `V`.
+Next, a node will enable an update to one or two ledger channels `L_i` which will divert funds to `V`.
 
 ![Funding](./V-fund.png)
 
@@ -68,7 +68,7 @@ At any point during this stage, each party can recover their fair amount of mone
 
 ![Once the postfund is supported, vouchers may be redeemed on chain. ](./V-postfund.png)
 
-When funding is complete from the point of view of each client, they begin to sign the postfund. Once the postfund is supported, vouchers may be redeemed on chain.
+When funding is complete from the point of view of each node, they begin to sign the postfund. Once the postfund is supported, vouchers may be redeemed on chain.
 
 In this round, participants sign the postfund of V (`turNum=1`).
 

@@ -1,7 +1,7 @@
 package serde
 
 import (
-	"github.com/statechannels/go-nitro/client/query"
+	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"

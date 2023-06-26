@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/rs/zerolog"
-	nitro "github.com/statechannels/go-nitro/client"
-	"github.com/statechannels/go-nitro/client/query"
+	nitro "github.com/statechannels/go-nitro/node"
+	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -20,10 +20,10 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// RpcServer handles nitro rpc requests and executes them on the nitro client
+// RpcServer handles nitro rpc requests and executes them on the nitro node
 type RpcServer struct {
 	transport transport.Responder
-	client    *nitro.Client
+	node      *nitro.Node
 	logger    *zerolog.Logger
 	cancel    context.CancelFunc
 	wg        *sync.WaitGroup
@@ -38,12 +38,12 @@ func (rs *RpcServer) Close() error {
 	rs.wg.Wait()
 
 	rs.transport.Close()
-	return rs.client.Close()
+	return rs.node.Close()
 }
 
 // newRpcServerWithoutNotifications creates a new rpc server without notifications enabled
-func newRpcServerWithoutNotifications(nitroClient *nitro.Client, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
-	rs := &RpcServer{trans, nitroClient, logger, func() {}, &sync.WaitGroup{}}
+func newRpcServerWithoutNotifications(nitroNode *nitro.Node, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
+	rs := &RpcServer{trans, nitroNode, logger, func() {}, &sync.WaitGroup{}}
 
 	err := rs.registerHandlers()
 	if err != nil {
@@ -53,9 +53,9 @@ func newRpcServerWithoutNotifications(nitroClient *nitro.Client, logger *zerolog
 	return rs, nil
 }
 
-func NewRpcServer(nitroClient *nitro.Client, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
+func NewRpcServer(nitroNode *nitro.Node, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	rs := &RpcServer{trans, nitroClient, logger, cancel, &sync.WaitGroup{}}
+	rs := &RpcServer{trans, nitroNode, logger, cancel, &sync.WaitGroup{}}
 
 	rs.wg.Add(1)
 	go rs.sendNotifications(ctx)
@@ -84,34 +84,34 @@ func (rs *RpcServer) registerHandlers() (err error) {
 		switch serde.RequestMethod(jsonrpcReq.Method) {
 		case serde.GetAddressMethod:
 			return processRequest(rs, requestData, func(req serde.NoPayloadRequest) (string, error) {
-				return rs.client.Address.Hex(), nil
+				return rs.node.Address.Hex(), nil
 			})
 		case serde.VersionMethod:
 			return processRequest(rs, requestData, func(req serde.NoPayloadRequest) (string, error) {
-				return rs.client.Version(), nil
+				return rs.node.Version(), nil
 			})
 		case serde.CreateLedgerChannelRequestMethod:
 			return processRequest(rs, requestData, func(req directfund.ObjectiveRequest) (directfund.ObjectiveResponse, error) {
-				return rs.client.CreateLedgerChannel(req.CounterParty, req.ChallengeDuration, req.Outcome)
+				return rs.node.CreateLedgerChannel(req.CounterParty, req.ChallengeDuration, req.Outcome)
 			})
 		case serde.CloseLedgerChannelRequestMethod:
 			return processRequest(rs, requestData, func(req directdefund.ObjectiveRequest) (protocols.ObjectiveId, error) {
-				return rs.client.CloseLedgerChannel(req.ChannelId)
+				return rs.node.CloseLedgerChannel(req.ChannelId)
 			})
 		case serde.CreatePaymentChannelRequestMethod:
 			return processRequest(rs, requestData, func(req virtualfund.ObjectiveRequest) (virtualfund.ObjectiveResponse, error) {
-				return rs.client.CreatePaymentChannel(req.Intermediaries, req.CounterParty, req.ChallengeDuration, req.Outcome)
+				return rs.node.CreatePaymentChannel(req.Intermediaries, req.CounterParty, req.ChallengeDuration, req.Outcome)
 			})
 		case serde.ClosePaymentChannelRequestMethod:
 			return processRequest(rs, requestData, func(req virtualdefund.ObjectiveRequest) (protocols.ObjectiveId, error) {
-				return rs.client.ClosePaymentChannel(req.ChannelId)
+				return rs.node.ClosePaymentChannel(req.ChannelId)
 			})
 		case serde.PayRequestMethod:
 			return processRequest(rs, requestData, func(req serde.PaymentRequest) (serde.PaymentRequest, error) {
 				if err := serde.ValidatePaymentRequest(req); err != nil {
 					return serde.PaymentRequest{}, err
 				}
-				rs.client.Pay(req.Channel, big.NewInt(int64(req.Amount)))
+				rs.node.Pay(req.Channel, big.NewInt(int64(req.Amount)))
 				return req, nil
 			})
 		case serde.GetPaymentChannelRequestMethod:
@@ -119,22 +119,22 @@ func (rs *RpcServer) registerHandlers() (err error) {
 				if err := serde.ValidateGetPaymentChannelRequest(req); err != nil {
 					return query.PaymentChannelInfo{}, err
 				}
-				return rs.client.GetPaymentChannel(req.Id)
+				return rs.node.GetPaymentChannel(req.Id)
 			})
 		case serde.GetLedgerChannelRequestMethod:
 			return processRequest(rs, requestData, func(req serde.GetLedgerChannelRequest) (query.LedgerChannelInfo, error) {
-				return rs.client.GetLedgerChannel(req.Id)
+				return rs.node.GetLedgerChannel(req.Id)
 			})
 		case serde.GetAllLedgerChannelsMethod:
 			return processRequest(rs, requestData, func(req serde.NoPayloadRequest) ([]query.LedgerChannelInfo, error) {
-				return rs.client.GetAllLedgerChannels()
+				return rs.node.GetAllLedgerChannels()
 			})
 		case serde.GetPaymentChannelsByLedgerMethod:
 			return processRequest(rs, requestData, func(req serde.GetPaymentChannelsByLedgerRequest) ([]query.PaymentChannelInfo, error) {
 				if err := serde.ValidateGetPaymentChannelsByLedgerRequest(req); err != nil {
 					return []query.PaymentChannelInfo{}, err
 				}
-				return rs.client.GetPaymentChannelsByLedger(req.LedgerId)
+				return rs.node.GetPaymentChannelsByLedger(req.LedgerId)
 			})
 		default:
 			responseErr := types.MethodNotFoundError
@@ -242,7 +242,7 @@ func (rs *RpcServer) sendNotifications(ctx context.Context) {
 		case <-ctx.Done():
 			rs.wg.Done()
 			return
-		case completedObjective, ok := <-rs.client.CompletedObjectives():
+		case completedObjective, ok := <-rs.node.CompletedObjectives():
 			if !ok {
 				rs.logger.Warn().Msg("CompletedObjectives channel closed, exiting sendNotifications")
 				return
@@ -251,7 +251,7 @@ func (rs *RpcServer) sendNotifications(ctx context.Context) {
 			if err != nil {
 				panic(err)
 			}
-		case ledgerInfo, ok := <-rs.client.LedgerUpdates():
+		case ledgerInfo, ok := <-rs.node.LedgerUpdates():
 			if !ok {
 				rs.logger.Warn().Msg("LedgerUpdates channel closed, exiting sendNotifications")
 				return
@@ -260,7 +260,7 @@ func (rs *RpcServer) sendNotifications(ctx context.Context) {
 			if err != nil {
 				panic(err)
 			}
-		case paymentInfo, ok := <-rs.client.PaymentUpdates():
+		case paymentInfo, ok := <-rs.node.PaymentUpdates():
 			if !ok {
 				rs.logger.Warn().Msg("PaymentUpdates channel closed, exiting sendNotifications")
 				return
