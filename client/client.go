@@ -182,8 +182,8 @@ func (c *Client) LedgerUpdatedChan(ledgerId types.Destination) <-chan query.Ledg
 }
 
 // PaymentChannelUpdatedChan returns a chan that receives a payment channel info whenever the payment channel with given id is updated
-func (c *Client) PaymentChannelUpdatedChan(ledgerId types.Destination) <-chan query.PaymentChannelInfo {
-	return c.channelNotifier.RegisterForPaymentChannelUpdates(ledgerId)
+func (c *Client) PaymentChannelUpdatedChan(paymentChannelID types.Destination) <-chan query.PaymentChannelInfo {
+	return c.channelNotifier.RegisterForPaymentChannelUpdates(paymentChannelID)
 }
 
 // FailedObjectives returns a chan that receives an objective id whenever that objective has failed
