@@ -277,14 +277,14 @@ type channelStatusShorthand struct {
 // to the supplied states.
 func createLedgerStory(
 	id types.Destination,
-	clientAddr, hubAddr common.Address,
+	leaderAddr, followerAddr common.Address,
 	states []channelStatusShorthand,
 ) []query.LedgerChannelInfo {
 	story := make([]query.LedgerChannelInfo, len(states))
 	for i, state := range states {
 		story[i] = createLedgerInfo(
 			id,
-			simpleOutcome(clientAddr, hubAddr, state.clientA, state.clientB),
+			simpleOutcome(leaderAddr, followerAddr, state.clientA, state.clientB),
 			state.status,
 		)
 	}
