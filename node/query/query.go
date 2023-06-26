@@ -65,17 +65,17 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 	// TODO: We assume single asset outcomes
 	outcome := latest.Outcome[0]
 	asset := outcome.Asset
-	client := latest.Participants[0]
-	clientBalance := big.NewInt(0).Set(outcome.Allocations[0].Amount)
-	hub := latest.Participants[1]
-	hubBalance := big.NewInt(0).Set(outcome.Allocations[1].Amount)
+	leader := latest.Participants[0]
+	leaderBalance := big.NewInt(0).Set(outcome.Allocations[0].Amount)
+	follower := latest.Participants[1]
+	followerBalance := big.NewInt(0).Set(outcome.Allocations[1].Amount)
 
 	return LedgerChannelBalance{
 		AssetAddress:    asset,
-		Leader:          client,
-		Follower:        hub,
-		LeaderBalance:   (*hexutil.Big)(clientBalance),
-		FollowerBalance: (*hexutil.Big)(hubBalance),
+		Leader:          leader,
+		Follower:        follower,
+		LeaderBalance:   (*hexutil.Big)(leaderBalance),
+		FollowerBalance: (*hexutil.Big)(followerBalance),
 	}
 }
 
