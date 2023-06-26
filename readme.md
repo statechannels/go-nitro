@@ -42,7 +42,7 @@ Usage of ./nitro-rpc-server:
   -naaddress string
         Specifies the address of the nitro adjudicator contract. Default is the address computed by the Create2Deployer contract. (default "0xC6A55E07566416274dBF020b5548eecEdB56290c")
   -pk string
-        Specifies the private key for the client. Default is Alice's private key. (default "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d")
+        Specifies the private key used by the node. Default is Alice's private key. (default "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d")
   -rpcport int
         Specifies the tcp port for the rpc server. (default 4005)
   -usedurablestore
@@ -66,14 +66,14 @@ but see https://github.com/statechannels/nitro-gui for an RPC client to do so pr
 
 Go-nitro is also work-in-progress library code with an evolving API.
 
-Our [integration tests](./client_test/readme.md) give the best idea of how to use the API. Another useful resource is [the godoc](https://pkg.go.dev/github.com/statechannels/go-nitro@v0.0.0-20221013015616-00c5614be2d2/client#Client) description of the `go-nitro.Client` API (please check for the latest version).
+Our [integration tests](./node_test/readme.md) give the best idea of how to use the API. Another useful resource is [the godoc](https://pkg.go.dev/github.com/statechannels/go-nitro@v0.0.0-20221013015616-00c5614be2d2/client#Client) description of the `go-nitro.Node` API (please check for the latest version).
 
-Broadly, consumers will construct a go-nitro `Client`, possibly using injected dependencies. Then, they can create channels and send payments:
+Broadly, consumers will construct a go-nitro `Node`, possibly using injected dependencies. Then, they can create channels and send payments:
 
 ```Go
- import nc "github.com/statechannels/go-nitro/client"
+ import nc "github.com/statechannels/go-nitro/node"
 
- nitroClient := nc.New(
+ nitroNode := nc.New(
                     messageservice,
                     chain,
                     storeA,
@@ -81,18 +81,18 @@ Broadly, consumers will construct a go-nitro `Client`, possibly using injected d
                     nil,
                     nil
                 )
-response := nitroClient.CreateLedgerChannel(hub.Address, 0, someOutcome)
-nitroClient.WaitForCompletedObjective(response.objectiveId)
+response := nitroNode.CreateLedgerChannel(hub.Address, 0, someOutcome)
+nitroNode.WaitForCompletedObjective(response.objectiveId)
 
-response = nitroClient.CreateVirtualPaymentChannel([hub.Address],bob.Address, defaultChallengeDuration, someOtherOutcome)
-nitroClient.WaitForCompletedObjective(response.objectiveId)
+response = nitroNode.CreateVirtualPaymentChannel([hub.Address],bob.Address, defaultChallengeDuration, someOtherOutcome)
+nitroNode.WaitForCompletedObjective(response.objectiveId)
 
 for i := 0; i < len(10); i++ {
-    clientA.Pay(response.ChannelId, big.NewInt(int64(5)))
+    nitroNode.Pay(response.ChannelId, big.NewInt(int64(5)))
 }
 
-response = nitroClient.CloseVirtualChannel(response.ChannelId)
-nitroClient.WaitForCompletedObjective(response.objectiveId)
+response = nitroNode.CloseVirtualChannel(response.ChannelId)
+nitroNode.WaitForCompletedObjective(response.objectiveId)
 ```
 
 ### Start RPC servers test script
@@ -129,19 +129,19 @@ The following roadmap gives an idea of the various packages that compose the `go
 │   ├── consensus_channel ✅    # manage a running ledger channel.
 │   └── state ✅               # generate and recover signatures on state updates
 │       ├── outcome ✅         # define how funds are dispersed when a channel closes
-├── client 🚧                  # exposes an API to the consuming application
-│   └── engine ✅              # coordinate the client components, runs the protocols
+├── crypto  ✅                 # create Ethereum accounts, create & recover signatures
+├── node 🚧                    # exposes an API to the consuming application
+│   └── engine ✅              # coordinate the node components, runs the protocols
 │       ├── chainservice 🚧    # watch the chain and submit transactions
 │       ├── messageservice ✅  # send and receives messages from peers
 │       └── store 🚧           # store keys, state updates and other critical data
-├── client_test ✅             # integration tests involving multiple clients
-├── crypto  ✅                 # create Ethereum accounts, create & recover signatures
+├── node_test ✅               # integration tests involving multiple nodes
 ├── internal
 │   ├── testactors ✅          # peers with vanity addresses (Alice, Bob, Irene, ... )
 │   ├── testdata ✅            # literals and utility functions used by other test packages
 │   ├── testhelpers ✅         # pretty-print test failures
 |
-├── protocols ✅               # functional core of the go-nitro client
+├── protocols ✅               # functional core of the go-nitro node
 │   ├── direct-fund ✅         # fund a channel on-chain
 │   ├── direct-defund ✅       # defund a channel on-chain
 │   ├── virtual-fund ✅        # fund a channel off-chain through one or more  intermediaries

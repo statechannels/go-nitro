@@ -11,7 +11,7 @@ runAbigen() {
   abigen --abi=$(pwd)/tmp-build/${1}.abi \
     --bin=$(pwd)/tmp-build/${1}.bin \
     --pkg=${1} \
-    --out=$(pwd)/../client/engine/chainservice/${2}/${1}.go 
+    --out=$(pwd)/../node/engine/chainservice/${2}/${1}.go 
 }
 
 runAbigen "NitroAdjudicator" "adjudicator"
