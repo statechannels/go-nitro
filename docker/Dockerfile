@@ -1,11 +1,5 @@
 FROM golang:1.20-bullseye
 
-# Set up anvil
-RUN curl -L https://foundry.paradigm.xyz | bash
-ENV PATH="$PATH:/root/.foundry/bin"
-RUN . /root/.bashrc
-RUN foundryup
-
 WORKDIR /go-nitro
 COPY . .
 RUN go build ./...
