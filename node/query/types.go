@@ -1,6 +1,9 @@
 package query
 
 import (
+	"bytes"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -54,6 +57,19 @@ func (lcb LedgerChannelBalance) Equal(other LedgerChannelBalance) bool {
 		lcb.Leader == other.Leader &&
 		lcb.FollowerBalance.ToInt().Cmp(other.FollowerBalance.ToInt()) == 0 &&
 		lcb.LeaderBalance.ToInt().Cmp(other.LeaderBalance.ToInt()) == 0
+}
+
+// BalanceOf returns the balance of the given address in the channel. If the address is not a
+// known participant, it returns 0.
+func (lcb LedgerChannelBalance) BalanceOf(a types.Address) *hexutil.Big {
+	aBytes := a.Bytes()
+	if bytes.Equal(aBytes, lcb.Leader.Bytes()) {
+		return lcb.LeaderBalance
+	} else if bytes.Equal(aBytes, lcb.Follower.Bytes()) {
+		return lcb.FollowerBalance
+	} else {
+		return (*hexutil.Big)(big.NewInt(0))
+	}
 }
 
 // Equal returns true if the other LedgerChannelInfo is equal to this one
