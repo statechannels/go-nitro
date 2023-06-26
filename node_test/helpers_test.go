@@ -251,16 +251,16 @@ func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, sta
 
 // createLedgerInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetLedgerChannel
 func createLedgerInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.LedgerChannelInfo {
-	clientAdd, _ := outcome[0].Allocations[0].Destination.ToAddress()
-	hubAdd, _ := outcome[0].Allocations[1].Destination.ToAddress()
+	leaderAddr, _ := outcome[0].Allocations[0].Destination.ToAddress()
+	followerAddr, _ := outcome[0].Allocations[1].Destination.ToAddress()
 
 	return query.LedgerChannelInfo{
 		ID:     id,
 		Status: status,
 		Balance: query.LedgerChannelBalance{
 			AssetAddress:    types.Address{},
-			Leader:          clientAdd,
-			Follower:        hubAdd,
+			Leader:          leaderAddr,
+			Follower:        followerAddr,
 			LeaderBalance:   (*hexutil.Big)(outcome[0].Allocations[0].Amount),
 			FollowerBalance: (*hexutil.Big)(outcome[0].Allocations[1].Amount),
 		},
