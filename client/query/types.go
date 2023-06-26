@@ -1,7 +1,6 @@
 package query
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -62,10 +61,9 @@ func (lcb LedgerChannelBalance) Equal(other LedgerChannelBalance) bool {
 // BalanceOf returns the balance of the given address in the channel, and an
 // error if the address is not a participant.
 func (lcb LedgerChannelBalance) BalanceOf(a types.Address) (*hexutil.Big, error) {
-	aBytes := a.Bytes()
-	if bytes.Equal(aBytes, lcb.Leader.Bytes()) {
+	if a == lcb.Leader {
 		return lcb.LeaderBalance, nil
-	} else if bytes.Equal(aBytes, lcb.Follower.Bytes()) {
+	} else if a == lcb.Follower {
 		return lcb.FollowerBalance, nil
 	} else {
 		return nil, fmt.Errorf("%s is not a participant", a)
