@@ -25,7 +25,6 @@ Any client participant (A-F) can initate a virtualfund protocol with any other p
 
 The hub-hub channel L(Irene, Ivy) is particularly challenging, since each of Irene & Ivy can recieve a request that will require updates to L(Irene, Ivy) at any time, from any participant.
 
-
 ## Considered Options
 
 ### Complete Consensus Ledger Update
@@ -33,11 +32,13 @@ The hub-hub channel L(Irene, Ivy) is particularly challenging, since each of Ire
 Consensus channel runs the null-app. State updates must be by unanimous consensus (ie, signed by all participants).
 
 pros:
+
 - security guarantees as strong as the base protocol
 - no bespoke on-chain application logic
 - lower off-chain implementation complexity
 
 cons:
+
 - sacrificing some performance optimizations
 
 ### Async Ledger Updates
@@ -53,10 +54,12 @@ Above document outlines a protocol for ledger channel in which the channel appli
 - contains update rules which allow participants to unilaterally include items from their counterparty's queue into the current outcome
 
 pros:
+
 - potential for a reduction in total network round-trips on virtualfund / defund operations
 - potential for reduced "blocking" time while waiting on network round-trips
 
 cons:
+
 - greater off-chain implementation complexity
 - introduces on-chain implementation requirements
 - more difficult security analysis
@@ -74,12 +77,13 @@ Update **ordering** is managed by a designated ledger channel leader (`participa
 The consensus update ledger channel implementation exists as the `struct ConsensusChannel` export from `package consensus_channel`.
 
 `ConsensusChannel` represents an API into a running channel that is specific to ledger channels. In addition to default channel data like `state.FixedPart` (package state), it:
+
 - defines the data structure `LedgerOutcome`, tailored to represent the variablepart of a ledger channel (each party's balance + a map of guarantees for virtualchannels)
 - defines `Proposal` update structures `Add` and `Remove`, which are used to update `LedgerOutcome` when funding or defunding a given channel
 - contains a queue of `SignedProposal`s, which is used to order updates
 - contains various helpers to translate between canonical channel `state.State` data and the local `LedgerOutcome` representation
 
-Further, the package exposes constructors `NewLeaderChannel()` and `NewFollowerChannel()` which return role-specific APIs and offer assurances against clients mistakenly assuming incorrect roles.
+Further, the package exposes constructors `NewLeaderChannel()` and `NewFollowerChannel()` which return role-specific APIs and offer assurances against nodes mistakenly assuming incorrect roles.
 
 ```
 LeaderChannel:
@@ -93,17 +97,16 @@ FollowerChannel:
 
 **Note**: state channel security guarantees depend on signed channel states. To that end, proposals sent over the wire are labelled with their turn number, and the signature sent with a proposal is a signature on the **resultant channel state** after the proposed `Add` or `Remove` is applied - not on the proposal data itself.
 
-
 ### Integration with virtualfunding protocols
 
 A client `X` initializing a new virtual channel via the `virtualfund` package (`./protocols/virtualfund`) is provided access to its ledger channel via a getter.
 
 The virtualfund objective is responsible for crafting the `Add` proposal for its target channel, and
+
 - in the case of a leader ledger channel, calling `Propose()` with this proposal to generate a message for the counterparty
 - in the case of a follower ledger channel, applying this constructed `Add` as the `expectedProposal` for `SignNextProposal()`
 
 Each of these produces a SignedProposal, which is returned to the engine as a protocol side effect and sent to the ledger counterpaty.
-
 
 For `virtualdefund`, the above applies with a `Remove` proposal in place of the `Add`.
 
@@ -112,6 +115,7 @@ For `virtualdefund`, the above applies with a `Remove` proposal in place of the 
 Existing `directfund` and `directdefund` protocols operate on the `Channel` struct from `package channel`. The `Channel` struct is the canonical view of a channel.
 
 This requires a conversion steps on each end:
+
 - `directfund.Objective` contains converter method `CreateConsensusChannel()`, which prepares a ledger channel for usage by the virtualfunding protocols after the directfund is complete
 - package `directdefund` contains converter method `CreateChannelFromConsensusChannel(cc)`, which prepares a `Channel` struct from the ledger channel.
 
