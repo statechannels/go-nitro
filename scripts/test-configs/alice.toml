@@ -8,5 +8,5 @@ rpcport = 4005
 chainpk = "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 pk = "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d"
 
-chainauthtoken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.PyJt3GZtJrLu-bs_3Kmy1VrFpcGoCZEZ8JhX-YWQ4Pc"
-chainurl = "ws://127.0.0.1:1234/rpc/v1"
+chainauthtoken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.Z2bB8kZtMyYRMA3YPtawuR5eDdEb2NuRPA9vGx-A9Gg"
+chainurl = "ws://:1234/rpc/v1"
