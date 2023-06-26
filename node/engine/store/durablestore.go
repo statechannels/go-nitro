@@ -589,18 +589,19 @@ func (ds *DurableStore) SetVoucherInfo(channelId types.Destination, v payments.V
 	})
 }
 
-func (ds *DurableStore) GetVoucherInfo(channelId types.Destination) (v *payments.VoucherInfo, ok bool) {
+func (ds *DurableStore) GetVoucherInfo(channelId types.Destination) (*payments.VoucherInfo, error) {
+	v := &payments.VoucherInfo{}
 	err := ds.vouchers.View(func(tx *buntdb.Tx) error {
 		vJSON, err := tx.Get(channelId.String())
 		if err != nil {
-			return nil
+			return err
 		}
-		return json.Unmarshal([]byte(vJSON), &v)
+		return json.Unmarshal([]byte(vJSON), v)
 	})
-	if err == nil {
-		ok = true
+	if err != nil {
+		return nil, err
 	}
-	return
+	return v, nil
 }
 
 func (ds *DurableStore) RemoveVoucherInfo(channelId types.Destination) error {

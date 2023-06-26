@@ -472,18 +472,18 @@ func (ms *MemStore) SetVoucherInfo(channelId types.Destination, v payments.Vouch
 	return nil
 }
 
-func (ms *MemStore) GetVoucherInfo(channelId types.Destination) (v *payments.VoucherInfo, ok bool) {
+func (ms *MemStore) GetVoucherInfo(channelId types.Destination) (*payments.VoucherInfo, error) {
 	data, ok := ms.vouchers.Load(channelId.String())
 	if !ok {
-		return nil, false
+		return nil, fmt.Errorf("could not load vouchers from memory")
 	}
 
-	v = &payments.VoucherInfo{}
+	v := &payments.VoucherInfo{}
 	err := json.Unmarshal(data, v)
 	if err != nil {
-		return nil, false
+		return nil, err
 	}
-	return v, true
+	return v, nil
 }
 
 func (ms *MemStore) RemoveVoucherInfo(channelId types.Destination) error {
