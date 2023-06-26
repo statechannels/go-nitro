@@ -72,8 +72,8 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 
 	return LedgerChannelBalance{
 		AssetAddress:  asset,
-		Hub:           hub,
-		Client:        client,
+		Leader:        client,
+		Follower:      hub,
 		HubBalance:    (*hexutil.Big)(hubBalance),
 		ClientBalance: (*hexutil.Big)(clientBalance),
 	}
