@@ -273,14 +273,24 @@ func (c *Client) CreatePayment(channelId types.Destination, amount *big.Int) (<-
 	vChan := make(chan payments.Voucher, 1)
 	id := rand.Uint64()
 	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount, Withhold: true, PaymentID: id}
-	for {
-		payment := <-c.PaymentChannelUpdatedChan(channelId)
 
-		if payment.LatestVoucher.PaymentID == id {
-			vChan <- payment.LatestVoucher
-			break
+	timeout, _ := context.WithTimeout(context.Background(), 5*time.Second)
+
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				vChan <- payments.Voucher{}
+				break
+			case payment := <-c.PaymentChannelUpdatedChan(channelId):
+				if payment.LatestVoucher.PaymentID == id {
+
+					vChan <- payment.LatestVoucher
+					break
+				}
+			}
 		}
-	}
+	}(timeout)
 
 	return vChan, nil
 }
