@@ -71,11 +71,11 @@ func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
 	hubBalance := big.NewInt(0).Set(outcome.Allocations[1].Amount)
 
 	return LedgerChannelBalance{
-		AssetAddress:  asset,
-		Leader:        client,
-		Follower:      hub,
-		HubBalance:    (*hexutil.Big)(hubBalance),
-		ClientBalance: (*hexutil.Big)(clientBalance),
+		AssetAddress:    asset,
+		Leader:          client,
+		Follower:        hub,
+		LeaderBalance:   (*hexutil.Big)(clientBalance),
+		FollowerBalance: (*hexutil.Big)(hubBalance),
 	}
 }
 
