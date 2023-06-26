@@ -1,4 +1,4 @@
-package client_test // import "github.com/statechannels/go-nitro/client_test"
+package node_test // import "github.com/statechannels/go-nitro/node_test"
 
 import (
 	"fmt"

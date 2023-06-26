@@ -1,4 +1,4 @@
-package client_test
+package node_test
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ const (
 	ledgerChannelDeposit   = 5_000_000
 	defaultTimeout         = 10 * time.Second
 	virtualChannelDeposit  = 5000
-	DURABLE_STORE_FOLDER   = "../data/client_test"
+	DURABLE_STORE_FOLDER   = "../data/node_test"
 )
 
 type StoreType string
@@ -46,7 +46,7 @@ const (
 	P2PMessageService  MessageService = "P2PMessageService"
 )
 
-// TestCase is a test case for the client integration test.
+// TestCase is a test case for the node integration test.
 type TestCase struct {
 	Description    string
 	Chain          ChainType
