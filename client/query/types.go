@@ -2,7 +2,7 @@ package query
 
 import (
 	"bytes"
-	"math/big"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/statechannels/go-nitro/types"
@@ -59,16 +59,16 @@ func (lcb LedgerChannelBalance) Equal(other LedgerChannelBalance) bool {
 		lcb.LeaderBalance.ToInt().Cmp(other.LeaderBalance.ToInt()) == 0
 }
 
-// BalanceOf returns the balance of the given address in the channel. If the address is not a
-// known participant, it returns 0.
-func (lcb LedgerChannelBalance) BalanceOf(a types.Address) *hexutil.Big {
+// BalanceOf returns the balance of the given address in the channel, and an
+// error if the address is not a participant.
+func (lcb LedgerChannelBalance) BalanceOf(a types.Address) (*hexutil.Big, error) {
 	aBytes := a.Bytes()
 	if bytes.Equal(aBytes, lcb.Leader.Bytes()) {
-		return lcb.LeaderBalance
+		return lcb.LeaderBalance, nil
 	} else if bytes.Equal(aBytes, lcb.Follower.Bytes()) {
-		return lcb.FollowerBalance
+		return lcb.FollowerBalance, nil
 	} else {
-		return (*hexutil.Big)(big.NewInt(0))
+		return nil, fmt.Errorf("%s is not a participant", a)
 	}
 }
 
