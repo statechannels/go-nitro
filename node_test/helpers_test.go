@@ -259,8 +259,8 @@ func createLedgerInfo(id types.Destination, outcome outcome.Exit, status query.C
 		Status: status,
 		Balance: query.LedgerChannelBalance{
 			AssetAddress:  types.Address{},
-			Hub:           hubAdd,
-			Client:        clientAdd,
+			Leader:        clientAdd,
+			Follower:      hubAdd,
 			ClientBalance: (*hexutil.Big)(outcome[0].Allocations[0].Amount),
 			HubBalance:    (*hexutil.Big)(outcome[0].Allocations[1].Amount),
 		},
