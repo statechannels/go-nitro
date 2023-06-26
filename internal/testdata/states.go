@@ -71,13 +71,13 @@ var testState = state.State{
 	IsFinal:           false,
 }
 
-func createLedgerState(client, hub types.Address, clientBalance, hubBalance uint) state.State {
+func createLedgerState(leader, follower types.Address, clientBalance, hubBalance uint) state.State {
 	state := testState.Clone()
 	state.Participants = []types.Address{
-		client,
-		hub,
+		leader,
+		follower,
 	}
-	state.Outcome = Outcomes.Create(client, hub, clientBalance, hubBalance, common.Address{})
+	state.Outcome = Outcomes.Create(leader, follower, clientBalance, hubBalance, common.Address{})
 	state.AppDefinition = types.Address{} // ledger channel running the consensus app
 	state.TurnNum = 0
 
