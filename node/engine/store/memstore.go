@@ -475,7 +475,7 @@ func (ms *MemStore) SetVoucherInfo(channelId types.Destination, v payments.Vouch
 func (ms *MemStore) GetVoucherInfo(channelId types.Destination) (*payments.VoucherInfo, error) {
 	data, ok := ms.vouchers.Load(channelId.String())
 	if !ok {
-		return nil, fmt.Errorf("could not load vouchers from memory")
+		return nil, fmt.Errorf("channelId %s: %w", channelId.String(), ErrLoadVouchers)
 	}
 
 	v := &payments.VoucherInfo{}

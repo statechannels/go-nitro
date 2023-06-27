@@ -8,7 +8,6 @@ import (
 	"io"
 	"math/big"
 	"sync"
-	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel"
@@ -45,6 +44,13 @@ type ErrGetObjective struct {
 
 func (e *ErrGetObjective) Error() string {
 	return fmt.Sprintf("unexpected error getting/creating objective %s: %v", e.objectiveId, e.wrappedError)
+}
+
+// nonFatalErrors is a list of errors for which the engine should not panic
+var nonFatalErrors = []error{
+	&ErrGetObjective{},
+	store.ErrLoadVouchers,
+	directfund.ErrLedgerChannelExists,
 }
 
 // Engine is the imperative part of the core business logic of a go-nitro Node
@@ -851,6 +857,13 @@ func (e *Engine) recordMessageMetrics(message protocols.Message) {
 func (e *Engine) checkError(err error) {
 	if err != nil {
 		e.logger.Err(err).Msgf("%s, error in run loop", e.store.GetAddress())
-		<-time.After(1000 * time.Millisecond) // We wait for a bit so the previous log line has time to complete
+
+		for _, nonFatalError := range nonFatalErrors {
+			if errors.Is(err, nonFatalError) {
+				return
+			}
+		}
+
+		panic(err)
 	}
 }

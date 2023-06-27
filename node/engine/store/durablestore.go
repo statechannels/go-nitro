@@ -594,7 +594,7 @@ func (ds *DurableStore) GetVoucherInfo(channelId types.Destination) (*payments.V
 	err := ds.vouchers.View(func(tx *buntdb.Tx) error {
 		vJSON, err := tx.Get(channelId.String())
 		if err != nil {
-			return err
+			return fmt.Errorf("channelId %s: %w", channelId.String(), ErrLoadVouchers)
 		}
 		return json.Unmarshal([]byte(vJSON), v)
 	})

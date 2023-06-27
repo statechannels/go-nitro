@@ -42,7 +42,7 @@ func (svs *simpleVoucherStore) SetVoucherInfo(channelId types.Destination, v Vou
 func (svs *simpleVoucherStore) GetVoucherInfo(channelId types.Destination) (*VoucherInfo, error) {
 	v, ok := svs.vouchers.Load(channelId.String())
 	if !ok {
-		return v, fmt.Errorf("could not load vouchers")
+		return v, fmt.Errorf("could not load vouchers from store for channelId %s", channelId.String())
 	}
 	return v, nil
 }

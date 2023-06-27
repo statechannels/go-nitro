@@ -53,7 +53,7 @@ func (vm *VoucherManager) Remove(channelId types.Destination) error {
 func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk []byte) (Voucher, error) {
 	vInfo, err := vm.store.GetVoucherInfo(channelId)
 	if err != nil {
-		return Voucher{}, fmt.Errorf("channel not found")
+		return Voucher{}, fmt.Errorf("channel not registered: %w", err)
 	}
 
 	if types.Gt(amount, vInfo.Remaining()) {
@@ -83,7 +83,7 @@ func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
 	vInfo, err := vm.store.GetVoucherInfo(voucher.ChannelId)
 	if err != nil {
-		return &big.Int{}, fmt.Errorf("channel not registered")
+		return &big.Int{}, fmt.Errorf("channel not registered: %w", err)
 	}
 
 	// We only care about vouchers when we are the recipient of the payment
@@ -128,7 +128,7 @@ func (vm *VoucherManager) ChannelRegistered(channelId types.Destination) bool {
 func (vm *VoucherManager) Paid(chanId types.Destination) (*big.Int, error) {
 	v, err := vm.store.GetVoucherInfo(chanId)
 	if err != nil {
-		return &big.Int{}, fmt.Errorf("channel not registered")
+		return &big.Int{}, fmt.Errorf("channel not registered: %w", err)
 	}
 	return v.LargestVoucher.Amount, nil
 }
@@ -137,7 +137,7 @@ func (vm *VoucherManager) Paid(chanId types.Destination) (*big.Int, error) {
 func (vm *VoucherManager) Remaining(chanId types.Destination) (*big.Int, error) {
 	v, err := vm.store.GetVoucherInfo(chanId)
 	if err != nil {
-		return &big.Int{}, fmt.Errorf("channel not registered")
+		return &big.Int{}, fmt.Errorf("channel not registered: %w", err)
 	}
 	remaining := big.NewInt(0).Sub(v.StartingBalance, v.LargestVoucher.Amount)
 	return remaining, nil

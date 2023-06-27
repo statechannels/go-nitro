@@ -15,6 +15,7 @@ import (
 var (
 	ErrNoSuchObjective error = errors.New("store: no such objective")
 	ErrNoSuchChannel   error = errors.New("store: failed to find required channel data")
+	ErrLoadVouchers    error = errors.New("store: could not load vouchers")
 )
 
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data

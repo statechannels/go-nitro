@@ -17,6 +17,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+var ErrLedgerChannelExists error = errors.New("directfund: ledger channel already exists")
+
 const (
 	WaitingForCompletePrefund  protocols.WaitingFor = "WaitingForCompletePrefund"
 	WaitingForMyTurnToFund     protocols.WaitingFor = "WaitingForMyTurnToFund"
@@ -85,7 +87,7 @@ func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Add
 		return Objective{}, fmt.Errorf("counterparty check failed: %w", err)
 	}
 	if channelExists {
-		return Objective{}, fmt.Errorf("a channel already exists with counterparty %s", request.CounterParty)
+		return Objective{}, fmt.Errorf("counterparty %s: %w", request.CounterParty, ErrLedgerChannelExists)
 	}
 	return objective, nil
 }
