@@ -8,18 +8,9 @@ import (
 	"syscall"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/rs/zerolog"
-	"github.com/statechannels/go-nitro/crypto"
-	"github.com/statechannels/go-nitro/node"
-	"github.com/statechannels/go-nitro/node/engine"
+	"github.com/statechannels/go-nitro/internal/infra"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
-	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
-	"github.com/statechannels/go-nitro/node/engine/store"
-	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/rpc/transport"
-	"github.com/statechannels/go-nitro/rpc/transport/nats"
-	"github.com/statechannels/go-nitro/rpc/transport/ws"
-	"github.com/tidwall/buntdb"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 )
@@ -133,28 +124,10 @@ func main() {
 			if pkString == "" {
 				panic("pk must be set")
 			}
+			pk := common.Hex2Bytes(pkString)
+
 			if chainPk == "" {
 				panic("chainpk must be set")
-			}
-			pk := common.Hex2Bytes(pkString)
-			me := crypto.GetAddressFromSecretKeyBytes(pk)
-
-			logDestination := os.Stdout
-
-			var ourStore store.Store
-			var err error
-
-			if useDurableStore {
-				fmt.Println("Initialising durable store...")
-				dataFolder := fmt.Sprintf("./data/nitro-service/%s", me.String())
-				ourStore, err = store.NewDurableStore(pk, dataFolder, buntdb.Config{})
-				if err != nil {
-					panic(err)
-				}
-
-			} else {
-				fmt.Println("Initialising mem store...")
-				ourStore = store.NewMemStore(pk)
 			}
 
 			fmt.Println("Initializing chain service and connecting to " + chainUrl + "...")
@@ -170,39 +143,11 @@ func main() {
 				panic(err)
 			}
 
-			fmt.Println("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
-			messageservice := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, true, logDestination)
-			node := node.New(
-				messageservice,
-				chainService,
-				ourStore,
-				logDestination,
-				&engine.PermissivePolicy{},
-				nil)
-
-			var transport transport.Responder
-
+			transportType := transport.Ws
 			if useNats {
-				fmt.Println("Initializing NATS RPC transport...")
-				transport, err = nats.NewNatsTransportAsServer(rpcPort)
-			} else {
-				fmt.Println("Initializing websocket RPC transport...")
-				transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
+				transportType = transport.Nats
 			}
-			if err != nil {
-				panic(err)
-			}
-
-			logger := zerolog.New(logDestination).
-				Level(zerolog.TraceLevel).
-				With().
-				Timestamp().
-				Str("node", ourStore.GetAddress().String()).
-				Str("rpc", "server").
-				Str("scope", "").
-				Logger()
-
-			rpcServer, err := rpc.NewRpcServer(&node, &logger, transport)
+			rpcServer, _, err := infra.InitializeRpcServer(pk, chainService, useDurableStore, msgPort, rpcPort, transportType)
 			if err != nil {
 				return err
 			}
