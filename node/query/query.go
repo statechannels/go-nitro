@@ -61,21 +61,33 @@ func getLatestSupportedOrPreFund(channel *channel.Channel) (state.State, error) 
 }
 
 // getLedgerBalanceFromState returns the balance of the ledger channel from the given state
-func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
+func getLedgerBalanceFromState(latest state.State, me types.Address) LedgerChannelBalance {
 	// TODO: We assume single asset outcomes
 	outcome := latest.Outcome[0]
 	asset := outcome.Asset
-	leader := latest.Participants[0]
-	leaderBalance := big.NewInt(0).Set(outcome.Allocations[0].Amount)
-	follower := latest.Participants[1]
-	followerBalance := big.NewInt(0).Set(outcome.Allocations[1].Amount)
+
+	them := types.Address{}
+	myBalance := big.NewInt(0)
+	theirBalance := big.NewInt(0)
+
+	if latest.Participants[0] == me {
+		them = latest.Participants[1]
+		theirBalance = outcome.Allocations[1].Amount
+		myBalance = outcome.Allocations[0].Amount
+	}
+
+	if latest.Participants[1] == me {
+		them = latest.Participants[0]
+		theirBalance = outcome.Allocations[0].Amount
+		myBalance = outcome.Allocations[1].Amount
+	}
 
 	return LedgerChannelBalance{
 		AssetAddress: asset,
-		Me:           leader,
-		Them:         follower,
-		MyBalance:    (*hexutil.Big)(leaderBalance),
-		TheirBalance: (*hexutil.Big)(followerBalance),
+		Me:           me,
+		Them:         them,
+		MyBalance:    (*hexutil.Big)(myBalance),
+		TheirBalance: (*hexutil.Big)(theirBalance),
 	}
 }
 
@@ -139,20 +151,21 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 // GetAllLedgerChannels returns a `LedgerChannelInfo` for each ledger channel in the store.
 func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Address) ([]LedgerChannelInfo, error) {
 	toReturn := []LedgerChannelInfo{}
+	myAddress := *store.GetAddress()
 
 	allConsensus, err := store.GetAllConsensusChannels()
 	if err != nil {
 		return []LedgerChannelInfo{}, err
 	}
 	for _, con := range allConsensus {
-		toReturn = append(toReturn, ConstructLedgerInfoFromConsensus(con))
+		toReturn = append(toReturn, ConstructLedgerInfoFromConsensus(con, myAddress))
 	}
 	allChannels, err := store.GetChannelsByAppDefinition(consensusAppDefinition)
 	if err != nil {
 		return []LedgerChannelInfo{}, err
 	}
 	for _, c := range allChannels {
-		l, err := ConstructLedgerInfoFromChannel(c)
+		l, err := ConstructLedgerInfoFromChannel(c, myAddress)
 		if err != nil {
 			return []LedgerChannelInfo{}, err
 		}
@@ -200,6 +213,8 @@ func GetPaymentChannelsByLedger(ledgerId types.Destination, s store.Store, vm *p
 // It does this by querying the provided store
 func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
 	c, ok := store.GetChannelById(id)
+	myAddress := *store.GetAddress()
+
 	if ok {
 		return ConstructLedgerInfoFromChannel(c)
 	}
@@ -209,19 +224,19 @@ func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChanne
 		return LedgerChannelInfo{}, err
 	}
 
-	return ConstructLedgerInfoFromConsensus(con), nil
+	return ConstructLedgerInfoFromConsensus(con, myAddress), nil
 }
 
-func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel) LedgerChannelInfo {
+func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel, me types.Address) LedgerChannelInfo {
 	latest := con.ConsensusVars().AsState(con.FixedPart())
 	return LedgerChannelInfo{
 		ID:      con.Id,
 		Status:  Open,
-		Balance: getLedgerBalanceFromState(latest),
+		Balance: getLedgerBalanceFromState(latest, me),
 	}
 }
 
-func ConstructLedgerInfoFromChannel(c *channel.Channel) (LedgerChannelInfo, error) {
+func ConstructLedgerInfoFromChannel(c *channel.Channel, myAddress types.Address) (LedgerChannelInfo, error) {
 	latest, err := getLatestSupportedOrPreFund(c)
 	if err != nil {
 		return LedgerChannelInfo{}, err
@@ -229,7 +244,7 @@ func ConstructLedgerInfoFromChannel(c *channel.Channel) (LedgerChannelInfo, erro
 	return LedgerChannelInfo{
 		ID:      c.Id,
 		Status:  getStatusFromChannel(c),
-		Balance: getLedgerBalanceFromState(latest),
+		Balance: getLedgerBalanceFromState(latest, myAddress),
 	}, nil
 }
 
