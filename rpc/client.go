@@ -34,6 +34,7 @@ type RpcClient struct {
 	paymentChannelUpdates *safesync.Map[chan query.PaymentChannelInfo]
 	cancel                context.CancelFunc
 	wg                    *sync.WaitGroup
+	chainAddress          types.Address
 }
 
 // response includes a payload or an error.
@@ -45,7 +46,7 @@ type response[T serde.ResponsePayload] struct {
 // NewRpcClient creates a new RpcClient
 func NewRpcClient(logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}}
+	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}, types.Address{}}
 
 	notificationChan, err := c.transport.Subscribe()
 	if err != nil {
@@ -65,7 +66,7 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 
-	c := &RpcClient{transport, zerolog.New(os.Stdout), &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}}
+	c := &RpcClient{transport, zerolog.New(os.Stdout), &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}, types.Address{}}
 
 	notificationChan, err := c.transport.Subscribe()
 	if err != nil {
@@ -104,6 +105,15 @@ func (rc *RpcClient) ClosePaymentChannel(id types.Destination) protocols.Objecti
 		id)
 
 	return waitForRequest[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.ClosePaymentChannelRequestMethod, objReq)
+}
+
+// GetAddress returns the blockchain address of the running node.
+func (rc *RpcClient) GetAddress() types.Address {
+	if (rc.chainAddress != types.Address{}) {
+		return rc.chainAddress
+	}
+	rc.chainAddress = waitForRequest[serde.NoPayloadRequest, types.Address](rc, serde.GetAddressMethod, struct{}{})
+	return rc.chainAddress
 }
 
 func (rc *RpcClient) GetLedgerChannel(id types.Destination) query.LedgerChannelInfo {

@@ -58,6 +58,32 @@ func TestRpcWithWebsockets(t *testing.T) {
 	executeNRpcTest(t, "ws", 4)
 }
 
+func TestGetAddress(t *testing.T) {
+	chain := chainservice.NewMockChain()
+	chainService := chainservice.NewMockChainService(chain, ta.Alice.Address())
+	alice, _, cleanupAlice := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3005, 4005, chainService, newLogWriter("test_init.log"), "nats")
+	defer cleanupAlice()
+
+	bob, _, cleanupBob := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3006, 4006, chainService, newLogWriter("test_init.log"), "nats")
+	defer cleanupBob()
+
+	firstCall := alice.GetAddress()
+	secondCall := alice.GetAddress()
+	if firstCall != secondCall {
+		t.Errorf("expected consistent GetAddress returns, but got [%v, %v]", firstCall, secondCall)
+	}
+
+	if alice.GetAddress() != ta.Alice.Address() {
+		t.Errorf("expected %v, got %v", ta.Alice.Address(), alice.GetAddress())
+	}
+	if bob.GetAddress() != ta.Bob.Address() {
+		t.Errorf("expected %v, got %v", ta.Bob.Address(), bob.GetAddress())
+	}
+	if alice.GetAddress() == bob.GetAddress() {
+		t.Errorf("expected different addresses, got %v", alice.GetAddress())
+	}
+}
+
 func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int) {
 	defer func() {
 		if r := recover(); r != nil {

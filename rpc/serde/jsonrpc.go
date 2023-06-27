@@ -99,7 +99,8 @@ type ResponsePayload interface {
 		query.LedgerChannelInfo |
 		VersionResponse |
 		GetAllLedgersResponse |
-		GetPaymentChannelsByLedgerResponse
+		GetPaymentChannelsByLedgerResponse |
+		types.Address
 }
 
 type JsonRpcResponse[T ResponsePayload] struct {
