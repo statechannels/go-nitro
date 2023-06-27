@@ -106,7 +106,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	}
 	t.Logf("%d Clients created", n)
 
-	waitForPeerInfoExchange(msgServices...)
+	infra.WaitForPeerInfoExchange(msgServices...)
 	t.Logf("Peer exchange complete")
 
 	// create n-1 ledger channels

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -9,8 +8,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/infra"
-	"github.com/statechannels/go-nitro/node/engine/chainservice"
-	"github.com/statechannels/go-nitro/rpc/transport"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 )
@@ -121,38 +118,19 @@ func main() {
 		Flags:  flags,
 		Before: altsrc.InitInputSourceWithContext(flags, altsrc.NewTomlSourceFromFlagFunc(CONFIG)),
 		Action: func(cCtx *cli.Context) error {
-			if pkString == "" {
-				panic("pk must be set")
-			}
-			pk := common.Hex2Bytes(pkString)
-
-			if chainPk == "" {
-				panic("chainpk must be set")
-			}
-
-			fmt.Println("Initializing chain service and connecting to " + chainUrl + "...")
-			chainService, err := chainservice.NewEthChainService(
-				chainUrl,
-				chainAuthToken,
-				chainPk,
-				common.HexToAddress(naAddress),
-				common.HexToAddress(caAddress),
-				common.HexToAddress(vpaAddress),
-				os.Stdout)
-			if err != nil {
-				panic(err)
+			chainOpts := infra.ChainOpts{
+				ChainUrl:       chainUrl,
+				ChainAuthToken: chainAuthToken,
+				ChainPk:        chainPk,
+				NaAddress:      common.HexToAddress(naAddress),
+				VpaAddress:     common.HexToAddress(vpaAddress),
+				CaAddress:      common.HexToAddress(caAddress),
 			}
 
-			transportType := transport.Ws
-			if useNats {
-				transportType = transport.Nats
-			}
-			rpcServer, _, err := infra.InitializeRpcServer(pk, chainService, useDurableStore, msgPort, rpcPort, transportType)
+			rpcServer, _, err := infra.RunNode(pkString, chainOpts, useDurableStore, useNats, msgPort, rpcPort)
 			if err != nil {
 				return err
 			}
-
-			fmt.Println("Nitro as a Service listening on port", rpcPort)
 
 			stopChan := make(chan os.Signal, 2)
 			signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
