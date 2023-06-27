@@ -91,7 +91,7 @@ export function getLocalRPCUrl(port: number): string {
 export async function logOutChannelUpdates(rpcClient: NitroRpcClient) {
   const shortAddress = (await rpcClient.GetAddress()).slice(0, 8);
 
-  rpcClient.Notifications.addListener(
+  rpcClient.Notifications.on(
     "ledger_channel_updated",
     (info: LedgerChannelInfo) => {
       console.log(
@@ -99,7 +99,7 @@ export async function logOutChannelUpdates(rpcClient: NitroRpcClient) {
       );
     }
   );
-  rpcClient.Notifications.addListener(
+  rpcClient.Notifications.on(
     "payment_channel_updated",
     (info: PaymentChannelInfo) => {
       console.log(

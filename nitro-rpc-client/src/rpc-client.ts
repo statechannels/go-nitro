@@ -31,14 +31,11 @@ export class NitroRpcClient {
    */
   public async WaitForObjective(objectiveId: string): Promise<void> {
     return new Promise((resolve) => {
-      this.transport.Notifications.addListener(
-        "objective_completed",
-        (notif) => {
-          if (notif.params === objectiveId) {
-            resolve();
-          }
+      this.transport.Notifications.on("objective_completed", (notif) => {
+        if (notif.params === objectiveId) {
+          resolve();
         }
-      );
+      });
     });
   }
 
