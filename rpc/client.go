@@ -101,8 +101,7 @@ func (rc *RpcClient) CreatePaymentChannel(intermediaries []types.Address, counte
 
 // ClosePaymentChannel attempts to close the payment channel with supplied id
 func (rc *RpcClient) ClosePaymentChannel(id types.Destination) protocols.ObjectiveId {
-	objReq := virtualdefund.NewObjectiveRequest(
-		id)
+	objReq := virtualdefund.NewObjectiveRequest(id)
 
 	return waitForRequest[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.ClosePaymentChannelRequestMethod, objReq)
 }
