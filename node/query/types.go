@@ -1,8 +1,6 @@
 package query
 
 import (
-	"fmt"
-
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -56,18 +54,6 @@ func (lcb LedgerChannelBalance) Equal(other LedgerChannelBalance) bool {
 		lcb.Me == other.Me &&
 		lcb.TheirBalance.ToInt().Cmp(other.TheirBalance.ToInt()) == 0 &&
 		lcb.MyBalance.ToInt().Cmp(other.MyBalance.ToInt()) == 0
-}
-
-// BalanceOf returns the balance of the given address in the channel, and an
-// error if the address is not a participant.
-func (lcb LedgerChannelBalance) BalanceOf(a types.Address) (*hexutil.Big, error) {
-	if a == lcb.Me {
-		return lcb.MyBalance, nil
-	} else if a == lcb.Them {
-		return lcb.TheirBalance, nil
-	} else {
-		return nil, fmt.Errorf("%s is not a participant", a)
-	}
 }
 
 // Equal returns true if the other LedgerChannelInfo is equal to this one
