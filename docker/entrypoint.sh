@@ -2,4 +2,4 @@
 
 set -e
 
-go run ./scripts/start-rpc-servers.go
+go run ./internal/nitro-network/main.go

@@ -7,7 +7,8 @@ import (
 	"syscall"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/statechannels/go-nitro/internal/infra"
+	"github.com/statechannels/go-nitro/internal/chain"
+	interNode "github.com/statechannels/go-nitro/internal/node"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 )
@@ -118,7 +119,7 @@ func main() {
 		Flags:  flags,
 		Before: altsrc.InitInputSourceWithContext(flags, altsrc.NewTomlSourceFromFlagFunc(CONFIG)),
 		Action: func(cCtx *cli.Context) error {
-			chainOpts := infra.ChainOpts{
+			chainOpts := chain.ChainOpts{
 				ChainUrl:       chainUrl,
 				ChainAuthToken: chainAuthToken,
 				ChainPk:        chainPk,
@@ -127,7 +128,7 @@ func main() {
 				CaAddress:      common.HexToAddress(caAddress),
 			}
 
-			rpcServer, _, _, err := infra.RunNode(pkString, chainOpts, useDurableStore, useNats, msgPort, rpcPort)
+			rpcServer, _, _, err := interNode.RunNode(pkString, chainOpts, useDurableStore, useNats, msgPort, rpcPort)
 			if err != nil {
 				return err
 			}

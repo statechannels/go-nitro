@@ -9,7 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/statechannels/go-nitro/internal/infra"
+	"github.com/statechannels/go-nitro/internal/chain"
+	"github.com/statechannels/go-nitro/internal/utils"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -44,23 +45,23 @@ var (
 func main() {
 	running := []*exec.Cmd{}
 
-	anvilCmd, err := infra.StartAnvil()
+	anvilCmd, err := chain.StartAnvil()
 	if err != nil {
-		infra.StopCommands(running...)
+		utils.StopCommands(running...)
 		panic(err)
 	}
 	running = append(running, anvilCmd)
 
-	naAddress, vpaAddress, caAddress, err := infra.DeployContracts(context.Background())
+	naAddress, vpaAddress, caAddress, err := chain.DeployContracts(context.Background())
 	if err != nil {
-		infra.StopCommands(running...)
+		utils.StopCommands(running...)
 		panic(err)
 	}
 
 	for _, p := range participants {
 		client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress)
 		if err != nil {
-			infra.StopCommands(running...)
+			utils.StopCommands(running...)
 			panic(err)
 		}
 		running = append(running, client)
@@ -68,7 +69,7 @@ func main() {
 
 	waitForKillSignal()
 
-	infra.StopCommands(running...)
+	utils.StopCommands(running...)
 }
 
 // waitForKillSignal blocks until we receive a kill or interrupt signal
