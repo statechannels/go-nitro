@@ -216,7 +216,7 @@ func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChanne
 	myAddress := *store.GetAddress()
 
 	if ok {
-		return ConstructLedgerInfoFromChannel(c)
+		return ConstructLedgerInfoFromChannel(c, myAddress)
 	}
 
 	con, err := store.GetConsensusChannelById(id)
