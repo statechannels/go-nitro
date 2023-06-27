@@ -8,7 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/chain"
-	interNode "github.com/statechannels/go-nitro/internal/node"
+	"github.com/statechannels/go-nitro/internal/rpc"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 )
@@ -128,7 +128,7 @@ func main() {
 				CaAddress:      common.HexToAddress(caAddress),
 			}
 
-			rpcServer, _, _, err := interNode.RunNode(pkString, chainOpts, useDurableStore, useNats, msgPort, rpcPort)
+			rpcServer, _, _, err := rpc.InitChainServiceAndRunRpcServer(pkString, chainOpts, useDurableStore, useNats, msgPort, rpcPort)
 			if err != nil {
 				return err
 			}
