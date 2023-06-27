@@ -116,10 +116,15 @@ func (rc *RpcClient) GetAddress() types.Address {
 	return rc.chainAddress
 }
 
-func (rc *RpcClient) GetLedgerChannel(id types.Destination) query.LedgerChannelInfo {
+func (rc *RpcClient) GetLedgerChannel(id types.Destination) LedgerChannelView {
 	req := serde.GetLedgerChannelRequest{Id: id}
 
-	return waitForRequest[serde.GetLedgerChannelRequest, query.LedgerChannelInfo](rc, serde.GetLedgerChannelRequestMethod, req)
+	lcInfo := waitForRequest[serde.GetLedgerChannelRequest, query.LedgerChannelInfo](rc, serde.GetLedgerChannelRequestMethod, req)
+	lcView, err := NewLedgerChannelView(lcInfo, rc.GetAddress())
+	if err != nil {
+		rc.logger.Error().Err(err).Msg("Error while constructing ledger channel view")
+	}
+	return lcView
 }
 
 // GetAllLedgerChannels returns all ledger channels

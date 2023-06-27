@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
@@ -164,12 +165,14 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		if i != 0 {
 			leftLC := ledgerChannels[i-1]
 			expectedLeftLC := createLedgerInfo(leftLC.ChannelId, simpleOutcome(actors[i-1].Address(), actors[i].Address(), 100, 100), query.Open)
-			checkQueryInfo(t, expectedLeftLC, client.GetLedgerChannel(leftLC.ChannelId))
+			llcView, _ := rpc.NewLedgerChannelView(expectedLeftLC, client.GetAddress())
+			checkQueryInfo(t, llcView, client.GetLedgerChannel(leftLC.ChannelId))
 		}
 		if i != n-1 {
 			rightLC := ledgerChannels[i]
 			expectedRightLC := createLedgerInfo(rightLC.ChannelId, simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100), query.Open)
-			checkQueryInfo(t, expectedRightLC, client.GetLedgerChannel(rightLC.ChannelId))
+			rlcView, _ := rpc.NewLedgerChannelView(expectedRightLC, client.GetAddress())
+			checkQueryInfo(t, rlcView, client.GetLedgerChannel(rightLC.ChannelId))
 		}
 	}
 
@@ -387,11 +390,11 @@ func setupNitroNodeWithRPCClient(
 }
 
 type channelInfo interface {
-	query.LedgerChannelInfo | query.PaymentChannelInfo
+	query.LedgerChannelInfo | query.PaymentChannelInfo | rpc.LedgerChannelView
 }
 
 func checkQueryInfo[T channelInfo](t *testing.T, expected T, fetched T) {
-	if diff := cmp.Diff(expected, fetched, cmp.AllowUnexported(big.Int{})); diff != "" {
+	if diff := cmp.Diff(expected, fetched, cmp.AllowUnexported(big.Int{}, hexutil.Big{})); diff != "" {
 		t.Errorf("Channel query info diff mismatch (-want +got):\n%s", diff)
 	}
 }
