@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
@@ -18,7 +20,33 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
-func InitializeRpcServer(pk []byte, chainService chainservice.ChainService,
+func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
+	useDurableStore bool, useNats bool, msgPort int, rpcPort int,
+) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
+	if pkString == "" {
+		panic("pk must be set")
+	}
+	pk := common.Hex2Bytes(pkString)
+
+	chainService, err := chain.InitializeEthChainService(chainOpts)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	transportType := transport.Ws
+	if useNats {
+		transportType = transport.Nats
+	}
+	rpcServer, node, messageService, err := RunRpcServer(pk, chainService, useDurableStore, msgPort, rpcPort, transportType)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	fmt.Println("Nitro as a Service listening on port", rpcPort)
+	return rpcServer, node, messageService, nil
+}
+
+func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 	useDurableStore bool, msgPort int, rpcPort int, transportType transport.TransportType,
 ) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
 	me := crypto.GetAddressFromSecretKeyBytes(pk)

@@ -10,7 +10,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/chain"
-	interNode "github.com/statechannels/go-nitro/internal/node"
+	interRpc "github.com/statechannels/go-nitro/internal/rpc"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/internal/utils"
 	"github.com/statechannels/go-nitro/node"
@@ -18,6 +18,16 @@ import (
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/types"
 )
+
+type participantOpts struct {
+	UseDurableStore bool
+	MsgPort         int
+	RpcPort         int
+	Pk              string
+	ChainPk         string
+	ChainUrl        string
+	ChainAuthToken  string
+}
 
 func main() {
 	err := InitializeNitroNetwork()
@@ -48,7 +58,7 @@ func InitializeNitroNetwork() error {
 	}
 
 	for _, participant := range participants {
-		var nodeOpts interNode.NodeOpts
+		var nodeOpts participantOpts
 		if _, err := toml.DecodeFile(fmt.Sprintf("./scripts/test-configs/%s.toml", participant), &nodeOpts); err != nil {
 			return err
 		}
@@ -60,7 +70,7 @@ func InitializeNitroNetwork() error {
 			CaAddress:      caAddress,
 			VpaAddress:     vpaAddress,
 		}
-		server, node, msgService, err := interNode.RunNode(nodeOpts.Pk, chainOpts, nodeOpts.UseDurableStore, false, nodeOpts.MsgPort, nodeOpts.RpcPort)
+		server, node, msgService, err := interRpc.InitChainServiceAndRunRpcServer(nodeOpts.Pk, chainOpts, nodeOpts.UseDurableStore, false, nodeOpts.MsgPort, nodeOpts.RpcPort)
 		if err != nil {
 			return err
 		}
