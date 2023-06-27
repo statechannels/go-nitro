@@ -42,29 +42,29 @@ type LedgerChannelInfo struct {
 
 // LedgerChannelBalance contains the balance of a ledger channel
 type LedgerChannelBalance struct {
-	AssetAddress    types.Address
-	Leader          types.Address
-	Follower        types.Address
-	LeaderBalance   *hexutil.Big
-	FollowerBalance *hexutil.Big
+	AssetAddress types.Address
+	Me           types.Address
+	Them         types.Address
+	MyBalance    *hexutil.Big
+	TheirBalance *hexutil.Big
 }
 
 // Equal returns true if the other LedgerChannelBalance is equal to this one
 func (lcb LedgerChannelBalance) Equal(other LedgerChannelBalance) bool {
 	return lcb.AssetAddress == other.AssetAddress &&
-		lcb.Follower == other.Follower &&
-		lcb.Leader == other.Leader &&
-		lcb.FollowerBalance.ToInt().Cmp(other.FollowerBalance.ToInt()) == 0 &&
-		lcb.LeaderBalance.ToInt().Cmp(other.LeaderBalance.ToInt()) == 0
+		lcb.Them == other.Them &&
+		lcb.Me == other.Me &&
+		lcb.TheirBalance.ToInt().Cmp(other.TheirBalance.ToInt()) == 0 &&
+		lcb.MyBalance.ToInt().Cmp(other.MyBalance.ToInt()) == 0
 }
 
 // BalanceOf returns the balance of the given address in the channel, and an
 // error if the address is not a participant.
 func (lcb LedgerChannelBalance) BalanceOf(a types.Address) (*hexutil.Big, error) {
-	if a == lcb.Leader {
-		return lcb.LeaderBalance, nil
-	} else if a == lcb.Follower {
-		return lcb.FollowerBalance, nil
+	if a == lcb.Me {
+		return lcb.MyBalance, nil
+	} else if a == lcb.Them {
+		return lcb.TheirBalance, nil
 	} else {
 		return nil, fmt.Errorf("%s is not a participant", a)
 	}
