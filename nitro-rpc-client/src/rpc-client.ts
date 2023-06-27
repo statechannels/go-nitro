@@ -8,6 +8,7 @@ import {
   RequestMethod,
   RPCRequestAndResponses,
   ObjectiveResponse,
+  ObjectiveCompleteNotification,
 } from "./types";
 import { Transport } from "./transport";
 import { createOutcome, generateRequest } from "./utils";
@@ -31,11 +32,14 @@ export class NitroRpcClient {
    */
   public async WaitForObjective(objectiveId: string): Promise<void> {
     return new Promise((resolve) => {
-      this.transport.Notifications.on("objective_completed", (notif) => {
-        if (notif.params === objectiveId) {
-          resolve();
+      this.transport.Notifications.on(
+        "objective_completed",
+        (params: ObjectiveCompleteNotification["params"]) => {
+          if (params === objectiveId) {
+            resolve();
+          }
         }
-      });
+      );
     });
   }
 
