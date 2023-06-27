@@ -127,7 +127,7 @@ func main() {
 				CaAddress:      common.HexToAddress(caAddress),
 			}
 
-			rpcServer, _, err := infra.RunNode(pkString, chainOpts, useDurableStore, useNats, msgPort, rpcPort)
+			rpcServer, _, _, err := infra.RunNode(pkString, chainOpts, useDurableStore, useNats, msgPort, rpcPort)
 			if err != nil {
 				return err
 			}

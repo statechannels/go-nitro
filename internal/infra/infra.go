@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
@@ -39,7 +40,7 @@ const (
 
 func InitializeRpcServer(pk []byte, chainService chainservice.ChainService,
 	useDurableStore bool, msgPort int, rpcPort int, transportType transport.TransportType,
-) (*rpc.RpcServer, *p2pms.P2PMessageService, error) {
+) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
 	me := crypto.GetAddressFromSecretKeyBytes(pk)
 
 	logDestination := os.Stdout
@@ -52,7 +53,7 @@ func InitializeRpcServer(pk []byte, chainService chainservice.ChainService,
 		dataFolder := fmt.Sprintf("./data/nitro-service/%s", me.String())
 		ourStore, err = store.NewDurableStore(pk, dataFolder, buntdb.Config{})
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 	} else {
@@ -85,7 +86,7 @@ func InitializeRpcServer(pk []byte, chainService chainservice.ChainService,
 	}
 
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	logger := zerolog.New(logDestination).
@@ -99,12 +100,12 @@ func InitializeRpcServer(pk []byte, chainService chainservice.ChainService,
 
 	rpcServer, err := rpc.NewRpcServer(&node, &logger, transport)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return rpcServer, messageService, nil
+	return rpcServer, &node, messageService, nil
 }
 
-func InitializeEthChainService(chainOpts ChainOpts) (*chainservice.EthChainService, error) {
+func initializeEthChainService(chainOpts ChainOpts) (*chainservice.EthChainService, error) {
 	if chainOpts.ChainPk == "" {
 		return nil, fmt.Errorf("chainpk must be set")
 	}
@@ -131,28 +132,28 @@ type ChainOpts struct {
 
 func RunNode(pkString string, chainOpts ChainOpts,
 	useDurableStore bool, useNats bool, msgPort int, rpcPort int,
-) (*rpc.RpcServer, *p2pms.P2PMessageService, error) {
+) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
 	if pkString == "" {
 		panic("pk must be set")
 	}
 	pk := common.Hex2Bytes(pkString)
 
-	chainService, err := InitializeEthChainService(chainOpts)
+	chainService, err := initializeEthChainService(chainOpts)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	transportType := transport.Ws
 	if useNats {
 		transportType = transport.Nats
 	}
-	rpcServer, messageService, err := InitializeRpcServer(pk, chainService, useDurableStore, msgPort, rpcPort, transportType)
+	rpcServer, node, messageService, err := InitializeRpcServer(pk, chainService, useDurableStore, msgPort, rpcPort, transportType)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	fmt.Println("Nitro as a Service listening on port", rpcPort)
-	return rpcServer, messageService, nil
+	return rpcServer, node, messageService, nil
 }
 
 // waitForPeerInfoExchange waits for all the P2PMessageServices to receive peer info from each other
@@ -204,6 +205,22 @@ func DeployContracts(ctx context.Context) (na common.Address, vpa common.Address
 	return
 }
 
+func createLedgerChannel(left *node.Node, right *node.Node) error {
+	ledgerChannelDeposit := uint(5_000_000)
+	asset := types.Address{}
+	outcome := testdata.Outcomes.Create(*left.Address, *right.Address, ledgerChannelDeposit, ledgerChannelDeposit, asset)
+	response, err := left.CreateLedgerChannel(*right.Address, 0, outcome)
+	if err != nil {
+		return err
+	}
+
+	<-left.ObjectiveCompleteChan(response.Id)
+	<-right.ObjectiveCompleteChan(response.Id)
+
+	fmt.Printf("Created ledged channel between %s and %s", left.Address, right.Address)
+	return nil
+}
+
 // End of Ethereum chain utilities
 
 // Start of general of utilities
@@ -236,8 +253,9 @@ type NodeOpts struct {
 }
 
 func InitializeNitroNetwork() error {
-	participants := []string{"alice", "bob", "irene"}
+	participants := []string{"alice", "irene", "bob"}
 	servers := []*rpc.RpcServer{}
+	nodes := []*node.Node{}
 	msgServices := []*p2pms.P2PMessageService{}
 
 	anvilCmd, err := StartAnvil()
@@ -264,14 +282,36 @@ func InitializeNitroNetwork() error {
 			CaAddress:      caAddress,
 			VpaAddress:     vpaAddress,
 		}
-		server, msgService, err := RunNode(nodeOpts.Pk, chainOpts, nodeOpts.UseDurableStore, false, nodeOpts.MsgPort, nodeOpts.RpcPort)
+		server, node, msgService, err := RunNode(nodeOpts.Pk, chainOpts, nodeOpts.UseDurableStore, false, nodeOpts.MsgPort, nodeOpts.RpcPort)
 		if err != nil {
 			return err
 		}
 		servers = append(servers, server)
+		nodes = append(nodes, node)
 		msgServices = append(msgServices, msgService)
 	}
 	WaitForPeerInfoExchange(msgServices...)
+
+	alice, irene, bob := nodes[0], nodes[1], nodes[2]
+	err = createLedgerChannel(alice, irene)
+	if err != nil {
+		return err
+	}
+
+	err = createLedgerChannel(irene, bob)
+	if err != nil {
+		return err
+	}
+
+	outcome := testdata.Outcomes.Create(*alice.Address, *bob.Address, 1_000, 0, types.Address{})
+	response, err := alice.CreatePaymentChannel([]common.Address{*irene.Address}, *bob.Address, 0, outcome)
+	if err != nil {
+		return err
+	}
+	<-alice.ObjectiveCompleteChan(response.Id)
+	<-bob.ObjectiveCompleteChan(response.Id)
+
+	fmt.Printf("Created payment channel between Alice and Bob")
 
 	stopChan := make(chan os.Signal, 2)
 	signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
