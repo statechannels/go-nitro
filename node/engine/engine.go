@@ -8,7 +8,6 @@ import (
 	"io"
 	"math/big"
 	"sync"
-	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel"
@@ -48,7 +47,11 @@ func (e *ErrGetObjective) Error() string {
 }
 
 // nonFatalErrors is a list of errors for which the engine should not panic
-var nonFatalErrors = []error{&ErrGetObjective{}}
+var nonFatalErrors = []error{
+	&ErrGetObjective{},
+	store.ErrLoadVouchers,
+	directfund.ErrLedgerChannelExists,
+}
 
 // Engine is the imperative part of the core business logic of a go-nitro Node
 type Engine struct {
@@ -443,10 +446,11 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 
 	chainId, err := e.chain.GetChainId()
 	if err != nil {
-		return EngineEvent{}, fmt.Errorf("could get chain id from chain service: %w", err)
+		return EngineEvent{}, fmt.Errorf("could not get chain id from chain service: %w", err)
 	}
 
 	objectiveId := or.Id(myAddress, chainId)
+	failedEngineEvent := EngineEvent{FailedObjectives: []protocols.ObjectiveId{objectiveId}}
 	e.logger.Printf("handling new objective request for %s", objectiveId)
 	e.metrics.RecordObjectiveStarted(objectiveId)
 	defer or.SignalObjectiveStarted()
@@ -455,19 +459,19 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 	case virtualfund.ObjectiveRequest:
 		vfo, err := virtualfund.NewObjective(request, true, myAddress, chainId, e.store.GetConsensusChannel)
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create virtualfund objective for %+v: %w", request, err)
+			return failedEngineEvent, fmt.Errorf("handleAPIEvent: Could not create virtualfund objective for %+v: %w", request, err)
 		}
 		// Only Alice or Bob care about registering the objective and keeping track of vouchers
 		lastParticipant := uint(len(vfo.V.Participants) - 1)
 		if vfo.MyRole == lastParticipant || vfo.MyRole == payments.PAYER_INDEX {
 			err = e.registerPaymentChannel(vfo)
 			if err != nil {
-				return EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
+				return failedEngineEvent, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
 			}
 		}
 
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
+			return failedEngineEvent, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
 		}
 		return e.attemptProgress(&vfo)
 
@@ -476,39 +480,37 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		if e.vm.ChannelRegistered(request.ChannelId) {
 			paid, err := e.vm.Paid(request.ChannelId)
 			if err != nil {
-				return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create virtualdefund objective for %+v: %w", request, err)
+				return failedEngineEvent, fmt.Errorf("handleAPIEvent: Could not create virtualdefund objective for %+v: %w", request, err)
 			}
 			minAmount = paid
 		}
 		vdfo, err := virtualdefund.NewObjective(request, true, myAddress, minAmount, e.store.GetChannelById, e.store.GetConsensusChannel)
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create virtualdefund objective for %+v: %w", request, err)
+			return failedEngineEvent, fmt.Errorf("handleAPIEvent: Could not create virtualdefund objective for %+v: %w", request, err)
 		}
 		return e.attemptProgress(&vdfo)
 
 	case directfund.ObjectiveRequest:
 		dfo, err := directfund.NewObjective(request, true, myAddress, chainId, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not create directfund objective for %+v: %w", request, err)
+			return failedEngineEvent, fmt.Errorf("handleAPIEvent: Could not create directfund objective for %+v: %w", request, err)
 		}
 		return e.attemptProgress(&dfo)
 
 	case directdefund.ObjectiveRequest:
 		ddfo, err := directdefund.NewObjective(request, true, e.store.GetConsensusChannelById)
 		if err != nil {
-			return EngineEvent{
-				FailedObjectives: []protocols.ObjectiveId{objectiveId},
-			}, fmt.Errorf("handleAPIEvent: Could not create directdefund objective for %+v: %w", request, err)
+			return failedEngineEvent, fmt.Errorf("handleAPIEvent: Could not create directdefund objective for %+v: %w", request, err)
 		}
 		// If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
 		err = e.store.DestroyConsensusChannel(request.ChannelId)
 		if err != nil {
-			return EngineEvent{}, fmt.Errorf("handleAPIEvent: Could not destroy consensus channel for %+v: %w", request, err)
+			return failedEngineEvent, fmt.Errorf("handleAPIEvent: Could not destroy consensus channel for %+v: %w", request, err)
 		}
 		return e.attemptProgress(&ddfo)
 
 	default:
-		return EngineEvent{}, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)
+		return failedEngineEvent, fmt.Errorf("handleAPIEvent: Unknown objective type %T", request)
 	}
 }
 
@@ -854,7 +856,6 @@ func (e *Engine) recordMessageMetrics(message protocols.Message) {
 
 func (e *Engine) checkError(err error) {
 	if err != nil {
-
 		e.logger.Err(err).Msgf("%s, error in run loop", e.store.GetAddress())
 
 		for _, nonFatalError := range nonFatalErrors {
@@ -863,11 +864,6 @@ func (e *Engine) checkError(err error) {
 			}
 		}
 
-		<-time.After(1000 * time.Millisecond) // We wait for a bit so the previous log line has time to complete
-
-		// TODO instead of a panic, errors should be sent to the manager of the engine via a channel. At the moment,
-		// the engine manager is the nitro node.
-		panic(err)
-
+		e.logger.Panic().Msg(err.Error())
 	}
 }
