@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	nitroInfra "github.com/statechannels/go-nitro/internal/infra"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/node"
@@ -101,7 +102,7 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 				p2pServices[i] = msgService.(*p2pms.P2PMessageService)
 			}
 
-			waitForPeerInfoExchange(p2pServices...)
+			nitroInfra.WaitForPeerInfoExchange(p2pServices...)
 		}
 
 		asset := common.Address{}

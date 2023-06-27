@@ -14,12 +14,12 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v1.3.2
 	github.com/tidwall/buntdb v1.2.10
 	github.com/urfave/cli/v2 v2.25.3
 )
 
 require (
-	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

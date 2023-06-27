@@ -8,13 +8,8 @@ import (
 	"os/exec"
 	"os/signal"
 	"syscall"
-	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
-	ConsensusApp "github.com/statechannels/go-nitro/node/engine/chainservice/consensusapp"
-	chainutils "github.com/statechannels/go-nitro/node/engine/chainservice/utils"
-	VirtualPaymentApp "github.com/statechannels/go-nitro/node/engine/chainservice/virtualpaymentapp"
+	"github.com/statechannels/go-nitro/internal/infra"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -46,34 +41,26 @@ var (
 	participantColor = map[participant]color{alice: blue, irene: green, ivan: cyan, bob: yellow}
 )
 
-const FUNDED_TEST_PK = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-
 func main() {
 	running := []*exec.Cmd{}
 
-	chainCmd := exec.Command("anvil", "--chain-id", "1337")
-	chainCmd.Stdout = os.Stdout
-	chainCmd.Stderr = os.Stderr
-	err := chainCmd.Start()
+	anvilCmd, err := infra.StartAnvil()
 	if err != nil {
-		stopCommands(running...)
+		infra.StopCommands(running...)
 		panic(err)
 	}
-	running = append(running, chainCmd)
+	running = append(running, anvilCmd)
 
-	// Give the chain a second to start up
-	time.Sleep(1 * time.Second)
-
-	naAddress, vpaAddress, caAddress, err := deployContracts(context.Background())
+	naAddress, vpaAddress, caAddress, err := infra.DeployContracts(context.Background())
 	if err != nil {
-		stopCommands(running...)
+		infra.StopCommands(running...)
 		panic(err)
 	}
 
 	for _, p := range participants {
 		client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress)
 		if err != nil {
-			stopCommands(running...)
+			infra.StopCommands(running...)
 			panic(err)
 		}
 		running = append(running, client)
@@ -81,22 +68,7 @@ func main() {
 
 	waitForKillSignal()
 
-	stopCommands(running...)
-}
-
-// stopCommands stops the given executing commands
-func stopCommands(cmds ...*exec.Cmd) {
-	for _, cmd := range cmds {
-		fmt.Printf("Stopping process %v\n", cmd.Args)
-		err := cmd.Process.Signal(syscall.SIGINT)
-		if err != nil {
-			panic(err)
-		}
-		err = cmd.Process.Kill()
-		if err != nil {
-			panic(err)
-		}
-	}
+	infra.StopCommands(running...)
 }
 
 // waitForKillSignal blocks until we receive a kill or interrupt signal
@@ -144,28 +116,4 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 		writer: w,
 		color:  c,
 	}
-}
-
-// deployContracts deploys the  NitroAdjudicator contract.
-func deployContracts(ctx context.Context) (na common.Address, vpa common.Address, ca common.Address, err error) {
-	ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), "ws://127.0.0.1:8545", "", common.Hex2Bytes(FUNDED_TEST_PK))
-	if err != nil {
-		return types.Address{}, types.Address{}, types.Address{}, err
-	}
-	na, _, _, err = NitroAdjudicator.DeployNitroAdjudicator(txSubmitter, ethClient)
-	if err != nil {
-		return types.Address{}, types.Address{}, types.Address{}, err
-	}
-	fmt.Printf("Deployed NitroAdjudicator at %s\n", na.String())
-	vpa, _, _, err = VirtualPaymentApp.DeployVirtualPaymentApp(txSubmitter, ethClient)
-	if err != nil {
-		return types.Address{}, types.Address{}, types.Address{}, err
-	}
-	fmt.Printf("Deployed VirtualPaymentApp at %s\n", vpa.String())
-	ca, _, _, err = ConsensusApp.DeployConsensusApp(txSubmitter, ethClient)
-	if err != nil {
-		return types.Address{}, types.Address{}, types.Address{}, err
-	}
-	fmt.Printf("Deployed ConsensusApp at %s\n", ca.String())
-	return
 }

@@ -351,12 +351,3 @@ func clientAddresses(clients []node.Node) []common.Address {
 
 	return addrs
 }
-
-// waitForPeerInfoExchange waits for all the P2PMessageServices to receive peer info from each other
-func waitForPeerInfoExchange(services ...*p2pms.P2PMessageService) {
-	for _, s := range services {
-		for i := 0; i < len(services)-1; i++ {
-			<-s.PeerInfoReceived()
-		}
-	}
-}
