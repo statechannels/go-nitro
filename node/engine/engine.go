@@ -864,6 +864,6 @@ func (e *Engine) checkError(err error) {
 			}
 		}
 
-		panic(err)
+		e.logger.Panic().Msg(err.Error())
 	}
 }
