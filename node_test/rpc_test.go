@@ -13,9 +13,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/internal/infra"
+	infraRpc "github.com/statechannels/go-nitro/internal/rpc"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/internal/utils"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/node/query"
@@ -106,7 +107,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	}
 	t.Logf("%d Clients created", n)
 
-	infra.WaitForPeerInfoExchange(msgServices...)
+	utils.WaitForPeerInfoExchange(msgServices...)
 	t.Logf("Peer exchange complete")
 
 	// create n-1 ledger channels
@@ -300,7 +301,7 @@ func setupNitroNodeWithRPCClient(
 	connectionType transport.TransportType,
 ) (*rpc.RpcClient, *p2pms.P2PMessageService, func()) {
 	var err error
-	rpcServer, _, messageService, err := infra.InitializeRpcServer(pk, chain, false, msgPort, rpcPort, connectionType)
+	rpcServer, _, messageService, err := infraRpc.InitializeRpcServer(pk, chain, false, msgPort, rpcPort, connectionType)
 	if err != nil {
 		t.Fatal(err)
 	}
