@@ -61,7 +61,7 @@ func getLatestSupportedOrPreFund(channel *channel.Channel) (state.State, error) 
 }
 
 // getLedgerBalanceFromState returns the balance of the ledger channel from the given state
-func getLedgerBalanceFromState(latest state.State, me types.Address) LedgerChannelBalance {
+func getLedgerBalanceFromState(latest state.State, myAddress types.Address) LedgerChannelBalance {
 	// TODO: We assume single asset outcomes
 	outcome := latest.Outcome[0]
 	asset := outcome.Asset
@@ -70,13 +70,13 @@ func getLedgerBalanceFromState(latest state.State, me types.Address) LedgerChann
 	myBalance := big.NewInt(0)
 	theirBalance := big.NewInt(0)
 
-	if latest.Participants[0] == me {
+	if latest.Participants[0] == myAddress {
 		them = latest.Participants[1]
 		theirBalance = outcome.Allocations[1].Amount
 		myBalance = outcome.Allocations[0].Amount
 	}
 
-	if latest.Participants[1] == me {
+	if latest.Participants[1] == myAddress {
 		them = latest.Participants[0]
 		theirBalance = outcome.Allocations[0].Amount
 		myBalance = outcome.Allocations[1].Amount
@@ -84,7 +84,7 @@ func getLedgerBalanceFromState(latest state.State, me types.Address) LedgerChann
 
 	return LedgerChannelBalance{
 		AssetAddress: asset,
-		Me:           me,
+		Me:           myAddress,
 		Them:         them,
 		MyBalance:    (*hexutil.Big)(myBalance),
 		TheirBalance: (*hexutil.Big)(theirBalance),
@@ -227,12 +227,12 @@ func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChanne
 	return ConstructLedgerInfoFromConsensus(con, myAddress), nil
 }
 
-func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel, me types.Address) LedgerChannelInfo {
+func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel, myAddress types.Address) LedgerChannelInfo {
 	latest := con.ConsensusVars().AsState(con.FixedPart())
 	return LedgerChannelInfo{
 		ID:      con.Id,
 		Status:  Open,
-		Balance: getLedgerBalanceFromState(latest, me),
+		Balance: getLedgerBalanceFromState(latest, myAddress),
 	}
 }
 
