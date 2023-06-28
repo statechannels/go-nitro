@@ -47,10 +47,10 @@ func InitializeNitroNetwork() error {
 	msgServices := []*p2pms.P2PMessageService{}
 
 	anvilCmd, err := chain.StartAnvil()
-	defer utils.StopCommands(anvilCmd)
 	if err != nil {
 		return err
 	}
+	defer utils.StopCommands(anvilCmd)
 
 	naAddress, vpaAddress, caAddress, err := chain.DeployContracts(context.Background())
 	if err != nil {
