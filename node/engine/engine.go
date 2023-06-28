@@ -657,13 +657,17 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 			}
 			outgoing.PaymentChannelUpdates = append(outgoing.PaymentChannelUpdates, info)
 		case *channel.Channel:
-			l, err := query.ConstructLedgerInfoFromChannel(c)
+			l, err := query.ConstructLedgerInfoFromChannel(c, *e.store.GetAddress())
 			if err != nil {
 				return outgoing, err
 			}
 			outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, l)
 		case *consensus_channel.ConsensusChannel:
-			outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, query.ConstructLedgerInfoFromConsensus(c))
+			l, err := query.ConstructLedgerInfoFromConsensus(c, *e.store.GetAddress())
+			if err != nil {
+				return outgoing, err
+			}
+			outgoing.LedgerChannelUpdates = append(outgoing.LedgerChannelUpdates, l)
 		default:
 			return outgoing, fmt.Errorf("handleNotifications: Unknown related type %T", c)
 		}

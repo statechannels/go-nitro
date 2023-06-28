@@ -43,7 +43,7 @@ type response[T serde.ResponsePayload] struct {
 }
 
 // NewRpcClient creates a new RpcClient
-func NewRpcClient(rpcServerUrl string, logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
+func NewRpcClient(logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}}
 

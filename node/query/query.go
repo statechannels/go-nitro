@@ -61,22 +61,33 @@ func getLatestSupportedOrPreFund(channel *channel.Channel) (state.State, error) 
 }
 
 // getLedgerBalanceFromState returns the balance of the ledger channel from the given state
-func getLedgerBalanceFromState(latest state.State) LedgerChannelBalance {
+func getLedgerBalanceFromState(latest state.State, myAddress types.Address) (LedgerChannelBalance, error) {
 	// TODO: We assume single asset outcomes
 	outcome := latest.Outcome[0]
 	asset := outcome.Asset
-	client := latest.Participants[0]
-	clientBalance := big.NewInt(0).Set(outcome.Allocations[0].Amount)
-	hub := latest.Participants[1]
-	hubBalance := big.NewInt(0).Set(outcome.Allocations[1].Amount)
+
+	var them types.Address
+	var myBalance, theirBalance *big.Int
+
+	if latest.Participants[0] == myAddress {
+		them = latest.Participants[1]
+		theirBalance = outcome.Allocations[1].Amount
+		myBalance = outcome.Allocations[0].Amount
+	} else if latest.Participants[1] == myAddress {
+		them = latest.Participants[0]
+		theirBalance = outcome.Allocations[0].Amount
+		myBalance = outcome.Allocations[1].Amount
+	} else {
+		return LedgerChannelBalance{}, fmt.Errorf("could not find my address %v in participants %v", myAddress, latest.Participants)
+	}
 
 	return LedgerChannelBalance{
-		AssetAddress:  asset,
-		Hub:           hub,
-		Client:        client,
-		HubBalance:    (*hexutil.Big)(hubBalance),
-		ClientBalance: (*hexutil.Big)(clientBalance),
-	}
+		AssetAddress: asset,
+		Me:           myAddress,
+		Them:         them,
+		MyBalance:    (*hexutil.Big)(myBalance),
+		TheirBalance: (*hexutil.Big)(theirBalance),
+	}, nil
 }
 
 // GetVirtualFundObjective returns the virtual fund objective for the given channel if it exists.
@@ -139,26 +150,40 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 // GetAllLedgerChannels returns a `LedgerChannelInfo` for each ledger channel in the store.
 func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Address) ([]LedgerChannelInfo, error) {
 	toReturn := []LedgerChannelInfo{}
+	myAddress := *store.GetAddress()
 
 	allConsensus, err := store.GetAllConsensusChannels()
 	if err != nil {
 		return []LedgerChannelInfo{}, err
 	}
+
+	failedConstructions := []string{}
+
 	for _, con := range allConsensus {
-		toReturn = append(toReturn, ConstructLedgerInfoFromConsensus(con))
+		lInfo, err := ConstructLedgerInfoFromConsensus(con, myAddress)
+		if err != nil {
+			failedConstructions = append(failedConstructions, fmt.Sprintf("%v: %v", con.Id, err))
+			continue
+		}
+		toReturn = append(toReturn, lInfo)
 	}
 	allChannels, err := store.GetChannelsByAppDefinition(consensusAppDefinition)
 	if err != nil {
 		return []LedgerChannelInfo{}, err
 	}
 	for _, c := range allChannels {
-		l, err := ConstructLedgerInfoFromChannel(c)
+		l, err := ConstructLedgerInfoFromChannel(c, myAddress)
 		if err != nil {
 			return []LedgerChannelInfo{}, err
 		}
 		toReturn = append(toReturn, l)
 	}
-	return toReturn, nil
+	err = nil
+	if len(failedConstructions) > 0 {
+		err = fmt.Errorf("failed to construct ledger channel info for the following channels: %v", failedConstructions)
+	}
+
+	return toReturn, err
 }
 
 // GetPaymentChannelsByLedger returns a `PaymentChannelInfo` for each active payment channel funded by the given ledger channel.
@@ -200,8 +225,10 @@ func GetPaymentChannelsByLedger(ledgerId types.Destination, s store.Store, vm *p
 // It does this by querying the provided store
 func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChannelInfo, error) {
 	c, ok := store.GetChannelById(id)
+	myAddress := *store.GetAddress()
+
 	if ok {
-		return ConstructLedgerInfoFromChannel(c)
+		return ConstructLedgerInfoFromChannel(c, myAddress)
 	}
 
 	con, err := store.GetConsensusChannelById(id)
@@ -209,27 +236,37 @@ func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChanne
 		return LedgerChannelInfo{}, err
 	}
 
-	return ConstructLedgerInfoFromConsensus(con), nil
+	return ConstructLedgerInfoFromConsensus(con, myAddress)
 }
 
-func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel) LedgerChannelInfo {
+func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel, myAddress types.Address) (LedgerChannelInfo, error) {
 	latest := con.ConsensusVars().AsState(con.FixedPart())
+	balance, err := getLedgerBalanceFromState(latest, myAddress)
+	if err != nil {
+		return LedgerChannelInfo{}, fmt.Errorf("failed to construct ledger channel info from consensus channel: %w", err)
+	}
+
 	return LedgerChannelInfo{
 		ID:      con.Id,
 		Status:  Open,
-		Balance: getLedgerBalanceFromState(latest),
-	}
+		Balance: balance,
+	}, nil
 }
 
-func ConstructLedgerInfoFromChannel(c *channel.Channel) (LedgerChannelInfo, error) {
+func ConstructLedgerInfoFromChannel(c *channel.Channel, myAddress types.Address) (LedgerChannelInfo, error) {
 	latest, err := getLatestSupportedOrPreFund(c)
 	if err != nil {
 		return LedgerChannelInfo{}, err
 	}
+	balance, err := getLedgerBalanceFromState(latest, myAddress)
+	if err != nil {
+		return LedgerChannelInfo{}, fmt.Errorf("failed to construct ledger channel info from channel: %w", err)
+	}
+
 	return LedgerChannelInfo{
 		ID:      c.Id,
 		Status:  getStatusFromChannel(c),
-		Balance: getLedgerBalanceFromState(latest),
+		Balance: balance,
 	}, nil
 }
 

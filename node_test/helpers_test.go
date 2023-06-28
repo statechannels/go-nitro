@@ -250,19 +250,42 @@ func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, sta
 }
 
 // createLedgerInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetLedgerChannel
-func createLedgerInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus) query.LedgerChannelInfo {
-	clientAdd, _ := outcome[0].Allocations[0].Destination.ToAddress()
-	hubAdd, _ := outcome[0].Allocations[1].Destination.ToAddress()
+func createLedgerInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus, user types.Address) query.LedgerChannelInfo {
+	firstParticipant, err := outcome[0].Allocations[0].Destination.ToAddress()
+	if err != nil {
+		panic(err)
+	}
+	secondParticipant, err := outcome[0].Allocations[1].Destination.ToAddress()
+	if err != nil {
+		panic(err)
+	}
+
+	var me, them types.Address
+	var myBalance, theirBalance *big.Int
+
+	if user == firstParticipant {
+		me = firstParticipant
+		myBalance = outcome[0].Allocations[0].Amount
+		them = secondParticipant
+		theirBalance = outcome[0].Allocations[1].Amount
+	} else if user == secondParticipant {
+		me = secondParticipant
+		myBalance = outcome[0].Allocations[1].Amount
+		them = firstParticipant
+		theirBalance = outcome[0].Allocations[0].Amount
+	} else {
+		panic("User not in channel") // test helper - panic OK
+	}
 
 	return query.LedgerChannelInfo{
 		ID:     id,
 		Status: status,
 		Balance: query.LedgerChannelBalance{
-			AssetAddress:  types.Address{},
-			Hub:           hubAdd,
-			Client:        clientAdd,
-			ClientBalance: (*hexutil.Big)(outcome[0].Allocations[0].Amount),
-			HubBalance:    (*hexutil.Big)(outcome[0].Allocations[1].Amount),
+			AssetAddress: types.Address{},
+			Me:           me,
+			Them:         them,
+			MyBalance:    (*hexutil.Big)(myBalance),
+			TheirBalance: (*hexutil.Big)(theirBalance),
 		},
 	}
 }
@@ -273,36 +296,47 @@ type channelStatusShorthand struct {
 	status  query.ChannelStatus
 }
 
-// createLedgerStory returns a sequence of LedgerChannelInfo structs according
-// to the supplied states.
+// createLedgerStory returns a sequence of LedgerChannelInfo structs for each
+// participant according to the supplied states.
 func createLedgerStory(
 	id types.Destination,
-	clientAddr, hubAddr common.Address,
+	firstParticipant, secondParticipant common.Address,
 	states []channelStatusShorthand,
-) []query.LedgerChannelInfo {
-	story := make([]query.LedgerChannelInfo, len(states))
+) map[types.Address][]query.LedgerChannelInfo {
+	stories := map[types.Address][]query.LedgerChannelInfo{
+		firstParticipant:  make([]query.LedgerChannelInfo, len(states)),
+		secondParticipant: make([]query.LedgerChannelInfo, len(states)),
+	}
+
 	for i, state := range states {
-		story[i] = createLedgerInfo(
+		stories[firstParticipant][i] = createLedgerInfo(
 			id,
-			simpleOutcome(clientAddr, hubAddr, state.clientA, state.clientB),
+			simpleOutcome(firstParticipant, secondParticipant, state.clientA, state.clientB),
 			state.status,
+			firstParticipant,
+		)
+		stories[secondParticipant][i] = createLedgerInfo(
+			id,
+			simpleOutcome(firstParticipant, secondParticipant, state.clientA, state.clientB),
+			state.status,
+			secondParticipant,
 		)
 	}
 
-	return story
+	return stories
 }
 
 // checkLedgerChannel checks that the ledger channel has the expected outcome and status
 // It will fail if the channel does not exist
 func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...node.Node) {
 	for _, c := range clients {
-		expected := createLedgerInfo(ledgerId, o, status)
+		expected := createLedgerInfo(ledgerId, o, status, *c.Address)
 		ledger, err := c.GetLedgerChannel(ledgerId)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if diff := cmp.Diff(expected, ledger, cmp.AllowUnexported(big.Int{})); diff != "" {
-			panic(fmt.Errorf("ledger diff mismatch (-want +got):\n%s", diff))
+			t.Errorf("ledger diff mismatch (-want +got):\n%s", diff)
 		}
 	}
 }

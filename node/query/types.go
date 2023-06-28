@@ -40,20 +40,20 @@ type LedgerChannelInfo struct {
 
 // LedgerChannelBalance contains the balance of a ledger channel
 type LedgerChannelBalance struct {
-	AssetAddress  types.Address
-	Hub           types.Address
-	Client        types.Address
-	HubBalance    *hexutil.Big
-	ClientBalance *hexutil.Big
+	AssetAddress types.Address
+	Me           types.Address
+	Them         types.Address
+	MyBalance    *hexutil.Big
+	TheirBalance *hexutil.Big
 }
 
 // Equal returns true if the other LedgerChannelBalance is equal to this one
 func (lcb LedgerChannelBalance) Equal(other LedgerChannelBalance) bool {
 	return lcb.AssetAddress == other.AssetAddress &&
-		lcb.Hub == other.Hub &&
-		lcb.Client == other.Client &&
-		lcb.HubBalance.ToInt().Cmp(other.HubBalance.ToInt()) == 0 &&
-		lcb.ClientBalance.ToInt().Cmp(other.ClientBalance.ToInt()) == 0
+		lcb.Them == other.Them &&
+		lcb.Me == other.Me &&
+		lcb.TheirBalance.ToInt().Cmp(other.TheirBalance.ToInt()) == 0 &&
+		lcb.MyBalance.ToInt().Cmp(other.MyBalance.ToInt()) == 0
 }
 
 // Equal returns true if the other LedgerChannelInfo is equal to this one
