@@ -61,7 +61,7 @@ func getLatestSupportedOrPreFund(channel *channel.Channel) (state.State, error) 
 }
 
 // getLedgerBalanceFromState returns the balance of the ledger channel from the given state
-func getLedgerBalanceFromState(latest state.State, myAddress types.Address) LedgerChannelBalance {
+func getLedgerBalanceFromState(latest state.State, myAddress types.Address) (LedgerChannelBalance, error) {
 	// TODO: We assume single asset outcomes
 	outcome := latest.Outcome[0]
 	asset := outcome.Asset
@@ -74,12 +74,12 @@ func getLedgerBalanceFromState(latest state.State, myAddress types.Address) Ledg
 		them = latest.Participants[1]
 		theirBalance = outcome.Allocations[1].Amount
 		myBalance = outcome.Allocations[0].Amount
-	}
-
-	if latest.Participants[1] == myAddress {
+	} else if latest.Participants[1] == myAddress {
 		them = latest.Participants[0]
 		theirBalance = outcome.Allocations[0].Amount
 		myBalance = outcome.Allocations[1].Amount
+	} else {
+		return LedgerChannelBalance{}, fmt.Errorf("could not find my address %v in participants %v", myAddress, latest.Participants)
 	}
 
 	return LedgerChannelBalance{
@@ -88,7 +88,7 @@ func getLedgerBalanceFromState(latest state.State, myAddress types.Address) Ledg
 		Them:         them,
 		MyBalance:    (*hexutil.Big)(myBalance),
 		TheirBalance: (*hexutil.Big)(theirBalance),
-	}
+	}, nil
 }
 
 // GetVirtualFundObjective returns the virtual fund objective for the given channel if it exists.
@@ -157,8 +157,16 @@ func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Addres
 	if err != nil {
 		return []LedgerChannelInfo{}, err
 	}
+
+	failedConstructions := []string{}
+
 	for _, con := range allConsensus {
-		toReturn = append(toReturn, ConstructLedgerInfoFromConsensus(con, myAddress))
+		lInfo, err := ConstructLedgerInfoFromConsensus(con, myAddress)
+		if err != nil {
+			failedConstructions = append(failedConstructions, fmt.Sprintf("%v: %v", con.Id, err))
+			continue
+		}
+		toReturn = append(toReturn, lInfo)
 	}
 	allChannels, err := store.GetChannelsByAppDefinition(consensusAppDefinition)
 	if err != nil {
@@ -171,7 +179,12 @@ func GetAllLedgerChannels(store store.Store, consensusAppDefinition types.Addres
 		}
 		toReturn = append(toReturn, l)
 	}
-	return toReturn, nil
+	err = nil
+	if len(failedConstructions) > 0 {
+		err = fmt.Errorf("failed to construct ledger channel info for the following channels: %v", failedConstructions)
+	}
+
+	return toReturn, err
 }
 
 // GetPaymentChannelsByLedger returns a `PaymentChannelInfo` for each active payment channel funded by the given ledger channel.
@@ -224,16 +237,21 @@ func GetLedgerChannelInfo(id types.Destination, store store.Store) (LedgerChanne
 		return LedgerChannelInfo{}, err
 	}
 
-	return ConstructLedgerInfoFromConsensus(con, myAddress), nil
+	return ConstructLedgerInfoFromConsensus(con, myAddress)
 }
 
-func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel, myAddress types.Address) LedgerChannelInfo {
+func ConstructLedgerInfoFromConsensus(con *consensus_channel.ConsensusChannel, myAddress types.Address) (LedgerChannelInfo, error) {
 	latest := con.ConsensusVars().AsState(con.FixedPart())
+	balance, err := getLedgerBalanceFromState(latest, myAddress)
+	if err != nil {
+		return LedgerChannelInfo{}, fmt.Errorf("failed to construct ledger channel info from consensus channel: %w", err)
+	}
+
 	return LedgerChannelInfo{
 		ID:      con.Id,
 		Status:  Open,
-		Balance: getLedgerBalanceFromState(latest, myAddress),
-	}
+		Balance: balance,
+	}, nil
 }
 
 func ConstructLedgerInfoFromChannel(c *channel.Channel, myAddress types.Address) (LedgerChannelInfo, error) {
@@ -241,10 +259,15 @@ func ConstructLedgerInfoFromChannel(c *channel.Channel, myAddress types.Address)
 	if err != nil {
 		return LedgerChannelInfo{}, err
 	}
+	balance, err := getLedgerBalanceFromState(latest, myAddress)
+	if err != nil {
+		return LedgerChannelInfo{}, fmt.Errorf("failed to construct ledger channel info from channel: %w", err)
+	}
+
 	return LedgerChannelInfo{
 		ID:      c.Id,
 		Status:  getStatusFromChannel(c),
-		Balance: getLedgerBalanceFromState(latest, myAddress),
+		Balance: balance,
 	}, nil
 }
 
