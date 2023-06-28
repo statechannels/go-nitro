@@ -137,12 +137,12 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	for i, client := range clients {
 		if i != 0 {
 			leftLC := ledgerChannels[i-1]
-			expectedLeftLC := createLedgerInfo(leftLC.ChannelId, simpleOutcome(actors[i-1].Address(), actors[i].Address(), 100, 100), query.Open)
+			expectedLeftLC := createLedgerInfo(leftLC.ChannelId, simpleOutcome(actors[i-1].Address(), actors[i].Address(), 100, 100), query.Open, actors[i].Address())
 			checkQueryInfo(t, expectedLeftLC, client.GetLedgerChannel(leftLC.ChannelId))
 		}
 		if i != n-1 {
 			rightLC := ledgerChannels[i]
-			expectedRightLC := createLedgerInfo(rightLC.ChannelId, simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100), query.Open)
+			expectedRightLC := createLedgerInfo(rightLC.ChannelId, simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100), query.Open, actors[i].Address())
 			checkQueryInfo(t, expectedRightLC, client.GetLedgerChannel(rightLC.ChannelId))
 		}
 	}
@@ -246,7 +246,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			{99, 101, query.Closing},
 			{99, 101, query.Complete},
 		},
-	)
+	)[alice.Address()]
 	checkNotifications(t, "aliceLedger", expectedAliceLedgerNotifs, []query.LedgerChannelInfo{}, aliceLedgerNotifs, defaultTimeout)
 
 	bobLedgerNotifs := bobClient.LedgerChannelUpdatesChan(bobLedger.ChannelId)
@@ -259,10 +259,10 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			{99, 101, query.Open},
 			{99, 101, query.Complete},
 		},
-	)
+	)[bob.Address()]
 	if n != 2 { // bob does not trigger a ledger-channel close if n=2 - alice does
 		expectedBobLedgerNotifs = append(expectedBobLedgerNotifs,
-			createLedgerInfo(bobLedger.ChannelId, simpleOutcome(actors[n-2].Address(), bob.Address(), 99, 101), query.Closing),
+			createLedgerInfo(bobLedger.ChannelId, simpleOutcome(actors[n-2].Address(), bob.Address(), 99, 101), query.Closing, bob.Address()),
 		)
 	}
 	checkNotifications(t, "bobLedger", expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
