@@ -49,8 +49,8 @@ type Node struct {
 
 // New is the constructor for a Node. It accepts a messaging service, a chain service, and a store as injected dependencies.
 func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker engine.PolicyMaker, metricsApi engine.MetricsApi) Node {
-	c := Node{}
-	c.Address = store.GetAddress()
+	n := Node{}
+	n.Address = store.GetAddress()
 	// If a metrics API is not provided we used the no-op version which does nothing.
 	if metricsApi == nil {
 		metricsApi = &engine.NoOpMetrics{}
@@ -59,72 +59,72 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	if err != nil {
 		panic(err)
 	}
-	c.chainId = chainId
-	c.store = store
-	c.vm = payments.NewVoucherManager(*store.GetAddress(), store)
-	c.logger = zerolog.New(logDestination).With().Timestamp().Str("nitro node", c.Address.String()[0:8]).Caller().Logger()
+	n.chainId = chainId
+	n.store = store
+	n.vm = payments.NewVoucherManager(*store.GetAddress(), store)
+	n.logger = zerolog.New(logDestination).With().Timestamp().Str("nitro node", n.Address.String()[0:8]).Caller().Logger()
 
-	c.engine = engine.New(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
-	c.completedObjectives = &safesync.Map[chan struct{}]{}
-	c.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
+	n.engine = engine.New(n.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
+	n.completedObjectives = &safesync.Map[chan struct{}]{}
+	n.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
 
-	c.failedObjectives = make(chan protocols.ObjectiveId, 100)
+	n.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
-	c.receivedVouchers = make(chan payments.Voucher, 1000)
+	n.receivedVouchers = make(chan payments.Voucher, 1000)
 
-	c.channelNotifier = notifier.NewChannelNotifier(store, c.vm)
+	n.channelNotifier = notifier.NewChannelNotifier(store, n.vm)
 
 	// Start the engine in a go routine
 	ctx, cancel := context.WithCancel(context.Background())
 
-	c.wg = &sync.WaitGroup{}
-	c.wg.Add(1)
+	n.wg = &sync.WaitGroup{}
+	n.wg.Add(1)
 
-	c.cancelEventHandler = cancel
+	n.cancelEventHandler = cancel
 	// Start the event handler in a go routine
 	// It will listen for events from the engine and dispatch events to node channels
-	go c.handleEngineEvents(ctx)
+	go n.handleEngineEvents(ctx)
 
-	return c
+	return n
 }
 
 // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
 // It parses events from the ToApi chan and then dispatches events to the necessary node chan.
-func (c *Node) handleEngineEvents(ctx context.Context) {
+func (n *Node) handleEngineEvents(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			c.wg.Done()
+			n.wg.Done()
 			return
-		case update := <-c.engine.ToApi():
+		case update := <-n.engine.ToApi():
 			for _, completed := range update.CompletedObjectives {
-				d, _ := c.completedObjectives.LoadOrStore(string(completed.Id()), make(chan struct{}))
+				d, _ := n.completedObjectives.LoadOrStore(string(completed.Id()), make(chan struct{}))
 				close(d)
 
 				// use a nonblocking send to the RPC Client in case no one is listening
 				select {
-				case c.completedObjectivesForRPC <- completed.Id():
+				case n.completedObjectivesForRPC <- completed.Id():
 				default:
 				}
 			}
 
 			for _, erred := range update.FailedObjectives {
-				c.failedObjectives <- erred
+				n.failedObjectives <- erred
 			}
 
 			for _, payment := range update.ReceivedVouchers {
-				c.receivedVouchers <- payment
+				n.receivedVouchers <- payment
 			}
 
 			for _, updated := range update.LedgerChannelUpdates {
 
-				err := c.channelNotifier.NotifyLedgerUpdated(updated)
-				c.handleError(err)
+				err := n.channelNotifier.NotifyLedgerUpdated(updated)
+				n.handleError(err)
 			}
 			for _, updated := range update.PaymentChannelUpdates {
 
-				err := c.channelNotifier.NotifyPaymentUpdated(updated)
-				c.handleError(err)
+				err := n.channelNotifier.NotifyPaymentUpdated(updated)
+				n.handleError(err)
 			}
 		}
 	}
@@ -133,7 +133,7 @@ func (c *Node) handleEngineEvents(ctx context.Context) {
 // Begin API
 
 // Version returns the go-nitro version
-func (c *Node) Version() string {
+func (n *Node) Version() string {
 	info, _ := debug.ReadBuildInfo()
 
 	version := info.Main.Version
@@ -156,161 +156,161 @@ func (c *Node) Version() string {
 }
 
 // CompletedObjectives returns a chan that receives a objective id whenever that objective is completed. Not suitable fo multiple subscribers.
-func (c *Node) CompletedObjectives() <-chan protocols.ObjectiveId {
-	return c.completedObjectivesForRPC
+func (n *Node) CompletedObjectives() <-chan protocols.ObjectiveId {
+	return n.completedObjectivesForRPC
 }
 
 // LedgerUpdates returns a chan that receives ledger channel info whenever that ledger channel is updated. Not suitable for multiple subscribers.
-func (c *Node) LedgerUpdates() <-chan query.LedgerChannelInfo {
-	return c.channelNotifier.RegisterForAllLedgerUpdates()
+func (n *Node) LedgerUpdates() <-chan query.LedgerChannelInfo {
+	return n.channelNotifier.RegisterForAllLedgerUpdates()
 }
 
 // PaymentUpdates returns a chan that receives payment channel info whenever that payment channel is updated. Not suitable fo multiple subscribers.
-func (c *Node) PaymentUpdates() <-chan query.PaymentChannelInfo {
-	return c.channelNotifier.RegisterForAllPaymentUpdates()
+func (n *Node) PaymentUpdates() <-chan query.PaymentChannelInfo {
+	return n.channelNotifier.RegisterForAllPaymentUpdates()
 }
 
 // ObjectiveCompleteChan returns a chan that is closed when the objective with given id is completed
-func (c *Node) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
-	d, _ := c.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
+func (n *Node) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
+	d, _ := n.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
 	return d
 }
 
 // LedgerUpdatedChan returns a chan that receives a ledger channel info whenever the ledger with given id is updated
-func (c *Node) LedgerUpdatedChan(ledgerId types.Destination) <-chan query.LedgerChannelInfo {
-	return c.channelNotifier.RegisterForLedgerUpdates(ledgerId)
+func (n *Node) LedgerUpdatedChan(ledgerId types.Destination) <-chan query.LedgerChannelInfo {
+	return n.channelNotifier.RegisterForLedgerUpdates(ledgerId)
 }
 
 // PaymentChannelUpdatedChan returns a chan that receives a payment channel info whenever the payment channel with given id is updated
-func (c *Node) PaymentChannelUpdatedChan(ledgerId types.Destination) <-chan query.PaymentChannelInfo {
-	return c.channelNotifier.RegisterForPaymentChannelUpdates(ledgerId)
+func (n *Node) PaymentChannelUpdatedChan(ledgerId types.Destination) <-chan query.PaymentChannelInfo {
+	return n.channelNotifier.RegisterForPaymentChannelUpdates(ledgerId)
 }
 
 // FailedObjectives returns a chan that receives an objective id whenever that objective has failed
-func (c *Node) FailedObjectives() <-chan protocols.ObjectiveId {
-	return c.failedObjectives
+func (n *Node) FailedObjectives() <-chan protocols.ObjectiveId {
+	return n.failedObjectives
 }
 
 // ReceivedVouchers returns a chan that receives a voucher every time we receive a payment voucher
-func (c *Node) ReceivedVouchers() <-chan payments.Voucher {
-	return c.receivedVouchers
+func (n *Node) ReceivedVouchers() <-chan payments.Voucher {
+	return n.receivedVouchers
 }
 
 // CreatePaymentChannel creates a virtual channel with the counterParty using ledger channels
 // with the supplied intermediaries.
-func (c *Node) CreatePaymentChannel(Intermediaries []types.Address, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) (virtualfund.ObjectiveResponse, error) {
+func (n *Node) CreatePaymentChannel(Intermediaries []types.Address, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) (virtualfund.ObjectiveResponse, error) {
 	objectiveRequest := virtualfund.NewObjectiveRequest(
 		Intermediaries,
 		CounterParty,
 		ChallengeDuration,
 		Outcome,
 		rand.Uint64(),
-		c.engine.GetVirtualPaymentAppAddress(),
+		n.engine.GetVirtualPaymentAppAddress(),
 	)
 
 	// Send the event to the engine
-	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
+	n.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Response(*c.Address), nil
+	return objectiveRequest.Response(*n.Address), nil
 }
 
 // ClosePaymentChannel attempts to close and defund the given virtually funded channel.
-func (c *Node) ClosePaymentChannel(channelId types.Destination) (protocols.ObjectiveId, error) {
+func (n *Node) ClosePaymentChannel(channelId types.Destination) (protocols.ObjectiveId, error) {
 	objectiveRequest := virtualdefund.NewObjectiveRequest(channelId)
 
 	// Send the event to the engine
-	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
+	n.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Id(*c.Address, c.chainId), nil
+	return objectiveRequest.Id(*n.Address, n.chainId), nil
 }
 
 // CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
 // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
-func (c *Node) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (directfund.ObjectiveResponse, error) {
+func (n *Node) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (directfund.ObjectiveResponse, error) {
 	objectiveRequest := directfund.NewObjectiveRequest(
 		Counterparty,
 		ChallengeDuration,
 		outcome,
 		rand.Uint64(),
-		c.engine.GetConsensusAppAddress(),
+		n.engine.GetConsensusAppAddress(),
 		// Appdata implicitly zero
 	)
 
 	// Send the event to the engine
-	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
+	n.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Response(*c.Address, c.chainId), nil
+	return objectiveRequest.Response(*n.Address, n.chainId), nil
 }
 
 // CloseLedgerChannel attempts to close and defund the given directly funded channel.
-func (c *Node) CloseLedgerChannel(channelId types.Destination) (protocols.ObjectiveId, error) {
+func (n *Node) CloseLedgerChannel(channelId types.Destination) (protocols.ObjectiveId, error) {
 	objectiveRequest := directdefund.NewObjectiveRequest(channelId)
 
 	// Send the event to the engine
-	c.engine.ObjectiveRequestsFromAPI <- objectiveRequest
+	n.engine.ObjectiveRequestsFromAPI <- objectiveRequest
 	objectiveRequest.WaitForObjectiveToStart()
-	return objectiveRequest.Id(*c.Address, c.chainId), nil
+	return objectiveRequest.Id(*n.Address, n.chainId), nil
 }
 
 // Pay will send a signed voucher to the payee that they can redeem for the given amount.
-func (c *Node) Pay(channelId types.Destination, amount *big.Int) {
+func (n *Node) Pay(channelId types.Destination, amount *big.Int) {
 	// Send the event to the engine
-	c.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
+	n.engine.PaymentRequestsFromAPI <- engine.PaymentRequest{ChannelId: channelId, Amount: amount}
 }
 
 // GetPaymentChannel returns the payment channel with the given id.
 // If no ledger channel exists with the given id an error is returned.
-func (c *Node) GetPaymentChannel(id types.Destination) (query.PaymentChannelInfo, error) {
-	return query.GetPaymentChannelInfo(id, c.store, c.vm)
+func (n *Node) GetPaymentChannel(id types.Destination) (query.PaymentChannelInfo, error) {
+	return query.GetPaymentChannelInfo(id, n.store, n.vm)
 }
 
 // GetPaymentChannelsByLedger returns all active payment channels that are funded by the given ledger channel.
-func (c *Node) GetPaymentChannelsByLedger(ledgerId types.Destination) ([]query.PaymentChannelInfo, error) {
-	return query.GetPaymentChannelsByLedger(ledgerId, c.store, c.vm)
+func (n *Node) GetPaymentChannelsByLedger(ledgerId types.Destination) ([]query.PaymentChannelInfo, error) {
+	return query.GetPaymentChannelsByLedger(ledgerId, n.store, n.vm)
 }
 
 // GetAllLedgerChannels returns all ledger channels.
-func (c *Node) GetAllLedgerChannels() ([]query.LedgerChannelInfo, error) {
-	return query.GetAllLedgerChannels(c.store, c.engine.GetConsensusAppAddress())
+func (n *Node) GetAllLedgerChannels() ([]query.LedgerChannelInfo, error) {
+	return query.GetAllLedgerChannels(n.store, n.engine.GetConsensusAppAddress())
 }
 
 // GetLedgerChannel returns the ledger channel with the given id.
 // If no ledger channel exists with the given id an error is returned.
-func (c *Node) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {
-	return query.GetLedgerChannelInfo(id, c.store)
+func (n *Node) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {
+	return query.GetLedgerChannelInfo(id, n.store)
 }
 
 // stopEventHandler stops the event handler goroutine and waits for it to quit successfully.
-func (c *Node) stopEventHandler() {
-	c.cancelEventHandler()
-	c.wg.Wait()
+func (n *Node) stopEventHandler() {
+	n.cancelEventHandler()
+	n.wg.Wait()
 }
 
 // Close stops the node from responding to any input.
-func (c *Node) Close() error {
-	c.stopEventHandler()
+func (n *Node) Close() error {
+	n.stopEventHandler()
 
-	if err := c.channelNotifier.Close(); err != nil {
+	if err := n.channelNotifier.Close(); err != nil {
 		return err
 	}
-	if err := c.engine.Close(); err != nil {
+	if err := n.engine.Close(); err != nil {
 		return err
 	}
 	// At this point, the engine ToApi channel has been closed.
 	// If there are blocking consumers (for or select channel statements) on any channel for which the node is a producer,
 	// those channels need to be closed.
-	close(c.completedObjectivesForRPC)
+	close(n.completedObjectivesForRPC)
 
-	return c.store.Close()
+	return n.store.Close()
 }
 
 // handleError logs the error and panics
 // Eventually it should return the error to the caller
-func (c *Node) handleError(err error) {
+func (n *Node) handleError(err error) {
 	if err != nil {
 
-		c.logger.Err(err).Msgf("%s, error in nitro node", c.Address)
+		n.logger.Err(err).Msgf("%s, error in nitro node", n.Address)
 
 		<-time.After(1000 * time.Millisecond) // We wait for a bit so the previous log line has time to complete
 
