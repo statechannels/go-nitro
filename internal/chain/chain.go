@@ -52,8 +52,9 @@ func StartAnvil() (*exec.Cmd, error) {
 	chainCmd.Stderr = os.Stderr
 	err := chainCmd.Start()
 	if err == nil {
-		// Give the chain a second to start up
+		// If Anvil start successfully, delay by 1 second for the chain to initialize
 		time.Sleep(1 * time.Second)
+		return chainCmd, nil
 	}
 	return chainCmd, err
 }
