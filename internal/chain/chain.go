@@ -51,12 +51,12 @@ func StartAnvil() (*exec.Cmd, error) {
 	chainCmd.Stdout = os.Stdout
 	chainCmd.Stderr = os.Stderr
 	err := chainCmd.Start()
-	if err == nil {
-		// If Anvil start successfully, delay by 1 second for the chain to initialize
-		time.Sleep(1 * time.Second)
-		return chainCmd, nil
+	if err != nil {
+		return &exec.Cmd{}, nil
 	}
-	return chainCmd, err
+	// If Anvil start successfully, delay by 1 second for the chain to initialize
+	time.Sleep(1 * time.Second)
+	return chainCmd, nil
 }
 
 // DeployContracts deploys the NitroAdjudicator, VirtualPaymentApp and ConsensusApp contracts.
