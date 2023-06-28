@@ -6,7 +6,8 @@ The flow of data through the node is shown in this diagram:
 
 ![architecture](architecture.png)
 
-1. The `engine` runs in its own goroutine and has a select statement listening for a message from one of:
+0. An API can originate as a remote procedure call (RPC) over https/ws or nats. The RPC call is handled by a server which consumes a go-nitro node as a library.
+1. The go-nitro `engine` runs in its own goroutine and has a select statement listening for a message from one of:
    - the consuming application (the go-nitro `node` translates an API call into a send on a go channel, and returns a go channel where a response will later be received)
    - the `message` service
    - the `chain` service.
@@ -17,7 +18,7 @@ The flow of data through the node is shown in this diagram:
    - the `message` service
    - the `chain` service
    - _back_ to the `engine` (e.g. when an update declares further progress can be made)
-6. The consuming application is informed about updates
+6. The consuming application is informed about updates (which may return over the RPC connection)
 
 The `chain` and `message` services are responsible for communicating with the blockchain and with counterparties (respectively).
 
