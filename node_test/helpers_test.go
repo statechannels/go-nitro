@@ -251,8 +251,14 @@ func checkPaymentChannel(t *testing.T, id types.Destination, o outcome.Exit, sta
 
 // createLedgerInfo constructs a LedgerChannelInfo so we can easily compare it to the result of GetLedgerChannel
 func createLedgerInfo(id types.Destination, outcome outcome.Exit, status query.ChannelStatus, user types.Address) query.LedgerChannelInfo {
-	firstParticipant, _ := outcome[0].Allocations[0].Destination.ToAddress()
-	secondParticipant, _ := outcome[0].Allocations[1].Destination.ToAddress()
+	firstParticipant, err := outcome[0].Allocations[0].Destination.ToAddress()
+	if err != nil {
+		panic(err)
+	}
+	secondParticipant, err := outcome[0].Allocations[1].Destination.ToAddress()
+	if err != nil {
+		panic(err)
+	}
 
 	var me, them types.Address
 	var myBalance, theirBalance *big.Int
