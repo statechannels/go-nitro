@@ -202,7 +202,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		v := aliceClient.CreateVoucher(vabCreateResponse.ChannelId, 1)
 
 		rec := bobClient.ReceiveVoucher(v)
-		if rec != 1 {
+		if rec.Cmp(big.NewInt(1)) != 0 {
 			t.Errorf("expected 1, got %d", rec)
 		}
 	} else {

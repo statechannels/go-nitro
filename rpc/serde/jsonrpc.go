@@ -87,8 +87,6 @@ type JsonRpcRequest[T RequestPayload | NotificationPayload] struct {
 	Params  T      `json:"params"`
 }
 
-type VersionResponse = string
-
 type (
 	GetAllLedgersResponse              = []query.LedgerChannelInfo
 	GetPaymentChannelsByLedgerResponse = []query.PaymentChannelInfo
@@ -101,11 +99,10 @@ type ResponsePayload interface {
 		PaymentRequest |
 		query.PaymentChannelInfo |
 		query.LedgerChannelInfo |
-		VersionResponse |
 		GetAllLedgersResponse |
 		GetPaymentChannelsByLedgerResponse |
 		payments.Voucher |
-		uint64
+		string
 }
 
 type JsonRpcResponse[T ResponsePayload] struct {

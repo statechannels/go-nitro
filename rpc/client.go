@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"sync"
 
@@ -89,8 +90,11 @@ func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) paymen
 
 // ReceiveVoucher receives a voucher and returns the amount that was paid.
 // It can be used to add a voucher that was sent outside of the go-nitro system.
-func (rc *RpcClient) ReceiveVoucher(v payments.Voucher) uint64 {
-	return waitForRequest[payments.Voucher, uint64](rc, serde.ReceiveVoucherRequestMethod, v)
+func (rc *RpcClient) ReceiveVoucher(v payments.Voucher) *big.Int {
+	bigIntString := waitForRequest[payments.Voucher, string](rc, serde.ReceiveVoucherRequestMethod, v)
+	a := big.NewInt(0)
+	a.SetString(bigIntString, 16)
+	return a
 }
 
 func (rc *RpcClient) GetPaymentChannel(chId types.Destination) query.PaymentChannelInfo {
