@@ -13,7 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	infraRpc "github.com/statechannels/go-nitro/internal/rpc"
+	interRpc "github.com/statechannels/go-nitro/internal/rpc"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/internal/utils"
@@ -301,7 +301,7 @@ func setupNitroNodeWithRPCClient(
 	connectionType transport.TransportType,
 ) (*rpc.RpcClient, *p2pms.P2PMessageService, func()) {
 	var err error
-	rpcServer, _, messageService, err := infraRpc.RunRpcServer(pk, chain, false, msgPort, rpcPort, connectionType)
+	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, false, msgPort, rpcPort, connectionType)
 	if err != nil {
 		t.Fatal(err)
 	}
