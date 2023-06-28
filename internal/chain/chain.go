@@ -61,7 +61,7 @@ func StartAnvil() (*exec.Cmd, error) {
 
 // DeployContracts deploys the NitroAdjudicator, VirtualPaymentApp and ConsensusApp contracts.
 func DeployContracts(ctx context.Context) (na common.Address, vpa common.Address, ca common.Address, err error) {
-	ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), "ws://127.0.0.1:8545", "", common.Hex2Bytes(FUNDED_TEST_PK))
+	ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), ANVIL_CHAIN_URL, "", common.Hex2Bytes(FUNDED_TEST_PK))
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
