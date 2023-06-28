@@ -47,14 +47,17 @@ func TestRpcWithNats(t *testing.T) {
 	executeNRpcTest(t, "nats", 2, false)
 	executeNRpcTest(t, "nats", 3, false)
 	executeNRpcTest(t, "nats", 4, false)
-	executeNRpcTest(t, "nats", 4, true)
 }
 
 func TestRpcWithWebsockets(t *testing.T) {
 	executeNRpcTest(t, "ws", 2, false)
 	executeNRpcTest(t, "ws", 3, false)
 	executeNRpcTest(t, "ws", 4, false)
+}
+
+func TestRPCWithManualVoucherExchange(t *testing.T) {
 	executeNRpcTest(t, "ws", 4, true)
+	executeNRpcTest(t, "nats", 4, true)
 }
 
 func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int, manualVoucherExchange bool) {
