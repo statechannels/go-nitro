@@ -61,11 +61,6 @@ type (
 	NoPayloadRequest = struct{}
 )
 
-type CreateVoucherRequest struct {
-	ChannelId types.Destination
-	Amount    uint64
-}
-
 type RequestPayload interface {
 	directfund.ObjectiveRequest |
 		directdefund.ObjectiveRequest |
@@ -76,8 +71,7 @@ type RequestPayload interface {
 		GetPaymentChannelRequest |
 		GetPaymentChannelsByLedgerRequest |
 		NoPayloadRequest |
-		payments.Voucher |
-		CreateVoucherRequest
+		payments.Voucher
 }
 
 type NotificationPayload interface {

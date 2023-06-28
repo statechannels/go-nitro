@@ -83,9 +83,8 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 // CreateVoucher creates a voucher for the given channelId and amount and returns it.
 // It is the responsibility of the caller to send the voucher to the payee.
 func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) payments.Voucher {
-	req := serde.CreateVoucherRequest{ChannelId: chId, Amount: amount}
-
-	return waitForRequest[serde.CreateVoucherRequest, payments.Voucher](rc, serde.CreateVoucherRequestMethod, req)
+	req := serde.PaymentRequest{Channel: chId, Amount: amount}
+	return waitForRequest[serde.PaymentRequest, payments.Voucher](rc, serde.CreateVoucherRequestMethod, req)
 }
 
 // ReceiveVoucher receives a voucher and returns the amount that was paid.

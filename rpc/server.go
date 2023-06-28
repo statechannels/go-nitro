@@ -88,8 +88,8 @@ func (rs *RpcServer) registerHandlers() (err error) {
 
 		switch serde.RequestMethod(jsonrpcReq.Method) {
 		case serde.CreateVoucherRequestMethod:
-			return processRequest(rs, requestData, func(req serde.CreateVoucherRequest) (payments.Voucher, error) {
-				v, err := rs.node.CreateVoucher(req.ChannelId, big.NewInt(int64(req.Amount)))
+			return processRequest(rs, requestData, func(req serde.PaymentRequest) (payments.Voucher, error) {
+				v, err := rs.node.CreateVoucher(req.Channel, big.NewInt(int64(req.Amount)))
 				if err != nil {
 					return payments.Voucher{}, err
 				}
