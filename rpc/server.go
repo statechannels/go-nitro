@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/node/query"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -86,6 +87,22 @@ func (rs *RpcServer) registerHandlers() (err error) {
 		}
 
 		switch serde.RequestMethod(jsonrpcReq.Method) {
+		case serde.CreateVoucherRequestMethod:
+			return processRequest(rs, requestData, func(req serde.PaymentRequest) (payments.Voucher, error) {
+				v, err := rs.node.CreateVoucher(req.Channel, big.NewInt(int64(req.Amount)))
+				if err != nil {
+					return payments.Voucher{}, err
+				}
+				return v, nil
+			})
+		case serde.ReceiveVoucherRequestMethod:
+			return processRequest(rs, requestData, func(req payments.Voucher) (string, error) {
+				a, err := rs.node.ReceiveVoucher(req)
+				if err != nil {
+					return big.NewInt(0).String(), err
+				}
+				return a.String(), nil
+			})
 		case serde.GetAddressMethod:
 			return processRequest(rs, requestData, func(req serde.NoPayloadRequest) (string, error) {
 				return rs.node.Address.Hex(), nil
@@ -246,6 +263,7 @@ func (rs *RpcServer) sendNotifications(ctx context.Context) {
 		case <-ctx.Done():
 			rs.wg.Done()
 			return
+
 		case completedObjective, ok := <-rs.node.CompletedObjectives():
 			if !ok {
 				rs.logger.Warn().Msg("CompletedObjectives channel closed, exiting sendNotifications")

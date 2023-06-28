@@ -196,6 +196,18 @@ func (n *Node) ReceivedVouchers() <-chan payments.Voucher {
 	return n.receivedVouchers
 }
 
+// CreateVoucher creates and returns a voucher for the given channelId which increments the redeemable balance by amount.
+// It is the responsibility of the caller to send the voucher to the payee.
+func (c *Node) CreateVoucher(channelId types.Destination, amount *big.Int) (payments.Voucher, error) {
+	return c.vm.Pay(channelId, amount, *c.store.GetChannelSecretKey())
+}
+
+// ReceiveVoucher receives a voucher and returns the amount that was paid.
+// It can be used to add a voucher that was sent outside of the go-nitro system.
+func (c *Node) ReceiveVoucher(v payments.Voucher) (*big.Int, error) {
+	return c.vm.Receive(v)
+}
+
 // CreatePaymentChannel creates a virtual channel with the counterParty using ledger channels
 // with the supplied intermediaries.
 func (n *Node) CreatePaymentChannel(Intermediaries []types.Address, CounterParty types.Address, ChallengeDuration uint32, Outcome outcome.Exit) (virtualfund.ObjectiveResponse, error) {

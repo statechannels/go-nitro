@@ -45,18 +45,23 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 }
 
 func TestRpcWithNats(t *testing.T) {
-	executeNRpcTest(t, "nats", 2)
-	executeNRpcTest(t, "nats", 3)
-	executeNRpcTest(t, "nats", 4)
+	executeNRpcTest(t, "nats", 2, false)
+	executeNRpcTest(t, "nats", 3, false)
+	executeNRpcTest(t, "nats", 4, false)
 }
 
 func TestRpcWithWebsockets(t *testing.T) {
-	executeNRpcTest(t, "ws", 2)
-	executeNRpcTest(t, "ws", 3)
-	executeNRpcTest(t, "ws", 4)
+	executeNRpcTest(t, "ws", 2, false)
+	executeNRpcTest(t, "ws", 3, false)
+	executeNRpcTest(t, "ws", 4, false)
 }
 
-func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int) {
+func TestRPCWithManualVoucherExchange(t *testing.T) {
+	executeNRpcTest(t, "ws", 4, true)
+	executeNRpcTest(t, "nats", 4, true)
+}
+
+func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int, manualVoucherExchange bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Test panicked: %v", r)
@@ -197,7 +202,16 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		t.Errorf("expected virtual fund objective, got %s", vabCreateResponse.Id)
 	}
 
-	aliceClient.Pay(vabCreateResponse.ChannelId, 1)
+	if manualVoucherExchange {
+		v := aliceClient.CreateVoucher(vabCreateResponse.ChannelId, 1)
+
+		rec := bobClient.ReceiveVoucher(v)
+		if rec.Cmp(big.NewInt(1)) != 0 {
+			t.Errorf("expected 1, got %d", rec)
+		}
+	} else {
+		aliceClient.Pay(vabCreateResponse.ChannelId, 1)
+	}
 
 	vabClosure := aliceClient.ClosePaymentChannel(vabCreateResponse.ChannelId)
 	for _, client := range clients {

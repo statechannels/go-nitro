@@ -2,6 +2,7 @@ package serde
 
 import (
 	"github.com/statechannels/go-nitro/node/query"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -24,6 +25,8 @@ const (
 	GetLedgerChannelRequestMethod     RequestMethod = "get_ledger_channel"
 	GetPaymentChannelsByLedgerMethod  RequestMethod = "get_payment_channels_by_ledger"
 	GetAllLedgerChannelsMethod        RequestMethod = "get_all_ledger_channels"
+	CreateVoucherRequestMethod        RequestMethod = "create_voucher"
+	ReceiveVoucherRequestMethod       RequestMethod = "receive_voucher"
 )
 
 type NotificationMethod string
@@ -67,7 +70,8 @@ type RequestPayload interface {
 		GetLedgerChannelRequest |
 		GetPaymentChannelRequest |
 		GetPaymentChannelsByLedgerRequest |
-		NoPayloadRequest
+		NoPayloadRequest |
+		payments.Voucher
 }
 
 type NotificationPayload interface {
@@ -83,8 +87,6 @@ type JsonRpcRequest[T RequestPayload | NotificationPayload] struct {
 	Params  T      `json:"params"`
 }
 
-type VersionResponse = string
-
 type (
 	GetAllLedgersResponse              = []query.LedgerChannelInfo
 	GetPaymentChannelsByLedgerResponse = []query.PaymentChannelInfo
@@ -97,9 +99,10 @@ type ResponsePayload interface {
 		PaymentRequest |
 		query.PaymentChannelInfo |
 		query.LedgerChannelInfo |
-		VersionResponse |
 		GetAllLedgersResponse |
-		GetPaymentChannelsByLedgerResponse
+		GetPaymentChannelsByLedgerResponse |
+		payments.Voucher |
+		string
 }
 
 type JsonRpcResponse[T ResponsePayload] struct {
