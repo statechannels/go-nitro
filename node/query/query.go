@@ -66,9 +66,8 @@ func getLedgerBalanceFromState(latest state.State, myAddress types.Address) (Led
 	outcome := latest.Outcome[0]
 	asset := outcome.Asset
 
-	them := types.Address{}
-	myBalance := big.NewInt(0)
-	theirBalance := big.NewInt(0)
+	var them types.Address
+	var myBalance, theirBalance *big.Int
 
 	if latest.Participants[0] == myAddress {
 		them = latest.Participants[1]
