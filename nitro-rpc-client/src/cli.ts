@@ -303,6 +303,39 @@ yargs(hideBin(process.argv))
       process.exit(0);
     }
   )
+  .command(
+    "create-voucher <channelId> <amount>",
+    "Create a payment on the given channel",
+    (yargsBuilder) => {
+      return yargsBuilder
+        .positional("channelId", {
+          describe: "The channel ID of the payment channel",
+          type: "string",
+          demandOption: true,
+        })
+        .positional("amount", {
+          describe: "The amount to pay",
+          type: "number",
+          demandOption: true,
+        });
+    },
+    async (yargs) => {
+      const rpcPort = yargs.p;
+
+      const rpcClient = await NitroRpcClient.CreateHttpNitroClient(
+        getLocalRPCUrl(rpcPort)
+      );
+      if (yargs.n) logOutChannelUpdates(rpcClient);
+
+      const voucher = await rpcClient.CreateVoucher(
+        yargs.channelId,
+        yargs.amount
+      );
+      console.log(voucher);
+      await rpcClient.Close();
+      process.exit(0);
+    }
+  )
 
   .demandCommand(1, "You need at least one command before moving on")
   .parserConfiguration({ "parse-numbers": false })

@@ -51,6 +51,22 @@ export type PaymentParams = {
   Amount: number;
   Channel: string;
 };
+
+// This is the signature we expect from go-nitro
+// R and S are base64 encoded strings
+export type Base64Signature = {
+  R: string;
+  S: string;
+  V: number;
+};
+
+export type Voucher = {
+  ChannelId: string;
+  // todo: this should be a bigint
+  Amount: number;
+
+  Signature: Base64Signature;
+};
 type GetChannelRequest = {
   Id: string;
 };
@@ -109,6 +125,13 @@ export type VirtualDefundRequest = JsonRpcRequest<
   DefundObjectiveRequest
 >;
 
+export type CreateVoucherRequest = JsonRpcRequest<
+  "create_voucher",
+  PaymentParams
+>;
+
+export type ReceiveVoucherRequest = JsonRpcRequest<"receive_voucher", Voucher>;
+
 /**
  * RPC Responses
  */
@@ -125,7 +148,8 @@ export type GetAllLedgerChannelsResponse = JsonRpcResponse<LedgerChannelInfo[]>;
 export type GetPaymentChannelsByLedgerResponse = JsonRpcResponse<
   PaymentChannelInfo[]
 >;
-
+export type CreateVoucherResponse = JsonRpcResponse<Voucher>;
+export type ReceiveVoucherResponse = JsonRpcResponse<number>;
 /**
  * RPC Request/Response map
  * This is a map of all the RPC methods to their request and response types
@@ -148,6 +172,8 @@ export type RPCRequestAndResponses = {
     GetPaymentChannelsByLedgerRequest,
     GetPaymentChannelsByLedgerResponse
   ];
+  create_voucher: [CreateVoucherRequest, CreateVoucherResponse];
+  receive_voucher: [ReceiveVoucherRequest, ReceiveVoucherResponse];
 };
 
 export type RequestMethod = keyof RPCRequestAndResponses;

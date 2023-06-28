@@ -9,6 +9,7 @@ import {
   RPCRequestAndResponses,
   ObjectiveResponse,
   ObjectiveCompleteNotification,
+  Voucher,
 } from "./types";
 import { Transport } from "./transport";
 import { createOutcome, generateRequest } from "./utils";
@@ -23,6 +24,37 @@ export class NitroRpcClient {
 
   public get Notifications() {
     return this.transport.Notifications;
+  }
+
+  /**
+   * Creates a payment voucher for the given channel and amount.
+   * The voucher does not get sent to the other party automatically.
+   * @param channelId The payment channel to use for the voucher
+   * @param amount The amount for the voucher
+   * @returns A signed voucher
+   */
+  public async CreateVoucher(
+    channelId: string,
+    amount: number
+  ): Promise<Voucher> {
+    const params = {
+      Amount: amount,
+      Channel: channelId,
+    };
+    const request = generateRequest("create_voucher", params);
+    const res = await this.transport.sendRequest<"create_voucher">(request);
+    return getAndValidateResult(res, "create_voucher");
+  }
+
+  /**
+   * Adds a voucher to the go-nitro node that was received from the other party to the channel.
+   * @param voucher The voucher to add
+   * @returns The total amount paid on the channel
+   */
+  public async ReceiveVoucher(voucher: Voucher): Promise<number> {
+    const request = generateRequest("receive_voucher", voucher);
+    const res = await this.transport.sendRequest<"receive_voucher">(request);
+    return getAndValidateResult(res, "receive_voucher");
   }
 
   /**
