@@ -13,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/node/query"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directdefund"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -77,6 +78,20 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 		return nil, err
 	}
 	return c, nil
+}
+
+// CreateVoucher creates a voucher for the given channelId and amount and returns it.
+// It is the responsibility of the caller to send the voucher to the payee.
+func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) payments.Voucher {
+	req := serde.CreateVoucherRequest{ChannelId: chId, Amount: amount}
+
+	return waitForRequest[serde.CreateVoucherRequest, payments.Voucher](rc, serde.CreateVoucherRequestMethod, req)
+}
+
+// ReceiveVoucher receives a voucher and returns the amount that was paid.
+// It can be used to add a voucher that was sent outside of the go-nitro system.
+func (rc *RpcClient) ReceiveVoucher(v payments.Voucher) uint64 {
+	return waitForRequest[payments.Voucher, uint64](rc, serde.ReceiveVoucherRequestMethod, v)
 }
 
 func (rc *RpcClient) GetPaymentChannel(chId types.Destination) query.PaymentChannelInfo {
