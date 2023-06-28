@@ -17,6 +17,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+var ErrLedgerChannelExists error = errors.New("directfund: ledger channel already exists")
+
 const (
 	WaitingForCompletePrefund  protocols.WaitingFor = "WaitingForCompletePrefund"
 	WaitingForMyTurnToFund     protocols.WaitingFor = "WaitingForMyTurnToFund"

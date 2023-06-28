@@ -33,6 +33,10 @@ func (rs *RpcServer) Url() string {
 	return rs.transport.Url()
 }
 
+func (rs *RpcServer) Address() *types.Address {
+	return rs.node.Address
+}
+
 func (rs *RpcServer) Close() error {
 	rs.cancel()
 	rs.wg.Wait()

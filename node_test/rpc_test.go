@@ -13,14 +13,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/internal/infra"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
-	"github.com/statechannels/go-nitro/node"
-	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
-	"github.com/statechannels/go-nitro/node/engine/store"
 	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
@@ -302,40 +299,23 @@ func setupNitroNodeWithRPCClient(
 	logDestination *os.File,
 	connectionType transport.TransportType,
 ) (*rpc.RpcClient, *p2pms.P2PMessageService, func()) {
-	messageservice := p2pms.NewMessageService("127.0.0.1",
-		msgPort,
-		crypto.GetAddressFromSecretKeyBytes(pk),
-		pk,
-		true,
-		logDestination)
-	storeA := store.NewMemStore(pk)
-	node := node.New(
-		messageservice,
-		chain,
-		storeA,
-		logDestination,
-		&engine.PermissivePolicy{},
-		nil)
-
-	var serverConnection transport.Responder
-	var clientConnection transport.Requester
 	var err error
+	rpcServer, messageService, err := infra.InitializeRpcServer(pk, chain, false, msgPort, rpcPort, connectionType)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var clientConnection transport.Requester
 	switch connectionType {
 	case "nats":
-		serverConnection, err = natstrans.NewNatsTransportAsServer(rpcPort)
-		if err != nil {
-			panic(err)
-		}
-		clientConnection, err = natstrans.NewNatsTransportAsClient(serverConnection.Url())
+
+		clientConnection, err = natstrans.NewNatsTransportAsClient(rpcServer.Url())
 		if err != nil {
 			panic(err)
 		}
 	case "ws":
-		serverConnection, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
-		if err != nil {
-			panic(err)
-		}
-		clientConnection, err = ws.NewWebSocketTransportAsClient(serverConnection.Url())
+
+		clientConnection, err = ws.NewWebSocketTransportAsClient(rpcServer.Url())
 		if err != nil {
 			panic(err)
 		}
@@ -350,6 +330,7 @@ func setupNitroNodeWithRPCClient(
 		panic(err)
 	}
 	rpcClient, err := rpc.NewRpcClient(createLogger(logDestination, node.Address.Hex(), "client"), clientConnection)
+
 	if err != nil {
 		panic(err)
 	}
@@ -357,7 +338,7 @@ func setupNitroNodeWithRPCClient(
 		rpcClient.Close()
 		rpcServer.Close()
 	}
-	return rpcClient, messageservice, cleanupFn
+	return rpcClient, messageService, cleanupFn
 }
 
 type channelInfo interface {
