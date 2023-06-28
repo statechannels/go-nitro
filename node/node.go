@@ -204,7 +204,7 @@ func (c *Node) CreateVoucher(channelId types.Destination, amount *big.Int) (paym
 
 // ReceiveVoucher receives a voucher and returns the amount that was paid.
 // It can be used to add a voucher that was sent outside of the go-nitro system.
-func (c *Node) ReceiveVoucher(v payments.Voucher) (*big.Int, error) {
+func (c *Node) ReceiveVoucher(v payments.Voucher) (total *big.Int, fromVoucher *big.Int, err error) {
 	return c.vm.Receive(v)
 }
 

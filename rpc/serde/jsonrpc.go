@@ -1,7 +1,10 @@
 package serde
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
@@ -93,6 +96,11 @@ type (
 	GetPaymentChannelsByLedgerResponse = []query.PaymentChannelInfo
 )
 
+type ReceiveVoucherResponse struct {
+	Total       *big.Int
+	FromVoucher *big.Int
+}
+
 type ResponsePayload interface {
 	directfund.ObjectiveResponse |
 		protocols.ObjectiveId |
@@ -104,7 +112,8 @@ type ResponsePayload interface {
 		GetPaymentChannelsByLedgerResponse |
 		payments.Voucher |
 		common.Address |
-		string
+		string |
+		ReceiveVoucherResponse
 }
 
 type JsonRpcResponse[T ResponsePayload] struct {
