@@ -112,6 +112,13 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	}
 	t.Logf("%d Clients created", n)
 
+	t.Log("Verify that each rpc client fetches the correct address")
+	for i := 0; i < n; i++ {
+		if !cmp.Equal(actors[i].Address(), clients[i].Address()) {
+			t.Fatalf("expected address %s, got %s", actors[i].Address(), clients[i].Address())
+		}
+	}
+
 	utils.WaitForPeerInfoExchange(msgServices...)
 	t.Logf("Peer exchange complete")
 
