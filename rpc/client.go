@@ -81,6 +81,11 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 	return c, nil
 }
 
+// Address returns the address of the the nitro node
+func (rc *RpcClient) Address() types.Address {
+	return waitForRequest[serde.NoPayloadRequest, common.Address](rc, serde.GetAddressMethod, serde.NoPayloadRequest{})
+}
+
 // CreateVoucher creates a voucher for the given channelId and amount and returns it.
 // It is the responsibility of the caller to send the voucher to the payee.
 func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) payments.Voucher {

@@ -1,6 +1,7 @@
 package serde
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
@@ -102,6 +103,7 @@ type ResponsePayload interface {
 		GetAllLedgersResponse |
 		GetPaymentChannelsByLedgerResponse |
 		payments.Voucher |
+		common.Address |
 		string
 }
 
