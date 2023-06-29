@@ -36,6 +36,7 @@ type RpcClient struct {
 	paymentChannelUpdates *safesync.Map[chan query.PaymentChannelInfo]
 	cancel                context.CancelFunc
 	wg                    *sync.WaitGroup
+	nodeAddress           common.Address
 }
 
 // response includes a payload or an error.
@@ -47,7 +48,7 @@ type response[T serde.ResponsePayload] struct {
 // NewRpcClient creates a new RpcClient
 func NewRpcClient(logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}}
+	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}, common.Address{}}
 
 	notificationChan, err := c.transport.Subscribe()
 	if err != nil {
@@ -67,7 +68,7 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 
-	c := &RpcClient{transport, zerolog.New(os.Stdout), &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}}
+	c := &RpcClient{transport, zerolog.New(os.Stdout), &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}, common.Address{}}
 
 	notificationChan, err := c.transport.Subscribe()
 	if err != nil {
@@ -82,8 +83,11 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 }
 
 // Address returns the address of the the nitro node
-func (rc *RpcClient) Address() types.Address {
-	return waitForRequest[serde.NoPayloadRequest, common.Address](rc, serde.GetAddressMethod, serde.NoPayloadRequest{})
+func (rc *RpcClient) Address() common.Address {
+	if (rc.nodeAddress == common.Address{}) {
+		rc.nodeAddress = waitForRequest[serde.NoPayloadRequest, common.Address](rc, serde.GetAddressMethod, serde.NoPayloadRequest{})
+	}
+	return rc.nodeAddress
 }
 
 // CreateVoucher creates a voucher for the given channelId and amount and returns it.
