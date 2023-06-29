@@ -58,7 +58,7 @@ curl -X POST \
   http://localhost:4005/api/v1
 ```
 
-but see the [Go rpc client](./rpc/client.go) or the [Typescript rpc client](https://github.com/statechannels/nitro-gui) for an RPC client to do so programmatically.
+but see the [Go rpc client](./rpc/client.go) or the [Typescript rpc client](https://github.com/statechannels/nitro-gui/tree/main/packages/nitro-rpc-client) for an RPC client to do so programmatically.
 
 ### As a Library
 
