@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	urlUtil "net/url"
-	"sync"
 
 	"github.com/rs/zerolog"
 	"nhooyr.io/websocket"
@@ -17,7 +16,8 @@ type clientWebSocketTransport struct {
 	notificationChan chan []byte
 	clientWebsocket  *websocket.Conn
 	url              string
-	wg               *sync.WaitGroup
+	ctx              context.Context
+	cancel           context.CancelFunc
 }
 
 // NewWebSocketTransportAsClient creates a websocket connection that can be used to send requests and listen for notifications
@@ -36,9 +36,8 @@ func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error
 	}
 	wsc.clientWebsocket = conn
 
-	wsc.wg = &sync.WaitGroup{}
+	wsc.ctx, wsc.cancel = context.WithCancel(context.Background())
 
-	wsc.wg.Add(1)
 	go wsc.readMessages()
 
 	return wsc, nil
@@ -71,21 +70,23 @@ func (wsc *clientWebSocketTransport) Close() error {
 	if err != nil {
 		return err
 	}
-	wsc.wg.Wait()
+	wsc.cancel()
 
-	close(wsc.notificationChan)
 	return nil
 }
 
 func (wsc *clientWebSocketTransport) readMessages() {
 	for {
-
-		_, data, err := wsc.clientWebsocket.Read(context.Background())
+		_, data, err := wsc.clientWebsocket.Read(wsc.ctx)
 		if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
-			wsc.wg.Done()
-			return
+			break
+		}
+		if err != nil {
+			wsc.logger.Error().Err(err).Msgf("Error reading from websocket %v", err)
+			continue
 		}
 		wsc.logger.Trace().Msgf("Received message: %s", string(data))
 		wsc.notificationChan <- data
 	}
+	close(wsc.notificationChan)
 }
