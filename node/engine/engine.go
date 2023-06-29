@@ -382,7 +382,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 	for _, voucher := range message.Payments {
 
 		// TODO: return the amount we paid?
-		_, err := e.vm.Receive(voucher)
+		_, _, err := e.vm.Receive(voucher)
 
 		allCompleted.ReceivedVouchers = append(allCompleted.ReceivedVouchers, voucher)
 		if err != nil {

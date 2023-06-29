@@ -79,43 +79,45 @@ func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 	return voucher, nil
 }
 
-// Receive validates the incoming voucher, and returns the total amount received so far
-func (vm *VoucherManager) Receive(voucher Voucher) (*big.Int, error) {
+// Receive validates the incoming voucher, and returns the total amount received so far as well as the amount received from the voucher
+func (vm *VoucherManager) Receive(voucher Voucher) (total *big.Int, delta *big.Int, err error) {
 	vInfo, err := vm.store.GetVoucherInfo(voucher.ChannelId)
 	if err != nil {
-		return &big.Int{}, fmt.Errorf("channel not registered: %w", err)
+		return &big.Int{}, &big.Int{}, fmt.Errorf("channel not registered: %w", err)
 	}
 
 	// We only care about vouchers when we are the recipient of the payment
 	if vInfo.ChannelPayee != vm.me {
-		return &big.Int{}, nil
-	}
-	received := &big.Int{}
-	received.Set(voucher.Amount)
-	if types.Gt(received, vInfo.StartingBalance) {
-		return &big.Int{}, fmt.Errorf("channel has insufficient funds")
+		return &big.Int{}, &big.Int{}, fmt.Errorf("can only receive vouchers if we're the payee")
 	}
 
-	receivedSoFar := vInfo.LargestVoucher.Amount
-	if !types.Gt(received, receivedSoFar) {
-		return receivedSoFar, nil
+	if types.Gt(voucher.Amount, vInfo.StartingBalance) {
+		return &big.Int{}, &big.Int{}, fmt.Errorf("channel has insufficient funds")
+	}
+
+	total = vInfo.LargestVoucher.Amount
+	if !types.Gt(voucher.Amount, total) {
+		return total, big.NewInt(0), nil
 	}
 
 	signer, err := voucher.RecoverSigner()
 	if err != nil {
-		return &big.Int{}, err
+		return &big.Int{}, &big.Int{}, err
 	}
 	if signer != vInfo.ChannelPayer {
-		return &big.Int{}, fmt.Errorf("wrong signer: %+v, %+v", signer, vInfo.ChannelPayer)
+		return &big.Int{}, &big.Int{}, fmt.Errorf("wrong signer: %+v, %+v", signer, vInfo.ChannelPayer)
 	}
+	// Check the difference between our largest voucher and this new one
+	delta = big.NewInt(0).Sub(voucher.Amount, total)
 
+	total = voucher.Amount
 	vInfo.LargestVoucher = voucher
 
 	err = vm.store.SetVoucherInfo(voucher.ChannelId, *vInfo)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return received, nil
+	return total, delta, nil
 }
 
 // ChannelRegistered returns  whether a channel has been registered with the voucher manager or not

@@ -104,20 +104,22 @@ func TestPaymentManager(t *testing.T) {
 	// Happy path: receipt manager can receive vouchers
 	receiptMgr := NewVoucherManager(testactors.Bob.Address(), newSimpleVoucherStore())
 
-	_, err = receiptMgr.Receive(firstVoucher)
+	_, _, err = receiptMgr.Receive(firstVoucher)
 	Assert(t, err != nil, "channel must be registered to receive vouchers")
 
 	_ = receiptMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit)
 	Equals(t, startingBalance, getBalance(receiptMgr))
 
-	received, err := receiptMgr.Receive(firstVoucher)
+	received, delta, err := receiptMgr.Receive(firstVoucher)
 	Ok(t, err)
 	Equals(t, received, payment)
+	Equals(t, delta, payment)
 	Equals(t, onePaymentMade, getBalance(receiptMgr))
 	// Receiving a voucher is idempotent
-	received, err = receiptMgr.Receive(firstVoucher)
+	received, delta, err = receiptMgr.Receive(firstVoucher)
 	Ok(t, err)
 	Equals(t, received, payment)
+	Equals(t, delta, big.NewInt(0))
 	Equals(t, onePaymentMade, getBalance(receiptMgr))
 
 	// paying twice returns a larger voucher
@@ -127,9 +129,10 @@ func TestPaymentManager(t *testing.T) {
 	Equals(t, twoPaymentsMade, getBalance(paymentMgr))
 
 	// Receiving a new voucher increases amount received
-	received, err = receiptMgr.Receive(secondVoucher)
+	received, delta, err = receiptMgr.Receive(secondVoucher)
 	Ok(t, err)
 	Equals(t, doublePayment, received)
+	Equals(t, delta, payment)
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
 	// re-registering a channel doesn't reset its balance
@@ -142,9 +145,10 @@ func TestPaymentManager(t *testing.T) {
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
 	// Receiving old vouchers is ok
-	received, err = receiptMgr.Receive(firstVoucher)
+	received, delta, err = receiptMgr.Receive(firstVoucher)
 	Ok(t, err)
 	Equals(t, doublePayment, received)
+	Equals(t, delta, big.NewInt(0))
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
 	// Only the payer can sign vouchers
@@ -154,19 +158,19 @@ func TestPaymentManager(t *testing.T) {
 	Assert(t, err != nil, "only payer can sign vouchers")
 
 	// Receiving a voucher for an unknown channel fails
-	_, err = receiptMgr.Receive(testVoucher(wrongChannelId, payment, testactors.Alice))
+	_, _, err = receiptMgr.Receive(testVoucher(wrongChannelId, payment, testactors.Alice))
 	Assert(t, err != nil, "expected an error")
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
 	// Receiving a voucher that's too large fails
-	_, err = receiptMgr.Receive(testVoucher(channelId, overPayment, testactors.Alice))
+	_, _, err = receiptMgr.Receive(testVoucher(channelId, overPayment, testactors.Alice))
 	Assert(t, err != nil, "expected an error")
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
 	// Receiving a voucher with the wrong signature fails
 	voucher := testVoucher(channelId, payment, testactors.Alice)
 	voucher.Amount = triplePayment
-	_, err = receiptMgr.Receive(voucher)
+	_, _, err = receiptMgr.Receive(voucher)
 	Assert(t, err != nil, "expected an error")
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 }
