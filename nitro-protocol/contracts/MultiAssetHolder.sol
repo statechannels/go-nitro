@@ -66,11 +66,15 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         holdings[asset][channelId] = nowHeld;
         emit Deposited(channelId, asset, amountDeposited, nowHeld);
 
-        if (asset == address(0)) {
-            // refund whatever wasn't deposited.
-            uint256 refund = amount - amountDeposited;
-            (bool success, ) = msg.sender.call{value: refund}(''); //solhint-disable-line avoid-low-level-calls
-            require(success, 'Could not refund excess funds');
+        // refund whatever wasn't deposited.
+        uint256 refund = amount - amountDeposited;
+        if (refund > 0) {
+            if (asset == address(0)) {
+                (bool success, ) = msg.sender.call{value: refund}(''); //solhint-disable-line avoid-low-level-calls
+                require(success, 'Could not refund excess funds');
+            } else {
+                IERC20(asset).safeTransfer(msg.sender, refund);
+            }
         }
     }
 
@@ -269,7 +273,9 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     /**
      * @dev Checks that the source and target channels are finalized; that the supplied outcomes match the stored fingerprints; that the asset is identical in source and target. Computes and returns the decoded outcomes.
      */
-    function _apply_reclaim_checks(ReclaimArgs memory reclaimArgs)
+    function _apply_reclaim_checks(
+        ReclaimArgs memory reclaimArgs
+    )
         internal
         view
         returns (
@@ -428,11 +434,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
      * @param destination ethereum address to be credited.
      * @param amount Quantity of assets to be transferred.
      */
-    function _transferAsset(
-        address asset,
-        address destination,
-        uint256 amount
-    ) internal {
+    function _transferAsset(address asset, address destination, uint256 amount) internal {
         if (asset == address(0)) {
             (bool success, ) = destination.call{value: amount}(''); //solhint-disable-line avoid-low-level-calls
             require(success, 'Could not transfer ETH');
