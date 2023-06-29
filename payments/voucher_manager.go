@@ -88,7 +88,7 @@ func (vm *VoucherManager) Receive(voucher Voucher) (total *big.Int, delta *big.I
 
 	// We only care about vouchers when we are the recipient of the payment
 	if vInfo.ChannelPayee != vm.me {
-		return &big.Int{}, &big.Int{}, nil
+		return &big.Int{}, &big.Int{}, fmt.Errorf("can only receive vouchers if we're the payee")
 	}
 
 	if types.Gt(voucher.Amount, vInfo.StartingBalance) {
