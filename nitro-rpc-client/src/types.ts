@@ -81,6 +81,10 @@ export type ObjectiveResponse = {
   Id: string;
   ChannelId: string;
 };
+export type ReceiveVoucherResult = {
+  Total: bigint;
+  Delta: bigint;
+};
 
 /**
  * RPC Requests
@@ -149,7 +153,7 @@ export type GetPaymentChannelsByLedgerResponse = JsonRpcResponse<
   PaymentChannelInfo[]
 >;
 export type CreateVoucherResponse = JsonRpcResponse<Voucher>;
-export type ReceiveVoucherResponse = JsonRpcResponse<number>;
+export type ReceiveVoucherResponse = JsonRpcResponse<ReceiveVoucherResult>;
 /**
  * RPC Request/Response map
  * This is a map of all the RPC methods to their request and response types

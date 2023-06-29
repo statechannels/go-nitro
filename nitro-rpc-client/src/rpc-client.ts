@@ -10,6 +10,7 @@ import {
   ObjectiveResponse,
   ObjectiveCompleteNotification,
   Voucher,
+  ReceiveVoucherResult,
 } from "./types";
 import { Transport } from "./transport";
 import { createOutcome, generateRequest } from "./utils";
@@ -49,9 +50,9 @@ export class NitroRpcClient {
   /**
    * Adds a voucher to the go-nitro node that was received from the other party to the channel.
    * @param voucher The voucher to add
-   * @returns The total amount paid on the channel
+   * @returns The total amount of the channel and the delta of the voucher
    */
-  public async ReceiveVoucher(voucher: Voucher): Promise<number> {
+  public async ReceiveVoucher(voucher: Voucher): Promise<ReceiveVoucherResult> {
     const request = generateRequest("receive_voucher", voucher);
     const res = await this.transport.sendRequest<"receive_voucher">(request);
     return getAndValidateResult(res, "receive_voucher");

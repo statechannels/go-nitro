@@ -113,6 +113,15 @@ const voucherSchema = {
 } as const;
 type VoucherSchemaType = JTDDataType<typeof voucherSchema>;
 
+const receiveVoucherSchema = {
+  properties: {
+    Total: { type: "string" },
+    Delta: { type: "string" },
+  },
+} as const;
+
+type ReceiveVoucherSchemaType = JTDDataType<typeof receiveVoucherSchema>;
+
 type ResponseSchema =
   | typeof objectiveSchema
   | typeof stringSchema
@@ -121,7 +130,8 @@ type ResponseSchema =
   | typeof paymentChannelSchema
   | typeof paymentChannelsSchema
   | typeof paymentSchema
-  | typeof voucherSchema;
+  | typeof voucherSchema
+  | typeof receiveVoucherSchema;
 
 type ResponseSchemaType =
   | ObjectiveSchemaType
@@ -131,7 +141,8 @@ type ResponseSchemaType =
   | PaymentChannelSchemaType
   | PaymentChannelsSchemaType
   | PaymentSchemaType
-  | VoucherSchemaType;
+  | VoucherSchemaType
+  | ReceiveVoucherSchemaType;
 
 /**
  * Validates that the response is a valid JSON RPC response with a valid result
@@ -194,6 +205,15 @@ export function getAndValidateResult<T extends RequestMethod>(
         paymentSchema,
         result,
         (result: PaymentSchemaType) => result
+      );
+    case "receive_voucher":
+      return validateAndConvertResult(
+        receiveVoucherSchema,
+        result,
+        (result: ReceiveVoucherSchemaType) => ({
+          Total: BigInt(result.Total),
+          Delta: BigInt(result.Delta),
+        })
       );
     case "create_voucher":
       return validateAndConvertResult(
