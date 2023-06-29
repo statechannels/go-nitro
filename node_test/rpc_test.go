@@ -212,16 +212,16 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	if manualVoucherExchange {
 		v := aliceClient.CreateVoucher(vabCreateResponse.ChannelId, 1)
 
-		total, fromVoucher := bobClient.ReceiveVoucher(v)
+		total, delta := bobClient.ReceiveVoucher(v)
 		if total.Cmp(big.NewInt(1)) != 0 {
 			t.Errorf("expected a total of 1 got %d", total)
 		}
-		if fromVoucher.Cmp(big.NewInt(1)) != 0 {
-			t.Errorf("expected a fromVoucher of 1 got %d", fromVoucher)
+		if delta.Cmp(big.NewInt(1)) != 0 {
+			t.Errorf("expected a delta of 1 got %d", delta)
 		}
-		_, fromVoucher = bobClient.ReceiveVoucher(v)
-		if fromVoucher.Cmp(big.NewInt(0)) != 0 {
-			t.Errorf("adding the same voucher should result in a fromVoucher of 0, got %d", fromVoucher)
+		_, delta = bobClient.ReceiveVoucher(v)
+		if delta.Cmp(big.NewInt(0)) != 0 {
+			t.Errorf("adding the same voucher should result in a delta of 0, got %d", delta)
 		}
 
 	} else {

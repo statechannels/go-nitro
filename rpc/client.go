@@ -100,9 +100,9 @@ func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) paymen
 // ReceiveVoucher receives a voucher and adds it to the go-nitro store.
 // It returns the total amount received so far and the amount received from the voucher supplied.
 // It can be used to add a voucher that was sent outside of the go-nitro system.
-func (rc *RpcClient) ReceiveVoucher(v payments.Voucher) (total *big.Int, fromVoucher *big.Int) {
+func (rc *RpcClient) ReceiveVoucher(v payments.Voucher) (total *big.Int, delta *big.Int) {
 	vr := waitForRequest[payments.Voucher, serde.ReceiveVoucherResponse](rc, serde.ReceiveVoucherRequestMethod, v)
-	return vr.Total, vr.FromVoucher
+	return vr.Total, vr.Delta
 }
 
 func (rc *RpcClient) GetPaymentChannel(chId types.Destination) query.PaymentChannelInfo {

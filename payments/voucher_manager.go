@@ -80,7 +80,7 @@ func (vm *VoucherManager) Pay(channelId types.Destination, amount *big.Int, pk [
 }
 
 // Receive validates the incoming voucher, and returns the total amount received so far as well as the amount received from the voucher
-func (vm *VoucherManager) Receive(voucher Voucher) (total *big.Int, fromVoucher *big.Int, err error) {
+func (vm *VoucherManager) Receive(voucher Voucher) (total *big.Int, delta *big.Int, err error) {
 	vInfo, err := vm.store.GetVoucherInfo(voucher.ChannelId)
 	if err != nil {
 		return &big.Int{}, &big.Int{}, fmt.Errorf("channel not registered: %w", err)
@@ -108,7 +108,7 @@ func (vm *VoucherManager) Receive(voucher Voucher) (total *big.Int, fromVoucher 
 		return &big.Int{}, &big.Int{}, fmt.Errorf("wrong signer: %+v, %+v", signer, vInfo.ChannelPayer)
 	}
 	// Check the difference between our largest voucher and this new one
-	fromVoucher = big.NewInt(0).Sub(voucher.Amount, total)
+	delta = big.NewInt(0).Sub(voucher.Amount, total)
 
 	total = voucher.Amount
 	vInfo.LargestVoucher = voucher
@@ -117,7 +117,7 @@ func (vm *VoucherManager) Receive(voucher Voucher) (total *big.Int, fromVoucher 
 	if err != nil {
 		return nil, nil, err
 	}
-	return total, fromVoucher, nil
+	return total, delta, nil
 }
 
 // ChannelRegistered returns  whether a channel has been registered with the voucher manager or not

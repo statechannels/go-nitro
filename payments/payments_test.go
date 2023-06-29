@@ -110,16 +110,16 @@ func TestPaymentManager(t *testing.T) {
 	_ = receiptMgr.Register(channelId, testactors.Alice.Address(), testactors.Bob.Address(), deposit)
 	Equals(t, startingBalance, getBalance(receiptMgr))
 
-	received, fromVoucher, err := receiptMgr.Receive(firstVoucher)
+	received, delta, err := receiptMgr.Receive(firstVoucher)
 	Ok(t, err)
 	Equals(t, received, payment)
-	Equals(t, fromVoucher, payment)
+	Equals(t, delta, payment)
 	Equals(t, onePaymentMade, getBalance(receiptMgr))
 	// Receiving a voucher is idempotent
-	received, fromVoucher, err = receiptMgr.Receive(firstVoucher)
+	received, delta, err = receiptMgr.Receive(firstVoucher)
 	Ok(t, err)
 	Equals(t, received, payment)
-	Equals(t, fromVoucher, big.NewInt(0))
+	Equals(t, delta, big.NewInt(0))
 	Equals(t, onePaymentMade, getBalance(receiptMgr))
 
 	// paying twice returns a larger voucher
@@ -129,10 +129,10 @@ func TestPaymentManager(t *testing.T) {
 	Equals(t, twoPaymentsMade, getBalance(paymentMgr))
 
 	// Receiving a new voucher increases amount received
-	received, fromVoucher, err = receiptMgr.Receive(secondVoucher)
+	received, delta, err = receiptMgr.Receive(secondVoucher)
 	Ok(t, err)
 	Equals(t, doublePayment, received)
-	Equals(t, fromVoucher, payment)
+	Equals(t, delta, payment)
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
 	// re-registering a channel doesn't reset its balance
@@ -145,10 +145,10 @@ func TestPaymentManager(t *testing.T) {
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
 	// Receiving old vouchers is ok
-	received, fromVoucher, err = receiptMgr.Receive(firstVoucher)
+	received, delta, err = receiptMgr.Receive(firstVoucher)
 	Ok(t, err)
 	Equals(t, doublePayment, received)
-	Equals(t, fromVoucher, big.NewInt(0))
+	Equals(t, delta, big.NewInt(0))
 	Equals(t, twoPaymentsMade, getBalance(receiptMgr))
 
 	// Only the payer can sign vouchers

@@ -97,13 +97,13 @@ func (rs *RpcServer) registerHandlers() (err error) {
 			})
 		case serde.ReceiveVoucherRequestMethod:
 			return processRequest(rs, requestData, func(req payments.Voucher) (serde.ReceiveVoucherResponse, error) {
-				total, fromVoucher, err := rs.node.ReceiveVoucher(req)
+				total, delta, err := rs.node.ReceiveVoucher(req)
 				if err != nil {
 					return serde.ReceiveVoucherResponse{}, err
 				}
 				r := serde.ReceiveVoucherResponse{
-					Total:       total,
-					FromVoucher: fromVoucher,
+					Total: total,
+					Delta: delta,
 				}
 				return r, nil
 			})

@@ -97,8 +97,8 @@ type (
 )
 
 type ReceiveVoucherResponse struct {
-	Total       *big.Int
-	FromVoucher *big.Int
+	Total *big.Int
+	Delta *big.Int
 }
 
 type ResponsePayload interface {
