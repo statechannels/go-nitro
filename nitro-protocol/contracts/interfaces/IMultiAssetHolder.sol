@@ -72,15 +72,9 @@ interface IMultiAssetHolder {
      * @dev Indicates that `amountDeposited` has been deposited into `destination`.
      * @param destination The channel being deposited into.
      * @param asset The asset being deposited. Zero address indicates the native token (e.g. ETH).
-     * @param amountDeposited The amount being deposited.
      * @param destinationHoldings The new holdings for `destination`.
      */
-    event Deposited(
-        bytes32 indexed destination,
-        address asset,
-        uint256 amountDeposited,
-        uint256 destinationHoldings
-    );
+    event Deposited(bytes32 indexed destination, address asset, uint256 destinationHoldings);
 
     /**
      * @dev Indicates the assetOutcome for this channelId and assetIndex has changed due to a transfer. Includes sufficient data to compute:
