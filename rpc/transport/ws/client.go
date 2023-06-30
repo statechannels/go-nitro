@@ -65,12 +65,12 @@ func (wsc *clientWebSocketTransport) Subscribe() (<-chan []byte, error) {
 }
 
 func (wsc *clientWebSocketTransport) Close() error {
+	wsc.cancel()
 	// This will also cause the go-routine to unblock waiting on `Read` and thus serves as a signal to exit
 	err := wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
 	if err != nil {
 		return err
 	}
-	wsc.cancel()
 
 	return nil
 }
