@@ -82,7 +82,7 @@ func SplitSignature(concatenatedSignature []byte) (signature Signature) {
 	return
 }
 
-// joinSignature takes a Signature and returns a 65 byte concatenatedSignature in the [R||S||V] format
+// joinSignature takes a Signature and returns either a 65 byte concatenatedSignature in the [R||S||V] format OR a zero string
 func joinSignature(signature Signature) (concatenatedSignature []byte) {
 	concatenatedSignature = append(concatenatedSignature, signature.R...)
 	concatenatedSignature = append(concatenatedSignature, signature.S...)
