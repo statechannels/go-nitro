@@ -82,7 +82,8 @@ library NitroUtils {
     function getClaimedSignersNum(uint256 signedBy) internal pure returns (uint8) {
         uint8 amount = 0;
 
-        for (; signedBy > 0; amount++) { // for reference: Kernighan's Bit Counting Algorithm
+        for (; signedBy > 0; amount++) {
+            // for reference: Kernighan's Bit Counting Algorithm
             signedBy &= signedBy - 1;
         }
 

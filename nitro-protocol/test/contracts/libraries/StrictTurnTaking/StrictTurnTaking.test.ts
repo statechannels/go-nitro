@@ -148,7 +148,9 @@ describe('requireValidInput', () => {
           reason
         );
       } else {
-        await expectSucceedWithNoReturnValues(() => StrictTurnTaking.requireValidInput(nParticipants, numProof));
+        await expectSucceedWithNoReturnValues(() =>
+          StrictTurnTaking.requireValidInput(nParticipants, numProof)
+        );
       }
     }
   );
