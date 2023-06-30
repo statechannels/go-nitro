@@ -86,7 +86,9 @@ describe('requireConsensus', () => {
       if (reason) {
         await expectRevert(() => Consensus.requireConsensus(fixedPart, proof, candidate));
       } else {
-        await expectSucceedWithNoReturnValues(() => Consensus.requireConsensus(fixedPart, proof, candidate));
+        await expectSucceedWithNoReturnValues(() =>
+          Consensus.requireConsensus(fixedPart, proof, candidate)
+        );
       }
     }
   );
