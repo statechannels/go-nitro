@@ -9,7 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// MockChain mimicks the Ethereum blockchain by keeping track of block numbers and account balances in memory
+// MockChain mimics the Ethereum blockchain by keeping track of block numbers and account balances in memory.
 // MockChain accepts transactions and broadcasts events.
 type MockChain struct {
 	blockNum uint64
@@ -29,8 +29,8 @@ func NewMockChain() *MockChain {
 	return &chain
 }
 
-// SubmitTransaction updates internal state and brodcasts events
-// unlike an ethereum blockchain, Mockhain accepts go-nitro protocols.ChainTransaction
+// SubmitTransaction updates internal state and broadcasts events
+// unlike an ethereum blockchain, MockChain accepts go-nitro protocols.ChainTransaction
 func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 	mc.blockNum++
 	switch tx := tx.(type) {
