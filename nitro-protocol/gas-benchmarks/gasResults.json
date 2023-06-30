@@ -1,25 +1,25 @@
 {
   "deployInfrastructureContracts": {
     "satp": {
-      "NitroAdjudicator": 3452357
+      "NitroAdjudicator": 3406389
     }
   },
   "directlyFundAChannelWithETHFirst": {
-    "satp": 47244
+    "satp": 47068
   },
   "directlyFundAChannelWithETHSecond": {
-    "satp": 30156
+    "satp": 29980
   },
   "directlyFundAChannelWithERC20First": {
     "satp": {
       "approve": 46218,
-      "deposit": 70557
+      "deposit": 70592
     }
   },
   "directlyFundAChannelWithERC20Second": {
     "satp": {
       "approve": 46218,
-      "deposit": 53469
+      "deposit": 53504
     }
   },
   "ETHexit": {
