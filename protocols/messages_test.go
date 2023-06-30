@@ -2,12 +2,10 @@ package protocols
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/payments"
@@ -97,8 +95,6 @@ func TestMessage(t *testing.T) {
 			t.Error(err)
 		}
 		if !reflect.DeepEqual(got, want) {
-			diff := cmp.Diff(got, want, cmp.AllowUnexported(payments.Voucher{}, big.Int{}, consensus_channel.Guarantee{}))
-			fmt.Println(diff)
 			t.Errorf("incorrect deserialization: got:\n%v\nwanted:\n%v", got, want)
 		}
 	})
