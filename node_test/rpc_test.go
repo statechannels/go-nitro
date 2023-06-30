@@ -105,7 +105,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	msgServices := make([]*p2pms.P2PMessageService, n)
 
 	for i := 0; i < n; i++ {
-		rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3005+i, 4005+i, chainServices[i], logDestination, connectionType)
+		rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3105+i, 4105+i, chainServices[i], logDestination, connectionType)
 		clients[i] = rpcClient
 		msgServices[i] = msg
 		defer cleanup()
