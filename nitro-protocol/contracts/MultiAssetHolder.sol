@@ -48,30 +48,17 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         // 3. Participant B submits their deposit
         // 4. The chain re-orgs, leaving B's deposit in the chain but not A's
         uint256 held = holdings[asset][channelId];
-        require(held >= expectedHeld, 'holdings < expectedHeld');
-        require(held < expectedHeld + amount, 'holdings already sufficient');
+        require(held == expectedHeld, 'held != expectedHeld');
 
-        // The depositor wishes to increase the holdings against channelId to amount + expectedHeld
-        // The depositor need only deposit (at most) amount + (expectedHeld - holdings) (the term in parentheses is non-positive)
-
-        amountDeposited = expectedHeld + amount - held; // strictly positive
         // require successful deposit before updating holdings (protect against reentrancy)
         if (asset == address(0)) {
             require(msg.value == amount, 'Incorrect msg.value for deposit');
         } else {
-            IERC20(asset).safeTransferFrom(msg.sender, address(this), amountDeposited);
+            IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
         }
 
-        uint256 nowHeld = held + amountDeposited;
-        holdings[asset][channelId] = nowHeld;
-        emit Deposited(channelId, asset, amountDeposited, nowHeld);
-
-        if (asset == address(0)) {
-            // refund whatever wasn't deposited.
-            uint256 refund = amount - amountDeposited;
-            (bool success, ) = msg.sender.call{value: refund}(''); //solhint-disable-line avoid-low-level-calls
-            require(success, 'Could not refund excess funds');
-        }
+        holdings[asset][channelId] += amount;
+        emit Deposited(channelId, asset, amount, holdings[asset][channelId]);
     }
 
     /**
@@ -269,7 +256,9 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     /**
      * @dev Checks that the source and target channels are finalized; that the supplied outcomes match the stored fingerprints; that the asset is identical in source and target. Computes and returns the decoded outcomes.
      */
-    function _apply_reclaim_checks(ReclaimArgs memory reclaimArgs)
+    function _apply_reclaim_checks(
+        ReclaimArgs memory reclaimArgs
+    )
         internal
         view
         returns (
@@ -428,11 +417,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
      * @param destination ethereum address to be credited.
      * @param amount Quantity of assets to be transferred.
      */
-    function _transferAsset(
-        address asset,
-        address destination,
-        uint256 amount
-    ) internal {
+    function _transferAsset(address asset, address destination, uint256 amount) internal {
         if (asset == address(0)) {
             (bool success, ) = destination.call{value: amount}(''); //solhint-disable-line avoid-low-level-calls
             require(success, 'Could not transfer ETH');
