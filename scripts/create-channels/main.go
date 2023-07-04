@@ -103,7 +103,8 @@ func createChannels() error {
 	response := alice.CreatePaymentChannel([]common.Address{ireneAddress}, bobAddress, 0, outcome)
 	<-alice.ObjectiveCompleteChan(response.Id)
 
-	for _, client := range clients {
+	for clientName, client := range clients {
+		fmt.Printf("Closing client %s\n", clientName)
 		client.Close()
 	}
 
