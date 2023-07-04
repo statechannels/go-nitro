@@ -154,7 +154,6 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		panic(err)
 	}
-	defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
 	notificationChan := make(chan []byte)
 	key := strconv.Itoa(int(rand.Uint64()))
 	wsc.notificationListeners.Store(key, notificationChan)
@@ -170,14 +169,17 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 EventLoop:
 	for {
 		select {
+		// This means the client initiated the websocket close
 		case err = <-closeChan:
 			break EventLoop
 		case <-r.Context().Done():
 			err = r.Context().Err()
+			defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
 			break EventLoop
 		case notificationData := <-notificationChan:
 			err := c.Write(r.Context(), websocket.MessageText, notificationData)
 			if err != nil {
+				defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
 				break EventLoop
 			}
 		}
