@@ -3,6 +3,7 @@ package ws
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -170,23 +171,31 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 EventLoop:
 	for {
 		select {
+		// This means the client initiated the websocket close
 		case err = <-closeChan:
+			fmt.Printf("Closing websocket: 0\n")
 			break EventLoop
 		case <-r.Context().Done():
 			err = r.Context().Err()
+			defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
+			fmt.Printf("Closing websocket: 1\n")
 			break EventLoop
 		case notificationData := <-notificationChan:
 			err := c.Write(r.Context(), websocket.MessageText, notificationData)
 			if err != nil {
+				defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
+				fmt.Printf("Closing websocket: 2\n")
 				break EventLoop
 			}
 		}
 	}
 	if errors.Is(err, context.Canceled) {
+		fmt.Printf("Not expected\n")
 		return
 	}
 	if websocket.CloseStatus(err) == websocket.StatusNormalClosure ||
 		websocket.CloseStatus(err) == websocket.StatusGoingAway {
+		fmt.Printf("Closing websocket\n")
 		return
 	}
 	if err != nil {
