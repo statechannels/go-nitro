@@ -57,15 +57,26 @@ func newLogWriter(logFile string) *os.File {
 	return logDestination
 }
 
-func createLedgerChannel(left *rpc.RpcClient, right *rpc.RpcClient) {
-	leftAddress, rightAddress := left.Address(), right.Address()
+func createLedgerChannel(left *rpc.RpcClient, right *rpc.RpcClient) error {
+	leftAddress, err := left.Address()
+	if err != nil {
+		return err
+	}
+	rightAddress, err := right.Address()
+	if err != nil {
+		return err
+	}
 	ledgerChannelDeposit := uint(5_000_000)
 	asset := types.Address{}
 	outcome := testdata.Outcomes.Create(leftAddress, rightAddress, ledgerChannelDeposit, ledgerChannelDeposit, asset)
-	response := left.CreateLedgerChannel(rightAddress, 0, outcome)
+	response, err := left.CreateLedgerChannel(rightAddress, 0, outcome)
+	if err != nil {
+		return err
+	}
 
 	<-left.ObjectiveCompleteChan(response.Id)
 	<-right.ObjectiveCompleteChan(response.Id)
+	return nil
 }
 
 func createChannels() error {
@@ -95,15 +106,36 @@ func createChannels() error {
 	// todo: we need something like WaitForPeerExchange instead of delay
 	time.Sleep(1 * time.Second)
 
-	createLedgerChannel(alice, irene)
-	createLedgerChannel(irene, bob)
+	err := createLedgerChannel(alice, irene)
+	if err != nil {
+		return err
+	}
+	err = createLedgerChannel(irene, bob)
+	if err != nil {
+		return err
+	}
 
-	aliceAddress, ireneAddress, bobAddress := alice.Address(), irene.Address(), bob.Address()
+	aliceAddress, err := alice.Address()
+	if err != nil {
+		return err
+	}
+	ireneAddress, err := irene.Address()
+	if err != nil {
+		return err
+	}
+	bobAddress, err := bob.Address()
+	if err != nil {
+		return err
+	}
 	outcome := testdata.Outcomes.Create(aliceAddress, bobAddress, 1_000, 0, types.Address{})
-	response := alice.CreatePaymentChannel([]common.Address{ireneAddress}, bobAddress, 0, outcome)
+	response, err := alice.CreatePaymentChannel([]common.Address{ireneAddress}, bobAddress, 0, outcome)
+	if err != nil {
+		return err
+	}
 	<-alice.ObjectiveCompleteChan(response.Id)
 
-	for _, client := range clients {
+	for clientName, client := range clients {
+		fmt.Printf("Closing client %s\n", clientName)
 		client.Close()
 	}
 
