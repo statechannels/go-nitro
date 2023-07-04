@@ -174,11 +174,13 @@ EventLoop:
 			break EventLoop
 		case <-r.Context().Done():
 			err = r.Context().Err()
+			// Initiate a websocket close from the server
 			defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
 			break EventLoop
 		case notificationData := <-notificationChan:
 			err := c.Write(r.Context(), websocket.MessageText, notificationData)
 			if err != nil {
+				// Initiate a websocket close from the server
 				defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
 				break EventLoop
 			}
