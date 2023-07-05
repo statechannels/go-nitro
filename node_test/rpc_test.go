@@ -147,13 +147,13 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	// handles error without panicking
 	{
 		outcome := simpleOutcome(actors[0].Address(), actors[1].Address(), 100, 100)
-		duplicateLedgerChannel := clients[0].CreateLedgerChannel(actors[1].Address(), 100, outcome)
+		duplicateLedgerChannelObjective := clients[0].CreateLedgerChannel(actors[1].Address(), 100, outcome)
 
-		if !directfund.IsDirectFundObjective(duplicateLedgerChannel.Id) {
-			t.Errorf("expected direct fund objective, got %s", duplicateLedgerChannel.Id)
+		if !directfund.IsDirectFundObjective(duplicateLedgerChannelObjective.Id) {
+			t.Errorf("expected direct fund objective, got %s", duplicateLedgerChannelObjective.Id)
 		}
 
-		duplicateLedgerChannelInfo := clients[0].GetLedgerChannel(duplicateLedgerChannel.ChannelId)
+		duplicateLedgerChannelInfo := clients[0].GetLedgerChannel(duplicateLedgerChannelObjective.ChannelId)
 
 		zeroDestination := types.Destination{0x0}
 		if duplicateLedgerChannelInfo.ID != zeroDestination {
