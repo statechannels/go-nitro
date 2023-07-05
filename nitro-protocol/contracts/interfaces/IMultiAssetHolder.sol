@@ -71,7 +71,7 @@ interface IMultiAssetHolder {
     /**
      * @dev Indicates that `amountDeposited` has been deposited into `destination`.
      * @param destination The channel being deposited into.
-     * @param asset The asset being deposited. Zero address indicates ETH.
+     * @param asset The asset being deposited. Zero address indicates the native token (e.g. ETH).
      * @param amountDeposited The amount being deposited.
      * @param destinationHoldings The new holdings for `destination`.
      */
