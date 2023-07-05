@@ -45,7 +45,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         // 1. Participant A deposits
         // 2. Participant B sees A's deposit, which means it is now safe for them to deposit
         // 3. Participant B submits their deposit
-        // 4. The chain re-orgs, leaving B's deposit in the chain but not A's
+        // 4. The chain re-orgs, leaving B's transaction eligible for inclusion, while A's deposit is not there
         uint256 held = holdings[asset][channelId];
         require(held == expectedHeld, 'held != expectedHeld');
 
