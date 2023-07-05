@@ -49,10 +49,10 @@ const ledgerChannelSchema = {
     Balance: {
       properties: {
         AssetAddress: { type: "string" },
-        Hub: { type: "string" },
-        Client: { type: "string" },
-        HubBalance: { type: "string" },
-        ClientBalance: { type: "string" },
+        Them: { type: "string" },
+        Me: { type: "string" },
+        MyBalance: { type: "string" },
+        TheirBalance: { type: "string" },
       },
     },
   },
@@ -237,8 +237,8 @@ function convertToInternalLedgerChannelType(
     Status: result.Status as ChannelStatus,
     Balance: {
       ...result.Balance,
-      HubBalance: BigInt(result.Balance.HubBalance),
-      ClientBalance: BigInt(result.Balance.ClientBalance),
+      TheirBalance: BigInt(result.Balance.TheirBalance),
+      MyBalance: BigInt(result.Balance.MyBalance),
     },
   };
 }

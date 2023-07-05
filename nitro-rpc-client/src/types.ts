@@ -192,10 +192,10 @@ export type LedgerChannelInfo = {
 
 export type LedgerChannelBalance = {
   AssetAddress: string;
-  Hub: string;
-  Client: string;
-  HubBalance: bigint;
-  ClientBalance: bigint;
+  Them: string;
+  Me: string;
+  TheirBalance: bigint;
+  MyBalance: bigint;
 };
 
 export type PaymentChannelBalance = {

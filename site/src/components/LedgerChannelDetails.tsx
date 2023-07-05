@@ -62,8 +62,8 @@ export default function LedgerChannelDetails({
     }
   }, [nitroClient]);
 
-  const myBalance = ledgerDetails?.ledgerBalance.ClientBalance ?? BigInt(0);
-  const theirBalance = ledgerDetails?.ledgerBalance.HubBalance ?? BigInt(0);
+  const myBalance = ledgerDetails?.ledgerBalance.MyBalance ?? BigInt(0);
+  const theirBalance = ledgerDetails?.ledgerBalance.TheirBalance ?? BigInt(0);
 
   return (
     <div className="card">

@@ -55,7 +55,7 @@ function App() {
       // TODO: We should consider adding a API function so this ins't as painful
       nitroClient.GetAllLedgerChannels().then((ledgers) => {
         for (const l of ledgers) {
-          if (l.Balance.Hub != hub) continue;
+          if (l.Balance.Them != hub) continue;
 
           nitroClient.GetPaymentChannelsByLedger(l.ID).then((payChs) => {
             const withProvider = payChs.filter(
