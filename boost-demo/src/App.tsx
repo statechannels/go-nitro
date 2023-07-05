@@ -22,7 +22,7 @@ import "./App.css";
 function App() {
   const retrievalProvider = "0xbbb676f9cff8d242e9eac39d063848807d3d1d94";
   const hub = "0x111a00868581f73ab42feef67d235ca09ca1e8db";
-  const defaultUrl = "localhost:4005";
+  const defaultUrl = "localhost:4005/api/v1";
 
   const url =
     new URLSearchParams(window.location.search).get(QUERY_KEY) ?? defaultUrl;
@@ -40,8 +40,10 @@ function App() {
   // If you're running this locally you'll need to override this value
   // Ideally we should just query boost/lotus for the list of available payloads>
   const [payloadId, setPayloadId] = useState<string>(
-    "bafk2bzaceapnitekx4sp3mtitqatm5zpxn6nvjicwtltomttrlof65wlcfjpa"
+    "bafk2bzacec3jst4tkh424chatp273o6rxvipfg54kphd56gaxobpcdtr2sgco"
   );
+
+  const [paymentAmount, setPaymentAmount] = useState<number>(5);
 
   const [errorText, setErrorText] = useState<string>("");
 
@@ -82,49 +84,57 @@ function App() {
     setPayloadId(e.target.value);
   };
 
-  const makePayment = () => {
-    setErrorText("");
-    if (nitroClient && selectedChannel) {
-      nitroClient.Pay(selectedChannel, 100);
-      // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
-      setTimeout(() => {
-        updateChannelInfo(selectedChannel);
-      }, 50);
-    }
+  const updatePaymentAmount = (e: ChangeEvent<HTMLInputElement>) => {
+    setPaymentAmount(parseInt(e.target.value));
   };
-
-  const fetchFile = () => {
+  const fetchFile = async () => {
     setErrorText("");
 
-    axios
-      .get(
-        `http://localhost:7777/ipfs/${payloadId}?channelId=${selectedChannel}`,
+    if (!nitroClient) {
+      setErrorText("Nitro client not initialized");
+      return;
+    }
+    if (!selectedChannel) {
+      setErrorText("Please select a channel");
+      return;
+    }
+
+    const voucher = await nitroClient.CreateVoucher(
+      selectedChannel,
+      paymentAmount
+    );
+    // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
+    setTimeout(() => {
+      updateChannelInfo(selectedChannel);
+    }, 50);
+
+    try {
+      const result = await axios.get(
+        `http://localhost:7777/ipfs/${payloadId}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${voucher.Signature}`,
         {
           responseType: "blob", // This lets us download the file
           headers: {
             Accept: "*/*", // TODO: Do we need to specify this?
           },
         }
-      )
+      );
 
-      .then((result) => {
-        // This will prompt the browser to download the file
-        const blob = result.data;
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = blobUrl;
-        a.download = "fetched-file-from-ipfs";
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(blobUrl);
-      })
-      .catch((e) => {
-        if (isAxiosError(e)) {
-          setErrorText(`${e.message}: ${e.response?.statusText}`);
-        } else {
-          setErrorText(JSON.stringify(e));
-        }
-      });
+      // This will prompt the browser to download the file
+      const blob = result.data;
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = "fetched-file-from-ipfs";
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+      if (isAxiosError(e)) {
+        setErrorText(`${e.message}: ${e.response?.statusText}`);
+      } else {
+        setErrorText(JSON.stringify(e));
+      }
+    }
   };
 
   return (
@@ -183,8 +193,14 @@ function App() {
           value={payloadId}
         ></TextField>
       </Box>
+      <br></br>
       <Box>
-        <Button onClick={makePayment}>Pay</Button>
+        <TextField
+          label="Payment Amount"
+          onChange={updatePaymentAmount}
+          value={paymentAmount}
+          type="number"
+        ></TextField>
         <Button onClick={fetchFile}>Fetch</Button>
         <Box>{errorText}</Box>
       </Box>
