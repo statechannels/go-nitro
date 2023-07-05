@@ -61,7 +61,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     }
 
     /**
-     * @notice Transfers as many funds escrowed against `channelId` as can be afforded for a specific destination. Assumes no repeated entries.
+     * @notice Transfers as many funds escr owed against `channelId` as can be afforded for a specific destination. Assumes no repeated entries.
      * @dev Transfers as many funds escrowed against `channelId` as can be afforded for a specific destination. Assumes no repeated entries.
      * @param assetIndex Will be used to slice the outcome into a single asset outcome.
      * @param fromChannelId Unique identifier for state channel to transfer funds *from*.
@@ -255,7 +255,9 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     /**
      * @dev Checks that the source and target channels are finalized; that the supplied outcomes match the stored fingerprints; that the asset is identical in source and target. Computes and returns the decoded outcomes.
      */
-    function _apply_reclaim_checks(ReclaimArgs memory reclaimArgs)
+    function _apply_reclaim_checks(
+        ReclaimArgs memory reclaimArgs
+    )
         internal
         view
         returns (
@@ -414,11 +416,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
      * @param destination ethereum address to be credited.
      * @param amount Quantity of assets to be transferred.
      */
-    function _transferAsset(
-        address asset,
-        address destination,
-        uint256 amount
-    ) internal {
+    function _transferAsset(address asset, address destination, uint256 amount) internal {
         if (asset == address(0)) {
             (bool success, ) = destination.call{value: amount}(''); //solhint-disable-line avoid-low-level-calls
             require(success, 'Could not transfer ETH');
