@@ -52,20 +52,12 @@ export type PaymentParams = {
   Channel: string;
 };
 
-// This is the signature we expect from go-nitro
-// R and S are base64 encoded strings
-export type Base64Signature = {
-  R: string;
-  S: string;
-  V: number;
-};
-
 export type Voucher = {
   ChannelId: string;
   // todo: this should be a bigint
   Amount: number;
 
-  Signature: Base64Signature;
+  Signature: string;
 };
 type GetChannelRequest = {
   Id: string;

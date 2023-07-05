@@ -103,11 +103,7 @@ const voucherSchema = {
     ChannelId: { type: "string" },
     Amount: { type: "uint32" },
     Signature: {
-      properties: {
-        R: { type: "string" },
-        S: { type: "string" },
-        V: { type: "uint32" },
-      },
+      type: "string",
     },
   },
 } as const;
