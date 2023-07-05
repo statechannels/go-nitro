@@ -83,6 +83,7 @@ library NitroUtils {
         uint8 amount = 0;
 
         for (; signedBy > 0; amount++) {
+            // for reference: Kernighan's Bit Counting Algorithm
             signedBy &= signedBy - 1;
         }
 
