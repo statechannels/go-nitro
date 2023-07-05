@@ -143,6 +143,24 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	}
 	t.Log("Ledger channels created")
 
+	// try to create duplicate ledger channel to ensure node correctly
+	// handles error without panicking
+	{
+		outcome := simpleOutcome(actors[0].Address(), actors[1].Address(), 100, 100)
+		duplicateLedgerChannelObjective := clients[0].CreateLedgerChannel(actors[1].Address(), 100, outcome)
+
+		if !directfund.IsDirectFundObjective(duplicateLedgerChannelObjective.Id) {
+			t.Errorf("expected direct fund objective, got %s", duplicateLedgerChannelObjective.Id)
+		}
+
+		duplicateLedgerChannelInfo := clients[0].GetLedgerChannel(duplicateLedgerChannelObjective.ChannelId)
+
+		zeroDestination := types.Destination{0x0}
+		if duplicateLedgerChannelInfo.ID != zeroDestination {
+			t.Errorf("expected duplicate ledger channel ID to be 0x0, got %s", duplicateLedgerChannelInfo.ID)
+		}
+	}
+
 	// assert existence & reporting of expected ledger channels
 	for i, client := range clients {
 		if i != 0 {

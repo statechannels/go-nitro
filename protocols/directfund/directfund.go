@@ -63,7 +63,7 @@ func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Add
 		return Objective{}, fmt.Errorf("counterparty check failed: %w", err)
 	}
 	if channelExists {
-		return Objective{}, fmt.Errorf("a channel already exists with counterparty %s", request.CounterParty)
+		return Objective{}, fmt.Errorf("counterparty %s: %w", request.CounterParty, ErrLedgerChannelExists)
 	}
 
 	initialState := state.State{
