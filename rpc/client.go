@@ -285,7 +285,7 @@ func sendRPCRequest[T serde.RequestPayload, U serde.ResponsePayload](data []byte
 
 	logger.Trace().Msgf("Rpc client received response: %+v", string(responseData))
 
-	jsonResponse := serde.JsonRpcResponse[U]{}
+	jsonResponse := serde.JsonRpcSuccessResponse[U]{}
 	err = json.Unmarshal(responseData, &jsonResponse)
 	if err != nil {
 		returnChan <- response[U]{Error: err}

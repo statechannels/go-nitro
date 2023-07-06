@@ -24,11 +24,10 @@ type JsonRpcRequest struct {
 	Params  interface{} `json:"params"`
 }
 
-type JsonRpcResponse struct {
-	Jsonrpc  string       `json:"jsonrpc"`
-	Id       uint64       `json:"id"`
-	Result   interface{}  `json:"result"`
-	ErrorObj JsonRpcError `json:"error"`
+type JsonRpcErrorResponse struct {
+	Jsonrpc string       `json:"jsonrpc"`
+	Id      uint64       `json:"id"`
+	Error   JsonRpcError `json:"error"`
 }
 
 type JsonRpcError struct {
@@ -39,6 +38,14 @@ type JsonRpcError struct {
 
 func (e JsonRpcError) Error() string {
 	return e.Message
+}
+
+func NewJsonRpcErrorResponse(requestId uint64, error JsonRpcError) *JsonRpcErrorResponse {
+	return &JsonRpcErrorResponse{
+		Jsonrpc: "2.0",
+		Id:      requestId,
+		Error:   error,
+	}
 }
 
 var (

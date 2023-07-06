@@ -79,7 +79,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 
 		if !json.Valid(requestData) {
 			rs.logger.Error().Msg("request is not valid json")
-			errRes := types.JsonRpcResponse{Jsonrpc: "2.0", ErrorObj: types.ParseError}
+			errRes := types.NewJsonRpcErrorResponse(0, types.ParseError)
 			return marshalResponse(errRes, rs.logger)
 		}
 
@@ -165,7 +165,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 				return rs.node.GetPaymentChannelsByLedger(req.LedgerId)
 			})
 		default:
-			errRes := types.JsonRpcResponse{Jsonrpc: "2.0", Id: jsonrpcReq.Id, ErrorObj: types.MethodNotFoundError}
+			errRes := types.NewJsonRpcErrorResponse(jsonrpcReq.Id, types.MethodNotFoundError)
 			return marshalResponse(errRes, rs.logger)
 		}
 	}
@@ -180,14 +180,14 @@ func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServ
 	// Request-specific params validation is optionally performed as part of the processPayload function
 	err := json.Unmarshal(requestData, &rpcRequest)
 	if err != nil {
-		response := types.JsonRpcResponse{Jsonrpc: "2.0", Id: rpcRequest.Id, ErrorObj: types.UnexpectedRequestUnmarshalError2}
+		response := types.NewJsonRpcErrorResponse(rpcRequest.Id, types.UnexpectedRequestUnmarshalError2)
 		return marshalResponse(response, rs.logger)
 	}
 
 	payload := rpcRequest.Params
 	processedResponse, err := processPayload(payload)
 	if err != nil {
-		responseErr := types.InternalServerError // default error code
+		responseErr := types.InternalServerError // default error
 
 		if jsonErr, ok := err.(types.JsonRpcError); ok {
 			// overwrite defaults if error object contains jsonrpc error fields
@@ -195,7 +195,7 @@ func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServ
 			responseErr.Message = jsonErr.Message
 		}
 
-		response := types.JsonRpcResponse{Jsonrpc: "2.0", Id: rpcRequest.Id, ErrorObj: responseErr}
+		response := types.NewJsonRpcErrorResponse(rpcRequest.Id, responseErr)
 		return marshalResponse(response, rs.logger)
 	}
 
@@ -217,7 +217,7 @@ func validateJsonrpcRequest(requestData []byte, logger *zerolog.Logger) (types.J
 	vr := types.JsonRpcRequest{}
 	err := json.Unmarshal(requestData, &request)
 	if err != nil {
-		errRes := types.JsonRpcResponse{Jsonrpc: "2.0", ErrorObj: types.UnexpectedRequestUnmarshalError}
+		errRes := types.NewJsonRpcErrorResponse(0, types.UnexpectedRequestUnmarshalError)
 		return types.JsonRpcRequest{}, marshalResponse(errRes, logger)
 	}
 
@@ -227,20 +227,20 @@ func validateJsonrpcRequest(requestData []byte, logger *zerolog.Logger) (types.J
 	requestId := request["id"]
 	fRequestId, ok := requestId.(float64)
 	if !ok || fRequestId != float64(uint64(fRequestId)) {
-		errRes := types.JsonRpcResponse{Jsonrpc: "2.0", ErrorObj: types.InvalidRequestError}
+		errRes := types.NewJsonRpcErrorResponse(0, types.InvalidRequestError)
 		return types.JsonRpcRequest{}, marshalResponse(errRes, logger)
 	}
 	vr.Id = uint64(fRequestId)
 
 	sJsonrpc, ok := request["jsonrpc"].(string)
 	if !ok || sJsonrpc != "2.0" {
-		errRes := types.JsonRpcResponse{Jsonrpc: "2.0", Id: vr.Id, ErrorObj: types.InvalidRequestError}
+		errRes := types.NewJsonRpcErrorResponse(vr.Id, types.InvalidRequestError)
 		return types.JsonRpcRequest{}, marshalResponse(errRes, logger)
 	}
 
 	sMethod, ok := request["method"].(string)
 	if !ok {
-		errRes := types.JsonRpcResponse{Jsonrpc: "2.0", Id: vr.Id, ErrorObj: types.InvalidRequestError}
+		errRes := types.NewJsonRpcErrorResponse(vr.Id, types.InvalidRequestError)
 		return types.JsonRpcRequest{}, marshalResponse(errRes, logger)
 	}
 	vr.Method = sMethod

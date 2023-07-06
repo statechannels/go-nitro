@@ -116,11 +116,10 @@ type ResponsePayload interface {
 		ReceiveVoucherResponse
 }
 
-type JsonRpcResponse[T ResponsePayload] struct {
-	Jsonrpc string      `json:"jsonrpc"`
-	Id      uint64      `json:"id"`
-	Result  T           `json:"result"`
-	Error   interface{} `json:"error"`
+type JsonRpcSuccessResponse[T ResponsePayload] struct {
+	Jsonrpc string `json:"jsonrpc"`
+	Id      uint64 `json:"id"`
+	Result  T      `json:"result"`
 }
 
 func NewJsonRpcRequest[T RequestPayload | NotificationPayload, U RequestMethod | NotificationMethod](requestId uint64, method U, objectiveRequest T) *JsonRpcRequest[T] {
@@ -132,11 +131,10 @@ func NewJsonRpcRequest[T RequestPayload | NotificationPayload, U RequestMethod |
 	}
 }
 
-func NewJsonRpcResponse[T ResponsePayload](requestId uint64, objectiveResponse T) *JsonRpcResponse[T] {
-	return &JsonRpcResponse[T]{
+func NewJsonRpcResponse[T ResponsePayload](requestId uint64, objectiveResponse T) *JsonRpcSuccessResponse[T] {
+	return &JsonRpcSuccessResponse[T]{
 		Jsonrpc: JsonRpcVersion,
 		Id:      requestId,
 		Result:  objectiveResponse,
-		Error:   nil,
 	}
 }
