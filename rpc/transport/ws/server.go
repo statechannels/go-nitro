@@ -3,7 +3,6 @@ package ws
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -143,12 +142,6 @@ func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (wsc *serverWebSocketTransport) listenForClose(ctx context.Context, c *websocket.Conn, closeChan chan<- error) {
-	_, _, err := c.ReadMessage()
-	closeChan <- err
-	wsc.wg.Done()
-}
-
 var upgrader = websocket.Upgrader{} // use default options
 func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
@@ -162,12 +155,13 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 	wsc.notificationListeners.Store(key, notificationChan)
 	defer wsc.notificationListeners.Delete(key)
 
-	// A client closes a connection by sending a message over the websocket
-	// This code converts the socket `Read` call to a channel.
-	// Ideally, all signals would be managed in the select statement below. But there is no channel API for the websocket read.
 	closeChan := make(chan error)
-	wsc.wg.Add(1)
-	go wsc.listenForClose(r.Context(), c, closeChan)
+
+	closeHandler := c.CloseHandler()
+	c.SetCloseHandler(func(code int, text string) error {
+		closeChan <- nil
+		return closeHandler(code, text)
+	})
 
 EventLoop:
 	for {
@@ -182,10 +176,9 @@ EventLoop:
 		}
 	}
 
-	fmt.Println(err)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	if err != nil {
+		panic(err)
+	}
 }
 
 // enableCors sets the CORS headers on the response allowing all origins

@@ -65,7 +65,7 @@ func (wsc *clientWebSocketTransport) Subscribe() (<-chan []byte, error) {
 }
 
 func (wsc *clientWebSocketTransport) Close() error {
-	// This will also cause the go-routine to unblock waiting on `Read` and thus serves as a signal to exit
+	// This will also cause the go-routine to unblock waiting on `ReadMessage` and thus serves as a signal to exit
 	err := wsc.clientWebsocket.Close()
 	if err != nil {
 		return err
@@ -78,9 +78,9 @@ func (wsc *clientWebSocketTransport) Close() error {
 
 func (wsc *clientWebSocketTransport) readMessages() {
 	for {
-
 		_, data, err := wsc.clientWebsocket.ReadMessage()
 		if err != nil {
+			wsc.logger.Info().Msgf("Websocket read error: %s", err.Error())
 			wsc.wg.Done()
 			return
 		}
