@@ -130,7 +130,10 @@ function App() {
       window.URL.revokeObjectURL(blobUrl);
     } catch (e) {
       if (isAxiosError(e)) {
-        setErrorText(`${e.message}: ${e.response?.statusText}`);
+        const { message } = e;
+        e.response?.data.text().then((text: string) => {
+          setErrorText(`${message}: ${text}`);
+        });
       } else {
         setErrorText(JSON.stringify(e));
       }
