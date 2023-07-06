@@ -639,9 +639,9 @@ func (p *Proposal) Target() types.Destination {
 
 // SignedProposal is a Proposal with a signature on it.
 type SignedProposal struct {
-	state.Signature
-	Proposal Proposal
-	TurnNum  uint64
+	Signature state.Signature
+	Proposal  Proposal
+	TurnNum   uint64
 }
 
 // Clone returns a deep copy of the receiver.

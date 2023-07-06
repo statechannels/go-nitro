@@ -2,11 +2,14 @@ package crypto
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -79,7 +82,7 @@ func SplitSignature(concatenatedSignature []byte) (signature Signature) {
 	return
 }
 
-// joinSignature takes a Signature and returns a 65 byte concatenatedSignature in the [R||S||V] format
+// joinSignature takes a Signature and returns the concatenatedSignature in the [R||S||V] format
 func joinSignature(signature Signature) (concatenatedSignature []byte) {
 	concatenatedSignature = append(concatenatedSignature, signature.R...)
 	concatenatedSignature = append(concatenatedSignature, signature.S...)
@@ -89,4 +92,46 @@ func joinSignature(signature Signature) (concatenatedSignature []byte) {
 
 func (s1 Signature) Equal(s2 Signature) bool {
 	return bytes.Equal(s1.S, s2.S) && bytes.Equal(s1.R, s2.R) && s1.V == s2.V
+}
+
+func (s Signature) MarshalJSON() ([]byte, error) {
+	joined := joinSignature(s)
+	hex := hexutil.Encode(joined)
+	return json.Marshal(hex)
+}
+
+func (s *Signature) UnmarshalJSON(b []byte) error {
+	var hex string
+	err := json.Unmarshal(b, &hex)
+	if err != nil {
+		return err
+	}
+	joined, err := hexutil.Decode(hex)
+	if err != nil {
+		return err
+	}
+
+	// If the signature is all zeros, we consider it to be the empty signature
+	if allZero(joined) {
+		return nil
+	}
+
+	if len(joined) != 65 {
+		return fmt.Errorf("signature must be 65 bytes long or a zero string, received %d bytes", len(joined))
+	}
+
+	s.R = joined[:32]
+	s.S = joined[32:64]
+	s.V = joined[64]
+	return nil
+}
+
+// allZero returns true if all bytes in the slice are zero false otherwise
+func allZero(s []byte) bool {
+	for _, v := range s {
+		if v != 0 {
+			return false
+		}
+	}
+	return true
 }
