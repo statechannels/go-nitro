@@ -192,7 +192,7 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 			}
 			switch method {
 			case serde.ObjectiveCompleted:
-				rpcRequest := serde.JsonRpcRequest[protocols.ObjectiveId]{}
+				rpcRequest := serde.JsonRpcSpecificRequest[protocols.ObjectiveId]{}
 				err := json.Unmarshal(data, &rpcRequest)
 				if err != nil {
 					panic(err)
@@ -200,7 +200,7 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 				c, _ := rc.completedObjectives.LoadOrStore(string(rpcRequest.Params), make(chan struct{}))
 				close(c)
 			case serde.LedgerChannelUpdated:
-				rpcRequest := serde.JsonRpcRequest[query.LedgerChannelInfo]{}
+				rpcRequest := serde.JsonRpcSpecificRequest[query.LedgerChannelInfo]{}
 				err := json.Unmarshal(data, &rpcRequest)
 				if err != nil {
 					panic(err)
@@ -209,7 +209,7 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 				c <- rpcRequest.Params
 
 			case serde.PaymentChannelUpdated:
-				rpcRequest := serde.JsonRpcRequest[query.PaymentChannelInfo]{}
+				rpcRequest := serde.JsonRpcSpecificRequest[query.PaymentChannelInfo]{}
 				err := json.Unmarshal(data, &rpcRequest)
 				if err != nil {
 					panic(err)
@@ -259,7 +259,7 @@ func (rc *RpcClient) PaymentChannelUpdatesChan(paymentChannelId types.Destinatio
 func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T, logger zerolog.Logger, wg *sync.WaitGroup) (<-chan response[U], error) {
 	returnChan := make(chan response[U], 1)
 	requestId := rand.Uint64()
-	message := serde.NewJsonRpcRequest(requestId, method, reqPayload)
+	message := serde.NewJsonRpcSpecificRequest(requestId, method, reqPayload)
 	data, err := json.Marshal(message)
 	if err != nil {
 		return nil, err
