@@ -49,11 +49,11 @@ func NewJsonRpcErrorResponse(requestId uint64, error JsonRpcError) *JsonRpcError
 }
 
 var (
-	ParseError                       = JsonRpcError{Code: -32700, Message: "Parse error"}
-	InvalidRequestError              = JsonRpcError{Code: -32600, Message: "Invalid Request"}
-	MethodNotFoundError              = JsonRpcError{Code: -32601, Message: "Method not found"}
-	InvalidParamsError               = JsonRpcError{Code: -32602, Message: "Invalid params"}
-	InternalServerError              = JsonRpcError{Code: -32603, Message: "Internal error"}
-	UnexpectedRequestUnmarshalError  = JsonRpcError{Code: -32010, Message: "Could not unmarshal request object"}
-	UnexpectedRequestUnmarshalError2 = JsonRpcError{Code: -32009, Message: "Could not unmarshal params object"}
+	ParseError            = JsonRpcError{Code: -32700, Message: "Parse error"}
+	InvalidRequestError   = JsonRpcError{Code: -32600, Message: "Invalid Request"}
+	MethodNotFoundError   = JsonRpcError{Code: -32601, Message: "Method not found"}
+	InvalidParamsError    = JsonRpcError{Code: -32602, Message: "Invalid params"}
+	InternalServerError   = JsonRpcError{Code: -32603, Message: "Internal error"}
+	RequestUnmarshalError = JsonRpcError{Code: -32010, Message: "Could not unmarshal request object"}
+	ParamsUnmarshalError  = JsonRpcError{Code: -32009, Message: "Could not unmarshal params object"}
 )

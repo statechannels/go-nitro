@@ -180,7 +180,7 @@ func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServ
 	// Request-specific params validation is optionally performed as part of the processPayload function
 	err := json.Unmarshal(requestData, &rpcRequest)
 	if err != nil {
-		response := types.NewJsonRpcErrorResponse(rpcRequest.Id, types.UnexpectedRequestUnmarshalError2)
+		response := types.NewJsonRpcErrorResponse(rpcRequest.Id, types.ParamsUnmarshalError)
 		return marshalResponse(response, rs.logger)
 	}
 
@@ -217,7 +217,7 @@ func validateJsonrpcRequest(requestData []byte, logger *zerolog.Logger) (types.J
 	vr := types.JsonRpcRequest{}
 	err := json.Unmarshal(requestData, &request)
 	if err != nil {
-		errRes := types.NewJsonRpcErrorResponse(0, types.UnexpectedRequestUnmarshalError)
+		errRes := types.NewJsonRpcErrorResponse(0, types.RequestUnmarshalError)
 		return types.JsonRpcRequest{}, marshalResponse(errRes, logger)
 	}
 

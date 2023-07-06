@@ -58,7 +58,7 @@ type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger
 
 // NewObjective creates a new direct funding objective from a given request.
 func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, chainId *big.Int, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
-	channelExists, err := channelsExistWithCounterparty(request.CounterParty, getChannels, getTwoPartyConsensusLedger)
+	channelExists, err := ChannelsExistWithCounterparty(request.CounterParty, getChannels, getTwoPartyConsensusLedger)
 	if err != nil {
 		return Objective{}, fmt.Errorf("counterparty check failed: %w", err)
 	}
@@ -93,8 +93,8 @@ func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Add
 	return objective, nil
 }
 
-// channelsExistWithCounterparty returns true if a channel or consensus_channel exists with the counterparty
-func channelsExistWithCounterparty(counterparty types.Address, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (bool, error) {
+// ChannelsExistWithCounterparty returns true if a channel or consensus_channel exists with the counterparty
+func ChannelsExistWithCounterparty(counterparty types.Address, getChannels GetChannelsByParticipantFunction, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (bool, error) {
 	// check for any channels that may be in the process of direct funding
 	channels, err := getChannels(counterparty)
 	if err != nil {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"os"
 	"sync"
 
@@ -83,16 +82,16 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 }
 
 // Address returns the address of the the nitro node
-func (rc *RpcClient) Address() common.Address {
+func (rc *RpcClient) Address() (common.Address, error) {
 	if (rc.nodeAddress == common.Address{}) {
-		rc.nodeAddress = waitForRequest[serde.NoPayloadRequest, common.Address](rc, serde.GetAddressMethod, serde.NoPayloadRequest{})
+		return waitForRequest[serde.NoPayloadRequest, common.Address](rc, serde.GetAddressMethod, serde.NoPayloadRequest{})
 	}
-	return rc.nodeAddress
+	return rc.nodeAddress, nil
 }
 
 // CreateVoucher creates a voucher for the given channelId and amount and returns it.
 // It is the responsibility of the caller to send the voucher to the payee.
-func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) payments.Voucher {
+func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) (payments.Voucher, error) {
 	req := serde.PaymentRequest{Channel: chId, Amount: amount}
 	return waitForRequest[serde.PaymentRequest, payments.Voucher](rc, serde.CreateVoucherRequestMethod, req)
 }
@@ -100,19 +99,18 @@ func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) paymen
 // ReceiveVoucher receives a voucher and adds it to the go-nitro store.
 // It returns the total amount received so far and the amount received from the voucher supplied.
 // It can be used to add a voucher that was sent outside of the go-nitro system.
-func (rc *RpcClient) ReceiveVoucher(v payments.Voucher) (total *big.Int, delta *big.Int) {
-	vr := waitForRequest[payments.Voucher, serde.ReceiveVoucherResponse](rc, serde.ReceiveVoucherRequestMethod, v)
-	return vr.Total, vr.Delta
+func (rc *RpcClient) ReceiveVoucher(v payments.Voucher) (serde.ReceiveVoucherResponse, error) {
+	return waitForRequest[payments.Voucher, serde.ReceiveVoucherResponse](rc, serde.ReceiveVoucherRequestMethod, v)
 }
 
-func (rc *RpcClient) GetPaymentChannel(chId types.Destination) query.PaymentChannelInfo {
+func (rc *RpcClient) GetPaymentChannel(chId types.Destination) (query.PaymentChannelInfo, error) {
 	req := serde.GetPaymentChannelRequest{Id: chId}
 
 	return waitForRequest[serde.GetPaymentChannelRequest, query.PaymentChannelInfo](rc, serde.GetPaymentChannelRequestMethod, req)
 }
 
 // CreatePaymentChannel creates a new virtual payment channel
-func (rc *RpcClient) CreatePaymentChannel(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) virtualfund.ObjectiveResponse {
+func (rc *RpcClient) CreatePaymentChannel(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (virtualfund.ObjectiveResponse, error) {
 	objReq := virtualfund.NewObjectiveRequest(
 		intermediaries,
 		counterparty,
@@ -125,31 +123,31 @@ func (rc *RpcClient) CreatePaymentChannel(intermediaries []types.Address, counte
 }
 
 // ClosePaymentChannel attempts to close the payment channel with supplied id
-func (rc *RpcClient) ClosePaymentChannel(id types.Destination) protocols.ObjectiveId {
+func (rc *RpcClient) ClosePaymentChannel(id types.Destination) (protocols.ObjectiveId, error) {
 	objReq := virtualdefund.NewObjectiveRequest(
 		id)
 
 	return waitForRequest[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.ClosePaymentChannelRequestMethod, objReq)
 }
 
-func (rc *RpcClient) GetLedgerChannel(id types.Destination) query.LedgerChannelInfo {
+func (rc *RpcClient) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {
 	req := serde.GetLedgerChannelRequest{Id: id}
 
 	return waitForRequest[serde.GetLedgerChannelRequest, query.LedgerChannelInfo](rc, serde.GetLedgerChannelRequestMethod, req)
 }
 
 // GetAllLedgerChannels returns all ledger channels
-func (rc *RpcClient) GetAllLedgerChannels() []query.LedgerChannelInfo {
+func (rc *RpcClient) GetAllLedgerChannels() ([]query.LedgerChannelInfo, error) {
 	return waitForRequest[serde.NoPayloadRequest, []query.LedgerChannelInfo](rc, serde.GetAllLedgerChannelsMethod, struct{}{})
 }
 
 // GetPaymentChannelsByLedger returns all active payment channels for a given ledger channel
-func (rc *RpcClient) GetPaymentChannelsByLedger(ledgerId types.Destination) []query.PaymentChannelInfo {
+func (rc *RpcClient) GetPaymentChannelsByLedger(ledgerId types.Destination) ([]query.PaymentChannelInfo, error) {
 	return waitForRequest[serde.GetPaymentChannelsByLedgerRequest, []query.PaymentChannelInfo](rc, serde.GetPaymentChannelsByLedgerMethod, serde.GetPaymentChannelsByLedgerRequest{LedgerId: ledgerId})
 }
 
 // CreateLedger creates a new ledger channel
-func (rc *RpcClient) CreateLedgerChannel(counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
+func (rc *RpcClient) CreateLedgerChannel(counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (directfund.ObjectiveResponse, error) {
 	objReq := directfund.NewObjectiveRequest(
 		counterparty,
 		100,
@@ -161,17 +159,16 @@ func (rc *RpcClient) CreateLedgerChannel(counterparty types.Address, ChallengeDu
 }
 
 // CloseLedger closes a ledger channel
-func (rc *RpcClient) CloseLedgerChannel(id types.Destination) protocols.ObjectiveId {
+func (rc *RpcClient) CloseLedgerChannel(id types.Destination) (protocols.ObjectiveId, error) {
 	objReq := directdefund.NewObjectiveRequest(id)
 
 	return waitForRequest[directdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.CloseLedgerChannelRequestMethod, objReq)
 }
 
 // Pay uses the specified channel to pay the specified amount
-func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
+func (rc *RpcClient) Pay(id types.Destination, amount uint64) (serde.PaymentRequest, error) {
 	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
-
-	waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
+	return waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
 }
 
 func (rc *RpcClient) Close() error {
@@ -225,7 +222,7 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 	}
 }
 
-func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, method serde.RequestMethod, requestData T) U {
+func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, method serde.RequestMethod, requestData T) (U, error) {
 	resChan, err := request[T, U](rc.transport, method, requestData, rc.logger, rc.wg)
 	if err != nil {
 		panic(err)
@@ -236,7 +233,7 @@ func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClie
 		panic(res.Error)
 	}
 
-	return res.Payload
+	return res.Payload, res.Error
 }
 
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed

@@ -3,6 +3,7 @@ package node // import "github.com/statechannels/go-nitro/node"
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"math/big"
 	"runtime/debug"
@@ -248,6 +249,17 @@ func (n *Node) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration
 		n.engine.GetConsensusAppAddress(),
 		// Appdata implicitly zero
 	)
+
+	// Check store to see if there is an existing channel with this counterparty
+	channelExists, err := directfund.ChannelsExistWithCounterparty(Counterparty, n.store.GetChannelsByParticipant, n.store.GetConsensusChannel)
+	if err != nil {
+		n.logger.Err(err).Msg("directfund.ChannelsExistWithCounterparty")
+		return directfund.ObjectiveResponse{}, fmt.Errorf("counterparty check failed: %w", err)
+	}
+	if channelExists {
+		n.logger.Error().Msg("directfund: channel already exists")
+		return directfund.ObjectiveResponse{}, fmt.Errorf("counterparty %s: %w", Counterparty, directfund.ErrLedgerChannelExists)
+	}
 
 	// Send the event to the engine
 	n.engine.ObjectiveRequestsFromAPI <- objectiveRequest
