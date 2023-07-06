@@ -92,23 +92,11 @@ func (rs *RpcServer) registerHandlers() (err error) {
 		switch serde.RequestMethod(jsonrpcReq.Method) {
 		case serde.CreateVoucherRequestMethod:
 			return processRequest(rs, requestData, func(req serde.PaymentRequest) (payments.Voucher, error) {
-				v, err := rs.node.CreateVoucher(req.Channel, big.NewInt(int64(req.Amount)))
-				if err != nil {
-					return payments.Voucher{}, err
-				}
-				return v, nil
+				return rs.node.CreateVoucher(req.Channel, big.NewInt(int64(req.Amount)))
 			})
 		case serde.ReceiveVoucherRequestMethod:
 			return processRequest(rs, requestData, func(req payments.Voucher) (serde.ReceiveVoucherResponse, error) {
-				total, delta, err := rs.node.ReceiveVoucher(req)
-				if err != nil {
-					return serde.ReceiveVoucherResponse{}, err
-				}
-				r := serde.ReceiveVoucherResponse{
-					Total: total,
-					Delta: delta,
-				}
-				return r, nil
+				return rs.node.ReceiveVoucher(req)
 			})
 		case serde.GetAddressMethod:
 			return processRequest(rs, requestData, func(req serde.NoPayloadRequest) (string, error) {

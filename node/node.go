@@ -26,6 +26,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/rand"
+	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -205,8 +206,9 @@ func (c *Node) CreateVoucher(channelId types.Destination, amount *big.Int) (paym
 
 // ReceiveVoucher receives a voucher and returns the amount that was paid.
 // It can be used to add a voucher that was sent outside of the go-nitro system.
-func (c *Node) ReceiveVoucher(v payments.Voucher) (total *big.Int, delta *big.Int, err error) {
-	return c.vm.Receive(v)
+func (c *Node) ReceiveVoucher(v payments.Voucher) (serde.ReceiveVoucherResponse, error) {
+	total, delta, err := c.vm.Receive(v)
+	return serde.ReceiveVoucherResponse{Total: total, Delta: delta}, err
 }
 
 // CreatePaymentChannel creates a virtual channel with the counterParty using ledger channels
