@@ -12,6 +12,8 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import axios, { isAxiosError } from "axios";
 
@@ -44,7 +46,7 @@ function App() {
   );
 
   const [paymentAmount, setPaymentAmount] = useState<number>(5);
-
+  const [useBadSig, setUseBadSig] = useState<boolean>(false);
   const [errorText, setErrorText] = useState<string>("");
 
   useEffect(() => {
@@ -87,6 +89,13 @@ function App() {
   const updatePaymentAmount = (e: ChangeEvent<HTMLInputElement>) => {
     setPaymentAmount(parseInt(e.target.value));
   };
+
+  const handleUseBadSigChanged = (
+    _: ChangeEvent<HTMLInputElement>,
+    checked: boolean
+  ) => {
+    setUseBadSig(checked);
+  };
   const fetchFile = async () => {
     setErrorText("");
 
@@ -108,9 +117,12 @@ function App() {
       updateChannelInfo(selectedChannel);
     }, 50);
 
+    const signatureToUse = useBadSig
+      ? generateRandomSignature()
+      : voucher.Signature;
     try {
       const result = await axios.get(
-        `http://localhost:7777/ipfs/${payloadId}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${voucher.Signature}`,
+        `http://localhost:7777/ipfs/${payloadId}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${signatureToUse}`,
         {
           responseType: "blob", // This lets us download the file
           headers: {
@@ -198,6 +210,15 @@ function App() {
       </Box>
       <br></br>
       <Box>
+        <FormControlLabel
+          label="Use bad signature"
+          control={
+            <Checkbox
+              onChange={handleUseBadSigChanged}
+              value={useBadSig}
+            ></Checkbox>
+          }
+        />
         <TextField
           label="Payment Amount"
           onChange={updatePaymentAmount}
@@ -212,3 +233,16 @@ function App() {
 }
 
 export default App;
+// Stolen from chatgpt. It generates a random 65 byte hex string
+function generateRandomSignature(): string {
+  const characters = "0123456789abcdef";
+  let result = "0x";
+
+  const length = 132;
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    result += characters.charAt(randomIndex);
+  }
+
+  return result;
+}
