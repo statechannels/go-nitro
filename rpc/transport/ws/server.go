@@ -12,9 +12,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
+
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/rand"
-	"nhooyr.io/websocket"
 )
 
 const (
@@ -141,54 +142,43 @@ func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (wsc *serverWebSocketTransport) listenForClose(ctx context.Context, c *websocket.Conn, closeChan chan<- error) {
-	_, _, err := c.Read(ctx)
-	closeChan <- err
-	wsc.wg.Done()
-}
-
+var upgrader = websocket.Upgrader{} // use default options
 func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Request) {
 	// TODO: We currently allow requests from any origins. We should probably use a whitelist.
-	opts := &websocket.AcceptOptions{InsecureSkipVerify: true}
-	c, err := websocket.Accept(w, r, opts)
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+
+	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		panic(err)
 	}
-	defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
+
+	defer c.Close()
 	notificationChan := make(chan []byte)
 	key := strconv.Itoa(int(rand.Uint64()))
 	wsc.notificationListeners.Store(key, notificationChan)
 	defer wsc.notificationListeners.Delete(key)
 
-	// A client closes a connection by sending a message over the websocket
-	// This code converts the socket `Read` call to a channel.
-	// Ideally, all signals would be managed in the select statement below. But there is no channel API for the websocket read.
 	closeChan := make(chan error)
-	wsc.wg.Add(1)
-	go wsc.listenForClose(r.Context(), c, closeChan)
+
+	closeHandler := c.CloseHandler()
+	c.SetCloseHandler(func(code int, text string) error {
+		closeChan <- nil
+		return closeHandler(code, text)
+	})
 
 EventLoop:
 	for {
 		select {
 		case err = <-closeChan:
 			break EventLoop
-		case <-r.Context().Done():
-			err = r.Context().Err()
-			break EventLoop
 		case notificationData := <-notificationChan:
-			err := c.Write(r.Context(), websocket.MessageText, notificationData)
+			err := c.WriteMessage(websocket.TextMessage, notificationData)
 			if err != nil {
 				break EventLoop
 			}
 		}
 	}
-	if errors.Is(err, context.Canceled) {
-		return
-	}
-	if websocket.CloseStatus(err) == websocket.StatusNormalClosure ||
-		websocket.CloseStatus(err) == websocket.StatusGoingAway {
-		return
-	}
+
 	if err != nil {
 		panic(err)
 	}
