@@ -3,6 +3,7 @@ package ws
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -12,9 +13,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
+
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/rand"
-	"nhooyr.io/websocket"
 )
 
 const (
@@ -142,19 +144,19 @@ func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Requ
 }
 
 func (wsc *serverWebSocketTransport) listenForClose(ctx context.Context, c *websocket.Conn, closeChan chan<- error) {
-	_, _, err := c.Read(ctx)
+	_, _, err := c.ReadMessage()
 	closeChan <- err
 	wsc.wg.Done()
 }
 
+var upgrader = websocket.Upgrader{} // use default options
 func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Request) {
-	// TODO: We currently allow requests from any origins. We should probably use a whitelist.
-	opts := &websocket.AcceptOptions{InsecureSkipVerify: true}
-	c, err := websocket.Accept(w, r, opts)
+	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		panic(err)
 	}
-	defer c.Close(websocket.StatusInternalError, "server initiated websocket close")
+
+	defer c.Close()
 	notificationChan := make(chan []byte)
 	key := strconv.Itoa(int(rand.Uint64()))
 	wsc.notificationListeners.Store(key, notificationChan)
@@ -172,26 +174,18 @@ EventLoop:
 		select {
 		case err = <-closeChan:
 			break EventLoop
-		case <-r.Context().Done():
-			err = r.Context().Err()
-			break EventLoop
 		case notificationData := <-notificationChan:
-			err := c.Write(r.Context(), websocket.MessageText, notificationData)
+			err := c.WriteMessage(websocket.TextMessage, notificationData)
 			if err != nil {
 				break EventLoop
 			}
 		}
 	}
-	if errors.Is(err, context.Canceled) {
-		return
-	}
-	if websocket.CloseStatus(err) == websocket.StatusNormalClosure ||
-		websocket.CloseStatus(err) == websocket.StatusGoingAway {
-		return
-	}
-	if err != nil {
-		panic(err)
-	}
+
+	fmt.Println(err)
+	// if err != nil {
+	// 	panic(err)
+	// }
 }
 
 // enableCors sets the CORS headers on the response allowing all origins

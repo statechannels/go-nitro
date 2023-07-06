@@ -2,14 +2,13 @@ package ws
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/http"
 	urlUtil "net/url"
 	"sync"
 
+	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog"
-	"nhooyr.io/websocket"
 )
 
 type clientWebSocketTransport struct {
@@ -30,7 +29,7 @@ func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error
 	if err != nil {
 		return nil, err
 	}
-	conn, _, err := websocket.Dial(context.Background(), subscribeUrl, &websocket.DialOptions{})
+	conn, _, err := websocket.DefaultDialer.Dial(subscribeUrl, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +66,7 @@ func (wsc *clientWebSocketTransport) Subscribe() (<-chan []byte, error) {
 
 func (wsc *clientWebSocketTransport) Close() error {
 	// This will also cause the go-routine to unblock waiting on `Read` and thus serves as a signal to exit
-	err := wsc.clientWebsocket.Close(websocket.StatusNormalClosure, "client initiated close")
+	err := wsc.clientWebsocket.Close()
 	if err != nil {
 		return err
 	}
@@ -80,8 +79,8 @@ func (wsc *clientWebSocketTransport) Close() error {
 func (wsc *clientWebSocketTransport) readMessages() {
 	for {
 
-		_, data, err := wsc.clientWebsocket.Read(context.Background())
-		if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
+		_, data, err := wsc.clientWebsocket.ReadMessage()
+		if err != nil {
 			wsc.wg.Done()
 			return
 		}
