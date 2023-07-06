@@ -45,12 +45,12 @@ func sendRequestAndExpectError(t *testing.T, request []byte, expectedError types
 
 	response := mockResponder.Handler(request)
 
-	jsonResponse := types.JsonRpcResponse{}
+	jsonResponse := types.JsonRpcErrorResponse{}
 	err = json.Unmarshal(response, &jsonResponse)
 	if err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, expectedError, jsonResponse.ErrorObj)
+	assert.Equal(t, expectedError, jsonResponse.Error)
 }
 
 func TestRpcParseError(t *testing.T) {
