@@ -226,7 +226,7 @@ func validateJsonrpcRequest(requestData []byte, logger *zerolog.Logger) (types.J
 	// When golang unmarshals JSON into an interface value, float64 is used for numbers.
 	requestId := request["id"]
 	fRequestId, ok := requestId.(float64)
-	if !ok {
+	if !ok || fRequestId != float64(uint64(fRequestId)) {
 		errRes := types.JsonRpcResponse{Jsonrpc: "2.0", ErrorObj: types.InvalidRequestError}
 		return types.JsonRpcRequest{}, marshalResponse(errRes, logger)
 	}
