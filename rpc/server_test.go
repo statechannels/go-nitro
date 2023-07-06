@@ -45,12 +45,12 @@ func sendRequestAndExpectError(t *testing.T, request []byte, expectedError types
 
 	response := mockResponder.Handler(request)
 
-	jsonError := types.JsonRpcError{}
-	err = json.Unmarshal(response, &jsonError)
+	jsonResponse := types.JsonRpcErrorResponse{}
+	err = json.Unmarshal(response, &jsonResponse)
 	if err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, expectedError, jsonError)
+	assert.Equal(t, expectedError, jsonResponse.Error)
 }
 
 func TestRpcParseError(t *testing.T) {
@@ -78,7 +78,6 @@ func TestRpcWrongVersion(t *testing.T) {
 		t.Error(err)
 	}
 	expectedError := types.InvalidRequestError
-	expectedError.Id = 2
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
 
@@ -107,18 +106,16 @@ func TestRpcMissingMethod(t *testing.T) {
 		t.Error(err)
 	}
 	expectedError := types.InvalidRequestError
-	expectedError.Id = 2
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
 
 func TestRpcMethodNotFound(t *testing.T) {
-	request := serde.JsonRpcRequest[serde.PaymentRequest]{Jsonrpc: "2.0", Id: 2, Method: "direct_funds"}
+	request := serde.JsonRpcRequest[serde.PaymentRequest]{Jsonrpc: "2.0", Id: 2, Method: "fake_method"}
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {
 		t.Error(err)
 	}
 	expectedError := types.MethodNotFoundError
-	expectedError.Id = 2
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
 
@@ -129,7 +126,6 @@ func TestRpcGetPaymentChannelMissingParam(t *testing.T) {
 		t.Error(err)
 	}
 	expectedError := types.InvalidParamsError
-	expectedError.Id = 2
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
 
@@ -151,6 +147,5 @@ func TestRpcPayInvalidParam(t *testing.T) {
 		t.Error(err)
 	}
 	expectedError := types.InvalidParamsError
-	expectedError.Id = 2
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }

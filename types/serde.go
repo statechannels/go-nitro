@@ -17,15 +17,35 @@ func (d *Destination) UnmarshalText(text []byte) error {
 	return nil
 }
 
+type JsonRpcRequest struct {
+	Jsonrpc string      `json:"jsonrpc"`
+	Id      uint64      `json:"id"`
+	Method  string      `json:"code"`
+	Params  interface{} `json:"params"`
+}
+
+type JsonRpcErrorResponse struct {
+	Jsonrpc string       `json:"jsonrpc"`
+	Id      uint64       `json:"id"`
+	Error   JsonRpcError `json:"error"`
+}
+
 type JsonRpcError struct {
 	Code    int64       `json:"code"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
-	Id      uint64      `json:"id"`
 }
 
 func (e JsonRpcError) Error() string {
 	return e.Message
+}
+
+func NewJsonRpcErrorResponse(requestId uint64, error JsonRpcError) *JsonRpcErrorResponse {
+	return &JsonRpcErrorResponse{
+		Jsonrpc: "2.0",
+		Id:      requestId,
+		Error:   error,
+	}
 }
 
 var (
