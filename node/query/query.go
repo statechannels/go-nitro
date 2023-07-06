@@ -140,7 +140,7 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 
 		return ConstructPaymentInfo(c, paid, remaining)
 	}
-	return PaymentChannelInfo{}, fmt.Errorf("Could not find channel with id %v", id)
+	return PaymentChannelInfo{}, fmt.Errorf("could not find channel with id %v", id)
 }
 
 // GetAllLedgerChannels returns a `LedgerChannelInfo` for each ledger channel in the store.
