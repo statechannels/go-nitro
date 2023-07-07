@@ -73,12 +73,12 @@ describe('deposit', () => {
     description     | asset       | held | expectedHeld | amount | heldAfter | reasonString
     ${description0} | ${ERC20}    | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
     ${description1} | ${ERC20}    | ${1} | ${1}         | ${1}   | ${2}      | ${undefined}
-    ${description2} | ${ERC20}    | ${0} | ${1}         | ${2}   | ${0}      | ${'holdings < expectedHeld'}
-    ${description3} | ${ERC20}    | ${3} | ${1}         | ${1}   | ${3}      | ${'holdings already sufficient'}
+    ${description2} | ${ERC20}    | ${0} | ${1}         | ${2}   | ${0}      | ${'held != expectedHeld'}
+    ${description3} | ${ERC20}    | ${3} | ${1}         | ${1}   | ${3}      | ${'held != expectedHeld'}
     ${description4} | ${ERC20}    | ${3} | ${2}         | ${2}   | ${4}      | ${undefined}
     ${description5} | ${ETH}      | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
-    ${description6} | ${ETH}      | ${0} | ${1}         | ${2}   | ${0}      | ${'holdings < expectedHeld'}
-    ${description7} | ${ETH}      | ${3} | ${1}         | ${1}   | ${3}      | ${'holdings already sufficient'}
+    ${description6} | ${ETH}      | ${0} | ${1}         | ${2}   | ${0}      | ${'held != expectedHeld'}
+    ${description7} | ${ETH}      | ${3} | ${1}         | ${1}   | ${3}      | ${'held != expectedHeld'}
     ${description8} | ${ETH}      | ${3} | ${2}         | ${2}   | ${4}      | ${undefined}
     ${description9} | ${BadERC20} | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
   `('$description', async ({asset, held, expectedHeld, amount, reasonString, heldAfter}) => {
