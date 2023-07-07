@@ -56,6 +56,7 @@ const description1 = 'Deposits Tokens (expectedHeld = 1)';
 const description2 = 'Reverts deposit of Tokens (expectedHeld > holdings)';
 const description3 = 'Reverts deposit of Tokens (expectedHeld < holdings)';
 const description4 = 'Deposits ETH (msg.value = amount , expectedHeld = 0)';
+const description5 = 'Deposits ETH (msg.value = amount , expectedHeld = 1)';
 const description6 = 'Reverts deposit of ETH (msg.value = amount, expectedHeld > holdings)';
 const description9 = 'Deposits a Bad token (expectedHeld = 0)';
 
@@ -71,6 +72,7 @@ describe('deposit', () => {
     ${description2} | ${ERC20}    | ${0} | ${1}         | ${2}   | ${0}      | ${'held != expectedHeld'}
     ${description3} | ${ERC20}    | ${1} | ${0}         | ${2}   | ${2}      | ${'held != expectedHeld'}
     ${description4} | ${ETH}      | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
+    ${description5} | ${ETH}      | ${1} | ${1}         | ${1}   | ${2}      | ${undefined}
     ${description6} | ${ETH}      | ${0} | ${1}         | ${2}   | ${0}      | ${'held != expectedHeld'}
     ${description9} | ${BadERC20} | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
   `('$description', async ({asset, held, expectedHeld, amount, reasonString, heldAfter}) => {
