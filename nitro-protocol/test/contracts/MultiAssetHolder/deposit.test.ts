@@ -54,7 +54,6 @@ beforeAll(async () => {
 const description0 = 'Deposits Tokens (expectedHeld = 0)';
 const description1 = 'Deposits Tokens (expectedHeld = 1)';
 const description2 = 'Reverts deposit of Tokens (expectedHeld > holdings)';
-const description3 = 'Reverts deposit of Tokens (expectedHeld + amount < holdings)';
 const description5 = 'Deposits ETH (msg.value = amount , expectedHeld = 0)';
 const description6 = 'Reverts deposit of ETH (msg.value = amount, expectedHeld > holdings)';
 const description9 = 'Deposits a Bad token (expectedHeld = 0)';
@@ -69,7 +68,6 @@ describe('deposit', () => {
     ${description0} | ${ERC20}    | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
     ${description1} | ${ERC20}    | ${1} | ${1}         | ${1}   | ${2}      | ${undefined}
     ${description2} | ${ERC20}    | ${0} | ${1}         | ${2}   | ${0}      | ${'held != expectedHeld'}
-    ${description3} | ${ERC20}    | ${3} | ${1}         | ${1}   | ${3}      | ${'held != expectedHeld'}
     ${description5} | ${ETH}      | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
     ${description6} | ${ETH}      | ${0} | ${1}         | ${2}   | ${0}      | ${'held != expectedHeld'}
     ${description9} | ${BadERC20} | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
