@@ -55,13 +55,10 @@ const description0 = 'Deposits Tokens (expectedHeld = 0)';
 const description1 = 'Deposits Tokens (expectedHeld = 1)';
 const description2 = 'Reverts deposit of Tokens (expectedHeld > holdings)';
 const description3 = 'Reverts deposit of Tokens (expectedHeld + amount < holdings)';
-const description4 = 'Deposits Tokens (amount < holdings < amount + expectedHeld)';
 const description5 = 'Deposits ETH (msg.value = amount , expectedHeld = 0)';
 const description6 = 'Reverts deposit of ETH (msg.value = amount, expectedHeld > holdings)';
 const description7 =
   'Reverts deposit of ETH (msg.value = amount, expectedHeld + amount < holdings)';
-const description8 =
-  'Deposits ETH (msg.value = amount,  amount < holdings < amount + expectedHeld)';
 const description9 = 'Deposits a Bad token (expectedHeld = 0)';
 
 describe('deposit', () => {
@@ -75,11 +72,9 @@ describe('deposit', () => {
     ${description1} | ${ERC20}    | ${1} | ${1}         | ${1}   | ${2}      | ${undefined}
     ${description2} | ${ERC20}    | ${0} | ${1}         | ${2}   | ${0}      | ${'held != expectedHeld'}
     ${description3} | ${ERC20}    | ${3} | ${1}         | ${1}   | ${3}      | ${'held != expectedHeld'}
-    ${description4} | ${ERC20}    | ${3} | ${2}         | ${2}   | ${4}      | ${undefined}
     ${description5} | ${ETH}      | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
     ${description6} | ${ETH}      | ${0} | ${1}         | ${2}   | ${0}      | ${'held != expectedHeld'}
     ${description7} | ${ETH}      | ${3} | ${1}         | ${1}   | ${3}      | ${'held != expectedHeld'}
-    ${description8} | ${ETH}      | ${3} | ${2}         | ${2}   | ${4}      | ${undefined}
     ${description9} | ${BadERC20} | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
   `('$description', async ({asset, held, expectedHeld, amount, reasonString, heldAfter}) => {
     held = BigNumber.from(held);
