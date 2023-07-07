@@ -95,7 +95,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 				return rs.node.CreateVoucher(req.Channel, big.NewInt(int64(req.Amount)))
 			})
 		case serde.ReceiveVoucherRequestMethod:
-			return processRequest(rs, requestData, func(req payments.Voucher) (serde.ReceiveVoucherResponse, error) {
+			return processRequest(rs, requestData, func(req payments.Voucher) (payments.ReceiveVoucherSummary, error) {
 				return rs.node.ReceiveVoucher(req)
 			})
 		case serde.GetAddressMethod:
@@ -176,11 +176,10 @@ func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServ
 	processedResponse, err := processPayload(payload)
 	if err != nil {
 		responseErr := serde.InternalServerError // default error
+		responseErr.Message = err.Error()
 
 		if jsonErr, ok := err.(serde.JsonRpcError); ok {
-			// overwrite defaults if error object contains jsonrpc error fields
-			responseErr.Code = jsonErr.Code
-			responseErr.Message = jsonErr.Message
+			responseErr.Code = jsonErr.Code // overwrite default if error object is jsonrpc error
 		}
 
 		response := serde.NewJsonRpcErrorResponse(rpcRequest.Id, responseErr)

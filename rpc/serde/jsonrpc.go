@@ -1,8 +1,6 @@
 package serde
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/statechannels/go-nitro/node/query"
@@ -96,11 +94,6 @@ type (
 	GetPaymentChannelsByLedgerResponse = []query.PaymentChannelInfo
 )
 
-type ReceiveVoucherResponse struct {
-	Total *big.Int
-	Delta *big.Int
-}
-
 type ResponsePayload interface {
 	directfund.ObjectiveResponse |
 		protocols.ObjectiveId |
@@ -113,7 +106,7 @@ type ResponsePayload interface {
 		payments.Voucher |
 		common.Address |
 		string |
-		ReceiveVoucherResponse
+		payments.ReceiveVoucherSummary
 }
 
 type JsonRpcSuccessResponse[T ResponsePayload] struct {
@@ -142,8 +135,15 @@ func NewJsonRpcResponse[T ResponsePayload](requestId uint64, objectiveResponse T
 type JsonRpcGeneralRequest struct {
 	Jsonrpc string      `json:"jsonrpc"`
 	Id      uint64      `json:"id"`
-	Method  string      `json:"code"`
+	Method  string      `json:"method"`
 	Params  interface{} `json:"params"`
+}
+
+type JsonRpcGeneralResponse struct {
+	Jsonrpc string       `json:"jsonrpc"`
+	Id      uint64       `json:"id"`
+	Error   JsonRpcError `json:"error"`
+	Result  interface{}  `json:"result"`
 }
 
 type JsonRpcErrorResponse struct {

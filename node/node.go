@@ -26,7 +26,6 @@ import (
 	"github.com/statechannels/go-nitro/protocols/virtualdefund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
 	"github.com/statechannels/go-nitro/rand"
-	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -206,9 +205,9 @@ func (c *Node) CreateVoucher(channelId types.Destination, amount *big.Int) (paym
 
 // ReceiveVoucher receives a voucher and returns the amount that was paid.
 // It can be used to add a voucher that was sent outside of the go-nitro system.
-func (c *Node) ReceiveVoucher(v payments.Voucher) (serde.ReceiveVoucherResponse, error) {
+func (c *Node) ReceiveVoucher(v payments.Voucher) (payments.ReceiveVoucherSummary, error) {
 	total, delta, err := c.vm.Receive(v)
-	return serde.ReceiveVoucherResponse{Total: total, Delta: delta}, err
+	return payments.ReceiveVoucherSummary{Total: total, Delta: delta}, err
 }
 
 // CreatePaymentChannel creates a virtual channel with the counterParty using ledger channels
@@ -255,7 +254,7 @@ func (n *Node) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration
 	// Check store to see if there is an existing channel with this counterparty
 	channelExists, err := directfund.ChannelsExistWithCounterparty(Counterparty, n.store.GetChannelsByParticipant, n.store.GetConsensusChannel)
 	if err != nil {
-		n.logger.Err(err).Msg("directfund.ChannelsExistWithCounterparty")
+		n.logger.Error().Msg(err.Error())
 		return directfund.ObjectiveResponse{}, fmt.Errorf("counterparty check failed: %w", err)
 	}
 	if channelExists {
