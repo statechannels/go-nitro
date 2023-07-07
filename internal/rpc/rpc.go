@@ -37,7 +37,7 @@ func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
 	if useNats {
 		transportType = transport.Nats
 	}
-	rpcServer, node, messageService, err := RunRpcServer(pk, chainService, useDurableStore, msgPort, rpcPort, transportType)
+	rpcServer, node, messageService, err := RunRpcServer(pk, chainService, useDurableStore, msgPort, rpcPort, transportType, os.Stdout)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -47,11 +47,9 @@ func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
 }
 
 func RunRpcServer(pk []byte, chainService chainservice.ChainService,
-	useDurableStore bool, msgPort int, rpcPort int, transportType transport.TransportType,
+	useDurableStore bool, msgPort int, rpcPort int, transportType transport.TransportType, logDestination *os.File,
 ) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
 	me := crypto.GetAddressFromSecretKeyBytes(pk)
-
-	logDestination := os.Stdout
 
 	var ourStore store.Store
 	var err error
