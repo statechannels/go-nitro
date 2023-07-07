@@ -99,8 +99,8 @@ func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) (payme
 // ReceiveVoucher receives a voucher and adds it to the go-nitro store.
 // It returns the total amount received so far and the amount received from the voucher supplied.
 // It can be used to add a voucher that was sent outside of the go-nitro system.
-func (rc *RpcClient) ReceiveVoucher(v payments.Voucher) (serde.ReceiveVoucherResponse, error) {
-	return waitForRequest[payments.Voucher, serde.ReceiveVoucherResponse](rc, serde.ReceiveVoucherRequestMethod, v)
+func (rc *RpcClient) ReceiveVoucher(v payments.Voucher) (payments.ReceiveVoucherSummary, error) {
+	return waitForRequest[payments.Voucher, payments.ReceiveVoucherSummary](rc, serde.ReceiveVoucherRequestMethod, v)
 }
 
 func (rc *RpcClient) GetPaymentChannel(chId types.Destination) (query.PaymentChannelInfo, error) {
@@ -222,20 +222,6 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 	}
 }
 
-func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, method serde.RequestMethod, requestData T) (U, error) {
-	resChan, err := request[T, U](rc.transport, method, requestData, rc.logger, rc.wg)
-	if err != nil {
-		panic(err)
-	}
-
-	res := <-resChan
-	if res.Error != nil {
-		panic(res.Error)
-	}
-
-	return res.Payload, res.Error
-}
-
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
 func (rc *RpcClient) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
 	c, _ := rc.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
@@ -254,42 +240,53 @@ func (rc *RpcClient) PaymentChannelUpdatesChan(paymentChannelId types.Destinatio
 	return c
 }
 
-// request uses the supplied transport and payload to send a non-blocking JSONRPC request.
-// It returns a channel that sends a response payload. If the request fails to send, an error is returned.
-func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T, logger zerolog.Logger, wg *sync.WaitGroup) (<-chan response[U], error) {
-	returnChan := make(chan response[U], 1)
+func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, method serde.RequestMethod, requestData T) (U, error) {
+	rc.wg.Add(1)
+	defer rc.wg.Done()
+
+	res, err := sendRequest[T, U](rc.transport, method, requestData, rc.logger, rc.wg)
+	if err != nil {
+		panic(err)
+	}
+
+	return res.Payload, res.Error
+}
+
+// sendRequest uses the supplied transport and payload to send a JSONRPC request.
+//   - Returns an error if:
+//     [1] the request fails to send
+//     [2] the response cannot be parsed
+//   - Otherwise, returns the JSONRPC server's response
+func sendRequest[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T, logger zerolog.Logger, wg *sync.WaitGroup) (response[U], error) {
 	requestId := rand.Uint64()
 	message := serde.NewJsonRpcSpecificRequest(requestId, method, reqPayload)
 	data, err := json.Marshal(message)
 	if err != nil {
-		return nil, err
+		return response[U]{}, err
 	}
 
-	logger.Trace().
-		Str("method", string(method)).
-		Msg("sent message")
-
-	wg.Add(1)
-	go sendRPCRequest[T, U](data, trans, returnChan, logger, wg)
-	return returnChan, nil
-}
-
-func sendRPCRequest[T serde.RequestPayload, U serde.ResponsePayload](data []byte, trans transport.Requester, returnChan chan response[U], logger zerolog.Logger, wg *sync.WaitGroup) {
+	logger.Trace().Str("method", string(method)).Msg("sent message")
 	responseData, err := trans.Request(data)
 	if err != nil {
-		returnChan <- response[U]{Error: err}
+		return response[U]{}, err
 	}
 
-	logger.Trace().Msgf("Rpc client received response: %+v", string(responseData))
-
-	jsonResponse := serde.JsonRpcSuccessResponse[U]{}
+	// First check if there is an error present in the jsonrpc response
+	jsonResponse := serde.JsonRpcGeneralResponse{}
 	err = json.Unmarshal(responseData, &jsonResponse)
 	if err != nil {
-		returnChan <- response[U]{Error: err}
+		return response[U]{}, err
+	} else if jsonResponse.Error != (serde.JsonRpcError{}) {
+		return response[U]{Error: jsonResponse.Error}, nil
 	}
 
-	returnChan <- response[U]{jsonResponse.Result, nil}
-	wg.Done()
+	// Now convert response.Result into the specific type for this request, and return that
+	successResponse := serde.JsonRpcSuccessResponse[U]{}
+	err = json.Unmarshal(responseData, &successResponse)
+	if err != nil {
+		return response[U]{}, err
+	}
+	return response[U]{Payload: successResponse.Result}, nil
 }
 
 // getNotificationMethod parses the raw notification and returns the notification method
