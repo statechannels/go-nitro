@@ -165,13 +165,15 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		if i != 0 {
 			leftLC := ledgerChannels[i-1]
 			expectedLeftLC := createLedgerInfo(leftLC.ChannelId, simpleOutcome(actors[i-1].Address(), actors[i].Address(), 100, 100), query.Open, actors[i].Address())
-			actualLeftLC, _ := client.GetLedgerChannel(leftLC.ChannelId)
+			actualLeftLC, err := client.GetLedgerChannel(leftLC.ChannelId)
+			checkError(t, err, "client.GetLedgerChannel")
 			checkQueryInfo(t, expectedLeftLC, actualLeftLC)
 		}
 		if i != n-1 {
 			rightLC := ledgerChannels[i]
 			expectedRightLC := createLedgerInfo(rightLC.ChannelId, simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100), query.Open, actors[i].Address())
-			actualRightLC, _ := client.GetLedgerChannel(rightLC.ChannelId)
+			actualRightLC, err := client.GetLedgerChannel(rightLC.ChannelId)
+			checkError(t, err, "client.GetLedgerChannel")
 			checkQueryInfo(t, expectedRightLC, actualRightLC)
 		}
 	}
