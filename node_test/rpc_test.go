@@ -86,7 +86,6 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	// Setup
 	//////////////////////
 
-	t.Logf("Starting test with %d clients", n)
 	logFile := fmt.Sprintf("test_%d_rpc_clients_over_%s.log", n, connectionType)
 	logDestination := newLogWriter(logFile)
 	defer logDestination.Close()

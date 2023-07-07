@@ -54,8 +54,13 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 	var ourStore store.Store
 	var err error
 
+	logger := zerolog.New(logDestination).
+		With().
+		Timestamp().
+		Logger()
+
 	if useDurableStore {
-		fmt.Println("Initialising durable store...")
+		logger.Info().Msg("Initialising durable store...")
 		dataFolder := fmt.Sprintf("./data/nitro-service/%s", me.String())
 		ourStore, err = store.NewDurableStore(pk, dataFolder, buntdb.Config{})
 		if err != nil {
@@ -63,11 +68,11 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		}
 
 	} else {
-		fmt.Println("Initialising mem store...")
+		logger.Info().Msg("Initialising mem store...")
 		ourStore = store.NewMemStore(pk)
 	}
 
-	fmt.Println("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
+	logger.Info().Msg("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
 	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, true, logDestination)
 	node := node.New(
 		messageService,
@@ -82,10 +87,10 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 	switch transportType {
 	case "nats":
 
-		fmt.Println("Initializing NATS RPC transport...")
+		logger.Info().Msg("Initializing NATS RPC transport...")
 		transport, err = nats.NewNatsTransportAsServer(rpcPort)
 	case "ws":
-		fmt.Println("Initializing websocket RPC transport...")
+		logger.Info().Msg("Initializing websocket RPC transport...")
 		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
 	default:
 		err = fmt.Errorf("unknown transport type %s", transportType)
@@ -95,7 +100,7 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		return nil, nil, nil, err
 	}
 
-	logger := zerolog.New(logDestination).
+	serverLogger := zerolog.New(logDestination).
 		Level(zerolog.TraceLevel).
 		With().
 		Timestamp().
@@ -104,7 +109,7 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		Str("scope", "").
 		Logger()
 
-	rpcServer, err := rpc.NewRpcServer(&node, &logger, transport)
+	rpcServer, err := rpc.NewRpcServer(&node, &serverLogger, transport)
 	if err != nil {
 		return nil, nil, nil, err
 	}
