@@ -129,9 +129,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		outcome := simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100)
 		var err error
 		ledgerChannels[i], err = clients[i].CreateLedgerChannel(actors[i+1].Address(), 100, outcome)
-		if err != nil {
-			t.Errorf("client.CreateLedgerChannel error: %s", err.Error())
-		}
+		checkError(t, err, "client.CreateLedgerChannel")
 
 		if !directfund.IsDirectFundObjective(ledgerChannels[i].Id) {
 			t.Errorf("expected direct fund objective, got %s", ledgerChannels[i].Id)
@@ -153,7 +151,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	{
 		outcome := simpleOutcome(actors[0].Address(), actors[1].Address(), 100, 100)
 		duplicateLedgerChannelObjective, err := clients[0].CreateLedgerChannel(actors[1].Address(), 100, outcome)
-		if err != nil {
+		if err == nil {
 			t.Error("expected error when creating duplicate ledger channel")
 		}
 
@@ -204,9 +202,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		100,
 		initialOutcome,
 	)
-	if err != nil {
-		t.Errorf("client.CreatePaymentChannel error: %s", err.Error())
-	}
+	checkError(t, err, "client.CreatePaymentChannel")
 	expectedVirtualChannel := createPaychInfo(
 		vabCreateResponse.ChannelId,
 		initialOutcome,
@@ -214,8 +210,8 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	)
 
 	_, err = aliceClient.GetPaymentChannel(types.Destination{0x000}) // Confirms server won't crash if invalid chId is provided
-	if err != nil {
-		t.Errorf("aliceClient.GetPaymentChannel(0x0) error: %s", err.Error())
+	if err == nil {
+		t.Error("expected error for client.GetPaymentChannel(types.Destination{0x000})")
 	}
 
 	// wait for the virtual channel to be ready, and
@@ -223,23 +219,16 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	for i, client := range clients {
 		<-client.ObjectiveCompleteChan(vabCreateResponse.Id)
 		channelInfo, err := client.GetPaymentChannel(vabCreateResponse.ChannelId)
-		if err != nil {
-			t.Errorf("client.GetPaymentChannel error: %s", err.Error())
-		}
-
+		checkError(t, err, "client.GetPaymentChannel")
 		checkQueryInfo(t, expectedVirtualChannel, channelInfo)
 		if i != 0 {
 			channelsByLedger, err := client.GetPaymentChannelsByLedger(ledgerChannels[i-1].ChannelId)
-			if err != nil {
-				t.Errorf("client.GetPaymentChannelsByLedger error: %s", err.Error())
-			}
+			checkError(t, err, "client.GetPaymentChannelsByLedger")
 			checkQueryInfoCollection(t, expectedVirtualChannel, 1, channelsByLedger)
 		}
 		if i != n-1 {
 			channelsByLedger, err := client.GetPaymentChannelsByLedger(ledgerChannels[i].ChannelId)
-			if err != nil {
-				t.Errorf("client.GetPaymentChannelsByLedger error: %s", err.Error())
-			}
+			checkError(t, err, "client.GetPaymentChannelsByLedger")
 			checkQueryInfoCollection(t, expectedVirtualChannel, 1, channelsByLedger)
 		}
 	}
@@ -252,32 +241,27 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 
 	if manualVoucherExchange {
 		v, err := aliceClient.CreateVoucher(vabCreateResponse.ChannelId, 1)
-		if err != nil {
-			t.Errorf("aliceClient.CreateVoucher error: %s", err.Error())
-		}
+		checkError(t, err, "aliceClient.CreateVoucher")
 
 		rxVoucher, err := bobClient.ReceiveVoucher(v)
-		if err != nil {
-			t.Errorf("bobClient.ReceiveVoucher error: %s", err.Error())
-		}
+		checkError(t, err, "bobClient.ReceiveVoucher")
+
 		if rxVoucher.Total.Cmp(big.NewInt(1)) != 0 {
 			t.Errorf("expected a total of 1 got %d", rxVoucher.Total)
 		}
 		if rxVoucher.Delta.Cmp(big.NewInt(1)) != 0 {
 			t.Errorf("expected a delta of 1 got %d", rxVoucher.Delta)
 		}
+
 		rxVoucher, err = bobClient.ReceiveVoucher(v)
-		if err != nil {
-			t.Errorf("bobClient.ReceiveVoucher error: %s", err.Error())
-		}
+		checkError(t, err, "bobClient.ReceiveVoucher")
+
 		if rxVoucher.Delta.Cmp(big.NewInt(0)) != 0 {
 			t.Errorf("adding the same voucher should result in a delta of 0, got %d", rxVoucher.Delta)
 		}
 	} else {
 		_, err = aliceClient.Pay(vabCreateResponse.ChannelId, 1)
-		if err != nil {
-			t.Errorf("aliceClient.Pay error: %s", err.Error())
-		}
+		checkError(t, err, "aliceClient.Pay")
 	}
 
 	t.Log("Vouchers sent/received")
@@ -305,9 +289,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		if i != 0 {
 			leftLC := ledgerChannels[i-1]
 			paymentChannels, err := client.GetPaymentChannelsByLedger(leftLC.ChannelId)
-			if err != nil {
-				t.Errorf("client.GetPaymentChannelsByLedger error: %s", err.Error())
-			}
+			checkError(t, err, "client.GetPaymentChannelsByLedger")
 			if len(paymentChannels) != 0 {
 				t.Errorf("expected no virtual channels in ledger channel %s, got %d", leftLC.ChannelId, len(paymentChannels))
 			}
@@ -315,9 +297,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		if i != n-1 {
 			rightLC := ledgerChannels[i]
 			paymentChannels, err := client.GetPaymentChannelsByLedger(rightLC.ChannelId)
-			if err != nil {
-				t.Errorf("client.GetPaymentChannelsByLedger error: %s", err.Error())
-			}
+			checkError(t, err, "client.GetPaymentChannelsByLedger")
 			if len(paymentChannels) != 0 {
 				t.Errorf("expected no virtual channels in ledger channel %s, got %d", rightLC.ChannelId, len(paymentChannels))
 			}
@@ -429,6 +409,12 @@ func setupNitroNodeWithRPCClient(
 
 type channelInfo interface {
 	query.LedgerChannelInfo | query.PaymentChannelInfo
+}
+
+func checkError(t *testing.T, err error, msg string) {
+	if err != nil {
+		t.Error(msg + ": " + err.Error())
+	}
 }
 
 func checkQueryInfo[T channelInfo](t *testing.T, expected T, fetched T) {
