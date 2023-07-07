@@ -4,7 +4,7 @@ A nitro node may be instantiated by calling `New()` and passing in a chain servi
 
 The flow of data through the node is shown in this diagram:
 
-![go-nitro architecture](https://github.com/statechannels/go-nitro/assets/1833419/01a90c69-569d-4af5-a88a-7e85593c2919)
+![go-nitro architecture](./go-nitro%20architecture.png)
 
 0. An API can originate as a remote procedure call (RPC) over https/ws or nats. The RPC call is handled by a server which consumes a go-nitro node as a library.
 1. The go-nitro `engine` runs in its own goroutine and has a select statement listening for a message from one of:
@@ -40,13 +40,13 @@ fontawesome f013 engine
 fontawesome f1c0 store
 end
 
-alt case 1:
+alt User Request
 RPC client -#red>RPC server: <background:#yellow>JSON-RPC request</background>
 RPC server -> node:
-node --> engine:<background:#yellow>API Request Triggered 
-else case 2:
+node --> engine:<background:#yellow>API Request Triggered
+else Blockain Event
 chain-->engine: <background:#yellow>Blockchain Event Triggered
-else case 3:
+else Peer Request
 msg-->engine: <background:#yellow>Message Received
 end
 group handler
@@ -60,10 +60,9 @@ engine-->engine: <background:#yellow>Trigger another loop
 
 end
 
-alt case 1:
-engine-->node: 
-node->RPC server: 
+alt Notify User
+engine-->node:
+node->RPC server:
 RPC server-#red>RPC client: <background:#yellow>JSON-RPC response
 end
 ```
-
