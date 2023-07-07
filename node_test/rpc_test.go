@@ -44,6 +44,14 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 		Logger()
 }
 
+func testLogger(logDestination *os.File) zerolog.Logger {
+	return zerolog.New(logDestination).
+		Level(zerolog.TraceLevel).
+		With().
+		Timestamp().
+		Logger()
+}
+
 func TestRpcWithNats(t *testing.T) {
 	executeNRpcTest(t, "nats", 2, false)
 	executeNRpcTest(t, "nats", 3, false)
@@ -82,6 +90,8 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	logFile := fmt.Sprintf("test_%d_rpc_clients_over_%s.log", n, connectionType)
 	logDestination := newLogWriter(logFile)
 	defer logDestination.Close()
+	logger := testLogger(logDestination)
+	logger.Info().Msgf("Starting test with %d clients", n)
 
 	chain := chainservice.NewMockChain()
 	defer chain.Close()
@@ -94,7 +104,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			PrivateKey: common.Hex2Bytes(sk),
 		}
 	}
-	t.Logf("%d actors created", n)
+	logger.Info().Msgf("%d actors created", n)
 
 	chainServices := make([]*chainservice.MockChainService, n)
 	for i := 0; i < n; i++ {
@@ -110,9 +120,9 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		msgServices[i] = msg
 		defer cleanup()
 	}
-	t.Logf("%d Clients created", n)
+	logger.Info().Msgf("%d Clients created", n)
 
-	t.Log("Verify that each rpc client fetches the correct address")
+	logger.Info().Msgf("Verify that each rpc client fetches the correct address")
 	for i := 0; i < n; i++ {
 		clientAddress, _ := clients[i].Address()
 		if !cmp.Equal(actors[i].Address(), clientAddress) {
@@ -121,7 +131,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	}
 
 	utils.WaitForPeerInfoExchange(msgServices...)
-	t.Logf("Peer exchange complete")
+	logger.Info().Msgf("Peer exchange complete")
 
 	// create n-1 ledger channels
 	ledgerChannels := make([]directfund.ObjectiveResponse, n-1)
@@ -144,7 +154,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			<-client.ObjectiveCompleteChan(ledgerChannels[i].Id) // right channel
 		}
 	}
-	t.Log("Ledger channels created")
+	logger.Info().Msgf("Ledger channels created")
 
 	// try to create duplicate ledger channel to ensure node correctly
 	// handles error without panicking
@@ -318,7 +328,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			{99, 101, query.Complete},
 		},
 	)[alice.Address()]
-	checkNotifications(t, "aliceLedger", expectedAliceLedgerNotifs, []query.LedgerChannelInfo{}, aliceLedgerNotifs, defaultTimeout)
+	checkNotifications(t, logger, "aliceLedger", expectedAliceLedgerNotifs, []query.LedgerChannelInfo{}, aliceLedgerNotifs, defaultTimeout)
 
 	bobLedgerNotifs := bobClient.LedgerChannelUpdatesChan(bobLedger.ChannelId)
 	expectedBobLedgerNotifs := createLedgerStory(
@@ -336,7 +346,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			createLedgerInfo(bobLedger.ChannelId, simpleOutcome(actors[n-2].Address(), bob.Address(), 99, 101), query.Closing, bob.Address()),
 		)
 	}
-	checkNotifications(t, "bobLedger", expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
+	checkNotifications(t, logger, "bobLedger", expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
 
 	requiredVCNotifs := createPaychStory(
 		vabCreateResponse.ChannelId, alice.Address(), bob.Address(),
@@ -358,9 +368,9 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	)
 
 	aliceVirtualNotifs := aliceClient.PaymentChannelUpdatesChan(vabCreateResponse.ChannelId)
-	checkNotifications(t, "aliceVirtual", requiredVCNotifs, optionalVCNotifs, aliceVirtualNotifs, defaultTimeout)
+	checkNotifications(t, logger, "aliceVirtual", requiredVCNotifs, optionalVCNotifs, aliceVirtualNotifs, defaultTimeout)
 	bobVirtualNotifs := bobClient.PaymentChannelUpdatesChan(vabCreateResponse.ChannelId)
-	checkNotifications(t, "bobVirtual", requiredVCNotifs, optionalVCNotifs, bobVirtualNotifs, defaultTimeout)
+	checkNotifications(t, logger, "bobVirtual", requiredVCNotifs, optionalVCNotifs, bobVirtualNotifs, defaultTimeout)
 }
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
@@ -459,7 +469,7 @@ func marshalToJson[T channelInfo](t *testing.T, info T) string {
 // if any of these notifications are not received.
 //
 // If a notification is received that is neither in required or optional, checkNotifications will fail.
-func checkNotifications[T channelInfo](t *testing.T, client string, required []T, optional []T, notifChan <-chan T, timeout time.Duration) {
+func checkNotifications[T channelInfo](t *testing.T, logger zerolog.Logger, client string, required []T, optional []T, notifChan <-chan T, timeout time.Duration) {
 	// This is map containing both required and optional notifications.
 	// We use the json representation of the notification as the key and a boolean as the value.
 	// The boolean value is true if the notification is required and false if it is optional.
@@ -468,7 +478,7 @@ func checkNotifications[T channelInfo](t *testing.T, client string, required []T
 	unexpectedNotifications := make(map[string]bool)
 	logUnexpected := func() {
 		for notif := range unexpectedNotifications {
-			t.Logf("%s received unexpected notification: %v", client, notif)
+			logger.Info().Msgf("%s received unexpected notification: %v", client, notif)
 		}
 	}
 
@@ -484,7 +494,7 @@ func checkNotifications[T channelInfo](t *testing.T, client string, required []T
 		case info := <-notifChan:
 
 			notifJSON := marshalToJson(t, info)
-			t.Logf("%s received %v+", client, info)
+			logger.Info().Msgf("%s received %v+", client, info)
 
 			// Check that the notification is a required or optional one.
 			_, isExpected := acceptableNotifications[notifJSON]
