@@ -14,12 +14,20 @@ const jsonRpcSchema = {
   properties: {
     jsonrpc: { type: "string" },
     id: { type: "uint32" },
+  },
+  optionalProperties: {
     result: {
-      properties: {},
+      nullable: true,
+    },
+    error: {
+      properties: {
+        code: { type: "int32" },
+        message: { type: "string" },
+      },
       additionalProperties: true,
+      nullable: true,
     },
   },
-  optionalProperties: { error: { type: "string", nullable: true } },
 } as const;
 type JsonRpcSchemaType = JTDDataType<typeof jsonRpcSchema>;
 
@@ -118,7 +126,10 @@ export function getAndValidateResult<T extends RequestMethod>(
   response: unknown,
   method: T
 ): RPCRequestAndResponses[T][1]["result"] {
-  const result = getJsonRpcResult(response);
+  const { result, error } = getJsonRpcResult(response);
+  if (error) {
+    throw new Error("jsonrpc response: " + error.message);
+  }
   switch (method) {
     case "create_ledger_channel":
     case "create_payment_channel":
@@ -177,10 +188,10 @@ export function getAndValidateResult<T extends RequestMethod>(
  * @param response - JSON RPC response
  * @returns The result of the response
  */
-function getJsonRpcResult(response: unknown): unknown {
+function getJsonRpcResult(response: unknown): JsonRpcSchemaType {
   const validate = ajv.compile<JsonRpcSchemaType>(jsonRpcSchema);
   if (validate(response)) {
-    return response.result;
+    return response as JsonRpcSchemaType;
   }
   throw new Error(
     `Invalid json rpc response: ${JSON.stringify(
