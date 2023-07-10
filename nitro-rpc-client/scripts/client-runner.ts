@@ -143,6 +143,7 @@ yargs(hideBin(process.argv))
         throw new Error("An client is undefined");
       }
 
+      console.log("Retrieving client addresses");
       const ireneAddress = await ireneClient.GetAddress();
       const bobAddress = await bobClient.GetAddress();
 
@@ -150,7 +151,6 @@ yargs(hideBin(process.argv))
         // Setup ledger channels
         console.log("Constructing ledger channels");
         const aliceLedger = await aliceClient.CreateLedgerChannel(ireneAddress);
-
         const bobLedger = await ireneClient.CreateLedgerChannel(bobAddress);
 
         await Promise.all([
