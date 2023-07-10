@@ -79,7 +79,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 
 		if !json.Valid(requestData) {
 			rs.logger.Error().Msg("request is not valid json")
-			errRes := types.NewJsonRpcErrorResponse(0, types.ParseError)
+			errRes := serde.NewJsonRpcErrorResponse(0, serde.ParseError)
 			return marshalResponse(errRes, rs.logger)
 		}
 
@@ -92,23 +92,11 @@ func (rs *RpcServer) registerHandlers() (err error) {
 		switch serde.RequestMethod(jsonrpcReq.Method) {
 		case serde.CreateVoucherRequestMethod:
 			return processRequest(rs, requestData, func(req serde.PaymentRequest) (payments.Voucher, error) {
-				v, err := rs.node.CreateVoucher(req.Channel, big.NewInt(int64(req.Amount)))
-				if err != nil {
-					return payments.Voucher{}, err
-				}
-				return v, nil
+				return rs.node.CreateVoucher(req.Channel, big.NewInt(int64(req.Amount)))
 			})
 		case serde.ReceiveVoucherRequestMethod:
-			return processRequest(rs, requestData, func(req payments.Voucher) (serde.ReceiveVoucherResponse, error) {
-				total, delta, err := rs.node.ReceiveVoucher(req)
-				if err != nil {
-					return serde.ReceiveVoucherResponse{}, err
-				}
-				r := serde.ReceiveVoucherResponse{
-					Total: total,
-					Delta: delta,
-				}
-				return r, nil
+			return processRequest(rs, requestData, func(req payments.Voucher) (payments.ReceiveVoucherSummary, error) {
+				return rs.node.ReceiveVoucher(req)
 			})
 		case serde.GetAddressMethod:
 			return processRequest(rs, requestData, func(req serde.NoPayloadRequest) (string, error) {
@@ -165,7 +153,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 				return rs.node.GetPaymentChannelsByLedger(req.LedgerId)
 			})
 		default:
-			errRes := types.NewJsonRpcErrorResponse(jsonrpcReq.Id, types.MethodNotFoundError)
+			errRes := serde.NewJsonRpcErrorResponse(jsonrpcReq.Id, serde.MethodNotFoundError)
 			return marshalResponse(errRes, rs.logger)
 		}
 	}
@@ -175,27 +163,26 @@ func (rs *RpcServer) registerHandlers() (err error) {
 }
 
 func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServer, requestData []byte, processPayload func(T) (U, error)) []byte {
-	rpcRequest := serde.JsonRpcRequest[T]{}
+	rpcRequest := serde.JsonRpcSpecificRequest[T]{}
 	// This unmarshal will fail only when the requestData is not valid json.
 	// Request-specific params validation is optionally performed as part of the processPayload function
 	err := json.Unmarshal(requestData, &rpcRequest)
 	if err != nil {
-		response := types.NewJsonRpcErrorResponse(rpcRequest.Id, types.UnexpectedRequestUnmarshalError2)
+		response := serde.NewJsonRpcErrorResponse(rpcRequest.Id, serde.ParamsUnmarshalError)
 		return marshalResponse(response, rs.logger)
 	}
 
 	payload := rpcRequest.Params
 	processedResponse, err := processPayload(payload)
 	if err != nil {
-		responseErr := types.InternalServerError // default error
+		responseErr := serde.InternalServerError // default error
+		responseErr.Message = err.Error()
 
-		if jsonErr, ok := err.(types.JsonRpcError); ok {
-			// overwrite defaults if error object contains jsonrpc error fields
-			responseErr.Code = jsonErr.Code
-			responseErr.Message = jsonErr.Message
+		if jsonErr, ok := err.(serde.JsonRpcError); ok {
+			responseErr.Code = jsonErr.Code // overwrite default if error object is jsonrpc error
 		}
 
-		response := types.NewJsonRpcErrorResponse(rpcRequest.Id, responseErr)
+		response := serde.NewJsonRpcErrorResponse(rpcRequest.Id, responseErr)
 		return marshalResponse(response, rs.logger)
 	}
 
@@ -212,13 +199,13 @@ func marshalResponse(response any, log *zerolog.Logger) []byte {
 	return responseData
 }
 
-func validateJsonrpcRequest(requestData []byte, logger *zerolog.Logger) (types.JsonRpcRequest, []byte) {
+func validateJsonrpcRequest(requestData []byte, logger *zerolog.Logger) (serde.JsonRpcGeneralRequest, []byte) {
 	var request map[string]interface{}
-	vr := types.JsonRpcRequest{}
+	vr := serde.JsonRpcGeneralRequest{}
 	err := json.Unmarshal(requestData, &request)
 	if err != nil {
-		errRes := types.NewJsonRpcErrorResponse(0, types.UnexpectedRequestUnmarshalError)
-		return types.JsonRpcRequest{}, marshalResponse(errRes, logger)
+		errRes := serde.NewJsonRpcErrorResponse(0, serde.RequestUnmarshalError)
+		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes, logger)
 	}
 
 	// jsonrpc spec says id can be a string, number.
@@ -227,21 +214,21 @@ func validateJsonrpcRequest(requestData []byte, logger *zerolog.Logger) (types.J
 	requestId := request["id"]
 	fRequestId, ok := requestId.(float64)
 	if !ok || fRequestId != float64(uint64(fRequestId)) {
-		errRes := types.NewJsonRpcErrorResponse(0, types.InvalidRequestError)
-		return types.JsonRpcRequest{}, marshalResponse(errRes, logger)
+		errRes := serde.NewJsonRpcErrorResponse(0, serde.InvalidRequestError)
+		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes, logger)
 	}
 	vr.Id = uint64(fRequestId)
 
 	sJsonrpc, ok := request["jsonrpc"].(string)
 	if !ok || sJsonrpc != "2.0" {
-		errRes := types.NewJsonRpcErrorResponse(vr.Id, types.InvalidRequestError)
-		return types.JsonRpcRequest{}, marshalResponse(errRes, logger)
+		errRes := serde.NewJsonRpcErrorResponse(vr.Id, serde.InvalidRequestError)
+		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes, logger)
 	}
 
 	sMethod, ok := request["method"].(string)
 	if !ok {
-		errRes := types.NewJsonRpcErrorResponse(vr.Id, types.InvalidRequestError)
-		return types.JsonRpcRequest{}, marshalResponse(errRes, logger)
+		errRes := serde.NewJsonRpcErrorResponse(vr.Id, serde.InvalidRequestError)
+		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes, logger)
 	}
 	vr.Method = sMethod
 
@@ -288,7 +275,7 @@ func (rs *RpcServer) sendNotifications(ctx context.Context) {
 
 func sendNotification[T serde.NotificationMethod, U serde.NotificationPayload](rs *RpcServer, method T, payload U) error {
 	rs.logger.Trace().Msgf("Sending notification: %+v", payload)
-	request := serde.NewJsonRpcRequest(rand.Uint64(), method, payload)
+	request := serde.NewJsonRpcSpecificRequest(rand.Uint64(), method, payload)
 	data, err := json.Marshal(request)
 	if err != nil {
 		return err

@@ -32,7 +32,7 @@ func (*mockResponder) Notify([]byte) error {
 	return nil
 }
 
-func sendRequestAndExpectError(t *testing.T, request []byte, expectedError types.JsonRpcError) {
+func sendRequestAndExpectError(t *testing.T, request []byte, expectedError serde.JsonRpcError) {
 	mockNode := &nitro.Node{}
 	mockLogger := &zerolog.Logger{}
 	mockResponder := &mockResponder{}
@@ -45,7 +45,7 @@ func sendRequestAndExpectError(t *testing.T, request []byte, expectedError types
 
 	response := mockResponder.Handler(request)
 
-	jsonResponse := types.JsonRpcErrorResponse{}
+	jsonResponse := serde.JsonRpcErrorResponse{}
 	err = json.Unmarshal(response, &jsonResponse)
 	if err != nil {
 		t.Error(err)
@@ -55,7 +55,7 @@ func sendRequestAndExpectError(t *testing.T, request []byte, expectedError types
 
 func TestRpcParseError(t *testing.T) {
 	request := []byte{}
-	sendRequestAndExpectError(t, request, types.ParseError)
+	sendRequestAndExpectError(t, request, serde.ParseError)
 }
 
 func TestRpcMissingRequiredFields(t *testing.T) {
@@ -68,16 +68,16 @@ func TestRpcMissingRequiredFields(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	sendRequestAndExpectError(t, jsonRequest, types.InvalidRequestError)
+	sendRequestAndExpectError(t, jsonRequest, serde.InvalidRequestError)
 }
 
 func TestRpcWrongVersion(t *testing.T) {
-	request := serde.JsonRpcRequest[serde.PaymentRequest]{Jsonrpc: "1.0", Id: 2, Method: "direct_fund"}
+	request := serde.JsonRpcSpecificRequest[serde.PaymentRequest]{Jsonrpc: "1.0", Id: 2, Method: "direct_fund"}
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {
 		t.Error(err)
 	}
-	expectedError := types.InvalidRequestError
+	expectedError := serde.InvalidRequestError
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
 
@@ -92,7 +92,7 @@ func TestRpcIncorrectId(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	sendRequestAndExpectError(t, jsonRequest, types.InvalidRequestError)
+	sendRequestAndExpectError(t, jsonRequest, serde.InvalidRequestError)
 }
 
 func TestRpcMissingMethod(t *testing.T) {
@@ -105,27 +105,27 @@ func TestRpcMissingMethod(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	expectedError := types.InvalidRequestError
+	expectedError := serde.InvalidRequestError
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
 
 func TestRpcMethodNotFound(t *testing.T) {
-	request := serde.JsonRpcRequest[serde.PaymentRequest]{Jsonrpc: "2.0", Id: 2, Method: "fake_method"}
+	request := serde.JsonRpcSpecificRequest[serde.PaymentRequest]{Jsonrpc: "2.0", Id: 2, Method: "fake_method"}
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {
 		t.Error(err)
 	}
-	expectedError := types.MethodNotFoundError
+	expectedError := serde.MethodNotFoundError
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
 
 func TestRpcGetPaymentChannelMissingParam(t *testing.T) {
-	request := serde.JsonRpcRequest[serde.GetPaymentChannelRequest]{Jsonrpc: "2.0", Id: 2, Method: "get_payment_channel"}
+	request := serde.JsonRpcSpecificRequest[serde.GetPaymentChannelRequest]{Jsonrpc: "2.0", Id: 2, Method: "get_payment_channel"}
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {
 		t.Error(err)
 	}
-	expectedError := types.InvalidParamsError
+	expectedError := serde.InvalidParamsError
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }
 
@@ -135,7 +135,7 @@ func TestRpcPayInvalidParam(t *testing.T) {
 		Channel: types.Destination{},
 	}
 
-	request := serde.JsonRpcRequest[serde.PaymentRequest]{
+	request := serde.JsonRpcSpecificRequest[serde.PaymentRequest]{
 		Jsonrpc: "2.0",
 		Id:      2,
 		Method:  "pay",
@@ -146,6 +146,6 @@ func TestRpcPayInvalidParam(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	expectedError := types.InvalidParamsError
+	expectedError := serde.InvalidParamsError
 	sendRequestAndExpectError(t, jsonRequest, expectedError)
 }

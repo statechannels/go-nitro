@@ -6,24 +6,24 @@ import (
 
 func ValidatePaymentRequest(req PaymentRequest) error {
 	if req.Amount == 0 {
-		return types.InvalidParamsError
+		return InvalidParamsError
 	}
 	if (req.Channel == types.Destination{}) {
-		return types.InvalidParamsError
+		return InvalidParamsError
 	}
 	return nil
 }
 
 func ValidateGetPaymentChannelRequest(req GetPaymentChannelRequest) error {
 	if (req.Id == types.Destination{}) {
-		return types.InvalidParamsError
+		return InvalidParamsError
 	}
 	return nil
 }
 
 func ValidateGetPaymentChannelsByLedgerRequest(req GetPaymentChannelsByLedgerRequest) error {
 	if (req.LedgerId == types.Destination{}) {
-		return types.InvalidParamsError
+		return InvalidParamsError
 	}
 	return nil
 }

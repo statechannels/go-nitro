@@ -127,9 +127,7 @@ func GetVoucherBalance(id types.Destination, vm *payments.VoucherManager) (paid,
 // It does this by querying the provided store and voucher manager
 func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments.VoucherManager) (PaymentChannelInfo, error) {
 	if (id == types.Destination{}) {
-		err := types.InvalidParamsError
-		err.Message = "a valid channel id must be provided"
-		return PaymentChannelInfo{}, err
+		return PaymentChannelInfo{}, errors.New("a valid channel id must be provided")
 	}
 	// Otherwise we can just check the store
 	c, channelFound := store.GetChannelById(id)
@@ -142,9 +140,7 @@ func GetPaymentChannelInfo(id types.Destination, store store.Store, vm *payments
 
 		return ConstructPaymentInfo(c, paid, remaining)
 	}
-	err := types.InvalidParamsError
-	err.Message = fmt.Sprintf("Could not find channel with id %v", id)
-	return PaymentChannelInfo{}, err
+	return PaymentChannelInfo{}, fmt.Errorf("could not find channel with id %v", id)
 }
 
 // GetAllLedgerChannels returns a `LedgerChannelInfo` for each ledger channel in the store.

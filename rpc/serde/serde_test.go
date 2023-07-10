@@ -12,7 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/protocols/directfund"
 )
 
-var someRequest JsonRpcRequest[directfund.ObjectiveRequest] = JsonRpcRequest[directfund.ObjectiveRequest]{
+var someRequest JsonRpcSpecificRequest[directfund.ObjectiveRequest] = JsonRpcSpecificRequest[directfund.ObjectiveRequest]{
 	Jsonrpc: JsonRpcVersion,
 	Id:      123,
 	Method:  "CreateLedgerChannel",
@@ -44,7 +44,7 @@ func TestMarshalJSON(t *testing.T) {
 }
 
 func TestUnmarshalJSON(t *testing.T) {
-	got := JsonRpcRequest[directfund.ObjectiveRequest]{} // This test assumes we have a way to know the "type" (method) of the request.
+	got := JsonRpcSpecificRequest[directfund.ObjectiveRequest]{} // This test assumes we have a way to know the "type" (method) of the request.
 	err := json.Unmarshal([]byte(someRequestJSONString), &got)
 	if err != nil {
 		t.Fatal(err)

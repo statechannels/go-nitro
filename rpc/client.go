@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"os"
 	"sync"
 
@@ -83,16 +82,16 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 }
 
 // Address returns the address of the the nitro node
-func (rc *RpcClient) Address() common.Address {
+func (rc *RpcClient) Address() (common.Address, error) {
 	if (rc.nodeAddress == common.Address{}) {
-		rc.nodeAddress = waitForRequest[serde.NoPayloadRequest, common.Address](rc, serde.GetAddressMethod, serde.NoPayloadRequest{})
+		return waitForRequest[serde.NoPayloadRequest, common.Address](rc, serde.GetAddressMethod, serde.NoPayloadRequest{})
 	}
-	return rc.nodeAddress
+	return rc.nodeAddress, nil
 }
 
 // CreateVoucher creates a voucher for the given channelId and amount and returns it.
 // It is the responsibility of the caller to send the voucher to the payee.
-func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) payments.Voucher {
+func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) (payments.Voucher, error) {
 	req := serde.PaymentRequest{Channel: chId, Amount: amount}
 	return waitForRequest[serde.PaymentRequest, payments.Voucher](rc, serde.CreateVoucherRequestMethod, req)
 }
@@ -100,19 +99,18 @@ func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) paymen
 // ReceiveVoucher receives a voucher and adds it to the go-nitro store.
 // It returns the total amount received so far and the amount received from the voucher supplied.
 // It can be used to add a voucher that was sent outside of the go-nitro system.
-func (rc *RpcClient) ReceiveVoucher(v payments.Voucher) (total *big.Int, delta *big.Int) {
-	vr := waitForRequest[payments.Voucher, serde.ReceiveVoucherResponse](rc, serde.ReceiveVoucherRequestMethod, v)
-	return vr.Total, vr.Delta
+func (rc *RpcClient) ReceiveVoucher(v payments.Voucher) (payments.ReceiveVoucherSummary, error) {
+	return waitForRequest[payments.Voucher, payments.ReceiveVoucherSummary](rc, serde.ReceiveVoucherRequestMethod, v)
 }
 
-func (rc *RpcClient) GetPaymentChannel(chId types.Destination) query.PaymentChannelInfo {
+func (rc *RpcClient) GetPaymentChannel(chId types.Destination) (query.PaymentChannelInfo, error) {
 	req := serde.GetPaymentChannelRequest{Id: chId}
 
 	return waitForRequest[serde.GetPaymentChannelRequest, query.PaymentChannelInfo](rc, serde.GetPaymentChannelRequestMethod, req)
 }
 
 // CreatePaymentChannel creates a new virtual payment channel
-func (rc *RpcClient) CreatePaymentChannel(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) virtualfund.ObjectiveResponse {
+func (rc *RpcClient) CreatePaymentChannel(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (virtualfund.ObjectiveResponse, error) {
 	objReq := virtualfund.NewObjectiveRequest(
 		intermediaries,
 		counterparty,
@@ -125,31 +123,31 @@ func (rc *RpcClient) CreatePaymentChannel(intermediaries []types.Address, counte
 }
 
 // ClosePaymentChannel attempts to close the payment channel with supplied id
-func (rc *RpcClient) ClosePaymentChannel(id types.Destination) protocols.ObjectiveId {
+func (rc *RpcClient) ClosePaymentChannel(id types.Destination) (protocols.ObjectiveId, error) {
 	objReq := virtualdefund.NewObjectiveRequest(
 		id)
 
 	return waitForRequest[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.ClosePaymentChannelRequestMethod, objReq)
 }
 
-func (rc *RpcClient) GetLedgerChannel(id types.Destination) query.LedgerChannelInfo {
+func (rc *RpcClient) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {
 	req := serde.GetLedgerChannelRequest{Id: id}
 
 	return waitForRequest[serde.GetLedgerChannelRequest, query.LedgerChannelInfo](rc, serde.GetLedgerChannelRequestMethod, req)
 }
 
 // GetAllLedgerChannels returns all ledger channels
-func (rc *RpcClient) GetAllLedgerChannels() []query.LedgerChannelInfo {
+func (rc *RpcClient) GetAllLedgerChannels() ([]query.LedgerChannelInfo, error) {
 	return waitForRequest[serde.NoPayloadRequest, []query.LedgerChannelInfo](rc, serde.GetAllLedgerChannelsMethod, struct{}{})
 }
 
 // GetPaymentChannelsByLedger returns all active payment channels for a given ledger channel
-func (rc *RpcClient) GetPaymentChannelsByLedger(ledgerId types.Destination) []query.PaymentChannelInfo {
+func (rc *RpcClient) GetPaymentChannelsByLedger(ledgerId types.Destination) ([]query.PaymentChannelInfo, error) {
 	return waitForRequest[serde.GetPaymentChannelsByLedgerRequest, []query.PaymentChannelInfo](rc, serde.GetPaymentChannelsByLedgerMethod, serde.GetPaymentChannelsByLedgerRequest{LedgerId: ledgerId})
 }
 
 // CreateLedger creates a new ledger channel
-func (rc *RpcClient) CreateLedgerChannel(counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
+func (rc *RpcClient) CreateLedgerChannel(counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (directfund.ObjectiveResponse, error) {
 	objReq := directfund.NewObjectiveRequest(
 		counterparty,
 		100,
@@ -161,17 +159,16 @@ func (rc *RpcClient) CreateLedgerChannel(counterparty types.Address, ChallengeDu
 }
 
 // CloseLedger closes a ledger channel
-func (rc *RpcClient) CloseLedgerChannel(id types.Destination) protocols.ObjectiveId {
+func (rc *RpcClient) CloseLedgerChannel(id types.Destination) (protocols.ObjectiveId, error) {
 	objReq := directdefund.NewObjectiveRequest(id)
 
 	return waitForRequest[directdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.CloseLedgerChannelRequestMethod, objReq)
 }
 
 // Pay uses the specified channel to pay the specified amount
-func (rc *RpcClient) Pay(id types.Destination, amount uint64) {
+func (rc *RpcClient) Pay(id types.Destination, amount uint64) (serde.PaymentRequest, error) {
 	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
-
-	waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
+	return waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
 }
 
 func (rc *RpcClient) Close() error {
@@ -195,7 +192,7 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 			}
 			switch method {
 			case serde.ObjectiveCompleted:
-				rpcRequest := serde.JsonRpcRequest[protocols.ObjectiveId]{}
+				rpcRequest := serde.JsonRpcSpecificRequest[protocols.ObjectiveId]{}
 				err := json.Unmarshal(data, &rpcRequest)
 				if err != nil {
 					panic(err)
@@ -203,7 +200,7 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 				c, _ := rc.completedObjectives.LoadOrStore(string(rpcRequest.Params), make(chan struct{}))
 				close(c)
 			case serde.LedgerChannelUpdated:
-				rpcRequest := serde.JsonRpcRequest[query.LedgerChannelInfo]{}
+				rpcRequest := serde.JsonRpcSpecificRequest[query.LedgerChannelInfo]{}
 				err := json.Unmarshal(data, &rpcRequest)
 				if err != nil {
 					panic(err)
@@ -212,7 +209,7 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 				c <- rpcRequest.Params
 
 			case serde.PaymentChannelUpdated:
-				rpcRequest := serde.JsonRpcRequest[query.PaymentChannelInfo]{}
+				rpcRequest := serde.JsonRpcSpecificRequest[query.PaymentChannelInfo]{}
 				err := json.Unmarshal(data, &rpcRequest)
 				if err != nil {
 					panic(err)
@@ -223,20 +220,6 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 
 		}
 	}
-}
-
-func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, method serde.RequestMethod, requestData T) U {
-	resChan, err := request[T, U](rc.transport, method, requestData, rc.logger, rc.wg)
-	if err != nil {
-		panic(err)
-	}
-
-	res := <-resChan
-	if res.Error != nil {
-		panic(res.Error)
-	}
-
-	return res.Payload
 }
 
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
@@ -257,42 +240,53 @@ func (rc *RpcClient) PaymentChannelUpdatesChan(paymentChannelId types.Destinatio
 	return c
 }
 
-// request uses the supplied transport and payload to send a non-blocking JSONRPC request.
-// It returns a channel that sends a response payload. If the request fails to send, an error is returned.
-func request[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T, logger zerolog.Logger, wg *sync.WaitGroup) (<-chan response[U], error) {
-	returnChan := make(chan response[U], 1)
-	requestId := rand.Uint64()
-	message := serde.NewJsonRpcRequest(requestId, method, reqPayload)
-	data, err := json.Marshal(message)
+func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, method serde.RequestMethod, requestData T) (U, error) {
+	rc.wg.Add(1)
+	defer rc.wg.Done()
+
+	res, err := sendRequest[T, U](rc.transport, method, requestData, rc.logger, rc.wg)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	logger.Trace().
-		Str("method", string(method)).
-		Msg("sent message")
-
-	wg.Add(1)
-	go sendRPCRequest[T, U](data, trans, returnChan, logger, wg)
-	return returnChan, nil
+	return res.Payload, res.Error
 }
 
-func sendRPCRequest[T serde.RequestPayload, U serde.ResponsePayload](data []byte, trans transport.Requester, returnChan chan response[U], logger zerolog.Logger, wg *sync.WaitGroup) {
+// sendRequest uses the supplied transport and payload to send a JSONRPC request.
+//   - Returns an error if:
+//     [1] the request fails to send
+//     [2] the response cannot be parsed
+//   - Otherwise, returns the JSONRPC server's response
+func sendRequest[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T, logger zerolog.Logger, wg *sync.WaitGroup) (response[U], error) {
+	requestId := rand.Uint64()
+	message := serde.NewJsonRpcSpecificRequest(requestId, method, reqPayload)
+	data, err := json.Marshal(message)
+	if err != nil {
+		return response[U]{}, err
+	}
+
+	logger.Trace().Str("method", string(method)).Msg("sent message")
 	responseData, err := trans.Request(data)
 	if err != nil {
-		returnChan <- response[U]{Error: err}
+		return response[U]{}, err
 	}
 
-	logger.Trace().Msgf("Rpc client received response: %+v", string(responseData))
-
-	jsonResponse := serde.JsonRpcSuccessResponse[U]{}
+	// First check if there is an error present in the jsonrpc response
+	jsonResponse := serde.JsonRpcGeneralResponse{}
 	err = json.Unmarshal(responseData, &jsonResponse)
 	if err != nil {
-		returnChan <- response[U]{Error: err}
+		return response[U]{}, err
+	} else if jsonResponse.Error != (serde.JsonRpcError{}) {
+		return response[U]{Error: jsonResponse.Error}, nil
 	}
 
-	returnChan <- response[U]{jsonResponse.Result, nil}
-	wg.Done()
+	// Now convert response.Result into the specific type for this request, and return that
+	successResponse := serde.JsonRpcSuccessResponse[U]{}
+	err = json.Unmarshal(responseData, &successResponse)
+	if err != nil {
+		return response[U]{}, err
+	}
+	return response[U]{Payload: successResponse.Result}, nil
 }
 
 // getNotificationMethod parses the raw notification and returns the notification method

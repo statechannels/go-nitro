@@ -37,6 +37,11 @@ type VoucherInfo struct {
 	LargestVoucher  Voucher
 }
 
+type ReceiveVoucherSummary struct {
+	Total *big.Int
+	Delta *big.Int
+}
+
 func (v *Voucher) Hash() (types.Bytes32, error) {
 	encoded, err := abi.Arguments{
 		{Type: nitroAbi.Destination},

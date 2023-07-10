@@ -114,8 +114,9 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 
 	t.Log("Verify that each rpc client fetches the correct address")
 	for i := 0; i < n; i++ {
-		if !cmp.Equal(actors[i].Address(), clients[i].Address()) {
-			t.Fatalf("expected address %s, got %s", actors[i].Address(), clients[i].Address())
+		clientAddress, _ := clients[i].Address()
+		if !cmp.Equal(actors[i].Address(), clientAddress) {
+			t.Fatalf("expected address %s, got %s", actors[i].Address(), clientAddress)
 		}
 	}
 
@@ -126,7 +127,9 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	ledgerChannels := make([]directfund.ObjectiveResponse, n-1)
 	for i := 0; i < n-1; i++ {
 		outcome := simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100)
-		ledgerChannels[i] = clients[i].CreateLedgerChannel(actors[i+1].Address(), 100, outcome)
+		var err error
+		ledgerChannels[i], err = clients[i].CreateLedgerChannel(actors[i+1].Address(), 100, outcome)
+		checkError(t, err, "client.CreateLedgerChannel")
 
 		if !directfund.IsDirectFundObjective(ledgerChannels[i].Id) {
 			t.Errorf("expected direct fund objective, got %s", ledgerChannels[i].Id)
@@ -147,17 +150,13 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	// handles error without panicking
 	{
 		outcome := simpleOutcome(actors[0].Address(), actors[1].Address(), 100, 100)
-		duplicateLedgerChannelObjective := clients[0].CreateLedgerChannel(actors[1].Address(), 100, outcome)
-
-		if !directfund.IsDirectFundObjective(duplicateLedgerChannelObjective.Id) {
-			t.Errorf("expected direct fund objective, got %s", duplicateLedgerChannelObjective.Id)
+		duplicateLedgerChannelObjective, err := clients[0].CreateLedgerChannel(actors[1].Address(), 100, outcome)
+		if err == nil {
+			t.Error("expected error when creating duplicate ledger channel")
 		}
 
-		duplicateLedgerChannelInfo := clients[0].GetLedgerChannel(duplicateLedgerChannelObjective.ChannelId)
-
-		zeroDestination := types.Destination{0x0}
-		if duplicateLedgerChannelInfo.ID != zeroDestination {
-			t.Errorf("expected duplicate ledger channel ID to be 0x0, got %s", duplicateLedgerChannelInfo.ID)
+		if directfund.IsDirectFundObjective(duplicateLedgerChannelObjective.Id) {
+			t.Errorf("directfund objective should not have been created for duplicate ledger channel")
 		}
 	}
 
@@ -166,14 +165,20 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		if i != 0 {
 			leftLC := ledgerChannels[i-1]
 			expectedLeftLC := createLedgerInfo(leftLC.ChannelId, simpleOutcome(actors[i-1].Address(), actors[i].Address(), 100, 100), query.Open, actors[i].Address())
-			checkQueryInfo(t, expectedLeftLC, client.GetLedgerChannel(leftLC.ChannelId))
+			actualLeftLC, err := client.GetLedgerChannel(leftLC.ChannelId)
+			checkError(t, err, "client.GetLedgerChannel")
+			checkQueryInfo(t, expectedLeftLC, actualLeftLC)
 		}
 		if i != n-1 {
 			rightLC := ledgerChannels[i]
 			expectedRightLC := createLedgerInfo(rightLC.ChannelId, simpleOutcome(actors[i].Address(), actors[i+1].Address(), 100, 100), query.Open, actors[i].Address())
-			checkQueryInfo(t, expectedRightLC, client.GetLedgerChannel(rightLC.ChannelId))
+			actualRightLC, err := client.GetLedgerChannel(rightLC.ChannelId)
+			checkError(t, err, "client.GetLedgerChannel")
+			checkQueryInfo(t, expectedRightLC, actualRightLC)
 		}
 	}
+
+	t.Log("Ledger channels queried")
 
 	//////////////////////////////////////////////////////////////////
 	// create virtual channel, execute payment, close virtual channel
@@ -193,71 +198,90 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 
 	initialOutcome := simpleOutcome(actors[0].Address(), actors[n-1].Address(), 100, 0)
 
-	vabCreateResponse := aliceClient.CreatePaymentChannel(
+	vabCreateResponse, err := aliceClient.CreatePaymentChannel(
 		intermediaries,
 		bob.Address(),
 		100,
 		initialOutcome,
 	)
+	checkError(t, err, "client.CreatePaymentChannel")
 	expectedVirtualChannel := createPaychInfo(
 		vabCreateResponse.ChannelId,
 		initialOutcome,
 		query.Open,
 	)
 
-	aliceClient.GetPaymentChannel(types.Destination{0x000}) // Confirms server won't crash if invalid chId is provided
+	_, err = aliceClient.GetPaymentChannel(types.Destination{0x000}) // Confirms server won't crash if invalid chId is provided
+	if err == nil {
+		t.Error("expected error for client.GetPaymentChannel(types.Destination{0x000})")
+	}
 
 	// wait for the virtual channel to be ready, and
 	// assert correct reporting from query api
 	for i, client := range clients {
 		<-client.ObjectiveCompleteChan(vabCreateResponse.Id)
-		channelInfo := client.GetPaymentChannel(vabCreateResponse.ChannelId)
+		channelInfo, err := client.GetPaymentChannel(vabCreateResponse.ChannelId)
+		checkError(t, err, "client.GetPaymentChannel")
 		checkQueryInfo(t, expectedVirtualChannel, channelInfo)
 		if i != 0 {
-			checkQueryInfoCollection(t, expectedVirtualChannel, 1,
-				client.GetPaymentChannelsByLedger(ledgerChannels[i-1].ChannelId))
+			channelsByLedger, err := client.GetPaymentChannelsByLedger(ledgerChannels[i-1].ChannelId)
+			checkError(t, err, "client.GetPaymentChannelsByLedger")
+			checkQueryInfoCollection(t, expectedVirtualChannel, 1, channelsByLedger)
 		}
 		if i != n-1 {
-			checkQueryInfoCollection(t, expectedVirtualChannel, 1,
-				client.GetPaymentChannelsByLedger(ledgerChannels[i].ChannelId))
+			channelsByLedger, err := client.GetPaymentChannelsByLedger(ledgerChannels[i].ChannelId)
+			checkError(t, err, "client.GetPaymentChannelsByLedger")
+			checkQueryInfoCollection(t, expectedVirtualChannel, 1, channelsByLedger)
 		}
 	}
+
+	t.Log("Payment channels queried")
 
 	if !virtualfund.IsVirtualFundObjective(vabCreateResponse.Id) {
 		t.Errorf("expected virtual fund objective, got %s", vabCreateResponse.Id)
 	}
 
 	if manualVoucherExchange {
-		v := aliceClient.CreateVoucher(vabCreateResponse.ChannelId, 1)
+		v, err := aliceClient.CreateVoucher(vabCreateResponse.ChannelId, 1)
+		checkError(t, err, "aliceClient.CreateVoucher")
 
-		total, delta := bobClient.ReceiveVoucher(v)
-		if total.Cmp(big.NewInt(1)) != 0 {
-			t.Errorf("expected a total of 1 got %d", total)
+		rxVoucher, err := bobClient.ReceiveVoucher(v)
+		checkError(t, err, "bobClient.ReceiveVoucher")
+
+		if rxVoucher.Total.Cmp(big.NewInt(1)) != 0 {
+			t.Errorf("expected a total of 1 got %d", rxVoucher.Total)
 		}
-		if delta.Cmp(big.NewInt(1)) != 0 {
-			t.Errorf("expected a delta of 1 got %d", delta)
-		}
-		_, delta = bobClient.ReceiveVoucher(v)
-		if delta.Cmp(big.NewInt(0)) != 0 {
-			t.Errorf("adding the same voucher should result in a delta of 0, got %d", delta)
+		if rxVoucher.Delta.Cmp(big.NewInt(1)) != 0 {
+			t.Errorf("expected a delta of 1 got %d", rxVoucher.Delta)
 		}
 
+		rxVoucher, err = bobClient.ReceiveVoucher(v)
+		checkError(t, err, "bobClient.ReceiveVoucher")
+
+		if rxVoucher.Delta.Cmp(big.NewInt(0)) != 0 {
+			t.Errorf("adding the same voucher should result in a delta of 0, got %d", rxVoucher.Delta)
+		}
 	} else {
-		aliceClient.Pay(vabCreateResponse.ChannelId, 1)
+		_, err = aliceClient.Pay(vabCreateResponse.ChannelId, 1)
+		checkError(t, err, "aliceClient.Pay")
 	}
 
-	vabClosure := aliceClient.ClosePaymentChannel(vabCreateResponse.ChannelId)
+	t.Log("Vouchers sent/received")
+
+	vabClosure, _ := aliceClient.ClosePaymentChannel(vabCreateResponse.ChannelId)
 	for _, client := range clients {
 		<-client.ObjectiveCompleteChan(vabClosure)
 	}
 
-	laiClosure := aliceClient.CloseLedgerChannel(aliceLedger.ChannelId)
+	laiClosure, _ := aliceClient.CloseLedgerChannel(aliceLedger.ChannelId)
 	<-aliceClient.ObjectiveCompleteChan(laiClosure)
 
 	if n != 2 { // for n=2, alice and bob share a ledger, which should only be closed once.
-		libClosure := bobClient.CloseLedgerChannel(bobLedger.ChannelId)
+		libClosure, _ := bobClient.CloseLedgerChannel(bobLedger.ChannelId)
 		<-bobClient.ObjectiveCompleteChan(libClosure)
 	}
+
+	t.Log("Ledger/virtual channels closed")
 
 	//////////////////////////
 	// perform wrap-up checks
@@ -266,16 +290,18 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	for i, client := range clients {
 		if i != 0 {
 			leftLC := ledgerChannels[i-1]
-			vcCount := len(client.GetPaymentChannelsByLedger(leftLC.ChannelId))
-			if vcCount != 0 {
-				t.Errorf("expected no virtual channels in ledger channel %s, got %d", leftLC.ChannelId, vcCount)
+			paymentChannels, err := client.GetPaymentChannelsByLedger(leftLC.ChannelId)
+			checkError(t, err, "client.GetPaymentChannelsByLedger")
+			if len(paymentChannels) != 0 {
+				t.Errorf("expected no virtual channels in ledger channel %s, got %d", leftLC.ChannelId, len(paymentChannels))
 			}
 		}
 		if i != n-1 {
 			rightLC := ledgerChannels[i]
-			vcCount := len(client.GetPaymentChannelsByLedger(rightLC.ChannelId))
-			if vcCount != 0 {
-				t.Errorf("expected no virtual channels in ledger channel %s, got %d", rightLC.ChannelId, vcCount)
+			paymentChannels, err := client.GetPaymentChannelsByLedger(rightLC.ChannelId)
+			checkError(t, err, "client.GetPaymentChannelsByLedger")
+			if len(paymentChannels) != 0 {
+				t.Errorf("expected no virtual channels in ledger channel %s, got %d", rightLC.ChannelId, len(paymentChannels))
 			}
 		}
 	}
@@ -385,6 +411,12 @@ func setupNitroNodeWithRPCClient(
 
 type channelInfo interface {
 	query.LedgerChannelInfo | query.PaymentChannelInfo
+}
+
+func checkError(t *testing.T, err error, msg string) {
+	if err != nil {
+		t.Error(msg + ": " + err.Error())
+	}
 }
 
 func checkQueryInfo[T channelInfo](t *testing.T, expected T, fetched T) {
