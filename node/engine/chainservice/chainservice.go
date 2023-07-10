@@ -45,7 +45,7 @@ func (de DepositedEvent) String() string {
 	return "Deposited " + de.Asset.String() + " leaving " + de.NowHeld.String() + " now held against channel " + de.channelID.String() + " at Block " + fmt.Sprint(de.BlockNum)
 }
 
-// AllocationUpdated is an internal representation of the AllocatonUpdated blockchain event
+// AllocationUpdated is an internal representation of the AllocationUpdated blockchain event
 // The event includes the token address and amount at the block that generated the event
 type AllocationUpdatedEvent struct {
 	commonEvent
