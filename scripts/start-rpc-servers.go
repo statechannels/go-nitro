@@ -84,9 +84,19 @@ func main() {
 			running := []*exec.Cmd{}
 
 			chainAuthToken := cCtx.String(CHAIN_AUTH_TOKEN)
-			chainUrl := ANVIL_CHAIN_URL
+			var chainUrl string
+
 			if cCtx.Bool(USE_FILECOIN_DEVNET) {
 				chainUrl = FILECOIN_DEVNET_URL
+			} else {
+				chainUrl = ANVIL_CHAIN_URL
+				// If we're not using a filecoin devnet, we need to start anvil
+				anvilCmd, err := chain.StartAnvil()
+				if err != nil {
+					utils.StopCommands(running...)
+					panic(err)
+				}
+				running = append(running, anvilCmd)
 			}
 
 			naAddress, vpaAddress, caAddress, err := chain.DeployContracts(context.Background(), chainUrl, chainAuthToken, FUNDED_TEST_PK)
