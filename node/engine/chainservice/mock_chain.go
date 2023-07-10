@@ -38,8 +38,8 @@ func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 		if tx.Deposit.IsNonZero() {
 			mc.holdings[tx.ChannelId()] = mc.holdings[tx.ChannelId()].Add(tx.Deposit)
 		}
-		for address, amount := range tx.Deposit {
-			event := NewDepositedEvent(tx.ChannelId(), mc.blockNum, address, amount, mc.holdings[tx.ChannelId()][address])
+		for address := range tx.Deposit {
+			event := NewDepositedEvent(tx.ChannelId(), mc.blockNum, address, mc.holdings[tx.ChannelId()][address])
 			mc.broadcastEvent(event)
 		}
 	case protocols.WithdrawAllTransaction:

@@ -194,7 +194,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 				return fmt.Errorf("error in ParseDeposited: %w", err)
 			}
 
-			event := NewDepositedEvent(nad.Destination, l.BlockNumber, nad.Asset, nad.AmountDeposited, nad.DestinationHoldings)
+			event := NewDepositedEvent(nad.Destination, l.BlockNumber, nad.Asset, nad.DestinationHoldings)
 			ecs.out <- event
 		case allocationUpdatedTopic:
 			au, err := ecs.na.ParseAllocationUpdated(l)
