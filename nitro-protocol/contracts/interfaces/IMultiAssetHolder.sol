@@ -69,7 +69,7 @@ interface IMultiAssetHolder {
     function reclaim(ReclaimArgs memory reclaimArgs) external;
 
     /**
-     * @dev Indicates that `amountDeposited` has been deposited into `destination`.
+     * @dev Indicates that a deposit has been made.
      * @param destination The channel being deposited into.
      * @param asset The asset being deposited. Zero address indicates the native token (e.g. ETH).
      * @param destinationHoldings The new holdings for `destination`.
