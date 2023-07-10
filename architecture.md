@@ -1,8 +1,6 @@
-## Nitro node architecture
+## go-nitro architecture
 
-A nitro node may be instantiated by calling `New()` and passing in a chain service, a messaging service, and a store.
-
-The flow of data through the node is shown in this diagram:
+The flow of data through go-nitro (running as an independent process) is shown in this diagram:
 
 ![go-nitro architecture](./go-nitro%20architecture.png)
 
