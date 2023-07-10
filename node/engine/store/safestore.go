@@ -134,3 +134,18 @@ func (ss *SafeStore) GetVoucherInfo(channelId types.Destination) (v *payments.Vo
 func (ss *SafeStore) RemoveVoucherInfo(channelId types.Destination) error {
 	return ss.store.RemoveVoucherInfo(channelId)
 }
+
+// Updating an Objective
+
+func (ss *SafeStore) GetAndLockObjectiveById(id protocols.ObjectiveId) (protocols.Objective, error) {
+	mu, _ := ss.mutexes.LoadOrStore(string(id), &(sync.Mutex{}))
+	mu.Lock()
+	// DO NOT UNLOCK MUTEX
+	return ss.store.GetObjectiveById(id)
+}
+
+func (ss *SafeStore) SetAndUnlockObjective(o protocols.Objective) error {
+	mu, _ := ss.mutexes.LoadOrStore(string(o.Id()), &(sync.Mutex{}))
+	defer mu.Unlock() // WILL PANIC IF THE MUTEX IS ALREADY UNLOCKED
+	return ss.store.SetObjective(o)
+}
