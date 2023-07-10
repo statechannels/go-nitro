@@ -80,13 +80,13 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	testTx := protocols.NewDepositTransaction(concludeState.ChannelId(), testDeposit)
 
 	out := cs.EventFeed()
-	// Submit transactiom
+	// Submit transaction
 	err = cs.SendTransaction(testTx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Check that the recieved events matches the expected event
+	// Check that the received events matches the expected event
 	for i := 0; i < 2; i++ {
 		receivedEvent := <-out
 		dEvent := receivedEvent.(DepositedEvent)
