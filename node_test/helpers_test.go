@@ -113,6 +113,8 @@ func setupChainService(tc TestCase, tp TestParticipant, si sharedTestInfrastruct
 
 func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) store.Store {
 	switch tp.StoreType {
+	case SafeStore:
+		return store.NewSafeStore(tp.Actor.PrivateKey)
 	case MemStore:
 		return store.NewMemStore(tp.Actor.PrivateKey)
 	case DurableStore:

@@ -28,9 +28,9 @@ func TestSimpleIntegrationScenario(t *testing.T) {
 		NumOfHops:      1,
 		NumOfPayments:  1,
 		Participants: []TestParticipant{
-			{StoreType: MemStore, Actor: testactors.Alice},
-			{StoreType: MemStore, Actor: testactors.Bob},
-			{StoreType: MemStore, Actor: testactors.Irene},
+			{StoreType: SafeStore, Actor: testactors.Alice},
+			{StoreType: SafeStore, Actor: testactors.Bob},
+			{StoreType: SafeStore, Actor: testactors.Irene},
 		},
 	}
 

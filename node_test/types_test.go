@@ -23,6 +23,7 @@ const (
 type StoreType string
 
 const (
+	SafeStore    StoreType = "SafeStore"
 	MemStore     StoreType = "MemStore"
 	DurableStore StoreType = "DurableStore"
 )
