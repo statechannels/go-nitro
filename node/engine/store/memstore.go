@@ -164,29 +164,22 @@ func (ms *MemStore) DestroyConsensusChannel(id types.Destination) error {
 
 // GetChannelById retrieves the channel with the supplied id, if it exists.
 func (ms *MemStore) GetChannelById(id types.Destination) (c *channel.Channel, ok bool) {
-	ch, err := ms.getChannelById(id)
-	if err != nil {
-		return &channel.Channel{}, false
-	}
-
-	return &ch, true
-}
-
-// getChannelById returns the stored channel
-func (ms *MemStore) getChannelById(id types.Destination) (channel.Channel, error) {
 	chJSON, ok := ms.channels.Load(id.String())
 
 	if !ok {
-		return channel.Channel{}, ErrNoSuchChannel
+		return &channel.Channel{}, false
 	}
 
 	var ch channel.Channel
 	err := ch.UnmarshalJSON(chJSON)
 	if err != nil {
-		return channel.Channel{}, fmt.Errorf("error unmarshaling channel %s", ch.Id)
+		return &channel.Channel{}, false
+	}
+	if err != nil {
+		return &channel.Channel{}, false
 	}
 
-	return ch, nil
+	return &ch, true
 }
 
 // GetChannelsByIds returns a collection of channels with the given ids
@@ -349,30 +342,30 @@ func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 
 	switch o := obj.(type) {
 	case *directfund.Objective:
-		ch, err := ms.getChannelById(o.C.Id)
-		if err != nil {
-			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
+		ch, ok := ms.GetChannelById(o.C.Id)
+		if !ok {
+			return fmt.Errorf("error retrieving channel data for objective %s", id)
 		}
 
-		o.C = &ch
+		o.C = ch
 
 		return nil
 	case *directdefund.Objective:
 
-		ch, err := ms.getChannelById(o.C.Id)
-		if err != nil {
-			return fmt.Errorf("error retrieving channel data for objective %s: %w", id, err)
+		ch, ok := ms.GetChannelById(o.C.Id)
+		if !ok {
+			return fmt.Errorf("error retrieving channel data for objective %s", id)
 		}
 
-		o.C = &ch
+		o.C = ch
 
 		return nil
 	case *virtualfund.Objective:
-		v, err := ms.getChannelById(o.V.Id)
-		if err != nil {
-			return fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
+		v, ok := ms.GetChannelById(o.V.Id)
+		if !ok {
+			return fmt.Errorf("error retrieving virtual channel data for objective %s", id)
 		}
-		o.V = &channel.VirtualChannel{Channel: v}
+		o.V = &channel.VirtualChannel{Channel: *v}
 
 		zeroAddress := types.Destination{}
 
@@ -399,11 +392,11 @@ func (ms *MemStore) populateChannelData(obj protocols.Objective) error {
 
 		return nil
 	case *virtualdefund.Objective:
-		v, err := ms.getChannelById(o.V.Id)
-		if err != nil {
-			return fmt.Errorf("error retrieving virtual channel data for objective %s: %w", id, err)
+		v, ok := ms.GetChannelById(o.V.Id)
+		if !ok {
+			return fmt.Errorf("error retrieving virtual channel data for objective %s", id)
 		}
-		o.V = &channel.VirtualChannel{Channel: v}
+		o.V = &channel.VirtualChannel{Channel: *v}
 
 		zeroAddress := types.Destination{}
 
