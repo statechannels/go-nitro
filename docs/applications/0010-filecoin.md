@@ -8,7 +8,7 @@ Nitro channels are currently under development for use in the Filecoin ecosystem
 
 ## Retrieval Markets
 
-![Retrieval Markets](https://retrievalmarketssummit.super.site/_next/image?url=https%3A%2F%2Fsuper-static-assets.s3.amazonaws.com%2Ffcbb1177-a860-41c3-a5d7-b5b00de65076%2Fimages%2F8c19abc9-34d9-49b2-99ee-4be11c9baa5d.png&w=1920&q=80)
+<img alt="Retrieval Markets" src="https://retrieval.market/static/images/logo.png" style="filter: invert(1)">
 
 Low latency payments can incentivize retrieval providers to provide files to retrieval clients, without burdening either party with slow transaction confirmation times or high transaction costs. This will faciliate a [decentralized CDN](https://retrieval.market/) for Filecoin.
 
