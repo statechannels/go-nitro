@@ -63,7 +63,15 @@ func NewRpcServer(nitroNode *nitro.Node, logger *zerolog.Logger, trans transport
 	rs := &RpcServer{trans, nitroNode, logger, cancel, &sync.WaitGroup{}}
 
 	rs.wg.Add(1)
-	go rs.sendNotifications(ctx)
+
+	// The update channels are initialized syncronously.
+	// If these channels are initialized in another go routine,
+	// the server can send an update before the channels are initialized.
+	completedObjChan := rs.node.CompletedObjectives()
+	ledgerUpdateChan := rs.node.LedgerUpdates()
+	paymentUpdateChan := rs.node.PaymentUpdates()
+
+	go rs.sendNotifications(ctx, completedObjChan, ledgerUpdateChan, paymentUpdateChan)
 	err := rs.registerHandlers()
 	if err != nil {
 		return nil, err
@@ -235,14 +243,18 @@ func validateJsonrpcRequest(requestData []byte, logger *zerolog.Logger) (serde.J
 	return vr, nil
 }
 
-func (rs *RpcServer) sendNotifications(ctx context.Context) {
+func (rs *RpcServer) sendNotifications(ctx context.Context,
+	completedObjChan <-chan protocols.ObjectiveId,
+	ledgerUpdatesChan <-chan query.LedgerChannelInfo,
+	paymentUpdatesChan <-chan query.PaymentChannelInfo,
+) {
 	for {
 		select {
 		case <-ctx.Done():
 			rs.wg.Done()
 			return
 
-		case completedObjective, ok := <-rs.node.CompletedObjectives():
+		case completedObjective, ok := <-completedObjChan:
 			if !ok {
 				rs.logger.Warn().Msg("CompletedObjectives channel closed, exiting sendNotifications")
 				return
@@ -251,7 +263,7 @@ func (rs *RpcServer) sendNotifications(ctx context.Context) {
 			if err != nil {
 				panic(err)
 			}
-		case ledgerInfo, ok := <-rs.node.LedgerUpdates():
+		case ledgerInfo, ok := <-ledgerUpdatesChan:
 			if !ok {
 				rs.logger.Warn().Msg("LedgerUpdates channel closed, exiting sendNotifications")
 				return
@@ -260,7 +272,7 @@ func (rs *RpcServer) sendNotifications(ctx context.Context) {
 			if err != nil {
 				panic(err)
 			}
-		case paymentInfo, ok := <-rs.node.PaymentUpdates():
+		case paymentInfo, ok := <-paymentUpdatesChan:
 			if !ok {
 				rs.logger.Warn().Msg("PaymentUpdates channel closed, exiting sendNotifications")
 				return
