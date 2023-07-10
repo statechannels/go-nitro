@@ -14,18 +14,20 @@ import (
 
 type SafeStore struct {
 	store   Store
-	mutexes safesync.Map[sync.Mutex]
+	mutexes safesync.Map[*sync.Mutex]
 }
 
 func NewSafeStore(key []byte) Store {
 	return &SafeStore{
 		store:   NewMemStore(key),
-		mutexes: safesync.Map[sync.Mutex]{},
+		mutexes: safesync.Map[*sync.Mutex]{},
 	}
 }
 
 func (ss *SafeStore) GetChannelSecretKey() *[]byte { return ss.store.GetChannelSecretKey() }
 func (ss *SafeStore) GetAddress() *types.Address   { return (*common.Address)(ss.store.GetAddress()) }
+
+// Objective store
 func (ss *SafeStore) GetObjectiveById(id protocols.ObjectiveId) (protocols.Objective, error) {
 	return ss.store.GetObjectiveById(id)
 }
@@ -36,6 +38,7 @@ func (ss *SafeStore) GetObjectiveByChannelId(id types.Destination) (obj protocol
 
 func (ss *SafeStore) SetObjective(o protocols.Objective) error { return ss.store.SetObjective(o) }
 
+// Channel store
 func (ss *SafeStore) GetChannelsByIds(ids []types.Destination) ([]*channel.Channel, error) {
 	return ss.store.GetChannelsByIds(ids)
 }
@@ -57,6 +60,8 @@ func (ss *SafeStore) GetChannelsByAppDefinition(appDef types.Address) ([]*channe
 func (ss *SafeStore) ReleaseChannelFromOwnership(id types.Destination) error {
 	return ss.store.ReleaseChannelFromOwnership(id)
 }
+
+// Consensus Channel Store
 
 func (ss *SafeStore) GetAllConsensusChannels() ([]*consensus_channel.ConsensusChannel, error) {
 	return ss.store.GetAllConsensusChannels()
@@ -80,6 +85,7 @@ func (ss *SafeStore) DestroyConsensusChannel(id types.Destination) error {
 
 func (ss *SafeStore) Close() error { return ss.store.Close() }
 
+// Voucher store
 func (ss *SafeStore) SetVoucherInfo(channelId types.Destination, v payments.VoucherInfo) error {
 	return ss.store.SetVoucherInfo(channelId, v)
 }
