@@ -478,7 +478,7 @@ func checkNotifications[T channelInfo](t *testing.T, logger zerolog.Logger, clie
 			// Log both to the test log file and to stdout
 			failMsg := fmt.Sprintf("%s timed out waiting for notification(s): \n%v", client, incompleteRequired(acceptableNotifications))
 			logger.Error().Msgf(failMsg)
-			t.Fatalf("%s timed out waiting for notification(s): \n%v", client, incompleteRequired(acceptableNotifications))
+			t.Fatalf(failMsg)
 		}
 	}
 	if len(unexpectedNotifications) > 0 {
