@@ -118,7 +118,10 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 func (ms *P2PMessageService) HandlePeerFound(pi peer.AddrInfo) {
 	ms.p2pHost.Peerstore().AddAddr(pi.ID, pi.Addrs[0], peerstore.PermanentAddrTTL)
 	stream, err := ms.p2pHost.NewStream(context.Background(), pi.ID, PEER_EXCHANGE_PROTOCOL_ID)
-	ms.checkError(err)
+	if err != nil {
+		ms.logger.Error().Err(err).Msg("error opening stream to peer")
+		return
+	}
 	ms.sendPeerInfo(stream)
 	stream.Close()
 }
