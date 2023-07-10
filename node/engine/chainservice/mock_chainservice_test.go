@@ -65,7 +65,7 @@ func checkReceivedEventIsValid(t *testing.T, receivedEvent Event, holdings types
 	}
 
 	depositEvent := receivedEvent.(DepositedEvent)
-	if depositEvent.NowHeld.Cmp(holdings[depositEvent.AssetAddress]) != 0 {
-		t.Fatalf(`holdings mismatch: expected %v but got %v`, holdings[depositEvent.AssetAddress], depositEvent.NowHeld)
+	if depositEvent.NowHeld.Cmp(holdings[depositEvent.Asset]) != 0 {
+		t.Fatalf(`holdings mismatch: expected %v but got %v`, holdings[depositEvent.Asset], depositEvent.NowHeld)
 	}
 }

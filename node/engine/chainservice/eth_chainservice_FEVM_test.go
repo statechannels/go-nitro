@@ -183,7 +183,7 @@ func testAgainstEndpoint(t *testing.T, endpoint string, logFile string, pk *ecds
 		switch receivedEvent := receivedEvent.(type) {
 		case DepositedEvent:
 
-			expectedEvent := NewDepositedEvent(cId, 2, receivedEvent.AssetAddress, big.NewInt(0), testDeposit[receivedEvent.AssetAddress])
+			expectedEvent := NewDepositedEvent(cId, 2, receivedEvent.Asset, testDeposit[receivedEvent.Asset])
 			// TODO to validate BlockNum and NowHeld values, chain state prior to transaction must be inspected
 
 			if diff := cmp.Diff(expectedEvent, receivedEvent,
