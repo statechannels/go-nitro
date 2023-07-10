@@ -60,7 +60,8 @@ const MAX_QUERY_BLOCK_RANGE = 2000
 // We do this to avoid https://github.com/ethereum/go-ethereum/issues/23845
 // We use 2.5 minutes as the default filter timeout is 5 minutes.
 // See https://github.com/ethereum/go-ethereum/blob/e14164d516600e9ac66f9060892e078f5c076229/eth/filters/filter_system.go#L43
-const RESUB_INTERVAL = 2*time.Minute + 30*time.Second
+// This has been reduced to 15 seconds to support local devnets with much shorter timeouts.
+const RESUB_INTERVAL = 15 * time.Second
 
 // NewEthChainService is a convenient wrapper around newEthChainService, which provides a simpler API
 func NewEthChainService(chainUrl, chainAuthToken, chainPk string, naAddress, caAddress, vpaAddress common.Address, logDestination io.Writer) (*EthChainService, error) {

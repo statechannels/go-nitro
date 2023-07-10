@@ -16,11 +16,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-const (
-	FUNDED_TEST_PK  = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-	ANVIL_CHAIN_URL = "ws://127.0.0.1:8545"
-)
-
 type ChainOpts struct {
 	ChainUrl       string
 	ChainAuthToken string
@@ -60,8 +55,8 @@ func StartAnvil() (*exec.Cmd, error) {
 }
 
 // DeployContracts deploys the NitroAdjudicator, VirtualPaymentApp and ConsensusApp contracts.
-func DeployContracts(ctx context.Context) (na common.Address, vpa common.Address, ca common.Address, err error) {
-	ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), ANVIL_CHAIN_URL, "", common.Hex2Bytes(FUNDED_TEST_PK))
+func DeployContracts(ctx context.Context, chainUrl, chainAuthToken, chainPk string) (na common.Address, vpa common.Address, ca common.Address, err error) {
+	ethClient, txSubmitter, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainAuthToken, common.Hex2Bytes(chainPk))
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}

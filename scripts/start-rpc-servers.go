@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -12,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/internal/utils"
 	"github.com/statechannels/go-nitro/types"
+	"github.com/urfave/cli/v2"
 )
 
 type participant string
@@ -42,34 +44,92 @@ var (
 	participantColor = map[participant]color{alice: blue, irene: green, ivan: cyan, bob: yellow}
 )
 
+const (
+	FUNDED_TEST_PK  = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+	ANVIL_CHAIN_URL = "ws://127.0.0.1:8545"
+)
+
+const (
+	CHAIN_AUTH_TOKEN = "chainauthtoken"
+	CHAIN_URL        = "chainurl"
+	DEPLOYER_PK      = "chainpk"
+	START_ANVIL      = "startanvil"
+)
+
 func main() {
-	running := []*exec.Cmd{}
-
-	anvilCmd, err := chain.StartAnvil()
-	if err != nil {
-		utils.StopCommands(running...)
-		panic(err)
+	flags := []cli.Flag{
+		&cli.BoolFlag{
+			Name:    START_ANVIL,
+			Usage:   "Specifies whether to start a local anvil instance",
+			Value:   true,
+			Aliases: []string{"a"},
+		},
+		&cli.StringFlag{
+			Name:    CHAIN_AUTH_TOKEN,
+			Usage:   "Specifies the auth token for the chain",
+			Value:   "",
+			Aliases: []string{"ct"},
+		},
+		&cli.StringFlag{
+			Name:    CHAIN_URL,
+			Usage:   "Specifies the chain url to use",
+			Value:   ANVIL_CHAIN_URL,
+			Aliases: []string{"cu"},
+		},
+		&cli.StringFlag{
+			Name:     DEPLOYER_PK,
+			Usage:    "Specifies the private key to use when deploying contracts",
+			Category: "Keys:",
+			Aliases:  []string{"dpk"},
+			Value:    FUNDED_TEST_PK,
+		},
 	}
-	running = append(running, anvilCmd)
 
-	naAddress, vpaAddress, caAddress, err := chain.DeployContracts(context.Background())
-	if err != nil {
-		utils.StopCommands(running...)
-		panic(err)
-	}
+	app := &cli.App{
+		Name:  "start-rpc-servers",
+		Usage: "Nitro as a service. State channel node with RPC server.",
+		Flags: flags,
 
-	for _, p := range participants {
-		client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress)
-		if err != nil {
+		Action: func(cCtx *cli.Context) error {
+			running := []*exec.Cmd{}
+
+			if cCtx.Bool(START_ANVIL) {
+				anvilCmd, err := chain.StartAnvil()
+				if err != nil {
+					utils.StopCommands(running...)
+					panic(err)
+				}
+				running = append(running, anvilCmd)
+			}
+
+			chainAuthToken := cCtx.String(CHAIN_AUTH_TOKEN)
+			chainUrl := cCtx.String(CHAIN_URL)
+			chainPk := cCtx.String(DEPLOYER_PK)
+
+			naAddress, vpaAddress, caAddress, err := chain.DeployContracts(context.Background(), chainUrl, chainAuthToken, chainPk)
+			if err != nil {
+				utils.StopCommands(running...)
+				panic(err)
+			}
+
+			for _, p := range participants {
+				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken)
+				if err != nil {
+					utils.StopCommands(running...)
+					panic(err)
+				}
+				running = append(running, client)
+			}
+
+			waitForKillSignal()
+
 			utils.StopCommands(running...)
-			panic(err)
-		}
-		running = append(running, client)
+			return nil
+		},
 	}
-
-	waitForKillSignal()
-
-	utils.StopCommands(running...)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // waitForKillSignal blocks until we receive a kill or interrupt signal
@@ -81,10 +141,15 @@ func waitForKillSignal() {
 }
 
 // setupRPCServer starts up an RPC server for the given participant
-func setupRPCServer(p participant, c color, na, vpa, ca types.Address) (*exec.Cmd, error) {
+func setupRPCServer(p participant, c color, na, vpa, ca types.Address, chainUrl, chainAuthToken string) (*exec.Cmd, error) {
 	args := []string{"run", ".", "-naaddress", na.String()}
 	args = append(args, "-vpaaddress", vpa.String())
 	args = append(args, "-caaddress", ca.String())
+
+	// Override any chain arguments
+	args = append(args, "-chainauthtoken", chainAuthToken)
+	args = append(args, "-chainurl", chainUrl)
+
 	args = append(args, "-config", fmt.Sprintf("./scripts/test-configs/%s.toml", p))
 
 	cmd := exec.Command("go", args...)

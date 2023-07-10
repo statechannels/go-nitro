@@ -29,6 +29,11 @@ type participantOpts struct {
 	ChainAuthToken  string
 }
 
+const (
+	FUNDED_TEST_PK  = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+	ANVIL_CHAIN_URL = "ws://127.0.0.1:8545"
+)
+
 func main() {
 	err := InitializeNitroNetwork()
 	if err != nil {
@@ -52,7 +57,7 @@ func InitializeNitroNetwork() error {
 	}
 	defer utils.StopCommands(anvilCmd)
 
-	naAddress, vpaAddress, caAddress, err := chain.DeployContracts(context.Background())
+	naAddress, vpaAddress, caAddress, err := chain.DeployContracts(context.Background(), ANVIL_CHAIN_URL, "", FUNDED_TEST_PK)
 	if err != nil {
 		return err
 	}
