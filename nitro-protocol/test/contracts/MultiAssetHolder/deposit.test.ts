@@ -54,15 +54,15 @@ beforeAll(async () => {
 const description0 = 'Deposits Tokens (expectedHeld = 0)';
 const description1 = 'Deposits Tokens (expectedHeld = 1)';
 const description2 = 'Reverts deposit of Tokens (expectedHeld > holdings)';
-const description3 = 'Reverts deposit of Tokens (expectedHeld + amount < holdings)';
-const description4 = 'Deposits Tokens (amount < holdings < amount + expectedHeld)';
-const description5 = 'Deposits ETH (msg.value = amount , expectedHeld = 0)';
+const description3 = 'Reverts deposit of Tokens (expectedHeld < holdings)';
+const description4 = 'Deposits ETH (msg.value = amount , expectedHeld = 0)';
+const description5 = 'Deposits ETH (msg.value = amount , expectedHeld = 1)';
 const description6 = 'Reverts deposit of ETH (msg.value = amount, expectedHeld > holdings)';
-const description7 =
-  'Reverts deposit of ETH (msg.value = amount, expectedHeld + amount < holdings)';
-const description8 =
-  'Deposits ETH (msg.value = amount,  amount < holdings < amount + expectedHeld)';
+const description7 = 'Reverts deposit of ETH (msg.value = amount, expectedHeld < holdings)';
+const description8 = 'Reverts deposit of ETH (msg.value != amount)';
 const description9 = 'Deposits a Bad token (expectedHeld = 0)';
+
+const noValueReason = 'Incorrect msg.value for deposit';
 
 describe('deposit', () => {
   let channelNonce = getRandomNonce('deposit');
@@ -73,13 +73,13 @@ describe('deposit', () => {
     description     | asset       | held | expectedHeld | amount | heldAfter | reasonString
     ${description0} | ${ERC20}    | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
     ${description1} | ${ERC20}    | ${1} | ${1}         | ${1}   | ${2}      | ${undefined}
-    ${description2} | ${ERC20}    | ${0} | ${1}         | ${2}   | ${0}      | ${'holdings < expectedHeld'}
-    ${description3} | ${ERC20}    | ${3} | ${1}         | ${1}   | ${3}      | ${'holdings already sufficient'}
-    ${description4} | ${ERC20}    | ${3} | ${2}         | ${2}   | ${4}      | ${undefined}
-    ${description5} | ${ETH}      | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
-    ${description6} | ${ETH}      | ${0} | ${1}         | ${2}   | ${0}      | ${'holdings < expectedHeld'}
-    ${description7} | ${ETH}      | ${3} | ${1}         | ${1}   | ${3}      | ${'holdings already sufficient'}
-    ${description8} | ${ETH}      | ${3} | ${2}         | ${2}   | ${4}      | ${undefined}
+    ${description2} | ${ERC20}    | ${0} | ${1}         | ${2}   | ${0}      | ${'held != expectedHeld'}
+    ${description3} | ${ERC20}    | ${1} | ${0}         | ${2}   | ${2}      | ${'held != expectedHeld'}
+    ${description4} | ${ETH}      | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
+    ${description5} | ${ETH}      | ${1} | ${1}         | ${1}   | ${2}      | ${undefined}
+    ${description6} | ${ETH}      | ${0} | ${1}         | ${2}   | ${0}      | ${'held != expectedHeld'}
+    ${description7} | ${ETH}      | ${1} | ${0}         | ${2}   | ${2}      | ${'held != expectedHeld'}
+    ${description8} | ${ETH}      | ${0} | ${0}         | ${1}   | ${1}      | ${noValueReason}
     ${description9} | ${BadERC20} | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
   `('$description', async ({asset, held, expectedHeld, amount, reasonString, heldAfter}) => {
     held = BigNumber.from(held);
@@ -149,7 +149,7 @@ describe('deposit', () => {
     const balanceBefore = await getBalance(asset, signer0Address);
 
     const tx = testNitroAdjudicator.deposit(asset, destination, expectedHeld, amount, {
-      value: asset === ETH ? amount : 0,
+      value: asset === ETH && reasonString != noValueReason ? amount : 0,
     });
 
     if (reasonString) {
