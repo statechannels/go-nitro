@@ -86,7 +86,11 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	// Setup
 	//////////////////////
 
-	logFile := fmt.Sprintf("test_%d_rpc_clients_over_%s.log", n, connectionType)
+	manVoucherStr := "_with_manual_voucher_exchange"
+	if !manualVoucherExchange {
+		manVoucherStr = ""
+	}
+	logFile := fmt.Sprintf("test_%d_rpc_clients_over_%s%s.log", n, connectionType, manVoucherStr)
 	logDestination := newLogWriter(logFile)
 	defer logDestination.Close()
 	logger := testLogger(logDestination)
