@@ -3,6 +3,7 @@ package rpc
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
@@ -21,7 +22,7 @@ import (
 )
 
 func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
-	useDurableStore bool, useNats bool, msgPort int, rpcPort int,
+	useDurableStore bool, durableStoreFolder string, useNats bool, msgPort int, rpcPort int,
 ) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
 	if pkString == "" {
 		panic("pk must be set")
@@ -37,7 +38,7 @@ func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
 	if useNats {
 		transportType = transport.Nats
 	}
-	rpcServer, node, messageService, err := RunRpcServer(pk, chainService, useDurableStore, msgPort, rpcPort, transportType, os.Stdout)
+	rpcServer, node, messageService, err := RunRpcServer(pk, chainService, useDurableStore, durableStoreFolder, msgPort, rpcPort, transportType, os.Stdout)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -47,7 +48,7 @@ func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
 }
 
 func RunRpcServer(pk []byte, chainService chainservice.ChainService,
-	useDurableStore bool, msgPort int, rpcPort int, transportType transport.TransportType, logDestination *os.File,
+	useDurableStore bool, durableStoreFolder string, msgPort int, rpcPort int, transportType transport.TransportType, logDestination *os.File,
 ) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
 	me := crypto.GetAddressFromSecretKeyBytes(pk)
 
@@ -60,8 +61,9 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		Logger()
 
 	if useDurableStore {
-		logger.Info().Msg("Initialising durable store...")
-		dataFolder := fmt.Sprintf("./data/nitro-service/%s", me.String())
+		dataFolder := filepath.Join(durableStoreFolder, me.String())
+		logger.Info().Msgf("Initialising durable store in %s...", dataFolder)
+
 		ourStore, err = store.NewDurableStore(pk, dataFolder, buntdb.Config{})
 		if err != nil {
 			return nil, nil, nil, err

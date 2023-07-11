@@ -75,7 +75,11 @@ func InitializeNitroNetwork() error {
 			CaAddress:      caAddress,
 			VpaAddress:     vpaAddress,
 		}
-		server, node, msgService, err := interRpc.InitChainServiceAndRunRpcServer(nodeOpts.Pk, chainOpts, nodeOpts.UseDurableStore, false, nodeOpts.MsgPort, nodeOpts.RpcPort)
+
+		dataFolder, cleanup := utils.GenerateTempStoreFolder()
+		defer cleanup()
+
+		server, node, msgService, err := interRpc.InitChainServiceAndRunRpcServer(nodeOpts.Pk, chainOpts, nodeOpts.UseDurableStore, dataFolder, false, nodeOpts.MsgPort, nodeOpts.RpcPort)
 		if err != nil {
 			return err
 		}
