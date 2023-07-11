@@ -25,7 +25,7 @@ func NewNatsTransportAsClient(url string) (*natsTransportClient, error) {
 func (c *natsTransportClient) Request(data []byte) ([]byte, error) {
 	msg, err := c.nc.Request(nitroRequestTopic+apiVersionPath, data, 10*time.Second)
 	if msg == nil {
-		return nil, fmt.Errorf("received nill data for request %v with error %w", data, err)
+		return nil, fmt.Errorf("received nill data for request %v with error %w", string(data), err)
 	}
 	return msg.Data, err
 }
