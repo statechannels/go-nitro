@@ -95,6 +95,19 @@ function App() {
   ) => {
     setUseBadSig(checked);
   };
+
+  const triggerFileDownload = (blob: Blob, fileName: string) => {
+    // This will prompt the browser to download the file
+
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = fileName;
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  };
+
   const fetchFile = async () => {
     setErrorText("");
 
@@ -130,16 +143,7 @@ function App() {
           },
         }
       );
-
-      // This will prompt the browser to download the file
-      const blob = result.data;
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = "fetched-file-from-ipfs";
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(blobUrl);
+      triggerFileDownload(result.data, "fetched-file-from-ipfs");
     } catch (e) {
       if (isAxiosError(e)) {
         const { message } = e;
