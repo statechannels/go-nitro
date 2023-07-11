@@ -7,7 +7,9 @@ import (
 	"os/exec"
 	"time"
 
+	b "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	ConsensusApp "github.com/statechannels/go-nitro/node/engine/chainservice/consensusapp"
@@ -60,20 +62,44 @@ func DeployContracts(ctx context.Context, chainUrl, chainAuthToken, chainPk stri
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
-	na, _, _, err = NitroAdjudicator.DeployNitroAdjudicator(txSubmitter, ethClient)
+	var tx *ethTypes.Transaction
+
+	na, tx, _, err = NitroAdjudicator.DeployNitroAdjudicator(txSubmitter, ethClient)
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
+
+	fmt.Println("Waiting for NitroAdjudicator deployment confirmation")
+	_, err = b.WaitMined(ctx, ethClient, tx)
+	if err != nil {
+		return types.Address{}, types.Address{}, types.Address{}, err
+	}
+
 	fmt.Printf("Deployed NitroAdjudicator at %s\n", na.String())
-	vpa, _, _, err = VirtualPaymentApp.DeployVirtualPaymentApp(txSubmitter, ethClient)
+
+	vpa, tx, _, err = VirtualPaymentApp.DeployVirtualPaymentApp(txSubmitter, ethClient)
+	if err != nil {
+		return types.Address{}, types.Address{}, types.Address{}, err
+	}
+
+	fmt.Println("Waiting for VirtualPaymentApp deployment confirmation")
+	_, err = b.WaitMined(ctx, ethClient, tx)
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
 	fmt.Printf("Deployed VirtualPaymentApp at %s\n", vpa.String())
-	ca, _, _, err = ConsensusApp.DeployConsensusApp(txSubmitter, ethClient)
+
+	ca, tx, _, err = ConsensusApp.DeployConsensusApp(txSubmitter, ethClient)
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
+
+	fmt.Println("Waiting for ConsensusApp deployment confirmation")
+	_, err = b.WaitMined(ctx, ethClient, tx)
+	if err != nil {
+		return types.Address{}, types.Address{}, types.Address{}, err
+	}
+
 	fmt.Printf("Deployed ConsensusApp at %s\n", ca.String())
 	return
 }
