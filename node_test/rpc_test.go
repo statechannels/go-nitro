@@ -238,8 +238,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	// wait for the virtual channel to be ready, and
 	// assert correct reporting from query api
 	for i, client := range clients {
-		// Waiting before constructing the chan means the objective could complete before we start listening
-		time.Sleep(1 * time.Second)
+
 		<-client.ObjectiveCompleteChan(vabCreateResponse.Id)
 
 		channelInfo, err := client.GetPaymentChannel(vabCreateResponse.ChannelId)
@@ -292,6 +291,8 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 
 	vabClosure, _ := aliceClient.ClosePaymentChannel(vabCreateResponse.ChannelId)
 	for _, client := range clients {
+		// Waiting before constructing the chan means the objective could complete before we start listening
+		time.Sleep(1 * time.Second)
 		<-client.ObjectiveCompleteChan(vabClosure)
 	}
 
