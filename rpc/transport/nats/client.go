@@ -37,7 +37,6 @@ func (c *natsTransportClient) Request(data []byte) ([]byte, error) {
 		}
 
 		// Skip sleep after the last try
-		lastTry := i == numTries-1
 		if lastTry := i == numTries-1; lastTry {
 			break
 		}
