@@ -1,68 +1,30 @@
-## Nitro node architecture
+# `go-nitro` Node
 
-A nitro node may be instantiated by calling `New()` and passing in a chain service, a messaging service, and a store.
+Our [integration tests](./node_test/readme.md) give the best idea of how to use the API. Another useful resource is [the godoc](https://pkg.go.dev/github.com/statechannels/go-nitro/node#Node) description of the `go-nitro.Node` API.
 
-The flow of data through the node is shown in this diagram:
+Broadly, consumers will construct a go-nitro `Node`, possibly using injected dependencies. Then, they can create channels and send payments:
 
-![go-nitro architecture](./go-nitro%20architecture.png)
+```Go
+ import nc "github.com/statechannels/go-nitro/node"
 
-0. An API can originate as a remote procedure call (RPC) over https/ws or nats. The RPC call is handled by a server which consumes a go-nitro node as a library.
-1. The go-nitro `engine` runs in its own goroutine and has a select statement listening for a message from one of:
-   - the consuming application (the go-nitro `node` translates an API call into a send on a go channel, and returns a go channel where a response will later be received)
-   - the `message` service
-   - the `chain` service.
-2. The engine reads channels and objectives from the `store`, and computes updates and side effects.
-3. The engine gets payment info from the `voucher manager`, and computes updates and side effects.
-4. The updates are committed to the `store`.
-5. The side effects are sent on go channels to:
-   - the `message` service
-   - the `chain` service
-   - _back_ to the `engine` (e.g. when an update declares further progress can be made)
-6. The consuming application is informed about updates (which may return over the RPC connection)
+ nitroNode := nc.New(
+                    messageservice,
+                    chain,
+                    storeA,
+                    logDestination,
+                    nil,
+                    nil
+                )
+response := nitroNode.CreateLedgerChannel(hub.Address, 0, someOutcome)
+nitroNode.WaitForCompletedObjective(response.objectiveId)
 
-The `chain` and `message` services are responsible for communicating with the blockchain and with counterparties (respectively).
+response = nitroNode.CreateVirtualPaymentChannel([hub.Address],bob.Address, defaultChallengeDuration, someOtherOutcome)
+nitroNode.WaitForCompletedObjective(response.objectiveId)
 
----
+for i := 0; i < len(10); i++ {
+    nitroNode.Pay(response.ChannelId, big.NewInt(int64(5)))
+}
 
-To edit the diagram, paste this code into www.sequencediagram.org:
-
-```sequencediagram
-title go-nitro Architecture
-fontawesome f109 RPC client
-participantgroup #azure **go-nitro process**
-participantgroup #honeydew **networked components**
-fontawesome f233 RPC server
-fontawesome f0c1 chain
-fontawesome f0e0 msg
-end
-fontawesome f1e0 node
-fontawesome f013 engine
-fontawesome f1c0 store
-end
-
-alt User Request
-RPC client -#red>RPC server: <background:#yellow>JSON-RPC request</background>
-RPC server -> node:
-node --> engine:<background:#yellow>API Request Triggered
-else Blockain Event
-chain-->engine: <background:#yellow>Blockchain Event Triggered
-else Peer Request
-msg-->engine: <background:#yellow>Message Received
-end
-group handler
-engine<->store: <background:#yellow>Read
-engine->engine: <background:#yellow>Compute effects
-engine<->store: <background:#yellow>Write
-engine-->msg: <background:#yellow>Send messages
-
-engine-->chain: <background:#yellow>Submit transactions
-engine-->engine: <background:#yellow>Trigger another loop
-
-end
-
-alt Notify User
-engine-->node:
-node->RPC server:
-RPC server-#red>RPC client: <background:#yellow>JSON-RPC response
-end
+response = nitroNode.CloseVirtualChannel(response.ChannelId)
+nitroNode.WaitForCompletedObjective(response.objectiveId)
 ```
