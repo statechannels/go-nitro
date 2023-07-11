@@ -15,20 +15,21 @@ import (
 
 func main() {
 	const (
-		CONFIG            = "config"
-		USE_NATS          = "usenats"
-		USE_DURABLE_STORE = "usedurablestore"
-		PK                = "pk"
-		CHAIN_URL         = "chainurl"
-		CHAIN_AUTH_TOKEN  = "chainauthtoken"
-		CHAIN_PK          = "chainpk"
-		NA_ADDRESS        = "naaddress"
-		VPA_ADDRESS       = "vpaaddress"
-		CA_ADDRESS        = "caaddress"
-		MSG_PORT          = "msgport"
-		RPC_PORT          = "rpcport"
+		CONFIG               = "config"
+		USE_NATS             = "usenats"
+		USE_DURABLE_STORE    = "usedurablestore"
+		PK                   = "pk"
+		CHAIN_URL            = "chainurl"
+		CHAIN_AUTH_TOKEN     = "chainauthtoken"
+		CHAIN_PK             = "chainpk"
+		NA_ADDRESS           = "naaddress"
+		VPA_ADDRESS          = "vpaaddress"
+		CA_ADDRESS           = "caaddress"
+		MSG_PORT             = "msgport"
+		RPC_PORT             = "rpcport"
+		DURABLE_STORE_FOLDER = "durablestorefolder"
 	)
-	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk string
+	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk, durableStoreFolder string
 	var msgPort, rpcPort int
 	var useNats, useDurableStore bool
 
@@ -47,7 +48,7 @@ func main() {
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:        USE_DURABLE_STORE,
 			Usage:       "Specifies whether to use a durable store or an in-memory store.",
-			Category:    "Storage",
+			Category:    "Storage:",
 			Value:       false,
 			Destination: &useDurableStore,
 		}),
@@ -112,6 +113,13 @@ func main() {
 			Category:    "Connectivity:",
 			Destination: &rpcPort,
 		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:        DURABLE_STORE_FOLDER,
+			Usage:       "Specifies the folder for the durable store data storage.",
+			Category:    "Storage:",
+			Destination: &durableStoreFolder,
+			Value:       "./data/nitro-store",
+		}),
 	}
 	app := &cli.App{
 		Name:   "go-nitro",
@@ -128,7 +136,7 @@ func main() {
 				CaAddress:      common.HexToAddress(caAddress),
 			}
 
-			rpcServer, _, _, err := rpc.InitChainServiceAndRunRpcServer(pkString, chainOpts, useDurableStore, useNats, msgPort, rpcPort)
+			rpcServer, _, _, err := rpc.InitChainServiceAndRunRpcServer(pkString, chainOpts, useDurableStore, durableStoreFolder, useNats, msgPort, rpcPort)
 			if err != nil {
 				return err
 			}

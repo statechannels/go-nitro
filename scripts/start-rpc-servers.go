@@ -92,7 +92,6 @@ func main() {
 
 		Action: func(cCtx *cli.Context) error {
 			running := []*exec.Cmd{}
-
 			if cCtx.Bool(START_ANVIL) {
 				anvilCmd, err := chain.StartAnvil()
 				if err != nil {
@@ -101,14 +100,10 @@ func main() {
 				}
 				running = append(running, anvilCmd)
 			}
+			dataFolder, cleanup := utils.GenerateTempStoreFolder()
+			defer cleanup()
+			fmt.Printf("Using data folder %s\n", dataFolder)
 
-			dataFolder := "./data/nitro-service"
-			fmt.Printf("Removing data folder %s\n", dataFolder)
-			err := os.RemoveAll(dataFolder)
-			if err != nil {
-				utils.StopCommands(running...)
-				panic(err)
-			}
 			chainAuthToken := cCtx.String(CHAIN_AUTH_TOKEN)
 			chainUrl := cCtx.String(CHAIN_URL)
 			chainPk := cCtx.String(DEPLOYER_PK)
@@ -120,7 +115,7 @@ func main() {
 			}
 
 			for _, p := range participants {
-				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken)
+				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder)
 				if err != nil {
 					utils.StopCommands(running...)
 					panic(err)
@@ -148,14 +143,15 @@ func waitForKillSignal() {
 }
 
 // setupRPCServer starts up an RPC server for the given participant
-func setupRPCServer(p participant, c color, na, vpa, ca types.Address, chainUrl, chainAuthToken string) (*exec.Cmd, error) {
+func setupRPCServer(p participant, c color, na, vpa, ca types.Address, chainUrl, chainAuthToken string, dataFolder string) (*exec.Cmd, error) {
 	args := []string{"run", ".", "-naaddress", na.String()}
 	args = append(args, "-vpaaddress", vpa.String())
 	args = append(args, "-caaddress", ca.String())
 
-	// Override any chain arguments
 	args = append(args, "-chainauthtoken", chainAuthToken)
 	args = append(args, "-chainurl", chainUrl)
+
+	args = append(args, "-durablestorefolder", dataFolder)
 
 	args = append(args, "-config", fmt.Sprintf("./scripts/test-configs/%s.toml", p))
 

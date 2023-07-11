@@ -383,7 +383,7 @@ func setupNitroNodeWithRPCClient(
 	connectionType transport.TransportType,
 ) (*rpc.RpcClient, *p2pms.P2PMessageService, func()) {
 	var err error
-	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, false, msgPort, rpcPort, connectionType, logDestination)
+	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, false, "", msgPort, rpcPort, connectionType, logDestination)
 	if err != nil {
 		t.Fatal(err)
 	}
