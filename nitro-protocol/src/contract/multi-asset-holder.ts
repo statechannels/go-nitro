@@ -10,7 +10,6 @@ import {decodeGuaranteeData} from './outcome';
  */
 export interface DepositedEvent {
   destination: string; // The channel that funds were deposited in to.
-  amountDeposited: BigNumber; // The amount deposited.
   destinationHoldings: BigNumber; // The amount the holdings were updated to.
 }
 
@@ -21,10 +20,9 @@ export interface DepositedEvent {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getDepositedEvent(eventResult: any[]): DepositedEvent {
-  const {destination, amountDeposited, destinationHoldings} = parseEventResult(eventResult);
+  const {destination, destinationHoldings} = parseEventResult(eventResult);
   return {
     destination,
-    amountDeposited: BigNumber.from(amountDeposited),
     destinationHoldings: BigNumber.from(destinationHoldings),
   };
 }

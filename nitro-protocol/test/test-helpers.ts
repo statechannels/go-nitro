@@ -188,17 +188,14 @@ export const newConcludedEvent = (
 export const newDepositedEvent = (
   contract: ethers.Contract,
   destination: string
-): Promise<[string, BigNumber, BigNumber]> => {
+): Promise<[string, BigNumber]> => {
   const filter = contract.filters.Deposited(destination);
   return new Promise(resolve => {
-    contract.on(
-      filter,
-      (eventDestination: string, amountDeposited: BigNumber, amountHeld: BigNumber) => {
-        // Match event for this destination only
-        contract.removeAllListeners(filter);
-        resolve([eventDestination, amountDeposited, amountHeld]);
-      }
-    );
+    contract.on(filter, (eventDestination: string, amountHeld: BigNumber) => {
+      // Match event for this destination only
+      contract.removeAllListeners(filter);
+      resolve([eventDestination, amountHeld]);
+    });
   });
 };
 
