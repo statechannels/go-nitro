@@ -53,20 +53,27 @@ func testLogger(logDestination *os.File) zerolog.Logger {
 }
 
 func TestRpcWithNats(t *testing.T) {
-	executeNRpcTest(t, "nats", 2, false)
-	executeNRpcTest(t, "nats", 3, false)
-	executeNRpcTest(t, "nats", 4, false)
+	for _, n := range []int{2, 3, 4} {
+		executeNRpcTestWrapper(t, "nats", n, false)
+	}
 }
 
 func TestRpcWithWebsockets(t *testing.T) {
-	executeNRpcTest(t, "ws", 2, false)
-	executeNRpcTest(t, "ws", 3, false)
-	executeNRpcTest(t, "ws", 4, false)
+	for _, n := range []int{2, 3, 4} {
+		executeNRpcTestWrapper(t, "ws", n, false)
+	}
 }
 
 func TestRPCWithManualVoucherExchange(t *testing.T) {
-	executeNRpcTest(t, "ws", 4, true)
-	executeNRpcTest(t, "nats", 4, true)
+	executeNRpcTestWrapper(t, "ws", 4, true)
+	executeNRpcTestWrapper(t, "nats", 4, true)
+}
+
+func executeNRpcTestWrapper(t *testing.T, connectionType transport.TransportType, n int, manualVoucherExchange bool) {
+	testName := fmt.Sprintf("%d_clients", n)
+	t.Run(testName, func(t *testing.T) {
+		executeNRpcTest(t, connectionType, n, manualVoucherExchange)
+	})
 }
 
 func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int, manualVoucherExchange bool) {
