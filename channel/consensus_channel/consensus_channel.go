@@ -17,14 +17,14 @@ import (
 
 type ledgerIndex uint
 
-var (
-	ErrIncorrectChannelID = fmt.Errorf("proposal ID and channel ID do not match")
-	ErrIncorrectTurnNum   = fmt.Errorf("incorrect turn number")
-	ErrInvalidDeposit     = fmt.Errorf("unable to divert to guarantee: invalid deposit")
-	ErrInsufficientFunds  = fmt.Errorf("insufficient funds")
-	ErrDuplicateGuarantee = fmt.Errorf("duplicate guarantee detected")
-	ErrGuaranteeNotFound  = fmt.Errorf("guarantee not found")
-	ErrInvalidAmount      = fmt.Errorf("left amount is greater than the guarantee amount")
+const (
+	ErrIncorrectChannelID = types.ConstError("proposal ID and channel ID do not match")
+	ErrIncorrectTurnNum   = types.ConstError("incorrect turn number")
+	ErrInvalidDeposit     = types.ConstError("unable to divert to guarantee: invalid deposit")
+	ErrInsufficientFunds  = types.ConstError("insufficient funds")
+	ErrDuplicateGuarantee = types.ConstError("duplicate guarantee detected")
+	ErrGuaranteeNotFound  = types.ConstError("guarantee not found")
+	ErrInvalidAmount      = types.ConstError("left amount is greater than the guarantee amount")
 )
 
 const (

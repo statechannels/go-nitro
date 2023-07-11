@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/types"
 )
 
-var (
-	ErrNotLeader              = fmt.Errorf("method may only be called by the channel leader")
-	ErrProposalQueueExhausted = fmt.Errorf("proposal queue exhausted")
-	ErrWrongSigner            = fmt.Errorf("proposal incorrectly signed")
+const (
+	ErrNotLeader              = types.ConstError("method may only be called by the channel leader")
+	ErrProposalQueueExhausted = types.ConstError("proposal queue exhausted")
+	ErrWrongSigner            = types.ConstError("proposal incorrectly signed")
 )
 
 // NewLeaderChannel constructs a new LeaderChannel

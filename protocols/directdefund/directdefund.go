@@ -29,10 +29,10 @@ const (
 
 const ObjectivePrefix = "DirectDefunding-"
 
-var (
-	ErrChannelUpdateInProgress = errors.New("can only defund a channel when the latest state is supported or when the channel has a final state")
-	ErrNoFinalState            = errors.New("cannot spawn direct defund objective without a final state")
-	ErrNotEmpty                = errors.New("ledger channel has running guarantees")
+const (
+	ErrChannelUpdateInProgress = types.ConstError("can only defund a channel when the latest state is supported or when the channel has a final state")
+	ErrNoFinalState            = types.ConstError("cannot spawn direct defund objective without a final state")
+	ErrNotEmpty                = types.ConstError("ledger channel has running guarantees")
 )
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
