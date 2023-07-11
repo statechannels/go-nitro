@@ -102,6 +102,13 @@ func main() {
 				running = append(running, anvilCmd)
 			}
 
+			dataFolder := "./data/nitro-service"
+			fmt.Printf("Removing data folder %s\n", dataFolder)
+			err := os.RemoveAll(dataFolder)
+			if err != nil {
+				utils.StopCommands(running...)
+				panic(err)
+			}
 			chainAuthToken := cCtx.String(CHAIN_AUTH_TOKEN)
 			chainUrl := cCtx.String(CHAIN_URL)
 			chainPk := cCtx.String(DEPLOYER_PK)
