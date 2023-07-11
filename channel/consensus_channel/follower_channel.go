@@ -4,16 +4,17 @@ import (
 	"fmt"
 
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/types"
 )
 
-var (
-	ErrNotFollower                 = fmt.Errorf("method may only be called by channel follower")
-	ErrNoProposals                 = fmt.Errorf("no proposals in the queue")
-	ErrUnsupportedQueuedProposal   = fmt.Errorf("only Add proposal is supported for queued proposals")
-	ErrUnsupportedExpectedProposal = fmt.Errorf("only Add proposal is supported for expected update")
-	ErrNonMatchingProposals        = fmt.Errorf("expected proposal does not match first proposal in the queue")
-	ErrInvalidProposalSignature    = fmt.Errorf("invalid signature for proposal")
-	ErrInvalidTurnNum              = fmt.Errorf("the proposal turn number is not the next turn number")
+const (
+	ErrNotFollower                 = types.ConstError("method may only be called by channel follower")
+	ErrNoProposals                 = types.ConstError("no proposals in the queue")
+	ErrUnsupportedQueuedProposal   = types.ConstError("only Add proposal is supported for queued proposals")
+	ErrUnsupportedExpectedProposal = types.ConstError("only Add proposal is supported for expected update")
+	ErrNonMatchingProposals        = types.ConstError("expected proposal does not match first proposal in the queue")
+	ErrInvalidProposalSignature    = types.ConstError("invalid signature for proposal")
+	ErrInvalidTurnNum              = types.ConstError("the proposal turn number is not the next turn number")
 )
 
 // NewFollowerChannel constructs a new FollowerChannel

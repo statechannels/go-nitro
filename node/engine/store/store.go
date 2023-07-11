@@ -2,7 +2,6 @@
 package store // import "github.com/statechannels/go-nitro/node/engine/store"
 
 import (
-	"errors"
 	"io"
 
 	"github.com/statechannels/go-nitro/channel"
@@ -12,10 +11,10 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-var (
-	ErrNoSuchObjective error = errors.New("store: no such objective")
-	ErrNoSuchChannel   error = errors.New("store: failed to find required channel data")
-	ErrLoadVouchers    error = errors.New("store: could not load vouchers")
+const (
+	ErrNoSuchObjective = types.ConstError("store: no such objective")
+	ErrNoSuchChannel   = types.ConstError("store: failed to find required channel data")
+	ErrLoadVouchers    = types.ConstError("store: could not load vouchers")
 )
 
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
