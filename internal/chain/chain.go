@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	b "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
@@ -91,7 +90,7 @@ type contractBackend interface {
 type deployFunc[T contractBackend] func(auth *b.TransactOpts, backend b.ContractBackend) (common.Address, *ethTypes.Transaction, *T, error)
 
 // deployContract deploys a contract and waits for the transaction to be mined.
-func deployContract[T contractBackend](ctx context.Context, name string, ethClient *ethclient.Client, txSubmitter *bind.TransactOpts, deploy deployFunc[T]) (types.Address, error) {
+func deployContract[T contractBackend](ctx context.Context, name string, ethClient *ethclient.Client, txSubmitter *b.TransactOpts, deploy deployFunc[T]) (types.Address, error) {
 	a, tx, _, err := deploy(txSubmitter, ethClient)
 	if err != nil {
 		return types.Address{}, err
