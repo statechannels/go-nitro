@@ -248,10 +248,10 @@ func (rs *RpcServer) sendNotifications(ctx context.Context,
 	ledgerUpdatesChan <-chan query.LedgerChannelInfo,
 	paymentUpdatesChan <-chan query.PaymentChannelInfo,
 ) {
+	defer rs.wg.Done()
 	for {
 		select {
 		case <-ctx.Done():
-			rs.wg.Done()
 			return
 
 		case completedObjective, ok := <-completedObjChan:
