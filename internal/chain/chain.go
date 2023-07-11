@@ -7,9 +7,11 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	b "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	ConsensusApp "github.com/statechannels/go-nitro/node/engine/chainservice/consensusapp"
@@ -62,44 +64,44 @@ func DeployContracts(ctx context.Context, chainUrl, chainAuthToken, chainPk stri
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
-	var tx *ethTypes.Transaction
 
-	na, tx, _, err = NitroAdjudicator.DeployNitroAdjudicator(txSubmitter, ethClient)
+	na, err = deployContract(ctx, "NitroAdjudicator", ethClient, txSubmitter, NitroAdjudicator.DeployNitroAdjudicator)
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
 
-	fmt.Println("Waiting for NitroAdjudicator deployment confirmation")
-	_, err = b.WaitMined(ctx, ethClient, tx)
+	vpa, err = deployContract(ctx, "VirtualPaymentApp", ethClient, txSubmitter, VirtualPaymentApp.DeployVirtualPaymentApp)
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
 
-	fmt.Printf("Deployed NitroAdjudicator at %s\n", na.String())
-
-	vpa, tx, _, err = VirtualPaymentApp.DeployVirtualPaymentApp(txSubmitter, ethClient)
+	ca, err = deployContract(ctx, "ConsensusApp", ethClient, txSubmitter, ConsensusApp.DeployConsensusApp)
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
 
-	fmt.Println("Waiting for VirtualPaymentApp deployment confirmation")
-	_, err = b.WaitMined(ctx, ethClient, tx)
-	if err != nil {
-		return types.Address{}, types.Address{}, types.Address{}, err
-	}
-	fmt.Printf("Deployed VirtualPaymentApp at %s\n", vpa.String())
-
-	ca, tx, _, err = ConsensusApp.DeployConsensusApp(txSubmitter, ethClient)
-	if err != nil {
-		return types.Address{}, types.Address{}, types.Address{}, err
-	}
-
-	fmt.Println("Waiting for ConsensusApp deployment confirmation")
-	_, err = b.WaitMined(ctx, ethClient, tx)
-	if err != nil {
-		return types.Address{}, types.Address{}, types.Address{}, err
-	}
-
-	fmt.Printf("Deployed ConsensusApp at %s\n", ca.String())
 	return
+}
+
+type contractBackend interface {
+	NitroAdjudicator.NitroAdjudicator | VirtualPaymentApp.VirtualPaymentApp | ConsensusApp.ConsensusApp
+}
+
+// deployFunc is a function that deploys a contract and returns the contract address, backend, and transaction.
+type deployFunc[T contractBackend] func(auth *b.TransactOpts, backend b.ContractBackend) (common.Address, *ethTypes.Transaction, *T, error)
+
+// deployContract deploys a contract and waits for the transaction to be mined.
+func deployContract[T contractBackend](ctx context.Context, name string, ethClient *ethclient.Client, txSubmitter *bind.TransactOpts, deploy deployFunc[T]) (types.Address, error) {
+	a, tx, _, err := deploy(txSubmitter, ethClient)
+	if err != nil {
+		return types.Address{}, err
+	}
+
+	fmt.Printf("Waiting for %s deployment confirmation\n", name)
+	_, err = b.WaitMined(ctx, ethClient, tx)
+	if err != nil {
+		return types.Address{}, err
+	}
+	fmt.Printf("%s successfully deployed to %s\n", name, a.String())
+	return a, nil
 }
