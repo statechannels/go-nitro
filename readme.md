@@ -19,7 +19,7 @@ go-nitro
 
 > ⚠️ Go-nitro is pre-production software ⚠️
 
-Go-nitro it can be consumed either as [library code](./node/readme.md) or started in an [independent process](./doc.go) and interfaced with remote procedure calls (recommended).
+Go-nitro can be consumed either as [library code](./node/readme.md) or started in an [independent process](./doc.go) and interfaced with remote procedure calls (recommended).
 
 ## Contributing
 

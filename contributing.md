@@ -181,7 +181,7 @@ You may then view `output.log` in VSCode. A typical log line is then:
 To spin up a docker image with 3 rpc servers and channels pre-populated, run the following:
 
 1. `make docker/build`
-1. `make docker/start`
+2. `make docker/start`
 
 Three rpc go-nitro servers will be available on ports 4005, 4006, and 4007 for Alice, Irene, and Bob. A ledger channel is created between Alice and Irene, and another ledger channel is created between Irene and Bob. A virtual channel is created between Alice and Bob.
 

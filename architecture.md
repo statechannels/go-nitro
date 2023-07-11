@@ -4,11 +4,11 @@ The flow of data through go-nitro (running as an independent process) is shown i
 
 ![go-nitro architecture](./go-nitro%20architecture.png)
 
-0. An API can originate as a remote procedure call (RPC) over https/ws or nats. The RPC call is handled by a server which consumes a go-nitro node as a library.
-1. The go-nitro `engine` runs in its own goroutine and has a select statement listening for a message from one of:
-   - the consuming application (the go-nitro `node` translates an API call into a send on a go channel, and returns a go channel where a response will later be received)
-   - the `message` service
-   - the `chain` service.
+0. An API call can originate as a remote procedure call (RPC) over https/ws or nats. The RPC call is handled by a server which consumes a go-nitro node as a library.
+1. The go-nitro `engine` runs in its own goroutine and listens for messages from one of:
+   - the consuming application - the end-user wishes to perform some action
+   - the `message` service - a network peer has requested some cooperative action
+   - the `chain` service - a channel we are involved with has had a state change on chain 
 2. The engine reads channels and objectives from the `store`, and computes updates and side effects.
 3. The engine gets payment info from the `voucher manager`, and computes updates and side effects.
 4. The updates are committed to the `store`.
