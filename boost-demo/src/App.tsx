@@ -117,7 +117,8 @@ function App() {
     }, 50);
 
     const signatureToUse = useBadSig
-      ? generateRandomSignature()
+      ? // This was a valid signature for a voucher but it's not valid for our voucher
+        "0xbfc7cede1b4251d3a97d6e381175cf64284055922f6d044f79939445449e748e769433e686126014648502ef51f6af444a8d41f82d572aaa94e196a28b5ede581c"
       : voucher.Signature;
     try {
       const result = await axios.get(
@@ -232,16 +233,3 @@ function App() {
 }
 
 export default App;
-// Stolen from chatgpt. It generates a random 65 byte hex string
-function generateRandomSignature(): string {
-  const characters = "0123456789abcdef";
-  let result = "0x";
-
-  const length = 132;
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length);
-    result += characters.charAt(randomIndex);
-  }
-
-  return result;
-}
