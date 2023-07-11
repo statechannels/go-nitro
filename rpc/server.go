@@ -42,7 +42,10 @@ func (rs *RpcServer) Close() error {
 	rs.cancel()
 	rs.wg.Wait()
 
-	rs.transport.Close()
+	err := rs.transport.Close()
+	if err != nil {
+		return err
+	}
 	return rs.node.Close()
 }
 
