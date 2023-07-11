@@ -80,21 +80,21 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	testTx := protocols.NewDepositTransaction(concludeState.ChannelId(), testDeposit)
 
 	out := cs.EventFeed()
-	// Submit transactiom
+	// Submit transaction
 	err = cs.SendTransaction(testTx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Check that the recieved events matches the expected event
+	// Check that the received events matches the expected event
 	for i := 0; i < 2; i++ {
 		receivedEvent := <-out
 		dEvent := receivedEvent.(DepositedEvent)
-		expectedEvent := NewDepositedEvent(concludeState.ChannelId(), 2, dEvent.AssetAddress, testDeposit[dEvent.AssetAddress], testDeposit[dEvent.AssetAddress])
+		expectedEvent := NewDepositedEvent(concludeState.ChannelId(), 2, dEvent.Asset, testDeposit[dEvent.Asset])
 		if diff := cmp.Diff(expectedEvent, dEvent, cmp.AllowUnexported(DepositedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 			t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 		}
-		delete(testDeposit, dEvent.AssetAddress)
+		delete(testDeposit, dEvent.Asset)
 	}
 
 	if len(testDeposit) != 0 {

@@ -163,7 +163,6 @@ describe('deposit', () => {
       const depositedEvent = getDepositedEvent(events);
       expect(depositedEvent).toMatchObject({
         destination,
-        amountDeposited: heldAfter.sub(held),
         destinationHoldings: heldAfter,
       });
 

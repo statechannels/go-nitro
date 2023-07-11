@@ -57,7 +57,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         }
 
         holdings[asset][channelId] += amount;
-        emit Deposited(channelId, asset, amount, holdings[asset][channelId]);
+        emit Deposited(channelId, asset, holdings[asset][channelId]);
     }
 
     /**
