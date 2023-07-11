@@ -23,11 +23,29 @@ func NewNatsTransportAsClient(url string) (*natsTransportClient, error) {
 }
 
 func (c *natsTransportClient) Request(data []byte) ([]byte, error) {
-	msg, err := c.nc.Request(nitroRequestTopic+apiVersionPath, data, 10*time.Second)
-	if msg == nil {
-		return nil, fmt.Errorf("received nill data for request %v with error %w", string(data), err)
+	requestFn := func(data []byte) (*nats.Msg, error) {
+		return c.nc.Request(nitroRequestTopic+apiVersionPath, data, 10*time.Second)
 	}
-	return msg.Data, err
+
+	numTries := 2
+	var err error
+	var msg *nats.Msg
+	for i := 0; i < numTries; i++ {
+		msg, err = requestFn(data)
+		if msg != nil && err == nil {
+			return msg.Data, nil
+		}
+
+		// Skip sleep after the last try
+		lastTry := i == numTries-1
+		if lastTry {
+			break
+		}
+
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	return nil, fmt.Errorf("received nill data for request %v with error %w", string(data), err)
 }
 
 func (c *natsTransportClient) Subscribe() (<-chan []byte, error) {
