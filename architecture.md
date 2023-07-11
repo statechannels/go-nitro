@@ -64,3 +64,11 @@ node->RPC server:
 RPC server-#red>RPC client: <background:#yellow>JSON-RPC response
 end
 ```
+
+---
+
+An alternate view of the architecture is shown here:
+
+![go-nitro architecture](./go-nitro%20architecture2.png)
+
+[Click here to edit the diagram](https://excalidraw.com/#json=8yRbfXLrLq5sWPp5JD2hQ,l4-oScoyZV6QxGINus0qCQ)
