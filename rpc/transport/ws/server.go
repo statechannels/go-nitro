@@ -62,17 +62,14 @@ func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, erro
 }
 
 func (wsc *serverWebSocketTransport) serveHttp(tcpListener net.Listener) {
-	for {
+	defer wsc.wg.Done()
 
-		err := wsc.httpServer.Serve(tcpListener)
-		if err != nil && errors.Is(err, http.ErrServerClosed) {
-			wsc.wg.Done()
-			return
-		}
-		if err != nil {
-			panic(err)
-		}
-
+	err := wsc.httpServer.Serve(tcpListener)
+	if err != nil && errors.Is(err, http.ErrServerClosed) {
+		return
+	}
+	if err != nil {
+		panic(err)
 	}
 }
 
