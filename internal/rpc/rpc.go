@@ -106,7 +106,6 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		Timestamp().
 		Str("node", ourStore.GetAddress().String()).
 		Str("rpc", "server").
-		Str("scope", "").
 		Logger()
 
 	rpcServer, err := rpc.NewRpcServer(&node, &serverLogger, transport)

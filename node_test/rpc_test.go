@@ -40,7 +40,6 @@ func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.L
 		Timestamp().
 		Str("client", clientName).
 		Str("rpc", rpcRole).
-		Str("scope", "").
 		Logger()
 }
 
