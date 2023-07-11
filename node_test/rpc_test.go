@@ -421,9 +421,14 @@ func setupNitroNodeWithRPCClient(
 	if err != nil {
 		panic(err)
 	}
+
 	cleanupFn := func() {
+		logger := testLogger(logDestination)
+		logger.Info().Str("pk", string(pk)).Msg("Starting rpc close")
 		rpcClient.Close()
+		logger.Info().Str("pk", string(pk)).Msg("Rpc client closed")
 		rpcServer.Close()
+		logger.Info().Str("pk", string(pk)).Msg("Rpc server closed")
 	}
 	return rpcClient, messageService, cleanupFn
 }
