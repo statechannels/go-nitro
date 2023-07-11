@@ -27,3 +27,8 @@ type Uint256 = big.Int
 
 // A {tokenAddress: amount} map. Address 0 represents a chain's native token (ETH, FIL, etc)
 type Funds map[common.Address]*big.Int
+
+// ConstError is a const-friendly error type.
+type ConstError string
+
+func (c ConstError) Error() string { return string(c) }
