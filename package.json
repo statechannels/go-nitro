@@ -1,15 +1,15 @@
 {
-  "name": "nitro-gui",
+  "name": "nitro-packages",
   "version": "0.0.1",
   "private": true,
-  "description": "HTML/JS Front-end for go-nitro statechannel network",
+  "description": "Typescript packages for go-nitro statechannel network",
   "homepage": "https://statechannels.org",
   "bugs": {
-    "url": "https://github.com/statechannels/nitro-gui/issues"
+    "url": "https://github.com/statechannels/go-nitro/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/statechannels/nitro-gui.git"
+    "url": "git+https://github.com/statechannels/go-nitro.git"
   },
   "license": "(MIT-0 OR Apache-2.0)",
   "author": "http://statechannels.org",
@@ -17,9 +17,9 @@
     "packages/*"
   ],
   "scripts": {
+    "bootstrap": "yarn workspaces foreach -pt run prepack",
     "build": "yarn workspaces foreach -pt run build",
     "lint": "yarn workspaces foreach -pt run lint",
-    "bootstrap": "yarn workspaces foreach -pt run prepack",
     "test": "yarn workspaces foreach -pt run test"
   },
   "packageManager": "yarn@3.5.1"

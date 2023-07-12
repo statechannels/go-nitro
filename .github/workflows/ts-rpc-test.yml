@@ -1,4 +1,4 @@
-name: RPC Test
+name: TypeScript RPC Client Test
 
 on:
   pull_request:
