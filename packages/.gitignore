@@ -1,46 +1,8 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-# The artifacts contains only logs, for now
-artifacts
-
-# The data folder contains storage related files
-data
-
-# OSX specific files
 .DS_Store
-
-
-nitro-protocol/hardhat-network-output.log
-site
-
-# Editor configuration
-site/.idea
-.idea
-
-
-# Cache from mkdocs (docs website)
-.cache/
-
-#######################################
-# Related to ts packages/ dir         #
-#######################################
 dist/
 build/
 coverage/
+.cache/
 
 # Logs
 logs
@@ -112,6 +74,7 @@ node_modules/
 **/.yarn/build-state.yml
 **/.yarn/install-state.gz
 .pnp.*
+
 
 #
 **/storybook-static
