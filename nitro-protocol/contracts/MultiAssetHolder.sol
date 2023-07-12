@@ -71,7 +71,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             'Array lengths must match'
         );
         for (uint256 i = 0; i < channelIds.length; i++) {
-            address(this).call{value: amounts[i]}(
+            (success, ) = address(this).call{value: amounts[i]}(
                 abi.encodeWithSignature(
                     'deposit(address,bytes32,uint256,uint256)',
                     asset,
@@ -80,6 +80,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
                     amounts[i]
                 )
             );
+            require(success, 'deposit_batch: deposit failed');
         }
     }
 

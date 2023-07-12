@@ -1,56 +1,76 @@
 {
   "deployInfrastructureContracts": {
     "satp": {
-      "NitroAdjudicator": 3418489
+      "NitroAdjudicator": 3522697
     }
   },
   "directlyFundAChannelWithETHFirst": {
-    "satp": 46822
+    "satp": 46818
   },
   "directlyFundAChannelWithETHSecond": {
-    "satp": 29734
+    "satp": 29730
+  },
+  "batchFundChannelsWithETHFirst": {
+    "satp": {
+      "1": 56049,
+      "5": 188295,
+      "10": 353618,
+      "20": 684226,
+      "50": 1676170,
+      "100": 3329620
+    }
+  },
+  "batchFundChannelsWithETHSecond": {
+    "satp": {
+      "1": 34302,
+      "5": 98196,
+      "10": 178080,
+      "20": 337809,
+      "50": 817117,
+      "100": 1616173
+    }
   },
   "directlyFundAChannelWithERC20First": {
     "satp": {
       "approve": 46218,
-      "deposit": 70349
+      "deposit": 70345
     }
   },
   "directlyFundAChannelWithERC20Second": {
     "satp": {
       "approve": 46218,
-      "deposit": 53261
+      "deposit": 53257
     }
   },
   "ETHexit": {
-    "satp": 110993
+    "satp": 110981
   },
   "ERC20exit": {
-    "satp": 112295
+    "satp": 112283
   },
   "ETHexitSad": {
     "satp": {
-      "challenge": 116280,
-      "transferAllAssets": 81527,
-      "total": 197807
+      "challenge": 116271,
+      "transferAllAssets": 81523,
+      "total": 197794
     }
   },
   "ETHexitSadLedgerFunded": {
     "satp": {
-      "challengeX": 116280,
-      "challengeL": 109415,
-      "transferAllAssetsL": 61615,
-      "transferAllAssetsX": 81527,
-      "total": 368837
+      "challengeX": 116271,
+      "challengeL": 109406,
+      "transferAllAssetsL": 61611,
+      "transferAllAssetsX": 81523,
+      "total": 368811
     }
   },
   "ETHexitSadVirtualFunded": {
     "satp": {
-      "challengeL": 125524,
-      "challengeV": 176036,
-      "reclaimL": 61733,
-      "transferAllAssetsL": 113227,
-      "total": 476520
+      "challengeL": 125515,
+      "challengeV": 176027,
+      "reclaimL": 61721,
+      "transferAllAssetsL": 113223,
+      "total": 476486
     }
   }
 }
