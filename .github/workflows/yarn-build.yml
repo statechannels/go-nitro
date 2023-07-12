@@ -2,7 +2,7 @@ name: Yarn build and lint
 
 on:
   pull_request:
-    paths: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx', '**/*.json', '**/*.md']
+    paths: ['packages/**/*.ts', 'packages/**/*.tsx', 'packages/**/*.js', 'packages/**/*.jsx', 'packages/**/*.json', 'packages/**/*.md']
   workflow_dispatch:
 jobs:
   build-and-lint:
