@@ -77,6 +77,7 @@ func (wsc *clientWebSocketTransport) Close() error {
 }
 
 func (wsc *clientWebSocketTransport) readMessages() {
+	wsc.logger.Debug().Msg("Starting to read websocket messages")
 	for {
 		_, data, err := wsc.clientWebsocket.ReadMessage()
 		if err != nil {
