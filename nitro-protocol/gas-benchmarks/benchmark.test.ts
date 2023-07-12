@@ -1,6 +1,7 @@
 import {readFileSync, existsSync} from 'fs';
 
 import {BigNumber} from 'ethers';
+import {hashMessage} from 'ethers/lib/utils';
 
 import {encodeOutcome, Outcome} from '../src';
 import {computeReclaimEffects} from '../src/contract/multi-asset-holder';
@@ -25,7 +26,6 @@ import {
 import {batchSizes, GasResults} from './gas';
 import {challengeChannelAndExpectGas} from './jestSetup';
 import {nitroAdjudicator, token} from './localSetup';
-import {hashMessage} from 'ethers/lib/utils';
 
 /**
  * Ensures the asset holding contract always has a nonzero token balance.
@@ -79,7 +79,7 @@ describe('Consumes the expected gas for deposits', () => {
   for (const batchSize of batchSizes) {
     const batch = getChannelBatch(batchSize);
 
-    it(`when batch funding ${batchSize} channels with ETH (first deposit)`, async () => {  
+    it(`when batch funding ${batchSize} channels with ETH (first deposit)`, async () => {
       await expect(
         await nitroAdjudicator.deposit_batch(
           MAGIC_ADDRESS_INDICATING_ETH,
