@@ -22,7 +22,7 @@ type clientWebSocketTransport struct {
 // NewWebSocketTransportAsClient creates a websocket connection that can be used to send requests and listen for notifications
 func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error) {
 	wsc := &clientWebSocketTransport{}
-	wsc.notificationChan = make(chan []byte)
+	wsc.notificationChan = make(chan []byte, 10)
 	wsc.url = url
 
 	subscribeUrl, err := urlUtil.JoinPath("ws://", url, "subscribe")
