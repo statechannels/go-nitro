@@ -11138,9 +11138,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nitro-gui@workspace:.":
+"nitro-packages@workspace:.":
   version: 0.0.0-use.local
-  resolution: "nitro-gui@workspace:."
+  resolution: "nitro-packages@workspace:."
   languageName: unknown
   linkType: soft
 
