@@ -2,7 +2,6 @@ name: TypeScript RPC Client Test
 
 on:
   pull_request:
-    paths: ["packages/nitro-rpc-client", ".github/workflows/ts-rpc-test.yml"]
   workflow_dispatch:
 jobs:
   run-rpc-test:
