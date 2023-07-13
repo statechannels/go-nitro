@@ -1,9 +1,13 @@
 package main
 
 import (
+	"embed"
+	"io/fs"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -12,6 +16,12 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 )
+
+//go:embed packages/nitro-gui/dist/index.html
+var indexPage []byte
+
+//go:embed packages/nitro-gui/dist/assets/*
+var assets embed.FS
 
 func main() {
 	const (
@@ -140,6 +150,25 @@ func main() {
 			if err != nil {
 				return err
 			}
+
+			// Serve Nitro GUI
+			fs, err := fs.Sub(fs.FS(assets), "packages/nitro-gui/dist")
+			if err != nil {
+				log.Fatal(err)
+			}
+			assetsFs := http.FileServer(http.FS(fs))
+			mux := http.NewServeMux()
+			mux.Handle("/assets/", assetsFs)
+			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(200)
+				w.Write(indexPage)
+			})
+			go func() {
+				err = http.ListenAndServe(":"+strconv.Itoa(rpcPort+100), mux)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}()
 
 			stopChan := make(chan os.Signal, 2)
 			signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
