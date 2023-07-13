@@ -92,11 +92,12 @@ func createChannels() error {
 			return err
 		}
 		url := fmt.Sprintf(":%d/api/v1", participantOpts.RpcPort)
-		clientConnection, err := ws.NewWebSocketTransportAsClient(url)
+		logger := createLogger(logDestination, participant, "client")
+		clientConnection, err := ws.NewWebSocketTransportAsClient(url, logger)
 		if err != nil {
 			return err
 		}
-		clients[participant], err = rpc.NewRpcClient(createLogger(logDestination, participant, "client"), clientConnection)
+		clients[participant], err = rpc.NewRpcClient(logger, clientConnection)
 		if err != nil {
 			panic(err)
 		}
