@@ -15,15 +15,15 @@ jobs:
         with:
           cache: "yarn"
 
+      - name: Install and build dependencies
+        run: yarn && yarn build
+
       # Install foundry so we can use it to run a chain instance
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
       - name: Run go-nitro RPC servers
         run: go run ./scripts/start-rpc-servers.go &> output.log &
-
-      - name: Install dependencies
-        run: yarn
 
       - name: Run Create Channels script
         # TODO: We could write a test specific script that creates channels and checks the results
