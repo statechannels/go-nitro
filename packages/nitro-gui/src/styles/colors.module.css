@@ -1,0 +1,11 @@
+/* export shared colors */
+:export {
+  cOrange: #ea692b;
+  cOrangeLite: #ea692b60;
+  cOrangeAlt: #f16721;
+  cGrey: #d5dbe3;
+  cGreyLite: #d5dbe360;
+  cGreen: #4caf50; /* mui green-500 */
+  cAmber: #ffa000; /* mui amber-700 */
+  cRed: #b71c1c; /* mui red-900 */
+}

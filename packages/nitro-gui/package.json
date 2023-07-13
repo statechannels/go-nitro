@@ -1,0 +1,57 @@
+{
+  "name": "site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "build-storybook": "storybook build",
+    "dev": "vite",
+    "lint": "eslint . --ext js,jsx,cjs,ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "storybook": "storybook dev -p 6006 -s public"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
+    "@heroicons/react": "^2.0.18",
+    "@mui/material": "^5.13.0",
+    "@statechannels/nitro-rpc-client": "workspace:*",
+    "js-big-decimal-esm": "^1.5.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-minimal-pie-chart": "^8.4.0",
+    "tss-react": "^4.8.5"
+  },
+  "devDependencies": {
+    "@storybook/addon-essentials": "^7.0.7",
+    "@storybook/addon-interactions": "^7.0.7",
+    "@storybook/addon-links": "^7.0.7",
+    "@storybook/addon-styling": "^1.0.5",
+    "@storybook/blocks": "^7.0.7",
+    "@storybook/react": "^7.0.7",
+    "@storybook/react-vite": "^7.0.7",
+    "@storybook/testing-library": "^0.0.14-next.2",
+    "@types/jest": "^29.5.1",
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "@typescript-eslint/eslint-plugin": "^5.57.1",
+    "@typescript-eslint/parser": "^5.57.1",
+    "@vitejs/plugin-react-swc": "^3.0.0",
+    "eslint": "^8.38.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.3.4",
+    "eslint-plugin-storybook": "^0.6.11",
+    "mock-socket": "^9.2.1",
+    "msw": "^1.2.1",
+    "msw-storybook-addon": "^1.8.0",
+    "prop-types": "^15.8.1",
+    "sass": "^1.62.1",
+    "storybook": "^7.0.7",
+    "typescript": "^5.0.2",
+    "vite": "^4.3.2"
+  },
+  "msw": {
+    "workerDirectory": "public"
+  }
+}
