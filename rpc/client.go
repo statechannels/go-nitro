@@ -61,24 +61,12 @@ func NewRpcClient(logger zerolog.Logger, trans transport.Requester) (*RpcClient,
 
 // NewHttpRpcClient creates a new RpcClient using an http transport
 func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
-	transport, err := ws.NewWebSocketTransportAsClient(rpcServerUrl)
+	logger := zerolog.New(os.Stdout)
+	transport, err := ws.NewWebSocketTransportAsClient(rpcServerUrl, logger)
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-
-	c := &RpcClient{transport, zerolog.New(os.Stdout), &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}, common.Address{}}
-
-	notificationChan, err := c.transport.Subscribe()
-	if err != nil {
-		return nil, err
-	}
-	c.wg.Add(1)
-	go c.subscribeToNotifications(ctx, notificationChan)
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
+	return NewRpcClient(logger, transport)
 }
 
 // Address returns the address of the the nitro node
