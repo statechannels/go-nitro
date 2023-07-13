@@ -160,8 +160,7 @@ func main() {
 			mux := http.NewServeMux()
 			mux.Handle("/assets/", assetsFs)
 			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(200)
-				w.Write(indexPage)
+				_, _ = w.Write(indexPage)
 			})
 			go func() {
 				err = http.ListenAndServe(":"+strconv.Itoa(rpcPort+100), mux)
