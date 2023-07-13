@@ -20,15 +20,14 @@ function App() {
   const [focusedLedgerChannel, setFocusedLedgerChannel] = useState<string>("");
 
   useEffect(() => {
-    NitroRpcClient.CreateHttpNitroClient(window.location.host + "/api/v1").then(
-      (c) => {
-        setNitroClient(c);
-        fetchAndSetLedgerChannels(c, setLedgerChannels);
-        c.Notifications.on("objective_completed", () =>
-          fetchAndSetLedgerChannels(c, setLedgerChannels)
-        );
-      }
-    );
+    const host = import.meta.env.VITE_RPC_HOST ?? window.location.host;
+    NitroRpcClient.CreateHttpNitroClient(host + "/api/v1").then((c) => {
+      setNitroClient(c);
+      fetchAndSetLedgerChannels(c, setLedgerChannels);
+      c.Notifications.on("objective_completed", () =>
+        fetchAndSetLedgerChannels(c, setLedgerChannels)
+      );
+    });
   }, []);
 
   const focusedChannelInLedgerChannels = ledgerChannels.some(
