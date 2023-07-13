@@ -20,9 +20,6 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
-      - name: Tidy
-        run: go mod tidy
-
       - name: Run go-nitro RPC servers
         run: go run ./scripts/start-rpc-servers.go &> output.log &
 
