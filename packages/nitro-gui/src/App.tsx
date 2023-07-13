@@ -15,7 +15,7 @@ async function fetchAndSetLedgerChannels(
 }
 
 function App() {
-  const rpcPort = String(Number(window.location.port) - 100); // TODO need a better solution for finding this. We could just use the same port.
+  const rpcPort = window.location.port;
 
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
   const [ledgerChannels, setLedgerChannels] = useState<LedgerChannelInfo[]>([]);
