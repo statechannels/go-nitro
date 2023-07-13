@@ -15,26 +15,21 @@ async function fetchAndSetLedgerChannels(
 }
 
 function App() {
-  const rpcPort = String(Number(window.location.port) - 100); // TODO need a better solution for finding this. We could just use the same port.
-
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
   const [ledgerChannels, setLedgerChannels] = useState<LedgerChannelInfo[]>([]);
   const [focusedLedgerChannel, setFocusedLedgerChannel] = useState<string>("");
 
   useEffect(() => {
-    NitroRpcClient.CreateHttpNitroClient(
-      window.location.hostname + ":" + rpcPort + "/api/v1"
-    ).then((c) => setNitroClient(c));
-  });
-
-  useEffect(() => {
-    if (nitroClient) {
-      fetchAndSetLedgerChannels(nitroClient, setLedgerChannels);
-      nitroClient?.Notifications.on("objective_completed", () =>
-        fetchAndSetLedgerChannels(nitroClient, setLedgerChannels)
-      );
-    }
-  }, [nitroClient]);
+    NitroRpcClient.CreateHttpNitroClient(window.location.host + "/api/v1").then(
+      (c) => {
+        setNitroClient(c);
+        fetchAndSetLedgerChannels(c, setLedgerChannels);
+        c.Notifications.on("objective_completed", () =>
+          fetchAndSetLedgerChannels(c, setLedgerChannels)
+        );
+      }
+    );
+  }, []);
 
   const focusedChannelInLedgerChannels = ledgerChannels.some(
     (lc) => lc.ID === focusedLedgerChannel
