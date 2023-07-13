@@ -36,5 +36,5 @@
 //	  -d '{"jsonrpc":"2.0","id":1,"method":"get_address","params":{}}' \
 //	  http://localhost:4005/api/v1
 //
-// but see  [github.com/statechannels/go-nitro/rpc] or https://github.com/statechannels/nitro-gui/tree/main/packages/nitro-rpc-client for an RPC client to do so programmatically.
+// but see  [github.com/statechannels/go-nitro/rpc] or https://github.com/statechannels/go-nitro/tree/main/packages/nitro-rpc-client for an RPC client to do so programmatically.
 package main
