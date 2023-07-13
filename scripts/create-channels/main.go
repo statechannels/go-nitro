@@ -143,6 +143,10 @@ func createChannels() error {
 	return nil
 }
 
+// main creates channels between 3 participants alice, irene, and bob
+// A ledger channel is opened between alice and irene
+// A ledger channel is opened between irene and bob
+// A virtual channel is opened between alice and bob
 func main() {
 	err := createChannels()
 	if err != nil {
