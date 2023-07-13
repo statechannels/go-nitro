@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/signal"
 	"syscall"
@@ -80,8 +79,8 @@ func InitializeNitroNetwork() error {
 		dataFolder, cleanup := utils.GenerateTempStoreFolder()
 		defer cleanup()
 
-		var emptyFS fs.FS // Serve a dummy static site (we do not currently support embedding the GUI here)
-		server, node, msgService, err := interRpc.InitChainServiceAndRunRpcServer(nodeOpts.Pk, chainOpts, nodeOpts.UseDurableStore, dataFolder, false, nodeOpts.MsgPort, nodeOpts.RpcPort, emptyFS)
+		// Serve a dummy static site (we do not currently support embedding the GUI here)
+		server, node, msgService, err := interRpc.InitChainServiceAndRunRpcServer(nodeOpts.Pk, chainOpts, nodeOpts.UseDurableStore, dataFolder, false, nodeOpts.MsgPort, nodeOpts.RpcPort, nil)
 		if err != nil {
 			return err
 		}
