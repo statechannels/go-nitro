@@ -16,7 +16,6 @@ import (
 	interRpc "github.com/statechannels/go-nitro/internal/rpc"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
-	"github.com/statechannels/go-nitro/internal/utils"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/node/query"
@@ -139,7 +138,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		}
 	}
 
-	utils.WaitForPeerInfoExchange(msgServices...)
+	waitForPeerInfoExchange(msgServices...)
 	logger.Info().Msgf("Peer exchange complete")
 
 	// create n-1 ledger channels
