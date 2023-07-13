@@ -4,7 +4,6 @@ import { LedgerChannelInfo } from "@statechannels/nitro-rpc-client/src/types";
 
 import "./App.css";
 import TopBar from "./components/TopBar";
-import { QUERY_KEY } from "./constants";
 import LedgerChannelDetails from "./components/LedgerChannelDetails";
 import PaymentChannelContainer from "./components/PaymentChannelContainer";
 
@@ -16,16 +15,17 @@ async function fetchAndSetLedgerChannels(
 }
 
 function App() {
-  const url =
-    new URLSearchParams(window.location.search).get(QUERY_KEY) ??
-    "localhost:4005/api/v1";
+  const rpcPort = String(Number(window.location.port) - 100); // TODO need a better solution for finding this. We could just use the same port.
+
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
   const [ledgerChannels, setLedgerChannels] = useState<LedgerChannelInfo[]>([]);
   const [focusedLedgerChannel, setFocusedLedgerChannel] = useState<string>("");
 
   useEffect(() => {
-    NitroRpcClient.CreateHttpNitroClient(url).then((c) => setNitroClient(c));
-  }, [url]);
+    NitroRpcClient.CreateHttpNitroClient(
+      window.location.hostname + ":" + rpcPort + "/api/v1"
+    ).then((c) => setNitroClient(c));
+  });
 
   useEffect(() => {
     if (nitroClient) {
@@ -46,7 +46,6 @@ function App() {
   return (
     <>
       <TopBar
-        url={url}
         ledgerChannels={ledgerChannels}
         focusedLedgerChannel={focusedLedgerChannel}
         setFocusedLedgerChannel={setFocusedLedgerChannel}

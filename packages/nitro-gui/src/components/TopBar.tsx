@@ -1,9 +1,8 @@
 import Box from "@mui/material/Box";
 
 import LedgerChannelList, { LedgerChannelListProps } from "./LedgerChannelList";
-import RpcConnect, { RPCConnectProps } from "./RpcConnect";
 
-type Props = LedgerChannelListProps & RPCConnectProps;
+type Props = LedgerChannelListProps;
 
 export default function TopBar(props: Props) {
   return (
@@ -20,7 +19,6 @@ export default function TopBar(props: Props) {
         focusedLedgerChannel={props.focusedLedgerChannel}
         setFocusedLedgerChannel={props.setFocusedLedgerChannel}
       />
-      <RpcConnect {...props} />
     </Box>
   );
 }
