@@ -398,6 +398,8 @@ func setupNitroNodeWithRPCClient(
 		t.Fatal(err)
 	}
 
+	clientLogger := createLogger(logDestination, rpcServer.Address().Hex(), "client")
+
 	var clientConnection transport.Requester
 	switch connectionType {
 	case "nats":
@@ -408,7 +410,7 @@ func setupNitroNodeWithRPCClient(
 		}
 	case "ws":
 
-		clientConnection, err = ws.NewWebSocketTransportAsClient(rpcServer.Url())
+		clientConnection, err = ws.NewWebSocketTransportAsClient(rpcServer.Url(), clientLogger)
 		if err != nil {
 			panic(err)
 		}
@@ -417,7 +419,7 @@ func setupNitroNodeWithRPCClient(
 		panic(err)
 	}
 
-	rpcClient, err := rpc.NewRpcClient(createLogger(logDestination, rpcServer.Address().Hex(), "client"), clientConnection)
+	rpcClient, err := rpc.NewRpcClient(clientLogger, clientConnection)
 	if err != nil {
 		panic(err)
 	}
