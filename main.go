@@ -141,7 +141,13 @@ func main() {
 				return err
 			}
 
-			HostNitroUI(uint(rpcPort))
+			uiPort := uint(rpcPort)
+			// If we're using nats we can't re-use the RPC port for the UI, so we choose another
+			if useNats {
+				uiPort = uint(rpcPort) + 500
+			}
+			HostNitroUI(uiPort)
+
 			stopChan := make(chan os.Signal, 2)
 			signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 			<-stopChan // wait for interrupt or terminate signal

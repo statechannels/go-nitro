@@ -22,15 +22,15 @@ func HostNitroUI(port uint) {
 
 	http.Handle("/", http.FileServer(http.FS(staticSite)))
 	serverAddress := fmt.Sprintf(":%d", port)
-	url := fmt.Sprintf("http://%s/", serverAddress)
 
+	url := fmt.Sprintf("http://localhost:%d/", port)
 	// If we're using the WS transport it will already be running a server so we don't need to start a new one
 	if isListening(serverAddress) {
 		fmt.Printf("Using transport http server to host UI at %s\n", url)
 		return
 	}
 
-	fmt.Printf("Hosting UI at %s\n", port)
+	fmt.Printf("Hosting UI at %s\n", url)
 	http.ListenAndServe(serverAddress, nil)
 }
 
