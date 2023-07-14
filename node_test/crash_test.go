@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/statechannels/go-nitro/internal/logging"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/node"
@@ -21,7 +22,7 @@ import (
 func TestCrashTolerance(t *testing.T) {
 	// Setup logging
 	logFile := "test_crash_tolerance.log"
-	logDestination := newLogWriter(logFile)
+	logDestination := logging.NewLogWriter("../artifacts", logFile)
 
 	// Setup chain service
 	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(3)

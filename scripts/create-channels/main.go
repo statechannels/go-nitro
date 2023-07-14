@@ -2,22 +2,20 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
 	"github.com/statechannels/go-nitro/types"
 )
 
-// todo: this should be factored out
-type ParticipantOpts struct {
+type participantOpts struct {
 	UseDurableStore bool
 	MsgPort         int
 	RpcPort         int
@@ -27,34 +25,14 @@ type ParticipantOpts struct {
 	ChainAuthToken  string
 }
 
-// todo: should this get factored out?
-func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.Logger {
+func createLogger(logDestination *os.File, clientName string) zerolog.Logger {
 	return zerolog.New(logDestination).
 		Level(zerolog.TraceLevel).
 		With().
 		Timestamp().
 		Str("client", clientName).
-		Str("rpc", rpcRole).
-		Str("scope", "").
+		Str("rpc", "client").
 		Logger()
-}
-
-// todo: factor this out
-func newLogWriter(logFile string) *os.File {
-	err := os.MkdirAll("./artifacts", os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	filename := filepath.Join("./artifacts", logFile)
-	// Clear the file
-	os.Remove(filename)
-	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return logDestination
 }
 
 func createLedgerChannel(left *rpc.RpcClient, right *rpc.RpcClient) error {
@@ -81,18 +59,18 @@ func createLedgerChannel(left *rpc.RpcClient, right *rpc.RpcClient) error {
 
 func createChannels() error {
 	logFile := "create-channels.log"
-	logDestination := newLogWriter(logFile)
+	logDestination := logging.NewLogWriter("./artifacts", logFile)
 	defer logDestination.Close()
 	participants := []string{"alice", "irene", "bob"}
 	clients := map[string]*rpc.RpcClient{}
 	for _, participant := range participants {
-		var participantOpts ParticipantOpts
+		var participantOpts participantOpts
 
 		if _, err := toml.DecodeFile(fmt.Sprintf("./scripts/test-configs/%s.toml", participant), &participantOpts); err != nil {
 			return err
 		}
 		url := fmt.Sprintf(":%d/api/v1", participantOpts.RpcPort)
-		logger := createLogger(logDestination, participant, "client")
+		logger := createLogger(logDestination, participant)
 		clientConnection, err := ws.NewWebSocketTransportAsClient(url, logger)
 		if err != nil {
 			return err
@@ -142,7 +120,7 @@ func createChannels() error {
 	return nil
 }
 
-// main creates channels between 3 participants alice, irene, and bob
+// main creates channels between 3 participants: alice, irene, and bob
 // A ledger channel is opened between alice and irene
 // A ledger channel is opened between irene and bob
 // A virtual channel is opened between alice and bob
