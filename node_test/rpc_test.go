@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net/http"
 	"os"
 	"strconv"
 	"testing"
@@ -393,7 +394,11 @@ func setupNitroNodeWithRPCClient(
 	connectionType transport.TransportType,
 ) (*rpc.RpcClient, *p2pms.P2PMessageService, func()) {
 	var err error
-	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, false, "", msgPort, rpcPort, connectionType, true, logDestination)
+	// Reset the DefaultServeMux between clients to avoid "multiple registrations" error
+	// due to multiple transports registering for the same path.
+	http.DefaultServeMux = http.NewServeMux()
+
+	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, false, "", msgPort, rpcPort, connectionType, logDestination)
 	if err != nil {
 		t.Fatal(err)
 	}
