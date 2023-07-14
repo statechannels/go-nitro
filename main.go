@@ -16,7 +16,7 @@ import (
 )
 
 //go:embed packages/nitro-gui/dist/*
-var staticSite embed.FS
+var staticSiteRaw embed.FS
 
 func main() {
 	const (
@@ -33,10 +33,11 @@ func main() {
 		MSG_PORT             = "msgport"
 		RPC_PORT             = "rpcport"
 		DURABLE_STORE_FOLDER = "durablestorefolder"
+		HEADLESS             = "headless"
 	)
 	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk, durableStoreFolder string
 	var msgPort, rpcPort int
-	var useNats, useDurableStore bool
+	var useNats, useDurableStore, headless bool
 
 	flags := []cli.Flag{
 		&cli.StringFlag{
@@ -125,6 +126,13 @@ func main() {
 			Destination: &durableStoreFolder,
 			Value:       "./data/nitro-store",
 		}),
+		altsrc.NewBoolFlag(&cli.BoolFlag{
+			Name:        HEADLESS,
+			Usage:       "If true, does not serve the RPC GUI.",
+			Category:    "Connectivity:",
+			Destination: &headless,
+			Value:       false,
+		}),
 	}
 	app := &cli.App{
 		Name:   "go-nitro",
@@ -141,12 +149,25 @@ func main() {
 				CaAddress:      common.HexToAddress(caAddress),
 			}
 
-			ss, err := fs.Sub(fs.FS(staticSite), "packages/nitro-gui/dist")
-			if err != nil {
-				log.Fatal(err)
+			var staticSite fs.FS
+
+			if !headless {
+				var err error
+				staticSite, err = fs.Sub(fs.FS(staticSiteRaw), "packages/nitro-gui/dist")
+				if err != nil {
+					log.Fatalf("Error parsing static site: %s", err)
+				}
 			}
 
-			rpcServer, _, _, err := rpc.InitChainServiceAndRunRpcServer(pkString, chainOpts, useDurableStore, durableStoreFolder, useNats, msgPort, rpcPort, ss)
+			rpcServer, _, _, err := rpc.InitChainServiceAndRunRpcServer(
+				pkString,
+				chainOpts,
+				useDurableStore,
+				durableStoreFolder,
+				useNats,
+				msgPort,
+				rpcPort,
+				staticSite)
 			if err != nil {
 				return err
 			}
