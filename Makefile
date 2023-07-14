@@ -13,6 +13,9 @@ docker/restart: docker/stop docker/start
 docker/attach:
 	docker exec -it go-nitro bash
 
+ui:
+	yarn && yarn workspace nitro-gui build
+	
 fake-ui:
 	rm -rf packages/nitro-gui/dist
 	mkdir packages/nitro-gui/dist

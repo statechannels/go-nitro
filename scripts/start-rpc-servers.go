@@ -54,6 +54,7 @@ const (
 	CHAIN_URL        = "chainurl"
 	DEPLOYER_PK      = "chainpk"
 	START_ANVIL      = "startanvil"
+	HEADLESS         = "headless"
 )
 
 func main() {
@@ -83,6 +84,11 @@ func main() {
 			Aliases:  []string{"dpk"},
 			Value:    FUNDED_TEST_PK,
 		},
+		&cli.BoolFlag{
+			Name:  HEADLESS,
+			Usage: "Specifies whether to build a real UI for the go-nitro RPC servers",
+			Value: false,
+		},
 	}
 
 	app := &cli.App{
@@ -91,6 +97,8 @@ func main() {
 		Flags: flags,
 
 		Action: func(cCtx *cli.Context) error {
+			buildUI(cCtx.Bool(HEADLESS))
+
 			running := []*exec.Cmd{}
 			if cCtx.Bool(START_ANVIL) {
 				anvilCmd, err := chain.StartAnvil()
@@ -131,6 +139,25 @@ func main() {
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func buildUI(fake bool) {
+	var cmd *exec.Cmd
+	if fake {
+		cmd = exec.Command("make", "fake-ui")
+	} else {
+		cmd = exec.Command("make", "ui")
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Start()
+	if err != nil {
+		panic(err)
+	}
+	err = cmd.Wait()
+	if err != nil {
+		panic(err)
 	}
 }
 
