@@ -135,8 +135,7 @@ func createChannels() error {
 	}
 	<-alice.ObjectiveCompleteChan(response.Id)
 
-	for clientName, client := range clients {
-		fmt.Printf("Closing client %s\n", clientName)
+	for _, client := range clients {
 		client.Close()
 	}
 
