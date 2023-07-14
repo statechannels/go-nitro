@@ -49,7 +49,9 @@ func NewWebSocketTransportAsServer(port string, staticSite fs.FS) (*serverWebSoc
 	serveMux.HandleFunc(path.Join(apiVersionPath, "subscribe"), wsc.subscribe)
 
 	// Serve static site
-	serveMux.Handle("/", http.FileServer(http.FS(staticSite)))
+	if staticSite != nil {
+		serveMux.Handle("/", http.FileServer(http.FS(staticSite)))
+	}
 
 	wsc.httpServer = &http.Server{
 		Handler:      &serveMux,
