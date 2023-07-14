@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -98,9 +97,8 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		transport, err = nats.NewNatsTransportAsServer(rpcPort)
 	case "ws":
 		logger.Info().Msg("Initializing websocket RPC transport...")
-		mux := http.DefaultServeMux
 
-		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort), mux)
+		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
 	default:
 		err = fmt.Errorf("unknown transport type %s", transportType)
 	}

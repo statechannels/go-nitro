@@ -34,7 +34,7 @@ type serverWebSocketTransport struct {
 }
 
 // NewWebSocketTransportAsServer starts an http server that accepts websocket connections
-func NewWebSocketTransportAsServer(port string, serveMux *http.ServeMux) (*serverWebSocketTransport, error) {
+func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, error) {
 	wsc := &serverWebSocketTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}}
 
 	tcpListener, err := net.Listen("tcp", ":"+wsc.port)
@@ -42,10 +42,10 @@ func NewWebSocketTransportAsServer(port string, serveMux *http.ServeMux) (*serve
 		return nil, err
 	}
 
-	serveMux.HandleFunc(apiVersionPath, wsc.request)
-	serveMux.HandleFunc(path.Join(apiVersionPath, "subscribe"), wsc.subscribe)
+	http.HandleFunc(apiVersionPath, wsc.request)
+	http.HandleFunc(path.Join(apiVersionPath, "subscribe"), wsc.subscribe)
 	wsc.httpServer = &http.Server{
-		Handler:      serveMux,
+		Handler:      http.DefaultServeMux,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
 	}
