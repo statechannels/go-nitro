@@ -141,6 +141,7 @@ func main() {
 				return err
 			}
 
+			HostNitroUI(uint(rpcPort))
 			stopChan := make(chan os.Signal, 2)
 			signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 			<-stopChan // wait for interrupt or terminate signal
