@@ -144,7 +144,8 @@ func main() {
 			uiPort := uint(rpcPort)
 			// If we're using nats we can't re-use the RPC port for the UI, so we choose another
 			if useNats {
-				uiPort = uint(rpcPort) + 500
+				const NATS_PORT_OFFSET = 500
+				uiPort = uint(rpcPort) + NATS_PORT_OFFSET
 			}
 
 			hostNitroUI(uiPort)
