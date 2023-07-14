@@ -14,8 +14,8 @@ jobs:
         with:
           go-version: "1.20.0"
 
-      - name: Install and build GUI dependency with yarn
-        run: yarn && yarn build
+      - name: Make fake UI (for speed)
+        run: make fake-ui
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3.4.0
