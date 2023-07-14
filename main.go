@@ -146,7 +146,8 @@ func main() {
 			if useNats {
 				uiPort = uint(rpcPort) + 500
 			}
-			HostNitroUI(uiPort)
+
+			hostNitroUI(uiPort)
 
 			stopChan := make(chan os.Signal, 2)
 			signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)

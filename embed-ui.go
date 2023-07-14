@@ -14,7 +14,7 @@ import (
 //go:embed packages/nitro-gui/dist/*
 var staticSiteRaw embed.FS
 
-func HostNitroUI(port uint) {
+func hostNitroUI(port uint) {
 	staticSite, err := fs.Sub(fs.FS(staticSiteRaw), "packages/nitro-gui/dist")
 	if err != nil {
 		log.Fatalf("Error parsing static site: %s", err)
