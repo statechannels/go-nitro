@@ -1,6 +1,9 @@
 package logging
 
 import (
+	"log"
+	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -26,4 +29,21 @@ func configureZeroLogger() {
 		file = short
 		return file + ":" + strconv.Itoa(line)
 	}
+}
+
+func NewLogWriter(logDir, logFile string) *os.File {
+	err := os.MkdirAll(logDir, os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	filename := filepath.Join(logDir, logFile)
+	// Clear the file
+	os.Remove(filename)
+	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return logDestination
 }

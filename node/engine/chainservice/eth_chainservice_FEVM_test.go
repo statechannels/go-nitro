@@ -7,7 +7,6 @@ import (
 	"log"
 	"math/big"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -19,6 +18,7 @@ import (
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	"github.com/statechannels/go-nitro/protocols"
@@ -90,7 +90,7 @@ func testAgainstEndpoint(t *testing.T, endpoint string, logFile string, pk *ecds
 		t.Fatal(err)
 	}
 
-	logDestination := newLogWriter(logFile)
+	logDestination := logging.NewLogWriter("../artifacts", logFile)
 	cs, err := newEthChainService(client, na, naAddress, caAddress, vpaAddress, txSubmitter, logDestination)
 	if err != nil {
 		t.Fatal(err)
@@ -219,19 +219,4 @@ func testAgainstEndpoint(t *testing.T, endpoint string, logFile string, pk *ecds
 		}
 
 	}
-}
-
-func newLogWriter(logFile string) *os.File {
-	err := os.MkdirAll("../artifacts", os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	filename := filepath.Join("../artifacts", logFile)
-	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return logDestination
 }

@@ -3,11 +3,8 @@ package node_test
 import (
 	"fmt"
 	"io"
-	"log"
 	"math/big"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -16,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/node"
@@ -59,23 +57,6 @@ func waitForPeerInfoExchange(services ...*p2pms.P2PMessageService) {
 	}
 }
 
-func newLogWriter(logFile string) *os.File {
-	err := os.MkdirAll("../artifacts", os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	filename := filepath.Join("../artifacts", logFile)
-	// Clear the file
-	os.Remove(filename)
-	logDestination, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return logDestination
-}
-
 func closeSimulatedChain(t *testing.T, chain chainservice.SimulatedChain) {
 	if err := chain.Close(); err != nil {
 		t.Fatal(err)
@@ -107,7 +88,7 @@ func setupChainService(tc TestCase, tp TestParticipant, si sharedTestInfrastruct
 	case MockChain:
 		return chainservice.NewMockChainService(si.mockChain, tp.Address())
 	case SimulatedChain:
-		logDestination := newLogWriter(tc.LogName)
+		logDestination := logging.NewLogWriter("../artifacts", tc.LogName)
 
 		ethAccountIndex := tp.Port - testactors.START_PORT
 		cs, err := chainservice.NewSimulatedBackendChainService(si.simulatedChain, *si.bindings, si.ethAccounts[ethAccountIndex], logDestination)
@@ -137,10 +118,10 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) st
 }
 
 func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) (node.Node, messageservice.MessageService) {
-	messageService := setupMessageService(tc, tp, si, newLogWriter(tc.LogName))
+	messageService := setupMessageService(tc, tp, si, logging.NewLogWriter("../artifacts", tc.LogName))
 	cs := setupChainService(tc, tp, si)
 	store := setupStore(tc, tp, si)
-	n := node.New(messageService, cs, store, newLogWriter(tc.LogName), &engine.PermissivePolicy{}, nil)
+	n := node.New(messageService, cs, store, logging.NewLogWriter("../artifacts", tc.LogName), &engine.PermissivePolicy{}, nil)
 	return n, messageService
 }
 
