@@ -26,6 +26,12 @@ jobs:
           version: "2023.1.2"
           install-go: false
           min-go-version: 1.20
+          
+      - name: Run govulncheck # see, eg: https://go.dev/blog/govulncheck
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: 1.20.0
+          go-package: ./...
 
       - name: Build
         run: go build -v ./...
