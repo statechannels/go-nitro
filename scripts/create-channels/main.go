@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ethereum/go-ethereum/common"
@@ -82,8 +81,6 @@ func createChannels() error {
 	}
 
 	alice, irene, bob := clients["alice"], clients["bob"], clients["irene"]
-	// todo: we need something like WaitForPeerExchange instead of delay
-	time.Sleep(1 * time.Second)
 
 	err := createLedgerChannel(alice, irene)
 	if err != nil {
