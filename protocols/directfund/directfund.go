@@ -470,6 +470,7 @@ func NewObjectiveRequest(
 	outcome outcome.Exit,
 	nonce uint64,
 	appDefinition types.Address,
+	appData types.Bytes,
 ) ObjectiveRequest {
 	return ObjectiveRequest{
 		CounterParty:      counterparty,
@@ -477,8 +478,20 @@ func NewObjectiveRequest(
 		Outcome:           outcome,
 		Nonce:             nonce,
 		AppDefinition:     appDefinition,
+		AppData:           appData,
 		objectiveStarted:  make(chan struct{}),
 	}
+}
+
+// NewConsensusObjectiveRequest creates a new ObjectiveRequest for a consensus objective, with an empty appData.
+func NewConsensusObjectiveRequest(
+	counterparty types.Address,
+	challengeDuration uint32,
+	outcome outcome.Exit,
+	nonce uint64,
+	appDefinition types.Address,
+) ObjectiveRequest {
+	return NewObjectiveRequest(counterparty, challengeDuration, outcome, nonce, appDefinition, []byte{})
 }
 
 // SignalObjectiveStarted is used by the engine to signal the objective has been started.

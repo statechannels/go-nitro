@@ -9,6 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/node/engine/messageservice"
+	"github.com/statechannels/go-nitro/types"
 )
 
 const (
@@ -46,17 +47,30 @@ const (
 	P2PMessageService  MessageService = "P2PMessageService"
 )
 
+type DirectTestCaseAction struct {
+	Initiator              int
+	Responder              int
+	ProposalAppData        types.Bytes
+	IsResponderAgree       bool
+	LatestSupportedAppData types.Bytes
+}
+
 // TestCase is a test case for the node integration test.
 type TestCase struct {
 	Description    string
 	Chain          ChainType
 	MessageService MessageService
-	NumOfChannels  uint
-	NumOfPayments  uint
 	MessageDelay   time.Duration
 	LogName        string
-	NumOfHops      uint
 	Participants   []TestParticipant
+
+	// Virtual test props
+	NumOfChannels uint
+	NumOfPayments uint
+	NumOfHops     uint
+
+	// Direct test props
+	Actions []DirectTestCaseAction
 }
 
 // Validate validates the test case and makes sure that the current test supports the test case.
@@ -70,6 +84,17 @@ func (tc *TestCase) Validate() error {
 	}
 	if tc.NumOfChannels < 1 || tc.NumOfChannels > 9 {
 		return fmt.Errorf("NumOfChannels must be greater than 0 and less than 10. Supplied %d", tc.NumOfChannels)
+	}
+	if tc.MessageDelay > 5*time.Second {
+		return fmt.Errorf("MessageDelay must be smaller than 5s")
+	}
+	return nil
+}
+
+// ValidateDirect validates the test case and makes sure that the current test supports the test case.
+func (tc *TestCase) ValidateDirect() error {
+	if len(tc.Actions) < 1 {
+		return fmt.Errorf("ProposedAppData must be greater than 0")
 	}
 	if tc.MessageDelay > 5*time.Second {
 		return fmt.Errorf("MessageDelay must be smaller than 5s")

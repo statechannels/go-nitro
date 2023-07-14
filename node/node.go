@@ -9,8 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/directs"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
@@ -38,6 +40,7 @@ type Node struct {
 	completedObjectives       *safesync.Map[chan struct{}]
 	failedObjectives          chan protocols.ObjectiveId
 	receivedVouchers          chan payments.Voucher
+	receivedChannelUpdates    chan directs.ChannelUpdates
 	chainId                   *big.Int
 	store                     store.Store
 	vm                        *payments.VoucherManager
@@ -71,6 +74,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	n.failedObjectives = make(chan protocols.ObjectiveId, 100)
 	// Using a larger buffer since payments can be sent frequently.
 	n.receivedVouchers = make(chan payments.Voucher, 1000)
+	n.receivedChannelUpdates = make(chan directs.ChannelUpdates, 1000)
 
 	n.channelNotifier = notifier.NewChannelNotifier(store, n.vm)
 
@@ -114,6 +118,10 @@ func (n *Node) handleEngineEvents(ctx context.Context) {
 
 			for _, payment := range update.ReceivedVouchers {
 				n.receivedVouchers <- payment
+			}
+
+			for _, channelUpdate := range update.ReceivedChannelUpdates {
+				n.receivedChannelUpdates <- channelUpdate
 			}
 
 			for _, updated := range update.LedgerChannelUpdates {
@@ -240,13 +248,12 @@ func (n *Node) ClosePaymentChannel(channelId types.Destination) (protocols.Objec
 // CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
 // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
 func (n *Node) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (directfund.ObjectiveResponse, error) {
-	objectiveRequest := directfund.NewObjectiveRequest(
+	objectiveRequest := directfund.NewConsensusObjectiveRequest(
 		Counterparty,
 		ChallengeDuration,
 		outcome,
 		rand.Uint64(),
 		n.engine.GetConsensusAppAddress(),
-		// Appdata implicitly zero
 	)
 
 	// Send the event to the engine
@@ -257,6 +264,45 @@ func (n *Node) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration
 
 // CloseLedgerChannel attempts to close and defund the given directly funded channel.
 func (n *Node) CloseLedgerChannel(channelId types.Destination) (protocols.ObjectiveId, error) {
+	objectiveRequest := directdefund.NewObjectiveRequest(channelId)
+
+	// Send the event to the engine
+	n.engine.ObjectiveRequestsFromAPI <- objectiveRequest
+	objectiveRequest.WaitForObjectiveToStart()
+	return objectiveRequest.Id(*n.Address, n.chainId), nil
+}
+
+func (n *Node) CreateDirectChannel(counterparty types.Address, challengeDuration uint32, outcome outcome.Exit, appDefinition common.Address, appData []byte) (directfund.ObjectiveResponse, error) {
+	objectiveRequest := directfund.NewObjectiveRequest(
+		counterparty,
+		challengeDuration,
+		outcome,
+		rand.Uint64(),
+		appDefinition,
+		appData,
+	)
+
+	// Send the event to the engine
+	n.engine.ObjectiveRequestsFromAPI <- objectiveRequest
+	objectiveRequest.WaitForObjectiveToStart()
+	return objectiveRequest.Response(*n.Address, n.chainId), nil
+}
+
+// UpdateChannel sends an updated appdata to the engine, so it will be signed and sent to the peer.
+func (n *Node) UpdateChannel(channelId types.Destination, appData []byte) {
+	n.engine.UpdateChannelRequestsFromAPI <- engine.UpdateChannelRequest{
+		ChannelId: channelId,
+		AppData:   appData,
+	}
+}
+
+// ReceivedChannelUpdates returns a chan that receives a channel updates proposals
+func (n *Node) ReceivedChannelUpdates() <-chan directs.ChannelUpdates {
+	return n.receivedChannelUpdates
+}
+
+// CloseChannel attempts to close and defund the given directly funded channel.
+func (n *Node) CloseChannel(channelId types.Destination) (protocols.ObjectiveId, error) {
 	objectiveRequest := directdefund.NewObjectiveRequest(channelId)
 
 	// Send the event to the engine

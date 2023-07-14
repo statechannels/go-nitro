@@ -74,17 +74,17 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 
 		// Setup clients
 		// NOTE: We rely on the convention that Alice is the first participant, Bob the second, and the intermediaries afterwards.
-		clientA, msgA := setupIntegrationNode(tc, tc.Participants[0], infra)
+		clientA, msgA, _ := setupIntegrationNode(tc, tc.Participants[0], infra)
 		defer clientA.Close()
 		msgServices = append(msgServices, msgA)
 
-		clientB, msgB := setupIntegrationNode(tc, tc.Participants[1], infra)
+		clientB, msgB, _ := setupIntegrationNode(tc, tc.Participants[1], infra)
 		defer clientB.Close()
 		msgServices = append(msgServices, msgB)
 
 		intermediaries := make([]node.Node, 0)
 		for _, intermediary := range tc.Participants[2:] {
-			clientI, msgI := setupIntegrationNode(tc, intermediary, infra)
+			clientI, msgI, _ := setupIntegrationNode(tc, intermediary, infra)
 
 			intermediaries = append(intermediaries, clientI)
 			msgServices = append(msgServices, msgI)

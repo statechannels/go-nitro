@@ -56,7 +56,7 @@ func TestNew(t *testing.T) {
 	getByConsensus := func(id types.Address) (*consensus_channel.ConsensusChannel, bool) {
 		return nil, false
 	}
-	request := NewObjectiveRequest(
+	request := NewConsensusObjectiveRequest(
 		testState.Participants[1],
 		testState.ChallengeDuration,
 		testState.Outcome,

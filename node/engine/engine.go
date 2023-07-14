@@ -9,9 +9,12 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
+	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/directs"
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/node/engine/messageservice"
@@ -58,8 +61,9 @@ type Engine struct {
 	// inbound go channels
 
 	// From API
-	ObjectiveRequestsFromAPI chan protocols.ObjectiveRequest
-	PaymentRequestsFromAPI   chan PaymentRequest
+	ObjectiveRequestsFromAPI     chan protocols.ObjectiveRequest
+	PaymentRequestsFromAPI       chan PaymentRequest
+	UpdateChannelRequestsFromAPI chan UpdateChannelRequest
 
 	fromChain  <-chan chainservice.Event
 	fromMsg    <-chan protocols.Message
@@ -89,6 +93,12 @@ type PaymentRequest struct {
 	Amount    *big.Int
 }
 
+// UpdateChannelRequest represents a request from the API to update a channel
+type UpdateChannelRequest struct {
+	ChannelId types.Destination
+	AppData   []byte
+}
+
 // EngineEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
 type EngineEvent struct {
 	// These are objectives that are now completed
@@ -97,6 +107,8 @@ type EngineEvent struct {
 	FailedObjectives []protocols.ObjectiveId
 	// ReceivedVouchers are vouchers we've received from other participants
 	ReceivedVouchers []payments.Voucher
+	// ReceivedChannelUpdates are channel updates we've received from other participants
+	ReceivedChannelUpdates []directs.ChannelUpdates
 
 	// LedgerChannelUpdates contains channel info for ledger channels that have been updated
 	LedgerChannelUpdates []query.LedgerChannelInfo
@@ -110,7 +122,8 @@ func (ee *EngineEvent) IsEmpty() bool {
 		len(ee.FailedObjectives) == 0 &&
 		len(ee.ReceivedVouchers) == 0 &&
 		len(ee.LedgerChannelUpdates) == 0 &&
-		len(ee.PaymentChannelUpdates) == 0
+		len(ee.PaymentChannelUpdates) == 0 &&
+		len(ee.ReceivedChannelUpdates) == 0
 }
 
 func (ee *EngineEvent) Merge(other EngineEvent) {
@@ -119,6 +132,7 @@ func (ee *EngineEvent) Merge(other EngineEvent) {
 	ee.ReceivedVouchers = append(ee.ReceivedVouchers, other.ReceivedVouchers...)
 	ee.LedgerChannelUpdates = append(ee.LedgerChannelUpdates, other.LedgerChannelUpdates...)
 	ee.PaymentChannelUpdates = append(ee.PaymentChannelUpdates, other.PaymentChannelUpdates...)
+	ee.ReceivedChannelUpdates = append(ee.ReceivedChannelUpdates, other.ReceivedChannelUpdates...)
 }
 
 type CompletedObjectiveEvent struct {
@@ -138,6 +152,7 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	// bind to inbound chans
 	e.ObjectiveRequestsFromAPI = make(chan protocols.ObjectiveRequest)
 	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
+	e.UpdateChannelRequestsFromAPI = make(chan UpdateChannelRequest)
 
 	e.fromChain = chain.EventFeed()
 	e.fromMsg = msg.Out()
@@ -206,6 +221,8 @@ func (e *Engine) run(ctx context.Context) {
 			res, err = e.handleObjectiveRequest(or)
 		case pr := <-e.PaymentRequestsFromAPI:
 			res, err = e.handlePaymentRequest(pr)
+		case ucr := <-e.UpdateChannelRequestsFromAPI:
+			res, err = e.handleUpdateChannelRequest(ucr)
 		case chainEvent := <-e.fromChain:
 			res, err = e.handleChainEvent(chainEvent)
 		case message := <-e.fromMsg:
@@ -408,6 +425,37 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		}
 
 	}
+
+	for _, channelUpdate := range message.ChannelUpdatePayloads {
+		s := state.SignedState{}
+		err := s.UnmarshalJSON(channelUpdate.StateData)
+		if err != nil {
+			return EngineEvent{}, fmt.Errorf("error unmarshalling state data: %w", err)
+		}
+
+		ch, ok := e.store.GetChannelById(s.ChannelId())
+		if !ok {
+			return EngineEvent{}, fmt.Errorf("unknown channel to update: %s", s.ChannelId())
+		}
+
+		clonedChannel := ch.Clone()
+		if ok := clonedChannel.AddSignedState(s); !ok {
+			return EngineEvent{}, fmt.Errorf("failed to add signed state to channel: %s", s.ChannelId())
+		}
+
+		err = e.store.SetChannel(clonedChannel)
+		if err != nil {
+			return EngineEvent{}, err
+		}
+
+		allCompleted.ReceivedChannelUpdates = append(allCompleted.ReceivedChannelUpdates, directs.ChannelUpdates{
+			ChannelId:  s.ChannelId(),
+			AppData:    s.State().AppData,
+			Signatures: s.Signatures(),
+		})
+
+	}
+
 	return allCompleted, nil
 }
 
@@ -545,6 +593,64 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, erro
 
 	se := protocols.SideEffects{MessagesToSend: protocols.CreateVoucherMessage(voucher, payee)}
 	return ee, e.executeSideEffects(se)
+}
+
+// handleUpdateChannelRequest handles an UpdateChannelRequest (triggered by a client API call).
+// It creates new state of channel, signs it and sends it to the counterparty.
+func (e *Engine) handleUpdateChannelRequest(request UpdateChannelRequest) (EngineEvent, error) {
+	ee := EngineEvent{}
+	cId := request.ChannelId
+	c, ok := e.store.GetChannelById(cId)
+	if !ok {
+		return ee, fmt.Errorf("handleAPIEvent: Could not get channel from the store %s", cId)
+	}
+
+	s := directs.GetLatestProposedStateByAppData(c, request.AppData)
+
+	// If there is no suitable proposed state, creates a new one
+	if s == nil {
+		latestSignedState, err := c.LatestSignedState()
+		if err != nil {
+			return ee, fmt.Errorf("handleAPIEvent: Could not get latest supported state from the channel %s", cId)
+		}
+
+		newState := latestSignedState.Clone().State()
+		newState.AppData = request.AppData
+		newState.TurnNum = newState.TurnNum + 1
+
+		s = &newState
+	}
+
+	ss, err := c.SignAndAddState(*s, e.store.GetChannelSecretKey())
+	if err != nil {
+		return ee, fmt.Errorf("handleAPIEvent: Could not sign the new state outcome")
+	}
+	if err := e.store.SetChannel(c); err != nil {
+		return ee, fmt.Errorf("handleAPIEvent: Could not set the new state in the store")
+	}
+	ssBytes, err := ss.MarshalJSON()
+	if err != nil {
+		return ee, fmt.Errorf("handleAPIEvent: Could not marshal the updated state")
+	}
+
+	counterpartyAddress := e.getCounterparty(ss.State())
+
+	messagesToSend := []protocols.Message{}
+	messagesToSend = append(messagesToSend, protocols.CreateChannelUpdateMessage(counterpartyAddress, ssBytes))
+	se := protocols.SideEffects{MessagesToSend: messagesToSend}
+
+	return ee, e.executeSideEffects(se)
+}
+
+// Returns the first address in the state participants list that differs from node owner address.
+func (e *Engine) getCounterparty(s state.State) common.Address {
+	for _, p := range s.Participants {
+		if p != *e.store.GetAddress() {
+			return p
+		}
+	}
+
+	return common.Address{}
 }
 
 // sendMessages sends out the messages and records the metrics.

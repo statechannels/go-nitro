@@ -16,7 +16,7 @@ var someRequest JsonRpcRequest[directfund.ObjectiveRequest] = JsonRpcRequest[dir
 	Jsonrpc: JsonRpcVersion,
 	Id:      123,
 	Method:  "CreateLedgerChannel",
-	Params: directfund.NewObjectiveRequest(
+	Params: directfund.NewConsensusObjectiveRequest(
 		testactors.Alice.Address(),
 		345,
 		testdata.Outcomes.Create(

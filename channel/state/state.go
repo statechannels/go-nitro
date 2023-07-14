@@ -204,7 +204,7 @@ func (s State) Clone() State {
 
 	// Variable part
 	if s.AppData != nil {
-		clone.AppData = make(types.Bytes, 0, len(s.AppData))
+		clone.AppData = make(types.Bytes, len(s.AppData))
 		copy(clone.AppData, s.AppData)
 	}
 	clone.Outcome = s.Outcome.Clone()

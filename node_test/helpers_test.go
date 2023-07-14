@@ -127,12 +127,12 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) st
 	}
 }
 
-func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) (node.Node, messageservice.MessageService) {
+func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) (node.Node, messageservice.MessageService, store.Store) {
 	messageService := setupMessageService(tc, tp, si, newLogWriter(tc.LogName))
 	cs := setupChainService(tc, tp, si)
 	store := setupStore(tc, tp, si)
 	n := node.New(messageService, cs, store, newLogWriter(tc.LogName), &engine.PermissivePolicy{}, nil)
-	return n, messageService
+	return n, messageService, store
 }
 
 func initialLedgerOutcome(alpha, beta, asset types.Address) outcome.Exit {
@@ -189,6 +189,31 @@ func setupLedgerChannel(t *testing.T, alpha node.Node, beta node.Node, asset com
 
 func closeLedgerChannel(t *testing.T, alpha node.Node, beta node.Node, channelId types.Destination) {
 	response, err := alpha.CloseLedgerChannel(channelId)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	<-alpha.ObjectiveCompleteChan(response)
+	<-beta.ObjectiveCompleteChan(response)
+}
+
+func setupDirectChannel(t *testing.T, alpha node.Node, beta node.Node, asset common.Address, appDef types.Address, appData types.Bytes) types.Destination {
+	// Set up an outcome that requires both participants to deposit
+	outcome := initialLedgerOutcome(*alpha.Address, *beta.Address, asset)
+
+	response, err := alpha.CreateDirectChannel(*beta.Address, 0, outcome, appDef, appData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	<-alpha.ObjectiveCompleteChan(response.Id)
+	<-beta.ObjectiveCompleteChan(response.Id)
+
+	return response.ChannelId
+}
+
+func closeDirectChannel(t *testing.T, alpha node.Node, beta node.Node, channelId types.Destination) {
+	response, err := alpha.CloseChannel(channelId)
 	if err != nil {
 		t.Fatal(err)
 	}

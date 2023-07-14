@@ -150,7 +150,7 @@ func (rc *RpcClient) GetPaymentChannelsByLedger(ledgerId types.Destination) []qu
 
 // CreateLedger creates a new ledger channel
 func (rc *RpcClient) CreateLedgerChannel(counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) directfund.ObjectiveResponse {
-	objReq := directfund.NewObjectiveRequest(
+	objReq := directfund.NewConsensusObjectiveRequest(
 		counterparty,
 		100,
 		outcome,

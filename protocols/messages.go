@@ -35,6 +35,12 @@ func CreateObjectivePayload(id ObjectiveId, payloadType PayloadType, p interface
 	return ObjectivePayload{PayloadData: b, ObjectiveId: id, Type: payloadType}, nil
 }
 
+// ChannelUpdatePayload is a message containing a signed channel update.
+type ChannelUpdatePayload struct {
+	// StateData is the serialized state.State
+	StateData []byte
+}
+
 // Message is an object to be sent across the wire.
 type Message struct {
 	To   types.Address
@@ -50,6 +56,8 @@ type Message struct {
 	Payments []payments.Voucher
 	// RejectedObjectives is a collection of objectives that have been rejected.
 	RejectedObjectives []ObjectiveId
+	// ChannelUpdates contains a collection of channel updates.
+	ChannelUpdatePayloads []ChannelUpdatePayload
 }
 
 // Serialize serializes the message into a string.
@@ -132,6 +140,10 @@ func CreateVoucherMessage(voucher payments.Voucher, recipients ...types.Address)
 	}
 
 	return messages
+}
+
+func CreateChannelUpdateMessage(recipient types.Address, stateData []byte) Message {
+	return Message{To: recipient, ChannelUpdatePayloads: []ChannelUpdatePayload{{StateData: stateData}}}
 }
 
 // DeserializeMessage deserializes the passed string into a protocols.Message.
