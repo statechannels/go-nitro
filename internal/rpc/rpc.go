@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -22,7 +23,7 @@ import (
 )
 
 func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
-	useDurableStore bool, durableStoreFolder string, useNats bool, msgPort int, rpcPort int,
+	useDurableStore bool, durableStoreFolder string, useNats bool, msgPort int, rpcPort int, isTest bool,
 ) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
 	if pkString == "" {
 		panic("pk must be set")
@@ -38,7 +39,7 @@ func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
 	if useNats {
 		transportType = transport.Nats
 	}
-	rpcServer, node, messageService, err := RunRpcServer(pk, chainService, useDurableStore, durableStoreFolder, msgPort, rpcPort, transportType, os.Stdout)
+	rpcServer, node, messageService, err := RunRpcServer(pk, chainService, useDurableStore, durableStoreFolder, msgPort, rpcPort, transportType, isTest, os.Stdout)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -48,7 +49,12 @@ func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
 }
 
 func RunRpcServer(pk []byte, chainService chainservice.ChainService,
-	useDurableStore bool, durableStoreFolder string, msgPort int, rpcPort int, transportType transport.TransportType, logDestination *os.File,
+	useDurableStore bool,
+	durableStoreFolder string,
+	msgPort int, rpcPort int,
+	transportType transport.TransportType,
+	isTest bool,
+	logDestination *os.File,
 ) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
 	me := crypto.GetAddressFromSecretKeyBytes(pk)
 
@@ -93,7 +99,16 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		transport, err = nats.NewNatsTransportAsServer(rpcPort)
 	case "ws":
 		logger.Info().Msg("Initializing websocket RPC transport...")
-		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
+		mux := http.DefaultServeMux
+
+		// If we're running in a test environment, the DefaultServeMux will be shared by all clients
+		// This causes errors when multiple clients call `HandleFunc` with the same path
+		// To avoid this we just create a new mux for each client
+		if isTest {
+			mux = http.NewServeMux()
+		}
+
+		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort), mux)
 	default:
 		err = fmt.Errorf("unknown transport type %s", transportType)
 	}
