@@ -42,10 +42,12 @@ func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, erro
 		return nil, err
 	}
 
-	http.HandleFunc(apiVersionPath, wsc.request)
-	http.HandleFunc(path.Join(apiVersionPath, "subscribe"), wsc.subscribe)
+	var serveMux http.ServeMux
+
+	serveMux.HandleFunc(apiVersionPath, wsc.request)
+	serveMux.HandleFunc(path.Join(apiVersionPath, "subscribe"), wsc.subscribe)
 	wsc.httpServer = &http.Server{
-		Handler:      http.DefaultServeMux,
+		Handler:      &serveMux,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
 	}

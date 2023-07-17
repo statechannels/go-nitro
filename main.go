@@ -15,22 +15,32 @@ import (
 
 func main() {
 	const (
-		CONFIG               = "config"
-		USE_NATS             = "usenats"
+		CONFIG = "config"
+
+		// Connectivity
+		CONNECTIVITY_CATEGORY = "Connectivity:"
+		USE_NATS              = "usenats"
+		CHAIN_URL             = "chainurl"
+		CHAIN_AUTH_TOKEN      = "chainauthtoken"
+		NA_ADDRESS            = "naaddress"
+		VPA_ADDRESS           = "vpaaddress"
+		CA_ADDRESS            = "caaddress"
+		MSG_PORT              = "msgport"
+		RPC_PORT              = "rpcport"
+		GUI_PORT              = "guiport"
+
+		// Keys
+		KEYS_CATEGORY = "Keys:"
+		PK            = "pk"
+		CHAIN_PK      = "chainpk"
+
+		// Storage
+		STORAGE_CATEGORY     = "Storage:"
 		USE_DURABLE_STORE    = "usedurablestore"
-		PK                   = "pk"
-		CHAIN_URL            = "chainurl"
-		CHAIN_AUTH_TOKEN     = "chainauthtoken"
-		CHAIN_PK             = "chainpk"
-		NA_ADDRESS           = "naaddress"
-		VPA_ADDRESS          = "vpaaddress"
-		CA_ADDRESS           = "caaddress"
-		MSG_PORT             = "msgport"
-		RPC_PORT             = "rpcport"
 		DURABLE_STORE_FOLDER = "durablestorefolder"
 	)
 	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk, durableStoreFolder string
-	var msgPort, rpcPort int
+	var msgPort, rpcPort, guiPort int
 	var useNats, useDurableStore bool
 
 	flags := []cli.Flag{
@@ -42,20 +52,20 @@ func main() {
 			Name:        USE_NATS,
 			Usage:       "Specifies whether to use NATS or http/ws for the rpc server.",
 			Value:       false,
-			Category:    "Connectivity:",
+			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &useNats,
 		}),
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:        USE_DURABLE_STORE,
 			Usage:       "Specifies whether to use a durable store or an in-memory store.",
-			Category:    "Storage:",
+			Category:    STORAGE_CATEGORY,
 			Value:       false,
 			Destination: &useDurableStore,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        PK,
 			Usage:       "Specifies the private key used by the nitro node.",
-			Category:    "Keys:",
+			Category:    KEYS_CATEGORY,
 			Destination: &pkString,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
@@ -63,39 +73,39 @@ func main() {
 			Usage:       "Specifies the url of a RPC endpoint for the chain.",
 			Value:       "ws://127.0.0.1:8545",
 			DefaultText: "hardhat / anvil default",
-			Category:    "Connectivity:",
+			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &chainUrl,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CHAIN_AUTH_TOKEN,
 			Usage:       "The bearer token used for auth when making requests to the chain's RPC endpoint.",
-			Category:    "Connectivity:",
+			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &chainAuthToken,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CHAIN_PK,
 			Usage:       "Specifies the private key to use when interacting with the chain.",
-			Category:    "Keys:",
+			Category:    KEYS_CATEGORY,
 			Destination: &chainPk,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        NA_ADDRESS,
 			Usage:       "Specifies the address of the nitro adjudicator contract.",
-			Category:    "Connectivity:",
+			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &naAddress,
 			Required:    true,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        VPA_ADDRESS,
 			Usage:       "Specifies the address of the virtual payment app.",
-			Category:    "Connectivity:",
+			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &vpaAddress,
 			Required:    true,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CA_ADDRESS,
 			Usage:       "Specifies the address of the consensus app.",
-			Category:    "Connectivity:",
+			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &caAddress,
 			Required:    true,
 		}),
@@ -103,20 +113,27 @@ func main() {
 			Name:        MSG_PORT,
 			Usage:       "Specifies the tcp port for the message service.",
 			Value:       3005,
-			Category:    "Connectivity:",
+			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &msgPort,
 		}),
 		altsrc.NewIntFlag(&cli.IntFlag{
 			Name:        RPC_PORT,
 			Usage:       "Specifies the tcp port for the rpc server.",
 			Value:       4005,
-			Category:    "Connectivity:",
+			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &rpcPort,
+		}),
+		altsrc.NewIntFlag(&cli.IntFlag{
+			Name:        GUI_PORT,
+			Usage:       "Specifies the tcp port for the Nitro Connect GUI.",
+			Value:       5005,
+			Category:    CONNECTIVITY_CATEGORY,
+			Destination: &guiPort,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        DURABLE_STORE_FOLDER,
 			Usage:       "Specifies the folder for the durable store data storage.",
-			Category:    "Storage:",
+			Category:    STORAGE_CATEGORY,
 			Destination: &durableStoreFolder,
 			Value:       "./data/nitro-store",
 		}),
@@ -141,14 +158,7 @@ func main() {
 				return err
 			}
 
-			uiPort := uint(rpcPort)
-			// If we're using nats we can't re-use the RPC port for the UI, so we choose another
-			if useNats {
-				const NATS_PORT_OFFSET = 500
-				uiPort = uint(rpcPort) + NATS_PORT_OFFSET
-			}
-
-			hostNitroUI(uiPort)
+			hostNitroUI(uint(guiPort))
 
 			stopChan := make(chan os.Signal, 2)
 			signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)

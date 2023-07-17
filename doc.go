@@ -7,6 +7,12 @@
 //
 //	go build -o gonitro
 //
+// Either command may be augmented with a build tag like so:
+//
+//	go build -o gonitro -tags embed-ui
+//
+// which will cause a static website located at packages/nitro-gui/dist to be served over the rpcPort (see below). If no such site has been built, there will be a compiler error.
+//
 // Go nitro accepts the following command flags, which can also be displayed via `go run . -help` (or `gonitro -help` for the build binary).
 // Usage of ./nitro-rpc-server:
 //
