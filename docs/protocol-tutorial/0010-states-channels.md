@@ -4,7 +4,7 @@ description: Important data structures.
 
 # States & Channels
 
-A state channel can be thought of as a set of data structures (called "states") committed to and exchanged between a fixed set of actors (which we call participants), together with some execution rules.
+A state channel can be thought of as a private ledger containing balances and other arbitrary data housed in a data structure which we call a "state". The state of the channel is updated, committed to and exchanged between a fixed set of actors (which we call participants), together with some execution rules.
 
 !!! info
 
@@ -12,7 +12,7 @@ A state channel can be thought of as a set of data structures (called "states") 
 
 A state channel controls [funds](./0060-funding-a-channel.md) which are locked up -- either on an L1 blockchain or on some other ledger such as another state channel.
 
-State channel execution may always be disputed on-chain via a contract we call the Adjudicator, although this not necessary.
+State channel execution may always be [disputed on-chain](./0070-finalizing-a-channel.md#sad-path) via a contract we call the Adjudicator, although this not necessary (and in fact a last resort.) By emulating the on-chain dispute process, participants may understand which of several possible states is ultimately enforceable and therefore share an understanding about "the current state of the channel"/
 
 ## States
 
