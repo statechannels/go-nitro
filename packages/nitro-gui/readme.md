@@ -10,9 +10,9 @@ Runs the storybook instance for the project, for\
 previewing components in a variety of configured states.
 Open [http://localhost:6006](http://localhost:6006) to view it in the browser.
 
-### `VITE_RPC_HOST=localhost:4005 yarn dev`
+### `yarn dev`
 
-Runs the app in the development mode with hot reload at [http://localhost:5173/](http://localhost:5173/). The UI will "point at" (i.e. launch RPC requests against) `localost:4005` (replace host and port as appropriate). This should be a Nitro RPC-Server-Enabled node.
+Runs the app in the development mode with hot reload at [http://localhost:5173/](http://localhost:5173/). The UI will "point at" (i.e. launch RPC requests against) the `VITE_RPC_HOST` env var. This can be set in `.env.development` and should correspond to a Nitro RPC-Server-Enabled node.
 
 ### `yarn build`
 
