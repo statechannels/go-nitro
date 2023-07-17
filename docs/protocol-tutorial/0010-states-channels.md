@@ -12,7 +12,7 @@ A state channel can be thought of as a private ledger containing balances and ot
 
 A state channel controls [funds](./0060-funding-a-channel.md) which are locked up -- either on an L1 blockchain or on some other ledger such as another state channel.
 
-State channel execution may always be [disputed on-chain](./0070-finalizing-a-channel.md#sad-path) via a contract we call the Adjudicator, although this not necessary (and in fact a last resort.) By emulating the on-chain dispute process, participants may understand which of several possible states is ultimately enforceable and therefore share an understanding about "the current state of the channel"/
+State channel execution may always be [disputed on-chain](./0070-finalizing-a-channel.md#sad-path) via a contract we call the Adjudicator, although this not necessary (and in fact a last resort.) By emulating the on-chain dispute process, participants may understand which of several possible states is ultimately enforceable and therefore share an understanding about "the current state of the channel".
 
 ## States
 
