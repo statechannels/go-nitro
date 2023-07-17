@@ -85,6 +85,7 @@ func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastru
 			tp.PrivateKey,
 			true,
 			logWriter,
+			[]string{},
 		)
 
 		return ms
