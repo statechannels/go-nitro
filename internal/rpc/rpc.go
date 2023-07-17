@@ -48,7 +48,11 @@ func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
 }
 
 func RunRpcServer(pk []byte, chainService chainservice.ChainService,
-	useDurableStore bool, durableStoreFolder string, msgPort int, rpcPort int, transportType transport.TransportType, logDestination *os.File,
+	useDurableStore bool,
+	durableStoreFolder string,
+	msgPort int, rpcPort int,
+	transportType transport.TransportType,
+	logDestination *os.File,
 ) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
 	me := crypto.GetAddressFromSecretKeyBytes(pk)
 
@@ -93,6 +97,7 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		transport, err = nats.NewNatsTransportAsServer(rpcPort)
 	case "ws":
 		logger.Info().Msg("Initializing websocket RPC transport...")
+
 		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
 	default:
 		err = fmt.Errorf("unknown transport type %s", transportType)
