@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/BurntSushi/toml"
@@ -27,6 +28,8 @@ type participantOpts struct {
 	ChainPk         string
 	ChainUrl        string
 	ChainAuthToken  string
+	BootPeers       string
+	UseMdns         bool
 }
 
 const (
@@ -46,7 +49,7 @@ func main() {
 // A ledger channel is opened between irene and bob
 // A virtual channel is opened between alice and bob
 func InitializeNitroNetwork() error {
-	participants := []string{"alice", "irene", "bob"}
+	participants := []string{"ivan", "alice", "bob"}
 	servers := []*rpc.RpcServer{}
 	nodes := []*node.Node{}
 	msgServices := []*p2pms.P2PMessageService{}
@@ -79,7 +82,11 @@ func InitializeNitroNetwork() error {
 		dataFolder, cleanup := utils.GenerateTempStoreFolder()
 		defer cleanup()
 
-		server, node, msgService, err := interRpc.InitChainServiceAndRunRpcServer(nodeOpts.Pk, chainOpts, nodeOpts.UseDurableStore, dataFolder, false, nodeOpts.MsgPort, nodeOpts.RpcPort)
+		var peerSlice []string
+		if nodeOpts.BootPeers != "" {
+			peerSlice = strings.Split(nodeOpts.BootPeers, ",")
+		}
+		server, node, msgService, err := interRpc.InitChainServiceAndRunRpcServer(nodeOpts.Pk, chainOpts, nodeOpts.UseDurableStore, dataFolder, false, nodeOpts.MsgPort, nodeOpts.RpcPort, peerSlice, nodeOpts.UseMdns)
 		if err != nil {
 			return err
 		}
@@ -87,21 +94,22 @@ func InitializeNitroNetwork() error {
 		nodes = append(nodes, node)
 		msgServices = append(msgServices, msgService)
 	}
+
 	utils.WaitForPeerInfoExchange(msgServices...)
 
-	alice, irene, bob := nodes[0], nodes[1], nodes[2]
-	err = createLedgerChannel(alice, irene)
+	ivan, alice, bob := nodes[0], nodes[1], nodes[2]
+	err = createLedgerChannel(alice, ivan)
 	if err != nil {
 		return err
 	}
 
-	err = createLedgerChannel(irene, bob)
+	err = createLedgerChannel(ivan, bob)
 	if err != nil {
 		return err
 	}
 
 	outcome := testdata.Outcomes.Create(*alice.Address, *bob.Address, 1_000, 0, types.Address{})
-	response, err := alice.CreatePaymentChannel([]common.Address{*irene.Address}, *bob.Address, 0, outcome)
+	response, err := alice.CreatePaymentChannel([]common.Address{*ivan.Address}, *bob.Address, 0, outcome)
 	if err != nil {
 		return err
 	}

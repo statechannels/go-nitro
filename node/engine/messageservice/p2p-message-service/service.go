@@ -34,6 +34,12 @@ type basicPeerInfo struct {
 	Address types.Address
 }
 
+type peerExchangeMessage struct {
+	Id             peer.ID
+	Address        types.Address
+	ExpectResponse bool
+}
+
 const (
 	PROTOCOL_ID                  protocol.ID = "/go-nitro/msg/1.0.0"
 	PEER_EXCHANGE_PROTOCOL_ID    protocol.ID = "/go-nitro/peerinfo/1.0.0"
@@ -144,7 +150,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	// Add bootstrap peers
 	err = kademliaDHT.Bootstrap(ctx)
 	ms.checkError(err)
-	ms.AddPeers(bootPeers)
+	ms.addBootPeers(bootPeers)
 
 	expectedPeers := len(bootPeers)
 	if expectedPeers > 0 {
@@ -156,9 +162,9 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 				fmt.Println("Peer info: ", peer)
 			}
 
-			// If we've discovered the expected number of peers, stop the ticker
+			// Once we've discovered all bootPeers, stop the ticker
 			if len(peers) >= expectedPeers {
-				fmt.Println("Discovered all expected peers. Stopping...")
+				fmt.Println("Discovered all expected bootPeers.")
 				ticker.Stop()
 				break
 			}
@@ -174,14 +180,13 @@ func (ms *P2PMessageService) HandlePeerFound(pi peer.AddrInfo) {
 	ms.logger.Debug().Msgf("Attempting to add mdns peer")
 	ms.p2pHost.Peerstore().AddAddr(pi.ID, pi.Addrs[0], peerstore.PermanentAddrTTL)
 
-	stream, err := ms.p2pHost.NewStream(context.Background(), pi.ID, PEER_EXCHANGE_PROTOCOL_ID)
-	ms.checkError(err)
-	ms.sendPeerInfo(stream)
+	ms.sendPeerInfo(pi.ID, false)
 }
 
 func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 	ms.logger.Debug().Msgf("received message")
 	defer stream.Close()
+
 	reader := bufio.NewReader(stream)
 	// Create a buffer stream for non blocking read and write.
 	raw, err := reader.ReadString(DELIMITER)
@@ -196,12 +201,16 @@ func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 	ms.toEngine <- m
 }
 
-// sendPeerInfo sends our peer info over the given stream
-func (ms *P2PMessageService) sendPeerInfo(stream network.Stream) {
+// sendPeerInfo sends our peer info to a given peerId
+func (ms *P2PMessageService) sendPeerInfo(peerId peer.ID, expectResponse bool) {
+	stream, err := ms.p2pHost.NewStream(context.Background(), peerId, PEER_EXCHANGE_PROTOCOL_ID)
+	ms.checkError(err)
 	defer stream.Close()
-	raw, err := json.Marshal(basicPeerInfo{
-		Id:      ms.Id(),
-		Address: ms.me,
+
+	raw, err := json.Marshal(peerExchangeMessage{
+		Id:             ms.Id(),
+		Address:        ms.me,
+		ExpectResponse: expectResponse,
 	})
 	ms.checkError(err)
 
@@ -227,14 +236,24 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 	}
 	ms.checkError(err)
 
-	var peerInfo *basicPeerInfo
-	err = json.Unmarshal([]byte(raw), &peerInfo)
+	var msg *peerExchangeMessage
+	err = json.Unmarshal([]byte(raw), &msg)
 	ms.checkError(err)
 
-	_, foundPeer := ms.peers.LoadOrStore(peerInfo.Address.String(), *peerInfo)
+	peerInfo := basicPeerInfo{msg.Id, msg.Address}
+
+	_, foundPeer := ms.peers.LoadOrStore(msg.Address.String(), peerInfo)
 	if !foundPeer {
 		ms.logger.Debug().Interface("peerInfo", peerInfo).Msgf("New peer found")
-		ms.newPeerInfo <- *peerInfo
+		ms.peers.Range(func(key string, value basicPeerInfo) bool {
+			fmt.Printf("peers map - key: %s, value: %+v\n", key, value)
+			return true
+		})
+		ms.newPeerInfo <- peerInfo
+	}
+
+	if msg.ExpectResponse {
+		ms.sendPeerInfo(msg.Id, false)
 	}
 }
 
@@ -247,6 +266,10 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 
 	peerInfo, ok := ms.peers.Load(msg.To.String())
 	if !ok {
+		ms.peers.Range(func(key string, value basicPeerInfo) bool {
+			fmt.Printf("key: %s, value: %+v\n", key, value)
+			return true
+		})
 		panic(fmt.Errorf("could not load peer %s", msg.To.String()))
 	}
 
@@ -310,7 +333,7 @@ type PeerInfo struct {
 	IpAddress string
 }
 
-func (ms *P2PMessageService) AddPeers(peers []string) {
+func (ms *P2PMessageService) addBootPeers(peers []string) {
 	for _, p := range peers {
 		addr, err := multiaddr.NewMultiaddr(p)
 		ms.checkError(err)
@@ -320,18 +343,15 @@ func (ms *P2PMessageService) AddPeers(peers []string) {
 
 		err = ms.p2pHost.Connect(context.Background(), *peer)
 		ms.checkError(err)
+		ms.logger.Debug().Msgf("connected to boot peer: %v", p)
 
-		// Open a stream with the given peer.
-		_, err = ms.p2pHost.NewStream(context.Background(), peer.ID, PEER_EXCHANGE_PROTOCOL_ID)
-		ms.checkError(err)
-
-		ms.logger.Debug().Msgf("connected to bootpeer: %v", p)
+		ms.sendPeerInfo(peer.ID, true)
 	}
 }
 
-func (ms *P2PMessageService) discoverPeers(ctx context.Context, rendezvous string) {
+func (ms *P2PMessageService) discoverPeers(ctx context.Context, topic string) {
 	routingDiscovery := routing.NewRoutingDiscovery(ms.dht)
-	_, err := routingDiscovery.Advertise(ctx, rendezvous)
+	_, err := routingDiscovery.Advertise(ctx, topic) // fires every 3 hours by default
 	ms.checkError(err)
 
 	ticker := time.NewTicker(time.Second * 10)
@@ -343,19 +363,22 @@ func (ms *P2PMessageService) discoverPeers(ctx context.Context, rendezvous strin
 			return
 		case <-ticker.C:
 
-			peersChan, err := routingDiscovery.FindPeers(ctx, rendezvous)
+			peersChan, err := routingDiscovery.FindPeers(ctx, topic)
 			ms.checkError(err)
 
 			for p := range peersChan {
 				if p.ID == ms.p2pHost.ID() {
 					continue
 				}
+				ms.logger.Debug().Msgf("inspecting peer found through discovery")
 				if ms.p2pHost.Network().Connectedness(p.ID) != network.Connected {
+
 					_, err = ms.p2pHost.Network().DialPeer(ctx, p.ID)
-					if err != nil {
-						ms.logger.Debug().Msgf("connected to new peer: %v", p)
-						continue
-					}
+					ms.checkError(err)
+					ms.p2pHost.Peerstore().AddAddr(p.ID, p.Addrs[0], peerstore.PermanentAddrTTL)
+					ms.logger.Debug().Msgf("connected to new peer: %+v", p)
+
+					ms.sendPeerInfo(p.ID, true)
 				}
 			}
 		}
