@@ -27,10 +27,11 @@ func main() {
 		CA_ADDRESS           = "caaddress"
 		MSG_PORT             = "msgport"
 		RPC_PORT             = "rpcport"
+		GUI_PORT             = "guiport"
 		DURABLE_STORE_FOLDER = "durablestorefolder"
 	)
 	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk, durableStoreFolder string
-	var msgPort, rpcPort int
+	var msgPort, rpcPort, guiPort int
 	var useNats, useDurableStore bool
 
 	flags := []cli.Flag{
@@ -113,6 +114,13 @@ func main() {
 			Category:    "Connectivity:",
 			Destination: &rpcPort,
 		}),
+		altsrc.NewIntFlag(&cli.IntFlag{
+			Name:        GUI_PORT,
+			Usage:       "Specifies the tcp port for the Nitro Connect GUI.",
+			Value:       5005,
+			Category:    "Connectivity:",
+			Destination: &guiPort,
+		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        DURABLE_STORE_FOLDER,
 			Usage:       "Specifies the folder for the durable store data storage.",
@@ -141,14 +149,7 @@ func main() {
 				return err
 			}
 
-			uiPort := uint(rpcPort)
-			// If we're using nats we can't re-use the RPC port for the UI, so we choose another
-			if useNats {
-				const NATS_PORT_OFFSET = 500
-				uiPort = uint(rpcPort) + NATS_PORT_OFFSET
-			}
-
-			hostNitroUI(uiPort)
+			hostNitroUI(uint(guiPort))
 
 			stopChan := make(chan os.Signal, 2)
 			signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
