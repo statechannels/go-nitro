@@ -3,7 +3,7 @@
 set -e
 set -m # enable job control
 
-go run ./scripts/start-rpc-servers.go &
+go run ./scripts/start-rpc-servers &
 
 echo "Waiting for RPC servers to start..."
 sleep 5
