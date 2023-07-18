@@ -54,6 +54,7 @@ const (
 	CHAIN_URL        = "chainurl"
 	DEPLOYER_PK      = "chainpk"
 	START_ANVIL      = "startanvil"
+	HOST_UI          = "hostui"
 )
 
 func main() {
@@ -82,6 +83,12 @@ func main() {
 			Category: "Keys:",
 			Aliases:  []string{"dpk"},
 			Value:    FUNDED_TEST_PK,
+		},
+		&cli.BoolFlag{
+			Name:    HOST_UI,
+			Usage:   "Specifies whether to host the nitro UI or not",
+			Value:   false,
+			Aliases: []string{"ui"},
 		},
 	}
 
@@ -114,8 +121,9 @@ func main() {
 				panic(err)
 			}
 
+			hostUI := cCtx.Bool(HOST_UI)
 			for _, p := range participants {
-				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder)
+				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
 				if err != nil {
 					utils.StopCommands(running...)
 					panic(err)
@@ -143,8 +151,15 @@ func waitForKillSignal() {
 }
 
 // setupRPCServer starts up an RPC server for the given participant
-func setupRPCServer(p participant, c color, na, vpa, ca types.Address, chainUrl, chainAuthToken string, dataFolder string) (*exec.Cmd, error) {
-	args := []string{"run", ".", "-naaddress", na.String()}
+func setupRPCServer(p participant, c color, na, vpa, ca types.Address, chainUrl, chainAuthToken string, dataFolder string, hostUI bool) (*exec.Cmd, error) {
+	args := []string{"run"}
+
+	if hostUI {
+		args = append(args, "-tags", "embed_ui")
+	}
+
+	args = append(args, ".")
+	args = append(args, "-naaddress", na.String())
 	args = append(args, "-vpaaddress", vpa.String())
 	args = append(args, "-caaddress", ca.String())
 

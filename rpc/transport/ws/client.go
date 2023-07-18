@@ -20,11 +20,7 @@ type clientWebSocketTransport struct {
 }
 
 // NewWebSocketTransportAsClient creates a websocket connection that can be used to send requests and listen for notifications
-func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error) {
-	wsc := &clientWebSocketTransport{}
-	wsc.notificationChan = make(chan []byte, 10)
-	wsc.url = url
-
+func NewWebSocketTransportAsClient(url string, logger zerolog.Logger) (*clientWebSocketTransport, error) {
 	subscribeUrl, err := urlUtil.JoinPath("ws://", url, "subscribe")
 	if err != nil {
 		return nil, err
@@ -33,9 +29,8 @@ func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error
 	if err != nil {
 		return nil, err
 	}
-	wsc.clientWebsocket = conn
 
-	wsc.wg = &sync.WaitGroup{}
+	wsc := &clientWebSocketTransport{logger: logger, notificationChan: make(chan []byte, 10), clientWebsocket: conn, url: url, wg: &sync.WaitGroup{}}
 
 	wsc.wg.Add(1)
 	go wsc.readMessages()
@@ -77,6 +72,7 @@ func (wsc *clientWebSocketTransport) Close() error {
 }
 
 func (wsc *clientWebSocketTransport) readMessages() {
+	wsc.logger.Debug().Msg("Starting to read websocket messages")
 	for {
 		_, data, err := wsc.clientWebsocket.ReadMessage()
 		if err != nil {
@@ -84,7 +80,7 @@ func (wsc *clientWebSocketTransport) readMessages() {
 			wsc.wg.Done()
 			return
 		}
-		wsc.logger.Trace().Msgf("Received message: %s", string(data))
+		wsc.logger.Trace().Str("data", string(data)).Msg("Websocket received message")
 		wsc.notificationChan <- data
 	}
 }

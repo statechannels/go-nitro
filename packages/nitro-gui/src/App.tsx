@@ -4,7 +4,6 @@ import { LedgerChannelInfo } from "@statechannels/nitro-rpc-client/src/types";
 
 import "./App.css";
 import TopBar from "./components/TopBar";
-import { QUERY_KEY } from "./constants";
 import LedgerChannelDetails from "./components/LedgerChannelDetails";
 import PaymentChannelContainer from "./components/PaymentChannelContainer";
 
@@ -16,25 +15,20 @@ async function fetchAndSetLedgerChannels(
 }
 
 function App() {
-  const url =
-    new URLSearchParams(window.location.search).get(QUERY_KEY) ??
-    "localhost:4005/api/v1";
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
   const [ledgerChannels, setLedgerChannels] = useState<LedgerChannelInfo[]>([]);
   const [focusedLedgerChannel, setFocusedLedgerChannel] = useState<string>("");
 
   useEffect(() => {
-    NitroRpcClient.CreateHttpNitroClient(url).then((c) => setNitroClient(c));
-  }, [url]);
-
-  useEffect(() => {
-    if (nitroClient) {
-      fetchAndSetLedgerChannels(nitroClient, setLedgerChannels);
-      nitroClient?.Notifications.on("objective_completed", () =>
-        fetchAndSetLedgerChannels(nitroClient, setLedgerChannels)
+    const host = import.meta.env.VITE_RPC_HOST ?? window.location.host;
+    NitroRpcClient.CreateHttpNitroClient(host + "/api/v1").then((c) => {
+      setNitroClient(c);
+      fetchAndSetLedgerChannels(c, setLedgerChannels);
+      c.Notifications.on("objective_completed", () =>
+        fetchAndSetLedgerChannels(c, setLedgerChannels)
       );
-    }
-  }, [nitroClient]);
+    });
+  }, []);
 
   const focusedChannelInLedgerChannels = ledgerChannels.some(
     (lc) => lc.ID === focusedLedgerChannel
@@ -46,7 +40,6 @@ function App() {
   return (
     <>
       <TopBar
-        url={url}
         ledgerChannels={ledgerChannels}
         focusedLedgerChannel={focusedLedgerChannel}
         setFocusedLedgerChannel={setFocusedLedgerChannel}

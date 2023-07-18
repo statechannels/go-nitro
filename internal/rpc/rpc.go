@@ -95,6 +95,7 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		transport, err = nats.NewNatsTransportAsServer(rpcPort)
 	case "ws":
 		logger.Info().Msg("Initializing websocket RPC transport...")
+
 		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
 	default:
 		err = fmt.Errorf("unknown transport type %s", transportType)
