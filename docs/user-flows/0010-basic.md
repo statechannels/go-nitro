@@ -2,9 +2,9 @@
 description: How channels are opened, executed and closed.
 ---
 
-This section describes how the Nitro framework can be used at increasing levels of scalability.
-
 # Basic
+
+This section describes how the Nitro framework can be used at increasing levels of scalability.
 
 A very simple interaction involves just two parties, Alice and Bob, who transact off-chain. After prefund states are exchanged, at least one of them [deposits into the adjudicator](../protocol-tutorial/0060-funding-a-channel.md) in priority order. Then, after postfund states are exchanged, the channel may be [executed according to the rules of the channel](../protocol-tutorial/0020-execution-rules.md). Then, Alice and Bob may agree to finalize, conclude and liquidate the channel.
 
