@@ -4,7 +4,7 @@ description: Interacting with a Nitro network.
 
 # Advanced
 
-The basic flow shown above is essentially a very small, two party state channel network. Nitro protocol allows for far larger and more powerful networks to be built which bring major scalabilty advances.
+The basic flow is essentially a very small, two party state channel network. Nitro protocol allows for far larger and more powerful networks to be built which bring major scalabilty advances.
 
 The first step for any particular node in the network is to **join** by creating a so-called **Ledger Channel** (purple). This is a two-party channel connecting the node to an existing nitro node, backed by at least one on-chain deposit. The existing nitro node is likely to be a so-called "hub" node, meaning that it tends to command a large amount of capital and be very well connected to other nodes.
 
