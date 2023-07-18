@@ -34,7 +34,7 @@ func NewMockChain() *MockChain {
 func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 	mc.blockNum++
 	channelIdString := tx.ChannelId().String()
-	h, _ := mc.holdings.Load(channelIdString)
+	h, _ := mc.holdings.Load(channelIdString) // ignore `ok` because the returned zero-value is what we want
 	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
 		if tx.Deposit.IsNonZero() {
