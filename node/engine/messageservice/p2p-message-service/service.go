@@ -53,7 +53,7 @@ const (
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
 type P2PMessageService struct {
 	toEngine chan protocols.Message // for forwarding processed messages to the engine
-	peers    *safesync.Map[basicPeerInfo]
+	peers    *safesync.Map[peer.ID]
 
 	me          types.Address
 	key         p2pcrypto.PrivKey
@@ -79,7 +79,7 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	ms := &P2PMessageService{
 		toEngine:    make(chan protocols.Message, BUFFER_SIZE),
 		newPeerInfo: make(chan basicPeerInfo, BUFFER_SIZE),
-		peers:       &safesync.Map[basicPeerInfo]{},
+		peers:       &safesync.Map[peer.ID]{},
 		me:          me,
 		logger:      zerolog.New(logWriter).With().Timestamp().Str("message-service", me.String()[0:8]).Caller().Logger(),
 	}
@@ -202,8 +202,8 @@ func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 }
 
 // sendPeerInfo sends our peer info to a given peerId
-func (ms *P2PMessageService) sendPeerInfo(peerId peer.ID, expectResponse bool) {
-	stream, err := ms.p2pHost.NewStream(context.Background(), peerId, PEER_EXCHANGE_PROTOCOL_ID)
+func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID, expectResponse bool) {
+	stream, err := ms.p2pHost.NewStream(context.Background(), recipientId, PEER_EXCHANGE_PROTOCOL_ID)
 	ms.checkError(err)
 	defer stream.Close()
 
@@ -242,10 +242,10 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 
 	peerInfo := basicPeerInfo{msg.Id, msg.Address}
 
-	_, foundPeer := ms.peers.LoadOrStore(msg.Address.String(), peerInfo)
+	_, foundPeer := ms.peers.LoadOrStore(msg.Address.String(), msg.Id)
 	if !foundPeer {
 		ms.logger.Debug().Interface("peerInfo", peerInfo).Msgf("New peer found")
-		ms.peers.Range(func(key string, value basicPeerInfo) bool {
+		ms.peers.Range(func(key string, value peer.ID) bool {
 			fmt.Printf("peers map - key: %s, value: %+v\n", key, value)
 			return true
 		})
@@ -264,9 +264,9 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 	raw, err := msg.Serialize()
 	ms.checkError(err)
 
-	peerInfo, ok := ms.peers.Load(msg.To.String())
+	peerId, ok := ms.peers.Load(msg.To.String())
 	if !ok {
-		ms.peers.Range(func(key string, value basicPeerInfo) bool {
+		ms.peers.Range(func(key string, value peer.ID) bool {
 			fmt.Printf("key: %s, value: %+v\n", key, value)
 			return true
 		})
@@ -274,7 +274,7 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 	}
 
 	for i := 0; i < NUM_CONNECT_ATTEMPTS; i++ {
-		s, err := ms.p2pHost.NewStream(context.Background(), peerInfo.Id, PROTOCOL_ID)
+		s, err := ms.p2pHost.NewStream(context.Background(), peerId, PROTOCOL_ID)
 		if err == nil {
 
 			writer := bufio.NewWriter(s)
@@ -323,14 +323,6 @@ func (s *P2PMessageService) Close() error {
 // PeerInfoReceived returns a channel that receives a PeerInfo when a peer is discovered
 func (s *P2PMessageService) PeerInfoReceived() <-chan basicPeerInfo {
 	return s.newPeerInfo
-}
-
-// PeerInfo contains peer information and the ip address/port
-type PeerInfo struct {
-	Port      int
-	Id        peer.ID
-	Address   types.Address
-	IpAddress string
 }
 
 func (ms *P2PMessageService) addBootPeers(peers []string) {
