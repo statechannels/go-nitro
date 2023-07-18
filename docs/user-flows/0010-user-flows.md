@@ -6,7 +6,7 @@ description: Interacting with a Nitro network.
 
 This page describes how the Nitro framework can be used at increasing levels of scalability.
 
-# Basic
+## Basic
 
 A very simple interaction involves just two parties, Alice and Bob, who transact off-chain. After prefund states are exchanged, at least one of them [deposits into the adjudicator](../protocol-tutorial/0060-funding-a-channel.md) in priority order. Then, after postfund states are exchanged, the channel may be [executed according to the rules of the channel](../protocol-tutorial/0020-execution-rules.md). Then, Alice and Bob may agree to finalize, conclude and liquidate the channel.
 
@@ -38,7 +38,7 @@ Alice<#purple-Bob: agree
 end
 Alice-#red>Adjudicator: concludeAndTransferAll -->
 
-# Advanced
+## Advanced
 
 The basic flow shown above is essentially a very small, two party state channel network. Nitro protocol allows for far larger and more powerful networks to be built which bring major scalabilty advances.
 
@@ -122,7 +122,7 @@ end -->
 
 Note how the highlighted "running" stage is identical as for the basic user flow above. Not also that the adjudicator contract on L1 is not involved in any part of opening, funding, executing or defunding the virtual channel.
 
-# Multihop
+## Multihop
 
 This construction scales to multi-hop scenarios, which involve multiple hub connections like so:
 
