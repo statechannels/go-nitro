@@ -9,7 +9,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
@@ -62,6 +61,8 @@ type P2PMessageService struct {
 	dht         *dht.IpfsDHT
 	newPeerInfo chan basicPeerInfo
 	logger      zerolog.Logger
+
+	MultiAddr string
 }
 
 // Id returns the libp2p peer ID of the message service.
@@ -123,16 +124,10 @@ func (ms *P2PMessageService) setupMdns() {
 }
 
 func (ms *P2PMessageService) setupDht(bootPeers []string) {
-	log.SetAllLoggers(log.LevelInfo) // Set default log level for all loggers
-	// Set specific log level for DHT module
-	dhtKey := "dht"
-	_ = log.SetLogLevel(dhtKey, "debug")
-
 	ctx := context.Background()
 	var options []dht.Option
 	if len(bootPeers) == 0 {
-		// Server mode: act as a bootstrapping node, allowing other peers to join this node
-		options = append(options, dht.Mode(dht.ModeServer))
+		options = append(options, dht.Mode(dht.ModeServer)) // Server mode: allows other peers to connect to this node
 	}
 	kademliaDHT, err := dht.New(ctx, ms.p2pHost, options...)
 	ms.checkError(err)
@@ -145,10 +140,11 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	}
 	addrs, err := peer.AddrInfoToP2pAddrs(&peerInfo)
 	ms.checkError(err)
-	fmt.Println("libp2p node address:", addrs[0])
+	ms.MultiAddr = addrs[0].String()
+	ms.logger.Debug().Msgf("libp2p node address: %s", ms.MultiAddr)
 
 	// Add bootstrap peers
-	err = kademliaDHT.Bootstrap(ctx)
+	err = ms.dht.Bootstrap(ctx)
 	ms.checkError(err)
 	ms.addBootPeers(bootPeers)
 
@@ -156,15 +152,15 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	if expectedPeers > 0 {
 		ticker := time.NewTicker(time.Second)
 		for range ticker.C {
-			peers := kademliaDHT.RoutingTable().ListPeers()
-			fmt.Printf("Found peers: %v\n", len(peers))
+			peers := ms.p2pHost.Peerstore().Peers()
+			ms.logger.Debug().Msgf("found peers: %v, expected peers: %d", len(peers), expectedPeers)
 			for _, peer := range peers {
-				fmt.Println("Peer info: ", peer)
+				ms.logger.Debug().Msgf("peer info: %v", peer)
 			}
 
 			// Once we've discovered all bootPeers, stop the ticker
 			if len(peers) >= expectedPeers {
-				fmt.Println("Discovered all expected bootPeers.")
+				ms.logger.Debug().Msgf("discovered all expected bootPeers")
 				ticker.Stop()
 				break
 			}
@@ -184,7 +180,6 @@ func (ms *P2PMessageService) HandlePeerFound(pi peer.AddrInfo) {
 }
 
 func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
-	ms.logger.Debug().Msgf("received message")
 	defer stream.Close()
 
 	reader := bufio.NewReader(stream)
@@ -244,11 +239,7 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 
 	_, foundPeer := ms.peers.LoadOrStore(msg.Address.String(), msg.Id)
 	if !foundPeer {
-		ms.logger.Debug().Interface("peerInfo", peerInfo).Msgf("New peer found")
-		ms.peers.Range(func(key string, value peer.ID) bool {
-			fmt.Printf("peers map - key: %s, value: %+v\n", key, value)
-			return true
-		})
+		ms.logger.Debug().Msgf("stored new peer in map: %v", peerInfo)
 		ms.newPeerInfo <- peerInfo
 	}
 
@@ -266,10 +257,6 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 
 	peerId, ok := ms.peers.Load(msg.To.String())
 	if !ok {
-		ms.peers.Range(func(key string, value peer.ID) bool {
-			fmt.Printf("key: %s, value: %+v\n", key, value)
-			return true
-		})
 		panic(fmt.Errorf("could not load peer %s", msg.To.String()))
 	}
 
@@ -362,9 +349,8 @@ func (ms *P2PMessageService) discoverPeers(ctx context.Context, topic string) {
 				if p.ID == ms.p2pHost.ID() {
 					continue
 				}
-				ms.logger.Debug().Msgf("inspecting peer found through discovery")
+				ms.logger.Debug().Msgf("inspecting peer found through discovery: %v (status: %v)", p.ID, ms.p2pHost.Network().Connectedness(p.ID))
 				if ms.p2pHost.Network().Connectedness(p.ID) != network.Connected {
-
 					_, err = ms.p2pHost.Network().DialPeer(ctx, p.ID)
 					ms.checkError(err)
 					ms.p2pHost.Peerstore().AddAddr(p.ID, p.Addrs[0], peerstore.PermanentAddrTTL)
