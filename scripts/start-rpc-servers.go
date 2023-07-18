@@ -201,7 +201,7 @@ func stopCommands(cmds ...*exec.Cmd) {
 	}
 }
 
-// GenerateTempStoreFolder generates a temporary folder for storing store data and a cleanup function to clean up the folder
+// generateTempStoreFolder generates a temporary folder for storing store data and a cleanup function to clean up the folder
 func generateTempStoreFolder() (dataFolder string, cleanup func()) {
 	var err error
 
