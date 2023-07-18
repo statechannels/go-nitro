@@ -30,6 +30,7 @@ func configureZeroLogger() {
 		return file + ":" + strconv.Itoa(line)
 	}
 }
+
 // NewLogWriter returns a writer for the given logDir and logFile
 // If the log file already exists it will be removed and a fresh file will be created
 func NewLogWriter(logDir, logFile string) *os.File {
