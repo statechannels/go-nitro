@@ -186,7 +186,7 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 	}
 }
 
-// StopCommands stops the given executing commands
+// stopCommands stops the given executing commands
 func stopCommands(cmds ...*exec.Cmd) {
 	for _, cmd := range cmds {
 		fmt.Printf("Stopping process %v\n", cmd.Args)
