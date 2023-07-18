@@ -14,7 +14,7 @@ import (
 type MockChain struct {
 	blockNum uint64
 	// holdings tracks funds for each channel.
-	holdings map[types.Destination]types.Funds
+	holdings safesync.Map[types.Funds]
 	// out maps addresses to an Event channel. Given that MockChainServices only subscribe
 	// (and never unsubscribe) to events, this can be converted to a list.
 	out safesync.Map[chan Event]
@@ -24,7 +24,7 @@ type MockChain struct {
 func NewMockChain() *MockChain {
 	chain := MockChain{}
 	chain.blockNum = 1
-	chain.holdings = make(map[types.Destination]types.Funds)
+	chain.holdings = safesync.Map[types.Funds]{}
 	chain.out = safesync.Map[chan Event]{}
 	return &chain
 }
@@ -33,21 +33,24 @@ func NewMockChain() *MockChain {
 // unlike an ethereum blockchain, MockChain accepts go-nitro protocols.ChainTransaction
 func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 	mc.blockNum++
+	channelIdString := tx.ChannelId().String()
+	h, _ := mc.holdings.Load(channelIdString)
 	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
 		if tx.Deposit.IsNonZero() {
-			mc.holdings[tx.ChannelId()] = mc.holdings[tx.ChannelId()].Add(tx.Deposit)
+			mc.holdings.Store(channelIdString, h.Add(tx.Deposit))
 		}
+
 		for address := range tx.Deposit {
-			event := NewDepositedEvent(tx.ChannelId(), mc.blockNum, address, mc.holdings[tx.ChannelId()][address])
+			event := NewDepositedEvent(tx.ChannelId(), mc.blockNum, address, h.Add(tx.Deposit)[address])
 			mc.broadcastEvent(event)
 		}
 	case protocols.WithdrawAllTransaction:
-		for assetAddress := range mc.holdings[tx.ChannelId()] {
+		for assetAddress := range h {
 			event := NewAllocationUpdatedEvent(tx.ChannelId(), mc.blockNum, assetAddress, common.Big0)
 			mc.broadcastEvent(event)
 		}
-		mc.holdings[tx.ChannelId()] = types.Funds{}
+		mc.holdings.Store(channelIdString, types.Funds{})
 	default:
 		return fmt.Errorf("unexpected transaction type %T", tx)
 	}
