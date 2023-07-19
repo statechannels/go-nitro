@@ -8,15 +8,23 @@ solc --base-path $(pwd) \
   --optimize --bin --abi -o tmp-build --via-ir
 
 runAbigen() {
-  abigen --v2 --abi=$(pwd)/tmp-build/${1}.abi \
+  abigen --abi=$(pwd)/tmp-build/${1}.abi \
     --bin=$(pwd)/tmp-build/${1}.bin \
     --pkg=${1} \
     --out=$(pwd)/../node/engine/chainservice/${2}/${1}.go 
 }
 
+runAbigenV2() {
+  abigen --v2 --abi=$(pwd)/tmp-build/${1}.abi \
+    --bin=$(pwd)/tmp-build/${1}.bin \
+    --pkg=${1} \
+    --out=$(pwd)/../node/engine/chainservice/${2}/${1}-v2.go 
+}
+
 runAbigen "NitroAdjudicator" "adjudicator"
+runAbigenV2 "NitroAdjudicator" "adjudicatorv2"
 runAbigen "ConsensusApp" "consensusapp"
-# runAbigen "Token" "erc20" # TODO: getting an error generating these bindings for this one, not sure why
+runAbigen "Token" "erc20" # TODO: getting an error generating these bindings for this one, not sure why
 runAbigen "VirtualPaymentApp" "virtualpaymentapp"
 
 rm -rf $(pwd)/tmp-build
