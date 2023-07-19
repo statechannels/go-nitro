@@ -65,7 +65,7 @@ func createChannels() error {
 	for _, participant := range participants {
 		var participantOpts participantOpts
 
-		if _, err := toml.DecodeFile(fmt.Sprintf("./scripts/test-configs/%s.toml", participant), &participantOpts); err != nil {
+		if _, err := toml.DecodeFile(fmt.Sprintf("./cmd/test-configs/%s.toml", participant), &participantOpts); err != nil {
 			return err
 		}
 		url := fmt.Sprintf(":%d/api/v1", participantOpts.RpcPort)

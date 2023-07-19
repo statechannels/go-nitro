@@ -167,7 +167,7 @@ func setupRPCServer(p participant, c color, na, vpa, ca types.Address, chainUrl,
 
 	args = append(args, "-durablestorefolder", dataFolder)
 
-	args = append(args, "-config", fmt.Sprintf("./scripts/test-configs/%s.toml", p))
+	args = append(args, "-config", fmt.Sprintf("./cmd/test-configs/%s.toml", p))
 
 	cmd := exec.Command("go", args...)
 	cmd.Stdout = newColorWriter(c, os.Stdout)
