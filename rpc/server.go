@@ -86,7 +86,7 @@ func NewRpcServer(nitroNode *nitro.Node, logger *zerolog.Logger, trans transport
 // registerHandlers registers the handlers for the rpc server
 func (rs *RpcServer) registerHandlers() (err error) {
 	handlerV1 := func(requestData []byte) []byte {
-		rs.logger.Trace().Msgf("Rpc server received request: %+v", string(requestData))
+		rs.logger.Trace().RawJSON("requestData", requestData).Msg("Rpc server received request")
 
 		if !json.Valid(requestData) {
 			rs.logger.Error().Msg("request is not valid json")
@@ -289,7 +289,7 @@ func (rs *RpcServer) sendNotifications(ctx context.Context,
 }
 
 func sendNotification[T serde.NotificationMethod, U serde.NotificationPayload](rs *RpcServer, method T, payload U) error {
-	rs.logger.Trace().Msgf("Sending notification: %+v", payload)
+	rs.logger.Trace().Interface("payload", payload).Msg("Sending notification")
 	request := serde.NewJsonRpcSpecificRequest(rand.Uint64(), method, payload)
 	data, err := json.Marshal(request)
 	if err != nil {

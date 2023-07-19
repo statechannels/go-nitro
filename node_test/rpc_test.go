@@ -131,7 +131,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	}
 	logger.Info().Msgf("%d Clients created", n)
 
-	logger.Info().Msgf("Verify that each rpc client fetches the correct address")
+	logger.Info().Msg("Verify that each rpc client fetches the correct address")
 	for i := 0; i < n; i++ {
 		clientAddress, _ := clients[i].Address()
 		if !cmp.Equal(actors[i].Address(), clientAddress) {
@@ -140,7 +140,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	}
 
 	waitForPeerInfoExchange(msgServices...)
-	logger.Info().Msgf("Peer exchange complete")
+	logger.Info().Msg("Peer exchange complete")
 
 	// create n-1 ledger channels
 	ledgerChannels := make([]directfund.ObjectiveResponse, n-1)
@@ -163,7 +163,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			<-client.ObjectiveCompleteChan(ledgerChannels[i].Id) // right channel
 		}
 	}
-	logger.Info().Msgf("Ledger channels created")
+	logger.Info().Msg("Ledger channels created")
 
 	// try to create duplicate ledger channel to ensure node correctly
 	// handles error without panicking
