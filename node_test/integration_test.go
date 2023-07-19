@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
-	"github.com/statechannels/go-nitro/internal/utils"
 	"github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/node/engine/messageservice"
 	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
@@ -124,7 +123,7 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 			}
 
 			t.Log("Waiting for peer info exchange...")
-			utils.WaitForPeerInfoExchange(p2pServices...)
+			waitForPeerInfoExchange(p2pServices...)
 			t.Log("Peer info exchange complete")
 		}
 

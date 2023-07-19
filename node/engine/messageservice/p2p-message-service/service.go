@@ -46,7 +46,7 @@ const (
 	BUFFER_SIZE                              = 1_000
 	NUM_CONNECT_ATTEMPTS                     = 20
 	RETRY_SLEEP_DURATION                     = 5 * time.Second
-	PEER_EXCHANGE_SLEEP_DURATION             = 100 * time.Millisecond
+	PEER_EXCHANGE_SLEEP_DURATION             = 10 * time.Second // how often we attempt FindPeers
 )
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
@@ -334,7 +334,7 @@ func (ms *P2PMessageService) discoverPeers(ctx context.Context, topic string) {
 	_, err := routingDiscovery.Advertise(ctx, topic) // fires every 3 hours by default
 	ms.checkError(err)
 
-	ticker := time.NewTicker(time.Second * 10)
+	ticker := time.NewTicker(PEER_EXCHANGE_SLEEP_DURATION)
 	defer ticker.Stop()
 
 	for {

@@ -50,9 +50,10 @@ func closeNode(t *testing.T, node *node.Node) {
 
 // waitForPeerInfoExchange waits for all the P2PMessageServices to receive peer info from each other
 func waitForPeerInfoExchange(services ...*p2pms.P2PMessageService) {
-	for _, s := range services {
+	for sNum, s := range services {
 		for i := 0; i < len(services)-1; i++ {
-			<-s.PeerInfoReceived()
+			peerInfo := <-s.PeerInfoReceived()
+			fmt.Printf("Service num: %d, peer num: %d, peerInfo: %v\n", sNum, i, peerInfo)
 		}
 	}
 }
