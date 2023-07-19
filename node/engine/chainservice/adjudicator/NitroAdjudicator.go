@@ -99,7 +99,7 @@ type NitroAdjudicatorInstance struct {
 }
 
 func NewNitroAdjudicatorInstance(c *NitroAdjudicator, address common.Address, backend bind.ContractBackend) *NitroAdjudicatorInstance {
-	return &NitroAdjudicatorInstance{Db: *c, address: address, backend: backend}
+	return &NitroAdjudicatorInstance{NitroAdjudicator: *c, address: address, backend: backend}
 }
 
 func (i *NitroAdjudicatorInstance) Address() common.Address {
