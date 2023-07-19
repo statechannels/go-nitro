@@ -14,7 +14,6 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.3.2
-	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/libp2p/go-libp2p-kad-dht v0.24.2
 	github.com/tidwall/buntdb v1.2.10
 	github.com/urfave/cli/v2 v2.25.3
@@ -63,6 +62,7 @@ require (
 	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-datastore v0.6.0 // indirect
 	github.com/ipfs/go-log v1.0.5 // indirect
+	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/ipld/go-ipld-prime v0.20.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect

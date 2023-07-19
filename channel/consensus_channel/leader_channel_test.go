@@ -438,7 +438,7 @@ func TestLeaderChannel(t *testing.T) {
 	{
 		msg := "err:wrong signature"
 		p := populatedQueue()[0]
-		counterP := createSignedProposal(p.Vars, p.Proposal, brian, p.SignedProposal.TurnNum)
+		counterP := createSignedProposal(p.Vars, p.Proposal, ivan, p.SignedProposal.TurnNum)
 		t.Run(msg, testUpdateConsensusErr(counterP, ErrWrongSigner))
 	}
 
