@@ -20,7 +20,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
 
       - name: Run go-nitro RPC servers
-        run: go run ./scripts/start-rpc-servers.go &> output.log &
+        run: go run ./cmd/start-rpc-servers &> output.log &
 
       - name: Install dependencies
         run: yarn

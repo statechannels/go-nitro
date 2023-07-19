@@ -11,7 +11,6 @@ import (
 	"syscall"
 
 	"github.com/statechannels/go-nitro/internal/chain"
-	"github.com/statechannels/go-nitro/internal/utils"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/urfave/cli/v2"
 )
@@ -102,12 +101,12 @@ func main() {
 			if cCtx.Bool(START_ANVIL) {
 				anvilCmd, err := chain.StartAnvil()
 				if err != nil {
-					utils.StopCommands(running...)
+					stopCommands(running...)
 					panic(err)
 				}
 				running = append(running, anvilCmd)
 			}
-			dataFolder, cleanup := utils.GenerateTempStoreFolder()
+			dataFolder, cleanup := generateTempStoreFolder()
 			defer cleanup()
 			fmt.Printf("Using data folder %s\n", dataFolder)
 
@@ -117,7 +116,7 @@ func main() {
 
 			naAddress, vpaAddress, caAddress, err := chain.DeployContracts(context.Background(), chainUrl, chainAuthToken, chainPk)
 			if err != nil {
-				utils.StopCommands(running...)
+				stopCommands(running...)
 				panic(err)
 			}
 
@@ -125,7 +124,7 @@ func main() {
 			for _, p := range participants {
 				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
 				if err != nil {
-					utils.StopCommands(running...)
+					stopCommands(running...)
 					panic(err)
 				}
 				running = append(running, client)
@@ -133,7 +132,7 @@ func main() {
 
 			waitForKillSignal()
 
-			utils.StopCommands(running...)
+			stopCommands(running...)
 			return nil
 		},
 	}
@@ -168,7 +167,7 @@ func setupRPCServer(p participant, c color, na, vpa, ca types.Address, chainUrl,
 
 	args = append(args, "-durablestorefolder", dataFolder)
 
-	args = append(args, "-config", fmt.Sprintf("./scripts/test-configs/%s.toml", p))
+	args = append(args, "-config", fmt.Sprintf("./cmd/test-configs/%s.toml", p))
 
 	cmd := exec.Command("go", args...)
 	cmd.Stdout = newColorWriter(c, os.Stdout)
@@ -200,4 +199,38 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 		writer: w,
 		color:  c,
 	}
+}
+
+// stopCommands stops the given executing commands
+func stopCommands(cmds ...*exec.Cmd) {
+	for _, cmd := range cmds {
+		fmt.Printf("Stopping process %v\n", cmd.Args)
+		err := cmd.Process.Signal(syscall.SIGINT)
+		if err != nil {
+			panic(err)
+		}
+		err = cmd.Process.Kill()
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+// generateTempStoreFolder generates a temporary folder for storing store data and a cleanup function to clean up the folder
+func generateTempStoreFolder() (dataFolder string, cleanup func()) {
+	var err error
+
+	dataFolder, err = os.MkdirTemp("", "nitro-store-*")
+	if err != nil {
+		panic(err)
+	}
+
+	cleanup = func() {
+		err := os.RemoveAll(dataFolder)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return
 }

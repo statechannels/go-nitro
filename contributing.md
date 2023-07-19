@@ -177,7 +177,8 @@ You may then view `output.log` in VSCode. A typical log line is then:
 ```
 
 ### Start RPC servers with Docker
-To test the creation and execution of channels it is necessary to have a test network with multiple nodes. 
+
+To test the creation and execution of channels it is necessary to have a test network with multiple nodes.
 To spin up a docker image with 3 rpc servers and channels pre-populated, run the following:
 
 1. `make docker/build`
@@ -185,11 +186,12 @@ To spin up a docker image with 3 rpc servers and channels pre-populated, run the
 
 Three rpc go-nitro servers will be available on ports 4005, 4006, and 4007 for Alice, Irene, and Bob. A ledger channel is created between Alice and Irene, and another ledger channel is created between Irene and Bob. A virtual channel is created between Alice and Bob.
 Each server may be communicated with over JSON-RPC at a localhost endpoint with an appropriate port. See [these instructions](./doc.go) on how to do that.
-### Start RPC servers test script
 
-A [test script](./scripts/start-rpc-servers.go) is available to start up multiple RPC servers and a test chain. This is used to easily and quickly spin up a test environment. The script requires that `foundry` is installed locally; `foundry` installation instructions are available [here](https://book.getfoundry.sh/getting-started/installation).
+### Start RPC servers test command
 
-The script will:
+A [test command](./cmd/start-rpc-servers/main.go) is available to start up multiple RPC servers and a test chain. This is used to easily and quickly spin up a test environment. The command requires that `foundry` is installed locally; `foundry` installation instructions are available [here](https://book.getfoundry.sh/getting-started/installation).
+
+The command will:
 
 1. Start an `foundry anvil` test chain
 2. Deploy the adjudicator contract to the test chain
@@ -197,6 +199,6 @@ The script will:
 4. Start an RPC server for Irene (`0x111A00868581f73AB42FEEF67D235Ca09ca1E8db`) listening for RPCs on port `4006`
 5. Start an RPC server for Bob (`0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94`) listening for RPCs on port `4007`
 
-Stopping the test script will shutdown all RPC servers and `anvil`.
+Stopping the test command will shutdown all RPC servers and `anvil`.
 
-To run the script from the `go-nitro` directory run `go run ./scripts/start-rpc-servers.go`
+To run the command from the `go-nitro` directory run `go run ./cmd/start-rpc-servers`

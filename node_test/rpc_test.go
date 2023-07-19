@@ -13,10 +13,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/logging"
 	interRpc "github.com/statechannels/go-nitro/internal/rpc"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
-	"github.com/statechannels/go-nitro/internal/utils"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/node/query"
@@ -97,7 +97,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		manVoucherStr = ""
 	}
 	logFile := fmt.Sprintf("test_%d_rpc_clients_over_%s%s.log", n, connectionType, manVoucherStr)
-	logDestination := newLogWriter(logFile)
+	logDestination := logging.NewLogWriter("../artifacts", logFile)
 	defer logDestination.Close()
 	logger := testLogger(logDestination)
 	logger.Info().Msgf("Starting test with %d clients", n)
@@ -139,7 +139,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		}
 	}
 
-	utils.WaitForPeerInfoExchange(msgServices...)
+	waitForPeerInfoExchange(msgServices...)
 	logger.Info().Msgf("Peer exchange complete")
 
 	// create n-1 ledger channels
