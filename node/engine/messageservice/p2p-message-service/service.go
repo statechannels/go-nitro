@@ -153,13 +153,14 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 		ticker := time.NewTicker(time.Second)
 		for range ticker.C {
 			peers := ms.p2pHost.Peerstore().Peers()
-			ms.logger.Debug().Msgf("found peers: %v, expected peers: %d", len(peers), expectedPeers)
+			actualPeers := len(peers) - 1 // subtract one to ignore self
+			ms.logger.Debug().Msgf("found peers: %v, expected peers: %d", actualPeers, expectedPeers)
 			for _, peer := range peers {
 				ms.logger.Debug().Msgf("peer info: %v", peer)
 			}
 
 			// Once we've discovered all bootPeers, stop the ticker
-			if len(peers) >= expectedPeers {
+			if actualPeers >= expectedPeers {
 				ms.logger.Debug().Msgf("discovered all expected bootPeers")
 				ticker.Stop()
 				break
@@ -221,8 +222,8 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 	ms.logger.Debug().Msgf("received peerInfo")
 	defer stream.Close()
 
-	reader := bufio.NewReader(stream)
 	// Create a buffer stream for non blocking read and write.
+	reader := bufio.NewReader(stream)
 	raw, err := reader.ReadString(DELIMITER)
 
 	// An EOF means the stream has been closed by the other side.
@@ -320,7 +321,7 @@ func (ms *P2PMessageService) addBootPeers(peers []string) {
 		peer, err := peer.AddrInfoFromP2pAddr(addr)
 		ms.checkError(err)
 
-		err = ms.p2pHost.Connect(context.Background(), *peer)
+		err = ms.p2pHost.Connect(context.Background(), *peer) // Adds peerInfo to Peerstore
 		ms.checkError(err)
 		ms.logger.Debug().Msgf("connected to boot peer: %v", p)
 
@@ -351,9 +352,8 @@ func (ms *P2PMessageService) discoverPeers(ctx context.Context, topic string) {
 				}
 				ms.logger.Debug().Msgf("inspecting peer found through discovery: %v (status: %v)", p.ID, ms.p2pHost.Network().Connectedness(p.ID))
 				if ms.p2pHost.Network().Connectedness(p.ID) != network.Connected {
-					_, err = ms.p2pHost.Network().DialPeer(ctx, p.ID)
+					err = ms.p2pHost.Connect(ctx, p) // Adds peerInfo to Peerstore
 					ms.checkError(err)
-					ms.p2pHost.Peerstore().AddAddr(p.ID, p.Addrs[0], peerstore.PermanentAddrTTL)
 					ms.logger.Debug().Msgf("connected to new peer: %+v", p)
 
 					ms.sendPeerInfo(p.ID, true)
