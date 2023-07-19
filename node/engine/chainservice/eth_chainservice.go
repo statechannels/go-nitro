@@ -22,6 +22,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+const logLevel = zerolog.DebugLevel
+
 var (
 	allocationUpdatedTopic   = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256)"))
 	concludedTopic           = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
@@ -88,7 +90,7 @@ func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 ) (*EthChainService, error) {
 	logging.ConfigureZeroLogger()
 
-	logger := zerolog.New(logDestination).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
+	logger := zerolog.New(logDestination).Level(logLevel).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
 	ctx, cancelCtx := context.WithCancel(context.Background())
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
@@ -263,7 +265,7 @@ out:
 				errorChan <- fmt.Errorf("subscribeFilterLogs failed on resubscribe: %w", err)
 				break out
 			}
-			ecs.logger.Print("resubscribed to filtered logs")
+			ecs.logger.Trace().Msg("resubscribed to filtered logs")
 
 		case <-time.After(RESUB_INTERVAL):
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
