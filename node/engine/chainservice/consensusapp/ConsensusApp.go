@@ -80,7 +80,7 @@ type ConsensusAppInstance struct {
 }
 
 func NewConsensusAppInstance(c *ConsensusApp, address common.Address, backend bind.ContractBackend) *ConsensusAppInstance {
-	return &ConsensusAppInstance{Db: *c, address: address, backend: backend}
+	return &ConsensusAppInstance{ConsensusApp: *c, address: address, backend: backend}
 }
 
 func (i *ConsensusAppInstance) Address() common.Address {
