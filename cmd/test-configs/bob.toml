@@ -12,6 +12,6 @@ chainpk = "5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
 chainurl = "ws://127.0.0.1:8545"
 chainauthtoken = ""
 
-# Connect to Ivan
+# bootpeer = Ivan
 bootpeers = "/ip4/127.0.0.1/tcp/3008/p2p/16Uiu2HAm1hgN2MkrhGen8JPrBBYyXACbZtfqJmraN53XiHYCeoFi"
-usemdns = false
+usemdns = true

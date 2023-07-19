@@ -29,6 +29,8 @@ func main() {
 		MSG_PORT              = "msgport"
 		RPC_PORT              = "rpcport"
 		GUI_PORT              = "guiport"
+		BOOT_PEERS            = "bootpeers"
+		USE_MDNS              = "usemdns"
 
 		// Keys
 		KEYS_CATEGORY = "Keys:"
@@ -39,8 +41,6 @@ func main() {
 		STORAGE_CATEGORY     = "Storage:"
 		USE_DURABLE_STORE    = "usedurablestore"
 		DURABLE_STORE_FOLDER = "durablestorefolder"
-		BOOT_PEERS           = "bootpeers"
-		USE_MDNS             = "usemdns"
 	)
 	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk, durableStoreFolder, bootPeers string
 	var msgPort, rpcPort, guiPort int
@@ -67,8 +67,8 @@ func main() {
 		}),
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:        USE_MDNS,
-			Usage:       "Specifies whether to use mDNS for peer discovery",
-			Category:    "Connectivity:",
+			Usage:       "Specifies whether to use mDNS for peer discovery (if 'false', will use kademlia-dht)",
+			Category:    CONNECTIVITY_CATEGORY,
 			Value:       true,
 			Destination: &useMdns,
 		}),
@@ -149,9 +149,9 @@ func main() {
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        BOOT_PEERS,
-			Usage:       "Specifies the peers the messaging service will connect to when initialized.",
+			Usage:       "Comma-delimited list of peer multiaddrs the messaging service will connect to when initialized.",
 			Value:       "",
-			Category:    "Connectivity:",
+			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &bootPeers,
 		}),
 	}
