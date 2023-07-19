@@ -30,7 +30,7 @@ jobs:
           mv solc $GITHUB_WORKSPACE/bin
           sudo chmod +x $GITHUB_WORKSPACE/bin/solc
 
-      - name: Install abigen (part of go-ethereum)
+      - name: Install abigen (part of go-ethereum) # TODO need to point to this version https://github.com/ethereum/go-ethereum/pull/26782
         run: |
           curl -o geth.tar.gz https://gethstore.blob.core.windows.net/builds/geth-alltools-linux-amd64-1.10.8-26675454.tar.gz
           tar -xzf geth.tar.gz
