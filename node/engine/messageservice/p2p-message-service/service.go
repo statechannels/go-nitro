@@ -19,6 +19,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
+	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/internal/logging"
@@ -93,9 +94,9 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	options := []libp2p.Option{
 		libp2p.Identity(messageKey),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
-		// libp2p.Transport(tcp.NewTCPTransport),
-		// libp2p.NoSecurity,
-		// libp2p.DefaultMuxers,
+		libp2p.Transport(tcp.NewTCPTransport),
+		libp2p.NoSecurity,
+		libp2p.DefaultMuxers,
 	}
 	host, err := libp2p.New(options...)
 	if err != nil {
