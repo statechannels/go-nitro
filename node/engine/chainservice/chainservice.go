@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -85,8 +86,12 @@ type ChainEventHandler interface {
 type ChainService interface {
 	// EventFeed returns a chan for receiving events from the chain service.
 	EventFeed() <-chan Event
-	// SendTransaction is for sending transactions with the chain service
-	SendTransaction(protocols.ChainTransaction) error
+	// PrepareTransaction prepares a transaction (it will not be signed nor sent)
+	PrepareTransactions(protocols.ChainTransaction) ([]*ethTypes.Transaction, error)
+	// SignAndSendTransaction signs the transaction and sends it
+	SignAndSendTransaction(*ethTypes.Transaction) error
+	// SendTransaction sends the transaction (it must be signed already)
+	SendTransaction(*ethTypes.Transaction) error
 	// GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
 	GetConsensusAppAddress() types.Address
 	// GetVirtualPaymentAppAddress returns the address of a deployed VirtualPaymentApp

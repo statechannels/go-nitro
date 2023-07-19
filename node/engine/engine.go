@@ -570,7 +570,14 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 
 	for _, tx := range sideEffects.TransactionsToSubmit {
 		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId())
-		err := e.chain.SendTransaction(tx)
+		Txs, err := e.chain.PrepareTransactions(tx)=
+		if e.chain.isManagingChainPK {
+			for _, Tx := range Txs {
+				e.chain.SignAndSendTransaction(Tx)
+			}
+		} else {
+			// put the Txs on an engine event, "fire and forget" back to the user and require them to sign and return somehow
+		}
 		if err != nil {
 			return err
 		}

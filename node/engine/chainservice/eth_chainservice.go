@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/internal/logging"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
-	Token "github.com/statechannels/go-nitro/node/engine/chainservice/erc20"
+	na2 "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicatorv2"
 	chainutils "github.com/statechannels/go-nitro/node/engine/chainservice/utils"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -39,6 +39,7 @@ type ethChain interface {
 type EthChainService struct {
 	chain                    ethChain
 	na                       *NitroAdjudicator.NitroAdjudicator
+	na2                      *na2.NitroAdjudicator
 	naAddress                common.Address
 	consensusAppAddress      common.Address
 	virtualPaymentAppAddress common.Address
@@ -78,12 +79,17 @@ func NewEthChainService(chainUrl, chainAuthToken, chainPk string, naAddress, caA
 		panic(err)
 	}
 
-	return newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination)
+	na2, err := na2.NewNitroAdjudicator()
+	if err != nil {
+		panic(err)
+	}
+
+	return newEthChainService(ethClient, na, na2, naAddress, caAddress, vpaAddress, txSigner, logDestination)
 }
 
 // newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
+func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator, na2 *na2.NitroAdjudicator,
 	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer,
 ) (*EthChainService, error) {
 	logging.ConfigureZeroLogger()
@@ -92,7 +98,7 @@ func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	ctx, cancelCtx := context.WithCancel(context.Background())
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}}
+	ecs := EthChainService{chain, na, na2, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}}
 	errChan, err := ecs.subscribeForLogs()
 	if err != nil {
 		return nil, err
@@ -135,8 +141,9 @@ func (ecs *EthChainService) defaultTxOpts() *bind.TransactOpts {
 	}
 }
 
-// SendTransaction sends the transaction and blocks until it has been submitted.
-func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error {
+// PrepareTransaction prepares a transaction (it will not be signed nor sent)
+func (ecs *EthChainService) PrepareTransaction(tx protocols.ChainTransaction) ([]*ethTypes.Transaction, error) {
+	Tx := make([]*ethTypes.Transaction, 0, 1)
 	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
 		for tokenAddress, amount := range tx.Deposit {
@@ -145,26 +152,31 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 			if tokenAddress == ethTokenAddress {
 				txOpts.Value = amount
 			} else {
-				tokenTransactor, err := Token.NewTokenTransactor(tokenAddress, ecs.chain)
-				if err != nil {
-					return err
-				}
-				_, err = tokenTransactor.Approve(ecs.defaultTxOpts(), ecs.naAddress, amount)
-				if err != nil {
-					return err
-				}
+				// _, err := tokenTransactor.Approve(ecs.defaultTxOpts(), ecs.naAddress, amount) // TODO
+				// if err != nil {
+				// return []ethTypes.Transaction{}, err
+				// }
 			}
 			holdings, err := ecs.na.Holdings(&bind.CallOpts{}, tokenAddress, tx.ChannelId())
 			if err != nil {
-				return err
+				return []*ethTypes.Transaction{}, err
 			}
 
-			_, err = ecs.na.Deposit(txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
+			rawDepositData, err := ecs.na2.PackDeposit(tokenAddress, tx.ChannelId(), holdings, amount)
 			if err != nil {
-				return err
+				return []*ethTypes.Transaction{}, err
 			}
+
+			Tx = append(Tx, ethTypes.NewTransaction(
+				0,             // nonce
+				ecs.naAddress, // nitro adjudicator address
+				amount,
+				0,             // gasLimit
+				big.NewInt(0), // gasPrice,
+				rawDepositData,
+			))
 		}
-		return nil
+		return Tx, nil
 	case protocols.WithdrawAllTransaction:
 		state := tx.SignedState.State()
 		signatures := tx.SignedState.Signatures()
@@ -182,6 +194,20 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 	default:
 		return fmt.Errorf("unexpected transaction type %T", tx)
 	}
+}
+
+// SignAndSendTransaction signs the transaction and sends it
+func (ecs *EthChainService) SignAndSendTransaction(tx *ethTypes.Transaction) error {
+	signedTx, err := ecs.txSigner.Signer(ecs.txSigner.From, tx)
+	if err != nil {
+		return err
+	}
+	return ecs.SendTransaction(signedTx)
+}
+
+// SendTransaction sends the transaction (it must be signed already)
+func (ecs *EthChainService) SendTransaction(tx *ethTypes.Transaction) error {
+	return ecs.chain.SendTransaction(context.Background(), tx)
 }
 
 // dispatchChainEvents takes in a collection of event logs from the chain
