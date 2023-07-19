@@ -120,7 +120,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		chainServices[i] = chainservice.NewMockChainService(chain, actors[i].Address())
 	}
 
-	clients := make([]*rpc.RpcClient, n)
+	clients := make([]rpc.RpcClientApi, n)
 	msgServices := make([]*p2pms.P2PMessageService, n)
 
 	for i := 0; i < n; i++ {
@@ -391,7 +391,7 @@ func setupNitroNodeWithRPCClient(
 	chain *chainservice.MockChainService,
 	logDestination *os.File,
 	connectionType transport.TransportType,
-) (*rpc.RpcClient, *p2pms.P2PMessageService, func()) {
+) (rpc.RpcClientApi, *p2pms.P2PMessageService, func()) {
 	var err error
 
 	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, false, "", msgPort, rpcPort, connectionType, logDestination)
