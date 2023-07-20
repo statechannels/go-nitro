@@ -96,6 +96,11 @@ func TestReversePaymentProxy(t *testing.T) {
 	voucher = createVoucher(t, aliceClient, paymentChannel, 5)
 	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource/params?channelId=%s&amount=%d&signature=%s&otherParam=2", proxyPort, voucher.ChannelId, voucher.Amount, voucher.Signature.ToHexString()))
 	checkResponse(t, resp, destinationServerResponseBody, http.StatusOK)
+
+	// It should properly handle a request to a non existent endpoint
+	voucher = createVoucher(t, aliceClient, paymentChannel, 5)
+	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/badpath?channelId=%s&amount=%d&signature=%s", proxyPort, voucher.ChannelId, voucher.Amount.Uint64(), voucher.Signature.ToHexString()))
+	checkResponse(t, resp, "", http.StatusNotFound)
 }
 
 // createVoucher creates a voucher for the given channel and amount	using the given client
@@ -135,7 +140,7 @@ func checkResponse(t *testing.T, resp *http.Response, expectedBody string, expec
 		t.Errorf("The body of the response %s did not contain the expected text %s ", responseBodyText, expectedBody)
 	}
 	if statusCode != expectedStatusCode {
-		t.Errorf("Expected status code %d, but got %d", http.StatusOK, statusCode)
+		t.Errorf("Expected status code %d, but got %d", expectedStatusCode, statusCode)
 	}
 }
 
@@ -223,7 +228,8 @@ func runDestinationServer(t *testing.T, port uint) (destUrl string, cleanup func
 
 	handleRequest := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/resource" && r.URL.Path != "/resource/params" {
-			t.Fatalf("Expected a request to /resource, but got %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
 		}
 
 		params, err := url.ParseQuery(r.URL.RawQuery)
