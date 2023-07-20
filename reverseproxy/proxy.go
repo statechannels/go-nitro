@@ -84,19 +84,19 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	params, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
-		webError(w, fmt.Errorf("could not query params: %w", err), http.StatusBadRequest)
+		webError(w, fmt.Errorf("could not parse query params: %w", err), http.StatusBadRequest)
 		return
 	}
 
 	v, err := parseVoucher(params)
 	if err != nil {
-		webError(w, fmt.Errorf("could not parse voucher: %w", err), http.StatusBadRequest)
+		webError(w, fmt.Errorf("could not parse voucher: %w", err), http.StatusPaymentRequired)
 		return
 	}
 
 	s, err := p.nitroClient.ReceiveVoucher(v)
 	if err != nil {
-		webError(w, fmt.Errorf("error processing voucher %w", err), http.StatusBadRequest)
+		webError(w, fmt.Errorf("error processing voucher %w", err), http.StatusPaymentRequired)
 		return
 	}
 
