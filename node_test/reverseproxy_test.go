@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -22,6 +21,7 @@ const (
 	destinationServerResponseBody = "Hello! This is from the destination server"
 	proxyPort                     = 5511
 	bobRPCUrl                     = ":4107/api/v1"
+	destPort                      = 6622
 )
 
 func TestReversePaymentProxy(t *testing.T) {
@@ -36,7 +36,7 @@ func TestReversePaymentProxy(t *testing.T) {
 
 	// Start up a test http server that acts as the destination server
 	// It will return a simple response
-	destinationServerUrl, cleanupDestServer := runDestinationServer(t)
+	destinationServerUrl, cleanupDestServer := runDestinationServer(t, destPort)
 	defer cleanupDestServer()
 
 	// Create a ReversePaymentProxy with the test destination server URL
@@ -141,24 +141,37 @@ func createChannelData(t *testing.T, aliceClient, ireneClient, bobClient *rpc.Rp
 	return createPayCh.ChannelId
 }
 
-func runDestinationServer(t *testing.T) (destUrl string, cleanup func()) {
-	// Create a test HTTP server that acts as the destination server
-	destinationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// runDestinationServer runs a simple http server that returns a simple response
+// It performs a basic check to make sure no voucher information was passed along
+func runDestinationServer(t *testing.T, port uint) (destUrl string, cleanup func()) {
+	checkError := func(err error) {
+		if err == http.ErrServerClosed {
+			return
+		}
+		if err != nil {
+			t.Fatalf("Error running the destination server: %+v", err)
+		}
+	}
+
+	handleRequest := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.String() != "/resource" {
 			t.Fatalf("Expected voucher information to be stripped off got %s instead", r.URL.String())
 		}
+
 		// Simulate the destination server's response
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")
 		_, err := w.Write([]byte(destinationServerResponseBody))
-		if err != nil {
-			t.Fatalf("Error writing response body: %v", err)
-		}
-	}))
+		checkError(err)
+	})
 
-	destUrl = destinationServer.URL
-	cleanup = func() {
-		destinationServer.Close()
+	server := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: handleRequest}
+
+	go func() {
+		err := server.ListenAndServe()
+		checkError(err)
+	}()
+	return fmt.Sprintf("http://localhost:%d", port), func() {
+		server.Close()
 	}
-	return
 }
