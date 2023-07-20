@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/logging"
+	"github.com/statechannels/go-nitro/payments"
 
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
@@ -25,6 +27,8 @@ const (
 	proxyPort                     = 5511
 	bobRPCUrl                     = ":4107/api/v1"
 	destPort                      = 6622
+	otherParam                    = "otherParam"
+	otherParamValue               = "2"
 )
 
 func TestReversePaymentProxy(t *testing.T) {
@@ -56,16 +60,13 @@ func TestReversePaymentProxy(t *testing.T) {
 		t.Fatalf("Error starting proxy: %v", err)
 	}
 
-	v, err := aliceClient.CreateVoucher(paymentChannel, 5)
-	if err != nil {
-		t.Fatalf("Error creating voucher: %v", err)
-	}
+	voucher := createVoucher(t, aliceClient, paymentChannel, 5)
 
-	resp := performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, paymentChannel, 5, v.Signature.ToHexString()))
+	resp := performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, paymentChannel, 5, voucher.Signature.ToHexString()))
 	checkResponse(t, resp, destinationServerResponseBody, http.StatusOK)
 
 	// Using the same voucher again should result in a payment required response
-	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, paymentChannel, 5, v.Signature.ToHexString()))
+	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, paymentChannel, 5, voucher.Signature.ToHexString()))
 	checkResponse(t, resp, expectedPaymentErrorMessage(0), http.StatusPaymentRequired)
 
 	// Not providing a voucher should result in a payment required response
@@ -73,26 +74,33 @@ func TestReversePaymentProxy(t *testing.T) {
 	checkResponse(t, resp, parseErrorResponseBody, http.StatusPaymentRequired)
 
 	// A voucher less than 5 should be rejected
-	v, err = aliceClient.CreateVoucher(paymentChannel, 4)
-	if err != nil {
-		t.Fatalf("Error creating voucher: %v", err)
-	}
-	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, v.ChannelId, v.Amount.Uint64(), v.Signature.ToHexString()))
+	voucher = createVoucher(t, aliceClient, paymentChannel, 4)
+	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, voucher.ChannelId, voucher.Amount.Uint64(), voucher.Signature.ToHexString()))
 	checkResponse(t, resp, expectedPaymentErrorMessage(4), http.StatusPaymentRequired)
 
 	// A voucher with a bad signature should be rejected
-	v, err = aliceClient.CreateVoucher(paymentChannel, 5)
+	voucher = createVoucher(t, aliceClient, paymentChannel, 5)
+	// Manually modify some bytes in the signature to make it invalid
+	voucher.Signature.S[3] = 0
+	voucher.Signature.R[3] = 127
+
+	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, voucher.ChannelId, voucher.Amount.Uint64(), voucher.Signature.ToHexString()))
+	checkResponse(t, resp, signatureErrorResponseBody, http.StatusPaymentRequired)
+
+	// Check that the proxy can handle non voucher params and pass them along to the destination server
+	voucher = createVoucher(t, aliceClient, paymentChannel, 5)
+	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/paramTest?channelId=%s&amount=%d&signature=%s&%s=%s", proxyPort, voucher.ChannelId, voucher.Amount, voucher.Signature.ToHexString(), otherParam, otherParamValue))
+	checkResponse(t, resp, destinationServerResponseBody, http.StatusOK)
+}
+
+// createVoucher creates a voucher for the given channel and amount	 using the given client
+// If any error occurs it will fail the test
+func createVoucher(t *testing.T, client *rpc.RpcClient, channelId types.Destination, amount uint64) payments.Voucher {
+	v, err := client.CreateVoucher(channelId, amount)
 	if err != nil {
 		t.Fatalf("Error creating voucher: %v", err)
 	}
-
-	// Manually modify some bytes in the signature to make it invalid
-	v.Signature.S[3] = 0
-	v.Signature.R[3] = 127
-
-	resp = performGetRequest(t,
-		fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, v.ChannelId, v.Amount.Uint64(), v.Signature.ToHexString()))
-	checkResponse(t, resp, signatureErrorResponseBody, http.StatusPaymentRequired)
+	return v
 }
 
 func expectedPaymentErrorMessage(numPaid int) string {
@@ -209,14 +217,32 @@ func runDestinationServer(t *testing.T, port uint) (destUrl string, cleanup func
 	}
 
 	handleRequest := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.String() != "/resource" {
-			t.Fatalf("Expected voucher information to be stripped off got %s instead", r.URL.String())
+		if r.URL.Path != "/resource" && r.URL.Path != "/paramTest" {
+			t.Fatalf("Expected a request to /resource, but got %s", r.URL.Path)
 		}
 
-		// Simulate the destination server's response
+		params, err := url.ParseQuery(r.URL.RawQuery)
+		checkError(err)
+		// If this is a request to /paramTest, we check for the other param
+		if checkForOtherParam := r.URL.Path == "/paramTest"; checkForOtherParam {
+			if !params.Has(otherParam) {
+				t.Fatalf("Did not find query param %s in url %s", otherParam, r.URL.RawQuery)
+			}
+			if params.Get(otherParam) != otherParamValue {
+				t.Fatalf("Expected query param %s to have value %s, but got %s", otherParam, otherParamValue, params.Get(otherParam))
+			}
+		}
+
+		// Always check that the voucher params were stripped out of every request
+		for p := range params {
+			if p == "channelId" || p == "amount" || p == "signature" {
+				t.Fatalf("Expected no voucher information to be passed along, but got %s", p)
+			}
+		}
+
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")
-		_, err := w.Write([]byte(destinationServerResponseBody))
+		_, err = w.Write([]byte(destinationServerResponseBody))
 		checkError(err)
 	})
 
