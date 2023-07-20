@@ -1,4 +1,11 @@
 set -e
+
+trap '{
+rm -rf $(pwd)/tmp-build
+echo "Deleted tmp-build directory."
+ }' EXIT
+
+
 cd nitro-protocol
 
 solc --base-path $(pwd) \
@@ -24,8 +31,7 @@ runAbigenV2() {
 runAbigen "NitroAdjudicator" "adjudicator"
 runAbigenV2 "NitroAdjudicator" "adjudicatorv2"
 runAbigen "ConsensusApp" "consensusapp"
-runAbigen "Token" "erc20" # TODO: getting an error generating these bindings for this one, not sure why
+runAbigen "Token" "erc20" # TODO: getting an error generating the v2 bindings for this one, not sure why
 runAbigen "VirtualPaymentApp" "virtualpaymentapp"
 
-rm -rf $(pwd)/tmp-build
-echo "Deleted tmp-build directory."
+
