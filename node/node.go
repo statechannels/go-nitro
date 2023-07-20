@@ -12,6 +12,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
@@ -63,7 +64,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	n.chainId = chainId
 	n.store = store
 	n.vm = payments.NewVoucherManager(*store.GetAddress(), store)
-	n.logger = zerolog.New(logDestination).With().Timestamp().Str("nitro node", n.Address.String()[0:8]).Caller().Logger()
+	n.logger = logging.WithAddress(zerolog.New(logDestination).With().Timestamp(), n.Address).Caller().Logger()
 
 	n.engine = engine.New(n.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
 	n.completedObjectives = &safesync.Map[chan struct{}]{}

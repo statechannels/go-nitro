@@ -72,7 +72,7 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 		newPeerInfo: make(chan basicPeerInfo, BUFFER_SIZE),
 		peers:       &safesync.Map[basicPeerInfo]{},
 		me:          me,
-		logger:      zerolog.New(logWriter).With().Timestamp().Str("message-service", me.String()[0:8]).Caller().Logger(),
+		logger:      logging.WithAddress(zerolog.New(logWriter).With().Timestamp(), &me).Caller().Logger(),
 	}
 
 	messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(pk)

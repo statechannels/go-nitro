@@ -173,7 +173,7 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 			rc.wg.Done()
 			return
 		case data := <-notificationChan:
-			rc.logger.Trace().Bytes("data", data).Msg("Received notification")
+			rc.logger.Trace().RawJSON("data", data).Msg("Received notification")
 			method, err := getNotificationMethod(data)
 			if err != nil {
 				panic(err)
