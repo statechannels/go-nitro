@@ -58,31 +58,41 @@ func TestReversePaymentProxy(t *testing.T) {
 		t.Fatalf("Error creating voucher: %v", err)
 	}
 
-	// Create a request to the proxy server for some resource
+	resp := performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, paymentChannel, 5, v.Signature.ToHexString()))
+
+	responseBodyText := getResponseBody(t, resp)
+	// Check if the response from the destination server is correct
+	if responseBodyText != (destinationServerResponseBody) {
+		t.Errorf("Expected response %q, but got %q", destinationServerResponseBody, responseBodyText)
+	}
+}
+
+// performGetRequest performs a GET request to the given url
+// If any error occurs it will fail the test
+func performGetRequest(t *testing.T, url string) *http.Response {
+	client := &http.Client{}
 	req, err := http.NewRequest("GET",
-		fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, paymentChannel, 5, v.Signature.ToHexString()),
+		url,
 		nil)
 	if err != nil {
-		t.Fatalf("Error creating test request: %v", err)
+		t.Fatalf("Error performing request: %v", err)
 	}
-
-	// Make the request to the proxy server
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		t.Fatalf("Error making request to proxy server: %v", err)
+		t.Fatalf("Error performing request: %v", err)
 	}
-	defer resp.Body.Close()
+	return resp
+}
 
+// getResponseBody reads the response body and returns it as a string
+// If any error occurs it will fail the test
+func getResponseBody(t *testing.T, resp *http.Response) string {
 	bodyText, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading request data: %v", err)
 	}
-	// Check if the response from the destination server is correct
-
-	if string(bodyText) != (destinationServerResponseBody) {
-		t.Errorf("Expected response %q, but got %q", destinationServerResponseBody, bodyText)
-	}
+	resp.Body.Close()
+	return string(bodyText)
 }
 
 // setupNitroClients creates three nitro clients and connects them to each other
