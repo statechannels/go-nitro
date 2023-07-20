@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -19,7 +20,8 @@ import (
 
 const (
 	destinationServerResponseBody = "Hello! This is from the destination server"
-	paymentNeededResponseBody     = "payment of 5 required, the voucher only resulted in a payment of 0\n"
+	parseErrorResponseBody        = "could not parse voucher"
+	signatureErrorResponseBody    = "error processing voucher"
 	proxyPort                     = 5511
 	bobRPCUrl                     = ":4107/api/v1"
 	destPort                      = 6622
@@ -64,7 +66,37 @@ func TestReversePaymentProxy(t *testing.T) {
 
 	// Using the same voucher again should result in a payment required response
 	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, paymentChannel, 5, v.Signature.ToHexString()))
-	checkResponse(t, resp, paymentNeededResponseBody, http.StatusPaymentRequired)
+	checkResponse(t, resp, expectedPaymentErrorMessage(0), http.StatusPaymentRequired)
+
+	// Not providing a voucher should result in a payment required response
+	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource", proxyPort))
+	checkResponse(t, resp, parseErrorResponseBody, http.StatusPaymentRequired)
+
+	// A voucher less than 5 should be rejected
+	v, err = aliceClient.CreateVoucher(paymentChannel, 4)
+	if err != nil {
+		t.Fatalf("Error creating voucher: %v", err)
+	}
+	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, v.ChannelId, v.Amount.Uint64(), v.Signature.ToHexString()))
+	checkResponse(t, resp, expectedPaymentErrorMessage(4), http.StatusPaymentRequired)
+
+	// A voucher with a bad signature should be rejected
+	v, err = aliceClient.CreateVoucher(paymentChannel, 5)
+	if err != nil {
+		t.Fatalf("Error creating voucher: %v", err)
+	}
+
+	// Manually modify some bytes in the signature to make it invalid
+	v.Signature.S[3] = 0
+	v.Signature.R[3] = 127
+
+	resp = performGetRequest(t,
+		fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, v.ChannelId, v.Amount.Uint64(), v.Signature.ToHexString()))
+	checkResponse(t, resp, signatureErrorResponseBody, http.StatusPaymentRequired)
+}
+
+func expectedPaymentErrorMessage(numPaid int) string {
+	return fmt.Sprintf("payment of 5 required, the voucher only resulted in a payment of %d", numPaid)
 }
 
 // performGetRequest performs a GET request to the given url
@@ -86,8 +118,8 @@ func performGetRequest(t *testing.T, url string) *http.Response {
 
 func checkResponse(t *testing.T, resp *http.Response, expectedBody string, expectedStatusCode int) {
 	responseBodyText, statusCode := getResponseInfo(t, resp)
-	if responseBodyText != expectedBody {
-		t.Errorf("Expected a response body %s, but got %s", expectedBody, responseBodyText)
+	if !strings.Contains(responseBodyText, expectedBody) {
+		t.Errorf("The body of the response %s did not contain the expected text %s ", responseBodyText, expectedBody)
 	}
 	if statusCode != expectedStatusCode {
 		t.Errorf("Expected status code %d, but got %d", http.StatusOK, statusCode)
