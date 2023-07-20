@@ -48,6 +48,7 @@ const (
 	NUM_CONNECT_ATTEMPTS                     = 20
 	RETRY_SLEEP_DURATION                     = 5 * time.Second
 	PEER_EXCHANGE_SLEEP_DURATION             = 10 * time.Second // how often we attempt FindPeers
+	BOOTSTRAP_SLEEP_DURATION                 = 1 * time.Second  // how often we check for bootpeers in Peerstore
 )
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
@@ -151,7 +152,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 
 	expectedPeers := len(bootPeers)
 	if expectedPeers > 0 {
-		ticker := time.NewTicker(time.Second)
+		ticker := time.NewTicker(BOOTSTRAP_SLEEP_DURATION)
 		for range ticker.C {
 			peers := ms.p2pHost.Peerstore().Peers()
 			actualPeers := len(peers) - 1 // subtract one to ignore self

@@ -49,7 +49,7 @@ var Bob Actor = Actor{
 var Ivan Actor = Actor{
 	common.Hex2Bytes("1ea91a2724b40fb8fed6a3648d49e9431996c09744fb841b718377fb0700f3e7"),
 	2,
-	"brian",
+	"ivan",
 	START_PORT + 2,
 }
 
