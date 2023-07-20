@@ -87,6 +87,13 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		&engine.PermissivePolicy{},
 		nil)
 
+	serverLogger := logging.WithAddress(zerolog.New(logDestination).
+		Level(zerolog.TraceLevel).
+		With().
+		Timestamp().
+		Str("rpc", "server"), ourStore.GetAddress()).
+		Logger()
+
 	var transport transport.Responder
 
 	switch transportType {
@@ -97,7 +104,7 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 	case "ws":
 		logger.Info().Msg("Initializing websocket RPC transport...")
 
-		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
+		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort), serverLogger)
 	default:
 		err = fmt.Errorf("unknown transport type %s", transportType)
 	}
@@ -105,13 +112,6 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
-	serverLogger := logging.WithAddress(zerolog.New(logDestination).
-		Level(zerolog.TraceLevel).
-		With().
-		Timestamp().
-		Str("rpc", "server"), ourStore.GetAddress()).
-		Logger()
 
 	rpcServer, err := rpc.NewRpcServer(&node, &serverLogger, transport)
 	if err != nil {
