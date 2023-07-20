@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	paymentproxy "github.com/statechannels/go-nitro/cmd/reverse-payment-proxy/proxy"
+	"github.com/statechannels/go-nitro/reverseproxy"
 	"github.com/urfave/cli/v2"
 )
 
@@ -42,7 +42,7 @@ func main() {
 		Action: func(c *cli.Context) error {
 			proxyPort := c.Uint(PORT)
 			nitroEndpoint := c.String(NITRO_ENDPOINT)
-			p := paymentproxy.NewReversePaymentProxy(proxyPort, nitroEndpoint, c.String(DESTINATION_URL))
+			p := reverseproxy.NewReversePaymentProxy(proxyPort, nitroEndpoint, c.String(DESTINATION_URL))
 
 			return p.Start(context.Background())
 		},

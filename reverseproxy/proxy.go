@@ -1,4 +1,4 @@
-package paymentproxy
+package reverseproxy
 
 import (
 	"context"
