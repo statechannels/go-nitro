@@ -133,10 +133,10 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) st
 
 func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, bootPeers []string) (node.Node, messageservice.MessageService, string) {
 	// messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers, newLogWriter(tc.LogName))
-	messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers, logging.NewLogWriter("../artifacts", tc.LogName))
+	messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers, logging.NewLogWriter("../artifacts", tc.LogName+"_message_"+string(tp.Name)+".log"))
 	cs := setupChainService(tc, tp, si)
 	store := setupStore(tc, tp, si)
-	n := node.New(messageService, cs, store, logging.NewLogWriter("../artifacts", tc.LogName), &engine.PermissivePolicy{}, nil)
+	n := node.New(messageService, cs, store, logging.NewLogWriter("../artifacts", tc.LogName+"_engine_"+string(tp.Name)+".log"), &engine.PermissivePolicy{}, nil)
 	return n, messageService, multiAddr
 }
 

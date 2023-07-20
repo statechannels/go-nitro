@@ -23,7 +23,7 @@ func TestSimpleIntegrationScenario(t *testing.T) {
 		MessageService: TestMessageService,
 		NumOfChannels:  1,
 		MessageDelay:   0,
-		LogName:        "simple_integration_run.log",
+		LogName:        "simple_integration",
 		NumOfHops:      1,
 		NumOfPayments:  1,
 		Participants: []TestParticipant{
@@ -43,7 +43,7 @@ func TestComplexIntegrationScenario(t *testing.T) {
 		MessageService: MdnsMessageService,
 		NumOfChannels:  5,
 		MessageDelay:   0,
-		LogName:        "complex_integration_run.log",
+		LogName:        "complex_integration",
 		NumOfHops:      2,
 		NumOfPayments:  5,
 		Participants: []TestParticipant{
@@ -63,7 +63,7 @@ func TestKademliaDhtIntegrationScenario(t *testing.T) {
 		MessageService: DhtMessageService,
 		NumOfChannels:  5,
 		MessageDelay:   0,
-		LogName:        "dht_integration_run.log",
+		LogName:        "dht_integration",
 		NumOfHops:      2,
 		NumOfPayments:  5,
 		Participants: []TestParticipant{

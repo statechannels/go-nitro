@@ -94,9 +94,9 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 
 	options := []libp2p.Option{
 		libp2p.Identity(messageKey),
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
+		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", "0.0.0.0", port)),
 		libp2p.Transport(tcp.NewTCPTransport),
-		libp2p.NoSecurity,
+		libp2p.NATPortMap(),
 		libp2p.DefaultMuxers,
 	}
 	host, err := libp2p.New(options...)
