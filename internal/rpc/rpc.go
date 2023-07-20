@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/internal/chain"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
@@ -105,12 +106,11 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		return nil, nil, nil, err
 	}
 
-	serverLogger := zerolog.New(logDestination).
+	serverLogger := logging.WithAddress(zerolog.New(logDestination).
 		Level(zerolog.TraceLevel).
 		With().
 		Timestamp().
-		Str("node", ourStore.GetAddress().String()).
-		Str("rpc", "server").
+		Str("rpc", "server"), ourStore.GetAddress()).
 		Logger()
 
 	rpcServer, err := rpc.NewRpcServer(&node, &serverLogger, transport)

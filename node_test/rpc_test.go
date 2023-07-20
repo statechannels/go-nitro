@@ -33,13 +33,12 @@ func simpleOutcome(a, b types.Address, aBalance, bBalance uint) outcome.Exit {
 	return testdata.Outcomes.Create(a, b, aBalance, bBalance, types.Address{})
 }
 
-func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.Logger {
-	return zerolog.New(logDestination).
+func createLogger(logDestination *os.File, clientName *types.Address, rpcRole string) zerolog.Logger {
+	return logging.WithAddress(zerolog.New(logDestination).
 		Level(zerolog.TraceLevel).
 		With().
 		Timestamp().
-		Str("client", clientName).
-		Str("rpc", rpcRole).
+		Str("rpc", rpcRole), clientName).
 		Logger()
 }
 
@@ -398,7 +397,7 @@ func setupNitroNodeWithRPCClient(
 		t.Fatal(err)
 	}
 
-	clientLogger := createLogger(logDestination, rpcServer.Address().Hex(), "client")
+	clientLogger := createLogger(logDestination, rpcServer.Address(), "client")
 
 	var clientConnection transport.Requester
 	switch connectionType {

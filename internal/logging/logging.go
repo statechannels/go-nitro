@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/types"
 )
 
 var once sync.Once
@@ -48,4 +49,9 @@ func NewLogWriter(logDir, logFile string) *os.File {
 	}
 
 	return logDestination
+}
+
+// WithAddress adds a formatted address field to a logger
+func WithAddress(c zerolog.Context, address *types.Address) zerolog.Context {
+	return c.Str("address", address.String()[0:8])
 }
