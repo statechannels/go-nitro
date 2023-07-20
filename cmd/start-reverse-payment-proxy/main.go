@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -44,7 +43,7 @@ func main() {
 			nitroEndpoint := c.String(NITRO_ENDPOINT)
 			p := reverseproxy.NewReversePaymentProxy(proxyPort, nitroEndpoint, c.String(DESTINATION_URL))
 
-			return p.Start(context.Background())
+			return p.Start()
 		},
 	}
 	if err := app.Run(os.Args); err != nil {

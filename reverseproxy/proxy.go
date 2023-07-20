@@ -1,7 +1,6 @@
 package reverseproxy
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"math/big"
@@ -22,8 +21,6 @@ type ReversePaymentProxy struct {
 	server      *http.Server
 	path        string
 	nitroClient *rpc.RpcClient
-	ctx         context.Context
-	cancel      context.CancelFunc
 
 	reverseProxy *httputil.ReverseProxy
 }
@@ -52,9 +49,7 @@ func NewReversePaymentProxy(proxyPort uint, nitroEndpoint string, destination st
 }
 
 // Start starts the proxy server in a goroutine.
-func (p *ReversePaymentProxy) Start(ctx context.Context) error {
-	p.ctx, p.cancel = context.WithCancel(ctx)
-
+func (p *ReversePaymentProxy) Start() error {
 	go func() {
 		fmt.Printf("Starting reverse payment proxy listening on %s\n", p.path)
 		if err := http.ListenAndServe(p.path, p); err != http.ErrServerClosed {
@@ -67,7 +62,6 @@ func (p *ReversePaymentProxy) Start(ctx context.Context) error {
 
 // Stop stops the proxy server and closes everything.
 func (p *ReversePaymentProxy) Stop() error {
-	p.cancel()
 	err := p.nitroClient.Close()
 	if err != nil {
 		return err
