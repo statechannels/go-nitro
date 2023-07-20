@@ -89,7 +89,7 @@ func TestReversePaymentProxy(t *testing.T) {
 
 	// Check that the proxy can handle non voucher params and pass them along to the destination server
 	voucher = createVoucher(t, aliceClient, paymentChannel, 5)
-	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resourceWithParams?channelId=%s&amount=%d&signature=%s&otherParam=2", proxyPort, voucher.ChannelId, voucher.Amount, voucher.Signature.ToHexString()))
+	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource/params?channelId=%s&amount=%d&signature=%s&otherParam=2", proxyPort, voucher.ChannelId, voucher.Amount, voucher.Signature.ToHexString()))
 	checkResponse(t, resp, destinationServerResponseBody, http.StatusOK)
 }
 
@@ -217,14 +217,14 @@ func runDestinationServer(t *testing.T, port uint) (destUrl string, cleanup func
 	}
 
 	handleRequest := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/resource" && r.URL.Path != "/resourceWithParams" {
+		if r.URL.Path != "/resource" && r.URL.Path != "/resource/params" {
 			t.Fatalf("Expected a request to /resource, but got %s", r.URL.Path)
 		}
 
 		params, err := url.ParseQuery(r.URL.RawQuery)
 		checkError(err)
-		// If this is a request to /resourceWithParams, we check for the other param
-		if checkForOtherParam := r.URL.Path == "/resourceWithParams"; checkForOtherParam {
+		// If this is a request to /resource/params, we check for the other param
+		if checkForOtherParam := r.URL.Path == "/resource/params"; checkForOtherParam {
 			if !params.Has(otherParam) {
 				t.Fatalf("Did not find query param %s in url %s", otherParam, r.URL.RawQuery)
 			}
