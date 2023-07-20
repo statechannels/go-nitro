@@ -62,11 +62,11 @@ func TestReversePaymentProxy(t *testing.T) {
 
 	voucher := createVoucher(t, aliceClient, paymentChannel, 5)
 
-	resp := performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, paymentChannel, 5, voucher.Signature.ToHexString()))
+	resp := performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
 	checkResponse(t, resp, destinationServerResponseBody, http.StatusOK)
 
 	// Using the same voucher again should result in a payment required response
-	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, paymentChannel, 5, voucher.Signature.ToHexString()))
+	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
 	checkResponse(t, resp, expectedPaymentErrorMessage(0), http.StatusPaymentRequired)
 
 	// Not providing a voucher should result in a payment required response
