@@ -50,9 +50,10 @@ func closeNode(t *testing.T, node *node.Node) {
 
 // waitForPeerInfoExchange waits for all the P2PMessageServices to receive peer info from each other
 func waitForPeerInfoExchange(services ...*p2pms.P2PMessageService) {
-	for _, s := range services {
+	for sNum, s := range services {
 		for i := 0; i < len(services)-1; i++ {
-			<-s.PeerInfoReceived()
+			peerInfo := <-s.PeerInfoReceived()
+			fmt.Printf("Service num: %d, peer num: %d, peerInfo: %v\n", sNum, i, peerInfo)
 		}
 	}
 }
@@ -63,11 +64,11 @@ func closeSimulatedChain(t *testing.T, chain chainservice.SimulatedChain) {
 	}
 }
 
-func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, logWriter io.Writer) messageservice.MessageService {
+func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, bootPeers []string, logWriter io.Writer) (messageservice.MessageService, string) {
 	switch tc.MessageService {
 	case TestMessageService:
-		return messageservice.NewTestMessageService(tp.Address(), *si.broker, tc.MessageDelay)
-	case P2PMessageService:
+		return messageservice.NewTestMessageService(tp.Address(), *si.broker, tc.MessageDelay), ""
+	case MdnsMessageService:
 		ms := p2pms.NewMessageService(
 			"127.0.0.1",
 			int(tp.Port),
@@ -75,9 +76,22 @@ func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastru
 			tp.PrivateKey,
 			true,
 			logWriter,
+			[]string{},
 		)
 
-		return ms
+		return ms, ""
+	case DhtMessageService:
+		ms := p2pms.NewMessageService(
+			"127.0.0.1",
+			int(tp.Port),
+			tp.Address(),
+			tp.PrivateKey,
+			false,
+			logWriter,
+			bootPeers,
+		)
+
+		return ms, ms.MultiAddr
 	default:
 		panic("Unknown message service")
 	}
@@ -117,12 +131,13 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) st
 	}
 }
 
-func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) (node.Node, messageservice.MessageService) {
-	messageService := setupMessageService(tc, tp, si, logging.NewLogWriter("../artifacts", tc.LogName))
+func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, bootPeers []string) (node.Node, messageservice.MessageService, string) {
+	// messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers, newLogWriter(tc.LogName))
+	messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers, logging.NewLogWriter("../artifacts", tc.LogName))
 	cs := setupChainService(tc, tp, si)
 	store := setupStore(tc, tp, si)
 	n := node.New(messageService, cs, store, logging.NewLogWriter("../artifacts", tc.LogName), &engine.PermissivePolicy{}, nil)
-	return n, messageService
+	return n, messageService, multiAddr
 }
 
 func initialLedgerOutcome(alpha, beta, asset types.Address) outcome.Exit {

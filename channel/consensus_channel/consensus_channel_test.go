@@ -178,8 +178,8 @@ func TestConsensusChannel(t *testing.T) {
 			t.Fatalf("latestProposedVars did not return a copy")
 		}
 
-		briansSig, _ := initialVars.AsState(fp()).Sign(brian.PrivateKey)
-		wrongSigs := [2]state.Signature{sigs[1], briansSig}
+		ivansSig, _ := initialVars.AsState(fp()).Sign(ivan.PrivateKey)
+		wrongSigs := [2]state.Signature{sigs[1], ivansSig}
 		_, err = newConsensusChannel(fp(), Leader, 0, outcome(), wrongSigs)
 		if err == nil {
 			t.Fatalf("channel should check that signers are participants")

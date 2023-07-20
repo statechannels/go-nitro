@@ -40,7 +40,7 @@ func TestComplexIntegrationScenario(t *testing.T) {
 	complexCase := TestCase{
 		Description:    "Complex test",
 		Chain:          SimulatedChain,
-		MessageService: P2PMessageService,
+		MessageService: MdnsMessageService,
 		NumOfChannels:  5,
 		MessageDelay:   0,
 		LogName:        "complex_integration_run.log",
@@ -50,7 +50,27 @@ func TestComplexIntegrationScenario(t *testing.T) {
 			{StoreType: DurableStore, Actor: testactors.Alice},
 			{StoreType: DurableStore, Actor: testactors.Bob},
 			{StoreType: DurableStore, Actor: testactors.Irene},
-			{StoreType: DurableStore, Actor: testactors.Brian},
+			{StoreType: DurableStore, Actor: testactors.Ivan},
+		},
+	}
+	RunIntegrationTestCase(complexCase, t)
+}
+
+func TestKademliaDhtIntegrationScenario(t *testing.T) {
+	complexCase := TestCase{
+		Description:    "Kademlia-DHT test",
+		Chain:          SimulatedChain,
+		MessageService: DhtMessageService,
+		NumOfChannels:  5,
+		MessageDelay:   0,
+		LogName:        "dht_integration_run.log",
+		NumOfHops:      2,
+		NumOfPayments:  5,
+		Participants: []TestParticipant{
+			{StoreType: DurableStore, Actor: testactors.Alice},
+			{StoreType: DurableStore, Actor: testactors.Bob},
+			{StoreType: DurableStore, Actor: testactors.Irene},
+			{StoreType: DurableStore, Actor: testactors.Ivan},
 		},
 	}
 	RunIntegrationTestCase(complexCase, t)
@@ -72,21 +92,14 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 		msgServices := make([]messageservice.MessageService, 0)
 
 		// Setup clients
-		// NOTE: We rely on the convention that Alice is the first participant, Bob the second, and the intermediaries afterwards.
-		clientA, msgA := setupIntegrationNode(tc, tc.Participants[0], infra)
-		defer clientA.Close()
-		msgServices = append(msgServices, msgA)
-
-		clientB, msgB := setupIntegrationNode(tc, tc.Participants[1], infra)
-		defer clientB.Close()
-		msgServices = append(msgServices, msgB)
-
 		intermediaries := make([]node.Node, 0)
+		bootPeers := make([]string, 0)
 		for _, intermediary := range tc.Participants[2:] {
-			clientI, msgI := setupIntegrationNode(tc, intermediary, infra)
+			clientI, msgI, multiAddr := setupIntegrationNode(tc, intermediary, infra, bootPeers)
 
 			intermediaries = append(intermediaries, clientI)
 			msgServices = append(msgServices, msgI)
+			bootPeers = append(bootPeers, multiAddr)
 		}
 
 		defer func() {
@@ -95,13 +108,23 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 			}
 		}()
 
-		if tc.MessageService == P2PMessageService {
+		clientA, msgA, _ := setupIntegrationNode(tc, tc.Participants[0], infra, bootPeers)
+		defer clientA.Close()
+		msgServices = append(msgServices, msgA)
+
+		clientB, msgB, _ := setupIntegrationNode(tc, tc.Participants[1], infra, bootPeers)
+		defer clientB.Close()
+		msgServices = append(msgServices, msgB)
+
+		if tc.MessageService != TestMessageService {
 			p2pServices := make([]*p2pms.P2PMessageService, len(tc.Participants))
 			for i, msgService := range msgServices {
 				p2pServices[i] = msgService.(*p2pms.P2PMessageService)
 			}
 
+			t.Log("Waiting for peer info exchange...")
 			waitForPeerInfoExchange(p2pServices...)
+			t.Log("Peer info exchange complete")
 		}
 
 		asset := common.Address{}

@@ -21,7 +21,7 @@ const (
 	vAmount = uint64(5)
 )
 
-var alice, bob, brian testactors.Actor = testactors.Alice, testactors.Bob, testactors.Brian
+var alice, bob, ivan testactors.Actor = testactors.Alice, testactors.Bob, testactors.Ivan
 
 func fp() state.FixedPart {
 	participants := [2]types.Address{

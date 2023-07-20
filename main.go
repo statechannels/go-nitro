@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -28,6 +29,8 @@ func main() {
 		MSG_PORT              = "msgport"
 		RPC_PORT              = "rpcport"
 		GUI_PORT              = "guiport"
+		BOOT_PEERS            = "bootpeers"
+		USE_MDNS              = "usemdns"
 
 		// Keys
 		KEYS_CATEGORY = "Keys:"
@@ -39,9 +42,9 @@ func main() {
 		USE_DURABLE_STORE    = "usedurablestore"
 		DURABLE_STORE_FOLDER = "durablestorefolder"
 	)
-	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk, durableStoreFolder string
+	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk, durableStoreFolder, bootPeers string
 	var msgPort, rpcPort, guiPort int
-	var useNats, useDurableStore bool
+	var useNats, useDurableStore, useMdns bool
 
 	flags := []cli.Flag{
 		&cli.StringFlag{
@@ -61,6 +64,13 @@ func main() {
 			Category:    STORAGE_CATEGORY,
 			Value:       false,
 			Destination: &useDurableStore,
+		}),
+		altsrc.NewBoolFlag(&cli.BoolFlag{
+			Name:        USE_MDNS,
+			Usage:       "Specifies whether to use mDNS for peer discovery (if 'false', will use kademlia-dht)",
+			Category:    CONNECTIVITY_CATEGORY,
+			Value:       true,
+			Destination: &useMdns,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        PK,
@@ -137,6 +147,13 @@ func main() {
 			Destination: &durableStoreFolder,
 			Value:       "./data/nitro-store",
 		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:        BOOT_PEERS,
+			Usage:       "Comma-delimited list of peer multiaddrs the messaging service will connect to when initialized.",
+			Value:       "",
+			Category:    CONNECTIVITY_CATEGORY,
+			Destination: &bootPeers,
+		}),
 	}
 	app := &cli.App{
 		Name:   "go-nitro",
@@ -153,7 +170,11 @@ func main() {
 				CaAddress:      common.HexToAddress(caAddress),
 			}
 
-			rpcServer, _, _, err := rpc.InitChainServiceAndRunRpcServer(pkString, chainOpts, useDurableStore, durableStoreFolder, useNats, msgPort, rpcPort)
+			var peerSlice []string
+			if bootPeers != "" {
+				peerSlice = strings.Split(bootPeers, ",")
+			}
+			rpcServer, _, _, err := rpc.InitChainServiceAndRunRpcServer(pkString, chainOpts, useDurableStore, durableStoreFolder, useNats, msgPort, rpcPort, peerSlice, useMdns)
 			if err != nil {
 				return err
 			}
