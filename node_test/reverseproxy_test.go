@@ -19,6 +19,7 @@ import (
 
 const (
 	destinationServerResponseBody = "Hello! This is from the destination server"
+	paymentNeededResponseBody     = "payment of 5 required, the voucher only resulted in a payment of 0\n"
 	proxyPort                     = 5511
 	bobRPCUrl                     = ":4107/api/v1"
 	destPort                      = 6622
@@ -59,12 +60,11 @@ func TestReversePaymentProxy(t *testing.T) {
 	}
 
 	resp := performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, paymentChannel, 5, v.Signature.ToHexString()))
+	checkResponse(t, resp, destinationServerResponseBody, http.StatusOK)
 
-	responseBodyText := getResponseBody(t, resp)
-	// Check if the response from the destination server is correct
-	if responseBodyText != (destinationServerResponseBody) {
-		t.Errorf("Expected response %q, but got %q", destinationServerResponseBody, responseBodyText)
-	}
+	// Using the same voucher again should result in a payment required response
+	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, paymentChannel, 5, v.Signature.ToHexString()))
+	checkResponse(t, resp, paymentNeededResponseBody, http.StatusPaymentRequired)
 }
 
 // performGetRequest performs a GET request to the given url
@@ -84,15 +84,26 @@ func performGetRequest(t *testing.T, url string) *http.Response {
 	return resp
 }
 
-// getResponseBody reads the response body and returns it as a string
+func checkResponse(t *testing.T, resp *http.Response, expectedBody string, expectedStatusCode int) {
+	responseBodyText, statusCode := getResponseInfo(t, resp)
+	if responseBodyText != expectedBody {
+		t.Errorf("Expected a response body %s, but got %s", expectedBody, responseBodyText)
+	}
+	if statusCode != expectedStatusCode {
+		t.Errorf("Expected status code %d, but got %d", http.StatusOK, statusCode)
+	}
+}
+
+// getResponseInfo reads the response body and returns it as a string
 // If any error occurs it will fail the test
-func getResponseBody(t *testing.T, resp *http.Response) string {
+func getResponseInfo(t *testing.T, resp *http.Response) (body string, statusCode int) {
 	bodyText, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading request data: %v", err)
 	}
 	resp.Body.Close()
-	return string(bodyText)
+
+	return string(bodyText), resp.StatusCode
 }
 
 // setupNitroClients creates three nitro clients and connects them to each other
