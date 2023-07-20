@@ -3,7 +3,6 @@ package reverseproxy
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/big"
 	"net/http"
 	"net/http/httputil"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/rpc"
@@ -29,10 +29,11 @@ type ReversePaymentProxy struct {
 	nitroClient *rpc.RpcClient
 
 	reverseProxy *httputil.ReverseProxy
+	logger       zerolog.Logger
 }
 
 // NewReversePaymentProxy creates a new ReversePaymentProxy.
-func NewReversePaymentProxy(proxyPort uint, nitroEndpoint string, destination string) *ReversePaymentProxy {
+func NewReversePaymentProxy(proxyPort uint, nitroEndpoint string, destination string, logger zerolog.Logger) *ReversePaymentProxy {
 	server := &http.Server{Addr: fmt.Sprintf(":%d", proxyPort)}
 
 	nitroClient, err := rpc.NewHttpRpcClient(nitroEndpoint)
@@ -47,8 +48,8 @@ func NewReversePaymentProxy(proxyPort uint, nitroEndpoint string, destination st
 	proxy := httputil.NewSingleHostReverseProxy(destinationUrl)
 
 	return &ReversePaymentProxy{
-		server: server,
-
+		server:       server,
+		logger:       logger,
 		nitroClient:  nitroClient,
 		reverseProxy: proxy,
 	}
@@ -61,9 +62,9 @@ func (p *ReversePaymentProxy) Start() error {
 	p.server.Handler = p
 
 	go func() {
-		fmt.Printf("Starting reverse payment proxy listening on %s\n", p.server.Addr)
+		p.logger.Info().Msgf("Starting reverse payment proxy listening on %s", p.server.Addr)
 		if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf("ListenAndServe(): %v", err)
+			p.logger.Err(err).Msg("ListenAndServe()")
 		}
 	}()
 
@@ -72,6 +73,7 @@ func (p *ReversePaymentProxy) Start() error {
 
 // Stop stops the proxy server and closes everything.
 func (p *ReversePaymentProxy) Stop() error {
+	p.logger.Info().Msgf("Stopping reverse payment proxy listening on %s", p.server.Addr)
 	err := p.server.Shutdown(context.Background())
 	if err != nil {
 		return err
@@ -87,29 +89,30 @@ func (p *ReversePaymentProxy) Stop() error {
 func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// This the payment we expect to receive for the file.
 	const expectedPayment = int64(5)
-
+	p.logger.Debug().Msgf("Incoming request URL %s", r.URL.String())
 	params, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
-		webError(w, fmt.Errorf("could not parse query params: %w", err), http.StatusBadRequest)
+		p.webError(w, fmt.Errorf("could not parse query params: %w", err), http.StatusBadRequest)
 		return
 	}
 
 	v, err := parseVoucher(params)
 	if err != nil {
-		webError(w, fmt.Errorf("could not parse voucher: %w", err), http.StatusPaymentRequired)
+		p.webError(w, fmt.Errorf("could not parse voucher: %w", err), http.StatusPaymentRequired)
 		return
 	}
 
 	s, err := p.nitroClient.ReceiveVoucher(v)
 	if err != nil {
-		webError(w, fmt.Errorf("error processing voucher %w", err), http.StatusPaymentRequired)
+		p.webError(w, fmt.Errorf("error processing voucher %w", err), http.StatusPaymentRequired)
 		return
 	}
 
+	p.logger.Debug().Msgf("Received voucher with delta %d", s.Delta.Uint64())
 	// s.Delta is amount our balance increases by adding this voucher
 	// AKA the payment amount we received in the request for this file
 	if s.Delta.Cmp(big.NewInt(expectedPayment)) < 0 {
-		webError(w, fmt.Errorf("payment of %d required, the voucher only resulted in a payment of %d", expectedPayment, s.Delta.Uint64()), http.StatusPaymentRequired)
+		p.webError(w, fmt.Errorf("payment of %d required, the voucher only resulted in a payment of %d", expectedPayment, s.Delta.Uint64()), http.StatusPaymentRequired)
 		return
 	}
 
@@ -118,6 +121,17 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	// Forward the request to the destination server
 	p.reverseProxy.ServeHTTP(w, r)
+	p.logger.Debug().Msgf("Destination request URL %s", r.URL.String())
+}
+
+// webError is a helper function to return an http error.
+func (p *ReversePaymentProxy) webError(w http.ResponseWriter, err error, code int) {
+	// TODO: This is a hack to allow CORS requests to the gateway for the boost integration demo.
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+
+	http.Error(w, err.Error(), code)
+	p.logger.Error().Err(err).Msgf("Error processing request")
 }
 
 // parseVoucher takes in an a collection of query params and parses out a voucher.
@@ -153,13 +167,4 @@ func removeVoucherParams(u *url.URL) {
 	delete(queryParams, AMOUNT_VOUCHER_PARAM)
 	// Update the request URL without the voucher parameters
 	u.RawQuery = queryParams.Encode()
-}
-
-// webError is a helper function to return an http error.
-func webError(w http.ResponseWriter, err error, code int) {
-	// TODO: This is a hack to allow CORS requests to the gateway for the boost integration demo.
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "*")
-
-	http.Error(w, err.Error(), code)
 }

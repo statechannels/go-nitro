@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/payments"
 
@@ -47,7 +48,11 @@ func TestReversePaymentProxy(t *testing.T) {
 	defer cleanupDestServer()
 
 	// Create a ReversePaymentProxy with the test destination server URL
-	proxy := reverseproxy.NewReversePaymentProxy(proxyPort, bobRPCUrl, destinationServerUrl)
+	proxy := reverseproxy.NewReversePaymentProxy(
+		proxyPort,
+		bobRPCUrl,
+		destinationServerUrl,
+		zerolog.New(logDestination).Level(zerolog.DebugLevel))
 	defer func() {
 		err := proxy.Stop()
 		if err != nil {

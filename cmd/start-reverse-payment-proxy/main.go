@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/reverseproxy"
 	"github.com/urfave/cli/v2"
 )
@@ -41,7 +42,15 @@ func main() {
 		Action: func(c *cli.Context) error {
 			proxyPort := c.Uint(PORT)
 			nitroEndpoint := c.String(NITRO_ENDPOINT)
-			p := reverseproxy.NewReversePaymentProxy(proxyPort, nitroEndpoint, c.String(DESTINATION_URL))
+
+			// For now we just log to stdout
+			logger := zerolog.New(os.Stdout).Level(zerolog.DebugLevel)
+
+			p := reverseproxy.NewReversePaymentProxy(
+				proxyPort,
+				nitroEndpoint,
+				c.String(DESTINATION_URL),
+				logger)
 
 			return p.Start()
 		},
