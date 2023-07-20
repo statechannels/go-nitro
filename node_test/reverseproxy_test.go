@@ -93,7 +93,7 @@ func TestReversePaymentProxy(t *testing.T) {
 	checkResponse(t, resp, destinationServerResponseBody, http.StatusOK)
 }
 
-// createVoucher creates a voucher for the given channel and amount	 using the given client
+// createVoucher creates a voucher for the given channel and amount	using the given client
 // If any error occurs it will fail the test
 func createVoucher(t *testing.T, client *rpc.RpcClient, channelId types.Destination, amount uint64) payments.Voucher {
 	v, err := client.CreateVoucher(channelId, amount)
