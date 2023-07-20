@@ -85,6 +85,7 @@ func TestReversePaymentProxy(t *testing.T) {
 	}
 }
 
+// setupNitroClients creates three nitro clients and connects them to each other
 func setupNitroClients(t *testing.T, logDestination *os.File) (alice, irene, bob *rpc.RpcClient, cleanup func()) {
 	chain := chainservice.NewMockChain()
 	logger := testLogger(logDestination)
@@ -110,6 +111,7 @@ func setupNitroClients(t *testing.T, logDestination *os.File) (alice, irene, bob
 	}
 }
 
+// createChannelData creates ledgers channels and a payment channel between Alice and Bob
 func createChannelData(t *testing.T, aliceClient, ireneClient, bobClient *rpc.RpcClient) (paymentChannelId types.Destination) {
 	aliceLedgerRes, err := aliceClient.CreateLedgerChannel(ta.Irene.Address(), 100, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100))
 	if err != nil {
