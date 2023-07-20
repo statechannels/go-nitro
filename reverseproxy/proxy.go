@@ -17,6 +17,12 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+const (
+	AMOUNT_VOUCHER_PARAM     = "amount"
+	CHANNEL_ID_VOUCHER_PARAM = "channelId"
+	SIGNATURE_VOUCHER_PARAM  = "signature"
+)
+
 // ReversePaymentProxy is an HTTP proxy that charges for HTTP requests.
 type ReversePaymentProxy struct {
 	server      *http.Server
@@ -116,20 +122,20 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 // parseVoucher takes in an a collection of query params and parses out a voucher.
 func parseVoucher(params url.Values) (payments.Voucher, error) {
-	if !params.Has("channelId") {
+	if !params.Has(CHANNEL_ID_VOUCHER_PARAM) {
 		return payments.Voucher{}, fmt.Errorf("a valid channel id must be provided")
 	}
-	if !params.Has("amount") {
+	if !params.Has(AMOUNT_VOUCHER_PARAM) {
 		return payments.Voucher{}, fmt.Errorf("a valid amount must be provided")
 	}
-	if !params.Has("signature") {
+	if !params.Has(SIGNATURE_VOUCHER_PARAM) {
 		return payments.Voucher{}, fmt.Errorf("a valid signature must be provided")
 	}
-	rawChId := params.Get("channelId")
-	rawAmt := params.Get("amount")
+	rawChId := params.Get(CHANNEL_ID_VOUCHER_PARAM)
+	rawAmt := params.Get(AMOUNT_VOUCHER_PARAM)
 	amount := big.NewInt(0)
 	amount.SetString(rawAmt, 10)
-	rawSignature := params.Get("signature")
+	rawSignature := params.Get(SIGNATURE_VOUCHER_PARAM)
 
 	v := payments.Voucher{
 		ChannelId: types.Destination(common.HexToHash(rawChId)),
@@ -142,9 +148,9 @@ func parseVoucher(params url.Values) (payments.Voucher, error) {
 // removeVoucherParams removes the voucher parameters from the request URL.
 func removeVoucherParams(u *url.URL) {
 	queryParams := u.Query()
-	delete(queryParams, "channelId")
-	delete(queryParams, "signature")
-	delete(queryParams, "amount")
+	delete(queryParams, CHANNEL_ID_VOUCHER_PARAM)
+	delete(queryParams, SIGNATURE_VOUCHER_PARAM)
+	delete(queryParams, AMOUNT_VOUCHER_PARAM)
 	// Update the request URL without the voucher parameters
 	u.RawQuery = queryParams.Encode()
 }
@@ -154,6 +160,6 @@ func webError(w http.ResponseWriter, err error, code int) {
 	// TODO: This is a hack to allow CORS requests to the gateway for the boost integration demo.
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "*")
-	fmt.Printf("ERROR CODE %d\n", code)
+
 	http.Error(w, err.Error(), code)
 }
