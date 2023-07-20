@@ -19,12 +19,13 @@ import (
 
 // ReversePaymentProxy is an HTTP proxy that charges for HTTP requests.
 type ReversePaymentProxy struct {
-	server         *http.Server
-	path           string
-	nitroClient    *rpc.RpcClient
-	ctx            context.Context
-	cancel         context.CancelFunc
-	destinationUrl *url.URL
+	server      *http.Server
+	path        string
+	nitroClient *rpc.RpcClient
+	ctx         context.Context
+	cancel      context.CancelFunc
+
+	reverseProxy *httputil.ReverseProxy
 }
 
 // NewReversePaymentProxy creates a new ReversePaymentProxy.
@@ -38,11 +39,15 @@ func NewReversePaymentProxy(proxyPort uint, nitroEndpoint string, destination st
 	if err != nil {
 		panic(err)
 	}
+	// Creates a reverse proxy that will handle forwarding requests to the destination server
+	proxy := httputil.NewSingleHostReverseProxy(destinationUrl)
+
 	return &ReversePaymentProxy{
-		path:           fmt.Sprintf("localhost:%d", proxyPort),
-		server:         server,
-		destinationUrl: destinationUrl,
-		nitroClient:    nitroClient,
+		path:   fmt.Sprintf("localhost:%d", proxyPort),
+		server: server,
+
+		nitroClient:  nitroClient,
+		reverseProxy: proxy,
 	}
 }
 
@@ -75,9 +80,6 @@ func (p *ReversePaymentProxy) Stop() error {
 // It then passes the voucher to the nitro client to process.
 // Based on the amount added by the voucher, it either forwards the request to the destination server or returns an error.
 func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Create a reverse proxy
-	proxy := httputil.NewSingleHostReverseProxy(p.destinationUrl)
-
 	// This the payment we expect to receive for the file.
 	const expectedPayment = int64(5)
 
@@ -110,7 +112,7 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	removeVoucherParams(r.URL)
 
 	// Forward the request to the destination server
-	proxy.ServeHTTP(w, r)
+	p.reverseProxy.ServeHTTP(w, r)
 }
 
 // parseVoucher takes in an a collection of query params and parses out a voucher.
