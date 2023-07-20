@@ -80,7 +80,7 @@ func createChannels() error {
 		}
 	}
 
-	alice, irene, bob := clients["alice"], clients["bob"], clients["irene"]
+	alice, bob, irene := clients["alice"], clients["bob"], clients["irene"]
 
 	err := createLedgerChannel(alice, irene)
 	if err != nil {
