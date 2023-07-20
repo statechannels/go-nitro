@@ -63,7 +63,7 @@ func (p *ReversePaymentProxy) Start() error {
 	go func() {
 		fmt.Printf("Starting reverse payment proxy listening on %s\n", p.server.Addr)
 		if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf("http.ListenAndServe(): %v", err)
+			log.Fatalf("ListenAndServe(): %v", err)
 		}
 	}()
 
