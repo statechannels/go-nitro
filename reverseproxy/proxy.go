@@ -1,6 +1,7 @@
 package reverseproxy
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math/big"
@@ -19,7 +20,6 @@ import (
 // ReversePaymentProxy is an HTTP proxy that charges for HTTP requests.
 type ReversePaymentProxy struct {
 	server      *http.Server
-	path        string
 	nitroClient *rpc.RpcClient
 
 	reverseProxy *httputil.ReverseProxy
@@ -27,7 +27,8 @@ type ReversePaymentProxy struct {
 
 // NewReversePaymentProxy creates a new ReversePaymentProxy.
 func NewReversePaymentProxy(proxyPort uint, nitroEndpoint string, destination string) *ReversePaymentProxy {
-	server := &http.Server{}
+	server := &http.Server{Addr: fmt.Sprintf(":%d", proxyPort)}
+
 	nitroClient, err := rpc.NewHttpRpcClient(nitroEndpoint)
 	if err != nil {
 		panic(err)
@@ -40,7 +41,6 @@ func NewReversePaymentProxy(proxyPort uint, nitroEndpoint string, destination st
 	proxy := httputil.NewSingleHostReverseProxy(destinationUrl)
 
 	return &ReversePaymentProxy{
-		path:   fmt.Sprintf("localhost:%d", proxyPort),
 		server: server,
 
 		nitroClient:  nitroClient,
@@ -50,9 +50,13 @@ func NewReversePaymentProxy(proxyPort uint, nitroEndpoint string, destination st
 
 // Start starts the proxy server in a goroutine.
 func (p *ReversePaymentProxy) Start() error {
+	// Wire up our proxy to the http handler
+	// This means that p.ServeHTTP will be called for every request
+	p.server.Handler = p
+
 	go func() {
-		fmt.Printf("Starting reverse payment proxy listening on %s\n", p.path)
-		if err := http.ListenAndServe(p.path, p); err != http.ErrServerClosed {
+		fmt.Printf("Starting reverse payment proxy listening on %s\n", p.server.Addr)
+		if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatalf("http.ListenAndServe(): %v", err)
 		}
 	}()
@@ -62,11 +66,12 @@ func (p *ReversePaymentProxy) Start() error {
 
 // Stop stops the proxy server and closes everything.
 func (p *ReversePaymentProxy) Stop() error {
-	err := p.nitroClient.Close()
+	err := p.server.Shutdown(context.Background())
 	if err != nil {
 		return err
 	}
-	return p.server.Close()
+
+	return p.nitroClient.Close()
 }
 
 // ServeHTTP is the main entry point for the proxy.
