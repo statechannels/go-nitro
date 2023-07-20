@@ -20,7 +20,7 @@ const (
 
 func main() {
 	app := &cli.App{
-		Name:  "reverse-payment-proxy",
+		Name:  "start-reverse-payment-proxy",
 		Usage: "Runs an HTTP payment proxy that charges for HTTP requests",
 		Flags: []cli.Flag{
 			&cli.UintFlag{
