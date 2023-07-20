@@ -5,6 +5,7 @@ import {ContractFactory, providers, Wallet} from 'ethers';
 
 import countingAppArtifact from '../artifacts/contracts/CountingApp.sol/CountingApp.json';
 import nitroAdjudicatorArtifact from '../artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
+import batchOperatorArtifact from '../artifacts/contracts/auxiliary/BatchOperator.sol/BatchOperator.json';
 import singleAssetPaymentsArtifact from '../artifacts/contracts/examples/SingleAssetPayments.sol/SingleAssetPayments.json';
 import hashLockedSwapArtifact from '../artifacts/contracts/examples/HashLockedSwap.sol/HashLockedSwap.json';
 import testForceMoveArtifact from '../artifacts/contracts/test/TESTForceMove.sol/TESTForceMove.json';
@@ -26,6 +27,7 @@ const provider = new providers.JsonRpcProvider(rpcEndPoint);
 const [
   countingAppFactory,
   nitroAdjudicatorFactory,
+  batchOperatorFactory,
   singleAssetPaymentsFactory,
   hashLockedSwapFactory,
   testForceMoveFactory,
@@ -42,6 +44,7 @@ const [
 ] = [
   countingAppArtifact,
   nitroAdjudicatorArtifact,
+  batchOperatorArtifact,
   singleAssetPaymentsArtifact,
   hashLockedSwapArtifact,
   testForceMoveArtifact,
@@ -61,6 +64,8 @@ const [
 
 export async function deploy(): Promise<Record<string, string>> {
   const NITRO_ADJUDICATOR_ADDRESS = (await nitroAdjudicatorFactory.deploy()).address;
+  const BATCH_OPERATOR_ADDRESS = (await batchOperatorFactory.deploy(NITRO_ADJUDICATOR_ADDRESS))
+    .address;
   const COUNTING_APP_ADDRESS = (await countingAppFactory.deploy()).address;
 
   const HASH_LOCK_ADDRESS = (await hashLockedSwapFactory.deploy()).address;
@@ -86,6 +91,7 @@ export async function deploy(): Promise<Record<string, string>> {
 
   return {
     NITRO_ADJUDICATOR_ADDRESS,
+    BATCH_OPERATOR_ADDRESS,
     COUNTING_APP_ADDRESS,
     HASH_LOCK_ADDRESS,
     SINGLE_ASSET_PAYMENTS_ADDRESS,
