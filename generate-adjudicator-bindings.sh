@@ -1,4 +1,11 @@
 set -e
+
+trap '{
+rm -rf $(pwd)/tmp-build
+echo "Deleted tmp-build directory."
+ }' EXIT
+
+
 cd nitro-protocol
 
 solc --base-path $(pwd) \
@@ -19,5 +26,4 @@ runAbigen "ConsensusApp" "consensusapp"
 runAbigen "Token" "erc20"
 runAbigen "VirtualPaymentApp" "virtualpaymentapp"
 
-rm -rf $(pwd)/tmp-build
-echo "Deleted tmp-build directory."
+
