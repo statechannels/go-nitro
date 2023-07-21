@@ -12,3 +12,6 @@ docker/restart: docker/stop docker/start
 
 docker/attach:
 	docker exec -it go-nitro bash
+
+ui/build:
+	yarn workspace nitro-gui build
