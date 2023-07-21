@@ -33,17 +33,18 @@ type ReversePaymentProxy struct {
 }
 
 // NewReversePaymentProxy creates a new ReversePaymentProxy.
-func NewReversePaymentProxy(proxyPort uint, nitroEndpoint string, destination string, logger zerolog.Logger) *ReversePaymentProxy {
-	server := &http.Server{Addr: fmt.Sprintf(":%d", proxyPort)}
+func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, logger zerolog.Logger) *ReversePaymentProxy {
+	server := &http.Server{Addr: proxyAddress}
 
 	nitroClient, err := rpc.NewHttpRpcClient(nitroEndpoint)
 	if err != nil {
 		panic(err)
 	}
-	destinationUrl, err := url.Parse(destination)
+	destinationUrl, err := url.Parse(destinationURL)
 	if err != nil {
 		panic(err)
 	}
+
 	// Creates a reverse proxy that will handle forwarding requests to the destination server
 	proxy := httputil.NewSingleHostReverseProxy(destinationUrl)
 

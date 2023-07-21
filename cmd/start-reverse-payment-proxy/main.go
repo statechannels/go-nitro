@@ -14,7 +14,7 @@ import (
 
 const (
 	NITRO_ENDPOINT  = "nitroendpoint"
-	PORT            = "port"
+	PROXY_ADDRESS   = "proxyaddress"
 	DESTINATION_URL = "destinationurl"
 )
 
@@ -23,31 +23,34 @@ func main() {
 		Name:  "start-reverse-payment-proxy",
 		Usage: "Runs an HTTP payment proxy that charges for HTTP requests",
 		Flags: []cli.Flag{
-			&cli.UintFlag{
-				Name:  PORT,
-				Usage: "Specifies the port to run the proxy on",
-				Value: 5511,
+			&cli.StringFlag{
+				Name:    PROXY_ADDRESS,
+				Usage:   "Specifies the TCP address for the proxy to listen on for requests. This should be in the form 'host:port'",
+				Value:   "localhost:5511",
+				Aliases: []string{"p"},
 			},
 			&cli.StringFlag{
-				Name:  NITRO_ENDPOINT,
-				Usage: "Specifies the endpoint of the Nitro RPC server",
-				Value: "localhost:4007/api/v1",
+				Name:    NITRO_ENDPOINT,
+				Usage:   "Specifies the endpoint of the Nitro RPC server to connect to. This should be in the form 'host:port/api/v1'",
+				Value:   "localhost:4007/api/v1",
+				Aliases: []string{"n"},
 			},
 			&cli.StringFlag{
-				Name:  DESTINATION_URL,
-				Usage: "Specifies the url to forward requests to",
-				Value: "http://localhost:8081",
+				Name:    DESTINATION_URL,
+				Usage:   "Specifies the destination URL to forward requests to. It should be a fully qualified URL, including the protocol (e.g. http://localhost:8081)",
+				Value:   "http://localhost:8081",
+				Aliases: []string{"d"},
 			},
 		},
 		Action: func(c *cli.Context) error {
-			proxyPort := c.Uint(PORT)
+			proxyEndpoint := c.String(PROXY_ADDRESS)
 			nitroEndpoint := c.String(NITRO_ENDPOINT)
 
 			// For now we just log to stdout
 			logger := zerolog.New(os.Stdout).Level(zerolog.DebugLevel)
 
 			p := reverseproxy.NewReversePaymentProxy(
-				proxyPort,
+				proxyEndpoint,
 				nitroEndpoint,
 				c.String(DESTINATION_URL),
 				logger)

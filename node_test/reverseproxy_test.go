@@ -25,7 +25,7 @@ const (
 	destinationServerResponseBody = "Hello! This is from the destination server"
 	parseErrorResponseBody        = "could not parse voucher"
 	signatureErrorResponseBody    = "error processing voucher"
-	proxyPort                     = 5511
+	proxyAddress                  = ":5511"
 	bobRPCUrl                     = ":4107/api/v1"
 	destPort                      = 6622
 	otherParam                    = "otherParam"
@@ -49,7 +49,7 @@ func TestReversePaymentProxy(t *testing.T) {
 
 	// Create a ReversePaymentProxy with the test destination server URL
 	proxy := reverseproxy.NewReversePaymentProxy(
-		proxyPort,
+		proxyAddress,
 		bobRPCUrl,
 		destinationServerUrl,
 		zerolog.New(logDestination).Level(zerolog.DebugLevel))
@@ -67,20 +67,20 @@ func TestReversePaymentProxy(t *testing.T) {
 
 	voucher := createVoucher(t, aliceClient, paymentChannel, 5)
 
-	resp := performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
+	resp := performGetRequest(t, fmt.Sprintf("http://%s/resource?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
 	checkResponse(t, resp, destinationServerResponseBody, http.StatusOK)
 
 	// Using the same voucher again should result in a payment required response
-	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
+	resp = performGetRequest(t, fmt.Sprintf("http://%s/resource?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
 	checkResponse(t, resp, expectedPaymentErrorMessage(0), http.StatusPaymentRequired)
 
 	// Not providing a voucher should result in a payment required response
-	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource", proxyPort))
+	resp = performGetRequest(t, fmt.Sprintf("http://%s/resource", proxyAddress))
 	checkResponse(t, resp, parseErrorResponseBody, http.StatusPaymentRequired)
 
 	// A voucher less than 5 should be rejected
 	voucher = createVoucher(t, aliceClient, paymentChannel, 4)
-	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, voucher.ChannelId, voucher.Amount.Uint64(), voucher.Signature.ToHexString()))
+	resp = performGetRequest(t, fmt.Sprintf("http://%s/resource?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Uint64(), voucher.Signature.ToHexString()))
 	checkResponse(t, resp, expectedPaymentErrorMessage(4), http.StatusPaymentRequired)
 
 	// A voucher with a bad signature should be rejected
@@ -89,17 +89,17 @@ func TestReversePaymentProxy(t *testing.T) {
 	voucher.Signature.S[3] = 0
 	voucher.Signature.R[3] = 127
 
-	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource?channelId=%s&amount=%d&signature=%s", proxyPort, voucher.ChannelId, voucher.Amount.Uint64(), voucher.Signature.ToHexString()))
+	resp = performGetRequest(t, fmt.Sprintf("http://%s/resource?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Uint64(), voucher.Signature.ToHexString()))
 	checkResponse(t, resp, signatureErrorResponseBody, http.StatusPaymentRequired)
 
 	// Check that the proxy can handle non voucher params and pass them along to the destination server
 	voucher = createVoucher(t, aliceClient, paymentChannel, 5)
-	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/resource/params?channelId=%s&amount=%d&signature=%s&otherParam=2", proxyPort, voucher.ChannelId, voucher.Amount, voucher.Signature.ToHexString()))
+	resp = performGetRequest(t, fmt.Sprintf("http://%s/resource/params?channelId=%s&amount=%d&signature=%s&otherParam=2", proxyAddress, voucher.ChannelId, voucher.Amount, voucher.Signature.ToHexString()))
 	checkResponse(t, resp, destinationServerResponseBody, http.StatusOK)
 
 	// It should properly handle a request to a non existent endpoint
 	voucher = createVoucher(t, aliceClient, paymentChannel, 5)
-	resp = performGetRequest(t, fmt.Sprintf("http://localhost:%d/badpath?channelId=%s&amount=%d&signature=%s", proxyPort, voucher.ChannelId, voucher.Amount.Uint64(), voucher.Signature.ToHexString()))
+	resp = performGetRequest(t, fmt.Sprintf("http://%s/badpath?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Uint64(), voucher.Signature.ToHexString()))
 	checkResponse(t, resp, "", http.StatusNotFound)
 }
 
