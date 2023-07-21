@@ -179,7 +179,7 @@ func main() {
 				return err
 			}
 
-			hostNitroUI(uint(guiPort))
+			hostNitroUI(uint(guiPort), uint(rpcPort))
 
 			stopChan := make(chan os.Signal, 2)
 			signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
