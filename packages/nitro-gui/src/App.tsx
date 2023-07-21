@@ -29,16 +29,24 @@ async function getRpcPort(): Promise<string> {
   });
 }
 
+async function getRpcHost(): Promise<string> {
+  if (import.meta.env.VITE_RPC_HOST) {
+    return import.meta.env.VITE_RPC_HOST;
+  } else {
+    return getRpcPort().then(
+      (rpcPort) => window.location.hostname + ":" + rpcPort
+    );
+  }
+}
+
 function App() {
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
   const [ledgerChannels, setLedgerChannels] = useState<LedgerChannelInfo[]>([]);
   const [focusedLedgerChannel, setFocusedLedgerChannel] = useState<string>("");
 
   useEffect(() => {
-    getRpcPort().then((rpcPort) => {
-      NitroRpcClient.CreateHttpNitroClient(
-        window.location.hostname + ":" + rpcPort + "/api/v1"
-      ).then((c) => {
+    getRpcHost().then((rpcHost) => {
+      NitroRpcClient.CreateHttpNitroClient(rpcHost + "/api/v1").then((c) => {
         setNitroClient(c);
         fetchAndSetLedgerChannels(c, setLedgerChannels);
         c.Notifications.on("objective_completed", () =>
