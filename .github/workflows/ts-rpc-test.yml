@@ -19,11 +19,11 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
-      - name: Run go-nitro RPC servers
-        run: go run ./cmd/start-rpc-servers &> output.log &
-
       - name: Install dependencies
         run: yarn
+
+      - name: Run go-nitro RPC servers with GUI
+        run: go run ./cmd/start-rpc-servers -ui=true &> output.log &
 
       - name: Run Create Channels script
         # TODO: We could write a test specific script that creates channels and checks the results
