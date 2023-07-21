@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/big"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,9 +14,10 @@ import (
 )
 
 const (
-	NITRO_ENDPOINT  = "nitroendpoint"
-	PROXY_ADDRESS   = "proxyaddress"
-	DESTINATION_URL = "destinationurl"
+	NITRO_ENDPOINT          = "nitroendpoint"
+	PROXY_ADDRESS           = "proxyaddress"
+	DESTINATION_URL         = "destinationurl"
+	EXPECTED_PAYMENT_AMOUNT = "expectedpaymentamount"
 )
 
 func main() {
@@ -41,6 +43,12 @@ func main() {
 				Value:   "http://localhost:8081",
 				Aliases: []string{"d"},
 			},
+			&cli.Uint64Flag{
+				Name:    EXPECTED_PAYMENT_AMOUNT,
+				Usage:   "Specifies the amount of wei that the proxy expects to receive for each request from the voucher",
+				Value:   5,
+				Aliases: []string{"e"},
+			},
 		},
 		Action: func(c *cli.Context) error {
 			proxyEndpoint := c.String(PROXY_ADDRESS)
@@ -53,6 +61,7 @@ func main() {
 				proxyEndpoint,
 				nitroEndpoint,
 				c.String(DESTINATION_URL),
+				big.NewInt(c.Int64(EXPECTED_PAYMENT_AMOUNT)),
 				logger)
 
 			return p.Start()

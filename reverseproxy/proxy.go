@@ -25,15 +25,15 @@ const (
 
 // ReversePaymentProxy is an HTTP proxy that charges for HTTP requests.
 type ReversePaymentProxy struct {
-	server      *http.Server
-	nitroClient *rpc.RpcClient
-
-	reverseProxy *httputil.ReverseProxy
-	logger       zerolog.Logger
+	server                *http.Server
+	nitroClient           *rpc.RpcClient
+	expectedPaymentAmount *big.Int
+	reverseProxy          *httputil.ReverseProxy
+	logger                zerolog.Logger
 }
 
 // NewReversePaymentProxy creates a new ReversePaymentProxy.
-func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, logger zerolog.Logger) *ReversePaymentProxy {
+func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, expectedPaymentAmount *big.Int, logger zerolog.Logger) *ReversePaymentProxy {
 	server := &http.Server{Addr: proxyAddress}
 
 	nitroClient, err := rpc.NewHttpRpcClient(nitroEndpoint)
@@ -49,10 +49,11 @@ func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinati
 	proxy := httputil.NewSingleHostReverseProxy(destinationUrl)
 
 	return &ReversePaymentProxy{
-		server:       server,
-		logger:       logger,
-		nitroClient:  nitroClient,
-		reverseProxy: proxy,
+		server:                server,
+		logger:                logger,
+		nitroClient:           nitroClient,
+		reverseProxy:          proxy,
+		expectedPaymentAmount: expectedPaymentAmount,
 	}
 }
 
@@ -63,7 +64,8 @@ func (p *ReversePaymentProxy) Start() error {
 	p.server.Handler = p
 
 	go func() {
-		p.logger.Info().Msgf("Starting reverse payment proxy listening on %s", p.server.Addr)
+		p.logger.Info().Msgf("Starting reverse payment proxy listening on %s.", p.server.Addr)
+		p.logger.Info().Msgf("Each request will cost %d wei", p.expectedPaymentAmount.Uint64())
 		if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
 			p.logger.Err(err).Msg("ListenAndServe()")
 		}
@@ -88,8 +90,6 @@ func (p *ReversePaymentProxy) Stop() error {
 // It then passes the voucher to the nitro client to process.
 // Based on the amount added by the voucher, it either forwards the request to the destination server or returns an error.
 func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// This the payment we expect to receive for the file.
-	const expectedPayment = int64(5)
 	p.logger.Debug().Msgf("Incoming request URL %s", r.URL.String())
 	params, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
@@ -112,8 +112,8 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	p.logger.Debug().Msgf("Received voucher with delta %d", s.Delta.Uint64())
 	// s.Delta is amount our balance increases by adding this voucher
 	// AKA the payment amount we received in the request for this file
-	if s.Delta.Cmp(big.NewInt(expectedPayment)) < 0 {
-		p.webError(w, fmt.Errorf("payment of %d required, the voucher only resulted in a payment of %d", expectedPayment, s.Delta.Uint64()), http.StatusPaymentRequired)
+	if s.Delta.Cmp(p.expectedPaymentAmount) < 0 {
+		p.webError(w, fmt.Errorf("payment of %d required, the voucher only resulted in a payment of %d", p.expectedPaymentAmount.Uint64(), s.Delta.Uint64()), http.StatusPaymentRequired)
 		return
 	}
 

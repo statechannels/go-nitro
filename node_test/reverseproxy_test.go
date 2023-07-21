@@ -3,6 +3,7 @@ package node_test
 import (
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"net/url"
 	"os"
@@ -52,6 +53,7 @@ func TestReversePaymentProxy(t *testing.T) {
 		proxyAddress,
 		bobRPCUrl,
 		destinationServerUrl,
+		big.NewInt(5),
 		zerolog.New(logDestination).Level(zerolog.DebugLevel))
 	defer func() {
 		err := proxy.Stop()
