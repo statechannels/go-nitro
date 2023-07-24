@@ -44,9 +44,15 @@ func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinati
 	if err != nil {
 		panic(err)
 	}
-
 	// Creates a reverse proxy that will handle forwarding requests to the destination server
-	proxy := httputil.NewSingleHostReverseProxy(destinationUrl)
+
+	proxy := &httputil.ReverseProxy{
+		Rewrite: func(r *httputil.ProxyRequest) {
+			// SetURL updates the URL and will update the host header with the proxy
+			// This avoids problems with servers that check the host header against the requestor
+			r.SetURL(destinationUrl)
+		},
+	}
 
 	return &ReversePaymentProxy{
 		server:                server,
