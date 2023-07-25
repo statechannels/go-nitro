@@ -17,7 +17,7 @@ import (
 
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
-	"github.com/statechannels/go-nitro/reverseproxy"
+	"github.com/statechannels/go-nitro/node/reverseproxy"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -44,7 +44,7 @@ func TestReversePaymentProxy(t *testing.T) {
 	paymentChannel := createChannelData(t, aliceClient, ireneClient, bobClient)
 
 	// Startup a simple http server that will be used as the destination server
-	// It serves a simple text response and on two endpoints `resourceWithParams`` and `resource``
+	// It serves a simple text response and on two endpoints `resourceWithParams` and `resource``
 	destinationServerUrl, cleanupDestServer := runDestinationServer(t, destPort)
 	defer cleanupDestServer()
 
